@@ -1,0 +1,181 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   Democracy Together — design tokens
+   Portés à l'identique depuis design/rmdl-style-guide.html
+   - Light = :root (univers institutionnel / indigo par défaut)
+   - Univers : [data-universe="jeunes"] -> accent safran
+   - Thème  : [data-theme="dark"]
+   Seul l'accent change entre univers ; l'ossature neutre est partagée.
+   ============================================================ */
+:root {
+  /* neutres / papier / encre */
+  --paper: #f4f2ec;
+  --surface: #fbfaf5;
+  --surface-2: #efede4;
+  --ink: #16191f;
+  --ink-soft: #454953;
+  --muted: #646771;
+  --line: #d9d6cd;
+  --line-strong: #c3bfb3;
+
+  /* accent — institutionnel (indigo civique) */
+  --accent: #1f3d6e;
+  --accent-strong: #16305a;
+  --accent-text: #1f3d6e;
+  --accent-contrast: #ffffff;
+  --accent-tint: rgba(31, 61, 110, 0.08);
+  --accent-edge: rgba(31, 61, 110, 0.22);
+
+  /* baromètre — échelle divergente, lisible au daltonisme (jamais rouge/vert seuls) */
+  --bar-1: #2e6e8e;
+  --bar-2: #7ba7b0;
+  --bar-3: #e0b85c;
+  --bar-4: #cc8748;
+  --bar-5: #9a4b3b;
+
+  /* carte choroplèthe */
+  --map-land: #dedad0;
+  --map-stroke: #efede4;
+
+  /* layout */
+  --measure: 66ch;
+  --max: 1200px;
+
+  /* espacement (base 4px) */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s5: 24px;
+  --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px; --s10: 128px;
+
+  /* rayons */
+  --r-xs: 2px; --r-sm: 4px; --r-md: 6px; --r-pill: 999px;
+
+  /* élévation (teintée encre, jamais noir pur) */
+  --shadow-1: 0 1px 2px rgba(22, 25, 31, 0.06), 0 1px 1px rgba(22, 25, 31, 0.04);
+  --shadow-2: 0 2px 8px rgba(22, 25, 31, 0.07), 0 8px 24px rgba(22, 25, 31, 0.06);
+
+  /* familles (next/font expose --font-newsreader / --font-plex-sans / --font-plex-mono) */
+  --ff-display: var(--font-newsreader), Georgia, 'Times New Roman', serif;
+  --ff-body: var(--font-plex-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ff-data: var(--font-plex-mono), ui-monospace, 'SF Mono', monospace;
+}
+
+/* univers jeunes — safran (seul l'accent bascule) */
+[data-universe='jeunes'] {
+  --accent: #db8a34;
+  --accent-strong: #c2771f;
+  --accent-text: #8f5510;
+  --accent-contrast: var(--paper);
+  --accent-tint: rgba(219, 138, 52, 0.14);
+  --accent-edge: rgba(219, 138, 52, 0.35);
+}
+
+/* sombre */
+[data-theme='dark'] {
+  --paper: #14171c;
+  --surface: #1c2027;
+  --surface-2: #23272f;
+  --ink: #eceae3;
+  --ink-soft: #b4b7be;
+  --muted: #8b8e96;
+  --line: #2b313a;
+  --line-strong: #3a414c;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --map-land: #2a303a;
+  --map-stroke: #14171c;
+
+  --accent: #3a63a6;
+  --accent-strong: #4b74b8;
+  --accent-text: #8fb0e0;
+  --accent-contrast: #ffffff;
+  --accent-tint: rgba(126, 163, 217, 0.14);
+  --accent-edge: rgba(126, 163, 217, 0.3);
+}
+
+[data-theme='dark'][data-universe='jeunes'] {
+  --accent: #db8a34;
+  --accent-strong: #e8a85a;
+  --accent-text: #e8a85a;
+  --accent-contrast: var(--paper);
+  --accent-tint: rgba(232, 168, 90, 0.16);
+  --accent-edge: rgba(232, 168, 90, 0.34);
+}
+
+/* ---- Mapping Tailwind v4 : expose les tokens en utilities ----
+   `inline` => les utilities émettent var(--token), donc elles suivent
+   le basculement thème/univers en CSS pur. */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-text: var(--accent-text);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-edge: var(--accent-edge);
+
+  --color-bar-1: var(--bar-1);
+  --color-bar-2: var(--bar-2);
+  --color-bar-3: var(--bar-3);
+  --color-bar-4: var(--bar-4);
+  --color-bar-5: var(--bar-5);
+
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-pill: var(--r-pill);
+
+  --shadow-card: var(--shadow-1);
+  --shadow-pop: var(--shadow-2);
+
+  --font-sans: var(--ff-body);
+  --font-display: var(--ff-display);
+  --font-mono: var(--ff-data);
+}
+
+/* ---- base ---- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--ff-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--ff-display);
+    font-weight: 500;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  ::selection {
+    background: var(--accent-tint);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent-text);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

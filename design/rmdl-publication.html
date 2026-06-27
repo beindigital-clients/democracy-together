@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>L'état de la démocratie entre l'Afrique et l'Europe · Democracy Together</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --paper:#F4F2EC; --surface:#FBFAF5; --surface-2:#EFEDE4;
+  --ink:#16191F; --ink-soft:#454953; --muted:#646771;
+  --line:#D9D6CD; --line-strong:#C3BFB3;
+  --bar-1:#2E6E8E; --bar-3:#E0B85C;
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  --shadow-1:0 1px 2px rgba(22,25,31,.06), 0 1px 1px rgba(22,25,31,.04);
+  --shadow-2:0 2px 8px rgba(22,25,31,.07), 0 8px 24px rgba(22,25,31,.06);
+  --font-display:"Newsreader", Georgia, serif;
+  --font-sans:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, monospace;
+  --measure:68ch; --max:1180px;
+  --accent:#1F3D6E; --accent-strong:#16305A; --accent-text:#1F3D6E;
+  --accent-contrast:#FFFFFF; --accent-tint:rgba(31,61,110,.08); --accent-edge:rgba(31,61,110,.22);
+}
+[data-theme="dark"]{
+  --paper:#14171C; --surface:#1C2027; --surface-2:#23272F;
+  --ink:#ECEAE3; --ink-soft:#B4B7BE; --muted:#8B8E96;
+  --line:#2B313A; --line-strong:#3A414C;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.45);
+  --accent:#3A63A6; --accent-strong:#4B74B8; --accent-text:#8FB0E0;
+  --accent-contrast:#FFFFFF; --accent-tint:rgba(126,163,217,.14); --accent-edge:rgba(126,163,217,.30);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-sans);background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:500;line-height:1.14;letter-spacing:-.015em;margin:0}
+p{margin:0}
+a{color:var(--accent-text);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-xs)}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--s5)}
+.meta{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-size:14.5px;font-weight:600;line-height:1;padding:12px 18px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s;width:100%}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:var(--accent-contrast)}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn-secondary:hover{border-color:var(--ink);background:var(--accent-tint)}
+.btn-ghost{background:transparent;color:var(--accent-text);border-color:transparent}
+.btn-ghost:hover{background:var(--accent-tint)}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:var(--r-pill);background:var(--accent-tint);color:var(--accent-text);border:1px solid var(--accent-edge)}
+.badge{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:4px 9px;border-radius:var(--r-pill);border:1px solid color-mix(in srgb,var(--bar-1) 40%,transparent);color:var(--bar-1)}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:60;height:72px;display:flex;align-items:center;gap:var(--s6);padding:0 var(--s5);background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line)}
+.nav .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.03em;color:var(--ink);text-decoration:none}
+.seal{width:30px;height:30px}.seal *{vector-effect:non-scaling-stroke}
+.nav .links{display:flex;gap:var(--s5);margin-left:var(--s4)}
+.nav .links a{font-size:14.5px;font-weight:500;color:var(--ink-soft);text-decoration:none}
+.nav .links a.active{color:var(--ink);font-weight:600}
+.nav .right{margin-left:auto;display:flex;gap:var(--s4);align-items:center}
+.theme-toggle{font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);border-radius:var(--r-sm);padding:7px 11px;cursor:pointer}
+@media(max-width:900px){.nav .links{display:none}}
+
+/* en-tête publication */
+.crumb{font-size:13px;color:var(--muted);padding:var(--s6) 0 0}
+.crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--ink)}
+.pubhead{padding:var(--s5) 0 var(--s7);border-bottom:1px solid var(--line)}
+.pubhead .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:var(--s4)}
+.pubhead h1{font-size:clamp(30px,4.2vw,48px);max-width:22ch}
+.pubhead .by{margin-top:var(--s5);font-size:15px;color:var(--ink-soft)}
+.pubhead .by b{color:var(--ink);font-weight:600}
+.pubhead .sub{margin-top:6px;font-size:14px;color:var(--muted)}
+
+/* corps */
+.layout{display:grid;grid-template-columns:1fr 340px;gap:var(--s8);padding:var(--s7) 0 var(--s9)}
+.article h2{font-size:24px;margin:var(--s7) 0 var(--s4)}
+.article h2:first-child{margin-top:0}
+.abstract{font-family:var(--font-display);font-size:21px;line-height:1.5;color:var(--ink);max-width:var(--measure)}
+.article p{font-size:16.5px;line-height:1.7;color:var(--ink-soft);max-width:var(--measure);margin-bottom:var(--s4)}
+.article .body p{font-family:var(--font-display);font-size:18px;color:var(--ink)}
+.keypoints{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--s3)}
+.keypoints li{position:relative;padding-left:26px;font-size:16px;color:var(--ink-soft);max-width:var(--measure)}
+.keypoints li:before{content:"";position:absolute;left:0;top:9px;width:9px;height:9px;border-radius:50%;background:var(--accent)}
+figure{margin:var(--s6) 0}
+figure img{border:1px solid var(--line);border-radius:var(--r-sm);width:100%}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+.cite{margin-top:var(--s7);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);overflow:hidden}
+.cite .ch{display:flex;align-items:center;gap:var(--s3);padding:var(--s4) var(--s5);border-bottom:1px solid var(--line)}
+.cite .ch h3{font-size:16px;font-family:var(--font-sans);font-weight:700}
+.cite .seg{margin-left:auto;display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--r-sm);overflow:hidden}
+.cite .seg button{font-family:var(--font-sans);font-size:12.5px;font-weight:600;padding:6px 11px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer}
+.cite .seg button.on{background:var(--accent);color:var(--accent-contrast)}
+.cite .cbody{padding:var(--s5)}
+.cite pre{margin:0;font-family:var(--font-mono);font-size:12.5px;line-height:1.55;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.cite .cact{display:flex;gap:var(--s3);margin-top:var(--s4)}
+.copybtn{font-family:var(--font-sans);font-size:13px;font-weight:600;padding:8px 13px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:transparent;color:var(--ink);cursor:pointer}
+.copybtn:hover{background:var(--accent-tint);border-color:var(--accent-edge)}
+
+.authors{display:flex;gap:var(--s5);flex-wrap:wrap;margin-top:var(--s7);padding-top:var(--s6);border-top:1px solid var(--line)}
+.author{display:flex;gap:var(--s3);align-items:center}
+.author .av{width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+.author .mono{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-tint);color:var(--accent-text);font-weight:600;font-family:var(--font-mono)}
+.author b{font-size:14.5px}.author span{display:block;font-size:12.5px;color:var(--muted)}
+
+/* sidebar */
+.side{align-self:start;position:sticky;top:88px;display:flex;flex-direction:column;gap:var(--s5)}
+.panel{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);padding:var(--s5)}
+.actions{display:flex;flex-direction:column;gap:var(--s3)}
+.doi{display:flex;align-items:center;gap:8px;margin-top:var(--s4);font-family:var(--font-mono);font-size:12px;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px}
+.doi span{overflow:hidden;text-overflow:ellipsis}
+.doi button{margin-left:auto;font-family:var(--font-sans);font-size:11px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-xs);padding:3px 7px;cursor:pointer;color:var(--ink-soft)}
+.panel h3{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:var(--s4)}
+.dl{display:flex;flex-direction:column;gap:0}
+.dl .r{display:flex;justify-content:space-between;gap:var(--s4);padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.dl .r:first-child{border-top:0}
+.dl .k{color:var(--muted)}.dl .v{color:var(--ink);text-align:right;font-weight:500}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3)}
+.metrics .m{text-align:center}
+.metrics .n{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--ink)}
+.metrics .l{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* liées */
+.related{padding:var(--s8) 0 var(--s9);border-top:1px solid var(--line)}
+.related h2{font-size:26px;margin-bottom:var(--s6)}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s5)}
+.rcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;text-decoration:none;color:inherit;transition:box-shadow .18s,transform .18s}
+.rcard:hover{box-shadow:var(--shadow-2);transform:translateY(-2px)}
+.rcard img{aspect-ratio:16/10;object-fit:cover;width:100%;background:var(--surface-2)}
+.rcard .b{padding:var(--s4)}
+.rcard h4{font-family:var(--font-display);font-size:17px;font-weight:500;line-height:1.25;margin:6px 0 0}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:var(--paper);font-size:13px;padding:9px 16px;border-radius:var(--r-sm);box-shadow:var(--shadow-2);opacity:0;transition:opacity .15s,transform .15s;pointer-events:none;z-index:90}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+.foot{background:var(--ink);color:#cfd2d8}
+[data-theme="dark"] .foot{background:#0E1116}
+.foot .wrap{padding:var(--s7) var(--s5)}
+.foot .fb{display:flex;justify-content:space-between;gap:var(--s4);flex-wrap:wrap;font-size:12.5px;color:#8b909a}
+
+@media(max-width:880px){.layout{grid-template-columns:1fr;gap:var(--s6)}.side{position:static}.rgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="rmdl-accueil.html">
+    <svg class="seal" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15.5" stroke="var(--accent)" stroke-width="1.5"/><path d="M2.5 17 H31.5" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/><circle cx="11" cy="11" r="2.4" fill="var(--accent)"/><circle cx="23" cy="22" r="2.4" fill="var(--accent)"/><line x1="11" y1="11" x2="23" y2="22" stroke="var(--accent)" stroke-width="1.2"/></svg>
+    Democracy Together
+  </a>
+  <div class="links">
+    <a href="rmdl-a-propos.html">Le réseau</a><a href="rmdl-bibliotheque.html" class="active">Analyses</a><a href="#">Baromètre</a><a href="rmdl-evenements.html">Événements</a><a href="#">Jeunes</a>
+  </div>
+  <div class="right">
+    <button class="theme-toggle" id="themeBtn">Thème</button>
+    <a class="btn btn-primary" style="width:auto" href="#">Rejoindre</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="crumb"><a href="rmdl-accueil.html">Accueil</a> / <a href="rmdl-bibliotheque.html">Bibliothèque</a> / Transitions démocratiques</div>
+</div>
+
+<header class="pubhead">
+  <div class="wrap">
+    <div class="top">
+      <span class="meta">Rapport annuel</span>
+      <span class="tag">Transitions démocratiques</span>
+      <span class="badge">Accès ouvert</span>
+    </div>
+    <h1>L'état de la démocratie entre l'Afrique et l'Europe</h1>
+    <p class="by">Par <b>Aminata Wade</b> et <b>Pieter Vandenberghe</b></p>
+    <p class="sub">Publié le 14 mai 2026 · 88 pages · Français, Anglais · DOI 10.59000/dt.2026.100</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+    <!-- ARTICLE -->
+    <article class="article">
+      <h2>Résumé</h2>
+      <p class="abstract">Une lecture croisée des trajectoires démocratiques de deux continents dont les destins sont liés. Fondé sur les contributions de trente-huit think tanks membres, ce premier rapport annuel propose un état des lieux partagé et une grille de lecture commune pour l'Afrique et l'Europe.</p>
+
+      <h2>Points clés</h2>
+      <ul class="keypoints">
+        <li>Les reculs démocratiques observés sur les deux continents partagent des mécanismes communs, mais appellent des réponses ancrées dans chaque contexte.</li>
+        <li>La confiance institutionnelle, plus que le seul cadre légal, prédit la résilience d'une démocratie face aux chocs.</li>
+        <li>L'implication des moins de 35 ans reste sous-exploitée comme levier de renouvellement démocratique.</li>
+        <li>Une coopération structurée entre think tanks africains et européens accélère la circulation des solutions éprouvées.</li>
+      </ul>
+
+      <figure>
+        <img src="assets/parliament.jpg" alt="Hémicycle parlementaire" />
+        <figcaption>Illustration. La résilience démocratique se joue autant dans les institutions que dans la confiance qu'elles inspirent.</figcaption>
+      </figure>
+
+      <h2>Extrait</h2>
+      <div class="body">
+        <p>Penser la démocratie entre l'Afrique et l'Europe suppose d'abord de renoncer à un récit unique. Les deux continents ne suivent pas la même trajectoire, et l'un n'est pas le futur ou le passé de l'autre. Ils affrontent pourtant des pressions convergentes : défiance envers les institutions, fragmentation de l'espace public, instrumentalisation du numérique.</p>
+        <p>Ce rapport fait le pari d'une grille de lecture partagée. Plutôt que de classer les pays, il cherche à comprendre ce qui rend une démocratie capable d'absorber un choc sans se renier. La donnée y sert l'analyse, jamais le verdict.</p>
+      </div>
+
+      <!-- Citation -->
+      <section class="cite" id="cite">
+        <div class="ch">
+          <h3>Citer cette publication</h3>
+          <div class="seg" role="group" aria-label="Format de citation">
+            <button class="on" data-fmt="apa">APA</button><button data-fmt="bibtex">BibTeX</button>
+          </div>
+        </div>
+        <div class="cbody">
+          <pre id="citetext"></pre>
+          <div class="cact">
+            <button class="copybtn" id="copycite">Copier la citation</button>
+            <button class="copybtn" id="exportris">Exporter en RIS</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Auteurs -->
+      <div class="authors">
+        <div class="author">
+          <img class="av" src="assets/avatar.jpg" alt="" />
+          <div><b>Aminata Wade</b><span>Chercheuse · Dakar</span></div>
+        </div>
+        <div class="author">
+          <div class="mono" aria-hidden="true">PV</div>
+          <div><b>Pieter Vandenberghe</b><span>Analyste · Bruxelles</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="panel">
+        <div class="actions">
+          <a class="btn btn-primary" href="#">Télécharger le PDF</a>
+          <a class="btn btn-secondary" href="#">Lire en ligne</a>
+          <button class="btn btn-ghost" id="citebtn">Citer</button>
+        </div>
+        <div class="doi"><span>doi.org/10.59000/dt.2026.100</span><button id="copydoi">Copier</button></div>
+      </div>
+
+      <div class="panel">
+        <h3>Métadonnées</h3>
+        <div class="dl">
+          <div class="r"><span class="k">Type</span><span class="v">Rapport annuel</span></div>
+          <div class="r"><span class="k">Publication</span><span class="v">14 mai 2026</span></div>
+          <div class="r"><span class="k">Langues</span><span class="v">FR, EN</span></div>
+          <div class="r"><span class="k">Région</span><span class="v">Afrique, Europe</span></div>
+          <div class="r"><span class="k">Thématique</span><span class="v">Transitions démocratiques</span></div>
+          <div class="r"><span class="k">Pages</span><span class="v">88</span></div>
+          <div class="r"><span class="k">Licence</span><span class="v">CC BY 4.0</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Mesure d'impact</h3>
+        <div class="metrics">
+          <div class="m"><div class="n">4 210</div><div class="l">Vues</div></div>
+          <div class="m"><div class="n">1 842</div><div class="l">Télécharg.</div></div>
+          <div class="m"><div class="n">31</div><div class="l">Citations</div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<!-- LIEES -->
+<section class="related">
+  <div class="wrap">
+    <h2>Dans la même thématique</h2>
+    <div class="rgrid">
+      <a class="rcard" href="rmdl-publication.html"><img src="assets/paris.jpg" alt="" loading="lazy"><div class="b"><div class="meta">Policy brief · Mars 2026</div><h4>Élections sous tension : défendre l'intégrité du scrutin</h4></div></a>
+      <a class="rcard" href="rmdl-publication.html"><img src="assets/justice.jpg" alt="" loading="lazy"><div class="b"><div class="meta">Jeu de données · Juin 2025</div><h4>Transitions post-autoritaires : ce que disent les données</h4></div></a>
+      <a class="rcard" href="rmdl-publication.html"><img src="assets/hero-home.jpg" alt="" loading="lazy"><div class="b"><div class="meta">Rapport · Mai 2025</div><h4>Confiance institutionnelle : enquête comparée Afrique-Europe</h4></div></a>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="fb">
+      <span>Democracy Together · Association loi 1901</span>
+      <span>Mentions légales · Confidentialité · Accessibilité</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast">Copié</div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    root.setAttribute('data-theme', root.getAttribute('data-theme')==='dark'?'light':'dark');
+  });
+
+  var APA="Wade, A. et Vandenberghe, P. (2026). L'état de la démocratie entre l'Afrique et l'Europe. Democracy Together. https://doi.org/10.59000/dt.2026.100";
+  var BIB="@techreport{dt2026etat,\n  author = {Wade, Aminata and Vandenberghe, Pieter},\n  title  = {L'état de la démocratie entre l'Afrique et l'Europe},\n  institution = {Democracy Together},\n  year   = {2026},\n  doi    = {10.59000/dt.2026.100}\n}";
+  var citetext=document.getElementById('citetext');
+  function setFmt(f){ citetext.textContent = f==='bibtex'?BIB:APA;
+    document.querySelectorAll('.cite .seg button').forEach(function(b){b.classList.toggle('on', b.dataset.fmt===f);});
+  }
+  setFmt('apa');
+  document.querySelectorAll('.cite .seg button').forEach(function(b){b.addEventListener('click',function(){setFmt(b.dataset.fmt);});});
+
+  var toast=document.getElementById('toast'), tt;
+  function flash(msg){ toast.textContent=msg; toast.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){toast.classList.remove('on');},1400); }
+  function copy(txt,msg){ if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){flash(msg);},function(){flash('Copie indisponible');});} else {flash('Copie indisponible');} }
+
+  document.getElementById('copydoi').addEventListener('click',function(){copy('https://doi.org/10.59000/dt.2026.100','DOI copié');});
+  document.getElementById('copycite').addEventListener('click',function(){copy(citetext.textContent,'Citation copiée');});
+  document.getElementById('exportris').addEventListener('click',function(){
+    var ris="TY  - RPRT\nAU  - Wade, Aminata\nAU  - Vandenberghe, Pieter\nTI  - L'état de la démocratie entre l'Afrique et l'Europe\nPY  - 2026\nPB  - Democracy Together\nDO  - 10.59000/dt.2026.100\nER  -";
+    copy(ris,'Format RIS copié');
+  });
+  document.getElementById('citebtn').addEventListener('click',function(){
+    document.getElementById('cite').scrollIntoView({behavior:'smooth',block:'center'});
+  });
+})();
+</script>
+</body>
+</html>

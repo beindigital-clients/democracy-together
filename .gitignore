@@ -1,0 +1,32 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# tooling indexes (local only — contain sockets; must be excluded from Tailwind scan)
+.codegraph/
+.gstack/
+
+# next.js
+.next
+out
+build
+
+# production / misc
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+.vercel
+
+# env
+.env
+.env*.local
+
+# convex (generated types are produced by `convex dev`/`convex codegen`)
+# kept out of VCS until first deploy; re-generated on demand
+
+# tests
+/test-results
+/playwright-report
+/playwright/.cache
+/coverage
+/screenshots

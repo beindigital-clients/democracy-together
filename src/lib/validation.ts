@@ -1,0 +1,8 @@
+// Validation partagée — côté client (Next). L'équivalent serveur vit dans
+// convex/lib/validation.ts (la frontière Convex/Next interdit un module unique :
+// garder les deux synchrones).
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isEmail(value: string): boolean {
+  return EMAIL_RE.test(value.trim());
+}

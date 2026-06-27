@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bibliothèque · Democracy Together</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ===== TOKENS (design system Democracy Together) ===== */
+:root{
+  --paper:#F4F2EC; --surface:#FBFAF5; --surface-2:#EFEDE4;
+  --ink:#16191F; --ink-soft:#454953; --muted:#646771;
+  --line:#D9D6CD; --line-strong:#C3BFB3;
+  --bar-1:#2E6E8E; --bar-2:#7BA7B0; --bar-3:#E0B85C; --bar-4:#CC8748; --bar-5:#9A4B3B;
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  --shadow-1:0 1px 2px rgba(22,25,31,.06), 0 1px 1px rgba(22,25,31,.04);
+  --shadow-2:0 2px 8px rgba(22,25,31,.07), 0 8px 24px rgba(22,25,31,.06);
+  --font-display:"Newsreader", Georgia, serif;
+  --font-sans:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, monospace;
+  --measure:66ch; --max:1240px;
+  --accent:#1F3D6E; --accent-strong:#16305A; --accent-text:#1F3D6E;
+  --accent-contrast:#FFFFFF; --accent-tint:rgba(31,61,110,.08); --accent-edge:rgba(31,61,110,.22);
+}
+[data-theme="dark"]{
+  --paper:#14171C; --surface:#1C2027; --surface-2:#23272F;
+  --ink:#ECEAE3; --ink-soft:#B4B7BE; --muted:#8B8E96;
+  --line:#2B313A; --line-strong:#3A414C;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.45);
+  --accent:#3A63A6; --accent-strong:#4B74B8; --accent-text:#8FB0E0;
+  --accent-contrast:#FFFFFF; --accent-tint:rgba(126,163,217,.14); --accent-edge:rgba(126,163,217,.30);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-sans);background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:500;line-height:1.12;letter-spacing:-.015em;margin:0}
+p{margin:0}
+a{color:var(--accent-text);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-xs)}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--s5)}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lead{font-size:18px;color:var(--ink-soft)}
+.meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* boutons / tags */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-size:14.5px;font-weight:600;line-height:1;padding:11px 18px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:var(--accent-contrast)}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn-secondary:hover{border-color:var(--ink);background:var(--accent-tint)}
+.btn-ghost{background:transparent;color:var(--accent-text);padding:11px 4px}
+.btn-sm{padding:8px 13px;font-size:13px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line)}
+.tag-accent{background:var(--accent-tint);color:var(--accent-text);border-color:var(--accent-edge)}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:60;height:72px;display:flex;align-items:center;gap:var(--s6);padding:0 var(--s5);background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line)}
+.nav .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.03em;color:var(--ink);text-decoration:none}
+.seal{width:30px;height:30px;flex:0 0 auto}.seal *{vector-effect:non-scaling-stroke}
+.nav .links{display:flex;gap:var(--s5);margin-left:var(--s4)}
+.nav .links a{font-family:var(--font-sans);font-size:14.5px;font-weight:500;color:var(--ink-soft);text-decoration:none}
+.nav .links a:hover,.nav .links a.active{color:var(--ink)}
+.nav .links a.active{font-weight:600}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.theme-toggle{font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);border-radius:var(--r-sm);padding:7px 11px;cursor:pointer}
+@media(max-width:900px){.nav .links{display:none}}
+
+/* en-tête de page */
+.phead{padding:var(--s8) 0 var(--s6);border-bottom:1px solid var(--line)}
+.crumb{font-size:13px;color:var(--muted);margin-bottom:var(--s4)}
+.crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--ink)}
+.phead h1{font-size:clamp(34px,4.4vw,52px)}
+.phead .lead{margin-top:var(--s4);max-width:60ch}
+.searchbar{margin-top:var(--s6);display:flex;gap:var(--s3);max-width:640px}
+.searchbar input{flex:1;font-family:var(--font-sans);font-size:16px;padding:13px 16px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-sm);color:var(--ink)}
+.searchbar input::placeholder{color:var(--muted)}
+
+/* layout liste */
+.lib{display:grid;grid-template-columns:264px 1fr;gap:var(--s7);padding:var(--s7) 0 var(--s9)}
+.facets{align-self:start;position:sticky;top:88px}
+.fhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s4)}
+.fhead h2{font-size:18px}
+.fhead button{font-size:12.5px;color:var(--accent-text);background:none;border:0;cursor:pointer;font-family:var(--font-sans)}
+.fgroup{border-top:1px solid var(--line);padding:var(--s4) 0}
+.fgroup h3{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:var(--s3)}
+.opt{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:14px;color:var(--ink-soft);cursor:pointer}
+.opt input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.opt .ct{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.opt:hover{color:var(--ink)}
+
+.results-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s4);flex-wrap:wrap;margin-bottom:var(--s5)}
+.results-head .count{font-size:15px;color:var(--ink-soft)}
+.results-head .count b{color:var(--ink);font-family:var(--font-mono)}
+.sort{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.sort select{font-family:var(--font-sans);font-size:13.5px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--ink)}
+
+.pub-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s5)}
+@media(min-width:1080px){.pub-grid{grid-template-columns:repeat(3,1fr)}}
+.pcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--shadow-1);text-decoration:none;color:inherit;transition:box-shadow .18s,transform .18s,border-color .18s}
+.pcard:hover{box-shadow:var(--shadow-2);transform:translateY(-2px);border-color:var(--line-strong)}
+.pcard .thumb{aspect-ratio:16/10;width:100%;object-fit:cover;background:var(--surface-2)}
+.pcard .pb{padding:var(--s4) var(--s5) var(--s5);display:flex;flex-direction:column;flex:1}
+.pcard h3{font-size:19px;line-height:1.2;margin:6px 0 8px}
+.pcard .auth{font-size:13px;color:var(--ink-soft)}
+.pcard .row{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:var(--s4)}
+.pcard .stat{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.pcard .tagrow{margin:var(--s3) 0 0}
+.pcard .doi{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);margin-left:auto}
+.access{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:3px 7px;border-radius:var(--r-pill);border:1px solid var(--line)}
+.access.open{color:var(--bar-1);border-color:color-mix(in srgb,var(--bar-1) 40%,transparent)}
+.access.membre{color:var(--accent-text);border-color:var(--accent-edge);background:var(--accent-tint)}
+
+.empty{padding:var(--s8);text-align:center;color:var(--muted);border:1px dashed var(--line-strong);border-radius:var(--r-sm)}
+.pager{display:flex;gap:6px;justify-content:center;margin-top:var(--s8)}
+.pager a{min-width:38px;height:38px;padding:0 13px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--r-sm);text-decoration:none;color:var(--ink-soft);font-size:14px}
+.pager a.nxt{font-weight:600;color:var(--ink)}
+.pager a.on{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)}
+
+.foot{background:var(--ink);color:#cfd2d8;margin-top:var(--s8)}
+[data-theme="dark"] .foot{background:#0E1116}
+.foot .wrap{padding:var(--s7) var(--s5)}
+.foot .fb{display:flex;justify-content:space-between;gap:var(--s4);flex-wrap:wrap;font-size:12.5px;color:#8b909a}
+@media(max-width:860px){.lib{grid-template-columns:1fr}.facets{position:static}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="rmdl-accueil.html">
+    <svg class="seal" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15.5" stroke="var(--accent)" stroke-width="1.5"/><path d="M2.5 17 H31.5" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/><circle cx="11" cy="11" r="2.4" fill="var(--accent)"/><circle cx="23" cy="22" r="2.4" fill="var(--accent)"/><line x1="11" y1="11" x2="23" y2="22" stroke="var(--accent)" stroke-width="1.2"/></svg>
+    Democracy Together
+  </a>
+  <div class="links">
+    <a href="rmdl-a-propos.html">Le réseau</a><a href="#" class="active">Analyses</a><a href="#">Baromètre</a><a href="rmdl-evenements.html">Événements</a><a href="#">Jeunes</a>
+  </div>
+  <div class="right">
+    <button class="theme-toggle" id="themeBtn">Thème</button>
+    <a class="btn btn-primary btn-sm" href="#">Rejoindre</a>
+  </div>
+</nav>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="crumb"><a href="rmdl-accueil.html">Accueil</a> / Bibliothèque</div>
+    <h1>Bibliothèque</h1>
+    <p class="lead">Toutes les analyses du réseau, en accès ouvert et citable. Rapports, policy briefs, working papers et jeux de données.</p>
+    <div class="searchbar">
+      <input id="q" type="search" placeholder="Rechercher un titre, un auteur, un thème..." aria-label="Rechercher dans la bibliothèque" />
+      <button class="btn btn-primary" id="qbtn">Rechercher</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="lib">
+    <!-- FACETTES -->
+    <aside class="facets" aria-label="Filtres">
+      <div class="fhead"><h2>Filtrer</h2><button id="reset">Réinitialiser</button></div>
+      <div class="fgroup" id="f-theme">
+        <h3>Thématique</h3>
+        <label class="opt"><input type="checkbox" value="Gouvernance numérique"> Gouvernance numérique</label>
+        <label class="opt"><input type="checkbox" value="Participation citoyenne"> Participation citoyenne</label>
+        <label class="opt"><input type="checkbox" value="Lutte anti-corruption"> Lutte anti-corruption</label>
+        <label class="opt"><input type="checkbox" value="Transitions démocratiques"> Transitions démocratiques</label>
+        <label class="opt"><input type="checkbox" value="Crises globales"> Crises globales</label>
+      </div>
+      <div class="fgroup" id="f-type">
+        <h3>Type</h3>
+        <label class="opt"><input type="checkbox" value="Rapport"> Rapport</label>
+        <label class="opt"><input type="checkbox" value="Policy brief"> Policy brief</label>
+        <label class="opt"><input type="checkbox" value="Working paper"> Working paper</label>
+        <label class="opt"><input type="checkbox" value="Note de synthèse"> Note de synthèse</label>
+        <label class="opt"><input type="checkbox" value="Jeu de données"> Jeu de données</label>
+      </div>
+      <div class="fgroup" id="f-region">
+        <h3>Région</h3>
+        <label class="opt"><input type="checkbox" value="Afrique"> Afrique</label>
+        <label class="opt"><input type="checkbox" value="Europe"> Europe</label>
+        <label class="opt"><input type="checkbox" value="Mondial"> Mondial</label>
+      </div>
+      <div class="fgroup" id="f-lang">
+        <h3>Langue</h3>
+        <label class="opt"><input type="checkbox" value="FR"> Français</label>
+        <label class="opt"><input type="checkbox" value="EN"> Anglais</label>
+      </div>
+      <div class="fgroup" id="f-access">
+        <h3>Accès</h3>
+        <label class="opt"><input type="checkbox" value="Ouvert"> Accès ouvert</label>
+        <label class="opt"><input type="checkbox" value="Membres"> Réservé aux membres</label>
+      </div>
+    </aside>
+
+    <!-- RESULTATS -->
+    <section>
+      <div class="results-head">
+        <div class="count"><b id="count">0</b> publications</div>
+        <div class="sort">
+          <label for="sort">Trier par</label>
+          <select id="sort">
+            <option value="recent">Plus récentes</option>
+            <option value="cited">Plus citées</option>
+            <option value="az">Titre A vers Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="pub-grid" id="grid"></div>
+      <div class="empty" id="empty" style="display:none">Aucune publication ne correspond à ces filtres. <a href="#" id="clear2">Réinitialiser</a>.</div>
+      <nav class="pager" aria-label="Pagination"><a class="on" href="#">1</a><a href="#">2</a><a href="#">3</a><a class="nxt" href="#">Suivant &#8594;</a></nav>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="fb">
+      <span>Democracy Together · Association loi 1901</span>
+      <span>Mentions légales · Confidentialité · Accessibilité</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var r=document.documentElement; r.setAttribute('data-theme', r.getAttribute('data-theme')==='dark'?'light':'dark');
+  });
+
+  var TH={"Gouvernance numérique":"Gouvernance numérique","Participation citoyenne":"Participation citoyenne",
+    "Lutte anti-corruption":"Lutte anti-corruption","Transitions démocratiques":"Transitions démocratiques","Crises globales":"Crises globales"};
+  var IMG=["assets/parliament.jpg","assets/digital.jpg","assets/justice.jpg","assets/youth.jpg","assets/paris.jpg","assets/hero-home.jpg","assets/hero-guide.jpg"];
+
+  var DATA=[
+   {t:"L'état de la démocratie entre l'Afrique et l'Europe",type:"Rapport",au:"A. Wade, P. Vandenberghe",theme:"Transitions démocratiques",region:"Mondial",lang:["FR","EN"],year:2026,date:"Mai 2026",dl:1842,cit:31,acc:"Ouvert",img:0},
+   {t:"Réguler les plateformes sans affaiblir le débat public",type:"Policy brief",au:"K. Mensah",theme:"Gouvernance numérique",region:"Europe",lang:["FR","EN"],year:2026,date:"Avr. 2026",dl:1204,cit:18,acc:"Ouvert",img:1},
+   {t:"Suivre l'argent : transparence budgétaire et confiance civique",type:"Note de synthèse",au:"L. Traoré, M. Rossi",theme:"Lutte anti-corruption",region:"Afrique",lang:["FR"],year:2026,date:"Avr. 2026",dl:903,cit:12,acc:"Ouvert",img:2},
+   {t:"La jeunesse comme force démocratique, pas comme cible",type:"Working paper",au:"S. Diallo",theme:"Participation citoyenne",region:"Mondial",lang:["FR","EN"],year:2026,date:"Mars 2026",dl:758,cit:9,acc:"Ouvert",img:3},
+   {t:"Élections sous tension : défendre l'intégrité du scrutin",type:"Policy brief",au:"N. Okafor, J. Lemaire",theme:"Transitions démocratiques",region:"Afrique",lang:["FR","EN"],year:2026,date:"Mars 2026",dl:1120,cit:22,acc:"Ouvert",img:4},
+   {t:"Désinformation et IA générative : cartographie des risques",type:"Rapport",au:"E. Novak",theme:"Gouvernance numérique",region:"Mondial",lang:["EN"],year:2025,date:"Déc. 2025",dl:2310,cit:47,acc:"Membres",img:1},
+   {t:"Participation citoyenne locale : sept dispositifs comparés",type:"Note de synthèse",au:"C. Bâ, F. Mercier",theme:"Participation citoyenne",region:"Europe",lang:["FR"],year:2025,date:"Nov. 2025",dl:642,cit:8,acc:"Ouvert",img:5},
+   {t:"Indicateurs de corruption : jeu de données 2020 vers 2025",type:"Jeu de données",au:"Équipe Baromètre Democracy Together",theme:"Lutte anti-corruption",region:"Mondial",lang:["FR","EN"],year:2025,date:"Nov. 2025",dl:1980,cit:14,acc:"Ouvert",img:2},
+   {t:"Climat et gouvernance : l'épreuve démocratique des crises",type:"Working paper",au:"R. Haddad",theme:"Crises globales",region:"Mondial",lang:["FR","EN"],year:2025,date:"Oct. 2025",dl:534,cit:6,acc:"Ouvert",img:0},
+   {t:"Financer la société civile en Afrique de l'Ouest",type:"Rapport",au:"A. Sow, T. Lefebvre",theme:"Participation citoyenne",region:"Afrique",lang:["FR"],year:2025,date:"Sept. 2025",dl:870,cit:11,acc:"Membres",img:3},
+   {t:"Souveraineté numérique : entre dépendance et autonomie",type:"Policy brief",au:"M. Costa",theme:"Gouvernance numérique",region:"Europe",lang:["FR","EN"],year:2025,date:"Sept. 2025",dl:1015,cit:16,acc:"Ouvert",img:1},
+   {t:"Migrations et démocratie : dépasser le récit de la crise",type:"Note de synthèse",au:"H. Bensaïd",theme:"Crises globales",region:"Europe",lang:["FR"],year:2025,date:"Juil. 2025",dl:489,cit:5,acc:"Ouvert",img:4},
+   {t:"Transitions post-autoritaires : ce que disent les données",type:"Jeu de données",au:"Équipe Baromètre Democracy Together",theme:"Transitions démocratiques",region:"Mondial",lang:["EN"],year:2025,date:"Juin 2025",dl:1340,cit:19,acc:"Ouvert",img:0},
+   {t:"Confiance institutionnelle : enquête comparée Afrique-Europe",type:"Rapport",au:"P. Vimont, A. Wade",theme:"Participation citoyenne",region:"Mondial",lang:["FR","EN"],year:2025,date:"Mai 2025",dl:1560,cit:27,acc:"Ouvert",img:5}
+  ];
+
+  var grid=document.getElementById('grid'), countEl=document.getElementById('count'), emptyEl=document.getElementById('empty');
+  function checked(id){return Array.prototype.map.call(document.querySelectorAll('#'+id+' input:checked'),function(i){return i.value;});}
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+
+  function render(){
+    var q=(document.getElementById('q').value||'').toLowerCase().trim();
+    var ft=checked('f-theme'), fty=checked('f-type'), fr=checked('f-region'), fl=checked('f-lang'), fa=checked('f-access');
+    var res=DATA.filter(function(d){
+      if(q && (d.t+' '+d.au+' '+d.theme).toLowerCase().indexOf(q)<0) return false;
+      if(ft.length && ft.indexOf(d.theme)<0) return false;
+      if(fty.length && fty.indexOf(d.type)<0) return false;
+      if(fr.length && fr.indexOf(d.region)<0) return false;
+      if(fl.length && !fl.some(function(l){return d.lang.indexOf(l)>=0;})) return false;
+      if(fa.length && fa.indexOf(d.acc)<0) return false;
+      return true;
+    });
+    var sort=document.getElementById('sort').value;
+    res.sort(function(a,b){
+      if(sort==='cited') return b.cit-a.cit;
+      if(sort==='az') return a.t.localeCompare(b.t,'fr');
+      return b.year-a.year || b.dl-a.dl;
+    });
+    countEl.textContent=res.length;
+    emptyEl.style.display=res.length?'none':'block';
+    grid.innerHTML=res.map(function(d,i){
+      var doi="10.59000/dt."+d.year+"."+(100+i);
+      var acc=d.acc==='Ouvert'?'<span class="access open">Accès ouvert</span>':'<span class="access membre">Membres</span>';
+      return '<a class="pcard" href="rmdl-publication.html">'
+        +'<img class="thumb" src="'+IMG[d.img]+'" alt="" loading="lazy">'
+        +'<div class="pb">'
+        +'<div class="meta">'+d.type+' · '+d.date+' · '+d.lang.join(" / ")+'</div>'
+        +'<h3>'+esc(d.t)+'</h3>'
+        +'<div class="auth">'+esc(d.au)+'</div>'
+        +'<div class="tagrow"><span class="tag tag-accent">'+d.theme+'</span></div>'
+        +'<div class="row">'+acc
+        +'<span class="stat" title="Téléchargements">&#8595; '+d.dl.toLocaleString('fr-FR')+'</span>'
+        +'<span class="stat" title="Citations">&#10078; '+d.cit+'</span>'
+        +'<span class="doi">'+doi+'</span>'
+        +'</div></div></a>';
+    }).join('');
+  }
+
+  document.querySelectorAll('.facets input').forEach(function(i){i.addEventListener('change',render);});
+  document.getElementById('sort').addEventListener('change',render);
+  document.getElementById('q').addEventListener('input',render);
+  document.getElementById('qbtn').addEventListener('click',function(e){e.preventDefault();render();});
+  function reset(){document.querySelectorAll('.facets input').forEach(function(i){i.checked=false;});document.getElementById('q').value='';render();}
+  document.getElementById('reset').addEventListener('click',reset);
+  document.getElementById('clear2').addEventListener('click',function(e){e.preventDefault();reset();});
+  render();
+})();
+</script>
+</body>
+</html>

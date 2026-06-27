@@ -1,0 +1,126 @@
+import { v } from 'convex/values';
+import { mutation, query } from './_generated/server';
+import { isEmail } from './lib/validation';
+import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { requireNetworkRole } from './lib/rbac';
+import { recordAudit } from './lib/audit';
+import { AUDIT } from './lib/auditActions';
+import { locale } from './schema';
+
+// --- Candidature publique au hub Jeunes (F-58) ------------------------------
+// Sans compte (par e-mail), comme l'adhésion. Rate-limitée ; une candidature en
+// attente par e-mail (dédoublonnage doux) pour éviter les envois multiples.
+export const applyYouth = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    country: v.string(),
+    themes: v.optional(v.array(v.string())),
+    motivation: v.string(),
+    locale: v.optional(locale),
+  },
+  handler: async (ctx, args) => {
+    const name = args.name.trim();
+    const email = args.email.trim().toLowerCase();
+    const country = args.country.trim();
+    const motivation = args.motivation.trim();
+    if (name.length < 2 || name.length > 120) throw new Error('INVALID_NAME');
+    if (!isEmail(email)) throw new Error('INVALID_EMAIL');
+    if (country.length < 2) throw new Error('INVALID_COUNTRY');
+    if (motivation.length < 10 || motivation.length > 4000) {
+      throw new Error('INVALID_MOTIVATION');
+    }
+
+    await enforceRateLimit(ctx, {
+      key: `youthApply:${email}`,
+      ...RATE_LIMITS.apply,
+    });
+
+    const existing = await ctx.db
+      .query('youthApplications')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .collect();
+    if (existing.some((a) => a.status === 'pending')) {
+      return { ok: true, already: true };
+    }
+
+    await ctx.db.insert('youthApplications', {
+      name,
+      email,
+      country,
+      themes: args.themes?.length ? args.themes : undefined,
+      motivation,
+      locale: args.locale,
+      status: 'pending',
+      createdAt: Date.now(),
+    });
+    return { ok: true, already: false };
+  },
+});
+
+// --- Back-office (modérateur et au-dessus) ----------------------------------
+export const listYouthApplications = query({
+  args: { status: v.optional(v.string()) },
+  handler: async (ctx, { status }) => {
+    await requireNetworkRole(ctx, 'moderateur');
+    const all =
+      status === 'pending' || status === 'approved' || status === 'rejected'
+        ? await ctx.db
+            .query('youthApplications')
+            .withIndex('by_status', (q) => q.eq('status', status))
+            .collect()
+        : await ctx.db.query('youthApplications').collect();
+    return all
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((a) => ({
+        _id: a._id,
+        name: a.name,
+        email: a.email,
+        country: a.country,
+        themes: a.themes ?? [],
+        motivation: a.motivation,
+        status: a.status,
+        createdAt: a.createdAt,
+      }));
+  },
+});
+
+export const reviewYouthApplication = mutation({
+  args: {
+    applicationId: v.id('youthApplications'),
+    decision: v.union(v.literal('approved'), v.literal('rejected')),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, { applicationId, decision, notes }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const application = await ctx.db.get(applicationId);
+    if (!application) throw new Error('NOT_FOUND');
+
+    await ctx.db.patch(applicationId, {
+      status: decision,
+      reviewedBy: reviewer._id,
+      reviewNotes: notes?.trim() || undefined,
+      reviewedAt: Date.now(),
+    });
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.YOUTH_REVIEWED,
+      targetId: applicationId,
+      metadata: { decision },
+    });
+    return { ok: true };
+  },
+});
+
+// DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
+export const isYouthApplicant = query({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    if (process.env.AUTH_DEV_OTP !== 'true') return null;
+    const rows = await ctx.db
+      .query('youthApplications')
+      .withIndex('by_email', (q) => q.eq('email', email.trim().toLowerCase()))
+      .collect();
+    return rows.length > 0;
+  },
+});

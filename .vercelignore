@@ -1,0 +1,7 @@
+.codegraph
+.gstack
+.claude
+.agents
+tests
+playwright-report
+test-results

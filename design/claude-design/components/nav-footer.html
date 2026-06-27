@@ -1,0 +1,76 @@
+<!-- @dsCard group="Composants" -->
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>
+:root{--paper:#F4F2EC;--surface:#FBFAF5;--surface-2:#EFEDE4;--ink:#16191F;--ink-soft:#454953;--muted:#646771;--line:#D9D6CD;--line-strong:#C3BFB3;
+--indigo:#1F3D6E;--indigo-strong:#16305A;--indigo-tint:#E7EAF0;--indigo-edge:#C3CDDD;--safran:#DB8A34;--ambre:#8F5510;
+--b1:#2E6E8E;--b2:#7BA7B0;--b3:#E0B85C;--b4:#CC8748;--b5:#9A4B3B;
+--fdisp:"Newsreader",Georgia,serif;--fsans:"IBM Plex Sans",system-ui,sans-serif;--fmono:"IBM Plex Mono",monospace;}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--fsans);background:var(--paper);color:var(--ink);padding:36px;line-height:1.5}
+h1,h2,h3,h4{font-family:var(--fdisp);font-weight:500;margin:0;letter-spacing:-.01em}
+.eyebrow{font-family:var(--fmono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.col{display:flex;flex-direction:column;gap:20px}
+.meta{font-family:var(--fmono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+/* boutons */
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--fsans);font-size:15px;font-weight:600;padding:13px 20px;border-radius:4px;border:1px solid transparent;text-decoration:none;cursor:pointer}
+.btn-primary{background:var(--indigo);color:#fff}
+.btn-secondary{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn-ghost{background:transparent;color:var(--indigo)}
+.btn-safran{background:var(--safran);color:var(--paper)}
+/* badges */
+.badge{display:inline-flex;align-items:center;font-family:var(--fmono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+.badge-open{color:var(--b1);border-color:#9DC0CF}
+.badge-membre{background:var(--indigo-tint);color:var(--indigo);border-color:var(--indigo-edge)}
+.badge-statut{background:var(--surface-2);color:var(--muted)}
+/* tags */
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:999px;background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line)}
+.tag-accent{background:var(--indigo-tint);color:var(--indigo);border-color:var(--indigo-edge)}
+/* cartes */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;overflow:hidden;width:280px;box-shadow:0 1px 2px rgba(22,25,31,.05)}
+.card .thumb{height:150px;background:var(--surface-2);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.card .ph{font-family:var(--fmono);font-size:10px;letter-spacing:.08em;color:var(--muted)}
+.card .b{padding:18px}
+.card h3{font-size:19px;line-height:1.2;margin:6px 0 8px}
+.statline{display:flex;gap:12px;align-items:center;margin-top:12px}
+.stat{font-family:var(--fmono);font-size:11px;color:var(--muted)}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);flex:0 0 auto}
+.person{display:flex;gap:14px;align-items:center}
+.datebox{font-family:var(--fmono);text-align:center;line-height:1}
+.datebox b{display:block;font-size:26px;font-weight:600}
+.datebox span{font-size:11px;text-transform:uppercase;color:var(--muted)}
+/* champ */
+.field{display:flex;flex-direction:column;gap:6px;max-width:380px}
+.field label{font-size:13.5px;font-weight:600}
+.field .hint{font-size:12.5px;color:var(--muted)}
+.field input{font-family:var(--fsans);font-size:15px;padding:11px 13px;background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;color:var(--ink)}
+.field .err{font-size:12.5px;color:var(--b5);font-weight:500}
+/* swatch */
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.swatch{border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--surface)}
+.swatch .chip{height:64px}
+.swatch .i{padding:9px 11px;font-size:12px}
+.swatch .i b{display:block}
+.swatch .i code{color:var(--muted);font-family:var(--fmono);font-size:11px}
+/* type */
+.spec{border-top:1px solid var(--line);padding:16px 0;display:grid;grid-template-columns:130px 1fr;gap:20px;align-items:center}
+.spec .r{font-family:var(--fmono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+/* barometre */
+.country{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:4px;background:var(--surface);margin-bottom:8px}
+.country .n{font-weight:500;font-size:14px;width:84px}
+.country .bar{flex:1;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.country .bar>span{display:block;height:100%;border-radius:999px}
+.country .sc{font-family:var(--fmono);font-weight:600;font-size:14px;width:38px;text-align:right}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px}
+.mapbox{background:var(--surface-2);border:1px solid var(--line);border-radius:4px;height:220px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--fmono);font-size:11px;letter-spacing:.08em}
+.nav{height:66px;display:flex;align-items:center;gap:24px;padding:0 24px;background:var(--paper);border:1px solid var(--line);border-radius:6px}
+.nav .links{display:flex;gap:20px;margin-left:8px}
+.nav .links a{font-size:14px;color:var(--ink-soft);text-decoration:none}
+.nav .brand{font-family:var(--fdisp);font-weight:600;font-size:20px;letter-spacing:.03em}
+.nav .right{margin-left:auto;display:flex;gap:14px;align-items:center}
+.foot{background:#14171C;color:#cfd2d8;border-radius:6px;padding:28px 28px;margin-top:18px;font-size:13px}
+.title{font-size:24px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13.5px;margin-bottom:22px}
+</style></head><body><div class="title" style="font-family:var(--fdisp)">Header & Footer</div><div class="sub">Barre de navigation et pied de page partagés.</div><div class="nav"><span class="brand">Democracy Together</span><div class="links"><a>Le réseau</a><a>Analyses</a><a>Baromètre</a><a>Événements</a><a>Jeunes</a></div><div class="right"><span class="meta">FR / EN</span><a class="btn btn-primary" style="padding:9px 16px;font-size:13.5px">Rejoindre</a></div></div>
+<div class="foot"><div style="font-family:var(--fdisp);font-size:20px;color:#fff;letter-spacing:.03em">Democracy Together</div><p style="color:#9aa0aa;margin:8px 0">Democracy Together. Association loi 1901. Paris · Dakar · Bruxelles.</p><div style="border-top:1px solid #262b33;margin-top:16px;padding-top:14px;color:#8b909a;font-size:12px">Mentions légales · Confidentialité · Accessibilité</div></div></body></html>

@@ -1,0 +1,811 @@
+<!-- @dsCard group="Écrans" -->
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Adhésion · Democracy Together</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ===== TOKENS (design system Democracy Together) ===== */
+:root{
+  --paper:#F4F2EC; --surface:#FBFAF5; --surface-2:#EFEDE4;
+  --ink:#16191F; --ink-soft:#454953; --muted:#646771;
+  --line:#D9D6CD; --line-strong:#C3BFB3;
+  --bar-1:#2E6E8E; --bar-2:#7BA7B0; --bar-3:#E0B85C; --bar-4:#CC8748; --bar-5:#9A4B3B;
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  --shadow-1:0 1px 2px rgba(22,25,31,.06), 0 1px 1px rgba(22,25,31,.04);
+  --shadow-2:0 2px 8px rgba(22,25,31,.07), 0 8px 24px rgba(22,25,31,.06);
+  --font-display:"Newsreader", Georgia, serif;
+  --font-sans:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, monospace;
+  --measure:66ch; --max:1240px;
+  --accent:#1F3D6E; --accent-strong:#16305A; --accent-text:#1F3D6E;
+  --accent-contrast:#FFFFFF; --accent-tint:rgba(31,61,110,.08); --accent-edge:rgba(31,61,110,.22);
+}
+[data-theme="dark"]{
+  --paper:#14171C; --surface:#1C2027; --surface-2:#23272F;
+  --ink:#ECEAE3; --ink-soft:#B4B7BE; --muted:#8B8E96;
+  --line:#2B313A; --line-strong:#3A414C;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.45);
+  --accent:#3A63A6; --accent-strong:#4B74B8; --accent-text:#8FB0E0;
+  --accent-contrast:#FFFFFF; --accent-tint:rgba(126,163,217,.14); --accent-edge:rgba(126,163,217,.30);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;font-family:var(--font-sans);background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;transition:background .25s,color .25s}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:500;line-height:1.12;letter-spacing:-.015em;margin:0}
+p{margin:0}
+a{color:var(--accent-text);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-xs)}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--s5)}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lead{font-size:18px;color:var(--ink-soft)}
+.meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.section{padding:var(--s9) 0}
+
+/* boutons / tags */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-size:14.5px;font-weight:600;line-height:1;padding:11px 18px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:var(--accent-contrast)}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn-secondary:hover{border-color:var(--ink);background:var(--accent-tint)}
+.btn-ghost{background:transparent;color:var(--accent-text);padding:11px 4px}
+.btn-sm{padding:8px 13px;font-size:13px}
+.btn-lg{padding:14px 24px;font-size:15.5px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line)}
+.tag-accent{background:var(--accent-tint);color:var(--accent-text);border-color:var(--accent-edge)}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:60;height:72px;display:flex;align-items:center;gap:var(--s6);padding:0 var(--s5);background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line)}
+.nav .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.03em;color:var(--ink);text-decoration:none}
+.seal{width:30px;height:30px;flex:0 0 auto}.seal *{vector-effect:non-scaling-stroke}
+.nav .links{display:flex;gap:var(--s5);margin-left:var(--s4)}
+.nav .links a{font-family:var(--font-sans);font-size:14.5px;font-weight:500;color:var(--ink-soft);text-decoration:none}
+.nav .links a:hover,.nav .links a.active{color:var(--ink)}
+.nav .links a.active{font-weight:600}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.nav .btn-primary[aria-current="page"]{background:var(--accent-strong);box-shadow:0 0 0 2px var(--accent-edge)}
+.theme-toggle{font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);border-radius:var(--r-sm);padding:7px 11px;cursor:pointer}
+@media(max-width:900px){.nav .links{display:none}}
+
+/* en-tête de page */
+.phead{padding:var(--s8) 0 var(--s7);border-bottom:1px solid var(--line);background:var(--surface)}
+.crumb{font-size:13px;color:var(--muted);margin-bottom:var(--s4)}
+.crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--ink)}
+.phead h1{font-size:clamp(36px,4.6vw,56px);max-width:16ch;margin-top:var(--s2)}
+.phead .lead{margin-top:var(--s4);max-width:62ch}
+.phead .pills{display:flex;gap:var(--s2);flex-wrap:wrap;margin-top:var(--s5)}
+
+/* ===== SÉLECTEUR DE TYPE (segmenté) ===== */
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:var(--s8);align-items:start;margin-top:var(--s7)}
+.seg{display:inline-flex;padding:4px;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);flex-wrap:wrap}
+.seg button{font-family:var(--font-sans);font-size:14px;font-weight:600;color:var(--ink-soft);background:transparent;border:0;border-radius:var(--r-sm);padding:10px 16px;cursor:pointer;transition:background .14s,color .14s}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-contrast)}
+.seg .sub{display:block;font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:.04em;margin-top:3px;opacity:.78;text-transform:uppercase}
+.type-panel{margin-top:var(--s6)}
+.type-panel .who{font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-text)}
+.type-panel h2{font-size:clamp(26px,3vw,34px);margin:var(--s2) 0 var(--s3)}
+.type-panel .desc{color:var(--ink-soft);font-size:16px;max-width:46ch}
+.adv{list-style:none;padding:0;margin:var(--s5) 0 0;display:flex;flex-direction:column;gap:var(--s2)}
+.adv li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;color:var(--ink-soft)}
+.adv li svg{flex:0 0 auto;margin-top:3px;color:var(--accent-text)}
+.type-aside{position:sticky;top:96px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden}
+.type-aside .ah{padding:var(--s5) var(--s5) var(--s4);border-bottom:1px solid var(--line)}
+.type-aside .ah .k{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.type-aside .ah .who2{font-size:21px;font-family:var(--font-display);margin-top:6px}
+.type-aside .ab{padding:var(--s5)}
+.amount{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.amount .big{font-family:var(--font-mono);font-weight:600;font-size:clamp(34px,5vw,46px);letter-spacing:-.01em;color:var(--ink)}
+.amount .cur{font-family:var(--font-mono);font-size:18px;color:var(--ink-soft)}
+.amount .per{font-size:13px;color:var(--muted)}
+.aside-note{font-size:12.5px;color:var(--muted);margin-top:var(--s3)}
+.aside-row{display:flex;justify-content:space-between;gap:var(--s3);font-size:13.5px;padding:8px 0;border-top:1px dashed var(--line);color:var(--ink-soft)}
+.aside-row:first-of-type{border-top:0}
+.aside-row b{font-family:var(--font-mono);color:var(--ink);font-weight:500}
+.type-aside .btn{width:100%;margin-top:var(--s4)}
+@media(max-width:900px){.choose{grid-template-columns:1fr;gap:var(--s6)}.type-aside{position:static}}
+
+/* ===== ESTIMATEUR ===== */
+.estim{background:var(--surface)}
+.estim-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s8);align-items:center;margin-top:var(--s6)}
+.field-group{margin-bottom:var(--s5)}
+.field-group > .glabel{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:var(--s3);letter-spacing:.01em}
+.field-group .hint{font-size:12.5px;color:var(--muted);font-weight:400;margin-left:6px}
+.radioset{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3)}
+.radioset.two{grid-template-columns:repeat(2,1fr)}
+.optcard{position:relative;border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:var(--s4);background:var(--paper);cursor:pointer;transition:border-color .14s,background .14s}
+.optcard:hover{border-color:var(--ink)}
+.optcard input{position:absolute;opacity:0;width:1px;height:1px}
+.optcard .ot{font-size:14.5px;font-weight:600;color:var(--ink)}
+.optcard .od{font-size:12.5px;color:var(--muted);margin-top:3px}
+.optcard:has(input:checked){border-color:var(--accent);background:var(--accent-tint);box-shadow:0 0 0 1px var(--accent)}
+.optcard:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.estim-out{border:1px solid var(--line);border-radius:var(--r-md);background:var(--paper);box-shadow:var(--shadow-1);padding:var(--s7)}
+.estim-out .k{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.estim-out .price{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:var(--s3) 0 var(--s2)}
+.estim-out .price b{font-family:var(--font-mono);font-weight:600;font-size:clamp(42px,7vw,64px);letter-spacing:-.02em;color:var(--ink);line-height:1}
+.estim-out .price .cur{font-family:var(--font-mono);font-size:22px;color:var(--ink-soft)}
+.estim-out .ctx{font-size:14px;color:var(--ink-soft);margin-top:var(--s2)}
+.estim-out .alt{font-family:var(--font-mono);font-size:12.5px;color:var(--muted);margin-top:var(--s4);padding-top:var(--s4);border-top:1px solid var(--line)}
+.solidarity{display:flex;gap:10px;align-items:flex-start;margin-top:var(--s5);padding:var(--s4);border:1px solid var(--accent-edge);background:var(--accent-tint);border-radius:var(--r-sm);font-size:13.5px;color:var(--ink-soft)}
+.solidarity svg{flex:0 0 auto;margin-top:2px;color:var(--accent-text)}
+@media(max-width:900px){.estim-grid{grid-template-columns:1fr;gap:var(--s6)}}
+
+/* ===== COMPARATIF ===== */
+.cmp-scroll{margin-top:var(--s7);overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
+table.cmp{width:100%;border-collapse:collapse;min-width:620px;background:var(--surface)}
+table.cmp th,table.cmp td{text-align:left;padding:var(--s4) var(--s5);border-bottom:1px solid var(--line);vertical-align:top}
+table.cmp thead th{position:sticky;top:0;background:var(--surface-2);font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--ink);letter-spacing:.01em;z-index:1}
+table.cmp thead th .sub{display:block;font-family:var(--font-mono);font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:3px}
+table.cmp thead th:first-child{width:34%}
+table.cmp tbody th{font-family:var(--font-sans);font-weight:600;font-size:14px;color:var(--ink)}
+table.cmp tbody th .d{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:2px}
+table.cmp td{font-size:13.5px;color:var(--ink-soft)}
+table.cmp tbody tr:nth-child(even){background:color-mix(in srgb,var(--surface-2) 50%,transparent)}
+table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:0}
+.ck{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink)}
+.ck svg{color:var(--accent-text);flex:0 0 auto}
+.ck.no{color:var(--muted)}
+.ck.no svg{color:var(--muted)}
+
+/* ===== PAIEMENT (maquette) ===== */
+.pay{background:var(--surface)}
+.pay-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:var(--s8);align-items:start;margin-top:var(--s6)}
+.recap{border:1px solid var(--line);border-radius:var(--r-md);background:var(--paper);box-shadow:var(--shadow-1);overflow:hidden;position:sticky;top:96px}
+.recap .rh{padding:var(--s5);border-bottom:1px solid var(--line)}
+.recap .rh h3{font-size:20px}
+.recap .rb{padding:var(--s5)}
+.recap .rr{display:flex;justify-content:space-between;gap:var(--s3);padding:9px 0;font-size:14px;color:var(--ink-soft);border-top:1px solid var(--line)}
+.recap .rr:first-child{border-top:0}
+.recap .rr b{color:var(--ink);font-weight:500}
+.recap .rr.total{margin-top:var(--s3);padding-top:var(--s4);border-top:2px solid var(--line-strong);font-size:16px}
+.recap .rr.total b{font-family:var(--font-mono);font-size:22px;color:var(--ink)}
+.recap .fiscal{display:flex;gap:9px;align-items:flex-start;margin-top:var(--s5);font-size:12.5px;color:var(--muted)}
+.recap .fiscal svg{flex:0 0 auto;margin-top:1px;color:var(--accent-text)}
+.payform{border:1px solid var(--line);border-radius:var(--r-md);background:var(--paper);box-shadow:var(--shadow-1);padding:var(--s6)}
+.method{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);margin-bottom:var(--s5)}
+.field{margin-bottom:var(--s4)}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.field input,.field select{width:100%;font-family:var(--font-sans);font-size:15px;padding:11px 13px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-sm);color:var(--ink)}
+.field input::placeholder{color:var(--muted)}
+.field-mono input{font-family:var(--font-mono);letter-spacing:.04em}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+.payform .btn{width:100%;margin-top:var(--s4)}
+.disclaimer{font-size:12px;color:var(--muted);text-align:center;margin-top:var(--s3)}
+.mock-flag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border:1px dashed var(--line-strong);border-radius:var(--r-pill);padding:4px 10px;margin-bottom:var(--s4)}
+@media(max-width:900px){.pay-grid{grid-template-columns:1fr;gap:var(--s6)}.recap{position:static}.method{grid-template-columns:1fr}.frow{grid-template-columns:1fr}}
+
+/* ===== DON ===== */
+.donate{border:1px solid var(--accent-edge);border-radius:var(--r-md);background:var(--accent-tint);padding:var(--s7);display:grid;grid-template-columns:1fr auto;gap:var(--s6);align-items:center}
+.donate h2{font-size:clamp(24px,3vw,30px)}
+.donate p{color:var(--ink-soft);font-size:15px;max-width:52ch;margin-top:var(--s2)}
+@media(max-width:720px){.donate{grid-template-columns:1fr}}
+
+/* ===== FAQ ===== */
+.faq{max-width:820px;margin:var(--s7) auto 0}
+.qa{border-top:1px solid var(--line)}
+.qa:last-child{border-bottom:1px solid var(--line)}
+.qa button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--s4);padding:var(--s5) var(--s2);background:transparent;border:0;cursor:pointer;text-align:left;font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--ink);line-height:1.25}
+.qa button:hover{color:var(--accent-text)}
+.qa .ico{flex:0 0 auto;width:22px;height:22px;border:1px solid var(--line-strong);border-radius:var(--r-pill);display:inline-flex;align-items:center;justify-content:center;position:relative;transition:background .15s,border-color .15s}
+.qa button[aria-expanded="true"] .ico{background:var(--accent);border-color:var(--accent)}
+.qa .ico:before,.qa .ico:after{content:"";position:absolute;background:var(--ink-soft);transition:transform .2s,background .15s}
+.qa .ico:before{width:10px;height:1.5px}
+.qa .ico:after{width:1.5px;height:10px}
+.qa button[aria-expanded="true"] .ico:before,.qa button[aria-expanded="true"] .ico:after{background:var(--accent-contrast)}
+.qa button[aria-expanded="true"] .ico:after{transform:scaleY(0)}
+.qa .ans{overflow:hidden;max-height:0;transition:max-height .25s ease}
+.qa .ans .inner{padding:0 var(--s2) var(--s5);color:var(--ink-soft);font-size:15px;max-width:64ch}
+.qa .ans .inner p+p{margin-top:var(--s3)}
+@media (prefers-reduced-motion:reduce){.qa .ans{transition:none}}
+
+/* ===== CTA ===== */
+.ctaband{background:var(--accent);color:var(--accent-contrast)}
+.ctaband .wrap{padding:var(--s8) var(--s5);display:flex;align-items:center;justify-content:space-between;gap:var(--s6);flex-wrap:wrap}
+.ctaband h2{color:var(--accent-contrast);font-size:clamp(26px,3.4vw,38px);max-width:20ch}
+.ctaband p{color:color-mix(in srgb,var(--accent-contrast) 84%,transparent);font-size:16px;margin-top:var(--s3);max-width:46ch}
+.ctaband .btn-light{background:var(--accent-contrast);color:var(--accent)}
+.ctaband .btn-line{background:transparent;color:var(--accent-contrast);border-color:color-mix(in srgb,var(--accent-contrast) 50%,transparent)}
+.ctaband .btn-line:hover{background:color-mix(in srgb,var(--accent-contrast) 14%,transparent)}
+
+/* footer */
+.foot{background:var(--ink);color:#cfd2d8}
+[data-theme="dark"] .foot{background:#0E1116}
+.foot a{color:#cfd2d8;text-decoration:none;font-size:14px}
+.foot a:hover{color:#fff}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:var(--s6);padding:var(--s9) 0 var(--s7)}
+.foot h4{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#8b909a;margin-bottom:var(--s4)}
+.foot .col a{display:block;margin-bottom:10px}
+.foot .brandblock .seal{width:34px;height:34px}
+.foot .brandblock p{color:#9aa0aa;font-size:14px;max-width:34ch;margin-top:var(--s3)}
+.foot-bottom{display:flex;justify-content:space-between;gap:var(--s4);flex-wrap:wrap;padding:var(--s5) 0;border-top:1px solid #262b33;color:#8b909a;font-size:12.5px}
+.offices{display:flex;gap:var(--s5);flex-wrap:wrap;margin-top:var(--s4)}
+.offices span{font-size:13px;color:#9aa0aa}
+@media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s5);flex-wrap:wrap}
+.sec-head h2{font-size:clamp(28px,3.4vw,38px)}
+.sec-head p{color:var(--ink-soft);font-size:15px;margin-top:var(--s2);max-width:52ch}
+</style>
+</head>
+<body>
+
+<!-- =================== NAV =================== -->
+<nav class="nav">
+  <a class="brand" href="rmdl-accueil.html">
+    <svg class="seal" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15.5" stroke="var(--accent)" stroke-width="1.5"/><path d="M2.5 17 H31.5" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/><circle cx="11" cy="11" r="2.4" fill="var(--accent)"/><circle cx="23" cy="22" r="2.4" fill="var(--accent)"/><line x1="11" y1="11" x2="23" y2="22" stroke="var(--accent)" stroke-width="1.2"/></svg>
+    Democracy Together
+  </a>
+  <div class="links">
+    <a href="rmdl-a-propos.html">Le réseau</a><a href="rmdl-bibliotheque.html">Analyses</a><a href="rmdl-barometre.html">Baromètre</a><a href="rmdl-evenements.html">Événements</a><a href="rmdl-jeunes.html">Jeunes</a>
+  </div>
+  <div class="right">
+    <button class="theme-toggle" id="themeBtn" aria-label="Basculer le thème">Thème</button>
+    <a class="btn btn-primary btn-sm" href="rmdl-adhesion.html" aria-current="page">Rejoindre</a>
+  </div>
+</nav>
+
+<!-- =================== EN-TÊTE =================== -->
+<header class="phead">
+  <div class="wrap">
+    <div class="crumb"><a href="rmdl-accueil.html">Accueil</a> / Adhésion</div>
+    <p class="eyebrow">Adhésion</p>
+    <h1>Rejoindre le réseau</h1>
+    <p class="lead">Les cotisations financent l'association et son travail commun. Pour rester accessible des deux côtés de la Méditerranée, Democracy Together applique une cotisation solidaire, ajustée selon le niveau de revenu du pays. L'adhésion est ouverte aux organisations, aux individus et aux jeunes de moins de 35 ans.</p>
+    <div class="pills">
+      <span class="tag tag-accent">Cotisation solidaire</span>
+      <span class="tag">Reçu fiscal · loi 1901</span>
+      <span class="tag">Paiement EUR ou XOF</span>
+    </div>
+  </div>
+</header>
+
+<!-- =================== TYPE D'ADHÉSION =================== -->
+<section class="section" id="types" aria-labelledby="types-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <h2 id="types-h">Choisir un type d'adhésion</h2>
+        <p>Trois profils, trois rôles dans le réseau. Sélectionnez le vôtre pour voir le public visé, les avantages associés et la cotisation indicative.</p>
+      </div>
+    </div>
+
+    <div class="seg" role="tablist" aria-label="Type d'adhésion">
+      <button role="tab" id="tab-org" aria-selected="true" aria-controls="panel-type" data-type="org">Organisation<span class="sub">Think tank</span></button>
+      <button role="tab" id="tab-ind" aria-selected="false" aria-controls="panel-type" data-type="ind">Individuel<span class="sub">Chercheur · citoyen</span></button>
+      <button role="tab" id="tab-jeu" aria-selected="false" aria-controls="panel-type" data-type="jeu">Jeune<span class="sub">Moins de 35 ans</span></button>
+    </div>
+
+    <div class="choose">
+      <div class="type-panel" id="panel-type" role="tabpanel" aria-labelledby="tab-org" tabindex="0">
+        <p class="who" id="tp-who">Pour les think tanks et organisations</p>
+        <h2 id="tp-title">Adhésion organisation</h2>
+        <p class="desc" id="tp-desc">Pour les instituts de recherche, centres d'analyse et organisations de la société civile qui veulent contribuer à la production commune et peser dans le débat démocratique Afrique-Europe.</p>
+        <ul class="adv" id="tp-adv"><!-- rempli par JS --></ul>
+      </div>
+
+      <aside class="type-aside" aria-live="polite">
+        <div class="ah">
+          <div class="k">Cotisation indicative</div>
+          <div class="who2" id="as-title">Adhésion organisation</div>
+        </div>
+        <div class="ab">
+          <div class="amount">
+            <span class="big" id="as-amount">1 200</span>
+            <span class="cur" id="as-cur">EUR</span>
+            <span class="per">par an</span>
+          </div>
+          <p class="aside-note" id="as-note">Tarif au niveau de revenu élevé. Ajustez avec l'estimateur solidaire ci-dessous.</p>
+          <div class="aside-row"><span>Périodicité</span><b>Annuelle</b></div>
+          <div class="aside-row"><span>Reçu fiscal</span><b>Automatique</b></div>
+          <div class="aside-row"><span>Engagement</span><b>Sans tacite reconduction</b></div>
+          <a class="btn btn-primary" href="#paiement">Adhérer avec ce profil</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ESTIMATEUR SOLIDAIRE =================== -->
+<section class="section estim" id="estimateur" aria-labelledby="estim-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <h2 id="estim-h">Estimateur de tarif solidaire</h2>
+        <p>La cotisation s'ajuste au niveau de revenu du pays de votre organisation ou de votre résidence. Indiquez ces deux éléments pour obtenir un montant indicatif.</p>
+      </div>
+    </div>
+
+    <div class="estim-grid">
+      <form id="estim-form" aria-label="Estimateur de cotisation">
+        <div class="field-group">
+          <span class="glabel" id="lbl-rev">Niveau de revenu du pays <span class="hint">(classification indicative)</span></span>
+          <div class="radioset" role="radiogroup" aria-labelledby="lbl-rev">
+            <label class="optcard"><input type="radio" name="rev" value="high" checked><span class="ot">Élevé</span><span class="od">Revenu élevé</span></label>
+            <label class="optcard"><input type="radio" name="rev" value="mid"><span class="ot">Intermédiaire</span><span class="od">Revenu moyen</span></label>
+            <label class="optcard"><input type="radio" name="rev" value="low"><span class="ot">Faible</span><span class="od">Revenu modeste</span></label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <span class="glabel" id="lbl-type">Type d'adhésion</span>
+          <div class="radioset" role="radiogroup" aria-labelledby="lbl-type">
+            <label class="optcard"><input type="radio" name="etype" value="org" checked><span class="ot">Organisation</span><span class="od">Think tank</span></label>
+            <label class="optcard"><input type="radio" name="etype" value="ind"><span class="ot">Individuel</span><span class="od">Chercheur</span></label>
+            <label class="optcard"><input type="radio" name="etype" value="jeu"><span class="ot">Jeune</span><span class="od">Moins de 35 ans</span></label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <span class="glabel" id="lbl-cur">Devise de paiement</span>
+          <div class="radioset two" role="radiogroup" aria-labelledby="lbl-cur">
+            <label class="optcard"><input type="radio" name="cur" value="EUR" checked><span class="ot">EUR</span><span class="od">Euro</span></label>
+            <label class="optcard"><input type="radio" name="cur" value="XOF"><span class="ot">XOF</span><span class="od">Franc CFA (Afrique de l'Ouest)</span></label>
+          </div>
+        </div>
+      </form>
+
+      <div class="estim-out" aria-live="polite">
+        <div class="k">Cotisation annuelle suggérée</div>
+        <div class="price">
+          <b id="est-amount">1 200</b>
+          <span class="cur" id="est-cur">EUR</span>
+        </div>
+        <p class="ctx" id="est-ctx">Organisation, pays à revenu élevé.</p>
+        <p class="alt" id="est-alt">Équivalent indicatif : 786 000 XOF par an.</p>
+        <div class="solidarity">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s-7-4.6-9.3-9.1C1.2 9 2.6 5.5 5.9 5.1 8 4.8 9.6 6.1 12 8.8c2.4-2.7 4-4 6.1-3.7 3.3.4 4.7 3.9 3.2 6.8C19 16.4 12 21 12 21Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <span>Tarif solidaire. Ces montants sont des tarifs indicatifs. La cotisation réelle peut être adaptée à votre situation, sur simple demande au secrétariat, pour qu'aucun frein financier n'empêche d'adhérer.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== COMPARATIF =================== -->
+<section class="section" id="comparatif" aria-labelledby="cmp-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <h2 id="cmp-h">Ce qui est inclus, par type</h2>
+        <p>Les avantages diffèrent selon le rôle de chaque membre dans le réseau. Voici le détail des accès et droits associés.</p>
+      </div>
+    </div>
+
+    <div class="cmp-scroll">
+      <table class="cmp">
+        <caption class="meta" style="text-align:left;padding:var(--s4) var(--s5);caption-side:top">Comparatif des avantages · données d'illustration</caption>
+        <thead>
+          <tr>
+            <th scope="col">Avantage</th>
+            <th scope="col">Think tank<span class="sub">Organisation</span></th>
+            <th scope="col">Individuel<span class="sub">Chercheur · citoyen</span></th>
+            <th scope="col">Jeune<span class="sub">Moins de 35 ans</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Profil public sur l'annuaire<span class="d">Visibilité dans le réseau</span></th>
+            <td><span class="ck">Profil organisation détaillé</span></td>
+            <td><span class="ck">Profil membre individuel</span></td>
+            <td><span class="ck">Profil jeune contributeur</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Accès aux publications<span class="d">Bibliothèque du réseau</span></th>
+            <td><span class="ck">Accès intégral, dont contenus réservés</span></td>
+            <td><span class="ck">Accès intégral, dont contenus réservés</span></td>
+            <td><span class="ck">Accès intégral en lecture</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Publier dans la bibliothèque<span class="d">Dépôt d'analyses citables</span></th>
+            <td><span class="ck">Dépôt institutionnel illimité</span></td>
+            <td><span class="ck">Dépôt en tant que contributeur</span></td>
+            <td><span class="ck no"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 12h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Via mentorat éditorial</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Espaces collaboratifs<span class="d">Groupes de travail thématiques</span></th>
+            <td><span class="ck">Plusieurs sièges par groupe</span></td>
+            <td><span class="ck">Un siège par groupe</span></td>
+            <td><span class="ck">Groupes jeunes et observation</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Appels à projets et fonds communs<span class="d">Financements et co-productions</span></th>
+            <td><span class="ck">Éligible et porteur de projet</span></td>
+            <td><span class="ck">Éligible en équipe</span></td>
+            <td><span class="ck no"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 12h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Bourses jeunes dédiées</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Mentorat et formation<span class="d">Montée en compétences</span></th>
+            <td><span class="ck">Mentor pour les structures émergentes</span></td>
+            <td><span class="ck">Ateliers et pairs</span></td>
+            <td><span class="ck">Mentorat prioritaire</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Voix dans la gouvernance<span class="d">Assemblée générale</span></th>
+            <td><span class="ck">Voix délibérative</span></td>
+            <td><span class="ck">Voix consultative</span></td>
+            <td><span class="ck">Voix au conseil des jeunes</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Sommet annuel à Paris<span class="d">Tarif et places</span></th>
+            <td><span class="ck">Plusieurs places, tarif membre</span></td>
+            <td><span class="ck">Une place, tarif membre</span></td>
+            <td><span class="ck">Places jeunes à tarif réduit</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =================== PAIEMENT (maquette) =================== -->
+<section class="section pay" id="paiement" aria-labelledby="pay-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <h2 id="pay-h">Régler la cotisation</h2>
+        <p>Récapitulatif de votre adhésion et choix du moyen de paiement. Carte bancaire ou prélèvement SEPA pour la zone euro.</p>
+      </div>
+    </div>
+
+    <div class="pay-grid">
+      <aside class="recap" aria-label="Récapitulatif de l'adhésion">
+        <div class="rh"><h3>Votre adhésion</h3></div>
+        <div class="rb">
+          <div class="rr"><span>Type</span><b id="rc-type">Organisation</b></div>
+          <div class="rr"><span>Niveau de revenu</span><b id="rc-rev">Élevé</b></div>
+          <div class="rr"><span>Périodicité</span><b>Annuelle</b></div>
+          <div class="rr total"><span>Total à régler</span><b><span id="rc-amount">1 200</span> <span id="rc-cur">EUR</span></b></div>
+          <div class="fiscal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4h11l3 3v13H5V4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8.5 12.5l2 2 4-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Un reçu fiscal est envoyé automatiquement après paiement (association loi 1901). Les tarifs affichés sont indicatifs.</span>
+          </div>
+        </div>
+      </aside>
+
+      <form class="payform" aria-label="Formulaire de paiement (maquette)" onsubmit="return false">
+        <span class="mock-flag">Maquette · paiement non fonctionnel</span>
+
+        <div class="method" role="radiogroup" aria-label="Moyen de paiement">
+          <label class="optcard"><input type="radio" name="method" value="card" checked><span class="ot">Carte bancaire</span><span class="od">Visa, Mastercard</span></label>
+          <label class="optcard"><input type="radio" name="method" value="sepa"><span class="ot">Prélèvement SEPA</span><span class="od">Zone euro</span></label>
+        </div>
+
+        <div class="field">
+          <label for="pf-name">Titulaire du compte</label>
+          <input id="pf-name" type="text" name="name" autocomplete="name" placeholder="Prénom et nom" />
+        </div>
+        <div class="field">
+          <label for="pf-org">Organisation (si adhésion organisation)</label>
+          <input id="pf-org" type="text" name="org" autocomplete="organization" placeholder="Nom de l'institut ou du centre" />
+        </div>
+        <div class="field">
+          <label for="pf-email">Adresse e-mail (pour le reçu fiscal)</label>
+          <input id="pf-email" type="email" name="email" autocomplete="email" placeholder="vous@exemple.org" />
+        </div>
+
+        <div class="field field-mono">
+          <label for="pf-card">Numéro de carte</label>
+          <input id="pf-card" type="text" inputmode="numeric" name="card" autocomplete="cc-number" placeholder="0000 0000 0000 0000" />
+        </div>
+        <div class="frow">
+          <div class="field field-mono">
+            <label for="pf-exp">Expiration</label>
+            <input id="pf-exp" type="text" inputmode="numeric" name="exp" autocomplete="cc-exp" placeholder="MM / AA" />
+          </div>
+          <div class="field field-mono">
+            <label for="pf-cvc">Cryptogramme</label>
+            <input id="pf-cvc" type="text" inputmode="numeric" name="cvc" autocomplete="cc-csc" placeholder="CVC" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="pf-country">Pays de l'adhérent</label>
+          <select id="pf-country" name="country">
+            <option>France</option>
+            <option>Sénégal</option>
+            <option>Belgique</option>
+            <option>Côte d'Ivoire</option>
+            <option>Bénin</option>
+            <option>Autre pays</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary btn-lg" type="submit">Régler la cotisation</button>
+        <p class="disclaimer">Aperçu de démonstration. Aucune donnée n'est transmise ni débitée.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- =================== DON =================== -->
+<section class="section" id="don" aria-labelledby="don-h">
+  <div class="wrap">
+    <div class="donate">
+      <div>
+        <p class="eyebrow">Sans adhérer</p>
+        <h2 id="don-h">Vous n'êtes pas membre ? Soutenez par un don</h2>
+        <p>Un don ponctuel ou régulier finance directement la production d'analyses ouvertes, le Baromètre et le mentorat des jeunes contributeurs. Le reçu fiscal est envoyé automatiquement.</p>
+      </div>
+      <div style="display:flex;gap:var(--s3);flex-wrap:wrap">
+        <a class="btn btn-primary btn-lg" href="#">Faire un don</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FAQ =================== -->
+<section class="section" id="faq" style="background:var(--surface)" aria-labelledby="faq-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <h2 id="faq-h">Questions fréquentes</h2>
+        <p>Cotisation solidaire, reçus fiscaux, paiement en Afrique de l'Ouest, dons et résiliation.</p>
+      </div>
+    </div>
+
+    <div class="faq" id="faq-list">
+      <div class="qa">
+        <button aria-expanded="false" aria-controls="a1" id="q1">Comment fonctionne la cotisation solidaire ?<span class="ico" aria-hidden="true"></span></button>
+        <div class="ans" id="a1" role="region" aria-labelledby="q1"><div class="inner">
+          <p>La cotisation s'ajuste au niveau de revenu du pays de votre organisation ou de votre résidence, selon trois paliers (élevé, intermédiaire, faible). L'objectif est qu'un membre basé à Dakar et un membre basé à Paris contribuent à la hauteur de leurs moyens respectifs, sans que le tarif devienne un obstacle.</p>
+          <p>Les montants présentés sur cette page sont des tarifs indicatifs. Si votre situation ne correspond à aucun palier, écrivez au secrétariat : nous adaptons la cotisation au cas par cas.</p>
+        </div></div>
+      </div>
+
+      <div class="qa">
+        <button aria-expanded="false" aria-controls="a2" id="q2">Le reçu fiscal est-il systématique (association loi 1901) ?<span class="ico" aria-hidden="true"></span></button>
+        <div class="ans" id="a2" role="region" aria-labelledby="q2"><div class="inner">
+          <p>Oui. Democracy Together est une association loi 1901. Après chaque paiement de cotisation ou don, un reçu est généré et envoyé automatiquement à l'adresse e-mail indiquée. L'éligibilité à une réduction d'impôt dépend de votre pays de résidence et de votre régime fiscal ; renseignez-vous auprès de votre administration.</p>
+        </div></div>
+      </div>
+
+      <div class="qa">
+        <button aria-expanded="false" aria-controls="a3" id="q3">Puis-je payer en XOF depuis l'Afrique de l'Ouest ?<span class="ico" aria-hidden="true"></span></button>
+        <div class="ans" id="a3" role="region" aria-labelledby="q3"><div class="inner">
+          <p>Oui. Le paiement est possible en euro (EUR) ou en franc CFA (XOF). Pour l'Afrique de l'Ouest, nous acceptons le règlement en XOF, avec une conversion approximative de 1 EUR pour environ 655 XOF. Le bureau de Dakar peut aussi proposer d'autres moyens de paiement locaux.</p>
+          <p>La conversion affichée par l'estimateur est indicative et peut différer légèrement du montant final selon le canal de paiement.</p>
+        </div></div>
+      </div>
+
+      <div class="qa">
+        <button aria-expanded="false" aria-controls="a4" id="q4">Comment fonctionnent les dons et le mécénat ?<span class="ico" aria-hidden="true"></span></button>
+        <div class="ans" id="a4" role="region" aria-labelledby="q4"><div class="inner">
+          <p>Vous pouvez soutenir le réseau sans être membre, par un don ponctuel ou régulier. Les organisations intéressées par un partenariat de mécénat (soutien au Baromètre, au sommet de Paris ou au programme jeunes) peuvent contacter le secrétariat pour définir une convention dédiée.</p>
+        </div></div>
+      </div>
+
+      <div class="qa">
+        <button aria-expanded="false" aria-controls="a5" id="q5">Comment résilier ou ne pas renouveler mon adhésion ?<span class="ico" aria-hidden="true"></span></button>
+        <div class="ans" id="a5" role="region" aria-labelledby="q5"><div class="inner">
+          <p>L'adhésion est annuelle et sans tacite reconduction : elle ne se renouvelle pas automatiquement. Vous recevez un rappel avant l'échéance et choisissez librement de renouveler. Vous pouvez aussi nous écrire à tout moment pour mettre fin à votre adhésion.</p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== CTA =================== -->
+<section class="ctaband">
+  <div class="wrap">
+    <div>
+      <h2>Prêt à rejoindre le réseau ?</h2>
+      <p>Choisissez votre profil, estimez votre cotisation solidaire et adhérez en quelques minutes.</p>
+    </div>
+    <div style="display:flex;gap:var(--s3);flex-wrap:wrap">
+      <a class="btn btn-light btn-lg" href="#types">Choisir mon adhésion</a>
+      <a class="btn btn-line btn-lg" href="#don">Faire un don</a>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FOOTER =================== -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="brandblock">
+        <svg class="seal" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15.5" stroke="#7FA3D9" stroke-width="1.5"/><path d="M2.5 17 H31.5" stroke="#7FA3D9" stroke-width="1.2" opacity=".5"/><circle cx="11" cy="11" r="2.4" fill="#7FA3D9"/><circle cx="23" cy="22" r="2.4" fill="#7FA3D9"/><line x1="11" y1="11" x2="23" y2="22" stroke="#7FA3D9" stroke-width="1.2"/></svg>
+        <p>Democracy Together. Un réseau international de think tanks, d'Afrique et d'Europe.</p>
+        <div class="offices">
+          <span>Paris</span><span>Dakar</span><span>Bruxelles</span>
+        </div>
+      </div>
+      <div class="col"><h4>Le réseau</h4><a href="rmdl-accueil.html">Mission</a><a href="#">Gouvernance</a><a href="#">Fondateurs</a><a href="#">Partenaires</a></div>
+      <div class="col"><h4>Ressources</h4><a href="rmdl-bibliotheque.html">Bibliothèque</a><a href="rmdl-barometre.html">Baromètre</a><a href="rmdl-evenements.html">Événements</a><a href="rmdl-jeunes.html">Hub jeunes</a></div>
+      <div class="col"><h4>Participer</h4><a href="rmdl-adhesion.html">Adhérer</a><a href="#don">Faire un don</a><a href="#">Lettre d'analyses</a><a href="#">Contact presse</a></div>
+    </div>
+    <div class="foot-bottom">
+      <span>Association loi 1901. Tous droits réservés.</span>
+      <span>Mentions légales · Confidentialité · Accessibilité · Gestion des cookies</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  var themeBtn=document.getElementById('themeBtn');
+  if(themeBtn){
+    themeBtn.addEventListener('click',function(){
+      root.setAttribute('data-theme', root.getAttribute('data-theme')==='dark'?'light':'dark');
+    });
+  }
+
+  /* ===== Données indicatives (tarifs solidaires) ===== */
+  var XOF_RATE=655; /* conversion approximative 1 EUR pour 655 XOF */
+  var PRICES={
+    org:{high:1200, mid:600, low:250},
+    ind:{high:120,  mid:60,  low:30},
+    jeu:{high:30,   mid:15,  low:0}
+  };
+  var TYPE_LABEL={org:"Organisation", ind:"Individuel", jeu:"Jeune"};
+  var REV_LABEL={high:"Élevé", mid:"Intermédiaire", low:"Faible"};
+  var REV_CTX={high:"pays à revenu élevé", mid:"pays à revenu intermédiaire", low:"pays à revenu faible"};
+
+  var TYPE_CONTENT={
+    org:{
+      who:"Pour les think tanks et organisations",
+      title:"Adhésion organisation",
+      desc:"Pour les instituts de recherche, centres d'analyse et organisations de la société civile qui veulent contribuer à la production commune et peser dans le débat démocratique Afrique-Europe.",
+      adv:[
+        "Profil institutionnel détaillé dans l'annuaire du réseau",
+        "Dépôt illimité d'analyses citables dans la bibliothèque",
+        "Plusieurs sièges dans les groupes de travail thématiques",
+        "Éligibilité aux appels à projets et fonds communs comme porteur",
+        "Voix délibérative à l'assemblée générale",
+        "Plusieurs places au sommet annuel de Paris, au tarif membre"
+      ]
+    },
+    ind:{
+      who:"Pour les individus engagés",
+      title:"Adhésion individuelle",
+      desc:"Pour les chercheurs, praticiens et citoyens engagés qui veulent contribuer aux travaux du réseau et accéder à l'ensemble de ses ressources, à titre personnel.",
+      adv:[
+        "Profil membre individuel dans l'annuaire",
+        "Accès intégral aux publications, y compris les contenus réservés",
+        "Possibilité de publier comme contributeur",
+        "Un siège dans les groupes de travail thématiques",
+        "Voix consultative à l'assemblée générale",
+        "Une place au sommet de Paris, au tarif membre"
+      ]
+    },
+    jeu:{
+      who:"Pour les moins de 35 ans",
+      title:"Adhésion jeune",
+      desc:"Pour les étudiants, jeunes chercheurs et jeunes professionnels de moins de 35 ans qui veulent entrer dans le réseau, se former et faire entendre la voix de la relève.",
+      adv:[
+        "Profil jeune contributeur dans l'annuaire",
+        "Accès intégral en lecture à la bibliothèque",
+        "Mentorat éditorial pour publier ses premières analyses",
+        "Accès aux bourses et programmes jeunes dédiés",
+        "Voix au conseil des jeunes du réseau",
+        "Places à tarif réduit au sommet de Paris"
+      ]
+    }
+  };
+
+  /* ===== Formatage ===== */
+  function fmt(n){ return n.toLocaleString('fr-FR'); }
+  function amountFor(type, rev, cur){
+    var eur=PRICES[type][rev];
+    if(cur==='XOF'){ return Math.round(eur*XOF_RATE); }
+    return eur;
+  }
+  function check(svg){ return svg; }
+
+  /* ===== Sélecteur de type (onglets) ===== */
+  var tabs=Array.prototype.slice.call(document.querySelectorAll('.seg [role=tab]'));
+  var tpWho=document.getElementById('tp-who');
+  var tpTitle=document.getElementById('tp-title');
+  var tpDesc=document.getElementById('tp-desc');
+  var tpAdv=document.getElementById('tp-adv');
+  var asTitle=document.getElementById('as-title');
+  var asAmount=document.getElementById('as-amount');
+  var asCur=document.getElementById('as-cur');
+  var asNote=document.getElementById('as-note');
+  var currentType='org';
+
+  var CHECK='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function renderType(type){
+    currentType=type;
+    var c=TYPE_CONTENT[type];
+    tpWho.textContent=c.who;
+    tpTitle.textContent=c.title;
+    tpDesc.textContent=c.desc;
+    tpAdv.innerHTML=c.adv.map(function(a){ return '<li>'+CHECK+'<span>'+a+'</span></li>'; }).join('');
+    asTitle.textContent=c.title;
+    /* tarif de la fiche : niveau revenu élevé, EUR, par cohérence */
+    asAmount.textContent=fmt(PRICES[type].high);
+    asCur.textContent='EUR';
+    asNote.textContent="Tarif au niveau de revenu élevé. Ajustez avec l'estimateur solidaire ci-dessous.";
+    /* synchronise l'estimateur sur le type choisi */
+    var er=document.querySelector('input[name="etype"][value="'+type+'"]');
+    if(er && !er.checked){ er.checked=true; renderEstim(); }
+  }
+
+  tabs.forEach(function(tab){
+    tab.addEventListener('click',function(){
+      tabs.forEach(function(t){ t.setAttribute('aria-selected', t===tab?'true':'false'); });
+      renderType(tab.getAttribute('data-type'));
+    });
+    tab.addEventListener('keydown',function(e){
+      var i=tabs.indexOf(tab), n=null;
+      if(e.key==='ArrowRight'||e.key==='ArrowDown'){ n=tabs[(i+1)%tabs.length]; }
+      if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ n=tabs[(i-1+tabs.length)%tabs.length]; }
+      if(n){ e.preventDefault(); n.focus(); n.click(); }
+    });
+  });
+
+  /* ===== Estimateur ===== */
+  var estAmount=document.getElementById('est-amount');
+  var estCur=document.getElementById('est-cur');
+  var estCtx=document.getElementById('est-ctx');
+  var estAlt=document.getElementById('est-alt');
+  var rcType=document.getElementById('rc-type');
+  var rcRev=document.getElementById('rc-rev');
+  var rcAmount=document.getElementById('rc-amount');
+  var rcCur=document.getElementById('rc-cur');
+
+  function val(name){ var el=document.querySelector('input[name="'+name+'"]:checked'); return el?el.value:null; }
+
+  function renderEstim(){
+    var rev=val('rev'), type=val('etype'), cur=val('cur');
+    var amt=amountFor(type, rev, cur);
+    estAmount.textContent=fmt(amt);
+    estCur.textContent=cur;
+    estCtx.textContent=TYPE_LABEL[type]+', '+REV_CTX[rev]+'.';
+    /* équivalent dans l'autre devise */
+    if(cur==='EUR'){
+      estAlt.textContent='Équivalent indicatif : '+fmt(amountFor(type, rev, 'XOF'))+' XOF par an.';
+    } else {
+      estAlt.textContent='Équivalent indicatif : '+fmt(PRICES[type][rev])+' EUR par an.';
+    }
+    /* met à jour le récapitulatif de paiement */
+    rcType.textContent=TYPE_LABEL[type];
+    rcRev.textContent=REV_LABEL[rev];
+    rcAmount.textContent=fmt(amt);
+    rcCur.textContent=cur;
+    /* synchronise les onglets de type si l'estimateur change le type */
+    if(type!==currentType){
+      currentType=type;
+      tabs.forEach(function(t){ t.setAttribute('aria-selected', t.getAttribute('data-type')===type?'true':'false'); });
+      renderType(type);
+    }
+  }
+
+  document.querySelectorAll('#estim-form input').forEach(function(i){
+    i.addEventListener('change', renderEstim);
+  });
+
+  /* ===== FAQ accordéon ===== */
+  document.querySelectorAll('.qa button').forEach(function(btn){
+    var ans=document.getElementById(btn.getAttribute('aria-controls'));
+    btn.addEventListener('click',function(){
+      var open=btn.getAttribute('aria-expanded')==='true';
+      btn.setAttribute('aria-expanded', open?'false':'true');
+      ans.style.maxHeight = open ? '0px' : (ans.scrollHeight+'px');
+    });
+  });
+  window.addEventListener('resize',function(){
+    document.querySelectorAll('.qa button[aria-expanded="true"]').forEach(function(btn){
+      var ans=document.getElementById(btn.getAttribute('aria-controls'));
+      ans.style.maxHeight=ans.scrollHeight+'px';
+    });
+  });
+
+  /* init */
+  renderType('org');
+  renderEstim();
+})();
+</script>
+</body>
+</html>

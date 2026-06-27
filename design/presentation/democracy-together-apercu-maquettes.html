@@ -1,0 +1,198 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<title>Democracy Together — Aperçu maquettes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F2EC; --ink:#16191F; --inksoft:#454953;
+  --meta:#646771; --rule:#D9D6CD; --indigo:#1F3D6E; --safran:#DB8A34; --teal:#2E6E8E;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+@page cover { size: A4; margin:0 }
+@page p0 { size: 210mm 1310mm; margin:0 }
+@page p1 { size: 210mm 1179mm; margin:0 }
+@page p2 { size: 210mm 793mm; margin:0 }
+@page p3 { size: 210mm 569mm; margin:0 }
+@page p4 { size: 210mm 1159mm; margin:0 }
+@page p5 { size: 210mm 776mm; margin:0 }
+@page p6 { size: 210mm 1230mm; margin:0 }
+@page p7 { size: 210mm 793mm; margin:0 }
+@page p8 { size: 210mm 1170mm; margin:0 }
+@page p9 { size: 210mm 588mm; margin:0 }
+@page p10 { size: 210mm 1806mm; margin:0 }
+@page p11 { size: 210mm 1310mm; margin:0 }
+.cover{page:cover}
+.pp0{page:p0;height:1310mm}
+.pp1{page:p1;height:1179mm}
+.pp2{page:p2;height:793mm}
+.pp3{page:p3;height:569mm}
+.pp4{page:p4;height:1159mm}
+.pp5{page:p5;height:776mm}
+.pp6{page:p6;height:1230mm}
+.pp7{page:p7;height:793mm}
+.pp8{page:p8;height:1170mm}
+.pp9{page:p9;height:588mm}
+.pp10{page:p10;height:1806mm}
+.pp11{page:p11;height:1310mm}
+html,body{background:#fff}
+body{font-family:"IBM Plex Sans",-apple-system,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{position:relative;width:210mm;background:var(--paper);overflow:hidden;page-break-after:always;break-after:page}
+.page:last-child{page-break-after:auto}
+.cover{height:297mm;padding:34mm 22mm 20mm}
+
+/* Couverture */
+.cover .rail{position:absolute;top:28mm;bottom:28mm;right:16mm;width:1.4mm;background:var(--indigo)}
+.cover-stripe{position:absolute;top:24mm;left:22mm;width:34mm;height:2.4mm;display:flex}
+.cover-stripe span{flex:1}
+.eyebrow{font-size:9.5pt;letter-spacing:.22em;font-weight:600;color:var(--indigo);margin-top:6mm}
+h1{font-family:"Newsreader",Georgia,serif;font-weight:500;font-size:64pt;line-height:.98;letter-spacing:-.01em;color:var(--ink);margin:11mm 0 0}
+.h1-it{font-style:italic;font-weight:400;color:var(--indigo);font-size:46pt}
+.lede{font-family:"Newsreader",Georgia,serif;font-style:italic;font-size:17pt;line-height:1.35;color:var(--inksoft);margin-top:9mm;max-width:130mm}
+.meta-cover{font-size:10pt;line-height:1.7;color:var(--meta);margin-top:8mm}
+.toc-label{font-size:9pt;letter-spacing:.2em;font-weight:600;color:var(--indigo);margin-top:13mm}
+.toc{margin-top:5mm;columns:2;column-gap:14mm;max-width:158mm}
+.toc-group{break-inside:avoid;margin-bottom:5mm}
+.toc-sec{font-family:"Newsreader",Georgia,serif;font-size:12.5pt;color:var(--ink);padding-bottom:1.6mm;margin-bottom:1.6mm;border-bottom:.3mm solid var(--rule);display:flex;align-items:baseline;gap:2.5mm}
+.toc-sec-no{font-family:"IBM Plex Mono",monospace;font-size:8.5pt;color:var(--safran)}
+.toc ul{list-style:none}
+.toc li{font-size:10.5pt;color:var(--ink);padding:1.4mm 0;display:flex;align-items:baseline;gap:2.5mm}
+.toc li::before{content:"";display:inline-block;width:1.8mm;height:1.8mm;background:var(--indigo);flex:0 0 auto;transform:translateY(.2mm)}
+.toc .num{font-family:"IBM Plex Mono",monospace;font-size:9pt;color:var(--meta)}
+.cover-foot{position:absolute;left:22mm;bottom:18mm;font-size:8.6pt;line-height:1.7;color:var(--meta)}
+
+/* Pages captures */
+.bar{position:absolute;top:0;left:0;right:0;height:11mm;background:var(--indigo);
+  display:flex;align-items:center;justify-content:space-between;padding:0 10mm;color:var(--paper);z-index:2}
+.bar-l{font-size:8.6pt;letter-spacing:.06em;color:rgba(244,242,236,.78)}
+.bar-r{font-size:8.8pt;letter-spacing:.12em;font-weight:600;color:#fff}
+.stripe{position:absolute;top:11mm;left:0;right:0;height:1.6mm;display:flex;z-index:2}
+.stripe span{flex:1}
+.shot{position:absolute;top:16mm;left:10mm;right:10mm}
+.shot img{width:100%;display:block;border:.4mm solid var(--rule)}
+</style></head><body>
+
+<section class="page cover">
+  <div class="rail"></div>
+  <div class="cover-stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="eyebrow">MAQUETTES HAUTE-FIDÉLITÉ · APERÇU DE LA PLATEFORME</div>
+  <h1>Democracy<br><span class="h1-it">Together</span></h1>
+  <p class="lede">Réseau international de think tanks pour la démocratie<br>Afrique–Europe · plateforme d'agrégation des analyses</p>
+  <p class="meta-cover">Aperçu visuel de l'interface — site public &amp; espace membre<br>
+  12 pages · captures pleine hauteur · clair &amp; sombre · v1</p>
+  <div class="toc-label">PAGES PRÉSENTÉES</div>
+  <div class="toc"><div class="toc-group"><div class="toc-sec"><span class="toc-sec-no">01</span> Découverte &amp; institutionnel</div><ul><li><span class="num">01</span> · Accueil</li><li><span class="num">02</span> · À propos &amp; gouvernance</li></ul></div><div class="toc-group"><div class="toc-sec"><span class="toc-sec-no">02</span> Connaissances &amp; données</div><ul><li><span class="num">03</span> · Bibliothèque</li><li><span class="num">04</span> · Fiche publication</li><li><span class="num">05</span> · Baromètre de la démocratie</li></ul></div><div class="toc-group"><div class="toc-sec"><span class="toc-sec-no">03</span> Réseau &amp; événements</div><ul><li><span class="num">06</span> · Événements · agenda</li><li><span class="num">07</span> · Page événement &amp; billetterie</li></ul></div><div class="toc-group"><div class="toc-sec"><span class="toc-sec-no">04</span> Engagement &amp; adhésion</div><ul><li><span class="num">08</span> · Hub jeunes</li><li><span class="num">09</span> · Adhésion &amp; cotisation</li></ul></div><div class="toc-group"><div class="toc-sec"><span class="toc-sec-no">05</span> Espace membre</div><ul><li><span class="num">10</span> · Espace membre</li></ul></div><div class="toc-group"><div class="toc-sec"><span class="toc-sec-no">06</span> Référence design</div><ul><li><span class="num">11</span> · Système de design</li><li><span class="num">12</span> · Accueil — mode sombre</li></ul></div></div>
+  <div class="cover-foot">Préparé par Be in Digital · direction design Democracy Together<br>
+  Juin 2026 · captures et données présentées à titre d'illustration</div>
+</section>
+
+
+<section class="page shotpage pp0">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Découverte &amp; institutionnel</span>
+    <span class="bar-r">01 · ACCUEIL</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/accueil.png" alt="Accueil"></div>
+</section>
+
+<section class="page shotpage pp1">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Découverte &amp; institutionnel</span>
+    <span class="bar-r">02 · À PROPOS &amp; GOUVERNANCE</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/a-propos.png" alt="À propos &amp; gouvernance"></div>
+</section>
+
+<section class="page shotpage pp2">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Connaissances &amp; données</span>
+    <span class="bar-r">03 · BIBLIOTHÈQUE</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/bibliotheque.png" alt="Bibliothèque"></div>
+</section>
+
+<section class="page shotpage pp3">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Connaissances &amp; données</span>
+    <span class="bar-r">04 · FICHE PUBLICATION</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/publication.png" alt="Fiche publication"></div>
+</section>
+
+<section class="page shotpage pp4">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Connaissances &amp; données</span>
+    <span class="bar-r">05 · BAROMÈTRE DE LA DÉMOCRATIE</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/barometre.png" alt="Baromètre de la démocratie"></div>
+</section>
+
+<section class="page shotpage pp5">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Réseau &amp; événements</span>
+    <span class="bar-r">06 · ÉVÉNEMENTS · AGENDA</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/evenements.png" alt="Événements · agenda"></div>
+</section>
+
+<section class="page shotpage pp6">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Réseau &amp; événements</span>
+    <span class="bar-r">07 · PAGE ÉVÉNEMENT &amp; BILLETTERIE</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/evenement.png" alt="Page événement &amp; billetterie"></div>
+</section>
+
+<section class="page shotpage pp7">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Engagement &amp; adhésion</span>
+    <span class="bar-r">08 · HUB JEUNES</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/jeunes.png" alt="Hub jeunes"></div>
+</section>
+
+<section class="page shotpage pp8">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Engagement &amp; adhésion</span>
+    <span class="bar-r">09 · ADHÉSION &amp; COTISATION</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/adhesion.png" alt="Adhésion &amp; cotisation"></div>
+</section>
+
+<section class="page shotpage pp9">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Espace membre</span>
+    <span class="bar-r">10 · ESPACE MEMBRE</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/espace-membre.png" alt="Espace membre"></div>
+</section>
+
+<section class="page shotpage pp10">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Référence design</span>
+    <span class="bar-r">11 · SYSTÈME DE DESIGN</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/style-guide.png" alt="Système de design"></div>
+</section>
+
+<section class="page shotpage pp11">
+  <div class="bar">
+    <span class="bar-l">Democracy Together · Référence design</span>
+    <span class="bar-r">12 · ACCUEIL — MODE SOMBRE</span>
+  </div>
+  <div class="stripe"><span style="background:#1F3D6E"></span><span style="background:#DB8A34"></span><span style="background:#2E6E8E"></span></div>
+  <div class="shot"><img src="img/full/accueil-dark.png" alt="Accueil — mode sombre"></div>
+</section>
+
+</body></html>
