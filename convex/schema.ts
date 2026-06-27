@@ -117,6 +117,16 @@ export default defineSchema({
     reviewedBy: v.optional(v.id('users')),
     reviewedAt: v.optional(v.number()),
     reviewNotes: v.optional(v.string()),
+    // Revue à comité de lecture (F-43) — couche AU-DESSUS de la modération.
+    // Étape optionnelle : 'in_review' (relecteur assigné), 'revision' (retour
+    // à l'auteur), 'reviewed' (avis rendu). Voir convex/peerReview.ts.
+    reviewStage: v.optional(
+      v.union(
+        v.literal('in_review'),
+        v.literal('revision'),
+        v.literal('reviewed'),
+      ),
+    ),
     // Document téléversé (F-32) : fichier dans le stockage Convex + nom d'origine.
     fileId: v.optional(v.id('_storage')),
     fileName: v.optional(v.string()),
@@ -126,6 +136,27 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
     .index('by_author', ['authorUserId']),
+
+  // Revue à comité de lecture (F-43) — avis des relecteurs (moderateur+) sur une
+  // publication. Couche au-dessus de la modération : un éditeur assigne un
+  // relecteur (reviewStage='in_review'), les relecteurs déposent un avis, puis
+  // l'éditeur décide (revision / reviewed). `reviewerName` = instantané
+  // dénormalisé (évite un join à la lecture de la file).
+  peerReviews: defineTable({
+    publicationId: v.id('publications'),
+    reviewerUserId: v.id('users'),
+    reviewerName: v.string(),
+    recommendation: v.union(
+      v.literal('accept'),
+      v.literal('minor'),
+      v.literal('major'),
+      v.literal('reject'),
+    ),
+    comment: v.string(),
+    createdAt: v.number(),
+  })
+    .index('by_publication', ['publicationId'])
+    .index('by_reviewer', ['reviewerUserId']),
 
   // Candidatures d'adhésion (F-22) — workflow de validation par un modérateur.
   membershipApplications: defineTable({
@@ -334,6 +365,44 @@ export default defineSchema({
   })
     .index('by_status', ['status'])
     .index('by_author', ['authorUserId']),
+
+  // Espaces de travail collaboratifs (F-24) — un membre du réseau ouvre un
+  // espace autour d'un thème ; d'autres membres le rejoignent et y déposent des
+  // notes. Lecture réservée aux membres réseau (membre+) ; l'écriture de notes
+  // est réservée aux MEMBRES DE L'ESPACE (workspaceMembers). `theme` = un des 5
+  // axes (slugs PUB_THEMES). `ownerName`/`memberCount` = instantanés dénormalisés
+  // (évitent un join à la lecture de la liste).
+  workspaces: defineTable({
+    title: v.string(),
+    theme: v.string(),
+    description: v.string(),
+    ownerUserId: v.id('users'),
+    ownerName: v.string(),
+    memberCount: v.number(),
+    createdAt: v.number(),
+  }).index('by_owner', ['ownerUserId']),
+
+  // Appartenance à un espace (F-24). Unicité (espace, utilisateur) via l'index
+  // composite by_workspace_and_user. `userName` = instantané dénormalisé.
+  workspaceMembers: defineTable({
+    workspaceId: v.id('workspaces'),
+    userId: v.id('users'),
+    userName: v.string(),
+    role: v.union(v.literal('owner'), v.literal('member')),
+    joinedAt: v.number(),
+  })
+    .index('by_workspace', ['workspaceId'])
+    .index('by_workspace_and_user', ['workspaceId', 'userId']),
+
+  // Notes d'un espace (F-24) — fil collaboratif, écriture réservée aux membres
+  // de l'espace. `authorName` = instantané dénormalisé.
+  workspaceNotes: defineTable({
+    workspaceId: v.id('workspaces'),
+    authorUserId: v.id('users'),
+    authorName: v.string(),
+    body: v.string(),
+    createdAt: v.number(),
+  }).index('by_workspace', ['workspaceId']),
 
   // Notifications par utilisateur (F-25/F-51) — réactif (Convex temps réel).
   // Déclenchées par les moments existants (modération de publication, revue de

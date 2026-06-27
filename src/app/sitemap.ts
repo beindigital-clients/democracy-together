@@ -48,6 +48,8 @@ const STATIC_PATHS = [
   'rapports',
   'tribune',
   'evenements',
+  'evenements/calendrier',
+  'replays',
   'jeunes',
   'adhesion',
   'appels-a-projets',

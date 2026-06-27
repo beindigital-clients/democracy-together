@@ -33,6 +33,7 @@ import type * as newsletter from "../newsletter.js";
 import type * as notifications from "../notifications.js";
 import type * as organizations from "../organizations.js";
 import type * as otp from "../otp.js";
+import type * as peerReview from "../peerReview.js";
 import type * as projects from "../projects.js";
 import type * as publications from "../publications.js";
 import type * as search from "../search.js";
@@ -40,6 +41,7 @@ import type * as seed from "../seed.js";
 import type * as seedPublications from "../seedPublications.js";
 import type * as tribune from "../tribune.js";
 import type * as users from "../users.js";
+import type * as workspaces from "../workspaces.js";
 import type * as youth from "../youth.js";
 
 import type {
@@ -74,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   organizations: typeof organizations;
   otp: typeof otp;
+  peerReview: typeof peerReview;
   projects: typeof projects;
   publications: typeof publications;
   search: typeof search;
@@ -81,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   seedPublications: typeof seedPublications;
   tribune: typeof tribune;
   users: typeof users;
+  workspaces: typeof workspaces;
   youth: typeof youth;
 }>;
 

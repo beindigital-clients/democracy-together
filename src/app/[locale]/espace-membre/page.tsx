@@ -174,14 +174,22 @@ function MemberDashboard() {
         </div>
       </dl>
 
-      {me && isStaff(me.role) ? (
+      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+        {me && isStaff(me.role) ? (
+          <Link
+            href="/admin"
+            className="inline-block text-sm font-medium text-accent-text hover:underline"
+          >
+            {t('adminLink')} →
+          </Link>
+        ) : null}
         <Link
-          href="/admin"
-          className="mt-6 inline-block text-sm font-medium text-accent-text hover:underline"
+          href="/espaces"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
         >
-          {t('adminLink')} →
+          {t('workspacesLink')} →
         </Link>
-      ) : null}
+      </div>
 
       {member ? <MyContributions /> : <BecomeMember />}
     </div>

@@ -125,7 +125,7 @@ function englishMonth(mo: number): string {
   return ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][mo - 1];
 }
 
-export function monthAbbr(e: EventData, locale: 'fr' | 'en'): string {
+export function monthAbbr(e: Pick<EventData, 'mo'>, locale: 'fr' | 'en'): string {
   return locale === 'en' ? englishMonth(e.mo) : frenchMonth(e.mo);
 }
 

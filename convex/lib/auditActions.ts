@@ -8,6 +8,7 @@ export const AUDIT = {
   YOUTH_REVIEWED: 'youth.reviewed',
   MENTORSHIP_REVIEWED: 'mentorship.reviewed',
   PROJECT_REVIEWED: 'project.reviewed',
+  PEER_REVIEW: 'publication.peer_review',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

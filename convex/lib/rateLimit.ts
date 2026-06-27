@@ -55,5 +55,7 @@ export const RATE_LIMITS = {
   tribuneReport: { max: 20, windowMs: HOUR },
   publicationSubmit: { max: 10, windowMs: 24 * HOUR },
   projectSubmit: { max: 5, windowMs: 24 * HOUR },
+  workspaceCreate: { max: 10, windowMs: 24 * HOUR },
+  workspaceNote: { max: 60, windowMs: HOUR },
   upload: { max: 30, windowMs: HOUR },
 } as const;

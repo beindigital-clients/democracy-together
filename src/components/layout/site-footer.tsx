@@ -8,8 +8,8 @@ export function SiteFooter() {
 
   const columns = [
     { title: t('col1Title'), links: [['/a-propos', t('col1a')], ['/a-propos', t('col1b')], ['/a-propos', t('col1c')], ['/rapports', t('col1d')], ['/presse', t('col1e')]] },
-    { title: t('col2Title'), links: [['/thematiques', t('col2d')], ['/analyses', t('col2a')], ['/barometre', t('col2b')], ['/tribune', t('col2e')], ['/experts', t('col2f')], ['/evenements', t('col2c')]] },
-    { title: t('col3Title'), links: [['/adhesion', t('col3a')], ['/appels-a-projets', t('col3e')], ['/don', t('col3b')], ['/newsletter', t('col3c')], ['/partenaires', t('col3d')]] },
+    { title: t('col2Title'), links: [['/thematiques', t('col2d')], ['/analyses', t('col2a')], ['/barometre', t('col2b')], ['/tribune', t('col2e')], ['/experts', t('col2f')], ['/evenements', t('col2c')], ['/replays', t('col2g')]] },
+    { title: t('col3Title'), links: [['/adhesion', t('col3a')], ['/appels-a-projets', t('col3e')], ['/espaces', t('col3f')], ['/don', t('col3b')], ['/newsletter', t('col3c')], ['/partenaires', t('col3d')]] },
   ] as const;
 
   return (

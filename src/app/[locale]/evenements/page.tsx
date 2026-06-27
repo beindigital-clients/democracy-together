@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -69,6 +69,7 @@ export default async function EventsPage({
   setRequestLocale(locale);
   const loc = resolve(locale);
   const L = getEventsLabels(loc);
+  const tc = await getTranslations('calendar');
   const filters = parseEventFilters(await searchParams);
   const results = filterAndSortEvents(filters, L);
 
@@ -97,9 +98,21 @@ export default async function EventsPage({
               <Link href="/" className="text-muted hover:text-ink">{L.hero.crumbHome}</Link> / {L.hero.title}
             </p>
             <p className="mt-3 font-mono text-xs uppercase tracking-[0.14em] text-muted">{L.hero.eyebrow}</p>
-            <h1 className="mt-3 font-display text-[clamp(34px,4.4vw,52px)] font-medium leading-[1.05] tracking-[-0.02em]">
-              {L.hero.title}
-            </h1>
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+              <h1 className="font-display text-[clamp(34px,4.4vw,52px)] font-medium leading-[1.05] tracking-[-0.02em]">
+                {L.hero.title}
+              </h1>
+              <Link
+                href="/evenements/calendrier"
+                className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+              >
+                <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
+                  <rect x="2" y="3" width="12" height="11" rx="1.5" />
+                  <path d="M2 6.5h12M5.5 2v2.5M10.5 2v2.5" strokeLinecap="round" />
+                </svg>
+                {tc('calendarView')}
+              </Link>
+            </div>
             <p className="mt-4 max-w-[64ch] text-lg leading-relaxed text-ink-soft">{L.hero.lead}</p>
             <form role="search" className="mt-6 flex max-w-[600px] gap-3">
               {filters.period === 'passes' ? <input type="hidden" name="period" value="passes" /> : null}
