@@ -39,7 +39,12 @@ test('le bouton thème bascule data-theme (F-04)', async ({ page }) => {
   await page.goto('/fr');
   const html = page.locator('html');
   const before = await html.getAttribute('data-theme');
-  await page.getByRole('button', { name: /thème|theme/i }).click();
+  // Le toggle de thème vit dans le pied de page (retiré de la barre desktop) ;
+  // il reste aussi dans le menu mobile.
+  await page
+    .locator('footer')
+    .getByRole('button', { name: /thème|theme/i })
+    .click();
   await expect(html).not.toHaveAttribute('data-theme', before ?? 'light');
 });
 

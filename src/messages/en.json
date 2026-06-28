@@ -821,7 +821,8 @@
     "contact": "Contact",
     "legalNotice": "Legal notice",
     "legalPrivacy": "Privacy",
-    "legalA11y": "Accessibility"
+    "legalA11y": "Accessibility",
+    "theme": "Theme"
   },
   "agenda": {
     "addToCalendar": "Add to my calendar",

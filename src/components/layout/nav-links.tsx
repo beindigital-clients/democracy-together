@@ -19,7 +19,7 @@ export function NavLinks({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="ml-2 hidden items-center gap-4 xl:flex">
+    <nav className="ml-2 hidden items-center gap-4 min-[1120px]:flex">
       {items.map(({ href, key }) => {
         const active = isNavActive(pathname, href);
         return (

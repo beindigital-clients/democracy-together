@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Logo } from './logo';
+import { ThemeToggle } from './theme-toggle';
 
 export function SiteFooter() {
   const t = useTranslations('footer');
@@ -42,13 +43,19 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-4 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} {t('legalRights')}</p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link href="/contact" className="hover:text-ink">{t('contact')}</Link>
             <Link href="/mentions-legales" className="hover:text-ink">{t('legalNotice')}</Link>
             <Link href="/confidentialite" className="hover:text-ink">{t('legalPrivacy')}</Link>
             <Link href="/accessibilite" className="hover:text-ink">{t('legalA11y')}</Link>
+            {/* Bascule de thème : déplacée ici depuis la barre desktop (espace) ;
+                reste aussi dans le menu mobile. */}
+            <span className="inline-flex items-center gap-1.5">
+              <span>{t('theme')}</span>
+              <ThemeToggle />
+            </span>
           </div>
         </div>
       </div>

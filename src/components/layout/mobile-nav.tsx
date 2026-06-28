@@ -70,7 +70,7 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
   }
 
   return (
-    <div className="xl:hidden">
+    <div className="min-[1120px]:hidden">
       <button
         ref={buttonRef}
         type="button"

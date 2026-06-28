@@ -1,7 +1,10 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Logo } from './logo';
-import { ThemeToggle } from './theme-toggle';
+// Bascule de thème retirée de la barre desktop pour gagner de la place et
+// faire tenir la nav complète sur des écrans type MacBook Air (reste accessible
+// dans le menu mobile). Décommenter pour la réactiver dans le header.
+// import { ThemeToggle } from './theme-toggle';
 import { LocaleSwitcher } from './locale-switcher';
 import { AuthButton } from './auth-button';
 import { NotificationBell } from './notification-bell';
@@ -33,10 +36,10 @@ export function SiteHeader() {
         <NavLinks items={NAV} />
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden items-center gap-2 xl:flex">
+          <div className="hidden items-center gap-2 min-[1120px]:flex">
             <SearchDialog />
             <LocaleSwitcher />
-            <ThemeToggle />
+            {/* <ThemeToggle /> — retiré du header desktop (espace) ; reste dans le menu */}
             <NotificationBell />
             <AuthButton />
             <Button asChild>
