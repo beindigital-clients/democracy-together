@@ -59,14 +59,16 @@
   --ff-data: var(--font-plex-mono), ui-monospace, 'SF Mono', monospace;
 }
 
-/* univers jeunes — safran (seul l'accent bascule) */
+/* univers jeunes — orange de marque (seul l'accent bascule). Orange = #f58b1a,
+   repris du logo client (ancien ocre #db8a34). accent-text reste un orange foncé
+   pour rester lisible en texte sur fond clair. */
 [data-universe='jeunes'] {
-  --accent: #db8a34;
-  --accent-strong: #c2771f;
-  --accent-text: #8f5510;
+  --accent: #f58b1a;
+  --accent-strong: #d4770e;
+  --accent-text: #8a4a08;
   --accent-contrast: var(--paper);
-  --accent-tint: rgba(219, 138, 52, 0.14);
-  --accent-edge: rgba(219, 138, 52, 0.35);
+  --accent-tint: rgba(245, 139, 26, 0.13);
+  --accent-edge: rgba(245, 139, 26, 0.35);
 }
 
 /* sombre */
@@ -93,12 +95,25 @@
 }
 
 [data-theme='dark'][data-universe='jeunes'] {
-  --accent: #db8a34;
-  --accent-strong: #e8a85a;
-  --accent-text: #e8a85a;
+  --accent: #f58b1a;
+  --accent-strong: #f8a44b;
+  --accent-text: #f8a44b;
   --accent-contrast: var(--paper);
-  --accent-tint: rgba(232, 168, 90, 0.16);
-  --accent-edge: rgba(232, 168, 90, 0.34);
+  --accent-tint: rgba(245, 139, 26, 0.16);
+  --accent-edge: rgba(245, 139, 26, 0.34);
+}
+
+/* Logo (cf. components/layout/logo.tsx) : on sert l'original marine en clair et
+   la variante recolorée en sombre. Bascule manuelle car Tailwind `dark:` n'est
+   pas câblé sur [data-theme] dans ce projet. */
+.dt-logo-dark {
+  display: none;
+}
+[data-theme='dark'] .dt-logo-light {
+  display: none;
+}
+[data-theme='dark'] .dt-logo-dark {
+  display: inline-block;
 }
 
 /* ---- Mapping Tailwind v4 : expose les tokens en utilities ----

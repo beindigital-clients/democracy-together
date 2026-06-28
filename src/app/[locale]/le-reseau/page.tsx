@@ -6,8 +6,8 @@ import { Link } from '@/i18n/navigation';
 import { DirectoryFilters } from '@/components/directory/directory-filters';
 import { OrgCard } from '@/components/directory/org-card';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { RegionMap, type RegionMapItem } from '@/components/map/region-map';
-import { buildRegionShapes, MAP_W, MAP_H } from '@/lib/region-geo';
+import type { RegionMapItem } from '@/components/map/region-map';
+import { RegionGlobe } from '@/components/map/region-globe';
 import { mapNameForIso } from '@/lib/country-map';
 import { countryName } from '@/lib/orgs';
 
@@ -64,14 +64,15 @@ export default async function NetworkPage({
 
   // Carte des membres (F-19) : un pays mis en avant par pays représenté dans le
   // réseau (facette `countries`, sur l'ensemble actif, indépendante des filtres).
-  const mapShapes = buildRegionShapes();
   const memberItems: RegionMapItem[] = facets.countries.flatMap((f) => {
     const name = mapNameForIso(f.value);
     return name
       ? [
           {
             name,
-            fill: 'var(--color-accent)',
+            // orange de marque : ressort sur le globe marine (la teinte accent
+            // marine se fondrait dans l'océan).
+            fill: '#f58b1a',
             title: countryName(f.value, locale),
             rows: [{ label: t('mapMembers'), value: String(f.count) }],
           },
@@ -100,10 +101,7 @@ export default async function NetworkPage({
           <Reveal>
             <h2 className="font-display text-2xl">{t('mapTitle')}</h2>
             <div className="mt-4">
-              <RegionMap
-                shapes={mapShapes}
-                width={MAP_W}
-                height={MAP_H}
+              <RegionGlobe
                 items={memberItems}
                 hint={t('mapHint')}
                 ariaLabel={t('mapTitle')}

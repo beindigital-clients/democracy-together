@@ -12,8 +12,8 @@ import {
   MAP_DATA,
   type Trend,
 } from '@/lib/barometer-content';
-import { buildRegionShapes, MAP_W, MAP_H } from '@/lib/region-geo';
-import { RegionMap, type RegionMapItem } from '@/components/map/region-map';
+import type { RegionMapItem } from '@/components/map/region-map';
+import { RegionGlobe } from '@/components/map/region-globe';
 
 // Couleurs de remplissage de la carte par catégorie (1 = plus libre … 5).
 const CAT_FILL = [
@@ -103,7 +103,6 @@ export default async function BarometrePage({
     { primary: `${dataBase}/geometries.json`, formats: { JSON: `${dataBase}/geometries.json` } },
   ];
   const codebookHref = `${dataBase}/codebook.txt`;
-  const mapShapes = buildRegionShapes();
   const mapItems: RegionMapItem[] = MAP_DATA.map((d) => ({
     name: d.name,
     region: d.region,
@@ -186,10 +185,7 @@ export default async function BarometrePage({
         </Reveal>
 
         <Reveal>
-          <RegionMap
-            shapes={mapShapes}
-            width={MAP_W}
-            height={MAP_H}
+          <RegionGlobe
             items={mapItems}
             hint={c.map.interactiveHint}
             ariaLabel={c.map.tilesLabel}

@@ -4,32 +4,54 @@ import { seedDirectory } from './_helpers';
 test.use({ locale: 'fr-FR' });
 
 // Recherche globale (F-06). S'appuie sur les publications seedées (bibliothèque)
-// + l'annuaire seedé.
+// + l'annuaire seedé. L'entrée du header est désormais une palette de commande
+// (SearchDialog) : recherche live (query Convex réactive) puis « Voir tous les
+// résultats » vers la page exhaustive /recherche (qui ajoute les actualités).
 test.beforeAll(async () => {
   await seedDirectory();
 });
 
-test('recherche globale : entrée header -> page -> résultats', async ({
+test('recherche globale : header -> palette -> page -> résultats', async ({
   page,
 }) => {
   await page.goto('/fr');
 
-  // icône recherche du header -> /recherche
-  await page.getByRole('banner').getByRole('link', { name: 'Recherche' }).click();
-  await expect(page).toHaveURL(/\/fr\/recherche$/);
+  // Entrée header : le bouton recherche ouvre la palette (command palette).
+  await page
+    .getByRole('banner')
+    .getByRole('button', { name: 'Recherche' })
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Rechercher sur le site' });
+  await expect(dialog).toBeVisible();
 
-  // un terme présent dans les publications seedées (thème démocratie)
-  await page.getByRole('searchbox').fill('démocratie');
-  await page.getByRole('button', { name: 'Rechercher' }).click();
-  await expect(page).toHaveURL(/[?&]q=/);
+  // Recherche live dans la palette : la section Publications apparaît (terme
+  // présent dans les publications seedées).
+  await dialog.getByRole('combobox').fill('démocratie');
+  await expect(
+    dialog.getByRole('heading', { name: 'Publications' }),
+  ).toBeVisible();
 
-  // au moins la section Publications
+  // « Voir tous les résultats » -> page exhaustive /recherche.
+  await dialog.getByRole('link', { name: 'Voir tous les résultats' }).click();
+  await expect(page).toHaveURL(/\/fr\/recherche\?q=/);
   await expect(
     page.getByRole('heading', { name: 'Publications' }),
   ).toBeVisible();
 
-  // un terme sans résultat
+  // Terme sans résultat via le formulaire de la page.
   await page.getByRole('searchbox').fill('zzzxqkw');
   await page.getByRole('button', { name: 'Rechercher' }).click();
   await expect(page.getByText(/Aucun résultat/)).toBeVisible();
+});
+
+test('recherche : la palette se ferme à Échap (F-06)', async ({ page }) => {
+  await page.goto('/fr');
+  await page
+    .getByRole('banner')
+    .getByRole('button', { name: 'Recherche' })
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Rechercher sur le site' });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
 });

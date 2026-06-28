@@ -11,10 +11,11 @@ const TOGGLE = 'button[aria-controls="mobile-nav"]';
 test('menu mobile : ouvre, navigue, se ferme (F-05)', async ({ page }) => {
   await page.goto('/fr');
   const toggle = page.locator(TOGGLE);
-  // exact:true -> ne matche pas le CTA « Rejoindre le réseau » du hero.
-  const reseau = page.getByRole('link', { name: 'Le réseau', exact: true });
+  // Lien de nav « Membres » (-> /le-reseau). exact:true pour ne pas matcher un
+  // éventuel CTA contenant « membre ».
+  const reseau = page.getByRole('link', { name: 'Membres', exact: true });
 
-  // fermé : bouton présent, aucun lien « Le réseau » accessible
+  // fermé : bouton présent, aucun lien de nav « Membres » accessible
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(reseau).toHaveCount(0);
 

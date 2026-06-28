@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { Seal } from './seal';
+import { Logo } from './logo';
 
 export function SiteFooter() {
   const t = useTranslations('footer');
@@ -17,10 +17,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
-            <div className="flex items-center gap-2.5">
-              <Seal className="h-7 w-7 text-accent" />
-              <span className="font-display text-lg font-medium">Democracy Together</span>
-            </div>
+            <Logo />
             <p className="mt-3 max-w-[36ch] text-sm text-muted">{t('tagline')}</p>
           </div>
 

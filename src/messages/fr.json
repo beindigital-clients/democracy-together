@@ -380,7 +380,7 @@
   "nav": {
     "about": "À propos",
     "news": "Actualités",
-    "network": "Le réseau",
+    "network": "Membres",
     "analyses": "Analyses",
     "barometer": "Baromètre",
     "events": "Événements",
@@ -708,7 +708,12 @@
     "empty": "Aucun résultat pour « {q} ».",
     "sectionPublications": "Publications",
     "sectionMembers": "Membres du réseau",
-    "sectionNews": "Actualités"
+    "sectionNews": "Actualités",
+    "loading": "Recherche…",
+    "viewAll": "Voir tous les résultats",
+    "kbdNavigate": "naviguer",
+    "kbdOpen": "ouvrir",
+    "kbdClose": "fermer"
   },
   "newsletter": {
     "eyebrow": "Newsletter",

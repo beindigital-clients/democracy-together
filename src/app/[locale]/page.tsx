@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { AnimatedBar } from '@/components/motion/animated-bar';
 import { HomeHero } from '@/components/home/home-hero';
-import { RegionMap, type RegionMapItem } from '@/components/map/region-map';
-import { buildRegionShapes, MAP_W, MAP_H } from '@/lib/region-geo';
+import type { RegionMapItem } from '@/components/map/region-map';
+import { RegionGlobe } from '@/components/map/region-globe';
 import { MAP_DATA } from '@/lib/barometer-content';
 import { routing } from '@/i18n/routing';
 import { getHomeContent } from '@/lib/home';
@@ -59,7 +59,6 @@ export default async function HomePage({
   setRequestLocale(locale);
   const loc = resolve(locale);
   const c = await getHomeContent(loc);
-  const mapShapes = buildRegionShapes();
   const mapItems: RegionMapItem[] = MAP_DATA.map((d) => ({
     name: d.name,
     region: d.region,
@@ -236,10 +235,7 @@ export default async function HomePage({
 
           <Reveal className="flex min-h-[220px] flex-col rounded-md border border-line bg-paper p-6">
             <div className="flex-1">
-              <RegionMap
-                shapes={mapShapes}
-                width={MAP_W}
-                height={MAP_H}
+              <RegionGlobe
                 items={mapItems}
                 variant="compact"
                 ariaLabel={c.barometre.mapLabel}
