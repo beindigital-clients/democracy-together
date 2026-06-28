@@ -10,7 +10,7 @@ import { AnimatedBar } from '@/components/motion/animated-bar';
 import { HomeHero } from '@/components/home/home-hero';
 import type { RegionMapItem } from '@/components/map/region-map';
 import { RegionGlobe } from '@/components/map/region-globe';
-import { MAP_DATA } from '@/lib/barometer-content';
+import { MAP_DATA, getBarometerContent, CAT_BG } from '@/lib/barometer-content';
 import { routing } from '@/i18n/routing';
 import { getHomeContent } from '@/lib/home';
 
@@ -24,6 +24,17 @@ const CAT_FILL = [
   'var(--color-bar-4)',
   'var(--color-bar-5)',
 ];
+
+// Catégorie 1–5 dérivée du score (mêmes seuils que la légende du baromètre :
+// 1 = libre … 5 = non libre). Sert à colorer chaque barre du teaser selon son
+// niveau de liberté, en cohérence avec la légende.
+function scoreCat(score: number): 1 | 2 | 3 | 4 | 5 {
+  if (score >= 0.8) return 1;
+  if (score >= 0.65) return 2;
+  if (score >= 0.5) return 3;
+  if (score >= 0.35) return 4;
+  return 5;
+}
 
 function resolve(locale: string) {
   return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale) as
@@ -59,6 +70,9 @@ export default async function HomePage({
   setRequestLocale(locale);
   const loc = resolve(locale);
   const c = await getHomeContent(loc);
+  // Légende canonique du baromètre (libellé + plage de score) : source unique,
+  // alignée sur la page Baromètre.
+  const baroLegend = getBarometerContent(loc).legend;
   const mapItems: RegionMapItem[] = MAP_DATA.map((d) => ({
     name: d.name,
     region: d.region,
@@ -142,7 +156,7 @@ export default async function HomePage({
       {/* ===== Dernières analyses — section `paper` ===== */}
       <section>
         <div className={`${WRAP} py-16 md:py-20`}>
-          <Reveal className="flex flex-wrap items-end justify-between gap-4">
+          <Reveal className="flex flex-wrap items-baseline justify-between gap-4">
             <h2 className="font-display text-3xl md:text-4xl">
               {c.analyses.title}
             </h2>
@@ -216,7 +230,7 @@ export default async function HomePage({
                   <span className="h-2 flex-1 overflow-hidden rounded-pill bg-surface-2">
                     <AnimatedBar
                       pct={Number(co.score) * 100}
-                      className="rounded-pill bg-accent"
+                      className={`rounded-pill ${CAT_BG[scoreCat(Number(co.score)) - 1]}`}
                       delay={i * 0.1}
                     />
                   </span>
@@ -226,10 +240,27 @@ export default async function HomePage({
                 </li>
               ))}
             </ul>
-            <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-4 font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
-              {c.barometre.legend.map((l) => (
-                <span key={l}>{l}</span>
-              ))}
+            <div className="mt-5 border-t border-line pt-4">
+              <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+                {loc === 'en' ? 'Freedom index' : 'Indice de liberté'}
+              </p>
+              <ul className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                {baroLegend.map((lv, i) => (
+                  <li
+                    key={lv.label}
+                    className="flex items-center gap-2 text-[12.5px] text-ink-soft"
+                  >
+                    <i
+                      className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CAT_BG[i]}`}
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 truncate">{lv.label}</span>
+                    <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-muted">
+                      {lv.range}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Reveal>
 
@@ -287,7 +318,7 @@ export default async function HomePage({
       {/* ===== Événements — section `surface` ===== */}
       <section className="bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
-        <Reveal className="flex flex-wrap items-end justify-between gap-4">
+        <Reveal className="flex flex-wrap items-baseline justify-between gap-4">
           <h2 className="font-display text-3xl md:text-4xl">{c.events.title}</h2>
           <Link
             href="/evenements"

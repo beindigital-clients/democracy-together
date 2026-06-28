@@ -33,7 +33,7 @@ export function SiteHeader() {
         <NavLinks items={NAV} />
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 xl:flex">
             <SearchDialog />
             <LocaleSwitcher />
             <ThemeToggle />

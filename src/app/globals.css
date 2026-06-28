@@ -159,6 +159,12 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* Réserve toujours la gouttière de la barre de défilement : la largeur du
+       contenu — et donc le padding du header collant — ne saute plus quand la
+       scrollbar apparaît/disparaît (scroll d'une page longue sur un système à
+       scrollbars classiques, ou verrou de défilement des modales recherche/menu
+       qui posent overflow:hidden sur le body). */
+    scrollbar-gutter: stable;
   }
   body {
     background: var(--paper);
