@@ -5,6 +5,7 @@ import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { LibraryFacets } from '@/components/library/library-facets';
+import { FacetsCollapse } from '@/components/library/facets-collapse';
 import { PublicationCard } from '@/components/library/publication-card';
 import { SortSelect } from '@/components/library/sort-select';
 import { parseFilters, buildHref, PAGE_SIZE } from '@/lib/publications';
@@ -119,7 +120,9 @@ export default async function LibraryPage({
 
       {/* Liste */}
       <main className={`${WRAP} grid gap-8 pb-24 pt-10 lg:grid-cols-[264px_1fr] lg:gap-12`}>
-        <LibraryFacets facets={facets} filters={filters} />
+        <FacetsCollapse filters={filters}>
+          <LibraryFacets facets={facets} filters={filters} />
+        </FacetsCollapse>
 
         <section>
           <div className="mb-6 flex flex-wrap items-baseline justify-between gap-4">

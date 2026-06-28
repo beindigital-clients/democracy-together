@@ -98,6 +98,33 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
     // fr apparaît 2x, en 2x -> ordre alpha (en avant fr)
     expect(f.languages.map((x) => x.value)).toEqual(['en', 'fr']);
   });
+
+  it('computePublicationFacets : compteurs contextuels selon les autres filtres', () => {
+    const items = [
+      pub({ theme: 'gouvernance-numerique', type: 'rapport' }),
+      pub({ theme: 'gouvernance-numerique', type: 'note' }),
+      pub({ theme: 'crises', type: 'rapport' }),
+    ];
+    // sans filtre : totaux par type
+    const f0 = computePublicationFacets(items);
+    expect(Object.fromEntries(f0.types.map((x) => [x.value, x.count]))).toEqual({
+      rapport: 2,
+      note: 1,
+    });
+    // filtre theme=gouvernance : la facette TYPE ne compte QUE ces publications
+    // -> le compteur reflète ce qu'on obtient vraiment en cochant.
+    const f1 = computePublicationFacets(items, {
+      themes: ['gouvernance-numerique'],
+    });
+    expect(Object.fromEntries(f1.types.map((x) => [x.value, x.count]))).toEqual({
+      rapport: 1,
+      note: 1,
+    });
+    // la facette THEME ignore sa propre sélection (compteurs d'ajout « OU »)
+    expect(Object.fromEntries(f1.themes.map((x) => [x.value, x.count]))).toEqual(
+      { 'gouvernance-numerique': 2, crises: 1 },
+    );
+  });
 });
 
 describe('Bibliothèque — queries Convex (F-32/F-34)', () => {

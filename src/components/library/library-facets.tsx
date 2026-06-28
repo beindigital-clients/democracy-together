@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import {
   toggleHref,
-  hasActiveFilters,
   type LibraryFilters,
   type FacetKey,
 } from '@/lib/publications';
@@ -42,17 +41,9 @@ export async function LibraryFacets({
   ];
 
   return (
-    <aside aria-label={t('filter')} className="lg:sticky lg:top-24">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-display text-lg">{t('filter')}</h2>
-        {hasActiveFilters(filters) ? (
-          <Link href="/bibliotheque" className="text-[12.5px] text-accent-text hover:underline">
-            {t('reset')}
-          </Link>
-        ) : null}
-      </div>
-
-      {groups.map((g) => (
+    <>
+      {groups.map((g) =>
+        g.items.length === 0 ? null : (
         <fieldset key={g.key} className="border-t border-line py-4">
           <legend className="mb-3 font-mono text-[12px] uppercase tracking-[0.08em] text-muted">
             {g.legend}
@@ -91,6 +82,6 @@ export async function LibraryFacets({
           </div>
         </fieldset>
       ))}
-    </aside>
+    </>
   );
 }

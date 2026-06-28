@@ -56,7 +56,7 @@ export const listPublished = query({
     );
     return {
       items,
-      facets: computePublicationFacets(published),
+      facets: computePublicationFacets(published, filters),
       total: published.length,
     };
   },
