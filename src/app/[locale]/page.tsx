@@ -241,8 +241,8 @@ export default async function HomePage({
                 ariaLabel={c.barometre.mapLabel}
                 hint={
                   loc === 'en'
-                    ? 'Hover a country to see its score.'
-                    : 'Survolez un pays pour voir son score.'
+                    ? 'Hover or tap a country to see its score.'
+                    : 'Survolez ou touchez un pays pour voir son score.'
                 }
               />
             </div>
