@@ -6,8 +6,16 @@ import { api } from '../../convex/_generated/api';
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // Peuple l'annuaire (F-19) avec les think tanks de démo. Idempotent.
+// `seedDirectory` est une internalMutation (hors API publique, défense en
+// profondeur) : on l'invoque via la CLI Convex (contexte de confiance), comme
+// elevateRole / deleteTestPublications.
 export async function seedDirectory(): Promise<void> {
-  await convex.mutation(api.seed.seedDirectory, {});
+  const env = { ...process.env };
+  delete env.CONVEX_DEPLOYMENT;
+  execFileSync('npx', ['convex', 'run', 'seed:seedDirectory', '{}'], {
+    stdio: 'pipe',
+    env,
+  });
 }
 
 type NetworkRole = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
@@ -60,7 +68,10 @@ export async function submitApplication(args: {
   country: string;
   message?: string;
 }): Promise<void> {
-  await convex.mutation(api.organizations.submitApplication, args);
+  // `submitApplication` est désormais une ACTION (porte reCAPTCHA) : on l'appelle
+  // via .action(). Sans secret sur le déploiement dev, la vérification est un
+  // no-op (cf. convex/lib/recaptcha.ts), donc le seed reste inchangé.
+  await convex.action(api.organizations.submitApplication, args);
 }
 
 // Lit le dernier code OTP en clair (DEV seulement, garde AUTH_DEV_OTP).

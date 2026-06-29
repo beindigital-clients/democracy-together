@@ -439,3 +439,54 @@ describe('Modération de publication (F-32 / F-26)', () => {
     expect(pub.items.some((p) => p._id === id)).toBe(false);
   });
 });
+
+describe('Dépôt de publication (F-32) — validation serveur du fichier', () => {
+  async function asMember() {
+    const t = convexTest(schema, modules);
+    const memberId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'membre', email: 'm@test.org' }),
+    );
+    return { t, as: t.withIdentity({ subject: `${memberId}|s` }) };
+  }
+
+  it('accepte un PDF (type autorisé) et lie le fichier', async () => {
+    const { t, as } = await asMember();
+    const fileId = await t.run((ctx) =>
+      ctx.storage.store(
+        new Blob(['%PDF-1.4 contenu de test'], { type: 'application/pdf' }),
+      ),
+    );
+    const { slug } = await as.mutation(api.publications.submitPublication, {
+      ...SUBMIT,
+      fileId,
+      fileName: 'rapport.pdf',
+    });
+    const doc = await t.run((ctx) =>
+      ctx.db
+        .query('publications')
+        .withIndex('by_slug', (q) => q.eq('slug', slug))
+        .unique(),
+    );
+    expect(doc?.fileId).toBe(fileId);
+  });
+
+  it('rejette un fichier au-dela de la limite de taille (INVALID_FILE)', async () => {
+    const { t, as } = await asMember();
+    const fileId = await t.run((ctx) =>
+      ctx.storage.store(
+        new Blob([new Uint8Array(20 * 1024 * 1024 + 1)]),
+      ),
+    );
+    await expect(
+      as.mutation(api.publications.submitPublication, {
+        ...SUBMIT,
+        fileId,
+        fileName: 'rapport.pdf',
+      }),
+    ).rejects.toThrow('INVALID_FILE');
+    // Aucune publication creee. Le blob rejete reste orphelin : le throw annule
+    // la transaction (rollback), donc une suppression serait sans effet.
+    const all = await t.run((ctx) => ctx.db.query('publications').collect());
+    expect(all).toHaveLength(0);
+  });
+});

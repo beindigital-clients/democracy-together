@@ -6,8 +6,11 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // Content-Security-Policy (sécurité — défense en profondeur). 'unsafe-inline'
 // reste nécessaire (script d'init du thème + scripts inline de Next ; styles
 // inline de framer-motion / Tailwind). connect-src ouvre Convex (https + wss,
-// sync temps réel + stockage) et Sanity. Le Studio `/studio` est EXCLU de la
-// CSP (app cliente lourde, susceptible d'avoir besoin d'eval) — voir headers().
+// sync temps réel + stockage) et Sanity. reCAPTCHA v3 (anti-spam formulaires
+// publics) charge son script depuis www.google.com / www.gstatic.com, ouvre une
+// iframe invisible (frame-src) et un XHR de scoring (connect-src) vers Google.
+// Le Studio `/studio` est EXCLU de la CSP (app cliente lourde, susceptible
+// d'avoir besoin d'eval) — voir headers().
 //
 // La CSP est TOUJOURS posée (cohérence dev/prod + testable), mais RELÂCHÉE en
 // développement : React et Turbopack (Fast Refresh / HMR) exigent `eval()` et
@@ -23,8 +26,9 @@ const csp = [
   "img-src 'self' data: blob: https://cdn.sanity.io",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
-  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.sanity.io wss://*.sanity.io${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
+  `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
+  "frame-src 'self' https://www.google.com",
+  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.sanity.io wss://*.sanity.io https://www.google.com${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join('; ');

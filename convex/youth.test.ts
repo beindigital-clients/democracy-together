@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -25,7 +25,7 @@ describe('Jeunes — candidature (F-58)', () => {
   it('candidate (normalise), dédupe les pending, rejette les invalides', async () => {
     const t = convexTest(schema, modules);
 
-    const r1 = await t.mutation(api.youth.applyYouth, APP);
+    const r1 = await t.mutation(internal.youth.storeApplication, APP);
     expect(r1.already).toBe(false);
 
     const all = await t.run((ctx) =>
@@ -36,7 +36,7 @@ describe('Jeunes — candidature (F-58)', () => {
     expect(all[0].status).toBe('pending');
 
     // une 2e candidature en attente avec le même e-mail = dédoublonnée
-    const r2 = await t.mutation(api.youth.applyYouth, {
+    const r2 = await t.mutation(internal.youth.storeApplication, {
       ...APP,
       email: 'awa@example.org',
     });
@@ -47,10 +47,10 @@ describe('Jeunes — candidature (F-58)', () => {
 
     // invalides
     await expect(
-      t.mutation(api.youth.applyYouth, { ...APP, email: 'pas-un-email' }),
+      t.mutation(internal.youth.storeApplication, { ...APP, email: 'pas-un-email' }),
     ).rejects.toThrow();
     await expect(
-      t.mutation(api.youth.applyYouth, { ...APP, email: 'b@x.org', motivation: 'court' }),
+      t.mutation(internal.youth.storeApplication, { ...APP, email: 'b@x.org', motivation: 'court' }),
     ).rejects.toThrow();
   });
 });
@@ -58,7 +58,7 @@ describe('Jeunes — candidature (F-58)', () => {
 describe('Jeunes — back-office (F-58)', () => {
   it('réserve la liste et la revue aux modérateurs', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(api.youth.applyYouth, { ...APP, email: 'a@test.org' });
+    await t.mutation(internal.youth.storeApplication, { ...APP, email: 'a@test.org' });
 
     // anonyme + visiteur refusés
     await expect(

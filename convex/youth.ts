@@ -1,7 +1,9 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { action, internalMutation, mutation, query } from './_generated/server';
+import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -10,7 +12,29 @@ import { locale } from './schema';
 // --- Candidature publique au hub Jeunes (F-58) ------------------------------
 // Sans compte (par e-mail), comme l'adhésion. Rate-limitée ; une candidature en
 // attente par e-mail (dédoublonnage doux) pour éviter les envois multiples.
-export const applyYouth = mutation({
+// Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
+// `storeApplication` (internalMutation -> non contournable).
+export const applyYouth = action({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    country: v.string(),
+    themes: v.optional(v.array(v.string())),
+    motivation: v.string(),
+    locale: v.optional(locale),
+    captchaToken: v.optional(v.string()),
+  },
+  handler: async (ctx, { captchaToken, ...input }) => {
+    await enforceRecaptcha(captchaToken, 'youth_apply');
+    const result: { ok: boolean; already: boolean } = await ctx.runMutation(
+      internal.youth.storeApplication,
+      input,
+    );
+    return result;
+  },
+});
+
+export const storeApplication = internalMutation({
   args: {
     name: v.string(),
     email: v.string(),

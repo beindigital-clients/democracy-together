@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
-import { isRateLimited } from '@/lib/errors';
+import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Formulaire d'inscription à un événement (F-53) — îlot client, sur la page de
 // détail. Idempotent côté serveur (réinscription = succès sans doublon). Les
@@ -22,7 +23,8 @@ export function EventRegisterForm({
 }) {
   const t = useTranslations('eventRegister');
   const locale = useLocale();
-  const register = useMutation(api.events.registerForEvent);
+  const register = useAction(api.events.registerForEvent);
+  const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -43,16 +45,24 @@ export function EventRegisterForm({
     }
     setStatus('pending');
     try {
+      const captchaToken = await executeRecaptcha('event_register');
       await register({
         eventSlug,
         name,
         email,
         organization: organization || undefined,
         locale: locale === 'en' ? 'en' : 'fr',
+        captchaToken,
       });
       setStatus('success');
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errorGeneric'));
+      setError(
+        isCaptchaFailed(err)
+          ? t('captchaFailed')
+          : isRateLimited(err)
+            ? t('rateLimited')
+            : t('errorGeneric'),
+      );
       setStatus('idle');
     }
   }

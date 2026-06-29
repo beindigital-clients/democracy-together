@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -18,7 +18,7 @@ describe('Inscriptions événements — register (F-53)', () => {
   it('inscrit (normalise), dédupe par event+email, rejette invalides', async () => {
     const t = convexTest(schema, modules);
 
-    const r1 = await t.mutation(api.events.registerForEvent, {
+    const r1 = await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'conference-inaugurale',
       name: '  Awa Diop ',
       email: '  Awa@Example.org ',
@@ -35,7 +35,7 @@ describe('Inscriptions événements — register (F-53)', () => {
     expect(all[0].organization).toBe('Institut X');
 
     // ré-inscription au MÊME event = idempotente
-    const r2 = await t.mutation(api.events.registerForEvent, {
+    const r2 = await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'conference-inaugurale',
       name: 'Awa Diop',
       email: 'awa@example.org',
@@ -47,7 +47,7 @@ describe('Inscriptions événements — register (F-53)', () => {
     ).toBe(1);
 
     // même adresse, AUTRE event = inscription distincte
-    await t.mutation(api.events.registerForEvent, {
+    await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'webinaire-jeunes-releve',
       name: 'Awa Diop',
       email: 'awa@example.org',
@@ -59,14 +59,14 @@ describe('Inscriptions événements — register (F-53)', () => {
 
     // e-mail invalide / nom trop court rejetés
     await expect(
-      t.mutation(api.events.registerForEvent, {
+      t.mutation(internal.events.storeRegistration, {
         eventSlug: 'x',
         name: 'Bob',
         email: 'pas-un-email',
       }),
     ).rejects.toThrow();
     await expect(
-      t.mutation(api.events.registerForEvent, {
+      t.mutation(internal.events.storeRegistration, {
         eventSlug: 'x',
         name: 'B',
         email: 'b@example.org',
@@ -78,7 +78,7 @@ describe('Inscriptions événements — register (F-53)', () => {
 describe('Inscriptions événements — back-office (F-53)', () => {
   it('réserve la liste aux modérateurs et au-dessus', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(api.events.registerForEvent, {
+    await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'conference-inaugurale',
       name: 'Awa Diop',
       email: 'awa@example.org',

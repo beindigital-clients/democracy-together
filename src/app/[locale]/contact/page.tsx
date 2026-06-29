@@ -1,19 +1,21 @@
 'use client';
 
 import { useId, useState, type FormEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/reveal';
+import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
-import { isRateLimited } from '@/lib/errors';
+import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 export default function ContactPage() {
   const t = useTranslations('contact');
-  const submit = useMutation(api.contact.submit);
+  const submit = useAction(api.contact.submit);
+  const executeRecaptcha = useRecaptcha();
   const ids = {
     name: useId(),
     email: useId(),
@@ -44,10 +46,17 @@ export default function ContactPage() {
 
     setStatus('pending');
     try {
-      await submit({ name, email, subject, body });
+      const captchaToken = await executeRecaptcha('contact');
+      await submit({ name, email, subject, body, captchaToken });
       setStatus('success');
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errorGeneric'));
+      setError(
+        isCaptchaFailed(err)
+          ? t('captchaFailed')
+          : isRateLimited(err)
+            ? t('rateLimited')
+            : t('errorGeneric'),
+      );
       setStatus('idle');
     }
   }

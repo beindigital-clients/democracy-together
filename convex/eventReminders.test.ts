@@ -34,7 +34,7 @@ describe('Rappels événements — requestReminder (F-55)', () => {
     const t = convexTest(schema, modules);
     const eventDate = Date.now() + 5 * DAY;
 
-    const r1 = await t.mutation(api.eventReminders.requestReminder, {
+    const r1 = await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'conference-inaugurale',
       email: '  Awa@Example.org ',
       eventDate,
@@ -50,7 +50,7 @@ describe('Rappels événements — requestReminder (F-55)', () => {
     expect(all[0].eventSlug).toBe('conference-inaugurale');
 
     // redemander le MÊME rappel = idempotent, pas de doublon
-    const r2 = await t.mutation(api.eventReminders.requestReminder, {
+    const r2 = await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'conference-inaugurale',
       email: 'awa@example.org',
       eventDate,
@@ -61,7 +61,7 @@ describe('Rappels événements — requestReminder (F-55)', () => {
     ).toBe(1);
 
     // même adresse, AUTRE event = rappel distinct
-    await t.mutation(api.eventReminders.requestReminder, {
+    await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'webinaire-jeunes-releve',
       email: 'awa@example.org',
       eventDate,
@@ -72,7 +72,7 @@ describe('Rappels événements — requestReminder (F-55)', () => {
 
     // e-mail invalide rejeté
     await expect(
-      t.mutation(api.eventReminders.requestReminder, {
+      t.mutation(internal.eventReminders.storeReminder, {
         eventSlug: 'conference-inaugurale',
         email: 'pas-un-email',
         eventDate,
@@ -87,13 +87,13 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
     const now = Date.now();
 
     // (a) proche (dans 1 jour) -> doit être envoyé puis marqué sent=true
-    await t.mutation(api.eventReminders.requestReminder, {
+    await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'event-proche',
       email: 'soon@dt.test',
       eventDate: now + 1 * DAY,
     });
     // (b) hors fenêtre (dans 10 jours) -> ne doit PAS être envoyé
-    await t.mutation(api.eventReminders.requestReminder, {
+    await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'event-lointain',
       email: 'later@dt.test',
       eventDate: now + 10 * DAY,

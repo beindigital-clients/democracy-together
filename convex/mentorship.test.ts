@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 import frMessages from '../src/messages/fr.json';
 import enMessages from '../src/messages/en.json';
 
@@ -36,7 +36,7 @@ describe('Mentorat — demande (F-59)', () => {
   it('crée (normalise e-mail), dédoublonne par rôle, rejette les invalides', async () => {
     const t = convexTest(schema, modules);
 
-    const r1 = await t.mutation(api.mentorship.requestMentorship, REQ);
+    const r1 = await t.mutation(internal.mentorship.storeRequest, REQ);
     expect(r1.already).toBe(false);
 
     const all = await t.run((ctx) =>
@@ -48,7 +48,7 @@ describe('Mentorat — demande (F-59)', () => {
     expect(all[0].role).toBe('mentore');
 
     // 2e demande pending, même e-mail + même rôle = dédoublonnée
-    const r2 = await t.mutation(api.mentorship.requestMentorship, {
+    const r2 = await t.mutation(internal.mentorship.storeRequest, {
       ...REQ,
       email: 'awa@example.org',
     });
@@ -59,7 +59,7 @@ describe('Mentorat — demande (F-59)', () => {
     ).toBe(1);
 
     // même e-mail mais AUTRE rôle (mentor) = autorisé (pas un doublon)
-    const r3 = await t.mutation(api.mentorship.requestMentorship, {
+    const r3 = await t.mutation(internal.mentorship.storeRequest, {
       ...REQ,
       email: 'awa@example.org',
       role: 'mentor',
@@ -72,20 +72,20 @@ describe('Mentorat — demande (F-59)', () => {
 
     // invalides
     await expect(
-      t.mutation(api.mentorship.requestMentorship, {
+      t.mutation(internal.mentorship.storeRequest, {
         ...REQ,
         email: 'pas-un-email',
       }),
     ).rejects.toThrow();
     await expect(
-      t.mutation(api.mentorship.requestMentorship, {
+      t.mutation(internal.mentorship.storeRequest, {
         ...REQ,
         email: 'b@x.org',
         message: 'court',
       }),
     ).rejects.toThrow();
     await expect(
-      t.mutation(api.mentorship.requestMentorship, {
+      t.mutation(internal.mentorship.storeRequest, {
         ...REQ,
         email: 'c@x.org',
         name: 'A',
@@ -97,7 +97,7 @@ describe('Mentorat — demande (F-59)', () => {
 describe('Mentorat — back-office (F-59)', () => {
   it('réserve la liste et la revue aux modérateurs, et journalise la revue', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(api.mentorship.requestMentorship, {
+    await t.mutation(internal.mentorship.storeRequest, {
       ...REQ,
       email: 'a@test.org',
     });
@@ -155,7 +155,7 @@ describe('Mentorat — back-office (F-59)', () => {
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'm2@test.org' }),
     );
-    const req = await t.mutation(api.mentorship.requestMentorship, {
+    const req = await t.mutation(internal.mentorship.storeRequest, {
       ...REQ,
       email: 'z@test.org',
     });

@@ -5,6 +5,7 @@ import { internal } from './_generated/api';
 import { internalMutation, query } from './_generated/server';
 import type { DataModel } from './_generated/dataModel';
 import { sendOtpEmail, type OtpPurpose } from './email';
+import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 
 // Code numérique à 6 chiffres (Web Crypto, dispo dans le runtime Convex).
 function generateCode(): string {
@@ -27,6 +28,14 @@ function otpProvider(id: string, purpose: OtpPurpose) {
       // Convex le fournit toujours à l'exécution.
       ctx?: GenericActionCtxWithAuthConfig<DataModel>,
     ) {
+      // Anti email-bombing (sécurité) : plafonne les envois de code par adresse
+      // AVANT toute génération/envoi. L'adresse est fournie par l'appelant
+      // anonyme (inscription, connexion OTP, reset) -> sans plafond, on pourrait
+      // inonder la boîte d'un tiers (et la facture e-mail). Lève RATE_LIMITED.
+      if (ctx) {
+        await ctx.runMutation(internal.otp.enforceSendRate, { email });
+      }
+
       const hasProvider =
         !!process.env.AUTH_RESEND_KEY || !!process.env.AUTH_EMAIL_PROVIDER;
       // Les adresses .test (RFC 6761, utilisées par les E2E) ne reçoivent
@@ -52,6 +61,19 @@ function otpProvider(id: string, purpose: OtpPurpose) {
 export const emailVerification = otpProvider('otp-verify', 'verification');
 export const passwordReset = otpProvider('otp-reset', 'reset');
 export const emailOtpSignIn = otpProvider('otp-signin', 'signin');
+
+// Plafond d'envoi de codes par e-mail (anti-abus). internalMutation : appelée
+// depuis l'action d'auth via ctx.runMutation (le rate-limit a besoin d'un
+// MutationCtx pour la table rateLimits).
+export const enforceSendRate = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    await enforceRateLimit(ctx, {
+      key: `otpSend:${email.trim().toLowerCase()}`,
+      ...RATE_LIMITS.otpSend,
+    });
+  },
+});
 
 export const storeDevCode = internalMutation({
   args: { email: v.string(), code: v.string(), purpose: v.string() },

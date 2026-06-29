@@ -49,6 +49,10 @@ export const RATE_LIMITS = {
   contact: { max: 5, windowMs: HOUR },
   apply: { max: 5, windowMs: HOUR },
   newsletter: { max: 5, windowMs: HOUR },
+  // Envoi de codes OTP / vérification / reset par e-mail (anti email-bombing :
+  // l'envoi part vers une adresse fournie par l'appelant). Généreux pour un
+  // usage humain (inscription + un renvoi + reset), strict contre l'abus.
+  otpSend: { max: 8, windowMs: HOUR },
   eventRegister: { max: 10, windowMs: HOUR },
   tribunePost: { max: 10, windowMs: HOUR },
   tribuneComment: { max: 40, windowMs: HOUR },

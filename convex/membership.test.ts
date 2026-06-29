@@ -2,7 +2,11 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { internal } from './_generated/api';
+
+// L'action publique `submitApplication` ajoute la porte reCAPTCHA puis délègue
+// à `storeApplication` (internalMutation) où vivent validation, rate-limit et
+// liaison user. On teste cette mutation interne directement.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -25,19 +29,19 @@ describe('Adhésion — submitApplication validation (F-22)', () => {
   it('rejette nom court, e-mail invalide et pays court', async () => {
     const t = convexTest(schema, modules);
     await expect(
-      t.mutation(api.organizations.submitApplication, {
+      t.mutation(internal.organizations.storeApplication, {
         ...valid,
         organizationName: 'A',
       }),
     ).rejects.toThrow();
     await expect(
-      t.mutation(api.organizations.submitApplication, {
+      t.mutation(internal.organizations.storeApplication, {
         ...valid,
         contactEmail: 'pas-un-email',
       }),
     ).rejects.toThrow();
     await expect(
-      t.mutation(api.organizations.submitApplication, {
+      t.mutation(internal.organizations.storeApplication, {
         ...valid,
         country: 'X',
       }),
@@ -49,7 +53,7 @@ describe('Adhésion — submitApplication validation (F-22)', () => {
 
   it('accepte une candidature valide, la marque pending et trime', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(api.organizations.submitApplication, {
+    await t.mutation(internal.organizations.storeApplication, {
       type: 'individu',
       organizationName: '  Awa Diop  ',
       contactEmail: ' awa@example.org ',
@@ -74,13 +78,13 @@ describe('Adhésion — submitApplication validation (F-22)', () => {
     );
     await t
       .withIdentity({ subject: `${userId}|s` })
-      .mutation(api.organizations.submitApplication, {
+      .mutation(internal.organizations.storeApplication, {
         type: 'organisation',
         organizationName: 'Institut Connecté',
         contactEmail: 'a@b.org',
         country: 'SN',
       });
-    await t.mutation(api.organizations.submitApplication, {
+    await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
       organizationName: 'Institut Anonyme',
       contactEmail: 'c@d.org',

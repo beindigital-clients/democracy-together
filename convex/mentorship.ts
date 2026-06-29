@@ -1,7 +1,9 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { action, internalMutation, mutation, query } from './_generated/server';
+import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -12,7 +14,30 @@ import { locale } from './schema';
 // Jeunes. Sans compte (par e-mail, comme la candidature F-58). On s'inscrit
 // comme « mentore » (cherche un mentor) ou « mentor » (propose son aide).
 // Rate-limitée ; dédoublonnage doux : une demande en attente par (e-mail, rôle).
-export const requestMentorship = mutation({
+// Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
+// `storeRequest` (internalMutation -> non contournable).
+export const requestMentorship = action({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    country: v.string(),
+    role: v.union(v.literal('mentore'), v.literal('mentor')),
+    themes: v.optional(v.array(v.string())),
+    message: v.string(),
+    locale: v.optional(locale),
+    captchaToken: v.optional(v.string()),
+  },
+  handler: async (ctx, { captchaToken, ...input }) => {
+    await enforceRecaptcha(captchaToken, 'mentorship');
+    const result: { ok: boolean; already: boolean } = await ctx.runMutation(
+      internal.mentorship.storeRequest,
+      input,
+    );
+    return result;
+  },
+});
+
+export const storeRequest = internalMutation({
   args: {
     name: v.string(),
     email: v.string(),

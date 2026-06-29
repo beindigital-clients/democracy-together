@@ -50,6 +50,7 @@
     "errCountry": "Indique ton pays.",
     "errMotivation": "Ajoute quelques mots de motivation.",
     "rateLimited": "Trop de tentatives. Réessaie dans un moment.",
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
     "errGeneric": "L'envoi a échoué. Réessaie."
   },
   "mentorship": {
@@ -74,6 +75,7 @@
     "errCountry": "Indique ton pays.",
     "errMessage": "Ajoute quelques mots à ton message.",
     "rateLimited": "Trop de tentatives. Réessaie dans un moment.",
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
     "errGeneric": "L'envoi a échoué. Réessaie."
   },
   "tribune": {
@@ -144,6 +146,7 @@
     "errorName": "Veuillez indiquer votre nom.",
     "errorInvalid": "Veuillez saisir une adresse e-mail valide.",
     "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
     "errorGeneric": "L'inscription a échoué. Réessayez."
   },
   "reminder": {
@@ -155,6 +158,7 @@
     "privacy": "Votre adresse sert uniquement à ce rappel. Aucune autre utilisation.",
     "errorInvalid": "Veuillez saisir une adresse e-mail valide.",
     "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
     "errorGeneric": "La demande a échoué. Réessayez."
   },
   "reports": {
@@ -518,7 +522,8 @@
     "successBody": "Merci, nous avons bien reçu votre message. L'équipe vous répondra par e-mail.",
     "errorInvalid": "Veuillez renseigner tous les champs (message d'au moins 10 caractères) et une adresse e-mail valide.",
     "errorGeneric": "L'envoi a échoué. Réessayez dans un instant.",
-    "rateLimited": "Trop de tentatives. Réessayez dans un moment."
+    "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez."
   },
   "membership": {
     "eyebrow": "Adhésion",
@@ -542,7 +547,8 @@
     "successBody": "Merci. Votre candidature est en cours d'examen par notre comité ; nous reviendrons vers vous par e-mail.",
     "errorInvalid": "Veuillez renseigner un nom, une adresse e-mail valide et un pays.",
     "errorGeneric": "L'envoi a échoué. Réessayez dans un instant.",
-    "rateLimited": "Trop de tentatives. Réessayez dans un moment."
+    "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez."
   },
   "admin": {
     "title": "Administration",
@@ -725,6 +731,7 @@
     "success": "Merci ! Votre inscription est bien prise en compte.",
     "errorInvalid": "Veuillez saisir une adresse e-mail valide.",
     "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
     "errorGeneric": "L'inscription a échoué. Réessayez.",
     "unsubTitle": "Désinscription",
     "unsubPending": "Traitement en cours…",

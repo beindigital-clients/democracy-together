@@ -2,7 +2,11 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { internal } from './_generated/api';
+
+// La logique de stockage/validation vit dans l'internalMutation `store` ;
+// l'action publique `submit` n'ajoute que la porte reCAPTCHA (testée à part,
+// recaptcha.test.ts). On teste donc ici la mutation interne directement.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -17,7 +21,7 @@ const modules = import.meta.glob([
 describe('Contact — submit (F-17)', () => {
   it('stocke un message valide, marqué non traité', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(api.contact.submit, {
+    await t.mutation(internal.contact.store, {
       name: 'Awa Diop',
       email: 'awa@example.org',
       subject: 'Partenariat',
@@ -41,16 +45,16 @@ describe('Contact — submit (F-17)', () => {
       body: 'Un message assez long pour passer.',
     };
     await expect(
-      t.mutation(api.contact.submit, { ...ok, name: 'A' }),
+      t.mutation(internal.contact.store, { ...ok, name: 'A' }),
     ).rejects.toThrow('INVALID_NAME');
     await expect(
-      t.mutation(api.contact.submit, { ...ok, email: 'pas-un-email' }),
+      t.mutation(internal.contact.store, { ...ok, email: 'pas-un-email' }),
     ).rejects.toThrow('INVALID_EMAIL');
     await expect(
-      t.mutation(api.contact.submit, { ...ok, subject: 'X' }),
+      t.mutation(internal.contact.store, { ...ok, subject: 'X' }),
     ).rejects.toThrow('INVALID_SUBJECT');
     await expect(
-      t.mutation(api.contact.submit, { ...ok, body: 'court' }),
+      t.mutation(internal.contact.store, { ...ok, body: 'court' }),
     ).rejects.toThrow('INVALID_BODY');
 
     const all = await t.run((ctx) =>

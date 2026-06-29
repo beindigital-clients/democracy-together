@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
-import { isRateLimited } from '@/lib/errors';
+import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Formulaire d'inscription newsletter (F-18) — îlot client réutilisable (accueil
 // + page /newsletter). Les libellés `placeholder`/`cta` sont passés en props ;
@@ -24,7 +25,8 @@ export function NewsletterForm({
 }) {
   const t = useTranslations('newsletter');
   const locale = useLocale();
-  const subscribe = useMutation(api.newsletter.subscribe);
+  const subscribe = useAction(api.newsletter.subscribe);
+  const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -39,10 +41,21 @@ export function NewsletterForm({
     }
     setStatus('pending');
     try {
-      await subscribe({ email, locale: locale === 'en' ? 'en' : 'fr' });
+      const captchaToken = await executeRecaptcha('newsletter');
+      await subscribe({
+        email,
+        locale: locale === 'en' ? 'en' : 'fr',
+        captchaToken,
+      });
       setStatus('success');
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errorGeneric'));
+      setError(
+        isCaptchaFailed(err)
+          ? t('captchaFailed')
+          : isRateLimited(err)
+            ? t('rateLimited')
+            : t('errorGeneric'),
+      );
       setStatus('idle');
     }
   }

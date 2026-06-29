@@ -2,7 +2,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
+
+// L'abonnement public est gaté par reCAPTCHA via l'action `subscribe` ; la
+// logique (normalisation, dédup, rate-limit) vit dans `recordSubscription`,
+// que l'on teste directement ici (la porte captcha est couverte ailleurs).
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -18,7 +22,7 @@ describe('Newsletter — subscribe (F-18)', () => {
   it('inscrit (normalise), dédupe, rejette une adresse invalide', async () => {
     const t = convexTest(schema, modules);
 
-    const r1 = await t.mutation(api.newsletter.subscribe, {
+    const r1 = await t.mutation(internal.newsletter.recordSubscription, {
       email: '  Awa@Example.org ',
     });
     expect(r1.already).toBe(false);
@@ -31,7 +35,7 @@ describe('Newsletter — subscribe (F-18)', () => {
     expect(all[0].email).toBe('awa@example.org');
 
     // ré-inscription = idempotente, pas de doublon
-    const r2 = await t.mutation(api.newsletter.subscribe, {
+    const r2 = await t.mutation(internal.newsletter.recordSubscription, {
       email: 'awa@example.org',
     });
     expect(r2.already).toBe(true);
@@ -42,7 +46,7 @@ describe('Newsletter — subscribe (F-18)', () => {
 
     // adresse invalide rejetée
     await expect(
-      t.mutation(api.newsletter.subscribe, { email: 'pas-un-email' }),
+      t.mutation(internal.newsletter.recordSubscription, { email: 'pas-un-email' }),
     ).rejects.toThrow();
   });
 });
@@ -50,7 +54,7 @@ describe('Newsletter — subscribe (F-18)', () => {
 describe('Newsletter — désinscription par jeton', () => {
   it('génère un unsubToken, le retire, reste idempotent', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(api.newsletter.subscribe, { email: 'ina@example.org' });
+    await t.mutation(internal.newsletter.recordSubscription, { email: 'ina@example.org' });
 
     const sub = await t.run((ctx) =>
       ctx.db.query('newsletterSubscriptions').first(),
@@ -130,8 +134,8 @@ describe('Newsletter — campagnes (F-65)', () => {
     vi.useFakeTimers();
     try {
       const t = convexTest(schema, modules);
-      await t.mutation(api.newsletter.subscribe, { email: 'a@dt.test' });
-      await t.mutation(api.newsletter.subscribe, { email: 'b@dt.test' });
+      await t.mutation(internal.newsletter.recordSubscription, { email: 'a@dt.test' });
+      await t.mutation(internal.newsletter.recordSubscription, { email: 'b@dt.test' });
 
       const ed = await asEditor(t);
       const id = await ed.mutation(api.newsletter.createCampaign, {

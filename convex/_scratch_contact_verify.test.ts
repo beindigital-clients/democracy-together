@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -18,7 +18,7 @@ describe('SCRATCH verify', () => {
   it('rejects blank-only fields server-side', async () => {
     const t = convexTest(schema, modules);
     await expect(
-      t.mutation(api.contact.submit, {
+      t.mutation(internal.contact.store, {
         name: '   ',
         email: 'awa@example.org',
         subject: '   ',
@@ -33,7 +33,7 @@ describe('SCRATCH verify', () => {
 
   it('trims surrounding whitespace before storing', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(api.contact.submit, {
+    await t.mutation(internal.contact.store, {
       name: '  Awa Diop  ',
       email: '  awa@example.org  ',
       subject: '  Partenariat  ',

@@ -27,6 +27,7 @@ import type * as lib_notify from "../lib/notify.js";
 import type * as lib_publications from "../lib/publications.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_rbac from "../lib/rbac.js";
+import type * as lib_recaptcha from "../lib/recaptcha.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as mentorship from "../mentorship.js";
 import type * as newsletter from "../newsletter.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "lib/publications": typeof lib_publications;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/rbac": typeof lib_rbac;
+  "lib/recaptcha": typeof lib_recaptcha;
   "lib/validation": typeof lib_validation;
   mentorship: typeof mentorship;
   newsletter: typeof newsletter;

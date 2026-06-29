@@ -1,4 +1,4 @@
-import { mutation } from './_generated/server';
+import { internalMutation } from './_generated/server';
 
 // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple l'annuaire (F-19) avec un
 // jeu de think tanks de démonstration, réparti sur les régions Afrique–Europe
@@ -118,7 +118,12 @@ const ORGS = [
   },
 ] as const;
 
-export const seedDirectory = mutation({
+// internalMutation : NON joignable depuis un client (défense en profondeur —
+// même si AUTH_DEV_OTP fuyait en prod, cette écriture resterait inaccessible de
+// l'extérieur). Invoquée en E2E via `npx convex run seed:seedDirectory` (CLI,
+// contexte de confiance) comme les fonctions devAdmin. La garde env reste en
+// seconde ligne.
+export const seedDirectory = internalMutation({
   args: {},
   handler: async (ctx) => {
     if (process.env.AUTH_DEV_OTP !== 'true') {

@@ -1,14 +1,15 @@
 'use client';
 
 import { useId, useState, type FormEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
-import { isRateLimited } from '@/lib/errors';
+import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 type ApplicantType = 'organisation' | 'individu';
 
@@ -17,7 +18,8 @@ type ApplicantType = 'organisation' | 'individu';
 // serveur). Sélecteurs/i18n inchangés (tests E2E membership.spec).
 export function MembershipForm() {
   const t = useTranslations('membership');
-  const apply = useMutation(api.organizations.submitApplication);
+  const apply = useAction(api.organizations.submitApplication);
+  const executeRecaptcha = useRecaptcha();
   const ids = {
     name: useId(),
     email: useId(),
@@ -44,16 +46,24 @@ export function MembershipForm() {
 
     setStatus('pending');
     try {
+      const captchaToken = await executeRecaptcha('membership');
       await apply({
         type,
         organizationName,
         contactEmail,
         country,
         message: message || undefined,
+        captchaToken,
       });
       setStatus('success');
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errorGeneric'));
+      setError(
+        isCaptchaFailed(err)
+          ? t('captchaFailed')
+          : isRateLimited(err)
+            ? t('rateLimited')
+            : t('errorGeneric'),
+      );
       setStatus('idle');
     }
   }

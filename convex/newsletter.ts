@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import {
+  action,
   mutation,
   query,
   internalQuery,
@@ -9,6 +10,7 @@ import {
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { sendEmail } from './email';
 import { locale } from './schema';
@@ -42,7 +44,27 @@ function campaignHtml(body: string, token: string, loc: string): string {
 }
 
 // --- Abonnement public (F-18) -----------------------------------------------
-export const subscribe = mutation({
+// Portail anti-spam : l'action vérifie reCAPTCHA v3 (seules les actions ont
+// `fetch`) puis délègue à `recordSubscription` (internalMutation -> non
+// appelable directement, donc la porte captcha ne se contourne pas).
+export const subscribe = action({
+  args: {
+    email: v.string(),
+    locale: v.optional(locale),
+    captchaToken: v.optional(v.string()),
+  },
+  handler: async (ctx, { captchaToken, ...input }) => {
+    await enforceRecaptcha(captchaToken, 'newsletter');
+    // Annotation explicite : casse la circularité de type TS (cf. guidelines).
+    const result: { ok: boolean; already: boolean } = await ctx.runMutation(
+      internal.newsletter.recordSubscription,
+      input,
+    );
+    return result;
+  },
+});
+
+export const recordSubscription = internalMutation({
   args: { email: v.string(), locale: v.optional(locale) },
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase();

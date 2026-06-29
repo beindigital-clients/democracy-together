@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -50,13 +50,13 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );
-    await t.mutation(api.organizations.submitApplication, {
+    await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
       organizationName: 'Institut A',
       contactEmail: 'a@demo.org',
       country: 'SN',
     });
-    await t.mutation(api.organizations.submitApplication, {
+    await t.mutation(internal.organizations.storeApplication, {
       type: 'individu',
       organizationName: 'Awa Diop',
       contactEmail: 'b@demo.org',

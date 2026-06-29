@@ -1,18 +1,41 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { action, internalMutation, query } from './_generated/server';
+import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { enforceRecaptcha } from './lib/recaptcha';
+
+const fields = {
+  name: v.string(),
+  email: v.string(),
+  subject: v.string(),
+  body: v.string(),
+};
 
 // Formulaire de contact public (F-17) : valide côté serveur (défense en
 // profondeur, l'UI valide aussi) puis stocke la soumission. La lecture / le
 // traitement se feront depuis le back-office (F-26).
-export const submit = mutation({
-  args: {
-    name: v.string(),
-    email: v.string(),
-    subject: v.string(),
-    body: v.string(),
+//
+// PORTAIL anti-spam : l'action `submit` vérifie d'abord le jeton reCAPTCHA v3
+// (seules les actions ont `fetch`) puis délègue à `store`. La logique métier
+// reste dans une internalMutation -> non appelable directement, donc la porte
+// captcha ne peut pas être contournée en visant la mutation.
+export const submit = action({
+  args: { ...fields, captchaToken: v.optional(v.string()) },
+  handler: async (ctx, { captchaToken, ...input }) => {
+    await enforceRecaptcha(captchaToken, 'contact');
+    // Annotation explicite : casse la circularité de type TS (action -> api
+    // générée -> action) quand on appelle une fonction du même module.
+    const result: { ok: boolean } = await ctx.runMutation(
+      internal.contact.store,
+      input,
+    );
+    return result;
   },
+});
+
+export const store = internalMutation({
+  args: fields,
   handler: async (ctx, args) => {
     const name = args.name.trim();
     const email = args.email.trim();

@@ -1,4 +1,4 @@
-import { mutation } from './_generated/server';
+import { internalMutation } from './_generated/server';
 
 // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple la bibliothèque (F-32/F-34)
 // avec les publications de démonstration de la maquette. Idempotent (ignore un
@@ -416,7 +416,9 @@ const PUBS: SeedPub[] = [
   },
 ];
 
-export const seedPublications = mutation({
+// internalMutation : NON joignable depuis un client (défense en profondeur, cf.
+// seed.seedDirectory). Invoquée via `npx convex run seedPublications:seedPublications`.
+export const seedPublications = internalMutation({
   args: {},
   handler: async (ctx) => {
     if (process.env.AUTH_DEV_OTP !== 'true') {

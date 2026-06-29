@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { PUB_THEMES } from '@/lib/publications';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
-import { isRateLimited } from '@/lib/errors';
+import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Candidature au hub Jeunes (F-58) — îlot client sur /jeunes (#rejoindre). Sans
 // compte. Axe d'intérêt facultatif (relie aux 5 axes du réseau).
@@ -17,7 +18,8 @@ export function YouthApplyForm() {
   const t = useTranslations('youthApply');
   const tl = useTranslations('library');
   const locale = useLocale();
-  const apply = useMutation(api.youth.applyYouth);
+  const apply = useAction(api.youth.applyYouth);
+  const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +39,7 @@ export function YouthApplyForm() {
 
     setStatus('pending');
     try {
+      const captchaToken = await executeRecaptcha('youth_apply');
       await apply({
         name,
         email,
@@ -44,10 +47,17 @@ export function YouthApplyForm() {
         themes: theme ? [theme] : undefined,
         motivation,
         locale: locale === 'en' ? 'en' : 'fr',
+        captchaToken,
       });
       setStatus('success');
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errGeneric'));
+      setError(
+        isCaptchaFailed(err)
+          ? t('captchaFailed')
+          : isRateLimited(err)
+            ? t('rateLimited')
+            : t('errGeneric'),
+      );
       setStatus('idle');
     }
   }

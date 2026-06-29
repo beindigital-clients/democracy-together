@@ -145,6 +145,12 @@ const authorValidator = v.object({
   role: v.optional(v.string()),
 });
 
+// Bornes serveur du fichier téléversé (miroir du client MAX_FILE_MB=20). On NE
+// fait JAMAIS confiance au content-type annoncé à l'upload : on relit les
+// métadonnées RÉELLES du blob (ctx.db.system) au moment de la soumission.
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = ['application/pdf'];
+
 // Soumission d'une publication par un membre (F-32). Crée un enregistrement en
 // statut 'pending' — jamais exposé publiquement tant qu'un modérateur ne l'a
 // pas publié. Validé côté serveur (défense en profondeur, l'UI valide aussi).
@@ -193,6 +199,25 @@ export const submitPublication = mutation({
       key: `pub:${user._id}`,
       ...RATE_LIMITS.publicationSubmit,
     });
+
+    // Validation serveur du blob téléversé (défense en profondeur) : on relit
+    // les métadonnées RÉELLES du stockage, jamais le content-type annoncé par le
+    // client. La TAILLE est toujours bornée (vecteur DoS / coût). Le TYPE n'est
+    // rejeté que s'il est renseigné et hors allow-list (Convex ne le garantit pas
+    // toujours ; la modération a posteriori couvre le cas où il manque).
+    // NB : pas de ctx.storage.delete ici — le throw annule la transaction
+    // (rollback), donc la suppression serait sans effet. Un blob rejeté reste
+    // orphelin (jamais référencé par une publication ni servi) ; le nettoyage des
+    // orphelins relève d'un job séparé.
+    if (args.fileId) {
+      const meta = await ctx.db.system.get(args.fileId);
+      const typeRejected = meta?.contentType
+        ? !ALLOWED_FILE_TYPES.includes(meta.contentType)
+        : false;
+      if (!meta || meta.size > MAX_FILE_BYTES || typeRejected) {
+        throw new Error('INVALID_FILE');
+      }
+    }
 
     // Slug unique (suffixe incrémental en cas de collision de titre).
     const root = slugify(title);

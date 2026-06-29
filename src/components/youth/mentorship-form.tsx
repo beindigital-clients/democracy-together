@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { PUB_THEMES } from '@/lib/publications';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
-import { isRateLimited } from '@/lib/errors';
+import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Mentorat — mise en relation (F-59). Îlot client sur /jeunes (#mentorat). Sans
 // compte. On choisit son rôle (mentoré : cherche un mentor / mentor : propose
@@ -18,7 +19,8 @@ export function MentorshipForm() {
   const t = useTranslations('mentorship');
   const tl = useTranslations('library');
   const locale = useLocale();
-  const request = useMutation(api.mentorship.requestMentorship);
+  const request = useAction(api.mentorship.requestMentorship);
+  const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +42,7 @@ export function MentorshipForm() {
 
     setStatus('pending');
     try {
+      const captchaToken = await executeRecaptcha('mentorship');
       await request({
         name,
         email,
@@ -48,10 +51,17 @@ export function MentorshipForm() {
         themes: theme ? [theme] : undefined,
         message,
         locale: locale === 'en' ? 'en' : 'fr',
+        captchaToken,
       });
       setStatus('success');
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errGeneric'));
+      setError(
+        isCaptchaFailed(err)
+          ? t('captchaFailed')
+          : isRateLimited(err)
+            ? t('rateLimited')
+            : t('errGeneric'),
+      );
       setStatus('idle');
     }
   }

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 import { rank } from './lib/rbac';
 
 // Modules chargés par convex-test. On inclut _generated (requis pour situer la
@@ -33,7 +33,7 @@ describe('Adhésion — candidature + validation (F-22 / F-26)', () => {
   it('crée une candidature en attente, refuse un membre, accepte un modérateur, audite', async () => {
     const t = convexTest(schema, modules);
 
-    const appId = await t.mutation(api.organizations.submitApplication, {
+    const appId = await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
       organizationName: 'Institut Test',
       contactEmail: 'contact@test.org',
@@ -106,7 +106,7 @@ describe('Attribution de rôle (F-63) — admin seulement', () => {
 describe('RBAC — héritage des rôles & rejet anonyme (F-02)', () => {
   it('éditeur hérite de la modération ; anonyme et visiteur sont refusés', async () => {
     const t = convexTest(schema, modules);
-    const appId = await t.mutation(api.organizations.submitApplication, {
+    const appId = await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
       organizationName: 'Institut X',
       contactEmail: 'x@y.org',
@@ -157,7 +157,7 @@ describe('Adhésion — approbation accorde le rôle membre (modèle B)', () => 
     // candidature déposée par le visiteur connecté -> applicantUserId lié
     const appId = await t
       .withIdentity({ subject: `${visitorId}|s` })
-      .mutation(api.organizations.submitApplication, {
+      .mutation(internal.organizations.storeApplication, {
         type: 'individu',
         organizationName: 'Awa Diop',
         contactEmail: 'cand@test.org',
@@ -182,7 +182,7 @@ describe('Adhésion — approbation accorde le rôle membre (modèle B)', () => 
     );
     const appId = await t
       .withIdentity({ subject: `${visitorId}|s` })
-      .mutation(api.organizations.submitApplication, {
+      .mutation(internal.organizations.storeApplication, {
         type: 'individu',
         organizationName: 'X Institut',
         contactEmail: 'cand2@test.org',

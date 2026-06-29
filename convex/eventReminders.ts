@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import {
-  mutation,
+  action,
   query,
   internalQuery,
   internalMutation,
@@ -9,6 +9,7 @@ import {
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { enforceRecaptcha } from './lib/recaptcha';
 import { sendEmail } from './email';
 import { locale } from './schema';
 
@@ -50,7 +51,28 @@ function reminderHtml(eventSlug: string, eventDate: number, loc: string): string
 // Sans compte (comme l'inscription F-53). Valide l'e-mail, borne le slug,
 // rate-limite par adresse (réutilise RATE_LIMITS.apply), dédoublonne par
 // (eventSlug, email) : redemander = succès idempotent, pas de doublon.
-export const requestReminder = mutation({
+// Portail anti-spam : l'action vérifie reCAPTCHA v3 (le rappel part en e-mail
+// vers une adresse fournie par l'appelant -> vecteur d'abus) puis délègue à
+// `storeReminder` (internalMutation -> non contournable).
+export const requestReminder = action({
+  args: {
+    eventSlug: v.string(),
+    email: v.string(),
+    eventDate: v.number(),
+    locale: v.optional(locale),
+    captchaToken: v.optional(v.string()),
+  },
+  handler: async (ctx, { captchaToken, ...input }) => {
+    await enforceRecaptcha(captchaToken, 'event_reminder');
+    const result: { ok: boolean; already: boolean } = await ctx.runMutation(
+      internal.eventReminders.storeReminder,
+      input,
+    );
+    return result;
+  },
+});
+
+export const storeReminder = internalMutation({
   args: {
     eventSlug: v.string(),
     email: v.string(),

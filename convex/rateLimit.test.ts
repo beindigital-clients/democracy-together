@@ -2,7 +2,11 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
+
+// Les endpoints publics gatés par reCAPTCHA (contact, adhésion) déportent leur
+// logique dans des internalMutations -> on cible celles-ci pour tester le
+// rate-limit sans la porte captcha (publication reste une mutation directe).
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -33,10 +37,10 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
 
     // 5 envois valides (même e-mail) passent
     for (let i = 0; i < 5; i++) {
-      await t.mutation(api.contact.submit, contactMsg(i));
+      await t.mutation(internal.contact.store, contactMsg(i));
     }
     // le 6e est bloqué
-    await expectRateLimited(t.mutation(api.contact.submit, contactMsg(99)));
+    await expectRateLimited(t.mutation(internal.contact.store, contactMsg(99)));
     expect(
       await t.run((ctx) => ctx.db.query('contactMessages').collect()),
     ).toHaveLength(5);
@@ -53,7 +57,7 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
         });
       }
     });
-    await t.mutation(api.contact.submit, contactMsg(6));
+    await t.mutation(internal.contact.store, contactMsg(6));
     expect(
       await t.run((ctx) => ctx.db.query('contactMessages').collect()),
     ).toHaveLength(6);
@@ -62,14 +66,14 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
   it('compteurs indépendants par clé (e-mail)', async () => {
     const t = convexTest(schema, modules);
     for (let i = 0; i < 5; i++) {
-      await t.mutation(api.contact.submit, contactMsg(i, 'a@example.org'));
+      await t.mutation(internal.contact.store, contactMsg(i, 'a@example.org'));
     }
     // a@ est plein...
     await expectRateLimited(
-      t.mutation(api.contact.submit, contactMsg(9, 'a@example.org')),
+      t.mutation(internal.contact.store, contactMsg(9, 'a@example.org')),
     );
     // ...mais b@ passe (clé distincte)
-    await t.mutation(api.contact.submit, contactMsg(0, 'b@example.org'));
+    await t.mutation(internal.contact.store, contactMsg(0, 'b@example.org'));
     expect(
       await t.run((ctx) => ctx.db.query('contactMessages').collect()),
     ).toHaveLength(6);
@@ -78,7 +82,7 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
   it('candidature d’adhésion : limitée par e-mail', async () => {
     const t = convexTest(schema, modules);
     for (let i = 0; i < 5; i++) {
-      await t.mutation(api.organizations.submitApplication, {
+      await t.mutation(internal.organizations.storeApplication, {
         type: 'organisation',
         organizationName: `Org ${i}`,
         contactEmail: 'flood@example.org',
@@ -86,7 +90,7 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
       });
     }
     await expectRateLimited(
-      t.mutation(api.organizations.submitApplication, {
+      t.mutation(internal.organizations.storeApplication, {
         type: 'organisation',
         organizationName: 'Org de trop',
         contactEmail: 'flood@example.org',
@@ -123,5 +127,20 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
         title: 'Publication de trop',
       }),
     );
+  });
+
+  it('envoi de codes OTP : plafonné par e-mail (anti email-bombing)', async () => {
+    const t = convexTest(schema, modules);
+    const victim = 'victim@example.org';
+    // 8 envois (barème otpSend) passent...
+    for (let i = 0; i < 8; i++) {
+      await t.mutation(internal.otp.enforceSendRate, { email: victim });
+    }
+    // ...le 9e est bloqué -> on n'inonde pas la boîte d'un tiers.
+    await expectRateLimited(
+      t.mutation(internal.otp.enforceSendRate, { email: victim }),
+    );
+    // compteur distinct par adresse (clé indépendante)
+    await t.mutation(internal.otp.enforceSendRate, { email: 'autre@example.org' });
   });
 });

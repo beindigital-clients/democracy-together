@@ -1,6 +1,9 @@
 import { v } from 'convex/values';
-import { query, mutation } from './_generated/server';
+import { action, internalMutation, query, mutation } from './_generated/server';
+import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { getAuthUserId } from '@convex-dev/auth/server';
+import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -46,7 +49,31 @@ export const getBySlug = query({
 
 // Candidature d'adhésion (F-22) — ouverte au public ; on lie l'utilisateur
 // connecté. Valide côté serveur (défense en profondeur, l'UI valide aussi).
-export const submitApplication = mutation({
+//
+// Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
+// `storeApplication` (internalMutation). L'identité de l'utilisateur connecté
+// est propagée à travers ctx.runMutation -> la liaison applicantUserId tient.
+export const submitApplication = action({
+  args: {
+    type: v.union(v.literal('organisation'), v.literal('individu')),
+    organizationName: v.string(),
+    contactEmail: v.string(),
+    country: v.string(),
+    message: v.optional(v.string()),
+    captchaToken: v.optional(v.string()),
+  },
+  handler: async (ctx, { captchaToken, ...input }) => {
+    await enforceRecaptcha(captchaToken, 'membership');
+    // Annotation explicite : casse la circularité de type TS (cf. guidelines).
+    const id: Id<'membershipApplications'> = await ctx.runMutation(
+      internal.organizations.storeApplication,
+      input,
+    );
+    return id;
+  },
+});
+
+export const storeApplication = internalMutation({
   args: {
     type: v.union(v.literal('organisation'), v.literal('individu')),
     organizationName: v.string(),

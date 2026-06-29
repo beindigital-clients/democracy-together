@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useMutation } from 'convex/react';
+import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
-import { isRateLimited } from '@/lib/errors';
+import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Rappel d'événement (F-55) — îlot client, sur la page de détail d'un événement
 // À VENIR. Le visiteur (sans compte) laisse son e-mail ; un cron quotidien
@@ -23,7 +24,8 @@ export function ReminderForm({
 }) {
   const t = useTranslations('reminder');
   const locale = useLocale();
-  const requestReminder = useMutation(api.eventReminders.requestReminder);
+  const requestReminder = useAction(api.eventReminders.requestReminder);
+  const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -38,15 +40,23 @@ export function ReminderForm({
     }
     setStatus('pending');
     try {
+      const captchaToken = await executeRecaptcha('event_reminder');
       await requestReminder({
         eventSlug,
         email,
         eventDate,
         locale: locale === 'en' ? 'en' : 'fr',
+        captchaToken,
       });
       setStatus('success');
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errorGeneric'));
+      setError(
+        isCaptchaFailed(err)
+          ? t('captchaFailed')
+          : isRateLimited(err)
+            ? t('rateLimited')
+            : t('errorGeneric'),
+      );
       setStatus('idle');
     }
   }

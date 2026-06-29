@@ -1,7 +1,9 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { action, internalMutation, query } from './_generated/server';
+import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { locale } from './schema';
 
@@ -10,7 +12,28 @@ import { locale } from './schema';
 // valide pas son existence côté serveur (pas de table événements) mais on borne
 // la chaîne. Idempotent : une même adresse réinscrite au même event ne crée pas
 // de doublon. Rate-limité par adresse.
-export const registerForEvent = mutation({
+// Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
+// `storeRegistration` (internalMutation -> non contournable).
+export const registerForEvent = action({
+  args: {
+    eventSlug: v.string(),
+    name: v.string(),
+    email: v.string(),
+    organization: v.optional(v.string()),
+    locale: v.optional(locale),
+    captchaToken: v.optional(v.string()),
+  },
+  handler: async (ctx, { captchaToken, ...input }) => {
+    await enforceRecaptcha(captchaToken, 'event_register');
+    const result: { ok: boolean; already: boolean } = await ctx.runMutation(
+      internal.events.storeRegistration,
+      input,
+    );
+    return result;
+  },
+});
+
+export const storeRegistration = internalMutation({
   args: {
     eventSlug: v.string(),
     name: v.string(),
