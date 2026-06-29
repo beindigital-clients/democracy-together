@@ -16,6 +16,7 @@ import {
   getEventsLabels,
   parseEventFilters,
   filterAndSortEvents,
+  computeEventFacets,
   buildEventHref,
   toggleEventHref,
   hasActiveEventFilters,
@@ -51,11 +52,11 @@ export async function generateMetadata({
 
 const WRAP = 'mx-auto w-full max-w-[1240px] px-4 sm:px-6';
 
-const FACET_OPTIONS: { key: EventFacetKey; values: string[]; dict: 'types' | 'regions' | 'formats' | 'langName' }[] = [
-  { key: 'types', values: ['sommet', 'webinaire', 'atelier'], dict: 'types' },
-  { key: 'regions', values: ['afrique', 'europe', 'en-ligne'], dict: 'regions' },
-  { key: 'formats', values: ['presentiel', 'en-ligne', 'hybride'], dict: 'formats' },
-  { key: 'langs', values: ['fr', 'en'], dict: 'langName' },
+const FACET_OPTIONS: { key: EventFacetKey; dict: 'types' | 'regions' | 'formats' | 'langName' }[] = [
+  { key: 'types', dict: 'types' },
+  { key: 'regions', dict: 'regions' },
+  { key: 'formats', dict: 'formats' },
+  { key: 'langs', dict: 'langName' },
 ];
 
 export default async function EventsPage({
@@ -72,6 +73,7 @@ export default async function EventsPage({
   const tc = await getTranslations('calendar');
   const filters = parseEventFilters(await searchParams);
   const results = filterAndSortEvents(filters, L);
+  const facets = computeEventFacets(filters, L);
 
   const featured = EVENTS.find((e) => e.slug === FEATURED_SLUG)!;
   const replays = EVENTS.filter((e) => !e.upcoming).sort(
@@ -193,13 +195,16 @@ export default async function EventsPage({
             ))}
           </div>
 
-          {FACET_OPTIONS.map((g) => (
+          {FACET_OPTIONS.map((g) => {
+            const opts = facets[g.key];
+            if (opts.length === 0) return null;
+            return (
             <fieldset key={g.key} className="border-t border-line py-4">
               <legend className="mb-3 font-mono text-[12px] uppercase tracking-[0.08em] text-muted">
                 {g.key === 'types' ? L.filter.type : g.key === 'regions' ? L.filter.region : g.key === 'formats' ? L.filter.format : L.filter.lang}
               </legend>
               <div className="flex flex-col">
-                {g.values.map((value) => {
+                {opts.map(({ value, count }) => {
                   const active = filters[g.key].includes(value);
                   const label = (L[g.dict] as Record<string, string>)[value];
                   return (
@@ -215,12 +220,14 @@ export default async function EventsPage({
                         ) : null}
                       </span>
                       <span className={active ? 'text-ink' : undefined}>{label}</span>
+                      <span className="ml-auto font-mono text-[11px] text-muted">{count}</span>
                     </Link>
                   );
                 })}
               </div>
             </fieldset>
-          ))}
+            );
+          })}
         </aside>
 
         <section aria-label="Résultats">

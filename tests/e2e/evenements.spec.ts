@@ -18,8 +18,9 @@ test('événements : liste, filtres serveur, vedette → détail riche (F-23)', 
     }),
   ).toBeVisible();
 
-  // Filtre facette : Webinaire (lien GET) réduit la liste
-  await page.getByRole('link', { name: 'Webinaire', exact: true }).click();
+  // Filtre facette : Webinaire (lien GET) réduit la liste. On cible par le href
+  // de bascule (le libellé inclut désormais un compteur contextuel).
+  await page.locator('aside a[href*="type=webinaire"]').click();
   await expect(page).toHaveURL(/[?&]type=webinaire/);
   await expect(page.getByText('5 événements à venir')).toBeVisible();
 

@@ -525,3 +525,60 @@ export function filterAndSortEvents(
   });
   return out;
 }
+
+// Correspondance à tous les filtres SAUF une facette (et hors recherche `q`,
+// qui s'applique toujours) — pour compter les options d'une facette dans le
+// contexte des AUTRES filtres actifs + la période courante.
+function matchesEventExcept(
+  e: EventData,
+  f: EventFilters,
+  labels: Labels,
+  except: EventFacetKey,
+): boolean {
+  if (e.upcoming !== (f.period === 'venir')) return false;
+  if (except !== 'types' && !has(f.types, e.type)) return false;
+  if (except !== 'regions' && !has(f.regions, e.region)) return false;
+  if (except !== 'formats' && !has(f.formats, e.format)) return false;
+  if (
+    except !== 'langs' &&
+    f.langs.length &&
+    !f.langs.some((l) => e.langs.includes(l as 'fr' | 'en'))
+  ) {
+    return false;
+  }
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    const hay = `${labels.titles[e.slug]} ${labels.cities[e.cityKey]} ${labels.themes[e.theme]} ${labels.types[e.type]}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+// Facettes « contextuelles » des événements (même principe que la bibliothèque) :
+// chaque option est comptée sur les événements correspondant aux AUTRES filtres
+// actifs (+ période). Les options sans événement disparaissent -> tout filtre
+// cliquable donne >=1 résultat ; les valeurs cochées restent listées (à 0).
+export function computeEventFacets(f: EventFilters, labels: Labels) {
+  const tally = (
+    list: EventData[],
+    pick: (e: EventData) => string[],
+    selected: string[],
+  ): { value: string; count: number }[] => {
+    const counts = new Map<string, number>();
+    for (const v of selected) counts.set(v, 0);
+    for (const e of list) {
+      for (const v of pick(e)) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([value, count]) => ({ value, count }));
+  };
+  const sub = (except: EventFacetKey) =>
+    EVENTS.filter((e) => matchesEventExcept(e, f, labels, except));
+  return {
+    types: tally(sub('types'), (e) => [e.type], f.types),
+    regions: tally(sub('regions'), (e) => [e.region], f.regions),
+    formats: tally(sub('formats'), (e) => [e.format], f.formats),
+    langs: tally(sub('langs'), (e) => e.langs, f.langs),
+  };
+}
