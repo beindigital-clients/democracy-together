@@ -11,8 +11,8 @@ import {
 type EstimatorContent = MembershipContent['estimator'];
 
 // Estimateur de cotisation solidaire (F-20) — îlot client : le montant se
-// recalcule en direct selon le niveau de revenu du pays, le type d'adhésion et
-// la devise. Montants indicatifs (cf. lib/membership-content).
+// recalcule en direct selon le niveau de revenu du pays et le type d'adhésion.
+// Paiement en euro (EUR) uniquement. Montants indicatifs (cf. lib/membership-content).
 export function SolidarityEstimator({
   content,
   locale,
@@ -22,9 +22,8 @@ export function SolidarityEstimator({
 }) {
   const [income, setIncome] = useState<IncomeLevel>('high');
   const [type, setType] = useState<MemberType>('org');
-  const [currency, setCurrency] = useState<'EUR' | 'XOF'>('EUR');
 
-  const amount = estimate(type, income, currency);
+  const amount = estimate(type, income);
   const formatted = amount.toLocaleString(locale === 'en' ? 'en-US' : 'fr-FR');
   const typeLabel = content.types.find((t) => t.value === type)!.label;
   const incomeLabel = content.incomes.find((i) => i.value === income)!.label.toLowerCase();
@@ -48,24 +47,13 @@ export function SolidarityEstimator({
           options={content.types}
           onChange={(v) => setType(v as MemberType)}
         />
-        <RadioGroup
-          legend={content.currencyLabel}
-          name="cur"
-          value={currency}
-          options={[
-            { value: 'EUR', label: 'EUR', desc: 'Euro' },
-            { value: 'XOF', label: 'XOF', desc: locale === 'en' ? 'CFA franc (West Africa)' : "Franc CFA (Afrique de l'Ouest)" },
-          ]}
-          onChange={(v) => setCurrency(v as 'EUR' | 'XOF')}
-          cols={2}
-        />
       </form>
 
       <div aria-live="polite" className="flex flex-col rounded-md border border-line bg-paper p-6">
         <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">{content.outLabel}</div>
         <div className="mt-2 flex items-baseline gap-2">
           <b className="font-mono text-[40px] font-semibold leading-none tracking-[-0.02em] text-ink">{formatted}</b>
-          <span className="font-mono text-sm text-ink-soft">{currency}</span>
+          <span className="font-mono text-sm text-ink-soft">EUR</span>
         </div>
         <span className="mt-1 text-[12px] text-muted">{content.perYear}</span>
         <p className="mt-4 text-[13px] text-ink-soft">{ctx}</p>

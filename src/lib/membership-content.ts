@@ -9,13 +9,12 @@ export type IncomeLevel = 'high' | 'mid' | 'low';
 export type MemberType = 'org' | 'ind' | 'jeu';
 
 // Barème indicatif EUR/an : base par type au revenu élevé, atténuée par palier.
+// Paiement en euro (EUR) uniquement pour le moment.
 export const BASE_EUR: Record<MemberType, number> = { org: 1200, ind: 120, jeu: 25 };
 export const INCOME_FACTOR: Record<IncomeLevel, number> = { high: 1, mid: 0.5, low: 0.25 };
-export const XOF_PER_EUR = 655;
 
-export function estimate(type: MemberType, income: IncomeLevel, currency: 'EUR' | 'XOF'): number {
-  const eur = Math.round((BASE_EUR[type] * INCOME_FACTOR[income]) / 5) * 5;
-  return currency === 'XOF' ? eur * XOF_PER_EUR : eur;
+export function estimate(type: MemberType, income: IncomeLevel): number {
+  return Math.round((BASE_EUR[type] * INCOME_FACTOR[income]) / 5) * 5;
 }
 
 export type MembershipContent = {
@@ -30,7 +29,6 @@ export type MembershipContent = {
     incomes: { value: IncomeLevel; label: string; desc: string }[];
     typeLabel: string;
     types: { value: MemberType; label: string; desc: string }[];
-    currencyLabel: string;
     outLabel: string;
     perYear: string;
     ctxTemplate: string; // "{type}, pays à revenu {income}."
@@ -51,7 +49,7 @@ export type MembershipContent = {
 };
 
 const fr: MembershipContent = {
-  pills: ['Cotisation solidaire', 'Reçu fiscal · loi 1901', 'Paiement EUR ou XOF'],
+  pills: ['Cotisation solidaire', 'Reçu fiscal · loi 1901', 'Paiement en euro (EUR)'],
   intro: {
     eyebrow: 'Adhésion',
     title: "Choisir un type d'adhésion",
@@ -74,7 +72,6 @@ const fr: MembershipContent = {
       { value: 'ind', label: 'Individuel', desc: 'Chercheur' },
       { value: 'jeu', label: 'Jeune', desc: 'Moins de 35 ans' },
     ],
-    currencyLabel: 'Devise de paiement',
     outLabel: 'Cotisation annuelle suggérée',
     perYear: 'par an',
     ctxTemplate: '{type}, pays à revenu {income}.',
@@ -106,7 +103,7 @@ const fr: MembershipContent = {
   faq: {
     eyebrow: 'Aide',
     title: 'Questions fréquentes',
-    body: "Cotisation solidaire, reçus fiscaux, paiement en Afrique de l'Ouest, dons et résiliation.",
+    body: 'Cotisation solidaire, reçus fiscaux, modalités de paiement, dons et résiliation.',
     items: [
       {
         q: 'Comment fonctionne la cotisation solidaire ?',
@@ -122,10 +119,10 @@ const fr: MembershipContent = {
         ],
       },
       {
-        q: "Puis-je payer en XOF depuis l'Afrique de l'Ouest ?",
+        q: 'Comment se passe le paiement de la cotisation ?',
         a: [
-          "Oui. Le paiement est possible en euro (EUR) ou en franc CFA (XOF). Pour l'Afrique de l'Ouest, nous acceptons le règlement en XOF, avec une conversion approximative de 1 EUR pour environ 655 XOF. Le bureau de Dakar peut aussi proposer d'autres moyens de paiement locaux.",
-          "La conversion affichée par l'estimateur est indicative et peut différer légèrement du montant final selon le canal de paiement.",
+          "Pour le moment, la cotisation et les dons se règlent en euro (EUR). Quel que soit votre pays, le paiement est traité dans cette devise ; votre banque applique le cas échéant sa propre conversion.",
+          "Vous êtes basé en Afrique de l'Ouest ? Le bureau de Dakar peut vous accompagner pour le règlement et étudier d'autres moyens de paiement locaux.",
         ],
       },
       {
@@ -157,7 +154,7 @@ const fr: MembershipContent = {
 };
 
 const en: MembershipContent = {
-  pills: ['Solidarity contribution', 'Tax receipt · loi 1901', 'Pay in EUR or XOF'],
+  pills: ['Solidarity contribution', 'Tax receipt · loi 1901', 'Pay in euro (EUR)'],
   intro: {
     eyebrow: 'Membership',
     title: 'Choose a membership type',
@@ -180,7 +177,6 @@ const en: MembershipContent = {
       { value: 'ind', label: 'Individual', desc: 'Researcher' },
       { value: 'jeu', label: 'Youth', desc: 'Under 35' },
     ],
-    currencyLabel: 'Payment currency',
     outLabel: 'Suggested annual contribution',
     perYear: 'per year',
     ctxTemplate: '{type}, {income}-income country.',
@@ -212,7 +208,7 @@ const en: MembershipContent = {
   faq: {
     eyebrow: 'Help',
     title: 'Frequently asked questions',
-    body: 'Solidarity pricing, tax receipts, payment in West Africa, donations and cancellation.',
+    body: 'Solidarity pricing, tax receipts, payment, donations and cancellation.',
     items: [
       {
         q: 'How does solidarity pricing work?',
@@ -228,10 +224,10 @@ const en: MembershipContent = {
         ],
       },
       {
-        q: 'Can I pay in XOF from West Africa?',
+        q: 'How does contribution payment work?',
         a: [
-          'Yes. Payment is possible in euro (EUR) or CFA franc (XOF). For West Africa, we accept payment in XOF, with an approximate conversion of 1 EUR for about 655 XOF. The Dakar office can also offer other local payment methods.',
-          'The conversion shown by the estimator is indicative and may differ slightly from the final amount depending on the payment channel.',
+          'For now, contributions and donations are paid in euro (EUR). Whatever your country, payment is processed in this currency; your bank applies its own conversion if needed.',
+          'Based in West Africa? The Dakar office can help you with payment and look into other local payment methods.',
         ],
       },
       {

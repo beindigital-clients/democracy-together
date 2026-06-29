@@ -20,15 +20,12 @@ test('adhésion : sections maquette + estimateur solidaire (F-20)', async ({
   await expect(
     page.getByRole('heading', { name: 'Estimateur de tarif solidaire' }),
   ).toBeVisible();
-  // défaut : organisation, revenu élevé, EUR -> 1 200 EUR
+  // défaut : organisation, revenu élevé -> 1 200 EUR (paiement EUR uniquement)
   // (séparateur de milliers FR = U+202F ; \s le couvre)
   await expect(page.getByText(/^1\s?200$/)).toBeVisible();
-  // bascule devise XOF -> 786 000
-  await page.getByText("Franc CFA (Afrique de l'Ouest)").click();
-  await expect(page.getByText(/^786\s?000$/)).toBeVisible();
-  // bascule revenu faible (org, low, XOF) -> 300 * 655 = 196 500
+  // bascule revenu faible (org, low) -> 1200 * 0.25 = 300 EUR
   await page.getByText('Revenu modeste').click();
-  await expect(page.getByText(/^196\s?500$/)).toBeVisible();
+  await expect(page.getByText(/^300$/)).toBeVisible();
 
   // Comparatif + FAQ
   await expect(
