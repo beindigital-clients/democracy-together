@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 
 export default function ConnexionPage() {
   const t = useTranslations('auth');
+  const tNav = useTranslations('nav');
   const { signIn } = useAuthActions();
   const redirectAfterAuth = useRedirectAfterAuth();
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +63,8 @@ export default function ConnexionPage() {
 
       <p className="mt-6 text-sm text-ink-soft">
         {t('noAccount')}{' '}
-        <Link href="/inscription" className="text-accent-text hover:underline">
-          {t('createAccount')}
+        <Link href="/adhesion" className="text-accent-text hover:underline">
+          {tNav('join')}
         </Link>
       </p>
     </AuthCard>

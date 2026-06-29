@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Menu, X } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
+import { JoinButton } from './join-button';
 import { LocaleSwitcher } from './locale-switcher';
 import { ThemeToggle } from './theme-toggle';
 import { AuthButton } from './auth-button';
@@ -135,9 +136,7 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
               </li>
             </ul>
 
-            <Button asChild className="mt-5 w-full" onClick={close}>
-              <Link href="/adhesion">{t('join')}</Link>
-            </Button>
+            <JoinButton className="mt-5 w-full" onClick={close} />
 
             <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
               <AuthButton />

@@ -1,4 +1,3 @@
-import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Logo } from './logo';
 // Bascule de thème retirée de la barre desktop pour gagner de la place et
@@ -7,11 +6,11 @@ import { Logo } from './logo';
 // import { ThemeToggle } from './theme-toggle';
 import { LocaleSwitcher } from './locale-switcher';
 import { AuthButton } from './auth-button';
+import { JoinButton } from './join-button';
 import { NotificationBell } from './notification-bell';
 import { MobileNav } from './mobile-nav';
 import { NavLinks } from './nav-links';
 import { SearchDialog } from './search-dialog';
-import { Button } from '@/components/ui/button';
 
 const NAV = [
   { href: '/a-propos', key: 'about' },
@@ -24,8 +23,6 @@ const NAV = [
 ] as const;
 
 export function SiteHeader() {
-  const t = useTranslations('nav');
-
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-paper/85 backdrop-blur supports-[backdrop-filter]:bg-paper/70 print:hidden">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-4 sm:px-6">
@@ -42,9 +39,7 @@ export function SiteHeader() {
             {/* <ThemeToggle /> — retiré du header desktop (espace) ; reste dans le menu */}
             <NotificationBell />
             <AuthButton />
-            <Button asChild>
-              <Link href="/adhesion">{t('join')}</Link>
-            </Button>
+            <JoinButton />
           </div>
           <MobileNav items={NAV} />
         </div>

@@ -10,6 +10,7 @@ import { OtpField } from '@/components/auth/otp-field';
 
 export default function OtpSignInPage() {
   const t = useTranslations('auth');
+  const tNav = useTranslations('nav');
   const { signIn } = useAuthActions();
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<'email' | 'code'>('email');
@@ -72,6 +73,12 @@ export default function OtpSignInPage() {
       >
         {t('backToSignIn')}
       </Link>
+      <p className="mt-3 text-sm text-ink-soft">
+        {t('noAccount')}{' '}
+        <Link href="/adhesion" className="text-accent-text hover:underline">
+          {tNav('join')}
+        </Link>
+      </p>
     </AuthCard>
   );
 }

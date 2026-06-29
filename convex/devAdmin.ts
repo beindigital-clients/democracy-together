@@ -97,3 +97,60 @@ export const deleteTestPublications = internalMutation({
     return { deleted };
   },
 });
+
+// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : enrichit une publication (corps /
+// points clés / image / métadonnées / compteurs d'impact) repérée par son titre.
+// Le formulaire de dépôt (F-32) ne collecte ni le corps ni l'image ; ce helper
+// sert à donner un contenu étoffé aux publications de DÉMONSTRATION.
+export const enrichPublication = internalMutation({
+  args: {
+    marker: v.string(),
+    body: v.optional(v.array(v.string())),
+    keypoints: v.optional(v.array(v.string())),
+    image: v.optional(v.string()),
+    pages: v.optional(v.number()),
+    license: v.optional(v.string()),
+    doi: v.optional(v.string()),
+    downloads: v.optional(v.number()),
+    citations: v.optional(v.number()),
+    views: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    { marker, body, keypoints, image, pages, license, doi, downloads, citations, views },
+  ) => {
+    if (process.env.AUTH_DEV_OTP !== 'true') {
+      throw new Error('Désactivé (AUTH_DEV_OTP).');
+    }
+    if (marker.trim().length < 3) throw new Error('Marqueur trop court.');
+    const patch: Partial<{
+      body: string[];
+      keypoints: string[];
+      image: string;
+      pages: number;
+      license: string;
+      doi: string;
+      downloads: number;
+      citations: number;
+      views: number;
+    }> = {};
+    if (body !== undefined) patch.body = body;
+    if (keypoints !== undefined) patch.keypoints = keypoints;
+    if (image !== undefined) patch.image = image;
+    if (pages !== undefined) patch.pages = pages;
+    if (license !== undefined) patch.license = license;
+    if (doi !== undefined) patch.doi = doi;
+    if (downloads !== undefined) patch.downloads = downloads;
+    if (citations !== undefined) patch.citations = citations;
+    if (views !== undefined) patch.views = views;
+    const pubs = (await ctx.db.query('publications').collect()).filter((p) =>
+      p.title.includes(marker),
+    );
+    let patched = 0;
+    for (const p of pubs) {
+      await ctx.db.patch(p._id, patch);
+      patched++;
+    }
+    return { patched };
+  },
+});
