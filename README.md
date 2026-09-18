@@ -96,6 +96,27 @@ lint-staged). La CI (`.github/workflows/ci.yml`) rejoue typage, tests, build,
 lint et `pnpm audit` ; les E2E tournent sur une préversion Convex dédiée par
 pull request (`.github/workflows/e2e.yml`).
 
+## Secrets (Infisical)
+
+Les variables d'environnement sont centralisées dans Infisical. Un serveur MCP
+Infisical est déclaré dans `.mcp.json` (`npx -y @infisical/mcp`) pour que
+Claude Code puisse lire et écrire les secrets du projet.
+
+Il attend trois variables dans l'environnement qui lance Claude Code (jamais
+dans le dépôt) :
+
+```bash
+INFISICAL_HOST_URL=https://app.infisical.com        # ou eu.infisical.com / instance auto-hébergée
+INFISICAL_UNIVERSAL_AUTH_CLIENT_ID=...              # Machine Identity (Universal Auth)
+INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET=...
+```
+
+Créer la Machine Identity dans Infisical (Organization > Access Control >
+Identities), lui donner le rôle nécessaire sur le projet, puis renseigner ces
+variables : en local dans votre shell, sur claude.ai/code dans les variables
+d'environnement de l'environnement (et autoriser l'hôte Infisical dans sa
+politique réseau).
+
 ## i18n
 
 - Langue **dans l'URL** (`/fr`, `/en`) : chaque langue est une URL distincte,
