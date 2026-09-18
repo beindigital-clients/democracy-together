@@ -2,12 +2,19 @@
   "mcpServers": {
     "infisical": {
       "command": "npx",
-      "args": ["-y", "@infisical/mcp"],
+      "args": [
+        "-y",
+        "@infisical/mcp"
+      ],
       "env": {
         "INFISICAL_HOST_URL": "${INFISICAL_HOST_URL:-https://app.infisical.com}",
         "INFISICAL_UNIVERSAL_AUTH_CLIENT_ID": "${INFISICAL_UNIVERSAL_AUTH_CLIENT_ID}",
         "INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET": "${INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET}"
       }
+    },
+    "infisical-docs": {
+      "type": "http",
+      "url": "https://infisical.com/docs/mcp"
     }
   }
 }

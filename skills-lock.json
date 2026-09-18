@@ -36,6 +36,30 @@
       "sourceType": "github",
       "skillPath": "skills/convex-setup-auth/SKILL.md",
       "computedHash": "b1a940758751c5b2fdc6ced105b19927a1655f0c1d4bd2fd5536dc3264202c00"
+    },
+    "infisical-access-control": {
+      "source": "Infisical/ai-skills",
+      "sourceType": "github",
+      "skillPath": "skills/infisical-access-control/SKILL.md",
+      "computedHash": "4291a10a8a21ad659b0e17c03ec2ed11f4dfd66e7a6e58fec1f19474f34cdb54"
+    },
+    "infisical-api": {
+      "source": "Infisical/ai-skills",
+      "sourceType": "github",
+      "skillPath": "skills/infisical-api/SKILL.md",
+      "computedHash": "02b06fbf0b0022df245691e3400000feb39455cb06e4321655a6947218d19862"
+    },
+    "infisical-secret-syncs": {
+      "source": "Infisical/ai-skills",
+      "sourceType": "github",
+      "skillPath": "skills/infisical-secret-syncs/SKILL.md",
+      "computedHash": "ce3b946e9559395e29c5bddf8fed44c880eaa81cd4aa9b7db3317b5115635fde"
+    },
+    "infisical-user-setup-guide": {
+      "source": "Infisical/ai-skills",
+      "sourceType": "github",
+      "skillPath": "skills/infisical-setup/SKILL.md",
+      "computedHash": "c2d043c4112f5d98d9f44bd64c14e1179cd60097b0ea305e38a41f371f7cfdc1"
     }
   }
 }

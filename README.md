@@ -35,12 +35,21 @@ Créer un projet sur sanity.io/manage (dataset en région EU), puis renseigner
 
 ## Secrets (Infisical)
 
-Les variables d'environnement sont centralisées dans Infisical. Un serveur MCP
-Infisical est déclaré dans `.mcp.json` (`npx -y @infisical/mcp`) pour que
-Claude Code puisse lire et écrire les secrets du projet.
+Les variables d'environnement sont centralisées dans Infisical, et Claude Code
+peut lire et écrire les secrets du projet via MCP.
 
-Il attend trois variables dans l'environnement qui lance Claude Code (jamais
-dans le dépôt) :
+Deux serveurs MCP sont déclarés dans `.mcp.json` :
+
+- `infisical` (`npx -y @infisical/mcp`) : accès à l'API (projets, secrets).
+- `infisical-docs` (`https://infisical.com/docs/mcp`) : documentation Infisical,
+  sans authentification.
+
+Les skills `infisical-*` (installés via `npx skills add Infisical/ai-skills`,
+verrouillés dans `skills-lock.json`) guident l'intégration CLI, SDK, Vercel et
+le contrôle d'accès.
+
+Le serveur `infisical` attend trois variables dans l'environnement qui lance
+Claude Code (jamais dans le dépôt) :
 
 ```bash
 INFISICAL_HOST_URL=https://app.infisical.com        # ou eu.infisical.com / instance auto-hébergée
