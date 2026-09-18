@@ -33,6 +33,36 @@ npx convex dev      # provisionne le backend, génère convex/_generated, rempli
 Créer un projet sur sanity.io/manage (dataset en région EU), puis renseigner
 `NEXT_PUBLIC_SANITY_PROJECT_ID` dans `.env.local` (voir `.env.example`).
 
+## Secrets (Infisical)
+
+Les variables d'environnement sont centralisées dans Infisical, et Claude Code
+peut lire et écrire les secrets du projet via MCP.
+
+Deux serveurs MCP sont déclarés dans `.mcp.json` :
+
+- `infisical` (`npx -y @infisical/mcp`) : accès à l'API (projets, secrets).
+- `infisical-docs` (`https://infisical.com/docs/mcp`) : documentation Infisical,
+  sans authentification.
+
+Les skills `infisical-*` (installés via `npx skills add Infisical/ai-skills`,
+verrouillés dans `skills-lock.json`) guident l'intégration CLI, SDK, Vercel et
+le contrôle d'accès.
+
+Le serveur `infisical` attend trois variables dans l'environnement qui lance
+Claude Code (jamais dans le dépôt) :
+
+```bash
+INFISICAL_HOST_URL=https://app.infisical.com        # ou eu.infisical.com / instance auto-hébergée
+INFISICAL_UNIVERSAL_AUTH_CLIENT_ID=...              # Machine Identity (Universal Auth)
+INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET=...
+```
+
+Créer la Machine Identity dans Infisical (Organization > Access Control >
+Identities), lui donner le rôle nécessaire sur le projet, puis renseigner ces
+variables : en local dans votre shell, sur claude.ai/code dans les variables
+d'environnement de l'environnement (et autoriser l'hôte Infisical dans sa
+politique réseau).
+
 ## i18n
 
 - Langue **dans l'URL** (`/fr`, `/en`) : chaque langue est une URL distincte,
