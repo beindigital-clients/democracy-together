@@ -219,12 +219,50 @@ export async function signInWithCode(page: Page, email: string) {
   await expect(page).toHaveURL(/\/espace-membre$/);
 }
 
-// Définit un mot de passe sur un compte qui n'en a pas encore.
+// Donne un MOT DE PASSE à un compte provisionné, par le seul chemin que le
+// backend laisse ouvert (issue #66).
 //
-// C'est le parcours réel d'un membre invité : son compte est ouvert par
-// l'approbation de sa candidature (ou par une invitation d'admin), sans mot de
-// passe. Le flux « mot de passe oublié » ne demande pas l'ancien mot de passe —
-// il sert donc aussi à définir le PREMIER.
+// Le helper précédent prétendait le faire avec « mot de passe oublié », au
+// motif que ce flux ne demande pas l'ancien mot de passe. C'est faux, et c'est
+// ce qui cassait 13 specs : `signIn('password', { flow: 'reset' })` commence
+// par `retrieveAccount` et lève `InvalidAccountId` quand il n'existe aucun
+// compte « password » pour l'adresse. Or `provisionUser` ne crée QUE la ligne
+// `users` — pas de ligne `authAccounts`. La page attrapait l'erreur, affichait
+// son message générique, et l'écran « Nouveau mot de passe » n'arrivait jamais.
+// (Reproduit en une ligne sous convex-test ; cf. le fil de la PR.)
+//
+// `flow: 'signUp'`, lui, passe : il appelle `createAccount`, donc le callback
+// `createOrUpdateUser`, qui ACCEPTE une adresse déjà connue — c'est le cas
+// « relier un nouveau moyen de connexion à un compte existant », exactement ce
+// que le modèle d'adhésion validée autorise. Comme le provider est configuré
+// avec `verify`, l'inscription n'ouvre pas de session : elle envoie un code,
+// qu'on relit puis qu'on présente en `email-verification`.
+//
+// À NOTER, et à traiter ailleurs : aucun écran de l'application ne fait cela.
+// L'e-mail d'invitation promet « vous pourrez en définir un depuis votre espace
+// membre » — cet écran n'existe pas, et `src/` ne contient aucun `flow:
+// 'signUp'`. Un membre invité ne peut donc PAS se donner de mot de passe ;
+// seule la connexion par code lui est ouverte. Ce helper passe par l'API parce
+// qu'il n'y a pas d'interface à exercer, pas pour contourner une interface.
+export async function provisionPassword(
+  email: string,
+  password: string,
+): Promise<void> {
+  await convex().action(api.auth.signIn, {
+    provider: 'password',
+    params: { email, password, flow: 'signUp' },
+  });
+  const code = await getOtp(email);
+  await convex().action(api.auth.signIn, {
+    provider: 'password',
+    params: { email, code, flow: 'email-verification' },
+  });
+}
+
+// Réinitialise un mot de passe EXISTANT par le flux « mot de passe oublié ».
+// Suppose donc un compte qui a déjà un mot de passe (cf. `provisionPassword`) :
+// c'est le sujet d'`auth-reset.spec.ts`, et la raison pour laquelle ce helper
+// ne sert plus à en définir un premier.
 export async function setPasswordViaReset(
   page: Page,
   email: string,
@@ -264,6 +302,15 @@ export async function signUpAndVerify(
   role: NetworkRole = 'visiteur',
 ) {
   await provisionUser(email, role);
-  await setPasswordViaReset(page, email, password);
+  await provisionPassword(email, password);
+
+  // La session s'ouvre par l'ÉCRAN DE CONNEXION réel : le provisionnement
+  // ci-dessus ne fait qu'amener le compte dans l'état où l'invitation le laisse
+  // (compte + mot de passe), ce sont les assertions qui doivent passer par
+  // l'interface.
+  await page.goto('/fr/connexion');
+  await page.getByLabel('E-mail').fill(email);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
 }

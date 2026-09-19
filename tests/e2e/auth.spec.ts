@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndVerify, provisionUser, getOtp } from './_helpers';
+import {
+  signUpAndVerify,
+  provisionUser,
+  provisionPassword,
+  getOtp,
+} from './_helpers';
 
 // Inscription (avec vérification e-mail OTP) -> déconnexion -> reconnexion. (F-01)
 test('inscription + vérification, déconnexion, reconnexion par mot de passe', async ({
@@ -55,6 +60,9 @@ test('définition du mot de passe : saisies non concordantes refusées', async (
 }) => {
   const email = `mismatch_${Date.now()}@democracytogether.test`;
   await provisionUser(email);
+  // L'écran de reset exige un compte qui a DÉJÀ un mot de passe : sans cela,
+  // `flow: 'reset'` lève `InvalidAccountId` et l'écran n'apparaît pas (#66).
+  await provisionPassword(email, 'motdepassedepart1');
 
   await page.goto('/fr/mot-de-passe-oublie');
   await page.getByLabel('E-mail').fill(email);

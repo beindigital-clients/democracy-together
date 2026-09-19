@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getOtp, latestApplicationForEmail } from './_helpers';
+import { getOtp, latestApplicationForEmail, provisionUser } from './_helpers';
 
 // PARCOURS COMPLET EN ANGLAIS sur les chemins principaux : accueil,
 // bibliothèque, adhésion, connexion.
@@ -115,6 +115,10 @@ test('EN : connexion par code puis espace membre (F-01/F-03)', async ({
   page,
 }) => {
   const email = `e2e_en_otp_${Date.now()}@democracytogether.test`;
+  // Pas d'auto-inscription : la connexion par code refuse une adresse inconnue
+  // (NO_SELF_SIGNUP). Le compte doit exister d'abord — c'est ce que fait une
+  // invitation dans la vraie vie (#66).
+  await provisionUser(email);
 
   await page.goto('/en/connexion');
   await expect(

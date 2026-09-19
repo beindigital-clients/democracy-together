@@ -153,17 +153,6 @@ jobs:
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
         run: pnpm test:e2e
 
-      # TEMPORAIRE (issue #66) — sonde de diagnostic. `always()` : c'est
-      # justement quand la suite échoue qu'on veut le rapport, et le placer
-      # APRÈS les tests le fait tomber en fin de log. Part avec le correctif.
-      - name: Sonde de diagnostic (#66)
-        if: always()
-        run: |
-          node scripts/diagnostic-66.mjs
-          echo "===== SONDE #66 — NAVIGATEUR ====="
-          cat diagnostic-66-navigateur.log || echo "(pas de rapport navigateur)"
-          echo "===== FIN SONDE NAVIGATEUR ====="
-
       - name: Publier le rapport
         if: always()
         uses: actions/upload-artifact@v4

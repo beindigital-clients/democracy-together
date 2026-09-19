@@ -38,6 +38,3 @@ next-env.d.ts
 /playwright/.cache
 /coverage
 /screenshots
-
-# Sonde temporaire #66 (rapport navigateur)
-diagnostic-66-navigateur.log
