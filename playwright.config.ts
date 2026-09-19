@@ -38,12 +38,23 @@ export default defineConfig({
   },
   projects: [
     {
+      // Ouvre les sessions partagées et les enregistre sur disque, une fois
+      // pour toute l'exécution (cf. tests/e2e/_sessions.ts). Les projets
+      // ci-dessous en dépendent : Playwright le joue d'abord, et s'arrête là
+      // s'il échoue — un seul message clair plutôt que quinze specs qui
+      // tombent chacune à sa façon.
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
       // Les specs de `tests/e2e/mobile/` appartiennent au projet mobile : les
       // rejouer ici les exécuterait sur un viewport desktop, sans tactile —
-      // exactement ce qu'elles vérifient.
-      testIgnore: '**/mobile/**',
+      // exactement ce qu'elles vérifient. Le projet `setup` a son propre
+      // fichier, qui n'est pas une spec.
+      testIgnore: ['**/mobile/**', '**/auth.setup.ts'],
     },
     {
       // Le mobile est une exigence structurante du cadrage (premier usage

@@ -153,6 +153,23 @@ jobs:
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
         run: pnpm test:e2e
 
+      # Quand la suite échoue, le log porte l'INSTANTANÉ DE PAGE de chaque
+      # échec. Sans cela, il faut télécharger l'artefact — ce que certains
+      # environnements interdisent (proxy d'entreprise, agent en bac à sable) —
+      # et c'est précisément quand ça casse qu'on a besoin de voir l'écran.
+      # Les reprises (`-retry1`) sont écartées : même page, deux fois.
+      - name: Instantanés des échecs
+        if: failure()
+        run: |
+          shopt -s globstar nullglob
+          for f in test-results/**/error-context.md; do
+            case "$f" in *-retry*) continue ;; esac
+            echo "----- $f -----"
+            head -c 2500 "$f"
+            echo
+          done
+        shell: bash
+
       - name: Publier le rapport
         if: always()
         uses: actions/upload-artifact@v4

@@ -34,6 +34,48 @@ crochet se contourne (`--no-verify`).
 - Le glob `import.meta.glob` doit **inclure `_generated`** et exclure le câblage auth (`auth.ts`, `auth.config.ts`, `http.ts`) qui touche `process.env`.
 
 ## E2E — `pnpm test:e2e`
+
+### Sessions partagées : le « fichier de login »
+Un projet Playwright `setup` (`tests/e2e/auth.setup.ts`) ouvre **une session par
+rôle** — membre, modérateur, éditeur, admin — et l'enregistre dans
+`tests/e2e/.auth/<rôle>.json` (dossier ignoré par git). Les projets de test en
+dépendent : Playwright le joue d'abord, et s'arrête là s'il échoue.
+
+Une spec qui a seulement besoin d'être connectée déclare l'état et commence à
+son vrai sujet :
+
+```ts
+test.describe('…', () => {
+  test.use({ storageState: SESSIONS.admin.state });
+  test('…', async ({ page }) => { await page.goto('/fr/admin'); /* … */ });
+});
+```
+
+Auparavant chaque spec de back-office rejouait un parcours de connexion complet
+— provisionnement, mot de passe, code, écran de connexion — avant de commencer.
+Quinze fois, donc quinze occasions d'échouer pour une raison étrangère au sujet
+du test (issue #66). Les parcours d'AUTHENTIFICATION, eux, continuent de se
+connecter pour de vrai : `auth*.spec.ts` et `en-journey.spec.ts` ne doivent pas
+court-circuiter ce qu'ils vérifient.
+
+Les comptes partagés portent des adresses **stables** (`e2e_session_<rôle>@…`).
+Une préversion CI naît vide, mais un déploiement de dev vit longtemps : les
+helpers sont donc idempotents — `provisionUser` fait un upsert, et
+`provisionPassword` relie le même mot de passe à un compte qui l'a déjà.
+
+### Mot de passe des comptes de test
+`provisionPassword` passe par `flow: 'signUp'` puis la vérification par code.
+C'est le SEUL chemin ouvert : `flow: 'reset'` exige un compte mot de passe
+existant et lève `InvalidAccountId` sinon — c'est ce qui tenait quinze specs en
+échec. À noter, côté produit : aucun écran ne permet aujourd'hui de définir un
+mot de passe (l'e-mail d'invitation le promet pourtant), donc ce helper passe
+par l'API faute d'interface à exercer.
+
+### Lire un échec
+`pnpm test:e2e` en local ouvre le rapport HTML. En CI, le job publie
+`playwright-report/` en artefact (traces comprises) **et** imprime dans le log
+l'instantané de page de chaque échec — utile quand l'artefact n'est pas
+téléchargeable.
 - Démarre le serveur automatiquement (webServer Playwright : `pnpm build && pnpm start`).
 - Le flux d'auth crée un **vrai compte** sur le déploiement Convex (e-mail horodaté unique par run).
 - Détection de langue déterministe : `test.use({ locale: 'fr-FR' })` quand on teste la redirection `/`.

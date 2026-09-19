@@ -38,3 +38,6 @@ next-env.d.ts
 /playwright/.cache
 /coverage
 /screenshots
+
+# Sessions E2E pré-ouvertes (produites par le projet Playwright `setup`)
+tests/e2e/.auth/
