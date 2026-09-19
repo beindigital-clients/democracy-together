@@ -11,7 +11,7 @@ import { getMembershipContent } from '@/lib/membership-content';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale) as 'fr' | 'en';
+  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
 }
 
 export async function generateMetadata({

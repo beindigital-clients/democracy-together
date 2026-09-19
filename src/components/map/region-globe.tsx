@@ -8,7 +8,7 @@ import {
   geoGraticule10,
 } from 'd3-geo';
 import { feature } from 'topojson-client';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 import worldTopo from 'world-atlas/countries-110m.json';
 import type { RegionMapItem } from './region-map';
 
@@ -59,7 +59,12 @@ export function RegionGlobe({
   const [selected, setSelected] = useState<RegionMapItem | null>(null);
 
   const regionRef = useRef<Region>('all');
-  regionRef.current = region;
+  // Écrire un ref PENDANT le rendu casse le rendu concurrent. `regionRef` n'est
+  // relu que dans la boucle de dessin du canevas, qui tourne après la
+  // validation : le mettre à jour dans un effet est donc équivalent ici.
+  useEffect(() => {
+    regionRef.current = region;
+  }, [region]);
   const byName = useMemo(
     () => new Map(items.map((it) => [it.name, it])),
     [items],
@@ -98,7 +103,7 @@ export function RegionGlobe({
       lastY = 0;
     let hoverName: string | null = null;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let auto = !reduce;
+    const auto = !reduce;
 
     function resize() {
       // La taille d'AFFICHAGE est 100 % pilotée par le CSS : `wrap` est
@@ -165,7 +170,7 @@ export function RegionGlobe({
 
       // graticule discret
       ctx!.beginPath();
-      pathGen(graticule as any);
+      pathGen(graticule);
       ctx!.strokeStyle = hexA('#ffffff', 0.06);
       ctx!.lineWidth = 0.5;
       ctx!.stroke();
@@ -217,7 +222,7 @@ export function RegionGlobe({
       if (!inv) return none;
       for (const f of LAND) {
         const cand = byName.get(f.properties?.name);
-        if (cand && geoContains(f as any, inv)) {
+        if (cand && geoContains(f, inv)) {
           return { name: f.properties.name as string, it: cand };
         }
       }

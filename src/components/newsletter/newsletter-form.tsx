@@ -7,7 +7,7 @@ import { api } from '@convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { isEmail } from '@/lib/validation';
+import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Formulaire d'inscription newsletter (F-18) — îlot client réutilisable (accueil
@@ -34,7 +34,7 @@ export function NewsletterForm({
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const email = String(fd.get('email') ?? '').trim();
+    const email = formField(fd, 'email').trim();
     if (!isEmail(email)) {
       setError(t('errorInvalid'));
       return;

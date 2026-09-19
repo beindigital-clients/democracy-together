@@ -4,7 +4,6 @@ import { useState, type FormEvent } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
 import { Input } from '@/components/ui/input';
@@ -12,16 +11,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
-
-type WorkspaceRow = {
-  _id: Id<'workspaces'>;
-  title: string;
-  theme: string;
-  description: string;
-  memberCount: number;
-  createdAt: number;
-  mine: boolean;
-};
 
 // Formulaire de création d'espace (membre réseau). Réplique le motif du
 // composer de la Tribune (champs Input/Textarea, select natif de thème).
@@ -151,9 +140,7 @@ export function WorkspacesBoard() {
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  const items = useQuery(api.workspaces.listWorkspaces) as
-    | WorkspaceRow[]
-    | undefined;
+  const items = useQuery(api.workspaces.listWorkspaces);
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(locale, {

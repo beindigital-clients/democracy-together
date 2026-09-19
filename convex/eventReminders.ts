@@ -1,7 +1,6 @@
 import { v } from 'convex/values';
 import {
   action,
-  query,
   internalQuery,
   internalMutation,
   internalAction,

@@ -87,6 +87,11 @@ export function dimensionRows(locale: DatasetLocale): DimensionRow[] {
 
 // --- CSV (RFC 4180) ---------------------------------------------------------
 function csvCell(v: unknown): string {
+  // Sérialiseur générique : la coercition de `unknown` est ici l'intention, et
+  // les seules valeurs passées (cf. toDatasetRows) sont des chaînes et des
+  // nombres. Un `JSON.stringify` sur les objets changerait le format du fichier
+  // publié.
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   const s = v == null ? '' : String(v);
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }

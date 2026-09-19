@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
 import { AuthCard, Field, FormError, SubmitButton } from '@/components/auth/form';
 import { OtpField } from '@/components/auth/otp-field';
+import { formField } from '@/lib/validation';
 
 export default function OtpSignInPage() {
   const t = useTranslations('auth');
@@ -23,7 +24,7 @@ export default function OtpSignInPage() {
     e.preventDefault();
     setError(null);
     setPending(true);
-    const mail = String(new FormData(e.currentTarget).get('email'));
+    const mail = formField(new FormData(e.currentTarget), 'email');
     try {
       await signIn('otp-signin', { email: mail });
       setEmail(mail);

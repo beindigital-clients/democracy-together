@@ -37,9 +37,7 @@ function scoreCat(score: number): 1 | 2 | 3 | 4 | 5 {
 }
 
 function resolve(locale: string) {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale) as
-    | 'fr'
-    | 'en';
+  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
 }
 
 export async function generateMetadata({

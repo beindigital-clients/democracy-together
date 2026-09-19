@@ -1,11 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
 import { AuthGate } from '@/components/auth/auth-gate';
 import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading,
   useQuery,
   useMutation
 } from 'convex/react';
