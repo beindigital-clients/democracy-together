@@ -49,6 +49,7 @@ côté client. Elles sont lues par les fonctions Convex.
 | `AUTH_EMAIL_FROM` | expéditeur, ex. `Democracy Together <no-reply@…>` | recommandé |
 | `AUTH_EMAIL_PROVIDER` | `resend` (défaut déduit de la clé) | non |
 | `RECAPTCHA_SECRET_KEY` | vérification serveur du jeton reCAPTCHA v3 | **oui** (voir § 1.4) |
+| `BOOTSTRAP_ADMIN_EMAIL` | adresse autorisée à devenir le **premier** administrateur | le temps de l'amorçage seulement (§ 5) |
 | `AUTH_DEV_OTP` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** | — |
 | `RECAPTCHA_DISABLED` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** (contournement de dev) | — |
 
@@ -194,44 +195,89 @@ développeur pour être modifiés.
 
 ## 5. Amorçage de l'administrateur initial
 
-> ### 🚧 TODO — bloqué par l'issue #47
->
-> **Cette section ne peut pas encore décrire une procédure de production sûre.**
-> Elle sera complétée dès que #47 aura livré la mutation d'amorçage dédiée.
-
-**État actuel.** Les quatre chemins qui écrivent un rôle réseau sont tous
-inaccessibles sur un déploiement neuf :
+Sur un déploiement neuf, la table `users` est vide et **aucun chemin applicatif**
+ne peut créer le premier administrateur — chacun suppose un compte privilégié
+déjà en place :
 
 | Chemin | Garde | Amorçage possible ? |
 |---|---|---|
 | `users.setRole` | `requireNetworkRole(ctx, 'admin')` | non — exige un admin existant |
 | `users.inviteUser` | `requireNetworkRole(ctx, 'admin')` | non — idem |
 | `organizations.reviewApplication` | approbation d'une candidature | non — n'accorde que `membre` |
-| `devAdmin.setRoleByEmail` | `internalMutation` + `AUTH_DEV_OTP === 'true'` | **seul chemin**, mais dev uniquement |
+| `devAdmin.setRoleByEmail` | `internalMutation` + `AUTH_DEV_OTP === 'true'` | **jamais en production** : le § 1.1 l'interdit |
 
-L'œuf et la poule est entier : créer le premier administrateur exige
-aujourd'hui de poser `AUTH_DEV_OTP=true` sur la production, ce que le § 1.1
-interdit — pendant toute la fenêtre d'activation, **chaque code de connexion
-émis est lisible en clair en base**.
+`convex/bootstrap.ts` (issue #47) ferme ce cercle sans toucher à la surface de
+développement : c'est le chemin d'amorçage **de production**.
 
-La PR #4 a rendu `devAdmin.setRoleByEmail` capable de **créer** le compte s'il
-n'existe pas (sans quoi la procédure échouait sur « Utilisateur introuvable »
-depuis la suppression de l'auto-inscription). Nécessaire, mais **pas
-suffisant** : la garde `AUTH_DEV_OTP` reste en place.
+### 5.1 La procédure
 
-**Ce qu'attend #47** : une `internalMutation` d'amorçage gardée par sa propre
-variable (`BOOTSTRAP_ADMIN_EMAIL`), **refusant de s'exécuter si un
-administrateur existe déjà** — donc non rejouable et inoffensive si la variable
-traîne — et journalisée dans `auditLog`. Une fois livrée, la procédure tiendra
-en quatre lignes, à écrire ici :
+Prérequis : le § 2 est fait (`npx convex deploy`), donc la fonction
+`bootstrap:bootstrapAdmin` existe sur le déploiement visé.
 
 ```bash
-# TODO (#47) — forme attendue, NON DISPONIBLE à ce jour :
-# npx convex env set BOOTSTRAP_ADMIN_EMAIL admin@exemple.org
-# npx convex run <module>:bootstrapAdmin
-# npx convex env remove BOOTSTRAP_ADMIN_EMAIL
-# puis : connexion par code, et invitation des autres comptes via /admin
+# 1. Désigner l'adresse que le déploiement autorise à devenir administrateur.
+npx convex env set BOOTSTRAP_ADMIN_EMAIL 'admin@democracytogether.org' --prod
+
+# 2. Amorcer. L'adresse passée ici doit correspondre à la variable : la
+#    variable dit qui le déploiement autorise, l'argument dit qui vous visiez.
+#    Une faute de frappe est rejetée, elle ne promeut personne.
+npx convex run bootstrap:bootstrapAdmin \
+  '{"email":"admin@democracytogether.org"}' --prod
+
+# 3. Retirer la variable : elle n'a plus d'utilité.
+npx convex env remove BOOTSTRAP_ADMIN_EMAIL --prod
 ```
+
+Retour attendu à l'étape 2 :
+
+```json
+{ "ok": true, "created": true, "email": "admin@democracytogether.org", "userId": "..." }
+```
+
+**Se connecter ensuite** : aucun mot de passe n'est créé — il n'en existe pas à
+ce stade. Le compte est connectable dès que sa ligne `users` existe : aller sur
+`/fr/connexion-otp`, demander un code à usage unique, le saisir. (Si aucun code
+n'arrive : § 1.3, la clé e-mail n'est pas posée.)
+
+L'étape 3 est une mesure d'hygiène, **pas** ce qui referme la porte : c'est la
+garde « zéro admin » qui le fait. Une variable oubliée sur le déploiement ne
+rouvre donc rien.
+
+### 5.2 Pourquoi ce n'est pas une porte dérobée permanente
+
+| Protection | Effet |
+|---|---|
+| `internalMutation` | hors API publique : invocable depuis le serveur ou la CLI, **jamais** par un client |
+| Garde `BOOTSTRAP_ADMIN_EMAIL` | variable **dédiée**, indépendante d'`AUTH_DEV_OTP` : l'amorçage n'ouvre aucune des surfaces listées au § 1.1 |
+| Correspondance de l'adresse | la variable et l'argument doivent concorder — pas de promotion d'une adresse arbitraire |
+| Garde « zéro admin » | dès qu'un administrateur existe, la mutation est **inopérante** : elle ne sert qu'une fois, sur un déploiement neuf |
+| Audit (`admin.bootstrapped`) | trace dans `auditLog`, sans acteur — l'opération vient de la CLI, pas d'un compte de la plateforme |
+| Rôle non paramétrable | la fonction ne sait accorder que `admin` ; tout le reste passe par `users.setRole`, audité et réservé aux administrateurs |
+
+Tests de ces gardes : `convex/bootstrap.test.ts`.
+
+### 5.3 Diagnostic
+
+| Message | Cause | Correctif |
+|---|---|---|
+| `BOOTSTRAP_ADMIN_NOT_CONFIGURED` | `BOOTSTRAP_ADMIN_EMAIL` absente du déploiement visé | étape 1 — contrôler avec `npx convex env list --prod` |
+| `BOOTSTRAP_EMAIL_MISMATCH` | l'adresse passée en argument diffère de la variable | comparer les deux (casse et espaces sont normalisés, le reste non) |
+| `BOOTSTRAP_ALREADY_DONE` | un administrateur existe déjà | normal : l'amorçage ne sert qu'une fois. Passer par le back-office (§ 5.4 si l'accès est perdu) |
+| `INVALID_EMAIL` | adresse mal formée | corriger la variable **et** l'argument |
+| `Could not find function` | le code n'est pas déployé sur la cible | `npx convex deploy` d'abord (§ 2) |
+
+### 5.4 Reprise d'un déploiement dont l'accès admin est perdu
+
+L'amorçage ne rejoue pas, et `users.setRole` refuse par construction de
+rétrograder le dernier administrateur : un déploiement en service a donc toujours
+au moins un compte admin. Si son **accès** est perdu (adresse hors service), la
+voie normale reste le back-office depuis un autre compte administrateur.
+
+Si aucun administrateur n'est joignable, la seule sortie est le tableau de bord
+Convex (onglet *Data*, table `users`) : soit corriger le champ `email` du compte
+admin, soit retirer son `role` — l'amorçage du § 5.1 redevient alors possible,
+puisqu'il ne reste aucun admin. À réserver au dernier recours : cette
+intervention n'est pas auditée par la plateforme, la tracer ailleurs.
 
 Une fois le premier administrateur en place, la suite est déjà opérationnelle :
 il invite les comptes suivants depuis le back-office (`users.inviteUser`,
@@ -243,7 +289,7 @@ candidature crée l'organisation et invite son contact
 
 ## 6. Reprise de données et import initial
 
-> ### 🚧 TODO — bloqué par l'issue #48 (elle-même dépendante de #47)
+> ### 🚧 TODO — bloqué par l'issue #48 (dont le prérequis #47 est levé : § 5)
 >
 > **Aucun mécanisme d'import n'existe à ce jour.** Cette section sera complétée
 > quand #48 aura livré l'import en lot.
@@ -311,7 +357,6 @@ rapport.
 - [ ] **Procédure de rotation des secrets** (`JWT_PRIVATE_KEY`/`JWKS`,
       `AUTH_RESEND_KEY`, `RECAPTCHA_SECRET_KEY`, jetons Sanity), et conduite à
       tenir en cas de fuite.
-- [ ] **Amorçage de l'administrateur** — § 5, bloqué par #47.
 - [ ] **Import / reprise de données** — § 6, bloqué par #48.
 - [ ] **ADR et CHANGELOG** : aucune décision d'architecture n'est tracée.
 - [ ] **Arbitrage RGPD de l'hébergement** : le dataset Sanity est en région EU,

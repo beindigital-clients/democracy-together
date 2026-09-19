@@ -57,8 +57,24 @@ encore en TypeScript dans `src/lib/*-content.ts`.
 
 ### Déploiement
 
-Procédure complète (Convex, Sanity, Vercel, variables de production, amorçage de
-l'administrateur initial) : **`docs/deploiement.md`**.
+Procédure complète (Convex, Sanity, Vercel, variables de production) :
+**`docs/deploiement.md`**.
+
+Sur un déploiement neuf, le **premier administrateur** s'amorce par une mutation
+dédiée — tous les chemins d'attribution de rôle du back-office exigent un admin
+déjà connecté :
+
+```bash
+npx convex env set BOOTSTRAP_ADMIN_EMAIL 'admin@exemple.org' --prod
+npx convex run bootstrap:bootstrapAdmin '{"email":"admin@exemple.org"}' --prod
+npx convex env remove BOOTSTRAP_ADMIN_EMAIL --prod
+```
+
+Elle est **inopérante dès qu'un administrateur existe** : elle ne sert qu'une
+fois, sur un déploiement neuf, et n'a pas besoin d'`AUTH_DEV_OTP` (voir la
+section Sécurité). La connexion se fait ensuite par code à usage unique
+(`/fr/connexion-otp`) — aucun mot de passe n'est créé. Détail et diagnostic :
+`docs/deploiement.md` § 5.
 
 ## Tests
 
@@ -101,8 +117,14 @@ pull request (`.github/workflows/e2e.yml`).
   donnée fournie par l'appelant.
 - Rate-limit applicatif et journal d'audit (`convex/lib/rateLimit.ts`,
   `convex/lib/audit.ts`, écran `/admin/journal`).
-- `AUTH_DEV_OTP` ouvre toute la surface de développement (codes OTP en clair,
-  seeds, oracles de lecture) : **jamais en production** — voir `docs/deploiement.md`.
+- **`AUTH_DEV_OTP` ne doit JAMAIS être défini en production.** Ce drapeau ouvre
+  toute la surface de développement d'un coup : chaque code de connexion OTP est
+  écrit **en clair** dans `devOtpCodes` et relisible, les sept oracles de lecture
+  (énumération d'adresses, corps des messages de contact) répondent, les seeds de
+  démonstration et les mutations de `convex/devAdmin.ts` deviennent invocables.
+  Ses deux seuls lieux légitimes : le dev local et les préversions Convex de la
+  CI. L'amorçage de l'administrateur initial a sa **propre** variable pour cette
+  raison — il n'a jamais besoin de ce drapeau. Voir `docs/deploiement.md` § 1.1.
 
 ## Design system
 

@@ -61,9 +61,13 @@ test('mobile : accueil -> menu -> bibliothèque -> facettes repliées -> détail
   const filters = page.locator('button[aria-controls="library-facets"]');
   await expect(filters).toBeVisible();
   await expect(filters).toHaveAttribute('aria-expanded', 'false');
+  // Portée limitée au panneau de facettes. Sans elle, `.first()` tombait sur
+  // la CARTE de publication : le badge de thématique fait partie de son nom
+  // accessible, et elle précède les facettes dans le DOM. Le test échouait donc
+  // sur un élément visible, alors qu'il vérifie que les facettes sont repliées.
   const themeFacet = page
-    .getByRole('link', { name: /Transitions démocratiques/ })
-    .first();
+    .locator('#library-facets')
+    .getByRole('link', { name: /Transitions démocratiques/ });
   await expect(themeFacet).toBeHidden(); // replié : pas juste hors écran
 
   await filters.tap();
