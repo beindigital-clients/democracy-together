@@ -53,6 +53,24 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     const row = page.getByRole('listitem').filter({ hasText: appOrg });
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: 'Approuver' }).click();
+
+    // Approuver une ORGANISATION ne tranche pas tout de suite : l'écran demande
+    // d'abord la fiche d'annuaire (F-19/F-22), car c'est à ce moment que
+    // l'organisation est créée. Le test cliquait « Approuver » et attendait que
+    // la ligne quitte la file — elle y restait, puisque rien n'avait encore été
+    // décidé. C'est bien ce que fait le produit, et cette étape mérite d'être
+    // épinglée plutôt que contournée en silence.
+    await expect(
+      row.getByRole('heading', { name: 'Fiche annuaire' }),
+    ).toBeVisible();
+
+    // Ce test porte sur la modération et les utilisateurs (F-26/F-61/F-63) : on
+    // prend la sortie prévue pour cela — le compte est créé, la fiche reste à
+    // compléter. La publication de la fiche (F-19) relève d'un autre parcours.
+    await row
+      .getByRole('button', { name: 'Approuver sans publier la fiche' })
+      .click();
+
     // elle quitte la file « En attente »
     await expect(row).toHaveCount(0);
 

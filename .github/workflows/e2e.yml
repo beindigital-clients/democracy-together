@@ -181,7 +181,7 @@ jobs:
           for f in test-results/**/error-context.md; do
             case "$f" in *-retry*) continue ;; esac
             echo "----- $f -----"
-            awk '/^```yaml/{y=1} y && n++ < 45' "$f"
+            awk '/^```yaml/{y=1} y && n++ < 120' "$f"
             echo
           done
         shell: bash
