@@ -41,7 +41,7 @@ export async function generateMetadata({
   // Une panne Sanity ne doit pas faire échouer le rendu ENTIER de la page :
   // les métadonnées sont accessoires, on les abandonne silencieusement et on
   // laisse le composant de page décider du sort de la requête.
-  let post: Article | null = null;
+  let post: Article | null;
   try {
     post = await client.fetch<Article | null>(postBySlugQuery, { slug });
   } catch {

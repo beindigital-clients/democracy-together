@@ -89,10 +89,7 @@ export function WorkspaceDetail({
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  const data = useQuery(api.workspaces.getWorkspace, { workspaceId }) as
-    | WorkspaceDetail
-    | null
-    | undefined;
+  const data = useQuery(api.workspaces.getWorkspace, { workspaceId });
   const join = useMutation(api.workspaces.joinWorkspace);
   const leave = useMutation(api.workspaces.leaveWorkspace);
   const [pending, setPending] = useState(false);

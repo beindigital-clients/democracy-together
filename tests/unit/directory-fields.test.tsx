@@ -107,14 +107,14 @@ describe("Fiche annuaire à l'approbation", () => {
       (
         screen.getByRole('button', {
           name: 'Approuver et publier la fiche',
-        }) as HTMLButtonElement
+        })
       ).disabled,
     ).toBe(true);
     expect(
       (
         screen.getByRole('button', {
           name: 'Approuver sans publier la fiche',
-        }) as HTMLButtonElement
+        })
       ).disabled,
     ).toBe(true);
   });

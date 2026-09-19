@@ -12,7 +12,6 @@ import {
   EVENT_SORTS,
   type EventData,
   type EventFacetKey,
-  type EventFilters,
   getEventsLabels,
   parseEventFilters,
   filterAndSortEvents,
@@ -26,7 +25,7 @@ import {
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale) as 'fr' | 'en';
+  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
 }
 
 export async function generateMetadata({
@@ -75,7 +74,6 @@ export default async function EventsPage({
   const results = filterAndSortEvents(filters, L);
   const facets = computeEventFacets(filters, L);
 
-  const featured = EVENTS.find((e) => e.slug === FEATURED_SLUG)!;
   const replays = EVENTS.filter((e) => !e.upcoming).sort(
     (a, b) => b.y * 10000 + b.mo * 100 + b.d - (a.y * 10000 + a.mo * 100 + a.d),
   );

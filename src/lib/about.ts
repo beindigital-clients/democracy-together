@@ -11,7 +11,7 @@ export async function getAboutContent(
   locale: 'fr' | 'en',
 ): Promise<AboutContent> {
   const fb = aboutFallback(locale);
-  let doc: Partial<AboutContent> | null = null;
+  let doc: Partial<AboutContent> | null;
   try {
     doc = await client.fetch<Partial<AboutContent> | null>(aboutPageQuery, {
       language: locale,

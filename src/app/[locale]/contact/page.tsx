@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/reveal';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { isEmail } from '@/lib/validation';
+import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 export default function ContactPage() {
@@ -29,10 +29,10 @@ export default function ContactPage() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const name = String(fd.get('name') ?? '').trim();
-    const email = String(fd.get('email') ?? '').trim();
-    const subject = String(fd.get('subject') ?? '').trim();
-    const body = String(fd.get('body') ?? '').trim();
+    const name = formField(fd, 'name').trim();
+    const email = formField(fd, 'email').trim();
+    const subject = formField(fd, 'subject').trim();
+    const body = formField(fd, 'body').trim();
 
     if (
       name.length < 2 ||

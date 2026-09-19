@@ -278,10 +278,10 @@ describe('Peer review — contenu (terme banni)', () => {
         .join(' ');
 
     const haystack = [
-      collect(frMessages.notifications as Record<string, unknown>, 'peerReview'),
-      collect(enMessages.notifications as Record<string, unknown>, 'peerReview'),
-      collect(frMessages.admin as Record<string, unknown>, 'rev'),
-      collect(enMessages.admin as Record<string, unknown>, 'rev'),
+      collect(frMessages.notifications, 'peerReview'),
+      collect(enMessages.notifications, 'peerReview'),
+      collect(frMessages.admin, 'rev'),
+      collect(enMessages.admin, 'rev'),
       (frMessages.admin as Record<string, string>).review,
       (enMessages.admin as Record<string, string>).review,
     ]

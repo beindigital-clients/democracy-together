@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',

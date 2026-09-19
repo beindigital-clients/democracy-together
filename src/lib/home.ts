@@ -10,7 +10,7 @@ export async function getHomeContent(
   locale: 'fr' | 'en',
 ): Promise<HomeContent> {
   const fb = homeFallback(locale);
-  let doc: Partial<HomeContent> | null = null;
+  let doc: Partial<HomeContent> | null;
   try {
     doc = await client.fetch<Partial<HomeContent> | null>(homePageQuery, {
       language: locale,

@@ -18,6 +18,7 @@ import {
   PUB_ACCESS,
 } from '@/lib/publications';
 import { isRateLimited } from '@/lib/errors';
+import { formField } from '@/lib/validation';
 
 const MAX_FILE_MB = 20;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -87,15 +88,15 @@ export function PublicationSubmitForm() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const title = String(fd.get('title') ?? '').trim();
-    const abstract = String(fd.get('abstract') ?? '').trim();
+    const title = formField(fd, 'title').trim();
+    const abstract = formField(fd, 'abstract').trim();
     const year = Number(fd.get('year'));
     const authorList = authors
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean)
       .map((name) => ({ name }));
-    const keypoints = String(fd.get('keypoints') ?? '')
+    const keypoints = formField(fd, 'keypoints')
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);

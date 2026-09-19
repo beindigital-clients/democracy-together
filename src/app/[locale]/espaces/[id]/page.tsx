@@ -1,16 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import { useParams } from 'next/navigation';
-import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading
-} from 'convex/react';
-import { useTranslations } from 'next-intl';
 import type { Id } from '@convex/_generated/dataModel';
-import { useRouter } from '@/i18n/navigation';
 import { WorkspaceDetail } from '@/components/workspaces/workspace-detail';
 
 function Detail() {

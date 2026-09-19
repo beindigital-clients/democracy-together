@@ -1,16 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading,
   useQuery
 } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { isMember } from '@/lib/roles';
 import { PublicationSubmitForm } from '@/components/library/publication-submit-form';

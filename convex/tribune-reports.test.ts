@@ -27,7 +27,7 @@ async function userWith(
   email: string,
 ) {
   const id = await t.run((ctx) =>
-    ctx.db.insert('users', { role, email } as never),
+    ctx.db.insert('users', { role, email }),
   );
   return { id, as: t.withIdentity({ subject: `${id}|s` }) };
 }

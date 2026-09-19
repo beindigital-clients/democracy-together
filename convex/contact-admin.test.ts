@@ -20,7 +20,7 @@ const modules = import.meta.glob([
 // lire ce que les visiteurs envoyaient.
 
 async function withRole(t: ReturnType<typeof convexTest>, role: string, email: string) {
-  const id = await t.run((ctx) => ctx.db.insert('users', { role, email } as never));
+  const id = await t.run((ctx) => ctx.db.insert('users', { role, email }));
   return t.withIdentity({ subject: `${id}|s` });
 }
 

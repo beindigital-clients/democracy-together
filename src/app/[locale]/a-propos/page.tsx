@@ -20,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = await getAboutContent(resolve(locale) as 'fr' | 'en');
+  const c = await getAboutContent(resolve(locale));
   return {
     title: c.hero.eyebrow,
     description: c.hero.lead,
@@ -52,7 +52,7 @@ export default async function AboutPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const c = await getAboutContent(resolve(locale) as 'fr' | 'en');
+  const c = await getAboutContent(resolve(locale));
 
   return (
     <div>

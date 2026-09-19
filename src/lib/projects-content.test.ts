@@ -38,7 +38,7 @@ describe('Appels à projets — contenu (F-60)', () => {
       .flatMap((loc) => flatten(getProjectsIntro(loc)))
       .join('\n');
     expect(text).not.toMatch(/[€$]\s?\d/);
-    expect(text.toLowerCase()).not.toMatch(/\d[\s ]*(?:€|euros?|dollars?)/);
+    expect(text.toLowerCase()).not.toMatch(/\d[\s\u202f]*(?:€|euros?|dollars?)/);
   });
 
   it('aucun terme banni dans le contenu (FR + EN)', () => {

@@ -2,7 +2,7 @@ import { Email } from '@convex-dev/auth/providers/Email';
 import type { GenericActionCtxWithAuthConfig } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { internalMutation, internalQuery, query } from './_generated/server';
+import { internalMutation, internalQuery } from './_generated/server';
 import type { DataModel } from './_generated/dataModel';
 import { sendOtpEmail, type OtpPurpose } from './email';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';

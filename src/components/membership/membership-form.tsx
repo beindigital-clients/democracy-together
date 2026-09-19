@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { isEmail } from '@/lib/validation';
+import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 type ApplicantType = 'organisation' | 'individu';
@@ -34,10 +34,10 @@ export function MembershipForm() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const organizationName = String(fd.get('organizationName') ?? '').trim();
-    const contactEmail = String(fd.get('contactEmail') ?? '').trim();
-    const country = String(fd.get('country') ?? '').trim();
-    const message = String(fd.get('message') ?? '').trim();
+    const organizationName = formField(fd, 'organizationName').trim();
+    const contactEmail = formField(fd, 'contactEmail').trim();
+    const country = formField(fd, 'country').trim();
+    const message = formField(fd, 'message').trim();
 
     if (organizationName.length < 2 || !isEmail(contactEmail) || country.length < 2) {
       setError(t('errorInvalid'));

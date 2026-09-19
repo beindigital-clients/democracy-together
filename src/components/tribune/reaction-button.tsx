@@ -8,6 +8,23 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
+// Pictogramme « pouce levé » inline (pas de dépendance icône supplémentaire).
+// Déclaré HORS du composant : une fonction créée à chaque rendu est un type de
+// composant neuf à chaque fois, ce qui force React à démonter puis remonter le
+// sous-arbre au lieu de le mettre à jour.
+function Thumb() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+      className="size-4 shrink-0"
+    >
+      <path d="M7.5 8.5 10.2 3a1.6 1.6 0 0 1 3 .7v3.3h3.1a1.6 1.6 0 0 1 1.57 1.94l-1.2 5.5A1.9 1.9 0 0 1 14.8 16H7.5V8.5ZM3 8.7h2.6V16H3a.9.9 0 0 1-.9-.9V9.6A.9.9 0 0 1 3 8.7Z" />
+    </svg>
+  );
+}
+
 // Réaction « soutien » (comme un like) sur une prise de parole. Îlot client :
 // décompte réactif via useQuery(reactionState). Déconnecté -> lien vers la
 // connexion. Connecté -> bouton qui bascule (toggleReaction) ; l'état `mine`
@@ -23,18 +40,6 @@ export function ReactionButton({ postId }: { postId: string }) {
 
   const count = state?.count ?? 0;
   const mine = state?.mine ?? false;
-
-  // Pictogramme « pouce levé » inline (pas de dépendance icône supplémentaire).
-  const Thumb = () => (
-    <svg
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      aria-hidden="true"
-      className="size-4 shrink-0"
-    >
-      <path d="M7.5 8.5 10.2 3a1.6 1.6 0 0 1 3 .7v3.3h3.1a1.6 1.6 0 0 1 1.57 1.94l-1.2 5.5A1.9 1.9 0 0 1 14.8 16H7.5V8.5ZM3 8.7h2.6V16H3a.9.9 0 0 1-.9-.9V9.6A.9.9 0 0 1 3 8.7Z" />
-    </svg>
-  );
 
   // Déconnecté : lien vers la connexion (libellé + décompte), comme report-button.
   if (!isAuthenticated) {
