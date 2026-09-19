@@ -31,6 +31,13 @@ export function generateStaticParams() {
 // visuelle sans enjeu SEO -> localStorage est légitime ici.
 const themeInit = `(function(){try{var t=localStorage.getItem('dt-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
 
+// Filet pour les navigateurs sans JavaScript (F-05, faible débit) : les
+// primitives d'animation posent `opacity:0` en style inline côté serveur. Sans
+// script pour les animer, le contenu reste invisible — mesuré avant correctif :
+// page des mentions légales entièrement blanche. Cette règle ne s'applique
+// QU'EN l'absence de JavaScript, donc les animations restent intactes ailleurs.
+const noScriptReveal = `[data-reveal]{opacity:1 !important;transform:none !important}`;
+
 export default async function LocaleLayout({
   children,
   params,
@@ -53,6 +60,9 @@ export default async function LocaleLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+        <noscript>
+          <style dangerouslySetInnerHTML={{ __html: noScriptReveal }} />
+        </noscript>
       </head>
       <body className="flex min-h-dvh flex-col">
         <NextIntlClientProvider messages={messages}>
