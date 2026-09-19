@@ -5,59 +5,57 @@ import { api } from '../../convex/_generated/api';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-// Peuple l'annuaire (F-19) avec les think tanks de démo. Idempotent.
-// `seedDirectory` est une internalMutation (hors API publique, défense en
-// profondeur) : on l'invoque via la CLI Convex (contexte de confiance), comme
-// elevateRole / deleteTestPublications.
-export async function seedDirectory(): Promise<void> {
+// Invoque une fonction Convex via la CLI — contexte de CONFIANCE, seul moyen
+// d'atteindre les internalMutations de test (hors API publique : défense en
+// profondeur).
+//
+// Sélection du déploiement :
+// - en local, la CLI relit .env.local elle-même. playwright.config charge ce
+//   fichier avec un loader naïf qui garde le commentaire inline de
+//   CONVEX_DEPLOYMENT (« dev:xxx # team: … ») -> on retire la variable de
+//   l'env pour ne pas lui passer une valeur commentée (dotenv, lui, strip).
+// - en CI, `CONVEX_DEPLOY_KEY` est une clé de PRÉVERSION : elle désigne le
+//   projet, pas un déploiement. Le nom de la préversion (posé par le workflow
+//   dans CONVEX_PREVIEW_NAME) lève l'ambiguïté.
+function convexRun(fn: string, args: Record<string, unknown> = {}): void {
   const env = { ...process.env };
   delete env.CONVEX_DEPLOYMENT;
-  execFileSync('npx', ['convex', 'run', 'seed:seedDirectory', '{}'], {
-    stdio: 'pipe',
-    env,
-  });
-}
-
-type NetworkRole = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
-
-// Élève le rôle d'un utilisateur (DEV, garde AUTH_DEV_OTP) — amorce un admin
-// pour les tests du back-office. `setRoleByEmail` est une internalMutation (hors
-// API publique) : on l'invoque via la CLI Convex (contexte de confiance), pas
-// via ConvexHttpClient.
-export async function elevateRole(
-  email: string,
-  role: NetworkRole,
-): Promise<void> {
-  // playwright.config charge .env.local avec un loader naif qui garde le
-  // commentaire inline de CONVEX_DEPLOYMENT ("dev:xxx # team: ...") -> on le
-  // retire de l'env pour que la CLI relise .env.local elle-meme (dotenv strip
-  // les commentaires).
-  const env = { ...process.env };
-  delete env.CONVEX_DEPLOYMENT;
-  execFileSync(
-    'npx',
-    ['convex', 'run', 'devAdmin:setRoleByEmail', JSON.stringify({ email, role })],
-    { stdio: 'pipe', env },
-  );
-}
-
-// Supprime les publications de test (titre contenant `marker`) et leurs
-// fichiers — nettoyage du dataset partagé après l'E2E de dépôt (F-32), qui
-// publie une vraie publication. `deleteTestPublications` est une
-// internalMutation : invoquée via la CLI Convex (contexte de confiance).
-export async function deleteTestPublications(marker: string): Promise<void> {
-  const env = { ...process.env };
-  delete env.CONVEX_DEPLOYMENT;
+  const preview = process.env.CONVEX_PREVIEW_NAME;
   execFileSync(
     'npx',
     [
       'convex',
       'run',
-      'devAdmin:deleteTestPublications',
-      JSON.stringify({ marker }),
+      ...(preview ? ['--preview-name', preview] : []),
+      fn,
+      JSON.stringify(args),
     ],
     { stdio: 'pipe', env },
   );
+}
+
+// Peuple l'annuaire (F-19) avec les think tanks de démo. Idempotent.
+export async function seedDirectory(): Promise<void> {
+  convexRun('seed:seedDirectory');
+}
+
+type NetworkRole = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
+
+// Élève le rôle d'un utilisateur (DEV, garde AUTH_DEV_OTP) — amorce un admin
+// pour les tests du back-office (setRole « réel » exige déjà un admin :
+// problème de l'œuf et de la poule).
+export async function elevateRole(
+  email: string,
+  role: NetworkRole,
+): Promise<void> {
+  convexRun('devAdmin:setRoleByEmail', { email, role });
+}
+
+// Supprime les publications de test (titre contenant `marker`) et leurs
+// fichiers — nettoyage du dataset partagé après l'E2E de dépôt (F-32), qui
+// publie une vraie publication.
+export async function deleteTestPublications(marker: string): Promise<void> {
+  convexRun('devAdmin:deleteTestPublications', { marker });
 }
 
 // Dépose une candidature d'adhésion (F-22) — pour alimenter la file de modération.
