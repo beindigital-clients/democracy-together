@@ -13,7 +13,7 @@ import {
   type Trend,
 } from '@/lib/barometer-content';
 import type { RegionMapItem } from '@/components/map/region-map';
-import { RegionGlobe } from '@/components/map/region-globe';
+import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 
 // Couleurs de remplissage de la carte par catégorie (1 = plus libre … 5).
 const CAT_FILL = [
@@ -185,7 +185,7 @@ export default async function BarometrePage({
         </Reveal>
 
         <Reveal>
-          <RegionGlobe
+          <RegionGlobeLazy
             items={mapItems}
             hint={c.map.interactiveHint}
             ariaLabel={c.map.tilesLabel}

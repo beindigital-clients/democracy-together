@@ -9,7 +9,7 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { AnimatedBar } from '@/components/motion/animated-bar';
 import { HomeHero } from '@/components/home/home-hero';
 import type { RegionMapItem } from '@/components/map/region-map';
-import { RegionGlobe } from '@/components/map/region-globe';
+import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { MAP_DATA, getBarometerContent, CAT_BG } from '@/lib/barometer-content';
 import { routing } from '@/i18n/routing';
 import { getHomeContent } from '@/lib/home';
@@ -266,7 +266,7 @@ export default async function HomePage({
 
           <Reveal className="flex min-h-[220px] flex-col rounded-md border border-line bg-paper p-6">
             <div className="flex-1">
-              <RegionGlobe
+              <RegionGlobeLazy
                 items={mapItems}
                 variant="compact"
                 ariaLabel={c.barometre.mapLabel}
