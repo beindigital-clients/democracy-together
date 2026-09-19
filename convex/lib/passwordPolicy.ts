@@ -87,18 +87,24 @@ const COMMON_PASSWORDS = new Set([
 // qui ne parle que de longueur, donc celle qu'il faut fermer avec elle.
 const SINGLE_REPEATED_CHARACTER = /^(.)\1*$/;
 
-// Appelée par le provider Password sur les flux « signUp » et
-// « reset-verification » (option `validatePasswordRequirements`) — donc partout
-// où un mot de passe est POSÉ, jamais à la connexion : un mot de passe existant
-// devenu non conforme n'enferme personne dehors, il se corrige au prochain
-// changement.
+// Quelle règle casse, sans lever — forme dont l'INTERFACE a besoin.
 //
-// ConvexError plutôt qu'Error nu : `data` traverse jusqu'au client (cf.
-// src/lib/errors.ts) et permet un message précis, là où le message d'un Error
-// est masqué en production.
-export function validatePasswordRequirements(password: string): void {
+// Le formulaire ne peut pas apprendre le motif du refus par l'erreur serveur :
+// l'application passe par `ConvexAuthNextjsProvider`, donc par la route
+// /api/auth, et `@convex-dev/auth` y convertit un ConvexError en
+// `new Response(null, { status, statusText: error.data })`. Le corps est nul,
+// `data` est aplati en texte de statut, et le navigateur ne reçoit plus qu'une
+// erreur ordinaire. Le formulaire applique donc la même règle avant d'appeler
+// le serveur — exactement ce que `minLength` fait déjà pour la longueur.
+//
+// Ce n'est PAS une validation côté client au sens faible : le serveur refuse
+// toujours, par `validatePasswordRequirements` ci-dessous. Le client ne fait
+// que dire POURQUOI, là où le réseau ne le laisse plus passer.
+export type PasswordRefusal = 'PASSWORD_TOO_SHORT' | 'PASSWORD_TOO_COMMON';
+
+export function passwordRefusal(password: string): PasswordRefusal | null {
   if (!password || password.length < PASSWORD_MIN_LENGTH) {
-    throw new ConvexError('PASSWORD_TOO_SHORT');
+    return 'PASSWORD_TOO_SHORT';
   }
   if (
     COMMON_PASSWORDS.has(password.toLowerCase()) ||
@@ -107,6 +113,20 @@ export function validatePasswordRequirements(password: string): void {
     // Comparaison EXACTE, jamais « contient » : refuser
     // « motdepasse-de-mon-chat-2019 » au motif qu'on y lit « motdepasse »
     // serait hostile pour un mot de passe pourtant solide.
-    throw new ConvexError('PASSWORD_TOO_COMMON');
+    return 'PASSWORD_TOO_COMMON';
   }
+  return null;
+}
+
+// Appelée par le provider Password sur les flux « signUp » et
+// « reset-verification » (option `validatePasswordRequirements`) — donc partout
+// où un mot de passe est POSÉ, jamais à la connexion : un mot de passe existant
+// devenu non conforme n'enferme personne dehors, il se corrige au prochain
+// changement.
+//
+// C'est ici que la politique est APPLIQUÉE. Le contrôle du formulaire ne fait
+// que doubler celui-ci pour le message ; le retirer n'ouvrirait rien.
+export function validatePasswordRequirements(password: string): void {
+  const refus = passwordRefusal(password);
+  if (refus) throw new ConvexError(refus);
 }
