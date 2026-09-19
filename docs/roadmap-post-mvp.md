@@ -1,8 +1,20 @@
 # Roadmap post-MVP — Democracy Together
 
-> Base : backlog canonique `Democracy-Together-fonctionnalites.md`. Les 22 « Must »
-> du MVP sont livrés. Ce document liste ce qui reste (Should / Could), priorisé en
-> vagues. Certaines features « Should » sont **déjà faites** (le MVP a débordé).
+> Base : backlog canonique `Democracy-Together-fonctionnalites.md`. Ce document
+> liste ce qui reste (Should / Could), priorisé en vagues. Certaines features
+> « Should » sont **déjà faites** (le MVP a débordé).
+
+> ⚠️ **Où en est le MVP, réellement.** Une version antérieure de ce document
+> affirmait que « les 22 “Must” du MVP sont livrés ». L'audit du 18 septembre
+> 2026 (`docs/audit-plateforme-2026-09.md`, § 3.1, base : commit `8be46bc`) ne
+> confirme pas ce décompte : **11 livrés, 9 partiels, 2 bloqués** sur 22.
+>
+> Depuis, la PR #4 (commit `133207c`) a traité les deux bloqués : F-01 dispose à
+> nouveau d'un chemin de création de compte (`users.inviteUser`) et l'approbation
+> d'une candidature crée désormais l'organisation et invite son contact
+> (`organizations.reviewApplication`, F-22). Les 9 partiels, eux, n'ont pas tous
+> été réévalués : **le décompte à jour reste à établir par un nouvel audit**, et
+> ce document ne doit pas servir d'attestation de complétude auprès du client.
 
 ## ✅ Déjà fait au-delà du MVP (bonus)
 - **F-08** Accessibilité (audit axe + corrections ARIA)
@@ -15,11 +27,18 @@
 ---
 
 ## Vague 1 — Boucle membre & monétisation *(le plus prioritaire)*
-1. **Modèle d'adhésion** (décision A/B/C — voir `decisions-et-infos-client.md`) puis implémentation : nouveaux comptes en « visiteur », dépôt gaté sur rôle « membre », approbation F-22 → attribution du rôle + ajout à l'annuaire.
+1. **Modèle d'adhésion** (décision A/B/C à arbitrer avec le client — l'arbitrage
+   n'est consigné nulle part dans le dépôt : l'ancien renvoi vers
+   `decisions-et-infos-client.md` pointait vers un fichier inexistant) puis implémentation : nouveaux comptes en « visiteur », dépôt gaté sur rôle « membre », approbation F-22 → attribution du rôle + ajout à l'annuaire.
 2. **F-27** Cotisations en ligne (paiement) + **F-28** Dons ponctuels/récurrents — nécessite un PSP (Stripe + PSP local XOF pour le Sénégal).
 3. **F-29** Reçus & justificatifs · **F-30** suivi cotisation/historique dans l'espace membre.
-4. **F-18** Inscription newsletter + **F-65** gestion des campagnes — quel outil (Brevo/Mailchimp).
-5. **F-06** Recherche globale (cross-contenu) — *quick win*.
+4. ✅ **F-18** Inscription newsletter (+ désinscription par jeton) et ✅ **F-65**
+   gestion des campagnes (composition + envoi) **existent déjà**. **Reste** : le
+   **double opt-in**, exigé par le cadrage et absent (audit § 3.2), et le choix du
+   fournisseur d'envoi en volume (Brevo/Mailchimp) — l'envoi est muet sans clé.
+5. ✅ **F-06** Recherche globale **existe déjà** (palette de commandes + `/recherche`).
+   **Reste** : la rendre scalable — c'est aujourd'hui une recherche de sous-chaîne
+   en mémoire après `collect()` complet, sans index de recherche Convex (audit § 3.2).
 
 ## Vague 2 — Centre de connaissances & données réelles
 6. **Vraies données du baromètre** (remplacer l'illustration). ✅ **F-38** tableau de bord d'indicateurs + **F-39** visualisations interactives (carte choroplèthe, classement, fiches pays, sous-dimensions) — déjà en place via la maquette. ✅ **F-40** jeux de données open data — exports réels CSV/JSON + codebook + géométries (`/[locale]/barometre/data/*`, source unique `barometer-dataset.ts`). **Reste** : brancher les valeurs réelles (fournies par le secrétariat) à la place des données d'illustration.

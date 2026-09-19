@@ -8,12 +8,24 @@ Trois niveaux, **obligatoires pour chaque feature**.
 | E2E (parcours navigateur) | Playwright | `tests/e2e/**` | `pnpm test:e2e` |
 | Dev-browser (rendu réel) | Playwright (`page.screenshot`) | `screenshots/` | cf. ci-dessous |
 
-Les fichiers de `tests/` sont typés par `pnpm typecheck:tests` (`tsconfig.tests.json`) :
-le tsconfig racine les exclut, donc ni `pnpm typecheck` ni `pnpm build` ne les
-regardent. Sans cette commande, une option de test inexistante est acceptée sans
-bruit et le test s'exécute dans des conditions qu'il n'a pas. Elle tourne en CI
-dans `ci.yml` (job « Typecheck · tests · build »), avec les deux autres commandes
-de typage — pas dans `e2e.yml`, qui peut être ignoré faute de secret.
+## Typage et qualité — les portes que la CI tient
+
+Le tsconfig racine **exclut** `convex/`, `tests/` et les `*.test.*` : `pnpm
+typecheck` seul ne regarde donc ni le backend ni les tests. Trois commandes
+distinctes couvrent l'ensemble, et les trois tournent dans **`ci.yml`**, job
+« Typecheck · tests · build » — pas dans `e2e.yml`, qui peut être ignoré faute
+de secret Convex :
+
+| Commande | Ce qu'elle type | Pourquoi elle existe |
+|---|---|---|
+| `pnpm typecheck` | l'application (`src/`) | — |
+| `pnpm typecheck:convex` | le backend Convex (`convex/`) | `next build` le compile, mais trop tard pour un retour rapide |
+| `pnpm typecheck:tests` | `tests/` (`tsconfig.tests.json`) | sans elle, une option de test inexistante est acceptée sans bruit et le test s'exécute dans des conditions qu'il n'a pas |
+
+S'y ajoutent `pnpm lint` (ESLint en tout-erreur, aucune règle en `warn`) et
+`pnpm format:check` (Prettier en lecture seule). Le crochet de pré-commit husky
++ lint-staged les joue en local ; le job `lint` de `ci.yml` est le filet, car le
+crochet se contourne (`--no-verify`).
 
 ## Unitaire — `pnpm test`
 - Watch : `pnpm test:watch`.
