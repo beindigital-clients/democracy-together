@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { parseConvexRunOutput } from './_convex-output';
 import { expect, type Page } from '@playwright/test';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
@@ -138,15 +139,7 @@ function convexRunQuery<T>(
     ],
     { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8', env },
   );
-  // `convex run` peut précéder le résultat de lignes de log : on ne retient que
-  // la dernière ligne non vide, qui porte la valeur JSON.
-  const last = out.trim().split('\n').filter(Boolean).pop();
-  if (!last) return null;
-  try {
-    return JSON.parse(last) as T;
-  } catch {
-    return null;
-  }
+  return parseConvexRunOutput<T>(out);
 }
 
 export function latestContactForEmail(email: string) {

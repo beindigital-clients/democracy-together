@@ -163,7 +163,7 @@ jobs:
           shopt -s globstar nullglob
           for f in test-results/**/error-context.md; do
             case "$f" in *-retry*) continue ;; esac
-            sed -n '/^# Test info/,/^```yaml/p' "$f" | sed '$d'
+            sed -n '/^# Test info/,/^```yaml/p' "$f" | sed '$d' | sed '/^# Page snapshot$/d'
             echo "-----"
           done
         shell: bash
@@ -181,7 +181,7 @@ jobs:
           for f in test-results/**/error-context.md; do
             case "$f" in *-retry*) continue ;; esac
             echo "----- $f -----"
-            sed -n '/^```yaml/,$p' "$f" | head -c 1500
+            awk '/^```yaml/{y=1} y && n++ < 45' "$f"
             echo
           done
         shell: bash
