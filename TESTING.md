@@ -63,6 +63,34 @@ Une préversion CI naît vide, mais un déploiement de dev vit longtemps : les
 helpers sont donc idempotents — `provisionUser` fait un upsert, et
 `provisionPassword` relie le même mot de passe à un compte qui l'a déjà.
 
+### Itérer en local
+Les fichiers de session sont **réutilisés d'une exécution à l'autre**. Au
+démarrage, `auth.setup.ts` ouvre chaque état déjà présent et demande une page
+réservée aux connectés : si l'application répond, la session est reprise telle
+quelle ; si elle redirige vers la connexion, le parcours complet est rejoué.
+Relancer une spec ne repaie donc plus les quatre connexions.
+
+| Commande | Effet |
+|---|---|
+| `pnpm test:e2e` | reprend les sessions valides, en rouvre une si besoin |
+| `pnpm test:e2e:login` | efface `tests/e2e/.auth/` et rouvre les quatre sessions |
+| `pnpm test:e2e:ui` | mode interactif, mêmes sessions |
+| `E2E_FRESH_LOGIN=1 pnpm test:e2e` | ignore les fichiers pour cette exécution |
+
+Prérequis : un `.env.local` dont `NEXT_PUBLIC_CONVEX_URL` pointe sur un
+déploiement où `AUTH_DEV_OTP=true` — les helpers de provisionnement sont des
+`internalMutation` gardées par cette variable. Le serveur web est lancé par
+Playwright, et `reuseExistingServer` est actif hors CI : un `pnpm dev` déjà
+ouvert est repris tel quel.
+
+Rouvrir les sessions quand le déploiement Convex a changé, qu'une préversion a
+été purgée, ou que la page de connexion a été retouchée. Dans le doute,
+`pnpm test:e2e:login` : c'est sans effet de bord, les comptes sont
+provisionnés en upsert.
+
+En CI rien ne change — `tests/e2e/.auth/` est ignoré par git, donc absent d'un
+checkout neuf : les quatre connexions s'exécutent pour de vrai.
+
 ### Mot de passe des comptes de test
 `provisionPassword` passe par `flow: 'signUp'` puis la vérification par code.
 C'est le SEUL chemin ouvert : `flow: 'reset'` exige un compte mot de passe
