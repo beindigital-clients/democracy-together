@@ -19,6 +19,8 @@ import {
   PUB_ACCESS,
   projectPublication,
   isPublicationLocked,
+  publicPublicationValidator,
+  publicationFacetsValidator,
   type PubSort,
 } from './lib/publications';
 
@@ -55,6 +57,14 @@ export const listPublished = query({
     q: v.optional(v.string()),
     sort: sortValidator,
   },
+  // Validateur de RETOUR : décrit ce qui sort, et rien d'autre ne peut sortir.
+  // Convex ÉCHOUE la query si le handler renvoie un champ non déclaré — la
+  // fuite devient une panne visible plutôt qu'une donnée servie en silence.
+  returns: v.object({
+    items: v.array(publicPublicationValidator),
+    facets: publicationFacetsValidator,
+    total: v.number(),
+  }),
   handler: async (ctx, { sort, ...filters }) => {
     const published = await ctx.db
       .query('publications')
@@ -80,6 +90,7 @@ export const listPublished = query({
 // pour qu'aucun consommateur ne puisse exposer un brouillon / une soumission.
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: v.union(publicPublicationValidator, v.null()),
   handler: async (ctx, { slug }) => {
     const pub = await ctx.db
       .query('publications')
@@ -92,13 +103,9 @@ export const getBySlug = query({
     const locked = isPublicationLocked(pub.access, isMember);
     const fileUrl =
       !locked && pub.fileId ? await ctx.storage.getUrl(pub.fileId) : null;
-    // `views` reste optionnel en base (seed/données anciennes) : on le normalise
-    // à 0 pour le rendu serveur du compteur de consultations (F-37).
-    return projectPublication(
-      { ...pub, views: pub.views ?? 0 },
-      fileUrl,
-      isMember,
-    );
+    // `views` est optionnel en base (seed/données anciennes) ; la projection le
+    // normalise à 0 pour le rendu serveur du compteur de consultations (F-37).
+    return projectPublication(pub, fileUrl, isMember);
   },
 });
 
@@ -109,6 +116,7 @@ export const getBySlug = query({
 // brouillons / soumissions).
 export const recordPublicationView = mutation({
   args: { slug: v.string() },
+  returns: v.null(),
   handler: async (ctx, { slug }) => {
     const pub = await ctx.db
       .query('publications')
@@ -124,10 +132,15 @@ export const recordPublicationView = mutation({
 // thématique » du détail. Exclut la publication courante, bornée à `limit`.
 export const relatedByTheme = query({
   args: {
+    // PAS de resserrement ici : `publications.theme` est `v.string()` au schéma
+    // (des publications de seed portent des thèmes hors vocabulaire), et
+    // l'appelant passe le thème d'une publication existante. Un union ferait
+    // échouer le bloc « dans la même thématique » sur ces publications-là.
     theme: v.string(),
     excludeSlug: v.string(),
     limit: v.optional(v.number()),
   },
+  returns: v.array(publicPublicationValidator),
   handler: async (ctx, { theme, excludeSlug, limit }) => {
     const sameTheme = await ctx.db
       .query('publications')

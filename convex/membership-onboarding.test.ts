@@ -176,10 +176,18 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
       directory: DIRECTORY,
     });
 
+    // `status` ne sort plus de l'annuaire public (issue #30) : on le vérifie
+    // en base. La VISIBILITÉ, elle, est prouvée par `listDirectory` lui-même,
+    // qui ne liste que les fiches actives — y figurer, c'est être active.
+    const stored = await t.run((ctx) =>
+      ctx.db.query('organizations').collect(),
+    );
+    expect(stored).toHaveLength(1);
+    expect(stored[0].status).toBe('active');
+
     const { items } = await t.query(api.organizations.listDirectory, {});
     expect(items).toHaveLength(1);
     expect(items[0].name).toBe('Institut Démo Sahel');
-    expect(items[0].status).toBe('active');
     expect(items[0].country).toBe('SN');
     expect(items[0].region).toBe('afrique-ouest');
     expect(items[0].themes).toEqual(['gouvernance', 'elections']);

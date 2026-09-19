@@ -7,16 +7,44 @@ import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
+import { isNetworkTheme, networkThemeValidator } from './lib/themes';
+
+// Formes publiques de la Tribune. Les handlers projetaient déjà champ par
+// champ ; les déclarer ici FIGE cette projection : le jour où l'un d'eux
+// renverra `{ ...post }`, la query échouera au lieu de servir `authorUserId`,
+// `status` et le corps intégral des billets retirés (issue #30).
+const postSummaryValidator = v.object({
+  _id: v.id('tribunePosts'),
+  theme: v.string(),
+  format: v.union(v.literal('court'), v.literal('fond')),
+  title: v.string(),
+  excerpt: v.string(),
+  authorName: v.string(),
+  commentCount: v.number(),
+  createdAt: v.number(),
+});
+
+const postDetailValidator = v.object({
+  _id: v.id('tribunePosts'),
+  theme: v.string(),
+  format: v.union(v.literal('court'), v.literal('fond')),
+  title: v.string(),
+  body: v.string(),
+  authorName: v.string(),
+  commentCount: v.number(),
+  createdAt: v.number(),
+  comments: v.array(
+    v.object({
+      _id: v.id('tribuneComments'),
+      authorName: v.string(),
+      body: v.string(),
+      createdAt: v.number(),
+    }),
+  ),
+});
 
 // Tribune démocratique (F-44/F-47/F-50). Lecture publique, écriture membre,
 // modération a posteriori par signalement. `theme` = un des 5 axes du réseau.
-const THEMES = [
-  'gouvernance-numerique',
-  'participation',
-  'anti-corruption',
-  'transitions',
-  'crises',
-];
 
 function authorName(user: Doc<'users'>): string {
   return user.name?.trim() || 'Membre';
@@ -35,7 +63,7 @@ export const createPost = mutation({
     const theme = args.theme.trim();
     const title = args.title.trim();
     const body = args.body.trim();
-    if (!THEMES.includes(theme)) throw new Error('INVALID_THEME');
+    if (!isNetworkTheme(theme)) throw new Error('INVALID_THEME');
     if (title.length < 4 || title.length > 160)
       throw new Error('INVALID_TITLE');
     const min = args.format === 'court' ? 10 : 200;
@@ -194,20 +222,25 @@ export const reportContent = mutation({
 
 // --- Lecture publique --------------------------------------------------------
 export const listPosts = query({
-  args: { theme: v.optional(v.string()) },
+  // `theme` est un domaine FERMÉ : le validateur le dit, plutôt que de laisser
+  // passer n'importe quelle chaîne pour la filtrer ensuite dans le handler.
+  // L'appelant (src/app/[locale]/tribune/page.tsx) assainit le paramètre d'URL
+  // en amont, pour qu'un `?theme=` fantaisiste reste « pas de filtre » au lieu
+  // de devenir une erreur d'argument sur une page publique.
+  args: { theme: v.optional(networkThemeValidator) },
+  returns: v.array(postSummaryValidator),
   handler: async (ctx, { theme }) => {
-    const posts =
-      theme && THEMES.includes(theme)
-        ? await ctx.db
-            .query('tribunePosts')
-            .withIndex('by_status_and_theme', (q) =>
-              q.eq('status', 'published').eq('theme', theme),
-            )
-            .collect()
-        : await ctx.db
-            .query('tribunePosts')
-            .withIndex('by_status', (q) => q.eq('status', 'published'))
-            .collect();
+    const posts = theme
+      ? await ctx.db
+          .query('tribunePosts')
+          .withIndex('by_status_and_theme', (q) =>
+            q.eq('status', 'published').eq('theme', theme),
+          )
+          .collect()
+      : await ctx.db
+          .query('tribunePosts')
+          .withIndex('by_status', (q) => q.eq('status', 'published'))
+          .collect();
     return posts
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 100)
@@ -226,6 +259,7 @@ export const listPosts = query({
 
 export const getPost = query({
   args: { postId: v.id('tribunePosts') },
+  returns: v.union(postDetailValidator, v.null()),
   handler: async (ctx, { postId }) => {
     const post = await ctx.db.get(postId);
     if (!post || post.status !== 'published') return null;
@@ -259,6 +293,7 @@ export const getPost = query({
 // Lecture publique : `mine` vaut false pour un visiteur anonyme (pas de throw).
 export const reactionState = query({
   args: { postId: v.id('tribunePosts') },
+  returns: v.object({ count: v.number(), mine: v.boolean() }),
   handler: async (ctx, { postId }) => {
     const reactions = await ctx.db
       .query('tribuneReactions')
@@ -273,6 +308,17 @@ export const reactionState = query({
 // --- Back-office : file de signalements (modérateur et au-dessus) -----------
 export const listReports = query({
   args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id('tribuneReports'),
+      targetType: v.union(v.literal('post'), v.literal('comment')),
+      reason: v.union(v.string(), v.null()),
+      excerpt: v.string(),
+      // `normalizeId` peut ne rien rendre (cible supprimée) : d'où le null.
+      postId: v.union(v.id('tribunePosts'), v.null()),
+      createdAt: v.number(),
+    }),
+  ),
   handler: async (ctx) => {
     await requireNetworkRole(ctx, 'moderateur');
     const reports = await ctx.db
@@ -284,7 +330,7 @@ export const listReports = query({
         .sort((a, b) => b.createdAt - a.createdAt)
         .map(async (r) => {
           let excerpt = '(supprimé)';
-          let postId: string | null = null;
+          let postId: Id<'tribunePosts'> | null = null;
           // `normalizeId` AVANT tout ctx.db.get : `targetId` est une colonne
           // `v.string()`, donc une ligne écrite avant le correctif (ou par une
           // future voie d'écriture) peut contenir n'importe quoi. Un cast

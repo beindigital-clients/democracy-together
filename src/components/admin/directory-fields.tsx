@@ -2,7 +2,7 @@
 
 import { useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { REGIONS, THEMES } from '@convex/lib/directory';
+import { REGIONS, DIRECTORY_THEMES } from '@convex/lib/directory';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -107,7 +107,7 @@ export function DirectoryFields({
       <fieldset className="mt-4">
         <legend className="text-sm text-ink-soft">{t('dirThemes')}</legend>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-          {THEMES.map((th) => (
+          {DIRECTORY_THEMES.map((th) => (
             <label key={th} className="flex items-center gap-1.5 text-[13px]">
               <input
                 type="checkbox"

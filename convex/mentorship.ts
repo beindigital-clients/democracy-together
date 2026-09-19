@@ -106,16 +106,21 @@ export const storeRequest = internalMutation({
 
 // --- Back-office (modérateur et au-dessus) ----------------------------------
 export const listMentorshipRequests = query({
-  args: { status: v.optional(v.string()) },
+  // Domaine FERMÉ (miroir du schéma) : le back-office ne propose que ces
+  // valeurs, le validateur les impose. Sans filtre -> toute la file.
+  args: {
+    status: v.optional(
+      v.union(v.literal('pending'), v.literal('matched'), v.literal('closed')),
+    ),
+  },
   handler: async (ctx, { status }) => {
     await requireNetworkRole(ctx, 'moderateur');
-    const all =
-      status === 'pending' || status === 'matched' || status === 'closed'
-        ? await ctx.db
-            .query('mentorshipRequests')
-            .withIndex('by_status', (q) => q.eq('status', status))
-            .collect()
-        : await ctx.db.query('mentorshipRequests').collect();
+    const all = status
+      ? await ctx.db
+          .query('mentorshipRequests')
+          .withIndex('by_status', (q) => q.eq('status', status))
+          .collect()
+      : await ctx.db.query('mentorshipRequests').collect();
     return all
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((m) => ({

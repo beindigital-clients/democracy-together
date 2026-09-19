@@ -15,7 +15,15 @@ import { requireNetworkRole, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
-import { matchesFilters, computeFacets } from './lib/directory';
+import {
+  matchesFilters,
+  computeFacets,
+  directoryRegionValidator,
+  directoryThemeValidator,
+  directoryFacetsValidator,
+  projectOrganization,
+  publicOrganizationValidator,
+} from './lib/directory';
 import { isEmail } from './lib/validation';
 import {
   enforcePublicFormLimit,
@@ -35,10 +43,20 @@ import {
 // Rendu côté serveur, filtres dans l'URL -> SEO + faible débit (F-05/F-07).
 export const listDirectory = query({
   args: {
-    region: v.optional(v.string()),
-    theme: v.optional(v.string()),
+    // `region` et `theme` sont des domaines FERMÉS (cf. lib/directory) ; seul
+    // `q`, recherche plein texte, est du texte libre. L'appelant
+    // (src/app/[locale]/le-reseau/page.tsx) assainit les paramètres d'URL en
+    // amont : un `?region=` fantaisiste vaut « pas de filtre », et non une
+    // erreur d'argument sur une page publique.
+    region: v.optional(directoryRegionValidator),
+    theme: v.optional(directoryThemeValidator),
     q: v.optional(v.string()),
   },
+  returns: v.object({
+    items: v.array(publicOrganizationValidator),
+    facets: directoryFacetsValidator,
+    total: v.number(),
+  }),
   handler: async (ctx, { region, theme, q }) => {
     const active = await ctx.db
       .query('organizations')
@@ -46,7 +64,8 @@ export const listDirectory = query({
       .collect();
     const items = active
       .filter((o) => matchesFilters(o, { region, theme, q }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(projectOrganization);
     return { items, facets: computeFacets(active), total: active.length };
   },
 });
@@ -56,12 +75,15 @@ export const listDirectory = query({
 // consommateur ne puisse exposer une fiche pending/suspended.
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: v.union(publicOrganizationValidator, v.null()),
   handler: async (ctx, { slug }) => {
     const org = await ctx.db
       .query('organizations')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique();
-    return org && org.status === 'active' ? org : null;
+    // Le filtre de statut reste ici, et `status` ne sort plus : une fiche
+    // pending/suspended est indistinguable d'une fiche inexistante.
+    return org && org.status === 'active' ? projectOrganization(org) : null;
   },
 });
 
