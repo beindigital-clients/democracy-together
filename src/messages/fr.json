@@ -943,7 +943,6 @@
     "errorBody": "La page n'a pas pu être affichée. Vous pouvez réessayer ; si le problème persiste, contactez le secrétariat.",
     "errorRetry": "Réessayer",
     "errorHome": "Retour à l'accueil",
-    "errorReference": "Référence",
-    "loading": "Chargement…"
+    "errorReference": "Référence"
   }
 }

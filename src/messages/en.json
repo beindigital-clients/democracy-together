@@ -943,7 +943,6 @@
     "errorBody": "This page could not be displayed. You can try again; if the problem persists, contact the secretariat.",
     "errorRetry": "Try again",
     "errorHome": "Back to home",
-    "errorReference": "Reference",
-    "loading": "Loading…"
+    "errorReference": "Reference"
   }
 }
