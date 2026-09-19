@@ -1,39 +1,19 @@
 'use client';
 
 import { useEffect } from 'react';
+import { AuthGate } from '@/components/auth/auth-gate';
 import {
   Authenticated,
   Unauthenticated,
   AuthLoading,
   useQuery,
-  useMutation,
+  useMutation
 } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
-
-function Loading() {
-  const t = useTranslations('notifications');
-  return (
-    <div className="mx-auto max-w-[760px] px-4 py-16 text-ink-soft sm:px-6">
-      {t('loading')}
-    </div>
-  );
-}
-
-// Ne redirige que si l'état est *définitivement* non authentifié (jamais pendant
-// le chargement) — même garde que l'espace membre.
-function RedirectToSignIn() {
-  const router = useRouter();
-  useEffect(() => {
-    const id = setTimeout(() => router.replace('/connexion'), 1200);
-    return () => clearTimeout(id);
-  }, [router]);
-  return <Loading />;
-}
-
 type Notif = {
   _id: Id<'notifications'>;
   titleKey: string;
@@ -64,7 +44,7 @@ function NotificationsList() {
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit',
+      minute: '2-digit'
     }).format(ms);
 
   async function open(n: Notif) {
@@ -133,16 +113,6 @@ function NotificationsList() {
 
 export default function NotificationsPage() {
   return (
-    <>
-      <AuthLoading>
-        <Loading />
-      </AuthLoading>
-      <Unauthenticated>
-        <RedirectToSignIn />
-      </Unauthenticated>
-      <Authenticated>
-        <NotificationsList />
-      </Authenticated>
-    </>
+    <AuthGate className="max-w-[760px]"><NotificationsList /></AuthGate>
   );
 }
