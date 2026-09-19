@@ -42,6 +42,30 @@ Espace d'expression modéré entre membres — **incrément 1 livré** :
 
 ---
 
+## Mise en production (bascule Convex dev → prod)
+
+La plateforme tourne sur le déploiement Convex de **développement**
+(`rare-alpaca-677`) jusqu'à la validation de l'application — choix assumé et
+temporaire. Le jour de la bascule, **toute la liste de
+`docs/passage-en-production.md` est à refaire** : ce sont des réglages attachés à
+un déploiement, pas au code, et un déploiement prod naît vide.
+
+13. **Amorçage du premier administrateur — bloquant, à traiter AVANT la bascule.**
+    Sur un déploiement vierge, aucun chemin n'ouvre le premier compte admin :
+    l'auto-inscription est supprimée, `users.inviteUser` exige déjà un admin, et
+    `devAdmin:setRoleByEmail` refuse de s'exécuter sans `AUTH_DEV_OTP` — qui ne
+    doit jamais être posée en production. Contournement manuel possible (insertion
+    d'une ligne `users` depuis le tableau de bord) ; solution durable à décider.
+14. **Variables du déploiement prod** : `JWT_PRIVATE_KEY`/`JWKS`, `SITE_URL`,
+    fournisseur e-mail, `RECAPTCHA_SECRET_KEY` — et `AUTH_DEV_OTP` vérifiée
+    **absente**. Sans fournisseur e-mail, plus aucun code de connexion ne part.
+15. **Données réelles** à la place des jeux d'illustration (annuaire,
+    publications, baromètre — cf. vague 2), les seeds étant inexécutables en prod.
+16. **Clé de préversion `CONVEX_DEPLOY_KEY`** pour la CI E2E — indépendante de la
+    bascule, mais tant qu'elle manque les specs Playwright ne tournent nulle part.
+
+---
+
 ### Dépendances clés
 - **Paiements** (vague 1) bloquent : cotisations, dons, reçus, suivi donateur.
 - **Décision modèle d'adhésion** bloque : gating membre, lien F-22 → rôle.

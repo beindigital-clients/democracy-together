@@ -28,6 +28,11 @@ pnpm dev            # http://localhost:3000 -> /fr
 npx convex dev      # provisionne le backend, génère convex/_generated, remplit .env.local
 ```
 
+> La plateforme tourne aujourd'hui sur le déploiement Convex de **développement**,
+> jusqu'à la validation de l'application. Ce qu'il faudra refaire pour passer en
+> production — et le point d'amorçage du premier administrateur, bloquant — est
+> listé dans `docs/passage-en-production.md`.
+
 ### Sanity
 
 Créer un projet sur sanity.io/manage (dataset en région EU), puis renseigner
