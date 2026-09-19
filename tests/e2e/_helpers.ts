@@ -88,6 +88,21 @@ export async function submitApplication(args: {
   await convex().action(api.organizations.submitApplication, args);
 }
 
+// Dépose une candidature du hub jeunes (F-40) par le chemin public — pour
+// alimenter la file de modération sans passer par le formulaire.
+//
+// Comme `submitApplication`, c'est une ACTION (porte reCAPTCHA) : sans secret
+// sur le déploiement, la vérification est un no-op (cf. convex/lib/recaptcha.ts).
+export async function applyYouth(args: {
+  name: string;
+  email: string;
+  country: string;
+  motivation: string;
+  themes?: string[];
+}): Promise<void> {
+  await convex().action(api.youth.applyYouth, args);
+}
+
 // --- Oracles de lecture DEV --------------------------------------------------
 // Ces fonctions relisent en base ce qu'un formulaire vient d'écrire (code OTP,
 // message de contact, inscription…). Ce sont désormais des `internalQuery` et

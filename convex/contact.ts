@@ -107,7 +107,15 @@ export const listMessages = query({
               .withIndex('by_handled', (q) => q.eq('handled', false))
               .collect()
           : await ctx.db.query('contactMessages').collect();
-    return msgs.sort((a, b) => b.createdAt - a.createdAt);
+    // Ordre TOTAL : `createdAt` est en millisecondes, donc deux messages reçus
+    // dans la même milliseconde sont à égalité — et un comparateur qui renvoie
+    // 0 laisse `Array.sort` conserver l'ordre d'entrée, c'est-à-dire le plus
+    // ANCIEN en tête. `_creationTime` (précision infra-milliseconde) départage,
+    // pour que « les plus récents d'abord » soit vrai quelle que soit la
+    // vitesse d'arrivée. Garde : convex/contact-admin.test.ts.
+    return msgs.sort(
+      (a, b) => b.createdAt - a.createdAt || b._creationTime - a._creationTime,
+    );
   },
 });
 

@@ -71,6 +71,50 @@ describe('Messages de contact — lecture réservée au back-office (F-17/F-26)'
     expect(msgs[0].handled).toBe(false);
   });
 
+  // RÉGRESSION — égalité de `createdAt`.
+  //
+  // `listMessages` triait sur `createdAt` seul. Deux messages arrivés dans la
+  // MÊME milliseconde donnent un comparateur à 0 : `Array.sort` conserve alors
+  // l'ordre d'entrée, c'est-à-dire celui de `.collect()` — donc le PLUS ANCIEN
+  // en tête, l'inverse de ce que l'écran annonce. Ce n'est pas théorique : le
+  // seed ci-dessus insère deux messages coup sur coup, et le test « les plus
+  // récents d'abord » échouait dès que la machine était assez rapide pour les
+  // horodater identiquement.
+  //
+  // Ici l'égalité est FORCÉE, pour que la garde ne dépende pas de la vitesse de
+  // la machine. Le tri doit être un ordre total : `_creationTime` (précision
+  // infra-milliseconde) départage.
+  it('ordonne du plus récent au plus ancien même à createdAt identique', async () => {
+    const t = convexTest(schema, modules);
+    const asMod = await withRole(t, 'moderateur', 'mod@test.org');
+
+    const sameMs = 1_760_000_000_000;
+    await t.run(async (ctx) => {
+      await ctx.db.insert('contactMessages', {
+        name: 'Premier inséré',
+        email: 'un@example.org',
+        subject: 'Le plus ancien',
+        body: 'Inséré en premier.',
+        handled: false,
+        createdAt: sameMs,
+      });
+      await ctx.db.insert('contactMessages', {
+        name: 'Second inséré',
+        email: 'deux@example.org',
+        subject: 'Le plus récent',
+        body: 'Inséré en second, même milliseconde.',
+        handled: false,
+        createdAt: sameMs,
+      });
+    });
+
+    const msgs = await asMod.query(api.contact.listMessages, {});
+    expect(msgs.map((m) => m.subject)).toEqual([
+      'Le plus récent',
+      'Le plus ancien',
+    ]);
+  });
+
   it('filtre les messages non traités', async () => {
     const t = convexTest(schema, modules);
     await seedMessages(t);

@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-import { getOtp } from './_helpers';
+import { getOtp, latestApplicationForEmail } from './_helpers';
 
 // PARCOURS COMPLET EN ANGLAIS sur les chemins principaux : accueil,
 // bibliothèque, adhésion, connexion.
@@ -14,8 +12,6 @@ import { getOtp } from './_helpers';
 // trop », il fait échouer le locator — donc le test.
 test.use({ locale: 'en-US' });
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
 test('EN : / est redirigé vers /en et la page est annoncée en anglais (F-03)', async ({
   page,
 }) => {
@@ -24,7 +20,9 @@ test('EN : / est redirigé vers /en et la page est annoncée en anglais (F-03)',
   // `lang` conditionne la synthèse vocale et la césure : un `lang="fr"` sur une
   // page anglaise est un vrai défaut d'accessibilité.
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  const group = page.getByRole('banner').getByRole('group', { name: 'Language' });
+  const group = page
+    .getByRole('banner')
+    .getByRole('group', { name: 'Language' });
   await expect(group.getByRole('button', { name: 'EN' })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -43,10 +41,14 @@ test('EN : accueil -> bibliothèque -> facette -> fiche de publication (F-03/F-3
   // 1. CTA du hero -> bibliothèque
   await page.getByRole('link', { name: 'Explore the analyses' }).click();
   await expect(page).toHaveURL(/\/en\/bibliotheque$/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Library');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Library',
+  );
   // aria-label de la recherche et de la liste : tous deux traduits
   await expect(
-    page.getByRole('searchbox', { name: 'Search a title, an author, a topic…' }),
+    page.getByRole('searchbox', {
+      name: 'Search a title, an author, a topic…',
+    }),
   ).toBeVisible();
   const cards = page
     .getByRole('list', { name: 'List of publications' })
@@ -104,10 +106,7 @@ test('EN : candidature d’adhésion depuis le formulaire anglais (F-20/F-22)', 
   ).toBeVisible();
 
   // La candidature anglaise atterrit dans la MÊME file de modération.
-  const stored = await convex.query(
-    api.organizations.latestApplicationForEmail,
-    { email },
-  );
+  const stored = latestApplicationForEmail(email);
   expect(stored?.organizationName).toBe('English Democracy Lab');
   expect(stored?.status).toBe('pending');
 });

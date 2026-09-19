@@ -1,7 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-import { signUpAndVerify, elevateRole } from './_helpers';
+import { signUpAndVerify, elevateRole, applyYouth } from './_helpers';
 
 // Les écrans de back-office qui ÉCRIVENT, bout en bout : une donnée réelle
 // arrive par le chemin public, le staff la traite depuis l'écran, et l'effet
@@ -13,7 +11,6 @@ import { signUpAndVerify, elevateRole } from './_helpers';
 // publications (`library-submit.spec.ts`).
 test.use({ locale: 'fr-FR' });
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 const PW = 'motdepasse123';
 
 // Crée un compte vérifié et l'élève au rôle voulu (setRoleByEmail est une
@@ -37,7 +34,7 @@ test('back-office : un modérateur approuve une candidature jeune (F-58/F-26)', 
 
   // Candidature déposée par le chemin public (action ouverte, comme le
   // formulaire de /jeunes).
-  await convex.action(api.youth.applyYouth, {
+  await applyYouth({
     name: applicant,
     email: `e2e_youth_bo_${stamp}@democracytogether.test`,
     country: 'Sénégal',
@@ -110,7 +107,9 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
   await page.goto('/fr/tribune');
   await page.getByRole('button', { name: 'Prendre la parole' }).click();
 
-  const composer = page.locator('form').filter({ hasText: 'Votre prise de parole' });
+  const composer = page
+    .locator('form')
+    .filter({ hasText: 'Votre prise de parole' });
   await composer.getByLabel('Titre', { exact: true }).fill(postTitle);
   await composer
     .getByLabel('Votre texte')
