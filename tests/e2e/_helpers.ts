@@ -313,4 +313,13 @@ export async function signUpAndVerify(
   await page.getByLabel('Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
+
+  // L'URL ne suffit pas : elle change dès la redirection côté client, avant que
+  // le cookie de session ne soit posé et que l'espace membre n'ait de quoi
+  // s'afficher. On attend donc un élément qui n'existe QUE connecté — sinon la
+  // navigation suivante de la spec repart vers /connexion, et elle cherche
+  // ensuite un lien de l'espace membre sur la page de connexion.
+  await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
+    timeout: 15_000,
+  });
 }

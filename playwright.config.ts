@@ -20,7 +20,14 @@ export default defineConfig({
   // (première requête sur une route = compile, le champ peut apparaître tard).
   retries: 1,
   timeout: 45_000,
-  reporter: process.env.CI ? 'github' : 'list',
+  // En CI, le reporter `github` pose les annotations sur la PR mais ne produit
+  // AUCUN fichier : le pas « Publier le rapport » du workflow cherchait donc un
+  // `playwright-report/` inexistant et signalait « No files were found » à
+  // chaque exécution. Conséquence pratique : aucune trace, aucun instantané de
+  // page à examiner, et chaque diagnostic coûtait une exécution complète à
+  // l'aveugle (issue #66). On ajoute le rapport HTML, qui embarque les traces
+  // déjà captées par `trace: 'on-first-retry'`.
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
