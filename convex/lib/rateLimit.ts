@@ -9,9 +9,10 @@ import type { MutationCtx } from '../_generated/server';
 // Clé = identifiant d'acteur : e-mail pour les endpoints anonymes (contact,
 // adhésion), userId pour les endpoints authentifiés (dépôt, upload).
 //
-// LIMITES : la clé e-mail est usurpable et ne couvre pas un DDoS distribué. Le
-// blindage réseau (anti-DDoS, rate-limit par IP) se fait à la couche edge/CDN
-// au déploiement. Ceci stoppe les abus naïfs et borne l'usage par acteur.
+// LIMITES : la clé e-mail est FOURNIE PAR L'APPELANT, donc forgeable — faire
+// varier l'adresse rend un quota neuf (audit M2, issue #24). Elle borne un
+// acteur honnête, pas un script. Les plafonds non forgeables (par IP, et global
+// par formulaire) vivent plus bas dans ce fichier : `enforcePublicFormLimit`.
 //
 // Sur dépassement : ConvexError('RATE_LIMITED') — `data` traverse jusqu'au
 // client (contrairement à un Error nu, masqué en prod), pour un message dédié.
@@ -63,3 +64,152 @@ export const RATE_LIMITS = {
   workspaceNote: { max: 60, windowMs: HOUR },
   upload: { max: 30, windowMs: HOUR },
 } as const;
+
+// --- Plafonds NON FORGEABLES (audit M2, issue #24) ---------------------------
+//
+// Les barèmes ci-dessus sont indexés sur une donnée du formulaire (l'e-mail) :
+// un script qui fait varier l'adresse obtient un quota neuf à chaque requête, et
+// remplit la table à volonté. Deux plafonds supplémentaires, qui ne dépendent
+// d'AUCUNE donnée du corps de la requête, ferment ce trou :
+//
+//  1. PAR IP — Convex 1.42 expose les métadonnées de la requête HTTP aux
+//     mutations comme aux actions : `ctx.meta.getRequestMetadata()` rend
+//     `{ ip, userAgent, requestId, scheduledFunctionId }`. L'IP est celle vue
+//     par l'infrastructure Convex, pas un champ du payload : l'appelant ne peut
+//     pas la choisir. Point clé pour ce dépôt : une fonction appelée par
+//     `runMutation` HÉRITE des métadonnées de son appelant — l'internalMutation
+//     métier voit donc l'IP du client qui a appelé l'action-portail, sans qu'on
+//     ait à faire transiter l'adresse en argument (ce qui l'aurait rendue…
+//     fournie par l'appelant, et le problème serait resté entier).
+//
+//  2. GLOBAL PAR FORMULAIRE — un compteur unique par formulaire, sans clé du
+//     tout. Dernier rempart : il tient même derrière un pool d'adresses
+//     (botnet, proxies, NAT opérateur) et quand l'IP n'est pas disponible.
+//
+// COMPROMIS assumé du plafond global : il est atteignable par un attaquant, et
+// bloque alors les soumissions légitimes jusqu'à la fin de la fenêtre. C'est un
+// déni de service borné dans le temps, préféré à un remplissage illimité de la
+// base. Il est donc réglé LARGE — le plafond par IP arrête un attaquant à source
+// unique bien avant —, et le blindage réseau reste l'affaire de la couche edge.
+//
+// Les deux compteurs vivent dans la même table `rateLimits`, dans des espaces de
+// noms distincts (`ip:<formulaire>:<adresse>` et `form:<formulaire>`) : aucune
+// collision possible avec les clés e-mail/userId existantes.
+
+type PublicFormLimit = {
+  perIp: { max: number; windowMs: number };
+  global: { max: number; windowMs: number };
+};
+
+// Barèmes par formulaire public (les sept tables que l'audit relève comme
+// exposées au remplissage). Généreux à dessein : un usage humain normal, même
+// en pic de sommet et même derrière un NAT partagé, ne les atteint pas.
+export const PUBLIC_FORM_LIMITS = {
+  contact: {
+    perIp: { max: 20, windowMs: HOUR },
+    global: { max: 200, windowMs: HOUR },
+  },
+  apply: {
+    perIp: { max: 20, windowMs: HOUR },
+    global: { max: 100, windowMs: HOUR },
+  },
+  newsletter: {
+    perIp: { max: 30, windowMs: HOUR },
+    global: { max: 500, windowMs: HOUR },
+  },
+  eventRegister: {
+    perIp: { max: 30, windowMs: HOUR },
+    global: { max: 500, windowMs: HOUR },
+  },
+  eventReminder: {
+    perIp: { max: 30, windowMs: HOUR },
+    global: { max: 500, windowMs: HOUR },
+  },
+  youthApply: {
+    perIp: { max: 20, windowMs: HOUR },
+    global: { max: 200, windowMs: HOUR },
+  },
+  mentorship: {
+    perIp: { max: 20, windowMs: HOUR },
+    global: { max: 200, windowMs: HOUR },
+  },
+} satisfies Record<string, PublicFormLimit>;
+
+export type PublicForm = keyof typeof PUBLIC_FORM_LIMITS;
+
+// Regroupe une adresse en « bloc facturable » avant d'en faire une clé.
+//
+// IPv4 : l'adresse entière. IPv6 : le /64 — un opérateur délègue couramment un
+// préfixe entier à un seul abonné, qui peut donc changer d'adresse à volonté à
+// l'intérieur du bloc. Compter par adresse complète rendrait le plafond par IP
+// gratuit à contourner en IPv6. Les formes abrégées (`2001:db8::1`) et les
+// adresses IPv4 encapsulées (`::ffff:203.0.113.7`) sont ramenées à la même
+// forme que leur équivalent direct, pour qu'un même client ne compte pas deux
+// fois selon la façon dont l'infrastructure a écrit son adresse.
+export function ipBucket(raw: string): string {
+  const ip = raw.trim().toLowerCase();
+  if (!ip) return '';
+  if (!ip.includes(':')) return ip; // IPv4
+
+  // IPv4 encapsulée en IPv6 (::ffff:a.b.c.d) -> on garde l'IPv4.
+  const mapped = /(\d{1,3}(?:\.\d{1,3}){3})$/.exec(ip);
+  if (mapped) return mapped[1];
+
+  // Développe l'abréviation `::` en 8 hextets, puis garde les 4 premiers.
+  const [head, tail] = ip.split('::');
+  const left = head ? head.split(':') : [];
+  const right = ip.includes('::') && tail ? tail.split(':') : [];
+  const hextets = ip.includes('::')
+    ? [
+        ...left,
+        ...Array<string>(Math.max(8 - left.length - right.length, 0)).fill('0'),
+        ...right,
+      ]
+    : left;
+
+  const prefix = hextets
+    .slice(0, 4)
+    .map((h) => h.replace(/^0+/, '') || '0')
+    .join(':');
+  return `${prefix}::/64`;
+}
+
+// Lit l'IP de l'appelant telle que l'infrastructure Convex l'a vue.
+//
+// `ctx.meta` n'existe pas partout : convex-test ne le simule pas, et un
+// déploiement plus ancien ne l'expose pas. On dégrade alors proprement vers le
+// seul plafond global plutôt que de faire échouer toutes les soumissions. `ip`
+// est aussi `null` par contrat quand l'exécution ne vient pas d'une requête
+// HTTP (cron, fonction planifiée).
+async function callerIpBucket(ctx: MutationCtx): Promise<string | null> {
+  try {
+    const meta = ctx.meta as MutationCtx['meta'] | undefined;
+    if (typeof meta?.getRequestMetadata !== 'function') return null;
+    const { ip } = await meta.getRequestMetadata();
+    if (!ip) return null;
+    const bucket = ipBucket(ip);
+    return bucket || null;
+  } catch {
+    return null;
+  }
+}
+
+// Garde à poser dans CHAQUE internalMutation d'un formulaire public, à côté du
+// plafond par e-mail (qui reste utile : il borne un acteur honnête et rend un
+// message clair). Les deux compteurs sont incrémentés dans la transaction de
+// l'écriture : une soumission finalement rejetée — par la validation, par un
+// autre plafond — est intégralement annulée et ne consomme donc aucun quota.
+export async function enforcePublicFormLimit(
+  ctx: MutationCtx,
+  form: PublicForm,
+): Promise<void> {
+  const limits = PUBLIC_FORM_LIMITS[form];
+  const bucket = await callerIpBucket(ctx);
+  if (bucket) {
+    await enforceRateLimit(ctx, {
+      key: `ip:${form}:${bucket}`,
+      ...limits.perIp,
+    });
+  }
+  await enforceRateLimit(ctx, { key: `form:${form}`, ...limits.global });
+}

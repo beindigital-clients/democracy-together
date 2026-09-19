@@ -37,6 +37,15 @@ sous-dossier `convex/_generated/` est produit par `convex dev` / `convex codegen
 — il est **versionné à dessein**, pour que la CI puisse typer, tester et builder
 sans déploiement Convex.
 
+Les formulaires publics (contact, adhésion, newsletter, événements, rappels,
+jeunes, mentorat) sont derrière une porte reCAPTCHA **fail-closed** : sans clé,
+ils sont rejetés. Pour développer sans compte Google, posez le contournement
+explicite sur votre déploiement de développement — jamais en production :
+
+```bash
+npx convex env set RECAPTCHA_DISABLED true
+```
+
 ### Sanity
 
 Créer un projet sur sanity.io/manage (dataset en région EU), puis renseigner
@@ -83,8 +92,13 @@ pull request (`.github/workflows/e2e.yml`).
   `Referrer-Policy`, `Permissions-Policy`…). La CSP est relâchée en développement
   seulement ; `/studio` en est exclu. `DEMO_NOINDEX` ajoute `X-Robots-Tag` sur les
   déploiements de démonstration.
-- **reCAPTCHA v3** sur les formulaires publics (contact, newsletter, adhésion) :
-  no-op tant que les clés ne sont pas posées, donc sans effet en dev et en CI.
+- **reCAPTCHA v3** sur les sept formulaires publics (contact, adhésion,
+  newsletter, événements, rappels, jeunes, mentorat), en **fail-closed** : sans
+  `RECAPTCHA_SECRET_KEY`, la soumission est **rejetée**. Le contournement doit
+  être demandé explicitement (`RECAPTCHA_DISABLED=true`) — jamais en production.
+- Plafonds **non forgeables** sur ces mêmes formulaires : compteurs par IP et
+  globaux par formulaire (`enforcePublicFormLimit`), qui ne dépendent d'aucune
+  donnée fournie par l'appelant.
 - Rate-limit applicatif et journal d'audit (`convex/lib/rateLimit.ts`,
   `convex/lib/audit.ts`, écran `/admin/journal`).
 - `AUTH_DEV_OTP` ouvre toute la surface de développement (codes OTP en clair,

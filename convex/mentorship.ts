@@ -8,7 +8,11 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
-import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import {
+  enforcePublicFormLimit,
+  enforceRateLimit,
+  RATE_LIMITS,
+} from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { recordAudit } from './lib/audit';
@@ -64,6 +68,10 @@ export const storeRequest = internalMutation({
     if (message.length < 10 || message.length > 4000) {
       throw new Error('INVALID_MESSAGE');
     }
+
+    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
+    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    await enforcePublicFormLimit(ctx, 'mentorship');
 
     await enforceRateLimit(ctx, {
       key: `mentorship:${email}`,

@@ -48,8 +48,9 @@ côté client. Elles sont lues par les fonctions Convex.
 | `AUTH_RESEND_KEY` | clé API Resend | **oui** (voir § 1.3) |
 | `AUTH_EMAIL_FROM` | expéditeur, ex. `Democracy Together <no-reply@…>` | recommandé |
 | `AUTH_EMAIL_PROVIDER` | `resend` (défaut déduit de la clé) | non |
-| `RECAPTCHA_SECRET_KEY` | vérification serveur du jeton reCAPTCHA v3 | **oui** |
+| `RECAPTCHA_SECRET_KEY` | vérification serveur du jeton reCAPTCHA v3 | **oui** (voir § 1.4) |
 | `AUTH_DEV_OTP` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** | — |
+| `RECAPTCHA_DISABLED` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** (contournement de dev) | — |
 
 `CONVEX_SITE_URL` est posée automatiquement par Convex et consommée par
 `convex/auth.config.ts` : rien à faire.
@@ -64,7 +65,7 @@ npx convex env set JWKS '<jwks json>'
 npx convex env set SITE_URL https://<domaine-de-production>
 npx convex env set AUTH_RESEND_KEY re_xxxxxxxx
 npx convex env set RECAPTCHA_SECRET_KEY 6Lxxxxxxxx
-npx convex env list            # contrôle : AUTH_DEV_OTP ne doit PAS apparaître
+npx convex env list            # contrôle : ni AUTH_DEV_OTP ni RECAPTCHA_DISABLED
 ```
 
 > ⛔ **`AUTH_DEV_OTP` en production est une faille, pas une commodité.** Ce seul
@@ -101,6 +102,26 @@ simuler un succès. Conséquence concrète en production sans `AUTH_RESEND_KEY` 
 **la connexion par code est impossible** (aucun code n'est envoyé), les
 invitations échouent et les campagnes newsletter comptent leurs échecs.
 Posez la clé avant d'ouvrir le site.
+
+### 1.4 reCAPTCHA : fail-closed lui aussi
+
+Depuis #24, `convex/lib/recaptcha.ts` **rejette** la soumission quand
+`RECAPTCHA_SECRET_KEY` est absente, au lieu de laisser passer. Les **sept**
+formulaires publics sont concernés : contact, adhésion, newsletter, inscriptions
+aux événements, rappels, jeunes, mentorat. Sans la clé en production, ils sont
+tous en panne — visiblement, ce qui est le but : une clé oubliée doit se voir,
+pas ouvrir la porte en silence.
+
+Le contournement existe mais se demande **explicitement**, par une variable
+distincte de l'absence de clé :
+
+```bash
+npx convex env set RECAPTCHA_DISABLED true   # dev / préversion UNIQUEMENT
+```
+
+S'y ajoutent des plafonds **non forgeables** (`enforcePublicFormLimit`) : par IP
+et globaux par formulaire, indépendants de toute donnée fournie par l'appelant.
+Rien à configurer, mais c'est ce qui rend le quota réel.
 
 ---
 
@@ -258,13 +279,13 @@ rapport.
 | Contrôle | Attendu |
 |---|---|
 | `https://<domaine>/` | redirige vers `/fr` (ou `/en` selon la langue du navigateur) |
-| `npx convex env list` | conforme au § 1.1, **sans `AUTH_DEV_OTP`** |
+| `npx convex env list` | conforme au § 1.1, **sans `AUTH_DEV_OTP` ni `RECAPTCHA_DISABLED`** |
 | En-têtes HTTP | CSP présente hors `/studio` ; HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` |
 | `X-Robots-Tag` | présent tant que `DEMO_NOINDEX` est posée, **absent** au lancement réel |
 | `/studio` | le Studio charge et liste accueil / à-propos / actualités |
 | Connexion par code | un e-mail arrive réellement (sinon : § 1.3) |
 | Zone privée (`/admin`) | redirige vers la connexion **avant tout rendu** (gating serveur, `src/proxy.ts`) |
-| Formulaire de contact | soumission acceptée, message visible dans le back-office |
+| Formulaire de contact | soumission acceptée (donc `RECAPTCHA_SECRET_KEY` bien posée, § 1.4), message visible dans le back-office |
 | Tableau de bord Convex | cron `event-reminders` enregistré |
 
 ---
