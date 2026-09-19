@@ -35,18 +35,57 @@ const okContact = {
 };
 
 describe('verifyRecaptcha — helper de vérification', () => {
-  it('NO-OP sans secret : laisse passer, aucun appel réseau (dev/CI/E2E)', async () => {
+  // Cœur de l'issue #24 : l'absence de clé ne doit PAS valoir autorisation.
+  it('FAIL-CLOSED : ni clé ni contournement -> rejet, aucun appel réseau', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     const fetchMock = fetchReturning({ success: true });
     vi.stubGlobal('fetch', fetchMock);
 
     const r = await verifyRecaptcha('peu-importe', 'contact');
-    expect(r).toMatchObject({ ok: true, skipped: true });
+    expect(r).toMatchObject({ ok: false, reason: 'not-configured' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('contournement EXPLICITE (RECAPTCHA_DISABLED=true) : laisse passer, sans réseau', async () => {
+    vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
+    vi.stubEnv('RECAPTCHA_DISABLED', 'true');
+    const fetchMock = fetchReturning({ success: true });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const r = await verifyRecaptcha('peu-importe', 'contact');
+    expect(r).toMatchObject({ ok: true, skipped: true, reason: 'disabled' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // La variable doit être DÉDIÉE : une valeur autre que 'true' ne contourne
+  // rien (pas de « truthy » accidentel sur 'false', '0', 'oui'…).
+  it('seul RECAPTCHA_DISABLED=true contourne : toute autre valeur -> rejet', async () => {
+    vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
+    vi.stubGlobal('fetch', fetchReturning({ success: true }));
+
+    for (const value of ['false', '0', '1', 'TRUE', 'oui']) {
+      vi.stubEnv('RECAPTCHA_DISABLED', value);
+      expect((await verifyRecaptcha('tok', 'contact')).ok).toBe(false);
+    }
+  });
+
+  // Le contournement est un interrupteur, pas un repli : posé, il vaut aussi
+  // quand une clé existe — sinon « désactivé » ne voudrait rien dire.
+  it('contournement prioritaire sur la clé : aucune vérification lancée', async () => {
+    vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', 'true');
+    const fetchMock = fetchReturning({ success: false });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const r = await verifyRecaptcha('tok', 'contact');
+    expect(r).toMatchObject({ ok: true, skipped: true, reason: 'disabled' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('FAIL-CLOSED : secret présent mais jeton manquant -> rejet', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     const fetchMock = fetchReturning({ success: true });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -57,6 +96,7 @@ describe('verifyRecaptcha — helper de vérification', () => {
 
   it('accepte un jeton humain (success + bon score + bonne action)', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal(
       'fetch',
       fetchReturning({ success: true, score: 0.9, action: 'contact' }),
@@ -68,6 +108,7 @@ describe('verifyRecaptcha — helper de vérification', () => {
 
   it('FAIL-CLOSED : score trop bas -> rejet (low-score)', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal(
       'fetch',
       fetchReturning({ success: true, score: 0.1, action: 'contact' }),
@@ -79,6 +120,7 @@ describe('verifyRecaptcha — helper de vérification', () => {
 
   it('FAIL-CLOSED : action différente -> rejet (anti-rejeu inter-formulaires)', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal(
       'fetch',
       fetchReturning({ success: true, score: 0.9, action: 'newsletter' }),
@@ -90,6 +132,7 @@ describe('verifyRecaptcha — helper de vérification', () => {
 
   it('FAIL-CLOSED : Google renvoie success:false -> rejet', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal(
       'fetch',
       fetchReturning({
@@ -105,6 +148,7 @@ describe('verifyRecaptcha — helper de vérification', () => {
 
   it('FAIL-OPEN tracé : Google injoignable -> laisse passer (skipped)', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
@@ -122,6 +166,7 @@ describe('verifyRecaptcha — helper de vérification', () => {
 
   it('seuil personnalisable (minScore)', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal(
       'fetch',
       fetchReturning({ success: true, score: 0.4, action: 'contact' }),
@@ -135,8 +180,24 @@ describe('verifyRecaptcha — helper de vérification', () => {
 });
 
 describe('Porte reCAPTCHA — action publique contact.submit', () => {
-  it('NO-OP sans secret : l action stocke normalement (flux dev/E2E intact)', async () => {
+  // Critère d'acceptation de l'issue #24, bout en bout : sans clé et sans
+  // contournement, un envoi de formulaire ÉCHOUE et rien n'est écrit.
+  it('clé absente, pas de contournement -> CAPTCHA_FAILED, rien n est stocké', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
+    const t = convexTest(schema, modules);
+
+    await expect(
+      t.action(api.contact.submit, { ...okContact, captchaToken: '' }),
+    ).rejects.toMatchObject({ data: 'CAPTCHA_FAILED' });
+
+    const all = await t.run((ctx) => ctx.db.query('contactMessages').collect());
+    expect(all).toHaveLength(0);
+  });
+
+  it('clé absente AVEC contournement -> l action stocke (flux dev/CI/E2E intact)', async () => {
+    vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
+    vi.stubEnv('RECAPTCHA_DISABLED', 'true');
     const t = convexTest(schema, modules);
 
     await t.action(api.contact.submit, { ...okContact, captchaToken: '' });
@@ -147,6 +208,7 @@ describe('Porte reCAPTCHA — action publique contact.submit', () => {
 
   it('jeton rejeté par Google -> CAPTCHA_FAILED, rien n est stocké', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal('fetch', fetchReturning({ success: false }));
     const t = convexTest(schema, modules);
 
@@ -160,6 +222,7 @@ describe('Porte reCAPTCHA — action publique contact.submit', () => {
 
   it('jeton humain validé -> délègue à store, message persistant', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+    vi.stubEnv('RECAPTCHA_DISABLED', '');
     vi.stubGlobal(
       'fetch',
       fetchReturning({ success: true, score: 0.9, action: 'contact' }),

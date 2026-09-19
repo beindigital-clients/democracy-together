@@ -7,7 +7,11 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
-import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import {
+  enforcePublicFormLimit,
+  enforceRateLimit,
+  RATE_LIMITS,
+} from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { sendEmail } from './email';
 import { locale } from './schema';
@@ -87,6 +91,10 @@ export const storeReminder = internalMutation({
     const email = args.email.trim().toLowerCase();
     if (!eventSlug || eventSlug.length > 100) throw new Error('INVALID_EVENT');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
+
+    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
+    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    await enforcePublicFormLimit(ctx, 'eventReminder');
 
     await enforceRateLimit(ctx, {
       key: `eventReminder:${email}`,

@@ -92,16 +92,17 @@ export async function submitApplication(args: {
   message?: string;
 }): Promise<void> {
   // `submitApplication` est désormais une ACTION (porte reCAPTCHA) : on l'appelle
-  // via .action(). Sans secret sur le déploiement dev, la vérification est un
-  // no-op (cf. convex/lib/recaptcha.ts), donc le seed reste inchangé.
+  // via .action(). La porte est fail-closed (issue #24) : le déploiement de test
+  // doit porter RECAPTCHA_DISABLED=true — posé par .github/workflows/e2e.yml, et
+  // à poser une fois sur son déploiement de dev (cf. .env.example).
   await convex().action(api.organizations.submitApplication, args);
 }
 
 // Dépose une candidature du hub jeunes (F-40) par le chemin public — pour
 // alimenter la file de modération sans passer par le formulaire.
 //
-// Comme `submitApplication`, c'est une ACTION (porte reCAPTCHA) : sans secret
-// sur le déploiement, la vérification est un no-op (cf. convex/lib/recaptcha.ts).
+// Comme `submitApplication`, c'est une ACTION (porte reCAPTCHA) : le
+// déploiement de test doit porter RECAPTCHA_DISABLED=true (cf. ci-dessus).
 export async function applyYouth(args: {
   name: string;
   email: string;

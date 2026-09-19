@@ -17,7 +17,11 @@ import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { matchesFilters, computeFacets } from './lib/directory';
 import { isEmail } from './lib/validation';
-import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import {
+  enforcePublicFormLimit,
+  enforceRateLimit,
+  RATE_LIMITS,
+} from './lib/rateLimit';
 import { slugify } from './lib/slug';
 import { sendEmail } from './email';
 import {
@@ -104,6 +108,10 @@ export const storeApplication = internalMutation({
     if (organizationName.length < 2) throw new Error('INVALID_NAME');
     if (!isEmail(contactEmail)) throw new Error('INVALID_EMAIL');
     if (country.length < 2) throw new Error('INVALID_COUNTRY');
+
+    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
+    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    await enforcePublicFormLimit(ctx, 'apply');
 
     await enforceRateLimit(ctx, {
       key: `apply:${contactEmail.toLowerCase()}`,
