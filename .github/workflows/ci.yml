@@ -61,6 +61,40 @@ jobs:
       - name: Build de production
         run: pnpm build
 
+  lint:
+    name: Lint · formatage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      # Job SÉPARÉ de `verify` : lint et typage échouent pour des raisons
+      # différentes et se lisent mieux côte à côte qu'en file. Les deux
+      # tournent en parallèle, le retour n'est donc pas plus lent.
+      #
+      # ESLint est configuré en tout-erreur (aucune règle en `warn`) et
+      # `reportUnusedDisableDirectives` est en erreur : une directive
+      # `eslint-disable` devenue inutile fait rougir ce job plutôt que de
+      # rester à dormir dans le code.
+      - name: ESLint
+        run: pnpm lint
+
+      # Le crochet de pré-commit peut être contourné (`--no-verify`, ou un
+      # contributeur qui n'a jamais lancé `pnpm install`). Ce contrôle est le
+      # filet : il échoue si un fichier n'est pas formaté, sans rien réécrire.
+      - name: Prettier (contrôle, sans écriture)
+        run: pnpm format:check
+
   audit:
     name: Dépendances vulnérables
     runs-on: ubuntu-latest
