@@ -85,7 +85,9 @@ export async function verifyRecaptcha(
     // Google injoignable / réponse illisible -> FAIL-OPEN, mais tracé. Bloquer
     // toutes les soumissions parce qu'un tiers est momentanément down serait
     // pire que laisser passer : rate-limit + validation tiennent toujours.
-    console.error('[recaptcha] siteverify injoignable — laissé passer (fail-open)');
+    console.error(
+      '[recaptcha] siteverify injoignable — laissé passer (fail-open)',
+    );
     return { ok: true, skipped: true, reason: 'verify-unreachable' };
   }
 
@@ -101,7 +103,12 @@ export async function verifyRecaptcha(
 
   // Anti-rejeu inter-formulaires : le jeton doit porter l'action attendue.
   if (typeof data.action === 'string' && data.action !== expectedAction) {
-    return { ok: false, skipped: false, score: data.score, reason: 'action-mismatch' };
+    return {
+      ok: false,
+      skipped: false,
+      score: data.score,
+      reason: 'action-mismatch',
+    };
   }
 
   const score = typeof data.score === 'number' ? data.score : undefined;

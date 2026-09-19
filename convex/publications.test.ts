@@ -63,12 +63,21 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
     // sans filtre -> match
     expect(matchesPublication(p, {})).toBe(true);
     // OU intra-facette (un thème sur deux correspond)
-    expect(matchesPublication(p, { themes: ['gouvernance-numerique', 'crises'] })).toBe(true);
+    expect(
+      matchesPublication(p, { themes: ['gouvernance-numerique', 'crises'] }),
+    ).toBe(true);
     // ET inter-facette (thème OK mais type KO -> rejet)
-    expect(matchesPublication(p, { themes: ['gouvernance-numerique'], types: ['rapport'] })).toBe(false);
+    expect(
+      matchesPublication(p, {
+        themes: ['gouvernance-numerique'],
+        types: ['rapport'],
+      }),
+    ).toBe(false);
     // langue : OU sur l'intersection
     expect(matchesPublication(p, { langs: ['en'] })).toBe(true);
-    expect(matchesPublication(pub({ languages: ['fr'] }), { langs: ['en'] })).toBe(false);
+    expect(
+      matchesPublication(pub({ languages: ['fr'] }), { langs: ['en'] }),
+    ).toBe(false);
     // accès
     expect(matchesPublication(p, { access: ['members'] })).toBe(false);
     // recherche plein texte (titre + auteurs, insensible à la casse)
@@ -78,11 +87,30 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
   });
 
   it('sortPublications trie par récence, citations ou titre', () => {
-    const a = pub({ title: 'Bravo', year: 2026, citations: 5, publishedAt: 10 });
-    const b = pub({ title: 'Alpha', year: 2025, citations: 40, publishedAt: 20 });
-    expect(sortPublications([b, a], 'recent').map((p) => p.title)).toEqual(['Bravo', 'Alpha']);
-    expect(sortPublications([a, b], 'cited').map((p) => p.title)).toEqual(['Alpha', 'Bravo']);
-    expect(sortPublications([a, b], 'az').map((p) => p.title)).toEqual(['Alpha', 'Bravo']);
+    const a = pub({
+      title: 'Bravo',
+      year: 2026,
+      citations: 5,
+      publishedAt: 10,
+    });
+    const b = pub({
+      title: 'Alpha',
+      year: 2025,
+      citations: 40,
+      publishedAt: 20,
+    });
+    expect(sortPublications([b, a], 'recent').map((p) => p.title)).toEqual([
+      'Bravo',
+      'Alpha',
+    ]);
+    expect(sortPublications([a, b], 'cited').map((p) => p.title)).toEqual([
+      'Alpha',
+      'Bravo',
+    ]);
+    expect(sortPublications([a, b], 'az').map((p) => p.title)).toEqual([
+      'Alpha',
+      'Bravo',
+    ]);
   });
 
   it('computePublicationFacets compte par valeur, tri fréquence puis alpha', () => {
@@ -91,10 +119,12 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
       pub({ theme: 'transitions', languages: ['fr'] }),
       pub({ theme: 'crises', languages: ['en'] }),
     ]);
-    expect(Object.fromEntries(f.themes.map((x) => [x.value, x.count]))).toEqual({
-      transitions: 2,
-      crises: 1,
-    });
+    expect(Object.fromEntries(f.themes.map((x) => [x.value, x.count]))).toEqual(
+      {
+        transitions: 2,
+        crises: 1,
+      },
+    );
     // fr apparaît 2x, en 2x -> ordre alpha (en avant fr)
     expect(f.languages.map((x) => x.value)).toEqual(['en', 'fr']);
   });
@@ -107,23 +137,27 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
     ];
     // sans filtre : totaux par type
     const f0 = computePublicationFacets(items);
-    expect(Object.fromEntries(f0.types.map((x) => [x.value, x.count]))).toEqual({
-      rapport: 2,
-      note: 1,
-    });
+    expect(Object.fromEntries(f0.types.map((x) => [x.value, x.count]))).toEqual(
+      {
+        rapport: 2,
+        note: 1,
+      },
+    );
     // filtre theme=gouvernance : la facette TYPE ne compte QUE ces publications
     // -> le compteur reflète ce qu'on obtient vraiment en cochant.
     const f1 = computePublicationFacets(items, {
       themes: ['gouvernance-numerique'],
     });
-    expect(Object.fromEntries(f1.types.map((x) => [x.value, x.count]))).toEqual({
-      rapport: 1,
-      note: 1,
-    });
-    // la facette THEME ignore sa propre sélection (compteurs d'ajout « OU »)
-    expect(Object.fromEntries(f1.themes.map((x) => [x.value, x.count]))).toEqual(
-      { 'gouvernance-numerique': 2, crises: 1 },
+    expect(Object.fromEntries(f1.types.map((x) => [x.value, x.count]))).toEqual(
+      {
+        rapport: 1,
+        note: 1,
+      },
     );
+    // la facette THEME ignore sa propre sélection (compteurs d'ajout « OU »)
+    expect(
+      Object.fromEntries(f1.themes.map((x) => [x.value, x.count])),
+    ).toEqual({ 'gouvernance-numerique': 2, crises: 1 });
   });
 });
 
@@ -133,12 +167,24 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
     await t.run(async (ctx) => {
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Publié A', theme: 'transitions', type: 'rapport', region: 'mondial', languages: ['fr', 'en'] }),
+        ...pub({
+          title: 'Publié A',
+          theme: 'transitions',
+          type: 'rapport',
+          region: 'mondial',
+          languages: ['fr', 'en'],
+        }),
         slug: 'pub-a',
       });
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Publié B', theme: 'crises', type: 'note', region: 'europe', languages: ['fr'] }),
+        ...pub({
+          title: 'Publié B',
+          theme: 'crises',
+          type: 'note',
+          region: 'europe',
+          languages: ['fr'],
+        }),
         slug: 'pub-b',
       });
       await ctx.db.insert('publications', {
@@ -153,12 +199,16 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
     expect(all.total).toBe(2); // brouillon exclu
     expect(all.items.map((p) => p.slug).sort()).toEqual(['pub-a', 'pub-b']);
     // facette thème ne compte pas le brouillon
-    const themes = Object.fromEntries(all.facets.themes.map((x) => [x.value, x.count]));
+    const themes = Object.fromEntries(
+      all.facets.themes.map((x) => [x.value, x.count]),
+    );
     expect(themes['transitions']).toBe(1);
     expect(themes['crises']).toBe(1);
 
     // filtre thème
-    const crises = await t.query(api.publications.listPublished, { themes: ['crises'] });
+    const crises = await t.query(api.publications.listPublished, {
+      themes: ['crises'],
+    });
     expect(crises.items.map((p) => p.slug)).toEqual(['pub-b']);
   });
 
@@ -177,9 +227,15 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
         status: 'pending',
       });
     });
-    expect((await t.query(api.publications.getBySlug, { slug: 'visible' }))?.title).toBe('Visible');
-    expect(await t.query(api.publications.getBySlug, { slug: 'cache' })).toBeNull();
-    expect(await t.query(api.publications.getBySlug, { slug: 'nope' })).toBeNull();
+    expect(
+      (await t.query(api.publications.getBySlug, { slug: 'visible' }))?.title,
+    ).toBe('Visible');
+    expect(
+      await t.query(api.publications.getBySlug, { slug: 'cache' }),
+    ).toBeNull();
+    expect(
+      await t.query(api.publications.getBySlug, { slug: 'nope' }),
+    ).toBeNull();
   });
 
   it('relatedByTheme : même thème, exclut la courante', async () => {
@@ -305,8 +361,14 @@ describe('Dépôt de publication (F-32) — soumission membre', () => {
       ctx.db.insert('users', { role: 'membre', email: 'm@test.org' }),
     );
     const asMember = t.withIdentity({ subject: `${memberId}|s` });
-    const a = await asMember.mutation(api.publications.submitPublication, SUBMIT);
-    const b = await asMember.mutation(api.publications.submitPublication, SUBMIT);
+    const a = await asMember.mutation(
+      api.publications.submitPublication,
+      SUBMIT,
+    );
+    const b = await asMember.mutation(
+      api.publications.submitPublication,
+      SUBMIT,
+    );
     expect(a.slug).not.toBe(b.slug);
   });
 
@@ -319,7 +381,10 @@ describe('Dépôt de publication (F-32) — soumission membre', () => {
       ctx.db.insert('users', { role: 'membre', email: 'other@test.org' }),
     );
     const me = t.withIdentity({ subject: `${meId}|s` });
-    const { slug } = await me.mutation(api.publications.submitPublication, SUBMIT);
+    const { slug } = await me.mutation(
+      api.publications.submitPublication,
+      SUBMIT,
+    );
 
     const mine = await me.query(api.publications.listMine, {});
     expect(mine.map((m) => m.slug)).toContain(slug);
@@ -473,9 +538,7 @@ describe('Dépôt de publication (F-32) — validation serveur du fichier', () =
   it('rejette un fichier au-dela de la limite de taille (INVALID_FILE)', async () => {
     const { t, as } = await asMember();
     const fileId = await t.run((ctx) =>
-      ctx.storage.store(
-        new Blob([new Uint8Array(20 * 1024 * 1024 + 1)]),
-      ),
+      ctx.storage.store(new Blob([new Uint8Array(20 * 1024 * 1024 + 1)])),
     );
     await expect(
       as.mutation(api.publications.submitPublication, {

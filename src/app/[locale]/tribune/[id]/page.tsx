@@ -15,7 +15,7 @@ import { ReactionButton } from '@/components/tribune/reaction-button';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 async function load(id: string) {
@@ -117,7 +117,10 @@ export default async function TribunePostPage({
         {post.comments.length > 0 ? (
           <ul className="mt-5 flex flex-col gap-4">
             {post.comments.map((c) => (
-              <li key={c._id} className="rounded-md border border-line bg-surface p-4">
+              <li
+                key={c._id}
+                className="rounded-md border border-line bg-surface p-4"
+              >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted">
                   <span className="text-ink">{c.authorName}</span>
                   <span aria-hidden="true">·</span>

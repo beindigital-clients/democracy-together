@@ -64,9 +64,10 @@ describe('Partenaires & soutiens (F-14)', () => {
       .flatMap((loc) => getPartners(loc))
       .flatMap((c) => [c.kicker, c.title, c.summary, c.gives, c.gets])
       .join('\n');
-    const i18n = [JSON.stringify(frMessages.partners), JSON.stringify(enMessages.partners)].join(
-      '\n',
-    );
+    const i18n = [
+      JSON.stringify(frMessages.partners),
+      JSON.stringify(enMessages.partners),
+    ].join('\n');
     const haystack = `${content}\n${i18n}`.toLowerCase();
     expect(haystack).not.toContain('démocratie libérale');
     expect(haystack).not.toContain('liberal democracy');

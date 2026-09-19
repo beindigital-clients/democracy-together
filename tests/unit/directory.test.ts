@@ -21,15 +21,17 @@ describe('Annuaire — matchesFilters (F-19)', () => {
     expect(matchesFilters(org(), {})).toBe(true);
     expect(matchesFilters(org(), { region: 'europe-ouest' })).toBe(false);
     expect(
-      matchesFilters(org({ themes: ['gouvernance', 'paix'] }), { theme: 'paix' }),
+      matchesFilters(org({ themes: ['gouvernance', 'paix'] }), {
+        theme: 'paix',
+      }),
     ).toBe(true);
     expect(matchesFilters(org(), { theme: 'paix' })).toBe(false);
   });
 
   it('recherche sur le nom et la description, insensible à la casse', () => {
-    expect(matchesFilters(org({ name: 'Institut Sahel' }), { q: 'sahel' })).toBe(
-      true,
-    );
+    expect(
+      matchesFilters(org({ name: 'Institut Sahel' }), { q: 'sahel' }),
+    ).toBe(true);
     expect(
       matchesFilters(org({ description: 'intégrité électorale' }), {
         q: 'Électorale',
@@ -53,7 +55,11 @@ describe('Annuaire — matchesFilters (F-19)', () => {
 describe('Annuaire — computeFacets (F-19)', () => {
   it('compte les occurrences et trie par fréquence puis alpha', () => {
     const orgs = [
-      org({ region: 'afrique-ouest', themes: ['gouvernance'], languages: ['fr'] }),
+      org({
+        region: 'afrique-ouest',
+        themes: ['gouvernance'],
+        languages: ['fr'],
+      }),
       org({
         region: 'afrique-ouest',
         themes: ['gouvernance', 'paix'],
@@ -67,7 +73,9 @@ describe('Annuaire — computeFacets (F-19)', () => {
     const themes = Object.fromEntries(f.themes.map((t) => [t.value, t.count]));
     expect(themes.gouvernance).toBe(2);
     expect(themes.paix).toBe(2);
-    const langs = Object.fromEntries(f.languages.map((l) => [l.value, l.count]));
+    const langs = Object.fromEntries(
+      f.languages.map((l) => [l.value, l.count]),
+    );
     expect(langs.fr).toBe(2);
     expect(langs.en).toBe(2);
   });

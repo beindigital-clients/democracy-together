@@ -19,7 +19,7 @@ import { ReminderForm } from '@/components/events/reminder-form';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 function longDate(e: EventData, loc: 'fr' | 'en'): string {
@@ -74,14 +74,22 @@ export default async function EventDetailPage({
   const isFeatured = event.slug === FEATURED_SLUG;
   const conf = d.conf;
   const lead = isFeatured ? conf.lead : d.leadFallback;
-  const related = EVENTS.filter((e) => e.upcoming && e.slug !== event.slug).slice(0, 3);
+  const related = EVENTS.filter(
+    (e) => e.upcoming && e.slug !== event.slug,
+  ).slice(0, 3);
 
   return (
     <div>
       <div className={`${WRAP} pt-8`}>
         <p className="text-[13px] text-muted">
-          <Link href="/" className="text-muted hover:text-ink">{L.hero.crumbHome}</Link> /{' '}
-          <Link href="/evenements" className="text-muted hover:text-ink">{L.hero.title}</Link> / {L.titles[event.slug]}
+          <Link href="/" className="text-muted hover:text-ink">
+            {L.hero.crumbHome}
+          </Link>{' '}
+          /{' '}
+          <Link href="/evenements" className="text-muted hover:text-ink">
+            {L.hero.title}
+          </Link>{' '}
+          / {L.titles[event.slug]}
         </p>
       </div>
 
@@ -94,38 +102,62 @@ export default async function EventDetailPage({
                 <span
                   key={b}
                   className={`inline-flex items-center rounded-pill px-3 py-1 text-[12.5px] font-medium ${
-                    i === 0 ? 'border border-accent-edge bg-accent-tint text-accent-text' : 'border border-line bg-surface-2 text-ink-soft'
+                    i === 0
+                      ? 'border border-accent-edge bg-accent-tint text-accent-text'
+                      : 'border border-line bg-surface-2 text-ink-soft'
                   }`}
                 >
                   {b}
                 </span>
               ))}
             </div>
-            <p className="mt-4 font-mono text-xs uppercase tracking-[0.12em] text-muted">{d.eyebrow}</p>
+            <p className="mt-4 font-mono text-xs uppercase tracking-[0.12em] text-muted">
+              {d.eyebrow}
+            </p>
             <h1 className="mt-2 font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em]">
               {L.titles[event.slug]}
             </h1>
-            <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-ink-soft">{lead}</p>
+            <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-ink-soft">
+              {lead}
+            </p>
             <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3 border-y border-line py-4">
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">{d.factDate}</dt>
-                <dd className="mt-0.5 font-mono text-sm font-medium text-ink">{longDate(event, loc)}</dd>
+                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                  {d.factDate}
+                </dt>
+                <dd className="mt-0.5 font-mono text-sm font-medium text-ink">
+                  {longDate(event, loc)}
+                </dd>
               </div>
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">{d.factPlace}</dt>
-                <dd className="mt-0.5 text-sm font-medium text-ink">{L.cities[event.cityKey]}</dd>
+                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                  {d.factPlace}
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-ink">
+                  {L.cities[event.cityKey]}
+                </dd>
               </div>
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">{d.factFormat}</dt>
-                <dd className="mt-0.5 text-sm font-medium text-ink">{L.formats[event.format]}</dd>
+                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                  {d.factFormat}
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-ink">
+                  {L.formats[event.format]}
+                </dd>
               </div>
             </dl>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href={isFeatured ? '#billetterie' : '#inscription'} className="inline-flex items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong">
+              <a
+                href={isFeatured ? '#billetterie' : '#inscription'}
+                className="inline-flex items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+              >
                 {d.register}
               </a>
               {isFeatured ? (
-                <a href="#programme" className="inline-flex items-center justify-center rounded-sm border border-line-strong px-[18px] py-[11px] text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint">
+                <a
+                  href="#programme"
+                  className="inline-flex items-center justify-center rounded-sm border border-line-strong px-[18px] py-[11px] text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+                >
                   {d.seeProgramme}
                 </a>
               ) : null}
@@ -143,9 +175,17 @@ export default async function EventDetailPage({
               {d.visualPin}
             </span>
             <div className="relative aspect-[4/3]">
-              <Image src="/library/paris.jpg" alt={L.titles[event.slug]} fill sizes="(max-width: 1024px) 100vw, 460px" className="object-cover" />
+              <Image
+                src="/library/paris.jpg"
+                alt={L.titles[event.slug]}
+                fill
+                sizes="(max-width: 1024px) 100vw, 460px"
+                className="object-cover"
+              />
             </div>
-            <p className="bg-surface px-3 py-2 text-[12px] text-muted">{d.visualCap}</p>
+            <p className="bg-surface px-3 py-2 text-[12px] text-muted">
+              {d.visualCap}
+            </p>
           </div>
         </Reveal>
       </header>
@@ -158,7 +198,10 @@ export default async function EventDetailPage({
             <h2 className="font-display text-2xl">{d.sections.day}</h2>
             <div className="mt-4">
               {(isFeatured ? conf.dayIntro : [d.leadFallback]).map((p, i) => (
-                <p key={i} className={`mb-4 max-w-[68ch] leading-relaxed text-ink-soft ${i === 0 ? 'font-display text-lg text-ink' : ''}`}>
+                <p
+                  key={i}
+                  className={`mb-4 max-w-[68ch] leading-relaxed text-ink-soft ${i === 0 ? 'font-display text-lg text-ink' : ''}`}
+                >
                   {p}
                 </p>
               ))}
@@ -168,21 +211,47 @@ export default async function EventDetailPage({
           {isFeatured ? (
             <>
               {/* Programme */}
-              <Reveal as="section" id="programme" className="mt-12 scroll-mt-24">
-                <h2 className="font-display text-2xl">{d.sections.programme}</h2>
-                <p className="mt-2 max-w-[68ch] text-[15px] text-muted">{conf.progIntro}</p>
+              <Reveal
+                as="section"
+                id="programme"
+                className="mt-12 scroll-mt-24"
+              >
+                <h2 className="font-display text-2xl">
+                  {d.sections.programme}
+                </h2>
+                <p className="mt-2 max-w-[68ch] text-[15px] text-muted">
+                  {conf.progIntro}
+                </p>
                 <RevealGroup as="ol" className="mt-6 flex flex-col">
                   {conf.programme.map((s) => (
-                    <RevealItem as="li" key={s.time + s.title} className="flex gap-5 border-t border-line py-5 first:border-t-0">
+                    <RevealItem
+                      as="li"
+                      key={s.time + s.title}
+                      className="flex gap-5 border-t border-line py-5 first:border-t-0"
+                    >
                       <div className="w-[64px] shrink-0">
-                        <div className="font-mono text-[15px] font-semibold text-ink">{s.time}</div>
-                        <div className="mt-0.5 font-mono text-[11px] text-muted">{s.dur}</div>
+                        <div className="font-mono text-[15px] font-semibold text-ink">
+                          {s.time}
+                        </div>
+                        <div className="mt-0.5 font-mono text-[11px] text-muted">
+                          {s.dur}
+                        </div>
                       </div>
                       <div className="min-w-0">
-                        <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-accent-text">{s.kind}</span>
-                        <h3 className="mt-1 font-display text-lg leading-snug">{s.title}</h3>
-                        <p className="mt-1 max-w-[60ch] text-[15px] leading-relaxed text-ink-soft">{s.body}</p>
-                        {s.who ? <p className="mt-1.5 text-[13px] italic text-muted">{s.who}</p> : null}
+                        <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-accent-text">
+                          {s.kind}
+                        </span>
+                        <h3 className="mt-1 font-display text-lg leading-snug">
+                          {s.title}
+                        </h3>
+                        <p className="mt-1 max-w-[60ch] text-[15px] leading-relaxed text-ink-soft">
+                          {s.body}
+                        </p>
+                        {s.who ? (
+                          <p className="mt-1.5 text-[13px] italic text-muted">
+                            {s.who}
+                          </p>
+                        ) : null}
                       </div>
                     </RevealItem>
                   ))}
@@ -192,16 +261,29 @@ export default async function EventDetailPage({
               {/* Intervenants */}
               <Reveal as="section" id="intervenants" className="mt-12">
                 <h2 className="font-display text-2xl">{d.sections.speakers}</h2>
-                <p className="mt-2 max-w-[68ch] text-[15px] text-muted">{conf.speakersIntro}</p>
+                <p className="mt-2 max-w-[68ch] text-[15px] text-muted">
+                  {conf.speakersIntro}
+                </p>
                 <RevealGroup as="ul" className="mt-6 grid gap-4 sm:grid-cols-2">
                   {conf.speakers.map((sp) => (
-                    <RevealItem as="li" key={sp.name} className="flex gap-3.5 rounded-sm border border-line bg-surface p-4">
-                      <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent-tint font-mono font-semibold text-accent-text">
+                    <RevealItem
+                      as="li"
+                      key={sp.name}
+                      className="flex gap-3.5 rounded-sm border border-line bg-surface p-4"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent-tint font-mono font-semibold text-accent-text"
+                      >
                         {sp.initials}
                       </span>
                       <div>
-                        <h3 className="font-display text-[17px] leading-tight">{sp.name}</h3>
-                        <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">{sp.role}</p>
+                        <h3 className="font-display text-[17px] leading-tight">
+                          {sp.name}
+                        </h3>
+                        <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
+                          {sp.role}
+                        </p>
                         {sp.founder ? (
                           <span className="mt-1.5 inline-block rounded-pill border border-accent-edge bg-accent-tint px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-accent-text">
                             {loc === 'en' ? 'Founder' : 'Fondateur'}
@@ -218,10 +300,19 @@ export default async function EventDetailPage({
                 <h2 className="font-display text-2xl">{d.sections.infos}</h2>
                 <RevealGroup className="mt-6 grid gap-4 sm:grid-cols-2">
                   {conf.infos.map((info) => (
-                    <RevealItem key={info.title} className="rounded-sm border border-line bg-surface p-5">
-                      <div className="font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">{info.ic}</div>
-                      <h3 className="mt-1.5 font-display text-lg leading-snug">{info.title}</h3>
-                      <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{info.body}</p>
+                    <RevealItem
+                      key={info.title}
+                      className="rounded-sm border border-line bg-surface p-5"
+                    >
+                      <div className="font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
+                        {info.ic}
+                      </div>
+                      <h3 className="mt-1.5 font-display text-lg leading-snug">
+                        {info.title}
+                      </h3>
+                      <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">
+                        {info.body}
+                      </p>
                     </RevealItem>
                   ))}
                 </RevealGroup>
@@ -234,11 +325,17 @@ export default async function EventDetailPage({
                 <dt className="text-muted">{d.factDate}</dt>
                 <dd className="font-medium text-ink">{longDate(event, loc)}</dd>
                 <dt className="text-muted">{d.factPlace}</dt>
-                <dd className="font-medium text-ink">{L.cities[event.cityKey]}</dd>
+                <dd className="font-medium text-ink">
+                  {L.cities[event.cityKey]}
+                </dd>
                 <dt className="text-muted">{d.factFormat}</dt>
-                <dd className="font-medium text-ink">{L.formats[event.format]}</dd>
+                <dd className="font-medium text-ink">
+                  {L.formats[event.format]}
+                </dd>
                 <dt className="text-muted">{L.filter.lang}</dt>
-                <dd className="font-medium text-ink">{event.langs.map((l) => L.langName[l]).join(' / ')}</dd>
+                <dd className="font-medium text-ink">
+                  {event.langs.map((l) => L.langName[l]).join(' / ')}
+                </dd>
               </dl>
             </Reveal>
           )}
@@ -247,28 +344,51 @@ export default async function EventDetailPage({
         {/* Sidebar : billetterie (conférence) ou inscription simple */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           {isFeatured ? (
-            <div id="billetterie" className="scroll-mt-24 overflow-hidden rounded-md border border-line bg-surface">
+            <div
+              id="billetterie"
+              className="scroll-mt-24 overflow-hidden rounded-md border border-line bg-surface"
+            >
               <div className="border-b border-line px-5 py-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">{conf.ticket.eyebrow}</p>
-                <h2 className="mt-1 font-display text-xl">{conf.ticket.title}</h2>
+                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+                  {conf.ticket.eyebrow}
+                </p>
+                <h2 className="mt-1 font-display text-xl">
+                  {conf.ticket.title}
+                </h2>
               </div>
               <div className="p-5">
-                <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">{conf.ticket.legend}</p>
+                <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                  {conf.ticket.legend}
+                </p>
                 <ul className="flex flex-col gap-2.5">
                   {conf.ticket.tiers.map((t, i) => (
-                    <li key={t.name} className={`flex items-center gap-3 rounded-sm border p-3 ${i === 0 ? 'border-accent-edge bg-accent-tint' : 'border-line'}`}>
+                    <li
+                      key={t.name}
+                      className={`flex items-center gap-3 rounded-sm border p-3 ${i === 0 ? 'border-accent-edge bg-accent-tint' : 'border-line'}`}
+                    >
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-medium text-ink">{t.name}</span>
-                        <span className="block text-[12px] text-muted">{t.desc}</span>
+                        <span className="block text-[14px] font-medium text-ink">
+                          {t.name}
+                        </span>
+                        <span className="block text-[12px] text-muted">
+                          {t.desc}
+                        </span>
                       </span>
-                      <span className="shrink-0 font-mono text-[14px] font-semibold text-ink">{t.price}</span>
+                      <span className="shrink-0 font-mono text-[14px] font-semibold text-ink">
+                        {t.price}
+                      </span>
                     </li>
                   ))}
                 </ul>
-                <Link href="/adhesion" className="mt-4 flex w-full items-center justify-center rounded-sm bg-accent px-4 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong">
+                <Link
+                  href="/adhesion"
+                  className="mt-4 flex w-full items-center justify-center rounded-sm bg-accent px-4 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
                   {conf.ticket.reserve}
                 </Link>
-                <p className="mt-3 text-[11px] leading-relaxed text-muted">{conf.ticket.disclaimer}</p>
+                <p className="mt-3 text-[11px] leading-relaxed text-muted">
+                  {conf.ticket.disclaimer}
+                </p>
               </div>
             </div>
           ) : (
@@ -289,7 +409,10 @@ export default async function EventDetailPage({
           {isFeatured ? (
             <dl className="mt-5 overflow-hidden rounded-md border border-line bg-surface">
               {conf.recap.map((r, i) => (
-                <div key={r.k} className={`flex justify-between gap-4 px-5 py-3 text-[13.5px] ${i === 0 ? '' : 'border-t border-line'}`}>
+                <div
+                  key={r.k}
+                  className={`flex justify-between gap-4 px-5 py-3 text-[13.5px] ${i === 0 ? '' : 'border-t border-line'}`}
+                >
                   <dt className="text-muted">{r.k}</dt>
                   <dd className="text-right font-medium text-ink">{r.v}</dd>
                 </div>
@@ -317,13 +440,20 @@ export default async function EventDetailPage({
         <section className="border-t border-line bg-surface">
           <div className={`${WRAP} py-14`}>
             <Reveal>
-              <h2 className="font-display text-[clamp(24px,3vw,32px)]">{d.resources}</h2>
+              <h2 className="font-display text-[clamp(24px,3vw,32px)]">
+                {d.resources}
+              </h2>
             </Reveal>
             <RevealGroup className="mt-6 grid gap-4 md:grid-cols-3">
               {conf.resources.map((r) => (
-                <RevealItem key={r.title} className="rounded-sm border border-line bg-paper p-5">
+                <RevealItem
+                  key={r.title}
+                  className="rounded-sm border border-line bg-paper p-5"
+                >
                   <h3 className="font-display text-lg">{r.title}</h3>
-                  <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">{r.body}</p>
+                  <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
+                    {r.body}
+                  </p>
                 </RevealItem>
               ))}
             </RevealGroup>
@@ -335,17 +465,27 @@ export default async function EventDetailPage({
       {related.length ? (
         <section className={`${WRAP} py-14`}>
           <Reveal>
-            <h2 className="mb-6 font-display text-[clamp(24px,3vw,32px)]">{d.related}</h2>
+            <h2 className="mb-6 font-display text-[clamp(24px,3vw,32px)]">
+              {d.related}
+            </h2>
           </Reveal>
           <RevealGroup className="grid gap-4 sm:grid-cols-3">
             {related.map((e) => (
               <RevealItem key={e.slug}>
-                <Link href={`/evenements/${e.slug}`} className="flex h-full flex-col rounded-sm border border-line bg-surface p-5 transition-colors hover:border-line-strong">
+                <Link
+                  href={`/evenements/${e.slug}`}
+                  className="flex h-full flex-col rounded-sm border border-line bg-surface p-5 transition-colors hover:border-line-strong"
+                >
                   <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
-                    {e.d} {monthAbbr(e, loc).toLowerCase()} {e.y} · {L.types[e.type]}
+                    {e.d} {monthAbbr(e, loc).toLowerCase()} {e.y} ·{' '}
+                    {L.types[e.type]}
                   </span>
-                  <h3 className="mt-2 font-display text-[17px] leading-snug">{L.titles[e.slug]}</h3>
-                  <span className="mt-2 text-[13px] text-ink-soft">{L.cities[e.cityKey]} · {L.formats[e.format]}</span>
+                  <h3 className="mt-2 font-display text-[17px] leading-snug">
+                    {L.titles[e.slug]}
+                  </h3>
+                  <span className="mt-2 text-[13px] text-ink-soft">
+                    {L.cities[e.cityKey]} · {L.formats[e.format]}
+                  </span>
                 </Link>
               </RevealItem>
             ))}

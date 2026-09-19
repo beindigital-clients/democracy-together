@@ -82,7 +82,13 @@ export function YouthApplyForm() {
         <label htmlFor="y-name" className="block text-sm text-ink-soft">
           {t('name')}
         </label>
-        <Input id="y-name" name="name" autoComplete="name" required className="mt-1" />
+        <Input
+          id="y-name"
+          name="name"
+          autoComplete="name"
+          required
+          className="mt-1"
+        />
       </div>
       <div>
         <label htmlFor="y-email" className="block text-sm text-ink-soft">

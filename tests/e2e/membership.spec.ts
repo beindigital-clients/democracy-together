@@ -3,7 +3,6 @@ import { seedDirectory, latestApplicationForEmail } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-
 test.beforeAll(async () => {
   await seedDirectory(); // pour le test du lien depuis une fiche
 });

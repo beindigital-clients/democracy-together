@@ -31,7 +31,9 @@ export function countryName(code: string, locale: string): string {
 
 export function languageName(code: string, locale: string): string {
   try {
-    return new Intl.DisplayNames([locale], { type: 'language' }).of(code) ?? code;
+    return (
+      new Intl.DisplayNames([locale], { type: 'language' }).of(code) ?? code
+    );
   } catch {
     return code;
   }

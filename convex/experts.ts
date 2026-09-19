@@ -15,7 +15,12 @@ export const listExperts = query({
       .withIndex('by_status', (q) => q.eq('status', 'published'))
       .collect();
 
-    type Agg = { name: string; count: number; themes: Set<string>; latestYear: number };
+    type Agg = {
+      name: string;
+      count: number;
+      themes: Set<string>;
+      latestYear: number;
+    };
     const byName = new Map<string, Agg>();
 
     for (const pub of published) {

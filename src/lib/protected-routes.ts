@@ -27,7 +27,10 @@ const LOCALES: readonly string[] = routing.locales;
 // Découpe un chemin en langue éventuelle + reste. Le middleware s'exécute
 // AVANT la redirection de langue de next-intl : une requête peut arriver avec
 // ou sans préfixe, et les deux doivent être gardées.
-function splitLocale(pathname: string): { locale: string | null; rest: string } {
+function splitLocale(pathname: string): {
+  locale: string | null;
+  rest: string;
+} {
   const segments = pathname.split('/').filter(Boolean);
   if (segments.length > 0 && LOCALES.includes(segments[0])) {
     return { locale: segments[0], rest: segments.slice(1).join('/') };

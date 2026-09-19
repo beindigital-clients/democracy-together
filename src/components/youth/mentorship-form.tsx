@@ -100,7 +100,13 @@ export function MentorshipForm() {
         <label htmlFor="m-name" className="block text-sm text-ink-soft">
           {t('name')}
         </label>
-        <Input id="m-name" name="name" autoComplete="name" required className="mt-1" />
+        <Input
+          id="m-name"
+          name="name"
+          autoComplete="name"
+          required
+          className="mt-1"
+        />
       </div>
       <div>
         <label htmlFor="m-email" className="block text-sm text-ink-soft">

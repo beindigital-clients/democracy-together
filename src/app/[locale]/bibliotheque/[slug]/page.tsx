@@ -131,7 +131,13 @@ export default async function PublicationPage({
               {locale === 'en' ? 'By' : 'Par'}{' '}
               {pub.authors.map((a, i) => (
                 <span key={a.name}>
-                  {i > 0 ? (i === pub.authors.length - 1 ? (locale === 'en' ? ' and ' : ' et ') : ', ') : ''}
+                  {i > 0
+                    ? i === pub.authors.length - 1
+                      ? locale === 'en'
+                        ? ' and '
+                        : ' et '
+                      : ', '
+                    : ''}
                   <b className="font-semibold text-ink">{a.name}</b>
                 </span>
               ))}
@@ -146,7 +152,9 @@ export default async function PublicationPage({
       </header>
 
       {/* Corps */}
-      <main className={`${WRAP} grid gap-12 pb-24 pt-12 lg:grid-cols-[1fr_340px]`}>
+      <main
+        className={`${WRAP} grid gap-12 pb-24 pt-12 lg:grid-cols-[1fr_340px]`}
+      >
         {/* Article */}
         <article>
           <Reveal>
@@ -223,7 +231,9 @@ export default async function PublicationPage({
                 <div>
                   <b className="text-[14.5px]">{a.name}</b>
                   {a.role ? (
-                    <span className="block text-[12.5px] text-muted">{a.role}</span>
+                    <span className="block text-[12.5px] text-muted">
+                      {a.role}
+                    </span>
                   ) : null}
                 </div>
               </div>
@@ -310,12 +320,19 @@ export default async function PublicationPage({
             </h2>
             <dl className="flex flex-col">
               <MetaRow k={td('metaType')} v={t(`types.${pub.type}`)} first />
-              <MetaRow k={td('metaPublished')} v={formatLongDate(pub.publishedAt, locale)} />
+              <MetaRow
+                k={td('metaPublished')}
+                v={formatLongDate(pub.publishedAt, locale)}
+              />
               <MetaRow k={td('metaLanguages')} v={langCodes} />
               <MetaRow k={td('metaRegion')} v={t(`regions.${pub.region}`)} />
               <MetaRow k={td('metaTheme')} v={t(`themes.${pub.theme}`)} />
-              {pub.pages ? <MetaRow k={td('metaPages')} v={String(pub.pages)} /> : null}
-              {pub.license ? <MetaRow k={td('metaLicense')} v={pub.license} /> : null}
+              {pub.pages ? (
+                <MetaRow k={td('metaPages')} v={String(pub.pages)} />
+              ) : null}
+              {pub.license ? (
+                <MetaRow k={td('metaLicense')} v={pub.license} />
+              ) : null}
             </dl>
           </div>
 
@@ -327,7 +344,10 @@ export default async function PublicationPage({
               {pub.views ? (
                 <Metric n={pub.views.toLocaleString(locale)} l={td('views')} />
               ) : null}
-              <Metric n={pub.downloads.toLocaleString(locale)} l={td('downloadsShort')} />
+              <Metric
+                n={pub.downloads.toLocaleString(locale)}
+                l={td('downloadsShort')}
+              />
               <Metric n={String(pub.citations)} l={td('citationsShort')} />
             </div>
           </div>
@@ -343,7 +363,12 @@ export default async function PublicationPage({
             </Reveal>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((rp) => (
-                <PublicationCard key={rp._id} pub={rp} locale={locale} variant="compact" />
+                <PublicationCard
+                  key={rp._id}
+                  pub={rp}
+                  locale={locale}
+                  variant="compact"
+                />
               ))}
             </div>
           </div>

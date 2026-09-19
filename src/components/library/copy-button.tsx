@@ -31,7 +31,12 @@ export function CopyButton({
   }
 
   return (
-    <button type="button" onClick={onClick} className={className} aria-live="polite">
+    <button
+      type="button"
+      onClick={onClick}
+      className={className}
+      aria-live="polite"
+    >
       {copied ? copiedLabel : children}
     </button>
   );

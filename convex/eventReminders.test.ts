@@ -41,9 +41,7 @@ describe('Rappels événements — requestReminder (F-55)', () => {
     });
     expect(r1.already).toBe(false);
 
-    const all = await t.run((ctx) =>
-      ctx.db.query('eventReminders').collect(),
-    );
+    const all = await t.run((ctx) => ctx.db.query('eventReminders').collect());
     expect(all).toHaveLength(1);
     expect(all[0].email).toBe('awa@example.org');
     expect(all[0].sent).toBe(false);
@@ -88,54 +86,54 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
     const prevDev = process.env.AUTH_DEV_OTP;
     process.env.AUTH_DEV_OTP = 'true';
     try {
-    const t = convexTest(schema, modules);
-    const now = Date.now();
+      const t = convexTest(schema, modules);
+      const now = Date.now();
 
-    // (a) proche (dans 1 jour) -> doit être envoyé puis marqué sent=true
-    await t.mutation(internal.eventReminders.storeReminder, {
-      eventSlug: 'event-proche',
-      email: 'soon@dt.test',
-      eventDate: now + 1 * DAY,
-    });
-    // (b) hors fenêtre (dans 10 jours) -> ne doit PAS être envoyé
-    await t.mutation(internal.eventReminders.storeReminder, {
-      eventSlug: 'event-lointain',
-      email: 'later@dt.test',
-      eventDate: now + 10 * DAY,
-    });
-    // (c) déjà envoyé (proche mais sent=true) -> reste tel quel
-    await t.run((ctx) =>
-      ctx.db.insert('eventReminders', {
-        eventSlug: 'event-deja-envoye',
-        email: 'done@dt.test',
+      // (a) proche (dans 1 jour) -> doit être envoyé puis marqué sent=true
+      await t.mutation(internal.eventReminders.storeReminder, {
+        eventSlug: 'event-proche',
+        email: 'soon@dt.test',
         eventDate: now + 1 * DAY,
-        sent: true,
-        createdAt: now,
-      }),
-    );
-
-    // Déclenche l'action interne directement (on NE teste PAS le cron lui-même).
-    const res = await t.action(internal.eventReminders.sendDueReminders, {});
-    expect(res.processed).toBe(1);
-
-    const byEmail = async (email: string) =>
-      t.run((ctx) =>
-        ctx.db
-          .query('eventReminders')
-          .filter((q) => q.eq(q.field('email'), email))
-          .unique(),
+      });
+      // (b) hors fenêtre (dans 10 jours) -> ne doit PAS être envoyé
+      await t.mutation(internal.eventReminders.storeReminder, {
+        eventSlug: 'event-lointain',
+        email: 'later@dt.test',
+        eventDate: now + 10 * DAY,
+      });
+      // (c) déjà envoyé (proche mais sent=true) -> reste tel quel
+      await t.run((ctx) =>
+        ctx.db.insert('eventReminders', {
+          eventSlug: 'event-deja-envoye',
+          email: 'done@dt.test',
+          eventDate: now + 1 * DAY,
+          sent: true,
+          createdAt: now,
+        }),
       );
 
-    // (a) proche -> envoyé
-    expect((await byEmail('soon@dt.test'))?.sent).toBe(true);
-    // (b) hors fenêtre -> toujours en attente
-    expect((await byEmail('later@dt.test'))?.sent).toBe(false);
-    // (c) déjà envoyé -> inchangé (toujours true)
-    expect((await byEmail('done@dt.test'))?.sent).toBe(true);
+      // Déclenche l'action interne directement (on NE teste PAS le cron lui-même).
+      const res = await t.action(internal.eventReminders.sendDueReminders, {});
+      expect(res.processed).toBe(1);
 
-    // un second passage ne retraite rien (plus aucun rappel dû non envoyé)
-    const res2 = await t.action(internal.eventReminders.sendDueReminders, {});
-    expect(res2.processed).toBe(0);
+      const byEmail = async (email: string) =>
+        t.run((ctx) =>
+          ctx.db
+            .query('eventReminders')
+            .filter((q) => q.eq(q.field('email'), email))
+            .unique(),
+        );
+
+      // (a) proche -> envoyé
+      expect((await byEmail('soon@dt.test'))?.sent).toBe(true);
+      // (b) hors fenêtre -> toujours en attente
+      expect((await byEmail('later@dt.test'))?.sent).toBe(false);
+      // (c) déjà envoyé -> inchangé (toujours true)
+      expect((await byEmail('done@dt.test'))?.sent).toBe(true);
+
+      // un second passage ne retraite rien (plus aucun rappel dû non envoyé)
+      const res2 = await t.action(internal.eventReminders.sendDueReminders, {});
+      expect(res2.processed).toBe(0);
     } finally {
       if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
       else process.env.AUTH_DEV_OTP = prevDev;

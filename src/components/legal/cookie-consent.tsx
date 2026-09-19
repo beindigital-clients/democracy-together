@@ -44,7 +44,11 @@ export function CookieConsent() {
           </Link>
         </p>
         <div className="flex shrink-0 gap-2 sm:ml-auto">
-          <Button variant="outline" size="sm" onClick={() => choose('essential')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => choose('essential')}
+          >
             {t('reject')}
           </Button>
           <Button size="sm" onClick={() => choose('all')}>

@@ -4,7 +4,9 @@ import { test, expect } from '@playwright/test';
 // « Enregistrer en PDF » via la boîte d'impression). On n'actionne pas le bouton
 // (il ouvrirait la boîte d'impression du navigateur).
 
-test('rapports : index + accès au rapport inaugural (F-41)', async ({ page }) => {
+test('rapports : index + accès au rapport inaugural (F-41)', async ({
+  page,
+}) => {
   await page.goto('/fr/rapports');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Rapports annuels' }),
@@ -17,7 +19,7 @@ test('rapports : index + accès au rapport inaugural (F-41)', async ({ page }) =
   await expect(page).toHaveURL(/\/fr\/rapports\/2026$/);
 });
 
-test("rapports : rapport 2026 (sections + bouton PDF) (F-41)", async ({
+test('rapports : rapport 2026 (sections + bouton PDF) (F-41)', async ({
   page,
 }) => {
   await page.goto('/fr/rapports/2026');

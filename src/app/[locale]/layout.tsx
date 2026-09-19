@@ -52,33 +52,33 @@ export default async function LocaleLayout({
 
   return (
     <ConvexAuthNextjsServerProvider>
-    <html
-      lang={locale}
-      data-universe="institutionnel"
-      suppressHydrationWarning
-      className={`${newsreader.variable} ${plexSans.variable} ${plexMono.variable}`}
-    >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
-        <noscript>
-          <style dangerouslySetInnerHTML={{ __html: noScriptReveal }} />
-        </noscript>
-      </head>
-      <body className="flex min-h-dvh flex-col">
-        <NextIntlClientProvider messages={messages}>
-          <ConvexClientProvider>
-            <RecaptchaProvider>
-              <MotionProvider>
-                <SiteHeader />
-                <main className="flex-1">{children}</main>
-                <SiteFooter />
-                <CookieConsent />
-              </MotionProvider>
-            </RecaptchaProvider>
-          </ConvexClientProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+      <html
+        lang={locale}
+        data-universe="institutionnel"
+        suppressHydrationWarning
+        className={`${newsreader.variable} ${plexSans.variable} ${plexMono.variable}`}
+      >
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+          <noscript>
+            <style dangerouslySetInnerHTML={{ __html: noScriptReveal }} />
+          </noscript>
+        </head>
+        <body className="flex min-h-dvh flex-col">
+          <NextIntlClientProvider messages={messages}>
+            <ConvexClientProvider>
+              <RecaptchaProvider>
+                <MotionProvider>
+                  <SiteHeader />
+                  <main className="flex-1">{children}</main>
+                  <SiteFooter />
+                  <CookieConsent />
+                </MotionProvider>
+              </RecaptchaProvider>
+            </ConvexClientProvider>
+          </NextIntlClientProvider>
+        </body>
+      </html>
     </ConvexAuthNextjsServerProvider>
   );
 }

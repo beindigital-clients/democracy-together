@@ -10,7 +10,7 @@ import { ProjectForm } from '@/components/projects/project-form';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -65,10 +65,7 @@ export default async function ProjectsPage({
       {/* Principe du dispositif */}
       <section className="mt-12 max-w-[68ch]" aria-labelledby="principle-h">
         <Reveal>
-          <h2
-            id="principle-h"
-            className="font-display text-2xl leading-tight"
-          >
+          <h2 id="principle-h" className="font-display text-2xl leading-tight">
             {t('principleTitle')}
           </h2>
           <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-soft">

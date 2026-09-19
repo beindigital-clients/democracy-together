@@ -46,7 +46,11 @@ function otpProvider(id: string, purpose: OtpPurpose) {
       // En dev/test (AUTH_DEV_OTP=true) on capte le code en clair pour les tests.
       // Jamais en prod (AUTH_DEV_OTP non défini) -> aucun code stocké en base.
       if (ctx && process.env.AUTH_DEV_OTP === 'true') {
-        await ctx.runMutation(internal.otp.storeDevCode, { email, code, purpose });
+        await ctx.runMutation(internal.otp.storeDevCode, {
+          email,
+          code,
+          purpose,
+        });
       }
 
       if (hasProvider && !isTest) {

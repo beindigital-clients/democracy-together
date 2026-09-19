@@ -102,7 +102,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fiches membres actives (Convex).
   try {
     const { items } = await fetchQuery(api.organizations.listDirectory, {});
-    for (const org of items) entries.push(...localized(`le-reseau/${org.slug}`));
+    for (const org of items)
+      entries.push(...localized(`le-reseau/${org.slug}`));
   } catch {
     /* idem */
   }

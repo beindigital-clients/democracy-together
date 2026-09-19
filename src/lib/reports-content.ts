@@ -29,21 +29,21 @@ const fr: Record<number, AnnualReport> = {
         heading: 'Fondation et mission',
         body: [
           "Democracy Together est né en 2026 de la conviction qu'aucun continent n'a le monopole de l'expérience démocratique. Constitué en association loi 1901 (en cours de constitution), le réseau réunit des think tanks, des chercheurs et des partenaires d'Afrique et d'Europe autour d'une comparaison honnête, sans posture donneuse de leçons.",
-          'Le travail s\'organise autour de cinq axes : gouvernance numérique, participation citoyenne, lutte anti-corruption, transitions démocratiques et crises globales. Pour chacun, le réseau publie sa position et relie les analyses de ses membres.',
+          "Le travail s'organise autour de cinq axes : gouvernance numérique, participation citoyenne, lutte anti-corruption, transitions démocratiques et crises globales. Pour chacun, le réseau publie sa position et relie les analyses de ses membres.",
         ],
       },
       {
         heading: 'Gouvernance',
         body: [
           "La structure distingue l'orientation stratégique de l'animation opérationnelle. Les fondateurs — Abdou Samb, Philippe Kourilsky et Pierre Vimont — ont posé les statuts et les principes de fonctionnement, ouverts à l'adhésion de nouvelles organisations.",
-          "Un comité scientifique indépendant du secrétariat supervise les travaux à vocation méthodologique, à commencer par le Baromètre : il relit la méthode, signale les biais et valide chaque édition avant publication.",
+          'Un comité scientifique indépendant du secrétariat supervise les travaux à vocation méthodologique, à commencer par le Baromètre : il relit la méthode, signale les biais et valide chaque édition avant publication.',
         ],
       },
       {
         heading: 'Le Baromètre de la démocratie',
         body: [
-          "Chantier méthodologique central de la première année : un indice composite Afrique-Europe, construit par méta-agrégation de sources sous licence ouverte. Données et codebook sont publiés en accès ouvert (CC-BY), pour que chacun puisse reproduire et contester le résultat.",
-          "La première édition fonctionne comme preuve de concept. Les valeurs réelles, pays par pays, seront branchées et validées par le comité scientifique au fil des éditions.",
+          'Chantier méthodologique central de la première année : un indice composite Afrique-Europe, construit par méta-agrégation de sources sous licence ouverte. Données et codebook sont publiés en accès ouvert (CC-BY), pour que chacun puisse reproduire et contester le résultat.',
+          'La première édition fonctionne comme preuve de concept. Les valeurs réelles, pays par pays, seront branchées et validées par le comité scientifique au fil des éditions.',
         ],
       },
       {

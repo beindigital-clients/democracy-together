@@ -64,6 +64,8 @@ describe('Rendu sans JavaScript — contrat des éléments animés', () => {
     // Reveal, RevealGroup et RevealItem : trois composants exportés.
     const exported = reveal.match(/export function (Reveal\w*)/g) ?? [];
     expect(exported).toHaveLength(3);
-    expect((reveal.match(/data-reveal/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect((reveal.match(/data-reveal/g) ?? []).length).toBeGreaterThanOrEqual(
+      3,
+    );
   });
 });

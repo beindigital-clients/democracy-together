@@ -22,7 +22,13 @@ export const PUB_LANGS = ['fr', 'en'] as const;
 export const PUB_ACCESS = ['open', 'members'] as const;
 export const PUB_SORTS = ['recent', 'cited', 'az'] as const;
 
-export const FACET_KEYS = ['themes', 'types', 'regions', 'langs', 'access'] as const;
+export const FACET_KEYS = [
+  'themes',
+  'types',
+  'regions',
+  'langs',
+  'access',
+] as const;
 export type FacetKey = (typeof FACET_KEYS)[number];
 
 // Filtres lus depuis l'URL : une chaîne CSV par facette -> tableau de valeurs.
@@ -58,7 +64,8 @@ export function parseFilters(
     ? (sortRaw as string)
     : 'recent';
   const pageRaw = Number(Array.isArray(sp.page) ? sp.page[0] : sp.page);
-  const page = Number.isFinite(pageRaw) && pageRaw > 1 ? Math.floor(pageRaw) : 1;
+  const page =
+    Number.isFinite(pageRaw) && pageRaw > 1 ? Math.floor(pageRaw) : 1;
   return {
     themes: csv(sp.theme),
     types: csv(sp.type),
@@ -111,11 +118,11 @@ export function buildHref(f: LibraryFilters): string {
 export function hasActiveFilters(f: LibraryFilters): boolean {
   return Boolean(
     f.themes.length ||
-      f.types.length ||
-      f.regions.length ||
-      f.langs.length ||
-      f.access.length ||
-      f.q,
+    f.types.length ||
+    f.regions.length ||
+    f.langs.length ||
+    f.access.length ||
+    f.q,
   );
 }
 

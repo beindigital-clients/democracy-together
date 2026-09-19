@@ -16,6 +16,8 @@ function Detail() {
 // requis, gating « membre réseau » appliqué dans WorkspaceDetail.
 export default function EspaceDetailPage() {
   return (
-    <AuthGate className="max-w-[820px]"><Detail /></AuthGate>
+    <AuthGate className="max-w-[820px]">
+      <Detail />
+    </AuthGate>
   );
 }

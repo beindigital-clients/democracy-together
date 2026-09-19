@@ -22,10 +22,7 @@ export default function AdminReports() {
       year: 'numeric',
     }).format(ms);
 
-  async function act(
-    reportId: string,
-    action: 'dismiss' | 'remove',
-  ) {
+  async function act(reportId: string, action: 'dismiss' | 'remove') {
     setBusy(reportId);
     try {
       await resolve({ reportId: reportId as Id<'tribuneReports'>, action });

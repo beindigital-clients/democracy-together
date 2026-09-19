@@ -5,7 +5,9 @@ test.use({ locale: 'fr-FR' });
 
 const PW = 'motdepasse123';
 
-test('back-office : un membre ordinaire est refusé (F-26)', async ({ page }) => {
+test('back-office : un membre ordinaire est refusé (F-26)', async ({
+  page,
+}) => {
   const email = `e2e_bo_membre_${Date.now()}@democracytogether.test`;
   await signUpAndVerify(page, email, PW); // connecté en tant que « membre »
 

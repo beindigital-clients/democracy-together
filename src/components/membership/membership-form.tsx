@@ -39,7 +39,11 @@ export function MembershipForm() {
     const country = formField(fd, 'country').trim();
     const message = formField(fd, 'message').trim();
 
-    if (organizationName.length < 2 || !isEmail(contactEmail) || country.length < 2) {
+    if (
+      organizationName.length < 2 ||
+      !isEmail(contactEmail) ||
+      country.length < 2
+    ) {
       setError(t('errorInvalid'));
       return;
     }
@@ -74,8 +78,12 @@ export function MembershipForm() {
     <div className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8">
       {status === 'success' ? (
         <div role="status" className="py-6">
-          <h2 className="font-display text-2xl text-ink">{t('successTitle')}</h2>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">{t('successBody')}</p>
+          <h2 className="font-display text-2xl text-ink">
+            {t('successTitle')}
+          </h2>
+          <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">
+            {t('successBody')}
+          </p>
         </div>
       ) : (
         <form onSubmit={onSubmit} noValidate className="space-y-5">
@@ -109,21 +117,52 @@ export function MembershipForm() {
             <label htmlFor={ids.name} className="block text-sm text-ink-soft">
               {type === 'organisation' ? t('orgName') : t('personName')}
             </label>
-            <Input id={ids.name} name="organizationName" autoComplete="organization" required className="mt-1" />
+            <Input
+              id={ids.name}
+              name="organizationName"
+              autoComplete="organization"
+              required
+              className="mt-1"
+            />
           </div>
 
           <div>
-            <label htmlFor={ids.email} className="block text-sm text-ink-soft">{t('email')}</label>
-            <Input id={ids.email} name="contactEmail" type="email" autoComplete="email" required className="mt-1" />
+            <label htmlFor={ids.email} className="block text-sm text-ink-soft">
+              {t('email')}
+            </label>
+            <Input
+              id={ids.email}
+              name="contactEmail"
+              type="email"
+              autoComplete="email"
+              required
+              className="mt-1"
+            />
           </div>
 
           <div>
-            <label htmlFor={ids.country} className="block text-sm text-ink-soft">{t('country')}</label>
-            <Input id={ids.country} name="country" autoComplete="country-name" required className="mt-1" />
+            <label
+              htmlFor={ids.country}
+              className="block text-sm text-ink-soft"
+            >
+              {t('country')}
+            </label>
+            <Input
+              id={ids.country}
+              name="country"
+              autoComplete="country-name"
+              required
+              className="mt-1"
+            />
           </div>
 
           <div>
-            <label htmlFor={ids.message} className="block text-sm text-ink-soft">{t('message')}</label>
+            <label
+              htmlFor={ids.message}
+              className="block text-sm text-ink-soft"
+            >
+              {t('message')}
+            </label>
             <Textarea
               id={ids.message}
               name="message"
@@ -134,10 +173,16 @@ export function MembershipForm() {
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-bar-5">{error}</p>
+            <p role="alert" className="text-sm text-bar-5">
+              {error}
+            </p>
           ) : null}
 
-          <Button type="submit" disabled={status === 'pending'} className="w-full sm:w-auto">
+          <Button
+            type="submit"
+            disabled={status === 'pending'}
+            className="w-full sm:w-auto"
+          >
             {status === 'pending' ? t('sending') : t('submit')}
           </Button>
         </form>

@@ -32,8 +32,7 @@ export type DirectoryFields = {
 };
 
 export type DirectoryValidation =
-  | { ok: true; value: DirectoryFields }
-  | { ok: false; reason: string };
+  { ok: true; value: DirectoryFields } | { ok: false; reason: string };
 
 export function validateDirectoryFields(
   input: DirectoryFields,

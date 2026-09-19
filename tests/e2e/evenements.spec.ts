@@ -7,7 +7,9 @@ test('événements : liste, filtres serveur, vedette → détail riche (F-23)', 
 }) => {
   await page.goto('/fr/evenements');
 
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Événements');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Événements',
+  );
   // 10 événements à venir par défaut
   await expect(page.getByText('10 événements à venir')).toBeVisible();
   // Vedette
@@ -32,20 +34,27 @@ test('événements : liste, filtres serveur, vedette → détail riche (F-23)', 
 
   // Détail riche de la conférence
   await page.goto('/fr/evenements');
-  await page
-    .getByRole('link', { name: 'Détails' })
-    .first()
-    .click();
+  await page.getByRole('link', { name: 'Détails' }).first().click();
   await expect(page).toHaveURL(/\/fr\/evenements\/conference-inaugurale$/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Conférence inaugurale');
-  await expect(page.getByRole('heading', { name: 'Programme détaillé' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Intervenants' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Infos pratiques' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Conférence inaugurale',
+  );
+  await expect(
+    page.getByRole('heading', { name: 'Programme détaillé' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Intervenants' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Infos pratiques' }),
+  ).toBeVisible();
   // billetterie : un tarif illustratif
   await expect(page.getByText('45 €')).toBeVisible();
 });
 
-test('événements : accès via la nav + version EN (F-03/F-23)', async ({ page }) => {
+test('événements : accès via la nav + version EN (F-03/F-23)', async ({
+  page,
+}) => {
   await page.goto('/fr');
   await page
     .getByRole('banner')

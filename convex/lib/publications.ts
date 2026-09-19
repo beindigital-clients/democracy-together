@@ -94,7 +94,11 @@ export function sortPublications<T extends PublicationLike>(
     if (sort === 'cited') return b.citations - a.citations || b.year - a.year;
     if (sort === 'az') return a.title.localeCompare(b.title, 'fr');
     // 'recent' (défaut)
-    return b.year - a.year || b.publishedAt - a.publishedAt || b.downloads - a.downloads;
+    return (
+      b.year - a.year ||
+      b.publishedAt - a.publishedAt ||
+      b.downloads - a.downloads
+    );
   });
   return out;
 }

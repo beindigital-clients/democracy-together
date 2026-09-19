@@ -48,7 +48,8 @@ export const createWorkspace = mutation({
     const theme = args.theme.trim();
     const description = args.description.trim();
     if (!THEMES.includes(theme)) throw new Error('INVALID_THEME');
-    if (title.length < 4 || title.length > 160) throw new Error('INVALID_TITLE');
+    if (title.length < 4 || title.length > 160)
+      throw new Error('INVALID_TITLE');
     if (description.length < 10 || description.length > 4000) {
       throw new Error('INVALID_DESCRIPTION');
     }
@@ -111,7 +112,8 @@ export const leaveWorkspace = mutation({
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace) throw new Error('NOT_FOUND');
     // L'owner ne peut pas quitter son propre espace (incrément 1).
-    if (workspace.ownerUserId === user._id) throw new Error('OWNER_CANNOT_LEAVE');
+    if (workspace.ownerUserId === user._id)
+      throw new Error('OWNER_CANNOT_LEAVE');
 
     const existing = await membershipOf(ctx, workspaceId, user._id);
     if (!existing) return { joined: false }; // pas membre : idempotent

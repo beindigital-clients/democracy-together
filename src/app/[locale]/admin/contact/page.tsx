@@ -40,8 +40,8 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
         <div>
           <h2 className="font-display text-lg">{msg.subject}</h2>
           <p className="mt-1 text-sm text-ink-soft">
-            {t('contactFrom')} <b className="font-semibold text-ink">{msg.name}</b>{' '}
-            ·{' '}
+            {t('contactFrom')}{' '}
+            <b className="font-semibold text-ink">{msg.name}</b> ·{' '}
             <a
               href={`mailto:${msg.email}?subject=${encodeURIComponent(
                 `Re: ${msg.subject}`,
@@ -65,7 +65,11 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button onClick={toggle} disabled={pending} variant={msg.handled ? 'outline' : 'default'}>
+        <Button
+          onClick={toggle}
+          disabled={pending}
+          variant={msg.handled ? 'outline' : 'default'}
+        >
           {msg.handled ? t('contactMarkPending') : t('contactMarkHandled')}
         </Button>
         <a

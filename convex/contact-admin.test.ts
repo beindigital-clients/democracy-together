@@ -19,7 +19,11 @@ const modules = import.meta.glob([
 // formulaire de contact écrivait donc dans un trou noir : personne ne pouvait
 // lire ce que les visiteurs envoyaient.
 
-async function withRole(t: ReturnType<typeof convexTest>, role: string, email: string) {
+async function withRole(
+  t: ReturnType<typeof convexTest>,
+  role: string,
+  email: string,
+) {
   const id = await t.run((ctx) => ctx.db.insert('users', { role, email }));
   return t.withIdentity({ subject: `${id}|s` });
 }
@@ -46,9 +50,13 @@ describe('Messages de contact — lecture réservée au back-office (F-17/F-26)'
 
     await expect(t.query(api.contact.listMessages, {})).rejects.toThrow();
     const asVisitor = await withRole(t, 'visiteur', 'v@test.org');
-    await expect(asVisitor.query(api.contact.listMessages, {})).rejects.toThrow();
+    await expect(
+      asVisitor.query(api.contact.listMessages, {}),
+    ).rejects.toThrow();
     const asMember = await withRole(t, 'membre', 'm@test.org');
-    await expect(asMember.query(api.contact.listMessages, {})).rejects.toThrow();
+    await expect(
+      asMember.query(api.contact.listMessages, {}),
+    ).rejects.toThrow();
   });
 
   it('un modérateur lit les messages, les plus récents d’abord', async () => {
@@ -74,8 +82,12 @@ describe('Messages de contact — lecture réservée au back-office (F-17/F-26)'
       handled: true,
     });
 
-    expect(await asMod.query(api.contact.listMessages, { status: 'pending' })).toHaveLength(1);
-    expect(await asMod.query(api.contact.listMessages, { status: 'all' })).toHaveLength(2);
+    expect(
+      await asMod.query(api.contact.listMessages, { status: 'pending' }),
+    ).toHaveLength(1);
+    expect(
+      await asMod.query(api.contact.listMessages, { status: 'all' }),
+    ).toHaveLength(2);
   });
 });
 
@@ -129,7 +141,10 @@ describe('Messages de contact — marquage « traité » (F-17)', () => {
     await t.run((ctx) => ctx.db.delete(msg._id));
 
     await expect(
-      asMod.mutation(api.contact.setHandled, { messageId: msg._id, handled: true }),
+      asMod.mutation(api.contact.setHandled, {
+        messageId: msg._id,
+        handled: true,
+      }),
     ).rejects.toThrow('NOT_FOUND');
   });
 });

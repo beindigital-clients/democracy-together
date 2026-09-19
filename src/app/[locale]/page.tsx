@@ -37,7 +37,7 @@ function scoreCat(score: number): 1 | 2 | 3 | 4 | 5 {
 }
 
 function resolve(locale: string) {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -51,7 +51,11 @@ export async function generateMetadata({
     description: c.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}`,
-      languages: { fr: `${SITE}/fr`, en: `${SITE}/en`, 'x-default': `${SITE}/fr` },
+      languages: {
+        fr: `${SITE}/fr`,
+        en: `${SITE}/en`,
+        'x-default': `${SITE}/fr`,
+      },
     },
   };
 }
@@ -209,84 +213,84 @@ export default async function HomePage({
       {/* ===== Baromètre — section `surface` ===== */}
       <section className="bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
-        <Reveal>
-          <p className={EYEBROW}>{c.barometre.eyebrow}</p>
-          <h2 className="mt-3 max-w-[20ch] font-display text-3xl md:text-4xl">
-            {c.barometre.title}
-          </h2>
-          <p className="mt-4 max-w-[62ch] leading-relaxed text-ink-soft">
-            {c.barometre.body}
-          </p>
-        </Reveal>
+          <Reveal>
+            <p className={EYEBROW}>{c.barometre.eyebrow}</p>
+            <h2 className="mt-3 max-w-[20ch] font-display text-3xl md:text-4xl">
+              {c.barometre.title}
+            </h2>
+            <p className="mt-4 max-w-[62ch] leading-relaxed text-ink-soft">
+              {c.barometre.body}
+            </p>
+          </Reveal>
 
-        <div className="mt-8 grid items-start gap-4 lg:grid-cols-2">
-          <Reveal className="rounded-md border border-line bg-paper p-6">
-            <ul className="space-y-3">
-              {c.barometre.countries.map((co, i) => (
-                <li key={co.name} className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-sm">{co.name}</span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-pill bg-surface-2">
-                    <AnimatedBar
-                      pct={Number(co.score) * 100}
-                      className={`rounded-pill ${CAT_BG[scoreCat(Number(co.score)) - 1]}`}
-                      delay={i * 0.1}
-                    />
-                  </span>
-                  <span className="w-10 shrink-0 text-right font-mono text-xs text-ink-soft">
-                    {co.score}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-5 border-t border-line pt-4">
-              <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
-                {loc === 'en' ? 'Freedom index' : 'Indice de liberté'}
-              </p>
-              <ul className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-                {baroLegend.map((lv, i) => (
-                  <li
-                    key={lv.label}
-                    className="flex items-center gap-2 text-[12.5px] text-ink-soft"
-                  >
-                    <i
-                      className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CAT_BG[i]}`}
-                      aria-hidden="true"
-                    />
-                    <span className="min-w-0 truncate">{lv.label}</span>
-                    <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-muted">
-                      {lv.range}
+          <div className="mt-8 grid items-start gap-4 lg:grid-cols-2">
+            <Reveal className="rounded-md border border-line bg-paper p-6">
+              <ul className="space-y-3">
+                {c.barometre.countries.map((co, i) => (
+                  <li key={co.name} className="flex items-center gap-3">
+                    <span className="w-24 shrink-0 text-sm">{co.name}</span>
+                    <span className="h-2 flex-1 overflow-hidden rounded-pill bg-surface-2">
+                      <AnimatedBar
+                        pct={Number(co.score) * 100}
+                        className={`rounded-pill ${CAT_BG[scoreCat(Number(co.score)) - 1]}`}
+                        delay={i * 0.1}
+                      />
+                    </span>
+                    <span className="w-10 shrink-0 text-right font-mono text-xs text-ink-soft">
+                      {co.score}
                     </span>
                   </li>
                 ))}
               </ul>
-            </div>
-          </Reveal>
+              <div className="mt-5 border-t border-line pt-4">
+                <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+                  {loc === 'en' ? 'Freedom index' : 'Indice de liberté'}
+                </p>
+                <ul className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                  {baroLegend.map((lv, i) => (
+                    <li
+                      key={lv.label}
+                      className="flex items-center gap-2 text-[12.5px] text-ink-soft"
+                    >
+                      <i
+                        className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CAT_BG[i]}`}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 truncate">{lv.label}</span>
+                      <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-muted">
+                        {lv.range}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
 
-          <Reveal className="flex min-h-[220px] flex-col rounded-md border border-line bg-paper p-6">
-            <div className="flex-1">
-              <RegionGlobeLazy
-                items={mapItems}
-                variant="compact"
-                ariaLabel={c.barometre.mapLabel}
-                hint={
-                  loc === 'en'
-                    ? 'Hover or tap a country to see its score.'
-                    : 'Survolez ou touchez un pays pour voir son score.'
-                }
-              />
-            </div>
-            <p className="mt-3 text-xs text-muted">{c.barometre.note}</p>
-          </Reveal>
-        </div>
+            <Reveal className="flex min-h-[220px] flex-col rounded-md border border-line bg-paper p-6">
+              <div className="flex-1">
+                <RegionGlobeLazy
+                  items={mapItems}
+                  variant="compact"
+                  ariaLabel={c.barometre.mapLabel}
+                  hint={
+                    loc === 'en'
+                      ? 'Hover or tap a country to see its score.'
+                      : 'Survolez ou touchez un pays pour voir son score.'
+                  }
+                />
+              </div>
+              <p className="mt-3 text-xs text-muted">{c.barometre.note}</p>
+            </Reveal>
+          </div>
 
-        <Reveal className="mt-6 flex flex-wrap gap-3">
-          <Button asChild variant="outline">
-            <Link href="/barometre">{c.barometre.links[0]}</Link>
-          </Button>
-          <Button asChild variant="ghost">
-            <Link href="/barometre">{c.barometre.links[1]}</Link>
-          </Button>
-        </Reveal>
+          <Reveal className="mt-6 flex flex-wrap gap-3">
+            <Button asChild variant="outline">
+              <Link href="/barometre">{c.barometre.links[0]}</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link href="/barometre">{c.barometre.links[1]}</Link>
+            </Button>
+          </Reveal>
         </div>
       </section>
 
@@ -294,7 +298,9 @@ export default async function HomePage({
       <section>
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal>
-            <h2 className="font-display text-3xl md:text-4xl">{c.axes.title}</h2>
+            <h2 className="font-display text-3xl md:text-4xl">
+              {c.axes.title}
+            </h2>
           </Reveal>
           <RevealGroup className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {c.axes.items.map((a) => (
@@ -316,59 +322,66 @@ export default async function HomePage({
       {/* ===== Événements — section `surface` ===== */}
       <section className="bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
-        <Reveal className="flex flex-wrap items-baseline justify-between gap-4">
-          <h2 className="font-display text-3xl md:text-4xl">{c.events.title}</h2>
-          <Link
-            href="/evenements"
-            className="font-mono text-xs uppercase tracking-[0.1em] text-accent-text hover:underline"
-          >
-            {c.events.cta} →
-          </Link>
-        </Reveal>
-
-        <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-          <Reveal className="flex flex-col rounded-md border border-accent-edge bg-accent-tint p-6 md:p-8">
-            <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent-text">
-              {c.events.featured.tag}
-            </p>
-            <h3 className="mt-3 font-display text-2xl leading-snug">
-              {c.events.featured.title}
-            </h3>
-            <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">
-              {c.events.featured.body}
-            </p>
-            <Button asChild className="mt-5 self-start">
-              <Link href="/evenements">{c.events.featured.action}</Link>
-            </Button>
+          <Reveal className="flex flex-wrap items-baseline justify-between gap-4">
+            <h2 className="font-display text-3xl md:text-4xl">
+              {c.events.title}
+            </h2>
+            <Link
+              href="/evenements"
+              className="font-mono text-xs uppercase tracking-[0.1em] text-accent-text hover:underline"
+            >
+              {c.events.cta} →
+            </Link>
           </Reveal>
 
-          <RevealGroup className="flex flex-col gap-3">
-            {c.events.items.map((ev) => (
-              <RevealItem
-                key={ev.title}
-                className="flex gap-4 rounded-md border border-line bg-paper p-5"
-              >
-                <span className="shrink-0 font-mono text-sm uppercase text-accent-text">
-                  {ev.date}
-                </span>
-                <span>
-                  <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
-                    {ev.kind}
+          <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+            <Reveal className="flex flex-col rounded-md border border-accent-edge bg-accent-tint p-6 md:p-8">
+              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent-text">
+                {c.events.featured.tag}
+              </p>
+              <h3 className="mt-3 font-display text-2xl leading-snug">
+                {c.events.featured.title}
+              </h3>
+              <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">
+                {c.events.featured.body}
+              </p>
+              <Button asChild className="mt-5 self-start">
+                <Link href="/evenements">{c.events.featured.action}</Link>
+              </Button>
+            </Reveal>
+
+            <RevealGroup className="flex flex-col gap-3">
+              {c.events.items.map((ev) => (
+                <RevealItem
+                  key={ev.title}
+                  className="flex gap-4 rounded-md border border-line bg-paper p-5"
+                >
+                  <span className="shrink-0 font-mono text-sm uppercase text-accent-text">
+                    {ev.date}
                   </span>
-                  <span className="mt-1 block font-display text-base leading-snug">
-                    {ev.title}
+                  <span>
+                    <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+                      {ev.kind}
+                    </span>
+                    <span className="mt-1 block font-display text-base leading-snug">
+                      {ev.title}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted">
+                      {ev.meta}
+                    </span>
                   </span>
-                  <span className="mt-1 block text-xs text-muted">{ev.meta}</span>
-                </span>
-              </RevealItem>
-            ))}
-          </RevealGroup>
-        </div>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          </div>
         </div>
       </section>
 
       {/* ===== Hub jeunes (univers safran) ===== */}
-      <section data-universe="jeunes" className="bg-accent text-accent-contrast">
+      <section
+        data-universe="jeunes"
+        className="bg-accent text-accent-contrast"
+      >
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal>
             <p className="font-mono text-xs uppercase tracking-[0.14em] text-accent-contrast/80">
@@ -394,7 +407,9 @@ export default async function HomePage({
                 key={s.n}
                 className="rounded-md border border-accent-contrast/25 bg-accent-contrast/5 p-5"
               >
-                <p className="font-mono text-sm text-accent-contrast/80">{s.n}</p>
+                <p className="font-mono text-sm text-accent-contrast/80">
+                  {s.n}
+                </p>
                 <h3 className="mt-2 font-display text-lg text-accent-contrast">
                   {s.title}
                 </h3>

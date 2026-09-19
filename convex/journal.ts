@@ -13,10 +13,7 @@ export const listAuditLog = query({
     await requireNetworkRole(ctx, 'admin');
 
     const max = limit ?? 200;
-    const entries = await ctx.db
-      .query('auditLog')
-      .order('desc')
-      .take(max);
+    const entries = await ctx.db.query('auditLog').order('desc').take(max);
 
     return await Promise.all(
       entries.map(async (e) => {

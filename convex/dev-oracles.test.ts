@@ -37,7 +37,9 @@ describe('Sécurité — les oracles DEV ne sont pas exposés publiquement', () 
   it('chaque oracle conserve aussi sa garde AUTH_DEV_OTP (ceinture + bretelles)', () => {
     for (const [file, name] of ORACLES) {
       const src = readFileSync(`${here}${file}`, 'utf8');
-      const body = src.slice(src.indexOf(`export const ${name} = internalQuery({`));
+      const body = src.slice(
+        src.indexOf(`export const ${name} = internalQuery({`),
+      );
       expect(
         body.slice(0, 400),
         `${file}:${name} doit conserver la garde AUTH_DEV_OTP`,

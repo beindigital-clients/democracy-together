@@ -27,7 +27,7 @@ const DRAFTS: Draft[] = [
     publishedAt: '2026-06-20T09:00:00.000Z',
     paragraphs: [
       "Democracy Together franchit une première étape : son collectif fondateur s'est réuni autour d'une conviction commune, relier les think tanks qui travaillent sur la démocratie de part et d'autre de la Méditerranée.",
-      "Les fondateurs ont arrêté les quatre axes de la mission — agréger les analyses, promouvoir les idées, renforcer les capacités, innover et inclure — et engagé la rédaction des statuts de la future association loi 1901.",
+      'Les fondateurs ont arrêté les quatre axes de la mission — agréger les analyses, promouvoir les idées, renforcer les capacités, innover et inclure — et engagé la rédaction des statuts de la future association loi 1901.',
     ],
   },
   {
@@ -39,7 +39,7 @@ const DRAFTS: Draft[] = [
       'Le réseau prépare son lancement public et sa première conférence, prévus en 2026.',
     publishedAt: '2026-06-12T09:00:00.000Z',
     paragraphs: [
-      "La conférence inaugurale de Democracy Together réunira à Paris chercheurs, décideurs et partenaires pour présenter le réseau, ses premiers travaux et sa feuille de route Afrique-Europe.",
+      'La conférence inaugurale de Democracy Together réunira à Paris chercheurs, décideurs et partenaires pour présenter le réseau, ses premiers travaux et sa feuille de route Afrique-Europe.',
       'Cet événement marquera l’ouverture des adhésions et l’amorce des relais régionaux de Dakar et de Bruxelles.',
     ],
   },
@@ -87,7 +87,8 @@ const DRAFTS: Draft[] = [
     language: 'en',
     title: 'Connecting Africa and Europe around democracy',
     slug: 'africa-europe-democracy',
-    excerpt: 'Why a transcontinental think-tank network, and what it aims to change.',
+    excerpt:
+      'Why a transcontinental think-tank network, and what it aims to change.',
     publishedAt: '2026-06-05T09:00:00.000Z',
     paragraphs: [
       'Analyses on the state of democracy too often stay siloed by country or by continent. Democracy Together wants to bring them together into a shared, comparable and citable corpus.',

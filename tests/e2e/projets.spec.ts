@@ -23,7 +23,10 @@ test('appels à projets : la page publique répond (FR)', async ({ page }) => {
 test('appels à projets : version EN (F-03)', async ({ page }) => {
   await page.goto('/en/appels-a-projets');
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Collaborative project calls' }),
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Collaborative project calls',
+    }),
   ).toBeVisible();
 });
 

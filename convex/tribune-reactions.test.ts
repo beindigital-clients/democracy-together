@@ -72,7 +72,7 @@ describe('Tribune — réactions « soutien »', () => {
     expect(rows).toHaveLength(0);
   });
 
-  it('plusieurs membres : le décompte s\'additionne, mine reste propre à chacun', async () => {
+  it("plusieurs membres : le décompte s'additionne, mine reste propre à chacun", async () => {
     const t = convexTest(schema, modules);
     const author = await seedMember(t, 'a@test.org');
     const postId = await seedPost(t, author);

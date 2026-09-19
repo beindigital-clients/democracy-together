@@ -99,7 +99,9 @@ describe('Attribution de rôle (F-63) — admin seulement', () => {
       .withIdentity({ subject: `${adminId}|s` })
       .mutation(api.users.setRole, { userId: targetId, role: 'moderateur' });
 
-    expect((await t.run((ctx) => ctx.db.get(targetId)))?.role).toBe('moderateur');
+    expect((await t.run((ctx) => ctx.db.get(targetId)))?.role).toBe(
+      'moderateur',
+    );
   });
 });
 
@@ -197,6 +199,8 @@ describe('Adhésion — approbation accorde le rôle membre (modèle B)', () => 
         applicationId: appId,
         decision: 'rejected',
       });
-    expect((await t.run((ctx) => ctx.db.get(visitorId)))?.role).toBe('visiteur');
+    expect((await t.run((ctx) => ctx.db.get(visitorId)))?.role).toBe(
+      'visiteur',
+    );
   });
 });

@@ -69,28 +69,59 @@ export const homePage = defineType({
       str('ctaSecondary', 'Bouton secondaire'),
       str('visualLabel', "Texte alternatif (alt) de l'image"),
       str('visualCaption', "Légende affichée sur l'image"),
-      objList('creds', 'Mentions (bande méta)', [str('label', 'Libellé'), str('value', 'Valeur')], 'value', 'label'),
+      objList(
+        'creds',
+        'Mentions (bande méta)',
+        [str('label', 'Libellé'), str('value', 'Valeur')],
+        'value',
+        'label',
+      ),
     ]),
 
     obj('mission', 'Mission', [
       str('title', 'Titre'),
       str('cta', 'Lien'),
-      objList('cells', 'Cellules (bento)', [str('ix', 'Index'), str('title', 'Titre'), txt('body', 'Texte', 3)], 'title', 'ix'),
-      obj('barometer', 'Encart baromètre', [str('label', 'Surtitre'), str('title', 'Titre'), txt('body', 'Texte')]),
+      objList(
+        'cells',
+        'Cellules (bento)',
+        [str('ix', 'Index'), str('title', 'Titre'), txt('body', 'Texte', 3)],
+        'title',
+        'ix',
+      ),
+      obj('barometer', 'Encart baromètre', [
+        str('label', 'Surtitre'),
+        str('title', 'Titre'),
+        txt('body', 'Texte'),
+      ]),
     ]),
 
     obj('analyses', 'Dernières analyses', [
       str('title', 'Titre'),
       str('cta', 'Lien'),
-      obj('featured', 'À la une', [str('tag', 'Étiquette'), str('title', 'Titre'), txt('body', 'Texte'), strList('chips', 'Puces')]),
-      objList('items', 'Éléments', [str('tag', 'Étiquette'), str('title', 'Titre'), txt('body', 'Texte', 2)]),
+      obj('featured', 'À la une', [
+        str('tag', 'Étiquette'),
+        str('title', 'Titre'),
+        txt('body', 'Texte'),
+        strList('chips', 'Puces'),
+      ]),
+      objList('items', 'Éléments', [
+        str('tag', 'Étiquette'),
+        str('title', 'Titre'),
+        txt('body', 'Texte', 2),
+      ]),
     ]),
 
     obj('barometre', 'Baromètre', [
       str('eyebrow', 'Surtitre'),
       str('title', 'Titre'),
       txt('body', 'Texte'),
-      objList('countries', 'Pays', [str('name', 'Nom'), str('score', 'Score')], 'name', 'score'),
+      objList(
+        'countries',
+        'Pays',
+        [str('name', 'Nom'), str('score', 'Score')],
+        'name',
+        'score',
+      ),
       strList('legend', 'Légende'),
       str('note', 'Note'),
       str('mapLabel', 'Libellé carte'),
@@ -99,14 +130,36 @@ export const homePage = defineType({
 
     obj('axes', 'Axes de travail', [
       str('title', 'Titre'),
-      objList('items', 'Axes', [str('n', 'N°'), str('title', 'Titre'), txt('body', 'Texte', 2)], 'title', 'n'),
+      objList(
+        'items',
+        'Axes',
+        [str('n', 'N°'), str('title', 'Titre'), txt('body', 'Texte', 2)],
+        'title',
+        'n',
+      ),
     ]),
 
     obj('events', 'Événements', [
       str('title', 'Titre'),
       str('cta', 'Lien'),
-      obj('featured', 'À la une', [str('tag', 'Étiquette'), str('title', 'Titre'), txt('body', 'Texte'), str('action', 'Action')]),
-      objList('items', 'Éléments', [str('date', 'Date'), str('kind', 'Type'), str('title', 'Titre'), str('meta', 'Méta')], 'title', 'date'),
+      obj('featured', 'À la une', [
+        str('tag', 'Étiquette'),
+        str('title', 'Titre'),
+        txt('body', 'Texte'),
+        str('action', 'Action'),
+      ]),
+      objList(
+        'items',
+        'Éléments',
+        [
+          str('date', 'Date'),
+          str('kind', 'Type'),
+          str('title', 'Titre'),
+          str('meta', 'Méta'),
+        ],
+        'title',
+        'date',
+      ),
     ]),
 
     obj('youth', 'Hub jeunes', [
@@ -114,13 +167,30 @@ export const homePage = defineType({
       str('title', 'Titre'),
       txt('body', 'Texte'),
       str('cta', 'Lien'),
-      objList('steps', 'Étapes', [str('n', 'N°'), str('title', 'Titre'), txt('body', 'Texte', 2)], 'title', 'n'),
+      objList(
+        'steps',
+        'Étapes',
+        [str('n', 'N°'), str('title', 'Titre'), txt('body', 'Texte', 2)],
+        'title',
+        'n',
+      ),
     ]),
 
     obj('join', 'Rejoindre', [
       str('title', 'Titre'),
       txt('body', 'Texte'),
-      objList('plans', 'Formules', [str('label', 'Étiquette'), str('title', 'Titre'), strList('features', 'Avantages'), str('cta', 'Bouton')], 'title', 'label'),
+      objList(
+        'plans',
+        'Formules',
+        [
+          str('label', 'Étiquette'),
+          str('title', 'Titre'),
+          strList('features', 'Avantages'),
+          str('cta', 'Bouton'),
+        ],
+        'title',
+        'label',
+      ),
     ]),
 
     obj('newsletter', 'Newsletter', [

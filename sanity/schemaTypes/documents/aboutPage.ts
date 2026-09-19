@@ -53,7 +53,11 @@ export const aboutPage = defineType({
       fields: [
         ...heading(),
         text('statement', 'Énoncé'),
-        defineField({ name: 'attribution', type: 'string', title: 'Attribution' }),
+        defineField({
+          name: 'attribution',
+          type: 'string',
+          title: 'Attribution',
+        }),
       ],
     }),
 
@@ -261,8 +265,16 @@ export const aboutPage = defineType({
       fields: [
         defineField({ name: 'title', type: 'string', title: 'Titre' }),
         text('body', 'Texte'),
-        defineField({ name: 'primary', type: 'string', title: 'Bouton principal' }),
-        defineField({ name: 'secondary', type: 'string', title: 'Bouton secondaire' }),
+        defineField({
+          name: 'primary',
+          type: 'string',
+          title: 'Bouton principal',
+        }),
+        defineField({
+          name: 'secondary',
+          type: 'string',
+          title: 'Bouton secondaire',
+        }),
       ],
     }),
   ],

@@ -58,9 +58,17 @@ describe('Peer review — assignReviewer (F-43)', () => {
   it('réservé à l’éditeur ; passe in_review ; notifie le relecteur', async () => {
     const t = convexTest(schema, modules);
     const pubId = await t.run((ctx) =>
-      ctx.db.insert('publications', pubDoc({ title: 'Analyse X', slug: 'analyse-x' })),
+      ctx.db.insert(
+        'publications',
+        pubDoc({ title: 'Analyse X', slug: 'analyse-x' }),
+      ),
     );
-    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Relecteur Mod');
+    const mod = await userWithRole(
+      t,
+      'moderateur',
+      'mod@test.org',
+      'Relecteur Mod',
+    );
     const editor = await userWithRole(t, 'editeur', 'ed@test.org');
 
     // anonyme refusé
@@ -154,7 +162,10 @@ describe('Peer review — getReviewQueue (F-43)', () => {
       ),
     );
     await t.run((ctx) =>
-      ctx.db.insert('publications', pubDoc({ slug: 'out', title: 'Hors revue' })),
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'out', title: 'Hors revue' }),
+      ),
     );
     const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
     const editor = await userWithRole(t, 'editeur', 'ed@test.org');
@@ -234,7 +245,9 @@ describe('Peer review — decideReview (F-43)', () => {
     const audits = await t.run((ctx) =>
       ctx.db
         .query('auditLog')
-        .withIndex('by_action', (q) => q.eq('action', 'publication.peer_review'))
+        .withIndex('by_action', (q) =>
+          q.eq('action', 'publication.peer_review'),
+        )
         .collect(),
     );
     expect(audits.some((a) => a.actorId === editor.id)).toBe(true);
@@ -260,9 +273,9 @@ describe('Peer review — listStaffUsers (F-43)', () => {
     const roles = staff.map((u) => u.role).sort();
     expect(roles).toEqual(['admin', 'editeur', 'moderateur']);
     // ni visiteur ni membre
-    expect(staff.some((u) => u.role === 'visiteur' || u.role === 'membre')).toBe(
-      false,
-    );
+    expect(
+      staff.some((u) => u.role === 'visiteur' || u.role === 'membre'),
+    ).toBe(false);
   });
 });
 

@@ -27,7 +27,7 @@ const CAT_FILL = [
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -63,7 +63,9 @@ function TrendCell({ trend }: { trend: Trend }) {
         ? 'text-bar-5'
         : 'text-muted';
   return (
-    <span className={`inline-flex items-center gap-1 font-mono text-[12.5px] ${color}`}>
+    <span
+      className={`inline-flex items-center gap-1 font-mono text-[12.5px] ${color}`}
+    >
       <span aria-hidden="true">{glyph}</span> {trend.value}
     </span>
   );
@@ -72,7 +74,10 @@ function TrendCell({ trend }: { trend: Trend }) {
 function CatDot({ cat, label }: { cat: 1 | 2 | 3 | 4 | 5; label: string }) {
   return (
     <span className="inline-flex items-center gap-2 text-[13px]">
-      <i className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CAT_BG[cat - 1]}`} aria-hidden="true" />
+      <i
+        className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CAT_BG[cat - 1]}`}
+        aria-hidden="true"
+      />
       {label}
     </span>
   );
@@ -95,10 +100,28 @@ export default async function BarometrePage({
   // (XLSX) restent de simples badges. Données d'illustration (cf. en-tête).
   const dataBase = `/${locale}/barometre/data`;
   const dataRows: { primary: string; formats: Record<string, string> }[] = [
-    { primary: `${dataBase}/composite.csv`, formats: { CSV: `${dataBase}/composite.csv`, JSON: `${dataBase}/composite.json` } },
-    { primary: `${dataBase}/composite.csv`, formats: { CSV: `${dataBase}/composite.csv`, JSON: `${dataBase}/composite.json` } },
-    { primary: `${dataBase}/dimensions.csv`, formats: { CSV: `${dataBase}/dimensions.csv` } },
-    { primary: `${dataBase}/geometries.json`, formats: { JSON: `${dataBase}/geometries.json` } },
+    {
+      primary: `${dataBase}/composite.csv`,
+      formats: {
+        CSV: `${dataBase}/composite.csv`,
+        JSON: `${dataBase}/composite.json`,
+      },
+    },
+    {
+      primary: `${dataBase}/composite.csv`,
+      formats: {
+        CSV: `${dataBase}/composite.csv`,
+        JSON: `${dataBase}/composite.json`,
+      },
+    },
+    {
+      primary: `${dataBase}/dimensions.csv`,
+      formats: { CSV: `${dataBase}/dimensions.csv` },
+    },
+    {
+      primary: `${dataBase}/geometries.json`,
+      formats: { JSON: `${dataBase}/geometries.json` },
+    },
   ];
   const codebookHref = `${dataBase}/codebook.txt`;
   const mapItems: RegionMapItem[] = MAP_DATA.map((d) => ({
@@ -152,7 +175,9 @@ export default async function BarometrePage({
                   {c.hero.ctaData}
                 </a>
               </div>
-              <p className="mt-4 text-[12px] italic text-muted">{c.hero.disclaimer}</p>
+              <p className="mt-4 text-[12px] italic text-muted">
+                {c.hero.disclaimer}
+              </p>
             </Reveal>
             <RevealGroup className="grid gap-4 sm:grid-cols-3 md:grid-cols-1">
               {c.kpis.map((k) => (
@@ -163,7 +188,9 @@ export default async function BarometrePage({
                   <div className="font-mono text-[30px] font-semibold tracking-[-0.02em] text-ink">
                     {k.value}
                   </div>
-                  <div className="mt-0.5 text-[13px] text-ink-soft">{k.label}</div>
+                  <div className="mt-0.5 text-[13px] text-ink-soft">
+                    {k.label}
+                  </div>
                 </RevealItem>
               ))}
             </RevealGroup>
@@ -176,7 +203,9 @@ export default async function BarometrePage({
           filtre par région. La donnée reste accessible dans la table en dessous. */}
       <section id="carte" className={`${WRAP} scroll-mt-20 py-14`}>
         <Reveal className="mb-6">
-          <h2 className="font-display text-[clamp(26px,3vw,34px)]">{c.map.title}</h2>
+          <h2 className="font-display text-[clamp(26px,3vw,34px)]">
+            {c.map.title}
+          </h2>
           <p className="mt-2 max-w-[60ch] text-lg leading-relaxed text-ink-soft">
             {c.map.lead}
           </p>
@@ -205,16 +234,24 @@ export default async function BarometrePage({
               key={lv.label}
               className="flex items-center gap-2.5 border-line px-4 py-3 text-[13px] text-ink-soft [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
             >
-              <i className={`h-3.5 w-3.5 shrink-0 rounded-[3px] ${CAT_BG[i]}`} aria-hidden="true" />
+              <i
+                className={`h-3.5 w-3.5 shrink-0 rounded-[3px] ${CAT_BG[i]}`}
+                aria-hidden="true"
+              />
               {lv.label}
-              <span className="ml-auto font-mono text-[11px] text-muted">{lv.range}</span>
+              <span className="ml-auto font-mono text-[11px] text-muted">
+                {lv.range}
+              </span>
             </div>
           ))}
         </Reveal>
       </section>
 
       {/* Classement */}
-      <section id="classement" className="scroll-mt-20 border-y border-line bg-surface">
+      <section
+        id="classement"
+        className="scroll-mt-20 border-y border-line bg-surface"
+      >
         <div className={`${WRAP} py-16`}>
           <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -223,7 +260,10 @@ export default async function BarometrePage({
                 {c.ranking.title}
               </h2>
             </div>
-            <a href="#datasets" className="text-sm font-semibold text-accent-text hover:underline">
+            <a
+              href="#datasets"
+              className="text-sm font-semibold text-accent-text hover:underline"
+            >
               {c.ranking.cta} →
             </a>
           </Reveal>
@@ -235,24 +275,49 @@ export default async function BarometrePage({
                 </caption>
                 <thead>
                   <tr className="border-y border-line text-[12px] uppercase tracking-[0.04em] text-muted">
-                    <th scope="col" className="px-4 py-3 font-medium">{c.ranking.headers.rank}</th>
-                    <th scope="col" className="px-4 py-3 font-medium">{c.ranking.headers.country}</th>
-                    <th scope="col" className="px-4 py-3 font-medium">{c.ranking.headers.index}</th>
-                    <th scope="col" className="px-4 py-3 font-medium">{c.ranking.headers.category}</th>
-                    <th scope="col" className="px-4 py-3 font-medium">{c.ranking.headers.trend}</th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.ranking.headers.rank}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.ranking.headers.country}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.ranking.headers.index}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.ranking.headers.category}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.ranking.headers.trend}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {c.ranking.rows.map((r) => (
-                    <tr key={r.country} className="border-b border-line last:border-0">
-                      <td className="px-4 py-3 font-mono text-muted">{r.pos}</td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-ink">{r.country}</span>{' '}
-                        <span className="font-mono text-[11px] text-muted">{r.region}</span>
+                    <tr
+                      key={r.country}
+                      className="border-b border-line last:border-0"
+                    >
+                      <td className="px-4 py-3 font-mono text-muted">
+                        {r.pos}
                       </td>
-                      <td className="px-4 py-3 font-mono font-semibold text-ink">{r.index}</td>
-                      <td className="px-4 py-3"><CatDot cat={r.cat} label={catLabel(r.cat)} /></td>
-                      <td className="px-4 py-3"><TrendCell trend={r.trend} /></td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-ink">
+                          {r.country}
+                        </span>{' '}
+                        <span className="font-mono text-[11px] text-muted">
+                          {r.region}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono font-semibold text-ink">
+                        {r.index}
+                      </td>
+                      <td className="px-4 py-3">
+                        <CatDot cat={r.cat} label={catLabel(r.cat)} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <TrendCell trend={r.trend} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -281,21 +346,30 @@ export default async function BarometrePage({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-display text-xl">{p.country}</h3>
-                  <div className="mt-0.5 text-[12.5px] text-muted">{p.region}</div>
+                  <div className="mt-0.5 text-[12.5px] text-muted">
+                    {p.region}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-[34px] font-semibold leading-none tracking-[-0.02em] text-ink">
                     {p.score}
                   </div>
-                  <span className={`mt-1 block text-[11px] font-semibold uppercase tracking-[0.06em] ${CAT_TEXT[p.cat - 1]}`}>
+                  <span
+                    className={`mt-1 block text-[11px] font-semibold uppercase tracking-[0.06em] ${CAT_TEXT[p.cat - 1]}`}
+                  >
                     {catLabel(p.cat)}
                   </span>
                 </div>
               </div>
               <div className="mt-5 flex flex-col gap-2.5">
                 {p.bars.map((b, bi) => (
-                  <div key={b.label} className="flex items-center gap-3 text-[12.5px]">
-                    <span className="w-[42%] shrink-0 text-ink-soft">{b.label}</span>
+                  <div
+                    key={b.label}
+                    className="flex items-center gap-3 text-[12.5px]"
+                  >
+                    <span className="w-[42%] shrink-0 text-ink-soft">
+                      {b.label}
+                    </span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-2">
                       <AnimatedBar
                         pct={b.value}
@@ -320,7 +394,10 @@ export default async function BarometrePage({
       </section>
 
       {/* Sous-dimensions */}
-      <section id="dimensions" className="scroll-mt-20 border-y border-line bg-surface">
+      <section
+        id="dimensions"
+        className="scroll-mt-20 border-y border-line bg-surface"
+      >
         <div className={`${WRAP} py-16`}>
           <Reveal className="mb-8 max-w-[58ch]">
             <p className={EYEBROW}>{c.dimensions.eyebrow}</p>
@@ -338,7 +415,9 @@ export default async function BarometrePage({
                 className="flex flex-col rounded-sm border border-line bg-paper p-5"
               >
                 <div className="font-mono text-xs text-accent-text">{d.ix}</div>
-                <h3 className="mt-2 font-display text-lg leading-tight">{d.title}</h3>
+                <h3 className="mt-2 font-display text-lg leading-tight">
+                  {d.title}
+                </h3>
                 <span className="mt-3 h-1.5 overflow-hidden rounded-pill bg-surface-2">
                   <AnimatedBar
                     pct={Math.round(parseFloat(d.mean) * 100)}
@@ -350,7 +429,9 @@ export default async function BarometrePage({
                   <span>{c.dimensions.meanLabel}</span>
                   <span className="text-ink">{d.mean}</span>
                 </div>
-                <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">{d.body}</p>
+                <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">
+                  {d.body}
+                </p>
               </RevealItem>
             ))}
           </RevealGroup>
@@ -391,11 +472,18 @@ export default async function BarometrePage({
           </RevealGroup>
 
           <Reveal className="rounded-sm border border-line bg-surface p-6">
-            <h3 className="font-display text-xl">{c.methodology.guaranteesTitle}</h3>
+            <h3 className="font-display text-xl">
+              {c.methodology.guaranteesTitle}
+            </h3>
             <ul className="mt-4 flex flex-col gap-3.5">
               {c.methodology.guarantees.map((g) => (
-                <li key={g.strong} className="flex gap-3 text-[14px] leading-relaxed">
-                  <span className="mt-0.5 text-accent-text" aria-hidden="true">✓</span>
+                <li
+                  key={g.strong}
+                  className="flex gap-3 text-[14px] leading-relaxed"
+                >
+                  <span className="mt-0.5 text-accent-text" aria-hidden="true">
+                    ✓
+                  </span>
                   <span className="text-ink-soft">
                     <b className="font-semibold text-ink">{g.strong}</b>
                     {g.rest}
@@ -411,7 +499,10 @@ export default async function BarometrePage({
       </section>
 
       {/* Datasets */}
-      <section id="datasets" className="scroll-mt-20 border-y border-line bg-surface">
+      <section
+        id="datasets"
+        className="scroll-mt-20 border-y border-line bg-surface"
+      >
         <div className={`${WRAP} py-16`}>
           <Reveal className="mb-6 max-w-[52ch]">
             <p className={EYEBROW}>{c.datasets.eyebrow}</p>
@@ -427,21 +518,36 @@ export default async function BarometrePage({
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
-                    <th scope="col" className="px-4 py-3 font-medium">{c.datasets.headers.dataset}</th>
-                    <th scope="col" className="px-4 py-3 font-medium">{c.datasets.headers.formats}</th>
-                    <th scope="col" className="px-4 py-3 font-medium">{c.datasets.headers.doi}</th>
-                    <th scope="col" className="px-4 py-3 font-medium">{c.datasets.headers.codebook}</th>
-                    <th scope="col" className="px-4 py-3"><span className="sr-only">Action</span></th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.datasets.headers.dataset}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.datasets.headers.formats}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.datasets.headers.doi}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {c.datasets.headers.codebook}
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      <span className="sr-only">Action</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {c.datasets.rows.map((d, i) => {
                     const dl = dataRows[i];
                     return (
-                      <tr key={d.doi} className="border-b border-line align-top last:border-0">
+                      <tr
+                        key={d.doi}
+                        className="border-b border-line align-top last:border-0"
+                      >
                         <td className="px-4 py-3.5">
                           <div className="font-medium text-ink">{d.name}</div>
-                          <div className="mt-0.5 text-[12.5px] text-muted">{d.sub}</div>
+                          <div className="mt-0.5 text-[12.5px] text-muted">
+                            {d.sub}
+                          </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex flex-wrap gap-1.5">
@@ -467,7 +573,9 @@ export default async function BarometrePage({
                             })}
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 font-mono text-[12px] text-ink-soft">{d.doi}</td>
+                        <td className="px-4 py-3.5 font-mono text-[12px] text-ink-soft">
+                          {d.doi}
+                        </td>
                         <td className="px-4 py-3.5">
                           <a
                             href={codebookHref}

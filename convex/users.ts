@@ -48,13 +48,17 @@ export const setRole = mutation({
       const target = await ctx.db.get(userId);
       if (target?.role === 'admin') {
         if (userId === admin._id) {
-          throw new Error('Un administrateur ne peut pas se rétrograder lui-même.');
+          throw new Error(
+            'Un administrateur ne peut pas se rétrograder lui-même.',
+          );
         }
         const admins = (await ctx.db.query('users').collect()).filter(
           (u) => u.role === 'admin',
         );
         if (admins.length <= 1) {
-          throw new Error('Impossible de rétrograder le dernier administrateur.');
+          throw new Error(
+            'Impossible de rétrograder le dernier administrateur.',
+          );
         }
       }
     }

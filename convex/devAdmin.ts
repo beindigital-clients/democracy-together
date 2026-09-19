@@ -55,9 +55,9 @@ export const purgeUserByEmail = internalMutation({
       (a) => a.userId === user._id,
     );
     const accountIds = new Set(accounts.map((a) => a._id));
-    const codes = (await ctx.db.query('authVerificationCodes').collect()).filter(
-      (c) => accountIds.has(c.accountId),
-    );
+    const codes = (
+      await ctx.db.query('authVerificationCodes').collect()
+    ).filter((c) => accountIds.has(c.accountId));
     for (const c of codes) await ctx.db.delete(c._id);
     for (const a of accounts) await ctx.db.delete(a._id);
 
@@ -132,7 +132,18 @@ export const enrichPublication = internalMutation({
   },
   handler: async (
     ctx,
-    { marker, body, keypoints, image, pages, license, doi, downloads, citations, views },
+    {
+      marker,
+      body,
+      keypoints,
+      image,
+      pages,
+      license,
+      doi,
+      downloads,
+      citations,
+      views,
+    },
   ) => {
     if (process.env.AUTH_DEV_OTP !== 'true') {
       throw new Error('Désactivé (AUTH_DEV_OTP).');

@@ -21,7 +21,7 @@ const base = {
   description: '',
 };
 
-describe("Annuaire — listDirectory (F-19)", () => {
+describe('Annuaire — listDirectory (F-19)', () => {
   it('liste les actifs, filtre, calcule les facettes et trie par nom', async () => {
     const t = convexTest(schema, modules);
     await t.run(async (ctx) => {
