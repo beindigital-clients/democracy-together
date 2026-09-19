@@ -59,6 +59,28 @@ anglais. Règle du fichier : cibler les éléments par leur **nom accessible
 anglais**. Un libellé resté en français n'ajoute pas un texte en trop, il fait
 échouer le locator — c'est ce qui attrape les chaînes codées en dur.
 
+### `AUTH_DEV_OTP` : JAMAIS en production
+**`AUTH_DEV_OTP` ne doit JAMAIS être défini sur le déploiement de production.**
+Ce n'est pas un drapeau isolé mais l'interrupteur de toute la surface de test :
+il fait écrire **chaque code de connexion OTP en clair** dans `devOtpCodes`
+(`convex/otp.ts`), rouvre l'oracle qui les relit, les 7 oracles de lecture
+(énumération d'adresses, corps des messages de contact), les seeds de
+démonstration, et fait journaliser `sendEmail` au lieu d'échouer. Le poser
+quelques minutes en production, c'est rendre lisible en base tout code de
+connexion émis pendant la fenêtre — admin compris.
+
+Ses deux seuls lieux légitimes : le déploiement de **dev local** et les
+**préversions Convex de la CI** (ci-dessous). Avant une mise en service :
+`npx convex env list --names-only --prod` ne doit mentionner ni `AUTH_DEV_OTP`
+ni `RECAPTCHA_DISABLED` (`docs/deploiement.md` § 1.1).
+
+Corollaire : `devAdmin:setRoleByEmail` (gardé par ce drapeau) **n'est pas** la
+procédure d'amorçage de l'administrateur initial en production. Celle-ci passe
+par `bootstrap:bootstrapAdmin` et sa variable dédiée `BOOTSTRAP_ADMIN_EMAIL` —
+`docs/deploiement.md` § 5. Ses tests : `convex/bootstrap.test.ts`, qui vérifient
+au passage que l'amorçage n'écrit rien dans `devOtpCodes` et ne dépend pas
+d'`AUTH_DEV_OTP`.
+
 ### Déploiement Convex pour la CI
 `.github/workflows/e2e.yml` crée une **préversion Convex dédiée par pull
 request** (`convex deploy --preview-create`), y pose `AUTH_DEV_OTP=true` (jamais

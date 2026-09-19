@@ -29,7 +29,11 @@ export default defineSchema({
     // --- Democracy Together ---
     role: v.optional(networkRole),
     preferredLocale: v.optional(locale),
-  }).index('email', ['email']),
+  })
+    .index('email', ['email'])
+    // `by_role` sert la garde « zéro admin » de l'amorçage (convex/bootstrap.ts) :
+    // elle doit répondre par un seul document lu, sans parcourir la table.
+    .index('by_role', ['role']),
 
   // Think tanks membres (F-19 annuaire, F-21 fiche membre).
   organizations: defineTable({
