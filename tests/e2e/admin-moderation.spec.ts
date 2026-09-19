@@ -1,10 +1,11 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   signUpAndVerify,
   elevateRole,
   applyYouth,
   E2E_PASSWORD,
 } from './_helpers';
+import { SESSIONS } from './_sessions';
 
 // Les écrans de back-office qui ÉCRIVENT, bout en bout : une donnée réelle
 // arrive par le chemin public, le staff la traite depuis l'écran, et l'effet
@@ -16,47 +17,37 @@ import {
 // publications (`library-submit.spec.ts`).
 test.use({ locale: 'fr-FR' });
 
-// Crée un compte vérifié et l'élève au rôle voulu (setRoleByEmail est une
-// internalMutation, invoquée via la CLI Convex — cf. `_helpers`).
-async function staffSession(
-  page: Page,
-  prefix: string,
-  role: 'moderateur' | 'editeur' | 'admin',
-) {
-  const email = `e2e_${prefix}_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, E2E_PASSWORD);
-  await elevateRole(email, role);
-  return email;
-}
+test.describe('file des candidatures jeunes (session modérateur partagée)', () => {
+  test.use({ storageState: SESSIONS.moderateur.state });
 
-test('back-office : un modérateur approuve une candidature jeune (F-58/F-26)', async ({
-  page,
-}) => {
-  const stamp = Date.now();
-  const applicant = `Awa Jeunesse E2E ${stamp}`;
+  test('back-office : un modérateur approuve une candidature jeune (F-58/F-26)', async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const applicant = `Awa Jeunesse E2E ${stamp}`;
 
-  // Candidature déposée par le chemin public (action ouverte, comme le
-  // formulaire de /jeunes).
-  await applyYouth({
-    name: applicant,
-    email: `e2e_youth_bo_${stamp}@democracytogether.test`,
-    country: 'Sénégal',
-    motivation:
-      'Je souhaite contribuer aux travaux du réseau sur la participation citoyenne.',
+    // Candidature déposée par le chemin public (action ouverte, comme le
+    // formulaire de /jeunes).
+    await applyYouth({
+      name: applicant,
+      email: `e2e_youth_bo_${stamp}@democracytogether.test`,
+      country: 'Sénégal',
+      motivation:
+        'Je souhaite contribuer aux travaux du réseau sur la participation citoyenne.',
+    });
+
+    await page.goto('/fr/admin/jeunes');
+
+    const row = page.getByRole('listitem').filter({ hasText: applicant });
+    await expect(row).toBeVisible();
+    await row.getByRole('button', { name: 'Approuver' }).click();
+    await expect(row).toHaveCount(0); // quitte la file « En attente »
+
+    await page.getByRole('button', { name: 'Toutes' }).click();
+    const decided = page.getByRole('listitem').filter({ hasText: applicant });
+    await expect(decided).toBeVisible();
+    await expect(decided.getByText('Approuvée')).toBeVisible();
   });
-
-  await staffSession(page, 'bo_jeunes', 'moderateur');
-  await page.goto('/fr/admin/jeunes');
-
-  const row = page.getByRole('listitem').filter({ hasText: applicant });
-  await expect(row).toBeVisible();
-  await row.getByRole('button', { name: 'Approuver' }).click();
-  await expect(row).toHaveCount(0); // quitte la file « En attente »
-
-  await page.getByRole('button', { name: 'Toutes' }).click();
-  const decided = page.getByRole('listitem').filter({ hasText: applicant });
-  await expect(decided).toBeVisible();
-  await expect(decided.getByText('Approuvée')).toBeVisible();
 });
 
 test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)', async ({

@@ -20,7 +20,14 @@ export default defineConfig({
   // (première requête sur une route = compile, le champ peut apparaître tard).
   retries: 1,
   timeout: 45_000,
-  reporter: process.env.CI ? 'github' : 'list',
+  // En CI, le reporter `github` pose les annotations sur la PR mais ne produit
+  // AUCUN fichier : le pas « Publier le rapport » du workflow cherchait donc un
+  // `playwright-report/` inexistant et signalait « No files were found » à
+  // chaque exécution. Conséquence pratique : aucune trace, aucun instantané de
+  // page à examiner, et chaque diagnostic coûtait une exécution complète à
+  // l'aveugle (issue #66). On ajoute le rapport HTML, qui embarque les traces
+  // déjà captées par `trace: 'on-first-retry'`.
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
@@ -31,12 +38,23 @@ export default defineConfig({
   },
   projects: [
     {
+      // Ouvre les sessions partagées et les enregistre sur disque, une fois
+      // pour toute l'exécution (cf. tests/e2e/_sessions.ts). Les projets
+      // ci-dessous en dépendent : Playwright le joue d'abord, et s'arrête là
+      // s'il échoue — un seul message clair plutôt que quinze specs qui
+      // tombent chacune à sa façon.
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
       // Les specs de `tests/e2e/mobile/` appartiennent au projet mobile : les
       // rejouer ici les exécuterait sur un viewport desktop, sans tactile —
-      // exactement ce qu'elles vérifient.
-      testIgnore: '**/mobile/**',
+      // exactement ce qu'elles vérifient. Le projet `setup` a son propre
+      // fichier, qui n'est pas une spec.
+      testIgnore: ['**/mobile/**', '**/auth.setup.ts'],
     },
     {
       // Le mobile est une exigence structurante du cadrage (premier usage
@@ -53,7 +71,14 @@ export default defineConfig({
     // Build de prod : toutes les routes sont pré-compilées, donc pas de flake de
     // compilation à la demande quand plusieurs workers tapent en parallèle (et
     // on teste l'artefact réel). Démarrage plus lent, exécution déterministe.
-    command: 'pnpm build && pnpm start',
+    // La sortie du serveur est relayée dans le log des tests ET conservée dans
+    // `server.log` : relayée, elle se noie au milieu de milliers de lignes de
+    // build ; dans un fichier, le pas d'atelier peut en imprimer la fin, à un
+    // endroit prévisible. C'est ce qui manquait pour diagnostiquer une page qui
+    // répond « Internal Server Error » (issue #66).
+    command: 'pnpm build && pnpm start 2>&1 | tee server.log',
+    stdout: 'pipe',
+    stderr: 'pipe',
     url: 'http://localhost:3000/fr',
     reuseExistingServer: !process.env.CI,
     // Le runner GitHub est plus lent qu'un poste de dev, et ce démarrage inclut

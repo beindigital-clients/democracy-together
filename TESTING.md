@@ -40,6 +40,92 @@ crochet se contourne (`--no-verify`).
   `auth.config.ts` et `http.ts`, eux, restent dehors.
 
 ## E2E — `pnpm test:e2e`
+
+### Sessions partagées : le « fichier de login »
+Un projet Playwright `setup` (`tests/e2e/auth.setup.ts`) ouvre **une session par
+rôle** — membre, modérateur, éditeur, admin — et l'enregistre dans
+`tests/e2e/.auth/<rôle>.json` (dossier ignoré par git). Les projets de test en
+dépendent : Playwright le joue d'abord, et s'arrête là s'il échoue.
+
+Une spec qui a seulement besoin d'être connectée déclare l'état et commence à
+son vrai sujet :
+
+```ts
+test.describe('…', () => {
+  test.use({ storageState: SESSIONS.admin.state });
+  test('…', async ({ page }) => { await page.goto('/fr/admin'); /* … */ });
+});
+```
+
+Auparavant chaque spec de back-office rejouait un parcours de connexion complet
+— provisionnement, mot de passe, code, écran de connexion — avant de commencer.
+Quinze fois, donc quinze occasions d'échouer pour une raison étrangère au sujet
+du test (issue #66). Les parcours d'AUTHENTIFICATION, eux, continuent de se
+connecter pour de vrai : `auth*.spec.ts` et `en-journey.spec.ts` ne doivent pas
+court-circuiter ce qu'ils vérifient.
+
+Les comptes partagés portent des adresses **stables** (`e2e_session_<rôle>@…`).
+Une préversion CI naît vide, mais un déploiement de dev vit longtemps : les
+helpers sont donc idempotents — `provisionUser` fait un upsert, et
+`provisionPassword` relie le même mot de passe à un compte qui l'a déjà.
+
+### Itérer en local
+Les fichiers de session sont **réutilisés d'une exécution à l'autre**. Au
+démarrage, `auth.setup.ts` ouvre chaque état déjà présent et demande une page
+réservée aux connectés : si l'application répond, la session est reprise telle
+quelle ; si elle redirige vers la connexion, le parcours complet est rejoué.
+Relancer une spec ne repaie donc plus les quatre connexions.
+
+| Commande | Effet |
+|---|---|
+| `pnpm test:e2e` | reprend les sessions valides, en rouvre une si besoin |
+| `pnpm test:e2e:login` | efface `tests/e2e/.auth/` et rouvre les quatre sessions |
+| `pnpm test:e2e:ui` | mode interactif, mêmes sessions |
+| `E2E_FRESH_LOGIN=1 pnpm test:e2e` | ignore les fichiers pour cette exécution |
+
+Prérequis : un `.env.local` dont `NEXT_PUBLIC_CONVEX_URL` pointe sur un
+déploiement où `AUTH_DEV_OTP=true` — les helpers de provisionnement sont des
+`internalMutation` gardées par cette variable. Le serveur web est lancé par
+Playwright, et `reuseExistingServer` est actif hors CI : un `pnpm dev` déjà
+ouvert est repris tel quel.
+
+Rouvrir les sessions quand le déploiement Convex a changé, qu'une préversion a
+été purgée, ou que la page de connexion a été retouchée. Dans le doute,
+`pnpm test:e2e:login` : c'est sans effet de bord, les comptes sont
+provisionnés en upsert.
+
+En CI rien ne change — `tests/e2e/.auth/` est ignoré par git, donc absent d'un
+checkout neuf : les quatre connexions s'exécutent pour de vrai.
+
+### Mot de passe des comptes de test
+`provisionPassword` passe par `flow: 'signUp'` puis la vérification par code.
+C'est le SEUL chemin ouvert : `flow: 'reset'` exige un compte mot de passe
+existant et lève `InvalidAccountId` sinon — c'est ce qui tenait quinze specs en
+échec. À noter, côté produit : aucun écran ne permet aujourd'hui de définir un
+mot de passe (l'e-mail d'invitation le promet pourtant), donc ce helper passe
+par l'API faute d'interface à exercer.
+
+### Sources externes — le CMS n'est pas toujours là
+Sanity n'est pas configuré en CI : `sanity/env.ts` retombe sur l'identifiant
+`placeholder`, la requête revient en 404, et la page affiche sa liste vide.
+`news.spec.ts` teste donc **les deux chemins**, et c'est la configuration
+réelle qui décide lequel s'exécute — contenu réel si un projet est renseigné,
+dégradation propre sinon. Dans les deux cas la spec vérifie que la page répond
+**200** : une source indisponible ne doit pas emporter la page.
+
+La règle (`projectId !== 'placeholder'`) est **importée** du module de
+l'application, jamais recopiée : une divergence ferait silencieusement prendre
+la mauvaise branche. Le chemin retenu est annoté dans le rapport.
+
+C'est le motif à suivre pour toute dépendance externe : un test qui dépend d'un
+service tiers vérifie aussi ce que voit l'utilisateur quand ce service répond
+mal. Neutraliser la spec ferait perdre les deux.
+
+### Lire un échec
+`pnpm test:e2e` en local ouvre le rapport HTML. En CI, le job publie
+`playwright-report/` en artefact (traces comprises) **et** imprime dans le log
+l'instantané de page de chaque échec — utile quand l'artefact n'est pas
+téléchargeable.
 - Démarre le serveur automatiquement (webServer Playwright : `pnpm build && pnpm start`).
 - Le flux d'auth crée un **vrai compte** sur le déploiement Convex (e-mail horodaté unique par run).
 - Détection de langue déterministe : `test.use({ locale: 'fr-FR' })` quand on teste la redirection `/`.

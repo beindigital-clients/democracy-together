@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   signUpAndVerify,
   provisionUser,
+  provisionPassword,
   getOtp,
   E2E_PASSWORD,
 } from './_helpers';
@@ -11,8 +12,9 @@ test('inscription + vérification, déconnexion, reconnexion par mot de passe', 
   page,
 }) => {
   const email = `e2e_${Date.now()}@democracytogether.test`;
+  const password = E2E_PASSWORD;
 
-  await signUpAndVerify(page, email, E2E_PASSWORD);
+  await signUpAndVerify(page, email, password);
   await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
     timeout: 15_000,
   });
@@ -26,7 +28,7 @@ test('inscription + vérification, déconnexion, reconnexion par mot de passe', 
   // reconnexion
   await page.goto('/fr/connexion');
   await page.getByLabel('E-mail').fill(email);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
   await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
@@ -59,6 +61,9 @@ test('définition du mot de passe : saisies non concordantes refusées', async (
 }) => {
   const email = `mismatch_${Date.now()}@democracytogether.test`;
   await provisionUser(email);
+  // L'écran de reset exige un compte qui a DÉJÀ un mot de passe : sans cela,
+  // `flow: 'reset'` lève `InvalidAccountId` et l'écran n'apparaît pas (#66).
+  await provisionPassword(email, 'motdepassedepart1');
 
   await page.goto('/fr/mot-de-passe-oublie');
   await page.getByLabel('E-mail').fill(email);

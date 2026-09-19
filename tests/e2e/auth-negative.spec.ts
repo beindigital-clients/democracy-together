@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndVerify, provisionUser, getOtp } from './_helpers';
+import {
+  signUpAndVerify,
+  provisionUser,
+  provisionPassword,
+  getOtp,
+  E2E_PASSWORD,
+} from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
@@ -9,14 +15,14 @@ test('connexion : mauvais mot de passe refusé, pas de session (F-01)', async ({
   page,
 }) => {
   const email = `e2e_wrongpw_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, 'bonmotdepasse1');
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await page.getByRole('button', { name: 'Déconnexion' }).click();
 
   await page.goto('/fr/connexion');
   await page.getByLabel('E-mail').fill(email);
   await page
     .getByLabel('Mot de passe', { exact: true })
-    .fill('mauvaismotdepasse');
+    .fill('un-mauvais-mot-de-passe');
   await page.getByRole('button', { name: 'Se connecter' }).click();
 
   // reste sur /connexion, message d'erreur, jamais authentifié
@@ -65,15 +71,22 @@ test('/inscription redirige vers la demande d’adhésion (F-22)', async ({
   await expect(page).toHaveURL(/\/fr\/adhesion$/);
 });
 
-// Politique de mot de passe (sécurité — constat M4). Le refus vient du serveur :
-// « mot de passe oublié » est, faute d'auto-inscription, LE parcours par lequel
-// un membre pose son mot de passe, et la banalité d'un mot de passe est la seule
-// règle que le navigateur ne peut pas vérifier lui-même.
-test('définition du mot de passe : un mot de passe trop courant est refusé', async ({
+// Politique de mot de passe (sécurité — constat M4). La banalité d'un mot de
+// passe est la SEULE règle que le navigateur ne peut pas vérifier lui-même : la
+// longueur, il la refuse par `minLength`. Ce test vise donc le refus serveur, et
+// le message que l'interface en tire.
+//
+// Le compte reçoit d'abord un mot de passe par `provisionPassword` : « mot de
+// passe oublié » commence par `retrieveAccount` et lève `InvalidAccountId` sans
+// compte « password » préalable (issue #66). Une fixture qui s'arrêterait à
+// `provisionUser` mourrait donc avant d'atteindre le champ visé, et le test
+// passerait pour un échec de politique alors qu'il n'aurait rien exercé.
+test('changement de mot de passe : un mot de passe trop courant est refusé', async ({
   page,
 }) => {
   const email = `e2e_weakpw_${Date.now()}@democracytogether.test`;
   await provisionUser(email);
+  await provisionPassword(email, E2E_PASSWORD);
 
   await page.goto('/fr/mot-de-passe-oublie');
   await page.getByLabel('E-mail').fill(email);

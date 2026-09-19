@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndVerify, elevateRole, E2E_PASSWORD } from './_helpers';
+import { SESSIONS } from './_sessions';
 
 // F-26 — Back-office : les 13 écrans, atteints par la barre d'onglets.
 // Jusqu'ici un seul était parcouru ; les 12 autres pouvaient tomber (requête
@@ -92,55 +92,55 @@ const SCREENS = [
   },
 ] as const;
 
-test('back-office : les 13 écrans sont atteignables depuis la barre d’onglets (F-26)', async ({
-  page,
-}) => {
-  const email = `e2e_bo_tour_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, E2E_PASSWORD);
-  await elevateRole(email, 'admin');
+test.describe('parcours des onglets (session admin partagée)', () => {
+  test.use({ storageState: SESSIONS.admin.state });
 
-  await page.goto('/fr/admin');
-  const tabs = page.getByRole('navigation', { name: 'Administration' });
+  test('back-office : les 13 écrans sont atteignables depuis la barre d’onglets (F-26)', async ({
+    page,
+  }) => {
+    await page.goto('/fr/admin');
+    const tabs = page.getByRole('navigation', { name: 'Administration' });
 
-  for (const screen of SCREENS) {
-    await tabs.getByRole('link', { name: screen.nav, exact: true }).click();
-    await expect(page).toHaveURL(
-      new RegExp(`${screen.path.replace('/fr', '')}$`),
-    );
-    await expect(
-      page.getByRole('heading', { level: 1, name: screen.h1 }),
-    ).toBeVisible();
-    // l'onglet courant est signalé (et lui seul)
-    await expect(
-      tabs.getByRole('link', { name: screen.nav, exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
-  }
+    for (const screen of SCREENS) {
+      await tabs.getByRole('link', { name: screen.nav, exact: true }).click();
+      await expect(page).toHaveURL(
+        new RegExp(`${screen.path.replace('/fr', '')}$`),
+      );
+      await expect(
+        page.getByRole('heading', { level: 1, name: screen.h1 }),
+      ).toBeVisible();
+      // l'onglet courant est signalé (et lui seul)
+      await expect(
+        tabs.getByRole('link', { name: screen.nav, exact: true }),
+      ).toHaveAttribute('aria-current', 'page');
+    }
+  });
 });
 
-test('back-office : un modérateur ne voit ni ne peut lire les écrans admin/éditeur (F-26/F-63)', async ({
-  page,
-}) => {
-  const email = `e2e_bo_mod_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, E2E_PASSWORD);
-  await elevateRole(email, 'moderateur');
+test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
+  test.use({ storageState: SESSIONS.moderateur.state });
 
-  await page.goto('/fr/admin');
-  const tabs = page.getByRole('navigation', { name: 'Administration' });
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Tableau de bord' }),
-  ).toBeVisible();
+  test('back-office : un modérateur ne voit ni ne peut lire les écrans admin/éditeur (F-26/F-63)', async ({
+    page,
+  }) => {
+    await page.goto('/fr/admin');
+    const tabs = page.getByRole('navigation', { name: 'Administration' });
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Tableau de bord' }),
+    ).toBeVisible();
 
-  for (const screen of SCREENS) {
-    const tab = tabs.getByRole('link', { name: screen.nav, exact: true });
-    if (screen.min === 'moderateur') {
-      await expect(tab).toBeVisible();
-    } else {
-      await expect(tab).toHaveCount(0); // onglet non proposé
+    for (const screen of SCREENS) {
+      const tab = tabs.getByRole('link', { name: screen.nav, exact: true });
+      if (screen.min === 'moderateur') {
+        await expect(tab).toBeVisible();
+      } else {
+        await expect(tab).toHaveCount(0); // onglet non proposé
+      }
     }
-  }
 
-  // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus —
-  // l'écran refuse de rendre la liste (et la requête Convex la refuserait aussi).
-  await page.goto('/fr/admin/utilisateurs');
-  await expect(page.getByText('Réservé aux administrateurs.')).toBeVisible();
+    // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus —
+    // l'écran refuse de rendre la liste (et la requête Convex la refuserait aussi).
+    await page.goto('/fr/admin/utilisateurs');
+    await expect(page.getByText('Réservé aux administrateurs.')).toBeVisible();
+  });
 });
