@@ -156,23 +156,73 @@ export async function getOtp(email: string): Promise<string> {
   throw new Error(`Aucun code OTP trouvé pour ${email}`);
 }
 
-// Crée un compte e-mail/mot de passe et valide la vérification e-mail.
-export async function signUpAndVerify(
+// Provisionne un compte ET connecte le navigateur (remplace signUpAndVerify).
+//
+// L'auto-inscription publique n'existe plus : /inscription redirige vers
+// /adhesion, et la connexion refuse un e-mail inconnu. Un test qui a besoin
+// d'une session doit donc d'abord faire EXISTER le compte — comme le fait la
+// vraie vie, où c'est l'approbation d'une candidature ou une invitation
+// d'administrateur qui l'ouvre. On passe par la CLI Convex (contexte de
+// confiance) puis par la connexion par code, qui est le parcours réel d'un
+// membre invité.
+export async function provisionUser(
+  email: string,
+  role: NetworkRole = 'membre',
+): Promise<void> {
+  await elevateRole(email, role); // upsert : crée le compte s'il n'existe pas
+}
+
+export async function signInWithCode(page: Page, email: string) {
+  await page.goto('/fr/connexion-otp');
+  await page.getByLabel('E-mail').fill(email);
+  await page.getByRole('button', { name: 'Recevoir un code' }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await page.getByRole('button', { name: 'Se connecter' }).click();
+
+  await expect(page).toHaveURL(/\/espace-membre$/);
+}
+
+// Définit un mot de passe sur un compte qui n'en a pas encore.
+//
+// C'est le parcours réel d'un membre invité : son compte est ouvert par
+// l'approbation de sa candidature (ou par une invitation d'admin), sans mot de
+// passe. Le flux « mot de passe oublié » ne demande pas l'ancien mot de passe —
+// il sert donc aussi à définir le PREMIER.
+export async function setPasswordViaReset(
   page: Page,
   email: string,
   password: string,
 ) {
-  await page.goto('/fr/inscription');
+  await page.goto('/fr/mot-de-passe-oublie');
   await page.getByLabel('E-mail').fill(email);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
-  await page.getByLabel('Confirmer le mot de passe').fill(password);
-  await page.getByRole('button', { name: 'Créer le compte' }).click();
+  await page.getByRole('button', { name: 'Envoyer le code' }).click();
 
   await expect(
-    page.getByRole('heading', { name: 'Vérifiez votre e-mail' }),
+    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
   ).toBeVisible();
   await page.getByLabel('Code de vérification').fill(await getOtp(email));
-  await page.getByRole('button', { name: 'Vérifier' }).click();
+  await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(password);
+  await page.getByLabel('Confirmer le mot de passe').fill(password);
+  await page
+    .getByRole('button', { name: 'Réinitialiser le mot de passe' })
+    .click();
+}
 
+// Remplaçant direct de l'ancienne fixture : elle naviguait vers
+// /fr/inscription, désormais redirigée vers /adhesion, ce qui cassait 5 specs
+// (audit § 6.1, commit 8be46bc). Contrat préservé : à la sortie, le compte
+// existe, possède ce mot de passe, et la session est ouverte.
+export async function signUpAndVerify(
+  page: Page,
+  email: string,
+  password: string,
+  role: NetworkRole = 'membre',
+) {
+  await provisionUser(email, role);
+  await setPasswordViaReset(page, email, password);
   await expect(page).toHaveURL(/\/espace-membre$/);
 }

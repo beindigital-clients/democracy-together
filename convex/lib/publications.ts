@@ -224,17 +224,6 @@ export function projectPublication<
   };
 }
 
-// Slug URL à partir d'un titre (dépôt membre, F-32) : sans accents, minuscules,
-// alphanumérique + tirets, borné à ~72 caractères. Pur -> testable. L'unicité
-// (suffixe -2, -3…) est gérée par la mutation au moment de l'insertion.
-export function slugify(title: string): string {
-  const base = title
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 72)
-    .replace(/-+$/g, '');
-  return base || 'publication';
-}
+// Slug URL — implémentation partagée (publications ET annuaire des membres).
+// Ré-exporté ici pour ne pas casser les imports existants.
+export { slugify } from './slug';

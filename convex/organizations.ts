@@ -1,5 +1,12 @@
 import { v } from 'convex/values';
-import { action, internalMutation, internalQuery, mutation, query } from './_generated/server';
+import {
+  action,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { getAuthUserId } from '@convex-dev/auth/server';
@@ -11,6 +18,13 @@ import { notify } from './lib/notify';
 import { matchesFilters, computeFacets } from './lib/directory';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { slugify } from './lib/slug';
+import { sendEmail } from './email';
+import {
+  normalizeEmail,
+  validateDirectoryFields,
+  invitationEmail,
+} from './lib/onboarding';
 
 // Annuaire public des think tanks (F-19) : liste filtrée + facettes calculées
 // sur l'ensemble des membres actifs (pour ne proposer que des filtres utiles).
@@ -133,55 +147,161 @@ export const latestApplicationForEmail = internalQuery({
 });
 
 // Validation d'une candidature (F-22 / F-26) — modérateur et au-dessus, audité.
+//
+// C'est ici que se jouait le blocage n°1 de l'audit : l'approbation se
+// contentait d'élever le rôle d'un compte DÉJÀ existant. Depuis la suppression
+// de l'auto-inscription, un candidat qui n'avait jamais créé de compte ne
+// pouvait donc jamais se connecter (la connexion refuse un e-mail inconnu), et
+// aucune organisation n'entrait dans l'annuaire. L'approbation crée désormais
+// les trois objets manquants : le COMPTE, l'ORGANISATION et le RATTACHEMENT.
 export const reviewApplication = mutation({
   args: {
     applicationId: v.id('membershipApplications'),
     decision: v.union(v.literal('approved'), v.literal('rejected')),
     notes: v.optional(v.string()),
+    // Champs d'annuaire saisis par le modérateur (F-19). La candidature ne
+    // collecte qu'un pays en texte libre ; sans ces champs, la fiche serait
+    // publiée avec une région et des thématiques inventées. Absents -> la fiche
+    // est créée en 'pending' et reste hors de l'annuaire public, mais le compte
+    // est créé quand même : le membre peut se connecter immédiatement.
+    directory: v.optional(
+      v.object({
+        countryCode: v.string(),
+        region: v.string(),
+        themes: v.array(v.string()),
+        languages: v.array(v.string()),
+        description: v.optional(v.string()),
+        websiteUrl: v.optional(v.string()),
+      }),
+    ),
   },
-  handler: async (ctx, { applicationId, decision, notes }) => {
+  handler: async (ctx, { applicationId, decision, notes, directory }) => {
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
     const application = await ctx.db.get(applicationId);
     if (!application) throw new Error('NOT_FOUND');
+    // Machine à états (audit M6) : une candidature déjà tranchée ne se rejoue
+    // pas. Sans cela, ré-approuver créait des doublons de compte et de fiche, et
+    // « rejeter » après approbation laissait le rôle accordé en place.
+    if (application.status !== 'pending') throw new Error('ALREADY_REVIEWED');
 
+    const now = Date.now();
     await ctx.db.patch(applicationId, {
       status: decision,
       reviewedBy: reviewer._id,
       reviewNotes: notes,
-      reviewedAt: Date.now(),
+      reviewedAt: now,
     });
 
-    // Modèle d'adhésion B : approuver une candidature liée à un compte élève ce
-    // compte au rôle « membre » (sans jamais rétrograder un rôle supérieur) —
-    // c'est ce qui débloque le dépôt de publications.
-    if (decision === 'approved' && application.applicantUserId) {
-      const applicant = await ctx.db.get(application.applicantUserId);
-      if (applicant && rank(applicant.role) < rank('membre')) {
-        await ctx.db.patch(applicant._id, { role: 'membre' });
-        await recordAudit(ctx, {
-          actorId: reviewer._id,
-          action: AUDIT.USER_ROLE_CHANGED,
-          targetId: applicant._id,
-          metadata: { role: 'membre', via: 'membership' },
+    if (decision === 'rejected') {
+      if (application.applicantUserId) {
+        await notify(ctx, {
+          userId: application.applicantUserId,
+          type: 'membership_rejected',
+          titleKey: 'membershipRejected',
+          link: '/adhesion',
         });
       }
+      await recordAudit(ctx, {
+        actorId: reviewer._id,
+        action: AUDIT.MEMBERSHIP_REVIEWED,
+        targetId: applicationId,
+        metadata: { decision },
+      });
+      return { userCreated: false, organizationId: null };
     }
 
-    // Notifie le candidat de l'issue de sa demande d'adhésion (F-25/F-51).
-    if (application.applicantUserId) {
-      await notify(ctx, {
-        userId: application.applicantUserId,
-        type:
-          decision === 'approved'
-            ? 'membership_approved'
-            : 'membership_rejected',
-        titleKey:
-          decision === 'approved'
-            ? 'membershipApproved'
-            : 'membershipRejected',
-        link: decision === 'approved' ? '/espace-membre' : '/adhesion',
+    // --- 1) Le COMPTE ---------------------------------------------------------
+    // Normalisé exactement comme le fera la connexion, sinon le membre approuvé
+    // ne retrouvera jamais son compte.
+    const email = normalizeEmail(application.contactEmail);
+    const linked = application.applicantUserId
+      ? await ctx.db.get(application.applicantUserId)
+      : null;
+    const byEmail = linked
+      ? null
+      : await ctx.db
+          .query('users')
+          .withIndex('email', (q) => q.eq('email', email))
+          .first();
+
+    let user = linked ?? byEmail;
+    let userCreated = false;
+    if (!user) {
+      const id = await ctx.db.insert('users', { email, role: 'membre' });
+      user = (await ctx.db.get(id))!;
+      userCreated = true;
+      await recordAudit(ctx, {
+        actorId: reviewer._id,
+        action: AUDIT.USER_INVITED,
+        targetId: id,
+        metadata: { via: 'membership', email },
+      });
+    } else if (rank(user.role) < rank('membre')) {
+      // On n'écrase JAMAIS un rôle supérieur.
+      await ctx.db.patch(user._id, { role: 'membre' });
+      await recordAudit(ctx, {
+        actorId: reviewer._id,
+        action: AUDIT.USER_ROLE_CHANGED,
+        targetId: user._id,
+        metadata: { role: 'membre', via: 'membership' },
       });
     }
+
+    // --- 2) L'ORGANISATION et 3) le RATTACHEMENT -----------------------------
+    let organizationId: Id<'organizations'> | null = null;
+    if (application.type === 'organisation') {
+      const fields = directory ? validateDirectoryFields(directory) : null;
+      if (fields && !fields.ok) throw new Error(fields.reason);
+      const d = fields && fields.ok ? fields.value : null;
+
+      // Slug unique (suffixe incrémental), comme pour les publications.
+      const root = slugify(application.organizationName);
+      let slug = root;
+      let n = 2;
+      while (
+        await ctx.db
+          .query('organizations')
+          .withIndex('by_slug', (q) => q.eq('slug', slug))
+          .first()
+      ) {
+        slug = `${root}-${n++}`;
+      }
+
+      organizationId = await ctx.db.insert('organizations', {
+        name: application.organizationName,
+        slug,
+        // Sans champs d'annuaire, la fiche reste 'pending' : mieux vaut une
+        // fiche à compléter qu'une fiche publique fausse.
+        country: d?.countryCode ?? application.country,
+        region: d?.region ?? '',
+        languages: d?.languages ?? [],
+        themes: d?.themes ?? [],
+        ...(d?.description ? { description: d.description } : {}),
+        ...(d?.websiteUrl ? { websiteUrl: d.websiteUrl } : {}),
+        status: d ? 'active' : 'pending',
+        createdAt: now,
+      });
+      await ctx.db.insert('organizationMemberships', {
+        userId: user._id,
+        orgId: organizationId,
+        orgRole: 'owner',
+        createdAt: now,
+      });
+      await ctx.db.patch(applicationId, { createdOrgId: organizationId });
+      await recordAudit(ctx, {
+        actorId: reviewer._id,
+        action: AUDIT.ORGANIZATION_CREATED,
+        targetId: organizationId,
+        metadata: { slug, status: d ? 'active' : 'pending' },
+      });
+    }
+
+    await notify(ctx, {
+      userId: user._id,
+      type: 'membership_approved',
+      titleKey: 'membershipApproved',
+      link: '/espace-membre',
+    });
 
     await recordAudit(ctx, {
       actorId: reviewer._id,
@@ -189,5 +309,42 @@ export const reviewApplication = mutation({
       targetId: applicationId,
       metadata: { decision },
     });
+
+    // L'e-mail part dans une ACTION planifiée (jamais de fetch en mutation).
+    // Son échec ne remet pas en cause l'approbation : le compte existe déjà, et
+    // l'invitation est renvoyable depuis le back-office.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.organizations.sendMembershipInvitation,
+      { applicationId, email, organizationName: application.organizationName },
+    );
+
+    return { userCreated, organizationId };
+  },
+});
+
+// Envoi de l'invitation à se connecter (action : appel réseau interdit en
+// mutation). Marque `invitedAt` seulement si l'envoi a réussi, pour qu'un
+// renvoi reste possible et visible côté back-office.
+export const sendMembershipInvitation = internalAction({
+  args: {
+    applicationId: v.id('membershipApplications'),
+    email: v.string(),
+    organizationName: v.string(),
+  },
+  handler: async (ctx, { applicationId, email, organizationName }) => {
+    const { subject, html } = invitationEmail({
+      organizationName,
+      siteUrl: process.env.SITE_URL ?? 'http://localhost:3000',
+    });
+    await sendEmail({ to: email, subject, html });
+    await ctx.runMutation(internal.organizations.markInvited, { applicationId });
+  },
+});
+
+export const markInvited = internalMutation({
+  args: { applicationId: v.id('membershipApplications') },
+  handler: async (ctx, { applicationId }) => {
+    await ctx.db.patch(applicationId, { invitedAt: Date.now() });
   },
 });
