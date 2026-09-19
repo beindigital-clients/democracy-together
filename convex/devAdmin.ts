@@ -75,9 +75,14 @@ export const purgeUserByEmail = internalMutation({
     if (process.env.AUTH_DEV_OTP !== 'true') {
       throw new Error('Désactivé (AUTH_DEV_OTP).');
     }
-    const user = (await ctx.db.query('users').collect()).find(
-      (u) => u.email === email,
-    );
+    // Lecture indexée (index `email` de `users`), comme setRoleByEmail et comme
+    // le callback de connexion : plus aucun chemin ne scanne `users` par
+    // e-mail. Égalité exacte, sans normalisation — c'est une purge, elle doit
+    // viser l'adresse demandée et elle seule.
+    const user = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', email))
+      .first();
     if (!user) return { deleted: false, reason: 'introuvable' };
 
     const accounts = (await ctx.db.query('authAccounts').collect()).filter(
