@@ -166,9 +166,20 @@ export const reportContent = mutation({
       key: `tribuneReport:${user._id}`,
       ...RATE_LIMITS.tribuneReport,
     });
+    // La cible doit être un identifiant Convex de la BONNE table, et exister
+    // (audit M1 / pentest H-2). Sans cette validation, n'importe quel compte
+    // authentifié pouvait écrire une chaîne arbitraire ici : `listReports` la
+    // relisait ensuite via ctx.db.get et la file de modération devenait
+    // inaccessible à TOUS les modérateurs — sans moyen de résoudre le
+    // signalement fautif, qui ne se résout que depuis cette même page.
+    const table = targetType === 'post' ? 'tribunePosts' : 'tribuneComments';
+    const normalized = ctx.db.normalizeId(table, targetId);
+    if (!normalized || !(await ctx.db.get(normalized))) {
+      throw new Error('INVALID_TARGET');
+    }
     await ctx.db.insert('tribuneReports', {
       targetType,
-      targetId,
+      targetId: normalized,
       reason: reason?.trim() || undefined,
       reporterUserId: user._id,
       resolved: false,
@@ -273,14 +284,22 @@ export const listReports = query({
         .map(async (r) => {
           let excerpt = '(supprimé)';
           let postId: string | null = null;
+          // `normalizeId` AVANT tout ctx.db.get : `targetId` est une colonne
+          // `v.string()`, donc une ligne écrite avant le correctif (ou par une
+          // future voie d'écriture) peut contenir n'importe quoi. Un cast
+          // aveugle y faisait échouer la requête entière, condamnant la file
+          // pour tous les modérateurs (audit M1). Une cible illisible est
+          // simplement affichée « (supprimé) » et reste résolvable.
           if (r.targetType === 'post') {
-            const p = await ctx.db.get(r.targetId as Id<'tribunePosts'>);
+            const id = ctx.db.normalizeId('tribunePosts', r.targetId);
+            const p = id ? await ctx.db.get(id) : null;
             if (p) {
               excerpt = p.title;
               postId = p._id;
             }
           } else {
-            const c = await ctx.db.get(r.targetId as Id<'tribuneComments'>);
+            const id = ctx.db.normalizeId('tribuneComments', r.targetId);
+            const c = id ? await ctx.db.get(id) : null;
             if (c) {
               excerpt = c.body.length > 140 ? `${c.body.slice(0, 140)}…` : c.body;
               postId = c.postId;
@@ -310,11 +329,17 @@ export const resolveReport = mutation({
     if (!report) throw new Error('NOT_FOUND');
 
     if (action === 'remove') {
+      // Même précaution que dans `listReports` : la cible est normalisée avant
+      // toute lecture. Sans cela, un signalement à la cible illisible ne
+      // pouvait même pas être TRAITÉ (« retirer » levait), et restait donc
+      // indéfiniment dans la file (audit M1).
       if (report.targetType === 'post') {
-        const p = await ctx.db.get(report.targetId as Id<'tribunePosts'>);
+        const id = ctx.db.normalizeId('tribunePosts', report.targetId);
+        const p = id ? await ctx.db.get(id) : null;
         if (p) await ctx.db.patch(p._id, { status: 'removed' });
       } else {
-        const c = await ctx.db.get(report.targetId as Id<'tribuneComments'>);
+        const id = ctx.db.normalizeId('tribuneComments', report.targetId);
+        const c = id ? await ctx.db.get(id) : null;
         if (c) {
           await ctx.db.patch(c._id, { status: 'removed' });
           const post = await ctx.db.get(c.postId);
