@@ -3,6 +3,7 @@ import { parseConvexRunOutput } from './_convex-output';
 import { expect, type Page } from '@playwright/test';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
+import { retrySync, retryAsync } from './_retry';
 
 // Client Convex créé À LA DEMANDE. Instancié au niveau module, il faisait
 // échouer `playwright test --list` avant même d'afficher la liste des tests dès
@@ -38,16 +39,18 @@ function convexRun(fn: string, args: Record<string, unknown> = {}): void {
   const env = { ...process.env };
   delete env.CONVEX_DEPLOYMENT;
   const preview = process.env.CONVEX_PREVIEW_NAME;
-  execFileSync(
-    'npx',
-    [
-      'convex',
-      'run',
-      ...(preview ? ['--preview-name', preview] : []),
-      fn,
-      JSON.stringify(args),
-    ],
-    { stdio: 'pipe', env },
+  retrySync(fn, () =>
+    execFileSync(
+      'npx',
+      [
+        'convex',
+        'run',
+        ...(preview ? ['--preview-name', preview] : []),
+        fn,
+        JSON.stringify(args),
+      ],
+      { stdio: 'pipe', env },
+    ),
   );
 }
 
@@ -96,7 +99,9 @@ export async function submitApplication(args: {
   // via .action(). La porte est fail-closed (issue #24) : le déploiement de test
   // doit porter RECAPTCHA_DISABLED=true — posé par .github/workflows/e2e.yml, et
   // à poser une fois sur son déploiement de dev (cf. .env.example).
-  await convex().action(api.organizations.submitApplication, args);
+  await retryAsync('organizations:submitApplication', () =>
+    convex().action(api.organizations.submitApplication, args),
+  );
 }
 
 // Dépose une candidature du hub jeunes (F-40) par le chemin public — pour
@@ -111,7 +116,9 @@ export async function applyYouth(args: {
   motivation: string;
   themes?: string[];
 }): Promise<void> {
-  await convex().action(api.youth.applyYouth, args);
+  await retryAsync('youth:applyYouth', () =>
+    convex().action(api.youth.applyYouth, args),
+  );
 }
 
 // --- Oracles de lecture DEV --------------------------------------------------
@@ -128,16 +135,18 @@ function convexRunQuery<T>(
   const env = { ...process.env };
   delete env.CONVEX_DEPLOYMENT;
   const preview = process.env.CONVEX_PREVIEW_NAME;
-  const out = execFileSync(
-    'npx',
-    [
-      'convex',
-      'run',
-      ...(preview ? ['--preview-name', preview] : []),
-      fn,
-      JSON.stringify(args),
-    ],
-    { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8', env },
+  const out = retrySync(fn, () =>
+    execFileSync(
+      'npx',
+      [
+        'convex',
+        'run',
+        ...(preview ? ['--preview-name', preview] : []),
+        fn,
+        JSON.stringify(args),
+      ],
+      { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8', env },
+    ),
   );
   return parseConvexRunOutput<T>(out);
 }
