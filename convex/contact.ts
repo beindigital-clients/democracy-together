@@ -1,9 +1,18 @@
 import { v } from 'convex/values';
-import { action, internalMutation, internalQuery, query } from './_generated/server';
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
+import { requireNetworkRole } from './lib/rbac';
+import { recordAudit } from './lib/audit';
+import { AUDIT } from './lib/auditActions';
 
 const fields = {
   name: v.string(),
@@ -75,5 +84,48 @@ export const latestForEmail = internalQuery({
     return m
       ? { name: m.name, subject: m.subject, body: m.body, handled: m.handled }
       : null;
+  },
+});
+
+// --- Back-office (F-17 / F-26) ----------------------------------------------
+// Les messages partaient dans un trou noir : aucune query ne les relisait et
+// `handled` n'était jamais mis à jour (audit § 3.1). Un visiteur écrivait au
+// secrétariat, et personne ne pouvait le lire.
+//
+// Réservé au modérateur et au-dessus : ces messages contiennent des données
+// personnelles (nom, adresse e-mail, contenu libre).
+export const listMessages = query({
+  args: { status: v.optional(v.union(v.literal('pending'), v.literal('all'))) },
+  handler: async (ctx, { status }) => {
+    await requireNetworkRole(ctx, 'moderateur');
+    const msgs =
+      status === 'all'
+        ? await ctx.db.query('contactMessages').collect()
+        : status === 'pending'
+          ? await ctx.db
+              .query('contactMessages')
+              .withIndex('by_handled', (q) => q.eq('handled', false))
+              .collect()
+          : await ctx.db.query('contactMessages').collect();
+    return msgs.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+// Marquage « traité », réversible : un message rouvert doit pouvoir repasser
+// dans la file. Audité, comme toute action de back-office.
+export const setHandled = mutation({
+  args: { messageId: v.id('contactMessages'), handled: v.boolean() },
+  handler: async (ctx, { messageId, handled }) => {
+    const actor = await requireNetworkRole(ctx, 'moderateur');
+    const msg = await ctx.db.get(messageId);
+    if (!msg) throw new Error('NOT_FOUND');
+    await ctx.db.patch(messageId, { handled });
+    await recordAudit(ctx, {
+      actorId: actor._id,
+      action: AUDIT.CONTACT_HANDLED,
+      targetId: messageId,
+      metadata: { handled: String(handled) },
+    });
+    return { ok: true };
   },
 });

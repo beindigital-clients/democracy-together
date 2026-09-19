@@ -719,7 +719,17 @@
     "inviteSubmit": "Send invitation",
     "inviteCreated": "Account created, invitation sent.",
     "inviteExisting": "This account already existed: invitation resent, role unchanged.",
-    "inviteError": "The invitation failed. Check the address."
+    "inviteError": "The invitation failed. Check the address.",
+    "contactMessages": "Messages",
+    "contactTitle": "Contact messages",
+    "contactEmpty": "No messages.",
+    "contactFrom": "From",
+    "contactReceived": "Received on",
+    "contactMarkHandled": "Mark as handled",
+    "contactMarkPending": "Reopen",
+    "contactHandled": "Handled",
+    "contactPending": "To handle",
+    "contactReply": "Reply by email"
   },
   "news": {
     "eyebrow": "News",

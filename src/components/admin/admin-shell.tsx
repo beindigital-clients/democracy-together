@@ -76,6 +76,7 @@ function AdminNav({
     { href: '/admin/mentorat', key: 'mentorship' },
     { href: '/admin/projets', key: 'projects' },
     { href: '/admin/signalements', key: 'reports' },
+    { href: '/admin/contact', key: 'contactMessages' },
     ...(isEditor
       ? [
           { href: '/admin/revue', key: 'review' },

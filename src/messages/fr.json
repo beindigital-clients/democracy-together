@@ -719,7 +719,17 @@
     "inviteSubmit": "Envoyer l'invitation",
     "inviteCreated": "Compte créé, invitation envoyée.",
     "inviteExisting": "Ce compte existait déjà : invitation renvoyée, rôle inchangé.",
-    "inviteError": "L'invitation a échoué. Vérifiez l'adresse."
+    "inviteError": "L'invitation a échoué. Vérifiez l'adresse.",
+    "contactMessages": "Messages",
+    "contactTitle": "Messages de contact",
+    "contactEmpty": "Aucun message.",
+    "contactFrom": "De",
+    "contactReceived": "Reçu le",
+    "contactMarkHandled": "Marquer comme traité",
+    "contactMarkPending": "Rouvrir",
+    "contactHandled": "Traité",
+    "contactPending": "À traiter",
+    "contactReply": "Répondre par e-mail"
   },
   "news": {
     "eyebrow": "Actualités",
