@@ -454,7 +454,9 @@
     "errorSignIn": "Incorrect email or password.",
     "errorCode": "Invalid or expired code.",
     "errorSignUp": "Could not create the account (email already used?).",
-    "errorMismatch": "The passwords do not match."
+    "errorMismatch": "The passwords do not match.",
+    "errorPasswordTooShort": "Password too short: {min} characters minimum.",
+    "errorPasswordTooCommon": "This password is too common. Please choose another one."
   },
   "directory": {
     "eyebrow": "The network",

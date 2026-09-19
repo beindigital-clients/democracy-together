@@ -13,3 +13,16 @@ export function isRateLimited(error: unknown): boolean {
 export function isCaptchaFailed(error: unknown): boolean {
   return error instanceof ConvexError && error.data === 'CAPTCHA_FAILED';
 }
+
+// Mot de passe refusé par la politique du serveur
+// (convex/lib/passwordPolicy.ts). Deux codes distincts parce que les deux
+// refus n'appellent pas la même correction : allonger, ou changer d'idée.
+// Sans eux, le parcours « mot de passe oublié » retomberait sur son message
+// d'échec générique — « code invalide » — qui désignerait le mauvais coupable.
+export function isPasswordTooShort(error: unknown): boolean {
+  return error instanceof ConvexError && error.data === 'PASSWORD_TOO_SHORT';
+}
+
+export function isPasswordTooCommon(error: unknown): boolean {
+  return error instanceof ConvexError && error.data === 'PASSWORD_TOO_COMMON';
+}

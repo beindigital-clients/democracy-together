@@ -1,5 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
-import { signUpAndVerify, elevateRole, applyYouth } from './_helpers';
+import {
+  signUpAndVerify,
+  elevateRole,
+  applyYouth,
+  E2E_PASSWORD,
+} from './_helpers';
 
 // Les écrans de back-office qui ÉCRIVENT, bout en bout : une donnée réelle
 // arrive par le chemin public, le staff la traite depuis l'écran, et l'effet
@@ -11,8 +16,6 @@ import { signUpAndVerify, elevateRole, applyYouth } from './_helpers';
 // publications (`library-submit.spec.ts`).
 test.use({ locale: 'fr-FR' });
 
-const PW = 'motdepasse123';
-
 // Crée un compte vérifié et l'élève au rôle voulu (setRoleByEmail est une
 // internalMutation, invoquée via la CLI Convex — cf. `_helpers`).
 async function staffSession(
@@ -21,7 +24,7 @@ async function staffSession(
   role: 'moderateur' | 'editeur' | 'admin',
 ) {
   const email = `e2e_${prefix}_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, PW);
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, role);
   return email;
 }
@@ -65,7 +68,7 @@ test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)
   // 1. Un MEMBRE propose depuis la page publique (le formulaire est réservé
   // aux membres : c'est aussi une vérification du gate).
   const email = `e2e_prj_${stamp}@democracytogether.test`;
-  await signUpAndVerify(page, email, PW);
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'membre');
 
   await page.goto('/fr/appels-a-projets');
@@ -102,7 +105,7 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
   const email = `e2e_sig_${stamp}@democracytogether.test`;
 
   // 1. Un membre publie sur la tribune...
-  await signUpAndVerify(page, email, PW);
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'membre');
   await page.goto('/fr/tribune');
   await page.getByRole('button', { name: 'Prendre la parole' }).click();

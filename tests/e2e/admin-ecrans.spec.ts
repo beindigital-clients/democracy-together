@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndVerify, elevateRole } from './_helpers';
+import { signUpAndVerify, elevateRole, E2E_PASSWORD } from './_helpers';
 
 // F-26 — Back-office : les 13 écrans, atteints par la barre d'onglets.
 // Jusqu'ici un seul était parcouru ; les 12 autres pouvaient tomber (requête
@@ -8,8 +8,6 @@ import { signUpAndVerify, elevateRole } from './_helpers';
 // exercés bout en bout dans `admin-moderation.spec.ts`,
 // `admin.spec.ts` (candidatures) et `library-submit.spec.ts` (publications).
 test.use({ locale: 'fr-FR' });
-
-const PW = 'motdepasse123';
 
 // `nav` = libellé de l'onglet, `h1` = titre propre de l'écran (les deux
 // diffèrent souvent), `min` = rôle minimal auquel l'onglet est proposé.
@@ -98,7 +96,7 @@ test('back-office : les 13 écrans sont atteignables depuis la barre d’onglets
   page,
 }) => {
   const email = `e2e_bo_tour_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, PW);
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'admin');
 
   await page.goto('/fr/admin');
@@ -123,7 +121,7 @@ test('back-office : un modérateur ne voit ni ne peut lire les écrans admin/éd
   page,
 }) => {
   const email = `e2e_bo_mod_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, PW);
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'moderateur');
 
   await page.goto('/fr/admin');

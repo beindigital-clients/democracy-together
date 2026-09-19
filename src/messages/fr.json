@@ -454,7 +454,9 @@
     "errorSignIn": "E-mail ou mot de passe incorrect.",
     "errorCode": "Code invalide ou expiré.",
     "errorSignUp": "Impossible de créer le compte (e-mail déjà utilisé ?).",
-    "errorMismatch": "Les mots de passe ne correspondent pas."
+    "errorMismatch": "Les mots de passe ne correspondent pas.",
+    "errorPasswordTooShort": "Mot de passe trop court : {min} caractères minimum.",
+    "errorPasswordTooCommon": "Ce mot de passe est trop courant. Choisissez-en un autre."
   },
   "directory": {
     "eyebrow": "Le réseau",

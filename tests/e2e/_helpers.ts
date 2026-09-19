@@ -209,6 +209,13 @@ export async function signInWithCode(page: Page, email: string) {
   await expect(page).toHaveURL(/\/espace-membre$/);
 }
 
+// Mot de passe des comptes de test. Il PASSE par la politique du serveur
+// (convex/lib/passwordPolicy.ts) comme n'importe quel mot de passe posé par un
+// humain : 12 caractères et hors de la liste des plus courants. Les fixtures
+// utilisaient « motdepasse123 », qui figure désormais dans cette liste — une
+// valeur partagée évite que le prochain contournement se cache dans un fichier.
+export const E2E_PASSWORD = 'phrase-de-passe-e2e';
+
 // Définit un mot de passe sur un compte qui n'en a pas encore.
 //
 // C'est le parcours réel d'un membre invité : son compte est ouvert par

@@ -18,6 +18,12 @@ bruit et le test s'exécute dans des conditions qu'il n'a pas.
 - Backend Convex : `convex-test` en environnement **edge-runtime** (annotation `// @vitest-environment edge-runtime` en tête de fichier).
 - Identité simulée : `t.withIdentity({ subject: \`${userId}|s\` })` (Convex Auth lit `subject.split('|')[0]`).
 - Le glob `import.meta.glob` doit **inclure `_generated`** et exclure le câblage auth (`auth.ts`, `auth.config.ts`, `http.ts`) qui touche `process.env`.
+- Exception assumée : `password-policy.test.ts` **charge `auth.ts`**, parce que
+  ce qu'il vérifie est le câblage lui-même — une politique de mot de passe
+  écrite mais jamais passée au provider ne protège rien. Le prix à payer est
+  `vi.stubEnv('SITE_URL', …)` : sans cette variable, la pose d'un mot de passe
+  crée bien le compte mais l'action lève sur l'envoi du code de vérification.
+  `auth.config.ts` et `http.ts`, eux, restent dehors.
 
 ## E2E — `pnpm test:e2e`
 - Démarre le serveur automatiquement (webServer Playwright : `pnpm build && pnpm start`).

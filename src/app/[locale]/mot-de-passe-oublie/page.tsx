@@ -14,6 +14,8 @@ import {
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
 import { formField } from '@/lib/validation';
+import { isPasswordTooCommon, isPasswordTooShort } from '@/lib/errors';
+import { PASSWORD_MIN_LENGTH } from '@convex/lib/passwordPolicy';
 
 export default function ForgotPasswordPage() {
   const t = useTranslations('auth');
@@ -59,8 +61,18 @@ export default function ForgotPasswordPage() {
         flow: 'reset-verification',
       });
       redirectAfterAuth();
-    } catch {
-      setError(t('errorCode'));
+    } catch (error) {
+      // Le serveur applique la politique de mot de passe (M4) et l'interface
+      // n'en connaît que la longueur : sans ces deux cas, un mot de passe
+      // refusé pour sa banalité s'afficherait en « code invalide », et la
+      // personne s'acharnerait sur le mauvais champ.
+      setError(
+        isPasswordTooShort(error)
+          ? t('errorPasswordTooShort', { min: PASSWORD_MIN_LENGTH })
+          : isPasswordTooCommon(error)
+            ? t('errorPasswordTooCommon')
+            : t('errorCode'),
+      );
       setPending(false);
     }
   }
@@ -74,14 +86,14 @@ export default function ForgotPasswordPage() {
             label={t('newPassword')}
             name="newPassword"
             autoComplete="new-password"
-            minLength={8}
+            minLength={PASSWORD_MIN_LENGTH}
             required
           />
           <PasswordField
             label={t('confirmPassword')}
             name="confirmPassword"
             autoComplete="new-password"
-            minLength={8}
+            minLength={PASSWORD_MIN_LENGTH}
             required
           />
           <FormError>{error}</FormError>

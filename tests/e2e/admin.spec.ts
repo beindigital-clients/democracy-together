@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndVerify, elevateRole, submitApplication } from './_helpers';
+import {
+  signUpAndVerify,
+  elevateRole,
+  submitApplication,
+  E2E_PASSWORD,
+} from './_helpers';
 
 test.use({ locale: 'fr-FR' });
-
-const PW = 'motdepasse123';
 
 test('back-office : un membre ordinaire est refusé (F-26)', async ({
   page,
@@ -12,7 +15,7 @@ test('back-office : un membre ordinaire est refusé (F-26)', async ({
   // Rôle explicite : ce test vérifie qu'un MEMBRE (et pas un visiteur) est
   // refusé au back-office — c'est le cas intéressant, un visiteur l'étant a
   // fortiori. Le défaut de la fixture est `visiteur`.
-  await signUpAndVerify(page, email, PW, 'membre');
+  await signUpAndVerify(page, email, E2E_PASSWORD, 'membre');
 
   await page.goto('/fr/admin');
   await expect(
@@ -35,7 +38,7 @@ test('back-office : admin modère une candidature et voit les utilisateurs (F-26
     country: 'Sénégal',
   });
 
-  await signUpAndVerify(page, adminEmail, PW);
+  await signUpAndVerify(page, adminEmail, E2E_PASSWORD);
   await elevateRole(adminEmail, 'admin');
 
   // point d'entrée staff depuis l'espace membre
