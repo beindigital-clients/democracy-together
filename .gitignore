@@ -21,8 +21,16 @@ next-env.d.ts
 .env
 .env*.local
 
-# convex (generated types are produced by `convex dev`/`convex codegen`)
-# kept out of VCS until first deploy; re-generated on demand
+# convex : `convex/_generated` est VERSIONNÉ, à dessein — pas de règle ici.
+# La CI typecheck, teste et build sans déploiement Convex, donc sans pouvoir
+# lancer `convex codegen` au préalable : sans ces fichiers suivis, les trois
+# jobs échoueraient sur des imports manquants. Ce bloc n'a jamais exclu quoi que
+# ce soit (aucun motif, seulement des commentaires) ; il annonçait l'inverse de
+# ce que fait le dépôt.
+
+# documents commerciaux (devis, montants) : pas leur place dans un dépôt de
+# code, ils se partagent par le canal client. Cf. issue #19.
+/docs/devis-*.pdf
 
 # tests
 /test-results

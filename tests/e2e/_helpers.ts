@@ -67,6 +67,15 @@ export async function elevateRole(
   convexRun('devAdmin:setRoleByEmail', { email, role });
 }
 
+// Retire le rôle d'un compte (DEV, garde AUTH_DEV_OTP) — reproduit un compte
+// HÉRITÉ, créé avant que tous les chemins de création ne posent un rôle. C'est
+// l'état dans lequel le back-office affichait « Membre » au lieu de
+// « Visiteur » (issue #27) ; `provisionUser` ne peut pas le produire, puisqu'il
+// pose toujours un rôle.
+export async function clearRole(email: string): Promise<void> {
+  convexRun('devAdmin:clearRoleByEmail', { email });
+}
+
 // Supprime les publications de test (titre contenant `marker`) et leurs
 // fichiers — nettoyage du dataset partagé après l'E2E de dépôt (F-32), qui
 // publie une vraie publication.
@@ -83,16 +92,17 @@ export async function submitApplication(args: {
   message?: string;
 }): Promise<void> {
   // `submitApplication` est désormais une ACTION (porte reCAPTCHA) : on l'appelle
-  // via .action(). Sans secret sur le déploiement dev, la vérification est un
-  // no-op (cf. convex/lib/recaptcha.ts), donc le seed reste inchangé.
+  // via .action(). La porte est fail-closed (issue #24) : le déploiement de test
+  // doit porter RECAPTCHA_DISABLED=true — posé par .github/workflows/e2e.yml, et
+  // à poser une fois sur son déploiement de dev (cf. .env.example).
   await convex().action(api.organizations.submitApplication, args);
 }
 
 // Dépose une candidature du hub jeunes (F-40) par le chemin public — pour
 // alimenter la file de modération sans passer par le formulaire.
 //
-// Comme `submitApplication`, c'est une ACTION (porte reCAPTCHA) : sans secret
-// sur le déploiement, la vérification est un no-op (cf. convex/lib/recaptcha.ts).
+// Comme `submitApplication`, c'est une ACTION (porte reCAPTCHA) : le
+// déploiement de test doit porter RECAPTCHA_DISABLED=true (cf. ci-dessus).
 export async function applyYouth(args: {
   name: string;
   email: string;

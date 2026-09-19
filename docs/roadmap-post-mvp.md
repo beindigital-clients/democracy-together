@@ -1,8 +1,20 @@
 # Roadmap post-MVP — Democracy Together
 
-> Base : backlog canonique `Democracy-Together-fonctionnalites.md`. Les 22 « Must »
-> du MVP sont livrés. Ce document liste ce qui reste (Should / Could), priorisé en
-> vagues. Certaines features « Should » sont **déjà faites** (le MVP a débordé).
+> Base : backlog canonique `Democracy-Together-fonctionnalites.md`. Ce document
+> liste ce qui reste (Should / Could), priorisé en vagues. Certaines features
+> « Should » sont **déjà faites** (le MVP a débordé).
+
+> ⚠️ **Où en est le MVP, réellement.** Une version antérieure de ce document
+> affirmait que « les 22 “Must” du MVP sont livrés ». L'audit du 18 septembre
+> 2026 (`docs/audit-plateforme-2026-09.md`, § 3.1, base : commit `8be46bc`) ne
+> confirme pas ce décompte : **11 livrés, 9 partiels, 2 bloqués** sur 22.
+>
+> Depuis, la PR #4 (commit `133207c`) a traité les deux bloqués : F-01 dispose à
+> nouveau d'un chemin de création de compte (`users.inviteUser`) et l'approbation
+> d'une candidature crée désormais l'organisation et invite son contact
+> (`organizations.reviewApplication`, F-22). Les 9 partiels, eux, n'ont pas tous
+> été réévalués : **le décompte à jour reste à établir par un nouvel audit**, et
+> ce document ne doit pas servir d'attestation de complétude auprès du client.
 
 ## ✅ Déjà fait au-delà du MVP (bonus)
 - **F-08** Accessibilité (audit axe + corrections ARIA)
@@ -15,11 +27,18 @@
 ---
 
 ## Vague 1 — Boucle membre & monétisation *(le plus prioritaire)*
-1. **Modèle d'adhésion** (décision A/B/C — voir `decisions-et-infos-client.md`) puis implémentation : nouveaux comptes en « visiteur », dépôt gaté sur rôle « membre », approbation F-22 → attribution du rôle + ajout à l'annuaire.
+1. **Modèle d'adhésion** (décision A/B/C à arbitrer avec le client — l'arbitrage
+   n'est consigné nulle part dans le dépôt : l'ancien renvoi vers
+   `decisions-et-infos-client.md` pointait vers un fichier inexistant) puis implémentation : nouveaux comptes en « visiteur », dépôt gaté sur rôle « membre », approbation F-22 → attribution du rôle + ajout à l'annuaire.
 2. **F-27** Cotisations en ligne (paiement) + **F-28** Dons ponctuels/récurrents — nécessite un PSP (Stripe + PSP local XOF pour le Sénégal).
 3. **F-29** Reçus & justificatifs · **F-30** suivi cotisation/historique dans l'espace membre.
-4. **F-18** Inscription newsletter + **F-65** gestion des campagnes — quel outil (Brevo/Mailchimp).
-5. **F-06** Recherche globale (cross-contenu) — *quick win*.
+4. ✅ **F-18** Inscription newsletter (+ désinscription par jeton) et ✅ **F-65**
+   gestion des campagnes (composition + envoi) **existent déjà**. **Reste** : le
+   **double opt-in**, exigé par le cadrage et absent (audit § 3.2), et le choix du
+   fournisseur d'envoi en volume (Brevo/Mailchimp) — l'envoi est muet sans clé.
+5. ✅ **F-06** Recherche globale **existe déjà** (palette de commandes + `/recherche`).
+   **Reste** : la rendre scalable — c'est aujourd'hui une recherche de sous-chaîne
+   en mémoire après `collect()` complet, sans index de recherche Convex (audit § 3.2).
 
 ## Vague 2 — Centre de connaissances & données réelles
 6. **Vraies données du baromètre** (remplacer l'illustration). ✅ **F-38** tableau de bord d'indicateurs + **F-39** visualisations interactives (carte choroplèthe, classement, fiches pays, sous-dimensions) — déjà en place via la maquette. ✅ **F-40** jeux de données open data — exports réels CSV/JSON + codebook + géométries (`/[locale]/barometre/data/*`, source unique `barometer-dataset.ts`). **Reste** : brancher les valeurs réelles (fournies par le secrétariat) à la place des données d'illustration.
@@ -46,23 +65,24 @@ Espace d'expression modéré entre membres — **incrément 1 livré** :
 
 La plateforme tourne sur le déploiement Convex de **développement**
 (`rare-alpaca-677`) jusqu'à la validation de l'application — choix assumé et
-temporaire. Le jour de la bascule, **toute la liste de
-`docs/passage-en-production.md` est à refaire** : ce sont des réglages attachés à
-un déploiement, pas au code, et un déploiement prod naît vide.
+temporaire. Le jour de la bascule, la procédure est `docs/deploiement.md`, qui
+vaut runbook : presque rien de ce qu'il faut refaire ne vit dans le code, ce sont
+des réglages attachés à UN déploiement, et un déploiement prod naît vide.
 
-13. **Amorçage du premier administrateur — bloquant, à traiter AVANT la bascule.**
-    Sur un déploiement vierge, aucun chemin n'ouvre le premier compte admin :
-    l'auto-inscription est supprimée, `users.inviteUser` exige déjà un admin, et
-    `devAdmin:setRoleByEmail` refuse de s'exécuter sans `AUTH_DEV_OTP` — qui ne
-    doit jamais être posée en production. Contournement manuel possible (insertion
-    d'une ligne `users` depuis le tableau de bord) ; solution durable à décider.
-14. **Variables du déploiement prod** : `JWT_PRIVATE_KEY`/`JWKS`, `SITE_URL`,
-    fournisseur e-mail, `RECAPTCHA_SECRET_KEY` — et `AUTH_DEV_OTP` vérifiée
-    **absente**. Sans fournisseur e-mail, plus aucun code de connexion ne part.
-15. **Données réelles** à la place des jeux d'illustration (annuaire,
-    publications, baromètre — cf. vague 2), les seeds étant inexécutables en prod.
-16. **Clé de préversion `CONVEX_DEPLOY_KEY`** pour la CI E2E — indépendante de la
-    bascule, mais tant qu'elle manque les specs Playwright ne tournent nulle part.
+13. **Bascule elle-même** : dérouler `docs/deploiement.md` de bout en bout —
+    variables du déploiement Convex (§ 1.1) et de Vercel (§ 1.2), amorçage de
+    l'administrateur initial (§ 5, `convex/bootstrap.ts`), contrôles après mise
+    en ligne (§ 7). Deux vérifications qu'aucune commande ne fait à votre place :
+    `AUTH_DEV_OTP` et `RECAPTCHA_DISABLED` **absentes** du déploiement de
+    production.
+14. **Données réelles** à la place des jeux d'illustration (annuaire,
+    publications, baromètre — cf. vague 2), les seeds étant gardés par
+    `AUTH_DEV_OTP` donc inexécutables en production. C'est voulu.
+15. **Clé de préversion `CONVEX_DEPLOY_KEY`** pour la CI E2E — indépendante de la
+    bascule. Une clé de dev ou de prod est refusée par Convex (`Preview
+    deployments can only be created with preview deploy keys`) et fait **rougir**
+    le job au lieu de l'ignorer ; tant qu'une clé « Preview » n'est pas posée,
+    les specs Playwright ne tournent nulle part.
 
 ---
 

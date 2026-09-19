@@ -1,26 +1,21 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc } from '../_generated/dataModel';
+import { roleRank, type NetworkRole } from './roles';
 
-// Hiérarchie des rôles réseau (F-02). Un rôle accorde aussi les droits
-// des rôles inférieurs. requireNetworkRole(ctx, "moderateur") accepte
-// moderateur, editeur et admin.
-export const ROLE_ORDER = [
-  'visiteur',
-  'membre',
-  'moderateur',
-  'editeur',
-  'admin',
-] as const;
-export type NetworkRole = (typeof ROLE_ORDER)[number];
-
-// Un compte authentifié sans rôle explicite vaut « visiteur » (modèle
-// d'adhésion B) : l'auto-inscription donne un compte de base ; les droits
-// « membre » (dépôt de publications…) ne sont accordés qu'après validation
-// d'une candidature d'adhésion (organizations.reviewApplication).
-export function rank(role: NetworkRole | undefined): number {
-  return ROLE_ORDER.indexOf(role ?? 'visiteur');
-}
+// Hiérarchie des rôles réseau (F-02). Le vocabulaire, le rang et la valeur par
+// défaut vivent dans ./roles.ts — module pur, partagé avec l'UI, pour que la
+// décision « pas de rôle = visiteur » ne soit écrite qu'à un seul endroit.
+// Un rôle accorde aussi les droits des rôles inférieurs :
+// requireNetworkRole(ctx, "moderateur") accepte moderateur, editeur et admin.
+export {
+  ROLE_ORDER,
+  DEFAULT_ROLE,
+  effectiveRole,
+  isNetworkRole,
+  roleRank as rank,
+} from './roles';
+export type { NetworkRole } from './roles';
 
 export async function getCurrentUser(
   ctx: QueryCtx | MutationCtx,
@@ -45,7 +40,7 @@ export async function requireNetworkRole(
   min: NetworkRole,
 ): Promise<Doc<'users'>> {
   const user = await requireUser(ctx);
-  if (rank(user.role) < rank(min)) {
+  if (roleRank(user.role) < roleRank(min)) {
     throw new Error(`Accès refusé : rôle « ${min} » requis.`);
   }
   return user;

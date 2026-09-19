@@ -2,8 +2,8 @@ import { ConvexError } from 'convex/values';
 
 // Vérification reCAPTCHA v3 (sécurité — défense en profondeur) pour les
 // endpoints PUBLICS non authentifiés (contact, newsletter, adhésion). Complète
-// le rate-limit (clé e-mail usurpable, cf. lib/rateLimit.ts) par un signal
-// « humain » difficile à falsifier : un score 0..1 calculé par Google.
+// les plafonds de lib/rateLimit.ts par un signal « humain » difficile à
+// falsifier : un score 0..1 calculé par Google.
 //
 // L'appel réseau (secret -> google.com/siteverify) ne peut vivre QUE dans une
 // ACTION Convex (les mutations n'ont pas `fetch`). C'est pourquoi les
@@ -15,9 +15,18 @@ import { ConvexError } from 'convex/values';
 // par le navigateur — seule la clé de site (NEXT_PUBLIC_RECAPTCHA_SITE_KEY) est
 // publique côté Next.
 //
-// NO-OP GRACIEUX : sans secret (dev/CI/E2E), la vérification est désactivée et
-// laisse passer (skipped) — comme sendEmail/AUTH_DEV_OTP. Aucune clé Google
-// n'est donc requise pour développer ou faire tourner les tests.
+// FAIL-CLOSED (audit M2, issue #24) : sans secret, la vérification ÉCHOUE.
+// Auparavant elle laissait passer, au motif que « le rate-limit reste la
+// défense de base » — sauf que ce rate-limit était indexé sur l'e-mail du
+// formulaire, donc forgeable : faire varier l'adresse rendait un quota neuf.
+// Une clé oubliée en production doit être une panne visible, pas une protection
+// silencieusement absente.
+//
+// CONTOURNEMENT EXPLICITE : RECAPTCHA_DISABLED=true — une variable DÉDIÉE, et
+// non l'absence de clé. Même mécanique que sendEmail/AUTH_DEV_OTP
+// (convex/email.ts) : le développement, la CI et les E2E la posent, la
+// production ne la pose jamais. Les deux états (« pas encore configuré » et
+// « volontairement désactivé ») cessent ainsi d'être indiscernables.
 
 const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
@@ -27,7 +36,7 @@ const DEFAULT_MIN_SCORE = 0.5;
 
 export type RecaptchaResult = {
   ok: boolean;
-  skipped: boolean; // vérification désactivée (pas de secret) ou Google injoignable
+  skipped: boolean; // vérification contournée (RECAPTCHA_DISABLED) ou Google injoignable
   score?: number;
   reason?: string;
 };
@@ -50,19 +59,28 @@ export async function verifyRecaptcha(
   expectedAction: string,
   opts: VerifyOptions = {},
 ): Promise<RecaptchaResult> {
-  const secret = process.env.RECAPTCHA_SECRET_KEY;
-
-  // Pas de secret -> vérification désactivée (dev/CI/E2E). On laisse passer :
-  // le rate-limit et la validation serveur restent la défense de base. En prod,
-  // c'est presque toujours une ERREUR de config (clé oubliée) : on le trace fort
-  // pour que ça ne passe pas inaperçu (les rate-limits couvrent l'intérim).
-  if (!secret) {
+  // Contournement DEMANDÉ (dev/CI/E2E) : seul chemin qui laisse passer sans
+  // vérifier. Testé AVANT la clé, pour que « désactivé » veuille dire désactivé
+  // quelle que soit la configuration Google du déploiement.
+  if (process.env.RECAPTCHA_DISABLED === 'true') {
     if (process.env.NODE_ENV === 'production') {
       console.error(
-        '[recaptcha] RECAPTCHA_SECRET_KEY absent en production — vérification anti-bot DÉSACTIVÉE. Posez la clé : npx convex env set RECAPTCHA_SECRET_KEY ...',
+        '[recaptcha] RECAPTCHA_DISABLED=true en PRODUCTION — vérification anti-bot volontairement désactivée. Retirez la variable : npx convex env remove RECAPTCHA_DISABLED',
       );
     }
     return { ok: true, skipped: true, reason: 'disabled' };
+  }
+
+  const secret = process.env.RECAPTCHA_SECRET_KEY;
+
+  // Ni clé, ni contournement -> REJET. C'est une erreur de configuration, pas
+  // un mode de fonctionnement : on la rend bruyante (le message dit exactement
+  // quoi poser) plutôt que d'ouvrir les sept formulaires publics en silence.
+  if (!secret) {
+    console.error(
+      '[recaptcha] RECAPTCHA_SECRET_KEY absent — soumission REJETÉE. Posez la clé (npx convex env set RECAPTCHA_SECRET_KEY ...) ou, en développement/CI uniquement, npx convex env set RECAPTCHA_DISABLED true',
+    );
+    return { ok: false, skipped: false, reason: 'not-configured' };
   }
 
   // Secret présent mais jeton manquant -> rejet (fail-closed) : un client
@@ -84,7 +102,10 @@ export async function verifyRecaptcha(
   } catch {
     // Google injoignable / réponse illisible -> FAIL-OPEN, mais tracé. Bloquer
     // toutes les soumissions parce qu'un tiers est momentanément down serait
-    // pire que laisser passer : rate-limit + validation tiennent toujours.
+    // pire que laisser passer — et l'intérim est désormais réellement couvert :
+    // les plafonds par IP et par formulaire de lib/rateLimit.ts ne dépendent
+    // d'aucune donnée fournie par l'appelant, donc une panne de Google ne rend
+    // plus le remplissage illimité.
     console.error(
       '[recaptcha] siteverify injoignable — laissé passer (fail-open)',
     );

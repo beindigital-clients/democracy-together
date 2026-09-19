@@ -155,7 +155,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
               style={{ y: parallax }}
             >
               <Image
-                src="/home-hero.jpg"
+                src="/library/hero-home.jpg"
                 alt={hero.visualLabel}
                 fill
                 priority

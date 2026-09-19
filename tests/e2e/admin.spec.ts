@@ -3,6 +3,8 @@ import {
   signUpAndVerify,
   elevateRole,
   submitApplication,
+  provisionUser,
+  clearRole,
   E2E_PASSWORD,
 } from './_helpers';
 
@@ -70,4 +72,35 @@ test('back-office : admin modère une candidature et voit les utilisateurs (F-26
   await page.getByRole('link', { name: 'Utilisateurs', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/utilisateurs$/);
   await expect(page.getByText(adminEmail)).toBeVisible();
+});
+
+// Rôle affiché dans /admin/utilisateurs (F-63, issue #27).
+//
+// Le back-office substituait « membre » à l'absence de rôle, là où le RBAC
+// serveur substitue « visiteur ». Sur l'écran même où l'administrateur décide
+// qui a accès à quoi, un compte sans aucun droit s'annonçait donc membre — et
+// comme le <Select> est CONTRÔLÉ sur cette valeur, laisser la ligne telle
+// quelle ne changeait rien : l'écart ne se voyait pas.
+//
+// Le cas n'est pas théorique : les comptes créés avant la PR #4 n'ont pas de
+// colonne `role`. `clearRole` reproduit exactement cet état.
+test('back-office : un compte sans rôle est affiché « Visiteur » (F-63)', async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const adminEmail = `e2e_role_admin_${stamp}@democracytogether.test`;
+  const legacyEmail = `e2e_role_sansrole_${stamp}@democracytogether.test`;
+
+  await provisionUser(legacyEmail);
+  await clearRole(legacyEmail);
+
+  await signUpAndVerify(page, adminEmail, E2E_PASSWORD);
+  await elevateRole(adminEmail, 'admin');
+
+  await page.goto('/fr/admin/utilisateurs');
+  const roleSelect = page.getByLabel(`Rôle ${legacyEmail}`);
+  await expect(roleSelect).toBeVisible();
+  // La VALEUR, pas seulement le libellé : c'est elle que le <Select> contrôlé
+  // renverrait au serveur si l'administrateur validait sans rien changer.
+  await expect(roleSelect).toHaveValue('visiteur');
 });

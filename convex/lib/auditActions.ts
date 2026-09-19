@@ -1,5 +1,8 @@
 // Actions d'audit comme constantes (jamais de chaîne inline côté appel).
 export const AUDIT = {
+  // Amorçage de l'administrateur initial (convex/bootstrap.ts) : distinct de
+  // USER_ROLE_CHANGED, qui suppose un administrateur acteur.
+  ADMIN_BOOTSTRAPPED: 'admin.bootstrapped',
   USER_ROLE_CHANGED: 'user.role_changed',
   USER_INVITED: 'user.invited',
   CONTACT_HANDLED: 'contact.handled',
