@@ -25,9 +25,10 @@ name: E2E (Playwright)
 #    (paire générée par `npx @convex-dev/auth`, cf. .env.example)
 #
 # Rien d'autre : l'URL du déploiement est découverte à l'exécution, et
-# `AUTH_DEV_OTP` est posé ci-dessous sur la seule préversion nommée. C'est la
-# garantie tenue par ce fichier : AUTH_DEV_OTP n'est écrit nulle part ailleurs,
-# et la clé utilisée ne donne pas accès à la production.
+# `AUTH_DEV_OTP` / `RECAPTCHA_DISABLED` sont posés ci-dessous sur la seule
+# préversion nommée. C'est la garantie tenue par ce fichier : ces deux
+# variables ne sont écrites nulle part ailleurs, et la clé utilisée ne donne
+# pas accès à la production.
 #
 # Tant que le secret n'est pas configuré, le job E2E est IGNORÉ (et non rouge) :
 # faire rougir toutes les PR pour une raison d'environnement apprend aux
@@ -122,9 +123,15 @@ jobs:
       # PORTÉE : `--preview-name` désigne explicitement la préversion qui vient
       # d'être créée, et la clé employée est une clé de préversion. AUTH_DEV_OTP
       # ne peut donc pas atteindre la production depuis ce workflow.
-      - name: Activer les codes OTP de test sur CETTE préversion uniquement
+      #
+      # RECAPTCHA_DISABLED : depuis l'issue #24, un formulaire public sans clé
+      # reCAPTCHA est REJETÉ. Le contournement doit donc être demandé
+      # explicitement ici — c'est exactement ce que la correction visait :
+      # rendre visible qui désactive la protection, et où.
+      - name: Poser les variables de test sur CETTE préversion uniquement
         run: |
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" AUTH_DEV_OTP true
+          npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" RECAPTCHA_DISABLED true
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" SITE_URL http://localhost:3000
 
       - name: Vérifier les clés Convex Auth de la préversion

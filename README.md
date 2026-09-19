@@ -28,6 +28,15 @@ pnpm dev            # http://localhost:3000 -> /fr
 npx convex dev      # provisionne le backend, génère convex/_generated, remplit .env.local
 ```
 
+Les formulaires publics (contact, adhésion, newsletter, événements, rappels,
+jeunes, mentorat) sont derrière une porte reCAPTCHA **fail-closed** : sans clé,
+ils sont rejetés. Pour développer sans compte Google, posez le contournement
+explicite sur votre déploiement de développement — jamais en production :
+
+```bash
+npx convex env set RECAPTCHA_DISABLED true
+```
+
 ### Sanity
 
 Créer un projet sur sanity.io/manage (dataset en région EU), puis renseigner
