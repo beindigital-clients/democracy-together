@@ -158,7 +158,11 @@ jobs:
       # APRÈS les tests le fait tomber en fin de log. Part avec le correctif.
       - name: Sonde de diagnostic (#66)
         if: always()
-        run: node scripts/diagnostic-66.mjs
+        run: |
+          node scripts/diagnostic-66.mjs
+          echo "===== SONDE #66 — NAVIGATEUR ====="
+          cat diagnostic-66-navigateur.log || echo "(pas de rapport navigateur)"
+          echo "===== FIN SONDE NAVIGATEUR ====="
 
       - name: Publier le rapport
         if: always()
