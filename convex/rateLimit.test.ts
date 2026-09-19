@@ -3,6 +3,12 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
+import type { MutationCtx } from './_generated/server';
+import {
+  enforcePublicFormLimit,
+  ipBucket,
+  PUBLIC_FORM_LIMITS,
+} from './lib/rateLimit';
 
 // Les endpoints publics gatés par reCAPTCHA (contact, adhésion) déportent leur
 // logique dans des internalMutations -> on cible celles-ci pour tester le
@@ -144,5 +150,177 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
     await t.mutation(internal.otp.enforceSendRate, {
       email: 'autre@example.org',
     });
+  });
+});
+
+// --- Plafonds NON FORGEABLES (audit M2, issue #24) ---------------------------
+//
+// Le barème par e-mail ci-dessus ne borne qu'un acteur honnête : l'adresse vient
+// du formulaire, donc un script la fait varier et repart avec un quota neuf.
+// Ces tests couvrent les deux plafonds qui ne dépendent d'aucune donnée de
+// l'appelant — l'IP vue par l'infrastructure, et le compteur global par
+// formulaire.
+
+// `ctx.meta` n'est pas simulé par convex-test : on le fournit ici pour exercer
+// le chemin par IP. Seuls `db` et `meta` sont lus par la garde — tout autre
+// besoin ferait échouer ce test, ce qui est le signal voulu.
+function ctxSeenFrom(ctx: MutationCtx, ip: string | null): MutationCtx {
+  return {
+    db: ctx.db,
+    meta: {
+      getRequestMetadata: async () => ({
+        ip,
+        userAgent: null,
+        requestId: 'test',
+        scheduledFunctionId: null,
+      }),
+    },
+  } as unknown as MutationCtx;
+}
+
+describe('Plafonds non forgeables — regroupement des adresses', () => {
+  it('IPv4 : adresse entière', () => {
+    expect(ipBucket('203.0.113.7')).toBe('203.0.113.7');
+    expect(ipBucket(' 203.0.113.7 ')).toBe('203.0.113.7');
+  });
+
+  it('IPv4 encapsulée en IPv6 : ramenée à l’IPv4 (même client, une seule clé)', () => {
+    expect(ipBucket('::ffff:203.0.113.7')).toBe('203.0.113.7');
+  });
+
+  it('IPv6 : regroupée sur le /64 — changer d’adresse dans son préfixe ne rend pas un quota neuf', () => {
+    const a = ipBucket('2001:db8:1234:5678:aaaa:bbbb:cccc:dddd');
+    const b = ipBucket('2001:db8:1234:5678:1111:2222:3333:4444');
+    expect(a).toBe(b);
+    // ...mais un préfixe DIFFÉRENT reste un compteur différent.
+    expect(ipBucket('2001:db8:1234:9999::1')).not.toBe(a);
+  });
+
+  it('IPv6 : forme abrégée et forme développée donnent la même clé', () => {
+    expect(ipBucket('2001:db8::1')).toBe(
+      ipBucket('2001:0db8:0000:0000:0000:0000:0000:0001'),
+    );
+  });
+});
+
+describe('Plafonds non forgeables — par IP', () => {
+  it('bloque au-delà du barème, et compte séparément une autre adresse', async () => {
+    const t = convexTest(schema, modules);
+    const { max } = PUBLIC_FORM_LIMITS.contact.perIp;
+
+    // Une transaction par requête : un rejet annule la transaction, donc
+    // mutualiser les appels masquerait le comportement réel.
+    for (let i = 0; i < max; i++) {
+      await t.run((ctx) =>
+        enforcePublicFormLimit(ctxSeenFrom(ctx, '203.0.113.7'), 'contact'),
+      );
+    }
+    await expectRateLimited(
+      t.run((ctx) =>
+        enforcePublicFormLimit(ctxSeenFrom(ctx, '203.0.113.7'), 'contact'),
+      ),
+    );
+
+    // Une autre source passe : le plafond vise la source, pas le formulaire.
+    await t.run((ctx) =>
+      enforcePublicFormLimit(ctxSeenFrom(ctx, '198.51.100.4'), 'contact'),
+    );
+  });
+
+  it('IP indisponible (cron, environnement sans métadonnées) : seul le plafond global s’applique', async () => {
+    const t = convexTest(schema, modules);
+    const { max } = PUBLIC_FORM_LIMITS.contact.perIp;
+
+    for (let i = 0; i < max + 1; i++) {
+      await t.run((ctx) =>
+        enforcePublicFormLimit(ctxSeenFrom(ctx, null), 'contact'),
+      );
+    }
+    const keys = await t.run((ctx) => ctx.db.query('rateLimits').collect());
+    expect(keys.map((k) => k.key)).toEqual(['form:contact']);
+  });
+});
+
+describe('Plafond non forgeable — global par formulaire', () => {
+  // LE test de l'issue : faire varier l'e-mail ne rend plus un quota neuf.
+  it('contact : un e-mail neuf à chaque envoi ne contourne pas le plafond du formulaire', async () => {
+    const t = convexTest(schema, modules);
+    const { max } = PUBLIC_FORM_LIMITS.contact.global;
+
+    // On amorce le compteur global juste sous le plafond plutôt que d'émettre
+    // `max` requêtes : le test reste rapide et ne se périme pas si le barème
+    // change.
+    await t.run((ctx) =>
+      ctx.db.insert('rateLimits', {
+        key: 'form:contact',
+        count: max - 1,
+        windowStart: Date.now(),
+      }),
+    );
+
+    // Dernier jeton disponible -> passe, avec une adresse jamais vue.
+    await t.mutation(internal.contact.store, contactMsg(1, 'un@example.org'));
+    // Adresse encore différente -> bloqué quand même.
+    await expectRateLimited(
+      t.mutation(internal.contact.store, contactMsg(2, 'deux@example.org')),
+    );
+
+    expect(
+      await t.run((ctx) => ctx.db.query('contactMessages').collect()),
+    ).toHaveLength(1);
+  });
+
+  it('les sept formulaires publics ont un barème, et des compteurs indépendants', async () => {
+    expect(Object.keys(PUBLIC_FORM_LIMITS).sort()).toEqual([
+      'apply',
+      'contact',
+      'eventRegister',
+      'eventReminder',
+      'mentorship',
+      'newsletter',
+      'youthApply',
+    ]);
+
+    const t = convexTest(schema, modules);
+    const { max } = PUBLIC_FORM_LIMITS.contact.global;
+    await t.run((ctx) =>
+      ctx.db.insert('rateLimits', {
+        key: 'form:contact',
+        count: max,
+        windowStart: Date.now(),
+      }),
+    );
+
+    // `contact` est saturé...
+    await expectRateLimited(
+      t.mutation(internal.contact.store, contactMsg(3, 'trois@example.org')),
+    );
+    // ...l'adhésion, elle, n'est pas concernée.
+    await t.mutation(internal.organizations.storeApplication, {
+      type: 'organisation',
+      organizationName: 'Institut A',
+      contactEmail: 'institut@example.org',
+      country: 'SN',
+    });
+  });
+
+  // Une soumission rejetée ne doit pas consommer de quota : sinon un flot de
+  // requêtes invalides suffirait à épuiser le plafond global et à bloquer les
+  // envois légitimes (déni de service gratuit).
+  it('une soumission invalide ne consomme aucun quota', async () => {
+    const t = convexTest(schema, modules);
+
+    await expect(
+      t.mutation(internal.contact.store, {
+        name: 'Awa Diop',
+        email: 'pas-une-adresse',
+        subject: 'Sujet',
+        body: 'Un corps de message assez long pour la validation.',
+      }),
+    ).rejects.toThrow();
+
+    expect(await t.run((ctx) => ctx.db.query('rateLimits').collect())).toEqual(
+      [],
+    );
   });
 });

@@ -58,4 +58,34 @@ describe('Contact — submit (F-17)', () => {
     const all = await t.run((ctx) => ctx.db.query('contactMessages').collect());
     expect(all).toHaveLength(0);
   });
+
+  // Le `trim()` de `store` est la seule barrière qui empêche une soumission de
+  // blancs de franchir les contrôles de longueur — et la seule raison pour
+  // laquelle ce qui est stocké est propre. Les deux moitiés sont vérifiées ici.
+  it('neutralise les blancs : rejet si le champ est vide une fois trimé, stockage trimé sinon', async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.mutation(internal.contact.store, {
+        name: '   ',
+        email: 'awa@example.org',
+        subject: '   ',
+        body: '          ',
+      }),
+    ).rejects.toThrow('INVALID_NAME');
+    expect(
+      await t.run((ctx) => ctx.db.query('contactMessages').collect()),
+    ).toHaveLength(0);
+
+    await t.mutation(internal.contact.store, {
+      name: '  Awa Diop  ',
+      email: '  awa@example.org  ',
+      subject: '  Partenariat  ',
+      body: '  Bonjour, notre institut souhaite échanger.  ',
+    });
+    const all = await t.run((ctx) => ctx.db.query('contactMessages').collect());
+    expect(all[0].name).toBe('Awa Diop');
+    expect(all[0].email).toBe('awa@example.org');
+    expect(all[0].subject).toBe('Partenariat');
+    expect(all[0].body).toBe('Bonjour, notre institut souhaite échanger.');
+  });
 });

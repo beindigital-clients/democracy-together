@@ -9,7 +9,11 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
-import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import {
+  enforcePublicFormLimit,
+  enforceRateLimit,
+  RATE_LIMITS,
+} from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { sendEmail } from './email';
@@ -69,6 +73,10 @@ export const recordSubscription = internalMutation({
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase();
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
+
+    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
+    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    await enforcePublicFormLimit(ctx, 'newsletter');
 
     await enforceRateLimit(ctx, {
       key: `newsletter:${email}`,
