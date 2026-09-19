@@ -923,5 +923,17 @@
     "noteLabel": "Votre note",
     "notePlaceholder": "Partagez une idée, une ressource, une question…",
     "noteSubmit": "Publier la note"
+  },
+  "errors": {
+    "notFoundTitle": "Page introuvable",
+    "notFoundBody": "Cette page n'existe pas, ou n'existe plus. Le contenu a peut-être été déplacé ou retiré.",
+    "notFoundHome": "Retour à l'accueil",
+    "notFoundLibrary": "Parcourir la bibliothèque",
+    "errorTitle": "Une erreur est survenue",
+    "errorBody": "La page n'a pas pu être affichée. Vous pouvez réessayer ; si le problème persiste, contactez le secrétariat.",
+    "errorRetry": "Réessayer",
+    "errorHome": "Retour à l'accueil",
+    "errorReference": "Référence",
+    "loading": "Chargement…"
   }
 }

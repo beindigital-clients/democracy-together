@@ -36,9 +36,18 @@ export default async function NewsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('news');
-  const posts = await client.fetch<PostCardData[]>(postsQuery, {
-    language: locale,
-  });
+  // Repli si Sanity est indisponible (audit § 5.1) : la page rendait un 500
+  // générique faute de try/catch, contrairement à src/lib/home.ts et about.ts
+  // qui replient déjà. Ici, la dégradation gracieuse est le bon comportement :
+  // la liste se vide et le reste du site continue de fonctionner.
+  let posts: PostCardData[] = [];
+  try {
+    posts = (await client.fetch<PostCardData[]>(postsQuery, {
+      language: locale,
+    })) ?? [];
+  } catch (err) {
+    console.error('[actualites] Sanity indisponible :', err);
+  }
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-12 sm:px-6 md:py-16">

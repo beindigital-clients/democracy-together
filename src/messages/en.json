@@ -923,5 +923,17 @@
     "noteLabel": "Your note",
     "notePlaceholder": "Share an idea, a resource, a question…",
     "noteSubmit": "Post note"
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "This page does not exist, or no longer does. The content may have been moved or removed.",
+    "notFoundHome": "Back to home",
+    "notFoundLibrary": "Browse the library",
+    "errorTitle": "Something went wrong",
+    "errorBody": "This page could not be displayed. You can try again; if the problem persists, contact the secretariat.",
+    "errorRetry": "Try again",
+    "errorHome": "Back to home",
+    "errorReference": "Reference",
+    "loading": "Loading…"
   }
 }
