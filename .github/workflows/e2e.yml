@@ -31,7 +31,8 @@ name: E2E (Playwright)
 #
 # Tant que le secret n'est pas configuré, le job E2E est IGNORÉ (et non rouge) :
 # faire rougir toutes les PR pour une raison d'environnement apprend aux
-# relecteurs à ignorer le rouge. Le typage des tests, lui, tourne toujours.
+# relecteurs à ignorer le rouge. Le typage des tests, lui, tourne toujours —
+# mais dans `ci.yml` (« Typecheck (tests) »), qui ne dépend d'aucun secret.
 
 on:
   pull_request:
@@ -46,31 +47,19 @@ permissions:
 
 jobs:
   preflight:
-    name: Typage des tests · secrets
+    name: Secrets de préversion
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     outputs:
       configured: ${{ steps.secrets.outputs.configured }}
+    # Ni dépôt ni dépendances : ce job ne fait que LIRE un secret pour décider
+    # si le job suivant peut tourner. Le typage des tests (`pnpm
+    # typecheck:tests`, issue #18) vivait ici faute de mieux ; il est désormais
+    # dans `ci.yml`, aux côtés des deux autres commandes de typage — même
+    # nature, aucun secret, et il tourne donc sur chaque PR même quand les E2E
+    # sont ignorés. L'y laisser AUSSI, c'était payer deux installations de
+    # dépendances par PR pour la même vérification.
     steps:
-      - uses: actions/checkout@v4
-
-      # pnpm AVANT setup-node : `cache: pnpm` a besoin du binaire pour
-      # localiser le store.
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      # Le tsconfig racine exclut `tests/` : sans cette commande, une option de
-      # test inexistante passe inaperçue et le test tourne dans des conditions
-      # qu'il n'a pas (issue #18). Déterministe, sans secret : tourne sur
-      # chaque PR, même quand les E2E sont ignorés.
-      - name: Typage des tests
-        run: pnpm typecheck:tests
-
       - name: Déploiement de préversion configuré ?
         id: secrets
         env:
