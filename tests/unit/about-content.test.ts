@@ -8,7 +8,9 @@ describe('À propos — contenu (F-11 / F-12)', () => {
     expect(fr.hero.eyebrow).toBe('À propos');
     expect(en.hero.eyebrow).toBe('About');
     expect(fr.founders.people).toHaveLength(6);
-    expect(fr.founders.people.map((p) => p.name)).toContain('Philippe Kourilsky');
+    expect(fr.founders.people.map((p) => p.name)).toContain(
+      'Philippe Kourilsky',
+    );
     expect(en.founders.people.map((p) => p.name)).toContain('Pierre Vimont');
     expect(fr.mission.axes).toHaveLength(4);
     expect(fr.governance.hubs.map((h) => h.city)).toEqual([

@@ -75,7 +75,7 @@ const PUBS: SeedPub[] = [
     year: 2026,
     month: 3,
     abstract:
-      "Comment encadrer les grandes plateformes numériques sans transformer la modération en censure ? Ce policy brief compare les approches européennes récentes et propose des garde-fous procéduraux.",
+      'Comment encadrer les grandes plateformes numériques sans transformer la modération en censure ? Ce policy brief compare les approches européennes récentes et propose des garde-fous procéduraux.',
     keypoints: [
       'La régulation gagne à viser les procédés (transparence, recours) plutôt que les contenus eux-mêmes.',
       "Un mécanisme d'appel indépendant réduit le risque de sur-modération.",
@@ -104,7 +104,7 @@ const PUBS: SeedPub[] = [
     abstract:
       "La transparence budgétaire est souvent présentée comme un remède à la corruption. Cette note examine à quelles conditions l'ouverture des comptes publics nourrit réellement la confiance des citoyens.",
     keypoints: [
-      'Publier un budget ne suffit pas : encore faut-il qu\'il soit lisible et relié aux résultats.',
+      "Publier un budget ne suffit pas : encore faut-il qu'il soit lisible et relié aux résultats.",
       'Les portails de dépenses ont un effet mesurable quand la société civile peut les exploiter.',
       "L'opacité des marchés publics reste le principal angle mort.",
     ],
@@ -185,7 +185,7 @@ const PUBS: SeedPub[] = [
     abstract:
       "L'IA générative abaisse le coût de production de la désinformation. Ce rapport cartographie les risques pour les processus démocratiques et les contre-mesures disponibles.",
     keypoints: [
-      'Le risque principal n\'est pas le faux parfait, mais le doute généralisé qu\'il installe.',
+      "Le risque principal n'est pas le faux parfait, mais le doute généralisé qu'il installe.",
       'Le marquage de provenance des contenus est une défense partielle mais utile.',
       "L'éducation aux médias reste le levier le plus robuste à moyen terme.",
     ],
@@ -210,11 +210,11 @@ const PUBS: SeedPub[] = [
     year: 2025,
     month: 10,
     abstract:
-      "Budgets participatifs, jurys citoyens, conventions tirées au sort : cette note compare sept dispositifs de participation locale et leurs effets réels sur la décision.",
+      'Budgets participatifs, jurys citoyens, conventions tirées au sort : cette note compare sept dispositifs de participation locale et leurs effets réels sur la décision.',
     keypoints: [
       "L'impact dépend moins du format que du pouvoir effectivement délégué.",
       'Le tirage au sort élargit la diversité des participants mais exige un vrai accompagnement.',
-      'Sans retour sur les décisions prises, la confiance s\'érode rapidement.',
+      "Sans retour sur les décisions prises, la confiance s'érode rapidement.",
     ],
     body: [
       "Comparer des dispositifs de participation, c'est mesurer l'écart entre la promesse et la décision. Les plus efficaces engagent une obligation de suite : ce qui ressort de la délibération doit être traité, accepté ou refusé motif à l'appui.",
@@ -237,7 +237,7 @@ const PUBS: SeedPub[] = [
     year: 2025,
     month: 10,
     abstract:
-      'Un jeu de données ouvert réunissant cinq ans d\'indicateurs de corruption harmonisés sur le périmètre du réseau, documenté et réutilisable.',
+      "Un jeu de données ouvert réunissant cinq ans d'indicateurs de corruption harmonisés sur le périmètre du réseau, documenté et réutilisable.",
     keypoints: [
       'Données harmonisées et documentées, prêtes pour la recherche reproductible.',
       'Couverture Afrique-Europe sur la période 2020-2025.',
@@ -264,11 +264,11 @@ const PUBS: SeedPub[] = [
     year: 2025,
     month: 9,
     abstract:
-      "Les chocs climatiques mettent les institutions sous tension. Ce working paper interroge ce que la gestion des crises révèle de la solidité démocratique.",
+      'Les chocs climatiques mettent les institutions sous tension. Ce working paper interroge ce que la gestion des crises révèle de la solidité démocratique.',
     keypoints: [
       "L'état d'urgence répété fragilise les contre-pouvoirs s'il n'est pas borné.",
       'La planification de long terme se heurte aux cycles électoraux courts.',
-      'La participation locale améliore l\'acceptabilité des mesures d\'adaptation.',
+      "La participation locale améliore l'acceptabilité des mesures d'adaptation.",
     ],
     body: [
       "Gouverner la crise climatique, c'est arbitrer entre l'urgence et la délibération. Les démocraties résilientes sont celles qui parviennent à agir vite sans suspendre durablement le contrôle.",
@@ -295,11 +295,11 @@ const PUBS: SeedPub[] = [
     keypoints: [
       'La dépendance à un bailleur unique fragilise la trajectoire des organisations.',
       'Les ressources locales, même modestes, renforcent la légitimité et la durée.',
-      'La transparence des financements protège contre les soupçons d\'instrumentalisation.',
+      "La transparence des financements protège contre les soupçons d'instrumentalisation.",
     ],
     body: [
       "Financer la société civile, c'est aussi définir sa marge de manœuvre. Les organisations les plus solides diversifient leurs ressources et rendent leurs comptes publics.",
-      'Le rapport propose des pistes pour des financements mixtes, prévisibles et compatibles avec l\'indépendance éditoriale.',
+      "Le rapport propose des pistes pour des financements mixtes, prévisibles et compatibles avec l'indépendance éditoriale.",
     ],
     downloads: 870,
     citations: 11,
@@ -318,11 +318,11 @@ const PUBS: SeedPub[] = [
     year: 2025,
     month: 8,
     abstract:
-      "La souveraineté numérique oscille entre repli et coopération. Ce brief clarifie les choix possibles pour les institutions démocratiques face à la dépendance technologique.",
+      'La souveraineté numérique oscille entre repli et coopération. Ce brief clarifie les choix possibles pour les institutions démocratiques face à la dépendance technologique.',
     keypoints: [
-      'La souveraineté ne signifie pas l\'autarcie, mais la capacité de choisir.',
+      "La souveraineté ne signifie pas l'autarcie, mais la capacité de choisir.",
       'Les logiciels libres et les standards ouverts réduisent les dépendances critiques.',
-      'La compétence publique interne est aussi stratégique que l\'infrastructure.',
+      "La compétence publique interne est aussi stratégique que l'infrastructure.",
     ],
     body: [
       "Penser la souveraineté numérique, c'est arbitrer entre coût, sécurité et liberté d'action. Le tout-souverain est rarement réaliste ; la dépendance totale est rarement prudente.",
@@ -345,15 +345,15 @@ const PUBS: SeedPub[] = [
     year: 2025,
     month: 6,
     abstract:
-      "Le terme de « crise migratoire » sature le débat. Cette note propose une lecture plus froide des faits et de leurs effets sur les institutions démocratiques.",
+      'Le terme de « crise migratoire » sature le débat. Cette note propose une lecture plus froide des faits et de leurs effets sur les institutions démocratiques.',
     keypoints: [
-      'Le cadrage en « crise » fausse l\'évaluation des politiques publiques.',
+      "Le cadrage en « crise » fausse l'évaluation des politiques publiques.",
       'Les chiffres réels contredisent souvent la perception dominante.',
-      'L\'intégration locale produit de meilleurs résultats que la gestion par l\'urgence.',
+      "L'intégration locale produit de meilleurs résultats que la gestion par l'urgence.",
     ],
     body: [
       "Dépasser le récit de la crise, c'est rendre au sujet sa complexité statistique et humaine. Les politiques construites sous le signe de l'urgence permanente se révèlent souvent coûteuses et peu efficaces.",
-      "La note plaide pour des dispositifs ancrés dans les territoires et évalués sur la durée.",
+      'La note plaide pour des dispositifs ancrés dans les territoires et évalués sur la durée.',
     ],
     downloads: 489,
     citations: 5,
@@ -372,7 +372,7 @@ const PUBS: SeedPub[] = [
     year: 2025,
     month: 5,
     abstract:
-      "Un jeu de données comparatif sur les transitions post-autoritaires, conçu pour tester empiriquement les hypothèses sur leur réussite ou leur échec.",
+      'Un jeu de données comparatif sur les transitions post-autoritaires, conçu pour tester empiriquement les hypothèses sur leur réussite ou leur échec.',
     keypoints: [
       'Variables harmonisées sur plusieurs décennies de transitions.',
       'Permet de comparer trajectoires réussies et reculs.',
@@ -380,7 +380,7 @@ const PUBS: SeedPub[] = [
     ],
     body: [
       "Ce que disent les données, c'est d'abord que les transitions ne suivent pas de loi unique. Le jeu permet de croiser durée, contexte et résultats sans présupposer l'issue.",
-      'Les fichiers sont accompagnés d\'un guide d\'usage pour la recherche et l\'enseignement.',
+      "Les fichiers sont accompagnés d'un guide d'usage pour la recherche et l'enseignement.",
     ],
     downloads: 1340,
     citations: 19,
@@ -401,7 +401,7 @@ const PUBS: SeedPub[] = [
     abstract:
       "La confiance dans les institutions est un indicateur avancé de la résilience démocratique. Ce rapport compare ses ressorts en Afrique et en Europe à partir d'une enquête harmonisée.",
     keypoints: [
-      'La confiance se construit dans l\'expérience concrète des services publics.',
+      "La confiance se construit dans l'expérience concrète des services publics.",
       'La proximité institutionnelle pèse davantage que les discours.',
       'Les écarts intergénérationnels appellent des réponses différenciées.',
     ],

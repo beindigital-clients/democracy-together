@@ -3,7 +3,6 @@ import { isYouthApplicant } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-
 // F-58 — Candidature jeune : formulaire (#rejoindre sur /jeunes) -> succès +
 // stockage Convex réel.
 test('jeunes : candidature valide -> succès + stockage (F-58)', async ({

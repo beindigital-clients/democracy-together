@@ -86,7 +86,9 @@ export default function AdminProjects() {
               </div>
               <div className="mt-1 flex flex-wrap gap-x-3 text-[13px] text-ink-soft">
                 <span>{p.authorName}</span>
-                <span className="text-accent-text">#{tl(`themes.${p.theme}`)}</span>
+                <span className="text-accent-text">
+                  #{tl(`themes.${p.theme}`)}
+                </span>
               </div>
               <p className="mt-2 text-[14px] leading-relaxed text-ink">
                 {p.summary}

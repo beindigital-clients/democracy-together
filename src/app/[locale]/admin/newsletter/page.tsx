@@ -69,7 +69,9 @@ export default function AdminNewsletter() {
         className="mt-6 space-y-4 rounded-md border border-line bg-surface p-5"
       >
         <div>
-          <label className="block text-sm text-ink-soft">{t('nlSubject')}</label>
+          <label className="block text-sm text-ink-soft">
+            {t('nlSubject')}
+          </label>
           <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}

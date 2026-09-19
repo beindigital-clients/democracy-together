@@ -72,7 +72,11 @@ export function NewsletterForm({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className={`w-full ${className ?? ''}`}>
+    <form
+      onSubmit={onSubmit}
+      noValidate
+      className={`w-full ${className ?? ''}`}
+    >
       <div className="flex gap-2">
         <Input
           type="email"
@@ -82,7 +86,11 @@ export function NewsletterForm({
           aria-label={placeholder}
           placeholder={placeholder}
         />
-        <Button type="submit" disabled={status === 'pending'} className="shrink-0">
+        <Button
+          type="submit"
+          disabled={status === 'pending'}
+          className="shrink-0"
+        >
           {cta}
         </Button>
       </div>

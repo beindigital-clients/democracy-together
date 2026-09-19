@@ -4,7 +4,9 @@ import { test, expect } from '@playwright/test';
 // bilingue), grille de catégories de partenariat + bande CTA « Devenir
 // partenaire » vers /contact.
 
-test('partenaires : la page répond et affiche le h1 (F-14)', async ({ page }) => {
+test('partenaires : la page répond et affiche le h1 (F-14)', async ({
+  page,
+}) => {
   await page.goto('/fr/partenaires');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Partenaires & soutiens' }),

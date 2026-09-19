@@ -27,7 +27,11 @@ function escapeHtml(s: string): string {
 }
 
 // Corps de rappel — simple, en français (comme l'OTP / la newsletter).
-function reminderHtml(eventSlug: string, eventDate: number, loc: string): string {
+function reminderHtml(
+  eventSlug: string,
+  eventDate: number,
+  loc: string,
+): string {
   const site = process.env.SITE_URL ?? 'https://democracy-together.vercel.app';
   const url = `${site}/${loc}/evenements/${encodeURIComponent(eventSlug)}`;
   const when = new Intl.DateTimeFormat('fr', {

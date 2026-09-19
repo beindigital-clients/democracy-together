@@ -36,9 +36,11 @@ export const createPost = mutation({
     const title = args.title.trim();
     const body = args.body.trim();
     if (!THEMES.includes(theme)) throw new Error('INVALID_THEME');
-    if (title.length < 4 || title.length > 160) throw new Error('INVALID_TITLE');
+    if (title.length < 4 || title.length > 160)
+      throw new Error('INVALID_TITLE');
     const min = args.format === 'court' ? 10 : 200;
-    if (body.length < min || body.length > 20000) throw new Error('INVALID_BODY');
+    if (body.length < min || body.length > 20000)
+      throw new Error('INVALID_BODY');
 
     await enforceRateLimit(ctx, {
       key: `tribunePost:${user._id}`,
@@ -64,7 +66,8 @@ export const addComment = mutation({
   handler: async (ctx, { postId, body }) => {
     const user = await requireNetworkRole(ctx, 'membre');
     const text = body.trim();
-    if (text.length < 2 || text.length > 4000) throw new Error('INVALID_COMMENT');
+    if (text.length < 2 || text.length > 4000)
+      throw new Error('INVALID_COMMENT');
     const post = await ctx.db.get(postId);
     if (!post || post.status !== 'published') throw new Error('NOT_FOUND');
 
@@ -262,9 +265,7 @@ export const reactionState = query({
       .withIndex('by_post_and_user', (q) => q.eq('postId', postId))
       .collect();
     const userId = await getAuthUserId(ctx);
-    const mine = userId
-      ? reactions.some((r) => r.userId === userId)
-      : false;
+    const mine = userId ? reactions.some((r) => r.userId === userId) : false;
     return { count: reactions.length, mine };
   },
 });
@@ -301,7 +302,8 @@ export const listReports = query({
             const id = ctx.db.normalizeId('tribuneComments', r.targetId);
             const c = id ? await ctx.db.get(id) : null;
             if (c) {
-              excerpt = c.body.length > 140 ? `${c.body.slice(0, 140)}…` : c.body;
+              excerpt =
+                c.body.length > 140 ? `${c.body.slice(0, 140)}…` : c.body;
               postId = c.postId;
             }
           }

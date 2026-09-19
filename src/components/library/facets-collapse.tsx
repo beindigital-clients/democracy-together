@@ -52,7 +52,11 @@ export function FacetsCollapse({
             strokeWidth="2"
             aria-hidden="true"
           >
-            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="m6 9 6 6 6-6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
         {/* lg : titre statique */}

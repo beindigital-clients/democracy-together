@@ -19,7 +19,9 @@ export function CiteBlock({ citations }: { citations: Citations }) {
       className="mt-12 scroll-mt-24 overflow-hidden rounded-md border border-line bg-surface"
     >
       <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-        <h2 className="font-display text-base font-semibold">{t('citeTitle')}</h2>
+        <h2 className="font-display text-base font-semibold">
+          {t('citeTitle')}
+        </h2>
         <div
           role="group"
           aria-label={t('citeTitle')}

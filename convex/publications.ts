@@ -208,12 +208,17 @@ export const submitPublication = mutation({
       .slice(0, 8);
 
     const nowYear = new Date(Date.now()).getUTCFullYear();
-    if (title.length < 4 || title.length > 200) throw new Error('INVALID_TITLE');
+    if (title.length < 4 || title.length > 200)
+      throw new Error('INVALID_TITLE');
     if (abstract.length < 20 || abstract.length > 4000)
       throw new Error('INVALID_ABSTRACT');
     if (authors.length === 0) throw new Error('INVALID_AUTHORS');
     if (languages.length === 0) throw new Error('INVALID_LANGUAGES');
-    if (!Number.isInteger(args.year) || args.year < 1990 || args.year > nowYear + 1)
+    if (
+      !Number.isInteger(args.year) ||
+      args.year < 1990 ||
+      args.year > nowYear + 1
+    )
       throw new Error('INVALID_YEAR');
 
     await enforceRateLimit(ctx, {

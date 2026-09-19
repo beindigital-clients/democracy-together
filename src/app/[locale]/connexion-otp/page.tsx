@@ -5,7 +5,12 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
-import { AuthCard, Field, FormError, SubmitButton } from '@/components/auth/form';
+import {
+  AuthCard,
+  Field,
+  FormError,
+  SubmitButton,
+} from '@/components/auth/form';
 import { OtpField } from '@/components/auth/otp-field';
 import { formField } from '@/lib/validation';
 
@@ -51,7 +56,10 @@ export default function OtpSignInPage() {
 
   if (step === 'code') {
     return (
-      <AuthCard title={t('otpVerifyTitle')} subtitle={t('otpVerifySubtitle', { email })}>
+      <AuthCard
+        title={t('otpVerifyTitle')}
+        subtitle={t('otpVerifySubtitle', { email })}
+      >
         <form onSubmit={onCode} className="space-y-5">
           <OtpField value={code} onChange={setCode} />
           <FormError>{error}</FormError>
@@ -64,7 +72,13 @@ export default function OtpSignInPage() {
   return (
     <AuthCard title={t('otpTitle')} subtitle={t('otpSubtitle')}>
       <form onSubmit={onEmail} className="space-y-4">
-        <Field label={t('email')} name="email" type="email" autoComplete="email" required />
+        <Field
+          label={t('email')}
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+        />
         <FormError>{error}</FormError>
         <SubmitButton pending={pending}>{t('otpCta')}</SubmitButton>
       </form>

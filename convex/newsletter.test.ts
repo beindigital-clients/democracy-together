@@ -46,7 +46,9 @@ describe('Newsletter — subscribe (F-18)', () => {
 
     // adresse invalide rejetée
     await expect(
-      t.mutation(internal.newsletter.recordSubscription, { email: 'pas-un-email' }),
+      t.mutation(internal.newsletter.recordSubscription, {
+        email: 'pas-un-email',
+      }),
     ).rejects.toThrow();
   });
 });
@@ -54,7 +56,9 @@ describe('Newsletter — subscribe (F-18)', () => {
 describe('Newsletter — désinscription par jeton', () => {
   it('génère un unsubToken, le retire, reste idempotent', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(internal.newsletter.recordSubscription, { email: 'ina@example.org' });
+    await t.mutation(internal.newsletter.recordSubscription, {
+      email: 'ina@example.org',
+    });
 
     const sub = await t.run((ctx) =>
       ctx.db.query('newsletterSubscriptions').first(),
@@ -74,9 +78,9 @@ describe('Newsletter — désinscription par jeton', () => {
       true,
     );
     // jeton vide ignoré
-    expect((await t.mutation(api.newsletter.unsubscribe, { token: '' })).ok).toBe(
-      false,
-    );
+    expect(
+      (await t.mutation(api.newsletter.unsubscribe, { token: '' })).ok,
+    ).toBe(false);
   });
 });
 
@@ -113,7 +117,10 @@ describe('Newsletter — campagnes (F-65)', () => {
     const ed = await asEditor(t);
 
     await expect(
-      ed.mutation(api.newsletter.createCampaign, { subject: 'x', body: 'court' }),
+      ed.mutation(api.newsletter.createCampaign, {
+        subject: 'x',
+        body: 'court',
+      }),
     ).rejects.toThrow();
 
     const id = await ed.mutation(api.newsletter.createCampaign, {
@@ -138,8 +145,12 @@ describe('Newsletter — campagnes (F-65)', () => {
     vi.useFakeTimers();
     try {
       const t = convexTest(schema, modules);
-      await t.mutation(internal.newsletter.recordSubscription, { email: 'a@dt.test' });
-      await t.mutation(internal.newsletter.recordSubscription, { email: 'b@dt.test' });
+      await t.mutation(internal.newsletter.recordSubscription, {
+        email: 'a@dt.test',
+      });
+      await t.mutation(internal.newsletter.recordSubscription, {
+        email: 'b@dt.test',
+      });
 
       const ed = await asEditor(t);
       const id = await ed.mutation(api.newsletter.createCampaign, {
@@ -186,8 +197,12 @@ describe('Newsletter — campagnes (F-65)', () => {
     vi.useFakeTimers();
     try {
       const t = convexTest(schema, modules);
-      await t.mutation(internal.newsletter.recordSubscription, { email: 'a@dt.test' });
-      await t.mutation(internal.newsletter.recordSubscription, { email: 'b@dt.test' });
+      await t.mutation(internal.newsletter.recordSubscription, {
+        email: 'a@dt.test',
+      });
+      await t.mutation(internal.newsletter.recordSubscription, {
+        email: 'b@dt.test',
+      });
 
       const ed = await asEditor(t);
       const id = await ed.mutation(api.newsletter.createCampaign, {

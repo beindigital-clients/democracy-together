@@ -28,7 +28,9 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
     );
 
     const asMembre = t.withIdentity({ subject: `${membreId}|s` });
-    await expect(asMembre.query(api.admin.dashboardStats, {})).rejects.toThrow();
+    await expect(
+      asMembre.query(api.admin.dashboardStats, {}),
+    ).rejects.toThrow();
     await expect(
       asMembre.query(api.admin.listApplications, {}),
     ).rejects.toThrow();

@@ -25,9 +25,7 @@ describe('SCRATCH verify', () => {
         body: '          ',
       }),
     ).rejects.toThrow();
-    const all = await t.run((ctx) =>
-      ctx.db.query('contactMessages').collect(),
-    );
+    const all = await t.run((ctx) => ctx.db.query('contactMessages').collect());
     expect(all).toHaveLength(0);
   });
 
@@ -39,9 +37,7 @@ describe('SCRATCH verify', () => {
       subject: '  Partenariat  ',
       body: '  Bonjour, notre institut souhaite echanger.  ',
     });
-    const all = await t.run((ctx) =>
-      ctx.db.query('contactMessages').collect(),
-    );
+    const all = await t.run((ctx) => ctx.db.query('contactMessages').collect());
     expect(all[0].name).toBe('Awa Diop');
     expect(all[0].email).toBe('awa@example.org');
     expect(all[0].subject).toBe('Partenariat');

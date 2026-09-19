@@ -44,9 +44,18 @@ describe('Impact — impactStats (F-66)', () => {
 
     await t.run(async (ctx) => {
       // Publications : 2 publiées + 1 en attente -> compte 2.
-      await ctx.db.insert('publications', makePublication({ status: 'published' }));
-      await ctx.db.insert('publications', makePublication({ status: 'published' }));
-      await ctx.db.insert('publications', makePublication({ status: 'pending' }));
+      await ctx.db.insert(
+        'publications',
+        makePublication({ status: 'published' }),
+      );
+      await ctx.db.insert(
+        'publications',
+        makePublication({ status: 'published' }),
+      );
+      await ctx.db.insert(
+        'publications',
+        makePublication({ status: 'pending' }),
+      );
 
       // Organisations : 2 actives + 1 en attente -> compte 2.
       const baseOrg = {

@@ -43,8 +43,12 @@ test('bibliothèque : liste, facettes serveur et détail (F-32/F-34)', async ({
   ).toHaveAttribute('aria-current', 'true');
 
   // Ouvrir le détail de la publication vedette
-  await page.getByRole('link', { name: /état de la démocratie entre/i }).click();
-  await expect(page).toHaveURL(/\/fr\/bibliotheque\/etat-democratie-afrique-europe$/);
+  await page
+    .getByRole('link', { name: /état de la démocratie entre/i })
+    .click();
+  await expect(page).toHaveURL(
+    /\/fr\/bibliotheque\/etat-democratie-afrique-europe$/,
+  );
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     "L'état de la démocratie",
   );
@@ -68,6 +72,8 @@ test('bibliothèque : accès via la nav « Analyses » + version EN (F-03/F-32)'
   await expect(page).toHaveURL(/\/fr\/bibliotheque$/);
 
   await page.goto('/en/bibliotheque');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Library');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Library',
+  );
   await expect(page.getByText(/open access and citable/i)).toBeVisible();
 });

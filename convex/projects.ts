@@ -35,7 +35,8 @@ export const submitProject = mutation({
     const title = args.title.trim();
     const summary = args.summary.trim();
     if (!THEMES.includes(theme)) throw new Error('INVALID_THEME');
-    if (title.length < 4 || title.length > 160) throw new Error('INVALID_TITLE');
+    if (title.length < 4 || title.length > 160)
+      throw new Error('INVALID_TITLE');
     if (summary.length < 20 || summary.length > 4000) {
       throw new Error('INVALID_SUMMARY');
     }

@@ -11,14 +11,26 @@ export default function AdminImpact() {
   const stats = useQuery(api.impact.impactStats);
 
   const cards = [
-    { key: 'impPublications', value: stats?.publishedPublications, accent: true },
-    { key: 'impOrganizations', value: stats?.activeOrganizations, accent: false },
+    {
+      key: 'impPublications',
+      value: stats?.publishedPublications,
+      accent: true,
+    },
+    {
+      key: 'impOrganizations',
+      value: stats?.activeOrganizations,
+      accent: false,
+    },
     {
       key: 'impEventRegistrations',
       value: stats?.eventRegistrations,
       accent: false,
     },
-    { key: 'impNewsletter', value: stats?.newsletterSubscribers, accent: false },
+    {
+      key: 'impNewsletter',
+      value: stats?.newsletterSubscribers,
+      accent: false,
+    },
     { key: 'impTribunePosts', value: stats?.tribunePosts, accent: false },
     { key: 'impTribuneComments', value: stats?.tribuneComments, accent: false },
     { key: 'impYouth', value: stats?.youthApplications, accent: false },

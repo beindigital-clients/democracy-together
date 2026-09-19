@@ -1,11 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import {
-  render,
-  screen,
-  fireEvent,
-  cleanup,
-} from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import messages from '@/messages/fr.json';
 import { DirectoryFields } from '@/components/admin/directory-fields';
@@ -104,18 +99,14 @@ describe("Fiche annuaire à l'approbation", () => {
   it('les boutons sont désactivés pendant la soumission', () => {
     setup({ pending: true });
     expect(
-      (
-        screen.getByRole('button', {
-          name: 'Approuver et publier la fiche',
-        })
-      ).disabled,
+      screen.getByRole('button', {
+        name: 'Approuver et publier la fiche',
+      }).disabled,
     ).toBe(true);
     expect(
-      (
-        screen.getByRole('button', {
-          name: 'Approuver sans publier la fiche',
-        })
-      ).disabled,
+      screen.getByRole('button', {
+        name: 'Approuver sans publier la fiche',
+      }).disabled,
     ).toBe(true);
   });
 

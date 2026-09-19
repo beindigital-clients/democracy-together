@@ -76,9 +76,7 @@ function AdminNav({
       {items.map(({ href, key }) => {
         // actif = chemin exact (le dashboard ne doit pas s'allumer partout)
         const active =
-          href === '/admin'
-            ? pathname === '/admin'
-            : pathname.startsWith(href);
+          href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
         return (
           <Link
             key={key}

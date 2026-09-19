@@ -42,9 +42,10 @@ export default async function NewsPage({
   // la liste se vide et le reste du site continue de fonctionner.
   let posts: PostCardData[] = [];
   try {
-    posts = (await client.fetch<PostCardData[]>(postsQuery, {
-      language: locale,
-    })) ?? [];
+    posts =
+      (await client.fetch<PostCardData[]>(postsQuery, {
+        language: locale,
+      })) ?? [];
   } catch (err) {
     console.error('[actualites] Sanity indisponible :', err);
   }

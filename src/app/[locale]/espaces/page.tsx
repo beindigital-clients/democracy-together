@@ -6,6 +6,8 @@ import { WorkspacesBoard } from '@/components/workspaces/workspaces-board';
 // « membre réseau » est appliqué dans WorkspacesBoard (message dédié sinon).
 export default function EspacesPage() {
   return (
-    <AuthGate className="max-w-[960px]"><WorkspacesBoard /></AuthGate>
+    <AuthGate className="max-w-[960px]">
+      <WorkspacesBoard />
+    </AuthGate>
   );
 }

@@ -30,7 +30,9 @@ describe('Contenu légal (F-09)', () => {
   it('ne contient jamais le terme banni ni l’ancienne marque', () => {
     for (const kind of KINDS) {
       for (const locale of LOCALES) {
-        const blob = JSON.stringify(getLegalContent(kind, locale)).toLowerCase();
+        const blob = JSON.stringify(
+          getLegalContent(kind, locale),
+        ).toLowerCase();
         expect(blob).not.toContain('démocratie libérale');
         expect(blob).not.toContain('democratie liberale');
         expect(blob).not.toContain('rmdl');
@@ -40,7 +42,9 @@ describe('Contenu légal (F-09)', () => {
 
   it('marque explicitement les éléments à compléter (aucune fabrication)', () => {
     // Mentions légales : éditeur / directeur / RNA non confirmés -> à compléter.
-    const blob = JSON.stringify(getLegalContent('mentions', 'fr')).toLowerCase();
+    const blob = JSON.stringify(
+      getLegalContent('mentions', 'fr'),
+    ).toLowerCase();
     expect(blob).toContain('à compléter');
     expect(JSON.stringify(getLegalContent('mentions', 'en'))).toContain(
       'to be completed',
@@ -48,8 +52,8 @@ describe('Contenu légal (F-09)', () => {
   });
 
   it('la politique de confidentialité couvre les sections RGPD clés', () => {
-    const headings = getLegalContent('confidentialite', 'fr').sections.map((s) =>
-      s.heading.toLowerCase(),
+    const headings = getLegalContent('confidentialite', 'fr').sections.map(
+      (s) => s.heading.toLowerCase(),
     );
     expect(headings.some((h) => h.includes('cookies'))).toBe(true);
     expect(headings.some((h) => h.includes('droits'))).toBe(true);

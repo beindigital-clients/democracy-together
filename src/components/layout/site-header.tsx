@@ -26,7 +26,11 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-paper/85 backdrop-blur supports-[backdrop-filter]:bg-paper/70 print:hidden">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-4 sm:px-6">
-        <Link href="/" aria-label="Democracy Together — accueil" className="shrink-0">
+        <Link
+          href="/"
+          aria-label="Democracy Together — accueil"
+          className="shrink-0"
+        >
           <Logo />
         </Link>
 

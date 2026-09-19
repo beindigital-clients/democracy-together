@@ -30,7 +30,10 @@ export type AboutContent = {
     intro: string;
     hubs: { city: string; scope: string; body: string }[];
     framework: { title: string; body: string };
-    committees: { title: string; items: { n: string; name: string; body: string }[] };
+    committees: {
+      title: string;
+      items: { n: string; name: string; body: string }[];
+    };
   };
   funding: {
     eyebrow: string;

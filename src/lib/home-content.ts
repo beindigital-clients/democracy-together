@@ -80,7 +80,10 @@ const fr: HomeContent = {
     creds: [
       { label: 'Statut', value: 'Association loi 1901, siège à Paris' },
       { label: 'Bureaux', value: 'Paris, Dakar, Bruxelles' },
-      { label: 'Fondé par', value: 'Abdou Samb, Philippe Kourilsky, Pierre Vimont' },
+      {
+        label: 'Fondé par',
+        value: 'Abdou Samb, Philippe Kourilsky, Pierre Vimont',
+      },
     ],
   },
   mission: {
@@ -152,7 +155,13 @@ const fr: HomeContent = {
       { name: 'Ghana', score: '0.68' },
       { name: 'Tunisie', score: '0.49' },
     ],
-    legend: ['Libre', 'Plutôt libre', 'Partiellement', 'Peu libre', 'Non libre'],
+    legend: [
+      'Libre',
+      'Plutôt libre',
+      'Partiellement',
+      'Peu libre',
+      'Non libre',
+    ],
     note: 'Survolez un pays. Données d’illustration.',
     mapLabel: 'Carte interactive (démo)',
     links: ['Explorer les fiches pays', 'Télécharger les données'],
@@ -302,7 +311,10 @@ const en: HomeContent = {
     creds: [
       { label: 'Status', value: 'Non-profit (loi 1901), based in Paris' },
       { label: 'Offices', value: 'Paris, Dakar, Brussels' },
-      { label: 'Founded by', value: 'Abdou Samb, Philippe Kourilsky, Pierre Vimont' },
+      {
+        label: 'Founded by',
+        value: 'Abdou Samb, Philippe Kourilsky, Pierre Vimont',
+      },
     ],
   },
   mission: {

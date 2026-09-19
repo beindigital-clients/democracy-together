@@ -36,8 +36,6 @@ const Globe = dynamic(
   },
 );
 
-export function RegionGlobeLazy(
-  props: ComponentProps<typeof RegionGlobeType>,
-) {
+export function RegionGlobeLazy(props: ComponentProps<typeof RegionGlobeType>) {
   return <Globe {...props} />;
 }

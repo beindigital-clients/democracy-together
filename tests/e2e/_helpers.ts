@@ -52,7 +52,12 @@ export async function elevateRole(
   delete env.CONVEX_DEPLOYMENT;
   execFileSync(
     'npx',
-    ['convex', 'run', 'devAdmin:setRoleByEmail', JSON.stringify({ email, role })],
+    [
+      'convex',
+      'run',
+      'devAdmin:setRoleByEmail',
+      JSON.stringify({ email, role }),
+    ],
     { stdio: 'pipe', env },
   );
 }
@@ -97,7 +102,10 @@ export async function submitApplication(args: {
 // sont appelables par aucun client, même si AUTH_DEV_OTP fuitait en production.
 // On les invoque donc via la CLI Convex — contexte de confiance — exactement
 // comme seedDirectory, elevateRole et deleteTestPublications ci-dessus.
-function convexRunQuery<T>(fn: string, args: Record<string, unknown>): T | null {
+function convexRunQuery<T>(
+  fn: string,
+  args: Record<string, unknown>,
+): T | null {
   const env = { ...process.env };
   delete env.CONVEX_DEPLOYMENT;
   const out = execFileSync('npx', ['convex', 'run', fn, JSON.stringify(args)], {

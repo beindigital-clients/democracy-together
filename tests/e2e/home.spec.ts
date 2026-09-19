@@ -22,15 +22,19 @@ test('home FR puis bascule EN par URL (F-03)', async ({ page }) => {
   );
 });
 
-test('le sélecteur de langue pose le cookie NEXT_LOCALE', async ({ page, context }) => {
+test('le sélecteur de langue pose le cookie NEXT_LOCALE', async ({
+  page,
+  context,
+}) => {
   await page.goto('/fr');
   await page.getByRole('banner').getByRole('button', { name: 'EN' }).click();
   await expect(page).toHaveURL(/\/en$/);
   // Le cookie est écrit par next-intl pendant la navigation : on l'attend
   // (expect.poll) au lieu d'une lecture unique -> pas de course.
   await expect
-    .poll(async () =>
-      (await context.cookies()).find((c) => c.name === 'NEXT_LOCALE')?.value,
+    .poll(
+      async () =>
+        (await context.cookies()).find((c) => c.name === 'NEXT_LOCALE')?.value,
     )
     .toBe('en');
 });

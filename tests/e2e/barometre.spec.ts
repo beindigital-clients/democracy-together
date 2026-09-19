@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.use({ locale: 'fr-FR' });
 
-test('baromètre : toutes les sections de la maquette (F-30)', async ({ page }) => {
+test('baromètre : toutes les sections de la maquette (F-30)', async ({
+  page,
+}) => {
   await page.goto('/fr/barometre');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
@@ -26,7 +28,9 @@ test('baromètre : toutes les sections de la maquette (F-30)', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Tunisie' })).toBeVisible();
   // Sous-dimensions (5) + méthodologie + datasets + contrib
   await expect(
-    page.getByRole('heading', { name: 'Cinq sous-dimensions, alignées sur nos axes' }),
+    page.getByRole('heading', {
+      name: 'Cinq sous-dimensions, alignées sur nos axes',
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: "Comment l'indice est construit" }),
@@ -44,7 +48,9 @@ test('baromètre : toutes les sections de la maquette (F-30)', async ({ page }) 
   await expect(page).toHaveURL(/\/fr\/adhesion$/);
 });
 
-test('baromètre : accès via la nav + version EN (F-03/F-30)', async ({ page }) => {
+test('baromètre : accès via la nav + version EN (F-03/F-30)', async ({
+  page,
+}) => {
   await page.goto('/fr');
   await page
     .getByRole('banner')
@@ -56,5 +62,7 @@ test('baromètre : accès via la nav + version EN (F-03/F-30)', async ({ page })
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Democracy Barometer',
   );
-  await expect(page.getByText('countries covered (illustration)')).toBeVisible();
+  await expect(
+    page.getByText('countries covered (illustration)'),
+  ).toBeVisible();
 });

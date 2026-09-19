@@ -1,10 +1,7 @@
 'use client';
 
 import { AuthGate } from '@/components/auth/auth-gate';
-import {
-  useQuery,
-  useMutation
-} from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
@@ -29,8 +26,7 @@ function NotificationsList() {
   const locale = useLocale();
   const router = useRouter();
   const items = useQuery(api.notifications.myNotifications) as
-    | Notif[]
-    | undefined;
+    Notif[] | undefined;
   const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
 
@@ -40,7 +36,7 @@ function NotificationsList() {
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(ms);
 
   async function open(n: Notif) {
@@ -59,7 +55,9 @@ function NotificationsList() {
   return (
     <div className="mx-auto max-w-[760px] px-4 py-12 sm:px-6 md:py-16">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-display text-[clamp(28px,4vw,40px)]">{t('title')}</h1>
+        <h1 className="font-display text-[clamp(28px,4vw,40px)]">
+          {t('title')}
+        </h1>
         {hasUnread ? (
           <Button variant="outline" size="sm" onClick={() => markAllRead({})}>
             {t('markAll')}
@@ -109,6 +107,8 @@ function NotificationsList() {
 
 export default function NotificationsPage() {
   return (
-    <AuthGate className="max-w-[760px]"><NotificationsList /></AuthGate>
+    <AuthGate className="max-w-[760px]">
+      <NotificationsList />
+    </AuthGate>
   );
 }

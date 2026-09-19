@@ -3,7 +3,6 @@ import { isEventRegistered } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-
 // Événement non vedette (le formulaire RSVP s'affiche ; la conférence inaugurale
 // garde sa billetterie payante, hors périmètre F-53).
 const SLUG = 'webinaire-gouvernance-plateformes';

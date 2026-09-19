@@ -3,7 +3,6 @@ import { isNewsletterSubscribed } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-
 // F-18 — Newsletter : inscription -> succès + stockage Convex réel.
 test('newsletter : inscription valide -> succès + stockage (F-18)', async ({
   page,

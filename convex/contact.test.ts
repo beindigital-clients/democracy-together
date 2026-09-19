@@ -27,9 +27,7 @@ describe('Contact — submit (F-17)', () => {
       subject: 'Partenariat',
       body: 'Bonjour, notre institut souhaite échanger avec le réseau.',
     });
-    const all = await t.run((ctx) =>
-      ctx.db.query('contactMessages').collect(),
-    );
+    const all = await t.run((ctx) => ctx.db.query('contactMessages').collect());
     expect(all).toHaveLength(1);
     expect(all[0].handled).toBe(false);
     expect(all[0].name).toBe('Awa Diop');
@@ -57,9 +55,7 @@ describe('Contact — submit (F-17)', () => {
       t.mutation(internal.contact.store, { ...ok, body: 'court' }),
     ).rejects.toThrow('INVALID_BODY');
 
-    const all = await t.run((ctx) =>
-      ctx.db.query('contactMessages').collect(),
-    );
+    const all = await t.run((ctx) => ctx.db.query('contactMessages').collect());
     expect(all).toHaveLength(0);
   });
 });

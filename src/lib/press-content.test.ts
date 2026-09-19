@@ -55,7 +55,7 @@ describe('Espace presse / kit média (F-16)', () => {
     expect(factsEn.get('statut')?.toLowerCase()).toContain('loi 1901');
   });
 
-  it("AUCUN chiffre de communication inventé dans les faits (pas de « X membres »)", () => {
+  it('AUCUN chiffre de communication inventé dans les faits (pas de « X membres »)', () => {
     for (const loc of ['fr', 'en'] as const) {
       const text = getPressKit(loc)
         .facts.map((f) => f.value)
@@ -75,9 +75,13 @@ describe('Espace presse / kit média (F-16)', () => {
       );
       expect(bySlug.get('a-propos')?.href).toBe('/a-propos');
       expect(bySlug.get('a-propos')?.external).toBe(false);
-      expect(bySlug.get('donnees')?.href).toBe('/fr/barometre/data/composite.csv');
+      expect(bySlug.get('donnees')?.href).toBe(
+        '/fr/barometre/data/composite.csv',
+      );
       expect(bySlug.get('donnees')?.external).toBe(true);
-      expect(bySlug.get('codebook')?.href).toBe('/fr/barometre/data/codebook.txt');
+      expect(bySlug.get('codebook')?.href).toBe(
+        '/fr/barometre/data/codebook.txt',
+      );
       expect(bySlug.get('codebook')?.external).toBe(true);
       for (const r of getPressKit(loc).resources) {
         expect(r.label.length).toBeGreaterThan(3);

@@ -11,7 +11,9 @@ test('adhésion : sections maquette + estimateur solidaire (F-20)', async ({
   await expect(
     page.getByRole('heading', { level: 1, name: 'Rejoindre le réseau' }),
   ).toBeVisible();
-  await expect(page.getByText('Cotisation solidaire', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Cotisation solidaire', { exact: true }),
+  ).toBeVisible();
 
   // Intro + estimateur
   await expect(
@@ -39,7 +41,9 @@ test('adhésion : sections maquette + estimateur solidaire (F-20)', async ({
   ).toBeVisible();
   // FAQ : déplier la première question
   await page.getByText('Comment fonctionne la cotisation solidaire ?').click();
-  await expect(page.getByText(/contribuent à la hauteur de leurs moyens/)).toBeVisible();
+  await expect(
+    page.getByText(/contribuent à la hauteur de leurs moyens/),
+  ).toBeVisible();
 });
 
 test('adhésion : version EN (F-03/F-20)', async ({ page }) => {

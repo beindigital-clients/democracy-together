@@ -11,7 +11,7 @@ import { getMembershipContent } from '@/lib/membership-content';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -60,13 +60,17 @@ export default async function MembershipPage({
             <h1 className="mt-3 font-display text-[clamp(32px,4.4vw,52px)] font-medium leading-[1.05] tracking-[-0.02em]">
               {t('title')}
             </h1>
-            <p className="mt-4 max-w-[68ch] text-lg leading-relaxed text-ink-soft">{t('subtitle')}</p>
+            <p className="mt-4 max-w-[68ch] text-lg leading-relaxed text-ink-soft">
+              {t('subtitle')}
+            </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {c.pills.map((p, i) => (
                 <span
                   key={p}
                   className={`rounded-pill border px-3 py-1 text-[12.5px] font-medium ${
-                    i === 0 ? 'border-accent-edge bg-accent-tint text-accent-text' : 'border-line bg-surface-2 text-ink-soft'
+                    i === 0
+                      ? 'border-accent-edge bg-accent-tint text-accent-text'
+                      : 'border-line bg-surface-2 text-ink-soft'
                   }`}
                 >
                   {p}
@@ -81,17 +85,26 @@ export default async function MembershipPage({
       <section id="types" className={`${WRAP} scroll-mt-20 py-14`}>
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <Reveal>
-            <h2 className="font-display text-[clamp(24px,3vw,34px)]">{c.intro.title}</h2>
-            <p className="mt-3 max-w-[46ch] leading-relaxed text-ink-soft">{c.intro.body}</p>
+            <h2 className="font-display text-[clamp(24px,3vw,34px)]">
+              {c.intro.title}
+            </h2>
+            <p className="mt-3 max-w-[46ch] leading-relaxed text-ink-soft">
+              {c.intro.body}
+            </p>
             <ul className="mt-6 space-y-3 text-sm text-ink-soft">
               {(['who1', 'who2', 'who3'] as const).map((k) => (
                 <li key={k} className="flex gap-2.5">
-                  <span aria-hidden="true" className="mt-0.5 text-accent-text">→</span>
+                  <span aria-hidden="true" className="mt-0.5 text-accent-text">
+                    →
+                  </span>
                   <span>{t(k)}</span>
                 </li>
               ))}
             </ul>
-            <a href="#estimateur" className="mt-6 inline-block text-sm font-medium text-accent-text hover:underline">
+            <a
+              href="#estimateur"
+              className="mt-6 inline-block text-sm font-medium text-accent-text hover:underline"
+            >
               {c.estimator.title} ↓
             </a>
           </Reveal>
@@ -102,12 +115,19 @@ export default async function MembershipPage({
       </section>
 
       {/* Estimateur solidaire */}
-      <section id="estimateur" className="scroll-mt-20 border-y border-line bg-surface">
+      <section
+        id="estimateur"
+        className="scroll-mt-20 border-y border-line bg-surface"
+      >
         <div className={`${WRAP} py-14`}>
           <Reveal className="mb-8 max-w-[62ch]">
             <p className={EYEBROW}>{c.estimator.eyebrow}</p>
-            <h2 className="mt-2 font-display text-[clamp(24px,3vw,34px)]">{c.estimator.title}</h2>
-            <p className="mt-3 text-lg leading-relaxed text-ink-soft">{c.estimator.body}</p>
+            <h2 className="mt-2 font-display text-[clamp(24px,3vw,34px)]">
+              {c.estimator.title}
+            </h2>
+            <p className="mt-3 text-lg leading-relaxed text-ink-soft">
+              {c.estimator.body}
+            </p>
           </Reveal>
           <Reveal>
             <SolidarityEstimator content={c.estimator} locale={loc} />
@@ -119,8 +139,12 @@ export default async function MembershipPage({
       <section id="comparatif" className={`${WRAP} scroll-mt-20 py-14`}>
         <Reveal className="mb-6 max-w-[62ch]">
           <p className={EYEBROW}>{c.comparison.eyebrow}</p>
-          <h2 className="mt-2 font-display text-[clamp(24px,3vw,34px)]">{c.comparison.title}</h2>
-          <p className="mt-3 text-lg leading-relaxed text-ink-soft">{c.comparison.body}</p>
+          <h2 className="mt-2 font-display text-[clamp(24px,3vw,34px)]">
+            {c.comparison.title}
+          </h2>
+          <p className="mt-3 text-lg leading-relaxed text-ink-soft">
+            {c.comparison.body}
+          </p>
         </Reveal>
         <Reveal className="overflow-hidden rounded-md border border-line">
           <div className="overflow-x-auto">
@@ -130,26 +154,50 @@ export default async function MembershipPage({
               </caption>
               <thead>
                 <tr className="border-y border-line bg-surface align-bottom">
-                  <th scope="col" className="px-4 py-3 font-medium">{c.comparison.advantageHeader}</th>
+                  <th scope="col" className="px-4 py-3 font-medium">
+                    {c.comparison.advantageHeader}
+                  </th>
                   {c.comparison.tiers.map((tier) => (
-                    <th key={tier.label} scope="col" className="px-4 py-3 font-medium">
+                    <th
+                      key={tier.label}
+                      scope="col"
+                      className="px-4 py-3 font-medium"
+                    >
                       {tier.label}
-                      <span className="block font-mono text-[10.5px] font-normal uppercase tracking-[0.04em] text-muted">{tier.sub}</span>
+                      <span className="block font-mono text-[10.5px] font-normal uppercase tracking-[0.04em] text-muted">
+                        {tier.sub}
+                      </span>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {c.comparison.rows.map((row) => (
-                  <tr key={row.advantage} className="border-b border-line align-top last:border-0">
-                    <th scope="row" className="px-4 py-3.5 text-left font-medium text-ink">
+                  <tr
+                    key={row.advantage}
+                    className="border-b border-line align-top last:border-0"
+                  >
+                    <th
+                      scope="row"
+                      className="px-4 py-3.5 text-left font-medium text-ink"
+                    >
                       {row.advantage}
-                      <span className="block text-[12px] font-normal text-muted">{row.detail}</span>
+                      <span className="block text-[12px] font-normal text-muted">
+                        {row.detail}
+                      </span>
                     </th>
                     {row.cells.map((cell, i) => (
-                      <td key={i} className="px-4 py-3.5 text-[13.5px] text-ink-soft">
+                      <td
+                        key={i}
+                        className="px-4 py-3.5 text-[13.5px] text-ink-soft"
+                      >
                         <span className="flex gap-2">
-                          <span aria-hidden="true" className="mt-0.5 text-accent-text">✓</span>
+                          <span
+                            aria-hidden="true"
+                            className="mt-0.5 text-accent-text"
+                          >
+                            ✓
+                          </span>
                           {cell}
                         </span>
                       </td>
@@ -163,15 +211,23 @@ export default async function MembershipPage({
       </section>
 
       {/* Don */}
-      <section id="don" className="scroll-mt-20 border-y border-line bg-surface">
+      <section
+        id="don"
+        className="scroll-mt-20 border-y border-line bg-surface"
+      >
         <div className={`${WRAP} py-12`}>
           <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div className="max-w-[60ch]">
               <p className={EYEBROW}>{c.don.eyebrow}</p>
-              <h2 className="mt-2 font-display text-[clamp(22px,2.6vw,30px)]">{c.don.title}</h2>
+              <h2 className="mt-2 font-display text-[clamp(22px,2.6vw,30px)]">
+                {c.don.title}
+              </h2>
               <p className="mt-3 leading-relaxed text-ink-soft">{c.don.body}</p>
             </div>
-            <Link href="/don" className="shrink-0 rounded-sm bg-accent px-5 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong">
+            <Link
+              href="/don"
+              className="shrink-0 rounded-sm bg-accent px-5 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+            >
               {c.don.cta}
             </Link>
           </Reveal>
@@ -182,20 +238,41 @@ export default async function MembershipPage({
       <section id="faq" className={`${WRAP} scroll-mt-20 py-14`}>
         <Reveal className="mb-6 max-w-[62ch]">
           <p className={EYEBROW}>{c.faq.eyebrow}</p>
-          <h2 className="mt-2 font-display text-[clamp(24px,3vw,34px)]">{c.faq.title}</h2>
-          <p className="mt-3 text-lg leading-relaxed text-ink-soft">{c.faq.body}</p>
+          <h2 className="mt-2 font-display text-[clamp(24px,3vw,34px)]">
+            {c.faq.title}
+          </h2>
+          <p className="mt-3 text-lg leading-relaxed text-ink-soft">
+            {c.faq.body}
+          </p>
         </Reveal>
-        <RevealGroup as="ul" className="overflow-hidden rounded-md border border-line">
+        <RevealGroup
+          as="ul"
+          className="overflow-hidden rounded-md border border-line"
+        >
           {c.faq.items.map((item) => (
-            <RevealItem as="li" key={item.q} className="border-b border-line last:border-0">
+            <RevealItem
+              as="li"
+              key={item.q}
+              className="border-b border-line last:border-0"
+            >
               <details className="group">
                 <summary className="flex cursor-pointer items-center justify-between gap-4 bg-surface px-5 py-4 font-display text-[17px] leading-snug text-ink transition-colors hover:bg-surface-2 [&::-webkit-details-marker]:hidden">
                   {item.q}
-                  <span aria-hidden="true" className="shrink-0 text-accent-text transition-transform group-open:rotate-45">＋</span>
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 text-accent-text transition-transform group-open:rotate-45"
+                  >
+                    ＋
+                  </span>
                 </summary>
                 <div className="bg-paper px-5 pb-5 pt-1">
                   {item.a.map((p, i) => (
-                    <p key={i} className="mt-3 max-w-[72ch] text-[15px] leading-relaxed text-ink-soft first:mt-0">{p}</p>
+                    <p
+                      key={i}
+                      className="mt-3 max-w-[72ch] text-[15px] leading-relaxed text-ink-soft first:mt-0"
+                    >
+                      {p}
+                    </p>
                   ))}
                 </div>
               </details>
@@ -206,16 +283,28 @@ export default async function MembershipPage({
 
       {/* CTA */}
       <section className="bg-accent text-accent-contrast">
-        <div className={`${WRAP} flex flex-col items-start justify-between gap-6 py-14 lg:flex-row lg:items-center`}>
+        <div
+          className={`${WRAP} flex flex-col items-start justify-between gap-6 py-14 lg:flex-row lg:items-center`}
+        >
           <Reveal>
-            <h2 className="font-display text-2xl text-accent-contrast md:text-3xl">{c.cta.title}</h2>
-            <p className="mt-3 max-w-[56ch] leading-relaxed text-accent-contrast/90">{c.cta.body}</p>
+            <h2 className="font-display text-2xl text-accent-contrast md:text-3xl">
+              {c.cta.title}
+            </h2>
+            <p className="mt-3 max-w-[56ch] leading-relaxed text-accent-contrast/90">
+              {c.cta.body}
+            </p>
           </Reveal>
           <Reveal className="flex shrink-0 flex-wrap gap-3">
-            <a href="#types" className="inline-flex items-center justify-center rounded-sm bg-accent-contrast px-5 py-2.5 text-sm font-semibold text-accent transition-opacity hover:opacity-90">
+            <a
+              href="#types"
+              className="inline-flex items-center justify-center rounded-sm bg-accent-contrast px-5 py-2.5 text-sm font-semibold text-accent transition-opacity hover:opacity-90"
+            >
               {c.cta.primary}
             </a>
-            <Link href="/don" className="inline-flex items-center justify-center rounded-sm border border-accent-contrast/40 px-5 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-contrast/10">
+            <Link
+              href="/don"
+              className="inline-flex items-center justify-center rounded-sm border border-accent-contrast/40 px-5 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-contrast/10"
+            >
               {c.cta.secondary}
             </Link>
           </Reveal>

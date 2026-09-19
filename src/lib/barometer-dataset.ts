@@ -121,7 +121,10 @@ export function datasetMeta(locale: DatasetLocale, dataset: string) {
 
 export function compositeJSON(locale: DatasetLocale): string {
   return JSON.stringify(
-    { meta: datasetMeta(locale, 'composite-index'), rows: compositeRows(locale) },
+    {
+      meta: datasetMeta(locale, 'composite-index'),
+      rows: compositeRows(locale),
+    },
     null,
     2,
   );
@@ -129,7 +132,10 @@ export function compositeJSON(locale: DatasetLocale): string {
 
 export function dimensionsJSON(locale: DatasetLocale): string {
   return JSON.stringify(
-    { meta: datasetMeta(locale, 'sub-dimensions'), rows: dimensionRows(locale) },
+    {
+      meta: datasetMeta(locale, 'sub-dimensions'),
+      rows: dimensionRows(locale),
+    },
     null,
     2,
   );
@@ -166,38 +172,120 @@ export function codebook(locale: DatasetLocale): string {
   const en = locale === 'en';
   const h = (s: string) => `${s}\n${'-'.repeat(s.length)}`;
   const compositeCols = [
-    ['rank', en ? 'Rank in the composite index (1 = highest).' : "Rang dans l'indice composite (1 = le plus haut)."],
-    ['name_en', en ? 'Country name in English (stable identifier).' : 'Nom du pays en anglais (identifiant stable).'],
-    ['country', en ? 'Country name in the dataset locale.' : 'Nom du pays dans la langue du jeu.'],
+    [
+      'rank',
+      en
+        ? 'Rank in the composite index (1 = highest).'
+        : "Rang dans l'indice composite (1 = le plus haut).",
+    ],
+    [
+      'name_en',
+      en
+        ? 'Country name in English (stable identifier).'
+        : 'Nom du pays en anglais (identifiant stable).',
+    ],
+    [
+      'country',
+      en
+        ? 'Country name in the dataset locale.'
+        : 'Nom du pays dans la langue du jeu.',
+    ],
     ['region', en ? 'Africa or Europe.' : 'Afrique ou Europe.'],
-    ['index', en ? 'Composite index, 0–1 (higher = freer).' : 'Indice composite, 0–1 (plus haut = plus libre).'],
-    ['category', en ? 'Category 1–5 (1 = free … 5 = not free).' : 'Catégorie 1–5 (1 = libre … 5 = non libre).'],
-    ['category_label', en ? 'Human-readable category label.' : 'Libellé lisible de la catégorie.'],
-    ['trend_direction', en ? 'up | down | flat vs. previous edition.' : 'up | down | flat par rapport à l’édition précédente.'],
-    ['trend_change', en ? 'Signed change in the index vs. previous edition.' : "Variation signée de l'indice vs édition précédente."],
+    [
+      'index',
+      en
+        ? 'Composite index, 0–1 (higher = freer).'
+        : 'Indice composite, 0–1 (plus haut = plus libre).',
+    ],
+    [
+      'category',
+      en
+        ? 'Category 1–5 (1 = free … 5 = not free).'
+        : 'Catégorie 1–5 (1 = libre … 5 = non libre).',
+    ],
+    [
+      'category_label',
+      en
+        ? 'Human-readable category label.'
+        : 'Libellé lisible de la catégorie.',
+    ],
+    [
+      'trend_direction',
+      en
+        ? 'up | down | flat vs. previous edition.'
+        : 'up | down | flat par rapport à l’édition précédente.',
+    ],
+    [
+      'trend_change',
+      en
+        ? 'Signed change in the index vs. previous edition.'
+        : "Variation signée de l'indice vs édition précédente.",
+    ],
   ];
   const dimensionCols = [
-    ['code', en ? 'Sub-dimension code (D1–D5).' : 'Code de la sous-dimension (D1–D5).'],
+    [
+      'code',
+      en ? 'Sub-dimension code (D1–D5).' : 'Code de la sous-dimension (D1–D5).',
+    ],
     ['dimension', en ? 'Sub-dimension name.' : 'Nom de la sous-dimension.'],
-    ['mean', en ? 'Panel mean for the sub-dimension, 0–1.' : 'Moyenne du panel pour la sous-dimension, 0–1.'],
-    ['category', en ? 'Category 1–5 derived from the mean.' : 'Catégorie 1–5 dérivée de la moyenne.'],
-    ['category_label', en ? 'Human-readable category label.' : 'Libellé lisible de la catégorie.'],
-    ['weight', en ? 'Weight in the composite (equal weighting).' : "Poids dans l'indice (pondération égale)."],
-    ['description', en ? 'What the sub-dimension covers.' : 'Ce que couvre la sous-dimension.'],
+    [
+      'mean',
+      en
+        ? 'Panel mean for the sub-dimension, 0–1.'
+        : 'Moyenne du panel pour la sous-dimension, 0–1.',
+    ],
+    [
+      'category',
+      en
+        ? 'Category 1–5 derived from the mean.'
+        : 'Catégorie 1–5 dérivée de la moyenne.',
+    ],
+    [
+      'category_label',
+      en
+        ? 'Human-readable category label.'
+        : 'Libellé lisible de la catégorie.',
+    ],
+    [
+      'weight',
+      en
+        ? 'Weight in the composite (equal weighting).'
+        : "Poids dans l'indice (pondération égale).",
+    ],
+    [
+      'description',
+      en
+        ? 'What the sub-dimension covers.'
+        : 'Ce que couvre la sous-dimension.',
+    ],
   ];
   const lines: string[] = [];
   lines.push(c.hero.title + (en ? ' — Codebook' : ' — Codebook'));
   lines.push('');
   lines.push(`${en ? 'Source' : 'Source'}: ${SOURCE}`);
   lines.push(`${en ? 'Edition' : 'Édition'}: ${BAROMETER_EDITION}`);
-  lines.push(`${en ? 'Licence' : 'Licence'}: ${BAROMETER_LICENSE} — ${c.methodology.license}`);
+  lines.push(
+    `${en ? 'Licence' : 'Licence'}: ${BAROMETER_LICENSE} — ${c.methodology.license}`,
+  );
   lines.push('');
   lines.push(`!! ${c.hero.disclaimer}`);
   lines.push('');
-  lines.push(h(en ? 'Dataset: composite-index (composite.csv / composite.json)' : 'Jeu : composite-index (composite.csv / composite.json)'));
+  lines.push(
+    h(
+      en
+        ? 'Dataset: composite-index (composite.csv / composite.json)'
+        : 'Jeu : composite-index (composite.csv / composite.json)',
+    ),
+  );
   for (const [k, v] of compositeCols) lines.push(`  ${k.padEnd(16)} ${v}`);
   lines.push('');
-  lines.push(h(en ? 'Dataset: sub-dimensions (dimensions.csv / dimensions.json)' : 'Jeu : sous-dimensions (dimensions.csv / dimensions.json)'));
+  lines.push(
+    h(
+      en
+        ? 'Dataset: sub-dimensions (dimensions.csv / dimensions.json)'
+        : 'Jeu : sous-dimensions (dimensions.csv / dimensions.json)',
+    ),
+  );
   for (const [k, v] of dimensionCols) lines.push(`  ${k.padEnd(16)} ${v}`);
   lines.push('');
   lines.push(h(en ? 'Method (summary)' : 'Méthode (résumé)'));
@@ -215,17 +303,35 @@ export function buildDataFile(
 ): { body: string; contentType: string } | null {
   switch (file) {
     case 'composite.csv':
-      return { body: toCSV(compositeRows(locale)), contentType: 'text/csv; charset=utf-8' };
+      return {
+        body: toCSV(compositeRows(locale)),
+        contentType: 'text/csv; charset=utf-8',
+      };
     case 'composite.json':
-      return { body: compositeJSON(locale), contentType: 'application/json; charset=utf-8' };
+      return {
+        body: compositeJSON(locale),
+        contentType: 'application/json; charset=utf-8',
+      };
     case 'dimensions.csv':
-      return { body: toCSV(dimensionRows(locale)), contentType: 'text/csv; charset=utf-8' };
+      return {
+        body: toCSV(dimensionRows(locale)),
+        contentType: 'text/csv; charset=utf-8',
+      };
     case 'dimensions.json':
-      return { body: dimensionsJSON(locale), contentType: 'application/json; charset=utf-8' };
+      return {
+        body: dimensionsJSON(locale),
+        contentType: 'application/json; charset=utf-8',
+      };
     case 'geometries.json':
-      return { body: geometriesJSON(), contentType: 'application/json; charset=utf-8' };
+      return {
+        body: geometriesJSON(),
+        contentType: 'application/json; charset=utf-8',
+      };
     case 'codebook.txt':
-      return { body: codebook(locale), contentType: 'text/plain; charset=utf-8' };
+      return {
+        body: codebook(locale),
+        contentType: 'text/plain; charset=utf-8',
+      };
     default:
       return null;
   }

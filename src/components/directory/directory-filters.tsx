@@ -79,7 +79,10 @@ export function DirectoryFilters({
           {t('filterRegion')}
         </legend>
         <div className="flex flex-wrap gap-2">
-          <Chip href={buildHref(filters, { region: undefined })} active={!filters.region}>
+          <Chip
+            href={buildHref(filters, { region: undefined })}
+            active={!filters.region}
+          >
             {t('all')}
           </Chip>
           {facets.regions.map((r) => (
@@ -100,7 +103,10 @@ export function DirectoryFilters({
           {t('filterTheme')}
         </legend>
         <div className="flex flex-wrap gap-2">
-          <Chip href={buildHref(filters, { theme: undefined })} active={!filters.theme}>
+          <Chip
+            href={buildHref(filters, { theme: undefined })}
+            active={!filters.theme}
+          >
             {t('all')}
           </Chip>
           {facets.themes.map((th) => (

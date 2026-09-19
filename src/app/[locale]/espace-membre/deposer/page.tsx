@@ -1,9 +1,7 @@
 'use client';
 
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
-import {
-  useQuery
-} from 'convex/react';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
@@ -54,6 +52,8 @@ function DepositPage() {
 
 export default function DeposerPage() {
   return (
-    <AuthGate className="max-w-3xl"><DepositPage /></AuthGate>
+    <AuthGate className="max-w-3xl">
+      <DepositPage />
+    </AuthGate>
   );
 }

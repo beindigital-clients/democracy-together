@@ -24,7 +24,10 @@ test('annuaire : liste + filtre par région (F-19)', async ({ page }) => {
   expect(await cards(page).count()).toBeGreaterThanOrEqual(8);
 
   // filtrer sur l'Europe de l'Ouest
-  await page.getByRole('link', { name: /Europe de l.Ouest/ }).first().click();
+  await page
+    .getByRole('link', { name: /Europe de l.Ouest/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/region=europe-ouest/);
   await expect(
     page.getByRole('heading', { name: 'Institut Européen pour la Démocratie' }),

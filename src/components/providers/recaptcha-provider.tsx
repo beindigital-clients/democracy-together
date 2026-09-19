@@ -1,12 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, type ReactNode } from 'react';
 
 // reCAPTCHA v3 — îlot client. Charge le script Google une fois (si la clé de
 // site publique est posée) et expose execute(action) -> jeton. Le jeton part

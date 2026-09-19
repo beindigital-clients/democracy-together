@@ -33,13 +33,15 @@ const MAIL = { to: 'x@example.org', subject: 'Sujet', html: '<p>corps</p>' };
 
 describe('Adaptateur e-mail — fail-fast sans fournisseur (audit H3)', () => {
   it('PRODUCTION (aucun fournisseur, AUTH_DEV_OTP absent) : échoue au lieu de simuler un succès', async () => {
-    await expect(sendEmail(MAIL)).rejects.toThrow('EMAIL_PROVIDER_NOT_CONFIGURED');
+    await expect(sendEmail(MAIL)).rejects.toThrow(
+      'EMAIL_PROVIDER_NOT_CONFIGURED',
+    );
   });
 
   it("l'OTP échoue aussi : mieux vaut une erreur visible qu'un code jamais reçu", async () => {
-    await expect(sendOtpEmail('x@example.org', '123456', 'signin')).rejects.toThrow(
-      'EMAIL_PROVIDER_NOT_CONFIGURED',
-    );
+    await expect(
+      sendOtpEmail('x@example.org', '123456', 'signin'),
+    ).rejects.toThrow('EMAIL_PROVIDER_NOT_CONFIGURED');
   });
 
   it('DEV/TEST (AUTH_DEV_OTP=true) : no-op journalisé, aucune erreur', async () => {

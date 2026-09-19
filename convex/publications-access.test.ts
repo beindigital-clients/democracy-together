@@ -79,7 +79,11 @@ describe('Gating membres — logique pure (F-35)', () => {
   });
 
   it('projectPublication : publication ouverte -> tout est servi', () => {
-    const out = projectPublication(doc('open', 'ouverte'), 'https://files/x.pdf', false);
+    const out = projectPublication(
+      doc('open', 'ouverte'),
+      'https://files/x.pdf',
+      false,
+    );
     expect(out.locked).toBe(false);
     expect(out.fileUrl).toBe('https://files/x.pdf');
     expect(out.body).toEqual(BODY);
@@ -87,7 +91,11 @@ describe('Gating membres — logique pure (F-35)', () => {
   });
 
   it('projectPublication : réservée + non-membre -> corps, fichier et résumé masqués', () => {
-    const out = projectPublication(doc('members', 'reservee'), 'https://files/x.pdf', false);
+    const out = projectPublication(
+      doc('members', 'reservee'),
+      'https://files/x.pdf',
+      false,
+    );
     expect(out.locked).toBe(true);
     expect(out.fileUrl).toBeNull();
     expect(out.body).toEqual([]);
@@ -99,7 +107,11 @@ describe('Gating membres — logique pure (F-35)', () => {
   });
 
   it('projectPublication : réservée + membre -> tout est servi', () => {
-    const out = projectPublication(doc('members', 'reservee'), 'https://files/x.pdf', true);
+    const out = projectPublication(
+      doc('members', 'reservee'),
+      'https://files/x.pdf',
+      true,
+    );
     expect(out.locked).toBe(false);
     expect(out.fileUrl).toBe('https://files/x.pdf');
     expect(out.body).toEqual(BODY);
@@ -119,7 +131,10 @@ async function seed() {
     ),
   );
   await t.run(async (ctx) => {
-    await ctx.db.insert('publications', { ...doc('members', 'reservee'), fileId });
+    await ctx.db.insert('publications', {
+      ...doc('members', 'reservee'),
+      fileId,
+    });
     await ctx.db.insert('publications', { ...doc('open', 'ouverte'), fileId });
   });
   return { t, fileId };
@@ -158,13 +173,17 @@ describe('getBySlug — publications réservées aux membres (F-35)', () => {
   it('compte authentifié sans adhésion validée (visiteur) : verrouillé', async () => {
     const { t } = await seed();
     const asVisitor = await userWithRole(t, 'visiteur', 'v@test.org');
-    const pub = await asVisitor.query(api.publications.getBySlug, { slug: 'reservee' });
+    const pub = await asVisitor.query(api.publications.getBySlug, {
+      slug: 'reservee',
+    });
     expect(pub!.locked).toBe(true);
     expect(pub!.fileUrl).toBeNull();
 
     // compte sans rôle explicite (= visiteur par défaut) -> verrouillé aussi
     const asNoRole = await userWithRole(t, undefined, 'nr@test.org');
-    const pub2 = await asNoRole.query(api.publications.getBySlug, { slug: 'reservee' });
+    const pub2 = await asNoRole.query(api.publications.getBySlug, {
+      slug: 'reservee',
+    });
     expect(pub2!.locked).toBe(true);
     expect(pub2!.fileUrl).toBeNull();
   });
@@ -172,7 +191,9 @@ describe('getBySlug — publications réservées aux membres (F-35)', () => {
   it('membre : reçoit le corps et l’URL signée du document', async () => {
     const { t } = await seed();
     const asMember = await userWithRole(t, 'membre', 'm@test.org');
-    const pub = await asMember.query(api.publications.getBySlug, { slug: 'reservee' });
+    const pub = await asMember.query(api.publications.getBySlug, {
+      slug: 'reservee',
+    });
     expect(pub!.locked).toBe(false);
     expect(pub!.fileUrl).toBeTruthy();
     expect(pub!.body).toEqual(BODY);
@@ -182,7 +203,9 @@ describe('getBySlug — publications réservées aux membres (F-35)', () => {
   it('modérateur (rôle supérieur) : reçoit aussi le document', async () => {
     const { t } = await seed();
     const asMod = await userWithRole(t, 'moderateur', 'mod@test.org');
-    const pub = await asMod.query(api.publications.getBySlug, { slug: 'reservee' });
+    const pub = await asMod.query(api.publications.getBySlug, {
+      slug: 'reservee',
+    });
     expect(pub!.locked).toBe(false);
     expect(pub!.fileUrl).toBeTruthy();
   });
@@ -217,7 +240,9 @@ describe('listPublished — la liste ne fuit pas le contenu réservé (F-35)', (
     const { t } = await seed();
     const { facets, total } = await t.query(api.publications.listPublished, {});
     expect(total).toBe(2);
-    const access = Object.fromEntries(facets.access.map((f) => [f.value, f.count]));
+    const access = Object.fromEntries(
+      facets.access.map((f) => [f.value, f.count]),
+    );
     expect(access['members']).toBe(1);
     expect(access['open']).toBe(1);
   });

@@ -15,7 +15,9 @@ test('inscription + vérification, déconnexion, reconnexion par mot de passe', 
 
   // déconnexion
   await page.getByRole('button', { name: 'Déconnexion' }).click();
-  await expect(page.getByRole('link', { name: 'Connexion' }).first()).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Connexion' }).first(),
+  ).toBeVisible();
 
   // reconnexion
   await page.goto('/fr/connexion');

@@ -1,9 +1,7 @@
 'use client';
 
 import { AuthGate } from '@/components/auth/auth-gate';
-import {
-  useQuery
-} from 'convex/react';
+import { useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
@@ -15,7 +13,7 @@ const STATUS_BADGE: Record<string, string> = {
     'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
   pending:
     'border-[color-mix(in_srgb,var(--color-bar-4)_48%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-4)_10%,transparent)] text-bar-4',
-  draft: 'border-line-strong bg-surface-2 text-muted'
+  draft: 'border-line-strong bg-surface-2 text-muted',
 };
 
 // Tableau « Mes contributions » (F-32) — les dépôts du membre, tous statuts.
@@ -116,7 +114,9 @@ function BecomeMember() {
   const t = useTranslations('auth');
   return (
     <section className="mt-10 rounded-md border border-accent-edge bg-accent-tint p-6">
-      <h2 className="font-display text-xl text-ink">{t('becomeMemberTitle')}</h2>
+      <h2 className="font-display text-xl text-ink">
+        {t('becomeMemberTitle')}
+      </h2>
       <p className="mt-2 max-w-[60ch] text-sm leading-relaxed text-ink-soft">
         {t('becomeMemberBody')}
       </p>
@@ -174,6 +174,8 @@ function MemberDashboard() {
 
 export default function EspaceMembrePage() {
   return (
-    <AuthGate className="max-w-md"><MemberDashboard /></AuthGate>
+    <AuthGate className="max-w-md">
+      <MemberDashboard />
+    </AuthGate>
   );
 }

@@ -338,7 +338,9 @@ export const sendMembershipInvitation = internalAction({
       siteUrl: process.env.SITE_URL ?? 'http://localhost:3000',
     });
     await sendEmail({ to: email, subject, html });
-    await ctx.runMutation(internal.organizations.markInvited, { applicationId });
+    await ctx.runMutation(internal.organizations.markInvited, {
+      applicationId,
+    });
   },
 });
 

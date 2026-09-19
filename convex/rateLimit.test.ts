@@ -141,6 +141,8 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
       t.mutation(internal.otp.enforceSendRate, { email: victim }),
     );
     // compteur distinct par adresse (clé indépendante)
-    await t.mutation(internal.otp.enforceSendRate, { email: 'autre@example.org' });
+    await t.mutation(internal.otp.enforceSendRate, {
+      email: 'autre@example.org',
+    });
   });
 });

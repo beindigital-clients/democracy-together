@@ -141,7 +141,7 @@ const en: Record<ThemeSlug, ThemeSynthesis> = {
     dimension: 'D4',
     lead: 'Exit from authoritarianism, turnovers and resilience: what consolidates a transition, what makes it slide back.',
     stance: [
-      "A transition does not end on the day of the first free election. Setbacks often come afterwards: capture of institutions, constitutional revisions, neutralising of checks and balances. The network follows these trajectories over the long run.",
+      'A transition does not end on the day of the first free election. Setbacks often come afterwards: capture of institutions, constitutional revisions, neutralising of checks and balances. The network follows these trajectories over the long run.',
       'This is where the Africa-Europe comparison is most fruitful: both continents have known transitions, consolidations and reversals, at different paces. Crossing these experiences sheds more light than any single case.',
     ],
     questions: [

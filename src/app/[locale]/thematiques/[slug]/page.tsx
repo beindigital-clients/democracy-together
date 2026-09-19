@@ -14,7 +14,7 @@ import { PublicationCard } from '@/components/library/publication-card';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -171,7 +171,11 @@ export default async function ThemeSynthesisPage({
             >
               {items.map((pub) => (
                 <RevealItem as="li" key={pub._id}>
-                  <PublicationCard pub={pub} locale={locale} variant="compact" />
+                  <PublicationCard
+                    pub={pub}
+                    locale={locale}
+                    variant="compact"
+                  />
                 </RevealItem>
               ))}
             </RevealGroup>

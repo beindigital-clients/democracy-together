@@ -10,7 +10,7 @@ import { routing } from '@/i18n/routing';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale);
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -69,7 +69,10 @@ export default async function ExpertsPage({
           </p>
         </Reveal>
       ) : (
-        <RevealGroup as="ul" className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <RevealGroup
+          as="ul"
+          className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {experts.map((expert) => (
             <RevealItem as="li" key={expert.name}>
               <article className="flex h-full flex-col rounded-sm border border-line bg-surface p-6">

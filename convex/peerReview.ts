@@ -110,7 +110,10 @@ export const getReviewQueue = query({
     const all = await ctx.db.query('publications').collect();
     const inReview = all
       .filter((p) => p.reviewStage !== undefined)
-      .sort((a, b) => (b.submittedAt ?? b.createdAt) - (a.submittedAt ?? a.createdAt));
+      .sort(
+        (a, b) =>
+          (b.submittedAt ?? b.createdAt) - (a.submittedAt ?? a.createdAt),
+      );
 
     return await Promise.all(
       inReview.map(async (p) => {

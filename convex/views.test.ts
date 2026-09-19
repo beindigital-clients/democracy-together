@@ -42,28 +42,42 @@ function pubDoc(over: Record<string, unknown> = {}) {
 describe('Compteur de consultations (F-37)', () => {
   it('incrémente views d’une publication publiée ; deux appels -> 2', async () => {
     const t = convexTest(schema, modules);
-    await t.run((ctx) => ctx.db.insert('publications', pubDoc({ slug: 'pub-a' })));
+    await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'pub-a' })),
+    );
 
     await t.mutation(api.publications.recordPublicationView, { slug: 'pub-a' });
-    const afterOne = await t.query(api.publications.getBySlug, { slug: 'pub-a' });
+    const afterOne = await t.query(api.publications.getBySlug, {
+      slug: 'pub-a',
+    });
     expect(afterOne?.views).toBe(1);
 
     await t.mutation(api.publications.recordPublicationView, { slug: 'pub-a' });
-    const afterTwo = await t.query(api.publications.getBySlug, { slug: 'pub-a' });
+    const afterTwo = await t.query(api.publications.getBySlug, {
+      slug: 'pub-a',
+    });
     expect(afterTwo?.views).toBe(2);
   });
 
   it('démarre depuis 0 quand views est absent en base', async () => {
     const t = convexTest(schema, modules);
     // Pas de champ `views` (données seed / anciennes) : optionnel au schéma.
-    await t.run((ctx) => ctx.db.insert('publications', pubDoc({ slug: 'pub-seed' })));
+    await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'pub-seed' })),
+    );
 
     // getBySlug normalise views -> 0 même sans enregistrement.
-    const before = await t.query(api.publications.getBySlug, { slug: 'pub-seed' });
+    const before = await t.query(api.publications.getBySlug, {
+      slug: 'pub-seed',
+    });
     expect(before?.views).toBe(0);
 
-    await t.mutation(api.publications.recordPublicationView, { slug: 'pub-seed' });
-    const after = await t.query(api.publications.getBySlug, { slug: 'pub-seed' });
+    await t.mutation(api.publications.recordPublicationView, {
+      slug: 'pub-seed',
+    });
+    const after = await t.query(api.publications.getBySlug, {
+      slug: 'pub-seed',
+    });
     expect(after?.views).toBe(1);
   });
 
@@ -83,7 +97,9 @@ describe('Compteur de consultations (F-37)', () => {
     expect(res).toBeNull();
 
     // La query publique n'expose jamais une publication non publiée.
-    const fetched = await t.query(api.publications.getBySlug, { slug: 'pub-pending' });
+    const fetched = await t.query(api.publications.getBySlug, {
+      slug: 'pub-pending',
+    });
     expect(fetched).toBeNull();
 
     // Et views reste à 0 en base (inspection directe).
@@ -100,8 +116,8 @@ describe('Compteur de consultations (F-37)', () => {
       slug: 'inexistant',
     });
     expect(res).toBeNull();
-    const count = await t.run(async (ctx) =>
-      (await ctx.db.query('publications').collect()).length,
+    const count = await t.run(
+      async (ctx) => (await ctx.db.query('publications').collect()).length,
     );
     expect(count).toBe(0);
   });

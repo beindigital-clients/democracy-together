@@ -81,7 +81,9 @@ describe('Securite — setRole anti-lockout (F-63)', () => {
       userId: otherId,
       role: 'moderateur',
     });
-    expect((await t.run((ctx) => ctx.db.get(otherId)))?.role).toBe('moderateur');
+    expect((await t.run((ctx) => ctx.db.get(otherId)))?.role).toBe(
+      'moderateur',
+    );
 
     // 3) avec deux admins, on peut en retrograder un (il en reste un)
     const admin2 = await t.run((ctx) =>
@@ -126,7 +128,8 @@ describe('Annuaire — getBySlug ne renvoie que les actifs (F-21)', () => {
       await t.query(api.organizations.getBySlug, { slug: 'pending-org' }),
     ).toBeNull();
     expect(
-      (await t.query(api.organizations.getBySlug, { slug: 'active-org' }))?.name,
+      (await t.query(api.organizations.getBySlug, { slug: 'active-org' }))
+        ?.name,
     ).toBe('Active Org');
   });
 });

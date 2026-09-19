@@ -1,5 +1,11 @@
 import { v } from 'convex/values';
-import { action, internalMutation, internalQuery, mutation, query } from './_generated/server';
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
@@ -138,7 +144,11 @@ export const reviewMentorshipRequest = mutation({
       actorId: reviewer._id,
       action: AUDIT.MENTORSHIP_REVIEWED,
       targetId: requestId,
-      metadata: { status, role: request.role, notes: notes?.trim() || undefined },
+      metadata: {
+        status,
+        role: request.role,
+        notes: notes?.trim() || undefined,
+      },
     });
     return { ok: true };
   },

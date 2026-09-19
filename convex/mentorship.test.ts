@@ -175,10 +175,12 @@ describe('Mentorat — back-office (F-59)', () => {
       return id;
     });
     await expect(
-      t.withIdentity({ subject: `${modId}|s` }).mutation(
-        api.mentorship.reviewMentorshipRequest,
-        { requestId: fakeId, status: 'closed' },
-      ),
+      t
+        .withIdentity({ subject: `${modId}|s` })
+        .mutation(api.mentorship.reviewMentorshipRequest, {
+          requestId: fakeId,
+          status: 'closed',
+        }),
     ).rejects.toThrow();
   });
 });

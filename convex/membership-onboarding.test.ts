@@ -106,7 +106,9 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
       ctx.db
         .query('users')
         .collect()
-        .then((all) => all.filter((u) => u.email === 'contact@institut-sahel.org')),
+        .then((all) =>
+          all.filter((u) => u.email === 'contact@institut-sahel.org'),
+        ),
     );
     expect(users).toHaveLength(1);
     expect(users[0]._id).toBe(existing);
@@ -134,7 +136,9 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
       ctx.db
         .query('users')
         .collect()
-        .then((all) => all.find((x) => x.email === 'contact@institut-sahel.org')),
+        .then((all) =>
+          all.find((x) => x.email === 'contact@institut-sahel.org'),
+        ),
     );
     expect(u!.role).toBe('admin');
   });
@@ -151,8 +155,12 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
     });
 
     const users = await t.run((ctx) => ctx.db.query('users').collect());
-    expect(users.some((u) => u.email === 'contact@institut-sahel.org')).toBe(false);
-    expect(await t.run((ctx) => ctx.db.query('organizations').collect())).toHaveLength(0);
+    expect(users.some((u) => u.email === 'contact@institut-sahel.org')).toBe(
+      false,
+    );
+    expect(
+      await t.run((ctx) => ctx.db.query('organizations').collect()),
+    ).toHaveLength(0);
   });
 });
 
@@ -197,7 +205,10 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
     const links = await t.run((ctx) =>
       ctx.db.query('organizationMemberships').collect(),
     );
-    expect(links, 'la table organizationMemberships ne doit plus être morte').toHaveLength(1);
+    expect(
+      links,
+      'la table organizationMemberships ne doit plus être morte',
+    ).toHaveLength(1);
     expect(links[0].orgRole).toBe('owner');
 
     const org = await t.run((ctx) => ctx.db.query('organizations').first());
@@ -205,7 +216,9 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
       ctx.db
         .query('users')
         .collect()
-        .then((all) => all.find((u) => u.email === 'contact@institut-sahel.org')),
+        .then((all) =>
+          all.find((u) => u.email === 'contact@institut-sahel.org'),
+        ),
     );
     expect(links[0].orgId).toBe(org!._id);
     expect(links[0].userId).toBe(user!._id);
@@ -225,10 +238,14 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
     expect(orgs).toHaveLength(1);
     expect(orgs[0].status).toBe('pending');
     // …et l'annuaire public reste vide
-    expect((await t.query(api.organizations.listDirectory, {})).items).toHaveLength(0);
+    expect(
+      (await t.query(api.organizations.listDirectory, {})).items,
+    ).toHaveLength(0);
     // mais le COMPTE est bien créé : le blocage de connexion est levé
     const users = await t.run((ctx) => ctx.db.query('users').collect());
-    expect(users.some((u) => u.email === 'contact@institut-sahel.org')).toBe(true);
+    expect(users.some((u) => u.email === 'contact@institut-sahel.org')).toBe(
+      true,
+    );
   });
 
   it('une candidature « individu » ne crée pas d’organisation, mais crée le compte', async () => {
@@ -245,7 +262,9 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
       decision: 'approved',
     });
 
-    expect(await t.run((ctx) => ctx.db.query('organizations').collect())).toHaveLength(0);
+    expect(
+      await t.run((ctx) => ctx.db.query('organizations').collect()),
+    ).toHaveLength(0);
     const users = await t.run((ctx) => ctx.db.query('users').collect());
     expect(users.some((u) => u.email === 'awa@example.org')).toBe(true);
   });
@@ -294,7 +313,9 @@ describe("Approbation d'adhésion — idempotence et machine à états", () => {
       }),
     ).rejects.toThrow('ALREADY_REVIEWED');
 
-    expect(await t.run((ctx) => ctx.db.query('organizations').collect())).toHaveLength(1);
+    expect(
+      await t.run((ctx) => ctx.db.query('organizations').collect()),
+    ).toHaveLength(1);
     expect(
       await t.run((ctx) => ctx.db.query('organizationMemberships').collect()),
     ).toHaveLength(1);
@@ -321,7 +342,9 @@ describe("Approbation d'adhésion — invitation à se connecter", () => {
       await t.finishAllScheduledFunctions(vi.runAllTimers);
 
       const app = await t.run((ctx) => ctx.db.get(applicationId));
-      expect(app?.invitedAt, "l'invitation doit être horodatée").toBeTypeOf('number');
+      expect(app?.invitedAt, "l'invitation doit être horodatée").toBeTypeOf(
+        'number',
+      );
     } finally {
       vi.useRealTimers();
       if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
@@ -371,7 +394,9 @@ describe('Invitation manuelle par un admin (F-63)', () => {
 
     const all = await t.run((ctx) => ctx.db.query('users').collect());
     expect(all.filter((u) => u.email === 'deja@membre.org')).toHaveLength(1);
-    expect(all.find((u) => u.email === 'deja@membre.org')!.role).toBe('editeur');
+    expect(all.find((u) => u.email === 'deja@membre.org')!.role).toBe(
+      'editeur',
+    );
   });
 
   it('refuse un non-admin et une adresse invalide', async () => {
@@ -391,7 +416,10 @@ describe('Invitation manuelle par un admin (F-63)', () => {
     await expect(
       t
         .withIdentity({ subject: `${adminId}|s` })
-        .mutation(api.users.inviteUser, { email: 'pas-un-email', role: 'membre' }),
+        .mutation(api.users.inviteUser, {
+          email: 'pas-un-email',
+          role: 'membre',
+        }),
     ).rejects.toThrow('INVALID_EMAIL');
   });
 });
