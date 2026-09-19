@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getOtp, latestApplicationForEmail } from './_helpers';
+import { getOtp, latestApplicationForEmail, provisionUser } from './_helpers';
 
 // PARCOURS COMPLET EN ANGLAIS sur les chemins principaux : accueil,
 // bibliothèque, adhésion, connexion.
@@ -39,7 +39,17 @@ test('EN : accueil -> bibliothèque -> facette -> fiche de publication (F-03/F-3
   await expect(page.getByText('Offices', { exact: true })).toBeVisible();
 
   // 1. CTA du hero -> bibliothèque
-  await page.getByRole('link', { name: 'Explore the analyses' }).click();
+  //
+  // Par la DESTINATION, pas par le libellé. Le contenu du hero vient de
+  // `getHomeContent`, qui lit Sanity avec repli sur `home-content.ts` : le
+  // libellé est donc éditable (F-62), et il a déjà changé — le test attendait
+  // « Explore the analyses » (vestige de `messages/en.json`, qui n'alimente
+  // plus le hero) alors que la page rend « Read the analyses ». L'adresse de
+  // destination, elle, est une décision de structure.
+  //
+  // `main` écarte le lien homonyme de la navigation ; le CTA du hero est le
+  // premier lien de la page à pointer vers la bibliothèque.
+  await page.locator('main a[href="/en/bibliotheque"]').first().click();
   await expect(page).toHaveURL(/\/en\/bibliotheque$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Library',
@@ -115,6 +125,10 @@ test('EN : connexion par code puis espace membre (F-01/F-03)', async ({
   page,
 }) => {
   const email = `e2e_en_otp_${Date.now()}@democracytogether.test`;
+  // Pas d'auto-inscription : la connexion par code refuse une adresse inconnue
+  // (NO_SELF_SIGNUP). Le compte doit exister d'abord — c'est ce que fait une
+  // invitation dans la vraie vie (#66).
+  await provisionUser(email);
 
   await page.goto('/en/connexion');
   await expect(

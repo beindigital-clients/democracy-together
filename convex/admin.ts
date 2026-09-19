@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { query } from './_generated/server';
-import { requireNetworkRole } from './lib/rbac';
+import { requireNetworkRole, effectiveRole } from './lib/rbac';
 
 // Back-office (F-26 / F-61 / F-63) — toutes les lectures sont role-gated
 // (défense en profondeur ; l'UI masque déjà ce que le rôle n'autorise pas).
@@ -70,7 +70,7 @@ export const listUsers = query({
         _id: u._id,
         name: u.name ?? null,
         email: u.email ?? null,
-        role: u.role ?? 'membre',
+        role: effectiveRole(u.role),
       }))
       .sort((a, b) => (a.email ?? '').localeCompare(b.email ?? ''));
   },

@@ -1,11 +1,20 @@
 import { test, expect } from '@playwright/test';
-import { getOtp } from './_helpers';
+import { getOtp, provisionUser } from './_helpers';
 
 // Connexion sans mot de passe par code à usage unique (passwordless). (F-01)
-test('connexion par code (passwordless) crée le compte et connecte', async ({
+//
+// Le compte est PROVISIONNÉ d'abord. Ce test attendait auparavant que le code
+// crée le compte au passage — c'était vrai avant la suppression de
+// l'auto-inscription, ça ne l'est plus : le callback `createOrUpdateUser`
+// refuse désormais toute adresse inconnue (`NO_SELF_SIGNUP`). Le test ne
+// pouvait donc plus passer, et son intitulé décrivait un comportement que le
+// produit n'a plus. Ce qu'il vérifie reste entier : sur un compte existant, un
+// code à usage unique suffit à ouvrir une session, sans mot de passe.
+test('connexion par code (passwordless) sur un compte existant', async ({
   page,
 }) => {
   const email = `e2e_otp_${Date.now()}@democracytogether.test`;
+  await provisionUser(email);
 
   await page.goto('/fr/connexion-otp');
   await page.getByLabel('E-mail').fill(email);

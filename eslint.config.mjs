@@ -140,6 +140,30 @@ export default tseslint.config(
     },
   },
 
+  // --- Rôles réseau : une seule valeur par défaut -----------------------------
+  // Le back-office dérivait son propre défaut (`u.role ?? 'membre'`) quand le
+  // RBAC serveur traite l'absence de rôle comme « visiteur » : l'écran où l'on
+  // décide qui a accès à quoi annonçait un droit de dépôt que le serveur
+  // refuse (issue #27). Le défaut venait d'un littéral de repli recopié loin
+  // de la hiérarchie — il n'en existe plus qu'un, `DEFAULT_ROLE` dans
+  // convex/lib/roles.ts, et toute lecture passe par `effectiveRole`. Cette
+  // règle a donc attrapé un vrai défaut de ce dépôt, et c'est elle qui empêche
+  // de le réintroduire en silence.
+  {
+    files: ['src/**/*.{ts,tsx}', 'convex/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "LogicalExpression[operator='??'] > Literal.right[value=/^(visiteur|membre|moderateur|editeur|admin)$/]",
+          message:
+            "Rôle par défaut en dur : utiliser effectiveRole() (DEFAULT_ROLE, convex/lib/roles.ts) — la valeur par défaut ne s'écrit qu'à un seul endroit (issue #27).",
+        },
+      ],
+    },
+  },
+
   // --- Fichiers JS ------------------------------------------------------------
   {
     files: ['**/*.mjs', '**/*.js'],
