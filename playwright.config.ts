@@ -29,7 +29,26 @@ export default defineConfig({
     // specs. Le test dédié `legal.spec` repart d'un état vierge pour le voir.
     storageState: './tests/e2e/storage-state.json',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      // Les specs de `tests/e2e/mobile/` appartiennent au projet mobile : les
+      // rejouer ici les exécuterait sur un viewport desktop, sans tactile —
+      // exactement ce qu'elles vérifient.
+      testIgnore: '**/mobile/**',
+    },
+    {
+      // Le mobile est une exigence structurante du cadrage (premier usage
+      // attendu en Afrique) : un projet dédié, avec un vrai viewport téléphone
+      // et le tactile actif (`hasTouch`), pour que `locator.tap()` et les
+      // gestes `pointerType: 'touch'` soient exercés pour de bon. Chromium
+      // seul : `isMobile` n'est pas émulé par Firefox/WebKit.
+      name: 'mobile-chromium',
+      testDir: './tests/e2e/mobile',
+      use: { ...devices['Pixel 7'] },
+    },
+  ],
   webServer: {
     // Build de prod : toutes les routes sont pré-compilées, donc pas de flake de
     // compilation à la demande quand plusieurs workers tapent en parallèle (et
@@ -37,6 +56,9 @@ export default defineConfig({
     command: 'pnpm build && pnpm start',
     url: 'http://localhost:3000/fr',
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    // Le runner GitHub est plus lent qu'un poste de dev, et ce démarrage inclut
+    // un build de prod complet : 3 min y suffisent rarement. Un dépassement ici
+    // ne dit rien du code, seulement de la machine -> marge plus large en CI.
+    timeout: process.env.CI ? 420_000 : 180_000,
   },
 });
