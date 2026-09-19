@@ -7,7 +7,11 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
-import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import {
+  enforcePublicFormLimit,
+  enforceRateLimit,
+  RATE_LIMITS,
+} from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { locale } from './schema';
@@ -53,6 +57,10 @@ export const storeRegistration = internalMutation({
     if (!eventSlug || eventSlug.length > 100) throw new Error('INVALID_EVENT');
     if (name.length < 2 || name.length > 120) throw new Error('INVALID_NAME');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
+
+    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
+    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    await enforcePublicFormLimit(ctx, 'eventRegister');
 
     await enforceRateLimit(ctx, {
       key: `eventRegister:${email}`,
