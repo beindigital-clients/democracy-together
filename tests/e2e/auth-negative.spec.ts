@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndVerify } from './_helpers';
+import { signUpAndVerify, provisionUser } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
@@ -26,24 +26,41 @@ test('connexion : mauvais mot de passe refusé, pas de session (F-01)', async ({
   await expect(page).toHaveURL(/\/fr\/connexion$/);
 });
 
-test('inscription : code de vérification invalide refusé (F-01)', async ({
+// Ce test visait /fr/inscription, qui redirige désormais vers /adhesion
+// (src/app/[locale]/inscription/page.tsx) : l'auto-inscription n'existe plus.
+// Le COMPORTEMENT vérifié — un code à usage unique erroné est refusé et
+// n'ouvre pas de session — existe toujours, sur la connexion par code. C'est là
+// qu'il est vérifié maintenant.
+//
+// Le compte est provisionné d'abord : la connexion par code refuse une adresse
+// inconnue (NO_SELF_SIGNUP), donc sans cela le test échouerait à l'étape
+// précédant celle qu'il veut éprouver.
+test('connexion par code : code invalide refusé, pas de session (F-01)', async ({
   page,
 }) => {
   const email = `e2e_badotp_${Date.now()}@democracytogether.test`;
-  await page.goto('/fr/inscription');
+  await provisionUser(email);
+
+  await page.goto('/fr/connexion-otp');
   await page.getByLabel('E-mail').fill(email);
-  await page.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123');
-  await page.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
-  await page.getByRole('button', { name: 'Créer le compte' }).click();
+  await page.getByRole('button', { name: 'Recevoir un code' }).click();
 
   await expect(
-    page.getByRole('heading', { name: 'Vérifiez votre e-mail' }),
+    page.getByRole('heading', { name: 'Saisissez le code' }),
   ).toBeVisible();
 
   // code volontairement faux
   await page.getByLabel('Code de vérification').fill('000000');
-  await page.getByRole('button', { name: 'Vérifier' }).click();
+  await page.getByRole('button', { name: 'Se connecter' }).click();
 
   await expect(page.getByText('Code invalide ou expiré.')).toBeVisible();
   await expect(page).not.toHaveURL(/\/espace-membre$/);
+});
+
+// L'auto-inscription est fermée : la page ne doit pas réapparaître par accident.
+test('/inscription redirige vers la demande d’adhésion (F-22)', async ({
+  page,
+}) => {
+  await page.goto('/fr/inscription');
+  await expect(page).toHaveURL(/\/fr\/adhesion$/);
 });

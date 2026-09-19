@@ -190,7 +190,7 @@ export async function getOtp(email: string): Promise<string> {
 // membre invité.
 export async function provisionUser(
   email: string,
-  role: NetworkRole = 'membre',
+  role: NetworkRole = 'visiteur',
 ): Promise<void> {
   await elevateRole(email, role); // upsert : crée le compte s'il n'existe pas
 }
@@ -239,11 +239,19 @@ export async function setPasswordViaReset(
 // /fr/inscription, désormais redirigée vers /adhesion, ce qui cassait 5 specs
 // (audit § 6.1, commit 8be46bc). Contrat préservé : à la sortie, le compte
 // existe, possède ce mot de passe, et la session est ouverte.
+//
+// RÔLE PAR DÉFAUT = `visiteur`, et non `membre` : c'est ce que produisait
+// l'auto-inscription que cette fixture remplace. Un défaut à `membre`
+// PROMOUVAIT silencieusement chaque compte de test, ce qui retirait leur sujet
+// aux specs qui vérifient justement l'état non-membre — `auth.spec.ts` attend
+// « visiteur » et l'invitation à candidater. Les specs qui ont besoin de plus
+// passent le rôle, ou appellent `elevateRole` juste après : c'est déjà le cas
+// partout (admin, admin-ecrans, admin-moderation, library-submit).
 export async function signUpAndVerify(
   page: Page,
   email: string,
   password: string,
-  role: NetworkRole = 'membre',
+  role: NetworkRole = 'visiteur',
 ) {
   await provisionUser(email, role);
   await setPasswordViaReset(page, email, password);

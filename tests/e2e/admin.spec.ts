@@ -9,7 +9,10 @@ test('back-office : un membre ordinaire est refusé (F-26)', async ({
   page,
 }) => {
   const email = `e2e_bo_membre_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, PW); // connecté en tant que « membre »
+  // Rôle explicite : ce test vérifie qu'un MEMBRE (et pas un visiteur) est
+  // refusé au back-office — c'est le cas intéressant, un visiteur l'étant a
+  // fortiori. Le défaut de la fixture est `visiteur`.
+  await signUpAndVerify(page, email, PW, 'membre');
 
   await page.goto('/fr/admin');
   await expect(
