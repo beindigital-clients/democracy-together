@@ -153,6 +153,48 @@ jobs:
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
         run: pnpm test:e2e
 
+      # QUELS tests tombent, et pourquoi — une vingtaine de lignes par échec.
+      # Le pas suivant imprime les captures de page : elles font plusieurs
+      # centaines de lignes chacune, et l'erreur s'y perdait au point qu'il
+      # fallait une exécution de plus rien que pour lister les échecs (issue #66).
+      - name: Échecs (nom et erreur)
+        if: failure()
+        run: |
+          shopt -s globstar nullglob
+          for f in test-results/**/error-context.md; do
+            case "$f" in *-retry*) continue ;; esac
+            sed -n '/^# Test info/,/^```yaml/p' "$f" | sed '$d' | sed '/^# Page snapshot$/d'
+            echo "-----"
+          done
+        shell: bash
+
+      # Quand la suite échoue, le log porte l'INSTANTANÉ DE PAGE de chaque
+      # échec. Sans cela, il faut télécharger l'artefact — ce que certains
+      # environnements interdisent (proxy d'entreprise, agent en bac à sable) —
+      # et c'est précisément quand ça casse qu'on a besoin de voir l'écran.
+      # Les reprises (`-retry1`) sont écartées : même page, deux fois. L'en-tête
+      # n'est pas répété ici, il est au pas ci-dessus.
+      - name: Instantanés des échecs
+        if: failure()
+        run: |
+          shopt -s globstar nullglob
+          for f in test-results/**/error-context.md; do
+            case "$f" in *-retry*) continue ;; esac
+            echo "----- $f -----"
+            awk '/^```yaml/{y=1} y && n++ < 120' "$f"
+            echo
+          done
+        shell: bash
+
+      # Fin du journal du serveur Next. C'est là — et nulle part ailleurs — que se
+      # lit la cause d'une page qui répond 500 ; le navigateur, lui, ne voit
+      # qu'« Internal Server Error ». Ce journal a révélé successivement l'export
+      # `isAuthenticated` manquant (toutes les pages connectées en 500) puis le
+      # projet Sanity « placeholder » en CI : il reste.
+      - name: Journal du serveur (fin)
+        if: failure()
+        run: tail -c 6000 server.log || echo "(pas de server.log)"
+
       - name: Publier le rapport
         if: always()
         uses: actions/upload-artifact@v4
