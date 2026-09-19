@@ -1,0 +1,46 @@
+version: 2
+
+# Le dépôt n'avait pas de Dependabot (audit § 6.2) : la mise à jour de Next
+# 16.2.9 -> 16.3.5, qui corrigeait une RCE non authentifiée, n'a été faite qu'à
+# la suite d'un audit manuel. Une alerte automatique aurait remonté l'avis dès
+# sa publication.
+
+updates:
+  # --- npm ------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # Regrouper les correctifs évite une PR par paquet transitif : un seul
+    # passage de revue pour les montées de version sans risque.
+    groups:
+      correctifs:
+        update-types:
+          - patch
+      mineures-dev:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # React et Next avancent ensemble : leurs montées majeures se décident à
+      # la main, pas au fil de l'eau.
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+    labels:
+      - dependencies
+
+  # --- actions GitHub -------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - ci

@@ -1,0 +1,83 @@
+name: CI
+
+# Le dépôt n'avait aucune intégration continue (audit § 6.2) : rien ne
+# garantissait que `main` compile, que les tests passent, ni qu'une dépendance
+# vulnérable n'entre. Ce workflow reproduit exactement ce qu'un contributeur
+# lance en local, sans secret ni service externe — il est donc déterministe et
+# ne peut pas rougir pour une raison d'environnement.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - doums85/democracy-app-features
+  workflow_dispatch:
+
+# Une nouvelle poussée sur une PR annule la précédente : inutile de payer
+# deux fois la même vérification.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck · tests · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm AVANT setup-node : `cache: pnpm` a besoin du binaire pour
+      # localiser le store.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      # Le tsconfig racine EXCLUT convex/, tests/ et *.test.* : sans la seconde
+      # commande, 9 578 lignes de backend ne seraient typées par aucun script
+      # (audit § 6.2). `next build` les compile, mais trop tard pour un retour
+      # rapide.
+      - name: Typecheck (application)
+        run: pnpm typecheck
+
+      - name: Typecheck (backend Convex)
+        run: pnpm typecheck:convex
+
+      - name: Tests unitaires
+        run: pnpm test
+
+      # Aucune variable d'environnement : le build est vert sans déploiement
+      # Convex ni projet Sanity. Si cela cesse d'être vrai, c'est une
+      # régression à corriger, pas un secret à ajouter ici.
+      - name: Build de production
+        run: pnpm build
+
+  audit:
+    name: Dépendances vulnérables
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Job SÉPARÉ, à dessein : un nouvel avis publié sur une dépendance
+      # transitive peut faire rougir ce job sans qu'une seule ligne ait changé.
+      # L'isoler évite de confondre « le code est cassé » et « le monde a
+      # bougé ». Le seuil `high` est tenable : l'arbre est à 0 avis critique et
+      # 0 avis haut depuis la mise à jour de Next 16.3.5 et les overrides pnpm.
+      - name: pnpm audit (production, seuil haut)
+        run: pnpm audit --prod --audit-level=high

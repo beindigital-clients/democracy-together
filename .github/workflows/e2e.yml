@@ -1,0 +1,78 @@
+name: E2E (Playwright)
+
+# DÉLIBÉRÉMENT MANUEL, et non déclenché sur chaque PR.
+#
+# Les tests E2E exigent un VRAI déploiement Convex : le parcours d'auth crée un
+# compte, lit un code OTP en base et ouvre une session. Sans déploiement, la
+# suite est inexécutable — c'est le constat de l'audit (§ 6.1), pas une
+# régression.
+#
+# Le brancher sur `pull_request` alors que les secrets ne sont pas configurés
+# ferait rougir toutes les PR pour une raison d'environnement, ce qui apprend
+# aux relecteurs à ignorer le rouge. Il reste donc manuel jusqu'à ce que le
+# déploiement de préversion existe ; le basculer sur `pull_request` est alors
+# une modification d'une ligne.
+#
+# Secrets à configurer sur le dépôt avant de l'activer :
+#   CONVEX_DEPLOY_KEY        clé de déploiement d'une préversion Convex dédiée
+#                            aux tests (JAMAIS la production)
+#   NEXT_PUBLIC_CONVEX_URL   URL de ce même déploiement
+#
+# Et sur le déploiement Convex lui-même (`npx convex env set`) :
+#   AUTH_DEV_OTP=true        expose les codes OTP aux fixtures de test
+#   JWT_PRIVATE_KEY, JWKS, SITE_URL
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Parcours navigateur
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Garde-fou : sans le secret, le job s'arrête proprement au lieu d'échouer
+    # sur une erreur d'auth incompréhensible.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Vérifier que les secrets sont présents
+        env:
+          CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
+        run: |
+          if [ -z "$CONVEX_URL" ]; then
+            echo "::error::NEXT_PUBLIC_CONVEX_URL n'est pas configuré. Voir l'en-tête de ce workflow."
+            exit 1
+          fi
+
+      - name: Installer les navigateurs Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Lancer les E2E
+        env:
+          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        run: pnpm test:e2e
+
+      - name: Publier le rapport
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
