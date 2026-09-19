@@ -11,7 +11,9 @@ Trois niveaux, **obligatoires pour chaque feature**.
 Les fichiers de `tests/` sont typés par `pnpm typecheck:tests` (`tsconfig.tests.json`) :
 le tsconfig racine les exclut, donc ni `pnpm typecheck` ni `pnpm build` ne les
 regardent. Sans cette commande, une option de test inexistante est acceptée sans
-bruit et le test s'exécute dans des conditions qu'il n'a pas.
+bruit et le test s'exécute dans des conditions qu'il n'a pas. Elle tourne en CI
+dans `ci.yml` (job « Typecheck · tests · build »), avec les deux autres commandes
+de typage — pas dans `e2e.yml`, qui peut être ignoré faute de secret.
 
 ## Unitaire — `pnpm test`
 - Watch : `pnpm test:watch`.
