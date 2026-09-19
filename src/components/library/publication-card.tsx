@@ -1,10 +1,12 @@
 import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import type { Doc } from '@convex/_generated/dataModel';
+import type { PublicPublication } from '@convex/lib/publications';
 import { formatMonthYear } from '@/lib/publications';
 
-type Pub = Doc<'publications'>;
+// La carte ne reçoit que ce que les queries publiques servent — pas le
+// document complet (issue #30).
+type Pub = PublicPublication;
 
 function langsLabel(languages: string[]): string {
   return languages.map((l) => l.toUpperCase()).join(' / ');

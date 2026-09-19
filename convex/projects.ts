@@ -5,18 +5,12 @@ import { requireNetworkRole } from './lib/rbac';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
+import { isNetworkTheme } from './lib/themes';
 
 // Appels à projets collaboratifs (F-60). La page publique présente le
 // dispositif ; un membre propose un projet (status 'pending'), le staff le revoit
 // (accepted / rejected). `theme` = un des 5 axes du réseau (miroir de PUB_THEMES,
 // src/lib/publications.ts — garder synchrone).
-const THEMES = [
-  'gouvernance-numerique',
-  'participation',
-  'anti-corruption',
-  'transitions',
-  'crises',
-];
 
 function authorName(user: Doc<'users'>): string {
   return user.name?.trim() || 'Membre';
@@ -34,7 +28,7 @@ export const submitProject = mutation({
     const theme = args.theme.trim();
     const title = args.title.trim();
     const summary = args.summary.trim();
-    if (!THEMES.includes(theme)) throw new Error('INVALID_THEME');
+    if (!isNetworkTheme(theme)) throw new Error('INVALID_THEME');
     if (title.length < 4 || title.length > 160)
       throw new Error('INVALID_TITLE');
     if (summary.length < 20 || summary.length > 4000) {
@@ -61,16 +55,25 @@ export const submitProject = mutation({
 
 // --- Back-office (modérateur et au-dessus) ----------------------------------
 export const listProjectProposals = query({
-  args: { status: v.optional(v.string()) },
+  // Domaine FERMÉ (miroir du schéma) : le back-office ne propose que ces
+  // valeurs, le validateur les impose. Sans filtre -> toute la file.
+  args: {
+    status: v.optional(
+      v.union(
+        v.literal('pending'),
+        v.literal('accepted'),
+        v.literal('rejected'),
+      ),
+    ),
+  },
   handler: async (ctx, { status }) => {
     await requireNetworkRole(ctx, 'moderateur');
-    const all =
-      status === 'pending' || status === 'accepted' || status === 'rejected'
-        ? await ctx.db
-            .query('projectProposals')
-            .withIndex('by_status', (q) => q.eq('status', status))
-            .collect()
-        : await ctx.db.query('projectProposals').collect();
+    const all = status
+      ? await ctx.db
+          .query('projectProposals')
+          .withIndex('by_status', (q) => q.eq('status', status))
+          .collect()
+      : await ctx.db.query('projectProposals').collect();
     return all
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((p) => ({

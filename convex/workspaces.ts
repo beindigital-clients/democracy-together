@@ -4,18 +4,12 @@ import type { QueryCtx, MutationCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { requireNetworkRole } from './lib/rbac';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { isNetworkTheme } from './lib/themes';
 
 // Espaces de travail collaboratifs (F-24, incrément 1). Lecture réservée aux
 // membres du réseau (membre+) ; l'écriture de notes est réservée aux membres DE
 // L'ESPACE (workspaceMembers). `theme` = un des 5 axes du réseau (miroir de
 // PUB_THEMES, src/lib/publications.ts — garder synchrone).
-const THEMES = [
-  'gouvernance-numerique',
-  'participation',
-  'anti-corruption',
-  'transitions',
-  'crises',
-];
 
 function memberName(user: Doc<'users'>): string {
   return user.name?.trim() || 'Membre';
@@ -47,7 +41,7 @@ export const createWorkspace = mutation({
     const title = args.title.trim();
     const theme = args.theme.trim();
     const description = args.description.trim();
-    if (!THEMES.includes(theme)) throw new Error('INVALID_THEME');
+    if (!isNetworkTheme(theme)) throw new Error('INVALID_THEME');
     if (title.length < 4 || title.length > 160)
       throw new Error('INVALID_TITLE');
     if (description.length < 10 || description.length > 4000) {

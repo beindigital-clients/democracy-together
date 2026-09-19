@@ -40,7 +40,9 @@ export default async function OrgProfilePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const org = await fetchQuery(api.organizations.getBySlug, { slug });
-  if (!org || org.status !== 'active') notFound();
+  // `getBySlug` ne renvoie QUE des fiches actives (et ne sert plus `status`) :
+  // une fiche pending/suspended est ici indistinguable d'une fiche absente.
+  if (!org) notFound();
 
   const t = await getTranslations('directory.profile');
   const td = await getTranslations('directory');

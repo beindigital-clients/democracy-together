@@ -7,7 +7,7 @@
 // `users` portant son adresse — d'où l'importance de la normaliser exactement
 // comme le fera la connexion.
 
-import { REGIONS, THEMES } from './directory';
+import { REGIONS, DIRECTORY_THEMES } from './directory';
 
 // Normalisation d'adresse : c'est le point de jonction entre la candidature
 // (saisie à la main, casse et espaces quelconques) et la connexion (qui
@@ -46,7 +46,9 @@ export function validateDirectoryFields(
   }
   const themes = [...new Set(input.themes)];
   if (themes.length === 0) return { ok: false, reason: 'INVALID_THEMES' };
-  if (!themes.every((t) => (THEMES as readonly string[]).includes(t))) {
+  if (
+    !themes.every((t) => (DIRECTORY_THEMES as readonly string[]).includes(t))
+  ) {
     return { ok: false, reason: 'INVALID_THEMES' };
   }
   const languages = [...new Set(input.languages)].filter(Boolean);

@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { routing } from '@/i18n/routing';
 import { PUB_THEMES } from '@/lib/publications';
+import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -52,7 +53,11 @@ export default async function TribunePage({
   setRequestLocale(locale);
   const loc = resolve(locale);
   const sp = await searchParams;
-  const theme = param(sp.theme);
+  // Le paramètre d'URL est libre, l'argument de la query ne l'est pas : une
+  // valeur hors vocabulaire est ramenée à « pas de filtre » ici, plutôt que
+  // de partir telle quelle et de faire échouer la validation d'arguments.
+  const raw = param(sp.theme);
+  const theme = raw && isNetworkTheme(raw) ? raw : undefined;
 
   const t = await getTranslations('tribune');
   const tl = await getTranslations('library');

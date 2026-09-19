@@ -1,7 +1,8 @@
 // Bibliothèque (F-32/F-34) — helpers d'affichage côté Next : libellés via i18n
 // (namespace `library`), formatage de date, parsing des filtres depuis l'URL et
-// construction des citations (APA / BibTeX / RIS). Le vocabulaire de slugs est
-// le miroir de convex/lib/publications.ts — garder les deux synchrones.
+// construction des citations (APA / BibTeX / RIS). Le vocabulaire de slugs
+// miroite celui de convex/lib/publications.ts — garder les deux synchrones,
+// SAUF les thématiques, désormais importées de leur déclaration unique.
 
 export const PUB_TYPES = [
   'rapport',
@@ -10,13 +11,11 @@ export const PUB_TYPES = [
   'note',
   'dataset',
 ] as const;
-export const PUB_THEMES = [
-  'gouvernance-numerique',
-  'participation',
-  'anti-corruption',
-  'transitions',
-  'crises',
-] as const;
+// Les 5 axes du réseau ne sont PLUS recopiés ici : ils viennent de la
+// déclaration unique, côté Convex (issue #30). L'alias `@convex` résout les
+// modules purs de convex/lib depuis Next comme depuis Vitest — c'est déjà ce
+// que fait le formulaire d'annuaire du back-office.
+export { NETWORK_THEMES as PUB_THEMES } from '@convex/lib/themes';
 export const PUB_REGIONS = ['afrique', 'europe', 'mondial'] as const;
 export const PUB_LANGS = ['fr', 'en'] as const;
 export const PUB_ACCESS = ['open', 'members'] as const;

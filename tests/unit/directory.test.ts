@@ -3,7 +3,7 @@ import {
   matchesFilters,
   computeFacets,
   REGIONS,
-  THEMES,
+  DIRECTORY_THEMES,
 } from '../../convex/lib/directory';
 
 const org = (over: Partial<Parameters<typeof matchesFilters>[0]> = {}) => ({
@@ -85,7 +85,7 @@ describe('Annuaire — vocabulaire contrôlé', () => {
   it('expose les régions et thématiques', () => {
     expect(REGIONS).toContain('afrique-ouest');
     expect(REGIONS).toContain('europe-ouest');
-    expect(THEMES).toContain('gouvernance');
-    expect(THEMES).toHaveLength(10);
+    expect(DIRECTORY_THEMES).toContain('gouvernance');
+    expect(DIRECTORY_THEMES).toHaveLength(10);
   });
 });

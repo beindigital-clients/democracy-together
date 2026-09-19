@@ -10,6 +10,7 @@ import type { RegionMapItem } from '@/components/map/region-map';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { mapNameForIso } from '@/lib/country-map';
 import { countryName } from '@/lib/orgs';
+import { isDirectoryRegion, isDirectoryTheme } from '@convex/lib/directory';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -49,9 +50,15 @@ export default async function NetworkPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const sp = await searchParams;
+  // Même règle que la Tribune : `region` et `theme` sont des domaines fermés
+  // côté query, donc une valeur d'URL hors vocabulaire vaut « pas de filtre ».
+  // `hasFilters` lit les valeurs ASSAINIES : un `?region=xyz` n'affiche donc
+  // plus un bandeau « filtres actifs » que rien ne justifie.
+  const region = param(sp.region);
+  const theme = param(sp.theme);
   const filters = {
-    region: param(sp.region),
-    theme: param(sp.theme),
+    region: region && isDirectoryRegion(region) ? region : undefined,
+    theme: theme && isDirectoryTheme(theme) ? theme : undefined,
     q: param(sp.q),
   };
   const hasFilters = Boolean(filters.region || filters.theme || filters.q);

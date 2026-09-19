@@ -2,7 +2,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { countryName, countryFlag, languageName } from '@/lib/orgs';
-import type { Doc } from '@convex/_generated/dataModel';
+import type { PublicOrganization } from '@convex/lib/directory';
 
 // Carte d'un think tank dans l'annuaire (F-19). Toute la carte est cliquable
 // vers la fiche membre (F-21). Composant serveur (rendu SSR, zéro JS).
@@ -10,7 +10,7 @@ export function OrgCard({
   org,
   locale,
 }: {
-  org: Doc<'organizations'>;
+  org: PublicOrganization;
   locale: string;
 }) {
   const t = useTranslations('directory');
