@@ -139,7 +139,32 @@ export default defineSchema({
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
-    .index('by_author', ['authorUserId']),
+    .index('by_author', ['authorUserId'])
+    // File de revue (F-43, convex/peerReview.ts) : `reviewStage` n'est posé que
+    // sur les publications ENGAGÉES dans une revue — une infime minorité de la
+    // table. L'index les isole sans lire les autres. Les documents où le champ
+    // est absent sont indexés sous `undefined`, qui précède toute valeur : la
+    // file entière s'obtient donc par la plage `> undefined`, en une lecture
+    // contiguë (cf. getReviewQueue).
+    .index('by_reviewStage', ['reviewStage']),
+
+  // Consultations par publication (F-37) — compteur ISOLÉ du document.
+  //
+  // Le décompte était patché sur la publication elle-même : chaque visite
+  // réécrivait un document lu par la bibliothèque entière (liste, détail,
+  // « même thématique »), donc invalidait tous ces abonnements et mettait la
+  // page la plus consultée en concurrence d'écriture avec elle-même (OCC).
+  // Une ligne dédiée, minuscule et lue nulle part ailleurs, encaisse le trafic
+  // sans toucher au document.
+  //
+  // MIGRATION : `publications.views` garde les vues comptées AVANT ce
+  // découpage (et les valeurs de démonstration posées par devAdmin). Le total
+  // affiché est la SOMME des deux — les sources sont disjointes, plus rien
+  // n'écrit `publications.views` en production.
+  publicationViews: defineTable({
+    publicationId: v.id('publications'),
+    count: v.number(),
+  }).index('by_publication', ['publicationId']),
 
   // Revue à comité de lecture (F-43) — avis des relecteurs (moderateur+) sur une
   // publication. Couche au-dessus de la modération : un éditeur assigne un
@@ -401,7 +426,11 @@ export default defineSchema({
     joinedAt: v.number(),
   })
     .index('by_workspace', ['workspaceId'])
-    .index('by_workspace_and_user', ['workspaceId', 'userId']),
+    .index('by_workspace_and_user', ['workspaceId', 'userId'])
+    // « Mes espaces » : l'appartenance d'un utilisateur se lit en UNE requête
+    // indexée. Sans lui, `listWorkspaces` résolvait l'appartenance espace par
+    // espace — un aller-retour par ligne affichée (N+1).
+    .index('by_user', ['userId']),
 
   // Notes d'un espace (F-24) — fil collaboratif, écriture réservée aux membres
   // de l'espace. `authorName` = instantané dénormalisé.
@@ -438,6 +467,22 @@ export default defineSchema({
   })
     .index('by_action', ['action'])
     .index('by_actor', ['actorId']),
+
+  // Compteurs dénormalisés du back-office (F-61/F-66) — tenus À L'ÉCRITURE.
+  //
+  // Les tableaux de bord comptaient en chargeant les tables (`collect().length`) :
+  // le coût de l'écran d'administration croissait avec le succès du réseau, et
+  // Convex facture à la donnée lue. Une ligne par compteur, lue en O(1) par
+  // l'index `by_key`, et incrémentée dans la transaction qui écrit la donnée
+  // comptée — donc annulée avec elle si elle échoue.
+  //
+  // Le registre des clés vit dans convex/lib/counters.ts ; `counters.recompute`
+  // (internalMutation) les recalcule depuis les tables — amorçage d'un
+  // déploiement existant, et réconciliation après une écriture directe.
+  counters: defineTable({
+    key: v.string(),
+    value: v.number(),
+  }).index('by_key', ['key']),
 
   // Limiteur de débit (sécurité, défense en profondeur) — compteur par clé sur
   // fenêtre fixe. Voir convex/lib/rateLimit.ts.

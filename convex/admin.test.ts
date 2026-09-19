@@ -15,6 +15,10 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Pagination : `listUsers` prend désormais `paginationOpts` (issue #8). Une
+// page large suffit ici — ce qui est vérifié n'est pas le découpage.
+const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
+
 describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
   it('dashboard+candidatures = modérateur+ ; utilisateurs = admin', async () => {
     const t = convexTest(schema, modules);
@@ -35,16 +39,16 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
     await expect(
       asMembre.query(api.admin.listApplications, {}),
     ).rejects.toThrow();
-    await expect(asMembre.query(api.admin.listUsers, {})).rejects.toThrow();
+    await expect(asMembre.query(api.admin.listUsers, PAGE)).rejects.toThrow();
 
     const asMod = t.withIdentity({ subject: `${modId}|s` });
     await asMod.query(api.admin.dashboardStats, {});
     await asMod.query(api.admin.listApplications, {});
-    await expect(asMod.query(api.admin.listUsers, {})).rejects.toThrow();
+    await expect(asMod.query(api.admin.listUsers, PAGE)).rejects.toThrow();
 
-    const users = await t
+    const { page: users } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.admin.listUsers, {});
+      .query(api.admin.listUsers, PAGE);
     expect(users.length).toBe(3);
   });
 
@@ -65,6 +69,13 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
       contactEmail: 'b@demo.org',
       country: 'FR',
     });
+
+    // Les compteurs du tableau de bord sont tenus À L'ÉCRITURE (issue #8) :
+    // `storeApplication` les incrémente, mais l'insertion directe du compte
+    // admin ci-dessus passe à côté des mutations. `counters.recompute` est
+    // précisément la réconciliation prévue pour ce cas — et pour l'amorçage
+    // d'un déploiement qui existait avant les compteurs.
+    await t.mutation(internal.counters.recompute, {});
 
     const stats = await t
       .withIdentity({ subject: `${adminId}|s` })
@@ -102,9 +113,9 @@ describe('Back-office — rôle affiché (F-63)', () => {
     // Compte hérité : aucune colonne `role`.
     await t.run((ctx) => ctx.db.insert('users', { email: 'ancien@test.org' }));
 
-    const users = await t
+    const { page: users } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.admin.listUsers, {});
+      .query(api.admin.listUsers, PAGE);
 
     const legacy = users.find((u) => u.email === 'ancien@test.org');
     expect(legacy?.role).toBe('visiteur');
@@ -138,9 +149,9 @@ describe('Back-office — rôle affiché (F-63)', () => {
     ).rejects.toThrow(/rôle/);
 
     // …et c'est exactement ce que le back-office affiche désormais.
-    const users = await t
+    const { page: users } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.admin.listUsers, {});
+      .query(api.admin.listUsers, PAGE);
     expect(users.find((u) => u.email === 'ancien@test.org')?.role).toBe(
       'visiteur',
     );

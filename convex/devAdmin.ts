@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { internalMutation } from './_generated/server';
+import { COUNTER, bumpCounter, trackPublicationStatus } from './lib/counters';
 import { networkRole } from './schema';
 import { normalizeEmail } from './lib/onboarding';
 
@@ -30,6 +31,7 @@ export const setRoleByEmail = internalMutation({
       .first();
     if (!user) {
       const id = await ctx.db.insert('users', { email: normalized, role });
+      await bumpCounter(ctx, COUNTER.USERS, 1);
       return { ok: true, role, created: true, userId: id };
     }
     await ctx.db.patch(user._id, { role });
@@ -111,6 +113,7 @@ export const purgeUserByEmail = internalMutation({
     for (const d of devCodes) await ctx.db.delete(d._id);
 
     await ctx.db.delete(user._id);
+    await bumpCounter(ctx, COUNTER.USERS, -1);
     return { deleted: true };
   },
 });
@@ -140,6 +143,14 @@ export const deleteTestPublications = internalMutation({
           /* fichier déjà absent : on poursuit la suppression du document */
         }
       }
+      // La ligne de consultations suit la publication : sans cela, une future
+      // publication réutilisant l'identifiant hériterait d'un décompte.
+      const views = await ctx.db
+        .query('publicationViews')
+        .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
+        .unique();
+      if (views) await ctx.db.delete(views._id);
+      await trackPublicationStatus(ctx, p.status, null);
       await ctx.db.delete(p._id);
       deleted++;
     }

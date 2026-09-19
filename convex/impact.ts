@@ -1,68 +1,58 @@
+import { v } from 'convex/values';
 import { query } from './_generated/server';
 import { requireNetworkRole } from './lib/rbac';
+import { COUNTER, readCounters } from './lib/counters';
 
 // Mesure d'impact & statistiques du réseau (F-66) — back-office.
-// Compteurs agrégés RÉELS, calculés à la lecture à partir des tables existantes.
 // Lecture réservée au staff (modérateur et au-dessus) : défense en profondeur,
 // l'UI masque déjà l'onglet aux rôles inférieurs.
+//
+// Ces dix nombres étaient calculés à la lecture, en chargeant CINQ tables
+// entières (inscriptions, abonnés, commentaires, candidatures…) à chaque
+// affichage de l'écran. C'est précisément la page dont le coût aurait grandi
+// avec le succès du réseau. Elle lit désormais des compteurs dénormalisés
+// (convex/counters.ts), tenus à l'écriture : dix lectures d'une ligne.
 export const impactStats = query({
   args: {},
+  returns: v.object({
+    publishedPublications: v.number(),
+    activeOrganizations: v.number(),
+    eventRegistrations: v.number(),
+    newsletterSubscribers: v.number(),
+    tribunePosts: v.number(),
+    tribuneComments: v.number(),
+    youthApplications: v.number(),
+    youthApplicationsPending: v.number(),
+    membershipApplications: v.number(),
+    membershipApplicationsPending: v.number(),
+  }),
   handler: async (ctx) => {
     await requireNetworkRole(ctx, 'moderateur');
 
-    const [
-      publishedPublications,
-      activeOrganizations,
-      eventRegistrations,
-      newsletterSubscribers,
-      publishedTribunePosts,
-      tribuneComments,
-      youthApplications,
-      membershipApplications,
-    ] = await Promise.all([
-      // Publications publiées (index by_status).
-      ctx.db
-        .query('publications')
-        .withIndex('by_status', (q) => q.eq('status', 'published'))
-        .collect(),
-      // Organisations actives de l'annuaire (index by_status).
-      ctx.db
-        .query('organizations')
-        .withIndex('by_status', (q) => q.eq('status', 'active'))
-        .collect(),
-      // Inscriptions aux événements — pas de status, décompte sur l'ensemble.
-      ctx.db.query('eventRegistrations').collect(),
-      // Abonnés à la newsletter — décompte sur l'ensemble.
-      ctx.db.query('newsletterSubscriptions').collect(),
-      // Prises de parole de la tribune publiées (index by_status).
-      ctx.db
-        .query('tribunePosts')
-        .withIndex('by_status', (q) => q.eq('status', 'published'))
-        .collect(),
-      // Commentaires de la tribune — pas d'index par statut, on filtre.
-      ctx.db.query('tribuneComments').collect(),
-      // Candidatures jeunes (total + en attente).
-      ctx.db.query('youthApplications').collect(),
-      // Candidatures d'adhésion (total + en attente).
-      ctx.db.query('membershipApplications').collect(),
+    const c = await readCounters(ctx, [
+      COUNTER.PUBLICATIONS_PUBLISHED,
+      COUNTER.ORGANIZATIONS_ACTIVE,
+      COUNTER.EVENT_REGISTRATIONS,
+      COUNTER.NEWSLETTER_SUBSCRIBERS,
+      COUNTER.TRIBUNE_POSTS_PUBLISHED,
+      COUNTER.TRIBUNE_COMMENTS_PUBLISHED,
+      COUNTER.YOUTH_APPLICATIONS,
+      COUNTER.YOUTH_APPLICATIONS_PENDING,
+      COUNTER.MEMBERSHIP_APPLICATIONS,
+      COUNTER.MEMBERSHIP_APPLICATIONS_PENDING,
     ]);
 
     return {
-      publishedPublications: publishedPublications.length,
-      activeOrganizations: activeOrganizations.length,
-      eventRegistrations: eventRegistrations.length,
-      newsletterSubscribers: newsletterSubscribers.length,
-      tribunePosts: publishedTribunePosts.length,
-      tribuneComments: tribuneComments.filter((c) => c.status === 'published')
-        .length,
-      youthApplications: youthApplications.length,
-      youthApplicationsPending: youthApplications.filter(
-        (a) => a.status === 'pending',
-      ).length,
-      membershipApplications: membershipApplications.length,
-      membershipApplicationsPending: membershipApplications.filter(
-        (a) => a.status === 'pending',
-      ).length,
+      publishedPublications: c[COUNTER.PUBLICATIONS_PUBLISHED],
+      activeOrganizations: c[COUNTER.ORGANIZATIONS_ACTIVE],
+      eventRegistrations: c[COUNTER.EVENT_REGISTRATIONS],
+      newsletterSubscribers: c[COUNTER.NEWSLETTER_SUBSCRIBERS],
+      tribunePosts: c[COUNTER.TRIBUNE_POSTS_PUBLISHED],
+      tribuneComments: c[COUNTER.TRIBUNE_COMMENTS_PUBLISHED],
+      youthApplications: c[COUNTER.YOUTH_APPLICATIONS],
+      youthApplicationsPending: c[COUNTER.YOUTH_APPLICATIONS_PENDING],
+      membershipApplications: c[COUNTER.MEMBERSHIP_APPLICATIONS],
+      membershipApplicationsPending: c[COUNTER.MEMBERSHIP_APPLICATIONS_PENDING],
     };
   },
 });

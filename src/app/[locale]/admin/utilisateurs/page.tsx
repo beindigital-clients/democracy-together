@@ -1,19 +1,33 @@
 'use client';
 
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Select } from '@/components/ui/select';
 import { ROLE_ORDER, isAdmin, type NetworkRole } from '@/lib/roles';
 import { InviteUserForm } from '@/components/admin/invite-user-form';
+import { LoadMore } from '@/components/admin/load-more';
+
+// Taille de page. Le serveur la replafonne : elle est indicative.
+const PAGE_SIZE = 50;
 
 function UsersTable() {
   const t = useTranslations('admin');
-  const users = useQuery(api.admin.listUsers);
+  // PAGINÉ (issue #8) : la liste chargeait la table `users` en entier. L'ordre
+  // (par e-mail) vient désormais de l'index côté serveur, pas d'un tri client.
+  const {
+    results: users,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
+    api.admin.listUsers,
+    {},
+    { initialNumItems: PAGE_SIZE },
+  );
   const me = useQuery(api.users.current);
   const setRole = useMutation(api.users.setRole);
 
-  if (users === undefined || !me) {
+  if (status === 'LoadingFirstPage' || !me) {
     return <p className="mt-6 text-ink-soft">{t('loading')}</p>;
   }
 
@@ -66,6 +80,7 @@ function UsersTable() {
           })}
         </tbody>
       </table>
+      <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />
     </div>
   );
 }

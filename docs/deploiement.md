@@ -152,6 +152,33 @@ Vercel. Sans cela, gérez les deux étapes à la main et tenez
 > ⚠️ La clé de déploiement **Preview** utilisée par `.github/workflows/e2e.yml`
 > est distincte et ne peut pas écrire en production. Ne les confondez pas.
 
+### 2.1 Amorcer les compteurs du back-office — **une fois, après le déploiement**
+
+Les tableaux de bord (`/admin`, `/admin/impact`) et le nombre d'abonnés de la
+newsletter lisent des **compteurs dénormalisés**, tenus à l'écriture dans la
+table `counters` (issue #8). Ils ne chargent donc plus les tables pour en lire
+la longueur — le coût de ces écrans ne dépend plus de la taille du réseau.
+
+Conséquence à la mise en ligne : sur un déploiement qui portait **déjà** des
+données, aucune ligne `counters` n'existe, et ces écrans afficheraient des zéros
+jusqu'à la prochaine écriture. Une commande les recalcule depuis les tables :
+
+```bash
+npx convex run counters:recompute '{}' --prod
+```
+
+Elle rend la liste des compteurs posés, par exemple :
+
+```json
+{ "counters": [{ "key": "users", "value": 12 }, { "key": "organizations.active", "value": 7 }, ...] }
+```
+
+À rejouer **uniquement** si des lignes ont été écrites hors mutation (console
+Convex, script de reprise) : c'est l'outil de réconciliation, pas une tâche
+périodique. Sur une base volumineuse, recomptez clé par clé
+(`'{"key":"users"}'`) : la commande refuse d'écrire un compte tronqué plutôt que
+de servir un chiffre faux.
+
 ---
 
 ## 3. Déployer Sanity
@@ -333,6 +360,7 @@ rapport.
 | Zone privée (`/admin`) | redirige vers la connexion **avant tout rendu** (gating serveur, `src/proxy.ts`) |
 | Formulaire de contact | soumission acceptée (donc `RECAPTCHA_SECRET_KEY` bien posée, § 1.4), message visible dans le back-office |
 | Tableau de bord Convex | cron `event-reminders` enregistré |
+| `/admin` et `/admin/impact` | compteurs cohérents avec les données (sinon : § 2.1 non joué) |
 
 ---
 

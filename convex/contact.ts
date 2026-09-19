@@ -15,6 +15,7 @@ import {
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
+import { trackContactHandled } from './lib/counters';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 
@@ -77,6 +78,7 @@ export const store = internalMutation({
       handled: false,
       createdAt: Date.now(),
     });
+    await trackContactHandled(ctx, null, false);
     return { ok: true };
   },
 });
@@ -136,6 +138,7 @@ export const setHandled = mutation({
     const msg = await ctx.db.get(messageId);
     if (!msg) throw new Error('NOT_FOUND');
     await ctx.db.patch(messageId, { handled });
+    await trackContactHandled(ctx, msg.handled, handled);
     await recordAudit(ctx, {
       actorId: actor._id,
       action: AUDIT.CONTACT_HANDLED,

@@ -1,4 +1,5 @@
 import { internalMutation } from './_generated/server';
+import { trackPublicationStatus } from './lib/counters';
 
 // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple la bibliothèque (F-32/F-34)
 // avec les publications de démonstration de la maquette. Idempotent (ignore un
@@ -443,6 +444,7 @@ export const seedPublications = internalMutation({
         status: 'published',
         createdAt: now,
       });
+      await trackPublicationStatus(ctx, null, 'published');
       inserted += 1;
     }
     return { inserted, total: PUBS.length };

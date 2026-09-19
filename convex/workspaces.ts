@@ -152,20 +152,36 @@ export const addNote = mutation({
 });
 
 // --- Lecture (membre réseau et au-dessus) -----------------------------------
+
+// Bornes de lecture de la liste : les espaces les plus récents, et les
+// appartenances de l'utilisateur courant. Aucune des deux n'était bornée.
+const WORKSPACES_MAX = 100;
+const MY_MEMBERSHIPS_MAX = 500;
+
 export const listWorkspaces = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireNetworkRole(ctx, 'membre');
-    const workspaces = await ctx.db.query('workspaces').collect();
+    const workspaces = await ctx.db
+      .query('workspaces')
+      .order('desc')
+      .take(WORKSPACES_MAX);
 
-    // Espaces dont l'utilisateur courant est membre (drapeau `mine`). L'index
-    // composite porte (workspaceId, userId) : on résout l'appartenance espace
-    // par espace (le nombre d'espaces reste modeste pour cet incrément).
-    const myMemberships = new Set<string>();
-    for (const w of workspaces) {
-      const m = await membershipOf(ctx, w._id, user._id);
-      if (m) myMemberships.add(w._id);
-    }
+    // Espaces dont l'utilisateur courant est membre (drapeau `mine`).
+    //
+    // L'appartenance était résolue ESPACE PAR ESPACE via l'index composite
+    // (workspaceId, userId) : un aller-retour par ligne affichée, alors qu'un
+    // membre n'appartient qu'à une poignée d'espaces. L'index `by_user` lit ses
+    // appartenances en UNE requête, d'où le drapeau se déduit sans relire la
+    // base (issue #8).
+    const myMemberships = new Set<string>(
+      (
+        await ctx.db
+          .query('workspaceMembers')
+          .withIndex('by_user', (q) => q.eq('userId', user._id))
+          .take(MY_MEMBERSHIPS_MAX)
+      ).map((m) => m.workspaceId),
+    );
 
     return workspaces
       .sort((a, b) => b.createdAt - a.createdAt)
