@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { hasLocale } from 'next-intl';
 import { fetchQuery } from 'convex/nextjs';
+import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -55,10 +56,11 @@ export default async function ThemeSynthesisPage({
   const t = await getTranslations('thematiques');
   const tl = await getTranslations('library');
   const label = tl(`themes.${slug}`);
-  const { items } = await fetchQuery(api.publications.listPublished, {
-    themes: [slug],
-    sort: 'recent',
-  });
+  const { items } = await fetchQuery(
+    api.publications.listPublished,
+    { themes: [slug], sort: 'recent' },
+    { token: await convexAuthNextjsToken() },
+  );
 
   return (
     <div>

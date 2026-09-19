@@ -378,7 +378,12 @@
       "related": "Dans la même thématique",
       "backToLibrary": "Retour à la bibliothèque",
       "publishedOn": "Publié le {date}",
-      "pages": "{count, plural, one {# page} other {# pages}}"
+      "pages": "{count, plural, one {# page} other {# pages}}",
+      "lockedTitle": "Document réservé aux membres",
+      "lockedBody": "Le texte intégral et le document téléchargeable sont réservés aux organisations membres du réseau. Le résumé ci-dessus est abrégé.",
+      "lockedCta": "Demander l'adhésion",
+      "lockedSignIn": "Se connecter",
+      "lockedBadge": "Réservé aux membres"
     }
   },
   "nav": {

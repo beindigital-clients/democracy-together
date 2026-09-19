@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { query, mutation } from './_generated/server';
-import { requireNetworkRole } from './lib/rbac';
+import { query, mutation, type QueryCtx } from './_generated/server';
+import { requireNetworkRole, getCurrentUser, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
@@ -17,8 +17,18 @@ import {
   PUB_REGIONS,
   PUB_LANGS,
   PUB_ACCESS,
+  projectPublication,
+  isPublicationLocked,
   type PubSort,
 } from './lib/publications';
+
+// Le lecteur a-t-il les droits « membre » (adhésion validée) ? Sert au gating des
+// publications `access: 'members'` (F-35). Un compte authentifié SANS adhésion
+// validée vaut « visiteur » et reste donc verrouillé.
+async function viewerIsMember(ctx: QueryCtx): Promise<boolean> {
+  const user = await getCurrentUser(ctx);
+  return rank(user?.role) >= rank('membre');
+}
 
 // Bibliothèque publique (F-32/F-33) : liste filtrée + facettes calculées sur
 // l'ensemble des publications *publiées* (pour ne proposer que des filtres
@@ -50,12 +60,15 @@ export const listPublished = query({
       .query('publications')
       .withIndex('by_status', (qi) => qi.eq('status', 'published'))
       .collect();
+    const isMember = await viewerIsMember(ctx);
     const items = sortPublications(
       published.filter((p) => matchesPublication(p, filters)),
       (sort as PubSort) ?? 'recent',
-    );
+    ).map((p) => projectPublication(p, null, isMember));
     return {
       items,
+      // Les facettes comptent TOUTES les publiées, réservées comprises : le
+      // gating masque le contenu, pas l'existence (découvrabilité, F-35).
       facets: computePublicationFacets(published, filters),
       total: published.length,
     };
@@ -73,14 +86,19 @@ export const getBySlug = query({
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique();
     if (!pub || pub.status !== 'published') return null;
-    // Document téléversé (F-32) : URL signée résolue côté serveur pour le
-    // bouton de téléchargement. (Le verrouillage fin « réservé aux membres »
-    // par fichier reste un raffinement ultérieur — une publication publiée a
-    // déjà été validée en modération.)
-    const fileUrl = pub.fileId ? await ctx.storage.getUrl(pub.fileId) : null;
+    // Gating « réservé aux membres » (F-35). L'URL signée n'est même pas
+    // GÉNÉRÉE quand la publication est verrouillée : rien à fuiter.
+    const isMember = await viewerIsMember(ctx);
+    const locked = isPublicationLocked(pub.access, isMember);
+    const fileUrl =
+      !locked && pub.fileId ? await ctx.storage.getUrl(pub.fileId) : null;
     // `views` reste optionnel en base (seed/données anciennes) : on le normalise
     // à 0 pour le rendu serveur du compteur de consultations (F-37).
-    return { ...pub, views: pub.views ?? 0, fileUrl };
+    return projectPublication(
+      { ...pub, views: pub.views ?? 0 },
+      fileUrl,
+      isMember,
+    );
   },
 });
 
@@ -117,10 +135,13 @@ export const relatedByTheme = query({
         q.eq('status', 'published').eq('theme', theme),
       )
       .collect();
+    const isMember = await viewerIsMember(ctx);
     return sortPublications(
       sameTheme.filter((p) => p.slug !== excludeSlug),
       'recent',
-    ).slice(0, limit ?? 3);
+    )
+      .slice(0, limit ?? 3)
+      .map((p) => projectPublication(p, null, isMember));
   },
 });
 

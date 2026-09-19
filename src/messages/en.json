@@ -378,7 +378,12 @@
       "related": "In the same topic",
       "backToLibrary": "Back to the library",
       "publishedOn": "Published {date}",
-      "pages": "{count, plural, one {# page} other {# pages}}"
+      "pages": "{count, plural, one {# page} other {# pages}}",
+      "lockedTitle": "Members-only document",
+      "lockedBody": "The full text and the downloadable document are reserved for member organisations of the network. The summary above is abridged.",
+      "lockedCta": "Apply for membership",
+      "lockedSignIn": "Sign in",
+      "lockedBadge": "Members only"
     }
   },
   "nav": {

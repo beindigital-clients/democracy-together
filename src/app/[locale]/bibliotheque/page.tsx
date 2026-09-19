@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
+import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -48,15 +49,22 @@ export default async function LibraryPage({
   const filters = parseFilters(sp);
   const t = await getTranslations('library');
 
-  const { items, facets } = await fetchQuery(api.publications.listPublished, {
-    themes: filters.themes,
-    types: filters.types,
-    regions: filters.regions,
-    langs: filters.langs,
-    access: filters.access,
-    q: filters.q,
-    sort: filters.sort as 'recent' | 'cited' | 'az',
-  });
+  // Jeton transmis : Convex décide seul du gating « réservé aux membres »
+  // (F-35), ici comme sur la fiche détaillée.
+  const token = await convexAuthNextjsToken();
+  const { items, facets } = await fetchQuery(
+    api.publications.listPublished,
+    {
+      themes: filters.themes,
+      types: filters.types,
+      regions: filters.regions,
+      langs: filters.langs,
+      access: filters.access,
+      q: filters.q,
+      sort: filters.sort as 'recent' | 'cited' | 'az',
+    },
+    { token },
+  );
 
   const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const page = Math.min(filters.page, pageCount);
