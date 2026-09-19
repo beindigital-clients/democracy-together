@@ -9,7 +9,15 @@ import { emailVerification, passwordReset, emailOtpSignIn } from './otp';
 // PAS d'auto-inscription publique : un e-mail inconnu ne crée AUCUN compte
 // (→ demande d'adhésion). Les comptes existants se connectent normalement, par
 // mot de passe OU par code. La page d'inscription est redirigée vers /adhesion.
-export const { auth, signIn, signOut, store } = convexAuth({
+// `isAuthenticated` est OBLIGATOIRE depuis convex-auth 0.0.76 (le dépôt est en
+// 0.0.94) : c'est la fonction que `convexAuthNextjsMiddleware` appelle sur le
+// déploiement à CHAQUE requête vers une route protégée (cf. src/proxy.ts). Sans
+// elle, le déploiement répond « could not find api.auth.isAuthenticated », le
+// middleware lève, et TOUTE page authentifiée rend une erreur 500 — l'espace
+// membre comme le back-office. Le défaut ne se voit jamais déconnecté, ce qui
+// explique qu'il ait survécu : il a fallu qu'une session existe pour le révéler
+// (issue #66, découvert par le journal du serveur en CI).
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({ verify: emailVerification, reset: passwordReset }),
     emailOtpSignIn,
