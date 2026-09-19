@@ -61,6 +61,31 @@ Espace d'expression modéré entre membres — **incrément 1 livré** :
 
 ---
 
+## Mise en production (bascule Convex dev → prod)
+
+La plateforme tourne sur le déploiement Convex de **développement**
+(`rare-alpaca-677`) jusqu'à la validation de l'application — choix assumé et
+temporaire. Le jour de la bascule, la procédure est `docs/deploiement.md`, qui
+vaut runbook : presque rien de ce qu'il faut refaire ne vit dans le code, ce sont
+des réglages attachés à UN déploiement, et un déploiement prod naît vide.
+
+13. **Bascule elle-même** : dérouler `docs/deploiement.md` de bout en bout —
+    variables du déploiement Convex (§ 1.1) et de Vercel (§ 1.2), amorçage de
+    l'administrateur initial (§ 5, `convex/bootstrap.ts`), contrôles après mise
+    en ligne (§ 7). Deux vérifications qu'aucune commande ne fait à votre place :
+    `AUTH_DEV_OTP` et `RECAPTCHA_DISABLED` **absentes** du déploiement de
+    production.
+14. **Données réelles** à la place des jeux d'illustration (annuaire,
+    publications, baromètre — cf. vague 2), les seeds étant gardés par
+    `AUTH_DEV_OTP` donc inexécutables en production. C'est voulu.
+15. **Clé de préversion `CONVEX_DEPLOY_KEY`** pour la CI E2E — indépendante de la
+    bascule. Une clé de dev ou de prod est refusée par Convex (`Preview
+    deployments can only be created with preview deploy keys`) et fait **rougir**
+    le job au lieu de l'ignorer ; tant qu'une clé « Preview » n'est pas posée,
+    les specs Playwright ne tournent nulle part.
+
+---
+
 ### Dépendances clés
 - **Paiements** (vague 1) bloquent : cotisations, dons, reçus, suivi donateur.
 - **Décision modèle d'adhésion** bloque : gating membre, lien F-22 → rôle.

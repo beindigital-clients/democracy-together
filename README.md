@@ -31,6 +31,10 @@ pnpm dev            # http://localhost:3000 -> /fr
 npx convex dev      # provisionne le backend, génère convex/_generated, remplit .env.local
 ```
 
+> **Déploiement en cours : le Convex de développement** (`rare-alpaca-677`),
+> jusqu'à la validation de l'application — choix assumé et temporaire. La
+> bascule vers la production suit `docs/deploiement.md`, qui vaut runbook.
+
 `convex/` contient le **code applicatif du backend**, écrit à la main (schéma,
 auth, fonctions métier, crons, helpers de `convex/lib/`). Seul le
 sous-dossier `convex/_generated/` est produit par `convex dev` / `convex codegen`

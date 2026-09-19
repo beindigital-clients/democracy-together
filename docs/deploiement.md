@@ -9,6 +9,26 @@
 > partagent aucun fichier de configuration : chacun porte ses propres variables,
 > et c'est la principale source d'erreur.
 
+## Déploiement en cours
+
+La plateforme tourne aujourd'hui sur le déploiement Convex de
+**développement**, et non sur un déploiement de production — décision assumée
+et temporaire, le temps de la validation de l'application.
+
+| | |
+|---|---|
+| Déploiement | `dev/mamadou-seck` (`rare-alpaca-677`) |
+| Cloud URL | `https://rare-alpaca-677.convex.cloud` → `NEXT_PUBLIC_CONVEX_URL` |
+| HTTP Actions URL | `https://rare-alpaca-677.convex.site` → `CONVEX_SITE_URL`, consommée par `convex/auth.config.ts` |
+
+Ce document devient donc une **liste à dérouler le jour de la bascule** : les
+deux URL changent, et aucune des variables du § 1 ne suit le code — un
+déploiement de production naît vide, sans compte ni donnée. D'ici là, les
+avertissements « jamais en production » du § 1.1 valent déjà : ce déploiement de
+développement sert l'application réelle.
+
+---
+
 ## 0. Avant de commencer
 
 | Prérequis | Détail |
