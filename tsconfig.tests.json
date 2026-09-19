@@ -1,0 +1,15 @@
+{
+  // Le tsconfig racine EXCLUT `tests/` : sans cette configuration dédiée, aucun
+  // script ne type les fichiers de test. C'est ainsi que `test.use({
+  // reducedMotion })` — option inexistante dans l'API Playwright épinglée — a
+  // pu rester invisible (issue #18) : le test tournait, mais pas dans les
+  // conditions qu'il annonçait. Lancé par `pnpm typecheck:tests`, en CI.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "playwright.config.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,28 +1,40 @@
 name: E2E (Playwright)
 
-# DÉLIBÉRÉMENT MANUEL, et non déclenché sur chaque PR.
-#
 # Les tests E2E exigent un VRAI déploiement Convex : le parcours d'auth crée un
-# compte, lit un code OTP en base et ouvre une session. Sans déploiement, la
-# suite est inexécutable — c'est le constat de l'audit (§ 6.1), pas une
-# régression.
+# compte, lit un code OTP en base et ouvre une session. C'était le blocage de
+# l'audit (§ 6.1) — d'où un workflow jusqu'ici manuel.
 #
-# Le brancher sur `pull_request` alors que les secrets ne sont pas configurés
-# ferait rougir toutes les PR pour une raison d'environnement, ce qui apprend
-# aux relecteurs à ignorer le rouge. Il reste donc manuel jusqu'à ce que le
-# déploiement de préversion existe ; le basculer sur `pull_request` est alors
-# une modification d'une ligne.
+# Ce workflow lève le blocage : chaque pull request obtient un déploiement Convex
+# de PRÉVERSION dédié, créé puis peuplé à la volée, détruit et recréé à la
+# poussée suivante (`--preview-create`). Le jeu de données est donc neuf à chaque
+# exécution, et aucun test ne dépend de ce qu'un run précédent a laissé.
 #
-# Secrets à configurer sur le dépôt avant de l'activer :
-#   CONVEX_DEPLOY_KEY        clé de déploiement d'une préversion Convex dédiée
-#                            aux tests (JAMAIS la production)
-#   NEXT_PUBLIC_CONVEX_URL   URL de ce même déploiement
+# ─── Ce qu'il faut provisionner UNE FOIS (accès Convex requis) ────────────────
 #
-# Et sur le déploiement Convex lui-même (`npx convex env set`) :
-#   AUTH_DEV_OTP=true        expose les codes OTP aux fixtures de test
-#   JWT_PRIVATE_KEY, JWKS, SITE_URL
+# 1. Secret de dépôt `CONVEX_DEPLOY_KEY` — une clé de déploiement de type
+#    « Preview », générée dans le tableau de bord Convex :
+#      Project Settings -> Deploy keys -> Generate preview deploy key
+#    Elle est limitée par construction aux déploiements de préversion : elle NE
+#    PEUT PAS écrire en production. Ne jamais mettre ici une clé de prod.
+#
+# 2. Variables par défaut des préversions du projet (elles sont posées à la
+#    naissance de chaque préversion, et n'existent QUE pour ce type de
+#    déploiement — la production n'est pas touchée) :
+#      npx convex env default set --type preview JWT_PRIVATE_KEY "<clé RS256>"
+#      npx convex env default set --type preview JWKS '<jwks json>'
+#    (paire générée par `npx @convex-dev/auth`, cf. .env.example)
+#
+# Rien d'autre : l'URL du déploiement est découverte à l'exécution, et
+# `AUTH_DEV_OTP` est posé ci-dessous sur la seule préversion nommée. C'est la
+# garantie tenue par ce fichier : AUTH_DEV_OTP n'est écrit nulle part ailleurs,
+# et la clé utilisée ne donne pas accès à la production.
+#
+# Tant que le secret n'est pas configuré, le job E2E est IGNORÉ (et non rouge) :
+# faire rougir toutes les PR pour une raison d'environnement apprend aux
+# relecteurs à ignorer le rouge. Le typage des tests, lui, tourne toujours.
 
 on:
+  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -33,13 +45,55 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    name: Typage des tests · secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      configured: ${{ steps.secrets.outputs.configured }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm AVANT setup-node : `cache: pnpm` a besoin du binaire pour
+      # localiser le store.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Le tsconfig racine exclut `tests/` : sans cette commande, une option de
+      # test inexistante passe inaperçue et le test tourne dans des conditions
+      # qu'il n'a pas (issue #18). Déterministe, sans secret : tourne sur
+      # chaque PR, même quand les E2E sont ignorés.
+      - name: Typage des tests
+        run: pnpm typecheck:tests
+
+      - name: Déploiement de préversion configuré ?
+        id: secrets
+        env:
+          DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: |
+          if [ -n "$DEPLOY_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=E2E ignorés::Le secret CONVEX_DEPLOY_KEY (clé de préversion) n'est pas configuré sur le dépôt. Voir l'en-tête de .github/workflows/e2e.yml."
+          fi
+
   e2e:
     name: Parcours navigateur
+    needs: preflight
+    # Le contexte `secrets` n'est pas lisible dans un `if` de job : la décision
+    # vient du job précédent. Une PR issue d'un fork n'a pas les secrets -> le
+    # job est ignoré, pas en échec.
+    if: needs.preflight.outputs.configured == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    # Garde-fou : sans le secret, le job s'arrête proprement au lieu d'échouer
-    # sur une erreur d'auth incompréhensible.
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    timeout-minutes: 45
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -50,22 +104,56 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Vérifier que les secrets sont présents
-        env:
-          CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
+      - name: Nommer la préversion
         run: |
-          if [ -z "$CONVEX_URL" ]; then
-            echo "::error::NEXT_PUBLIC_CONVEX_URL n'est pas configuré. Voir l'en-tête de ce workflow."
+          echo "CONVEX_PREVIEW_NAME=e2e-${{ github.event.pull_request.number || github.run_id }}" >> "$GITHUB_ENV"
+
+      # Crée (ou recrée) la préversion et y pousse le backend. `--cmd` s'exécute
+      # avec l'URL du déploiement dans l'environnement : on la propage aux
+      # étapes suivantes, qui en ont besoin pour le build Next et pour lire les
+      # codes OTP.
+      - name: Déployer le backend sur une préversion dédiée
+        run: |
+          npx convex deploy \
+            --preview-create "$CONVEX_PREVIEW_NAME" \
+            --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL \
+            --cmd 'echo "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL" >> "$GITHUB_ENV"'
+
+      # PORTÉE : `--preview-name` désigne explicitement la préversion qui vient
+      # d'être créée, et la clé employée est une clé de préversion. AUTH_DEV_OTP
+      # ne peut donc pas atteindre la production depuis ce workflow.
+      - name: Activer les codes OTP de test sur CETTE préversion uniquement
+        run: |
+          npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" AUTH_DEV_OTP true
+          npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" SITE_URL http://localhost:3000
+
+      - name: Vérifier les clés Convex Auth de la préversion
+        run: |
+          missing=""
+          for v in JWT_PRIVATE_KEY JWKS; do
+            value=$(npx convex env get --preview-name "$CONVEX_PREVIEW_NAME" "$v" 2>/dev/null || true)
+            if [ -z "$value" ]; then missing="$missing $v"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Préversion incomplète::Variables absentes :$missing. Posez-les comme valeurs par défaut des préversions du projet (npx convex env default set --type preview ...). Voir l'en-tête de ce workflow."
             exit 1
           fi
 
-      - name: Installer les navigateurs Playwright
+      # Une préversion naît VIDE : sans ce peuplement, la bibliothèque et
+      # l'annuaire n'ont rien à montrer et la moitié des parcours échouerait
+      # pour une raison qui n'est pas un défaut du code.
+      - name: Peupler le jeu de données de démonstration
+        run: |
+          npx convex run --preview-name "$CONVEX_PREVIEW_NAME" seed:seedDirectory '{}'
+          npx convex run --preview-name "$CONVEX_PREVIEW_NAME" seedPublications:seedPublications '{}'
+
+      # Un seul navigateur : les projets `chromium` (desktop) et
+      # `mobile-chromium` (viewport téléphone + tactile) partagent le binaire.
+      - name: Installer Chromium
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Lancer les E2E
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
         run: pnpm test:e2e
 

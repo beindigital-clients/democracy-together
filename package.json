@@ -10,6 +10,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "typecheck:convex": "tsc -p convex --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.tests.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
