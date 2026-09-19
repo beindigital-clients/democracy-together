@@ -83,6 +83,11 @@ describe('Rappels événements — requestReminder (F-55)', () => {
 
 describe('Rappels événements — sendDueReminders (F-55)', () => {
   it('marque sent=true un rappel proche ; ignore les rappels hors fenêtre et déjà envoyés', async () => {
+    // Mode dev explicite : depuis le correctif H3, l'adaptateur e-mail n'accepte
+    // de simuler un succès sans fournisseur que si AUTH_DEV_OTP=true.
+    const prevDev = process.env.AUTH_DEV_OTP;
+    process.env.AUTH_DEV_OTP = 'true';
+    try {
     const t = convexTest(schema, modules);
     const now = Date.now();
 
@@ -131,6 +136,45 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
     // un second passage ne retraite rien (plus aucun rappel dû non envoyé)
     const res2 = await t.action(internal.eventReminders.sendDueReminders, {});
     expect(res2.processed).toBe(0);
+    } finally {
+      if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
+      else process.env.AUTH_DEV_OTP = prevDev;
+    }
+  });
+
+  // Garde anti-régression de l'audit H3 : sans fournisseur e-mail, un rappel ne
+  // doit PAS être marqué sent=true — sinon il est perdu définitivement, le cron
+  // ne le reprenant jamais. Il reste en attente pour le passage suivant.
+  it('sans fournisseur (production) : ne marque PAS sent, le rappel reste à retenter', async () => {
+    const prevDev = process.env.AUTH_DEV_OTP;
+    const prevProv = process.env.AUTH_EMAIL_PROVIDER;
+    delete process.env.AUTH_DEV_OTP;
+    delete process.env.AUTH_EMAIL_PROVIDER;
+    try {
+      const t = convexTest(schema, modules);
+      const now = Date.now();
+      await t.mutation(internal.eventReminders.storeReminder, {
+        eventSlug: 'event-proche',
+        email: 'soon@dt.test',
+        eventDate: now + 1 * DAY,
+      });
+
+      const res = await t.action(internal.eventReminders.sendDueReminders, {});
+      expect(res.processed).toBe(1); // le rappel a bien été examiné…
+
+      const row = await t.run((ctx) =>
+        ctx.db
+          .query('eventReminders')
+          .filter((q) => q.eq(q.field('email'), 'soon@dt.test'))
+          .unique(),
+      );
+      expect(row?.sent).toBe(false); // …mais PAS marqué envoyé
+    } finally {
+      if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
+      else process.env.AUTH_DEV_OTP = prevDev;
+      if (prevProv === undefined) delete process.env.AUTH_EMAIL_PROVIDER;
+      else process.env.AUTH_EMAIL_PROVIDER = prevProv;
+    }
   });
 });
 

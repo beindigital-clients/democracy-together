@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { action, internalMutation, mutation, query } from './_generated/server';
+import { action, internalMutation, internalQuery, mutation, query } from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
@@ -137,7 +137,7 @@ export const reviewYouthApplication = mutation({
 });
 
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
-export const isYouthApplicant = query({
+export const isYouthApplicant = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') return null;

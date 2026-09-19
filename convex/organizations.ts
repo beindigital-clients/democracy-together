@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { action, internalMutation, query, mutation } from './_generated/server';
+import { action, internalMutation, internalQuery, mutation, query } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { getAuthUserId } from '@convex-dev/auth/server';
@@ -112,7 +112,7 @@ export const storeApplication = internalMutation({
 
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : relit la dernière candidature d'une
 // adresse, pour que l'E2E vérifie le stockage réel (cf. otp.latestDevCode).
-export const latestApplicationForEmail = query({
+export const latestApplicationForEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') return null;

@@ -41,8 +41,20 @@ export async function sendEmail({
     process.env.AUTH_EMAIL_FROM ?? 'Democracy Together <onboarding@resend.dev>';
 
   if (provider === 'none') {
-    console.log(`[DEV EMAIL] -> ${to} : ${subject}`);
-    return;
+    // Fail-closed (audit H3) : sans fournisseur, on ne SIMULE un succès qu'en
+    // dev/test explicite (AUTH_DEV_OTP=true). Ailleurs — donc en production —
+    // on échoue. Un envoi silencieusement « réussi » est pire qu'une erreur :
+    // campagnes marquées `sent` avec un compteur de destinataires faux, rappels
+    // d'événement marqués traités définitivement, et connexion par code
+    // impossible sans le moindre message. Les appelants savent déjà gérer le
+    // rejet (newsletter compte les échecs, le cron de rappels retente).
+    if (process.env.AUTH_DEV_OTP === 'true') {
+      console.log(`[DEV EMAIL] -> ${to} : ${subject}`);
+      return;
+    }
+    throw new Error(
+      'EMAIL_PROVIDER_NOT_CONFIGURED : aucun fournisseur e-mail. Définir AUTH_RESEND_KEY (ou AUTH_EMAIL_PROVIDER) sur le déploiement Convex, ou AUTH_DEV_OTP=true en développement.',
+    );
   }
 
   if (provider === 'resend') {

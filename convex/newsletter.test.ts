@@ -125,10 +125,14 @@ describe('Newsletter — campagnes (F-65)', () => {
     expect(doc?.subject).toBe('Lettre de juin');
   });
 
-  it('envoie : draft → sending → sent, livre à tous (no-op sans clé), compte les destinataires', async () => {
-    // Forcer le no-op : aucun e-mail réel quel que soit l'env de test.
+  it('envoie : draft → sending → sent, livre à tous (no-op en dev), compte les destinataires', async () => {
+    // Forcer le no-op : aucun e-mail réel quel que soit l'env de test. Depuis le
+    // correctif H3, le no-op doit être EXPLICITE (AUTH_DEV_OTP=true) — sans lui,
+    // l'absence de fournisseur est une erreur (voir le test suivant).
     const prev = process.env.AUTH_EMAIL_PROVIDER;
+    const prevDev = process.env.AUTH_DEV_OTP;
     process.env.AUTH_EMAIL_PROVIDER = 'none';
+    process.env.AUTH_DEV_OTP = 'true';
     // L'envoi passe par scheduler.runAfter(0, ...) : il faut faire avancer les
     // timers (faux timers) pour déclencher l'action de livraison planifiée.
     vi.useFakeTimers();
@@ -166,6 +170,43 @@ describe('Newsletter — campagnes (F-65)', () => {
       vi.useRealTimers();
       if (prev === undefined) delete process.env.AUTH_EMAIL_PROVIDER;
       else process.env.AUTH_EMAIL_PROVIDER = prev;
+      if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
+      else process.env.AUTH_DEV_OTP = prevDev;
+    }
+  });
+
+  // Garde anti-régression de l'audit H3 : sans fournisseur e-mail configuré, une
+  // campagne ne doit JAMAIS être marquée « sent » avec un compteur de
+  // destinataires mensonger. Elle part en 'error', rien n'a été livré.
+  it('sans fournisseur (production) : la campagne part en erreur, pas en « sent »', async () => {
+    const prev = process.env.AUTH_EMAIL_PROVIDER;
+    const prevDev = process.env.AUTH_DEV_OTP;
+    delete process.env.AUTH_EMAIL_PROVIDER;
+    delete process.env.AUTH_DEV_OTP;
+    vi.useFakeTimers();
+    try {
+      const t = convexTest(schema, modules);
+      await t.mutation(internal.newsletter.recordSubscription, { email: 'a@dt.test' });
+      await t.mutation(internal.newsletter.recordSubscription, { email: 'b@dt.test' });
+
+      const ed = await asEditor(t);
+      const id = await ed.mutation(api.newsletter.createCampaign, {
+        subject: 'Lettre de juillet',
+        body: 'Actualités du réseau, édition de juillet 2026.',
+      });
+      await ed.mutation(api.newsletter.sendCampaign, { campaignId: id });
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+      const done = await t.run((ctx) => ctx.db.get(id));
+      expect(done?.status).toBe('error');
+      expect(done?.recipientCount).toBe(0);
+      expect(done?.failedCount).toBe(2);
+    } finally {
+      vi.useRealTimers();
+      if (prev === undefined) delete process.env.AUTH_EMAIL_PROVIDER;
+      else process.env.AUTH_EMAIL_PROVIDER = prev;
+      if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
+      else process.env.AUTH_DEV_OTP = prevDev;
     }
   });
 });

@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { action, internalMutation, query } from './_generated/server';
+import { action, internalMutation, internalQuery, query } from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
@@ -94,7 +94,7 @@ export const listEventRegistrations = query({
 });
 
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
-export const isRegistered = query({
+export const isRegistered = internalQuery({
   args: { eventSlug: v.string(), email: v.string() },
   handler: async (ctx, { eventSlug, email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') return null;

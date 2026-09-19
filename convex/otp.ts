@@ -2,7 +2,7 @@ import { Email } from '@convex-dev/auth/providers/Email';
 import type { GenericActionCtxWithAuthConfig } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { internalMutation, query } from './_generated/server';
+import { internalMutation, internalQuery, query } from './_generated/server';
 import type { DataModel } from './_generated/dataModel';
 import { sendOtpEmail, type OtpPurpose } from './email';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
@@ -89,7 +89,7 @@ export const storeDevCode = internalMutation({
 
 // Dernier code en clair pour un e-mail — DEV/TEST UNIQUEMENT.
 // Gardé par AUTH_DEV_OTP : en prod (non défini), lève une erreur.
-export const latestDevCode = query({
+export const latestDevCode = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') {

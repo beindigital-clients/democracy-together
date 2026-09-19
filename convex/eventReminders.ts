@@ -165,7 +165,7 @@ export const sendDueReminders = internalAction({
 });
 
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
-export const isReminderSet = query({
+export const isReminderSet = internalQuery({
   args: { eventSlug: v.string(), email: v.string() },
   handler: async (ctx, { eventSlug, email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') return null;

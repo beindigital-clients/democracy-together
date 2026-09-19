@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import { isNewsletterSubscribed } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // F-18 — Newsletter : inscription -> succès + stockage Convex réel.
 test('newsletter : inscription valide -> succès + stockage (F-18)', async ({
@@ -21,7 +19,7 @@ test('newsletter : inscription valide -> succès + stockage (F-18)', async ({
   ).toBeVisible();
 
   // vérifie le stockage réel (lecture dev, garde AUTH_DEV_OTP)
-  expect(await convex.query(api.newsletter.isSubscribed, { email })).toBe(true);
+  expect(isNewsletterSubscribed(email)).toBe(true);
 });
 
 test('newsletter : adresse invalide bloquée (F-18)', async ({ page }) => {

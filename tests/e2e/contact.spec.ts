@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import { latestContactForEmail } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 test('contact : envoi valide -> succès + message stocké (F-17)', async ({
   page,
@@ -25,7 +23,7 @@ test('contact : envoi valide -> succès + message stocké (F-17)', async ({
   ).toBeVisible();
 
   // vérifie le stockage réel côté Convex (lecture dev, garde AUTH_DEV_OTP)
-  const stored = await convex.query(api.contact.latestForEmail, { email });
+  const stored = latestContactForEmail(email);
   expect(stored?.subject).toBe('Partenariat think tank');
   expect(stored?.handled).toBe(false);
 });

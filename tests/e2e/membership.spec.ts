@@ -1,11 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-import { seedDirectory } from './_helpers';
+import { seedDirectory, latestApplicationForEmail } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 test.beforeAll(async () => {
   await seedDirectory(); // pour le test du lien depuis une fiche
@@ -27,10 +24,7 @@ test('adhésion : candidature -> succès + stockage (F-22)', async ({ page }) =>
     page.getByRole('heading', { name: 'Candidature reçue' }),
   ).toBeVisible();
 
-  const stored = await convex.query(
-    api.organizations.latestApplicationForEmail,
-    { email },
-  );
+  const stored = latestApplicationForEmail(email);
   expect(stored?.organizationName).toBe('Institut Démo Sahel');
   expect(stored?.type).toBe('organisation');
   expect(stored?.status).toBe('pending');

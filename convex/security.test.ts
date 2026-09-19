@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -15,20 +15,44 @@ const modules = import.meta.glob([
 ]);
 
 // AUTH_DEV_OTP n'est PAS defini dans cet environnement de test -> on verifie que
-// chaque surface publique « dev » est FERMEE (comme elle le serait en prod).
+// chaque surface « dev » est FERMEE (comme elle le serait en prod).
 // Un guard casse ferait echouer ce test au lieu de passer en silence.
 describe('Securite — gardes des backdoors DEV sans AUTH_DEV_OTP', () => {
-  it('ferme seed/otp (throw) et latest*ForEmail (null)', async () => {
+  it('ferme seed/otp (throw) et les oracles de lecture (null)', async () => {
     const t = convexTest(schema, modules);
     await expect(t.mutation(api.seed.seedDirectory, {})).rejects.toThrow();
     await expect(
-      t.query(api.otp.latestDevCode, { email: 'x@y.z' }),
+      t.query(internal.otp.latestDevCode, { email: 'x@y.z' }),
     ).rejects.toThrow();
     expect(
-      await t.query(api.contact.latestForEmail, { email: 'x@y.z' }),
+      await t.query(internal.contact.latestForEmail, { email: 'x@y.z' }),
     ).toBeNull();
     expect(
-      await t.query(api.organizations.latestApplicationForEmail, {
+      await t.query(internal.organizations.latestApplicationForEmail, {
+        email: 'x@y.z',
+      }),
+    ).toBeNull();
+    // Les 4 oracles que l'audit signalait comme NON couverts (§ 4.2 H2).
+    expect(
+      await t.query(internal.newsletter.isSubscribed, { email: 'x@y.z' }),
+    ).toBeNull();
+    expect(
+      await t.query(internal.events.isRegistered, {
+        eventSlug: 'e',
+        email: 'x@y.z',
+      }),
+    ).toBeNull();
+    expect(
+      await t.query(internal.youth.isYouthApplicant, { email: 'x@y.z' }),
+    ).toBeNull();
+    expect(
+      await t.query(internal.mentorship.isMentorshipRequested, {
+        email: 'x@y.z',
+      }),
+    ).toBeNull();
+    expect(
+      await t.query(internal.eventReminders.isReminderSet, {
+        eventSlug: 'e',
         email: 'x@y.z',
       }),
     ).toBeNull();

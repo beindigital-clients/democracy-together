@@ -106,7 +106,7 @@ export const unsubscribe = mutation({
 });
 
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
-export const isSubscribed = query({
+export const isSubscribed = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') return null;
