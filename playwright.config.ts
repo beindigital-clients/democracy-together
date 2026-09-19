@@ -72,6 +72,11 @@ export default defineConfig({
     // compilation à la demande quand plusieurs workers tapent en parallèle (et
     // on teste l'artefact réel). Démarrage plus lent, exécution déterministe.
     command: 'pnpm build && pnpm start',
+    // Sortie du serveur Next RELAYÉE dans le log des tests. Sans cela, une
+    // page qui rend « Internal Server Error » n'est qu'un écran blanc côté
+    // test : la pile d'appels, elle, reste dans un flux jeté (issue #66).
+    stdout: 'pipe',
+    stderr: 'pipe',
     url: 'http://localhost:3000/fr',
     reuseExistingServer: !process.env.CI,
     // Le runner GitHub est plus lent qu'un poste de dev, et ce démarrage inclut
