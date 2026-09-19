@@ -99,6 +99,22 @@ existant et lève `InvalidAccountId` sinon — c'est ce qui tenait quinze specs 
 mot de passe (l'e-mail d'invitation le promet pourtant), donc ce helper passe
 par l'API faute d'interface à exercer.
 
+### Sources externes — le CMS n'est pas toujours là
+Sanity n'est pas configuré en CI : `sanity/env.ts` retombe sur l'identifiant
+`placeholder`, la requête revient en 404, et la page affiche sa liste vide.
+`news.spec.ts` teste donc **les deux chemins**, et c'est la configuration
+réelle qui décide lequel s'exécute — contenu réel si un projet est renseigné,
+dégradation propre sinon. Dans les deux cas la spec vérifie que la page répond
+**200** : une source indisponible ne doit pas emporter la page.
+
+La règle (`projectId !== 'placeholder'`) est **importée** du module de
+l'application, jamais recopiée : une divergence ferait silencieusement prendre
+la mauvaise branche. Le chemin retenu est annoté dans le rapport.
+
+C'est le motif à suivre pour toute dépendance externe : un test qui dépend d'un
+service tiers vérifie aussi ce que voit l'utilisateur quand ce service répond
+mal. Neutraliser la spec ferait perdre les deux.
+
 ### Lire un échec
 `pnpm test:e2e` en local ouvre le rapport HTML. En CI, le job publie
 `playwright-report/` en artefact (traces comprises) **et** imprime dans le log
