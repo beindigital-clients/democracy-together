@@ -12,8 +12,9 @@ Trois niveaux, **obligatoires pour chaque feature**.
 
 Le tsconfig racine **exclut** `convex/`, `tests/` et les `*.test.*` : `pnpm
 typecheck` seul ne regarde donc ni le backend ni les tests. Trois commandes
-distinctes couvrent l'ensemble, et les trois tournent dans
-`.github/workflows/` :
+distinctes couvrent l'ensemble, et les trois tournent dans **`ci.yml`**, job
+« Typecheck · tests · build » — pas dans `e2e.yml`, qui peut être ignoré faute
+de secret Convex :
 
 | Commande | Ce qu'elle type | Pourquoi elle existe |
 |---|---|---|

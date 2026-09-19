@@ -42,15 +42,25 @@ jobs:
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
 
-      # Le tsconfig racine EXCLUT convex/, tests/ et *.test.* : sans la seconde
-      # commande, 9 578 lignes de backend ne seraient typées par aucun script
-      # (audit § 6.2). `next build` les compile, mais trop tard pour un retour
-      # rapide.
+      # Le tsconfig racine EXCLUT convex/, tests/ et *.test.* : sans les deux
+      # commandes suivantes, 9 578 lignes de backend et l'ensemble des tests ne
+      # seraient typés par aucun script (audit § 6.2). `next build` compile le
+      # backend, mais trop tard pour un retour rapide — et ne regarde jamais
+      # `tests/`.
       - name: Typecheck (application)
         run: pnpm typecheck
 
       - name: Typecheck (backend Convex)
         run: pnpm typecheck:convex
+
+      # Issue #18 : `test.use({ reducedMotion })` — option inexistante dans le
+      # Playwright épinglé — a vécu des mois dans `globe-touch.spec.ts` parce
+      # qu'AUCUNE commande ne typait `tests/`. Elle était ignorée en silence : le
+      # test passait au vert sans jamais activer `prefers-reduced-motion`. Cette
+      # commande est le garde-fou, et elle appartient à CE workflow : comme les
+      # deux précédentes, elle est déterministe et ne demande aucun secret.
+      - name: Typecheck (tests)
+        run: pnpm typecheck:tests
 
       - name: Tests unitaires
         run: pnpm test
