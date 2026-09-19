@@ -71,10 +71,12 @@ export default defineConfig({
     // Build de prod : toutes les routes sont pré-compilées, donc pas de flake de
     // compilation à la demande quand plusieurs workers tapent en parallèle (et
     // on teste l'artefact réel). Démarrage plus lent, exécution déterministe.
-    command: 'pnpm build && pnpm start',
-    // Sortie du serveur Next RELAYÉE dans le log des tests. Sans cela, une
-    // page qui rend « Internal Server Error » n'est qu'un écran blanc côté
-    // test : la pile d'appels, elle, reste dans un flux jeté (issue #66).
+    // La sortie du serveur est relayée dans le log des tests ET conservée dans
+    // `server.log` : relayée, elle se noie au milieu de milliers de lignes de
+    // build ; dans un fichier, le pas d'atelier peut en imprimer la fin, à un
+    // endroit prévisible. C'est ce qui manquait pour diagnostiquer une page qui
+    // répond « Internal Server Error » (issue #66).
+    command: 'pnpm build && pnpm start 2>&1 | tee server.log',
     stdout: 'pipe',
     stderr: 'pipe',
     url: 'http://localhost:3000/fr',

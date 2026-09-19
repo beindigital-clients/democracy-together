@@ -248,6 +248,22 @@ export async function provisionPassword(
   email: string,
   password: string,
 ): Promise<void> {
+  // Le compte a-t-il DÉJÀ ce mot de passe ? Les sessions partagées portent des
+  // adresses stables, donc sur un déploiement de dev — ou à la reprise d'un
+  // test — on repasse ici avec un compte déjà pourvu ET déjà vérifié. Dans ce
+  // cas `signUp` n'envoie aucun nouveau code, `getOtp` rend le précédent, et la
+  // vérification échoue sur « Could not verify code ». On commence donc par
+  // essayer de se connecter : si ça marche, il n'y a rien à provisionner.
+  try {
+    await convex().action(api.auth.signIn, {
+      provider: 'password',
+      params: { email, password, flow: 'signIn' },
+    });
+    return;
+  } catch {
+    /* pas encore de compte mot de passe pour cette adresse : on le crée */
+  }
+
   await convex().action(api.auth.signIn, {
     provider: 'password',
     params: { email, password, flow: 'signUp' },

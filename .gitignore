@@ -41,3 +41,6 @@ next-env.d.ts
 
 # Sessions E2E pré-ouvertes (produites par le projet Playwright `setup`)
 tests/e2e/.auth/
+
+# Journal du serveur Next capté pendant les E2E (diagnostic #66)
+server.log

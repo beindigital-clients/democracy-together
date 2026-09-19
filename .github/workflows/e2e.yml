@@ -170,6 +170,13 @@ jobs:
           done
         shell: bash
 
+      # Fin du journal du serveur Next : c'est là que se trouve la pile d'appels
+      # d'une page qui répond 500 (issue #66). Temporaire tant que la cause du
+      # 500 sur /fr/espace-membre n'est pas établie.
+      - name: Journal du serveur (fin)
+        if: failure()
+        run: tail -c 6000 server.log || echo "(pas de server.log)"
+
       - name: Publier le rapport
         if: always()
         uses: actions/upload-artifact@v4
