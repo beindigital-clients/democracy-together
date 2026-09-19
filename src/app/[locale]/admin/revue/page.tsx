@@ -211,7 +211,8 @@ export default function AdminReview() {
                   className="mt-2"
                   disabled={
                     busy === `review:${p._id}` ||
-                    (comment[p._id] ?? '').trim().length < 10
+                    (comment[p._id] ?? '').trim().length < 10 ||
+                    p.reviewStage !== 'in_review'
                   }
                   onClick={() => onSubmitReview(p._id)}
                 >
@@ -271,19 +272,33 @@ export default function AdminReview() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={busy === `decide:${p._id}`}
+                      disabled={
+                        busy === `decide:${p._id}` ||
+                        p.reviewStage !== 'in_review'
+                      }
                       onClick={() => onDecide(p._id, 'revision')}
                     >
                       {t('revDecideRevision')}
                     </Button>
                     <Button
                       size="sm"
-                      disabled={busy === `decide:${p._id}`}
+                      disabled={
+                        busy === `decide:${p._id}` ||
+                        p.reviewStage !== 'in_review'
+                      }
                       onClick={() => onDecide(p._id, 'reviewed')}
                     >
                       {t('revDecideReviewed')}
                     </Button>
                   </div>
+                  {/* Un arbitrage rendu ne se rejoue pas et ne s'inverse pas
+                      (issue #9) : le serveur le refuse, l'écran le dit plutôt
+                      que d'offrir un bouton sans effet. Rouvrir = assigner. */}
+                  {p.reviewStage !== 'in_review' ? (
+                    <p className="mt-1 text-[13px] text-muted">
+                      {t('revClosedOrIdle')}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </li>

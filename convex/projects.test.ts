@@ -150,3 +150,94 @@ describe('Appels à projets — back-office (F-60)', () => {
     expect(audits[0].actorId).toBe(modId);
   });
 });
+
+describe('Appels à projets — machine à états de la revue (issue #9)', () => {
+  async function setup() {
+    const t = convexTest(schema, modules);
+    const author = await member(t, 'author@test.org', 'Awa Diop');
+    await author.as.mutation(api.projects.submitProject, PROPOSAL);
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const [proposal] = await t.run((ctx) =>
+      ctx.db.query('projectProposals').collect(),
+    );
+    return {
+      t,
+      author,
+      modId,
+      asMod: t.withIdentity({ subject: `${modId}|s` }),
+      proposalId: proposal._id,
+    };
+  }
+
+  const auditOf = (t: ReturnType<typeof convexTest>, action: string) =>
+    t.run((ctx) =>
+      ctx.db
+        .query('auditLog')
+        .withIndex('by_action', (q) => q.eq('action', action))
+        .collect(),
+    );
+
+  it('refuse le rejeu et l’inversion d’une décision', async () => {
+    const { t, asMod, proposalId } = await setup();
+    await asMod.mutation(api.projects.reviewProjectProposal, {
+      proposalId,
+      decision: 'accepted',
+      notes: 'Beau projet.',
+    });
+
+    for (const decision of ['accepted', 'rejected'] as const) {
+      await expect(
+        asMod.mutation(api.projects.reviewProjectProposal, {
+          proposalId,
+          decision,
+        }),
+      ).rejects.toThrow('ALREADY_REVIEWED');
+    }
+
+    // Rien n'a bougé, ni la proposition ni le journal : le throw annule la
+    // transaction avant l'écriture d'audit.
+    const doc = await t.run((ctx) => ctx.db.get(proposalId));
+    expect(doc?.status).toBe('accepted');
+    expect(doc?.reviewNotes).toBe('Beau projet.');
+    expect(await auditOf(t, 'project.reviewed')).toHaveLength(1);
+  });
+
+  it('réouverture : transition nommée, tracée, puis nouvelle décision', async () => {
+    const { t, author, modId, asMod, proposalId } = await setup();
+    await asMod.mutation(api.projects.reviewProjectProposal, {
+      proposalId,
+      decision: 'rejected',
+    });
+
+    // l'auteur de la proposition ne rouvre pas sa propre revue
+    await expect(
+      author.as.mutation(api.projects.reopenProjectProposal, { proposalId }),
+    ).rejects.toThrow();
+
+    await asMod.mutation(api.projects.reopenProjectProposal, { proposalId });
+    expect(await t.run((ctx) => ctx.db.get(proposalId))).toMatchObject({
+      status: 'pending',
+    });
+
+    const reopened = await auditOf(t, 'project.reopened');
+    expect(reopened).toHaveLength(1);
+    expect(reopened[0].actorId).toBe(modId);
+    expect(reopened[0].metadata).toMatchObject({ from: 'rejected' });
+
+    // rouvrir une proposition déjà en attente n'a pas d'objet
+    await expect(
+      asMod.mutation(api.projects.reopenProjectProposal, { proposalId }),
+    ).rejects.toThrow('INVALID_TRANSITION');
+
+    // de retour dans la file, elle se tranche à nouveau — une fois.
+    await asMod.mutation(api.projects.reviewProjectProposal, {
+      proposalId,
+      decision: 'accepted',
+    });
+    expect(await t.run((ctx) => ctx.db.get(proposalId))).toMatchObject({
+      status: 'accepted',
+    });
+  });
+});

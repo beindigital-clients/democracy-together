@@ -18,6 +18,7 @@ export default function AdminMentorship() {
     status: pendingOnly ? 'pending' : undefined,
   });
   const review = useMutation(api.mentorship.reviewMentorshipRequest);
+  const reopen = useMutation(api.mentorship.reopenMentorshipRequest);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -38,6 +39,21 @@ export default function AdminMentorship() {
       });
     } catch {
       /* l'UI masque déjà l'action ; on ignore l'échec serveur silencieusement */
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Revenir sur une décision demande de ROUVRIR la demande (issue #9) : le
+  // serveur refuse qu'on la retranche directement — un appariement clos ne
+  // redevient pas « apparié » sur un second clic —, et la réouverture laisse
+  // sa propre trace au journal.
+  async function reopenRequest(id: string) {
+    setBusy(id);
+    try {
+      await reopen({ requestId: id as Id<'mentorshipRequests'> });
+    } catch {
+      /* idem */
     } finally {
       setBusy(null);
     }
@@ -129,7 +145,19 @@ export default function AdminMentorship() {
                     {t('mMatch')}
                   </Button>
                 </div>
-              ) : null}
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="flex-1" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy === m._id}
+                    onClick={() => reopenRequest(m._id)}
+                  >
+                    {t('reopen')}
+                  </Button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

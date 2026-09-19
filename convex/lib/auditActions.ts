@@ -15,6 +15,14 @@ export const AUDIT = {
   MENTORSHIP_REVIEWED: 'mentorship.reviewed',
   PROJECT_REVIEWED: 'project.reviewed',
   PEER_REVIEW: 'publication.peer_review',
+  // Réouvertures (issue #9) : le retour en arrière d'une revue est une
+  // transition NOMMÉE, donc une action d'audit distincte. Sans elle, le
+  // journal afficherait « … .reviewed » deux fois de suite et on ne saurait
+  // pas lequel des deux passages a rouvert le dossier.
+  PUBLICATION_REOPENED: 'publication.reopened',
+  YOUTH_REOPENED: 'youth.reopened',
+  MENTORSHIP_REOPENED: 'mentorship.reopened',
+  PROJECT_REOPENED: 'project.reopened',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

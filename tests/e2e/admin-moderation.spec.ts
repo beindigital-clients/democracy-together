@@ -44,6 +44,20 @@ test.describe('file des candidatures jeunes (session modérateur partagée)', ()
     const decided = page.getByRole('listitem').filter({ hasText: applicant });
     await expect(decided).toBeVisible();
     await expect(decided.getByText('Approuvée')).toBeVisible();
+
+    // Une décision prise ne se retranche pas (issue #9) : l'écran n'offre plus
+    // « Rejeter », mais « Rouvrir » — la transition arrière NOMMÉE, qui
+    // renvoie la candidature dans la file au lieu d'écraser la décision
+    // précédente. Le serveur tient la même règle si on appelle la mutation
+    // directement (cf. convex/youth.test.ts).
+    await expect(decided.getByRole('button', { name: 'Rejeter' })).toHaveCount(
+      0,
+    );
+    await decided.getByRole('button', { name: 'Rouvrir' }).click();
+    await expect(decided.getByText('En attente')).toBeVisible();
+    await expect(
+      decided.getByRole('button', { name: 'Approuver' }),
+    ).toBeVisible();
   });
 });
 

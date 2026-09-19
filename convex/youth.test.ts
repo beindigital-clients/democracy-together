@@ -106,3 +106,108 @@ describe('Jeunes — back-office (F-58)', () => {
     expect(approved).toHaveLength(1);
   });
 });
+
+describe('Jeunes — machine à états de la revue (issue #9)', () => {
+  // Une candidature en attente + un modérateur.
+  async function setup() {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.youth.storeApplication, {
+      ...APP,
+      email: 'jeune@example.org',
+    });
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const [application] = await t.run((ctx) =>
+      ctx.db.query('youthApplications').collect(),
+    );
+    return {
+      t,
+      modId,
+      asMod: t.withIdentity({ subject: `${modId}|s` }),
+      applicationId: application._id,
+    };
+  }
+
+  const auditOf = (t: ReturnType<typeof convexTest>, action: string) =>
+    t.run((ctx) =>
+      ctx.db
+        .query('auditLog')
+        .withIndex('by_action', (q) => q.eq('action', action))
+        .collect(),
+    );
+
+  it('refuse le rejeu et l’inversion d’une décision', async () => {
+    const { t, asMod, applicationId } = await setup();
+    await asMod.mutation(api.youth.reviewYouthApplication, {
+      applicationId,
+      decision: 'approved',
+      notes: 'Profil pertinent.',
+    });
+
+    // rejeu (double clic) puis inversion (l'autre bouton) : les deux refusés
+    for (const decision of ['approved', 'rejected'] as const) {
+      await expect(
+        asMod.mutation(api.youth.reviewYouthApplication, {
+          applicationId,
+          decision,
+        }),
+      ).rejects.toThrow('ALREADY_REVIEWED');
+    }
+
+    // La candidature est intacte, et le journal ne porte qu'UNE décision : le
+    // throw annule la transaction, ligne d'audit comprise. C'est tout l'enjeu
+    // — un historique qui empile des décisions contradictoires ne dit plus
+    // laquelle fait foi.
+    const doc = await t.run((ctx) => ctx.db.get(applicationId));
+    expect(doc?.status).toBe('approved');
+    expect(doc?.reviewNotes).toBe('Profil pertinent.');
+    expect(await auditOf(t, 'youth.reviewed')).toHaveLength(1);
+  });
+
+  it('réouverture : transition nommée, tracée, puis nouvelle décision', async () => {
+    const { t, modId, asMod, applicationId } = await setup();
+    await asMod.mutation(api.youth.reviewYouthApplication, {
+      applicationId,
+      decision: 'rejected',
+      notes: 'Erreur de bouton.',
+    });
+
+    // réservée au staff
+    const vId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
+    );
+    await expect(
+      t
+        .withIdentity({ subject: `${vId}|s` })
+        .mutation(api.youth.reopenYouthApplication, { applicationId }),
+    ).rejects.toThrow();
+
+    await asMod.mutation(api.youth.reopenYouthApplication, { applicationId });
+    expect(await t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
+      status: 'pending',
+    });
+
+    // le retour en arrière a SON action d'audit : dans le journal, on le
+    // distingue d'une seconde revue.
+    const reopened = await auditOf(t, 'youth.reopened');
+    expect(reopened).toHaveLength(1);
+    expect(reopened[0].actorId).toBe(modId);
+    expect(reopened[0].metadata).toMatchObject({ from: 'rejected' });
+
+    // rouvrir deux fois de suite n'a pas de sens : la candidature est déjà
+    // dans la file.
+    await expect(
+      asMod.mutation(api.youth.reopenYouthApplication, { applicationId }),
+    ).rejects.toThrow('INVALID_TRANSITION');
+
+    // et la décision redevient possible, une fois.
+    await asMod.mutation(api.youth.reviewYouthApplication, {
+      applicationId,
+      decision: 'approved',
+    });
+    expect(await t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
+      status: 'approved',
+    });
+  });
+});

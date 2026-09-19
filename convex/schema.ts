@@ -160,7 +160,11 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index('by_publication', ['publicationId'])
-    .index('by_reviewer', ['reviewerUserId']),
+    .index('by_reviewer', ['reviewerUserId'])
+    // Unicité applicative de l'avis (issue #9) : UN avis par relecteur et par
+    // publication. L'index rend la garde de `peerReview.submitReview` exacte
+    // sans relire toute la liste des avis.
+    .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId']),
 
   // Candidatures d'adhésion (F-22) — workflow de validation par un modérateur.
   membershipApplications: defineTable({
