@@ -1,7 +1,12 @@
 import { v } from 'convex/values';
 import { query, mutation, internalAction } from './_generated/server';
 import { internal } from './_generated/api';
-import { getCurrentUser, requireUser, requireNetworkRole } from './lib/rbac';
+import {
+  getCurrentUser,
+  requireUser,
+  requireNetworkRole,
+  effectiveRole,
+} from './lib/rbac';
 import { networkRole, locale } from './schema';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -20,7 +25,7 @@ export const current = query({
       name: user.name ?? null,
       email: user.email ?? null,
       image: user.image ?? null,
-      role: user.role ?? 'visiteur',
+      role: effectiveRole(user.role),
       preferredLocale: user.preferredLocale ?? null,
     };
   },

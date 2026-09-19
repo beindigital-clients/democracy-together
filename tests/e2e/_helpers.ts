@@ -67,6 +67,15 @@ export async function elevateRole(
   convexRun('devAdmin:setRoleByEmail', { email, role });
 }
 
+// Retire le rôle d'un compte (DEV, garde AUTH_DEV_OTP) — reproduit un compte
+// HÉRITÉ, créé avant que tous les chemins de création ne posent un rôle. C'est
+// l'état dans lequel le back-office affichait « Membre » au lieu de
+// « Visiteur » (issue #27) ; `provisionUser` ne peut pas le produire, puisqu'il
+// pose toujours un rôle.
+export async function clearRole(email: string): Promise<void> {
+  convexRun('devAdmin:clearRoleByEmail', { email });
+}
+
 // Supprime les publications de test (titre contenant `marker`) et leurs
 // fichiers — nettoyage du dataset partagé après l'E2E de dépôt (F-32), qui
 // publie une vraie publication.

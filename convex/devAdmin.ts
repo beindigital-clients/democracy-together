@@ -37,6 +37,35 @@ export const setRoleByEmail = internalMutation({
   },
 });
 
+// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : RETIRE la colonne `role` d'un
+// compte, reproduisant un compte hérité — créé avant que `reviewApplication`
+// et `inviteUser` ne posent systématiquement un rôle (PR #4).
+//
+// C'est le seul état que les fixtures E2E ne savaient pas produire :
+// `setRoleByEmail` pose toujours un rôle. Or c'est précisément celui que le
+// back-office affichait de travers (issue #27) — « membre » pour un compte que
+// le serveur traite en « visiteur ». Sans ce helper, l'écran ne peut pas être
+// testé dans l'état qui l'a mis en défaut.
+//
+// `patch` avec `undefined` SUPPRIME le champ (il ne l'écrit pas à null) : la
+// ligne redevient exactement celle d'un compte d'avant la PR #4.
+export const clearRoleByEmail = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    if (process.env.AUTH_DEV_OTP !== 'true') {
+      throw new Error('Désactivé (AUTH_DEV_OTP).');
+    }
+    const normalized = normalizeEmail(email);
+    const user = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', normalized))
+      .first();
+    if (!user) throw new Error('Utilisateur introuvable.');
+    await ctx.db.patch(user._id, { role: undefined });
+    return { ok: true, userId: user._id };
+  },
+});
+
 // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : purge complète d'un utilisateur
 // par e-mail — compte Convex Auth, sessions, refresh tokens, codes. Permet de
 // rejouer le flow d'inscription avec une vraie adresse déjà utilisée.
