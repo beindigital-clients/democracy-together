@@ -9,6 +9,7 @@ import { resolveSignInUserId } from './lib/signIn';
 // PAS d'auto-inscription publique : un e-mail inconnu ne crée AUCUN compte
 // (→ demande d'adhésion). Les comptes existants se connectent normalement, par
 // mot de passe OU par code. La page d'inscription est redirigée vers /adhesion.
+//
 // `isAuthenticated` est OBLIGATOIRE depuis convex-auth 0.0.76 (le dépôt est en
 // 0.0.94) : c'est la fonction que `convexAuthNextjsMiddleware` appelle sur le
 // déploiement à CHAQUE requête vers une route protégée (cf. src/proxy.ts). Sans
