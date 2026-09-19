@@ -2,57 +2,41 @@ import { writeFileSync } from 'node:fs';
 import { test } from '@playwright/test';
 import { provisionUser } from './_helpers';
 
-// TEMPORAIRE (issue #66) — sonde NAVIGATEUR, à retirer avec le correctif.
+// TEMPORAIRE (issue #66) — mesure, à retirer avec le correctif.
 //
-// La sonde serveur (scripts/diagnostic-66.mjs) a établi que la chaîne Convex
-// est saine : la CLI écrit et relit le même déploiement, et `auth:signIn`
-// appelé par la MÊME url que le navigateur rend `{started:true}` en générant
-// le code. Ce qui échoue est donc côté navigateur, et seulement pour l'auth —
-// les autres écritures Convex passées par le navigateur (inscription à un
-// événement, newsletter) passent.
+// Les deux sondes précédentes ont établi que la chaîne fonctionne de bout en
+// bout en CI : la CLI écrit et relit le même déploiement, `auth:signIn` rend
+// `{started:true}`, `/api/auth` répond 200, et l'écran « Saisissez le code »
+// finit par s'afficher. Ce qui manquait aux 15 specs n'était donc pas un
+// chemin, c'était du TEMPS — elles s'en remettent au délai par défaut de
+// Playwright (5 s), et toutes les traces portent `Timeout: 5000ms`.
 //
-// Cette sonde capte ce que le navigateur voit : messages de console, erreurs
-// non rattrapées, requêtes en échec, et réponses de `/api/auth` (la route que
-// `convexAuthNextjsMiddleware` sert, et par laquelle passe l'échange de jeton).
-//
-// Le rapport part dans un FICHIER, affiché ensuite par le pas d'atelier : la
-// sortie standard d'une spec ne traverse pas le reporter `github`.
+// Reste à connaître la durée réelle, pour choisir un plafond sur une mesure et
+// non sur une intuition. Trois demandes de code d'affilée : la première paie le
+// démarrage à froid de la préversion, les suivantes non.
 
-test('SONDE #66 navigateur : demande de code sur /fr/connexion-otp', async ({
-  page,
-}) => {
+test('MESURE #66 : durée de la demande de code (3 fois)', async ({ page }) => {
   const lines: string[] = [];
-  const email = `e2e_sonde_nav_${Date.now()}@democracytogether.test`;
-
-  page.on('console', (m) => lines.push(`CONSOLE[${m.type()}] ${m.text()}`));
-  page.on('pageerror', (e) => lines.push(`PAGEERROR ${e.message}`));
-  page.on('requestfailed', (r) =>
-    lines.push(`REQFAILED ${r.url()} — ${r.failure()?.errorText ?? '?'}`),
-  );
-  page.on('response', (r) => {
-    const u = r.url();
-    if (u.includes('/api/auth') || u.includes('convex')) {
-      lines.push(`RESPONSE ${r.status()} ${u}`);
-    }
-  });
-
   try {
-    await provisionUser(email);
-    lines.push(`compte provisionné : ${email}`);
+    for (let i = 1; i <= 3; i++) {
+      const email = `e2e_mesure_${i}_${Date.now()}@democracytogether.test`;
+      const t0 = Date.now();
+      await provisionUser(email);
+      const tProvision = Date.now() - t0;
 
-    await page.goto('/fr/connexion-otp');
-    await page.getByLabel('E-mail').fill(email);
-    await page.getByRole('button', { name: 'Recevoir un code' }).click();
+      await page.goto('/fr/connexion-otp');
+      await page.getByLabel('E-mail').fill(email);
+      const t1 = Date.now();
+      await page.getByRole('button', { name: 'Recevoir un code' }).click();
+      await page
+        .getByRole('heading', { name: 'Saisissez le code' })
+        .waitFor({ state: 'visible', timeout: 40_000 });
+      const tCode = Date.now() - t1;
 
-    // On laisse le temps à l'échange d'aboutir (ou d'échouer).
-    await page.waitForTimeout(8000);
-
-    const heading = await page
-      .getByRole('heading', { name: 'Saisissez le code' })
-      .count();
-    lines.push(`écran « Saisissez le code » présent : ${heading > 0}`);
-    const bodyText = (await page.locator('body').innerText()).slice(0, 600);
-    lines.push(`--- texte de la page ---\n${bodyText}`);
+      lines.push(
+        `tour ${i} : provisionUser (CLI) ${tProvision} ms · demande de code ${tCode} ms`,
+      );
+    }
   } catch (e) {
     lines.push(`EXCEPTION ${e instanceof Error ? e.message : String(e)}`);
   } finally {

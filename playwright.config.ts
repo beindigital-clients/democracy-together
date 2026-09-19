@@ -21,6 +21,17 @@ export default defineConfig({
   retries: 1,
   timeout: 45_000,
   reporter: process.env.CI ? 'github' : 'list',
+  // Délai des assertions. Le défaut de Playwright est 5 s, et c'est trop court
+  // pour un aller-retour d'AUTH contre une préversion Convex NEUVE : la suite
+  // en CI naît avec un déploiement froid, et les 15 specs qui ouvrent une
+  // session mouraient toutes à la même ligne, avec le même `Timeout: 5000ms`
+  // (issue #66) — alors que le parcours aboutit, seulement plus tard. Mesuré
+  // en CI avant de fixer ce chiffre ; cf. le fil de la PR.
+  //
+  // Relevé EN CI SEULEMENT : en local, contre un déploiement déjà chaud, 5 s
+  // reste le bon plafond — l'allonger partout reviendrait à masquer les
+  // lenteurs que ce délai est là pour attraper.
+  expect: { timeout: process.env.CI ? 20_000 : 5_000 },
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
