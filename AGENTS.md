@@ -21,3 +21,22 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+
+<!-- Hors blocs gérés par l'outillage : ne pas déplacer à l'intérieur. -->
+
+## Compétences d'agents — une seule copie
+
+`.claude/skills/` est la **copie unique** des skills Convex (30 fichiers).
+`.agents/skills` est un **lien symbolique** qui pointe dessus : les deux
+conventions restent donc résolvables, sans versionner deux fois le même
+contenu (issue #19).
+
+⚠️ `npx convex ai-files install` écrit les deux arborescences et **remplacera le
+lien par un dossier réel**. Après l'avoir lancé, rétablir le lien :
+
+```bash
+rm -rf .agents/skills && ln -s ../.claude/skills .agents/skills
+```
+
+Le verrou de versions reste `skills-lock.json`, inchangé.
