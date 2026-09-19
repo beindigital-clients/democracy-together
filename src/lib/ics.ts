@@ -73,7 +73,8 @@ export function eventToIcs(event: IcsEvent, now: Date = new Date()): string {
   ];
 
   if (event.location) lines.push(`LOCATION:${escapeText(event.location)}`);
-  if (event.description) lines.push(`DESCRIPTION:${escapeText(event.description)}`);
+  if (event.description)
+    lines.push(`DESCRIPTION:${escapeText(event.description)}`);
   if (event.url) lines.push(`URL:${escapeText(event.url)}`);
 
   lines.push('END:VEVENT', 'END:VCALENDAR');

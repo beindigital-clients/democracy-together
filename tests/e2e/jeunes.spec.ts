@@ -13,15 +13,25 @@ test('jeunes : toutes les sections du hub (F-40)', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Découvrir' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mentorer' })).toBeVisible();
   // Gamification
-  await expect(page.getByRole('heading', { name: 'Ta progression compte' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Ta progression compte' }),
+  ).toBeVisible();
   // Programmes
-  await expect(page.getByRole('heading', { name: 'Les programmes' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Mentorat', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Les programmes' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Mentorat', exact: true }),
+  ).toBeVisible();
   // Mentorat + témoignage + stats
-  await expect(page.getByRole('heading', { name: 'Un binôme, pas un formulaire' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Un binôme, pas un formulaire' }),
+  ).toBeVisible();
   await expect(page.getByText('Jeunes engagés')).toBeVisible();
   // CTA → /adhesion
-  await expect(page.getByRole('heading', { name: 'Prêt à rejoindre le hub ?' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Prêt à rejoindre le hub ?' }),
+  ).toBeVisible();
   await page.getByRole('link', { name: 'Créer mon profil' }).click();
   await expect(page).toHaveURL(/\/fr\/adhesion$/);
 });

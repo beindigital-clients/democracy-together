@@ -41,7 +41,7 @@ function pubDoc(over: Record<string, unknown> = {}) {
   };
 }
 
-describe('Annuaire d\'experts (F-23)', () => {
+describe("Annuaire d'experts (F-23)", () => {
   it('agrège les auteurs des publications publiées (count, thèmes distincts, exclusion du non-publié)', async () => {
     const t = convexTest(schema, modules);
 
@@ -111,7 +111,9 @@ describe('Annuaire d\'experts (F-23)', () => {
 
     // L'axe du pending (« anti-corruption ») n'apparaît nulle part.
     expect(a.themes).not.toContain('anti-corruption');
-    expect(experts.some((e) => e.themes.includes('anti-corruption'))).toBe(false);
+    expect(experts.some((e) => e.themes.includes('anti-corruption'))).toBe(
+      false,
+    );
 
     // Coauteur : 1 publication, axe « transitions », 2024.
     const b = experts[1];
@@ -161,7 +163,10 @@ describe('Annuaire d\'experts (F-23)', () => {
   it('aucune publication publiée -> annuaire vide', async () => {
     const t = convexTest(schema, modules);
     await t.run((ctx) =>
-      ctx.db.insert('publications', pubDoc({ slug: 'only-pending', status: 'pending' })),
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'only-pending', status: 'pending' }),
+      ),
     );
     expect(await t.query(api.experts.listExperts, {})).toEqual([]);
   });

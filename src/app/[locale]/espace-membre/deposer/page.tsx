@@ -1,42 +1,18 @@
 'use client';
 
-import { useEffect } from 'react';
-import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading,
-  useQuery,
-} from 'convex/react';
+import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { isMember } from '@/lib/roles';
 import { PublicationSubmitForm } from '@/components/library/publication-submit-form';
 
-function Loading() {
-  const t = useTranslations('auth');
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-16 text-ink-soft sm:px-6">
-      {t('loading')}
-    </div>
-  );
-}
-
-// Redirige seulement si l'état est *définitivement* non authentifié.
-function RedirectToSignIn() {
-  const router = useRouter();
-  useEffect(() => {
-    const id = setTimeout(() => router.replace('/connexion'), 1200);
-    return () => clearTimeout(id);
-  }, [router]);
-  return <Loading />;
-}
-
 function DepositPage() {
   const t = useTranslations('library');
   const me = useQuery(api.users.current);
-  if (me === undefined) return <Loading />;
+  if (me === undefined) return <AuthGateLoading className="max-w-3xl" />;
   const member = isMember(me?.role);
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
@@ -76,16 +52,8 @@ function DepositPage() {
 
 export default function DeposerPage() {
   return (
-    <>
-      <AuthLoading>
-        <Loading />
-      </AuthLoading>
-      <Unauthenticated>
-        <RedirectToSignIn />
-      </Unauthenticated>
-      <Authenticated>
-        <DepositPage />
-      </Authenticated>
-    </>
+    <AuthGate className="max-w-3xl">
+      <DepositPage />
+    </AuthGate>
   );
 }

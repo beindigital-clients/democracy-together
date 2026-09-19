@@ -7,7 +7,7 @@ import { api } from '@convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { isEmail } from '@/lib/validation';
+import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Formulaire d'inscription à un événement (F-53) — îlot client, sur la page de
@@ -32,9 +32,9 @@ export function EventRegisterForm({
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const name = String(fd.get('name') ?? '').trim();
-    const email = String(fd.get('email') ?? '').trim();
-    const organization = String(fd.get('organization') ?? '').trim();
+    const name = formField(fd, 'name').trim();
+    const email = formField(fd, 'email').trim();
+    const organization = formField(fd, 'organization').trim();
     if (name.length < 2) {
       setError(t('errorName'));
       return;

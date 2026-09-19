@@ -1,16 +1,12 @@
 'use client';
 
-import { type ReactNode, useEffect } from 'react';
-import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading,
-  useQuery,
-} from 'convex/react';
+import { type ReactNode } from 'react';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { isStaff, isAdmin, isEditor } from '@/lib/roles';
+import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 
 function Centered({ children }: { children: ReactNode }) {
   return (
@@ -18,24 +14,6 @@ function Centered({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
-}
-
-function Loading() {
-  const t = useTranslations('admin');
-  return (
-    <div className="mx-auto max-w-[1100px] px-4 py-16 text-ink-soft sm:px-6">
-      {t('loading')}
-    </div>
-  );
-}
-
-function RedirectToSignIn() {
-  const router = useRouter();
-  useEffect(() => {
-    const id = setTimeout(() => router.replace('/connexion'), 1200);
-    return () => clearTimeout(id);
-  }, [router]);
-  return <Loading />;
 }
 
 function AccessDenied() {
@@ -76,6 +54,7 @@ function AdminNav({
     { href: '/admin/mentorat', key: 'mentorship' },
     { href: '/admin/projets', key: 'projects' },
     { href: '/admin/signalements', key: 'reports' },
+    { href: '/admin/contact', key: 'contactMessages' },
     ...(isEditor
       ? [
           { href: '/admin/revue', key: 'review' },
@@ -97,9 +76,7 @@ function AdminNav({
       {items.map(({ href, key }) => {
         // actif = chemin exact (le dashboard ne doit pas s'allumer partout)
         const active =
-          href === '/admin'
-            ? pathname === '/admin'
-            : pathname.startsWith(href);
+          href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
         return (
           <Link
             key={key}
@@ -121,7 +98,7 @@ function AdminNav({
 
 function Gate({ children }: { children: ReactNode }) {
   const me = useQuery(api.users.current);
-  if (me === undefined) return <Loading />;
+  if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
 
   const admin = isAdmin(me?.role);
@@ -138,16 +115,8 @@ function Gate({ children }: { children: ReactNode }) {
 // (modérateur minimum). Les pages enfant ne se montent que pour le staff.
 export function AdminShell({ children }: { children: ReactNode }) {
   return (
-    <>
-      <AuthLoading>
-        <Loading />
-      </AuthLoading>
-      <Unauthenticated>
-        <RedirectToSignIn />
-      </Unauthenticated>
-      <Authenticated>
-        <Gate>{children}</Gate>
-      </Authenticated>
-    </>
+    <AuthGate className="max-w-[1100px]">
+      <Gate>{children}</Gate>
+    </AuthGate>
   );
 }

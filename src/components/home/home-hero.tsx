@@ -69,6 +69,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
       <div className="grid gap-8 lg:grid-cols-[1.08fr_.92fr] lg:gap-16 lg:items-center">
         <div>
           <motion.p
+            data-reveal=""
             className="font-mono text-xs uppercase tracking-[0.14em] text-muted"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -83,6 +84,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
               <Fragment key={`${w}-${i}`}>
                 <span className="inline-block overflow-hidden align-bottom">
                   <motion.span
+                    data-reveal=""
                     className="inline-block"
                     initial={{ y: '108%' }}
                     animate={{ y: 0 }}
@@ -101,19 +103,29 @@ export function HomeHero({ hero }: { hero: Hero }) {
           </h1>
 
           <motion.p
+            data-reveal=""
             className="mt-6 max-w-[48ch] text-lg leading-relaxed text-ink-soft"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, ease: SMOOTH, delay: afterTitle + 0.05 }}
+            transition={{
+              duration: 0.85,
+              ease: SMOOTH,
+              delay: afterTitle + 0.05,
+            }}
           >
             {hero.lead}
           </motion.p>
 
           <motion.div
+            data-reveal=""
             className="mt-8 flex flex-wrap gap-3"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, ease: SMOOTH, delay: afterTitle + 0.16 }}
+            transition={{
+              duration: 0.85,
+              ease: SMOOTH,
+              delay: afterTitle + 0.16,
+            }}
           >
             <Button asChild>
               <Link href="/adhesion">{hero.ctaPrimary}</Link>
@@ -126,6 +138,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
 
         {/* Image : zoom-out + fondu à l'entrée, puis parallaxe doux au scroll. */}
         <motion.div
+          data-reveal=""
           className="order-first lg:order-none"
           initial={{ opacity: 0, scale: 1.06 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -136,7 +149,11 @@ export function HomeHero({ hero }: { hero: Hero }) {
             className="relative aspect-[16/10] overflow-hidden rounded-sm border border-line bg-surface-2 shadow-pop lg:aspect-[4/5]"
           >
             {/* sur-cadrage pour absorber le décalage du parallaxe (pas de vide) */}
-            <motion.div className="absolute inset-0 scale-[1.15]" style={{ y: parallax }}>
+            <motion.div
+              data-reveal=""
+              className="absolute inset-0 scale-[1.15]"
+              style={{ y: parallax }}
+            >
               <Image
                 src="/home-hero.jpg"
                 alt={hero.visualLabel}
@@ -155,6 +172,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
 
       {/* Bande méta — apparaît en dernier, en cascade douce */}
       <motion.div
+        data-reveal=""
         className="mt-16 flex flex-col border-t border-line pt-6 sm:flex-row sm:flex-wrap"
         initial="hidden"
         animate="show"
@@ -163,6 +181,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
       >
         {hero.creds.map((cred) => (
           <motion.div
+            data-reveal=""
             key={cred.label}
             variants={credItem}
             className="border-line py-2 [&:not(:first-child)]:border-t sm:px-6 sm:py-0 sm:first:pl-0 sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"

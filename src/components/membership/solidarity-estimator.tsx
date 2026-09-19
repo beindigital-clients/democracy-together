@@ -26,8 +26,12 @@ export function SolidarityEstimator({
   const amount = estimate(type, income);
   const formatted = amount.toLocaleString(locale === 'en' ? 'en-US' : 'fr-FR');
   const typeLabel = content.types.find((t) => t.value === type)!.label;
-  const incomeLabel = content.incomes.find((i) => i.value === income)!.label.toLowerCase();
-  const ctx = content.ctxTemplate.replace('{type}', typeLabel).replace('{income}', incomeLabel);
+  const incomeLabel = content.incomes
+    .find((i) => i.value === income)!
+    .label.toLowerCase();
+  const ctx = content.ctxTemplate
+    .replace('{type}', typeLabel)
+    .replace('{income}', incomeLabel);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.25fr_.9fr]">
@@ -49,10 +53,17 @@ export function SolidarityEstimator({
         />
       </form>
 
-      <div aria-live="polite" className="flex flex-col rounded-md border border-line bg-paper p-6">
-        <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">{content.outLabel}</div>
+      <div
+        aria-live="polite"
+        className="flex flex-col rounded-md border border-line bg-paper p-6"
+      >
+        <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+          {content.outLabel}
+        </div>
         <div className="mt-2 flex items-baseline gap-2">
-          <b className="font-mono text-[40px] font-semibold leading-none tracking-[-0.02em] text-ink">{formatted}</b>
+          <b className="font-mono text-[40px] font-semibold leading-none tracking-[-0.02em] text-ink">
+            {formatted}
+          </b>
           <span className="font-mono text-sm text-ink-soft">EUR</span>
         </div>
         <span className="mt-1 text-[12px] text-muted">{content.perYear}</span>
@@ -87,20 +98,37 @@ function RadioGroup({
     <fieldset>
       <legend className="mb-2 text-sm font-medium text-ink">
         {legend}
-        {hint ? <span className="ml-1 font-normal text-muted">{hint}</span> : null}
+        {hint ? (
+          <span className="ml-1 font-normal text-muted">{hint}</span>
+        ) : null}
       </legend>
-      <div className={`grid gap-2 ${cols === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+      <div
+        className={`grid gap-2 ${cols === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}
+      >
         {options.map((o) => {
           const active = value === o.value;
           return (
             <label
               key={o.value}
               className={`flex cursor-pointer flex-col rounded-sm border px-3.5 py-2.5 transition-colors ${
-                active ? 'border-accent bg-accent-tint' : 'border-line-strong bg-surface hover:border-ink'
+                active
+                  ? 'border-accent bg-accent-tint'
+                  : 'border-line-strong bg-surface hover:border-ink'
               }`}
             >
-              <input type="radio" name={name} value={o.value} checked={active} onChange={() => onChange(o.value)} className="sr-only" />
-              <span className={`text-sm font-semibold ${active ? 'text-accent-text' : 'text-ink'}`}>{o.label}</span>
+              <input
+                type="radio"
+                name={name}
+                value={o.value}
+                checked={active}
+                onChange={() => onChange(o.value)}
+                className="sr-only"
+              />
+              <span
+                className={`text-sm font-semibold ${active ? 'text-accent-text' : 'text-ink'}`}
+              >
+                {o.label}
+              </span>
               <span className="text-[12px] text-muted">{o.desc}</span>
             </label>
           );

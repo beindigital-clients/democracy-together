@@ -92,7 +92,10 @@ describe('verifyRecaptcha — helper de vérification', () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
     vi.stubGlobal(
       'fetch',
-      fetchReturning({ success: false, 'error-codes': ['timeout-or-duplicate'] }),
+      fetchReturning({
+        success: false,
+        'error-codes': ['timeout-or-duplicate'],
+      }),
     );
 
     const r = await verifyRecaptcha('tok', 'contact');
@@ -110,7 +113,11 @@ describe('verifyRecaptcha — helper de vérification', () => {
     );
 
     const r = await verifyRecaptcha('tok', 'contact');
-    expect(r).toMatchObject({ ok: true, skipped: true, reason: 'verify-unreachable' });
+    expect(r).toMatchObject({
+      ok: true,
+      skipped: true,
+      reason: 'verify-unreachable',
+    });
   });
 
   it('seuil personnalisable (minScore)', async () => {
@@ -121,9 +128,9 @@ describe('verifyRecaptcha — helper de vérification', () => {
     );
 
     expect((await verifyRecaptcha('tok', 'contact')).ok).toBe(false); // défaut 0.5
-    expect((await verifyRecaptcha('tok', 'contact', { minScore: 0.3 })).ok).toBe(
-      true,
-    );
+    expect(
+      (await verifyRecaptcha('tok', 'contact', { minScore: 0.3 })).ok,
+    ).toBe(true);
   });
 });
 

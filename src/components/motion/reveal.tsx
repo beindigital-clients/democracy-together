@@ -12,6 +12,14 @@ import { motion, type Variants } from 'framer-motion';
 //
 // Ease = easeOutQuart : décélération douce et progressive, sans à-coup au départ
 // (cohérent avec le hero ; remplace l'ancien easeOutExpo jugé trop sec).
+//
+// SANS JAVASCRIPT : `initial` est rendu en style inline par framer-motion, donc
+// le contenu arrive à opacity:0 et y RESTE si le script ne s'exécute jamais.
+// Mesuré avant correctif : la page des mentions légales était entièrement
+// blanche, 8 éléments bloqués à opacity:0. C'est le défaut relevé au § 5.6 de
+// l'audit, aggravé — il n'est pas seulement « avant hydratation ».
+// L'attribut `data-reveal` permet à une règle <noscript> du layout de rétablir
+// la visibilité, sans rien changer pour les navigateurs avec JavaScript.
 
 const EASE = [0.165, 0.84, 0.44, 1] as const;
 
@@ -32,6 +40,7 @@ export function Reveal({
   return (
     <Comp
       id={id}
+      data-reveal=""
       className={className}
       initial={{ opacity: 0, y: 26 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -66,6 +75,7 @@ export function RevealGroup({
   const Comp = motion[as];
   return (
     <Comp
+      data-reveal=""
       className={className}
       aria-label={ariaLabel}
       variants={groupVariants}
@@ -89,7 +99,7 @@ export function RevealItem({
 }) {
   const Comp = motion[as];
   return (
-    <Comp className={className} variants={itemVariants}>
+    <Comp data-reveal="" className={className} variants={itemVariants}>
       {children}
     </Comp>
   );

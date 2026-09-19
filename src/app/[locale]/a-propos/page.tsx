@@ -20,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = await getAboutContent(resolve(locale) as 'fr' | 'en');
+  const c = await getAboutContent(resolve(locale));
   return {
     title: c.hero.eyebrow,
     description: c.hero.lead,
@@ -52,7 +52,7 @@ export default async function AboutPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const c = await getAboutContent(resolve(locale) as 'fr' | 'en');
+  const c = await getAboutContent(resolve(locale));
 
   return (
     <div>
@@ -136,13 +136,17 @@ export default async function AboutPage({
                   {initials(f.name)}
                 </span>
                 <div>
-                  <h3 className="font-display text-lg leading-tight">{f.name}</h3>
+                  <h3 className="font-display text-lg leading-tight">
+                    {f.name}
+                  </h3>
                   <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
                     {f.role}
                   </p>
                 </div>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-ink-soft">{f.bio}</p>
+              <p className="mt-4 text-sm leading-relaxed text-ink-soft">
+                {f.bio}
+              </p>
             </RevealItem>
           ))}
         </RevealGroup>
@@ -302,7 +306,10 @@ export default async function AboutPage({
       </section>
 
       {/* CTA */}
-      <section data-universe="jeunes" className="bg-accent text-accent-contrast">
+      <section
+        data-universe="jeunes"
+        className="bg-accent text-accent-contrast"
+      >
         <div className={`${WRAP} py-16 text-center md:py-20`}>
           <Reveal>
             <h2 className="mx-auto max-w-[20ch] font-display text-3xl text-accent-contrast md:text-4xl">

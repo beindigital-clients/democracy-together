@@ -10,8 +10,16 @@ export type MemberType = 'org' | 'ind' | 'jeu';
 
 // Barème indicatif EUR/an : base par type au revenu élevé, atténuée par palier.
 // Paiement en euro (EUR) uniquement pour le moment.
-export const BASE_EUR: Record<MemberType, number> = { org: 1200, ind: 120, jeu: 25 };
-export const INCOME_FACTOR: Record<IncomeLevel, number> = { high: 1, mid: 0.5, low: 0.25 };
+export const BASE_EUR: Record<MemberType, number> = {
+  org: 1200,
+  ind: 120,
+  jeu: 25,
+};
+export const INCOME_FACTOR: Record<IncomeLevel, number> = {
+  high: 1,
+  mid: 0.5,
+  low: 0.25,
+};
 
 export function estimate(type: MemberType, income: IncomeLevel): number {
   return Math.round((BASE_EUR[type] * INCOME_FACTOR[income]) / 5) * 5;
@@ -43,17 +51,26 @@ export type MembershipContent = {
     tiers: { label: string; sub: string }[];
     rows: { advantage: string; detail: string; cells: string[] }[];
   };
-  faq: { eyebrow: string; title: string; body: string; items: { q: string; a: string[] }[] };
+  faq: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    items: { q: string; a: string[] }[];
+  };
   don: { eyebrow: string; title: string; body: string; cta: string };
   cta: { title: string; body: string; primary: string; secondary: string };
 };
 
 const fr: MembershipContent = {
-  pills: ['Cotisation solidaire', 'Reçu fiscal · loi 1901', 'Paiement en euro (EUR)'],
+  pills: [
+    'Cotisation solidaire',
+    'Reçu fiscal · loi 1901',
+    'Paiement en euro (EUR)',
+  ],
   intro: {
     eyebrow: 'Adhésion',
     title: "Choisir un type d'adhésion",
-    body: "Trois profils, trois rôles dans le réseau. Organisations, individus et jeunes de moins de 35 ans : déposez votre candidature, le secrétariat revient vers vous avec la cotisation solidaire adaptée à votre situation.",
+    body: 'Trois profils, trois rôles dans le réseau. Organisations, individus et jeunes de moins de 35 ans : déposez votre candidature, le secrétariat revient vers vous avec la cotisation solidaire adaptée à votre situation.',
   },
   estimator: {
     eyebrow: 'Tarif solidaire',
@@ -90,14 +107,78 @@ const fr: MembershipContent = {
       { label: 'Jeune', sub: 'Moins de 35 ans' },
     ],
     rows: [
-      { advantage: "Profil public sur l'annuaire", detail: 'Visibilité dans le réseau', cells: ['Profil organisation détaillé', 'Profil membre individuel', 'Profil jeune contributeur'] },
-      { advantage: 'Accès aux publications', detail: 'Bibliothèque du réseau', cells: ['Accès intégral, dont contenus réservés', 'Accès intégral, dont contenus réservés', 'Accès intégral en lecture'] },
-      { advantage: 'Publier dans la bibliothèque', detail: "Dépôt d'analyses citables", cells: ['Dépôt institutionnel illimité', 'Dépôt en tant que contributeur', 'Via mentorat éditorial'] },
-      { advantage: 'Espaces collaboratifs', detail: 'Groupes de travail thématiques', cells: ['Plusieurs sièges par groupe', 'Un siège par groupe', 'Groupes jeunes et observation'] },
-      { advantage: 'Appels à projets et fonds communs', detail: 'Financements et co-productions', cells: ['Éligible et porteur de projet', 'Éligible en équipe', 'Bourses jeunes dédiées'] },
-      { advantage: 'Mentorat et formation', detail: 'Montée en compétences', cells: ['Mentor pour les structures émergentes', 'Ateliers et pairs', 'Mentorat prioritaire'] },
-      { advantage: 'Voix dans la gouvernance', detail: 'Assemblée générale', cells: ['Voix délibérative', 'Voix consultative', 'Voix au conseil des jeunes'] },
-      { advantage: 'Sommet annuel à Paris', detail: 'Tarif et places', cells: ['Plusieurs places, tarif membre', 'Une place, tarif membre', 'Places jeunes à tarif réduit'] },
+      {
+        advantage: "Profil public sur l'annuaire",
+        detail: 'Visibilité dans le réseau',
+        cells: [
+          'Profil organisation détaillé',
+          'Profil membre individuel',
+          'Profil jeune contributeur',
+        ],
+      },
+      {
+        advantage: 'Accès aux publications',
+        detail: 'Bibliothèque du réseau',
+        cells: [
+          'Accès intégral, dont contenus réservés',
+          'Accès intégral, dont contenus réservés',
+          'Accès intégral en lecture',
+        ],
+      },
+      {
+        advantage: 'Publier dans la bibliothèque',
+        detail: "Dépôt d'analyses citables",
+        cells: [
+          'Dépôt institutionnel illimité',
+          'Dépôt en tant que contributeur',
+          'Via mentorat éditorial',
+        ],
+      },
+      {
+        advantage: 'Espaces collaboratifs',
+        detail: 'Groupes de travail thématiques',
+        cells: [
+          'Plusieurs sièges par groupe',
+          'Un siège par groupe',
+          'Groupes jeunes et observation',
+        ],
+      },
+      {
+        advantage: 'Appels à projets et fonds communs',
+        detail: 'Financements et co-productions',
+        cells: [
+          'Éligible et porteur de projet',
+          'Éligible en équipe',
+          'Bourses jeunes dédiées',
+        ],
+      },
+      {
+        advantage: 'Mentorat et formation',
+        detail: 'Montée en compétences',
+        cells: [
+          'Mentor pour les structures émergentes',
+          'Ateliers et pairs',
+          'Mentorat prioritaire',
+        ],
+      },
+      {
+        advantage: 'Voix dans la gouvernance',
+        detail: 'Assemblée générale',
+        cells: [
+          'Voix délibérative',
+          'Voix consultative',
+          'Voix au conseil des jeunes',
+        ],
+      },
+      {
+        advantage: 'Sommet annuel à Paris',
+        detail: 'Tarif et places',
+        cells: [
+          'Plusieurs places, tarif membre',
+          'Une place, tarif membre',
+          'Places jeunes à tarif réduit',
+        ],
+      },
     ],
   },
   faq: {
@@ -121,7 +202,7 @@ const fr: MembershipContent = {
       {
         q: 'Comment se passe le paiement de la cotisation ?',
         a: [
-          "Pour le moment, la cotisation et les dons se règlent en euro (EUR). Quel que soit votre pays, le paiement est traité dans cette devise ; votre banque applique le cas échéant sa propre conversion.",
+          'Pour le moment, la cotisation et les dons se règlent en euro (EUR). Quel que soit votre pays, le paiement est traité dans cette devise ; votre banque applique le cas échéant sa propre conversion.',
           "Vous êtes basé en Afrique de l'Ouest ? Le bureau de Dakar peut vous accompagner pour le règlement et étudier d'autres moyens de paiement locaux.",
         ],
       },
@@ -154,7 +235,11 @@ const fr: MembershipContent = {
 };
 
 const en: MembershipContent = {
-  pills: ['Solidarity contribution', 'Tax receipt · loi 1901', 'Pay in euro (EUR)'],
+  pills: [
+    'Solidarity contribution',
+    'Tax receipt · loi 1901',
+    'Pay in euro (EUR)',
+  ],
   intro: {
     eyebrow: 'Membership',
     title: 'Choose a membership type',
@@ -163,7 +248,7 @@ const en: MembershipContent = {
   estimator: {
     eyebrow: 'Solidarity pricing',
     title: 'Solidarity pricing estimator',
-    body: 'The contribution adjusts to the income level of your organisation\'s or your residence\'s country. Enter these elements to get an indicative amount.',
+    body: "The contribution adjusts to the income level of your organisation's or your residence's country. Enter these elements to get an indicative amount.",
     incomeLabel: 'Country income level',
     incomeHint: '(indicative classification)',
     incomes: [
@@ -181,12 +266,12 @@ const en: MembershipContent = {
     perYear: 'per year',
     ctxTemplate: '{type}, {income}-income country.',
     solidarity:
-      "Solidarity pricing. These amounts are indicative. The actual contribution can be adapted to your situation, simply on request to the secretariat, so that no financial barrier prevents you from joining.",
+      'Solidarity pricing. These amounts are indicative. The actual contribution can be adapted to your situation, simply on request to the secretariat, so that no financial barrier prevents you from joining.',
   },
   comparison: {
     eyebrow: 'Comparison',
     title: "What's included, by type",
-    body: 'Benefits differ by each member\'s role in the network. Here is the detail of the associated access and rights.',
+    body: "Benefits differ by each member's role in the network. Here is the detail of the associated access and rights.",
     caption: 'Benefits comparison · illustration data',
     advantageHeader: 'Benefit',
     tiers: [
@@ -195,14 +280,78 @@ const en: MembershipContent = {
       { label: 'Youth', sub: 'Under 35' },
     ],
     rows: [
-      { advantage: 'Public directory profile', detail: 'Visibility in the network', cells: ['Detailed organisation profile', 'Individual member profile', 'Young contributor profile'] },
-      { advantage: 'Access to publications', detail: 'Network library', cells: ['Full access, incl. reserved content', 'Full access, incl. reserved content', 'Full read access'] },
-      { advantage: 'Publish in the library', detail: 'Citable analysis deposits', cells: ['Unlimited institutional deposits', 'Deposit as a contributor', 'Via editorial mentoring'] },
-      { advantage: 'Collaborative spaces', detail: 'Thematic working groups', cells: ['Several seats per group', 'One seat per group', 'Youth and observer groups'] },
-      { advantage: 'Calls for projects and shared funds', detail: 'Funding and co-productions', cells: ['Eligible and project lead', 'Eligible in a team', 'Dedicated youth grants'] },
-      { advantage: 'Mentoring and training', detail: 'Building skills', cells: ['Mentor for emerging structures', 'Workshops and peers', 'Priority mentoring'] },
-      { advantage: 'Voice in governance', detail: 'General assembly', cells: ['Deliberative vote', 'Consultative voice', 'Voice on the youth council'] },
-      { advantage: 'Annual summit in Paris', detail: 'Pricing and seats', cells: ['Several seats, member rate', 'One seat, member rate', 'Youth seats at reduced rate'] },
+      {
+        advantage: 'Public directory profile',
+        detail: 'Visibility in the network',
+        cells: [
+          'Detailed organisation profile',
+          'Individual member profile',
+          'Young contributor profile',
+        ],
+      },
+      {
+        advantage: 'Access to publications',
+        detail: 'Network library',
+        cells: [
+          'Full access, incl. reserved content',
+          'Full access, incl. reserved content',
+          'Full read access',
+        ],
+      },
+      {
+        advantage: 'Publish in the library',
+        detail: 'Citable analysis deposits',
+        cells: [
+          'Unlimited institutional deposits',
+          'Deposit as a contributor',
+          'Via editorial mentoring',
+        ],
+      },
+      {
+        advantage: 'Collaborative spaces',
+        detail: 'Thematic working groups',
+        cells: [
+          'Several seats per group',
+          'One seat per group',
+          'Youth and observer groups',
+        ],
+      },
+      {
+        advantage: 'Calls for projects and shared funds',
+        detail: 'Funding and co-productions',
+        cells: [
+          'Eligible and project lead',
+          'Eligible in a team',
+          'Dedicated youth grants',
+        ],
+      },
+      {
+        advantage: 'Mentoring and training',
+        detail: 'Building skills',
+        cells: [
+          'Mentor for emerging structures',
+          'Workshops and peers',
+          'Priority mentoring',
+        ],
+      },
+      {
+        advantage: 'Voice in governance',
+        detail: 'General assembly',
+        cells: [
+          'Deliberative vote',
+          'Consultative voice',
+          'Voice on the youth council',
+        ],
+      },
+      {
+        advantage: 'Annual summit in Paris',
+        detail: 'Pricing and seats',
+        cells: [
+          'Several seats, member rate',
+          'One seat, member rate',
+          'Youth seats at reduced rate',
+        ],
+      },
     ],
   },
   faq: {
@@ -213,7 +362,7 @@ const en: MembershipContent = {
       {
         q: 'How does solidarity pricing work?',
         a: [
-          'The contribution adjusts to the income level of your organisation\'s or your residence\'s country, across three tiers (high, middle, low). The goal is that a member based in Dakar and one based in Paris contribute according to their respective means, without the rate becoming an obstacle.',
+          "The contribution adjusts to the income level of your organisation's or your residence's country, across three tiers (high, middle, low). The goal is that a member based in Dakar and one based in Paris contribute according to their respective means, without the rate becoming an obstacle.",
           'The amounts shown on this page are indicative. If your situation matches no tier, write to the secretariat: we adapt the contribution case by case.',
         ],
       },

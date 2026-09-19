@@ -26,6 +26,7 @@ export function AnimatedBar({
 }) {
   return (
     <motion.span
+      data-reveal=""
       aria-hidden="true"
       className={`block h-full origin-left ${className ?? ''}`}
       style={{ width: `${pct}%` }}

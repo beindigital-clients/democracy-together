@@ -14,7 +14,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-async function member(t: ReturnType<typeof convexTest>, email: string, name?: string) {
+async function member(
+  t: ReturnType<typeof convexTest>,
+  email: string,
+  name?: string,
+) {
   const id = await t.run((ctx) =>
     ctx.db.insert('users', { role: 'membre', email, name }),
   );
@@ -40,7 +44,9 @@ describe('Tribune — écriture (F-44)', () => {
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
     await expect(
-      t.withIdentity({ subject: `${vId}|s` }).mutation(api.tribune.createPost, POST),
+      t
+        .withIdentity({ subject: `${vId}|s` })
+        .mutation(api.tribune.createPost, POST),
     ).rejects.toThrow();
 
     const { as } = await member(t, 'm@test.org', 'Awa Diop');
@@ -81,7 +87,9 @@ describe('Tribune — fil & commentaires (F-47)', () => {
     });
 
     // filtre par thème
-    const trans = await t.query(api.tribune.listPosts, { theme: 'transitions' });
+    const trans = await t.query(api.tribune.listPosts, {
+      theme: 'transitions',
+    });
     expect(trans).toHaveLength(1);
     expect(trans[0].title).toBe('Sur les transitions');
     // sans filtre : les deux
@@ -106,7 +114,9 @@ describe('Tribune — fil & commentaires (F-47)', () => {
       body: 'Je précise…',
     });
     const after = await author.as.query(api.notifications.myNotifications, {});
-    expect(after.filter((n) => n.titleKey === 'tribuneComment')).toHaveLength(1);
+    expect(after.filter((n) => n.titleKey === 'tribuneComment')).toHaveLength(
+      1,
+    );
   });
 });
 

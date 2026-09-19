@@ -1,7 +1,6 @@
 import { v } from 'convex/values';
 import {
   action,
-  query,
   internalQuery,
   internalMutation,
   internalAction,
@@ -28,7 +27,11 @@ function escapeHtml(s: string): string {
 }
 
 // Corps de rappel — simple, en français (comme l'OTP / la newsletter).
-function reminderHtml(eventSlug: string, eventDate: number, loc: string): string {
+function reminderHtml(
+  eventSlug: string,
+  eventDate: number,
+  loc: string,
+): string {
   const site = process.env.SITE_URL ?? 'https://democracy-together.vercel.app';
   const url = `${site}/${loc}/evenements/${encodeURIComponent(eventSlug)}`;
   const when = new Intl.DateTimeFormat('fr', {
@@ -165,7 +168,7 @@ export const sendDueReminders = internalAction({
 });
 
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
-export const isReminderSet = query({
+export const isReminderSet = internalQuery({
   args: { eventSlug: v.string(), email: v.string() },
   handler: async (ctx, { eventSlug, email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') return null;

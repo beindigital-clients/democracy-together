@@ -30,7 +30,7 @@ const fr: ProjectsIntro = {
   criteria: [
     {
       title: 'Une question claire',
-      body: "Le projet répond à une question démocratique précise et vérifiable, pas à une intention vague. On doit comprendre ce qui sera produit et pourquoi cela compte.",
+      body: 'Le projet répond à une question démocratique précise et vérifiable, pas à une intention vague. On doit comprendre ce qui sera produit et pourquoi cela compte.',
     },
     {
       title: 'Une dimension collaborative',
@@ -48,11 +48,11 @@ const fr: ProjectsIntro = {
   support: [
     {
       title: 'Mise en relation',
-      body: "Le réseau identifie les membres dont les travaux recoupent le projet et facilite les premiers échanges entre porteurs.",
+      body: 'Le réseau identifie les membres dont les travaux recoupent le projet et facilite les premiers échanges entre porteurs.',
     },
     {
       title: 'Appui méthodologique',
-      body: "Relecture du cadrage, partage de méthodes éprouvées et accès aux ressources communes du réseau (baromètre, bibliothèque, contacts).",
+      body: 'Relecture du cadrage, partage de méthodes éprouvées et accès aux ressources communes du réseau (baromètre, bibliothèque, contacts).',
     },
     {
       title: 'Diffusion',
@@ -65,33 +65,33 @@ const fr: ProjectsIntro = {
 
 const en: ProjectsIntro = {
   principle: [
-    "A collaborative project brings together several members of the network — think tanks, researchers, contributors — around a shared democratic question, in Africa as in Europe. The point is not to fund a single actor, but to make teams work together that, on their own, would never have met.",
-    "Every proposal starts from a concrete need: field research, a shared tool, a comparative study, an awareness campaign. The network helps connect the people behind it, structure the approach and spread the results beyond national borders.",
+    'A collaborative project brings together several members of the network — think tanks, researchers, contributors — around a shared democratic question, in Africa as in Europe. The point is not to fund a single actor, but to make teams work together that, on their own, would never have met.',
+    'Every proposal starts from a concrete need: field research, a shared tool, a comparative study, an awareness campaign. The network helps connect the people behind it, structure the approach and spread the results beyond national borders.',
   ],
   scopeLead:
     "A proposal must fall within one of the network's five pillars of work. This framing is what keeps the effort coherent and connects you with teams already active on the same ground.",
   criteria: [
     {
       title: 'A clear question',
-      body: "The project answers a precise, verifiable democratic question rather than a vague intention. It must be clear what will be produced and why it matters.",
+      body: 'The project answers a precise, verifiable democratic question rather than a vague intention. It must be clear what will be produced and why it matters.',
     },
     {
       title: 'A collaborative dimension',
-      body: "At least two contributors or organisations commit to it, ideally across several countries or languages. Cooperation is the heart of the scheme, not an add-on.",
+      body: 'At least two contributors or organisations commit to it, ideally across several countries or languages. Cooperation is the heart of the scheme, not an add-on.',
     },
     {
       title: 'A shareable outcome',
-      body: "The project leads to an open output — study, data, method, tool — reusable by other members and accessible to the public where possible.",
+      body: 'The project leads to an open output — study, data, method, tool — reusable by other members and accessible to the public where possible.',
     },
     {
       title: 'Grounded in the field',
-      body: "The proposal draws on real knowledge of the local context, especially in regions where democratic institutions are fragile.",
+      body: 'The proposal draws on real knowledge of the local context, especially in regions where democratic institutions are fragile.',
     },
   ],
   support: [
     {
       title: 'Introductions',
-      body: "The network identifies members whose work overlaps with the project and helps the first exchanges between the people behind it.",
+      body: 'The network identifies members whose work overlaps with the project and helps the first exchanges between the people behind it.',
     },
     {
       title: 'Methodological support',
@@ -103,7 +103,7 @@ const en: ProjectsIntro = {
     },
   ],
   disclaimer:
-    "This page sets out the principle of collaborative projects and how to propose one. It announces neither a dated call nor a funding amount: each proposal is reviewed case by case by the network.",
+    'This page sets out the principle of collaborative projects and how to propose one. It announces neither a dated call nor a funding amount: each proposal is reviewed case by case by the network.',
 };
 
 export function getProjectsIntro(locale: 'fr' | 'en'): ProjectsIntro {

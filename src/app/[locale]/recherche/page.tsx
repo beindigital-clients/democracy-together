@@ -133,7 +133,8 @@ export default async function SearchPage({
                     <Link href={`/le-reseau/${o.slug}`} className={ROW}>
                       <span className="font-medium text-ink">{o.name}</span>
                       <span className="ml-2 text-[13px] text-muted">
-                        {countryFlag(o.country)} {countryName(o.country, locale)}
+                        {countryFlag(o.country)}{' '}
+                        {countryName(o.country, locale)}
                       </span>
                     </Link>
                   </li>

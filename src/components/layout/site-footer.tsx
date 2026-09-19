@@ -8,9 +8,39 @@ export function SiteFooter() {
   const year = 2026;
 
   const columns = [
-    { title: t('col1Title'), links: [['/a-propos', t('col1a')], ['/a-propos', t('col1b')], ['/a-propos', t('col1c')], ['/rapports', t('col1d')], ['/presse', t('col1e')]] },
-    { title: t('col2Title'), links: [['/thematiques', t('col2d')], ['/analyses', t('col2a')], ['/barometre', t('col2b')], ['/tribune', t('col2e')], ['/experts', t('col2f')], ['/evenements', t('col2c')], ['/replays', t('col2g')]] },
-    { title: t('col3Title'), links: [['/adhesion', t('col3a')], ['/appels-a-projets', t('col3e')], ['/espaces', t('col3f')], ['/don', t('col3b')], ['/newsletter', t('col3c')], ['/partenaires', t('col3d')]] },
+    {
+      title: t('col1Title'),
+      links: [
+        ['/a-propos', t('col1a')],
+        ['/a-propos', t('col1b')],
+        ['/a-propos', t('col1c')],
+        ['/rapports', t('col1d')],
+        ['/presse', t('col1e')],
+      ],
+    },
+    {
+      title: t('col2Title'),
+      links: [
+        ['/thematiques', t('col2d')],
+        ['/analyses', t('col2a')],
+        ['/barometre', t('col2b')],
+        ['/tribune', t('col2e')],
+        ['/experts', t('col2f')],
+        ['/evenements', t('col2c')],
+        ['/replays', t('col2g')],
+      ],
+    },
+    {
+      title: t('col3Title'),
+      links: [
+        ['/adhesion', t('col3a')],
+        ['/appels-a-projets', t('col3e')],
+        ['/espaces', t('col3f')],
+        ['/don', t('col3b')],
+        ['/newsletter', t('col3c')],
+        ['/partenaires', t('col3d')],
+      ],
+    },
   ] as const;
 
   return (
@@ -19,7 +49,9 @@ export function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
             <Logo />
-            <p className="mt-3 max-w-[36ch] text-sm text-muted">{t('tagline')}</p>
+            <p className="mt-3 max-w-[36ch] text-sm text-muted">
+              {t('tagline')}
+            </p>
           </div>
 
           {columns.map((col) => (
@@ -44,12 +76,22 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col gap-4 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>© {year} {t('legalRights')}</p>
+          <p>
+            © {year} {t('legalRights')}
+          </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Link href="/contact" className="hover:text-ink">{t('contact')}</Link>
-            <Link href="/mentions-legales" className="hover:text-ink">{t('legalNotice')}</Link>
-            <Link href="/confidentialite" className="hover:text-ink">{t('legalPrivacy')}</Link>
-            <Link href="/accessibilite" className="hover:text-ink">{t('legalA11y')}</Link>
+            <Link href="/contact" className="hover:text-ink">
+              {t('contact')}
+            </Link>
+            <Link href="/mentions-legales" className="hover:text-ink">
+              {t('legalNotice')}
+            </Link>
+            <Link href="/confidentialite" className="hover:text-ink">
+              {t('legalPrivacy')}
+            </Link>
+            <Link href="/accessibilite" className="hover:text-ink">
+              {t('legalA11y')}
+            </Link>
             {/* Bascule de thème : déplacée ici depuis la barre desktop (espace) ;
                 reste aussi dans le menu mobile. */}
             <span className="inline-flex items-center gap-1.5">

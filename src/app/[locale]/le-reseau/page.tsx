@@ -7,7 +7,7 @@ import { DirectoryFilters } from '@/components/directory/directory-filters';
 import { OrgCard } from '@/components/directory/org-card';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import type { RegionMapItem } from '@/components/map/region-map';
-import { RegionGlobe } from '@/components/map/region-globe';
+import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { mapNameForIso } from '@/lib/country-map';
 import { countryName } from '@/lib/orgs';
 
@@ -101,7 +101,7 @@ export default async function NetworkPage({
           <Reveal>
             <h2 className="font-display text-2xl">{t('mapTitle')}</h2>
             <div className="mt-4">
-              <RegionGlobe
+              <RegionGlobeLazy
                 items={memberItems}
                 hint={t('mapHint')}
                 ariaLabel={t('mapTitle')}

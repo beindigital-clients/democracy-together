@@ -3,7 +3,23 @@ import { expect, type Page } from '@playwright/test';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Client Convex créé À LA DEMANDE. Instancié au niveau module, il faisait
+// échouer `playwright test --list` avant même d'afficher la liste des tests dès
+// que NEXT_PUBLIC_CONVEX_URL manquait (audit § 6.1). En paresseux, seuls les
+// tests qui s'en servent réellement échouent, avec un message actionnable.
+let convexClientInstance: ConvexHttpClient | null = null;
+function convex(): ConvexHttpClient {
+  if (!convexClientInstance) {
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!url) {
+      throw new Error(
+        'NEXT_PUBLIC_CONVEX_URL manquant : lancer `npx convex dev` (qui renseigne .env.local) avant les tests E2E.',
+      );
+    }
+    convexClientInstance = new ConvexHttpClient(url);
+  }
+  return convexClientInstance;
+}
 
 // Invoque une fonction Convex via la CLI — contexte de CONFIANCE, seul moyen
 // d'atteindre les internalMutations de test (hors API publique : défense en
@@ -69,37 +85,175 @@ export async function submitApplication(args: {
   // `submitApplication` est désormais une ACTION (porte reCAPTCHA) : on l'appelle
   // via .action(). Sans secret sur le déploiement dev, la vérification est un
   // no-op (cf. convex/lib/recaptcha.ts), donc le seed reste inchangé.
-  await convex.action(api.organizations.submitApplication, args);
+  await convex().action(api.organizations.submitApplication, args);
+}
+
+// Dépose une candidature du hub jeunes (F-40) par le chemin public — pour
+// alimenter la file de modération sans passer par le formulaire.
+//
+// Comme `submitApplication`, c'est une ACTION (porte reCAPTCHA) : sans secret
+// sur le déploiement, la vérification est un no-op (cf. convex/lib/recaptcha.ts).
+export async function applyYouth(args: {
+  name: string;
+  email: string;
+  country: string;
+  motivation: string;
+  themes?: string[];
+}): Promise<void> {
+  await convex().action(api.youth.applyYouth, args);
+}
+
+// --- Oracles de lecture DEV --------------------------------------------------
+// Ces fonctions relisent en base ce qu'un formulaire vient d'écrire (code OTP,
+// message de contact, inscription…). Ce sont désormais des `internalQuery` et
+// non plus des `query` publiques (audit § 4.2 H2) : hors API publique, elles ne
+// sont appelables par aucun client, même si AUTH_DEV_OTP fuitait en production.
+// On les invoque donc via la CLI Convex — contexte de confiance — exactement
+// comme seedDirectory, elevateRole et deleteTestPublications ci-dessus.
+function convexRunQuery<T>(
+  fn: string,
+  args: Record<string, unknown>,
+): T | null {
+  const env = { ...process.env };
+  delete env.CONVEX_DEPLOYMENT;
+  const preview = process.env.CONVEX_PREVIEW_NAME;
+  const out = execFileSync(
+    'npx',
+    [
+      'convex',
+      'run',
+      ...(preview ? ['--preview-name', preview] : []),
+      fn,
+      JSON.stringify(args),
+    ],
+    { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8', env },
+  );
+  // `convex run` peut précéder le résultat de lignes de log : on ne retient que
+  // la dernière ligne non vide, qui porte la valeur JSON.
+  const last = out.trim().split('\n').filter(Boolean).pop();
+  if (!last) return null;
+  try {
+    return JSON.parse(last) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function latestContactForEmail(email: string) {
+  return convexRunQuery<{
+    name: string;
+    subject: string;
+    message: string;
+    handled: boolean;
+  } | null>('contact:latestForEmail', { email });
+}
+
+export function isNewsletterSubscribed(email: string) {
+  return convexRunQuery<boolean>('newsletter:isSubscribed', { email });
+}
+
+export function isEventRegistered(eventSlug: string, email: string) {
+  return convexRunQuery<boolean>('events:isRegistered', { eventSlug, email });
+}
+
+export function isYouthApplicant(email: string) {
+  return convexRunQuery<boolean>('youth:isYouthApplicant', { email });
+}
+
+export function latestApplicationForEmail(email: string) {
+  return convexRunQuery<{
+    status: string;
+    type: string;
+    organizationName: string;
+  } | null>('organizations:latestApplicationForEmail', { email });
 }
 
 // Lit le dernier code OTP en clair (DEV seulement, garde AUTH_DEV_OTP).
 // Petit retry : le code est écrit par une action juste après l'appel signIn.
 export async function getOtp(email: string): Promise<string> {
   for (let i = 0; i < 24; i++) {
-    const code = await convex.query(api.otp.latestDevCode, { email });
+    const code = convexRunQuery<string | null>('otp:latestDevCode', { email });
     if (code) return code;
     await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error(`Aucun code OTP trouvé pour ${email}`);
 }
 
-// Crée un compte e-mail/mot de passe et valide la vérification e-mail.
-export async function signUpAndVerify(
+// Provisionne un compte ET connecte le navigateur (remplace signUpAndVerify).
+//
+// L'auto-inscription publique n'existe plus : /inscription redirige vers
+// /adhesion, et la connexion refuse un e-mail inconnu. Un test qui a besoin
+// d'une session doit donc d'abord faire EXISTER le compte — comme le fait la
+// vraie vie, où c'est l'approbation d'une candidature ou une invitation
+// d'administrateur qui l'ouvre. On passe par la CLI Convex (contexte de
+// confiance) puis par la connexion par code, qui est le parcours réel d'un
+// membre invité.
+export async function provisionUser(
+  email: string,
+  role: NetworkRole = 'visiteur',
+): Promise<void> {
+  await elevateRole(email, role); // upsert : crée le compte s'il n'existe pas
+}
+
+export async function signInWithCode(page: Page, email: string) {
+  await page.goto('/fr/connexion-otp');
+  await page.getByLabel('E-mail').fill(email);
+  await page.getByRole('button', { name: 'Recevoir un code' }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await page.getByRole('button', { name: 'Se connecter' }).click();
+
+  await expect(page).toHaveURL(/\/espace-membre$/);
+}
+
+// Définit un mot de passe sur un compte qui n'en a pas encore.
+//
+// C'est le parcours réel d'un membre invité : son compte est ouvert par
+// l'approbation de sa candidature (ou par une invitation d'admin), sans mot de
+// passe. Le flux « mot de passe oublié » ne demande pas l'ancien mot de passe —
+// il sert donc aussi à définir le PREMIER.
+export async function setPasswordViaReset(
   page: Page,
   email: string,
   password: string,
 ) {
-  await page.goto('/fr/inscription');
+  await page.goto('/fr/mot-de-passe-oublie');
   await page.getByLabel('E-mail').fill(email);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
-  await page.getByLabel('Confirmer le mot de passe').fill(password);
-  await page.getByRole('button', { name: 'Créer le compte' }).click();
+  await page.getByRole('button', { name: 'Envoyer le code' }).click();
 
   await expect(
-    page.getByRole('heading', { name: 'Vérifiez votre e-mail' }),
+    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
   ).toBeVisible();
   await page.getByLabel('Code de vérification').fill(await getOtp(email));
-  await page.getByRole('button', { name: 'Vérifier' }).click();
+  await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(password);
+  await page.getByLabel('Confirmer le mot de passe').fill(password);
+  await page
+    .getByRole('button', { name: 'Réinitialiser le mot de passe' })
+    .click();
+}
 
+// Remplaçant direct de l'ancienne fixture : elle naviguait vers
+// /fr/inscription, désormais redirigée vers /adhesion, ce qui cassait 5 specs
+// (audit § 6.1, commit 8be46bc). Contrat préservé : à la sortie, le compte
+// existe, possède ce mot de passe, et la session est ouverte.
+//
+// RÔLE PAR DÉFAUT = `visiteur`, et non `membre` : c'est ce que produisait
+// l'auto-inscription que cette fixture remplace. Un défaut à `membre`
+// PROMOUVAIT silencieusement chaque compte de test, ce qui retirait leur sujet
+// aux specs qui vérifient justement l'état non-membre — `auth.spec.ts` attend
+// « visiteur » et l'invitation à candidater. Les specs qui ont besoin de plus
+// passent le rôle, ou appellent `elevateRole` juste après : c'est déjà le cas
+// partout (admin, admin-ecrans, admin-moderation, library-submit).
+export async function signUpAndVerify(
+  page: Page,
+  email: string,
+  password: string,
+  role: NetworkRole = 'visiteur',
+) {
+  await provisionUser(email, role);
+  await setPasswordViaReset(page, email, password);
   await expect(page).toHaveURL(/\/espace-membre$/);
 }

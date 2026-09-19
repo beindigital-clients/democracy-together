@@ -175,6 +175,11 @@ export default defineSchema({
     reviewNotes: v.optional(v.string()),
     submittedAt: v.number(),
     reviewedAt: v.optional(v.number()),
+    // Onboarding (F-01/F-22) : horodatage de l'e-mail d'invitation envoyé au
+    // candidat approuvé, et organisation créée à l'approbation. Permet de
+    // renvoyer l'invitation sans dupliquer le compte ni la fiche annuaire.
+    invitedAt: v.optional(v.number()),
+    createdOrgId: v.optional(v.id('organizations')),
   })
     .index('by_status', ['status'])
     .index('by_applicant', ['applicantUserId']),

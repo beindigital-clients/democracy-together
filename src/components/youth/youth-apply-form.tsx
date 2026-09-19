@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { isEmail } from '@/lib/validation';
+import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Candidature au hub Jeunes (F-58) — îlot client sur /jeunes (#rejoindre). Sans
@@ -27,11 +27,11 @@ export function YouthApplyForm() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const name = String(fd.get('name') ?? '').trim();
-    const email = String(fd.get('email') ?? '').trim();
-    const country = String(fd.get('country') ?? '').trim();
-    const theme = String(fd.get('theme') ?? '').trim();
-    const motivation = String(fd.get('motivation') ?? '').trim();
+    const name = formField(fd, 'name').trim();
+    const email = formField(fd, 'email').trim();
+    const country = formField(fd, 'country').trim();
+    const theme = formField(fd, 'theme').trim();
+    const motivation = formField(fd, 'motivation').trim();
     if (name.length < 2) return setError(t('errName'));
     if (!isEmail(email)) return setError(t('errEmail'));
     if (country.length < 2) return setError(t('errCountry'));
@@ -82,7 +82,13 @@ export function YouthApplyForm() {
         <label htmlFor="y-name" className="block text-sm text-ink-soft">
           {t('name')}
         </label>
-        <Input id="y-name" name="name" autoComplete="name" required className="mt-1" />
+        <Input
+          id="y-name"
+          name="name"
+          autoComplete="name"
+          required
+          className="mt-1"
+        />
       </div>
       <div>
         <label htmlFor="y-email" className="block text-sm text-ink-soft">

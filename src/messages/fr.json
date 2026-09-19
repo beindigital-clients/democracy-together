@@ -378,7 +378,12 @@
       "related": "Dans la même thématique",
       "backToLibrary": "Retour à la bibliothèque",
       "publishedOn": "Publié le {date}",
-      "pages": "{count, plural, one {# page} other {# pages}}"
+      "pages": "{count, plural, one {# page} other {# pages}}",
+      "lockedTitle": "Document réservé aux membres",
+      "lockedBody": "Le texte intégral et le document téléchargeable sont réservés aux organisations membres du réseau. Le résumé ci-dessus est abrégé.",
+      "lockedCta": "Demander l'adhésion",
+      "lockedSignIn": "Se connecter",
+      "lockedBadge": "Réservé aux membres"
     }
   },
   "nav": {
@@ -693,7 +698,38 @@
     "revRec_accept": "Accepter",
     "revRec_minor": "Modifications mineures",
     "revRec_major": "Modifications majeures",
-    "revRec_reject": "Rejeter"
+    "revRec_reject": "Rejeter",
+    "dirTitle": "Fiche annuaire",
+    "dirHint": "La candidature ne collecte qu'un pays en texte libre. Complétez ces champs pour publier la fiche dans l'annuaire dès l'approbation.",
+    "dirCountry": "Code pays (2 lettres)",
+    "dirRegion": "Région",
+    "dirThemes": "Thématiques",
+    "dirLanguages": "Langues",
+    "dirWebsite": "Site web (optionnel)",
+    "dirDescription": "Présentation (optionnel)",
+    "dirConfirm": "Approuver et publier la fiche",
+    "dirLater": "Approuver sans publier la fiche",
+    "dirLaterHint": "Le compte est créé et le membre peut se connecter ; la fiche reste à compléter avant d'apparaître dans l'annuaire.",
+    "dirCancel": "Annuler",
+    "dirIncomplete": "Renseignez un code pays, une région, au moins une thématique et une langue.",
+    "inviteTitle": "Inviter un utilisateur",
+    "inviteHint": "Ouvre un compte et envoie une invitation à se connecter par code. Sans cela, hors validation d'une candidature, aucun compte ne peut être créé.",
+    "inviteEmail": "Adresse e-mail",
+    "inviteRole": "Rôle",
+    "inviteSubmit": "Envoyer l'invitation",
+    "inviteCreated": "Compte créé, invitation envoyée.",
+    "inviteExisting": "Ce compte existait déjà : invitation renvoyée, rôle inchangé.",
+    "inviteError": "L'invitation a échoué. Vérifiez l'adresse.",
+    "contactMessages": "Messages",
+    "contactTitle": "Messages de contact",
+    "contactEmpty": "Aucun message.",
+    "contactFrom": "De",
+    "contactReceived": "Reçu le",
+    "contactMarkHandled": "Marquer comme traité",
+    "contactMarkPending": "Rouvrir",
+    "contactHandled": "Traité",
+    "contactPending": "À traiter",
+    "contactReply": "Répondre par e-mail"
   },
   "news": {
     "eyebrow": "Actualités",
@@ -897,5 +933,16 @@
     "noteLabel": "Votre note",
     "notePlaceholder": "Partagez une idée, une ressource, une question…",
     "noteSubmit": "Publier la note"
+  },
+  "errors": {
+    "notFoundTitle": "Page introuvable",
+    "notFoundBody": "Cette page n'existe pas, ou n'existe plus. Le contenu a peut-être été déplacé ou retiré.",
+    "notFoundHome": "Retour à l'accueil",
+    "notFoundLibrary": "Parcourir la bibliothèque",
+    "errorTitle": "Une erreur est survenue",
+    "errorBody": "La page n'a pas pu être affichée. Vous pouvez réessayer ; si le problème persiste, contactez le secrétariat.",
+    "errorRetry": "Réessayer",
+    "errorHome": "Retour à l'accueil",
+    "errorReference": "Référence"
   }
 }

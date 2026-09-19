@@ -51,9 +51,7 @@ const CONTENT: Record<LegalKind, Record<'fr' | 'en', LegalDoc>> = {
         },
         {
           heading: 'Conception et réalisation',
-          body: [
-            'Conception, design et développement : Be in Digital.',
-          ],
+          body: ['Conception, design et développement : Be in Digital.'],
         },
         {
           heading: 'Hébergement et infrastructure',

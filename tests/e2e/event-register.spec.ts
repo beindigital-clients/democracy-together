@@ -1,10 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import { isEventRegistered } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // Événement non vedette (le formulaire RSVP s'affiche ; la conférence inaugurale
 // garde sa billetterie payante, hors périmètre F-53).
@@ -27,9 +24,7 @@ test('événement : inscription valide -> succès + stockage (F-53)', async ({
   await expect(page.getByText(/Inscription confirmée/)).toBeVisible();
 
   // lecture dev (garde AUTH_DEV_OTP) : l'inscription est bien stockée
-  expect(
-    await convex.query(api.events.isRegistered, { eventSlug: SLUG, email }),
-  ).toBe(true);
+  expect(isEventRegistered(SLUG, email)).toBe(true);
 });
 
 test('événement : nom manquant bloqué (F-53)', async ({ page }) => {

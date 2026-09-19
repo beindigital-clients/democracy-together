@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getThemeSyntheses, getThemeSynthesis, THEME_SLUGS } from './themes-content';
+import {
+  getThemeSyntheses,
+  getThemeSynthesis,
+  THEME_SLUGS,
+} from './themes-content';
 import { PUB_THEMES } from './publications';
 
 describe('Synthèses thématiques (F-36)', () => {
@@ -8,7 +12,13 @@ describe('Synthèses thématiques (F-36)', () => {
     for (const loc of ['fr', 'en'] as const) {
       const all = getThemeSyntheses(loc);
       expect(all.map((s) => s.slug)).toEqual([...PUB_THEMES]);
-      expect(all.map((s) => s.dimension)).toEqual(['D1', 'D2', 'D3', 'D4', 'D5']);
+      expect(all.map((s) => s.dimension)).toEqual([
+        'D1',
+        'D2',
+        'D3',
+        'D4',
+        'D5',
+      ]);
     }
   });
 

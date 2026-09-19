@@ -33,7 +33,11 @@ describe('Rapports annuels (F-41)', () => {
   it('aucun terme banni dans le contenu (FR + EN)', () => {
     const all = (['fr', 'en'] as const)
       .flatMap((loc) => getReports(loc))
-      .flatMap((r) => [r.title, r.intro, ...r.sections.flatMap((s) => [s.heading, ...s.body])])
+      .flatMap((r) => [
+        r.title,
+        r.intro,
+        ...r.sections.flatMap((s) => [s.heading, ...s.body]),
+      ])
       .join('\n')
       .toLowerCase();
     expect(all).not.toContain('démocratie libérale');

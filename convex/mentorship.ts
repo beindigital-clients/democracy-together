@@ -1,5 +1,11 @@
 import { v } from 'convex/values';
-import { action, internalMutation, mutation, query } from './_generated/server';
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
@@ -138,14 +144,18 @@ export const reviewMentorshipRequest = mutation({
       actorId: reviewer._id,
       action: AUDIT.MENTORSHIP_REVIEWED,
       targetId: requestId,
-      metadata: { status, role: request.role, notes: notes?.trim() || undefined },
+      metadata: {
+        status,
+        role: request.role,
+        notes: notes?.trim() || undefined,
+      },
     });
     return { ok: true };
   },
 });
 
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
-export const isMentorshipRequested = query({
+export const isMentorshipRequested = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') return null;

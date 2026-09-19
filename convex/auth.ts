@@ -21,7 +21,7 @@ export const { auth, signIn, signOut, store } = convexAuth({
       // Nouvel identifiant : accepté uniquement si un compte existe déjà pour cet
       // e-mail (on relie alors le nouveau moyen de connexion) ; sinon refus.
       // ctx générique ici (pas d'index custom) → collect()+find() par e-mail.
-      const email = args.profile.email as string | undefined;
+      const email = args.profile.email;
       const existing = email
         ? (await ctx.db.query('users').collect()).find((u) => u.email === email)
         : undefined;

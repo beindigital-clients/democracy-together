@@ -1,24 +1,39 @@
 import { v } from 'convex/values';
 import { internalMutation } from './_generated/server';
 import { networkRole } from './schema';
+import { normalizeEmail } from './lib/onboarding';
 
 // DEV/TEST UNIQUEMENT — internalMutation (HORS API publique, comme
 // purgeUserByEmail) : invocable seulement depuis le serveur ou la CLI
-// (`npx convex run`), JAMAIS par un client. Élève le rôle d'un utilisateur par
-// e-mail pour amorcer un admin dans les tests E2E (setRole « réel » exige déjà
-// un admin -> problème de l'œuf et de la poule). Double garde AUTH_DEV_OTP.
+// (`npx convex run`), JAMAIS par un client. Double garde AUTH_DEV_OTP.
+//
+// UPSERT (et non plus simple patch) : depuis la suppression de
+// l'auto-inscription, plus aucun chemin ne créait de compte, donc cette
+// fonction — le seul moyen documenté d'amorcer l'administrateur initial —
+// échouait systématiquement sur « Utilisateur introuvable ». Elle crée
+// désormais le compte si besoin, ce qui débloque à la fois l'amorçage de
+// l'admin et les fixtures E2E.
+//
+// L'e-mail est normalisé exactement comme à l'inscription et à la connexion
+// (minuscules, sans espaces) : sinon le compte créé ici ne serait jamais
+// retrouvé par le callback createOrUpdateUser de convex/auth.ts.
 export const setRoleByEmail = internalMutation({
   args: { email: v.string(), role: networkRole },
   handler: async (ctx, { email, role }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') {
       throw new Error('Désactivé (AUTH_DEV_OTP).');
     }
-    const user = (await ctx.db.query('users').collect()).find(
-      (u) => u.email === email,
-    );
-    if (!user) throw new Error('Utilisateur introuvable.');
+    const normalized = normalizeEmail(email);
+    const user = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', normalized))
+      .first();
+    if (!user) {
+      const id = await ctx.db.insert('users', { email: normalized, role });
+      return { ok: true, role, created: true, userId: id };
+    }
     await ctx.db.patch(user._id, { role });
-    return { ok: true, role };
+    return { ok: true, role, created: false, userId: user._id };
   },
 });
 
@@ -40,9 +55,9 @@ export const purgeUserByEmail = internalMutation({
       (a) => a.userId === user._id,
     );
     const accountIds = new Set(accounts.map((a) => a._id));
-    const codes = (await ctx.db.query('authVerificationCodes').collect()).filter(
-      (c) => accountIds.has(c.accountId),
-    );
+    const codes = (
+      await ctx.db.query('authVerificationCodes').collect()
+    ).filter((c) => accountIds.has(c.accountId));
     for (const c of codes) await ctx.db.delete(c._id);
     for (const a of accounts) await ctx.db.delete(a._id);
 
@@ -117,7 +132,18 @@ export const enrichPublication = internalMutation({
   },
   handler: async (
     ctx,
-    { marker, body, keypoints, image, pages, license, doi, downloads, citations, views },
+    {
+      marker,
+      body,
+      keypoints,
+      image,
+      pages,
+      license,
+      doi,
+      downloads,
+      citations,
+      views,
+    },
   ) => {
     if (process.env.AUTH_DEV_OTP !== 'true') {
       throw new Error('Désactivé (AUTH_DEV_OTP).');

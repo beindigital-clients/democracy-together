@@ -10,9 +10,7 @@ import { getPressKit } from '@/lib/press-content';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale) as
-    | 'fr'
-    | 'en';
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -138,7 +136,9 @@ export default async function PressePage({
           {kit.resources.map((r) => {
             const inner = (
               <>
-                <h3 className="font-display text-lg leading-tight">{r.label}</h3>
+                <h3 className="font-display text-lg leading-tight">
+                  {r.label}
+                </h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-soft">
                   {r.description}
                 </p>

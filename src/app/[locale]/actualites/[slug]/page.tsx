@@ -38,7 +38,15 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const post = await client.fetch<Article | null>(postBySlugQuery, { slug });
+  // Une panne Sanity ne doit pas faire échouer le rendu ENTIER de la page :
+  // les métadonnées sont accessoires, on les abandonne silencieusement et on
+  // laisse le composant de page décider du sort de la requête.
+  let post: Article | null;
+  try {
+    post = await client.fetch<Article | null>(postBySlugQuery, { slug });
+  } catch {
+    return {};
+  }
   if (!post) return {};
   return {
     title: post.title,
@@ -55,7 +63,18 @@ export default async function ArticlePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('news');
-  const post = await client.fetch<Article | null>(postBySlugQuery, { slug });
+  // Distinction volontaire (audit § 5.1) :
+  //  - article absent            -> 404 localisée (not-found.tsx) ;
+  //  - Sanity indisponible       -> page d'erreur localisée (error.tsx).
+  // Convertir une panne en 404 serait un mensonge : l'article existe peut-être,
+  // et un 404 indexé par les moteurs coûterait le référencement de l'article.
+  let post: Article | null;
+  try {
+    post = await client.fetch<Article | null>(postBySlugQuery, { slug });
+  } catch (err) {
+    console.error('[actualites/slug] Sanity indisponible :', err);
+    throw err;
+  }
   if (!post || post.language !== locale) notFound();
   const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 

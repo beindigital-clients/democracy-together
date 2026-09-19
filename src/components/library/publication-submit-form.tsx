@@ -18,6 +18,7 @@ import {
   PUB_ACCESS,
 } from '@/lib/publications';
 import { isRateLimited } from '@/lib/errors';
+import { formField } from '@/lib/validation';
 
 const MAX_FILE_MB = 20;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -87,15 +88,15 @@ export function PublicationSubmitForm() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const title = String(fd.get('title') ?? '').trim();
-    const abstract = String(fd.get('abstract') ?? '').trim();
+    const title = formField(fd, 'title').trim();
+    const abstract = formField(fd, 'abstract').trim();
     const year = Number(fd.get('year'));
     const authorList = authors
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean)
       .map((name) => ({ name }));
-    const keypoints = String(fd.get('keypoints') ?? '')
+    const keypoints = formField(fd, 'keypoints')
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
@@ -171,7 +172,13 @@ export function PublicationSubmitForm() {
         className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8"
       >
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-accent-tint text-accent-text">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
             <path
               d="m5 13 4 4L19 7"
               stroke="currentColor"
@@ -212,7 +219,13 @@ export function PublicationSubmitForm() {
         <label htmlFor={ids.title} className="block text-sm text-ink-soft">
           {t('submit.fieldTitle')}
         </label>
-        <Input id={ids.title} name="title" required className="mt-1" maxLength={200} />
+        <Input
+          id={ids.title}
+          name="title"
+          required
+          className="mt-1"
+          maxLength={200}
+        />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -286,7 +299,9 @@ export function PublicationSubmitForm() {
       </div>
 
       <fieldset>
-        <legend className="text-sm text-ink-soft">{t('submit.fieldLanguages')}</legend>
+        <legend className="text-sm text-ink-soft">
+          {t('submit.fieldLanguages')}
+        </legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {PUB_LANGS.map((l) => {
             const checked = languages.includes(l);
@@ -313,7 +328,9 @@ export function PublicationSubmitForm() {
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm text-ink-soft">{t('submit.fieldAccess')}</legend>
+        <legend className="text-sm text-ink-soft">
+          {t('submit.fieldAccess')}
+        </legend>
         <div className="mt-2 flex flex-wrap gap-2" role="radiogroup">
           {PUB_ACCESS.map((a) => (
             <label
@@ -394,7 +411,9 @@ export function PublicationSubmitForm() {
           className="mt-1 block w-full text-sm text-ink-soft file:mr-3 file:cursor-pointer file:rounded-sm file:border file:border-line-strong file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-line"
         />
         <p className="mt-1 text-xs text-muted">
-          {file ? t('submit.fileSelected', { name: file.name }) : t('submit.fileHint', { mb: MAX_FILE_MB })}
+          {file
+            ? t('submit.fileSelected', { name: file.name })
+            : t('submit.fileHint', { mb: MAX_FILE_MB })}
         </p>
       </div>
 

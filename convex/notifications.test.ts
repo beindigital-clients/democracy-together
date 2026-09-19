@@ -39,7 +39,7 @@ function pubDoc(over: Record<string, unknown> = {}) {
 }
 
 describe('Notifications — déclencheurs (F-25/F-51)', () => {
-  it("valider une publication notifie son auteur (lien + titre)", async () => {
+  it('valider une publication notifie son auteur (lien + titre)', async () => {
     const t = convexTest(schema, modules);
     const authorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'author@test.org' }),
@@ -47,7 +47,11 @@ describe('Notifications — déclencheurs (F-25/F-51)', () => {
     const pubId = await t.run((ctx) =>
       ctx.db.insert(
         'publications',
-        pubDoc({ title: 'Mon analyse', slug: 'mon-analyse', authorUserId: authorId }),
+        pubDoc({
+          title: 'Mon analyse',
+          slug: 'mon-analyse',
+          authorUserId: authorId,
+        }),
       ),
     );
     const modId = await t.run((ctx) =>
@@ -77,7 +81,10 @@ describe('Notifications — déclencheurs (F-25/F-51)', () => {
       ctx.db.insert('users', { role: 'membre', email: 'a@test.org' }),
     );
     const pubId = await t.run((ctx) =>
-      ctx.db.insert('publications', pubDoc({ slug: 'p2', authorUserId: authorId })),
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'p2', authorUserId: authorId }),
+      ),
     );
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'm@test.org' }),
@@ -172,9 +179,9 @@ describe('Notifications — lecture & portée (F-25/F-51)', () => {
     const asB = t.withIdentity({ subject: `${bId}|s` });
 
     // portée stricte
-    expect((await asA.query(api.notifications.myNotifications, {})).length).toBe(
-      2,
-    );
+    expect(
+      (await asA.query(api.notifications.myNotifications, {})).length,
+    ).toBe(2);
     expect(await asA.query(api.notifications.unreadCount, {})).toBe(2);
     expect(await asB.query(api.notifications.unreadCount, {})).toBe(1);
 

@@ -1,39 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
-import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading,
-  useQuery,
-} from 'convex/react';
+import { AuthGate } from '@/components/auth/auth-gate';
+import { useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { isStaff, isMember } from '@/lib/roles';
 import { formatLongDate } from '@/lib/publications';
-
-function Loading() {
-  const t = useTranslations('auth');
-  return (
-    <div className="mx-auto max-w-md px-4 py-16 text-ink-soft sm:px-6">
-      {t('loading')}
-    </div>
-  );
-}
-
-// Ne redirige que si l'état est *définitivement* non authentifié (jamais
-// pendant le chargement) -> pas de rebond juste après la connexion.
-function RedirectToSignIn() {
-  const router = useRouter();
-  useEffect(() => {
-    const id = setTimeout(() => router.replace('/connexion'), 1200);
-    return () => clearTimeout(id);
-  }, [router]);
-  return <Loading />;
-}
-
 const STATUS_BADGE: Record<string, string> = {
   published:
     'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
@@ -140,7 +114,9 @@ function BecomeMember() {
   const t = useTranslations('auth');
   return (
     <section className="mt-10 rounded-md border border-accent-edge bg-accent-tint p-6">
-      <h2 className="font-display text-xl text-ink">{t('becomeMemberTitle')}</h2>
+      <h2 className="font-display text-xl text-ink">
+        {t('becomeMemberTitle')}
+      </h2>
       <p className="mt-2 max-w-[60ch] text-sm leading-relaxed text-ink-soft">
         {t('becomeMemberBody')}
       </p>
@@ -198,16 +174,8 @@ function MemberDashboard() {
 
 export default function EspaceMembrePage() {
   return (
-    <>
-      <AuthLoading>
-        <Loading />
-      </AuthLoading>
-      <Unauthenticated>
-        <RedirectToSignIn />
-      </Unauthenticated>
-      <Authenticated>
-        <MemberDashboard />
-      </Authenticated>
-    </>
+    <AuthGate className="max-w-md">
+      <MemberDashboard />
+    </AuthGate>
   );
 }

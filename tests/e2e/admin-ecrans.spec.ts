@@ -14,19 +14,84 @@ const PW = 'motdepasse123';
 // `nav` = libellé de l'onglet, `h1` = titre propre de l'écran (les deux
 // diffèrent souvent), `min` = rôle minimal auquel l'onglet est proposé.
 const SCREENS = [
-  { path: '/fr/admin', nav: 'Tableau de bord', h1: 'Tableau de bord', min: 'moderateur' },
-  { path: '/fr/admin/impact', nav: 'Impact', h1: "Mesure d'impact", min: 'moderateur' },
-  { path: '/fr/admin/candidatures', nav: 'Candidatures', h1: 'Candidatures', min: 'moderateur' },
-  { path: '/fr/admin/publications', nav: 'Publications', h1: 'Publications', min: 'moderateur' },
-  { path: '/fr/admin/evenements', nav: 'Événements', h1: 'Inscriptions aux événements', min: 'moderateur' },
-  { path: '/fr/admin/jeunes', nav: 'Jeunes', h1: 'Candidatures jeunes', min: 'moderateur' },
-  { path: '/fr/admin/mentorat', nav: 'Mentorat', h1: 'Demandes de mentorat', min: 'moderateur' },
-  { path: '/fr/admin/projets', nav: 'Projets', h1: 'Propositions de projets', min: 'moderateur' },
-  { path: '/fr/admin/signalements', nav: 'Signalements', h1: 'Signalements de la tribune', min: 'moderateur' },
-  { path: '/fr/admin/revue', nav: 'Comité de lecture', h1: 'Revue à comité de lecture', min: 'editeur' },
-  { path: '/fr/admin/newsletter', nav: 'Newsletter', h1: 'Newsletter', min: 'editeur' },
-  { path: '/fr/admin/utilisateurs', nav: 'Utilisateurs', h1: 'Utilisateurs', min: 'admin' },
-  { path: '/fr/admin/journal', nav: 'Journal', h1: "Journal d'activité", min: 'admin' },
+  {
+    path: '/fr/admin',
+    nav: 'Tableau de bord',
+    h1: 'Tableau de bord',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/impact',
+    nav: 'Impact',
+    h1: "Mesure d'impact",
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/candidatures',
+    nav: 'Candidatures',
+    h1: 'Candidatures',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/publications',
+    nav: 'Publications',
+    h1: 'Publications',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/evenements',
+    nav: 'Événements',
+    h1: 'Inscriptions aux événements',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/jeunes',
+    nav: 'Jeunes',
+    h1: 'Candidatures jeunes',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/mentorat',
+    nav: 'Mentorat',
+    h1: 'Demandes de mentorat',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/projets',
+    nav: 'Projets',
+    h1: 'Propositions de projets',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/signalements',
+    nav: 'Signalements',
+    h1: 'Signalements de la tribune',
+    min: 'moderateur',
+  },
+  {
+    path: '/fr/admin/revue',
+    nav: 'Comité de lecture',
+    h1: 'Revue à comité de lecture',
+    min: 'editeur',
+  },
+  {
+    path: '/fr/admin/newsletter',
+    nav: 'Newsletter',
+    h1: 'Newsletter',
+    min: 'editeur',
+  },
+  {
+    path: '/fr/admin/utilisateurs',
+    nav: 'Utilisateurs',
+    h1: 'Utilisateurs',
+    min: 'admin',
+  },
+  {
+    path: '/fr/admin/journal',
+    nav: 'Journal',
+    h1: "Journal d'activité",
+    min: 'admin',
+  },
 ] as const;
 
 test('back-office : les 13 écrans sont atteignables depuis la barre d’onglets (F-26)', async ({

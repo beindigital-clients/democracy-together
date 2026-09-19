@@ -1,0 +1,12 @@
+{
+  "//": "tsconfig servant UNIQUEMENT au typage d'ESLint. Le tsconfig racine exclut convex/, tests/ et *.test.* (et convex/tsconfig.json exclut ses propres tests) : sans ce fichier, 97 fichiers de test et de configuration ne sont couverts par aucun projet TypeScript, et les règles typées de typescript-eslint échouent dessus avec une erreur d'analyse. Il n'émet rien et n'est utilisé par aucun script de build.",
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mjs",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next/cache", "design"]
+}

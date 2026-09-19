@@ -1,39 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
-import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading,
-  useQuery,
-  useMutation,
-} from 'convex/react';
+import { AuthGate } from '@/components/auth/auth-gate';
+import { useQuery, useMutation } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
-
-function Loading() {
-  const t = useTranslations('notifications');
-  return (
-    <div className="mx-auto max-w-[760px] px-4 py-16 text-ink-soft sm:px-6">
-      {t('loading')}
-    </div>
-  );
-}
-
-// Ne redirige que si l'état est *définitivement* non authentifié (jamais pendant
-// le chargement) — même garde que l'espace membre.
-function RedirectToSignIn() {
-  const router = useRouter();
-  useEffect(() => {
-    const id = setTimeout(() => router.replace('/connexion'), 1200);
-    return () => clearTimeout(id);
-  }, [router]);
-  return <Loading />;
-}
-
 type Notif = {
   _id: Id<'notifications'>;
   titleKey: string;
@@ -53,8 +26,7 @@ function NotificationsList() {
   const locale = useLocale();
   const router = useRouter();
   const items = useQuery(api.notifications.myNotifications) as
-    | Notif[]
-    | undefined;
+    Notif[] | undefined;
   const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
 
@@ -83,7 +55,9 @@ function NotificationsList() {
   return (
     <div className="mx-auto max-w-[760px] px-4 py-12 sm:px-6 md:py-16">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-display text-[clamp(28px,4vw,40px)]">{t('title')}</h1>
+        <h1 className="font-display text-[clamp(28px,4vw,40px)]">
+          {t('title')}
+        </h1>
         {hasUnread ? (
           <Button variant="outline" size="sm" onClick={() => markAllRead({})}>
             {t('markAll')}
@@ -133,16 +107,8 @@ function NotificationsList() {
 
 export default function NotificationsPage() {
   return (
-    <>
-      <AuthLoading>
-        <Loading />
-      </AuthLoading>
-      <Unauthenticated>
-        <RedirectToSignIn />
-      </Unauthenticated>
-      <Authenticated>
-        <NotificationsList />
-      </Authenticated>
-    </>
+    <AuthGate className="max-w-[760px]">
+      <NotificationsList />
+    </AuthGate>
   );
 }

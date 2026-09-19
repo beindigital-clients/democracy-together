@@ -67,7 +67,10 @@ export const publication = defineType({
       options: {
         list: [
           { title: 'Gouvernance numérique', value: 'gouvernance-numerique' },
-          { title: 'Participation citoyenne', value: 'participation-citoyenne' },
+          {
+            title: 'Participation citoyenne',
+            value: 'participation-citoyenne',
+          },
           { title: 'Lutte anti-corruption', value: 'anti-corruption' },
           { title: 'Transitions démocratiques', value: 'transitions' },
           { title: 'Crises globales', value: 'crises-globales' },

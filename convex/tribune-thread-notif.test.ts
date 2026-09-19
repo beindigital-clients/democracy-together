@@ -34,10 +34,7 @@ const POST = {
   body: 'Une contribution courte mais valable.',
 };
 
-function countOf(
-  notifs: { titleKey: string }[],
-  titleKey: string,
-): number {
+function countOf(notifs: { titleKey: string }[], titleKey: string): number {
   return notifs.filter((n) => n.titleKey === titleKey).length;
 }
 

@@ -42,15 +42,23 @@ describe('Jeunes — candidature (F-58)', () => {
     });
     expect(r2.already).toBe(true);
     expect(
-      (await t.run((ctx) => ctx.db.query('youthApplications').collect())).length,
+      (await t.run((ctx) => ctx.db.query('youthApplications').collect()))
+        .length,
     ).toBe(1);
 
     // invalides
     await expect(
-      t.mutation(internal.youth.storeApplication, { ...APP, email: 'pas-un-email' }),
+      t.mutation(internal.youth.storeApplication, {
+        ...APP,
+        email: 'pas-un-email',
+      }),
     ).rejects.toThrow();
     await expect(
-      t.mutation(internal.youth.storeApplication, { ...APP, email: 'b@x.org', motivation: 'court' }),
+      t.mutation(internal.youth.storeApplication, {
+        ...APP,
+        email: 'b@x.org',
+        motivation: 'court',
+      }),
     ).rejects.toThrow();
   });
 });
@@ -58,7 +66,10 @@ describe('Jeunes — candidature (F-58)', () => {
 describe('Jeunes — back-office (F-58)', () => {
   it('réserve la liste et la revue aux modérateurs', async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(internal.youth.storeApplication, { ...APP, email: 'a@test.org' });
+    await t.mutation(internal.youth.storeApplication, {
+      ...APP,
+      email: 'a@test.org',
+    });
 
     // anonyme + visiteur refusés
     await expect(

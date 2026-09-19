@@ -10,7 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 type Recommendation = 'accept' | 'minor' | 'major' | 'reject';
-const RECOMMENDATIONS: Recommendation[] = ['accept', 'minor', 'major', 'reject'];
+const RECOMMENDATIONS: Recommendation[] = [
+  'accept',
+  'minor',
+  'major',
+  'reject',
+];
 
 // Revue à comité de lecture (F-43) — RÉSERVÉE AU STAFF. Surcouche de la
 // modération : les relecteurs (modérateur+) déposent un avis, l'éditeur arbitre
@@ -247,7 +252,9 @@ export default function AdminReview() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={busy === `assign:${p._id}` || !reviewer[p._id]}
+                        disabled={
+                          busy === `assign:${p._id}` || !reviewer[p._id]
+                        }
                         onClick={() => onAssign(p._id)}
                       >
                         {t('revAssign')}

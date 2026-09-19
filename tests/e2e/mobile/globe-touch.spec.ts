@@ -47,7 +47,9 @@ async function showGlobe(page: Page) {
   await canvas.scrollIntoViewIfNeeded();
   await expect(canvas).toBeVisible();
   // le fond de carte (topojson) est chargé en différé : on attend le tracé.
-  await expect.poll(() => paintedPixels(page), { timeout: 15_000 }).toBeGreaterThan(1_000);
+  await expect
+    .poll(() => paintedPixels(page), { timeout: 15_000 })
+    .toBeGreaterThan(1_000);
   return canvas;
 }
 

@@ -378,7 +378,12 @@
       "related": "In the same topic",
       "backToLibrary": "Back to the library",
       "publishedOn": "Published {date}",
-      "pages": "{count, plural, one {# page} other {# pages}}"
+      "pages": "{count, plural, one {# page} other {# pages}}",
+      "lockedTitle": "Members-only document",
+      "lockedBody": "The full text and the downloadable document are reserved for member organisations of the network. The summary above is abridged.",
+      "lockedCta": "Apply for membership",
+      "lockedSignIn": "Sign in",
+      "lockedBadge": "Members only"
     }
   },
   "nav": {
@@ -693,7 +698,38 @@
     "revRec_accept": "Accept",
     "revRec_minor": "Minor revisions",
     "revRec_major": "Major revisions",
-    "revRec_reject": "Reject"
+    "revRec_reject": "Reject",
+    "dirTitle": "Directory entry",
+    "dirHint": "The application only collects a free-text country. Fill these fields to publish the entry in the directory on approval.",
+    "dirCountry": "Country code (2 letters)",
+    "dirRegion": "Region",
+    "dirThemes": "Themes",
+    "dirLanguages": "Languages",
+    "dirWebsite": "Website (optional)",
+    "dirDescription": "Description (optional)",
+    "dirConfirm": "Approve and publish entry",
+    "dirLater": "Approve without publishing the entry",
+    "dirLaterHint": "The account is created and the member can sign in; the entry still needs completing before it appears in the directory.",
+    "dirCancel": "Cancel",
+    "dirIncomplete": "Provide a country code, a region, at least one theme and one language.",
+    "inviteTitle": "Invite a user",
+    "inviteHint": "Opens an account and sends an invitation to sign in with a code. Without this, no account can be created outside approving an application.",
+    "inviteEmail": "Email address",
+    "inviteRole": "Role",
+    "inviteSubmit": "Send invitation",
+    "inviteCreated": "Account created, invitation sent.",
+    "inviteExisting": "This account already existed: invitation resent, role unchanged.",
+    "inviteError": "The invitation failed. Check the address.",
+    "contactMessages": "Messages",
+    "contactTitle": "Contact messages",
+    "contactEmpty": "No messages.",
+    "contactFrom": "From",
+    "contactReceived": "Received on",
+    "contactMarkHandled": "Mark as handled",
+    "contactMarkPending": "Reopen",
+    "contactHandled": "Handled",
+    "contactPending": "To handle",
+    "contactReply": "Reply by email"
   },
   "news": {
     "eyebrow": "News",
@@ -897,5 +933,16 @@
     "noteLabel": "Your note",
     "notePlaceholder": "Share an idea, a resource, a question…",
     "noteSubmit": "Post note"
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "This page does not exist, or no longer does. The content may have been moved or removed.",
+    "notFoundHome": "Back to home",
+    "notFoundLibrary": "Browse the library",
+    "errorTitle": "Something went wrong",
+    "errorBody": "This page could not be displayed. You can try again; if the problem persists, contact the secretariat.",
+    "errorRetry": "Try again",
+    "errorHome": "Back to home",
+    "errorReference": "Reference"
   }
 }

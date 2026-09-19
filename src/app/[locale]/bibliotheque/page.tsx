@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
+import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -48,15 +49,22 @@ export default async function LibraryPage({
   const filters = parseFilters(sp);
   const t = await getTranslations('library');
 
-  const { items, facets } = await fetchQuery(api.publications.listPublished, {
-    themes: filters.themes,
-    types: filters.types,
-    regions: filters.regions,
-    langs: filters.langs,
-    access: filters.access,
-    q: filters.q,
-    sort: filters.sort as 'recent' | 'cited' | 'az',
-  });
+  // Jeton transmis : Convex décide seul du gating « réservé aux membres »
+  // (F-35), ici comme sur la fiche détaillée.
+  const token = await convexAuthNextjsToken();
+  const { items, facets } = await fetchQuery(
+    api.publications.listPublished,
+    {
+      themes: filters.themes,
+      types: filters.types,
+      regions: filters.regions,
+      langs: filters.langs,
+      access: filters.access,
+      q: filters.q,
+      sort: filters.sort as 'recent' | 'cited' | 'az',
+    },
+    { token },
+  );
 
   const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const page = Math.min(filters.page, pageCount);
@@ -82,19 +90,39 @@ export default async function LibraryPage({
             </p>
             <form role="search" className="mt-7 flex max-w-[640px] gap-3">
               {filters.themes.length ? (
-                <input type="hidden" name="theme" value={filters.themes.join(',')} />
+                <input
+                  type="hidden"
+                  name="theme"
+                  value={filters.themes.join(',')}
+                />
               ) : null}
               {filters.types.length ? (
-                <input type="hidden" name="type" value={filters.types.join(',')} />
+                <input
+                  type="hidden"
+                  name="type"
+                  value={filters.types.join(',')}
+                />
               ) : null}
               {filters.regions.length ? (
-                <input type="hidden" name="region" value={filters.regions.join(',')} />
+                <input
+                  type="hidden"
+                  name="region"
+                  value={filters.regions.join(',')}
+                />
               ) : null}
               {filters.langs.length ? (
-                <input type="hidden" name="lang" value={filters.langs.join(',')} />
+                <input
+                  type="hidden"
+                  name="lang"
+                  value={filters.langs.join(',')}
+                />
               ) : null}
               {filters.access.length ? (
-                <input type="hidden" name="access" value={filters.access.join(',')} />
+                <input
+                  type="hidden"
+                  name="access"
+                  value={filters.access.join(',')}
+                />
               ) : null}
               {filters.sort !== 'recent' ? (
                 <input type="hidden" name="sort" value={filters.sort} />
@@ -119,7 +147,9 @@ export default async function LibraryPage({
       </header>
 
       {/* Liste */}
-      <main className={`${WRAP} grid gap-8 pb-24 pt-10 lg:grid-cols-[264px_1fr] lg:gap-12`}>
+      <main
+        className={`${WRAP} grid gap-8 pb-24 pt-10 lg:grid-cols-[264px_1fr] lg:gap-12`}
+      >
         <FacetsCollapse filters={filters}>
           <LibraryFacets facets={facets} filters={filters} />
         </FacetsCollapse>

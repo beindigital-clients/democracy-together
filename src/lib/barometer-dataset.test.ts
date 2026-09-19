@@ -48,9 +48,7 @@ describe('Baromètre — sous-dimensions (F-40)', () => {
 
 describe('Baromètre — sérialisation CSV (RFC 4180)', () => {
   it('échappe guillemets, virgules et sauts de ligne', () => {
-    const csv = toCSV([
-      { a: 'x,y', b: 'il a dit "ok"', c: 'l1\nl2', n: 5 },
-    ]);
+    const csv = toCSV([{ a: 'x,y', b: 'il a dit "ok"', c: 'l1\nl2', n: 5 }]);
     expect(csv.startsWith('a,b,c,n\r\n')).toBe(true);
     expect(csv).toContain('"x,y"');
     expect(csv).toContain('"il a dit ""ok"""');

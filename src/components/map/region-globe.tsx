@@ -1,14 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  geoOrthographic,
-  geoPath,
-  geoContains,
-  geoGraticule10,
-} from 'd3-geo';
+import { geoOrthographic, geoPath, geoContains, geoGraticule10 } from 'd3-geo';
 import { feature } from 'topojson-client';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 import worldTopo from 'world-atlas/countries-110m.json';
 import type { RegionMapItem } from './region-map';
 
@@ -59,7 +54,12 @@ export function RegionGlobe({
   const [selected, setSelected] = useState<RegionMapItem | null>(null);
 
   const regionRef = useRef<Region>('all');
-  regionRef.current = region;
+  // Écrire un ref PENDANT le rendu casse le rendu concurrent. `regionRef` n'est
+  // relu que dans la boucle de dessin du canevas, qui tourne après la
+  // validation : le mettre à jour dans un effet est donc équivalent ici.
+  useEffect(() => {
+    regionRef.current = region;
+  }, [region]);
   const byName = useMemo(
     () => new Map(items.map((it) => [it.name, it])),
     [items],
@@ -89,7 +89,9 @@ export function RegionGlobe({
     let W = 0,
       H = 0,
       R = 0;
-    const projection = geoOrthographic().rotate([rotation[0], rotation[1], 0]).clipAngle(90);
+    const projection = geoOrthographic()
+      .rotate([rotation[0], rotation[1], 0])
+      .clipAngle(90);
     const pathGen = geoPath(projection, ctx);
     const graticule = geoGraticule10();
 
@@ -98,7 +100,7 @@ export function RegionGlobe({
       lastY = 0;
     let hoverName: string | null = null;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let auto = !reduce;
+    const auto = !reduce;
 
     function resize() {
       // La taille d'AFFICHAGE est 100 % pilotée par le CSS : `wrap` est
@@ -165,7 +167,7 @@ export function RegionGlobe({
 
       // graticule discret
       ctx!.beginPath();
-      pathGen(graticule as any);
+      pathGen(graticule);
       ctx!.strokeStyle = hexA('#ffffff', 0.06);
       ctx!.lineWidth = 0.5;
       ctx!.stroke();
@@ -176,7 +178,8 @@ export function RegionGlobe({
         ctx!.beginPath();
         pathGen(f);
         if (it) {
-          const dim = regionRef.current !== 'all' && it.region !== regionRef.current;
+          const dim =
+            regionRef.current !== 'all' && it.region !== regionRef.current;
           ctx!.fillStyle = dim ? hexA(fillOf(it), 0.28) : fillOf(it);
         } else {
           ctx!.fillStyle = hexA(land, 0.82);
@@ -211,13 +214,16 @@ export function RegionGlobe({
     // Pays *avec donnée* sous un point (coords canvas), ou null (océan / pays
     // non noté / hors sphère).
     function hitTest(p: [number, number]) {
-      const none = { name: null as string | null, it: null as RegionMapItem | null };
+      const none = {
+        name: null as string | null,
+        it: null as RegionMapItem | null,
+      };
       if (p[0] < 0 || p[1] < 0 || p[0] > W || p[1] > H) return none;
       const inv = projection.invert?.(p);
       if (!inv) return none;
       for (const f of LAND) {
         const cand = byName.get(f.properties?.name);
-        if (cand && geoContains(f as any, inv)) {
+        if (cand && geoContains(f, inv)) {
           return { name: f.properties.name as string, it: cand };
         }
       }
@@ -326,7 +332,10 @@ export function RegionGlobe({
     return (
       <div>
         {canvasEl}
-        <p aria-live="polite" className="mt-3 text-center text-sm text-ink-soft">
+        <p
+          aria-live="polite"
+          className="mt-3 text-center text-sm text-ink-soft"
+        >
           {selected
             ? `${selected.title}${selected.rows[0] ? ` · ${selected.rows[0].value}` : ''}`
             : hint}
@@ -337,13 +346,19 @@ export function RegionGlobe({
 
   const regions: Region[] = ['all', 'afrique', 'europe'];
   return (
-    <div className={`grid gap-5 ${chips ? 'lg:grid-cols-[1.5fr_0.5fr]' : 'lg:grid-cols-[1.6fr_0.4fr]'}`}>
+    <div
+      className={`grid gap-5 ${chips ? 'lg:grid-cols-[1.5fr_0.5fr]' : 'lg:grid-cols-[1.6fr_0.4fr]'}`}
+    >
       <div className="min-w-0 rounded-sm border border-line bg-surface p-3">
         {canvasEl}
       </div>
       <div className="flex min-w-0 flex-col gap-4">
         {chips ? (
-          <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-2">
+          <div
+            role="group"
+            aria-label={ariaLabel}
+            className="flex flex-wrap gap-2"
+          >
             {regions.map((r) => {
               const active = region === r;
               return (
@@ -364,7 +379,10 @@ export function RegionGlobe({
             })}
           </div>
         ) : null}
-        <div aria-live="polite" className="min-h-[132px] rounded-sm border border-line bg-surface p-4">
+        <div
+          aria-live="polite"
+          className="min-h-[132px] rounded-sm border border-line bg-surface p-4"
+        >
           {selected ? (
             <div>
               <div className="flex items-center gap-2">
@@ -373,13 +391,23 @@ export function RegionGlobe({
                   style={{ background: selected.fill }}
                   aria-hidden="true"
                 />
-                <h3 className="font-display text-lg leading-tight">{selected.title}</h3>
+                <h3 className="font-display text-lg leading-tight">
+                  {selected.title}
+                </h3>
               </div>
               <dl className="mt-3 flex flex-col gap-2 text-sm">
                 {selected.rows.map((row) => (
-                  <div key={row.label} className="flex items-baseline justify-between gap-3">
+                  <div
+                    key={row.label}
+                    className="flex items-baseline justify-between gap-3"
+                  >
                     <dt className="text-muted">{row.label}</dt>
-                    <dd className={row.valueClassName ?? 'font-mono text-base font-semibold text-ink'}>
+                    <dd
+                      className={
+                        row.valueClassName ??
+                        'font-mono text-base font-semibold text-ink'
+                      }
+                    >
                       {row.value}
                     </dd>
                   </div>

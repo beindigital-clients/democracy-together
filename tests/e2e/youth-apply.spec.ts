@@ -1,10 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import { isYouthApplicant } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // F-58 — Candidature jeune : formulaire (#rejoindre sur /jeunes) -> succès +
 // stockage Convex réel.
@@ -26,7 +23,7 @@ test('jeunes : candidature valide -> succès + stockage (F-58)', async ({
   await form.getByRole('button', { name: 'Envoyer ma candidature' }).click();
 
   await expect(page.getByText(/Candidature envoyée/)).toBeVisible();
-  expect(await convex.query(api.youth.isYouthApplicant, { email })).toBe(true);
+  expect(isYouthApplicant(email)).toBe(true);
 });
 
 test('jeunes : motivation manquante bloquée (F-58)', async ({ page }) => {

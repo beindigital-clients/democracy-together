@@ -21,9 +21,15 @@ function UnsubscribeInner() {
   useEffect(() => {
     if (!token) return;
     let active = true;
-    unsubscribe({ token }).finally(() => {
-      if (active) setStatus('done');
-    });
+    unsubscribe({ token })
+      .catch(() => {
+        // Jeton déjà consommé ou réseau indisponible : la désinscription est
+        // idempotente côté serveur et on confirme de toute façon ci-dessous.
+        // Sans ce `catch`, le rejet remontait non géré.
+      })
+      .finally(() => {
+        if (active) setStatus('done');
+      });
     return () => {
       active = false;
     };

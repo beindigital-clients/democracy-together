@@ -6,11 +6,7 @@ import {
   formatYm,
   parseYm,
 } from './calendar';
-import {
-  EVENTS,
-  getEventsLabels,
-  type EventData,
-} from './events-content';
+import { EVENTS, getEventsLabels, type EventData } from './events-content';
 
 // Helpers de test
 function allCells(grid: ReturnType<typeof buildMonthGrid>) {
@@ -72,7 +68,7 @@ describe('buildMonthGrid — offset du 1er jour (lundi=0)', () => {
     expect(grid.weeks[0][0].day).toBe(1);
   });
 
-  it("place les cases vides AVANT le 1er et APRÈS le dernier jour", () => {
+  it('place les cases vides AVANT le 1er et APRÈS le dernier jour', () => {
     const grid = buildMonthGrid(2026, 2); // 28 jours, offset 6
     const cells = allCells(grid);
     // 6 cases vides en tête + 28 jours + reste vide = 42
@@ -122,7 +118,7 @@ describe('buildMonthGrid — placement des événements', () => {
     expect(d11.events.map((e) => e.slug)).toEqual(['c']);
   });
 
-  it('utilise EVENTS par défaut quand aucun tableau n\'est fourni', () => {
+  it("utilise EVENTS par défaut quand aucun tableau n'est fourni", () => {
     const sep = buildMonthGrid(2026, 9); // septembre a des événements seedés
     const placed = dayCells(sep).flatMap((c) => c.events);
     expect(placed.length).toBeGreaterThan(0);
@@ -130,19 +126,19 @@ describe('buildMonthGrid — placement des événements', () => {
 });
 
 describe('monthShift — navigation mensuelle', () => {
-  it('avance d\'un mois dans la même année', () => {
+  it("avance d'un mois dans la même année", () => {
     expect(monthShift(2026, 6, 1)).toEqual({ year: 2026, month: 7 });
   });
 
-  it('recule d\'un mois dans la même année', () => {
+  it("recule d'un mois dans la même année", () => {
     expect(monthShift(2026, 6, -1)).toEqual({ year: 2026, month: 5 });
   });
 
-  it('passe à l\'année suivante (décembre +1 = janvier)', () => {
+  it("passe à l'année suivante (décembre +1 = janvier)", () => {
     expect(monthShift(2026, 12, 1)).toEqual({ year: 2027, month: 1 });
   });
 
-  it('passe à l\'année précédente (janvier -1 = décembre)', () => {
+  it("passe à l'année précédente (janvier -1 = décembre)", () => {
     expect(monthShift(2026, 1, -1)).toEqual({ year: 2025, month: 12 });
   });
 
@@ -151,7 +147,7 @@ describe('monthShift — navigation mensuelle', () => {
     expect(monthShift(2026, 2, -14)).toEqual({ year: 2024, month: 12 });
   });
 
-  it('delta 0 est l\'identité', () => {
+  it("delta 0 est l'identité", () => {
     expect(monthShift(2026, 7, 0)).toEqual({ year: 2026, month: 7 });
   });
 });
@@ -175,7 +171,7 @@ describe('formatYm / parseYm — sérialisation URL', () => {
     expect(parseYm('2026-00')).toBeNull();
   });
 
-  it('prend la première valeur d\'un tableau de query', () => {
+  it("prend la première valeur d'un tableau de query", () => {
     expect(parseYm(['2026-05', '2026-06'])).toEqual({ year: 2026, month: 5 });
   });
 

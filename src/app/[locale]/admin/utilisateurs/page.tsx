@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Select } from '@/components/ui/select';
 import { ROLE_ORDER, isAdmin, type NetworkRole } from '@/lib/roles';
+import { InviteUserForm } from '@/components/admin/invite-user-form';
 
 function UsersTable() {
   const t = useTranslations('admin');
@@ -83,6 +84,7 @@ export default function AdminUsers() {
   return (
     <div>
       <h1 className="font-display text-3xl">{t('users')}</h1>
+      <InviteUserForm />
       <UsersTable />
     </div>
   );

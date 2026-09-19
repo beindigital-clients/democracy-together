@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
+import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
@@ -29,6 +30,9 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
+  // Volontairement NON authentifié : les métadonnées doivent être identiques
+  // pour tous (SEO, cache CDN). Pour une publication réservée, Convex renvoie
+  // déjà l'amorce de résumé tronquée — rien de réservé ne fuite ici (F-35).
   const pub = await fetchQuery(api.publications.getBySlug, { slug });
   if (!pub) return {};
   return {
@@ -54,16 +58,24 @@ export default async function PublicationPage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const pub = await fetchQuery(api.publications.getBySlug, { slug });
+  // Le jeton de session est transmis à Convex : c'est lui qui décide si le
+  // lecteur a les droits « membre » et donc si le contenu réservé est servi
+  // (F-35). Sans jeton, Convex verrouille — le gating n'est jamais côté client.
+  const token = await convexAuthNextjsToken();
+  const pub = await fetchQuery(api.publications.getBySlug, { slug }, { token });
   if (!pub) notFound();
 
   const t = await getTranslations('library');
   const td = await getTranslations('library.detail');
-  const related = await fetchQuery(api.publications.relatedByTheme, {
-    theme: pub.theme,
-    excludeSlug: pub.slug,
-    limit: 3,
-  });
+  const related = await fetchQuery(
+    api.publications.relatedByTheme,
+    {
+      theme: pub.theme,
+      excludeSlug: pub.slug,
+      limit: 3,
+    },
+    { token },
+  );
 
   const citations = buildCitations(pub, locale);
   const doiUrl = `https://doi.org/${pub.doi}`;
@@ -119,7 +131,13 @@ export default async function PublicationPage({
               {locale === 'en' ? 'By' : 'Par'}{' '}
               {pub.authors.map((a, i) => (
                 <span key={a.name}>
-                  {i > 0 ? (i === pub.authors.length - 1 ? (locale === 'en' ? ' and ' : ' et ') : ', ') : ''}
+                  {i > 0
+                    ? i === pub.authors.length - 1
+                      ? locale === 'en'
+                        ? ' and '
+                        : ' et '
+                      : ', '
+                    : ''}
                   <b className="font-semibold text-ink">{a.name}</b>
                 </span>
               ))}
@@ -134,7 +152,9 @@ export default async function PublicationPage({
       </header>
 
       {/* Corps */}
-      <main className={`${WRAP} grid gap-12 pb-24 pt-12 lg:grid-cols-[1fr_340px]`}>
+      <main
+        className={`${WRAP} grid gap-12 pb-24 pt-12 lg:grid-cols-[1fr_340px]`}
+      >
         {/* Article */}
         <article>
           <Reveal>
@@ -211,7 +231,9 @@ export default async function PublicationPage({
                 <div>
                   <b className="text-[14.5px]">{a.name}</b>
                   {a.role ? (
-                    <span className="block text-[12.5px] text-muted">{a.role}</span>
+                    <span className="block text-[12.5px] text-muted">
+                      {a.role}
+                    </span>
                   ) : null}
                 </div>
               </div>
@@ -222,30 +244,62 @@ export default async function PublicationPage({
         {/* Sidebar */}
         <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-sm border border-line bg-surface p-5">
-            <div className="flex flex-col gap-3">
-              <a
-                href={fileHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-              >
-                {td('download')}
-              </a>
-              <a
-                href={fileHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
-              >
-                {td('readOnline')}
-              </a>
-              <a
-                href="#cite"
-                className="inline-flex w-full items-center justify-center rounded-sm px-4 py-3 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-tint"
-              >
-                {td('cite')}
-              </a>
-            </div>
+            {/* Publication réservée aux membres (F-35) : `locked` est décidé par
+                Convex, jamais par le client. Aucune URL de document n'est servie
+                ici — on propose l'adhésion à la place du téléchargement. */}
+            {pub.locked ? (
+              <div className="flex flex-col gap-3">
+                <h2 className="font-display text-lg leading-snug">
+                  {td('lockedTitle')}
+                </h2>
+                <p className="text-[13.5px] leading-relaxed text-ink-soft">
+                  {td('lockedBody')}
+                </p>
+                <Link
+                  href="/adhesion"
+                  className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
+                  {td('lockedCta')}
+                </Link>
+                <Link
+                  href="/connexion"
+                  className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+                >
+                  {td('lockedSignIn')}
+                </Link>
+                <a
+                  href="#cite"
+                  className="inline-flex w-full items-center justify-center rounded-sm px-4 py-3 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-tint"
+                >
+                  {td('cite')}
+                </a>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <a
+                  href={fileHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
+                  {td('download')}
+                </a>
+                <a
+                  href={fileHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+                >
+                  {td('readOnline')}
+                </a>
+                <a
+                  href="#cite"
+                  className="inline-flex w-full items-center justify-center rounded-sm px-4 py-3 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-tint"
+                >
+                  {td('cite')}
+                </a>
+              </div>
+            )}
             <div className="mt-4 flex items-center gap-2 rounded-sm border border-line bg-surface-2 px-2.5 py-2 font-mono text-xs text-ink-soft">
               <span className="overflow-hidden text-ellipsis whitespace-nowrap">
                 doi.org/{pub.doi}
@@ -266,12 +320,19 @@ export default async function PublicationPage({
             </h2>
             <dl className="flex flex-col">
               <MetaRow k={td('metaType')} v={t(`types.${pub.type}`)} first />
-              <MetaRow k={td('metaPublished')} v={formatLongDate(pub.publishedAt, locale)} />
+              <MetaRow
+                k={td('metaPublished')}
+                v={formatLongDate(pub.publishedAt, locale)}
+              />
               <MetaRow k={td('metaLanguages')} v={langCodes} />
               <MetaRow k={td('metaRegion')} v={t(`regions.${pub.region}`)} />
               <MetaRow k={td('metaTheme')} v={t(`themes.${pub.theme}`)} />
-              {pub.pages ? <MetaRow k={td('metaPages')} v={String(pub.pages)} /> : null}
-              {pub.license ? <MetaRow k={td('metaLicense')} v={pub.license} /> : null}
+              {pub.pages ? (
+                <MetaRow k={td('metaPages')} v={String(pub.pages)} />
+              ) : null}
+              {pub.license ? (
+                <MetaRow k={td('metaLicense')} v={pub.license} />
+              ) : null}
             </dl>
           </div>
 
@@ -283,7 +344,10 @@ export default async function PublicationPage({
               {pub.views ? (
                 <Metric n={pub.views.toLocaleString(locale)} l={td('views')} />
               ) : null}
-              <Metric n={pub.downloads.toLocaleString(locale)} l={td('downloadsShort')} />
+              <Metric
+                n={pub.downloads.toLocaleString(locale)}
+                l={td('downloadsShort')}
+              />
               <Metric n={String(pub.citations)} l={td('citationsShort')} />
             </div>
           </div>
@@ -299,7 +363,12 @@ export default async function PublicationPage({
             </Reveal>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((rp) => (
-                <PublicationCard key={rp._id} pub={rp} locale={locale} variant="compact" />
+                <PublicationCard
+                  key={rp._id}
+                  pub={rp}
+                  locale={locale}
+                  variant="compact"
+                />
               ))}
             </div>
           </div>

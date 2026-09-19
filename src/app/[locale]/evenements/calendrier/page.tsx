@@ -9,19 +9,12 @@ import {
   monthAbbr,
   type EventData,
 } from '@/lib/events-content';
-import {
-  buildMonthGrid,
-  monthShift,
-  parseYm,
-  formatYm,
-} from '@/lib/calendar';
+import { buildMonthGrid, monthShift, parseYm, formatYm } from '@/lib/calendar';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function resolve(locale: string): 'fr' | 'en' {
-  return (hasLocale(routing.locales, locale) ? locale : routing.defaultLocale) as
-    | 'fr'
-    | 'en';
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 export async function generateMetadata({
@@ -101,8 +94,11 @@ export default async function CalendrierPage({
               <Link href="/" className="text-muted hover:text-ink">
                 {L.hero.crumbHome}
               </Link>{' '}
-              / <Link href="/evenements" className="text-muted hover:text-ink">{L.hero.title}</Link> /{' '}
-              {t('calendarView')}
+              /{' '}
+              <Link href="/evenements" className="text-muted hover:text-ink">
+                {L.hero.title}
+              </Link>{' '}
+              / {t('calendarView')}
             </p>
             <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -149,7 +145,10 @@ export default async function CalendrierPage({
           </div>
           <nav aria-label={t('title')} className="flex items-center gap-2">
             <Link
-              href={{ pathname: '/evenements/calendrier', query: { ym: formatYm(prev.year, prev.month) } }}
+              href={{
+                pathname: '/evenements/calendrier',
+                query: { ym: formatYm(prev.year, prev.month) },
+              }}
               aria-label={t('prevMonth')}
               rel="prev"
               className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
@@ -164,7 +163,10 @@ export default async function CalendrierPage({
               {t('today')}
             </Link>
             <Link
-              href={{ pathname: '/evenements/calendrier', query: { ym: formatYm(next.year, next.month) } }}
+              href={{
+                pathname: '/evenements/calendrier',
+                query: { ym: formatYm(next.year, next.month) },
+              }}
               aria-label={t('nextMonth')}
               rel="next"
               className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"

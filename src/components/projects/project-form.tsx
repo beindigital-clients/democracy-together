@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { isRateLimited } from '@/lib/errors';
+import { formField } from '@/lib/validation';
 
 // Proposition de projet collaboratif (F-60) — îlot client sur /appels-a-projets.
 // Réservé aux membres : un visiteur (anonyme ou compte sans rôle membre) est
@@ -31,9 +32,9 @@ export function ProjectForm() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const theme = String(fd.get('theme') ?? '').trim();
-    const title = String(fd.get('title') ?? '').trim();
-    const summary = String(fd.get('summary') ?? '').trim();
+    const theme = formField(fd, 'theme').trim();
+    const title = formField(fd, 'title').trim();
+    const summary = formField(fd, 'summary').trim();
     if (!(PUB_THEMES as readonly string[]).includes(theme)) {
       return setError(t('errTheme'));
     }

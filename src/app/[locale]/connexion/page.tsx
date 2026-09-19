@@ -5,9 +5,15 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
-import { AuthCard, Field, FormError, SubmitButton } from '@/components/auth/form';
+import {
+  AuthCard,
+  Field,
+  FormError,
+  SubmitButton,
+} from '@/components/auth/form';
 import { PasswordField } from '@/components/auth/password-field';
 import { Button } from '@/components/ui/button';
+import { formField } from '@/lib/validation';
 
 export default function ConnexionPage() {
   const t = useTranslations('auth');
@@ -24,8 +30,8 @@ export default function ConnexionPage() {
     const fd = new FormData(e.currentTarget);
     try {
       await signIn('password', {
-        email: String(fd.get('email')),
-        password: String(fd.get('password')),
+        email: formField(fd, 'email'),
+        password: formField(fd, 'password'),
         flow: 'signIn',
       });
       redirectAfterAuth();
@@ -38,7 +44,13 @@ export default function ConnexionPage() {
   return (
     <AuthCard title={t('signInTitle')} subtitle={t('signInSubtitle')}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label={t('email')} name="email" type="email" autoComplete="email" required />
+        <Field
+          label={t('email')}
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+        />
         <PasswordField
           label={t('password')}
           name="password"

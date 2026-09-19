@@ -13,7 +13,7 @@ describe('PasswordField — afficher / masquer', () => {
       </NextIntlClientProvider>,
     );
 
-    const input = screen.getByLabelText('Mot de passe') as HTMLInputElement;
+    const input = screen.getByLabelText('Mot de passe');
     expect(input.type).toBe('password');
 
     fireEvent.click(screen.getByRole('button', { name: /afficher/i }));

@@ -8,21 +8,33 @@ import type { Doc } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DirectoryFields,
+  type DirectoryDraft,
+} from '@/components/admin/directory-fields';
 
 function ApplicationRow({ app }: { app: Doc<'membershipApplications'> }) {
   const t = useTranslations('admin');
   const review = useMutation(api.organizations.reviewApplication);
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
+  // Approuver une ORGANISATION ouvre la saisie de la fiche annuaire : c'est à
+  // ce moment que l'organisation est créée (F-19/F-22).
+  const [showDirectory, setShowDirectory] = useState(false);
 
-  async function decide(decision: 'approved' | 'rejected') {
+  async function decide(
+    decision: 'approved' | 'rejected',
+    directory?: DirectoryDraft,
+  ) {
     setPending(true);
     try {
       await review({
         applicationId: app._id,
         decision,
         notes: notes.trim() || undefined,
+        ...(directory ? { directory } : {}),
       });
+      setShowDirectory(false);
     } catch {
       // action refusée côté serveur (ex. rôle insuffisant) : la file reste
       // inchangée, pas de rejet non géré.
@@ -63,7 +75,14 @@ function ApplicationRow({ app }: { app: Doc<'membershipApplications'> }) {
             aria-label={`${t('appNotesPlaceholder')} ${app.organizationName}`}
             className="max-w-xs"
           />
-          <Button onClick={() => decide('approved')} disabled={pending}>
+          <Button
+            onClick={() =>
+              app.type === 'organisation'
+                ? setShowDirectory(true)
+                : decide('approved')
+            }
+            disabled={pending}
+          >
             {t('approve')}
           </Button>
           <Button
@@ -76,6 +95,16 @@ function ApplicationRow({ app }: { app: Doc<'membershipApplications'> }) {
         </div>
       ) : app.reviewNotes ? (
         <p className="mt-3 text-xs text-muted">“{app.reviewNotes}”</p>
+      ) : null}
+
+      {app.status === 'pending' && showDirectory ? (
+        <DirectoryFields
+          organizationName={app.organizationName}
+          pending={pending}
+          onConfirm={(draft) => decide('approved', draft)}
+          onApproveWithout={() => decide('approved')}
+          onCancel={() => setShowDirectory(false)}
+        />
       ) : null}
     </li>
   );

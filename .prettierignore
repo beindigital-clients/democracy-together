@@ -1,0 +1,22 @@
+# Produit par un outil, jamais édité à la main.
+convex/_generated/
+.next/
+next-env.d.ts
+pnpm-lock.yaml
+coverage/
+test-results/
+playwright-report/
+screenshots/
+public/
+design/
+
+# Compétences d'agents : fichiers fournis par `npx convex ai-files install`,
+# réécrits à chaque mise à jour — les reformater créerait un conflit à chaque fois.
+.agents/
+.claude/
+
+# Markdown exclu à dessein : les documents de cadrage et d'audit
+# (RMDL-cadrage-technique.md, docs/) contiennent des tableaux alignés à la main
+# dont la largeur de colonne porte du sens. Prettier les réécrirait intégralement
+# pour un gain nul — l'issue porte sur le code.
+*.md

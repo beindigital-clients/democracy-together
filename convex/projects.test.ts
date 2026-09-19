@@ -28,7 +28,8 @@ async function member(
 const PROPOSAL = {
   theme: 'transitions',
   title: 'Observatoire des transitions',
-  summary: 'Un projet commun pour suivre les transitions démocratiques régionales.',
+  summary:
+    'Un projet commun pour suivre les transitions démocratiques régionales.',
 };
 
 describe('Appels à projets — proposition (F-60)', () => {
@@ -53,7 +54,10 @@ describe('Appels à projets — proposition (F-60)', () => {
     const { as } = await member(t, 'm@test.org', 'Awa Diop');
     // axe invalide
     await expect(
-      as.mutation(api.projects.submitProject, { ...PROPOSAL, theme: 'inconnu' }),
+      as.mutation(api.projects.submitProject, {
+        ...PROPOSAL,
+        theme: 'inconnu',
+      }),
     ).rejects.toThrow();
     // titre trop court (< 4)
     await expect(
@@ -61,7 +65,10 @@ describe('Appels à projets — proposition (F-60)', () => {
     ).rejects.toThrow();
     // résumé trop court (< 20)
     await expect(
-      as.mutation(api.projects.submitProject, { ...PROPOSAL, summary: 'trop court' }),
+      as.mutation(api.projects.submitProject, {
+        ...PROPOSAL,
+        summary: 'trop court',
+      }),
     ).rejects.toThrow();
 
     // succès -> en attente, nom d'auteur instantané dénormalisé
@@ -120,8 +127,11 @@ describe('Appels à projets — back-office (F-60)', () => {
 
     // plus rien en attente ; la proposition est acceptée
     expect(
-      (await asMod.query(api.projects.listProjectProposals, { status: 'pending' }))
-        .length,
+      (
+        await asMod.query(api.projects.listProjectProposals, {
+          status: 'pending',
+        })
+      ).length,
     ).toBe(0);
     const accepted = await asMod.query(api.projects.listProjectProposals, {
       status: 'accepted',
