@@ -1,11 +1,18 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { CopyrightYear } from './copyright-year';
 import { Logo } from './logo';
 import { ThemeToggle } from './theme-toggle';
 
 export function SiteFooter() {
   const t = useTranslations('footer');
-  const year = 2026;
+  // Composant SERVEUR (aucun 'use client' ici ni dans le layout qui le monte) :
+  // l'année est celle du RENDU, plus une constante à rééditer chaque janvier
+  // (issue #36). `CopyrightYear` la reprend telle quelle au premier rendu
+  // client — donc sans écart d'hydratation — et ne la rectifie qu'après
+  // montage, pour le jour où ces pages seraient servies depuis un HTML figé au
+  // build (issue #13).
+  const year = new Date().getFullYear();
 
   const columns = [
     {
@@ -77,7 +84,7 @@ export function SiteFooter() {
 
         <div className="mt-10 flex flex-col gap-4 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} {t('legalRights')}
+            © <CopyrightYear serverYear={year} /> {t('legalRights')}
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link href="/contact" className="hover:text-ink">
