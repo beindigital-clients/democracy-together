@@ -15,8 +15,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Pagination : `listUsers` prend désormais `paginationOpts` (issue #8). Une
-// page large suffit ici — ce qui est vérifié n'est pas le découpage.
+// Pagination : `listUsers` prend `paginationOpts` depuis l'issue #8, et
+// `listApplications` depuis l'issue #49 — c'était la dernière liste du
+// back-office à charger sa table entière. Une page large suffit ici : ce qui
+// est vérifié n'est pas le découpage (cf. pagination.test.ts) mais le RBAC et
+// le contenu.
 const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
 
 describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
@@ -37,13 +40,13 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
       asMembre.query(api.admin.dashboardStats, {}),
     ).rejects.toThrow();
     await expect(
-      asMembre.query(api.admin.listApplications, {}),
+      asMembre.query(api.admin.listApplications, PAGE),
     ).rejects.toThrow();
     await expect(asMembre.query(api.admin.listUsers, PAGE)).rejects.toThrow();
 
     const asMod = t.withIdentity({ subject: `${modId}|s` });
     await asMod.query(api.admin.dashboardStats, {});
-    await asMod.query(api.admin.listApplications, {});
+    await asMod.query(api.admin.listApplications, PAGE);
     await expect(asMod.query(api.admin.listUsers, PAGE)).rejects.toThrow();
 
     const { page: users } = await t
@@ -84,9 +87,9 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
     expect(stats.totalApplications).toBe(2);
     expect(stats.totalUsers).toBe(1);
 
-    const pending = await t
+    const { page: pending } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.admin.listApplications, { status: 'pending' });
+      .query(api.admin.listApplications, { ...PAGE, status: 'pending' });
     expect(pending.map((a) => a.organizationName).sort()).toEqual([
       'Awa Diop',
       'Institut A',

@@ -5,8 +5,9 @@ import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link, usePathname } from '@/i18n/navigation';
-import { isStaff, isAdmin, isEditor } from '@/lib/roles';
+import { effectiveRole, isStaff } from '@/lib/roles';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
+import { AdminNav } from '@/components/admin/admin-nav';
 
 function Centered({ children }: { children: ReactNode }) {
   return (
@@ -35,78 +36,23 @@ function AccessDenied() {
   );
 }
 
-function AdminNav({
-  isAdmin,
-  isEditor,
-}: {
-  isAdmin: boolean;
-  isEditor: boolean;
-}) {
-  const t = useTranslations('admin');
-  const pathname = usePathname();
-  const items = [
-    { href: '/admin', key: 'dashboard' },
-    { href: '/admin/impact', key: 'impact' },
-    { href: '/admin/candidatures', key: 'applications' },
-    { href: '/admin/publications', key: 'publications' },
-    { href: '/admin/evenements', key: 'events' },
-    { href: '/admin/jeunes', key: 'youth' },
-    { href: '/admin/mentorat', key: 'mentorship' },
-    { href: '/admin/projets', key: 'projects' },
-    { href: '/admin/signalements', key: 'reports' },
-    { href: '/admin/contact', key: 'contactMessages' },
-    ...(isEditor
-      ? [
-          { href: '/admin/revue', key: 'review' },
-          { href: '/admin/newsletter', key: 'newsletter' },
-        ]
-      : []),
-    ...(isAdmin
-      ? [
-          { href: '/admin/utilisateurs', key: 'users' },
-          { href: '/admin/journal', key: 'journal' },
-        ]
-      : []),
-  ];
-  return (
-    <nav
-      aria-label={t('title')}
-      className="-mx-1 flex gap-1 overflow-x-auto border-b border-line"
-    >
-      {items.map(({ href, key }) => {
-        // actif = chemin exact (le dashboard ne doit pas s'allumer partout)
-        const active =
-          href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
-        return (
-          <Link
-            key={key}
-            href={href}
-            aria-current={active ? 'page' : undefined}
-            className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors ${
-              active
-                ? 'border-accent-text text-ink'
-                : 'border-transparent text-ink-soft hover:text-ink'
-            }`}
-          >
-            {t(key)}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 function Gate({ children }: { children: ReactNode }) {
   const me = useQuery(api.users.current);
+  const pathname = usePathname();
   if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
 
-  const admin = isAdmin(me?.role);
-  const editor = isEditor(me?.role);
+  // COLONNE LATÉRALE à partir de `lg`, groupes empilés en dessous (issue #49) :
+  // la navigation ne partage plus sa largeur avec les quatorze entrées, donc
+  // rien ne part hors écran. `minmax(0, 1fr)` sur la colonne de contenu, sinon
+  // les tables à défilement horizontal (utilisateurs, journal) élargiraient la
+  // grille au lieu de défiler dans leur propre boîte.
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
-      <AdminNav isAdmin={admin} isEditor={editor} />
-      <div className="mt-8">{children}</div>
+      <div className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-10">
+        <AdminNav role={effectiveRole(me?.role)} pathname={pathname} />
+        <div className="mt-8 lg:mt-0">{children}</div>
+      </div>
     </div>
   );
 }

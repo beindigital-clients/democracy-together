@@ -15,6 +15,13 @@ export default defineConfig({
     },
   },
   test: {
+    // `next-intl` est TRANSFORMÉ plutôt que chargé tel quel. Sa navigation
+    // localisée (`createNavigation`) importe `next/navigation` sans extension :
+    // laissé externe, Vite ne sait pas le résoudre depuis les node_modules
+    // imbriqués de pnpm et le test échoue à l'import, avant tout assertion.
+    // C'est ce qui empêchait de tester un composant portant un `<Link>` du
+    // dépôt — la navigation du back-office, par exemple (issue #49).
+    server: { deps: { inline: [/next-intl/] } },
     include: [
       'convex/**/*.test.ts',
       'tests/unit/**/*.test.{ts,tsx}',

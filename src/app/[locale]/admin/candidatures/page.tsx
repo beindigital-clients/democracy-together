@@ -1,19 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useMutation, usePaginatedQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
+import type { FunctionReturnType } from 'convex/server';
 import { api } from '@convex/_generated/api';
-import type { Doc } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AdminSearch } from '@/components/admin/admin-search';
+import { LoadMore } from '@/components/admin/load-more';
 import {
   DirectoryFields,
   type DirectoryDraft,
 } from '@/components/admin/directory-fields';
 
-function ApplicationRow({ app }: { app: Doc<'membershipApplications'> }) {
+type Application = FunctionReturnType<
+  typeof api.admin.listApplications
+>['page'][number];
+
+// Taille de page. Le serveur la replafonne : elle est indicative.
+const PAGE_SIZE = 25;
+
+function ApplicationRow({ app }: { app: Application }) {
   const t = useTranslations('admin');
   const review = useMutation(api.organizations.reviewApplication);
   const [notes, setNotes] = useState('');
@@ -113,9 +122,23 @@ function ApplicationRow({ app }: { app: Doc<'membershipApplications'> }) {
 export default function AdminApplications() {
   const t = useTranslations('admin');
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
-  const apps = useQuery(
+  const [search, setSearch] = useState('');
+  // PAGINÉE (issue #8, complétée ici) et CHERCHABLE (issue #49) : la liste
+  // chargeait la table `membershipApplications` entière puis la triait en
+  // mémoire. La recherche porte sur le nom d'organisation — c'est par lui
+  // qu'une candidature se retrouve — et elle est faite par le serveur, donc
+  // elle atteint les lignes qui ne sont pas dans la page affichée.
+  const {
+    results: apps,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
     api.admin.listApplications,
-    filter === 'pending' ? { status: 'pending' } : {},
+    {
+      ...(filter === 'pending' ? { status: 'pending' as const } : {}),
+      ...(search ? { search } : {}),
+    },
+    { initialNumItems: PAGE_SIZE },
   );
 
   return (
@@ -140,17 +163,33 @@ export default function AdminApplications() {
         ))}
       </div>
 
-      {apps === undefined ? (
+      <AdminSearch
+        label={t('searchApplicationsLabel')}
+        placeholder={t('searchApplicationsPlaceholder')}
+        value={search}
+        onChange={setSearch}
+        className="mt-4"
+      />
+
+      {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : apps.length === 0 ? (
-        <p className="mt-6 text-ink-soft">{t('noApplications')}</p>
+        <p className="mt-6 text-ink-soft">
+          {search ? t('noResults') : t('noApplications')}
+        </p>
       ) : (
-        <ul className="mt-6 space-y-3">
+        // La navigation groupée de l'issue #49 rend elle aussi des `<li>` :
+        // NOMMER cette liste (comme le fait déjà l'annuaire, la bibliothèque et
+        // les actualités) est ce qui permet de la désigner sans ambiguïté — pour
+        // une technologie d'assistance comme pour un test.
+        <ul aria-label={t('applicationsListLabel')} className="mt-6 space-y-3">
           {apps.map((a) => (
             <ApplicationRow key={a._id} app={a} />
           ))}
         </ul>
       )}
+
+      <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />
     </div>
   );
 }
