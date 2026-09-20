@@ -119,21 +119,21 @@ export default function AdminReview() {
       <h1 className="font-display text-3xl">{t('revTitle')}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t('revIntro')}</p>
 
-      <div className="mt-5">
-        <select
-          aria-label={t('revStageFilterLabel')}
-          value={stage}
-          onChange={(e) => setStage(e.target.value as Stage | '')}
-          className={selectClass}
-        >
-          <option value="">{t('revStageAll')}</option>
-          {STAGES.map((sg) => (
-            <option key={sg} value={sg}>
-              {t(`revStage_${sg}`)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SelectField
+        label={t('revStageFilterLabel')}
+        labelHidden
+        className="mt-5"
+        controlClassName="w-auto"
+        value={stage}
+        onChange={(e) => setStage(e.target.value as Stage | '')}
+      >
+        <option value="">{t('revStageAll')}</option>
+        {STAGES.map((sg) => (
+          <option key={sg} value={sg}>
+            {t(`revStage_${sg}`)}
+          </option>
+        ))}
+      </SelectField>
 
       {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
