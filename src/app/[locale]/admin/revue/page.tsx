@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { SelectField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { LoadMore } from '@/components/admin/load-more';
+import { vocabulary } from '@/i18n/vocabulary';
 
 type Recommendation = 'accept' | 'minor' | 'major' | 'reject';
 const RECOMMENDATIONS: Recommendation[] = [
@@ -133,7 +134,7 @@ export default function AdminReview() {
         <option value="">{t('revStageAll')}</option>
         {STAGES.map((sg) => (
           <option key={sg} value={sg}>
-            {t(`revStage_${sg}`)}
+            {vocabulary(t, 'revStage_', sg)}
           </option>
         ))}
       </SelectField>
@@ -151,9 +152,11 @@ export default function AdminReview() {
             >
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-medium text-ink">{p.title}</h2>
-                <Badge variant="accent">{t(`revStage_${p.reviewStage}`)}</Badge>
+                <Badge variant="accent">
+                  {vocabulary(t, 'revStage_', p.reviewStage)}
+                </Badge>
                 <span className="text-accent-text text-[13px]">
-                  #{tl(`themes.${p.theme}`)}
+                  #{vocabulary(tl, 'themes.', p.theme)}
                 </span>
               </div>
 
@@ -167,7 +170,7 @@ export default function AdminReview() {
                     <span className="text-[13px] text-muted">
                       {t('revAggregateLabel')}{' '}
                       <span className="text-ink">
-                        {t(`revRec_${p.aggregate}`)}
+                        {vocabulary(t, 'revRec_', p.aggregate)}
                       </span>
                     </span>
                   ) : null}
@@ -188,7 +191,7 @@ export default function AdminReview() {
                             {r.reviewerName}
                           </span>
                           <Badge variant="default">
-                            {t(`revRec_${r.recommendation}`)}
+                            {vocabulary(t, 'revRec_', r.recommendation)}
                           </Badge>
                           <span className="font-mono text-[11px] text-muted">
                             {fmt(r.createdAt)}
@@ -222,7 +225,7 @@ export default function AdminReview() {
                 >
                   {RECOMMENDATIONS.map((rec) => (
                     <option key={rec} value={rec}>
-                      {t(`revRec_${rec}`)}
+                      {vocabulary(t, 'revRec_', rec)}
                     </option>
                   ))}
                 </SelectField>

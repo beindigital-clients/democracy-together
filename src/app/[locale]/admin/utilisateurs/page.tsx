@@ -8,6 +8,7 @@ import { InviteUserForm } from '@/components/admin/invite-user-form';
 import { LoadMore } from '@/components/admin/load-more';
 import { RoleSelector } from '@/components/admin/role-selector';
 import { useActionFeedback } from '@/components/admin/action-feedback';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 50;
@@ -44,7 +45,9 @@ function UsersTable() {
     try {
       // userId est un Id<'users'> côté API ; le cast reste sûr (source = listUsers).
       await setRole({ userId: userId as never, role });
-      notify(t('feedbackRoleChanged', { name, role: t(`role_${role}`) }));
+      notify(
+        t('feedbackRoleChanged', { name, role: vocabulary(t, 'role_', role) }),
+      );
       return true;
     } catch {
       // Rejet serveur (ex. dernier admin / rôle insuffisant) : l'écran le DIT,

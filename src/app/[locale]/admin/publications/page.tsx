@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadMore } from '@/components/admin/load-more';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActionFeedback } from '@/components/admin/action-feedback';
+import { vocabulary } from '@/i18n/vocabulary';
 
 type ReviewItem = FunctionReturnType<
   typeof api.publications.listForReview
@@ -76,9 +77,9 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
 
   const meta = [
     pub.authorEmail,
-    tl(`types.${pub.type}`),
-    tl(`themes.${pub.theme}`),
-    tl(`regions.${pub.region}`),
+    vocabulary(tl, 'types.', pub.type),
+    vocabulary(tl, 'themes.', pub.theme),
+    vocabulary(tl, 'regions.', pub.region),
     String(pub.year),
   ]
     .filter(Boolean)
@@ -90,12 +91,12 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-lg">{pub.title}</h2>
-            <Badge>{tl(`accessShort.${pub.access}`)}</Badge>
+            <Badge>{vocabulary(tl, 'accessShort.', pub.access)}</Badge>
           </div>
           <p className="mt-1 text-sm text-ink-soft">{meta}</p>
         </div>
         <Badge variant={pub.status === 'pending' ? 'accent' : 'default'}>
-          {t(`pubStatus_${pub.status}`)}
+          {vocabulary(t, 'pubStatus_', pub.status)}
         </Badge>
       </div>
 

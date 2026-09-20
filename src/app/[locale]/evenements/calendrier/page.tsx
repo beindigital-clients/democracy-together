@@ -9,6 +9,7 @@ import {
   type EventData,
 } from '@/lib/events-content';
 import { buildMonthGrid, monthShift, parseYm, formatYm } from '@/lib/calendar';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -185,7 +186,7 @@ export default async function CalendrierPage({
                 key={key}
                 className="px-2 py-2.5 text-center font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
               >
-                {t(`weekdays.${key}`)}
+                {vocabulary(t, 'weekdays.', key)}
               </div>
             ))}
           </div>

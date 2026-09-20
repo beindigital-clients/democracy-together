@@ -8,6 +8,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { vocabulary } from '@/i18n/vocabulary';
 
 export default function AdminMentorship() {
   const t = useTranslations('admin');
@@ -94,8 +95,12 @@ export default function AdminMentorship() {
             >
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-medium text-ink">{m.name}</h2>
-                <Badge variant="outline">{t(`role_${m.role}`)}</Badge>
-                <Badge variant="default">{t(`status_${m.status}`)}</Badge>
+                <Badge variant="outline">
+                  {vocabulary(t, 'role_', m.role)}
+                </Badge>
+                <Badge variant="default">
+                  {vocabulary(t, 'status_', m.status)}
+                </Badge>
                 <span className="font-mono text-[11px] text-muted">
                   {fmt(m.createdAt)}
                 </span>
@@ -110,7 +115,7 @@ export default function AdminMentorship() {
                 <span>· {m.country}</span>
                 {m.themes.map((th) => (
                   <span key={th} className="text-accent-text">
-                    #{tl(`themes.${th}`)}
+                    #{vocabulary(tl, 'themes.', th)}
                   </span>
                 ))}
               </div>

@@ -18,9 +18,14 @@ export function SiteFooter() {
     {
       title: t('col1Title'),
       links: [
-        ['/a-propos', t('col1a')],
-        ['/a-propos', t('col1b')],
-        ['/a-propos', t('col1c')],
+        // Trois libellés, trois destinations (issue #46) : ces entrées
+        // pointaient toutes vers `/a-propos` nu, donc en haut de page, à charge
+        // pour le visiteur de retrouver la section — sur un élément présent sur
+        // toutes les pages, et une page longue sur mobile. Les ancres (et le
+        // focus qui les suit) sont posées dans `a-propos/page.tsx`.
+        ['/a-propos#vision', t('col1a')],
+        ['/a-propos#gouvernance', t('col1b')],
+        ['/a-propos#fondateurs', t('col1c')],
         ['/rapports', t('col1d')],
         ['/presse', t('col1e')],
       ],

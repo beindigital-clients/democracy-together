@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import type { PublicPublication } from '@convex/lib/publications';
 import { formatMonthYear } from '@/lib/publications';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // La carte ne reçoit que ce que les queries publiques servent — pas le
 // document complet (issue #30).
@@ -38,7 +39,7 @@ export async function PublicationCard({
 }) {
   const t = await getTranslations('library');
   const date = formatMonthYear(pub.publishedAt, locale);
-  const meta = `${t(`types.${pub.type}`)} · ${date}${
+  const meta = `${vocabulary(t, 'types.', pub.type)} · ${date}${
     variant === 'full' ? ` · ${langsLabel(pub.languages)}` : ''
   }`;
 
@@ -58,7 +59,7 @@ export async function PublicationCard({
               className="object-cover"
             />
           ) : (
-            <CoverFallback label={t(`types.${pub.type}`)} />
+            <CoverFallback label={vocabulary(t, 'types.', pub.type)} />
           )}
         </div>
         <div className="p-4">
@@ -88,7 +89,7 @@ export async function PublicationCard({
             className="object-cover"
           />
         ) : (
-          <CoverFallback label={t(`types.${pub.type}`)} />
+          <CoverFallback label={vocabulary(t, 'types.', pub.type)} />
         )}
       </div>
       <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
@@ -103,7 +104,7 @@ export async function PublicationCard({
         </p>
         <div className="mt-3">
           <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-1 text-xs font-medium text-accent-text">
-            {t(`themes.${pub.theme}`)}
+            {vocabulary(t, 'themes.', pub.theme)}
           </span>
         </div>
         <div className="mt-auto flex items-center gap-2.5 pt-4">
@@ -114,7 +115,7 @@ export async function PublicationCard({
                 : 'border-accent-edge bg-accent-tint text-accent-text'
             }`}
           >
-            {t(`accessShort.${pub.access}`)}
+            {vocabulary(t, 'accessShort.', pub.access)}
           </span>
           <span
             className="inline-flex items-center gap-1 font-mono text-[11px] text-muted"

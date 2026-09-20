@@ -141,6 +141,12 @@ describe('i18n — la description racine dépend de la langue (issue #34)', () =
   });
 });
 
+// À NE PAS CONFONDRE avec `i18n-keys.test.ts` (issue #33), qui part du CODE :
+// il vérifie que chaque clé demandée par un `t('…')` existe des deux côtés.
+// Celle-ci part des FICHIERS et compare les deux jeux de clés. Une clé ajoutée
+// au français et oubliée en anglais échappe à la première tant que rien ne la
+// demande encore — c'est l'ordre habituel des choses quand on traduit avant
+// d'écrire l'écran. Les deux se complètent ; aucune ne remplace l'autre.
 describe('i18n — parité FR/EN du fichier de messages', () => {
   it('les deux fichiers portent exactement les mêmes clés', () => {
     const paths = (value: unknown, prefix = ''): string[] =>

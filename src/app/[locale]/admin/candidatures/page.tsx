@@ -14,6 +14,7 @@ import {
 } from '@/components/admin/directory-fields';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActionFeedback } from '@/components/admin/action-feedback';
+import { vocabulary } from '@/i18n/vocabulary';
 
 function ApplicationRow({ app }: { app: Doc<'membershipApplications'> }) {
   const t = useTranslations('admin');
@@ -68,14 +69,14 @@ function ApplicationRow({ app }: { app: Doc<'membershipApplications'> }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-lg">{app.organizationName}</h2>
-            <Badge>{t(`appType_${app.type}`)}</Badge>
+            <Badge>{vocabulary(t, 'appType_', app.type)}</Badge>
           </div>
           <p className="mt-1 text-sm text-ink-soft">
             {app.contactEmail} · {app.country}
           </p>
         </div>
         <Badge variant={app.status === 'pending' ? 'accent' : 'default'}>
-          {t(`status_${app.status}`)}
+          {vocabulary(t, 'status_', app.status)}
         </Badge>
       </div>
 

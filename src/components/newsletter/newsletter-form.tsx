@@ -7,7 +7,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
-import { useRecaptcha } from '@/components/providers/recaptcha-provider';
+import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 

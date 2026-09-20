@@ -1,12 +1,15 @@
 # Tests
 
-Trois niveaux, **obligatoires pour chaque feature**.
+Trois niveaux. Les deux premiers sont des **portes** — la CI les tient, une PR
+qui les casse est rouge. Le troisième est un **outil d'inspection** : il produit
+le rendu réel à regarder, et aucune machine ne prononce à votre place que
+l'écran a l'air juste. Voir § Convention pour ce que chacun engage.
 
 | Niveau | Outil | Emplacement | Lancer |
 |---|---|---|---|
 | Unitaire (logique, Convex/RBAC) | Vitest + convex-test | `convex/**/*.test.ts` · `tests/unit/**` · `src/**/*.test.ts` | `pnpm test` |
 | E2E (parcours navigateur) | Playwright | `tests/e2e/**` | `pnpm test:e2e` |
-| Dev-browser (rendu réel) | Playwright (`page.screenshot`) | `screenshots/` | cf. ci-dessous |
+| Dev-browser (rendu réel) | Playwright (`page.screenshot`) | `tests/e2e/dev-browser.spec.ts` → `screenshots/` | `pnpm test:dev-browser` |
 
 ## Typage et qualité — les portes que la CI tient
 
@@ -43,9 +46,16 @@ crochet se contourne (`--no-verify`).
 
 ### Sessions partagées : le « fichier de login »
 Un projet Playwright `setup` (`tests/e2e/auth.setup.ts`) ouvre **une session par
-rôle** — membre, modérateur, éditeur, admin — et l'enregistre dans
-`tests/e2e/.auth/<rôle>.json` (dossier ignoré par git). Les projets de test en
+entrée de `SESSIONS`** (`tests/e2e/_sessions.ts`) et l'enregistre dans
+`tests/e2e/.auth/<clé>.json` (dossier ignoré par git). Les projets de test en
 dépendent : Playwright le joue d'abord, et s'arrête là s'il échoue.
+
+La clé n'est plus un rôle mais un **usage** : aux quatre sessions de rang
+(membre, modérateur, éditeur, admin) s'ajoutent les sessions dédiées à un
+fichier qui tient une connexion de bout en bout — `confirmations` (issue #38),
+`devBrowser` (issue #50). Deux fichiers qui se partagent un compte le font
+tourner en parallèle, et Convex Auth invalide le jeton : la liste fait donc foi,
+et on ne compte pas les sessions ici pour ne pas mentir au prochain ajout.
 
 Une spec qui a seulement besoin d'être connectée déclare l'état et commence à
 son vrai sujet :
@@ -74,12 +84,12 @@ Les fichiers de session sont **réutilisés d'une exécution à l'autre**. Au
 démarrage, `auth.setup.ts` ouvre chaque état déjà présent et demande une page
 réservée aux connectés : si l'application répond, la session est reprise telle
 quelle ; si elle redirige vers la connexion, le parcours complet est rejoué.
-Relancer une spec ne repaie donc plus les quatre connexions.
+Relancer une spec ne repaie donc plus toutes les connexions.
 
 | Commande | Effet |
 |---|---|
 | `pnpm test:e2e` | reprend les sessions valides, en rouvre une si besoin |
-| `pnpm test:e2e:login` | efface `tests/e2e/.auth/` et rouvre les quatre sessions |
+| `pnpm test:e2e:login` | efface `tests/e2e/.auth/` et rouvre toutes les sessions |
 | `pnpm test:e2e:ui` | mode interactif, mêmes sessions |
 | `E2E_FRESH_LOGIN=1 pnpm test:e2e` | ignore les fichiers pour cette exécution |
 
@@ -95,7 +105,7 @@ Rouvrir les sessions quand le déploiement Convex a changé, qu'une préversion 
 provisionnés en upsert.
 
 En CI rien ne change — `tests/e2e/.auth/` est ignoré par git, donc absent d'un
-checkout neuf : les quatre connexions s'exécutent pour de vrai.
+checkout neuf : les connexions s'exécutent toutes pour de vrai.
 
 ### Mot de passe des comptes de test
 `provisionPassword` passe par `flow: 'signUp'` puis la vérification par code.
@@ -133,8 +143,12 @@ téléchargeable.
 ### Deux projets Playwright
 | Projet | Fichiers | Émulation |
 |---|---|---|
-| `chromium` | `tests/e2e/*.spec.ts` | Desktop Chrome |
+| `chromium` | `tests/e2e/*.spec.ts`, sauf `dev-browser.spec.ts` | Desktop Chrome |
 | `mobile-chromium` | `tests/e2e/mobile/*.spec.ts` | Pixel 7 (viewport 412×839, `hasTouch`, `isMobile`) |
+
+Ce sont les deux que `pnpm test:e2e` nomme, avec le projet `setup` dont ils
+dépendent. La configuration en déclare un troisième, `dev-browser`, qui pose sa
+propre émulation et ne participe pas à ce chemin (§ Dev-browser).
 
 Un parcours mobile vit dans `tests/e2e/mobile/` : le viewport et le tactile
 viennent du **projet**, pas du fichier. Les gestes y passent par `tap()` (et non
@@ -186,8 +200,109 @@ workflow : le secret de dépôt `CONVEX_DEPLOY_KEY` (type « Preview ») et, en
 valeurs par défaut des préversions, `JWT_PRIVATE_KEY` et `JWKS`. Sans le secret,
 le job E2E est **ignoré**, pas rouge.
 
-## Dev-browser
-Capture du rendu réel via Playwright (`page.screenshot`) pour inspecter clair/sombre, mobile et les états (vide, erreur, connecté). À refaire à chaque feature UI.
+## Dev-browser — `pnpm test:dev-browser`
+
+Capture du rendu réel, **à regarder**. Le script vide `screenshots/`, parcourt la
+matrice ci-dessous et écrit une planche-contact `screenshots/index.html` qui
+pose les deux thèmes d'une même page côte à côte. Le dossier est ignoré par git.
+
+### Pourquoi ce niveau existe
+Deux régressions rédhibitoires de la PR #4 n'ont été vues que par une inspection
+navigateur — ni les tests unitaires ni les E2E ne les voyaient :
+
+1. contenu animé bloqué à `opacity: 0` sans JavaScript (mentions légales
+   entièrement blanches, accueil réduit à son en-tête), corrigé en `aea9b24` ;
+2. un `loading.tsx` de segment bloquant **toutes** les pages sur
+   « Chargement… », retiré en `18051c9`.
+
+Dans les deux cas la page répond 200 avec le bon HTML. C'est l'œil, sur un rendu
+réel, qui voit qu'elle est vide.
+
+### La matrice
+40 captures : **2 thèmes × 2 tailles × 10 pages**. Elle est déclarée en clair en
+tête de `tests/e2e/dev-browser.spec.ts` (`PUBLIQUES`, `CONNECTEES`) — s'y référer
+pour ajouter une page, et non à cette table, qui la résume.
+
+| Axe | Valeurs |
+|---|---|
+| Thème | `clair`, `sombre` (posés par `localStorage['dt-theme']`, comme la bascule de l'interface) |
+| Taille | `desktop` (Desktop Chrome), `mobile` (Pixel 7) — mêmes émulations que les projets E2E |
+
+| État | Pages | Ce qu'on y regarde |
+|---|---|---|
+| `nominal` | `/fr`, `/fr/bibliotheque`, `/fr/mentions-legales`, `/fr/adhesion`, `/fr/barometre`, `/fr/jeunes` | une famille de mise en page par route : hero animé, grille de cartes, texte long, formulaire, data-viz, univers safran |
+| `vide` | `/fr/recherche?q=zzzxqkw` | « Aucun résultat » — terme qui ne rencontre rien, quel que soit le jeu de données |
+| `erreur` | `/fr/thematiques/inexistant` | la 404 **localisée**. Une adresse sans route du tout (`/fr/nimporte-quoi`) sert la 404 par défaut de Next, en anglais : ce n'est pas celle-ci |
+| `connecte` | `/fr/espace-membre`, `/fr/admin` | session dédiée `devBrowser`, rang administrateur (les gardes du back-office sont hiérarchiques, un compte couvre les deux écrans) |
+
+### Ce que la machine tient, et ce qui reste à l'œil
+Trois assertions par capture — aucune ne compare un pixel. Elles refusent de
+photographier une page vide, c'est-à-dire exactement les deux défauts ci-dessus :
+
+1. le rideau « Chargement… » est levé ;
+2. aucun élément `[data-reveal]` qui occupe de la place n'est resté transparent ;
+3. la zone de contenu dit quelque chose (plus de 40 caractères).
+
+Tout le reste — mise en page, contrastes, débordements, hiérarchie — se regarde.
+Le contraste automatisable est déjà tenu par `a11y.spec.ts` (axe) et le rendu
+sans JavaScript par `tests/unit/reveal-nojs.test.ts` : ce niveau ne les rejoue
+pas.
+
+### Prérequis et place dans la suite
+Mêmes prérequis que les E2E (`.env.local` sur un déploiement `AUTH_DEV_OTP=true`),
+car l'état connecté passe par le projet `setup`. Le projet Playwright s'appelle
+`dev-browser` et **n'est pas joué par `pnpm test:e2e`**, qui nomme ses projets :
+40 captures pleine page n'ont rien à faire dans le chemin de vérification d'une
+PR.
+
+### Deux arbitrages, et pourquoi (issue #50)
+
+**Pas de comparaison à des références, pas de captures commitées.** Trois
+raisons, dans cet ordre :
+
+- *le poids*. Mesuré sur ce dépôt : ≈ 650 Ko par capture pleine page, soit
+  **≈ 26 Mo par exécution**. Des références commitées sont réécrites à chaque
+  retouche d'interface, et git garde chaque version pour toujours. L'issue #19 a
+  établi que `design/` (38 Mo) pesait à lui seul ~95 % du `.git` : on ne
+  recommence pas, en pire, un problème qu'on vient de documenter ;
+- *l'instabilité*. Polices, rendu sous-pixel, animations. `framer-motion` anime
+  à l'entrée dans le viewport : deux exécutions ne s'arrêtent pas au même
+  millième d'opacité. Un seuil de tolérance assez large pour ne pas rougir à
+  tort ne verrait plus grand-chose ;
+- *l'usage*. Une référence dit « ce n'est plus pareil », jamais « c'est moins
+  bien ». À chaque changement d'interface voulu, quelqu'un doit re-valider
+  40 images. Le geste dégénère en « mettre à jour les références » sans regarder.
+
+**Pas de job CI.** Ce niveau produit un objet à regarder ; automatiser sa
+production sans automatiser son verdict, c'est payer des minutes de CI et un
+déploiement Convex de préversion pour un artefact que rien n'oblige à ouvrir. Et
+le verdict automatique, c'est précisément la comparaison écartée ci-dessus.
+`e2e.yml` est déjà ignoré faute de secret Convex sur la plupart des dépôts
+clonés : un second workflow dans le même cas n'ajouterait que du bruit.
+
+*À rouvrir si* : une charte graphique figée et un budget de dépôt clair
+rendraient la comparaison tenable — alors références en LFS (pas en blobs git),
+tolérance explicite, animations coupées, et job en déclenchement manuel sur le
+modèle d'`e2e.yml`.
 
 ## Convention
-Aucune feature n'est « terminée » sans : **test(s) unitaire(s) + E2E + vérif dev-browser**. Les bugs rattrapés par les tests jusqu'ici : panic Tailwind sur `.codegraph/*.sock`, clés JWT Convex Auth manquantes, route `/api/auth` exclue du middleware.
+
+Aucune feature n'est « terminée » sans **test(s) unitaire(s) + E2E**. Ces deux
+niveaux sont des portes : `ci.yml` et `e2e.yml` les tiennent.
+
+S'y ajoute, **pour toute feature qui touche à l'interface**, la vérif
+dev-browser : lancer `pnpm test:dev-browser`, puis ouvrir la planche et la
+parcourir. Ce niveau n'est pas une porte et ne peut pas l'être — on ne fait pas
+tenir à une machine « est-ce que ça a l'air juste ». Ce qu'il engage est
+néanmoins vérifiable : la matrice est passée, les trois assertions sont vertes,
+et quelqu'un a regardé.
+
+Le formuler ainsi n'affaiblit pas la règle, cela la rend applicable. Jusqu'à
+l'issue #50, ce troisième niveau était annoncé **obligatoire** sans qu'aucun
+script, aucune spec, aucune liste de combinaisons ni aucun dossier de captures
+n'existe pour s'y conformer : une exigence que personne ne pouvait satisfaire, et
+dont l'audit relevait déjà qu'elle n'avait pas été tenue.
+
+Les bugs rattrapés par les tests jusqu'ici : panic Tailwind sur
+`.codegraph/*.sock`, clés JWT Convex Auth manquantes, route `/api/auth` exclue du
+middleware.

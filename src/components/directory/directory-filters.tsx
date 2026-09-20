@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { DirectoryFilters as Filters, Facets } from '@/lib/orgs';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Construit l'URL de l'annuaire avec un filtre modifié, en préservant les
 // autres (undefined = on retire le filtre). next-intl ajoute le préfixe locale.
@@ -91,7 +92,7 @@ export function DirectoryFilters({
               href={buildHref(filters, { region: r.value })}
               active={filters.region === r.value}
             >
-              {t(`regions.${r.value}`)}
+              {vocabulary(t, 'regions.', r.value)}
               <span className="text-muted">{r.count}</span>
             </Chip>
           ))}
@@ -115,7 +116,7 @@ export function DirectoryFilters({
               href={buildHref(filters, { theme: th.value })}
               active={filters.theme === th.value}
             >
-              {t(`themes.${th.value}`)}
+              {vocabulary(t, 'themes.', th.value)}
               <span className="text-muted">{th.count}</span>
             </Chip>
           ))}

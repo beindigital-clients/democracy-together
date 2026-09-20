@@ -14,9 +14,10 @@ import {
   TextareaField,
   useFormFields,
 } from '@/components/ui/field';
-import { useRecaptcha } from '@/components/providers/recaptcha-provider';
+import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const ROLES = ['mentore', 'mentor'] as const;
 
@@ -137,7 +138,7 @@ export function MentorshipForm() {
         <option value="">{t('themeNone')}</option>
         {PUB_THEMES.map((s) => (
           <option key={s} value={s}>
-            {tl(`themes.${s}`)}
+            {vocabulary(tl, 'themes.', s)}
           </option>
         ))}
       </SelectField>

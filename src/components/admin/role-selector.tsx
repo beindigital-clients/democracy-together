@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Changement de rôle en DEUX TEMPS (issue #38).
 //
@@ -71,7 +72,7 @@ export function RoleSelector({
       >
         {ROLE_ORDER.map((r) => (
           <option key={r} value={r}>
-            {t(`role_${r}`)}
+            {vocabulary(t, 'role_', r)}
           </option>
         ))}
       </Select>
@@ -91,8 +92,8 @@ export function RoleSelector({
         open={changed && confirming}
         title={t('confirmRoleTitle', { name })}
         description={t('confirmRoleBody', {
-          from: t(`role_${role}`),
-          to: t(`role_${value}`),
+          from: vocabulary(t, 'role_', role),
+          to: vocabulary(t, 'role_', value),
         })}
         confirmLabel={t('confirmRoleConfirm')}
         cancelLabel={t('confirmCancel')}
