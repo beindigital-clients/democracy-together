@@ -9,7 +9,6 @@ import { newsreader, plexSans, plexMono } from '@/lib/fonts';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
-import { RecaptchaProvider } from '@/components/providers/recaptcha-provider';
 import { MotionProvider } from '@/components/motion/motion-provider';
 import { CookieConsent } from '@/components/legal/cookie-consent';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
@@ -68,14 +67,12 @@ export default async function LocaleLayout({
         <body className="flex min-h-dvh flex-col">
           <NextIntlClientProvider messages={messages}>
             <ConvexClientProvider>
-              <RecaptchaProvider>
-                <MotionProvider>
-                  <SiteHeader />
-                  <main className="flex-1">{children}</main>
-                  <SiteFooter />
-                  <CookieConsent />
-                </MotionProvider>
-              </RecaptchaProvider>
+              <MotionProvider>
+                <SiteHeader />
+                <main className="flex-1">{children}</main>
+                <SiteFooter />
+                <CookieConsent />
+              </MotionProvider>
             </ConvexClientProvider>
           </NextIntlClientProvider>
         </body>
