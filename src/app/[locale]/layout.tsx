@@ -1,15 +1,14 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, setRequestLocale } from 'next-intl/server';
+import { getMessages, getTimeZone, setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import { isSupportedLocale } from '@/i18n/locale';
 import { newsreader, plexSans, plexMono } from '@/lib/fonts';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { IntlClientProvider } from '@/components/providers/intl-client-provider';
 import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
-import { RecaptchaProvider } from '@/components/providers/recaptcha-provider';
 import { MotionProvider } from '@/components/motion/motion-provider';
 import { CookieConsent } from '@/components/legal/cookie-consent';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
@@ -50,6 +49,11 @@ export default async function LocaleLayout({
   if (!isSupportedLocale(locale)) notFound();
   setRequestLocale(locale);
   const messages = await getMessages();
+  // `NextIntlClientProvider` rendu directement depuis un composant serveur
+  // hérite seul de la locale et du fuseau. Le passage par `IntlClientProvider`
+  // — nécessaire pour lui poser `getMessageFallback` et `onError`, qui sont des
+  // fonctions — coupe cet héritage : on les transmet donc explicitement.
+  const timeZone = await getTimeZone();
 
   return (
     <ConvexAuthNextjsServerProvider>
@@ -66,18 +70,20 @@ export default async function LocaleLayout({
           </noscript>
         </head>
         <body className="flex min-h-dvh flex-col">
-          <NextIntlClientProvider messages={messages}>
+          <IntlClientProvider
+            locale={locale}
+            messages={messages}
+            timeZone={timeZone}
+          >
             <ConvexClientProvider>
-              <RecaptchaProvider>
-                <MotionProvider>
-                  <SiteHeader />
-                  <main className="flex-1">{children}</main>
-                  <SiteFooter />
-                  <CookieConsent />
-                </MotionProvider>
-              </RecaptchaProvider>
+              <MotionProvider>
+                <SiteHeader />
+                <main className="flex-1">{children}</main>
+                <SiteFooter />
+                <CookieConsent />
+              </MotionProvider>
             </ConvexClientProvider>
-          </NextIntlClientProvider>
+          </IntlClientProvider>
         </body>
       </html>
     </ConvexAuthNextjsServerProvider>

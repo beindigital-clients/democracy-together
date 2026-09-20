@@ -368,6 +368,15 @@ export default defineSchema({
     format: v.union(v.literal('court'), v.literal('fond')),
     title: v.string(),
     body: v.string(),
+    // Langue de RÉDACTION du billet (issue #35). Un billet de Tribune est
+    // écrit dans UNE seule langue et n'est jamais traduit : les deux préfixes
+    // d'URL servent le même texte. Sans ce champ, `tribune/[id]` ne pouvait
+    // poser qu'un canonical par locale — deux pages canoniques pour un seul
+    // contenu, soit du duplicate content. Renseignée par l'auteur à la
+    // publication ; OPTIONNELLE parce que les billets antérieurs n'en portent
+    // pas, et que le repli de `resolveLocale` (fr) est la bonne réponse pour
+    // eux.
+    lang: v.optional(locale),
     status: v.union(v.literal('published'), v.literal('removed')),
     commentCount: v.number(),
     createdAt: v.number(),

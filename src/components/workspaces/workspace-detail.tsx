@@ -10,6 +10,7 @@ import { Reveal } from '@/components/motion/reveal';
 import { Button } from '@/components/ui/button';
 import { TextareaField } from '@/components/ui/field';
 import { isMember } from '@/lib/roles';
+import { vocabulary } from '@/i18n/vocabulary';
 
 type WorkspaceDetail = {
   _id: Id<'workspaces'>;
@@ -182,7 +183,7 @@ export function WorkspaceDetail({
       <header className="mt-4 border-b border-line pb-6">
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
           <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
-            {tl(`themes.${data.theme}`)}
+            {vocabulary(tl, 'themes.', data.theme)}
           </span>
           <span className="font-mono uppercase tracking-[0.06em] text-muted">
             {t('memberCount', { count: data.memberCount })}

@@ -4,18 +4,23 @@ import { useState } from 'react';
 import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Select } from '@/components/ui/select';
-import { SelectField } from '@/components/ui/field';
 import { ROLE_ORDER, isAdmin, type NetworkRole } from '@/lib/roles';
+import { SelectField } from '@/components/ui/field';
 import { InviteUserForm } from '@/components/admin/invite-user-form';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
+import { RoleSelector } from '@/components/admin/role-selector';
+import { useActionFeedback } from '@/components/admin/action-feedback';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 50;
 
 function UsersTable() {
   const t = useTranslations('admin');
+  // PAGINÉ (issue #8) : la liste chargeait la table `users` en entier. L'ordre
+  // (par e-mail) vient désormais de l'index côté serveur, pas d'un tri client.
+  //
   // RECHERCHE ET FILTRE SERVEUR (issue #49) : les deux sont des ARGUMENTS de la
   // query paginée, pas un filtrage du tableau rendu. Les changer repart d'une
   // première page — c'est le comportement voulu, et c'est aussi la raison pour
@@ -36,15 +41,29 @@ function UsersTable() {
     { initialNumItems: PAGE_SIZE },
   );
   const me = useQuery(api.users.current);
-  const setRoleOf = useMutation(api.users.setRole);
+  const setRole_ = useMutation(api.users.setRole);
+  const notify = useActionFeedback();
 
-  async function changeRole(userId: string, next: NetworkRole) {
+  // Appelée depuis `RoleSelector`, donc APRÈS « Appliquer » puis confirmation
+  // (issue #38) : la molette au-dessus de la liste déroulante n'arrive plus
+  // jusqu'ici. Rend `true` si le serveur a accepté.
+  async function changeRole(
+    userId: string,
+    name: string,
+    next: NetworkRole,
+  ): Promise<boolean> {
     try {
       // userId est un Id<'users'> côté API ; le cast reste sûr (source = listUsers).
-      await setRoleOf({ userId: userId as never, role: next });
+      await setRole_({ userId: userId as never, role: next });
+      notify(
+        t('feedbackRoleChanged', { name, role: vocabulary(t, 'role_', next) }),
+      );
+      return true;
     } catch {
-      // rejet serveur (ex. dernier admin / rôle insuffisant) : le <Select>
-      // contrôlé revient automatiquement à la valeur réelle.
+      // Rejet serveur (ex. dernier admin / rôle insuffisant) : l'écran le DIT,
+      // là où il restait muet, et le sélecteur revient à la valeur réelle.
+      notify(t('feedbackError'), 'error');
+      return false;
     }
   }
 
@@ -52,6 +71,8 @@ function UsersTable() {
 
   return (
     <div className="mt-6">
+      {/* Les commandes restent montées pendant le chargement : sinon le champ
+          se démonterait sous les doigts à chaque nouvelle recherche. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <AdminSearch
           label={t('searchUsersLabel')}
@@ -70,7 +91,7 @@ function UsersTable() {
           <option value="">{t('filterRoleAll')}</option>
           {ROLE_ORDER.map((r) => (
             <option key={r} value={r}>
-              {t(`role_${r}`)}
+              {vocabulary(t, 'role_', r)}
             </option>
           ))}
         </SelectField>
@@ -95,6 +116,7 @@ function UsersTable() {
             <tbody>
               {users.map((u) => {
                 const isSelf = u._id === me._id;
+                const name = u.email ?? u.name ?? u._id;
                 return (
                   <tr key={u._id} className="border-b border-line">
                     <td className="py-3 pr-4 font-mono text-[13px]">
@@ -102,21 +124,13 @@ function UsersTable() {
                     </td>
                     <td className="py-3 pr-4">{u.name ?? '—'}</td>
                     <td className="py-3">
-                      <Select
-                        value={u.role}
-                        disabled={isSelf}
-                        aria-label={`${t('userRole')} ${u.email}`}
-                        title={isSelf ? t('selfRoleLocked') : undefined}
-                        onChange={(e) =>
-                          changeRole(u._id, e.target.value as NetworkRole)
-                        }
-                      >
-                        {ROLE_ORDER.map((r) => (
-                          <option key={r} value={r}>
-                            {t(`role_${r}`)}
-                          </option>
-                        ))}
-                      </Select>
+                      <RoleSelector
+                        name={name}
+                        role={u.role}
+                        locked={isSelf}
+                        lockedReason={isSelf ? t('selfRoleLocked') : undefined}
+                        onApply={(next) => changeRole(u._id, name, next)}
+                      />
                     </td>
                   </tr>
                 );

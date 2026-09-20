@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/reveal';
 import { countryName, countryFlag } from '@/lib/orgs';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -23,7 +24,16 @@ export async function generateMetadata({
   return {
     title: t('title'),
     description: t('subtitle'),
-    // Page de résultats : on n'indexe pas les pages de recherche.
+    // Page de résultats : on n'indexe pas les pages de recherche — une URL
+    // par requête saisie n'a aucune valeur pour un moteur, et les laisser
+    // entrer dilue l'index du site dans du bruit.
+    //
+    // C'est aussi la réponse à l'absence d'alternates ici (issue #35) : un
+    // `hreflang` est ignoré des moteurs sur une page en `noindex`, l'ajouter
+    // ne serait que du bruit de plus. Le `noindex` EST la déclaration ; le
+    // canonical, dépouillé du `?q=`, regroupe toutes les recherches d'une
+    // locale sur une seule adresse. Retirer `robots` rouvrirait donc les deux
+    // problèmes d'un coup — d'où le test qui le tient (tests/e2e/seo.spec.ts).
     robots: { index: false },
     alternates: { canonical: `${SITE}/${locale}/recherche` },
   };
@@ -113,7 +123,7 @@ export default async function SearchPage({
                     <Link href={`/bibliotheque/${p.slug}`} className={ROW}>
                       <span className="font-medium text-ink">{p.title}</span>
                       <span className="ml-2 text-[13px] text-muted">
-                        {tl(`types.${p.type}`)}
+                        {vocabulary(tl, 'types.', p.type)}
                       </span>
                     </Link>
                   </li>

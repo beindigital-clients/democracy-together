@@ -25,7 +25,7 @@ async function search(page: Page, label: string, term: string) {
 }
 
 test.describe('recherche des listes (session admin partagée)', () => {
-  test.use({ storageState: SESSIONS.admin.state });
+  test.use({ storageState: SESSIONS.adminUx.state });
 
   test('utilisateurs : un fragment d’adresse fait apparaître le compte SEUL (F-63)', async ({
     page,
@@ -121,10 +121,18 @@ test.describe('recherche des listes (session admin partagée)', () => {
 
     await page.goto('/fr/admin/utilisateurs');
     await search(page, 'Rechercher un utilisateur', token);
-    const roleSelect = page.getByLabel(`Rôle ${email}`);
-    await expect(roleSelect).toBeVisible();
-    await roleSelect.selectOption('moderateur');
-    await expect(roleSelect).toHaveValue('moderateur');
+
+    // Le changement de rôle se fait en DEUX TEMPS depuis l'issue #38 : choisir
+    // ne prépare que le brouillon, « Appliquer » ouvre la confirmation.
+    const row = page.getByRole('row').filter({ hasText: token });
+    await expect(row).toHaveCount(1);
+    await row.getByLabel(`Rôle ${email}`).selectOption('moderateur');
+    await row.getByRole('button', { name: 'Appliquer' }).click();
+    await page
+      .getByRole('dialog', { name: `Changer le rôle de ${email} ?` })
+      .getByRole('button', { name: 'Changer le rôle' })
+      .click();
+    await expect(page.getByLabel(`Rôle ${email}`)).toHaveValue('moderateur');
 
     await page.goto('/fr/admin/journal');
 

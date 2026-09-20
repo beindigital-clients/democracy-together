@@ -12,7 +12,7 @@ import {
   useFormFields,
 } from '@/components/ui/field';
 import { Reveal } from '@/components/motion/reveal';
-import { useRecaptcha } from '@/components/providers/recaptcha-provider';
+import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 

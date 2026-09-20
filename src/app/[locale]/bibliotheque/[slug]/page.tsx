@@ -12,6 +12,7 @@ import { CopyButton } from '@/components/library/copy-button';
 import { PublicationCard } from '@/components/library/publication-card';
 import { ViewCounter } from '@/components/library/view-counter';
 import { buildCitations, formatLongDate } from '@/lib/publications';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -81,7 +82,9 @@ export default async function PublicationPage({
   const doiUrl = `https://doi.org/${pub.doi}`;
   // Document téléversé (F-32) si présent, sinon repli sur le DOI.
   const fileHref = pub.fileUrl ?? doiUrl;
-  const langNames = pub.languages.map((l) => t(`langs.${l}`)).join(', ');
+  const langNames = pub.languages
+    .map((l) => vocabulary(t, 'langs.', l))
+    .join(', ');
   const langCodes = pub.languages.map((l) => l.toUpperCase()).join(', ');
 
   const subParts = [
@@ -105,7 +108,7 @@ export default async function PublicationPage({
           <Link href="/bibliotheque" className="text-muted hover:text-ink">
             {t('title')}
           </Link>{' '}
-          / {t(`themes.${pub.theme}`)}
+          / {vocabulary(t, 'themes.', pub.theme)}
         </p>
       </div>
 
@@ -115,13 +118,13 @@ export default async function PublicationPage({
           <Reveal>
             <div className="mb-4 flex flex-wrap items-center gap-2.5">
               <span className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-muted">
-                {t(`types.${pub.type}`)}
+                {vocabulary(t, 'types.', pub.type)}
               </span>
               <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-[12.5px] font-medium text-accent-text">
-                {t(`themes.${pub.theme}`)}
+                {vocabulary(t, 'themes.', pub.theme)}
               </span>
               <span className="rounded-pill border border-[color-mix(in_srgb,var(--color-bar-1)_40%,transparent)] px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-bar-1">
-                {t(`accessShort.${pub.access}`)}
+                {vocabulary(t, 'accessShort.', pub.access)}
               </span>
             </div>
             <h1 className="max-w-[22ch] font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em]">
@@ -193,8 +196,8 @@ export default async function PublicationPage({
                   />
                 </div>
                 <figcaption className="mt-2 text-[12.5px] text-muted">
-                  {t(`types.${pub.type}`)} · {t(`themes.${pub.theme}`)} ·
-                  Democracy Together
+                  {vocabulary(t, 'types.', pub.type)} ·{' '}
+                  {vocabulary(t, 'themes.', pub.theme)} · Democracy Together
                 </figcaption>
               </figure>
             </Reveal>
@@ -319,14 +322,24 @@ export default async function PublicationPage({
               {td('metadata')}
             </h2>
             <dl className="flex flex-col">
-              <MetaRow k={td('metaType')} v={t(`types.${pub.type}`)} first />
+              <MetaRow
+                k={td('metaType')}
+                v={vocabulary(t, 'types.', pub.type)}
+                first
+              />
               <MetaRow
                 k={td('metaPublished')}
                 v={formatLongDate(pub.publishedAt, locale)}
               />
               <MetaRow k={td('metaLanguages')} v={langCodes} />
-              <MetaRow k={td('metaRegion')} v={t(`regions.${pub.region}`)} />
-              <MetaRow k={td('metaTheme')} v={t(`themes.${pub.theme}`)} />
+              <MetaRow
+                k={td('metaRegion')}
+                v={vocabulary(t, 'regions.', pub.region)}
+              />
+              <MetaRow
+                k={td('metaTheme')}
+                v={vocabulary(t, 'themes.', pub.theme)}
+              />
               {pub.pages ? (
                 <MetaRow k={td('metaPages')} v={String(pub.pages)} />
               ) : null}

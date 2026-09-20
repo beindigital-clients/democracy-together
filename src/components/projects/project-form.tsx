@@ -16,6 +16,7 @@ import {
   useFormFields,
 } from '@/components/ui/field';
 import { isRateLimited } from '@/lib/errors';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Proposition de projet collaboratif (F-60) — îlot client sur /appels-a-projets.
 // Réservé aux membres : un visiteur (anonyme ou compte sans rôle membre) est
@@ -125,7 +126,7 @@ export function ProjectForm() {
         </option>
         {PUB_THEMES.map((s) => (
           <option key={s} value={s}>
-            {tl(`themes.${s}`)}
+            {vocabulary(tl, 'themes.', s)}
           </option>
         ))}
       </SelectField>

@@ -8,6 +8,7 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { effectiveRole, isStaff } from '@/lib/roles';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import { AdminNav } from '@/components/admin/admin-nav';
+import { ActionFeedbackProvider } from '@/components/admin/action-feedback';
 
 function Centered({ children }: { children: ReactNode }) {
   return (
@@ -42,18 +43,24 @@ function Gate({ children }: { children: ReactNode }) {
   if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
 
+  // Les régions live du retour d'action sont montées ICI, une fois pour tout
+  // le back-office : chaque écran de modération pousse son message dedans
+  // plutôt que d'en poser une dans chaque file (issue #38).
+  //
   // COLONNE LATÉRALE à partir de `lg`, groupes empilés en dessous (issue #49) :
   // la navigation ne partage plus sa largeur avec les quatorze entrées, donc
   // rien ne part hors écran. `minmax(0, 1fr)` sur la colonne de contenu, sinon
   // les tables à défilement horizontal (utilisateurs, journal) élargiraient la
   // grille au lieu de défiler dans leur propre boîte.
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
-      <div className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-10">
-        <AdminNav role={effectiveRole(me?.role)} pathname={pathname} />
-        <div className="mt-8 lg:mt-0">{children}</div>
+    <ActionFeedbackProvider>
+      <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
+        <div className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-10">
+          <AdminNav role={effectiveRole(me?.role)} pathname={pathname} />
+          <div className="mt-8 lg:mt-0">{children}</div>
+        </div>
       </div>
-    </div>
+    </ActionFeedbackProvider>
   );
 }
 

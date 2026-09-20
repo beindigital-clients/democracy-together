@@ -34,7 +34,11 @@ export default defineConfig({
     // Consentement cookies pré-positionné (utilisateur « déjà venu ») pour que le
     // bandeau F-09 (fixed, bas de page) n'intercepte pas les clics des autres
     // specs. Le test dédié `legal.spec` repart d'un état vierge pour le voir.
-    storageState: './tests/e2e/storage-state.json',
+    // Le fichier porte le nom de ce qu'il contient (issue #44) : `storage-state`
+    // est la convention Playwright pour un état d'AUTHENTIFICATION, et ce nom
+    // invitait à y committer un jour une vraie session. Les états de session,
+    // eux, sont produits par le projet `setup` dans `tests/e2e/.auth/` (ignoré).
+    storageState: './tests/e2e/cookie-consent-state.json',
   },
   projects: [
     {
@@ -54,7 +58,14 @@ export default defineConfig({
       // rejouer ici les exécuterait sur un viewport desktop, sans tactile —
       // exactement ce qu'elles vérifient. Le projet `setup` a son propre
       // fichier, qui n'est pas une spec.
-      testIgnore: ['**/mobile/**', '**/auth.setup.ts'],
+      // `dev-browser.spec.ts` a son PROPRE projet (ci-dessous) : il pose lui-
+      // même viewport et thème, et le rejouer ici le photographierait une fois
+      // de plus, en desktop clair seulement.
+      testIgnore: [
+        '**/mobile/**',
+        '**/auth.setup.ts',
+        '**/dev-browser.spec.ts',
+      ],
     },
     {
       // Le mobile est une exigence structurante du cadrage (premier usage
@@ -65,6 +76,24 @@ export default defineConfig({
       name: 'mobile-chromium',
       testDir: './tests/e2e/mobile',
       use: { ...devices['Pixel 7'] },
+    },
+    {
+      // Niveau « dev-browser » (issue #50) : captures du rendu réel, à
+      // REGARDER. Projet à part parce que ce n'est pas une porte — il ne
+      // décide rien, il montre — et parce qu'il parcourt sa propre matrice
+      // (clair/sombre × desktop/mobile) : aucune émulation n'est posée ici,
+      // la spec la pose par bloc.
+      //
+      // Il dépend de `setup` comme les autres : l'état CONNECTÉ est l'une des
+      // combinaisons exigées, et une capture qu'on saute en silence est
+      // exactement ce que l'issue #50 reproche à la convention précédente.
+      //
+      // Il n'est PAS joué par `pnpm test:e2e`, qui nomme ses projets : 40
+      // captures pleine page n'ont rien à faire dans le chemin de vérification
+      // d'une PR. `pnpm test:dev-browser` le demande.
+      name: 'dev-browser',
+      testMatch: /dev-browser\.spec\.ts/,
+      dependencies: ['setup'],
     },
   ],
   webServer: {

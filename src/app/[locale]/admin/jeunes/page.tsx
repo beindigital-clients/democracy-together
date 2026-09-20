@@ -8,6 +8,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { vocabulary } from '@/i18n/vocabulary';
 
 export default function AdminYouth() {
   const t = useTranslations('admin');
@@ -93,7 +94,9 @@ export default function AdminYouth() {
             >
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-medium text-ink">{a.name}</h2>
-                <Badge variant="default">{t(`status_${a.status}`)}</Badge>
+                <Badge variant="default">
+                  {vocabulary(t, 'status_', a.status)}
+                </Badge>
                 <span className="font-mono text-[11px] text-muted">
                   {fmt(a.createdAt)}
                 </span>
@@ -108,7 +111,7 @@ export default function AdminYouth() {
                 <span>· {a.country}</span>
                 {a.themes.map((th) => (
                   <span key={th} className="text-accent-text">
-                    #{tl(`themes.${th}`)}
+                    #{vocabulary(tl, 'themes.', th)}
                   </span>
                 ))}
               </div>

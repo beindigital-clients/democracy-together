@@ -42,6 +42,13 @@ import { roleRank, type NetworkRole } from '@/lib/roles';
 export type AdminNavItem = { href: string; key: string };
 export type AdminNavGroup = {
   key: string;
+  // Clé du titre de groupe, ÉCRITE EN ENTIER plutôt que composée à l'affichage
+  // (`navGroup_${key}`). La garde de l'issue #33 refuse une clé construite à
+  // l'exécution passée au traducteur, et `vocabulary()` ne convient pas ici :
+  // ces titres sont écrits en dur dans ce fichier, donc une clé absente est un
+  // bug, pas un vocabulaire venu de la base qui mérite un repli. Elle est
+  // vérifiée dans les deux langues par tests/unit/admin-nav.test.tsx.
+  labelKey: string;
   // Rôle MINIMAL auquel le groupe est proposé. Le rang vient de la hiérarchie
   // partagée (`@convex/lib/roles`), jamais d'un booléen recopié ici : c'est ce
   // qui garantit que l'UI et `requireNetworkRole` lisent le même ordre.
@@ -52,6 +59,7 @@ export type AdminNavGroup = {
 export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   {
     key: 'pilotage',
+    labelKey: 'navGroup_pilotage',
     minRole: 'moderateur',
     items: [
       { href: '/admin', key: 'dashboard' },
@@ -60,6 +68,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   },
   {
     key: 'moderation',
+    labelKey: 'navGroup_moderation',
     minRole: 'moderateur',
     items: [
       { href: '/admin/candidatures', key: 'applications' },
@@ -70,6 +79,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   },
   {
     key: 'programmes',
+    labelKey: 'navGroup_programmes',
     minRole: 'moderateur',
     items: [
       { href: '/admin/jeunes', key: 'youth' },
@@ -80,6 +90,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   },
   {
     key: 'edition',
+    labelKey: 'navGroup_edition',
     minRole: 'editeur',
     items: [
       { href: '/admin/revue', key: 'review' },
@@ -88,6 +99,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   },
   {
     key: 'comptes',
+    labelKey: 'navGroup_comptes',
     minRole: 'admin',
     items: [
       { href: '/admin/utilisateurs', key: 'users' },
@@ -139,7 +151,7 @@ export function AdminNav({
               id={labelId}
               className="block font-mono text-[11px] uppercase tracking-[0.14em] text-muted"
             >
-              {t(`navGroup_${group.key}`)}
+              {t(group.labelKey)}
             </span>
             <ul
               aria-labelledby={labelId}

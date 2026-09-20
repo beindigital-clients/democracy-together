@@ -181,6 +181,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
   it('chaque groupe exige un rôle du vocabulaire partagé, et pointe vers /admin', () => {
     for (const group of ADMIN_NAV_GROUPS) {
       expect(ROLE_ORDER).toContain(group.minRole);
+      // La clé du titre est écrite en entier (garde de l'issue #33), et elle
+      // dérive bien du groupe : pas de recopie qui pourrait diverger.
+      expect(group.labelKey).toBe(`navGroup_${group.key}`);
       expect(group.items.length).toBeGreaterThan(0);
       for (const item of group.items) {
         expect(item.href.startsWith('/admin')).toBe(true);
@@ -202,7 +205,7 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
     const en = (await import('@/messages/en.json')).default;
     for (const dict of [messages.admin, en.admin] as Record<string, string>[]) {
       for (const group of ADMIN_NAV_GROUPS) {
-        expect(dict[`navGroup_${group.key}`]).toBeTruthy();
+        expect(dict[group.labelKey]).toBeTruthy();
         for (const item of group.items) expect(dict[item.key]).toBeTruthy();
       }
     }

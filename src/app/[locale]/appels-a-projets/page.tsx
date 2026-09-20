@@ -5,6 +5,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getProjectsIntro } from '@/lib/projects-content';
 import { PUB_THEMES } from '@/lib/publications';
 import { ProjectForm } from '@/components/projects/project-form';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -85,7 +86,7 @@ export default async function ProjectsPage({
           {PUB_THEMES.map((s) => (
             <RevealItem as="li" key={s}>
               <span className="inline-block rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-ink">
-                {tl(`themes.${s}`)}
+                {vocabulary(tl, 'themes.', s)}
               </span>
             </RevealItem>
           ))}

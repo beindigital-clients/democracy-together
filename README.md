@@ -8,7 +8,7 @@ Plateforme numérique : portail éditorial public + espace membres + back-office
 | Couche | Techno |
 |---|---|
 | Frontend | Next.js 16 (App Router) · React 19 · Tailwind v4 |
-| i18n | next-intl (FR/EN par URL, extensible pt/ar) |
+| i18n | next-intl (FR/EN par URL ; pt s'ajoute tel quel, ar demande le RTL — #23) |
 | Application / données / temps réel | Convex (+ Convex Auth) |
 | CMS éditorial | Sanity (Studio monté sur `/studio`) |
 | Tests | Vitest (+ convex-test) · Playwright |
@@ -112,6 +112,20 @@ pull request (`.github/workflows/e2e.yml`).
   `resolveLocale()` de `@/i18n/locale` — seul endroit du dépôt où cette règle
   s'écrit. `isSupportedLocale()` quand une locale inconnue doit être REFUSÉE
   plutôt que repliée (c'est le 404 du layout).
+- **Clé de message absente** : elle ne passe plus en silence. En développement
+  la page rend `⟦chemin.de.la.cle⟧` et la console porte l'erreur ; en production
+  le dernier segment est rendu — une page qui casse serait pire — mais l'erreur
+  est journalisée. La politique vit dans `@/i18n/message-errors` et sert les
+  DEUX moitiés du site : le rendu serveur par `i18n/request.ts`, les composants
+  client par `IntlClientProvider` (ces réglages sont des fonctions, elles ne
+  franchissent pas la frontière RSC).
+- **Clé construite à l'exécution** — un slug de thème ou de région venu de la
+  base, un statut : `vocabulary(t, 'themes.', slug)` de `@/i18n/vocabulary`,
+  jamais `` t(`themes.${slug}`) ``. Le vocabulaire peut diverger de la base et
+  mérite un repli ; un libellé d'interface écrit en dur, non. C'est cette
+  séparation qui permet au repli d'être strict partout ailleurs.
+  `tests/unit/i18n-keys.test.ts` la tient, et vérifie au passage que chaque clé
+  littérale du code existe dans `fr.json` ET `en.json`.
 
 ## Sécurité
 
@@ -167,7 +181,7 @@ src/
   app/[locale]/      pages localisées (layout rend <html>, header, footer)
   app/(studio)/      Studio Sanity monté sur /studio
   components/        header, footer, sections, ui, admin, tribune, map…
-  i18n/              routing · request · navigation · locale
+  i18n/              routing · request · navigation · locale · vocabulary
   lib/               contenus TypeScript, helpers, routes protégées
   messages/          fr.json · en.json
   proxy.ts           middleware Next : auth Convex + routage de langue

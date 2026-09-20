@@ -88,7 +88,7 @@ async function fitsOnScreen(page: Page, width: number) {
 }
 
 test.describe('navigation du back-office sur téléphone (session admin partagée)', () => {
-  test.use({ storageState: SESSIONS.admin.state, viewport: PHONE });
+  test.use({ storageState: SESSIONS.adminUx.state, viewport: PHONE });
 
   test('back-office : les 14 entrées tiennent sans défilement horizontal (F-26)', async ({
     page,
@@ -113,7 +113,7 @@ test.describe('navigation du back-office sur téléphone (session admin partagé
 });
 
 test.describe('navigation du back-office en large (session admin partagée)', () => {
-  test.use({ storageState: SESSIONS.admin.state });
+  test.use({ storageState: SESSIONS.adminUx.state });
 
   test('back-office : colonne latérale, sans défilement horizontal (F-26)', async ({
     page,
@@ -138,25 +138,7 @@ test.describe('navigation du back-office en large (session admin partagée)', ()
   });
 });
 
-test.describe('navigation du back-office, repli par rôle (session modérateur)', () => {
-  test.use({ storageState: SESSIONS.moderateur.state, viewport: PHONE });
-
-  test('back-office : un modérateur ne reçoit que ses trois groupes (F-26/F-63)', async ({
-    page,
-  }) => {
-    await page.goto('/fr/admin');
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Tableau de bord' }),
-    ).toBeVisible();
-
-    // Le découpage par domaine coïncide avec le découpage par rôle : les deux
-    // groupes réservés disparaissent ENTIERS, sans laisser un titre vide.
-    for (const group of ['Pilotage', 'Modération', 'Programmes']) {
-      await expect(nav(page).getByRole('list', { name: group })).toBeVisible();
-    }
-    for (const group of ['Édition', 'Comptes et audit']) {
-      await expect(nav(page).getByRole('list', { name: group })).toHaveCount(0);
-    }
-    await expect(nav(page).getByRole('list')).toHaveCount(3);
-  });
-});
+// Le REPLI PAR RÔLE — un modérateur ne reçoit que ses trois groupes — est
+// vérifié dans `admin-ecrans.spec.ts`, qui tient déjà la session modérateur et
+// dont le cloisonnement par rôle est le sujet. Le poser ici ferait de ce
+// fichier un TROISIÈME sur cette session, ce que `_sessions.ts` proscrit.
