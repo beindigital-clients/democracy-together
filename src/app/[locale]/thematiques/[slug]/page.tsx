@@ -9,6 +9,7 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
 import { getThemeSynthesis } from '@/lib/themes-content';
 import { PublicationCard } from '@/components/library/publication-card';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -22,7 +23,7 @@ export async function generateMetadata({
   if (!s) return {};
   const tl = await getTranslations({ locale, namespace: 'library' });
   return {
-    title: tl(`themes.${slug}`),
+    title: vocabulary(tl, 'themes.', slug),
     description: s.lead,
     alternates: {
       canonical: `${SITE}/${locale}/thematiques/${slug}`,
@@ -48,7 +49,7 @@ export default async function ThemeSynthesisPage({
 
   const t = await getTranslations('thematiques');
   const tl = await getTranslations('library');
-  const label = tl(`themes.${slug}`);
+  const label = vocabulary(tl, 'themes.', slug);
   const { items } = await fetchQuery(
     api.publications.listPublished,
     { themes: [slug], sort: 'recent' },

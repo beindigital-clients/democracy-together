@@ -16,6 +16,7 @@ import {
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Candidature au hub Jeunes (F-58) — îlot client sur /jeunes (#rejoindre). Sans
 // compte. Axe d'intérêt facultatif (relie aux 5 axes du réseau).
@@ -119,7 +120,7 @@ export function YouthApplyForm() {
         <option value="">{t('themeNone')}</option>
         {PUB_THEMES.map((s) => (
           <option key={s} value={s}>
-            {tl(`themes.${s}`)}
+            {vocabulary(tl, 'themes.', s)}
           </option>
         ))}
       </SelectField>

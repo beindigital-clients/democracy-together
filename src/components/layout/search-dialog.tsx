@@ -7,6 +7,7 @@ import { Search } from 'lucide-react';
 import { api } from '@convex/_generated/api';
 import { Link, useRouter } from '@/i18n/navigation';
 import { countryFlag, countryName } from '@/lib/orgs';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Recherche en modal (command palette) — évite le saut de page : on ouvre par
 // ⌘K / Ctrl+K ou clic, on cherche en direct (query Convex réactive) et on
@@ -260,7 +261,7 @@ export function SearchDialog() {
                                   {p.title}
                                 </span>
                                 <span className="ml-auto shrink-0 text-[12px] text-muted">
-                                  {tl(`types.${p.type}`)}
+                                  {vocabulary(tl, 'types.', p.type)}
                                 </span>
                               </Link>
                             </li>

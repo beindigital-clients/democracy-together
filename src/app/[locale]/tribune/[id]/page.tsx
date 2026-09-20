@@ -10,6 +10,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { CommentForm } from '@/components/tribune/comment-form';
 import { ReportButton } from '@/components/tribune/report-button';
 import { ReactionButton } from '@/components/tribune/reaction-button';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -76,10 +77,10 @@ export default async function TribunePostPage({
       <header className="mt-4 border-b border-line pb-6">
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
           <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
-            {tl(`themes.${post.theme}`)}
+            {vocabulary(tl, 'themes.', post.theme)}
           </span>
           <span className="font-mono uppercase tracking-[0.06em] text-muted">
-            {t(`format_${post.format}`)}
+            {vocabulary(t, 'format_', post.format)}
           </span>
         </div>
         <h1 className="mt-3 font-display text-[clamp(26px,3.6vw,40px)] font-medium leading-[1.1] tracking-[-0.015em]">

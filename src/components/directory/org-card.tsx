@@ -3,6 +3,7 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { countryName, countryFlag, languageName } from '@/lib/orgs';
 import type { PublicOrganization } from '@convex/lib/directory';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Carte d'un think tank dans l'annuaire (F-19). Toute la carte est cliquable
 // vers la fiche membre (F-21). Composant serveur (rendu SSR, zéro JS).
@@ -23,7 +24,7 @@ export function OrgCard({
         <span aria-hidden="true">{countryFlag(org.country)}</span>
         <span>{countryName(org.country, locale)}</span>
         <span className="text-line-strong">·</span>
-        <span>{t(`regions.${org.region}`)}</span>
+        <span>{vocabulary(t, 'regions.', org.region)}</span>
       </div>
 
       <h2 className="mt-3 font-display text-xl leading-snug text-ink transition-colors group-hover:text-accent-text">
@@ -39,7 +40,7 @@ export function OrgCard({
       <div className="mt-4 flex flex-wrap gap-1.5">
         {org.themes.slice(0, 3).map((theme) => (
           <Badge key={theme} variant="accent">
-            {t(`themes.${theme}`)}
+            {vocabulary(t, 'themes.', theme)}
           </Badge>
         ))}
       </div>

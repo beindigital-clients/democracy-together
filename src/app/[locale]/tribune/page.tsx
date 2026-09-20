@@ -8,6 +8,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { PUB_THEMES } from '@/lib/publications';
 import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -127,7 +128,7 @@ export default async function TribunePage({
                     : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
                 }`}
               >
-                {tl(`themes.${s}`)}
+                {vocabulary(tl, 'themes.', s)}
               </Link>
             );
           })}
@@ -149,10 +150,10 @@ export default async function TribunePage({
               >
                 <div className="flex flex-wrap items-center gap-2 text-[12px]">
                   <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
-                    {tl(`themes.${p.theme}`)}
+                    {vocabulary(tl, 'themes.', p.theme)}
                   </span>
                   <span className="font-mono uppercase tracking-[0.06em] text-muted">
-                    {t(`format_${p.format}`)}
+                    {vocabulary(t, 'format_', p.format)}
                   </span>
                 </div>
                 <h2 className="mt-2 font-display text-xl leading-snug">

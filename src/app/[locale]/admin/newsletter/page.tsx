@@ -8,6 +8,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { TextField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
+import { vocabulary } from '@/i18n/vocabulary';
 
 export default function AdminNewsletter() {
   const t = useTranslations('admin');
@@ -103,7 +104,7 @@ export default function AdminNewsletter() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-medium text-ink">{c.subject}</h3>
                   <Badge variant={badge(c.status)}>
-                    {t(`nlStatus_${c.status}`)}
+                    {vocabulary(t, 'nlStatus_', c.status)}
                   </Badge>
                 </div>
                 {c.status === 'sent' ? (

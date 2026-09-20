@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/reveal';
 import { countryName, countryFlag } from '@/lib/orgs';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -113,7 +114,7 @@ export default async function SearchPage({
                     <Link href={`/bibliotheque/${p.slug}`} className={ROW}>
                       <span className="font-medium text-ink">{p.title}</span>
                       <span className="ml-2 text-[13px] text-muted">
-                        {tl(`types.${p.type}`)}
+                        {vocabulary(tl, 'types.', p.type)}
                       </span>
                     </Link>
                   </li>

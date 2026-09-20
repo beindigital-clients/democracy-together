@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select';
 import { ROLE_ORDER, isAdmin, type NetworkRole } from '@/lib/roles';
 import { InviteUserForm } from '@/components/admin/invite-user-form';
 import { LoadMore } from '@/components/admin/load-more';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 50;
@@ -70,7 +71,7 @@ function UsersTable() {
                   >
                     {ROLE_ORDER.map((r) => (
                       <option key={r} value={r}>
-                        {t(`role_${r}`)}
+                        {vocabulary(t, 'role_', r)}
                       </option>
                     ))}
                   </Select>

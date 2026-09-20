@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { countryName, countryFlag, languageName } from '@/lib/orgs';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -61,7 +62,7 @@ export default async function OrgProfilePage({
           <span aria-hidden="true">{countryFlag(org.country)}</span>
           <span>{countryName(org.country, locale)}</span>
           <span className="text-line-strong">·</span>
-          <span>{td(`regions.${org.region}`)}</span>
+          <span>{vocabulary(td, 'regions.', org.region)}</span>
         </div>
         <h1 className="mt-3 font-display text-[clamp(30px,4.5vw,48px)] font-medium leading-[1.05] tracking-[-0.02em]">
           {org.name}
@@ -69,7 +70,7 @@ export default async function OrgProfilePage({
         <div className="mt-5 flex flex-wrap gap-1.5">
           {org.themes.map((theme) => (
             <Badge key={theme} variant="accent">
-              {td(`themes.${theme}`)}
+              {vocabulary(td, 'themes.', theme)}
             </Badge>
           ))}
         </div>
@@ -95,7 +96,9 @@ export default async function OrgProfilePage({
                 <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
                   {t('region')}
                 </dt>
-                <dd className="mt-1">{td(`regions.${org.region}`)}</dd>
+                <dd className="mt-1">
+                  {vocabulary(td, 'regions.', org.region)}
+                </dd>
               </div>
               <div>
                 <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
