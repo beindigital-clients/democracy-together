@@ -11,10 +11,19 @@ import {
   SelectField,
   TextField,
   TextareaField,
+  useFormFields,
 } from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { formField, isEmail } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+
+const ROLES = ['mentore', 'mentor'] as const;
+
+// `validate` rend un booléen, pas un type : c'est cette garde qui rétrécit la
+// valeur du select au vocabulaire attendu par l'action Convex.
+function isRole(value: string): value is (typeof ROLES)[number] {
+  return (ROLES as readonly string[]).includes(value);
+}
 
 // Mentorat — mise en relation (F-59). Îlot client sur /jeunes (#mentorat). Sans
 // compte. On choisit son rôle (mentoré : cherche un mentor / mentor : propose
@@ -27,33 +36,39 @@ export function MentorshipForm() {
   const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const { values, field, validate } = useFormFields({
+    role: 'mentore',
+    name: '',
+    email: '',
+    country: '',
+    theme: '',
+    message: '',
+  });
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const role = formField(fd, 'role').trim();
-    const name = formField(fd, 'name').trim();
-    const email = formField(fd, 'email').trim();
-    const country = formField(fd, 'country').trim();
-    const theme = formField(fd, 'theme').trim();
-    const message = formField(fd, 'message').trim();
-    if (role !== 'mentore' && role !== 'mentor') return setError(t('errRole'));
-    if (name.length < 2) return setError(t('errName'));
-    if (!isEmail(email)) return setError(t('errEmail'));
-    if (country.length < 2) return setError(t('errCountry'));
-    if (message.length < 10) return setError(t('errMessage'));
+    const ok = validate({
+      role: (v) => (isRole(v) ? null : t('errRole')),
+      name: (v) => (v.trim().length < 2 ? t('errName') : null),
+      email: (v) => (isEmail(v) ? null : t('errEmail')),
+      country: (v) => (v.trim().length < 2 ? t('errCountry') : null),
+      message: (v) => (v.trim().length < 10 ? t('errMessage') : null),
+    });
+    const role = values.role;
+    if (!ok || !isRole(role)) return;
 
     setStatus('pending');
     try {
       const captchaToken = await executeRecaptcha('mentorship');
+      const theme = values.theme.trim();
       await request({
-        name,
-        email,
-        country,
+        name: values.name.trim(),
+        email: values.email.trim(),
+        country: values.country.trim(),
         role,
         themes: theme ? [theme] : undefined,
-        message,
+        message: values.message.trim(),
         locale: locale === 'en' ? 'en' : 'fr',
         captchaToken,
       });
@@ -84,39 +99,39 @@ export function MentorshipForm() {
   return (
     <form
       onSubmit={onSubmit}
+      noValidate
       className="grid gap-4 rounded-md border border-line bg-surface p-6 sm:grid-cols-2"
     >
-      <SelectField
-        label={t('role')}
-        id="m-role"
-        name="role"
-        defaultValue="mentore"
-      >
+      <SelectField label={t('role')} id="m-role" {...field('role')}>
         <option value="mentore">{t('roleMentee')}</option>
         <option value="mentor">{t('roleMentor')}</option>
       </SelectField>
       <TextField
         label={t('name')}
         id="m-name"
-        name="name"
         autoComplete="name"
         required
+        {...field('name')}
       />
       <TextField
         label={t('email')}
         id="m-email"
-        name="email"
         type="email"
         autoComplete="email"
         required
+        {...field('email')}
       />
-      <TextField label={t('country')} id="m-country" name="country" required />
+      <TextField
+        label={t('country')}
+        id="m-country"
+        required
+        {...field('country')}
+      />
       <SelectField
         label={t('theme')}
         className="sm:col-span-2"
         id="m-theme"
-        name="theme"
-        defaultValue=""
+        {...field('theme')}
       >
         <option value="">{t('themeNone')}</option>
         {PUB_THEMES.map((s) => (
@@ -129,10 +144,10 @@ export function MentorshipForm() {
         label={t('message')}
         className="sm:col-span-2"
         id="m-message"
-        name="message"
         rows={4}
         required
         placeholder={t('messagePlaceholder')}
+        {...field('message')}
       />
       <FormError className="sm:col-span-2">{error}</FormError>
       <div className="sm:col-span-2">

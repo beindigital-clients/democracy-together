@@ -6,10 +6,10 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
 import { AuthCard, SubmitButton } from '@/components/auth/form';
-import { FormError, TextField } from '@/components/ui/field';
+import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
-import { formField } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 import {
   PASSWORD_MIN_LENGTH,
   passwordRefusal,
@@ -20,19 +20,25 @@ export default function ForgotPasswordPage() {
   const { signIn } = useAuthActions();
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<'request' | 'reset'>('request');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const { values, field, validate } = useFormFields({
+    email: '',
+    code: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const email = values.email.trim();
 
   async function onRequest(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!validate({ email: (v) => (isEmail(v) ? null : t('errEmail')) })) {
+      return;
+    }
     setPending(true);
-    const mail = formField(new FormData(e.currentTarget), 'email');
     try {
-      await signIn('password', { email: mail, flow: 'reset' });
-      setEmail(mail);
+      await signIn('password', { email, flow: 'reset' });
       setStep('reset');
     } catch {
       setError(t('errorGeneric'));
@@ -44,26 +50,27 @@ export default function ForgotPasswordPage() {
   async function onReset(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const newPassword = formField(fd, 'newPassword');
-    if (newPassword !== formField(fd, 'confirmPassword')) {
-      setError(t('errorMismatch'));
-      return;
-    }
     // Même politique que le serveur (convex/lib/passwordPolicy.ts), appliquée
     // ICI pour pouvoir DIRE laquelle des deux règles casse. Le refus serveur ne
     // le permet pas : la route /api/auth de Convex Auth aplatit `ConvexError.data`
     // en texte de statut HTTP, et le navigateur ne reçoit qu'une erreur nue —
     // affichée « Code invalide ou expiré », qui désigne le mauvais champ.
     // (Constaté en E2E, pas déduit.) Le serveur refuse toujours : ce contrôle
-    // ne relâche rien, il explique.
-    const refus = passwordRefusal(newPassword);
-    if (refus) {
-      setError(
-        refus === 'PASSWORD_TOO_SHORT'
-          ? t('errorPasswordTooShort', { min: PASSWORD_MIN_LENGTH })
-          : t('errorPasswordTooCommon'),
-      );
+    // ne relâche rien, il explique — et désigne maintenant le champ lui-même.
+    if (
+      !validate({
+        code: (v) => (v.length === 6 ? null : t('errCode')),
+        newPassword: (v) => {
+          const refus = passwordRefusal(v);
+          if (!refus) return null;
+          return refus === 'PASSWORD_TOO_SHORT'
+            ? t('errorPasswordTooShort', { min: PASSWORD_MIN_LENGTH })
+            : t('errorPasswordTooCommon');
+        },
+        confirmPassword: (v) =>
+          v === values.newPassword ? null : t('errorMismatch'),
+      })
+    ) {
       return;
     }
 
@@ -71,8 +78,8 @@ export default function ForgotPasswordPage() {
     try {
       await signIn('password', {
         email,
-        code,
-        newPassword,
+        code: values.code,
+        newPassword: values.newPassword,
         flow: 'reset-verification',
       });
       redirectAfterAuth();
@@ -85,21 +92,21 @@ export default function ForgotPasswordPage() {
   if (step === 'reset') {
     return (
       <AuthCard title={t('resetTitle')} subtitle={t('resetSubtitle')}>
-        <form onSubmit={onReset} className="space-y-5">
-          <OtpField value={code} onChange={setCode} />
+        <form onSubmit={onReset} noValidate className="space-y-5">
+          <OtpField {...field('code')} />
           <PasswordField
             label={t('newPassword')}
-            name="newPassword"
             autoComplete="new-password"
             minLength={PASSWORD_MIN_LENGTH}
             required
+            {...field('newPassword')}
           />
           <PasswordField
             label={t('confirmPassword')}
-            name="confirmPassword"
             autoComplete="new-password"
             minLength={PASSWORD_MIN_LENGTH}
             required
+            {...field('confirmPassword')}
           />
           <FormError>{error}</FormError>
           <SubmitButton pending={pending}>{t('resetCta')}</SubmitButton>
@@ -110,13 +117,13 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthCard title={t('forgotTitle')} subtitle={t('forgotSubtitle')}>
-      <form onSubmit={onRequest} className="space-y-4">
+      <form onSubmit={onRequest} noValidate className="space-y-4">
         <TextField
           label={t('email')}
-          name="email"
           type="email"
           autoComplete="email"
           required
+          {...field('email')}
         />
         <FormError>{error}</FormError>
         <SubmitButton pending={pending}>{t('forgotCta')}</SubmitButton>

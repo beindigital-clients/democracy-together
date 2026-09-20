@@ -6,9 +6,9 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
 import { AuthCard, SubmitButton } from '@/components/auth/form';
-import { FormError, TextField } from '@/components/ui/field';
+import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { OtpField } from '@/components/auth/otp-field';
-import { formField } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 
 export default function OtpSignInPage() {
   const t = useTranslations('auth');
@@ -16,19 +16,22 @@ export default function OtpSignInPage() {
   const { signIn } = useAuthActions();
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<'email' | 'code'>('email');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // L'adresse survit au passage à l'étape du code — et à un échec d'envoi : la
+  // retaper après un refus serveur était la première chose à éviter.
+  const { values, field, validate } = useFormFields({ email: '', code: '' });
+  const email = values.email.trim();
 
   async function onEmail(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!validate({ email: (v) => (isEmail(v) ? null : t('errEmail')) })) {
+      return;
+    }
     setPending(true);
-    const mail = formField(new FormData(e.currentTarget), 'email');
     try {
-      await signIn('otp-signin', { email: mail });
-      setEmail(mail);
+      await signIn('otp-signin', { email });
       setStep('code');
     } catch {
       setError(t('errorGeneric'));
@@ -40,9 +43,12 @@ export default function OtpSignInPage() {
   async function onCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!validate({ code: (v) => (v.length === 6 ? null : t('errCode')) })) {
+      return;
+    }
     setPending(true);
     try {
-      await signIn('otp-signin', { email, code });
+      await signIn('otp-signin', { email, code: values.code });
       redirectAfterAuth();
     } catch {
       setError(t('errorCode'));
@@ -56,8 +62,8 @@ export default function OtpSignInPage() {
         title={t('otpVerifyTitle')}
         subtitle={t('otpVerifySubtitle', { email })}
       >
-        <form onSubmit={onCode} className="space-y-5">
-          <OtpField value={code} onChange={setCode} />
+        <form onSubmit={onCode} noValidate className="space-y-5">
+          <OtpField {...field('code')} />
           <FormError>{error}</FormError>
           <SubmitButton pending={pending}>{t('otpVerifyCta')}</SubmitButton>
         </form>
@@ -67,13 +73,13 @@ export default function OtpSignInPage() {
 
   return (
     <AuthCard title={t('otpTitle')} subtitle={t('otpSubtitle')}>
-      <form onSubmit={onEmail} className="space-y-4">
+      <form onSubmit={onEmail} noValidate className="space-y-4">
         <TextField
           label={t('email')}
-          name="email"
           type="email"
           autoComplete="email"
           required
+          {...field('email')}
         />
         <FormError>{error}</FormError>
         <SubmitButton pending={pending}>{t('otpCta')}</SubmitButton>
