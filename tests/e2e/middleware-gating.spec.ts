@@ -162,17 +162,28 @@ test.describe('Gating serveur — visiteur non connecté', () => {
 // LE MONDE — connecté compris — passerait chacun des tests ci-dessus : ils ne
 // vérifient que le refus. Ce bloc vérifie que la porte s'ouvre, donc que
 // `convexAuth.isAuthenticated()` est bien consulté et bien lu.
-test.describe('Gating serveur — membre connecté', () => {
-  test.use({ storageState: SESSIONS.admin.state });
+//
+// SESSION « ÉDITEUR », et ce choix n'est pas arbitraire : `_sessions.ts` pose
+// la règle qu'un compte partagé par deux fichiers voit sa session mourir (deux
+// contextes présentent le même jeton de rafraîchissement, Convex Auth y voit un
+// rejeu). `admin` porte déjà `admin.spec` et `admin-ecrans` ; s'y ajouter en
+// ferait le TROISIÈME fichier — exactement le compte que l'issue #38 a vu
+// tomber. `editeur` est provisionnée par le projet `setup` et n'est utilisée
+// par aucune spec : ce fichier en est le seul client, donc aucun recouvrement.
+//
+// Le rôle n'a de toute façon aucune importance ici : le middleware ne tranche
+// que « connecté ou non ».
+test.describe('Gating serveur — compte connecté', () => {
+  test.use({ storageState: SESSIONS.editeur.state });
 
-  for (const url of ['/fr/admin', '/fr/espace-membre', '/fr/notifications']) {
-    test(`${url} : servie, sans redirection vers la connexion`, async ({
+  // Routes ouvertes à tout compte connecté : la réponse est la PAGE.
+  for (const url of ['/fr/espace-membre', '/fr/notifications']) {
+    test(`${url} : servie (200), sans détour par la connexion`, async ({
       page,
     }) => {
       // `page.request` partage le pot de cookies du contexte : c'est la session
       // ouverte par le projet `setup` qui est présentée, comme dans un vrai
-      // navigateur. (Un compte administrateur passe aussi les gardes de RÔLE de
-      // ces trois écrans — ce test-ci ne parle que du middleware.)
+      // navigateur.
       const res = await page.request.get(url, { maxRedirects: 0 });
 
       expect(
@@ -181,4 +192,16 @@ test.describe('Gating serveur — membre connecté', () => {
       ).toBe(200);
     });
   }
+
+  // /admin avec un compte ÉDITEUR — et c'est le propos. Le middleware ne
+  // connaît pas les rôles : il ouvre la porte HTTP dès que le visiteur est
+  // connecté, et c'est Convex qui refuse ensuite les données (`requireNetworkRole`).
+  // On vérifie donc l'absence de renvoi vers la connexion, et non le corps de
+  // la page : ce corps appartient au contrôle de rôle, qui n'est pas ce fichier.
+  test('/fr/admin : un compte connecté non-admin n’est pas renvoyé à la connexion', async ({
+    page,
+  }) => {
+    const res = await page.request.get('/fr/admin', { maxRedirects: 0 });
+    expect(res.headers()['location'] ?? '').not.toContain('/connexion');
+  });
 });
