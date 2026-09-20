@@ -7,6 +7,7 @@ import {
   roleRank,
   isMember,
   isStaff,
+  isEditor,
   isAdmin,
 } from '@/lib/roles';
 
@@ -44,5 +45,75 @@ describe('Rôles — source unique UI/backend', () => {
     expect(isStaff(undefined)).toBe(false);
     expect(isAdmin(undefined)).toBe(false);
     expect(isMember('membre')).toBe(true);
+  });
+});
+
+// Les quatre gardes d'affichage du back-office (issue #42). Ce qui précède
+// vérifie d'où vient la hiérarchie ; ce qui suit vérifie ce que chaque garde en
+// tire. `isEditor` n'était exercée nulle part, et c'est elle qui décide de
+// l'accès aux campagnes de newsletter — l'écran qui ÉCRIT vers l'extérieur.
+//
+// La matrice est écrite en entier, rôle par rôle, plutôt qu'en cas choisis :
+// une garde se trompe presque toujours d'UNE case (un `>` au lieu d'un `>=`,
+// un rang voisin), et c'est exactement ce qu'un jeu d'exemples bien choisis
+// laisse passer.
+const MATRICE: Array<
+  [
+    role: string,
+    membre: boolean,
+    staff: boolean,
+    editeur: boolean,
+    admin: boolean,
+  ]
+> = [
+  ['visiteur', false, false, false, false],
+  ['membre', true, false, false, false],
+  ['moderateur', true, true, false, false],
+  ['editeur', true, true, true, false],
+  ['admin', true, true, true, true],
+];
+
+describe('Gardes UI — la matrice complète des quatre rôles', () => {
+  it('couvre tout le vocabulaire (aucun rôle oublié par la matrice)', () => {
+    expect(MATRICE.map(([r]) => r)).toEqual([...ROLE_ORDER]);
+  });
+
+  it.each(MATRICE)(
+    '%s : membre=%s staff=%s editeur=%s admin=%s',
+    (role, membre, staff, editeur, admin) => {
+      expect(isMember(role)).toBe(membre);
+      expect(isStaff(role)).toBe(staff);
+      expect(isEditor(role)).toBe(editeur);
+      expect(isAdmin(role)).toBe(admin);
+    },
+  );
+
+  // Le piège de cette hiérarchie : elle est LINÉAIRE. « modérateur » et
+  // « éditeur » se lisent comme deux métiers parallèles, mais l'éditeur est
+  // au-dessus — il modère aussi, et le modérateur n'édite pas.
+  it('la hiérarchie est linéaire : éditeur > modérateur, pas à côté', () => {
+    expect(isStaff('editeur')).toBe(true);
+    expect(isEditor('moderateur')).toBe(false);
+  });
+
+  // Fail-closed : un rôle inconnu ne doit JAMAIS ouvrir un écran. Le validateur
+  // de schéma l'interdit en écriture, mais une donnée héritée, une faute de
+  // casse ou un rôle retiré du vocabulaire arrivent bien jusqu'ici.
+  it.each(['', 'root', 'superadmin', 'Admin', 'ADMIN', 'admin ', 'éditeur'])(
+    'refuse tout avec le rôle inconnu %o',
+    (role) => {
+      expect(isMember(role)).toBe(false);
+      expect(isStaff(role)).toBe(false);
+      expect(isEditor(role)).toBe(false);
+      expect(isAdmin(role)).toBe(false);
+    },
+  );
+
+  // Les gardes reçoivent le rôle d'une requête Convex, qui rend `undefined`
+  // pendant le chargement et `null` sur un compte sans rôle : les deux doivent
+  // fermer, et surtout ne pas lever au milieu d'un rendu.
+  it.each([null, undefined])('refuse tout avec %o', (role) => {
+    expect(isEditor(role)).toBe(false);
+    expect(isAdmin(role)).toBe(false);
   });
 });

@@ -55,7 +55,9 @@ export type SessionKey =
   | 'editeur'
   | 'admin'
   | 'confirmations'
-  | 'devBrowser';
+  | 'devBrowser'
+  | 'adminNav'
+  | 'adminRecherche';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -98,6 +100,33 @@ export const SESSIONS: Record<
   devBrowser: {
     email: 'e2e_session_dev_browser@democracytogether.test',
     state: 'tests/e2e/.auth/dev-browser.json',
+    role: 'admin',
+  },
+  // Les deux fichiers de l'issue #49 prennent CHACUN la leur. La règle
+  // ci-dessus n'énonce pas un seuil de trois fichiers : elle décrit un
+  // mécanisme qui mord dès que DEUX contextes présentent le même jeton de
+  // rafraîchissement, et l'issue #38 raconte seulement le moment où il s'est
+  // vu. Playwright exécutant les FICHIERS en parallèle, deux fichiers sur un
+  // compte suffisent à l'armer.
+  //
+  // À noter, parce que la confusion a coûté une campagne de CI : ce n'était
+  // PAS la cause de l'échec de `admin-recherche` (il est tombé pareil avec sa
+  // session à lui). Ce fichier a cinq parcours, donc cinq contextes tirés du
+  // même état, et c'est le dernier qui se réveillait sur l'écran de connexion
+  // — le cas INTRA-fichier, que `admin-confirmations.spec.ts` corrige en
+  // réécrivant l'état après chaque test. Les deux précautions sont distinctes,
+  // et les deux sont nécessaires ici.
+  //
+  // Rang administrateur pour les deux : les écrans exercés (utilisateurs,
+  // journal) sont précisément ceux que ce rang réserve.
+  adminNav: {
+    email: 'e2e_session_admin_nav@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-nav.json',
+    role: 'admin',
+  },
+  adminRecherche: {
+    email: 'e2e_session_admin_recherche@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-recherche.json',
     role: 'admin',
   },
 };
