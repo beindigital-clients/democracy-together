@@ -87,6 +87,13 @@ async function fitsOnScreen(page: Page, width: number) {
   expect(page_.scroll).toBeLessThanOrEqual(page_.client + 1);
 }
 
+// Même précaution que `admin-recherche.spec.ts` et `admin-confirmations` : le
+// jeton de rafraîchissement tourne au premier test, on réécrit donc l'état
+// pour que les suivants ne repartent pas d'un jeton consommé.
+test.afterEach(async ({ context }) => {
+  await context.storageState({ path: SESSIONS.adminNav.state });
+});
+
 test.describe('navigation du back-office sur téléphone (session dédiée)', () => {
   test.use({ storageState: SESSIONS.adminNav.state, viewport: PHONE });
 

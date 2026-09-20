@@ -50,6 +50,19 @@ async function openScreen(page: Page, path: string, heading: string) {
   ).toBeVisible();
 }
 
+// LE JETON DE RAFRAÎCHISSEMENT TOURNE — IL FAUT LE RÉÉCRIRE. Même mécanisme
+// que dans `admin-confirmations.spec.ts`, et même symptôme : chaque test part
+// d'un contexte NEUF rechargé depuis le même fichier d'état, le premier qui
+// s'en sert fait tourner le jeton, et au-delà de la fenêtre de tolérance
+// Convex Auth voit un rejeu et coupe la session. Ce fichier a CINQ parcours :
+// le dernier démarre loin de l'ouverture de la session, et c'est lui qui est
+// tombé deux fois sur l'écran de connexion. Réécrire l'état après chaque test
+// fait repartir le suivant du jeton courant. La session dédiée du fichier rend
+// l'écriture sûre : aucun autre fichier ne lit cet état pendant l'exécution.
+test.afterEach(async ({ context }) => {
+  await context.storageState({ path: SESSIONS.adminRecherche.state });
+});
+
 test.describe('recherche des listes (session dédiée)', () => {
   test.use({ storageState: SESSIONS.adminRecherche.state });
 
