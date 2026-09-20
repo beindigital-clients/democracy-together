@@ -30,6 +30,9 @@ async function member(
 const POST = {
   theme: 'transitions',
   format: 'court' as const,
+  // Langue de rédaction, déclarée par l'auteur (issue #35) : argument requis,
+  // pas de repli implicite — c'est elle qui fixe le canonical de la fiche.
+  lang: 'fr' as const,
   title: 'Sur les transitions',
   body: 'Une contribution courte mais valable.',
 };

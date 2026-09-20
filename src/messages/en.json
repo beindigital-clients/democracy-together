@@ -100,6 +100,8 @@
     "composeTitle": "Your post",
     "fieldTheme": "Pillar",
     "fieldFormat": "Format",
+    "fieldLang": "Language of the post",
+    "fieldLangHint": "The language you are writing in. A post is not translated: this sets the canonical address of your contribution.",
     "fieldTitle": "Title",
     "fieldBody": "Your text",
     "errTitle": "The title is too short (4 characters minimum).",

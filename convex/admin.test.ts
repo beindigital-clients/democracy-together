@@ -143,6 +143,7 @@ describe('Back-office — rôle affiché (F-63)', () => {
         .mutation(api.tribune.createPost, {
           theme: 'transitions',
           format: 'court',
+          lang: 'fr',
           title: 'Sur les transitions',
           body: 'Une contribution courte mais valable.',
         }),

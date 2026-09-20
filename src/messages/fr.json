@@ -100,6 +100,8 @@
     "composeTitle": "Votre prise de parole",
     "fieldTheme": "Axe",
     "fieldFormat": "Format",
+    "fieldLang": "Langue du billet",
+    "fieldLangHint": "La langue dans laquelle vous écrivez. Un billet n’est pas traduit : elle détermine l’adresse de référence de votre prise de parole.",
     "fieldTitle": "Titre",
     "fieldBody": "Votre texte",
     "errTitle": "Le titre est trop court (4 caractères minimum).",

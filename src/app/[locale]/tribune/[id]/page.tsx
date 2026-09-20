@@ -23,18 +23,35 @@ async function load(id: string) {
   }
 }
 
+// Un billet de Tribune est rédigé dans UNE seule langue par son auteur et
+// n'est jamais traduit : /fr/tribune/<id> et /en/tribune/<id> servent le même
+// titre et le même corps, seul l'habillage change. D'où deux décisions (issue
+// #35), qui valent l'une pour l'autre :
+//
+//  - AUCUN `languages` / hreflang. Un `hreflang="en"` promet une version
+//    anglaise ; sur un billet français, il en désigne une qui n'existe pas et
+//    fait servir un texte français à une requête anglaise. Mieux vaut ne rien
+//    déclarer qu'une fausse traduction — `x-default` compris.
+//  - UN canonical, celui de la langue du billet, ÉMIS À L'IDENTIQUE sous les
+//    deux préfixes. Auparavant chaque locale s'auto-canonicalisait : deux
+//    pages canoniques pour un seul texte, soit du contenu dupliqué.
+//
+// `post.lang` manque aux billets antérieurs au champ ; `resolveLocale` les
+// ramène à la langue par défaut, ce que le corpus existant vérifie.
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
-  const { locale, id } = await params;
+  const { id } = await params;
   const post = await load(id);
   if (!post) return {};
   return {
     title: post.title,
     description: post.body.slice(0, 160),
-    alternates: { canonical: `${SITE}/${locale}/tribune/${id}` },
+    alternates: {
+      canonical: `${SITE}/${resolveLocale(post.lang)}/tribune/${id}`,
+    },
   };
 }
 
@@ -51,6 +68,7 @@ export default async function TribunePostPage({
 
   const t = await getTranslations('tribune');
   const tl = await getTranslations('library');
+  const postLang = resolveLocale(post.lang);
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(loc, {
@@ -82,7 +100,13 @@ export default async function TribunePostPage({
             {t(`format_${post.format}`)}
           </span>
         </div>
-        <h1 className="mt-3 font-display text-[clamp(26px,3.6vw,40px)] font-medium leading-[1.1] tracking-[-0.015em]">
+        {/* Le billet n'est pas traduit : quand sa langue diffère de celle de
+            la page, le dire à l'assistance technique, sans quoi un lecteur
+            d'écran lit un texte anglais avec la voix française (issue #35). */}
+        <h1
+          lang={postLang !== loc ? postLang : undefined}
+          className="mt-3 font-display text-[clamp(26px,3.6vw,40px)] font-medium leading-[1.1] tracking-[-0.015em]"
+        >
           {post.title}
         </h1>
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted">
@@ -94,7 +118,10 @@ export default async function TribunePostPage({
         </div>
       </header>
 
-      <div className="mt-6 whitespace-pre-line text-[17px] leading-relaxed text-ink-soft">
+      <div
+        lang={postLang !== loc ? postLang : undefined}
+        className="mt-6 whitespace-pre-line text-[17px] leading-relaxed text-ink-soft"
+      >
         {post.body}
       </div>
 
