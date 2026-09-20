@@ -56,7 +56,8 @@ export type SessionKey =
   | 'admin'
   | 'confirmations'
   | 'devBrowser'
-  | 'adminUx';
+  | 'adminNav'
+  | 'adminRecherche';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -101,17 +102,26 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/dev-browser.json',
     role: 'admin',
   },
-  // Session des deux fichiers de l'issue #49 — `admin-nav.spec.ts` (géométrie
-  // de la navigation) et `admin-recherche.spec.ts` (recherche et filtres).
-  // Sans elle, la session `admin` passerait à QUATRE fichiers et la session
-  // `moderateur` à trois : exactement le seuil décrit plus haut. Rang
-  // administrateur, parce que les deux écrans réservés (utilisateurs, journal)
-  // sont précisément ceux que ces fichiers exercent.
+  // Les deux fichiers de l'issue #49 prennent CHACUN la leur. Une première
+  // version les faisait cohabiter sur un même compte, en lisant la règle
+  // ci-dessus comme « c'est le troisième fichier qui casse ». C'est faux, et
+  // la CI l'a montré : le mécanisme est celui de DEUX contextes présentant le
+  // même jeton de rafraîchissement, et Playwright exécute les FICHIERS en
+  // parallèle. `admin-recherche` s'est réveillé sur l'écran de connexion, à son
+  // dernier parcours — le plus tardif, donc le plus exposé. L'issue #38 ne
+  // décrit pas un seuil de trois : elle raconte le moment où le défaut s'est
+  // vu.
   //
-  // Elle est à DEUX fichiers : un troisième prendrait la sienne.
-  adminUx: {
-    email: 'e2e_session_admin_ux@democracytogether.test',
-    state: 'tests/e2e/.auth/admin-ux.json',
+  // Rang administrateur pour les deux : les écrans exercés (utilisateurs,
+  // journal) sont précisément ceux que ce rang réserve.
+  adminNav: {
+    email: 'e2e_session_admin_nav@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-nav.json',
+    role: 'admin',
+  },
+  adminRecherche: {
+    email: 'e2e_session_admin_recherche@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-recherche.json',
     role: 'admin',
   },
 };

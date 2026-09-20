@@ -87,8 +87,8 @@ async function fitsOnScreen(page: Page, width: number) {
   expect(page_.scroll).toBeLessThanOrEqual(page_.client + 1);
 }
 
-test.describe('navigation du back-office sur téléphone (session admin partagée)', () => {
-  test.use({ storageState: SESSIONS.adminUx.state, viewport: PHONE });
+test.describe('navigation du back-office sur téléphone (session dédiée)', () => {
+  test.use({ storageState: SESSIONS.adminNav.state, viewport: PHONE });
 
   test('back-office : les 14 entrées tiennent sans défilement horizontal (F-26)', async ({
     page,
@@ -112,8 +112,8 @@ test.describe('navigation du back-office sur téléphone (session admin partagé
   });
 });
 
-test.describe('navigation du back-office en large (session admin partagée)', () => {
-  test.use({ storageState: SESSIONS.adminUx.state });
+test.describe('navigation du back-office en large (session dédiée)', () => {
+  test.use({ storageState: SESSIONS.adminNav.state });
 
   test('back-office : colonne latérale, sans défilement horizontal (F-26)', async ({
     page,

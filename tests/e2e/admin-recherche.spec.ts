@@ -17,6 +17,11 @@ test.use({ locale: 'fr-FR' });
 // longtemps et porte déjà des comptes et des candidatures. Un terme unique est
 // ce qui rend « la ligne apparaît SEULE » vérifiable ailleurs que sur une base
 // vide.
+//
+// SESSION DÉDIÉE (cf. _sessions.ts) : ce fichier écrit une donnée puis la
+// cherche, donc il tient sa session d'un bout à l'autre. La partager avec un
+// autre fichier l'a fait mourir en CI — deux contextes, un seul jeton de
+// rafraîchissement — et le dernier parcours s'est réveillé sur /connexion.
 
 const stamp = () => Date.now().toString(36);
 
@@ -45,8 +50,8 @@ async function openScreen(page: Page, path: string, heading: string) {
   ).toBeVisible();
 }
 
-test.describe('recherche des listes (session admin partagée)', () => {
-  test.use({ storageState: SESSIONS.adminUx.state });
+test.describe('recherche des listes (session dédiée)', () => {
+  test.use({ storageState: SESSIONS.adminRecherche.state });
 
   test('utilisateurs : un fragment d’adresse fait apparaître le compte SEUL (F-63)', async ({
     page,
@@ -175,7 +180,7 @@ test.describe('recherche des listes (session admin partagée)', () => {
     // parallèle par les autres parcours, et la ligne de tête peut changer
     // entre la lecture et le clic.
     await page.getByRole('button', { name: 'Effacer' }).click();
-    const actor = SESSIONS.adminUx.email;
+    const actor = SESSIONS.adminRecherche.email;
     const actorCells = page.locator('tbody tr td:nth-child(3)');
     await page
       .getByRole('button', { name: `Acteur : ${actor}` })
