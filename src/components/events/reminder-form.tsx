@@ -4,8 +4,8 @@ import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { FormError, TextField } from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
@@ -75,24 +75,17 @@ export function ReminderForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
       <p className="text-[13px] leading-relaxed text-ink-soft">{t('intro')}</p>
-      <div>
-        <label htmlFor="rem-email" className="sr-only">
-          {t('email')}
-        </label>
-        <Input
-          id="rem-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder={t('email')}
-          required
-        />
-      </div>
-      {error ? (
-        <p role="alert" className="text-sm text-bar-5">
-          {error}
-        </p>
-      ) : null}
+      <TextField
+        label={t('email')}
+        labelHidden
+        id="rem-email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        placeholder={t('email')}
+        required
+      />
+      <FormError>{error}</FormError>
       <Button type="submit" disabled={status === 'pending'} className="w-full">
         {t('submit')}
       </Button>

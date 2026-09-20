@@ -1,18 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { getReport } from '@/lib/reports-content';
 import { PrintButton } from '@/components/reports/print-button';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 export async function generateMetadata({
   params,
@@ -20,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; year: string }>;
 }): Promise<Metadata> {
   const { locale, year } = await params;
-  const report = getReport(resolve(locale), Number(year));
+  const report = getReport(resolveLocale(locale), Number(year));
   if (!report) return {};
   return {
     title: report.title,
@@ -44,7 +39,9 @@ export default async function ReportPage({
   const { locale, year } = await params;
   setRequestLocale(locale);
   const y = Number(year);
-  const report = Number.isInteger(y) ? getReport(resolve(locale), y) : null;
+  const report = Number.isInteger(y)
+    ? getReport(resolveLocale(locale), y)
+    : null;
   if (!report) notFound();
 
   const t = await getTranslations('reports');

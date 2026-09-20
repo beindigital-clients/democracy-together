@@ -5,12 +5,8 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
-import {
-  AuthCard,
-  Field,
-  FormError,
-  SubmitButton,
-} from '@/components/auth/form';
+import { AuthCard, SubmitButton } from '@/components/auth/form';
+import { FormError, TextField } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
 import { formField } from '@/lib/validation';
@@ -94,7 +90,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthCard title={t('forgotTitle')} subtitle={t('forgotSubtitle')}>
       <form onSubmit={onRequest} className="space-y-4">
-        <Field
+        <TextField
           label={t('email')}
           name="email"
           type="email"

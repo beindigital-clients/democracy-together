@@ -6,9 +6,13 @@ import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import {
+  FormError,
+  SelectField,
+  TextField,
+  TextareaField,
+} from '@/components/ui/field';
 import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
 
@@ -67,58 +71,39 @@ function CreateForm() {
       <h2 className="font-display text-lg">{t('createTitle')}</h2>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label htmlFor="ws-title" className="block text-sm text-ink-soft">
-            {t('fieldTitle')}
-          </label>
-          <Input
-            id="ws-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={160}
-            required
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <label htmlFor="ws-theme" className="block text-sm text-ink-soft">
-            {t('fieldTheme')}
-          </label>
-          <select
-            id="ws-theme"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            className="mt-1 h-9 w-full rounded-md border border-line bg-paper px-3 text-sm text-ink"
-          >
-            {PUB_THEMES.map((s) => (
-              <option key={s} value={s}>
-                {tl(`themes.${s}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="ws-description" className="block text-sm text-ink-soft">
-          {t('fieldDescription')}
-        </label>
-        <Textarea
-          id="ws-description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={4}
+        <TextField
+          label={t('fieldTitle')}
+          id="ws-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={160}
           required
-          className="mt-1 resize-y"
         />
-        <p className="mt-1 text-xs text-muted">{t('descriptionHint')}</p>
+        <SelectField
+          label={t('fieldTheme')}
+          id="ws-theme"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+        >
+          {PUB_THEMES.map((s) => (
+            <option key={s} value={s}>
+              {tl(`themes.${s}`)}
+            </option>
+          ))}
+        </SelectField>
       </div>
 
-      {error ? (
-        <p role="alert" className="text-sm text-bar-5">
-          {error}
-        </p>
-      ) : null}
+      <TextareaField
+        label={t('fieldDescription')}
+        hint={t('descriptionHint')}
+        id="ws-description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        rows={4}
+        required
+      />
+
+      <FormError>{error}</FormError>
 
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>

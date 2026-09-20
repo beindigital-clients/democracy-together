@@ -1,20 +1,15 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { PUB_THEMES } from '@/lib/publications';
 import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 function param(value: string | string[] | undefined): string | undefined {
   const v = Array.isArray(value) ? value[0] : value;
@@ -51,7 +46,7 @@ export default async function TribunePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const loc = resolve(locale);
+  const loc = resolveLocale(locale);
   const sp = await searchParams;
   // Le paramètre d'URL est libre, l'argument de la query ne l'est pas : une
   // valeur hors vocabulaire est ramenée à « pas de filtre » ici, plutôt que

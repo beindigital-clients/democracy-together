@@ -1,6 +1,9 @@
-import type { InputHTMLAttributes, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 
+// Habillage des écrans d'authentification (carte centrée + bouton d'envoi).
+// Les CHAMPS, eux, viennent du système commun `@/components/ui/field` : ces
+// écrans n'ont plus leur propre famille de champs (issue #41).
 export function AuthCard({
   title,
   subtitle,
@@ -16,30 +19,6 @@ export function AuthCard({
       {subtitle && <p className="mt-2 text-ink-soft">{subtitle}</p>}
       <div className="mt-8">{children}</div>
     </div>
-  );
-}
-
-const inputCls =
-  'mt-1 w-full rounded-sm border border-line bg-surface px-3 py-2.5 text-ink outline-none transition-colors focus-visible:border-accent-text';
-
-export function Field({
-  label,
-  ...props
-}: { label: string } & InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <label className="block">
-      <span className="text-sm text-ink-soft">{label}</span>
-      <input className={inputCls} {...props} />
-    </label>
-  );
-}
-
-export function FormError({ children }: { children?: ReactNode }) {
-  if (!children) return null;
-  return (
-    <p role="alert" className="text-sm text-bar-5">
-      {children}
-    </p>
   );
 }
 

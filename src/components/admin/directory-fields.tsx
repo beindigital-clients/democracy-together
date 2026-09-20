@@ -1,11 +1,10 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { REGIONS, DIRECTORY_THEMES } from '@convex/lib/directory';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { FormError, SelectField, TextField } from '@/components/ui/field';
 
 export type DirectoryDraft = {
   countryCode: string;
@@ -37,12 +36,6 @@ export function DirectoryFields({
   onCancel: () => void;
 }) {
   const t = useTranslations('admin');
-  const ids = {
-    country: useId(),
-    region: useId(),
-    website: useId(),
-    description: useId(),
-  };
   const [countryCode, setCountryCode] = useState('');
   const [region, setRegion] = useState('');
   const [themes, setThemes] = useState<string[]>([]);
@@ -71,37 +64,26 @@ export function DirectoryFields({
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor={ids.country} className="block text-sm text-ink-soft">
-            {t('dirCountry')}
-          </label>
-          <Input
-            id={ids.country}
-            value={countryCode}
-            maxLength={2}
-            onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-            placeholder="SN"
-            className="mt-1 max-w-[8rem]"
-          />
-        </div>
-        <div>
-          <label htmlFor={ids.region} className="block text-sm text-ink-soft">
-            {t('dirRegion')}
-          </label>
-          <Select
-            id={ids.region}
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            className="mt-1 w-full"
-          >
-            <option value="">—</option>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <TextField
+          label={t('dirCountry')}
+          value={countryCode}
+          maxLength={2}
+          onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
+          placeholder="SN"
+          controlClassName="max-w-[8rem]"
+        />
+        <SelectField
+          label={t('dirRegion')}
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+        >
+          <option value="">—</option>
+          {REGIONS.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </SelectField>
       </div>
 
       <fieldset className="mt-4">
@@ -137,39 +119,22 @@ export function DirectoryFields({
       </fieldset>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor={ids.website} className="block text-sm text-ink-soft">
-            {t('dirWebsite')}
-          </label>
-          <Input
-            id={ids.website}
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-            placeholder="https://"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor={ids.description}
-            className="block text-sm text-ink-soft"
-          >
-            {t('dirDescription')}
-          </label>
-          <Input
-            id={ids.description}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="mt-1"
-          />
-        </div>
+        <TextField
+          label={t('dirWebsite')}
+          value={websiteUrl}
+          onChange={(e) => setWebsiteUrl(e.target.value)}
+          placeholder="https://"
+        />
+        <TextField
+          label={t('dirDescription')}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </div>
 
-      {error ? (
-        <p role="alert" className="mt-3 text-[13px] text-bar-1">
-          {t('dirIncomplete')}
-        </p>
-      ) : null}
+      <FormError className="mt-3 text-[13px]">
+        {error ? t('dirIncomplete') : null}
+      </FormError>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <Button

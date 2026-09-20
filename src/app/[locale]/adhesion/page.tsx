@@ -1,18 +1,13 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { MembershipForm } from '@/components/membership/membership-form';
 import { SolidarityEstimator } from '@/components/membership/solidarity-estimator';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { getMembershipContent } from '@/lib/membership-content';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 export async function generateMetadata({
   params,
@@ -45,7 +40,7 @@ export default async function MembershipPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const loc = resolve(locale);
+  const loc = resolveLocale(locale);
   const t = await getTranslations('membership');
   const c = getMembershipContent(loc);
 
