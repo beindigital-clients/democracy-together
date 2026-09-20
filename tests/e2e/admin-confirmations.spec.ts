@@ -32,6 +32,29 @@ test.use({
   storageState: SESSIONS.confirmations.state,
 });
 
+// LE JETON DE RAFRAÎCHISSEMENT TOURNE — IL FAUT LE RÉÉCRIRE. Chaque test part
+// d'un contexte NEUF rechargé depuis le même fichier d'état. Or le premier qui
+// s'en sert fait tourner le jeton (Convex Auth le renouvelle et l'invalide) :
+// les suivants repartent donc d'un jeton déjà consommé. Tant que la fenêtre de
+// tolérance n'est pas dépassée, ça passe ; au-delà, Convex Auth y voit un
+// rejeu et coupe la session — le test se réveille sur /connexion au milieu de
+// son parcours (le mécanisme est décrit dans `_sessions.ts`, pour le cas de
+// deux FICHIERS sur un même compte ; il vaut tout autant pour deux TESTS d'un
+// même fichier, simplement plus tard).
+//
+// Ce fichier est le plus exposé : quatre parcours de back-office à la file,
+// donc le quatrième démarre loin du moment où la session a été ouverte. Il est
+// tombé deux fois de suite sur l'écran de connexion (PR #79), toujours le
+// dernier, pendant que les trois premiers passaient.
+//
+// On réécrit donc l'état APRÈS CHAQUE TEST : le suivant repart du jeton
+// courant, jamais d'un jeton périmé. La session dédiée du fichier
+// (cf. `_sessions.ts`) rend l'écriture sûre — aucun autre fichier ne lit ni
+// n'écrit ce fichier d'état pendant l'exécution.
+test.afterEach(async ({ context }) => {
+  await context.storageState({ path: SESSIONS.confirmations.state });
+});
+
 // Marqueur des publications créées ici -> nettoyage ciblé du jeu de données
 // partagé (comme `library-submit.spec.ts`).
 const PUB_MARKER = 'Rejet confirmé E2E';
