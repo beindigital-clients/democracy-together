@@ -4,6 +4,7 @@ import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import { Badge } from '@/components/ui/badge';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -84,7 +85,9 @@ export default async function ExpertsPage({
                   <ul className="mt-4 flex flex-wrap gap-2">
                     {expert.themes.map((slug) => (
                       <li key={slug}>
-                        <Badge variant="accent">{tl(`themes.${slug}`)}</Badge>
+                        <Badge variant="accent">
+                          {vocabulary(tl, 'themes.', slug)}
+                        </Badge>
                       </li>
                     ))}
                   </ul>

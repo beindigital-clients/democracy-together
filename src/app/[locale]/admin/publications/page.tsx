@@ -8,9 +8,11 @@ import type { FunctionReturnType } from 'convex/server';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActionFeedback } from '@/components/admin/action-feedback';
+import { vocabulary } from '@/i18n/vocabulary';
 
 type ReviewItem = FunctionReturnType<
   typeof api.publications.listForReview
@@ -76,9 +78,9 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
 
   const meta = [
     pub.authorEmail,
-    tl(`types.${pub.type}`),
-    tl(`themes.${pub.theme}`),
-    tl(`regions.${pub.region}`),
+    vocabulary(tl, 'types.', pub.type),
+    vocabulary(tl, 'themes.', pub.theme),
+    vocabulary(tl, 'regions.', pub.region),
     String(pub.year),
   ]
     .filter(Boolean)
@@ -90,12 +92,12 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-lg">{pub.title}</h2>
-            <Badge>{tl(`accessShort.${pub.access}`)}</Badge>
+            <Badge>{vocabulary(tl, 'accessShort.', pub.access)}</Badge>
           </div>
           <p className="mt-1 text-sm text-ink-soft">{meta}</p>
         </div>
         <Badge variant={pub.status === 'pending' ? 'accent' : 'default'}>
-          {t(`pubStatus_${pub.status}`)}
+          {vocabulary(t, 'pubStatus_', pub.status)}
         </Badge>
       </div>
 
@@ -178,16 +180,19 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
 export default function AdminPublications() {
   const t = useTranslations('admin');
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
+  const [search, setSearch] = useState('');
   // PAGINÉE (issue #8) : le mode « toutes » chargeait la table `publications`
   // entière, et résolvait l'auteur d'une ligne à la fois. Changer de filtre
   // change les arguments, donc repart d'une première page — comportement voulu.
+  // CHERCHABLE (issue #49) : le titre, côté serveur. Une file de modération
+  // filtrée en mémoire ne chercherait que dans les 25 lignes affichées.
   const {
     results: pubs,
     status,
     loadMore,
   } = usePaginatedQuery(
     api.publications.listForReview,
-    { status: filter },
+    { status: filter, ...(search ? { search } : {}) },
     { initialNumItems: PAGE_SIZE },
   );
 
@@ -213,12 +218,23 @@ export default function AdminPublications() {
         ))}
       </div>
 
+      <AdminSearch
+        label={t('searchPublicationsLabel')}
+        placeholder={t('searchPublicationsPlaceholder')}
+        value={search}
+        onChange={setSearch}
+        className="mt-4"
+      />
+
       {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : pubs.length === 0 ? (
-        <p className="mt-6 text-ink-soft">{t('noPublications')}</p>
+        <p className="mt-6 text-ink-soft">
+          {search ? t('noResults') : t('noPublications')}
+        </p>
       ) : (
-        <ul className="mt-6 space-y-3">
+        // Liste NOMMÉE : la navigation groupée (#49) rend aussi des `<li>`.
+        <ul aria-label={t('publicationsListLabel')} className="mt-6 space-y-3">
           {pubs.map((p) => (
             <PublicationRow key={p._id} pub={p} />
           ))}

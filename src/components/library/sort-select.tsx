@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { PUB_SORTS } from '@/lib/publications';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Tri de la bibliothèque — amélioration progressive : met à jour le paramètre
 // `sort` de l'URL en préservant les filtres actifs. La liste reste rendue côté
@@ -33,7 +34,7 @@ export function SortSelect({ value }: { value: string }) {
       >
         {PUB_SORTS.map((s) => (
           <option key={s} value={s}>
-            {t(`sort.${s}`)}
+            {vocabulary(t, 'sort.', s)}
           </option>
         ))}
       </select>

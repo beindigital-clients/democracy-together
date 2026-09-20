@@ -134,9 +134,20 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
       if (screen.min === 'moderateur') {
         await expect(tab).toBeVisible();
       } else {
-        await expect(tab).toHaveCount(0); // onglet non proposé
+        await expect(tab).toHaveCount(0); // entrée non proposée
       }
     }
+
+    // La navigation est GROUPÉE PAR DOMAINE (issue #49), et le découpage par
+    // domaine coïncide avec le découpage par rôle : les deux groupes réservés
+    // disparaissent ENTIERS, sans laisser un titre sans contenu.
+    for (const group of ['Pilotage', 'Modération', 'Programmes']) {
+      await expect(tabs.getByRole('list', { name: group })).toBeVisible();
+    }
+    for (const group of ['Édition', 'Comptes et audit']) {
+      await expect(tabs.getByRole('list', { name: group })).toHaveCount(0);
+    }
+    await expect(tabs.getByRole('list')).toHaveCount(3);
 
     // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus —
     // l'écran refuse de rendre la liste (et la requête Convex la refuserait aussi).

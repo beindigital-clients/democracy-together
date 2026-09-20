@@ -50,7 +50,14 @@ export const SESSION_PASSWORD = 'session-e2e-partagee-2026';
 type NetworkRole = 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 export type SessionKey =
-  'membre' | 'moderateur' | 'editeur' | 'admin' | 'confirmations';
+  | 'membre'
+  | 'moderateur'
+  | 'editeur'
+  | 'admin'
+  | 'confirmations'
+  | 'devBrowser'
+  | 'adminNav'
+  | 'adminRecherche';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -83,6 +90,43 @@ export const SESSIONS: Record<
   confirmations: {
     email: 'e2e_session_confirmations@democracytogether.test',
     state: 'tests/e2e/.auth/confirmations.json',
+    role: 'admin',
+  },
+  // Session dédiée à `dev-browser.spec.ts` (issue #50). Elle est tenue d'un
+  // bout à l'autre du projet `dev-browser`, donc longtemps : la règle
+  // ci-dessus s'applique. Rang administrateur, parce que ce fichier capture le
+  // back-office ET l'espace membre — les gardes étant hiérarchiques, un seul
+  // compte couvre les deux écrans, et une seule connexion de plus est payée.
+  devBrowser: {
+    email: 'e2e_session_dev_browser@democracytogether.test',
+    state: 'tests/e2e/.auth/dev-browser.json',
+    role: 'admin',
+  },
+  // Les deux fichiers de l'issue #49 prennent CHACUN la leur. La règle
+  // ci-dessus n'énonce pas un seuil de trois fichiers : elle décrit un
+  // mécanisme qui mord dès que DEUX contextes présentent le même jeton de
+  // rafraîchissement, et l'issue #38 raconte seulement le moment où il s'est
+  // vu. Playwright exécutant les FICHIERS en parallèle, deux fichiers sur un
+  // compte suffisent à l'armer.
+  //
+  // À noter, parce que la confusion a coûté une campagne de CI : ce n'était
+  // PAS la cause de l'échec de `admin-recherche` (il est tombé pareil avec sa
+  // session à lui). Ce fichier a cinq parcours, donc cinq contextes tirés du
+  // même état, et c'est le dernier qui se réveillait sur l'écran de connexion
+  // — le cas INTRA-fichier, que `admin-confirmations.spec.ts` corrige en
+  // réécrivant l'état après chaque test. Les deux précautions sont distinctes,
+  // et les deux sont nécessaires ici.
+  //
+  // Rang administrateur pour les deux : les écrans exercés (utilisateurs,
+  // journal) sont précisément ceux que ce rang réserve.
+  adminNav: {
+    email: 'e2e_session_admin_nav@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-nav.json',
+    role: 'admin',
+  },
+  adminRecherche: {
+    email: 'e2e_session_admin_recherche@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-recherche.json',
     role: 'admin',
   },
 };

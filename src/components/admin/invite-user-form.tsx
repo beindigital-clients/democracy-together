@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { FormError, SelectField, TextField } from '@/components/ui/field';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
 import { isEmail } from '@/lib/validation';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Invitation manuelle (F-63). Sans elle, et depuis la suppression de
 // l'auto-inscription, le seul moyen d'ouvrir un compte était d'approuver une
@@ -72,7 +73,7 @@ export function InviteUserForm() {
         >
           {ROLE_ORDER.map((r) => (
             <option key={r} value={r}>
-              {t(`role_${r}`)}
+              {vocabulary(t, 'role_', r)}
             </option>
           ))}
         </SelectField>

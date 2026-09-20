@@ -8,6 +8,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // File de revue des propositions de projets collaboratifs (F-60). Modérateur+.
 export default function AdminProjects() {
@@ -94,7 +95,9 @@ export default function AdminProjects() {
             >
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-medium text-ink">{p.title}</h2>
-                <Badge variant="default">{t(`prjStatus_${p.status}`)}</Badge>
+                <Badge variant="default">
+                  {vocabulary(t, 'prjStatus_', p.status)}
+                </Badge>
                 <span className="font-mono text-[11px] text-muted">
                   {fmt(p.createdAt)}
                 </span>
@@ -102,7 +105,7 @@ export default function AdminProjects() {
               <div className="mt-1 flex flex-wrap gap-x-3 text-[13px] text-ink-soft">
                 <span>{p.authorName}</span>
                 <span className="text-accent-text">
-                  #{tl(`themes.${p.theme}`)}
+                  #{vocabulary(tl, 'themes.', p.theme)}
                 </span>
               </div>
               <p className="mt-2 text-[14px] leading-relaxed text-ink">

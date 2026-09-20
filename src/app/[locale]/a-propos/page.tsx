@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
+import { AnchorFocus } from '@/components/a11y/anchor-focus';
 import { getAboutContent } from '@/lib/about';
 import { initials } from '@/lib/about-content';
 
@@ -40,6 +41,26 @@ function Eyebrow({ children }: { children: string }) {
 
 const WRAP = 'mx-auto max-w-[1100px] px-4 sm:px-6';
 
+// Ancres du pied de page (issue #46) — « Mission & vision », « Gouvernance » et
+// « Fondateurs » pointaient tous trois vers `/a-propos` nu : trois libellés, une
+// seule destination, en haut de page. Les trois sections visées portent donc :
+//
+//  - un `id`, la destination promise ;
+//  - `scroll-mt-20`, parce que l'en-tête est COLLANT (h-16) : sans cette marge
+//    de défilement, le titre de la section arrive dessous ;
+//  - `tabIndex={-1}`, et c'est lui qui fait SUIVRE LE FOCUS. Une `<section>` nue
+//    n'est pas focusable : le `focus()` que le routeur applique à la cible d'une
+//    ancre ne fait alors rien, et le clavier repart du pied de page — le lien ne
+//    sert à rien au clavier comme au lecteur d'écran. Même condition au
+//    chargement direct de `/a-propos#gouvernance`, où c'est le navigateur qui
+//    focalise la cible du fragment : encore faut-il qu'elle soit focusable.
+//
+// Le déplacement reste celui du navigateur — aucun `scrollIntoView` maison —, et
+// c'est ce qui respecte `prefers-reduced-motion` : globals.css force déjà
+// `scroll-behavior: auto !important` sous cette préférence, qu'un défilement
+// animé en JavaScript contournerait. Rien de visible non plus au clic : la
+// feuille globale ne dessine d'outline qu'en `:focus-visible`.
+
 export default async function AboutPage({
   params,
 }: {
@@ -51,6 +72,7 @@ export default async function AboutPage({
 
   return (
     <div>
+      <AnchorFocus />
       {/* Hero */}
       <section className="border-b border-line">
         <div className={`${WRAP} py-16 md:py-24`}>
@@ -66,8 +88,13 @@ export default async function AboutPage({
         </div>
       </section>
 
-      {/* Vision */}
-      <section className={`${WRAP} py-16 md:py-20`}>
+      {/* Vision — cible de « Mission & vision » : premier des deux blocs,
+          la mission suit immédiatement. */}
+      <section
+        id="vision"
+        tabIndex={-1}
+        className={`${WRAP} scroll-mt-20 py-16 md:py-20`}
+      >
         <Reveal>
           <Eyebrow>{c.vision.eyebrow}</Eyebrow>
           <p className="mt-5 max-w-[28ch] font-display text-[clamp(24px,3.4vw,38px)] leading-[1.2] tracking-[-0.01em] md:max-w-[24ch]">
@@ -103,7 +130,11 @@ export default async function AboutPage({
       </section>
 
       {/* Fondateurs */}
-      <section className={`${WRAP} py-16 md:py-20`}>
+      <section
+        id="fondateurs"
+        tabIndex={-1}
+        className={`${WRAP} scroll-mt-20 py-16 md:py-20`}
+      >
         <Reveal>
           <Eyebrow>{c.founders.eyebrow}</Eyebrow>
           <h2 className="mt-3 max-w-[20ch] font-display text-3xl md:text-4xl">
@@ -148,7 +179,11 @@ export default async function AboutPage({
       </section>
 
       {/* Gouvernance */}
-      <section className="border-y border-line bg-surface">
+      <section
+        id="gouvernance"
+        tabIndex={-1}
+        className="scroll-mt-20 border-y border-line bg-surface"
+      >
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal>
             <Eyebrow>{c.governance.eyebrow}</Eyebrow>

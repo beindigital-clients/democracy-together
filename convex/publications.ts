@@ -15,6 +15,7 @@ import {
 } from './lib/rateLimit';
 import { trackPublicationStatus } from './lib/counters';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
+import { normalizeSearchTerm } from './lib/search';
 import {
   matchesPublication,
   sortPublications,
@@ -433,17 +434,30 @@ const reviewItemValidator = v.object({
   fileUrl: v.union(v.string(), v.null()),
 });
 
+// CHERCHABLE (issue #49) : le titre, par index plein texte, avec le statut
+// porté par `filterFields` — la file « en attente » reste donc une seule
+// lecture d'index quand on y cherche. Filtrer côté client la page affichée
+// n'aurait cherché que dans les 25 lignes déjà là, jamais dans la file.
 export const listForReview = query({
   args: {
     status: v.optional(v.union(v.literal('pending'), v.literal('all'))),
+    search: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
   returns: paginatedValidator(reviewItemValidator),
-  handler: async (ctx, { status, paginationOpts }) => {
+  handler: async (ctx, { status, search, paginationOpts }) => {
     await requireNetworkRole(ctx, 'moderateur');
     const opts = clampPageSize(paginationOpts);
-    const result =
-      status === 'all'
+    const term = normalizeSearchTerm(search);
+    const result = term
+      ? await ctx.db
+          .query('publications')
+          .withSearchIndex('search_title', (q) => {
+            const q2 = q.search('title', term);
+            return status === 'all' ? q2 : q2.eq('status', 'pending');
+          })
+          .paginate(opts)
+      : status === 'all'
         ? await ctx.db.query('publications').order('desc').paginate(opts)
         : await ctx.db
             .query('publications')

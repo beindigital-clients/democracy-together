@@ -25,6 +25,7 @@ import {
 } from '@/lib/publications';
 import { isRateLimited } from '@/lib/errors';
 import { UPLOAD_FAILED, uploadWithProgress } from '@/lib/upload';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const MAX_FILE_MB = 20;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -279,7 +280,7 @@ export function PublicationSubmitForm() {
         >
           {PUB_TYPES.map((opt) => (
             <option key={opt} value={opt}>
-              {t(`types.${opt}`)}
+              {vocabulary(t, 'types.', opt)}
             </option>
           ))}
         </SelectField>
@@ -290,7 +291,7 @@ export function PublicationSubmitForm() {
         >
           {PUB_THEMES.map((opt) => (
             <option key={opt} value={opt}>
-              {t(`themes.${opt}`)}
+              {vocabulary(t, 'themes.', opt)}
             </option>
           ))}
         </SelectField>
@@ -301,7 +302,7 @@ export function PublicationSubmitForm() {
         >
           {PUB_REGIONS.map((opt) => (
             <option key={opt} value={opt}>
-              {t(`regions.${opt}`)}
+              {vocabulary(t, 'regions.', opt)}
             </option>
           ))}
         </SelectField>
@@ -342,7 +343,7 @@ export function PublicationSubmitForm() {
                   onChange={() => toggleLang(l)}
                   className="sr-only"
                 />
-                {t(`langs.${l}`)}
+                {vocabulary(t, 'langs.', l)}
               </label>
             );
           })}
@@ -376,7 +377,7 @@ export function PublicationSubmitForm() {
                 onChange={() => setAccess(a)}
                 className="sr-only"
               />
-              {t(`access.${a}`)}
+              {vocabulary(t, 'access.', a)}
             </label>
           ))}
         </div>

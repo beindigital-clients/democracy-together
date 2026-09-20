@@ -33,7 +33,19 @@ export default defineSchema({
     .index('email', ['email'])
     // `by_role` sert la garde « zéro admin » de l'amorçage (convex/bootstrap.ts) :
     // elle doit répondre par un seul document lu, sans parcourir la table.
-    .index('by_role', ['role']),
+    .index('by_role', ['role'])
+    // Recherche du back-office (issue #49) — INDEX PLEIN TEXTE, pas un filtre
+    // en mémoire. La table `users` est l'écran qui grossira le plus vite, et
+    // #8 vient d'en retirer le `.collect()` : chercher en rechargeant la liste
+    // entière pour la filtrer côté client le remettrait aussitôt. L'adresse
+    // est la clé d'identification du back-office (le nom est optionnel, et
+    // souvent absent d'un compte invité). `filterFields` porte le filtre par
+    // rôle DANS la même lecture d'index — sans lui, filtrer une recherche
+    // obligerait à relire puis trier hors index.
+    .searchIndex('search_email', {
+      searchField: 'email',
+      filterFields: ['role'],
+    }),
 
   // Think tanks membres (F-19 annuaire, F-21 fiche membre).
   organizations: defineTable({
@@ -146,7 +158,14 @@ export default defineSchema({
     // est absent sont indexés sous `undefined`, qui précède toute valeur : la
     // file entière s'obtient donc par la plage `> undefined`, en une lecture
     // contiguë (cf. getReviewQueue).
-    .index('by_reviewStage', ['reviewStage']),
+    .index('by_reviewStage', ['reviewStage'])
+    // Recherche de la file de modération (issue #49) : le titre. `status` en
+    // `filterFields` pour que « en attente » et la recherche tiennent dans une
+    // seule lecture, comme le fait déjà `by_status` sans recherche.
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['status'],
+    }),
 
   // Consultations par publication (F-37) — compteur ISOLÉ du document.
   //
@@ -215,7 +234,13 @@ export default defineSchema({
     createdOrgId: v.optional(v.id('organizations')),
   })
     .index('by_status', ['status'])
-    .index('by_applicant', ['applicantUserId']),
+    .index('by_applicant', ['applicantUserId'])
+    // Recherche de la file des candidatures (issue #49) : le nom de
+    // l'organisation — c'est par lui qu'une candidature se retrouve.
+    .searchIndex('search_organizationName', {
+      searchField: 'organizationName',
+      filterFields: ['status'],
+    }),
 
   // Inscriptions à la newsletter (F-18). Newsletter maison : envoi orchestré par
   // Convex via l'adaptateur e-mail (Resend, puis AWS SES). `unsubToken` = lien
@@ -479,7 +504,17 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index('by_action', ['action'])
-    .index('by_actor', ['actorId']),
+    .index('by_actor', ['actorId'])
+    // Recherche du journal (issue #49) : l'action. L'index plein texte découpe
+    // le slug pointé (`publication.reviewed` -> `publication`, `reviewed`), donc
+    // « publication » remonte toute la famille et « reviewed » toutes les
+    // décisions — ce qu'une plage de préfixe sur `by_action` ne sait pas faire.
+    // `actorId` en `filterFields` : « tout ce que cette personne a fait »
+    // reste une seule lecture d'index, recherche comprise.
+    .searchIndex('search_action', {
+      searchField: 'action',
+      filterFields: ['actorId'],
+    }),
 
   // Compteurs dénormalisés du back-office (F-61/F-66) — tenus À L'ÉCRITURE.
   //

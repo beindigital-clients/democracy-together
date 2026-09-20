@@ -16,6 +16,7 @@ import {
   TextareaField,
 } from '@/components/ui/field';
 import { Link, useRouter } from '@/i18n/navigation';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Prise de parole (F-44) — îlot client. Visible aux membres ; les autres voient
 // une invitation à adhérer. Après publication, on rafraîchit le fil (server).
@@ -107,7 +108,7 @@ export function TribuneComposer() {
         >
           {PUB_THEMES.map((s) => (
             <option key={s} value={s}>
-              {tl(`themes.${s}`)}
+              {vocabulary(tl, 'themes.', s)}
             </option>
           ))}
         </SelectField>
@@ -131,7 +132,7 @@ export function TribuneComposer() {
       >
         {routing.locales.map((l) => (
           <option key={l} value={l}>
-            {tl(`langs.${l}`)}
+            {vocabulary(tl, 'langs.', l)}
           </option>
         ))}
       </SelectField>
