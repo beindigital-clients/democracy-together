@@ -5,9 +5,13 @@ import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { PUB_THEMES } from '@/lib/publications';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import {
+  FormError,
+  SelectField,
+  TextField,
+  TextareaField,
+} from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
@@ -82,87 +86,55 @@ export function MentorshipForm() {
       onSubmit={onSubmit}
       className="grid gap-4 rounded-md border border-line bg-surface p-6 sm:grid-cols-2"
     >
-      <div>
-        <label htmlFor="m-role" className="block text-sm text-ink-soft">
-          {t('role')}
-        </label>
-        <select
-          id="m-role"
-          name="role"
-          defaultValue="mentore"
-          className="mt-1 h-9 w-full rounded-md border border-line bg-paper px-3 text-sm text-ink"
-        >
-          <option value="mentore">{t('roleMentee')}</option>
-          <option value="mentor">{t('roleMentor')}</option>
-        </select>
-      </div>
-      <div>
-        <label htmlFor="m-name" className="block text-sm text-ink-soft">
-          {t('name')}
-        </label>
-        <Input
-          id="m-name"
-          name="name"
-          autoComplete="name"
-          required
-          className="mt-1"
-        />
-      </div>
-      <div>
-        <label htmlFor="m-email" className="block text-sm text-ink-soft">
-          {t('email')}
-        </label>
-        <Input
-          id="m-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          className="mt-1"
-        />
-      </div>
-      <div>
-        <label htmlFor="m-country" className="block text-sm text-ink-soft">
-          {t('country')}
-        </label>
-        <Input id="m-country" name="country" required className="mt-1" />
-      </div>
-      <div className="sm:col-span-2">
-        <label htmlFor="m-theme" className="block text-sm text-ink-soft">
-          {t('theme')}
-        </label>
-        <select
-          id="m-theme"
-          name="theme"
-          defaultValue=""
-          className="mt-1 h-9 w-full rounded-md border border-line bg-paper px-3 text-sm text-ink"
-        >
-          <option value="">{t('themeNone')}</option>
-          {PUB_THEMES.map((s) => (
-            <option key={s} value={s}>
-              {tl(`themes.${s}`)}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="sm:col-span-2">
-        <label htmlFor="m-message" className="block text-sm text-ink-soft">
-          {t('message')}
-        </label>
-        <Textarea
-          id="m-message"
-          name="message"
-          rows={4}
-          required
-          placeholder={t('messagePlaceholder')}
-          className="mt-1 resize-y"
-        />
-      </div>
-      {error ? (
-        <p role="alert" className="text-sm text-bar-5 sm:col-span-2">
-          {error}
-        </p>
-      ) : null}
+      <SelectField
+        label={t('role')}
+        id="m-role"
+        name="role"
+        defaultValue="mentore"
+      >
+        <option value="mentore">{t('roleMentee')}</option>
+        <option value="mentor">{t('roleMentor')}</option>
+      </SelectField>
+      <TextField
+        label={t('name')}
+        id="m-name"
+        name="name"
+        autoComplete="name"
+        required
+      />
+      <TextField
+        label={t('email')}
+        id="m-email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        required
+      />
+      <TextField label={t('country')} id="m-country" name="country" required />
+      <SelectField
+        label={t('theme')}
+        className="sm:col-span-2"
+        id="m-theme"
+        name="theme"
+        defaultValue=""
+      >
+        <option value="">{t('themeNone')}</option>
+        {PUB_THEMES.map((s) => (
+          <option key={s} value={s}>
+            {tl(`themes.${s}`)}
+          </option>
+        ))}
+      </SelectField>
+      <TextareaField
+        label={t('message')}
+        className="sm:col-span-2"
+        id="m-message"
+        name="message"
+        rows={4}
+        required
+        placeholder={t('messagePlaceholder')}
+      />
+      <FormError className="sm:col-span-2">{error}</FormError>
       <div className="sm:col-span-2">
         <Button type="submit" disabled={status === 'pending'}>
           {t('submit')}

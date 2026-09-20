@@ -1,12 +1,11 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
@@ -20,12 +19,6 @@ export function MembershipForm() {
   const t = useTranslations('membership');
   const apply = useAction(api.organizations.submitApplication);
   const executeRecaptcha = useRecaptcha();
-  const ids = {
-    name: useId(),
-    email: useId(),
-    country: useId(),
-    message: useId(),
-  };
   const [type, setType] = useState<ApplicantType>('organisation');
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -113,70 +106,36 @@ export function MembershipForm() {
             </div>
           </fieldset>
 
-          <div>
-            <label htmlFor={ids.name} className="block text-sm text-ink-soft">
-              {type === 'organisation' ? t('orgName') : t('personName')}
-            </label>
-            <Input
-              id={ids.name}
-              name="organizationName"
-              autoComplete="organization"
-              required
-              className="mt-1"
-            />
-          </div>
+          <TextField
+            label={type === 'organisation' ? t('orgName') : t('personName')}
+            name="organizationName"
+            autoComplete="organization"
+            required
+          />
 
-          <div>
-            <label htmlFor={ids.email} className="block text-sm text-ink-soft">
-              {t('email')}
-            </label>
-            <Input
-              id={ids.email}
-              name="contactEmail"
-              type="email"
-              autoComplete="email"
-              required
-              className="mt-1"
-            />
-          </div>
+          <TextField
+            label={t('email')}
+            name="contactEmail"
+            type="email"
+            autoComplete="email"
+            required
+          />
 
-          <div>
-            <label
-              htmlFor={ids.country}
-              className="block text-sm text-ink-soft"
-            >
-              {t('country')}
-            </label>
-            <Input
-              id={ids.country}
-              name="country"
-              autoComplete="country-name"
-              required
-              className="mt-1"
-            />
-          </div>
+          <TextField
+            label={t('country')}
+            name="country"
+            autoComplete="country-name"
+            required
+          />
 
-          <div>
-            <label
-              htmlFor={ids.message}
-              className="block text-sm text-ink-soft"
-            >
-              {t('message')}
-            </label>
-            <Textarea
-              id={ids.message}
-              name="message"
-              rows={5}
-              placeholder={t('messagePlaceholder')}
-              className="mt-1 resize-y"
-            />
-          </div>
+          <TextareaField
+            label={t('message')}
+            name="message"
+            rows={5}
+            placeholder={t('messagePlaceholder')}
+          />
 
-          {error ? (
-            <p role="alert" className="text-sm text-bar-5">
-              {error}
-            </p>
-          ) : null}
+          <FormError>{error}</FormError>
 
           <Button
             type="submit"

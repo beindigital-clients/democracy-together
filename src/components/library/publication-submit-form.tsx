@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import {
+  Field,
+  FormError,
+  SelectField,
+  TextField,
+  TextareaField,
+} from '@/components/ui/field';
 import {
   PUB_TYPES,
   PUB_THEMES,
@@ -34,18 +38,6 @@ export function PublicationSubmitForm() {
   const me = useQuery(api.users.current);
   const generateUploadUrl = useMutation(api.publications.generateUploadUrl);
   const submit = useMutation(api.publications.submitPublication);
-
-  const ids = {
-    title: useId(),
-    type: useId(),
-    theme: useId(),
-    region: useId(),
-    year: useId(),
-    authors: useId(),
-    abstract: useId(),
-    keypoints: useId(),
-    file: useId(),
-  };
 
   const [type, setType] = useState<string>(PUB_TYPES[0]);
   const [theme, setTheme] = useState<string>(PUB_THEMES[0]);
@@ -215,87 +207,57 @@ export function PublicationSubmitForm() {
       noValidate
       className="space-y-6 rounded-md border border-line bg-surface p-6 shadow-card sm:p-8"
     >
-      <div>
-        <label htmlFor={ids.title} className="block text-sm text-ink-soft">
-          {t('submit.fieldTitle')}
-        </label>
-        <Input
-          id={ids.title}
-          name="title"
-          required
-          className="mt-1"
-          maxLength={200}
-        />
-      </div>
+      <TextField
+        label={t('submit.fieldTitle')}
+        name="title"
+        required
+        maxLength={200}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label htmlFor={ids.type} className="block text-sm text-ink-soft">
-            {t('submit.fieldType')}
-          </label>
-          <Select
-            id={ids.type}
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="mt-1 w-full py-2.5"
-          >
-            {PUB_TYPES.map((opt) => (
-              <option key={opt} value={opt}>
-                {t(`types.${opt}`)}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label htmlFor={ids.theme} className="block text-sm text-ink-soft">
-            {t('submit.fieldTheme')}
-          </label>
-          <Select
-            id={ids.theme}
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            className="mt-1 w-full py-2.5"
-          >
-            {PUB_THEMES.map((opt) => (
-              <option key={opt} value={opt}>
-                {t(`themes.${opt}`)}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label htmlFor={ids.region} className="block text-sm text-ink-soft">
-            {t('submit.fieldRegion')}
-          </label>
-          <Select
-            id={ids.region}
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            className="mt-1 w-full py-2.5"
-          >
-            {PUB_REGIONS.map((opt) => (
-              <option key={opt} value={opt}>
-                {t(`regions.${opt}`)}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label htmlFor={ids.year} className="block text-sm text-ink-soft">
-            {t('submit.fieldYear')}
-          </label>
-          <Input
-            id={ids.year}
-            name="year"
-            type="number"
-            inputMode="numeric"
-            min={1990}
-            max={CURRENT_YEAR + 1}
-            defaultValue={CURRENT_YEAR}
-            required
-            className="mt-1"
-          />
-        </div>
+        <SelectField
+          label={t('submit.fieldType')}
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+        >
+          {PUB_TYPES.map((opt) => (
+            <option key={opt} value={opt}>
+              {t(`types.${opt}`)}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField
+          label={t('submit.fieldTheme')}
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+        >
+          {PUB_THEMES.map((opt) => (
+            <option key={opt} value={opt}>
+              {t(`themes.${opt}`)}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField
+          label={t('submit.fieldRegion')}
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+        >
+          {PUB_REGIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {t(`regions.${opt}`)}
+            </option>
+          ))}
+        </SelectField>
+        <TextField
+          label={t('submit.fieldYear')}
+          name="year"
+          type="number"
+          inputMode="numeric"
+          min={1990}
+          max={CURRENT_YEAR + 1}
+          defaultValue={CURRENT_YEAR}
+          required
+        />
       </div>
 
       <fieldset>
@@ -355,73 +317,54 @@ export function PublicationSubmitForm() {
         </div>
       </fieldset>
 
-      <div>
-        <label htmlFor={ids.authors} className="block text-sm text-ink-soft">
-          {t('submit.fieldAuthors')}
-        </label>
-        <Textarea
-          id={ids.authors}
-          value={authors}
-          onChange={(e) => setAuthors(e.target.value)}
-          rows={3}
-          required
-          className="mt-1 resize-y"
-        />
-        <p className="mt-1 text-xs text-muted">{t('submit.authorsHint')}</p>
-      </div>
+      <TextareaField
+        label={t('submit.fieldAuthors')}
+        hint={t('submit.authorsHint')}
+        value={authors}
+        onChange={(e) => setAuthors(e.target.value)}
+        rows={3}
+        required
+      />
 
-      <div>
-        <label htmlFor={ids.abstract} className="block text-sm text-ink-soft">
-          {t('submit.fieldAbstract')}
-        </label>
-        <Textarea
-          id={ids.abstract}
-          name="abstract"
-          rows={6}
-          required
-          maxLength={4000}
-          className="mt-1 resize-y"
-        />
-        <p className="mt-1 text-xs text-muted">{t('submit.abstractHint')}</p>
-      </div>
+      <TextareaField
+        label={t('submit.fieldAbstract')}
+        hint={t('submit.abstractHint')}
+        name="abstract"
+        rows={6}
+        required
+        maxLength={4000}
+      />
 
-      <div>
-        <label htmlFor={ids.keypoints} className="block text-sm text-ink-soft">
-          {t('submit.fieldKeypoints')}
-        </label>
-        <Textarea
-          id={ids.keypoints}
-          name="keypoints"
-          rows={3}
-          className="mt-1 resize-y"
-        />
-        <p className="mt-1 text-xs text-muted">{t('submit.keypointsHint')}</p>
-      </div>
+      <TextareaField
+        label={t('submit.fieldKeypoints')}
+        hint={t('submit.keypointsHint')}
+        name="keypoints"
+        rows={3}
+      />
 
-      <div>
-        <label htmlFor={ids.file} className="block text-sm text-ink-soft">
-          {t('submit.fieldFile')}
-        </label>
-        <input
-          id={ids.file}
-          name="file"
-          type="file"
-          accept="application/pdf,.pdf"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="mt-1 block w-full text-sm text-ink-soft file:mr-3 file:cursor-pointer file:rounded-sm file:border file:border-line-strong file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-line"
-        />
-        <p className="mt-1 text-xs text-muted">
-          {file
+      {/* Champ fichier : contrôle particulier (habillage `file:*`), donc rendu
+          par la coquille du système commun plutôt que réassemblé à la main. */}
+      <Field
+        label={t('submit.fieldFile')}
+        hint={
+          file
             ? t('submit.fileSelected', { name: file.name })
-            : t('submit.fileHint', { mb: MAX_FILE_MB })}
-        </p>
-      </div>
+            : t('submit.fileHint', { mb: MAX_FILE_MB })
+        }
+      >
+        {(control) => (
+          <input
+            {...control}
+            name="file"
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-ink-soft file:mr-3 file:cursor-pointer file:rounded-sm file:border file:border-line-strong file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-line"
+          />
+        )}
+      </Field>
 
-      {error ? (
-        <p role="alert" className="text-sm text-bar-5">
-          {error}
-        </p>
-      ) : null}
+      <FormError>{error}</FormError>
 
       <Button type="submit" disabled={busy} className="w-full sm:w-auto">
         {status === 'uploading'

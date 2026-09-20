@@ -5,9 +5,8 @@ import { useQuery, useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { TextField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminNewsletter() {
@@ -68,29 +67,21 @@ export default function AdminNewsletter() {
         onSubmit={onCreate}
         className="mt-6 space-y-4 rounded-md border border-line bg-surface p-5"
       >
-        <div>
-          <label className="block text-sm text-ink-soft">
-            {t('nlSubject')}
-          </label>
-          <Input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            required
-            maxLength={150}
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <label className="block text-sm text-ink-soft">{t('nlBody')}</label>
-          <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            required
-            rows={8}
-            className="mt-1 resize-y"
-          />
-          <p className="mt-1 text-xs text-muted">{t('nlBodyHint')}</p>
-        </div>
+        <TextField
+          label={t('nlSubject')}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          required
+          maxLength={150}
+        />
+        <TextareaField
+          label={t('nlBody')}
+          hint={t('nlBodyHint')}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          required
+          rows={8}
+        />
         <Button type="submit" disabled={pending} variant="outline">
           {t('nlCreate')}
         </Button>

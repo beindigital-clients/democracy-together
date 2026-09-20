@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { AnimatedBar } from '@/components/motion/animated-bar';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import {
   getBarometerContent,
   CAT_BG,
@@ -26,17 +25,13 @@ const CAT_FILL = [
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = getBarometerContent(resolve(locale));
+  const c = getBarometerContent(resolveLocale(locale));
   return {
     title: c.hero.title,
     description: c.hero.lead,
@@ -90,7 +85,7 @@ export default async function BarometrePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const loc = resolve(locale);
+  const loc = resolveLocale(locale);
   const c = getBarometerContent(loc);
   const catLabel = (cat: 1 | 2 | 3 | 4 | 5) => c.legend[cat - 1].label;
 

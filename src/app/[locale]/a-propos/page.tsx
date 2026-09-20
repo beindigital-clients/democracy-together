@@ -1,18 +1,13 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { getAboutContent } from '@/lib/about';
 import { initials } from '@/lib/about-content';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string) {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 export async function generateMetadata({
   params,
@@ -20,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = await getAboutContent(resolve(locale));
+  const c = await getAboutContent(resolveLocale(locale));
   return {
     title: c.hero.eyebrow,
     description: c.hero.lead,
@@ -52,7 +47,7 @@ export default async function AboutPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const c = await getAboutContent(resolve(locale));
+  const c = await getAboutContent(resolveLocale(locale));
 
   return (
     <div>

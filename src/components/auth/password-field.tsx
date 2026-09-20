@@ -1,7 +1,10 @@
 'use client';
 
-import { useId, useState, type InputHTMLAttributes } from 'react';
+import { useState, type InputHTMLAttributes } from 'react';
 import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Field, type FieldShellProps } from '@/components/ui/field';
 
 function EyeIcon() {
   return (
@@ -38,40 +41,49 @@ function EyeOffIcon() {
   );
 }
 
-// Champ mot de passe avec bascule afficher/masquer (type contrôlé).
-// Association label <-> input explicite (htmlFor/id) : robuste et accessible.
+// Champ mot de passe avec bascule afficher/masquer. Contrôle particulier (un
+// bouton se superpose au champ), donc rendu via la coquille `Field` du système
+// commun : libellé, aide, erreur et rattachement ARIA sont les mêmes qu'ailleurs.
 export function PasswordField({
   label,
-  id,
+  labelHidden,
+  hint,
+  error,
+  className,
+  controlClassName,
   ...props
-}: { label: string } & Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+}: FieldShellProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
   const t = useTranslations('auth');
   const [shown, setShown] = useState(false);
-  const reactId = useId();
-  const fieldId = id ?? reactId;
 
   return (
-    <div>
-      <label htmlFor={fieldId} className="block text-sm text-ink-soft">
-        {label}
-      </label>
-      <div className="relative mt-1">
-        <input
-          id={fieldId}
-          type={shown ? 'text' : 'password'}
-          className="w-full rounded-sm border border-line bg-surface px-3 py-2.5 pr-11 text-ink outline-none transition-colors focus-visible:border-accent-text"
-          {...props}
-        />
-        <button
-          type="button"
-          onClick={() => setShown((s) => !s)}
-          aria-label={shown ? t('hidePassword') : t('showPassword')}
-          aria-pressed={shown}
-          className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-sm text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
-        >
-          {shown ? <EyeOffIcon /> : <EyeIcon />}
-        </button>
-      </div>
-    </div>
+    <Field
+      label={label}
+      labelHidden={labelHidden}
+      hint={hint}
+      error={error}
+      className={className}
+      id={props.id}
+    >
+      {(control) => (
+        <div className="relative">
+          <Input
+            {...props}
+            {...control}
+            type={shown ? 'text' : 'password'}
+            className={cn('pr-11', controlClassName)}
+          />
+          <button
+            type="button"
+            onClick={() => setShown((s) => !s)}
+            aria-label={shown ? t('hidePassword') : t('showPassword')}
+            aria-pressed={shown}
+            className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-sm text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+          >
+            {shown ? <EyeOffIcon /> : <EyeIcon />}
+          </button>
+        </div>
+      )}
+    </Field>
   );
 }

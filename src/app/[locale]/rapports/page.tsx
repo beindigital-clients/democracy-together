@@ -1,16 +1,11 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { getReports } from '@/lib/reports-content';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 export async function generateMetadata({
   params,
@@ -41,7 +36,7 @@ export default async function ReportsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('reports');
-  const reports = getReports(resolve(locale));
+  const reports = getReports(resolveLocale(locale));
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-12 sm:px-6 md:py-16">

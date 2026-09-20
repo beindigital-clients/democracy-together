@@ -2,15 +2,18 @@
 
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from 'convex/react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import {
+  FormError,
+  SelectField,
+  TextField,
+  TextareaField,
+} from '@/components/ui/field';
 import { isRateLimited } from '@/lib/errors';
 import { formField } from '@/lib/validation';
 
@@ -100,58 +103,39 @@ export function ProjectForm() {
       onSubmit={onSubmit}
       className="grid gap-4 rounded-md border border-line bg-surface p-6"
     >
-      <div>
-        <label htmlFor="p-theme" className="block text-sm text-ink-soft">
-          {t('fieldTheme')}
-        </label>
-        <select
-          id="p-theme"
-          name="theme"
-          defaultValue=""
-          required
-          className="mt-1 h-9 w-full rounded-md border border-line bg-paper px-3 text-sm text-ink"
-        >
-          <option value="" disabled>
-            {t('themePlaceholder')}
+      <SelectField
+        label={t('fieldTheme')}
+        id="p-theme"
+        name="theme"
+        defaultValue=""
+        required
+      >
+        <option value="" disabled>
+          {t('themePlaceholder')}
+        </option>
+        {PUB_THEMES.map((s) => (
+          <option key={s} value={s}>
+            {tl(`themes.${s}`)}
           </option>
-          {PUB_THEMES.map((s) => (
-            <option key={s} value={s}>
-              {tl(`themes.${s}`)}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="p-title" className="block text-sm text-ink-soft">
-          {t('fieldTitle')}
-        </label>
-        <Input
-          id="p-title"
-          name="title"
-          required
-          maxLength={160}
-          placeholder={t('titlePlaceholder')}
-          className="mt-1"
-        />
-      </div>
-      <div>
-        <label htmlFor="p-summary" className="block text-sm text-ink-soft">
-          {t('fieldSummary')}
-        </label>
-        <Textarea
-          id="p-summary"
-          name="summary"
-          rows={5}
-          required
-          placeholder={t('summaryPlaceholder')}
-          className="mt-1 resize-y"
-        />
-      </div>
-      {error ? (
-        <p role="alert" className="text-sm text-bar-5">
-          {error}
-        </p>
-      ) : null}
+        ))}
+      </SelectField>
+      <TextField
+        label={t('fieldTitle')}
+        id="p-title"
+        name="title"
+        required
+        maxLength={160}
+        placeholder={t('titlePlaceholder')}
+      />
+      <TextareaField
+        label={t('fieldSummary')}
+        id="p-summary"
+        name="summary"
+        rows={5}
+        required
+        placeholder={t('summaryPlaceholder')}
+      />
+      <FormError>{error}</FormError>
       <div>
         <Button type="submit" disabled={status === 'pending'}>
           {t('submit')}

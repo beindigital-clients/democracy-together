@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { UrlSortSelect } from '@/components/ui/url-sort-select';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import {
   EVENTS,
   FEATURED_SLUG,
@@ -24,17 +23,13 @@ import {
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const L = getEventsLabels(resolve(locale));
+  const L = getEventsLabels(resolveLocale(locale));
   return {
     title: L.hero.title,
     description: L.hero.lead,
@@ -70,7 +65,7 @@ export default async function EventsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const loc = resolve(locale);
+  const loc = resolveLocale(locale);
   const L = getEventsLabels(loc);
   const tc = await getTranslations('calendar');
   const filters = parseEventFilters(await searchParams);

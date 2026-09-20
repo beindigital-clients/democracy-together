@@ -1,12 +1,11 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { FormError, SelectField, TextField } from '@/components/ui/field';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
 import { isEmail } from '@/lib/validation';
 
@@ -20,7 +19,6 @@ type Status = 'idle' | 'pending' | 'created' | 'existing' | 'error';
 export function InviteUserForm() {
   const t = useTranslations('admin');
   const invite = useMutation(api.users.inviteUser);
-  const ids = { email: useId(), role: useId() };
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<NetworkRole>('membre');
   const [status, setStatus] = useState<Status>('idle');
@@ -52,40 +50,32 @@ export function InviteUserForm() {
       </p>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
-        <div>
-          <label htmlFor={ids.email} className="block text-sm text-ink-soft">
-            {t('inviteEmail')}
-          </label>
-          <Input
-            id={ids.email}
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (status !== 'idle') setStatus('idle');
-            }}
-            aria-invalid={status === 'error' || undefined}
-            className="mt-1 min-w-[16rem]"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor={ids.role} className="block text-sm text-ink-soft">
-            {t('inviteRole')}
-          </label>
-          <Select
-            id={ids.role}
-            value={role}
-            onChange={(e) => setRole(e.target.value as NetworkRole)}
-            className="mt-1"
-          >
-            {ROLE_ORDER.map((r) => (
-              <option key={r} value={r}>
-                {t(`role_${r}`)}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <TextField
+          label={t('inviteEmail')}
+          type="email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (status !== 'idle') setStatus('idle');
+          }}
+          // L'erreur d'adresse s'affiche sous le formulaire (elle vaut aussi
+          // pour l'envoi) ; le champ, lui, est marqué invalide ici.
+          aria-invalid={status === 'error' || undefined}
+          controlClassName="min-w-[16rem]"
+          required
+        />
+        <SelectField
+          label={t('inviteRole')}
+          value={role}
+          onChange={(e) => setRole(e.target.value as NetworkRole)}
+          controlClassName="w-auto"
+        >
+          {ROLE_ORDER.map((r) => (
+            <option key={r} value={r}>
+              {t(`role_${r}`)}
+            </option>
+          ))}
+        </SelectField>
         <Button type="submit" disabled={status === 'pending'}>
           {t('inviteSubmit')}
         </Button>
@@ -100,9 +90,7 @@ export function InviteUserForm() {
           {t('inviteExisting')}
         </p>
       ) : status === 'error' ? (
-        <p role="alert" className="mt-3 text-[13px] text-bar-1">
-          {t('inviteError')}
-        </p>
+        <FormError className="mt-3 text-[13px]">{t('inviteError')}</FormError>
       ) : null}
     </form>
   );
