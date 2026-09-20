@@ -11,7 +11,7 @@ import {
   MAP_DATA,
   type Trend,
 } from '@/lib/barometer-content';
-import type { RegionMapItem } from '@/components/map/region-map';
+import type { RegionMapItem } from '@/components/map/types';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 
 // Couleurs de remplissage de la carte par catégorie (1 = plus libre … 5).

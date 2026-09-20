@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { DirectoryFilters } from '@/components/directory/directory-filters';
 import { OrgCard } from '@/components/directory/org-card';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import type { RegionMapItem } from '@/components/map/region-map';
+import type { RegionMapItem } from '@/components/map/types';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { mapNameForIso } from '@/lib/country-map';
 import { countryName } from '@/lib/orgs';
