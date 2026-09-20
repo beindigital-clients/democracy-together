@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { seedDirectory, latestApplicationForEmail } from './_helpers';
+import { expectFieldError, expectNoFieldError } from './_fields';
 
 test.use({ locale: 'fr-FR' });
 
@@ -38,16 +39,37 @@ test('adhésion : bascule individu adapte le libellé (F-22)', async ({
   await expect(page.getByLabel('Nom et prénom')).toBeVisible();
 });
 
-test('adhésion : validation bloque un envoi invalide (F-22)', async ({
+// Le formulaire cité par l'issue #37 : trois causes de refus, un seul message.
+// Chacune porte désormais son champ — et la présentation, le champ le plus long
+// à écrire, survit au refus.
+test('adhésion : chaque champ fautif porte son message (F-22, #37)', async ({
   page,
 }) => {
+  const presentation =
+    'Nous travaillons sur la gouvernance démocratique au Sahel.';
   await page.goto('/fr/adhesion');
   await page.getByLabel('Nom du think tank').fill('X');
   await page.getByLabel('E-mail de contact').fill('pas-un-email');
   await page.getByLabel('Pays').fill('Sénégal');
+  await page.getByLabel('Présentation (optionnel)').fill(presentation);
   await page.getByRole('button', { name: 'Envoyer ma candidature' }).click();
 
-  await expect(page.getByText(/Veuillez renseigner un nom/)).toBeVisible();
+  const name = page.getByLabel('Nom du think tank');
+  await expectFieldError(page, name, /Indiquez un nom/);
+  await expectFieldError(
+    page,
+    page.getByLabel('E-mail de contact'),
+    /adresse e-mail de contact valide/,
+  );
+  // Le pays est correct : il n'est pas mis en cause.
+  await expectNoFieldError(page.getByLabel('Pays'));
+  // Le premier champ fautif prend le focus.
+  await expect(name).toBeFocused();
+  // Rien n'est perdu, la présentation en premier.
+  await expect(page.getByLabel('Présentation (optionnel)')).toHaveValue(
+    presentation,
+  );
+
   await expect(
     page.getByRole('heading', { name: 'Candidature reçue' }),
   ).toHaveCount(0);

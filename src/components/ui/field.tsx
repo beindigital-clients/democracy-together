@@ -1,11 +1,13 @@
 'use client';
 
 import {
+  useCallback,
   useId,
-  type InputHTMLAttributes,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ComponentProps,
   type ReactNode,
-  type SelectHTMLAttributes,
-  type TextareaHTMLAttributes,
 } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -29,10 +31,14 @@ import { Textarea } from '@/components/ui/textarea';
 // de passe, code à usage unique, fichier) passent par la coquille elle-même,
 // qui leur remet ce rattachement.
 //
-// Les emplacements d'ARIA et de valeur contrôlée sont prévus ici et restent
-// vides tant qu'aucun appelant ne les remplit : c'est ce qui permettra à #12
-// (accessibilité) et #37 (UX des formulaires) de brancher les erreurs par
-// champ et la conservation des saisies en UN SEUL endroit.
+// Les emplacements d'ARIA et de valeur contrôlée prévus ici sont désormais
+// remplis, en un seul endroit, par `useFormFields` (bas de fichier) : erreurs
+// par champ (#12, #37) et saisies conservées après un refus serveur (#37).
+//
+// Les props des champs sont celles de leur balise (`ComponentProps<'input'>` et
+// consorts) plutôt que les seuls attributs HTML : c'est ce qui laisse passer
+// `ref`, dont `useFormFields` a besoin pour porter le focus sur le premier
+// champ fautif.
 
 // Ce que la coquille remet au contrôle : de quoi être nommé et décrit.
 export type FieldControlProps = {
@@ -128,7 +134,7 @@ export function TextField({
   className,
   controlClassName,
   ...props
-}: FieldShellProps & InputHTMLAttributes<HTMLInputElement>) {
+}: FieldShellProps & ComponentProps<'input'>) {
   return (
     <Field
       label={label}
@@ -153,7 +159,7 @@ export function TextareaField({
   className,
   controlClassName,
   ...props
-}: FieldShellProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+}: FieldShellProps & ComponentProps<'textarea'>) {
   return (
     <Field
       label={label}
@@ -183,7 +189,7 @@ export function SelectField({
   controlClassName,
   children,
   ...props
-}: FieldShellProps & SelectHTMLAttributes<HTMLSelectElement>) {
+}: FieldShellProps & ComponentProps<'select'>) {
   return (
     <Field
       label={label}
@@ -224,4 +230,99 @@ export function FormError({
       {children}
     </p>
   );
+}
+
+// ---------------------------------------------------------------------------
+// ÉTAT DE SAISIE — valeurs conservées, erreurs par champ (issue #37)
+//
+// Deux manques allaient ensemble. Un envoi invalide affichait UN message en bas
+// de formulaire pour trois causes possibles : à la personne de deviner lequel
+// des six champs pose problème. Et les valeurs, lues par `FormData` au moment
+// de l'envoi, n'étaient rattachées à rien : rien ne garantissait leur survie à
+// un refus serveur — or perdre un texte de motivation après un rate-limit, sur
+// une connexion instable, c'est perdre plusieurs minutes de rédaction.
+//
+// `useFormFields` tient les deux : les valeurs vivent dans l'état (elles ne
+// dépendent donc plus du DOM), et chaque message va au champ qui l'a causé, via
+// la prop `error` de la coquille — donc avec `aria-invalid` et
+// `aria-describedby` (#12), sans que ce câblage soit réécrit nulle part.
+
+// Règle de validation d'un champ : le message à afficher, ou `null` si la
+// valeur convient.
+export type FieldRule = (value: string) => string | null;
+
+type ControlChangeEvent = ChangeEvent<
+  HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+>;
+
+export function useFormFields<K extends string>(initial: Record<K, string>) {
+  const [values, setValues] = useState<Record<K, string>>(initial);
+  const [errors, setErrors] = useState<Partial<Record<K, string>>>({});
+  // Les valeurs de départ, figées au premier rendu : `reset` y revient sans
+  // obliger l'appelant à les mémoïser.
+  const initialValues = useRef(initial);
+  // Les contrôles rendus, pour porter le focus sur le premier champ fautif.
+  const controls = useRef(new Map<K, HTMLElement>());
+
+  // Identité stable (les deux setters d'état le sont) : un effet qui
+  // pré-remplit un champ peut en dépendre sans se relancer à chaque rendu.
+  const setValue = useCallback((name: K, value: string) => {
+    setValues((current) => ({ ...current, [name]: value }));
+    // Le message s'efface dès que le champ est retouché : le maintenir pendant
+    // la correction, c'est accuser une saisie déjà réparée. La validation
+    // complète, elle, est rejouée à l'envoi — pas à chaque frappe.
+    setErrors((current) => {
+      if (current[name] === undefined) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+  }, []);
+
+  // Ce qu'un champ reçoit : sa valeur, son message, et de quoi les tenir à jour.
+  // `onChange` accepte l'événement des contrôles natifs comme la valeur nue que
+  // rendent les contrôles composés (le code à usage unique) : un seul `field`
+  // sert les deux, donc un seul endroit où les valeurs et les messages vivent.
+  function field(name: K) {
+    return {
+      name,
+      value: values[name],
+      error: errors[name],
+      onChange: (event: ControlChangeEvent | string) =>
+        setValue(name, typeof event === 'string' ? event : event.target.value),
+      ref: (element: HTMLElement | null) => {
+        if (element) controls.current.set(name, element);
+        else controls.current.delete(name);
+      },
+    };
+  }
+
+  // Applique les règles et garde les messages. Les règles sont parcourues dans
+  // leur ordre de déclaration — celui des champs à l'écran : le premier champ
+  // fautif reçoit le FOCUS, ce qui fait lire son libellé, son état invalide et
+  // son message (qui le décrit) sans que personne ait à chercher.
+  function validate(rules: Partial<Record<K, FieldRule>>): boolean {
+    const found: Partial<Record<K, string>> = {};
+    let first: K | undefined;
+    for (const name of Object.keys(rules) as K[]) {
+      const message = rules[name]?.(values[name] ?? '');
+      if (message !== null && message !== undefined) {
+        found[name] = message;
+        first ??= name;
+      }
+    }
+    setErrors(found);
+    if (first !== undefined) controls.current.get(first)?.focus();
+    return first === undefined;
+  }
+
+  const reset = useCallback((next?: Partial<Record<K, string>>) => {
+    setValues({ ...initialValues.current, ...next });
+    setErrors({});
+  }, []);
+
+  // `errors` n'est pas rendu : le message d'un champ se lit par `field(nom)`,
+  // qui le passe déjà à la coquille. Deux chemins vers la même donnée, c'est
+  // l'occasion qu'ils divergent.
+  return { values, field, setValue, validate, reset };
 }

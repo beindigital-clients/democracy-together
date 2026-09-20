@@ -5,9 +5,14 @@ import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
-import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import {
+  FormError,
+  TextField,
+  TextareaField,
+  useFormFields,
+} from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { formField, isEmail } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 type ApplicantType = 'organisation' | 'individu';
@@ -15,6 +20,10 @@ type ApplicantType = 'organisation' | 'individu';
 // Formulaire de candidature d'adhésion (F-22) — îlot client. Extrait de la page
 // /adhesion pour pouvoir l'intégrer dans la mise en page éditoriale (sections
 // serveur). Sélecteurs/i18n inchangés (tests E2E membership.spec).
+//
+// C'est le formulaire que citait l'issue #37 : trois causes de refus, un seul
+// message en bas de page. Chaque règle porte désormais son champ, et la
+// présentation — le champ le plus long à écrire — survit à un refus serveur.
 export function MembershipForm() {
   const t = useTranslations('membership');
   const apply = useAction(api.organizations.submitApplication);
@@ -22,22 +31,24 @@ export function MembershipForm() {
   const [type, setType] = useState<ApplicantType>('organisation');
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const { values, field, validate } = useFormFields({
+    organizationName: '',
+    contactEmail: '',
+    country: '',
+    message: '',
+  });
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const organizationName = formField(fd, 'organizationName').trim();
-    const contactEmail = formField(fd, 'contactEmail').trim();
-    const country = formField(fd, 'country').trim();
-    const message = formField(fd, 'message').trim();
 
     if (
-      organizationName.length < 2 ||
-      !isEmail(contactEmail) ||
-      country.length < 2
+      !validate({
+        organizationName: (v) => (v.trim().length < 2 ? t('errName') : null),
+        contactEmail: (v) => (isEmail(v) ? null : t('errEmail')),
+        country: (v) => (v.trim().length < 2 ? t('errCountry') : null),
+      })
     ) {
-      setError(t('errorInvalid'));
       return;
     }
 
@@ -46,10 +57,10 @@ export function MembershipForm() {
       const captchaToken = await executeRecaptcha('membership');
       await apply({
         type,
-        organizationName,
-        contactEmail,
-        country,
-        message: message || undefined,
+        organizationName: values.organizationName.trim(),
+        contactEmail: values.contactEmail.trim(),
+        country: values.country.trim(),
+        message: values.message.trim() || undefined,
         captchaToken,
       });
       setStatus('success');
@@ -108,31 +119,31 @@ export function MembershipForm() {
 
           <TextField
             label={type === 'organisation' ? t('orgName') : t('personName')}
-            name="organizationName"
             autoComplete="organization"
             required
+            {...field('organizationName')}
           />
 
           <TextField
             label={t('email')}
-            name="contactEmail"
             type="email"
             autoComplete="email"
             required
+            {...field('contactEmail')}
           />
 
           <TextField
             label={t('country')}
-            name="country"
             autoComplete="country-name"
             required
+            {...field('country')}
           />
 
           <TextareaField
             label={t('message')}
-            name="message"
             rows={5}
             placeholder={t('messagePlaceholder')}
+            {...field('message')}
           />
 
           <FormError>{error}</FormError>

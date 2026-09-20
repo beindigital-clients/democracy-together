@@ -11,9 +11,10 @@ import {
   SelectField,
   TextField,
   TextareaField,
+  useFormFields,
 } from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
-import { formField, isEmail } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Candidature au hub Jeunes (F-58) — îlot client sur /jeunes (#rejoindre). Sans
@@ -26,30 +27,40 @@ export function YouthApplyForm() {
   const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const { values, field, validate } = useFormFields({
+    name: '',
+    email: '',
+    country: '',
+    theme: '',
+    motivation: '',
+  });
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const name = formField(fd, 'name').trim();
-    const email = formField(fd, 'email').trim();
-    const country = formField(fd, 'country').trim();
-    const theme = formField(fd, 'theme').trim();
-    const motivation = formField(fd, 'motivation').trim();
-    if (name.length < 2) return setError(t('errName'));
-    if (!isEmail(email)) return setError(t('errEmail'));
-    if (country.length < 2) return setError(t('errCountry'));
-    if (motivation.length < 10) return setError(t('errMotivation'));
+    // Les messages existaient déjà, un par cause — mais tous affichés au même
+    // endroit, en bas. Ils vont maintenant à leur champ.
+    if (
+      !validate({
+        name: (v) => (v.trim().length < 2 ? t('errName') : null),
+        email: (v) => (isEmail(v) ? null : t('errEmail')),
+        country: (v) => (v.trim().length < 2 ? t('errCountry') : null),
+        motivation: (v) => (v.trim().length < 10 ? t('errMotivation') : null),
+      })
+    ) {
+      return;
+    }
 
     setStatus('pending');
     try {
       const captchaToken = await executeRecaptcha('youth_apply');
+      const theme = values.theme.trim();
       await apply({
-        name,
-        email,
-        country,
+        name: values.name.trim(),
+        email: values.email.trim(),
+        country: values.country.trim(),
         themes: theme ? [theme] : undefined,
-        motivation,
+        motivation: values.motivation.trim(),
         locale: locale === 'en' ? 'en' : 'fr',
         captchaToken,
       });
@@ -80,25 +91,31 @@ export function YouthApplyForm() {
   return (
     <form
       onSubmit={onSubmit}
+      noValidate
       className="grid gap-4 rounded-md border border-line bg-surface p-6 sm:grid-cols-2"
     >
       <TextField
         label={t('name')}
         id="y-name"
-        name="name"
         autoComplete="name"
         required
+        {...field('name')}
       />
       <TextField
         label={t('email')}
         id="y-email"
-        name="email"
         type="email"
         autoComplete="email"
         required
+        {...field('email')}
       />
-      <TextField label={t('country')} id="y-country" name="country" required />
-      <SelectField label={t('theme')} id="y-theme" name="theme" defaultValue="">
+      <TextField
+        label={t('country')}
+        id="y-country"
+        required
+        {...field('country')}
+      />
+      <SelectField label={t('theme')} id="y-theme" {...field('theme')}>
         <option value="">{t('themeNone')}</option>
         {PUB_THEMES.map((s) => (
           <option key={s} value={s}>
@@ -110,10 +127,10 @@ export function YouthApplyForm() {
         label={t('motivation')}
         className="sm:col-span-2"
         id="y-motivation"
-        name="motivation"
         rows={4}
         required
         placeholder={t('motivationPlaceholder')}
+        {...field('motivation')}
       />
       <FormError className="sm:col-span-2">{error}</FormError>
       <div className="sm:col-span-2">
