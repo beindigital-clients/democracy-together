@@ -8,6 +8,7 @@ import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { isNetworkTheme, networkThemeValidator } from './lib/themes';
+import { locale } from './schema';
 import {
   trackTribunePostStatus,
   trackTribuneCommentStatus,
@@ -34,6 +35,10 @@ const postDetailValidator = v.object({
   format: v.union(v.literal('court'), v.literal('fond')),
   title: v.string(),
   body: v.string(),
+  // Langue de rédaction : la fiche en a besoin pour son canonical et pour
+  // l'attribut `lang` de l'article (issue #35). Absente sur les billets
+  // antérieurs au champ — le repli appartient à `resolveLocale`, côté Next.
+  lang: v.optional(locale),
   authorName: v.string(),
   commentCount: v.number(),
   createdAt: v.number(),
@@ -61,6 +66,11 @@ export const createPost = mutation({
     format: v.union(v.literal('court'), v.literal('fond')),
     title: v.string(),
     body: v.string(),
+    // Déclarée par l'auteur (le composer la pré-remplit avec la langue de
+    // l'interface, sans l'imposer : on écrit en anglais depuis une interface
+    // française). Vocabulaire fermé : une valeur hors `locale` est refusée par
+    // le validateur, jamais repliée en silence.
+    lang: locale,
   },
   handler: async (ctx, args) => {
     const user = await requireNetworkRole(ctx, 'membre');
@@ -86,6 +96,7 @@ export const createPost = mutation({
       format: args.format,
       title,
       body,
+      lang: args.lang,
       status: 'published',
       commentCount: 0,
       createdAt: Date.now(),
@@ -280,6 +291,7 @@ export const getPost = query({
       format: post.format,
       title: post.title,
       body: post.body,
+      lang: post.lang,
       authorName: post.authorName,
       commentCount: post.commentCount,
       createdAt: post.createdAt,
