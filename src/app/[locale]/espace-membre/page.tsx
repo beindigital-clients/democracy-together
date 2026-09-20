@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { isStaff, isMember } from '@/lib/roles';
 import { formatLongDate } from '@/lib/publications';
+import { vocabulary } from '@/i18n/vocabulary';
 const STATUS_BADGE: Record<string, string> = {
   published:
     'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
@@ -75,7 +76,7 @@ function MyContributions() {
                     ) : null}
                   </td>
                   <td className="hidden px-4 py-3 text-ink-soft sm:table-cell">
-                    {t(`types.${p.type}`)}
+                    {vocabulary(t, 'types.', p.type)}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -83,7 +84,7 @@ function MyContributions() {
                         STATUS_BADGE[p.status] ?? STATUS_BADGE.draft
                       }`}
                     >
-                      {t(`status.${p.status}`)}
+                      {vocabulary(t, 'status.', p.status)}
                     </span>
                   </td>
                   <td className="hidden whitespace-nowrap px-4 py-3 font-mono text-xs text-muted md:table-cell">

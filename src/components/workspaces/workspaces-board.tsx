@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/field';
 import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
+import { vocabulary } from '@/i18n/vocabulary';
 
 // Formulaire de création d'espace (membre réseau). Réplique le motif du
 // composer de la Tribune (champs Input/Textarea, select natif de thème).
@@ -87,7 +88,7 @@ function CreateForm() {
         >
           {PUB_THEMES.map((s) => (
             <option key={s} value={s}>
-              {tl(`themes.${s}`)}
+              {vocabulary(tl, 'themes.', s)}
             </option>
           ))}
         </SelectField>
@@ -187,7 +188,7 @@ export function WorkspacesBoard() {
                   >
                     <div className="flex flex-wrap items-center gap-2 text-[12px]">
                       <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
-                        {tl(`themes.${w.theme}`)}
+                        {vocabulary(tl, 'themes.', w.theme)}
                       </span>
                       {w.mine ? (
                         <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">

@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
+import { vocabulary } from '@/i18n/vocabulary';
 import {
   toggleHref,
   type LibraryFilters,
@@ -103,7 +104,7 @@ export async function LibraryFacets({
                       ) : null}
                     </span>
                     <span className={active ? 'text-ink' : undefined}>
-                      {t(`${g.ns}.${opt.value}`)}
+                      {vocabulary(t, `${g.ns}.`, opt.value)}
                     </span>
                     <span className="ml-auto font-mono text-[11px] text-muted">
                       {opt.count}

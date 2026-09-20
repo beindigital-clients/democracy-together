@@ -14,6 +14,7 @@ import {
 import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { vocabulary } from '@/i18n/vocabulary';
 
 type ApplicantType = 'organisation' | 'individu';
 
@@ -111,7 +112,7 @@ export function MembershipForm() {
                     onChange={() => setType(opt)}
                     className="sr-only"
                   />
-                  {t(`type_${opt}`)}
+                  {vocabulary(t, 'type_', opt)}
                 </label>
               ))}
             </div>

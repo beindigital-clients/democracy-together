@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
 import { getThemeSyntheses } from '@/lib/themes-content';
+import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -78,7 +79,7 @@ export default async function ThematiquesPage({
                 </span>
               </div>
               <h2 className="mt-3 font-display text-2xl leading-tight">
-                {tl(`themes.${s.slug}`)}
+                {vocabulary(tl, 'themes.', s.slug)}
               </h2>
               <p className="mt-2 flex-1 text-[15px] leading-relaxed text-ink-soft">
                 {s.lead}
