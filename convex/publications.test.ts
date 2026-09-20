@@ -510,6 +510,221 @@ describe('Modération de publication (F-32 / F-26)', () => {
   });
 });
 
+describe('Modération de publication — machine à états (issue #9)', () => {
+  // Même mise en place que la file de modération : un dépôt membre réel, donc
+  // une publication en 'pending' avec un auteur.
+  async function setup() {
+    const t = convexTest(schema, modules);
+    const memberId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
+    );
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const { id } = await t
+      .withIdentity({ subject: `${memberId}|s` })
+      .mutation(api.publications.submitPublication, SUBMIT);
+    return { t, asMod: t.withIdentity({ subject: `${modId}|s` }), id };
+  }
+
+  const reviewedAudit = (t: ReturnType<typeof convexTest>) =>
+    t.run((ctx) =>
+      ctx.db
+        .query('auditLog')
+        .withIndex('by_action', (q) => q.eq('action', 'publication.reviewed'))
+        .collect(),
+    );
+
+  it('refuse de rejouer OU d’inverser une décision déjà prise', async () => {
+    const { t, asMod, id } = await setup();
+    await asMod.mutation(api.publications.reviewPublication, {
+      publicationId: id,
+      decision: 'approved',
+    });
+
+    // Rejeu (double clic sur « Approuver ») : sans garde, la date de
+    // publication et le DOI seraient réécrits et le journal montrerait deux
+    // décisions.
+    await expect(
+      asMod.mutation(api.publications.reviewPublication, {
+        publicationId: id,
+        decision: 'approved',
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+
+    // Inversion : « Rejeter » après « Approuver » dépublierait en silence un
+    // document déjà en ligne. Le retrait est une autre décision (issue #32).
+    await expect(
+      asMod.mutation(api.publications.reviewPublication, {
+        publicationId: id,
+        decision: 'rejected',
+        notes: 'Finalement non.',
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+
+    // La publication est intacte, et le journal ne porte qu'UNE décision : le
+    // throw annule la transaction, donc aussi la ligne d'audit.
+    const doc = await t.run((ctx) => ctx.db.get(id));
+    expect(doc?.status).toBe('published');
+    expect(doc?.reviewNotes).toBeUndefined();
+    expect(await reviewedAudit(t)).toHaveLength(1);
+  });
+
+  it('refuse de rejouer OU d’inverser un refus (il faut rouvrir)', async () => {
+    const { t, asMod, id } = await setup();
+    await asMod.mutation(api.publications.reviewPublication, {
+      publicationId: id,
+      decision: 'rejected',
+      notes: 'Préciser la méthodologie.',
+    });
+
+    for (const decision of ['rejected', 'approved'] as const) {
+      await expect(
+        asMod.mutation(api.publications.reviewPublication, {
+          publicationId: id,
+          decision,
+        }),
+      ).rejects.toThrow('ALREADY_REVIEWED');
+    }
+
+    const doc = await t.run((ctx) => ctx.db.get(id));
+    expect(doc?.status).toBe('draft');
+    expect(doc?.reviewNotes).toBe('Préciser la méthodologie.');
+    expect(await reviewedAudit(t)).toHaveLength(1);
+    // et elle n'est pas passée en ligne au second tour
+    const published = await t.query(api.publications.listPublished, {});
+    expect(published.items.some((p) => p._id === id)).toBe(false);
+  });
+
+  it('refuse d’approuver un brouillon jamais soumis', async () => {
+    const t = convexTest(schema, modules);
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const asMod = t.withIdentity({ subject: `${modId}|s` });
+    // Un brouillon : jamais soumis, donc jamais relu (pas de `reviewedAt`).
+    const draftId = await t.run((ctx) =>
+      ctx.db.insert('publications', {
+        title: 'Notes de travail',
+        slug: 'notes-de-travail',
+        type: 'note',
+        theme: 'participation',
+        region: 'mondial',
+        languages: ['fr'],
+        access: 'open',
+        authors: [{ name: 'A. Auteur' }],
+        year: 2025,
+        publishedAt: 0,
+        abstract: 'Des notes qui ne sont pas prêtes.',
+        keypoints: [],
+        body: [],
+        doi: '',
+        downloads: 0,
+        citations: 0,
+        status: 'draft',
+        createdAt: 0,
+      }),
+    );
+
+    await expect(
+      asMod.mutation(api.publications.reviewPublication, {
+        publicationId: draftId,
+        decision: 'approved',
+      }),
+    ).rejects.toThrow('INVALID_TRANSITION');
+    // et on ne la remet pas non plus dans la file par la porte de derrière
+    await expect(
+      asMod.mutation(api.publications.reopenPublicationReview, {
+        publicationId: draftId,
+      }),
+    ).rejects.toThrow('INVALID_TRANSITION');
+
+    expect(await t.run((ctx) => ctx.db.get(draftId))).toMatchObject({
+      status: 'draft',
+    });
+  });
+
+  it('réouverture : un refus revient dans la file, tracé, et se décide à nouveau', async () => {
+    const { t, asMod, id } = await setup();
+    await asMod.mutation(api.publications.reviewPublication, {
+      publicationId: id,
+      decision: 'rejected',
+      notes: 'Refus prononcé par erreur.',
+    });
+
+    // Réservé au staff : l'auteur ne rouvre pas son propre refus.
+    const memberId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'membre', email: 'autre@test.org' }),
+    );
+    await expect(
+      t
+        .withIdentity({ subject: `${memberId}|s` })
+        .mutation(api.publications.reopenPublicationReview, {
+          publicationId: id,
+        }),
+    ).rejects.toThrow();
+
+    await asMod.mutation(api.publications.reopenPublicationReview, {
+      publicationId: id,
+    });
+
+    const reopened = await t.run((ctx) => ctx.db.get(id));
+    expect(reopened?.status).toBe('pending');
+    // la note du refus reste : elle dit pourquoi la décision avait été prise
+    expect(reopened?.reviewNotes).toBe('Refus prononcé par erreur.');
+    // et le retour en arrière porte son propre nom dans le journal
+    const reopenAudit = await t.run((ctx) =>
+      ctx.db
+        .query('auditLog')
+        .withIndex('by_action', (q) => q.eq('action', 'publication.reopened'))
+        .collect(),
+    );
+    expect(reopenAudit).toHaveLength(1);
+    expect(reopenAudit[0].metadata).toMatchObject({ from: 'rejected' });
+
+    // de retour dans la file, la publication se décide à nouveau — une fois.
+    const { page: queue } = await asMod.query(api.publications.listForReview, {
+      ...PAGE,
+      status: 'pending',
+    });
+    expect(queue).toHaveLength(1);
+    // et le compteur du tableau de bord la recompte (issue #8) : une file qui
+    // affiche « 0 en attente » alors qu'elle en contient une est un écran qui
+    // ment.
+    const pending = await t.run((ctx) =>
+      ctx.db
+        .query('counters')
+        .withIndex('by_key', (q) => q.eq('key', 'publications.pending'))
+        .unique(),
+    );
+    expect(pending?.value).toBe(1);
+    await asMod.mutation(api.publications.reviewPublication, {
+      publicationId: id,
+      decision: 'approved',
+    });
+    expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({
+      status: 'published',
+    });
+  });
+
+  it('réouverture : une publication EN LIGNE ne se rouvre pas (retrait = #32)', async () => {
+    const { t, asMod, id } = await setup();
+    await asMod.mutation(api.publications.reviewPublication, {
+      publicationId: id,
+      decision: 'approved',
+    });
+
+    await expect(
+      asMod.mutation(api.publications.reopenPublicationReview, {
+        publicationId: id,
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+    expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({
+      status: 'published',
+    });
+  });
+});
+
 describe('Dépôt de publication (F-32) — validation serveur du fichier', () => {
   async function asMember() {
     const t = convexTest(schema, modules);

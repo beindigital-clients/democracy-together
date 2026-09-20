@@ -7,6 +7,7 @@ import { requireNetworkRole, getCurrentUser, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
+import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import {
   enforceRateLimit,
   consumePublicationViewQuota,
@@ -422,6 +423,10 @@ const reviewItemValidator = v.object({
     v.literal('published'),
   ),
   submittedAt: v.number(),
+  // Date de la dernière décision. Un `draft` qui en porte une est un REFUS,
+  // pas un brouillon jamais soumis (issue #32) : c'est ce qui décide si
+  // l'écran propose « Rouvrir » (issue #9).
+  reviewedAt: v.union(v.number(), v.null()),
   reviewNotes: v.union(v.string(), v.null()),
   authorEmail: v.union(v.string(), v.null()),
   fileName: v.union(v.string(), v.null()),
@@ -470,6 +475,9 @@ export const listForReview = query({
           authors: p.authors,
           status: p.status,
           submittedAt: p.submittedAt ?? p.createdAt,
+          // Un `draft` AVEC `reviewedAt` est un refus, pas un brouillon jamais
+          // soumis (issue #32) : c'est ce qui rend le bouton « Rouvrir ».
+          reviewedAt: p.reviewedAt ?? null,
           reviewNotes: p.reviewNotes ?? null,
           authorEmail:
             (p.authorUserId ? authors.get(p.authorUserId)?.email : null) ??
@@ -481,6 +489,47 @@ export const listForReview = query({
     };
   },
 });
+
+// --- Machine à états de la modération (audit M6 · issue #9) -----------------
+//
+//   draft ─────────────────────────────────────────► (cul-de-sac)
+//   pending ──approved─► published        pending ──rejected─► rejected
+//   rejected ──reopenPublicationReview──► pending
+//   published ─────────────────────────────────────► (cul-de-sac ici)
+//
+// Trois points tranchés :
+//
+//  1. un `draft` ne s'approuve PAS. Un brouillon jamais soumis n'a été proposé
+//     à personne ; l'approuver publierait un texte que son auteur n'a pas mis
+//     en revue.
+//  2. une décision ne se rejoue ni ne s'inverse. « Rejeter » après avoir
+//     approuvé dépublierait en silence, sur un simple second clic, un document
+//     déjà en ligne et déjà indexé.
+//  3. le RETRAIT d'une publication en ligne n'est pas un rejeu de revue :
+//     c'est une sortie de catalogue, qui attend l'état `archived` de l'issue
+//     #32. Tant qu'il n'existe pas, `published` est un cul-de-sac ici.
+//
+// `rejected` n'est pas (encore) un statut au schéma — c'est l'objet de l'issue
+// #32 — donc un refus retombe en `draft`. On reconstitue l'état réel avec
+// `reviewedAt` : sans cela, un brouillon jamais soumis et un refus prononcé
+// seraient le même état, et la garde du point 1 tomberait.
+type PublicationReviewState = Doc<'publications'>['status'] | 'rejected';
+
+const PUBLICATION_REVIEW: ReviewMachine<PublicationReviewState> = {
+  transitions: {
+    draft: [],
+    pending: ['published', 'rejected'],
+    rejected: ['pending'],
+    published: [],
+  },
+  decided: ['published', 'rejected'],
+};
+
+function reviewState(pub: Doc<'publications'>): PublicationReviewState {
+  return pub.status === 'draft' && pub.reviewedAt !== undefined
+    ? 'rejected'
+    : pub.status;
+}
 
 // Lit les auteurs d'une page en dédoublonnant les identifiants.
 async function loadAuthors(
@@ -500,7 +549,8 @@ async function loadAuthors(
   return out;
 }
 
-// Décision de modération (F-32) — modérateur et au-dessus, audité.
+// Décision de modération (F-32) — modérateur et au-dessus, audité. N'accepte
+// qu'une publication SOUMISE (`pending`), cf. la machine ci-dessus.
 //  - approved : la publication devient publique (status 'published' ; date et
 //    DOI interne attribués si absents) ;
 //  - rejected : retour en brouillon, avec une note pour l'auteur.
@@ -514,6 +564,11 @@ export const reviewPublication = mutation({
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
     const pub = await ctx.db.get(publicationId);
     if (!pub) throw new Error('NOT_FOUND');
+    assertTransition(
+      reviewState(pub),
+      decision === 'approved' ? 'published' : 'rejected',
+      PUBLICATION_REVIEW,
+    );
 
     const now = Date.now();
     const reviewNotes = notes?.trim() || undefined;
@@ -527,6 +582,8 @@ export const reviewPublication = mutation({
         reviewNotes,
       });
     } else {
+      // Faute d'un statut `rejected` (issue #32), un refus retombe en `draft` ;
+      // c'est `reviewedAt` qui le distingue d'un brouillon jamais soumis.
       await ctx.db.patch(publicationId, {
         status: 'draft',
         reviewedBy: reviewer._id,
@@ -564,5 +621,45 @@ export const reviewPublication = mutation({
       targetId: publicationId,
       metadata: { decision },
     });
+  },
+});
+
+// Réouverture d'un refus (issue #9) — modérateur et au-dessus, audité.
+//
+// C'est LA transition arrière de la modération, et elle porte un nom : un refus
+// prononcé par erreur retourne dans la file (`pending`) sous sa propre action
+// d'audit (`publication.reopened`), au lieu d'être effacé par un second clic
+// sur « Approuver » qui, lui, ne laisserait aucune trace de l'hésitation.
+//
+// Ne rouvre QUE ce qui a été refusé : un brouillon jamais soumis (pas de
+// `reviewedAt`) reste hors de la file — INVALID_TRANSITION — sinon la garde
+// « une publication jamais soumise ne peut pas être approuvée » se contournerait
+// en deux clics. Une publication EN LIGNE ne se rouvre pas non plus : la
+// dépublier est un retrait, qui attend l'état `archived` de l'issue #32.
+//
+// Les champs de la décision précédente (`reviewNotes`, `reviewedBy`,
+// `reviewedAt`) sont CONSERVÉS : ils disent pourquoi le refus avait été
+// prononcé, et la prochaine décision les remplacera.
+export const reopenPublicationReview = mutation({
+  args: { publicationId: v.id('publications') },
+  handler: async (ctx, { publicationId }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub) throw new Error('NOT_FOUND');
+    const from = reviewState(pub);
+    assertTransition(from, 'pending', PUBLICATION_REVIEW);
+
+    await ctx.db.patch(publicationId, { status: 'pending' });
+    // La publication revient dans la file : le compteur du tableau de bord la
+    // recompte (issue #8). Sans cet appel, « en attente » sous-compterait
+    // chaque dossier rouvert.
+    await trackPublicationStatus(ctx, pub.status, 'pending');
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.PUBLICATION_REOPENED,
+      targetId: publicationId,
+      metadata: { from },
+    });
+    return { ok: true };
   },
 });

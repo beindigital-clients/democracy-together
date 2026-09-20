@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import frMessages from '../src/messages/fr.json';
 import enMessages from '../src/messages/en.json';
 
@@ -116,8 +117,13 @@ describe('Peer review — assignReviewer (F-43)', () => {
 describe('Peer review — submitReview (F-43)', () => {
   it('réservé au modérateur ; stocke l’avis ; valide le commentaire', async () => {
     const t = convexTest(schema, modules);
+    // `reviewStage: 'in_review'` : un avis ne se dépose que sur une revue
+    // OUVERTE (issue #9) — c'est `assignReviewer` qui l'ouvre.
     const pubId = await t.run((ctx) =>
-      ctx.db.insert('publications', pubDoc({ slug: 'p-review' })),
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'p-review', reviewStage: 'in_review' }),
+      ),
     );
     const member = await userWithRole(t, 'membre', 'm@test.org');
     const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Awa Diop');
@@ -259,6 +265,193 @@ describe('Peer review — decideReview (F-43)', () => {
         .collect(),
     );
     expect(audits.some((a) => a.actorId === editor.id)).toBe(true);
+  });
+});
+
+describe('Peer review — machine à états (issue #9)', () => {
+  // Compte les avis d'une publication : c'est la preuve que la transaction
+  // refusée n'a RIEN écrit (le throw annule tout, ligne d'audit comprise).
+  async function reviewsOf(
+    t: ReturnType<typeof convexTest>,
+    publicationId: Id<'publications'>,
+  ) {
+    return await t.run((ctx) =>
+      ctx.db
+        .query('peerReviews')
+        .withIndex('by_publication', (q) =>
+          q.eq('publicationId', publicationId),
+        )
+        .collect(),
+    );
+  }
+
+  const AVIS = {
+    recommendation: 'minor' as const,
+    comment: 'Texte solide, quelques précisions à apporter en section 2.',
+  };
+
+  it('submitReview : un relecteur ne dépose qu’UN avis (rejeu refusé)', async () => {
+    const t = convexTest(schema, modules);
+    const pubId = await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'un-avis' })),
+    );
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+    const other = await userWithRole(t, 'moderateur', 'mod2@test.org', 'Mod 2');
+    const editor = await userWithRole(t, 'editeur', 'ed@test.org');
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: pubId,
+      reviewerUserId: mod.id,
+    });
+
+    await mod.as.mutation(api.peerReview.submitReview, {
+      publicationId: pubId,
+      ...AVIS,
+    });
+    // Rejeu : le même relecteur revient, avec une autre recommandation. Sans
+    // garde, il pèserait deux fois dans l'agrégat (le plus sévère l'emporte).
+    await expect(
+      mod.as.mutation(api.peerReview.submitReview, {
+        publicationId: pubId,
+        recommendation: 'reject',
+        comment: 'Je change d’avis après relecture de la section 4.',
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+    expect(await reviewsOf(t, pubId)).toHaveLength(1);
+
+    // un AUTRE relecteur, lui, reste attendu : la garde est par personne.
+    await other.as.mutation(api.peerReview.submitReview, {
+      publicationId: pubId,
+      recommendation: 'major',
+      comment: 'La revue de littérature demande un développement.',
+    });
+    expect(await reviewsOf(t, pubId)).toHaveLength(2);
+    const { page: queue } = await editor.as.query(
+      api.peerReview.getReviewQueue,
+      PAGE,
+    );
+    expect(queue[0].aggregate).toBe('major');
+  });
+
+  it('submitReview : refuse un avis hors revue ouverte (jamais assignée, close)', async () => {
+    const t = convexTest(schema, modules);
+    const never = await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'jamais-assignee' })),
+    );
+    const closed = await t.run((ctx) =>
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'close', reviewStage: 'reviewed' }),
+      ),
+    );
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+
+    // jamais entrée en revue : il n'y a rien à éclairer.
+    await expect(
+      mod.as.mutation(api.peerReview.submitReview, {
+        publicationId: never,
+        ...AVIS,
+      }),
+    ).rejects.toThrow('INVALID_TRANSITION');
+    // revue close : l'avis arriverait APRÈS l'arbitrage qu'il devait éclairer.
+    await expect(
+      mod.as.mutation(api.peerReview.submitReview, {
+        publicationId: closed,
+        ...AVIS,
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+
+    expect(await reviewsOf(t, never)).toHaveLength(0);
+    expect(await reviewsOf(t, closed)).toHaveLength(0);
+  });
+
+  it('decideReview : refuse le rejeu, l’inversion, et la décision sans relecteur', async () => {
+    const t = convexTest(schema, modules);
+    const pubId = await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'arbitrage' })),
+    );
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+    const editor = await userWithRole(t, 'editeur', 'ed@test.org');
+
+    // Aucune revue ouverte : il n'y a pas d'arbitrage à rendre.
+    await expect(
+      editor.as.mutation(api.peerReview.decideReview, {
+        publicationId: pubId,
+        decision: 'reviewed',
+      }),
+    ).rejects.toThrow('INVALID_TRANSITION');
+
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: pubId,
+      reviewerUserId: mod.id,
+    });
+    await editor.as.mutation(api.peerReview.decideReview, {
+      publicationId: pubId,
+      decision: 'reviewed',
+    });
+
+    // Rejeu et inversion : la revue est close, elle ne se rejuge pas.
+    await expect(
+      editor.as.mutation(api.peerReview.decideReview, {
+        publicationId: pubId,
+        decision: 'reviewed',
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+    await expect(
+      editor.as.mutation(api.peerReview.decideReview, {
+        publicationId: pubId,
+        decision: 'revision',
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+    expect(await t.run((ctx) => ctx.db.get(pubId))).toMatchObject({
+      reviewStage: 'reviewed',
+    });
+
+    // Un refus n'écrit rien : la seule trace d'audit « décision » reste celle
+    // de l'arbitrage rendu.
+    const audits = await t.run((ctx) =>
+      ctx.db
+        .query('auditLog')
+        .withIndex('by_action', (q) =>
+          q.eq('action', 'publication.peer_review'),
+        )
+        .collect(),
+    );
+    expect(audits.filter((a) => a.metadata?.kind === 'decide')).toHaveLength(1);
+  });
+
+  it('decideReview : rouvrir passe par assignReviewer, et se voit', async () => {
+    const t = convexTest(schema, modules);
+    const pubId = await t.run((ctx) =>
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'rouverte', reviewStage: 'reviewed' }),
+      ),
+    );
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+    const editor = await userWithRole(t, 'editeur', 'ed@test.org');
+
+    // La réouverture est NOMMÉE : elle désigne qui reprend la revue, notifie
+    // cette personne et s'audite — là où un second clic sur « décider »
+    // n'aurait rien dit.
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: pubId,
+      reviewerUserId: mod.id,
+    });
+    expect(await t.run((ctx) => ctx.db.get(pubId))).toMatchObject({
+      reviewStage: 'in_review',
+    });
+
+    // et l'arbitrage redevient possible, une fois.
+    await editor.as.mutation(api.peerReview.decideReview, {
+      publicationId: pubId,
+      decision: 'revision',
+    });
+    expect(await t.run((ctx) => ctx.db.get(pubId))).toMatchObject({
+      reviewStage: 'revision',
+    });
+    expect(
+      await mod.as.query(api.notifications.myNotifications, {}),
+    ).toHaveLength(1);
   });
 });
 

@@ -7,6 +7,11 @@ import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
+import {
+  assertTransition,
+  reviewStateError,
+  type ReviewMachine,
+} from './lib/reviewState';
 
 // Revue à comité de lecture (F-43) — RÉSERVÉE AU STAFF. Couche AU-DESSUS de la
 // modération (convex/publications.ts). Les relecteurs (moderateur+) déposent un
@@ -26,8 +31,48 @@ function reviewerName(user: Doc<'users'>): string {
   return user.name?.trim() || user.email?.trim() || 'Relecteur';
 }
 
+// --- Machine à états de la revue par les pairs (audit M6 · issue #9) --------
+//
+// L'axe est `reviewStage`, indépendant de `status` (modération). `none` = le
+// champ est absent : la publication n'est jamais entrée en revue.
+//
+//   none | revision | reviewed ──assignReviewer──► in_review
+//   in_review ──assignReviewer──► in_review        (2e relecteur : la revue
+//                                                   reste ouverte)
+//   in_review ──decideReview('revision')──► revision
+//   in_review ──decideReview('reviewed')──► reviewed
+//
+// `assignReviewer` est la SEULE porte d'ouverture — et donc de RÉOUVERTURE
+// d'une revue close. Elle est explicite, notifiée et auditée : rouvrir une
+// revue demande de désigner qui la reprend, pas un second clic sur un bouton
+// de décision. C'est pourquoi elle n'a pas de garde ici, quand tout le reste
+// passe par `assertTransition`.
+//
+// `decideReview` n'accepte donc qu'une revue OUVERTE : arbitrer une revue
+// jamais assignée (`none`) n'a pas d'objet, et repasser de `reviewed` à
+// `revision` inverserait un arbitrage rendu.
+type PeerStage = NonNullable<Doc<'publications'>['reviewStage']> | 'none';
+
+const PEER_REVIEW: ReviewMachine<PeerStage> = {
+  transitions: {
+    none: ['in_review'],
+    in_review: ['in_review', 'revision', 'reviewed'],
+    revision: ['in_review'],
+    reviewed: ['in_review'],
+  },
+  decided: ['revision', 'reviewed'],
+};
+
+function peerStage(pub: Doc<'publications'>): PeerStage {
+  return pub.reviewStage ?? 'none';
+}
+
 // Assigne un relecteur à une publication (éditeur+). Place la publication en
 // revue ('in_review') et notifie le relecteur. N'altère pas `status`.
+//
+// C'est la transition d'OUVERTURE, et la seule de RÉOUVERTURE (issue #9) :
+// désigner un relecteur sur une revue arbitrée la rouvre explicitement, sous
+// une notification et une entrée d'audit nominatives.
 export const assignReviewer = mutation({
   args: {
     publicationId: v.id('publications'),
@@ -62,6 +107,14 @@ export const assignReviewer = mutation({
 
 // Dépôt d'un avis par un relecteur (moderateur+). Valide commentaire >= 10
 // caractères. `reviewerName` = instantané du relecteur courant.
+//
+// Deux gardes (issue #9), parce qu'un avis est lui aussi une décision :
+//  - la revue doit être OUVERTE. Déposer un avis sur une revue déjà arbitrée
+//    glisserait une pièce dans un dossier clos, après la décision qu'elle
+//    aurait dû éclairer ;
+//  - UN avis par relecteur. Sans cela, le même relecteur pèse deux fois dans
+//    la recommandation agrégée (`getReviewQueue` retient la plus sévère), et
+//    l'écran d'arbitrage affiche deux avis d'une seule personne.
 export const submitReview = mutation({
   args: {
     publicationId: v.id('publications'),
@@ -72,6 +125,17 @@ export const submitReview = mutation({
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
     const pub = await ctx.db.get(publicationId);
     if (!pub) throw new Error('NOT_FOUND');
+
+    const stage = peerStage(pub);
+    if (stage !== 'in_review') throw reviewStateError(stage, PEER_REVIEW);
+
+    const already = await ctx.db
+      .query('peerReviews')
+      .withIndex('by_publication_and_reviewer', (q) =>
+        q.eq('publicationId', publicationId).eq('reviewerUserId', reviewer._id),
+      )
+      .first();
+    if (already) throw new Error('ALREADY_REVIEWED');
 
     const text = comment.trim();
     if (text.length < 10) throw new Error('INVALID_COMMENT');
@@ -228,7 +292,8 @@ export const getReviewQueue = query({
 
 // Décision de l'éditeur (éditeur+) : renvoyer pour modifications ('revision')
 // ou clore la revue ('reviewed'). Patch `reviewStage`, audite, et notifie
-// l'auteur si la publication en a un.
+// l'auteur si la publication en a un. N'accepte qu'une revue OUVERTE
+// (cf. la machine ci-dessus) : rouvrir passe par `assignReviewer`.
 export const decideReview = mutation({
   args: {
     publicationId: v.id('publications'),
@@ -238,6 +303,7 @@ export const decideReview = mutation({
     const editor = await requireNetworkRole(ctx, 'editeur');
     const pub = await ctx.db.get(publicationId);
     if (!pub) throw new Error('NOT_FOUND');
+    assertTransition(peerStage(pub), decision, PEER_REVIEW);
 
     await ctx.db.patch(publicationId, { reviewStage: decision });
 
