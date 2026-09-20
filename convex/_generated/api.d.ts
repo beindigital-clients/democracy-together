@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
 import type * as contact from "../contact.js";
+import type * as counters from "../counters.js";
 import type * as crons from "../crons.js";
 import type * as devAdmin from "../devAdmin.js";
 import type * as email from "../email.js";
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   bootstrap: typeof bootstrap;
   contact: typeof contact;
+  counters: typeof counters;
   crons: typeof crons;
   devAdmin: typeof devAdmin;
   email: typeof email;

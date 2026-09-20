@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadMore } from '@/components/admin/load-more';
 
 type Recommendation = 'accept' | 'minor' | 'major' | 'reject';
 const RECOMMENDATIONS: Recommendation[] = [
@@ -16,6 +17,12 @@ const RECOMMENDATIONS: Recommendation[] = [
   'major',
   'reject',
 ];
+
+type Stage = 'in_review' | 'revision' | 'reviewed';
+const STAGES: Stage[] = ['in_review', 'revision', 'reviewed'];
+
+// Taille de page. Le serveur la replafonne : elle est indicative.
+const PAGE_SIZE = 20;
 
 // Revue à comité de lecture (F-43) — RÉSERVÉE AU STAFF. Surcouche de la
 // modération : les relecteurs (modérateur+) déposent un avis, l'éditeur arbitre
@@ -26,7 +33,18 @@ export default function AdminReview() {
   const t = useTranslations('admin');
   const tl = useTranslations('library');
   const locale = useLocale();
-  const queue = useQuery(api.peerReview.getReviewQueue, {});
+  // PAGINÉE (issue #8) : la file chargeait la table `publications` entière pour
+  // n'en garder que les quelques-unes engagées dans une revue. L'ordre vient de
+  // l'index `by_reviewStage` — les étapes qui attendent une décision de
+  // l'éditeur d'abord —, d'où le filtre par étape à côté.
+  const [stage, setStage] = useState<Stage | ''>('');
+  const {
+    results: queue,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.peerReview.getReviewQueue, stage ? { stage } : {}, {
+    initialNumItems: PAGE_SIZE,
+  });
   const staff = useQuery(api.peerReview.listStaffUsers, {});
   const assign = useMutation(api.peerReview.assignReviewer);
   const submit = useMutation(api.peerReview.submitReview);
@@ -104,7 +122,23 @@ export default function AdminReview() {
       <h1 className="font-display text-3xl">{t('revTitle')}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t('revIntro')}</p>
 
-      {queue === undefined ? (
+      <div className="mt-5">
+        <select
+          aria-label={t('revStageFilterLabel')}
+          value={stage}
+          onChange={(e) => setStage(e.target.value as Stage | '')}
+          className={selectClass}
+        >
+          <option value="">{t('revStageAll')}</option>
+          {STAGES.map((sg) => (
+            <option key={sg} value={sg}>
+              {t(`revStage_${sg}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : queue.length === 0 ? (
         <p className="mt-6 text-ink-soft">{t('revEmpty')}</p>
@@ -290,6 +324,8 @@ export default function AdminReview() {
           ))}
         </ul>
       )}
+
+      <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />
     </div>
   );
 }

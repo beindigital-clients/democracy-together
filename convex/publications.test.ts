@@ -21,6 +21,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Pagination : les listes du back-office prennent désormais `paginationOpts`
+// (issue #8). Une page large suffit à ces tests — ce qu'ils vérifient n'est pas
+// le découpage mais le contenu.
+const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
+
 // --- Helpers ---
 function pub(overrides: Partial<PublicationLike> = {}): PublicationLike {
   return {
@@ -455,12 +460,12 @@ describe('Modération de publication (F-32 / F-26)', () => {
     await expect(
       t
         .withIdentity({ subject: `${memberId}|s` })
-        .query(api.publications.listForReview, {}),
+        .query(api.publications.listForReview, PAGE),
     ).rejects.toThrow();
 
-    const queue = await t
+    const { page: queue } = await t
       .withIdentity({ subject: `${modId}|s` })
-      .query(api.publications.listForReview, {});
+      .query(api.publications.listForReview, PAGE);
     expect(queue.some((p) => p._id === id)).toBe(true);
     expect(queue[0].authorEmail).toBe('membre@test.org');
 

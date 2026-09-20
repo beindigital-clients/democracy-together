@@ -278,10 +278,16 @@ export type ProjectablePublication = Omit<
 // Énumération explicite, JAMAIS `{ ...pub }` : c'est ce spread qui faisait
 // sortir le document entier. Ajouter un champ public se fait ici ET dans le
 // validateur ci-dessus — un oubli ne fuite pas, il ne compile pas.
+// `views` : total de consultations à afficher. Depuis l'isolement du compteur
+// (table `publicationViews`, issue #8), `pub.views` ne porte plus que l'héritage
+// — vues comptées avant le découpage, valeurs de démonstration. L'appelant qui
+// a lu l'agrégat le passe ici ; les autres (listes, bloc « même thématique »,
+// où le décompte n'est pas affiché) laissent la projection retomber dessus.
 export function projectPublication(
   pub: ProjectablePublication,
   fileUrl: string | null,
   isMember: boolean,
+  views?: number,
 ): PublicPublication {
   const base = {
     _id: pub._id,
@@ -302,7 +308,7 @@ export function projectPublication(
     pages: pub.pages,
     downloads: pub.downloads,
     citations: pub.citations,
-    views: pub.views ?? 0,
+    views: views ?? pub.views ?? 0,
   };
   if (!isPublicationLocked(pub.access, isMember)) {
     return {

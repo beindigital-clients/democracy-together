@@ -1,10 +1,11 @@
 'use client';
 
-import { useQuery } from 'convex/react';
+import { useQuery, usePaginatedQuery } from 'convex/react';
 import { useTranslations, useLocale } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { isAdmin } from '@/lib/roles';
 import { Button } from '@/components/ui/button';
+import { LoadMore } from '@/components/admin/load-more';
 
 type Row = {
   action: string;
@@ -31,6 +32,9 @@ function rowsToCsv(headers: string[], rows: string[][]): string {
     .join('\r\n');
 }
 
+// Taille de page du journal. Le serveur la replafonne : elle est indicative.
+const PAGE_SIZE = 50;
+
 // Journal d'activité & export (F-67) — back-office, ADMINISTRATEURS uniquement.
 // Tableau des actions sensibles (date, action, acteur, cible) + export CSV
 // construit côté client et téléchargé via Blob + URL.createObjectURL.
@@ -38,7 +42,18 @@ export default function AdminJournal() {
   const t = useTranslations('admin');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  const entries = useQuery(api.journal.listAuditLog, {});
+  // PAGINÉ (issue #8) : le journal est la table qui grossit le plus vite du
+  // produit — une ligne par action sensible. L'export CSV porte sur ce qui est
+  // chargé : charger la suite l'élargit d'autant.
+  const {
+    results: entries,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
+    api.journal.listAuditLog,
+    isAdmin(me?.role) ? {} : 'skip',
+    { initialNumItems: PAGE_SIZE },
+  );
 
   if (me === undefined) {
     return <p className="mt-6 text-ink-soft">{t('loading')}</p>;
@@ -50,7 +65,7 @@ export default function AdminJournal() {
   const actor = (e: Row) => e.actorName ?? e.actorEmail ?? '—';
 
   function exportCsv() {
-    if (!entries) return;
+    if (entries.length === 0) return;
     const headers = [t('jrDate'), t('jrAction'), t('jrActor'), t('jrTarget')];
     const data = entries.map((e) => [
       new Date(e.createdAt).toISOString(),
@@ -82,13 +97,13 @@ export default function AdminJournal() {
           type="button"
           variant="outline"
           onClick={exportCsv}
-          disabled={!entries || entries.length === 0}
+          disabled={entries.length === 0}
         >
           {t('jrExport')}
         </Button>
       </div>
 
-      {entries === undefined ? (
+      {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : entries.length === 0 ? (
         <p className="mt-6 text-ink-soft">{t('jrEmpty')}</p>
@@ -122,6 +137,8 @@ export default function AdminJournal() {
           </table>
         </div>
       )}
+
+      <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />
     </div>
   );
 }

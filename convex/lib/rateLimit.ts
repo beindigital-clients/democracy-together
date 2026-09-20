@@ -20,8 +20,22 @@ export type RateLimitRule = { key: string; max: number; windowMs: number };
 
 export async function enforceRateLimit(
   ctx: MutationCtx,
-  { key, max, windowMs }: RateLimitRule,
+  rule: RateLimitRule,
 ): Promise<void> {
+  if (!(await consumeRateLimit(ctx, rule))) {
+    throw new ConvexError('RATE_LIMITED');
+  }
+}
+
+// Variante NON bloquante : consomme un jeton et dit s'il en restait, au lieu de
+// lever. Pour les appels où dépasser le quota n'est pas une erreur à remonter à
+// l'utilisateur mais une action à ne pas compter (cf. recordPublicationView :
+// une consultation de trop ne doit rien casser dans la page, juste ne pas
+// compter). `enforceRateLimit` est cette fonction + un throw.
+export async function consumeRateLimit(
+  ctx: MutationCtx,
+  { key, max, windowMs }: RateLimitRule,
+): Promise<boolean> {
   const now = Date.now();
   const existing = await ctx.db
     .query('rateLimits')
@@ -30,17 +44,18 @@ export async function enforceRateLimit(
 
   if (!existing) {
     await ctx.db.insert('rateLimits', { key, count: 1, windowStart: now });
-    return;
+    return true;
   }
   if (now - existing.windowStart >= windowMs) {
     // Fenêtre expirée -> nouvelle fenêtre.
     await ctx.db.patch(existing._id, { count: 1, windowStart: now });
-    return;
+    return true;
   }
   if (existing.count >= max) {
-    throw new ConvexError('RATE_LIMITED');
+    return false;
   }
   await ctx.db.patch(existing._id, { count: existing.count + 1 });
+  return true;
 }
 
 const HOUR = 60 * 60 * 1000;
@@ -181,7 +196,7 @@ export function ipBucket(raw: string): string {
 // seul plafond global plutôt que de faire échouer toutes les soumissions. `ip`
 // est aussi `null` par contrat quand l'exécution ne vient pas d'une requête
 // HTTP (cron, fonction planifiée).
-async function callerIpBucket(ctx: MutationCtx): Promise<string | null> {
+export async function callerIpBucket(ctx: MutationCtx): Promise<string | null> {
   try {
     const meta = ctx.meta as MutationCtx['meta'] | undefined;
     if (typeof meta?.getRequestMetadata !== 'function') return null;
@@ -212,4 +227,48 @@ export async function enforcePublicFormLimit(
     });
   }
   await enforceRateLimit(ctx, { key: `form:${form}`, ...limits.global });
+}
+
+// --- Consultations de publication (F-37, issue #8) ---------------------------
+//
+// `recordPublicationView` est une mutation PUBLIQUE et NON AUTHENTIFIÉE : sans
+// plafond, le compteur de consultations se gonfle avec une boucle `for`. Il n'y
+// a ici ni e-mail ni userId à prendre pour clé — seule l'IP vue par
+// l'infrastructure est non forgeable.
+//
+// UNE SEULE ligne de quota par appel, et volontairement : la raison d'être du
+// découpage `publicationViews` est de retirer de la contention d'écriture, pas
+// d'en réintroduire sur trois compteurs de débit. La clé retenue est la plus
+// ciblée possible — (bloc d'adresses, publication) : elle rend l'inflation
+// d'UNE publication par UN acteur inopérante, sans qu'un plafond partagé puisse
+// bloquer le comptage des autres publications ou des autres lecteurs.
+//
+// Large à dessein : un lecteur humain enregistre une consultation par
+// publication et par session (dédoublonnage en sessionStorage côté client), et
+// un bloc d'adresses peut légitimement abriter un campus entier.
+//
+// SANS IP (`ctx.meta` absent : convex-test, déploiement antérieur à Convex
+// 1.42, exécution planifiée), on se rabat sur un plafond par publication. Il est
+// atteignable par un attaquant, qui fige alors le compteur de CETTE publication
+// jusqu'à la fin de la fenêtre : un décompte d'affichage qui stagne, préféré à
+// un décompte inventé.
+export const VIEW_LIMITS = {
+  perIpAndPublication: { max: 60, windowMs: HOUR },
+  perPublicationWithoutIp: { max: 1000, windowMs: HOUR },
+} as const;
+
+export async function consumePublicationViewQuota(
+  ctx: MutationCtx,
+  slug: string,
+): Promise<boolean> {
+  const bucket = await callerIpBucket(ctx);
+  return bucket
+    ? await consumeRateLimit(ctx, {
+        key: `view:${bucket}:${slug}`,
+        ...VIEW_LIMITS.perIpAndPublication,
+      })
+    : await consumeRateLimit(ctx, {
+        key: `view:noip:${slug}`,
+        ...VIEW_LIMITS.perPublicationWithoutIp,
+      });
 }

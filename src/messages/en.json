@@ -132,7 +132,8 @@
     "tribuneComment": "New comment on your post “{title}”.",
     "tribuneThreadReply": "New reply in a thread you took part in: “{title}”.",
     "peerReviewAssigned": "A review has been assigned to you: “{title}”.",
-    "peerReviewDecided": "The review of your publication “{title}” has moved forward."
+    "peerReviewDecided": "The review of your publication “{title}” has moved forward.",
+    "bellUnreadMany": "Notifications, more than {count} unread"
   },
   "eventRegister": {
     "intro": "Reserve your spot for “{event}”. We'll email you the practical details.",
@@ -731,7 +732,11 @@
     "contactMarkPending": "Reopen",
     "contactHandled": "Handled",
     "contactPending": "To handle",
-    "contactReply": "Reply by email"
+    "contactReply": "Reply by email",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "revStageAll": "All stages",
+    "revStageFilterLabel": "Filter by stage"
   },
   "news": {
     "eyebrow": "News",
