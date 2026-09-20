@@ -30,6 +30,14 @@ test('connexion : mauvais mot de passe refusé, pas de session (F-01)', async ({
     page.getByText('E-mail ou mot de passe incorrect.'),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/fr\/connexion$/);
+
+  // Un REFUS SERVEUR ne vide aucun champ (#37) : rien à retaper pour réessayer.
+  // Le message reste global — dire lequel des deux est faux renseignerait sur
+  // l'existence du compte.
+  await expect(page.getByLabel('E-mail')).toHaveValue(email);
+  await expect(page.getByLabel('Mot de passe', { exact: true })).toHaveValue(
+    'un-mauvais-mot-de-passe',
+  );
 });
 
 // Ce test visait /fr/inscription, qui redirige désormais vers /adhesion

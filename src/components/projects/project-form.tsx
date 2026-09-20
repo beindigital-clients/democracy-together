@@ -13,9 +13,9 @@ import {
   SelectField,
   TextField,
   TextareaField,
+  useFormFields,
 } from '@/components/ui/field';
 import { isRateLimited } from '@/lib/errors';
-import { formField } from '@/lib/validation';
 
 // Proposition de projet collaboratif (F-60) — îlot client sur /appels-a-projets.
 // Réservé aux membres : un visiteur (anonyme ou compte sans rôle membre) est
@@ -28,25 +28,35 @@ export function ProjectForm() {
   const router = useRouter();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const { values, field, validate } = useFormFields({
+    theme: '',
+    title: '',
+    summary: '',
+  });
 
   const member = isMember(me?.role);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const theme = formField(fd, 'theme').trim();
-    const title = formField(fd, 'title').trim();
-    const summary = formField(fd, 'summary').trim();
-    if (!(PUB_THEMES as readonly string[]).includes(theme)) {
-      return setError(t('errTheme'));
+    if (
+      !validate({
+        theme: (v) =>
+          (PUB_THEMES as readonly string[]).includes(v) ? null : t('errTheme'),
+        title: (v) => (v.trim().length < 4 ? t('errTitle') : null),
+        summary: (v) => (v.trim().length < 20 ? t('errSummary') : null),
+      })
+    ) {
+      return;
     }
-    if (title.length < 4) return setError(t('errTitle'));
-    if (summary.length < 20) return setError(t('errSummary'));
 
     setStatus('pending');
     try {
-      await submit({ theme, title, summary });
+      await submit({
+        theme: values.theme,
+        title: values.title.trim(),
+        summary: values.summary.trim(),
+      });
       setStatus('success');
       router.refresh();
     } catch (err) {
@@ -101,14 +111,14 @@ export function ProjectForm() {
   return (
     <form
       onSubmit={onSubmit}
+      noValidate
       className="grid gap-4 rounded-md border border-line bg-surface p-6"
     >
       <SelectField
         label={t('fieldTheme')}
         id="p-theme"
-        name="theme"
-        defaultValue=""
         required
+        {...field('theme')}
       >
         <option value="" disabled>
           {t('themePlaceholder')}
@@ -122,18 +132,18 @@ export function ProjectForm() {
       <TextField
         label={t('fieldTitle')}
         id="p-title"
-        name="title"
         required
         maxLength={160}
         placeholder={t('titlePlaceholder')}
+        {...field('title')}
       />
       <TextareaField
         label={t('fieldSummary')}
         id="p-summary"
-        name="summary"
         rows={5}
         required
         placeholder={t('summaryPlaceholder')}
+        {...field('summary')}
       />
       <FormError>{error}</FormError>
       <div>
