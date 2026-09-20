@@ -8,6 +8,10 @@ import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { isNetworkTheme, networkThemeValidator } from './lib/themes';
+import {
+  trackTribunePostStatus,
+  trackTribuneCommentStatus,
+} from './lib/counters';
 
 // Formes publiques de la Tribune. Les handlers projetaient déjà champ par
 // champ ; les déclarer ici FIGE cette projection : le jour où l'un d'eux
@@ -75,7 +79,7 @@ export const createPost = mutation({
       ...RATE_LIMITS.tribunePost,
     });
 
-    return await ctx.db.insert('tribunePosts', {
+    const postId = await ctx.db.insert('tribunePosts', {
       authorUserId: user._id,
       authorName: authorName(user),
       theme,
@@ -86,6 +90,8 @@ export const createPost = mutation({
       commentCount: 0,
       createdAt: Date.now(),
     });
+    await trackTribunePostStatus(ctx, null, 'published');
+    return postId;
   },
 });
 
@@ -128,6 +134,7 @@ export const addComment = mutation({
       createdAt: Date.now(),
     });
     await ctx.db.patch(postId, { commentCount: post.commentCount + 1 });
+    await trackTribuneCommentStatus(ctx, null, 'published');
 
     // Notifie l'auteur du post d'un nouveau commentaire (sauf le sien). F-25/F-51.
     if (post.authorUserId !== user._id) {
@@ -306,6 +313,8 @@ export const reactionState = query({
 });
 
 // --- Back-office : file de signalements (modérateur et au-dessus) -----------
+const REPORTS_QUEUE_MAX = 200;
+
 export const listReports = query({
   args: {},
   returns: v.array(
@@ -321,48 +330,72 @@ export const listReports = query({
   ),
   handler: async (ctx) => {
     await requireNetworkRole(ctx, 'moderateur');
+    // File de TRAVAIL : l'index ne contient que les signalements NON résolus,
+    // et résoudre retire la ligne de la file. Le plafond découvre donc la suite
+    // au fur et à mesure du traitement, au lieu de faire grossir une lecture
+    // sans limite (issue #8).
     const reports = await ctx.db
       .query('tribuneReports')
       .withIndex('by_resolved', (q) => q.eq('resolved', false))
-      .collect();
-    return await Promise.all(
-      reports
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .map(async (r) => {
-          let excerpt = '(supprimé)';
-          let postId: Id<'tribunePosts'> | null = null;
-          // `normalizeId` AVANT tout ctx.db.get : `targetId` est une colonne
-          // `v.string()`, donc une ligne écrite avant le correctif (ou par une
-          // future voie d'écriture) peut contenir n'importe quoi. Un cast
-          // aveugle y faisait échouer la requête entière, condamnant la file
-          // pour tous les modérateurs (audit M1). Une cible illisible est
-          // simplement affichée « (supprimé) » et reste résolvable.
-          if (r.targetType === 'post') {
-            const id = ctx.db.normalizeId('tribunePosts', r.targetId);
-            const p = id ? await ctx.db.get(id) : null;
-            if (p) {
-              excerpt = p.title;
-              postId = p._id;
-            }
-          } else {
-            const id = ctx.db.normalizeId('tribuneComments', r.targetId);
-            const c = id ? await ctx.db.get(id) : null;
-            if (c) {
-              excerpt =
-                c.body.length > 140 ? `${c.body.slice(0, 140)}…` : c.body;
-              postId = c.postId;
-            }
-          }
-          return {
-            _id: r._id,
-            targetType: r.targetType,
-            reason: r.reason ?? null,
-            excerpt,
-            postId,
-            createdAt: r.createdAt,
-          };
-        }),
+      .order('desc')
+      .take(REPORTS_QUEUE_MAX);
+
+    // N+1 : la cible était relue signalement par signalement. Or le cas normal
+    // est justement que PLUSIEURS signalements visent le MÊME contenu — dix
+    // personnes signalent le même billet. On dédoublonne donc les cibles avant
+    // de les lire, une fois chacune.
+    //
+    // `normalizeId` AVANT tout ctx.db.get : `targetId` est une colonne
+    // `v.string()`, donc une ligne écrite avant le correctif (ou par une future
+    // voie d'écriture) peut contenir n'importe quoi. Un cast aveugle y faisait
+    // échouer la requête entière, condamnant la file pour tous les modérateurs
+    // (audit M1). Une cible illisible est simplement affichée « (supprimé) » et
+    // reste résolvable.
+    const targetKey = (
+      r: Pick<Doc<'tribuneReports'>, 'targetType' | 'targetId'>,
+    ) => `${r.targetType}:${r.targetId}`;
+
+    const uniqueTargets = new Map(
+      reports.map((r) => [
+        targetKey(r),
+        { targetType: r.targetType, targetId: r.targetId },
+      ]),
     );
+    const targets = new Map<
+      string,
+      { excerpt: string; postId: Id<'tribunePosts'> | null }
+    >();
+    await Promise.all(
+      [...uniqueTargets].map(async ([key, { targetType, targetId }]) => {
+        if (targetType === 'post') {
+          const id = ctx.db.normalizeId('tribunePosts', targetId);
+          const p = id ? await ctx.db.get(id) : null;
+          if (p) targets.set(key, { excerpt: p.title, postId: p._id });
+        } else {
+          const id = ctx.db.normalizeId('tribuneComments', targetId);
+          const c = id ? await ctx.db.get(id) : null;
+          if (c) {
+            targets.set(key, {
+              excerpt:
+                c.body.length > 140 ? `${c.body.slice(0, 140)}…` : c.body,
+              postId: c.postId,
+            });
+          }
+        }
+      }),
+    );
+
+    return reports.map((r) => {
+      const target = targets.get(targetKey(r));
+      return {
+        _id: r._id,
+        targetType: r.targetType,
+        reason: r.reason ?? null,
+        excerpt: target?.excerpt ?? '(supprimé)',
+        postId: target?.postId ?? null,
+        createdAt: r.createdAt,
+      };
+    });
   },
 });
 
@@ -384,12 +417,16 @@ export const resolveReport = mutation({
       if (report.targetType === 'post') {
         const id = ctx.db.normalizeId('tribunePosts', report.targetId);
         const p = id ? await ctx.db.get(id) : null;
-        if (p) await ctx.db.patch(p._id, { status: 'removed' });
+        if (p) {
+          await ctx.db.patch(p._id, { status: 'removed' });
+          await trackTribunePostStatus(ctx, p.status, 'removed');
+        }
       } else {
         const id = ctx.db.normalizeId('tribuneComments', report.targetId);
         const c = id ? await ctx.db.get(id) : null;
         if (c) {
           await ctx.db.patch(c._id, { status: 'removed' });
+          await trackTribuneCommentStatus(ctx, c.status, 'removed');
           const post = await ctx.db.get(c.postId);
           if (post && post.commentCount > 0) {
             await ctx.db.patch(post._id, {

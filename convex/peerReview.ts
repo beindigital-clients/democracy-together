@@ -1,7 +1,9 @@
 import { v } from 'convex/values';
+import { paginationOptsValidator } from 'convex/server';
 import { mutation, query } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
 import { requireNetworkRole } from './lib/rbac';
+import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
@@ -96,63 +98,131 @@ export const submitReview = mutation({
 // File de revue (éditeur+) — publications avec `reviewStage` défini, chacune
 // accompagnée de ses avis et d'une recommandation agrégée (la plus sévère
 // l'emporte : reject > major > minor > accept). Sert l'écran d'arbitrage.
-const SEVERITY: Record<string, number> = {
+type Recommendation = Doc<'peerReviews'>['recommendation'];
+
+const SEVERITY: Record<Recommendation, number> = {
   accept: 0,
   minor: 1,
   major: 2,
   reject: 3,
 };
 
-export const getReviewQueue = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireNetworkRole(ctx, 'editeur');
-    const all = await ctx.db.query('publications').collect();
-    const inReview = all
-      .filter((p) => p.reviewStage !== undefined)
-      .sort(
-        (a, b) =>
-          (b.submittedAt ?? b.createdAt) - (a.submittedAt ?? a.createdAt),
-      );
+const reviewStageValidator = v.union(
+  v.literal('in_review'),
+  v.literal('revision'),
+  v.literal('reviewed'),
+);
 
-    return await Promise.all(
-      inReview.map(async (p) => {
-        const reviews = await ctx.db
-          .query('peerReviews')
-          .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
-          .collect();
-        // Recommandation agrégée = la plus sévère parmi les avis (ou null).
-        let aggregate: string | null = null;
-        for (const r of reviews) {
-          if (
-            aggregate === null ||
-            SEVERITY[r.recommendation] > SEVERITY[aggregate]
-          ) {
-            aggregate = r.recommendation;
+const queueItemValidator = v.object({
+  _id: v.id('publications'),
+  title: v.string(),
+  slug: v.string(),
+  type: v.union(
+    v.literal('rapport'),
+    v.literal('policy-brief'),
+    v.literal('working-paper'),
+    v.literal('note'),
+    v.literal('dataset'),
+  ),
+  theme: v.string(),
+  status: v.union(
+    v.literal('draft'),
+    v.literal('pending'),
+    v.literal('published'),
+  ),
+  reviewStage: reviewStageValidator,
+  hasAuthor: v.boolean(),
+  aggregate: v.union(recommendationValidator, v.null()),
+  reviews: v.array(
+    v.object({
+      _id: v.id('peerReviews'),
+      reviewerName: v.string(),
+      recommendation: recommendationValidator,
+      comment: v.string(),
+      createdAt: v.number(),
+    }),
+  ),
+});
+
+// La file chargeait la table `publications` ENTIÈRE, puis écartait en mémoire
+// tout ce qui n'était pas en revue — c'est-à-dire la quasi-totalité de la
+// bibliothèque, pour afficher une poignée de lignes (issue #8).
+//
+// L'index `by_reviewStage` ne contient que ce qui compte. Une publication sans
+// étape de revue y est rangée sous `undefined`, qui PRÉCÈDE toute valeur dans
+// l'ordre Convex : la plage `> undefined` est donc exactement « les
+// publications engagées dans une revue », en une lecture indexée contiguë, sans
+// énumérer les étapes une à une (une nouvelle étape au schéma n'aurait pas à
+// être ajoutée ici).
+//
+// ORDRE. Il vient maintenant de l'index — (étape, ancienneté) décroissant — et
+// non d'un tri en mémoire : c'est ce qui rend la pagination possible. En
+// pratique l'écran d'arbitrage y gagne, les étapes qui attendent une décision
+// de l'éditeur ('revision', 'reviewed') passant avant celles qui attendent les
+// relecteurs ('in_review').
+export const getReviewQueue = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    stage: v.optional(reviewStageValidator),
+  },
+  returns: paginatedValidator(queueItemValidator),
+  handler: async (ctx, { paginationOpts, stage }) => {
+    await requireNetworkRole(ctx, 'editeur');
+    const opts = clampPageSize(paginationOpts);
+    const result = await ctx.db
+      .query('publications')
+      .withIndex('by_reviewStage', (q) =>
+        stage ? q.eq('reviewStage', stage) : q.gt('reviewStage', undefined),
+      )
+      .order('desc')
+      .paginate(opts);
+
+    return {
+      ...result,
+      page: await Promise.all(
+        result.page.map(async (p) => {
+          // Un aller-retour par ligne AFFICHÉE (les avis d'une publication ne
+          // se lisent pas autrement) — borné par la taille de page, plus par
+          // la taille de la bibliothèque.
+          const reviews = await ctx.db
+            .query('peerReviews')
+            .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
+            .collect();
+          // Recommandation agrégée = la plus sévère parmi les avis (ou null).
+          let aggregate: Recommendation | null = null;
+          for (const r of reviews) {
+            if (
+              aggregate === null ||
+              SEVERITY[r.recommendation] > SEVERITY[aggregate]
+            ) {
+              aggregate = r.recommendation;
+            }
           }
-        }
-        return {
-          _id: p._id,
-          title: p.title,
-          slug: p.slug,
-          type: p.type,
-          theme: p.theme,
-          status: p.status,
-          reviewStage: p.reviewStage,
-          hasAuthor: p.authorUserId !== undefined,
-          aggregate,
-          reviews: reviews
-            .sort((a, b) => a.createdAt - b.createdAt)
-            .map((r) => ({
-              _id: r._id,
-              reviewerName: r.reviewerName,
-              recommendation: r.recommendation,
-              comment: r.comment,
-              createdAt: r.createdAt,
-            })),
-        };
-      }),
-    );
+          return {
+            _id: p._id,
+            title: p.title,
+            slug: p.slug,
+            type: p.type,
+            theme: p.theme,
+            status: p.status,
+            // La plage d'index garantit que l'étape est définie ; le
+            // validateur de retour l'exige, ce repli ne sert qu'au typage.
+            reviewStage: p.reviewStage ?? 'in_review',
+            hasAuthor: p.authorUserId !== undefined,
+            aggregate,
+            reviews: reviews
+              .sort((a, b) => a.createdAt - b.createdAt)
+              .map((r) => ({
+                _id: r._id,
+                reviewerName: r.reviewerName,
+                recommendation: r.recommendation,
+                comment: r.comment,
+                createdAt: r.createdAt,
+              })),
+          };
+        }),
+      ),
+    };
   },
 });
 
@@ -193,19 +263,41 @@ export const decideReview = mutation({
 
 // Liste des relecteurs potentiels (éditeur+) — utilisateurs moderateur et
 // au-dessus, pour le sélecteur d'assignation.
+// Le sélecteur d'assignation chargeait la table `users` ENTIÈRE pour n'en garder
+// que le staff — quelques comptes sur un annuaire appelé à grandir (issue #8).
+// L'index `by_role` va chercher directement les trois rôles concernés : on ne
+// lit plus que des relecteurs possibles. Chaque rôle est borné, le staff d'un
+// réseau se compte en dizaines, et un sélecteur n'est pas une liste paginée.
+const STAFF_ROLES = ['moderateur', 'editeur', 'admin'] as const;
+const STAFF_PER_ROLE_MAX = 200;
+
 export const listStaffUsers = query({
   args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id('users'),
+      name: v.union(v.string(), v.null()),
+      email: v.union(v.string(), v.null()),
+      role: v.union(...STAFF_ROLES.map((r) => v.literal(r))),
+    }),
+  ),
   handler: async (ctx) => {
     await requireNetworkRole(ctx, 'editeur');
-    const users = await ctx.db.query('users').collect();
-    const STAFF_ROLES = new Set(['moderateur', 'editeur', 'admin']);
-    return users
-      .filter((u) => u.role !== undefined && STAFF_ROLES.has(u.role))
-      .map((u) => ({
+    const byRole = await Promise.all(
+      STAFF_ROLES.map((role) =>
+        ctx.db
+          .query('users')
+          .withIndex('by_role', (q) => q.eq('role', role))
+          .take(STAFF_PER_ROLE_MAX),
+      ),
+    );
+    return STAFF_ROLES.flatMap((role, i) =>
+      byRole[i].map((u) => ({
         _id: u._id,
         name: u.name ?? null,
         email: u.email ?? null,
-        role: u.role,
-      }));
+        role,
+      })),
+    );
   },
 });

@@ -15,6 +15,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Pagination : les listes du back-office prennent désormais `paginationOpts`
+// (issue #8). Une page large suffit à ces tests — ce qu'ils vérifient n'est pas
+// le découpage mais le contenu.
+const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
+
 describe("Journal d'activité (F-67) — listAuditLog", () => {
   it('renvoie les entrées triées desc + résout actorName/actorEmail', async () => {
     const t = convexTest(schema, modules);
@@ -55,9 +60,9 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
       });
     });
 
-    const rows = await t
+    const { page: rows } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.journal.listAuditLog, {});
+      .query(api.journal.listAuditLog, PAGE);
 
     // Tri décroissant par createdAt.
     expect(rows.map((r) => r.createdAt)).toEqual([3_000, 2_000, 1_000]);
@@ -98,9 +103,9 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
       .withIdentity({ subject: `${adminId}|s` })
       .mutation(api.users.setRole, { userId: targetId, role: 'moderateur' });
 
-    const rows = await t
+    const { page: rows } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.journal.listAuditLog, {});
+      .query(api.journal.listAuditLog, PAGE);
 
     expect(rows.length).toBe(1);
     expect(rows[0].action).toBe(AUDIT.USER_ROLE_CHANGED);
@@ -109,7 +114,7 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
     expect(rows[0].actorEmail).toBe('admin@test.org');
   });
 
-  it('respecte le paramètre limit (entrées les plus récentes)', async () => {
+  it('respecte la taille de page demandée (entrées les plus récentes)', async () => {
     const t = convexTest(schema, modules);
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
@@ -124,18 +129,21 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
       }
     });
 
-    const rows = await t
+    const { page: rows, isDone } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.journal.listAuditLog, { limit: 2 });
+      .query(api.journal.listAuditLog, {
+        paginationOpts: { numItems: 2, cursor: null },
+      });
     expect(rows.length).toBe(2);
     expect(rows.map((r) => r.createdAt)).toEqual([4, 3]);
+    expect(isDone).toBe(false);
   });
 
   it('réserve la lecture aux administrateurs (modérateur -> throw, admin OK)', async () => {
     const t = convexTest(schema, modules);
 
     // anonyme refusé
-    await expect(t.query(api.journal.listAuditLog, {})).rejects.toThrow();
+    await expect(t.query(api.journal.listAuditLog, PAGE)).rejects.toThrow();
 
     // modérateur refusé (données sensibles -> admin seulement)
     const modId = await t.run((ctx) =>
@@ -144,7 +152,7 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
     await expect(
       t
         .withIdentity({ subject: `${modId}|s` })
-        .query(api.journal.listAuditLog, {}),
+        .query(api.journal.listAuditLog, PAGE),
     ).rejects.toThrow();
 
     // éditeur refusé
@@ -154,16 +162,16 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
     await expect(
       t
         .withIdentity({ subject: `${editorId}|s` })
-        .query(api.journal.listAuditLog, {}),
+        .query(api.journal.listAuditLog, PAGE),
     ).rejects.toThrow();
 
     // admin autorisé
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );
-    const rows = await t
+    const { page: rows } = await t
       .withIdentity({ subject: `${adminId}|s` })
-      .query(api.journal.listAuditLog, {});
+      .query(api.journal.listAuditLog, PAGE);
     expect(rows).toEqual([]);
   });
 });

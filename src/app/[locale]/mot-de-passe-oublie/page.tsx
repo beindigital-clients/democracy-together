@@ -10,6 +10,10 @@ import { FormError, TextField } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
 import { formField } from '@/lib/validation';
+import {
+  PASSWORD_MIN_LENGTH,
+  passwordRefusal,
+} from '@convex/lib/passwordPolicy';
 
 export default function ForgotPasswordPage() {
   const t = useTranslations('auth');
@@ -46,6 +50,23 @@ export default function ForgotPasswordPage() {
       setError(t('errorMismatch'));
       return;
     }
+    // Même politique que le serveur (convex/lib/passwordPolicy.ts), appliquée
+    // ICI pour pouvoir DIRE laquelle des deux règles casse. Le refus serveur ne
+    // le permet pas : la route /api/auth de Convex Auth aplatit `ConvexError.data`
+    // en texte de statut HTTP, et le navigateur ne reçoit qu'une erreur nue —
+    // affichée « Code invalide ou expiré », qui désigne le mauvais champ.
+    // (Constaté en E2E, pas déduit.) Le serveur refuse toujours : ce contrôle
+    // ne relâche rien, il explique.
+    const refus = passwordRefusal(newPassword);
+    if (refus) {
+      setError(
+        refus === 'PASSWORD_TOO_SHORT'
+          ? t('errorPasswordTooShort', { min: PASSWORD_MIN_LENGTH })
+          : t('errorPasswordTooCommon'),
+      );
+      return;
+    }
+
     setPending(true);
     try {
       await signIn('password', {
@@ -70,14 +91,14 @@ export default function ForgotPasswordPage() {
             label={t('newPassword')}
             name="newPassword"
             autoComplete="new-password"
-            minLength={8}
+            minLength={PASSWORD_MIN_LENGTH}
             required
           />
           <PasswordField
             label={t('confirmPassword')}
             name="confirmPassword"
             autoComplete="new-password"
-            minLength={8}
+            minLength={PASSWORD_MIN_LENGTH}
             required
           />
           <FormError>{error}</FormError>

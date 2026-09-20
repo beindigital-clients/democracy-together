@@ -72,7 +72,10 @@ describe('Notifications — déclencheurs (F-25/F-51)', () => {
     expect(notifs[0].params.title).toBe('Mon analyse');
     expect(notifs[0].link).toBe('/bibliotheque/mon-analyse');
     expect(notifs[0].read).toBe(false);
-    expect(await asAuthor.query(api.notifications.unreadCount, {})).toBe(1);
+    expect(await asAuthor.query(api.notifications.unreadCount, {})).toEqual({
+      count: 1,
+      capped: false,
+    });
   });
 
   it('rejeter une publication notifie (pubRejected -> espace membre)', async () => {
@@ -182,8 +185,8 @@ describe('Notifications — lecture & portée (F-25/F-51)', () => {
     expect(
       (await asA.query(api.notifications.myNotifications, {})).length,
     ).toBe(2);
-    expect(await asA.query(api.notifications.unreadCount, {})).toBe(2);
-    expect(await asB.query(api.notifications.unreadCount, {})).toBe(1);
+    expect((await asA.query(api.notifications.unreadCount, {})).count).toBe(2);
+    expect((await asB.query(api.notifications.unreadCount, {})).count).toBe(1);
 
     // tri décroissant (T2 avant T1)
     const list = await asA.query(api.notifications.myNotifications, {});
@@ -196,17 +199,20 @@ describe('Notifications — lecture & portée (F-25/F-51)', () => {
 
     // A marque n1 lue -> 1 non-lue restante
     await asA.mutation(api.notifications.markRead, { notificationId: n1 });
-    expect(await asA.query(api.notifications.unreadCount, {})).toBe(1);
+    expect((await asA.query(api.notifications.unreadCount, {})).count).toBe(1);
 
     // markAllRead -> 0
     const res = await asA.mutation(api.notifications.markAllRead, {});
     expect(res.count).toBe(1);
-    expect(await asA.query(api.notifications.unreadCount, {})).toBe(0);
+    expect((await asA.query(api.notifications.unreadCount, {})).count).toBe(0);
   });
 
   it('anonyme : liste vide, compteur 0', async () => {
     const t = convexTest(schema, modules);
     expect(await t.query(api.notifications.myNotifications, {})).toEqual([]);
-    expect(await t.query(api.notifications.unreadCount, {})).toBe(0);
+    expect(await t.query(api.notifications.unreadCount, {})).toEqual({
+      count: 0,
+      capped: false,
+    });
   });
 });

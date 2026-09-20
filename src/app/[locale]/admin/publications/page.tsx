@@ -1,17 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useMutation, usePaginatedQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { FunctionReturnType } from 'convex/server';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadMore } from '@/components/admin/load-more';
 
 type ReviewItem = FunctionReturnType<
   typeof api.publications.listForReview
->[number];
+>['page'][number];
+
+// Taille de page. Le serveur la replafonne : elle est indicative.
+const PAGE_SIZE = 25;
 
 function PublicationRow({ pub }: { pub: ReviewItem }) {
   const t = useTranslations('admin');
@@ -111,9 +115,17 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
 export default function AdminPublications() {
   const t = useTranslations('admin');
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
-  const pubs = useQuery(
+  // PAGINÉE (issue #8) : le mode « toutes » chargeait la table `publications`
+  // entière, et résolvait l'auteur d'une ligne à la fois. Changer de filtre
+  // change les arguments, donc repart d'une première page — comportement voulu.
+  const {
+    results: pubs,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
     api.publications.listForReview,
-    filter === 'pending' ? { status: 'pending' } : { status: 'all' },
+    { status: filter },
+    { initialNumItems: PAGE_SIZE },
   );
 
   return (
@@ -138,7 +150,7 @@ export default function AdminPublications() {
         ))}
       </div>
 
-      {pubs === undefined ? (
+      {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : pubs.length === 0 ? (
         <p className="mt-6 text-ink-soft">{t('noPublications')}</p>
@@ -149,6 +161,8 @@ export default function AdminPublications() {
           ))}
         </ul>
       )}
+
+      <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />
     </div>
   );
 }

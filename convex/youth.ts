@@ -15,6 +15,7 @@ import {
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
+import { trackYouthApplicationStatus } from './lib/counters';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { locale } from './schema';
@@ -92,6 +93,7 @@ export const storeApplication = internalMutation({
       status: 'pending',
       createdAt: Date.now(),
     });
+    await trackYouthApplicationStatus(ctx, null, 'pending');
     return { ok: true, already: false };
   },
 });
@@ -149,6 +151,7 @@ export const reviewYouthApplication = mutation({
       reviewNotes: notes?.trim() || undefined,
       reviewedAt: Date.now(),
     });
+    await trackYouthApplicationStatus(ctx, application.status, decision);
     await recordAudit(ctx, {
       actorId: reviewer._id,
       action: AUDIT.YOUTH_REVIEWED,

@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internalMutation } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { recordAudit } from './lib/audit';
+import { COUNTER, bumpCounter } from './lib/counters';
 import { AUDIT } from './lib/auditActions';
 import { normalizeEmail } from './lib/onboarding';
 import { isEmail } from './lib/validation';
@@ -95,6 +96,7 @@ export const bootstrapAdmin = internalMutation({
         email: normalized,
         role: 'admin',
       });
+      await bumpCounter(ctx, COUNTER.USERS, 1);
       created = true;
     }
 

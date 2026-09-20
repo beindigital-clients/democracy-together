@@ -4,6 +4,7 @@ import {
   provisionUser,
   provisionPassword,
   getOtp,
+  E2E_PASSWORD,
 } from './_helpers';
 
 // Inscription (avec vérification e-mail OTP) -> déconnexion -> reconnexion. (F-01)
@@ -11,7 +12,7 @@ test('inscription + vérification, déconnexion, reconnexion par mot de passe', 
   page,
 }) => {
   const email = `e2e_${Date.now()}@democracytogether.test`;
-  const password = 'motdepasse1234';
+  const password = E2E_PASSWORD;
 
   await signUpAndVerify(page, email, password);
   await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
@@ -39,7 +40,7 @@ test('inscription + vérification, déconnexion, reconnexion par mot de passe', 
 // Modèle d'adhésion B : une auto-inscription donne le rôle « visiteur ».
 test("l'espace membre affiche l'utilisateur courant", async ({ page }) => {
   const email = `e2e_me_${Date.now()}@democracytogether.test`;
-  await signUpAndVerify(page, email, 'motdepasse1234');
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await expect(page.getByText(email).first()).toBeVisible();
   await expect(page.getByText('visiteur', { exact: true })).toBeVisible();
   // visiteur -> invité à candidater (pas encore membre)
@@ -74,7 +75,7 @@ test('définition du mot de passe : saisies non concordantes refusées', async (
   await page.getByLabel('Code de vérification').fill(await getOtp(email));
   await page
     .getByLabel('Nouveau mot de passe', { exact: true })
-    .fill('motdepasse1234');
+    .fill(E2E_PASSWORD);
   await page.getByLabel('Confirmer le mot de passe').fill('autremotdepasse5');
   await page
     .getByRole('button', { name: 'Réinitialiser le mot de passe' })

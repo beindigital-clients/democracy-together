@@ -29,18 +29,35 @@ export const myNotifications = query({
   },
 });
 
+// Pastille de la cloche d'en-tête (F-25/F-51).
+//
+// Le décompte chargeait TOUTES les notifications non lues de l'utilisateur pour
+// en lire la longueur. La lecture est indexée par (utilisateur, lu), donc
+// jamais un parcours de table — mais elle reste non bornée : un compte laissé
+// sans consulter ses notifications pendant des mois les relit toutes, à chaque
+// rendu de l'en-tête, sur chaque page.
+//
+// La pastille n'affiche déjà pas un nombre exact au-delà de neuf (« 9+ ») : on
+// lit donc une ligne de plus que ce seuil et on renvoie `capped`. Le coût est
+// constant, et l'affichage est exactement celui d'avant.
+export const UNREAD_BADGE_CAP = 9;
+
 export const unreadCount = query({
   args: {},
+  returns: v.object({ count: v.number(), capped: v.boolean() }),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return 0;
+    if (!userId) return { count: 0, capped: false };
     const unread = await ctx.db
       .query('notifications')
       .withIndex('by_user_and_read', (q) =>
         q.eq('userId', userId).eq('read', false),
       )
-      .collect();
-    return unread.length;
+      .take(UNREAD_BADGE_CAP + 1);
+    return {
+      count: Math.min(unread.length, UNREAD_BADGE_CAP),
+      capped: unread.length > UNREAD_BADGE_CAP,
+    };
   },
 });
 
@@ -57,8 +74,15 @@ export const markRead = mutation({
   },
 });
 
+// « Tout marquer comme lu ». Une mutation Convex est une transaction bornée en
+// documents écrits : marquer sans limite, c'est une panne garantie sur un
+// compte qui a beaucoup de notifications en retard. On traite un lot, et on dit
+// s'il en reste — un second appel poursuit.
+const MARK_ALL_BATCH = 200;
+
 export const markAllRead = mutation({
   args: {},
+  returns: v.object({ count: v.number(), remaining: v.boolean() }),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('UNAUTHENTICATED');
@@ -67,8 +91,9 @@ export const markAllRead = mutation({
       .withIndex('by_user_and_read', (q) =>
         q.eq('userId', userId).eq('read', false),
       )
-      .collect();
-    for (const n of unread) await ctx.db.patch(n._id, { read: true });
-    return { count: unread.length };
+      .take(MARK_ALL_BATCH + 1);
+    const batch = unread.slice(0, MARK_ALL_BATCH);
+    for (const n of batch) await ctx.db.patch(n._id, { read: true });
+    return { count: batch.length, remaining: unread.length > MARK_ALL_BATCH };
   },
 });

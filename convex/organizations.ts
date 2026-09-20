@@ -13,6 +13,12 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
+import {
+  COUNTER,
+  bumpCounter,
+  trackMembershipApplicationStatus,
+  trackOrganizationStatus,
+} from './lib/counters';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import {
@@ -141,7 +147,7 @@ export const storeApplication = internalMutation({
     });
 
     const userId = await getAuthUserId(ctx);
-    return await ctx.db.insert('membershipApplications', {
+    const applicationId = await ctx.db.insert('membershipApplications', {
       type: args.type,
       organizationName,
       contactEmail,
@@ -151,6 +157,8 @@ export const storeApplication = internalMutation({
       submittedAt: Date.now(),
       ...(userId ? { applicantUserId: userId } : {}),
     });
+    await trackMembershipApplicationStatus(ctx, null, 'pending');
+    return applicationId;
   },
 });
 
@@ -221,6 +229,7 @@ export const reviewApplication = mutation({
       reviewNotes: notes,
       reviewedAt: now,
     });
+    await trackMembershipApplicationStatus(ctx, application.status, decision);
 
     if (decision === 'rejected') {
       if (application.applicantUserId) {
@@ -258,6 +267,7 @@ export const reviewApplication = mutation({
     let userCreated = false;
     if (!user) {
       const id = await ctx.db.insert('users', { email, role: 'membre' });
+      await bumpCounter(ctx, COUNTER.USERS, 1);
       user = (await ctx.db.get(id))!;
       userCreated = true;
       await recordAudit(ctx, {
@@ -311,6 +321,7 @@ export const reviewApplication = mutation({
         status: d ? 'active' : 'pending',
         createdAt: now,
       });
+      await trackOrganizationStatus(ctx, null, d ? 'active' : 'pending');
       await ctx.db.insert('organizationMemberships', {
         userId: user._id,
         orgId: organizationId,

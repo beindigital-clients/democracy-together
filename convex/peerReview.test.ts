@@ -16,6 +16,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Pagination : les listes du back-office prennent désormais `paginationOpts`
+// (issue #8). Une page large suffit à ces tests — ce qu'ils vérifient n'est pas
+// le découpage mais le contenu.
+const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
+
 // Fabrique une publication minimale (statut 'pending' par défaut, comme un dépôt
 // membre) ; `over` permet d'injecter slug / authorUserId / reviewStage.
 function pubDoc(over: Record<string, unknown> = {}) {
@@ -172,7 +177,7 @@ describe('Peer review — getReviewQueue (F-43)', () => {
 
     // modérateur refusé pour la file
     await expect(
-      mod.as.query(api.peerReview.getReviewQueue, {}),
+      mod.as.query(api.peerReview.getReviewQueue, PAGE),
     ).rejects.toThrow();
 
     // deux avis : minor puis reject -> l'agrégat retient le plus sévère (reject)
@@ -187,7 +192,10 @@ describe('Peer review — getReviewQueue (F-43)', () => {
       comment: 'Méthodologie insuffisante pour publication.',
     });
 
-    const queue = await editor.as.query(api.peerReview.getReviewQueue, {});
+    const { page: queue } = await editor.as.query(
+      api.peerReview.getReviewQueue,
+      PAGE,
+    );
     expect(queue).toHaveLength(1);
     expect(queue[0].title).toBe('En revue');
     expect(queue[0].reviewStage).toBe('in_review');
@@ -272,10 +280,15 @@ describe('Peer review — listStaffUsers (F-43)', () => {
     const staff = await editor.as.query(api.peerReview.listStaffUsers, {});
     const roles = staff.map((u) => u.role).sort();
     expect(roles).toEqual(['admin', 'editeur', 'moderateur']);
-    // ni visiteur ni membre
-    expect(
-      staff.some((u) => u.role === 'visiteur' || u.role === 'membre'),
-    ).toBe(false);
+    // ni visiteur ni membre — vérifié sur les adresses, car depuis que la
+    // lecture passe par l'index `by_role` (issue #8) le TYPE de retour exclut
+    // déjà ces rôles : comparer `u.role` à 'visiteur' ne compilerait plus, et
+    // un test qui ne peut pas échouer ne garde rien.
+    expect(staff.map((u) => u.email).sort()).toEqual([
+      'adm@test.org',
+      'ed@test.org',
+      'mod@test.org',
+    ]);
   });
 });
 
