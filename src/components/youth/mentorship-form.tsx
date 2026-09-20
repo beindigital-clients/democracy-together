@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
+import { resolveLocale } from '@/i18n/locale';
 import { api } from '@convex/_generated/api';
 import { PUB_THEMES } from '@/lib/publications';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,7 @@ export function MentorshipForm() {
         role,
         themes: theme ? [theme] : undefined,
         message: values.message.trim(),
-        locale: locale === 'en' ? 'en' : 'fr',
+        locale: resolveLocale(locale),
         captchaToken,
       });
       setStatus('success');

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
+import { resolveLocale } from '@/i18n/locale';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
@@ -44,7 +45,7 @@ export function NewsletterForm({
       const captchaToken = await executeRecaptcha('newsletter');
       await subscribe({
         email: values.email.trim(),
-        locale: locale === 'en' ? 'en' : 'fr',
+        locale: resolveLocale(locale),
         captchaToken,
       });
       setStatus('success');

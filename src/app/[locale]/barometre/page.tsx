@@ -142,7 +142,7 @@ export default async function BarometrePage({
           <Reveal>
             <p className="text-[13px] text-muted">
               <Link href="/" className="text-muted hover:text-ink">
-                {locale === 'en' ? 'Home' : 'Accueil'}
+                {c.hero.crumbHome}
               </Link>{' '}
               / {c.hero.title}
             </p>

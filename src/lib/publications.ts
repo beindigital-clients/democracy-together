@@ -145,6 +145,34 @@ export function formatLongDate(ts: number, locale: string): string {
   }).format(ts);
 }
 
+// --- Liste d'auteurs ---------------------------------------------------------
+// « A, B et C » en français, « A, B, and C » en anglais : la conjonction n'est
+// pas la seule chose qui change — l'anglais prend aussi une virgule avant le
+// dernier élément. Cette règle-là ne s'écrit pas à la main : le code qui la
+// devinait par un ternaire sur la locale (issue #34) tenait au mieux pour deux
+// langues, et se trompait déjà sur l'une des deux. `Intl.ListFormat` la tient
+// pour toutes, y compris celles que le site n'a pas encore.
+
+function authorListFormat(locale: string): Intl.ListFormat {
+  return new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' });
+}
+
+// Liste d'auteurs en une seule chaîne — pour les citations.
+export function formatAuthorList(names: string[], locale: string): string {
+  return authorListFormat(locale).format(names);
+}
+
+// Même liste, découpée : les segments `element` sont les noms, les segments
+// `literal` les séparateurs que la langue impose. La fiche publication met les
+// NOMS en gras et laisse les séparateurs en texte courant — d'où le besoin des
+// parties plutôt que de la chaîne assemblée.
+export function formatAuthorParts(
+  names: string[],
+  locale: string,
+): ReturnType<Intl.ListFormat['formatToParts']> {
+  return authorListFormat(locale).formatToParts(names);
+}
+
 // --- Citations ---------------------------------------------------------------
 // Auteurs stockés "Prénom Nom" (ou nom d'organisation). On détecte les
 // organisations pour ne pas les inverser, et on formate les personnes en
@@ -192,11 +220,6 @@ function invertedName(name: string): string {
   return given ? `${surname}, ${given}` : surname;
 }
 
-function joinAuthors(names: string[], conj: string): string {
-  if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} ${conj} ${names[names.length - 1]}`;
-}
-
 function bibKey(pub: CitablePub): string {
   const titleWord =
     pub.title
@@ -213,9 +236,10 @@ function bibKey(pub: CitablePub): string {
 export type Citations = { apa: string; bibtex: string; ris: string };
 
 export function buildCitations(pub: CitablePub, locale: string): Citations {
-  const conj = locale === 'en' ? 'and' : 'et';
   const names = pub.authors.map((a) => a.name);
-  const apa = `${joinAuthors(names.map(apaName), conj)} (${pub.year}). ${pub.title}. ${PUBLISHER}. https://doi.org/${pub.doi}`;
+  // La ponctuation de la liste vient de la langue de LECTURE de la fiche, pas
+  // de celle de la publication : c'est la phrase qui entoure la citation.
+  const apa = `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. ${PUBLISHER}. https://doi.org/${pub.doi}`;
 
   const entry = pub.type === 'dataset' ? 'misc' : 'techreport';
   const bibtex = [

@@ -363,6 +363,7 @@
       "citeCopy": "Copier la citation",
       "citeExportRis": "Exporter en RIS",
       "authors": "Auteurs",
+      "by": "Par",
       "download": "Télécharger le PDF",
       "readOnline": "Lire en ligne",
       "cite": "Citer",
@@ -395,6 +396,7 @@
     }
   },
   "nav": {
+    "homeLabel": "Democracy Together — accueil",
     "about": "À propos",
     "news": "Actualités",
     "network": "Membres",
@@ -968,5 +970,8 @@
     "errorRetry": "Réessayer",
     "errorHome": "Retour à l'accueil",
     "errorReference": "Référence"
+  },
+  "site": {
+    "description": "Réseau international de think tanks pour la démocratie · Afrique–Europe."
   }
 }

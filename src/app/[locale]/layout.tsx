@@ -2,9 +2,13 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, setRequestLocale } from 'next-intl/server';
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from 'next-intl/server';
 import { routing } from '@/i18n/routing';
-import { isSupportedLocale } from '@/i18n/locale';
+import { isSupportedLocale, resolveLocale } from '@/i18n/locale';
 import { newsreader, plexSans, plexMono } from '@/lib/fonts';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -15,14 +19,31 @@ import { CookieConsent } from '@/components/legal/cookie-consent';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
 import '../globals.css';
 
-export const metadata: Metadata = {
-  title: {
-    default: 'Democracy Together',
-    template: '%s · Democracy Together',
-  },
-  description:
-    'Réseau international de think tanks pour la démocratie · Afrique–Europe.',
-};
+// Métadonnées par DÉFAUT du site : elles sont servies telles quelles sur toute
+// page dépourvue de `generateMetadata` propre. Statiques, elles décrivaient le
+// site en français jusque sur `/en` — donc dans les résultats de recherche
+// anglais (issue #34). `generateMetadata` les rend dépendantes de la langue.
+// La locale est passée explicitement à `getTranslations` : cette fonction
+// s'exécute hors du rendu, avant tout `setRequestLocale`.
+// Le titre, lui, est un NOM PROPRE : il ne se traduit pas.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale: resolveLocale(locale),
+    namespace: 'site',
+  });
+  return {
+    title: {
+      default: 'Democracy Together',
+      template: '%s · Democracy Together',
+    },
+    description: t('description'),
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

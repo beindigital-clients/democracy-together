@@ -67,9 +67,11 @@ export default async function HomePage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const c = await getHomeContent(loc);
-  // Légende canonique du baromètre (libellé + plage de score) : source unique,
-  // alignée sur la page Baromètre.
-  const baroLegend = getBarometerContent(loc).legend;
+  // Contenu canonique du baromètre (légende, titre de légende, aide de la
+  // carte) : source unique, alignée sur la page Baromètre. Le teaser réécrivait
+  // ces trois libellés en dur, par un ternaire sur la locale (issue #34).
+  const baro = getBarometerContent(loc);
+  const baroLegend = baro.legend;
   const mapItems: RegionMapItem[] = MAP_DATA.map((d) => ({
     name: d.name,
     region: d.region,
@@ -239,7 +241,7 @@ export default async function HomePage({
               </ul>
               <div className="mt-5 border-t border-line pt-4">
                 <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
-                  {loc === 'en' ? 'Freedom index' : 'Indice de liberté'}
+                  {baro.legendLabel}
                 </p>
                 <ul className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                   {baroLegend.map((lv, i) => (
@@ -267,11 +269,7 @@ export default async function HomePage({
                   items={mapItems}
                   variant="compact"
                   ariaLabel={c.barometre.mapLabel}
-                  hint={
-                    loc === 'en'
-                      ? 'Hover or tap a country to see its score.'
-                      : 'Survolez ou touchez un pays pour voir son score.'
-                  }
+                  hint={baro.map.interactiveHint}
                 />
               </div>
               <p className="mt-3 text-xs text-muted">{c.barometre.note}</p>
