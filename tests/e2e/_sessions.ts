@@ -50,7 +50,12 @@ export const SESSION_PASSWORD = 'session-e2e-partagee-2026';
 type NetworkRole = 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 export type SessionKey =
-  'membre' | 'moderateur' | 'editeur' | 'admin' | 'confirmations';
+  | 'membre'
+  | 'moderateur'
+  | 'editeur'
+  | 'admin'
+  | 'confirmations'
+  | 'devBrowser';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -83,6 +88,16 @@ export const SESSIONS: Record<
   confirmations: {
     email: 'e2e_session_confirmations@democracytogether.test',
     state: 'tests/e2e/.auth/confirmations.json',
+    role: 'admin',
+  },
+  // Session dédiée à `dev-browser.spec.ts` (issue #50). Elle est tenue d'un
+  // bout à l'autre du projet `dev-browser`, donc longtemps : la règle
+  // ci-dessus s'applique. Rang administrateur, parce que ce fichier capture le
+  // back-office ET l'espace membre — les gardes étant hiérarchiques, un seul
+  // compte couvre les deux écrans, et une seule connexion de plus est payée.
+  devBrowser: {
+    email: 'e2e_session_dev_browser@democracytogether.test',
+    state: 'tests/e2e/.auth/dev-browser.json',
     role: 'admin',
   },
 };
