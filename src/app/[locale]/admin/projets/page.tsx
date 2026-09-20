@@ -19,6 +19,7 @@ export default function AdminProjects() {
     status: pendingOnly ? 'pending' : undefined,
   });
   const review = useMutation(api.projects.reviewProjectProposal);
+  const reopen = useMutation(api.projects.reopenProjectProposal);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -39,6 +40,20 @@ export default function AdminProjects() {
       });
     } catch {
       /* erreur silencieuse : la liste se rafraîchit toute seule */
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Revenir sur une décision demande de ROUVRIR la proposition (issue #9) : le
+  // serveur refuse qu'on la retranche directement, et la réouverture laisse sa
+  // propre trace au journal.
+  async function reopenProposal(id: string) {
+    setBusy(id);
+    try {
+      await reopen({ proposalId: id as Id<'projectProposals'> });
+    } catch {
+      /* idem */
     } finally {
       setBusy(null);
     }
@@ -126,7 +141,19 @@ export default function AdminProjects() {
                     {t('prjAccept')}
                   </Button>
                 </div>
-              ) : null}
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="flex-1" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy === p._id}
+                    onClick={() => reopenProposal(p._id)}
+                  >
+                    {t('reopen')}
+                  </Button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

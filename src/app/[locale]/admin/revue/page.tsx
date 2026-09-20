@@ -119,21 +119,24 @@ export default function AdminReview() {
       <h1 className="font-display text-3xl">{t('revTitle')}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t('revIntro')}</p>
 
-      <div className="mt-5">
-        <select
-          aria-label={t('revStageFilterLabel')}
-          value={stage}
-          onChange={(e) => setStage(e.target.value as Stage | '')}
-          className={selectClass}
-        >
-          <option value="">{t('revStageAll')}</option>
-          {STAGES.map((sg) => (
-            <option key={sg} value={sg}>
-              {t(`revStage_${sg}`)}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Filtre d'étape (#71) passé par la coquille de champ (#72) : le
+          libellé y est porté par un vrai `<label>` masqué, au lieu d'un
+          `aria-label` posé à côté. */}
+      <SelectField
+        label={t('revStageFilterLabel')}
+        labelHidden
+        className="mt-5"
+        controlClassName="w-auto"
+        value={stage}
+        onChange={(e) => setStage(e.target.value as Stage | '')}
+      >
+        <option value="">{t('revStageAll')}</option>
+        {STAGES.map((sg) => (
+          <option key={sg} value={sg}>
+            {t(`revStage_${sg}`)}
+          </option>
+        ))}
+      </SelectField>
 
       {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
@@ -240,7 +243,8 @@ export default function AdminReview() {
                   className="mt-2"
                   disabled={
                     busy === `review:${p._id}` ||
-                    (comment[p._id] ?? '').trim().length < 10
+                    (comment[p._id] ?? '').trim().length < 10 ||
+                    p.reviewStage !== 'in_review'
                   }
                   onClick={() => onSubmitReview(p._id)}
                 >
@@ -302,19 +306,33 @@ export default function AdminReview() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={busy === `decide:${p._id}`}
+                      disabled={
+                        busy === `decide:${p._id}` ||
+                        p.reviewStage !== 'in_review'
+                      }
                       onClick={() => onDecide(p._id, 'revision')}
                     >
                       {t('revDecideRevision')}
                     </Button>
                     <Button
                       size="sm"
-                      disabled={busy === `decide:${p._id}`}
+                      disabled={
+                        busy === `decide:${p._id}` ||
+                        p.reviewStage !== 'in_review'
+                      }
                       onClick={() => onDecide(p._id, 'reviewed')}
                     >
                       {t('revDecideReviewed')}
                     </Button>
                   </div>
+                  {/* Un arbitrage rendu ne se rejoue pas et ne s'inverse pas
+                      (issue #9) : le serveur le refuse, l'écran le dit plutôt
+                      que d'offrir un bouton sans effet. Rouvrir = assigner. */}
+                  {p.reviewStage !== 'in_review' ? (
+                    <p className="mt-1 text-[13px] text-muted">
+                      {t('revClosedOrIdle')}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </li>

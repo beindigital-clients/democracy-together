@@ -5,6 +5,7 @@ import { requireNetworkRole } from './lib/rbac';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
+import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import { isNetworkTheme } from './lib/themes';
 
 // Appels à projets collaboratifs (F-60). La page publique présente le
@@ -89,6 +90,27 @@ export const listProjectProposals = query({
   },
 });
 
+// --- Machine à états de la revue des propositions (issue #9) ---------------
+//
+//   pending ──accepted/rejected──► accepted | rejected
+//   accepted | rejected ──reopenProjectProposal──► pending
+//
+// Effet de bord de la décision : AUCUN aujourd'hui (accepter n'ouvre pas
+// d'espace de travail et n'accorde aucun droit ; la suite se traite hors de
+// l'outil). Si une acceptation en vient à créer quelque chose, l'inversion
+// devra le défaire — raison de plus pour qu'elle ne puisse pas arriver par un
+// second clic. En attendant, la garde protège le journal d'audit : une
+// proposition ne peut pas y apparaître acceptée puis rejetée sans qu'on sache
+// laquelle des deux lignes fait foi.
+const PROJECT_REVIEW: ReviewMachine<Doc<'projectProposals'>['status']> = {
+  transitions: {
+    pending: ['accepted', 'rejected'],
+    accepted: ['pending'],
+    rejected: ['pending'],
+  },
+  decided: ['accepted', 'rejected'],
+};
+
 export const reviewProjectProposal = mutation({
   args: {
     proposalId: v.id('projectProposals'),
@@ -99,6 +121,7 @@ export const reviewProjectProposal = mutation({
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
     const proposal = await ctx.db.get(proposalId);
     if (!proposal) throw new Error('NOT_FOUND');
+    assertTransition(proposal.status, decision, PROJECT_REVIEW);
 
     await ctx.db.patch(proposalId, {
       status: decision,
@@ -111,6 +134,31 @@ export const reviewProjectProposal = mutation({
       action: AUDIT.PROJECT_REVIEWED,
       targetId: proposalId,
       metadata: { decision },
+    });
+    return { ok: true };
+  },
+});
+
+// Réouverture d'une proposition tranchée (issue #9) — modérateur et au-dessus,
+// audité sous sa propre action (`project.reopened`). Une décision prise par
+// erreur se corrige ainsi : la proposition retourne dans la file, et le retour
+// en arrière se lit dans le journal au lieu de s'y confondre avec une seconde
+// revue.
+export const reopenProjectProposal = mutation({
+  args: { proposalId: v.id('projectProposals') },
+  handler: async (ctx, { proposalId }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const proposal = await ctx.db.get(proposalId);
+    if (!proposal) throw new Error('NOT_FOUND');
+    const from = proposal.status;
+    assertTransition(from, 'pending', PROJECT_REVIEW);
+
+    await ctx.db.patch(proposalId, { status: 'pending' });
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.PROJECT_REOPENED,
+      targetId: proposalId,
+      metadata: { from },
     });
     return { ok: true };
   },

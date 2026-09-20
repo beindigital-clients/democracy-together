@@ -17,7 +17,9 @@ import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
+import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import { locale } from './schema';
+import type { Doc } from './_generated/dataModel';
 
 // --- Mentorat : mise en relation (F-59) -------------------------------------
 // Rend réelle l'intention « Demander un mentor » / « Trouver mon mentor » du hub
@@ -137,6 +139,30 @@ export const listMentorshipRequests = query({
   },
 });
 
+// --- Machine à états de la revue des demandes de mentorat (issue #9) -------
+//
+//   pending ──matched/closed──► matched | closed
+//   matched ──closed──► closed                  (fin d'accompagnement)
+//   matched | closed ──reopenMentorshipRequest──► pending
+//
+// `matched -> closed` est une SUITE, pas une inversion : la mise en relation a
+// bien eu lieu, puis l'accompagnement se termine. L'inverse — `closed` repassé
+// en `matched` — prétendrait qu'un appariement existe alors qu'il a été clos ;
+// il faut d'abord rouvrir la demande.
+//
+// Effet de bord de la décision : AUCUN (ni compte, ni rôle, ni mise en relation
+// automatique — l'appariement se fait par e-mail, hors de l'outil). La garde
+// protège donc le JOURNAL : ces mutations sont auditées, et une décision
+// rejouée ou inversée en silence y empile des lignes contradictoires.
+const MENTORSHIP_REVIEW: ReviewMachine<Doc<'mentorshipRequests'>['status']> = {
+  transitions: {
+    pending: ['matched', 'closed'],
+    matched: ['closed', 'pending'],
+    closed: ['pending'],
+  },
+  decided: ['matched', 'closed'],
+};
+
 export const reviewMentorshipRequest = mutation({
   args: {
     requestId: v.id('mentorshipRequests'),
@@ -147,6 +173,7 @@ export const reviewMentorshipRequest = mutation({
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
     const request = await ctx.db.get(requestId);
     if (!request) throw new Error('NOT_FOUND');
+    assertTransition(request.status, status, MENTORSHIP_REVIEW);
 
     await ctx.db.patch(requestId, {
       status,
@@ -162,6 +189,29 @@ export const reviewMentorshipRequest = mutation({
         role: request.role,
         notes: notes?.trim() || undefined,
       },
+    });
+    return { ok: true };
+  },
+});
+
+// Réouverture d'une demande tranchée (issue #9) — modérateur et au-dessus,
+// audité sous sa propre action. C'est le seul chemin de retour : un
+// appariement clos qu'on veut reprendre repasse par la file, visiblement.
+export const reopenMentorshipRequest = mutation({
+  args: { requestId: v.id('mentorshipRequests') },
+  handler: async (ctx, { requestId }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const request = await ctx.db.get(requestId);
+    if (!request) throw new Error('NOT_FOUND');
+    const from = request.status;
+    assertTransition(from, 'pending', MENTORSHIP_REVIEW);
+
+    await ctx.db.patch(requestId, { status: 'pending' });
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.MENTORSHIP_REOPENED,
+      targetId: requestId,
+      metadata: { from, role: request.role },
     });
     return { ok: true };
   },

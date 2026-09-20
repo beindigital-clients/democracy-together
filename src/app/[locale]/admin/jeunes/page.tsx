@@ -18,6 +18,7 @@ export default function AdminYouth() {
     status: pendingOnly ? 'pending' : undefined,
   });
   const review = useMutation(api.youth.reviewYouthApplication);
+  const reopen = useMutation(api.youth.reopenYouthApplication);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -36,6 +37,20 @@ export default function AdminYouth() {
         decision,
         notes: notes[id]?.trim() || undefined,
       });
+    } catch {
+      /* idem */
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Revenir sur une décision demande de ROUVRIR la candidature (issue #9) :
+  // le serveur refuse qu'on la retranche directement, et la réouverture laisse
+  // sa propre trace au journal.
+  async function reopenApplication(id: string) {
+    setBusy(id);
+    try {
+      await reopen({ applicationId: id as Id<'youthApplications'> });
     } catch {
       /* idem */
     } finally {
@@ -128,7 +143,19 @@ export default function AdminYouth() {
                     {t('approve')}
                   </Button>
                 </div>
-              ) : null}
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="flex-1" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy === a._id}
+                    onClick={() => reopenApplication(a._id)}
+                  >
+                    {t('reopen')}
+                  </Button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

@@ -18,7 +18,9 @@ import { requireNetworkRole } from './lib/rbac';
 import { trackYouthApplicationStatus } from './lib/counters';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
+import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import { locale } from './schema';
+import type { Doc } from './_generated/dataModel';
 
 // --- Candidature publique au hub Jeunes (F-58) ------------------------------
 // Sans compte (par e-mail), comme l'adhésion. Rate-limitée ; une candidature en
@@ -134,6 +136,29 @@ export const listYouthApplications = query({
   },
 });
 
+// --- Machine à états de la revue des candidatures jeunes (issue #9) --------
+//
+//   pending ──approved/rejected──► approved | rejected
+//   approved | rejected ──reopenYouthApplication──► pending
+//
+// Effet de bord de la décision : AUCUN. Contrairement à l'adhésion
+// (`organizations.reviewApplication`, PR #4), approuver une candidature jeune
+// ne crée ni compte ni rôle — inverser ne laisserait donc aucun privilège
+// derrière soi. L'inversion silencieuse reste refusée pour l'autre raison de
+// l'issue : la mutation est AUDITÉE, et un journal qui empile « approuvée »,
+// « rejetée », « approuvée » ne dit plus laquelle des trois fait foi.
+//
+// Rouvrir reste possible — on se trompe de bouton — mais par la transition
+// nommée `reopenYouthApplication`, tracée sous `youth.reopened`.
+const YOUTH_REVIEW: ReviewMachine<Doc<'youthApplications'>['status']> = {
+  transitions: {
+    pending: ['approved', 'rejected'],
+    approved: ['pending'],
+    rejected: ['pending'],
+  },
+  decided: ['approved', 'rejected'],
+};
+
 export const reviewYouthApplication = mutation({
   args: {
     applicationId: v.id('youthApplications'),
@@ -144,6 +169,7 @@ export const reviewYouthApplication = mutation({
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
     const application = await ctx.db.get(applicationId);
     if (!application) throw new Error('NOT_FOUND');
+    assertTransition(application.status, decision, YOUTH_REVIEW);
 
     await ctx.db.patch(applicationId, {
       status: decision,
@@ -157,6 +183,34 @@ export const reviewYouthApplication = mutation({
       action: AUDIT.YOUTH_REVIEWED,
       targetId: applicationId,
       metadata: { decision },
+    });
+    return { ok: true };
+  },
+});
+
+// Réouverture d'une candidature tranchée (issue #9) — modérateur et au-dessus,
+// audité sous sa propre action. La candidature retourne dans la file, et le
+// journal montre le retour en arrière au lieu de le dissimuler derrière une
+// seconde ligne « youth.reviewed ». La note du refus est conservée : elle dit
+// pourquoi la décision d'origine avait été prise.
+export const reopenYouthApplication = mutation({
+  args: { applicationId: v.id('youthApplications') },
+  handler: async (ctx, { applicationId }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const application = await ctx.db.get(applicationId);
+    if (!application) throw new Error('NOT_FOUND');
+    const from = application.status;
+    assertTransition(from, 'pending', YOUTH_REVIEW);
+
+    await ctx.db.patch(applicationId, { status: 'pending' });
+    // La candidature revient dans la file : le compteur du tableau de bord la
+    // recompte (issue #8).
+    await trackYouthApplicationStatus(ctx, from, 'pending');
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.YOUTH_REOPENED,
+      targetId: applicationId,
+      metadata: { from },
     });
     return { ok: true };
   },

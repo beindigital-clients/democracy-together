@@ -21,6 +21,7 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
   const t = useTranslations('admin');
   const tl = useTranslations('library');
   const review = useMutation(api.publications.reviewPublication);
+  const reopen = useMutation(api.publications.reopenPublicationReview);
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
 
@@ -33,8 +34,23 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
         notes: notes.trim() || undefined,
       });
     } catch {
-      // action refusée côté serveur (ex. rôle insuffisant) : la file reste
-      // inchangée, pas de rejet non géré.
+      // action refusée côté serveur (ex. rôle insuffisant, décision déjà
+      // prise) : la file reste inchangée, pas de rejet non géré.
+    } finally {
+      setPending(false);
+    }
+  }
+
+  // Un refus ne se re-décide pas (issue #9) : on ROUVRE la publication, qui
+  // retourne dans la file en attente. La réouverture est auditée sous sa
+  // propre action, là où un second clic sur « Approuver » aurait effacé le
+  // refus sans laisser de trace de l'hésitation.
+  async function reopenReview() {
+    setPending(true);
+    try {
+      await reopen({ publicationId: pub._id });
+    } catch {
+      // idem
     } finally {
       setPending(false);
     }
@@ -105,9 +121,26 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
             {t('reject')}
           </Button>
         </div>
-      ) : pub.reviewNotes ? (
-        <p className="mt-3 text-xs text-muted">“{pub.reviewNotes}”</p>
-      ) : null}
+      ) : (
+        <>
+          {pub.reviewNotes ? (
+            <p className="mt-3 text-xs text-muted">“{pub.reviewNotes}”</p>
+          ) : null}
+          {/* Un brouillon AVEC une date de revue est un refus, pas un dépôt
+              jamais soumis — la distinction attend le statut `rejected` de
+              l'issue #32. Seul le premier se rouvre. */}
+          {pub.status === 'draft' && pub.reviewedAt !== null ? (
+            <Button
+              variant="outline"
+              className="mt-3"
+              disabled={pending}
+              onClick={reopenReview}
+            >
+              {t('reopen')}
+            </Button>
+          ) : null}
+        </>
+      )}
     </li>
   );
 }

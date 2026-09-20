@@ -185,6 +185,126 @@ describe('Mentorat — back-office (F-59)', () => {
   });
 });
 
+describe('Mentorat — machine à états de la revue (issue #9)', () => {
+  async function setup() {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.mentorship.storeRequest, {
+      ...REQ,
+      email: 'demande@example.org',
+    });
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const [request] = await t.run((ctx) =>
+      ctx.db.query('mentorshipRequests').collect(),
+    );
+    return {
+      t,
+      modId,
+      asMod: t.withIdentity({ subject: `${modId}|s` }),
+      requestId: request._id,
+    };
+  }
+
+  const auditOf = (t: ReturnType<typeof convexTest>, action: string) =>
+    t.run((ctx) =>
+      ctx.db
+        .query('auditLog')
+        .withIndex('by_action', (q) => q.eq('action', action))
+        .collect(),
+    );
+
+  it('refuse le rejeu, et l’inversion d’une demande close', async () => {
+    const { t, asMod, requestId } = await setup();
+    await asMod.mutation(api.mentorship.reviewMentorshipRequest, {
+      requestId,
+      status: 'closed',
+    });
+
+    // rejeu (double clic) puis inversion : une demande classée sans suite ne
+    // redevient pas « appariée » d'un clic — il faut la rouvrir.
+    for (const status of ['closed', 'matched'] as const) {
+      await expect(
+        asMod.mutation(api.mentorship.reviewMentorshipRequest, {
+          requestId,
+          status,
+        }),
+      ).rejects.toThrow('ALREADY_REVIEWED');
+    }
+
+    expect(await t.run((ctx) => ctx.db.get(requestId))).toMatchObject({
+      status: 'closed',
+    });
+    expect(await auditOf(t, 'mentorship.reviewed')).toHaveLength(1);
+  });
+
+  it('clore un appariement est une SUITE, pas une inversion', async () => {
+    const { t, asMod, requestId } = await setup();
+    await asMod.mutation(api.mentorship.reviewMentorshipRequest, {
+      requestId,
+      status: 'matched',
+    });
+    // La mise en relation a eu lieu, puis l'accompagnement se termine : c'est
+    // une transition légitime, et elle laisse sa trace.
+    await asMod.mutation(api.mentorship.reviewMentorshipRequest, {
+      requestId,
+      status: 'closed',
+    });
+    expect(await t.run((ctx) => ctx.db.get(requestId))).toMatchObject({
+      status: 'closed',
+    });
+    expect(await auditOf(t, 'mentorship.reviewed')).toHaveLength(2);
+
+    // mais on ne revient pas en arrière : re-clore, ou ré-apparier, est refusé
+    await expect(
+      asMod.mutation(api.mentorship.reviewMentorshipRequest, {
+        requestId,
+        status: 'matched',
+      }),
+    ).rejects.toThrow('ALREADY_REVIEWED');
+  });
+
+  it('réouverture : transition nommée, tracée, puis nouvelle décision', async () => {
+    const { t, modId, asMod, requestId } = await setup();
+    await asMod.mutation(api.mentorship.reviewMentorshipRequest, {
+      requestId,
+      status: 'matched',
+    });
+
+    // réservée au staff
+    await expect(
+      t.mutation(api.mentorship.reopenMentorshipRequest, { requestId }),
+    ).rejects.toThrow();
+
+    await asMod.mutation(api.mentorship.reopenMentorshipRequest, { requestId });
+    expect(await t.run((ctx) => ctx.db.get(requestId))).toMatchObject({
+      status: 'pending',
+    });
+
+    const reopened = await auditOf(t, 'mentorship.reopened');
+    expect(reopened).toHaveLength(1);
+    expect(reopened[0].actorId).toBe(modId);
+    expect(reopened[0].metadata).toMatchObject({
+      from: 'matched',
+      role: 'mentore',
+    });
+
+    // rouvrir une demande déjà en attente n'a pas d'objet
+    await expect(
+      asMod.mutation(api.mentorship.reopenMentorshipRequest, { requestId }),
+    ).rejects.toThrow('INVALID_TRANSITION');
+
+    // et la demande se tranche à nouveau
+    await asMod.mutation(api.mentorship.reviewMentorshipRequest, {
+      requestId,
+      status: 'closed',
+    });
+    expect(await t.run((ctx) => ctx.db.get(requestId))).toMatchObject({
+      status: 'closed',
+    });
+  });
+});
+
 describe('Mentorat — contenu éditorial (terme banni)', () => {
   it('n’emploie jamais « démocratie libérale » / « liberal democracy »', () => {
     const blob = JSON.stringify([frMentorship, enMentorship]);
