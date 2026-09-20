@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { provisionUser, submitApplication } from './_helpers';
 import { SESSIONS } from './_sessions';
 
@@ -24,6 +24,27 @@ async function search(page: Page, label: string, term: string) {
   await page.getByRole('searchbox', { name: label }).fill(term);
 }
 
+// Le champ est TEMPORISÉ et la recherche est faite par le serveur : entre la
+// frappe et la liste restreinte, il s'écoule un délai puis un aller-retour
+// Convex. Toute vérification de ce qui reste affiché doit donc être une
+// assertion qui RÉESSAIE — `allTextContents()` lit une fois, et lit la liste
+// d'avant. Ces deux aides ne rendent la main que lorsque plus aucune ligne ne
+// contredit le filtre, et qu'il en reste au moins une.
+async function onlyRowsMatching(cells: Locator, expected: string | RegExp) {
+  await expect(cells.filter({ hasNotText: expected })).toHaveCount(0);
+  await expect(cells.first()).toBeVisible();
+}
+
+// L'écran du back-office est monté derrière deux requêtes (session, puis
+// liste) : cliquer sur `goto` sans attendre son titre, c'est viser un bouton
+// que le rendu peut encore remplacer — « element was detached from the DOM ».
+async function openScreen(page: Page, path: string, heading: string) {
+  await page.goto(path);
+  await expect(
+    page.getByRole('heading', { level: 1, name: heading }),
+  ).toBeVisible();
+}
+
 test.describe('recherche des listes (session admin partagée)', () => {
   test.use({ storageState: SESSIONS.adminUx.state });
 
@@ -37,7 +58,7 @@ test.describe('recherche des listes (session admin partagée)', () => {
     const email = `${token}@democracytogether.test`;
     await provisionUser(email);
 
-    await page.goto('/fr/admin/utilisateurs');
+    await openScreen(page, '/fr/admin/utilisateurs', 'Utilisateurs');
     // Sans recherche, la liste est paginée : rien ne garantit que le compte
     // tout juste créé soit dans la première page — c'est précisément ce que la
     // recherche sert à retrouver.
@@ -58,9 +79,12 @@ test.describe('recherche des listes (session admin partagée)', () => {
   }) => {
     const token = `roles${stamp()}`;
     const email = `${token}@democracytogether.test`;
-    await provisionUser(email); // créé « membre »
+    // Le rôle est DEMANDÉ explicitement : `provisionUser` crée un « visiteur »
+    // par défaut, et un test qui filtre sur « membre » doit dire de quel compte
+    // il parle plutôt que d'hériter d'un défaut.
+    await provisionUser(email, 'membre');
 
-    await page.goto('/fr/admin/utilisateurs');
+    await openScreen(page, '/fr/admin/utilisateurs', 'Utilisateurs');
     await search(page, 'Rechercher un utilisateur', token);
     await expect(page.getByText(email)).toBeVisible();
 
@@ -89,7 +113,7 @@ test.describe('recherche des listes (session admin partagée)', () => {
       country: 'Sénégal',
     });
 
-    await page.goto('/fr/admin/candidatures');
+    await openScreen(page, '/fr/admin/candidatures', 'Candidatures');
     await search(page, 'Rechercher une candidature', token);
 
     // Liste NOMMÉE : la navigation groupée rend elle aussi des `<li>`, un
@@ -119,7 +143,7 @@ test.describe('recherche des listes (session admin partagée)', () => {
     const email = `${token}@democracytogether.test`;
     await provisionUser(email);
 
-    await page.goto('/fr/admin/utilisateurs');
+    await openScreen(page, '/fr/admin/utilisateurs', 'Utilisateurs');
     await search(page, 'Rechercher un utilisateur', token);
 
     // Le changement de rôle se fait en DEUX TEMPS depuis l'issue #38 : choisir
@@ -134,37 +158,45 @@ test.describe('recherche des listes (session admin partagée)', () => {
       .click();
     await expect(page.getByLabel(`Rôle ${email}`)).toHaveValue('moderateur');
 
-    await page.goto('/fr/admin/journal');
+    await openScreen(page, '/fr/admin/journal', "Journal d'activité");
 
     // Recherche par famille d'action : l'index découpe le slug pointé, donc
     // « user » remonte `user.role_changed` (et `user.invited`).
     await search(page, 'Rechercher une action', 'user');
     const actionCells = page.locator('tbody tr td:nth-child(2)');
-    await expect(actionCells.first()).toBeVisible();
-    for (const text of await actionCells.allTextContents()) {
-      expect(text).toMatch(/^user\./);
-    }
+    await onlyRowsMatching(actionCells, /^user\./);
 
     // Filtre par acteur : on le prend là où il est affiché, en cliquant
     // l'acteur d'une ligne.
+    //
+    // L'acteur visé est CONNU — c'est la session qui vient de changer le rôle,
+    // donc l'entrée créée à l'instant. Lire à la place l'acteur « de la
+    // première ligne » ouvrirait une course : le journal est alimenté en
+    // parallèle par les autres parcours, et la ligne de tête peut changer
+    // entre la lecture et le clic.
     await page.getByRole('button', { name: 'Effacer' }).click();
+    const actor = SESSIONS.adminUx.email;
     const actorCells = page.locator('tbody tr td:nth-child(3)');
-    await expect(actorCells.first()).toBeVisible();
-    const actor = (await actorCells.first().innerText()).trim();
-    await actorCells.first().getByRole('button').click();
+    await page
+      .getByRole('button', { name: `Acteur : ${actor}` })
+      .first()
+      .click();
 
     // L'étiquette NOMME ce qui est filtré — sans elle, une liste restreinte
-    // serait indistinguable d'un journal presque vide.
-    await expect(page.getByText(`Acteur : ${actor}`)).toBeVisible();
-    for (const text of await actorCells.allTextContents()) {
-      expect(text.trim()).toBe(actor);
-    }
+    // serait indistinguable d'un journal presque vide. `exact` : les boutons
+    // du tableau portent la même chaîne en `aria-label`, mais pas en texte.
+    await expect(
+      page.getByText(`Acteur : ${actor}`, { exact: true }),
+    ).toBeVisible();
+    await onlyRowsMatching(actorCells, actor);
 
     // Et on peut y renoncer.
     await page
       .getByRole('button', { name: "Retirer le filtre d'acteur" })
       .click();
-    await expect(page.getByText(`Acteur : ${actor}`)).toHaveCount(0);
+    await expect(
+      page.getByText(`Acteur : ${actor}`, { exact: true }),
+    ).toHaveCount(0);
   });
 
   test('publications : recherche par titre dans la file de modération (F-32)', async ({
@@ -173,8 +205,21 @@ test.describe('recherche des listes (session admin partagée)', () => {
     // Cette file dépend des seeds (`seedPublications`, cf. TESTING.md) : on ne
     // suppose donc pas une ligne précise, on vérifie la PROPRIÉTÉ — tout ce qui
     // reste affiché correspond au terme, et un terme absent le dit.
-    await page.goto('/fr/admin/publications');
+    await openScreen(page, '/fr/admin/publications', 'Publications');
+    // Le titre paraît avant la première page de la file : cliquer à cet
+    // instant, c'est viser un bouton que le rendu suivant remplace (« element
+    // was detached from the DOM »). On attend donc que la file ait tranché —
+    // une liste, ou le message de file vide.
+    const queue = page
+      .getByRole('list', { name: 'Liste des publications à modérer' })
+      .getByRole('listitem');
+    const settled = page
+      .getByRole('list', { name: 'Liste des publications à modérer' })
+      .or(page.getByText('Aucune publication à modérer.'));
+    await expect(settled).toBeVisible();
+
     await page.getByRole('button', { name: 'Toutes' }).click();
+    await expect(settled).toBeVisible();
 
     await search(page, 'Rechercher une publication', 'zzz-aucun-titre');
     await expect(
@@ -182,9 +227,6 @@ test.describe('recherche des listes (session admin partagée)', () => {
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'Effacer' }).click();
-    const queue = page
-      .getByRole('list', { name: 'Liste des publications à modérer' })
-      .getByRole('listitem');
     const firstTitle = queue.first().getByRole('heading');
     await expect(firstTitle).toBeVisible();
     // Un MOT ENTIER du premier titre, assez long pour être discriminant : un
@@ -196,10 +238,9 @@ test.describe('recherche des listes (session admin partagée)', () => {
     test.skip(!word, 'aucun mot assez long dans le premier titre');
 
     await search(page, 'Rechercher une publication', word!);
-    const headings = queue.getByRole('heading');
-    await expect(headings.first()).toBeVisible();
-    for (const text of await headings.allTextContents()) {
-      expect(text.toLowerCase()).toContain(word!.toLowerCase());
-    }
+    await onlyRowsMatching(
+      queue.getByRole('heading'),
+      new RegExp(word!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+    );
   });
 });
