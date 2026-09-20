@@ -34,7 +34,11 @@ export default defineConfig({
     // Consentement cookies pré-positionné (utilisateur « déjà venu ») pour que le
     // bandeau F-09 (fixed, bas de page) n'intercepte pas les clics des autres
     // specs. Le test dédié `legal.spec` repart d'un état vierge pour le voir.
-    storageState: './tests/e2e/storage-state.json',
+    // Le fichier porte le nom de ce qu'il contient (issue #44) : `storage-state`
+    // est la convention Playwright pour un état d'AUTHENTIFICATION, et ce nom
+    // invitait à y committer un jour une vraie session. Les états de session,
+    // eux, sont produits par le projet `setup` dans `tests/e2e/.auth/` (ignoré).
+    storageState: './tests/e2e/cookie-consent-state.json',
   },
   projects: [
     {
