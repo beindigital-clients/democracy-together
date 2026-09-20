@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -208,6 +208,13 @@ describe('Impact — impactStats (F-66)', () => {
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
+
+    // L'écran d'impact lit des compteurs dénormalisés, tenus à l'écriture
+    // (issue #8). Ce test pose ses données EN DIRECT (`t.run`), donc sans
+    // passer par une seule mutation : il joue d'abord la réconciliation —
+    // celle-là même qui amorce un déploiement existant.
+    await t.mutation(internal.counters.recompute, {});
+
     const stats = await t
       .withIdentity({ subject: `${modId}|s` })
       .query(api.impact.impactStats, {});

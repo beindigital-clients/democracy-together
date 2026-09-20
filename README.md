@@ -31,6 +31,10 @@ pnpm dev            # http://localhost:3000 -> /fr
 npx convex dev      # provisionne le backend, génère convex/_generated, remplit .env.local
 ```
 
+> **Déploiement en cours : le Convex de développement** (`rare-alpaca-677`),
+> jusqu'à la validation de l'application — choix assumé et temporaire. La
+> bascule vers la production suit `docs/deploiement.md`, qui vaut runbook.
+
 `convex/` contient le **code applicatif du backend**, écrit à la main (schéma,
 auth, fonctions métier, crons, helpers de `convex/lib/`). Seul le
 sous-dossier `convex/_generated/` est produit par `convex dev` / `convex codegen`
@@ -98,6 +102,16 @@ pull request (`.github/workflows/e2e.yml`).
 - Préférence mémorisée dans le cookie `NEXT_LOCALE` (next-intl), lisible côté
   serveur dès le 1er rendu. **Pas de localStorage** pour la langue.
 - Le thème clair/sombre, lui, est en localStorage (préférence purement visuelle).
+- **Navigation entre pages** : `Link`, `useRouter`, `redirect` et `usePathname`
+  viennent de `@/i18n/navigation`. Ces versions-là portent le préfixe de langue,
+  celles de `next/navigation` non : utiliser les mauvaises produit une
+  redirection qui perd la langue — un bogue muet, visible seulement en anglais.
+  Une règle ESLint l'impose (`notFound`, `useSearchParams` et `useParams`, qui
+  ne naviguent pas, restent libres).
+- **Normaliser une locale** (segment d'URL inconnu, absent, mal cassé) :
+  `resolveLocale()` de `@/i18n/locale` — seul endroit du dépôt où cette règle
+  s'écrit. `isSupportedLocale()` quand une locale inconnue doit être REFUSÉE
+  plutôt que repliée (c'est le 404 du layout).
 
 ## Sécurité
 
@@ -136,6 +150,15 @@ vers `src/app/globals.css` (`@theme`) :
 - Échelle Baromètre divergente, lisible au daltonisme.
 - Thème via `data-theme="dark"`. Accessibilité : contraste AA, focus visible,
   `prefers-reduced-motion` respecté.
+- **Champs de formulaire : un seul système**, `src/components/ui/field.tsx`
+  (`TextField` · `TextareaField` · `SelectField`, la coquille `Field` pour les
+  contrôles particuliers — mot de passe, code à usage unique, fichier — et
+  `FormError` pour l'erreur du formulaire). C'est lui qui porte le libellé,
+  l'aide, l'erreur et leur rattachement ARIA : ce qu'on y corrige est corrigé
+  dans tous les formulaires à la fois. Une règle ESLint interdit de réassembler
+  un champ à la main (`<label htmlFor>` hors de ce fichier) ; les libellés
+  ENVELOPPANTS des groupes de cases et de boutons radio, eux, restent la bonne
+  réponse.
 
 ## Structure
 
@@ -144,7 +167,7 @@ src/
   app/[locale]/      pages localisées (layout rend <html>, header, footer)
   app/(studio)/      Studio Sanity monté sur /studio
   components/        header, footer, sections, ui, admin, tribune, map…
-  i18n/              routing · request · navigation
+  i18n/              routing · request · navigation · locale
   lib/               contenus TypeScript, helpers, routes protégées
   messages/          fr.json · en.json
   proxy.ts           middleware Next : auth Convex + routage de langue

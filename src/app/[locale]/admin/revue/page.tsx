@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { SelectField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
+import { LoadMore } from '@/components/admin/load-more';
 
 type Recommendation = 'accept' | 'minor' | 'major' | 'reject';
 const RECOMMENDATIONS: Recommendation[] = [
@@ -16,6 +17,12 @@ const RECOMMENDATIONS: Recommendation[] = [
   'major',
   'reject',
 ];
+
+type Stage = 'in_review' | 'revision' | 'reviewed';
+const STAGES: Stage[] = ['in_review', 'revision', 'reviewed'];
+
+// Taille de page. Le serveur la replafonne : elle est indicative.
+const PAGE_SIZE = 20;
 
 // Revue à comité de lecture (F-43) — RÉSERVÉE AU STAFF. Surcouche de la
 // modération : les relecteurs (modérateur+) déposent un avis, l'éditeur arbitre
@@ -26,7 +33,18 @@ export default function AdminReview() {
   const t = useTranslations('admin');
   const tl = useTranslations('library');
   const locale = useLocale();
-  const queue = useQuery(api.peerReview.getReviewQueue, {});
+  // PAGINÉE (issue #8) : la file chargeait la table `publications` entière pour
+  // n'en garder que les quelques-unes engagées dans une revue. L'ordre vient de
+  // l'index `by_reviewStage` — les étapes qui attendent une décision de
+  // l'éditeur d'abord —, d'où le filtre par étape à côté.
+  const [stage, setStage] = useState<Stage | ''>('');
+  const {
+    results: queue,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.peerReview.getReviewQueue, stage ? { stage } : {}, {
+    initialNumItems: PAGE_SIZE,
+  });
   const staff = useQuery(api.peerReview.listStaffUsers, {});
   const assign = useMutation(api.peerReview.assignReviewer);
   const submit = useMutation(api.peerReview.submitReview);
@@ -46,9 +64,6 @@ export default function AdminReview() {
       month: 'short',
       year: 'numeric',
     }).format(ms);
-
-  const selectClass =
-    'rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent-text focus:outline-none';
 
   async function onAssign(pubId: string) {
     const uid = reviewer[pubId];
@@ -104,7 +119,26 @@ export default function AdminReview() {
       <h1 className="font-display text-3xl">{t('revTitle')}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t('revIntro')}</p>
 
-      {queue === undefined ? (
+      {/* Filtre d'étape (#71) passé par la coquille de champ (#72) : le
+          libellé y est porté par un vrai `<label>` masqué, au lieu d'un
+          `aria-label` posé à côté. */}
+      <SelectField
+        label={t('revStageFilterLabel')}
+        labelHidden
+        className="mt-5"
+        controlClassName="w-auto"
+        value={stage}
+        onChange={(e) => setStage(e.target.value as Stage | '')}
+      >
+        <option value="">{t('revStageAll')}</option>
+        {STAGES.map((sg) => (
+          <option key={sg} value={sg}>
+            {t(`revStage_${sg}`)}
+          </option>
+        ))}
+      </SelectField>
+
+      {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : queue.length === 0 ? (
         <p className="mt-6 text-ink-soft">{t('revEmpty')}</p>
@@ -174,36 +208,34 @@ export default function AdminReview() {
                 <h3 className="text-sm font-medium text-ink-soft">
                   {t('revSubmitLabel')}
                 </h3>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <label className="text-[13px] text-ink-soft">
-                    {t('revRecommendationLabel')}
-                  </label>
-                  <select
-                    aria-label={t('revRecommendationLabel')}
-                    value={recommendation[p._id] ?? 'accept'}
-                    onChange={(e) =>
-                      setRecommendation((s) => ({
-                        ...s,
-                        [p._id]: e.target.value as Recommendation,
-                      }))
-                    }
-                    className={selectClass}
-                  >
-                    {RECOMMENDATIONS.map((rec) => (
-                      <option key={rec} value={rec}>
-                        {t(`revRec_${rec}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Textarea
+                <SelectField
+                  label={t('revRecommendationLabel')}
+                  className="mt-2"
+                  controlClassName="w-auto"
+                  value={recommendation[p._id] ?? 'accept'}
+                  onChange={(e) =>
+                    setRecommendation((s) => ({
+                      ...s,
+                      [p._id]: e.target.value as Recommendation,
+                    }))
+                  }
+                >
+                  {RECOMMENDATIONS.map((rec) => (
+                    <option key={rec} value={rec}>
+                      {t(`revRec_${rec}`)}
+                    </option>
+                  ))}
+                </SelectField>
+                <TextareaField
+                  label={t('revSubmitLabel')}
+                  labelHidden
+                  className="mt-2"
                   value={comment[p._id] ?? ''}
                   onChange={(e) =>
                     setComment((c) => ({ ...c, [p._id]: e.target.value }))
                   }
                   rows={3}
                   placeholder={t('revCommentPlaceholder')}
-                  className="mt-2 resize-y"
                 />
                 <Button
                   size="sm"
@@ -223,17 +255,20 @@ export default function AdminReview() {
               {/* Arbitrage éditeur : assignation + décision */}
               <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-4">
                 <div>
-                  <label className="block text-[13px] text-ink-soft">
-                    {t('revAssignLabel')}
-                  </label>
                   {staff !== undefined && staff.length === 0 ? (
-                    <p className="mt-1 text-[13px] text-muted">
-                      {t('revNoStaff')}
-                    </p>
+                    <>
+                      <p className="text-sm text-ink-soft">
+                        {t('revAssignLabel')}
+                      </p>
+                      <p className="mt-1 text-[13px] text-muted">
+                        {t('revNoStaff')}
+                      </p>
+                    </>
                   ) : (
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <select
-                        aria-label={t('revAssignLabel')}
+                    <div className="flex flex-wrap items-end gap-2">
+                      <SelectField
+                        label={t('revAssignLabel')}
+                        controlClassName="w-auto"
                         value={reviewer[p._id] ?? ''}
                         onChange={(e) =>
                           setReviewer((r) => ({
@@ -241,7 +276,6 @@ export default function AdminReview() {
                             [p._id]: e.target.value,
                           }))
                         }
-                        className={selectClass}
                       >
                         <option value="">{t('revAssignPlaceholder')}</option>
                         {(staff ?? []).map((u) => (
@@ -249,7 +283,7 @@ export default function AdminReview() {
                             {u.name || u.email || u._id}
                           </option>
                         ))}
-                      </select>
+                      </SelectField>
                       <Button
                         size="sm"
                         variant="outline"
@@ -265,9 +299,9 @@ export default function AdminReview() {
                 </div>
                 <span className="flex-1" />
                 <div>
-                  <label className="block text-[13px] text-ink-soft">
+                  <p className="text-[13px] text-ink-soft">
                     {t('revDecisionLabel')}
-                  </label>
+                  </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     <Button
                       size="sm"
@@ -305,6 +339,8 @@ export default function AdminReview() {
           ))}
         </ul>
       )}
+
+      <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />
     </div>
   );
 }

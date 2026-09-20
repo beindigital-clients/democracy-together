@@ -1,18 +1,13 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { Badge } from '@/components/ui/badge';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { getReplays } from '@/lib/replays';
 import { monthAbbr } from '@/lib/events-content';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 export async function generateMetadata({
   params,
@@ -42,7 +37,7 @@ export default async function ReplaysPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const loc = resolve(locale);
+  const loc = resolveLocale(locale);
   const t = await getTranslations('replays');
   const replays = getReplays(loc);
 

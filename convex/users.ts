@@ -9,6 +9,7 @@ import {
 } from './lib/rbac';
 import { networkRole, locale } from './schema';
 import { recordAudit } from './lib/audit';
+import { COUNTER, bumpCounter } from './lib/counters';
 import { AUDIT } from './lib/auditActions';
 import { isEmail } from './lib/validation';
 import { normalizeEmail, invitationEmail } from './lib/onboarding';
@@ -109,6 +110,7 @@ export const inviteUser = mutation({
     }
 
     const userId = await ctx.db.insert('users', { email: normalized, role });
+    await bumpCounter(ctx, COUNTER.USERS, 1);
     await recordAudit(ctx, {
       actorId: admin._id,
       action: AUDIT.USER_INVITED,

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndVerify, elevateRole, applyYouth } from './_helpers';
+import {
+  signUpAndVerify,
+  elevateRole,
+  applyYouth,
+  E2E_PASSWORD,
+} from './_helpers';
 import { SESSIONS } from './_sessions';
 
 // Les écrans de back-office qui ÉCRIVENT, bout en bout : une donnée réelle
@@ -11,8 +16,6 @@ import { SESSIONS } from './_sessions';
 // Déjà couverts ailleurs : candidatures d'adhésion (`admin.spec.ts`) et
 // publications (`library-submit.spec.ts`).
 test.use({ locale: 'fr-FR' });
-
-const PW = 'motdepasse123';
 
 test.describe('file des candidatures jeunes (session modérateur partagée)', () => {
   test.use({ storageState: SESSIONS.moderateur.state });
@@ -70,7 +73,7 @@ test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)
   // 1. Un MEMBRE propose depuis la page publique (le formulaire est réservé
   // aux membres : c'est aussi une vérification du gate).
   const email = `e2e_prj_${stamp}@democracytogether.test`;
-  await signUpAndVerify(page, email, PW);
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'membre');
 
   await page.goto('/fr/appels-a-projets');
@@ -107,7 +110,7 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
   const email = `e2e_sig_${stamp}@democracytogether.test`;
 
   // 1. Un membre publie sur la tribune...
-  await signUpAndVerify(page, email, PW);
+  await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'membre');
   await page.goto('/fr/tribune');
   await page.getByRole('button', { name: 'Prendre la parole' }).click();

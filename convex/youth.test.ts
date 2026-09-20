@@ -187,6 +187,15 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
     expect(await t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
       status: 'pending',
     });
+    // Le compteur « en attente » la recompte (issue #8) : sans cet appel dans
+    // la mutation, le tableau de bord afficherait une file vide.
+    const pending = await t.run((ctx) =>
+      ctx.db
+        .query('counters')
+        .withIndex('by_key', (q) => q.eq('key', 'youthApplications.pending'))
+        .unique(),
+    );
+    expect(pending?.value).toBe(1);
 
     // le retour en arrière a SON action d'audit : dans le journal, on le
     // distingue d'une seconde revue.

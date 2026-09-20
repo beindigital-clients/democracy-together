@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { NewsletterForm } from '@/components/newsletter/newsletter-form';
@@ -11,7 +10,7 @@ import { HomeHero } from '@/components/home/home-hero';
 import type { RegionMapItem } from '@/components/map/region-map';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { MAP_DATA, getBarometerContent, CAT_BG } from '@/lib/barometer-content';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { getHomeContent } from '@/lib/home';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -36,17 +35,13 @@ function scoreCat(score: number): 1 | 2 | 3 | 4 | 5 {
   return 5;
 }
 
-function resolve(locale: string) {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = await getHomeContent(resolve(locale));
+  const c = await getHomeContent(resolveLocale(locale));
   return {
     description: c.hero.lead,
     alternates: {
@@ -70,7 +65,7 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const loc = resolve(locale);
+  const loc = resolveLocale(locale);
   const c = await getHomeContent(loc);
   // Légende canonique du baromètre (libellé + plage de score) : source unique,
   // alignée sur la page Baromètre.

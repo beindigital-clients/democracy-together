@@ -12,24 +12,34 @@ import { api } from '@convex/_generated/api';
 export function NotificationBell() {
   const { isAuthenticated } = useConvexAuth();
   const t = useTranslations('notifications');
-  const count = useQuery(
+  // Le serveur plafonne le décompte au seuil d'affichage de la pastille et dit
+  // s'il y a plus (`capped`) : il ne relit plus toutes les notifications non
+  // lues d'un compte pour n'en afficher que « 9+ » (issue #8).
+  const unread = useQuery(
     api.notifications.unreadCount,
     isAuthenticated ? {} : 'skip',
   );
 
   if (!isAuthenticated) return null;
-  const n = count ?? 0;
+  const n = unread?.count ?? 0;
+  const capped = unread?.capped ?? false;
 
   return (
     <Link
       href="/notifications"
-      aria-label={n > 0 ? t('bellUnread', { count: n }) : t('bell')}
+      aria-label={
+        n > 0
+          ? capped
+            ? t('bellUnreadMany', { count: n })
+            : t('bellUnread', { count: n })
+          : t('bell')
+      }
       className="relative inline-flex h-9 w-9 items-center justify-center rounded-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
     >
       <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
       {n > 0 ? (
         <span className="absolute -right-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-accent-contrast">
-          {n > 9 ? '9+' : n}
+          {capped ? `${n}+` : n}
         </span>
       ) : null}
     </Link>

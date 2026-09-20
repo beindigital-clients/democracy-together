@@ -4,8 +4,8 @@ import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { FormError, TextField } from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
@@ -78,12 +78,14 @@ export function NewsletterForm({
       className={`w-full ${className ?? ''}`}
     >
       <div className="flex gap-2">
-        <Input
+        <TextField
+          label={placeholder}
+          labelHidden
+          className="flex-1"
           type="email"
           name="email"
           required
           autoComplete="email"
-          aria-label={placeholder}
           placeholder={placeholder}
         />
         <Button
@@ -94,11 +96,7 @@ export function NewsletterForm({
           {cta}
         </Button>
       </div>
-      {error ? (
-        <p role="alert" className="mt-2 text-sm text-bar-5">
-          {error}
-        </p>
-      ) : null}
+      <FormError className="mt-2">{error}</FormError>
     </form>
   );
 }

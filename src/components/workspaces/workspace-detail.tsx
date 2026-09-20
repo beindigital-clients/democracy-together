@@ -7,8 +7,8 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { TextareaField } from '@/components/ui/field';
 import { isMember } from '@/lib/roles';
 
 type WorkspaceDetail = {
@@ -59,17 +59,15 @@ function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
 
   return (
     <form onSubmit={onSubmit} className="mt-5 space-y-2">
-      <label htmlFor="ws-note" className="sr-only">
-        {t('noteLabel')}
-      </label>
-      <Textarea
+      <TextareaField
+        label={t('noteLabel')}
+        labelHidden
         id="ws-note"
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         required
         placeholder={t('notePlaceholder')}
-        className="resize-y"
       />
       <Button type="submit" size="sm" disabled={pending}>
         {t('noteSubmit')}

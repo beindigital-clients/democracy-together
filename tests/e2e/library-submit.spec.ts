@@ -3,11 +3,11 @@ import {
   signUpAndVerify,
   elevateRole,
   deleteTestPublications,
+  E2E_PASSWORD,
 } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-const PW = 'motdepasse123';
 // Marqueur présent dans le titre des publications créées ici -> nettoyage ciblé
 // du dataset partagé après coup (le test publie une vraie publication).
 const TEST_MARKER = 'Confiance institutionnelle E2E';
@@ -25,7 +25,7 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
   const email = `e2e_pub_${stamp}@democracytogether.test`;
   const title = `Confiance institutionnelle E2E ${stamp}`;
 
-  await signUpAndVerify(page, email, PW); // auto-inscription -> rôle « visiteur »
+  await signUpAndVerify(page, email, E2E_PASSWORD); // auto-inscription -> rôle « visiteur »
 
   // Modèle d'adhésion B : seuls les membres validés déposent. On élève le
   // compte au rôle « membre » (équivaut à une candidature d'adhésion validée).

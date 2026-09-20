@@ -15,6 +15,7 @@ import {
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
+import { trackYouthApplicationStatus } from './lib/counters';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { assertTransition, type ReviewMachine } from './lib/reviewState';
@@ -94,6 +95,7 @@ export const storeApplication = internalMutation({
       status: 'pending',
       createdAt: Date.now(),
     });
+    await trackYouthApplicationStatus(ctx, null, 'pending');
     return { ok: true, already: false };
   },
 });
@@ -175,6 +177,7 @@ export const reviewYouthApplication = mutation({
       reviewNotes: notes?.trim() || undefined,
       reviewedAt: Date.now(),
     });
+    await trackYouthApplicationStatus(ctx, application.status, decision);
     await recordAudit(ctx, {
       actorId: reviewer._id,
       action: AUDIT.YOUTH_REVIEWED,
@@ -200,6 +203,9 @@ export const reopenYouthApplication = mutation({
     assertTransition(from, 'pending', YOUTH_REVIEW);
 
     await ctx.db.patch(applicationId, { status: 'pending' });
+    // La candidature revient dans la file : le compteur du tableau de bord la
+    // recompte (issue #8).
+    await trackYouthApplicationStatus(ctx, from, 'pending');
     await recordAudit(ctx, {
       actorId: reviewer._id,
       action: AUDIT.YOUTH_REOPENED,

@@ -14,6 +14,7 @@ import {
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
+import { COUNTER, bumpCounter } from './lib/counters';
 import { locale } from './schema';
 
 // --- Inscription publique à un événement (F-53) -----------------------------
@@ -83,6 +84,7 @@ export const storeRegistration = internalMutation({
       locale: args.locale,
       createdAt: Date.now(),
     });
+    await bumpCounter(ctx, COUNTER.EVENT_REGISTRATIONS, 1);
     return { ok: true, already: false };
   },
 });

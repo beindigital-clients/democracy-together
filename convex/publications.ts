@@ -1,13 +1,20 @@
 import { v } from 'convex/values';
+import { paginationOptsValidator } from 'convex/server';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { query, mutation, type QueryCtx } from './_generated/server';
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { requireNetworkRole, getCurrentUser, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { assertTransition, type ReviewMachine } from './lib/reviewState';
-import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import {
+  enforceRateLimit,
+  consumePublicationViewQuota,
+  RATE_LIMITS,
+} from './lib/rateLimit';
+import { trackPublicationStatus } from './lib/counters';
+import { clampPageSize, paginatedValidator } from './lib/pagination';
 import {
   matchesPublication,
   sortPublications,
@@ -32,6 +39,19 @@ import {
 async function viewerIsMember(ctx: QueryCtx): Promise<boolean> {
   const user = await getCurrentUser(ctx);
   return rank(user?.role) >= rank('membre');
+}
+
+// Total de consultations d'une publication (F-37). Somme des deux sources
+// DISJOINTES : `publications.views` (héritage — vues comptées avant l'isolement
+// du compteur, valeurs de démonstration posées par devAdmin) et la ligne
+// `publicationViews` (tout ce qui est compté depuis). Aucune vue perdue, aucune
+// comptée deux fois : plus rien n'écrit `publications.views` en production.
+async function totalViews(ctx: QueryCtx, pub: Doc<'publications'>) {
+  const row = await ctx.db
+    .query('publicationViews')
+    .withIndex('by_publication', (q) => q.eq('publicationId', pub._id))
+    .unique();
+  return (pub.views ?? 0) + (row?.count ?? 0);
 }
 
 // Bibliothèque publique (F-32/F-33) : liste filtrée + facettes calculées sur
@@ -105,27 +125,63 @@ export const getBySlug = query({
     const locked = isPublicationLocked(pub.access, isMember);
     const fileUrl =
       !locked && pub.fileId ? await ctx.storage.getUrl(pub.fileId) : null;
-    // `views` est optionnel en base (seed/données anciennes) ; la projection le
-    // normalise à 0 pour le rendu serveur du compteur de consultations (F-37).
-    return projectPublication(pub, fileUrl, isMember);
+    // Le décompte de consultations (F-37) vient de la ligne agrégée, pas du
+    // document : c'est la seule query qui l'affiche, donc la seule à payer
+    // cette lecture supplémentaire.
+    return projectPublication(
+      pub,
+      fileUrl,
+      isMember,
+      await totalViews(ctx, pub),
+    );
   },
 });
 
 // Compteur de consultations (F-37) — mutation PUBLIQUE, sans authentification.
-// Incrémente `views` sur la publication PUBLIÉE correspondant au slug. La
-// déduplication par session vit côté client (sessionStorage) ; ici, no-op si la
-// publication n'existe pas ou n'est pas publiée (on n'expose ni ne compte les
-// brouillons / soumissions).
+// No-op si la publication n'existe pas ou n'est pas publiée (on n'expose ni ne
+// compte les brouillons / soumissions). La déduplication par session vit côté
+// client (sessionStorage).
+//
+// DEUX CORRECTIFS (issue #8) :
+//
+//  1. PLAFOND. Endpoint public non authentifié, sans aucun quota : le compteur
+//     se gonflait avec une boucle `for`. Le quota est posé sur (bloc d'adresses,
+//     publication) — la seule clé non forgeable ici (cf. lib/rateLimit.ts).
+//     Dépasser le quota n'est PAS une erreur remontée à la page : la
+//     consultation n'est simplement pas comptée. Le quota est consommé AVANT de
+//     lire la publication, pour qu'un martèlement sur des slugs inconnus ne soit
+//     pas gratuit non plus.
+//
+//  2. CONTENTION. L'incrément patchait le document de la publication — celui
+//     que lisent la bibliothèque, le détail et le bloc « même thématique ».
+//     Chaque visite invalidait donc tous ces abonnements, et la publication la
+//     plus lue entrait en concurrence d'écriture avec elle-même (OCC). Le
+//     décompte vit maintenant dans une ligne dédiée, lue seulement par
+//     `getBySlug`.
 export const recordPublicationView = mutation({
   args: { slug: v.string() },
   returns: v.null(),
   handler: async (ctx, { slug }) => {
+    if (!(await consumePublicationViewQuota(ctx, slug))) return null;
+
     const pub = await ctx.db
       .query('publications')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique();
     if (!pub || pub.status !== 'published') return null;
-    await ctx.db.patch(pub._id, { views: (pub.views ?? 0) + 1 });
+
+    const row = await ctx.db
+      .query('publicationViews')
+      .withIndex('by_publication', (q) => q.eq('publicationId', pub._id))
+      .unique();
+    if (row) {
+      await ctx.db.patch(row._id, { count: row.count + 1 });
+    } else {
+      await ctx.db.insert('publicationViews', {
+        publicationId: pub._id,
+        count: 1,
+      });
+    }
     return null;
   },
 });
@@ -300,6 +356,8 @@ export const submitPublication = mutation({
       ...(args.fileName ? { fileName: args.fileName.slice(0, 200) } : {}),
     });
 
+    await trackPublicationStatus(ctx, null, 'pending');
+
     await recordAudit(ctx, {
       actorId: user._id,
       action: AUDIT.PUBLICATION_SUBMITTED,
@@ -341,24 +399,69 @@ export const listMine = query({
 // File de modération des publications (F-32 / F-26) — modérateur et au-dessus.
 // Renvoie les soumissions en attente (ou toutes), avec l'e-mail de l'auteur et
 // l'URL du document téléversé pour examen.
+//
+// PAGINÉE (issue #8). La file chargeait la table `publications` ENTIÈRE dans le
+// mode « toutes », puis résolvait l'auteur d'une ligne à la fois — un
+// aller-retour par publication, et une URL signée par fichier. L'ordre vient
+// désormais de l'index (le plus récent d'abord) au lieu d'un tri en mémoire :
+// c'est ce qui rend le curseur possible.
+const reviewItemValidator = v.object({
+  _id: v.id('publications'),
+  title: v.string(),
+  slug: v.string(),
+  type: typeValidator,
+  theme: v.string(),
+  region: regionValidator,
+  languages: v.array(langValidator),
+  access: accessValidator,
+  year: v.number(),
+  abstract: v.string(),
+  authors: v.array(authorValidator),
+  status: v.union(
+    v.literal('draft'),
+    v.literal('pending'),
+    v.literal('published'),
+  ),
+  submittedAt: v.number(),
+  // Date de la dernière décision. Un `draft` qui en porte une est un REFUS,
+  // pas un brouillon jamais soumis (issue #32) : c'est ce qui décide si
+  // l'écran propose « Rouvrir » (issue #9).
+  reviewedAt: v.union(v.number(), v.null()),
+  reviewNotes: v.union(v.string(), v.null()),
+  authorEmail: v.union(v.string(), v.null()),
+  fileName: v.union(v.string(), v.null()),
+  fileUrl: v.union(v.string(), v.null()),
+});
+
 export const listForReview = query({
-  args: { status: v.optional(v.union(v.literal('pending'), v.literal('all'))) },
-  handler: async (ctx, { status }) => {
+  args: {
+    status: v.optional(v.union(v.literal('pending'), v.literal('all'))),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginatedValidator(reviewItemValidator),
+  handler: async (ctx, { status, paginationOpts }) => {
     await requireNetworkRole(ctx, 'moderateur');
-    const pubs =
+    const opts = clampPageSize(paginationOpts);
+    const result =
       status === 'all'
-        ? await ctx.db.query('publications').collect()
+        ? await ctx.db.query('publications').order('desc').paginate(opts)
         : await ctx.db
             .query('publications')
             .withIndex('by_status', (q) => q.eq('status', 'pending'))
-            .collect();
-    const sorted = pubs.sort(
-      (a, b) => (b.submittedAt ?? b.createdAt) - (a.submittedAt ?? a.createdAt),
+            .order('desc')
+            .paginate(opts);
+
+    // Un même membre dépose souvent plusieurs publications : on dédoublonne les
+    // auteurs de la page avant de les lire, une fois chacun.
+    const authors = await loadAuthors(
+      ctx,
+      result.page.map((p) => p.authorUserId),
     );
-    return await Promise.all(
-      sorted.map(async (p) => {
-        const author = p.authorUserId ? await ctx.db.get(p.authorUserId) : null;
-        return {
+
+    return {
+      ...result,
+      page: await Promise.all(
+        result.page.map(async (p) => ({
           _id: p._id,
           title: p.title,
           slug: p.slug,
@@ -376,12 +479,14 @@ export const listForReview = query({
           // soumis (issue #32) : c'est ce qui rend le bouton « Rouvrir ».
           reviewedAt: p.reviewedAt ?? null,
           reviewNotes: p.reviewNotes ?? null,
-          authorEmail: author?.email ?? null,
+          authorEmail:
+            (p.authorUserId ? authors.get(p.authorUserId)?.email : null) ??
+            null,
           fileName: p.fileName ?? null,
           fileUrl: p.fileId ? await ctx.storage.getUrl(p.fileId) : null,
-        };
-      }),
-    );
+        })),
+      ),
+    };
   },
 });
 
@@ -426,6 +531,24 @@ function reviewState(pub: Doc<'publications'>): PublicationReviewState {
     : pub.status;
 }
 
+// Lit les auteurs d'une page en dédoublonnant les identifiants.
+async function loadAuthors(
+  ctx: QueryCtx,
+  ids: (Id<'users'> | undefined)[],
+): Promise<Map<Id<'users'>, Doc<'users'>>> {
+  const unique = [
+    ...new Set(ids.filter((id): id is Id<'users'> => id !== undefined)),
+  ];
+  const out = new Map<Id<'users'>, Doc<'users'>>();
+  await Promise.all(
+    unique.map(async (id) => {
+      const user = await ctx.db.get(id);
+      if (user) out.set(id, user);
+    }),
+  );
+  return out;
+}
+
 // Décision de modération (F-32) — modérateur et au-dessus, audité. N'accepte
 // qu'une publication SOUMISE (`pending`), cf. la machine ci-dessus.
 //  - approved : la publication devient publique (status 'published' ; date et
@@ -468,6 +591,12 @@ export const reviewPublication = mutation({
         reviewNotes,
       });
     }
+
+    await trackPublicationStatus(
+      ctx,
+      pub.status,
+      decision === 'approved' ? 'published' : 'draft',
+    );
 
     // Notifie l'auteur du dépôt de l'issue de la modération (F-25/F-51).
     if (pub.authorUserId) {
@@ -521,6 +650,10 @@ export const reopenPublicationReview = mutation({
     assertTransition(from, 'pending', PUBLICATION_REVIEW);
 
     await ctx.db.patch(publicationId, { status: 'pending' });
+    // La publication revient dans la file : le compteur du tableau de bord la
+    // recompte (issue #8). Sans cet appel, « en attente » sous-compterait
+    // chaque dossier rouvert.
+    await trackPublicationStatus(ctx, pub.status, 'pending');
     await recordAudit(ctx, {
       actorId: reviewer._id,
       action: AUDIT.PUBLICATION_REOPENED,

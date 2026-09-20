@@ -21,6 +21,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Pagination : les listes du back-office prennent désormais `paginationOpts`
+// (issue #8). Une page large suffit à ces tests — ce qu'ils vérifient n'est pas
+// le découpage mais le contenu.
+const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
+
 // --- Helpers ---
 function pub(overrides: Partial<PublicationLike> = {}): PublicationLike {
   return {
@@ -455,12 +460,12 @@ describe('Modération de publication (F-32 / F-26)', () => {
     await expect(
       t
         .withIdentity({ subject: `${memberId}|s` })
-        .query(api.publications.listForReview, {}),
+        .query(api.publications.listForReview, PAGE),
     ).rejects.toThrow();
 
-    const queue = await t
+    const { page: queue } = await t
       .withIdentity({ subject: `${modId}|s` })
-      .query(api.publications.listForReview, {});
+      .query(api.publications.listForReview, PAGE);
     expect(queue.some((p) => p._id === id)).toBe(true);
     expect(queue[0].authorEmail).toBe('membre@test.org');
 
@@ -678,10 +683,21 @@ describe('Modération de publication — machine à états (issue #9)', () => {
     expect(reopenAudit[0].metadata).toMatchObject({ from: 'rejected' });
 
     // de retour dans la file, la publication se décide à nouveau — une fois.
-    expect(
-      (await asMod.query(api.publications.listForReview, { status: 'pending' }))
-        .length,
-    ).toBe(1);
+    const { page: queue } = await asMod.query(api.publications.listForReview, {
+      ...PAGE,
+      status: 'pending',
+    });
+    expect(queue).toHaveLength(1);
+    // et le compteur du tableau de bord la recompte (issue #8) : une file qui
+    // affiche « 0 en attente » alors qu'elle en contient une est un écran qui
+    // ment.
+    const pending = await t.run((ctx) =>
+      ctx.db
+        .query('counters')
+        .withIndex('by_key', (q) => q.eq('key', 'publications.pending'))
+        .unique(),
+    );
+    expect(pending?.value).toBe(1);
     await asMod.mutation(api.publications.reviewPublication, {
       publicationId: id,
       decision: 'approved',

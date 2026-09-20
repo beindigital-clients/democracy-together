@@ -1,20 +1,15 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { AnimatedBar } from '@/components/motion/animated-bar';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { getYouthContent } from '@/lib/youth-content';
 import { YouthApplyForm } from '@/components/youth/youth-apply-form';
 import { MentorshipForm } from '@/components/youth/mentorship-form';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 export async function generateMetadata({
   params,
@@ -22,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = getYouthContent(resolve(locale));
+  const c = getYouthContent(resolveLocale(locale));
   return {
     title: c.hero.chip,
     description: c.hero.lead,
@@ -46,7 +41,7 @@ export default async function JeunesPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const c = getYouthContent(resolve(locale));
+  const c = getYouthContent(resolveLocale(locale));
   const ty = await getTranslations('youthApply');
   const tm = await getTranslations('mentorship');
 

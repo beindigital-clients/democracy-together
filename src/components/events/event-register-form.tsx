@@ -4,8 +4,8 @@ import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { FormError, TextField } from '@/components/ui/field';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
@@ -83,47 +83,34 @@ export function EventRegisterForm({
       <p className="text-[13px] leading-relaxed text-ink-soft">
         {t('intro', { event: eventTitle })}
       </p>
-      <div>
-        <label htmlFor="ev-name" className="sr-only">
-          {t('name')}
-        </label>
-        <Input
-          id="ev-name"
-          name="name"
-          autoComplete="name"
-          placeholder={t('name')}
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="ev-email" className="sr-only">
-          {t('email')}
-        </label>
-        <Input
-          id="ev-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder={t('email')}
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="ev-org" className="sr-only">
-          {t('organization')}
-        </label>
-        <Input
-          id="ev-org"
-          name="organization"
-          autoComplete="organization"
-          placeholder={t('organizationOptional')}
-        />
-      </div>
-      {error ? (
-        <p role="alert" className="text-sm text-bar-5">
-          {error}
-        </p>
-      ) : null}
+      <TextField
+        label={t('name')}
+        labelHidden
+        id="ev-name"
+        name="name"
+        autoComplete="name"
+        placeholder={t('name')}
+        required
+      />
+      <TextField
+        label={t('email')}
+        labelHidden
+        id="ev-email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        placeholder={t('email')}
+        required
+      />
+      <TextField
+        label={t('organization')}
+        labelHidden
+        id="ev-org"
+        name="organization"
+        autoComplete="organization"
+        placeholder={t('organizationOptional')}
+      />
+      <FormError>{error}</FormError>
       <Button type="submit" disabled={status === 'pending'} className="w-full">
         {t('submit')}
       </Button>

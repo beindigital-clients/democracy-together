@@ -18,6 +18,21 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import next from '@next/eslint-plugin-next';
 import globals from 'globals';
 
+// Sélecteurs de `no-restricted-syntax`. Ils sont nommés ici parce que la règle
+// se redéclare en entier à chaque dérogation : un fichier autorisé à l'une doit
+// rester soumis aux autres.
+const roleDefautEnDur = {
+  selector:
+    "LogicalExpression[operator='??'] > Literal.right[value=/^(visiteur|membre|moderateur|editeur|admin)$/]",
+  message:
+    "Rôle par défaut en dur : utiliser effectiveRole() (DEFAULT_ROLE, convex/lib/roles.ts) — la valeur par défaut ne s'écrit qu'à un seul endroit (issue #27).",
+};
+const libelleRattacheALaMain = {
+  selector: "JSXAttribute[name.name='htmlFor']",
+  message:
+    "Champ assemblé à la main : passer par le système de champs (TextField / TextareaField / SelectField, ou la coquille Field pour un contrôle particulier) dans src/components/ui/field.tsx — c'est lui qui rattache libellé, aide et erreur au contrôle (issue #41).",
+};
+
 export default tseslint.config(
   {
     ignores: [
@@ -149,16 +164,74 @@ export default tseslint.config(
   // convex/lib/roles.ts, et toute lecture passe par `effectiveRole`. Cette
   // règle a donc attrapé un vrai défaut de ce dépôt, et c'est elle qui empêche
   // de le réintroduire en silence.
+  //
+  // --- Champs de formulaire : une seule abstraction ---------------------------
+  // `htmlFor` est la SIGNATURE de l'assemblage manuel `<label>` + `<Input>` :
+  // un libellé rattaché à la main, donc une paire de plus à corriger le jour où
+  // `aria-invalid`, `aria-describedby` ou la conservation des valeurs changent.
+  // Deux familles de champs coexistaient — les composants de
+  // `components/auth/` et cet assemblage, recopié dans dix-sept formulaires
+  // (issue #41). Il n'en reste qu'une, et le seul fichier qui rattache encore
+  // un libellé est la coquille elle-même (dérogation ci-dessous). Les libellés
+  // ENVELOPPANTS (case à cocher, bouton radio, tri en ligne) n'ont pas de
+  // `htmlFor` : l'association est structurelle, ils ne sont pas visés.
   {
     files: ['src/**/*.{ts,tsx}', 'convex/**/*.ts'],
     rules: {
       'no-restricted-syntax': [
         'error',
+        roleDefautEnDur,
+        libelleRattacheALaMain,
+      ],
+    },
+  },
+  {
+    files: ['src/components/ui/field.tsx'],
+    rules: { 'no-restricted-syntax': ['error', roleDefautEnDur] },
+  },
+
+  // --- Navigation et locale : les enveloppes du dépôt, pas les API nues -------
+  // `redirect`/`useRouter` de `next/navigation` IGNORENT le préfixe de langue ;
+  // leurs homologues de `@/i18n/navigation` le portent. Utiliser les mauvais
+  // produit une redirection qui perd la langue — un bogue muet, visible
+  // seulement en anglais. Le dépôt en comptait quatre (issue #41). Même motif
+  // pour `hasLocale` : normaliser une locale à la main est ce qui avait produit
+  // vingt copies de la même fonction ; `@/i18n/locale` est désormais le seul
+  // endroit qui le fait. `notFound`, `useSearchParams` et `useParams` ne sont
+  // PAS visés : ils ne font pas de navigation et n'ont pas d'équivalent localisé.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    // `src/i18n/` est précisément l'endroit qui enveloppe ces API.
+    ignores: ['src/i18n/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
         {
-          selector:
-            "LogicalExpression[operator='??'] > Literal.right[value=/^(visiteur|membre|moderateur|editeur|admin)$/]",
-          message:
-            "Rôle par défaut en dur : utiliser effectiveRole() (DEFAULT_ROLE, convex/lib/roles.ts) — la valeur par défaut ne s'écrit qu'à un seul endroit (issue #27).",
+          paths: [
+            {
+              name: 'next/navigation',
+              importNames: [
+                'redirect',
+                'permanentRedirect',
+                'useRouter',
+                'usePathname',
+                'RedirectType',
+              ],
+              message:
+                "Navigation entre pages : importer depuis '@/i18n/navigation' — ces versions-là portent le préfixe de langue (issue #41).",
+            },
+            {
+              name: 'next/link',
+              message:
+                "Lien interne : importer `Link` depuis '@/i18n/navigation' — sans quoi le lien perd la langue en cours (issue #41).",
+            },
+            {
+              name: 'next-intl',
+              importNames: ['hasLocale'],
+              message:
+                "Normalisation d'une locale : resolveLocale() ou isSupportedLocale() de '@/i18n/locale' — la règle ne s'écrit qu'à un seul endroit (issue #41).",
+            },
+          ],
         },
       ],
     },

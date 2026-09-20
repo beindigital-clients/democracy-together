@@ -1,4 +1,5 @@
 import { internalMutation } from './_generated/server';
+import { trackOrganizationStatus } from './lib/counters';
 
 // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple l'annuaire (F-19) avec un
 // jeu de think tanks de démonstration, réparti sur les régions Afrique–Europe
@@ -143,6 +144,7 @@ export const seedDirectory = internalMutation({
         status: 'active',
         createdAt: Date.now(),
       });
+      await trackOrganizationStatus(ctx, null, 'active');
       inserted += 1;
     }
     return { inserted, total: ORGS.length };

@@ -1,12 +1,11 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
 import { Reveal } from '@/components/motion/reveal';
 import { useRecaptcha } from '@/components/providers/recaptcha-provider';
 import { formField, isEmail } from '@/lib/validation';
@@ -16,12 +15,6 @@ export default function ContactPage() {
   const t = useTranslations('contact');
   const submit = useAction(api.contact.submit);
   const executeRecaptcha = useRecaptcha();
-  const ids = {
-    name: useId(),
-    email: useId(),
-    subject: useId(),
-    body: useId(),
-  };
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -100,76 +93,32 @@ export default function ContactPage() {
             </div>
           ) : (
             <form onSubmit={onSubmit} noValidate className="space-y-5">
-              <div>
-                <label
-                  htmlFor={ids.name}
-                  className="block text-sm text-ink-soft"
-                >
-                  {t('name')}
-                </label>
-                <Input
-                  id={ids.name}
-                  name="name"
-                  autoComplete="name"
-                  required
-                  className="mt-1"
-                />
-              </div>
+              <TextField
+                label={t('name')}
+                name="name"
+                autoComplete="name"
+                required
+              />
 
-              <div>
-                <label
-                  htmlFor={ids.email}
-                  className="block text-sm text-ink-soft"
-                >
-                  {t('email')}
-                </label>
-                <Input
-                  id={ids.email}
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="mt-1"
-                />
-              </div>
+              <TextField
+                label={t('email')}
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+              />
 
-              <div>
-                <label
-                  htmlFor={ids.subject}
-                  className="block text-sm text-ink-soft"
-                >
-                  {t('subject')}
-                </label>
-                <Input
-                  id={ids.subject}
-                  name="subject"
-                  required
-                  className="mt-1"
-                />
-              </div>
+              <TextField label={t('subject')} name="subject" required />
 
-              <div>
-                <label
-                  htmlFor={ids.body}
-                  className="block text-sm text-ink-soft"
-                >
-                  {t('message')}
-                </label>
-                <Textarea
-                  id={ids.body}
-                  name="body"
-                  rows={6}
-                  required
-                  placeholder={t('messagePlaceholder')}
-                  className="mt-1 resize-y"
-                />
-              </div>
+              <TextareaField
+                label={t('message')}
+                name="body"
+                rows={6}
+                required
+                placeholder={t('messagePlaceholder')}
+              />
 
-              {error ? (
-                <p role="alert" className="text-sm text-bar-5">
-                  {error}
-                </p>
-              ) : null}
+              <FormError>{error}</FormError>
 
               <Button
                 type="submit"

@@ -221,6 +221,14 @@ export async function signInWithCode(page: Page, email: string) {
   await expect(page).toHaveURL(/\/espace-membre$/);
 }
 
+// Mot de passe des comptes de test. Il traverse la POLITIQUE du serveur
+// (convex/lib/passwordPolicy.ts) comme n'importe quel mot de passe posé par un
+// humain — `provisionPassword` ci-dessous passe par `flow: 'signUp'`, et c'est
+// exactement le flux que `validatePasswordRequirements` garde. « motdepasse123 »,
+// qu'employaient les fixtures, figure désormais dans la liste des refusés : une
+// valeur partagée évite que le prochain contournement se cache dans un fichier.
+export const E2E_PASSWORD = 'phrase-de-passe-e2e';
+
 // Donne un MOT DE PASSE à un compte provisionné, par le seul chemin que le
 // backend laisse ouvert (issue #66).
 //

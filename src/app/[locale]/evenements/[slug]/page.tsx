@@ -2,10 +2,9 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import {
   EVENTS,
   FEATURED_SLUG,
@@ -17,10 +16,6 @@ import { EventRegisterForm } from '@/components/events/event-register-form';
 import { ReminderForm } from '@/components/events/reminder-form';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 function longDate(e: EventData, loc: 'fr' | 'en'): string {
   return new Intl.DateTimeFormat(loc, {
@@ -37,7 +32,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const L = getEventsLabels(resolve(locale));
+  const L = getEventsLabels(resolveLocale(locale));
   const title = L.titles[slug];
   if (!title) return {};
   return {
@@ -63,7 +58,7 @@ export default async function EventDetailPage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const loc = resolve(locale);
+  const loc = resolveLocale(locale);
   const L = getEventsLabels(loc);
   const tAgenda = await getTranslations({ locale, namespace: 'agenda' });
   const tReminder = await getTranslations({ locale, namespace: 'reminder' });

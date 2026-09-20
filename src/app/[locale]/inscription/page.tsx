@@ -1,4 +1,5 @@
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
+import { resolveLocale } from '@/i18n/locale';
 
 // Inscription directe DÉSACTIVÉE : plus d'auto-création de compte. Tout accès à
 // cette page est redirigé vers la demande d'adhésion — un compte membre n'est
@@ -9,5 +10,5 @@ export default async function InscriptionPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  redirect(`/${locale}/adhesion`);
+  redirect({ href: '/adhesion', locale: resolveLocale(locale) });
 }

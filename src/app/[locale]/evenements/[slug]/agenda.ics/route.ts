@@ -5,23 +5,18 @@
 // `text/calendar` en pièce jointe. 404 si le slug est inconnu. La logique de
 // génération vit dans `@/lib/ics` (pure et testée).
 import { getTranslations } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { EVENTS, getEventsLabels } from '@/lib/events-content';
 import { eventToIcs } from '@/lib/ics';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-function resolve(locale: string): 'fr' | 'en' {
-  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-}
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ locale: string; slug: string }> },
 ) {
   const { locale: rawLocale, slug } = await params;
-  const locale = resolve(rawLocale);
+  const locale = resolveLocale(rawLocale);
 
   const event = EVENTS.find((e) => e.slug === slug);
   if (!event) {

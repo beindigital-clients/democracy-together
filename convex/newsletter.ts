@@ -16,6 +16,7 @@ import {
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
+import { COUNTER, bumpCounter, readCounter } from './lib/counters';
 import { sendEmail } from './email';
 import { locale } from './schema';
 
@@ -95,6 +96,7 @@ export const recordSubscription = internalMutation({
       unsubToken: newToken(),
       createdAt: Date.now(),
     });
+    await bumpCounter(ctx, COUNTER.NEWSLETTER_SUBSCRIBERS, 1);
     return { ok: true, already: false };
   },
 });
@@ -108,7 +110,10 @@ export const unsubscribe = mutation({
       .query('newsletterSubscriptions')
       .withIndex('by_token', (q) => q.eq('unsubToken', token))
       .unique();
-    if (sub) await ctx.db.delete(sub._id);
+    if (sub) {
+      await ctx.db.delete(sub._id);
+      await bumpCounter(ctx, COUNTER.NEWSLETTER_SUBSCRIBERS, -1);
+    }
     return { ok: true };
   },
 });
@@ -127,11 +132,15 @@ export const isSubscribed = internalQuery({
 });
 
 // --- Campagnes (F-65) — back-office, éditeur et au-dessus -------------------
+// Nombre d'abonnés — affiché avant l'envoi d'une campagne. Il chargeait la
+// table entière pour en lire la longueur ; c'est un compteur dénormalisé
+// (convex/counters.ts), donc une lecture d'une ligne (issue #8).
 export const subscriberCount = query({
   args: {},
+  returns: v.number(),
   handler: async (ctx) => {
     await requireNetworkRole(ctx, 'editeur');
-    return (await ctx.db.query('newsletterSubscriptions').collect()).length;
+    return await readCounter(ctx, COUNTER.NEWSLETTER_SUBSCRIBERS);
   },
 });
 

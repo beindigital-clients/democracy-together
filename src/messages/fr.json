@@ -132,7 +132,8 @@
     "tribuneComment": "Nouveau commentaire sur votre prise de parole « {title} ».",
     "tribuneThreadReply": "Nouvelle réponse dans un fil où vous êtes intervenu : « {title} ».",
     "peerReviewAssigned": "Une relecture vous est confiée : « {title} ».",
-    "peerReviewDecided": "La revue de votre publication « {title} » a avancé."
+    "peerReviewDecided": "La revue de votre publication « {title} » a avancé.",
+    "bellUnreadMany": "Notifications, plus de {count} non lues"
   },
   "eventRegister": {
     "intro": "Réservez votre place pour « {event} ». Nous vous enverrons les informations pratiques par e-mail.",
@@ -454,7 +455,9 @@
     "errorSignIn": "E-mail ou mot de passe incorrect.",
     "errorCode": "Code invalide ou expiré.",
     "errorSignUp": "Impossible de créer le compte (e-mail déjà utilisé ?).",
-    "errorMismatch": "Les mots de passe ne correspondent pas."
+    "errorMismatch": "Les mots de passe ne correspondent pas.",
+    "errorPasswordTooShort": "Mot de passe trop court : {min} caractères minimum.",
+    "errorPasswordTooCommon": "Ce mot de passe est trop courant. Choisissez-en un autre."
   },
   "directory": {
     "eyebrow": "Le réseau",
@@ -731,7 +734,11 @@
     "contactMarkPending": "Rouvrir",
     "contactHandled": "Traité",
     "contactPending": "À traiter",
-    "contactReply": "Répondre par e-mail"
+    "contactReply": "Répondre par e-mail",
+    "loadMore": "Charger la suite",
+    "loadingMore": "Chargement…",
+    "revStageAll": "Toutes les étapes",
+    "revStageFilterLabel": "Filtrer par étape"
   },
   "news": {
     "eyebrow": "Actualités",
