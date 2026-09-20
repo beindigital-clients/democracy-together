@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { AnimatedBar } from '@/components/motion/animated-bar';
 import { HomeHero } from '@/components/home/home-hero';
-import type { RegionMapItem } from '@/components/map/region-map';
+import type { RegionMapItem } from '@/components/map/types';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { MAP_DATA, getBarometerContent, CAT_BG } from '@/lib/barometer-content';
 import { resolveLocale } from '@/i18n/locale';

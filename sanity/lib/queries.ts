@@ -12,16 +12,6 @@ export const postsQuery = groq`*[_type == "post" && defined(slug.current) && lan
     "coverUrl": coverImage.asset->url
   }`;
 
-// Les 3 dernières actualités (section accueil, F-10).
-export const latestPostsQuery = groq`*[_type == "post" && defined(slug.current) && language == $language]
-  | order(publishedAt desc)[0...3] {
-    _id,
-    title,
-    "slug": slug.current,
-    excerpt,
-    publishedAt
-  }`;
-
 export const postBySlugQuery = groq`*[_type == "post" && slug.current == $slug][0] {
     _id,
     title,
@@ -31,13 +21,6 @@ export const postBySlugQuery = groq`*[_type == "post" && slug.current == $slug][
     publishedAt,
     body,
     "coverUrl": coverImage.asset->url,
-    seo
-  }`;
-
-export const pageBySlugQuery = groq`*[_type == "page" && slug.current == $slug && language == $language][0] {
-    _id,
-    title,
-    body,
     seo
   }`;
 
@@ -73,17 +56,3 @@ export const homePageQuery = groq`*[_type == "homePage" && language == $language
   join{ title, body, plans[]{ label, title, features, cta } },
   newsletter{ title, body, cta, placeholder }
 }`;
-
-export const publicationsQuery = groq`*[_type == "publication" && defined(slug.current) && language == $language]
-  | order(publishedAt desc) {
-    _id,
-    title,
-    "slug": slug.current,
-    type,
-    organization,
-    region,
-    themes,
-    publishedAt,
-    doi,
-    accessLevel
-  }`;

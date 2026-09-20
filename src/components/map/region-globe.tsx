@@ -5,7 +5,7 @@ import { geoOrthographic, geoPath, geoContains, geoGraticule10 } from 'd3-geo';
 import { feature } from 'topojson-client';
 
 import worldTopo from 'world-atlas/countries-110m.json';
-import type { RegionMapItem } from './region-map';
+import type { RegionMapItem } from './types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const LAND: any[] = (

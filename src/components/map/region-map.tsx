@@ -2,17 +2,17 @@
 
 import { useMemo, useState } from 'react';
 import type { MapShape } from '@/lib/region-geo';
-
-export type RegionMapItem = {
-  name: string; // libellé world-atlas (clé de correspondance)
-  region?: 'afrique' | 'europe'; // pour le filtre par chips (optionnel)
-  fill: string; // couleur de remplissage du pays
-  title: string; // titre du panneau de détail (localisé)
-  rows: { label: string; value: string; valueClassName?: string }[];
-};
+import type { RegionMapItem } from './types';
 
 type Region = 'all' | 'afrique' | 'europe';
 
+// COMPOSANT NON MONTÉ, GARDÉ TEL QUEL — décision reportée (issue #40). C'est un
+// rendu SVG CÔTÉ SERVEUR : exactement le repli qui manque au globe (client,
+// <canvas>, `ssr: false`) pour un visiteur sans JavaScript — sujet de #13. Le
+// supprimer ici jetterait cette brique avant que #13 ait tranché. Le type
+// `RegionMapItem`, lui, est sorti d'ici (`./types`) : il est bien vivant, il
+// n'a pas à dépendre de cette décision.
+//
 // Carte choroplèthe Afrique-Europe réutilisable (F-19 annuaire, F-30 baromètre).
 // Rendue en SSR (tracés calculés côté serveur). La carte est un ENRICHISSEMENT
 // VISUEL (aria-hidden) — la donnée reste accessible ailleurs sur la page (table
