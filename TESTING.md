@@ -38,6 +38,11 @@ crochet se contourne (`--no-verify`).
   `vi.stubEnv('SITE_URL', …)` : sans cette variable, la pose d'un mot de passe
   crée bien le compte mais l'action lève sur l'envoi du code de vérification.
   `auth.config.ts` et `http.ts`, eux, restent dehors.
+- L'exclusion d'`auth.ts` ne masque plus sa DÉCISION : le corps du callback
+  `createOrUpdateUser` vit dans `convex/lib/signIn.ts`, testable tel quel
+  (`convex/auth-callback.test.ts`, refus `NO_SELF_SIGNUP` compris). C'est le
+  motif à suivre quand un module exclu porte une règle : sortir la règle, pas
+  lever l'exclusion.
 
 ## E2E — `pnpm test:e2e`
 
@@ -160,6 +165,13 @@ il fait écrire **chaque code de connexion OTP en clair** dans `devOtpCodes`
 démonstration, et fait journaliser `sendEmail` au lieu d'échouer. Le poser
 quelques minutes en production, c'est rendre lisible en base tout code de
 connexion émis pendant la fenêtre — admin compris.
+
+Ce que ce drapeau ouvre est désormais tenu par des tests, et pas seulement par
+des commentaires : `convex/otp.test.ts` vérifie que sans lui **aucun** code
+n'est écrit en base — sur les trois flux, et pour une valeur posée de travers
+(`1`, `TRUE`, `yes`…), la garde comparant à la chaîne `true` exactement ; et
+`convex/devAdmin.test.ts` vérifie que les cinq mutations de développement le
+réclament et restent hors API publique.
 
 Ses deux seuls lieux légitimes : le déploiement de **dev local** et les
 **préversions Convex de la CI** (ci-dessous). Avant une mise en service :
