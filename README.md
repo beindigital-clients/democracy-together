@@ -8,7 +8,7 @@ Plateforme numérique : portail éditorial public + espace membres + back-office
 | Couche | Techno |
 |---|---|
 | Frontend | Next.js 16 (App Router) · React 19 · Tailwind v4 |
-| i18n | next-intl (FR/EN par URL, extensible pt/ar) |
+| i18n | next-intl (FR/EN par URL ; pt s'ajoute tel quel, ar demande le RTL — #23) |
 | Application / données / temps réel | Convex (+ Convex Auth) |
 | CMS éditorial | Sanity (Studio monté sur `/studio`) |
 | Tests | Vitest (+ convex-test) · Playwright |

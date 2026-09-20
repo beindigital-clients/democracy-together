@@ -37,6 +37,7 @@ async function setup() {
   const postId = await membre.as.mutation(api.tribune.createPost, {
     theme: 'transitions',
     format: 'court',
+    lang: 'fr',
     title: 'Sur les transitions',
     body: 'Une contribution courte mais valable.',
   });

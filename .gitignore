@@ -42,5 +42,12 @@ next-env.d.ts
 # Sessions E2E pré-ouvertes (produites par le projet Playwright `setup`)
 tests/e2e/.auth/
 
+# Garde-fou (issue #44) : tout état d'authentification Playwright écrit HORS de
+# `tests/e2e/.auth/` reste hors du dépôt. Un `storageState` d'authentification
+# contient les cookies de session — donc de quoi se faire passer pour le compte.
+# Le fichier de consentement cookies (`tests/e2e/cookie-consent-state.json`) ne
+# correspond pas à ce motif : il est versionné, à dessein.
+*auth-state*.json
+
 # Journal du serveur Next capté pendant les E2E (diagnostic #66)
 server.log

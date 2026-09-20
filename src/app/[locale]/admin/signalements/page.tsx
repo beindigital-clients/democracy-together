@@ -7,13 +7,21 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useActionFeedback } from '@/components/admin/action-feedback';
 
 export default function AdminReports() {
   const t = useTranslations('admin');
   const locale = useLocale();
   const reports = useQuery(api.tribune.listReports);
   const resolve = useMutation(api.tribune.resolveReport);
+  const notify = useActionFeedback();
   const [busy, setBusy] = useState<string | null>(null);
+  // « Retirer » dépublie le contenu pour tout le monde : il passe par une
+  // confirmation qui nomme la cible — le type ET l'extrait signalé, puisque
+  // c'est la seule chose qui distingue deux lignes de cette file (issue #38).
+  // « Ignorer » ne détruit rien et reste au premier clic.
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const fmt = (ms: number) =>
     new Intl.DateTimeFormat(locale, {
@@ -26,8 +34,19 @@ export default function AdminReports() {
     setBusy(reportId);
     try {
       await resolve({ reportId: reportId as Id<'tribuneReports'>, action });
+      setConfirming(null);
+      notify(
+        t(
+          action === 'remove'
+            ? 'feedbackReportRemoved'
+            : 'feedbackReportDismissed',
+        ),
+      );
     } catch {
-      /* idem */
+      // Refus serveur (rôle insuffisant, signalement déjà traité) : dit à
+      // l'écran plutôt qu'avalé, sinon le modérateur ne sait pas si son clic
+      // a porté.
+      notify(t('feedbackError'), 'error');
     } finally {
       setBusy(null);
     }
@@ -81,10 +100,28 @@ export default function AdminReports() {
                 <Button
                   size="sm"
                   disabled={busy === r._id}
-                  onClick={() => act(r._id, 'remove')}
+                  onClick={() => setConfirming(r._id)}
                 >
                   {t('repRemove')}
                 </Button>
+
+                <ConfirmDialog
+                  open={confirming === r._id}
+                  title={t('confirmRemoveTitle', {
+                    target: t(
+                      r.targetType === 'post'
+                        ? 'repTargetPost'
+                        : 'repTargetComment',
+                    ),
+                  })}
+                  description={t('confirmRemoveBody', { excerpt: r.excerpt })}
+                  confirmLabel={t('confirmRemoveConfirm')}
+                  cancelLabel={t('confirmCancel')}
+                  destructive
+                  pending={busy === r._id}
+                  onConfirm={() => act(r._id, 'remove')}
+                  onCancel={() => setConfirming(null)}
+                />
               </div>
             </li>
           ))}

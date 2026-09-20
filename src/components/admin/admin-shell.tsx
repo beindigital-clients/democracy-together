@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import { Link, usePathname } from '@/i18n/navigation';
 import { isStaff, isAdmin, isEditor } from '@/lib/roles';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
+import { ActionFeedbackProvider } from '@/components/admin/action-feedback';
 
 function Centered({ children }: { children: ReactNode }) {
   return (
@@ -103,11 +104,16 @@ function Gate({ children }: { children: ReactNode }) {
 
   const admin = isAdmin(me?.role);
   const editor = isEditor(me?.role);
+  // Les régions live du retour d'action sont montées ICI, une fois pour tout
+  // le back-office : chaque écran de modération pousse son message dedans
+  // plutôt que d'en poser une dans chaque file (issue #38).
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
-      <AdminNav isAdmin={admin} isEditor={editor} />
-      <div className="mt-8">{children}</div>
-    </div>
+    <ActionFeedbackProvider>
+      <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
+        <AdminNav isAdmin={admin} isEditor={editor} />
+        <div className="mt-8">{children}</div>
+      </div>
+    </ActionFeedbackProvider>
   );
 }
 

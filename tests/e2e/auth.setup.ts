@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { test as setup, expect, type Browser } from '@playwright/test';
 import { provisionUser, provisionPassword } from './_helpers';
-import { SESSIONS, SESSION_PASSWORD, type SessionRole } from './_sessions';
+import { SESSIONS, SESSION_PASSWORD, type SessionKey } from './_sessions';
 
 // Projet `setup` : ouvre une session par rôle et l'enregistre (cf. _sessions.ts).
 // Il s'exécute avant les autres projets, qui en dépendent.
@@ -51,9 +51,11 @@ async function sessionIsUsable(
   }
 }
 
-for (const role of Object.keys(SESSIONS) as SessionRole[]) {
-  setup(`session partagée : ${role}`, async ({ browser, page }) => {
-    const { email, state } = SESSIONS[role];
+// La clé nomme la session, pas forcément un rôle : une session dédiée à un
+// fichier de spec porte le rôle déclaré dans son entrée (cf. _sessions.ts).
+for (const key of Object.keys(SESSIONS) as SessionKey[]) {
+  setup(`session partagée : ${key}`, async ({ browser, page }) => {
+    const { email, state, role } = SESSIONS[key];
     const baseURL = setup.info().project.use.baseURL;
 
     if (await sessionIsUsable(browser, state, baseURL)) {

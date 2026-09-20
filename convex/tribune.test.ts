@@ -28,6 +28,9 @@ async function member(
 const POST = {
   theme: 'transitions',
   format: 'court' as const,
+  // Langue de rédaction, déclarée par l'auteur (issue #35) : argument requis,
+  // pas de repli implicite — c'est elle qui fixe le canonical de la fiche.
+  lang: 'fr' as const,
   title: 'Sur les transitions',
   body: 'Une contribution courte mais valable.',
 };
@@ -70,6 +73,71 @@ describe('Tribune — écriture (F-44)', () => {
     const doc = await t.run((ctx) => ctx.db.get(id));
     expect(doc?.status).toBe('published');
     expect(doc?.authorName).toBe('Awa Diop');
+  });
+});
+
+describe('Tribune — langue de rédaction (issue #35)', () => {
+  // Un billet est écrit dans UNE langue et n'est jamais traduit : c'est elle,
+  // et non le préfixe d'URL visité, qui décide du canonical de la fiche. Elle
+  // doit donc survivre à l'aller-retour écriture -> lecture.
+  it('conserve la langue déclarée et la ressert au détail', async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await member(t, 'm@test.org', 'Awa Diop');
+
+    // Rédigé en anglais — le cas que la langue de l'interface aurait deviné
+    // de travers pour un membre qui navigue en français.
+    const id = await as.mutation(api.tribune.createPost, {
+      ...POST,
+      lang: 'en',
+    });
+    expect((await t.run((ctx) => ctx.db.get(id)))?.lang).toBe('en');
+    expect((await t.query(api.tribune.getPost, { postId: id }))?.lang).toBe(
+      'en',
+    );
+  });
+
+  it('refuse une langue hors du vocabulaire servi', async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await member(t, 'm@test.org');
+
+    // Le cast exerce ce qu'un client non typé peut émettre : le validateur
+    // d'arguments refuse, il ne replie pas en silence sur la langue par défaut
+    // — sans quoi un billet se retrouverait canonicalisé dans une langue qui
+    // n'est pas la sienne.
+    await expect(
+      as.mutation(api.tribune.createPost, {
+        ...POST,
+        lang: 'de',
+      } as unknown as typeof POST),
+    ).rejects.toThrow();
+  });
+
+  it('un billet antérieur au champ reste lisible, sans langue déclarée', async () => {
+    const t = convexTest(schema, modules);
+    const authorId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'membre', email: 'ancien@test.org' }),
+    );
+    // Exactement la forme d'une ligne écrite avant l'ajout du champ : c'est ce
+    // qui justifie `v.optional` en base plutôt qu'une migration.
+    const id = await t.run((ctx) =>
+      ctx.db.insert('tribunePosts', {
+        authorUserId: authorId,
+        authorName: 'Auteur historique',
+        theme: 'transitions',
+        format: 'court',
+        title: 'Billet d’avant',
+        body: 'Une contribution courte mais valable.',
+        status: 'published',
+        commentCount: 0,
+        createdAt: 1_700_000_000_000,
+      }),
+    );
+
+    const post = await t.query(api.tribune.getPost, { postId: id });
+    expect(post).not.toBeNull();
+    // Absence assumée : le repli sur la langue par défaut appartient à
+    // `resolveLocale`, côté Next, seul endroit du projet à le décider.
+    expect(post?.lang).toBeUndefined();
   });
 });
 

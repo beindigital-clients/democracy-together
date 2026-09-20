@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { FormError, TextField } from '@/components/ui/field';
-import { useRecaptcha } from '@/components/providers/recaptcha-provider';
+import { useRecaptcha } from '@/lib/recaptcha';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
