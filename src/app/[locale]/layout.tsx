@@ -9,7 +9,6 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { IntlClientProvider } from '@/components/providers/intl-client-provider';
 import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
-import { RecaptchaProvider } from '@/components/providers/recaptcha-provider';
 import { MotionProvider } from '@/components/motion/motion-provider';
 import { CookieConsent } from '@/components/legal/cookie-consent';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
@@ -77,14 +76,12 @@ export default async function LocaleLayout({
             timeZone={timeZone}
           >
             <ConvexClientProvider>
-              <RecaptchaProvider>
-                <MotionProvider>
-                  <SiteHeader />
-                  <main className="flex-1">{children}</main>
-                  <SiteFooter />
-                  <CookieConsent />
-                </MotionProvider>
-              </RecaptchaProvider>
+              <MotionProvider>
+                <SiteHeader />
+                <main className="flex-1">{children}</main>
+                <SiteFooter />
+                <CookieConsent />
+              </MotionProvider>
             </ConvexClientProvider>
           </IntlClientProvider>
         </body>

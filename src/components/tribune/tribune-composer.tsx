@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from 'react';
 import { useQuery, useMutation } from 'convex/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
+import { routing, type Locale } from '@/i18n/routing';
+import { resolveLocale } from '@/i18n/locale';
 import { PUB_THEMES } from '@/lib/publications';
 import { isMember } from '@/lib/roles';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 export function TribuneComposer() {
   const t = useTranslations('tribune');
   const tl = useTranslations('library');
+  const uiLocale = resolveLocale(useLocale());
   const me = useQuery(api.users.current);
   const create = useMutation(api.tribune.createPost);
   const router = useRouter();
@@ -28,6 +31,11 @@ export function TribuneComposer() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<string>(PUB_THEMES[0]);
   const [format, setFormat] = useState<'court' | 'fond'>('court');
+  // Langue du billet (issue #35) : PRÉ-REMPLIE avec la langue de l'interface,
+  // pas déduite d'elle. Un membre qui navigue en français peut écrire en
+  // anglais, et lui seul le sait. C'est cette valeur qui décide plus tard du
+  // canonical de la fiche — un billet n'existe que dans une langue.
+  const [lang, setLang] = useState<Locale>(uiLocale);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [pending, setPending] = useState(false);
@@ -66,7 +74,13 @@ export function TribuneComposer() {
     }
     setPending(true);
     try {
-      await create({ theme, format, title: title.trim(), body: body.trim() });
+      await create({
+        theme,
+        format,
+        lang,
+        title: title.trim(),
+        body: body.trim(),
+      });
       setTitle('');
       setBody('');
       setOpen(false);
@@ -108,6 +122,20 @@ export function TribuneComposer() {
           <option value="fond">{t('format_fond')}</option>
         </SelectField>
       </div>
+
+      <SelectField
+        label={t('fieldLang')}
+        id="tr-lang"
+        value={lang}
+        hint={t('fieldLangHint')}
+        onChange={(e) => setLang(resolveLocale(e.target.value))}
+      >
+        {routing.locales.map((l) => (
+          <option key={l} value={l}>
+            {vocabulary(tl, 'langs.', l)}
+          </option>
+        ))}
+      </SelectField>
 
       <TextField
         label={t('fieldTitle')}
