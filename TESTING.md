@@ -42,6 +42,26 @@ crochet se contourne (`--no-verify`).
   crée bien le compte mais l'action lève sur l'envoi du code de vérification.
   `auth.config.ts` et `http.ts`, eux, restent dehors.
 
+### Composants (`happy-dom`)
+Annotation `// @vitest-environment happy-dom`, rendu par
+`@testing-library/react` enveloppé dans `NextIntlClientProvider` (les messages
+réels, `src/messages/fr.json` — un libellé traduit à moitié doit faire échouer
+le test, pas passer). Pas de `setupFiles` global : chaque fichier pose son
+`afterEach(cleanup)`, sans quoi les rendus s'accumulent et les libellés
+deviennent ambigus.
+
+`next-intl` est **inliné** par `vitest.config.ts` (`server.deps.inline`) : sa
+navigation localisée importe `next/navigation` sans extension, que Vite ne sait
+pas résoudre depuis les node_modules imbriqués de pnpm. Sans cela, tout
+composant portant un `<Link>` du dépôt échoue à l'import — avant la moindre
+assertion.
+
+Le dépôt n'utilise **pas** `vi.mock`. Ce qui doit être testé sans navigateur
+est extrait en module ou en composant PUR, auquel les valeurs qui viennent
+d'un hook (chemin courant, rôle) sont passées en props : c'est le motif de
+`components/admin/admin-nav.tsx`, dont la coquille lit `usePathname()` et
+`api.users.current`, et qui ne reçoit, lui, que deux valeurs.
+
 ## E2E — `pnpm test:e2e`
 
 ### Sessions partagées : le « fichier de login »

@@ -44,7 +44,13 @@ const CLES_NON_LITTERALES = [
   'src/app/[locale]/adhesion/page.tsx -> t(k)',
   'src/app/[locale]/admin/impact/page.tsx -> t(c.key)',
   'src/app/[locale]/admin/page.tsx -> t(c.key)',
-  'src/components/admin/admin-shell.tsx -> t(key)',
+  // La navigation du back-office a quitté la coquille pour `admin-nav.tsx`
+  // (issue #49) : la table des entrées y vit, le libellé y est demandé. Les
+  // deux appels parcourent `ADMIN_NAV_GROUPS`, fermée et écrite dans ce même
+  // dépôt ; `tests/unit/admin-nav.test.tsx` vérifie que chacune de ses clés —
+  // entrées et titres de groupe — existe en français ET en anglais.
+  'src/components/admin/admin-nav.tsx -> t(group.labelKey)',
+  'src/components/admin/admin-nav.tsx -> t(key)',
   'src/components/layout/mobile-nav.tsx -> t(item.key)',
   'src/components/layout/nav-links.tsx -> t(key)',
 ];
