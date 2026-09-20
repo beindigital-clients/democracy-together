@@ -5,10 +5,15 @@ import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
-import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import {
+  FormError,
+  TextField,
+  TextareaField,
+  useFormFields,
+} from '@/components/ui/field';
 import { Reveal } from '@/components/motion/reveal';
 import { useRecaptcha } from '@/lib/recaptcha';
-import { formField, isEmail } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 export default function ContactPage() {
@@ -17,30 +22,42 @@ export default function ContactPage() {
   const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
+  // Les valeurs vivent ici, pas dans le DOM : un refus serveur (rate-limit,
+  // reCAPTCHA) laisse le message rédigé intact.
+  const { values, field, validate } = useFormFields({
+    name: '',
+    email: '',
+    subject: '',
+    body: '',
+  });
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const name = formField(fd, 'name').trim();
-    const email = formField(fd, 'email').trim();
-    const subject = formField(fd, 'subject').trim();
-    const body = formField(fd, 'body').trim();
 
+    // Une règle par champ, dans l'ordre d'affichage : le message va au champ
+    // qui l'a causé, et le premier champ fautif reçoit le focus.
     if (
-      name.length < 2 ||
-      !isEmail(email) ||
-      subject.length < 2 ||
-      body.length < 10
+      !validate({
+        name: (v) => (v.trim().length < 2 ? t('errName') : null),
+        email: (v) => (isEmail(v) ? null : t('errEmail')),
+        subject: (v) => (v.trim().length < 2 ? t('errSubject') : null),
+        body: (v) => (v.trim().length < 10 ? t('errMessage') : null),
+      })
     ) {
-      setError(t('errorInvalid'));
       return;
     }
 
     setStatus('pending');
     try {
       const captchaToken = await executeRecaptcha('contact');
-      await submit({ name, email, subject, body, captchaToken });
+      await submit({
+        name: values.name.trim(),
+        email: values.email.trim(),
+        subject: values.subject.trim(),
+        body: values.body.trim(),
+        captchaToken,
+      });
       setStatus('success');
     } catch (err) {
       setError(
@@ -95,27 +112,27 @@ export default function ContactPage() {
             <form onSubmit={onSubmit} noValidate className="space-y-5">
               <TextField
                 label={t('name')}
-                name="name"
                 autoComplete="name"
                 required
+                {...field('name')}
               />
 
               <TextField
                 label={t('email')}
-                name="email"
                 type="email"
                 autoComplete="email"
                 required
+                {...field('email')}
               />
 
-              <TextField label={t('subject')} name="subject" required />
+              <TextField label={t('subject')} required {...field('subject')} />
 
               <TextareaField
                 label={t('message')}
-                name="body"
                 rows={6}
                 required
                 placeholder={t('messagePlaceholder')}
+                {...field('body')}
               />
 
               <FormError>{error}</FormError>

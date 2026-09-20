@@ -6,10 +6,10 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
 import { AuthCard, SubmitButton } from '@/components/auth/form';
-import { FormError, TextField } from '@/components/ui/field';
+import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { Button } from '@/components/ui/button';
-import { formField } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 
 export default function ConnexionPage() {
   const t = useTranslations('auth');
@@ -18,16 +18,32 @@ export default function ConnexionPage() {
   const redirectAfterAuth = useRedirectAfterAuth();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const { values, field, validate } = useFormFields({
+    email: '',
+    password: '',
+  });
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    // Ce qui est vérifiable ICI va au champ : une adresse mal formée, un mot de
+    // passe vide. Le REFUS du serveur, lui, reste global — dire lequel des deux
+    // est faux renseignerait sur l'existence du compte.
+    if (
+      !validate({
+        email: (v) => (isEmail(v) ? null : t('errEmail')),
+        password: (v) => (v.length === 0 ? t('errPassword') : null),
+      })
+    ) {
+      return;
+    }
+
     setPending(true);
-    const fd = new FormData(e.currentTarget);
     try {
       await signIn('password', {
-        email: formField(fd, 'email'),
-        password: formField(fd, 'password'),
+        email: values.email.trim(),
+        password: values.password,
         flow: 'signIn',
       });
       redirectAfterAuth();
@@ -39,19 +55,19 @@ export default function ConnexionPage() {
 
   return (
     <AuthCard title={t('signInTitle')} subtitle={t('signInSubtitle')}>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} noValidate className="space-y-4">
         <TextField
           label={t('email')}
-          name="email"
           type="email"
           autoComplete="email"
           required
+          {...field('email')}
         />
         <PasswordField
           label={t('password')}
-          name="password"
           autoComplete="current-password"
           required
+          {...field('password')}
         />
         <div className="text-right">
           <Link

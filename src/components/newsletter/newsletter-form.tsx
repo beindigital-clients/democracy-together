@@ -5,9 +5,9 @@ import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
-import { FormError, TextField } from '@/components/ui/field';
+import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { useRecaptcha } from '@/lib/recaptcha';
-import { formField, isEmail } from '@/lib/validation';
+import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Formulaire d'inscription newsletter (F-18) — îlot client réutilisable (accueil
@@ -29,21 +29,21 @@ export function NewsletterForm({
   const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const { values, field, validate } = useFormFields({ email: '' });
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const email = formField(fd, 'email').trim();
-    if (!isEmail(email)) {
-      setError(t('errorInvalid'));
+    // Un seul champ, donc un seul message — mais rattaché au champ, pas posé à
+    // côté : c'est lui qui porte `aria-invalid` et que le message décrit.
+    if (!validate({ email: (v) => (isEmail(v) ? null : t('errorInvalid')) })) {
       return;
     }
     setStatus('pending');
     try {
       const captchaToken = await executeRecaptcha('newsletter');
       await subscribe({
-        email,
+        email: values.email.trim(),
         locale: locale === 'en' ? 'en' : 'fr',
         captchaToken,
       });
@@ -77,16 +77,18 @@ export function NewsletterForm({
       noValidate
       className={`w-full ${className ?? ''}`}
     >
-      <div className="flex gap-2">
+      {/* `items-start` : le message d'erreur s'écrit sous le champ ; sans
+          cela, le bouton s'étirerait à la hauteur du bloc. */}
+      <div className="flex items-start gap-2">
         <TextField
           label={placeholder}
           labelHidden
           className="flex-1"
           type="email"
-          name="email"
           required
           autoComplete="email"
           placeholder={placeholder}
+          {...field('email')}
         />
         <Button
           type="submit"

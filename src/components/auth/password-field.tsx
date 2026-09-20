@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type InputHTMLAttributes } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -52,7 +52,7 @@ export function PasswordField({
   className,
   controlClassName,
   ...props
-}: FieldShellProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+}: FieldShellProps & Omit<ComponentProps<'input'>, 'type'>) {
   const t = useTranslations('auth');
   const [shown, setShown] = useState(false);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
@@ -13,7 +13,9 @@ import {
   SelectField,
   TextField,
   TextareaField,
+  useFormFields,
 } from '@/components/ui/field';
+import { ProgressBar } from '@/components/ui/progress-bar';
 import {
   PUB_TYPES,
   PUB_THEMES,
@@ -22,7 +24,7 @@ import {
   PUB_ACCESS,
 } from '@/lib/publications';
 import { isRateLimited } from '@/lib/errors';
-import { formField } from '@/lib/validation';
+import { UPLOAD_FAILED, uploadWithProgress } from '@/lib/upload';
 
 const MAX_FILE_MB = 20;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -44,86 +46,139 @@ export function PublicationSubmitForm() {
   const [region, setRegion] = useState<string>(PUB_REGIONS[0]);
   const [languages, setLanguages] = useState<string[]>(['fr']);
   const [access, setAccess] = useState<string>(PUB_ACCESS[0]);
-  const [authors, setAuthors] = useState('');
   const [file, setFile] = useState<File | null>(null);
 
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [percent, setPercent] = useState<number | null>(null);
   const [submittedTitle, setSubmittedTitle] = useState('');
-  const formRef = useRef<HTMLFormElement>(null);
+  const {
+    values,
+    field,
+    setValue,
+    validate,
+    reset: resetFields,
+  } = useFormFields({
+    title: '',
+    year: String(CURRENT_YEAR),
+    authors: '',
+    abstract: '',
+    keypoints: '',
+  });
+  // Les langues (cases à cocher) et le fichier ne sont pas des champs texte :
+  // leurs messages vivent ici, mais suivent la même règle — chacun s'affiche à
+  // l'endroit fautif, et non en bas du formulaire.
+  const [groupErrors, setGroupErrors] = useState<{
+    languages?: string;
+    file?: string;
+  }>({});
+  const languagesErrorId = useId();
+  // Le groupe de langues n'a pas de contrôle unique à viser : c'est le
+  // `fieldset` qui prend le focus (`tabIndex={-1}`), ce qui amène la légende et
+  // le message à l'écran et sous le lecteur d'écran.
+  const languagesRef = useRef<HTMLFieldSetElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Pré-remplit l'auteur principal avec le nom du membre connecté (une fois).
   useEffect(() => {
-    if (me?.name && authors.trim() === '') setAuthors(me.name);
-  }, [me, authors]);
+    if (me?.name && values.authors.trim() === '') setValue('authors', me.name);
+  }, [me, values.authors, setValue]);
 
   function toggleLang(l: string) {
     setLanguages((cur) =>
       cur.includes(l) ? cur.filter((x) => x !== l) : [...cur, l],
     );
+    setGroupErrors((cur) => ({ ...cur, languages: undefined }));
   }
 
   function reset() {
-    formRef.current?.reset();
+    resetFields({ authors: me?.name ?? '' });
     setType(PUB_TYPES[0]);
     setTheme(PUB_THEMES[0]);
     setRegion(PUB_REGIONS[0]);
     setLanguages(['fr']);
     setAccess(PUB_ACCESS[0]);
-    setAuthors(me?.name ?? '');
     setFile(null);
+    // Le champ fichier est le seul contrôle non piloté par l'état (un
+    // `<input type="file">` ne se remplit pas par `value`) : il se vide à la
+    // main, faute de quoi il continuerait d'annoncer le document précédent.
+    if (fileRef.current) fileRef.current.value = '';
+    setGroupErrors({});
     setError(null);
+    setPercent(null);
     setStatus('idle');
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const title = formField(fd, 'title').trim();
-    const abstract = formField(fd, 'abstract').trim();
-    const year = Number(fd.get('year'));
-    const authorList = authors
+
+    // Validation miroir du backend (défense en profondeur côté serveur aussi),
+    // mais cause par cause : un dépôt refusé dit désormais LEQUEL des six
+    // champs reprendre.
+    const groups: { languages?: string; file?: string } = {};
+    if (languages.length === 0) groups.languages = t('submit.errLanguages');
+    if (file && file.size > MAX_FILE_MB * 1024 * 1024) {
+      groups.file = t('submit.errorFileSize', { mb: MAX_FILE_MB });
+    }
+    setGroupErrors(groups);
+
+    const fieldsOk = validate({
+      title: (v) => (v.trim().length < 4 ? t('submit.errTitle') : null),
+      year: (v) => {
+        const year = Number(v);
+        const valid =
+          Number.isInteger(year) && year >= 1990 && year <= CURRENT_YEAR + 1;
+        // `max` est passé en TEXTE : en argument numérique, l'ICU écrirait
+        // « 2 027 ».
+        return valid
+          ? null
+          : t('submit.errYear', { max: String(CURRENT_YEAR + 1) });
+      },
+      authors: (v) =>
+        v.split('\n').some((line) => line.trim())
+          ? null
+          : t('submit.errAuthors'),
+      abstract: (v) => (v.trim().length < 20 ? t('submit.errAbstract') : null),
+    });
+    // Le focus est déjà parti sur le premier champ texte fautif, s'il y en a
+    // un ; sinon il va au groupe qui bloque.
+    if (!fieldsOk) return;
+    if (groups.languages) {
+      languagesRef.current?.focus();
+      return;
+    }
+    if (groups.file) {
+      fileRef.current?.focus();
+      return;
+    }
+
+    const title = values.title.trim();
+    const authorList = values.authors
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean)
       .map((name) => ({ name }));
-    const keypoints = formField(fd, 'keypoints')
+    const keypoints = values.keypoints
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
-
-    // Validation miroir du backend (défense en profondeur côté serveur aussi).
-    if (
-      title.length < 4 ||
-      abstract.length < 20 ||
-      authorList.length === 0 ||
-      languages.length === 0 ||
-      !Number.isInteger(year) ||
-      year < 1990 ||
-      year > CURRENT_YEAR + 1
-    ) {
-      setError(t('submit.errorInvalid'));
-      return;
-    }
-    if (file && file.size > MAX_FILE_MB * 1024 * 1024) {
-      setError(t('submit.errorFileSize', { mb: MAX_FILE_MB }));
-      return;
-    }
 
     try {
       let fileId: Id<'_storage'> | undefined;
       let fileName: string | undefined;
       if (file) {
+        setPercent(null);
         setStatus('uploading');
         const uploadUrl = await generateUploadUrl();
-        const res = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': file.type || 'application/pdf' },
-          body: file,
+        // `XMLHttpRequest`, et non `fetch` : lui seul rend compte de
+        // l'avancement de l'ENVOI (cf. src/lib/upload.ts).
+        const json = await uploadWithProgress<{ storageId: Id<'_storage'> }>({
+          url: uploadUrl,
+          file,
+          contentType: file.type || 'application/pdf',
+          onProgress: (progress) => setPercent(progress.percent),
         });
-        if (!res.ok) throw new Error('upload-failed');
-        const json = (await res.json()) as { storageId: Id<'_storage'> };
         fileId = json.storageId;
         fileName = file.name;
       }
@@ -136,9 +191,9 @@ export function PublicationSubmitForm() {
         region: region as (typeof PUB_REGIONS)[number],
         languages: languages as (typeof PUB_LANGS)[number][],
         access: access as (typeof PUB_ACCESS)[number],
-        year,
+        year: Number(values.year),
         authors: authorList,
-        abstract,
+        abstract: values.abstract.trim(),
         keypoints: keypoints.length ? keypoints : undefined,
         fileId,
         fileName,
@@ -149,11 +204,14 @@ export function PublicationSubmitForm() {
       setError(
         isRateLimited(err)
           ? t('submit.rateLimited')
-          : err instanceof Error && err.message === 'upload-failed'
+          : err instanceof Error && err.message === UPLOAD_FAILED
             ? t('submit.errorFile')
             : t('submit.errorGeneric'),
       );
+      // La saisie reste en place : un refus n'est pas une raison de tout
+      // reprendre (le fichier choisi non plus).
       setStatus('idle');
+      setPercent(null);
     }
   }
 
@@ -202,16 +260,15 @@ export function PublicationSubmitForm() {
 
   return (
     <form
-      ref={formRef}
       onSubmit={onSubmit}
       noValidate
       className="space-y-6 rounded-md border border-line bg-surface p-6 shadow-card sm:p-8"
     >
       <TextField
         label={t('submit.fieldTitle')}
-        name="title"
         required
         maxLength={200}
+        {...field('title')}
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -250,17 +307,20 @@ export function PublicationSubmitForm() {
         </SelectField>
         <TextField
           label={t('submit.fieldYear')}
-          name="year"
           type="number"
           inputMode="numeric"
           min={1990}
           max={CURRENT_YEAR + 1}
-          defaultValue={CURRENT_YEAR}
           required
+          {...field('year')}
         />
       </div>
 
-      <fieldset>
+      <fieldset
+        ref={languagesRef}
+        tabIndex={-1}
+        aria-describedby={groupErrors.languages ? languagesErrorId : undefined}
+      >
         <legend className="text-sm text-ink-soft">
           {t('submit.fieldLanguages')}
         </legend>
@@ -287,6 +347,11 @@ export function PublicationSubmitForm() {
             );
           })}
         </div>
+        {groupErrors.languages ? (
+          <p id={languagesErrorId} className="mt-1 text-sm text-bar-5">
+            {groupErrors.languages}
+          </p>
+        ) : null}
       </fieldset>
 
       <fieldset>
@@ -320,26 +385,25 @@ export function PublicationSubmitForm() {
       <TextareaField
         label={t('submit.fieldAuthors')}
         hint={t('submit.authorsHint')}
-        value={authors}
-        onChange={(e) => setAuthors(e.target.value)}
         rows={3}
         required
+        {...field('authors')}
       />
 
       <TextareaField
         label={t('submit.fieldAbstract')}
         hint={t('submit.abstractHint')}
-        name="abstract"
         rows={6}
         required
         maxLength={4000}
+        {...field('abstract')}
       />
 
       <TextareaField
         label={t('submit.fieldKeypoints')}
         hint={t('submit.keypointsHint')}
-        name="keypoints"
         rows={3}
+        {...field('keypoints')}
       />
 
       {/* Champ fichier : contrôle particulier (habillage `file:*`), donc rendu
@@ -351,18 +415,35 @@ export function PublicationSubmitForm() {
             ? t('submit.fileSelected', { name: file.name })
             : t('submit.fileHint', { mb: MAX_FILE_MB })
         }
+        error={groupErrors.file}
       >
         {(control) => (
           <input
             {...control}
+            ref={fileRef}
             name="file"
             type="file"
             accept="application/pdf,.pdf"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              setFile(e.target.files?.[0] ?? null);
+              setGroupErrors((cur) => ({ ...cur, file: undefined }));
+            }}
             className="block w-full text-sm text-ink-soft file:mr-3 file:cursor-pointer file:rounded-sm file:border file:border-line-strong file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-line"
           />
         )}
       </Field>
+
+      {status === 'uploading' ? (
+        <ProgressBar
+          label={t('submit.uploadProgress')}
+          percent={percent}
+          text={
+            percent === null
+              ? t('submit.uploadStarting')
+              : t('submit.uploadPercent', { percent })
+          }
+        />
+      ) : null}
 
       <FormError>{error}</FormError>
 
