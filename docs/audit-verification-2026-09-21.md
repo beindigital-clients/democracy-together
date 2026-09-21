@@ -927,10 +927,64 @@ d'audit, ils ont été vérifiés sur une page **synthétique** qui perd son pre
 clic : les trois propriétés passent, y compris celle qui les empêche d'être une
 mise sous le tapis.
 
-**Ce qui reste à faire pour trancher** : récupérer le journal COMPLET du job
-« Parcours navigateur » et y chercher `[F-13]`. Ces lignes s'impriment tôt
-(`home.spec` passe tôt dans la suite), donc un `tail` ne les verra jamais.
-C'est le seul moyen de distinguer « aucun clic perdu » de « un clic absorbé ».
+**Le journal complet a été récupéré, et il a parlé.** Ces lignes s'impriment
+tôt (`home.spec` passe tôt), donc aucun `tail` ne pouvait les voir ; le
+téléchargement direct de l'artefact est refusé par la politique réseau de
+l'environnement. Il a fallu passer par le contenu du job. Résultat, sur la
+campagne du commit `148d099` :
+
+```
+[F-13] bascule de langue FR -> EN : 2 clics ont été nécessaires
+```
+
+**Le symptôme s'est produit et a été absorbé** — et, dans la MÊME campagne,
+`home.spec.ts:13` a rougi (flaky) avec exactement la même erreur : attendu
+`/en`, reçu `/fr`. Deux occurrences dans un seul run, sur le même geste. Le
+sélecteur de langue pèse désormais **trois des six** occurrences connues.
+
+---
+
+#### Mise à jour : le constat se reproduit, en trente secondes
+
+C'est la concentration ci-dessus qui a permis de le prendre. Le levier n'est
+pas le hasard, **c'est le processeur**. Dans les conditions exactes des specs
+(`page.goto()` par défaut), sur le même build :
+
+| Bridage processeur | Bascules abouties |
+|---|---|
+| ×1 | **40/40** |
+| ×4 | **0/40** |
+| ×10 | **0/40** |
+
+Un runner GitHub est plus lent que cette machine sans l'être autant qu'un
+bridage ×4 : d'où le taux d'environ un test sur 213, et d'où l'impossibilité de
+reproduire à la main jusqu'ici. `audit/specs/25-f13-reproduction.spec.ts`
+versionne la mesure.
+
+**Et ce n'est pas un défaut de test.** Sur un téléphone lent, le premier appui
+sur « EN » ne fait rien, sans le moindre retour — le premier public visé par le
+cadrage.
+
+**Le constat est aussi COMPARATIF** : le même geste sur `MobileNav`, dans des
+conditions strictement identiques, aboutit **20/20 à ×4**. Même fenêtre, même
+clic, même page. Ce n'est donc pas « tout clic avant hydratation est perdu » :
+quelque chose distingue ces deux composants.
+
+**Une hypothèse testée et RÉFUTÉE.** `LocaleSwitcher` lit `useSearchParams()`,
+un hook de RENDU, alors que sa valeur ne sert qu'au clic — piste séduisante, et
+le correctif tenait en une ligne (`window.location.search` dans le
+gestionnaire). Mesuré après reconstruction : **toujours 0/40**. Le changement a
+été **annulé** : expédier un correctif avec une justification fausse est pire
+que ne rien expédier.
+
+**Ce qui reste à trouver** : ce qui distingue ces deux composants. Une dernière
+sonde — écouteur en phase de capture posé depuis le test — suggère que le nœud
+est remplacé sous bridage, mais elle mesure peut-être ce remplacement plutôt
+que la délivrance du clic. Je ne conclus pas dessus : c'est exactement le genre
+d'instrument non vérifié qui m'a déjà fait tort trois fois dans cet audit.
+
+Le travail restant est désormais d'une autre nature : **il se mesure en
+trente secondes au lieu d'une campagne de CI.**
 
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 
