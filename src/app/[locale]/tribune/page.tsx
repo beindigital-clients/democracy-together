@@ -9,6 +9,7 @@ import { PUB_THEMES } from '@/lib/publications';
 import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
 import { vocabulary } from '@/i18n/vocabulary';
+import { fetchOrFallback, EMPTY_TRIBUNE_POSTS } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -57,7 +58,12 @@ export default async function TribunePage({
 
   const t = await getTranslations('tribune');
   const tl = await getTranslations('library');
-  const posts = await fetchQuery(api.tribune.listPosts, { theme });
+  // Backend injoignable -> aucun billet, pas un 500 (F-02).
+  const posts = await fetchOrFallback(
+    'tribune',
+    () => fetchQuery(api.tribune.listPosts, { theme }),
+    EMPTY_TRIBUNE_POSTS,
+  );
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(loc, {

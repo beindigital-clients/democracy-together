@@ -10,6 +10,7 @@ import { FacetsCollapse } from '@/components/library/facets-collapse';
 import { PublicationCard } from '@/components/library/publication-card';
 import { SortSelect } from '@/components/library/sort-select';
 import { parseFilters, buildHref, PAGE_SIZE } from '@/lib/publications';
+import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -52,18 +53,24 @@ export default async function LibraryPage({
   // Jeton transmis : Convex décide seul du gating « réservé aux membres »
   // (F-35), ici comme sur la fiche détaillée.
   const token = await convexAuthNextjsToken();
-  const { items, facets } = await fetchQuery(
-    api.publications.listPublished,
-    {
-      themes: filters.themes,
-      types: filters.types,
-      regions: filters.regions,
-      langs: filters.langs,
-      access: filters.access,
-      q: filters.q,
-      sort: filters.sort as 'recent' | 'cited' | 'az',
-    },
-    { token },
+  // Backend injoignable -> liste et facettes vides, pas un 500 (F-02).
+  const { items, facets } = await fetchOrFallback(
+    'bibliotheque',
+    () =>
+      fetchQuery(
+        api.publications.listPublished,
+        {
+          themes: filters.themes,
+          types: filters.types,
+          regions: filters.regions,
+          langs: filters.langs,
+          access: filters.access,
+          q: filters.q,
+          sort: filters.sort as 'recent' | 'cited' | 'az',
+        },
+        { token },
+      ),
+    EMPTY_PUBLICATION_LIST,
   );
 
   const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));

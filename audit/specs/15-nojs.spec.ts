@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test';
+
+// Ces specs ouvrent leur PROPRE contexte (JavaScript désactivé), qui ne suit
+// pas la `baseURL` du projet : l'adresse doit donc être absolue, et suivre le
+// port réellement servi.
+const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
 import { PUBLIQUES } from './_routes';
 
 // Sans JavaScript : la régression #1 documentée dans TESTING.md (contenu bloqué
@@ -8,7 +13,7 @@ for (const route of PUBLIQUES) {
   test(`sans JS ${route || '/'}`, async ({ browser }) => {
     const ctx = await browser.newContext({ javaScriptEnabled: false });
     const page = await ctx.newPage();
-    const r = await page.goto(`http://localhost:3000/fr${route}`);
+    const r = await page.goto(`${BASE}/fr${route}`);
     const statut = r?.status();
     const texte = (await page.locator('body').innerText()).trim();
     console.log(

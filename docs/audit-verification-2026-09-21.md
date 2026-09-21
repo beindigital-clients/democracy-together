@@ -8,6 +8,108 @@ renvoie à une commande jouée et à son journal.
 
 ---
 
+> **Correctifs appliqués — F-02 et F-03 sont refermés.** Voir § 0. Le reste du
+> rapport décrit l'état constaté à l'audit ; les deux entrées corrigées sont
+> marquées comme telles.
+
+## 0. Ce qui a été corrigé
+
+### F-02 — plus aucune page ne rend 500 quand Convex est injoignable
+
+**Vérification** : serveur lancé avec un `NEXT_PUBLIC_CONVEX_URL` inatteignable,
+**14 routes sur 14** (fr et en) répondent **200** avec du contenu réel.
+
+L'audit en nommait cinq. Il en manquait quatre, et c'est ma mesure qui était en
+défaut : je n'avais sondé que les routes STATIQUES, et `/recherche` sans `?q=`
+— donc sans déclencher sa requête. Le décompte réel :
+
+| Route | Avant | Après | Ce qu'elle rend maintenant |
+|---|---|---|---|
+| `/bibliotheque`, `/experts`, `/le-reseau`, `/tribune` | 500 | **200** | leur état vide |
+| `/thematiques` | 500 | **200** | les synthèses (servies par le dépôt), décompte à zéro |
+| `/thematiques/[slug]` | 500 | **200** | la synthèse entière, sans liste de publications |
+| `/bibliotheque/[slug]`, `/le-reseau/[slug]` | 500 | **200** | « contenu momentanément indisponible » |
+| `/recherche?q=…` | 500 | **200** | « indisponible » — et non « aucun résultat », qui serait faux |
+
+Le mécanisme est un module unique, `src/lib/convex-fallback.ts`, avec des formes
+vides **typées par le retour réel de chaque query** (`FunctionReturnType`) :
+ajouter une facette côté Convex casse la compilation au lieu de servir un objet
+incomplet.
+
+Deux décisions méritent d'être lues :
+
+- **`undefined` ≠ `null`.** Sur une fiche, `null` veut dire « n'existe pas » et
+  doit rester un 404 ; `undefined` veut dire « la requête a échoué ». Les
+  confondre transformerait une panne en 404 et dirait aux moteurs que la page a
+  disparu alors qu'elle existe toujours.
+- **Les signaux internes de Next doivent traverser le repli.** C'est le piège
+  qui a failli passer : Next signale par un JET ce qui n'est pas une panne —
+  `notFound()`, `redirect()`, et surtout la sortie du rendu statique
+  (« Dynamic server usage »), que `fetchQuery` déclenche à chaque génération.
+  Le premier jet de ce correctif les avalait : le build journalisait
+  `[experts] Convex indisponible : Dynamic server usage…`. Conséquence si on
+  l'avait laissé passer : la route cesse d'être reconnue comme dynamique, et
+  Next FIGE le repli dans le HTML pré-rendu — une page « momentanément
+  indisponible » servie en permanence, backend en parfait état, et aucun test
+  fonctionnel ne le voit puisque la page répond 200. `unstable_rethrow` relance
+  ces signaux ; trois tests unitaires tiennent le point.
+
+### F-03 — les 48 pages portent leurs métadonnées de partage
+
+**Vérification**, même méthode que l'audit (48 pages, 24 routes × 2 langues) :
+
+| Critère | Avant | Après |
+|---|---|---|
+| `og:title` présent | 0/48 | **48/48** |
+| `og:title` = titre de la page | — | **48/48** (35 titres distincts) |
+| `og:image` | 0/48 | **48/48** |
+| `application/ld+json` | 0/48 | **48/48** |
+
+Posé au niveau du layout : les métadonnées Next se propagent vers les pages,
+donc les 48 en héritent d'un coup — y compris les 14 qui n'ont pas de
+`generateMetadata` propre. **Aucune page n'a été modifiée.**
+
+Ce que l'expérience a tranché, contre mon intuition de départ : `title`,
+`description` et `url` doivent être **absents** du bloc `openGraph`. Les y
+poser les FIGE pour tout le site — mesuré : `og:title` valait « Democracy
+Together » jusque sur `/fr/adhesion`, et `og:url` pointait l'accueil depuis
+chaque page, ce qu'un agrégateur peut prendre pour l'adresse canonique et qui
+replierait tous les partages sur une seule page. Laissés vides, Next les dérive
+du titre et de la description RÉSOLUS de chaque page.
+
+L'image (1200×630) est **générée** (`opengraph-image.tsx`) et non versionnée :
+l'issue #19 a établi que `design/` pesait ~95 % du `.git`, on ne recommence pas.
+Elle suit le texte du site quand il change.
+
+Le JSON-LD `Organization` est posé dans le HTML servi — donc lisible par un
+robot qui n'exécute pas JavaScript — et ne déclare **que** ce que le dépôt
+possède : un nom, une URL, une description traduite, un logo. Un test tient la
+liste des clés fermée, parce qu'une adresse postale inventée serait une donnée
+fausse servie aux moteurs, pire que son absence.
+
+### Ce que ces correctifs ont fermé au passage
+
+`audit/specs/11-robots-sitemap.spec.ts` passe désormais : le sitemap déclarait
+six URLs qui répondaient 500, elles répondent 200.
+
+### Ce qui reste ouvert
+
+**F-04** (canonical absent sur 12 pages, hreflang sur 14) n'est PAS corrigé :
+c'est un constat distinct, et il est aujourd'hui le seul que la spec SEO
+signale encore. F-01, F-05, F-06, F-07, F-08, F-09, F-10, F-13 restent ouverts
+eux aussi.
+
+### Vérifications passées avant de pousser
+
+`typecheck`, `typecheck:convex`, `typecheck:tests`, `lint`, `format:check`,
+`build` : verts. **741 tests unitaires** (92 fichiers, 24 ajoutés), verts — et
+verts aussi sur trois ordres mélangés (seeds 4, 5, 6), donc les tests ajoutés
+n'introduisent pas de dépendance d'ordre. Les specs d'audit rejouées : rendu
+sans JavaScript 24/24, i18n 24/24, en-têtes, sitemap. Les deux seuls échecs
+restants sont F-07, antérieur et hors mandat.
+
+---
+
 ## 1. Verdict
 
 **Non, pas de mise en ligne en l'état** — mais aucun blocage n'est structurel.
@@ -84,7 +186,7 @@ sous `audit/specs/` et `audit/poc/`. Commande de reproduction en § 6.
 Triés par sévérité. « Régression » = a déjà fonctionné ; « Défaut » = n'a jamais
 fonctionné ; « Risque » = fonctionne, mais.
 
-### F-02 · MOYENNE · Défaut · Cinq pages publiques rendent 500 quand Convex est injoignable
+### F-02 · MOYENNE · Défaut · ~~Cinq~~ neuf routes rendaient 500 quand Convex est injoignable — **CORRIGÉ** (§ 0)
 
 `src/app/[locale]/{bibliotheque,experts,le-reseau,thematiques,tribune}/page.tsx`
 
@@ -118,7 +220,7 @@ proposées à l'indexation alors qu'elles rendent 500 dès que le backend tousse
 simule fidèlement « backend indisponible » mais pas « backend qui répond une
 erreur ». Le second cas reste à vérifier sur un vrai déploiement.
 
-### F-03 · MOYENNE · Défaut · Aucune balise Open Graph, Twitter Card ou JSON-LD sur le site
+### F-03 · MOYENNE · Défaut · Aucune balise Open Graph, Twitter Card ou JSON-LD sur le site — **CORRIGÉ** (§ 0)
 
 Mesuré sur **48 pages** (24 routes × 2 langues), confirmé hors Playwright par
 `curl` :
@@ -452,7 +554,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 
 | # | Action | Couvre | Effort |
 |---|---|---|---|
-| 1 | `try`/`catch` + état vide sur les 5 `fetchQuery` de page, et sur `actualites/[slug]` | F-02, F-10 | 2 h |
+| 1 | ~~`try`/`catch` + état vide~~ — **fait** pour F-02 (9 routes). F-10 (`actualites/[slug]`, source Sanity) reste ouvert | F-02 ✅ / F-10 | — |
 | 2 | Vérifier à la main que la prod n'a ni `AUTH_DEV_OTP` ni `RECAPTCHA_DISABLED` (`npx convex env list --prod`) | angle mort 7 | 15 min |
 | 3 | ~~Rejouer les 213 E2E~~ — **fait** par la CI de la PR (212/213, deux fois) | angle mort 1 | — |
 
@@ -460,7 +562,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 
 | # | Action | Couvre | Effort |
 |---|---|---|---|
-| 4 | `openGraph` + `twitter` + image OG par défaut ; JSON-LD `Organization`/`Article`/`Event` | F-03 | ½ j |
+| 4 | ~~`openGraph` + `twitter` + image OG ; JSON-LD `Organization`~~ — **fait**. JSON-LD `Article`/`Event` par page : reste à faire | F-03 ✅ | — |
 | 5 | `spy.mockRestore()` dans `consent.test.ts` ; ajouter `--sequence.shuffle` à un job CI | F-01 | 1 h |
 | 6 | `canonical` et `hreflang` sur les 12 (resp. 14) pages qui en manquent | F-04 | 2 h |
 | 7 | `pnpm up postcss vitest @vitest/mocker` puis `pnpm audit --audit-level=high` en CI | F-08 | 1 h |

@@ -16,6 +16,13 @@ import { IntlClientProvider } from '@/components/providers/intl-client-provider'
 import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
 import { MotionProvider } from '@/components/motion/motion-provider';
 import { CookieConsent } from '@/components/legal/cookie-consent';
+import {
+  SITE_NAME,
+  SITE_URL,
+  openGraphLocale,
+  alternateOpenGraphLocales,
+  organizationJsonLd,
+} from '@/lib/seo';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
 import '../globals.css';
 
@@ -32,16 +39,40 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({
-    locale: resolveLocale(locale),
-    namespace: 'site',
-  });
+  const loc = resolveLocale(locale);
+  const t = await getTranslations({ locale: loc, namespace: 'site' });
   return {
+    // Sans `metadataBase`, une image de partage déclarée en chemin relatif
+    // n'est pas résolue en URL absolue — et une URL relative n'est lisible par
+    // aucun réseau social.
+    metadataBase: new URL(SITE_URL),
     title: {
-      default: 'Democracy Together',
-      template: '%s · Democracy Together',
+      default: SITE_NAME,
+      template: `%s · ${SITE_NAME}`,
     },
     description: t('description'),
+    // Open Graph et Twitter Card posés ICI plutôt que page par page : les
+    // métadonnées Next se propagent du layout vers les pages, donc les 48
+    // pages en héritent d'un coup — y compris celles qui n'ont pas de
+    // `generateMetadata` propre (F-03).
+    //
+    // `title`, `description` et `url` sont VOLONTAIREMENT absents de ce bloc.
+    // Mesuré : les y poser les FIGE pour tout le site — og:title valait
+    // « Democracy Together » jusque sur /fr/adhesion, et og:url pointait
+    // l'accueil depuis chaque page, ce qu'un agrégateur peut prendre pour
+    // l'adresse canonique et qui replierait tous les partages sur une seule
+    // page. Laissés vides, Next les dérive du titre et de la description
+    // RÉSOLUS de chaque page : /fr/adhesion annonce « Rejoindre le réseau ·
+    // Democracy Together » et sa propre description.
+    openGraph: {
+      type: 'website',
+      siteName: SITE_NAME,
+      locale: openGraphLocale(loc),
+      alternateLocale: alternateOpenGraphLocales(loc),
+    },
+    twitter: {
+      card: 'summary_large_image',
+    },
   };
 }
 
@@ -76,6 +107,11 @@ export default async function LocaleLayout({
   // — nécessaire pour lui poser `getMessageFallback` et `onError`, qui sont des
   // fonctions — coupe cet héritage : on les transmet donc explicitement.
   const timeZone = await getTimeZone();
+  const tSite = await getTranslations({
+    locale: resolveLocale(locale),
+    namespace: 'site',
+  });
+  const orgJsonLd = organizationJsonLd(tSite('description'));
 
   return (
     <ConvexAuthNextjsServerProvider>
@@ -90,6 +126,12 @@ export default async function LocaleLayout({
           <noscript>
             <style dangerouslySetInnerHTML={{ __html: noScriptReveal }} />
           </noscript>
+          {/* Données structurées (F-03). Posées dans le HTML SERVI, donc
+              lisibles par un robot qui n'exécute pas JavaScript. */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          />
         </head>
         <body className="flex min-h-dvh flex-col">
           <IntlClientProvider

@@ -14,6 +14,11 @@ import { PublicationCard } from '@/components/library/publication-card';
 import { ViewCounter } from '@/components/library/view-counter';
 import { buildCitations, formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
+import {
+  fetchOrFallback,
+  EMPTY_RELATED_PUBLICATIONS,
+} from '@/lib/convex-fallback';
+import { DataUnavailable } from '@/components/ui/data-unavailable';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -35,7 +40,14 @@ export async function generateMetadata({
   // Volontairement NON authentifié : les métadonnées doivent être identiques
   // pour tous (SEO, cache CDN). Pour une publication réservée, Convex renvoie
   // déjà l'amorce de résumé tronquée — rien de réservé ne fuite ici (F-35).
-  const pub = await fetchQuery(api.publications.getBySlug, { slug });
+  // Backend muet -> pas de métadonnées plutôt qu'un jet : `generateMetadata`
+  // s'exécute AVANT le rendu, donc une exception ici emporte la page entière
+  // quoi que fasse le corps de la page (F-02).
+  const pub = await fetchOrFallback(
+    'bibliotheque/[slug]:metadata',
+    () => fetchQuery(api.publications.getBySlug, { slug }),
+    null,
+  );
   if (!pub) return {};
   return {
     title: pub.title,
@@ -64,19 +76,36 @@ export default async function PublicationPage({
   // lecteur a les droits « membre » et donc si le contenu réservé est servi
   // (F-35). Sans jeton, Convex verrouille — le gating n'est jamais côté client.
   const token = await convexAuthNextjsToken();
-  const pub = await fetchQuery(api.publications.getBySlug, { slug }, { token });
+  // `undefined` = la requête a ÉCHOUÉ ; `null` = la publication n'existe pas.
+  // Les confondre transformerait une panne en 404, et dirait aux moteurs que
+  // la page a disparu alors qu'elle existe toujours (F-02).
+  const pub = await fetchOrFallback(
+    'bibliotheque/[slug]',
+    () => fetchQuery(api.publications.getBySlug, { slug }, { token }),
+    undefined,
+  );
+  if (pub === undefined) {
+    return (
+      <div className={`${WRAP} py-16`}>
+        <DataUnavailable />
+      </div>
+    );
+  }
   if (!pub) notFound();
 
   const t = await getTranslations('library');
   const td = await getTranslations('library.detail');
-  const related = await fetchQuery(
-    api.publications.relatedByTheme,
-    {
-      theme: pub.theme,
-      excludeSlug: pub.slug,
-      limit: 3,
-    },
-    { token },
+  // Les publications liées sont un complément : leur absence ne justifie pas
+  // de perdre la fiche déjà chargée.
+  const related = await fetchOrFallback(
+    'bibliotheque/[slug]:related',
+    () =>
+      fetchQuery(
+        api.publications.relatedByTheme,
+        { theme: pub.theme, excludeSlug: pub.slug, limit: 3 },
+        { token },
+      ),
+    EMPTY_RELATED_PUBLICATIONS,
   );
 
   const citations = buildCitations(pub, locale);

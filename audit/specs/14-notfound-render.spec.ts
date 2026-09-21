@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// Ces specs ouvrent leur PROPRE contexte (JavaScript désactivé), qui ne suit
+// pas la `baseURL` du projet : l'adresse doit donc être absolue, et suivre le
+// port réellement servi.
+const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
+
 // Décisif : la 404 LOCALISÉE affiche-t-elle quelque chose à l'écran ?
 // /fr/rapports/9999 ne dépend PAS de Convex (contenu servi par
 // src/lib/reports-content.ts) : ce qu'on observe ici n'est donc pas une
@@ -27,7 +32,7 @@ test('404 localisée : avec JavaScript, après hydratation', async ({ page }) =>
 test('404 localisée : sans JavaScript', async ({ browser }) => {
   const ctx = await browser.newContext({ javaScriptEnabled: false });
   const page = await ctx.newPage();
-  const r = await page.goto(`http://localhost:3000${CIBLE}`);
+  const r = await page.goto(`${BASE}${CIBLE}`);
   expect(r?.status()).toBe(404);
   const texte = (await page.locator('body').innerText()).trim();
   await page.screenshot({

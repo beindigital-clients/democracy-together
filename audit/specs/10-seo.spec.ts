@@ -11,6 +11,7 @@ type Meta = {
   hreflang: string[];
   ogTitle: string | null;
   ogImage: string | null;
+  ogUrl: string | null;
   h1: number;
   imgSansAlt: number;
   jsonLd: number;
@@ -36,6 +37,7 @@ for (const locale of ['fr', 'en'] as const) {
           ].map((l) => l.getAttribute('hreflang') as string),
           ogTitle: attr('meta[property="og:title"]', 'content'),
           ogImage: attr('meta[property="og:image"]', 'content'),
+          ogUrl: attr('meta[property="og:url"]', 'content'),
           h1: document.querySelectorAll('h1').length,
           imgSansAlt: document.querySelectorAll('img:not([alt])').length,
           jsonLd: document.querySelectorAll(
@@ -52,7 +54,22 @@ for (const locale of ['fr', 'en'] as const) {
       expect(m.canonical, `${url} : canonical absent`).toBeTruthy();
       expect(m.hreflang, `${url} : hreflang fr`).toContain('fr');
       expect(m.hreflang, `${url} : hreflang en`).toContain('en');
+      // Présent NE SUFFIT PAS : un og:title figé au nom du site ferait
+      // apparaître toutes les pages partagées sous le même titre.
       expect(m.ogTitle, `${url} : og:title absent`).toBeTruthy();
+      expect(
+        m.ogTitle,
+        `${url} : og:title ne suit pas le titre de la page`,
+      ).toBe(m.title);
+      expect(m.ogImage, `${url} : og:image absente`).toBeTruthy();
+      expect(m.jsonLd, `${url} : aucune donnée structurée`).toBeGreaterThan(0);
+      // og:url épinglé sur une autre page vaut mieux absent : un agrégateur
+      // peut le prendre pour l'adresse canonique.
+      if (m.ogUrl) {
+        expect(m.ogUrl, `${url} : og:url épinglé ailleurs`).toContain(
+          route || '/',
+        );
+      }
       expect(m.h1, `${url} : ${m.h1} <h1> au lieu d'un seul`).toBe(1);
       expect(m.imgSansAlt, `${url} : ${m.imgSansAlt} image(s) sans alt`).toBe(
         0,
