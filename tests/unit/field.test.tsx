@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import messages from '@/messages/fr.json';
@@ -163,10 +163,34 @@ describe('Champ — contrôles particuliers', () => {
     expect(input.type).toBe('text');
   });
 
+  // Minuteries FEINTES pour ce test seulement (audit F-01, second défaut).
+  //
+  // `input-otp` programme un `setTimeout` qu'il n'annule pas au démontage.
+  // `cleanup()` démonte bien le composant, mais la minuterie survit au FICHIER :
+  // elle se déclenche plus tard, appelle `setState`, et trouve un environnement
+  // happy-dom déjà détruit — « ReferenceError: window is not defined », signalée
+  // par Vitest comme exception non capturée, et le run entier passe en échec
+  // alors que les 771 tests sont verts.
+  //
+  // Mesuré avant correctif, en ordre mélangé : seed 11 échouait 3 fois sur 3,
+  // seed 6 une fois sur 3. Rien à voir avec ce que ce test vérifie — c'est
+  // exactement le genre de rouge qui apprend aux relecteurs à ignorer le rouge,
+  // et il aurait rendu inutile le job CI en ordre mélangé ajouté par ailleurs.
+  //
+  // Les minuteries feintes rendent la fuite inoffensive : ce qui est programmé
+  // pendant le test est jeté avec elles, sans rien changer aux assertions —
+  // celles-ci sont synchrones.
   it('code à usage unique : le libellé désigne bien la saisie', () => {
-    render(intl(<OtpField value="" onChange={() => {}} />));
-    const input = screen.getByLabelText('Code de vérification');
-    expect(input.tagName).toBe('INPUT');
+    vi.useFakeTimers();
+    try {
+      render(intl(<OtpField value="" onChange={() => {}} />));
+      const input = screen.getByLabelText('Code de vérification');
+      expect(input.tagName).toBe('INPUT');
+    } finally {
+      cleanup();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -65,6 +65,24 @@ jobs:
       - name: Tests unitaires
         run: pnpm test
 
+      # Même suite, ORDRE MÉLANGÉ (audit F-01).
+      #
+      # `pnpm test` joue les fichiers dans l'ordre de déclaration, toujours le
+      # même : une dépendance d'ordre y reste invisible. Mesuré avant
+      # correctif, la suite était verte ici et rougissait six fois sur dix en
+      # ordre mélangé — jusqu'à douze tests d'un coup. Verte par chance
+      # d'ordonnancement, donc, et deux défauts d'isolation qu'aucune
+      # relecture n'aurait vus : un espion sur `window.localStorage` que
+      # `vi.restoreAllMocks()` ne restaure pas sous happy-dom, et une minuterie
+      # d'`input-otp` qui survivait à son fichier.
+      #
+      # La graine est TIRÉE À CHAQUE EXÉCUTION : c'est le but — on veut
+      # explorer des ordres, pas en figer un. Vitest imprime la graine employée
+      # en tête de rapport, et `--sequence.seed=<n>` rejoue exactement le même
+      # ordre pour diagnostiquer.
+      - name: Tests unitaires (ordre mélangé)
+        run: pnpm exec vitest run --sequence.shuffle
+
       # Aucune variable d'environnement : le build est vert sans déploiement
       # Convex ni projet Sanity. Si cela cesse d'être vrai, c'est une
       # régression à corriger, pas un secret à ajouter ici.

@@ -182,6 +182,84 @@ donnent 4 328 ms, le corps seul 2 376 ms, et re-précharger les titres 2 660 ms.
 m'étais fixé. Mon correctif ne l'améliore ni ne le dégrade — cette page était
 déjà bornée par ses octets et ses allers-retours, pas par le voile.
 
+### F-01 — la suite n'est plus verte par chance d'ordonnancement
+
+**Vérification** : **30 graines mélangées consécutives, aucun échec.** Avant
+correctif, six sur dix rougissaient.
+
+Le correctif annoncé — `spy.mockRestore()` au lieu de `vi.restoreAllMocks()`,
+qui ne restaure pas un espion posé sur l'instance `window.localStorage` sous
+happy-dom — a été appliqué. Mais le balayage en a révélé **un second défaut
+d'isolation, que l'audit n'avait pas vu** :
+
+`input-otp` programme un `setTimeout` qu'il n'annule pas au démontage.
+`cleanup()` démonte bien le composant, mais la minuterie survit au FICHIER :
+elle se déclenche plus tard, appelle `setState`, et trouve un environnement
+happy-dom déjà détruit — « ReferenceError: window is not defined », signalée
+comme exception non capturée, et le run entier passe en échec **alors que les
+771 tests sont verts**.
+
+Mesuré avant/après, pour établir qu'il était bien antérieur et non introduit
+par le premier correctif :
+
+| | seed 6 | seed 11 |
+|---|---|---|
+| sans le correctif de F-01 | 1 échec sur 3 | **3 échecs sur 3** |
+| avec | 0 sur 3 | 0 sur 3 |
+
+Minuteries feintes sur ce seul test : ce qui est programmé pendant son
+exécution est jeté avec elles, et les assertions étant synchrones, rien d'autre
+ne change.
+
+**Et pour que ça ne revienne pas** : `ci.yml` gagne une étape « Tests unitaires
+(ordre mélangé) ». La graine est tirée à chaque exécution — c'est le but, on
+veut explorer des ordres, pas en figer un. Vitest imprime la graine employée,
+et `--sequence.seed=<n>` rejoue exactement le même ordre pour diagnostiquer.
+Ce garde-fou n'aurait pas été tenable sans le second correctif : il aurait
+rougi au hasard.
+
+### F-06 — la moitié gagnable, et la limite du cadriciel
+
+Le dépôt sert **deux** 404, et elles n'ont pas le même sort :
+
+| Déclencheur | Fichier | HTML servi |
+|---|---|---|
+| adresse sans route du tout | `src/app/not-found.tsx` | ✅ rendue |
+| `notFound()` depuis une route qui matche | `src/app/[locale]/not-found.tsx` | ❌ vide |
+
+**Ce qui est corrigé** : la première. Elle n'existait pas — une adresse sans
+route recevait la 404 par défaut de Next, en anglais, sans charte, hors du
+site. C'est le reproche que l'audit § 5.1 faisait déjà, et qui n'avait été
+traité que pour les `notFound()`. Elle est désormais bilingue (ce fichier vit
+hors du segment `[locale]` : il n'a aucun contexte de langue, et deviner
+d'après l'URL serait faux la moitié du temps), rendue dans le HTML, **lisible
+sans JavaScript — 161 caractères mesurés**, avec un retour vers chaque langue.
+
+**Ce qui ne l'est pas, et pourquoi.** La 404 localisée reste vide sans
+JavaScript. Trois hypothèses ont été écartées par la mesure :
+
+1. *la suspension du composant* — une version synchrone, sans traduction,
+   donne exactement le même vide ;
+2. *la place du fichier* — une `not-found` posée à la RACINE ne change rien
+   pour ce cas, alors qu'elle est bien rendue pour une adresse sans route ;
+3. *la coquille du layout* — son `<head>` est rendu, son `<body>` ne contient
+   ni en-tête, ni pied de page, ni texte : `<div>` et scripts seulement.
+
+C'est donc un comportement de Next 16.3.5 : une 404 levée par `notFound()`
+depuis une route qui matche n'émet pas son contenu dans le HTML. Aucun
+correctif userland ne le contourne sans renoncer à autre chose.
+
+**L'arbitrage qui reste, et qui ne m'appartient pas.** Trois routes ont un jeu
+de paramètres FERMÉ (`rapports/[year]`, `thematiques/[slug]`,
+`evenements/[slug]`). En leur posant `dynamicParams = false`, un paramètre
+inconnu cesse de matcher — et la 404 redevient rendue dans le HTML. Prix à
+payer : ces trois routes servent alors la 404 racine, sans l'en-tête ni le pied
+de page du site, dans une page bilingue plutôt que dans la langue du visiteur.
+Et cela ne ferait rien pour `bibliotheque/[slug]`, `le-reseau/[slug]` ni
+`tribune/[id]`, dont les paramètres viennent de Convex — donc trois routes
+gagneraient là où trois autres resteraient en l'état, ce qui remplace un défaut
+uniforme par une incohérence. C'est un choix de produit, pas de code.
+
 ### Ce que ces correctifs ont fermé au passage
 
 `audit/specs/11-robots-sitemap.spec.ts` passe désormais : le sitemap déclarait
@@ -189,8 +267,9 @@ six URLs qui répondaient 500, elles répondent 200.
 
 ### Ce qui reste ouvert
 
-F-01, F-06, F-07, F-08, F-09, F-10 et F-13 restent ouverts. La spec SEO ne
-signale plus rien ; les deux seuls échecs des specs d'audit sont F-07.
+F-07, F-08, F-09, F-10 et F-13 restent ouverts, ainsi que la moitié de F-06
+que le cadriciel ne permet pas de refermer (§ 0). La spec SEO ne signale plus
+rien.
 
 ### Vérifications passées avant de pousser
 
@@ -364,7 +443,7 @@ dépendent d'aucune donnée utilisateur.
 **Limite** : mesures faites en localhost bridé, donc sans latence serveur réelle.
 Les chiffres sont un **plancher** : le terrain sera plus lent, pas plus rapide.
 
-### F-01 · MOYENNE · Défaut · L'isolation des tests n'est pas tenue : la suite est verte par ordonnancement
+### F-01 · MOYENNE · Défaut · L'isolation des tests n'est pas tenue : la suite est verte par ordonnancement — **CORRIGÉ** (§ 0)
 
 `tests/unit/consent.test.ts`
 
@@ -411,7 +490,7 @@ de test, `dompurify` arrive par le Studio Sanity. Le risque d'exploitation en
 production est donc faible — ce qui ne dispense pas de la montée de version, la
 plus coûteuse étant `vitest` (majeure déjà en place, correctif de patch).
 
-### F-06 · FAIBLE · Défaut · La 404 localisée est entièrement vide sans JavaScript
+### F-06 · FAIBLE · Défaut · La 404 localisée est entièrement vide sans JavaScript — **PARTIEL** (§ 0)
 
 `src/app/[locale]/not-found.tsx`
 
@@ -480,6 +559,8 @@ huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
 | 1re (01:02, `1390107`) | 212 passés, **1 en échec** | `admin-recherche.spec.ts:153` — `locator.click` sur le bouton du dialogue de confirmation : *element is not stable*, réessai jusqu'au timeout de 45 s |
 | 2de (01:11, `1390107`) | 212 passés, **1 « flaky »** | `search.spec.ts:14` — `getByRole('dialog', { name: 'Rechercher sur le site' })` jamais visible, puis vert à la reprise |
 | 3e (01:56, `d29c1da`) | 212 passés, **1 « flaky »** | `mobile-nav.spec.ts:48` — le lien « Jeunes » jamais visible après le clic sur la bascule du menu mobile, puis vert à la reprise |
+| 4e (06:03, `21cf456`) | 211 passés, **1 échec + 1 flaky** | `admin-recherche.spec.ts:153` à nouveau (échec dur), et `mobile-nav.spec.ts:48` (flaky) |
+| 5e (relance, `21cf456`) | vert | — |
 
 Trois campagnes, **trois défaillances DIFFÉRENTES, toutes trois en attente d'un
 panneau qui s'ouvre au clic** : dialogue de confirmation, palette de recherche,
@@ -499,7 +580,23 @@ l'expérience — `search.spec.ts` est signalé « flaky » depuis la PR #88, et
 introduction. Le taux observé est d'environ **1 test sur 213 par campagne**,
 jamais le même.
 
-**Ce que j'ai écarté** : l'hypothèse d'un ancêtre porteur d'un `transform` qui
+**Trois hypothèses écartées par la mesure** (et non par raisonnement) :
+
+1. *un ancêtre porteur d'un `transform`* qui capturerait le `fixed` du
+   dialogue — il n'y en a aucun dans `src/components/admin/**` ;
+2. *une course à l'hydratation* — le correctif F-05 fait peindre la page avant
+   hydratation, donc élargit la fenêtre d'un clic qui ne déclenche rien.
+   Rejoué 5 fois en local puis 9 fois avec le processeur bridé ×1, ×4 et ×10 :
+   tout passe ;
+3. *la gouttière de barre de défilement*, qui recentrerait un dialogue
+   `mx-auto` à chaque changement de hauteur — `scrollbar-gutter: stable` est
+   déjà posé dans `globals.css`, avec un commentaire qui vise ce risque.
+
+Reste, sur cinq campagnes : trois avec une défaillance, jamais deux fois le
+même test d'affilée, toujours un panneau qui s'ouvre au clic. Le taux est
+d'environ 1 test sur 213 par campagne.
+
+**Ce que j'ai écarté aussi** : l'hypothèse d'un ancêtre porteur d'un `transform` qui
 capturerait le `fixed` du dialogue (`src/components/ui/confirm-dialog.tsx:97`,
 rendu **sans portail**). Il n'y a ni `framer-motion` ni `transform` dans
 `src/components/admin/**`. Et la 3e occurrence écarte la piste « requête
@@ -665,7 +762,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | # | Action | Couvre | Effort |
 |---|---|---|---|
 | 4 | ~~`openGraph` + `twitter` + image OG ; JSON-LD `Organization`~~ — **fait**. JSON-LD `Article`/`Event` par page : reste à faire | F-03 ✅ | — |
-| 5 | `spy.mockRestore()` dans `consent.test.ts` ; ajouter `--sequence.shuffle` à un job CI | F-01 | 1 h |
+| 5 | ~~`spy.mockRestore()` ; `--sequence.shuffle` en CI~~ — **fait**, plus un second défaut d'isolation trouvé au passage | F-01 ✅ | — |
 | 6 | `canonical` et `hreflang` sur les 12 (resp. 14) pages qui en manquent | F-04 | 2 h |
 | 7 | `pnpm up postcss vitest @vitest/mocker` puis `pnpm audit --audit-level=high` en CI | F-08 | 1 h |
 | 8 | Réponses uniformes sur `newsletter.subscribe` et `events.registerForEvent` | F-09 | 1 h |
@@ -676,7 +773,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | # | Action | Couvre | Effort |
 |---|---|---|---|
 | 9 | Alléger les chunks (`d3-geo`/`topojson`/`world-atlas` en différé) ; prérendre les pages éditoriales | F-05 | 1 j |
-| 10 | Rendre la 404 localisée en SSR | F-06 | 2 h |
+| 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; arbitrage `dynamicParams` à trancher | F-06 🟡 | — |
 | 11 | Souligner le lien d'adhésion des pages de connexion ; les ajouter à `PAGES` de `a11y.spec.ts` | F-07 | 1 h |
 | 12 | Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription` | F-12 | 3 h |
 | 13 | Aligner le Chromium de l'environnement sur le Playwright épinglé, pour rendre le mobile testable | angle mort 2 | — |
