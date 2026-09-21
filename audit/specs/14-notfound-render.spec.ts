@@ -11,13 +11,23 @@ const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
 // retombée du backend injoignable.
 const CIBLE = '/fr/rapports/9999';
 
-test('404 localisée : avec JavaScript, après hydratation', async ({ page }) => {
+// Le nom de la capture porte le PROJET. Les deux projets jouent la même spec
+// et écrivaient au même chemin : la capture committée était donc celle du
+// dernier projet joué — le mobile — alors que le rapport en cite la version
+// desktop. Une preuve remplacée en silence par une autre, exactement ce que
+// cet audit reproche ailleurs. Qui ne joue qu'un projet ne voyait rien.
+const capture = (nom: string, projet: string) =>
+  `/home/user/democracy-together/audit/screenshots/${nom}-${projet}.png`;
+
+test('404 localisée : avec JavaScript, après hydratation', async ({
+  page,
+}, info) => {
   const r = await page.goto(CIBLE, { waitUntil: 'networkidle' });
   expect(r?.status()).toBe(404);
   await page.waitForTimeout(2000); // laisse toute sa chance à l'hydratation
   const texte = (await page.locator('body').innerText()).trim();
   await page.screenshot({
-    path: '/home/user/democracy-together/audit/screenshots/404-localisee-avec-js.png',
+    path: capture('404-localisee-avec-js', info.project.name),
     fullPage: true,
   });
   console.log(
@@ -29,14 +39,14 @@ test('404 localisée : avec JavaScript, après hydratation', async ({ page }) =>
   ).toBeGreaterThan(20);
 });
 
-test('404 localisée : sans JavaScript', async ({ browser }) => {
+test('404 localisée : sans JavaScript', async ({ browser }, info) => {
   const ctx = await browser.newContext({ javaScriptEnabled: false });
   const page = await ctx.newPage();
   const r = await page.goto(`${BASE}${CIBLE}`);
   expect(r?.status()).toBe(404);
   const texte = (await page.locator('body').innerText()).trim();
   await page.screenshot({
-    path: '/home/user/democracy-together/audit/screenshots/404-localisee-sans-js.png',
+    path: capture('404-localisee-sans-js', info.project.name),
     fullPage: true,
   });
   console.log(

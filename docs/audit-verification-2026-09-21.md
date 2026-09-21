@@ -731,7 +731,8 @@ plus coûteuse étant `vitest` (majeure déjà en place, correctif de patch).
 | Contre-épreuve `/fr/mentions-legales` | 2 759 caractères ✅ |
 | Contre-épreuve 404 par défaut de Next | 255 caractères ✅ |
 
-Captures : `audit/screenshots/404-localisee-{avec,sans}-js.png`.
+Captures : `audit/screenshots/404-localisee-{avec,sans}-js-desktop.png` — le
+nom porte le projet, les deux projets d'audit jouant la même spec.
 
 Le contenu n'est pas dans le HTML initial — il n'arrive que par la charge utile
 RSC, appliquée à l'hydratation. Vérifié sur `/fr/rapports/9999`, qui **ne dépend
