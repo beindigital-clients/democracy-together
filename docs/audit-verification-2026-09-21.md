@@ -384,27 +384,36 @@ huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
 
 | Exécution | Résultat | Test concerné |
 |---|---|---|
-| 1re (01:02) | 212 passés, **1 en échec** | `admin-recherche.spec.ts:153` — `locator.click` sur le bouton du dialogue de confirmation : *element is not stable*, réessai jusqu'au timeout de 45 s |
-| 2de (01:11) | 212 passés, **1 « flaky »** | `search.spec.ts:14` — `getByRole('dialog', { name: 'Rechercher sur le site' })` jamais visible, puis vert à la reprise |
+| 1re (01:02, `1390107`) | 212 passés, **1 en échec** | `admin-recherche.spec.ts:153` — `locator.click` sur le bouton du dialogue de confirmation : *element is not stable*, réessai jusqu'au timeout de 45 s |
+| 2de (01:11, `1390107`) | 212 passés, **1 « flaky »** | `search.spec.ts:14` — `getByRole('dialog', { name: 'Rechercher sur le site' })` jamais visible, puis vert à la reprise |
+| 3e (01:56, `d29c1da`) | 212 passés, **1 « flaky »** | `mobile-nav.spec.ts:48` — le lien « Jeunes » jamais visible après le clic sur la bascule du menu mobile, puis vert à la reprise |
 
-Deux exécutions du même code, **deux défaillances différentes, toutes deux en
-attente d'un dialogue**. Ce n'est pas deux accidents indépendants : c'est un
-motif. Les deux tests franchissent la même frontière — un dialogue monté en
-réaction à un clic, sur un écran encore alimenté par une requête Convex
-réactive.
+Trois campagnes, **trois défaillances DIFFÉRENTES, toutes trois en attente d'un
+panneau qui s'ouvre au clic** : dialogue de confirmation, palette de recherche,
+menu mobile. Aucune des trois ne se répète ; aucune ne sort de cette famille.
+Ce n'est pas une série d'accidents indépendants.
+
+La troisième écarte au passage la piste la plus tentante. `mobile-nav` ne
+touche NI Convex NI le back-office : l'explication « la table est encore
+réécrite par une requête réactive » ne peut pas la couvrir. Ce que les trois
+partagent est plus étroit et plus banal — un élément monté en réaction à un
+clic, que le test attend avant qu'il n'ait fini d'arriver.
 
 **Ce que ça coûte** : une porte de CI qui rougit pour une raison étrangère au
 diff apprend aux relecteurs à ignorer le rouge. Le dépôt en a déjà fait
 l'expérience — `search.spec.ts` est signalé « flaky » depuis la PR #88, et
 `admin-recherche.spec.ts` a fait tomber la CI trois fois de suite lors de son
-introduction.
+introduction. Le taux observé est d'environ **1 test sur 213 par campagne**,
+jamais le même.
 
 **Ce que j'ai écarté** : l'hypothèse d'un ancêtre porteur d'un `transform` qui
 capturerait le `fixed` du dialogue (`src/components/ui/confirm-dialog.tsx:97`,
 rendu **sans portail**). Il n'y a ni `framer-motion` ni `transform` dans
-`src/components/admin/**`. Je ne nomme donc pas de cause racine : la trace
-Playwright de l'exécution en échec, conservée sept jours dans l'artefact
-`playwright-report`, est le prochain pas.
+`src/components/admin/**`. Et la 3e occurrence écarte la piste « requête
+réactive » : `mobile-nav` ne parle à aucun backend. Je ne nomme donc pas de
+cause racine : la trace Playwright des exécutions en échec, conservée sept
+jours dans l'artefact `playwright-report`, est le prochain pas — et il y en a
+désormais trois à comparer, ce qui vaut mieux qu'une.
 
 **Deux pistes**, la seconde valant indépendamment des tests :
 
