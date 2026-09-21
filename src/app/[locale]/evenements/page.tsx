@@ -314,7 +314,7 @@ export default async function EventsPage({
           })}
         </aside>
 
-        <section aria-label="Résultats">
+        <section aria-label={L.results.title}>
           <div className="mb-6 flex flex-wrap items-baseline justify-between gap-4">
             <p className="text-[15px] text-ink-soft">
               <b className="font-mono text-ink">{results.length}</b>{' '}

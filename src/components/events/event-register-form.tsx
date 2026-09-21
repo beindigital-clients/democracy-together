@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
+import { resolveLocale } from '@/i18n/locale';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { FormError, TextField } from '@/components/ui/field';
@@ -51,7 +52,7 @@ export function EventRegisterForm({
         name,
         email,
         organization: organization || undefined,
-        locale: locale === 'en' ? 'en' : 'fr',
+        locale: resolveLocale(locale),
         captchaToken,
       });
       setStatus('success');

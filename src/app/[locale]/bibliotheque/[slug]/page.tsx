@@ -7,6 +7,7 @@ import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
+import { AuthorList } from '@/components/library/author-list';
 import { CiteBlock } from '@/components/library/cite-block';
 import { CopyButton } from '@/components/library/copy-button';
 import { PublicationCard } from '@/components/library/publication-card';
@@ -131,19 +132,11 @@ export default async function PublicationPage({
               {pub.title}
             </h1>
             <p className="mt-5 text-[15px] text-ink-soft">
-              {locale === 'en' ? 'By' : 'Par'}{' '}
-              {pub.authors.map((a, i) => (
-                <span key={a.name}>
-                  {i > 0
-                    ? i === pub.authors.length - 1
-                      ? locale === 'en'
-                        ? ' and '
-                        : ' et '
-                      : ', '
-                    : ''}
-                  <b className="font-semibold text-ink">{a.name}</b>
-                </span>
-              ))}
+              {td('by')}{' '}
+              <AuthorList
+                names={pub.authors.map((a) => a.name)}
+                locale={locale}
+              />
             </p>
             <p className="mt-1.5 text-sm text-muted">{subParts.join(' · ')}</p>
             {/* Compteur de consultations (F-37) — rendu serveur depuis pub.views. */}

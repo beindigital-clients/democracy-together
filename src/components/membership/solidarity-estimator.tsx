@@ -24,7 +24,7 @@ export function SolidarityEstimator({
   const [type, setType] = useState<MemberType>('org');
 
   const amount = estimate(type, income);
-  const formatted = amount.toLocaleString(locale === 'en' ? 'en-US' : 'fr-FR');
+  const formatted = amount.toLocaleString(locale);
   const typeLabel = content.types.find((t) => t.value === type)!.label;
   const incomeLabel = content.incomes
     .find((i) => i.value === income)!

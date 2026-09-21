@@ -31,6 +31,7 @@ export type Dimension = {
 
 export type BarometerContent = {
   hero: {
+    crumbHome: string; // fil d'Ariane — même clé que sur les événements
     eyebrow: string;
     title: string;
     lead: string;
@@ -49,6 +50,9 @@ export type BarometerContent = {
     indexLabel: string;
     categoryLabel: string;
   };
+  // Titre de la légende, affiché par le teaser d'accueil. Il vit ici, avec
+  // la légende qu'il nomme : une seule source, deux pages (issue #34).
+  legendLabel: string;
   legend: { label: string; range: string }[]; // 5 niveaux, du plus libre au moins
   ranking: {
     eyebrow: string;
@@ -110,6 +114,7 @@ export type BarometerContent = {
 
 const fr: BarometerContent = {
   hero: {
+    crumbHome: 'Accueil',
     eyebrow: 'Données ouvertes',
     title: 'Le Baromètre de la démocratie',
     lead: "Un indice composite Afrique-Europe, construit par méta-agrégation de sources sous licence ouverte. Méthodologie publiée, jeux de données citables en accès ouvert, supervision d'un comité scientifique indépendant.",
@@ -133,6 +138,7 @@ const fr: BarometerContent = {
     indexLabel: 'Indice composite',
     categoryLabel: 'Catégorie',
   },
+  legendLabel: 'Indice de liberté',
   legend: [
     { label: 'Libre', range: '0.80 et plus' },
     { label: 'Plutôt libre', range: '0.65 à 0.79' },
@@ -454,6 +460,7 @@ const fr: BarometerContent = {
 
 const en: BarometerContent = {
   hero: {
+    crumbHome: 'Home',
     eyebrow: 'Open data',
     title: 'The Democracy Barometer',
     lead: 'A composite Africa-Europe index, built by meta-aggregating open-licence sources. Published methodology, citable open-access datasets, overseen by an independent scientific committee.',
@@ -477,6 +484,7 @@ const en: BarometerContent = {
     indexLabel: 'Composite index',
     categoryLabel: 'Category',
   },
+  legendLabel: 'Freedom index',
   legend: [
     { label: 'Free', range: '0.80 and above' },
     { label: 'Mostly free', range: '0.65 to 0.79' },

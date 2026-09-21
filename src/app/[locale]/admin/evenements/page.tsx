@@ -4,12 +4,13 @@ import { useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
+import { resolveLocale } from '@/i18n/locale';
 import { getEventsLabels } from '@/lib/events-content';
 
 export default function AdminEvents() {
   const t = useTranslations('admin');
   const locale = useLocale();
-  const loc = locale === 'en' ? 'en' : 'fr';
+  const loc = resolveLocale(locale);
   const labels = getEventsLabels(loc);
   const regs = useQuery(api.events.listEventRegistrations);
 

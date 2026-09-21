@@ -281,7 +281,7 @@ export default async function EventDetailPage({
                         </p>
                         {sp.founder ? (
                           <span className="mt-1.5 inline-block rounded-pill border border-accent-edge bg-accent-tint px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-accent-text">
-                            {loc === 'en' ? 'Founder' : 'Fondateur'}
+                            {d.founderBadge}
                           </span>
                         ) : null}
                       </div>

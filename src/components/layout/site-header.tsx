@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Logo } from './logo';
 // Bascule de thème retirée de la barre desktop pour gagner de la place et
@@ -23,14 +24,15 @@ const NAV = [
 ] as const;
 
 export function SiteHeader() {
+  // Le lien du logo n'a pas de texte : son nom accessible vient entièrement de
+  // cet `aria-label`. Codé en dur en français, il était annoncé « accueil » par
+  // un lecteur d'écran anglais — sur TOUTES les pages du site (issue #34).
+  const t = useTranslations('nav');
+
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-paper/85 backdrop-blur supports-[backdrop-filter]:bg-paper/70 print:hidden">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-4 sm:px-6">
-        <Link
-          href="/"
-          aria-label="Democracy Together — accueil"
-          className="shrink-0"
-        >
+        <Link href="/" aria-label={t('homeLabel')} className="shrink-0">
           <Logo />
         </Link>
 

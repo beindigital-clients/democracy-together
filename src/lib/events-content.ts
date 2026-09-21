@@ -271,6 +271,9 @@ type Labels = {
     lang: string;
   };
   results: {
+    // Nom accessible de la section de résultats (`aria-label`) — annoncé par
+    // les lecteurs d'écran, donc traduit comme tout le reste (issue #34).
+    title: string;
     countUpcomingOne: string;
     countUpcomingMany: string;
     countPastOne: string;
@@ -313,6 +316,9 @@ type DetailLabels = {
   visualPin: string;
   visualCap: string;
   sections: { day: string; programme: string; speakers: string; infos: string };
+  // Badge d'un intervenant fondateur du réseau — texte visible, donc traduit
+  // ici plutôt que choisi par un ternaire de locale dans le JSX (issue #34).
+  founderBadge: string;
   related: string;
   resources: string;
   // contenu riche de la conférence (featured)
@@ -423,6 +429,7 @@ const fr: Labels = {
     lang: 'Langue',
   },
   results: {
+    title: 'Résultats',
     countUpcomingOne: 'événement à venir',
     countUpcomingMany: 'événements à venir',
     countPastOne: 'événement passé',
@@ -527,6 +534,7 @@ const fr: Labels = {
       speakers: 'Intervenants',
       infos: 'Infos pratiques',
     },
+    founderBadge: 'Fondateur',
     related: 'Autres rendez-vous',
     resources: 'Replays et ressources',
     conf: {
@@ -767,6 +775,7 @@ const en: Labels = {
     lang: 'Language',
   },
   results: {
+    title: 'Results',
     countUpcomingOne: 'upcoming event',
     countUpcomingMany: 'upcoming events',
     countPastOne: 'past event',
@@ -867,6 +876,7 @@ const en: Labels = {
       speakers: 'Speakers',
       infos: 'Practical info',
     },
+    founderBadge: 'Founder',
     related: 'Other gatherings',
     resources: 'Replays and resources',
     conf: {

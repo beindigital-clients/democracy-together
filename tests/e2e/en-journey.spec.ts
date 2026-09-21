@@ -161,3 +161,33 @@ test('EN : connexion par code puis espace membre (F-01/F-03)', async ({
     timeout: 15_000,
   });
 });
+
+// Les trois points de l'issue #34, vérifiés là où ils se voient : dans le rendu.
+// Aucun n'est un texte de page — ce sont un nom accessible, un nom accessible
+// de section, et une balise `<meta>`. Autrement dit, exactement ce qu'une
+// relecture à l'œil ne rattrape pas, et ce qu'un comptage de clés FR/EN ne
+// disait pas non plus.
+test('EN : noms accessibles et description racine en anglais (#34)', async ({
+  page,
+}) => {
+  // 1. Le lien vers l'accueil est le SEUL élément sans texte du bandeau : son
+  // nom accessible venait d'un `aria-label` français, sur toutes les pages.
+  await page.goto('/en/evenements');
+  await expect(
+    page
+      .getByRole('banner')
+      .getByRole('link', { name: 'Democracy Together — home' }),
+  ).toBeVisible();
+
+  // 2. La section de résultats : `<section aria-label>` -> rôle `region`.
+  await expect(page.getByRole('region', { name: 'Results' })).toBeVisible();
+
+  // 3. La description par défaut du site, servie par `generateMetadata` du
+  // layout. `/en/don` n'a pas de métadonnées propres : c'est donc bien celle du
+  // layout qu'un moteur de recherche afficherait pour cette page.
+  await page.goto('/en/don');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    'International network of think tanks for democracy · Africa–Europe.',
+  );
+});
