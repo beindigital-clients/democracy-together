@@ -35,11 +35,22 @@ export const registerForEvent = action({
   },
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'event_register');
-    const result: { ok: boolean; already: boolean } = await ctx.runMutation(
-      internal.events.storeRegistration,
-      input,
-    );
-    return result;
+    // ORACLE D'EXISTENCE REFERMÉ (pentest M-8, audit F-09).
+    //
+    // La mutation interne distingue toujours « déjà connu » de « nouveau » —
+    // elle en a besoin pour ne pas dupliquer ni recompter. Mais cette
+    // distinction ne FRANCHIT PLUS la frontière publique : cette action est
+    // ouverte, non authentifiée, et rendait `already: true/false`. Une seule
+    // requête suffisait donc pour savoir si une adresse donnée figure dans nos
+    // listes — appartenance à un réseau militant, inscription à un événement.
+    // Les plafonds par IP et par formulaire ralentissent l'énumération ; ils
+    // ne changent rien à une vérification ciblée, qui ne coûte qu'un appel.
+    //
+    // La réponse est désormais IDENTIQUE dans les deux cas. Rien n'est perdu
+    // côté produit : aucun formulaire ne lisait `already` — tous affichent le
+    // même message de succès (vérifié sur les cinq).
+    await ctx.runMutation(internal.events.storeRegistration, input);
+    return { ok: true };
   },
 });
 

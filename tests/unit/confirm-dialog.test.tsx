@@ -31,6 +31,33 @@ function setup(overrides: Partial<Parameters<typeof ConfirmDialog>[0]> = {}) {
   return { onConfirm, onCancel, ...utils };
 }
 
+describe('ConfirmDialog — rendu par PORTAIL (audit F-13)', () => {
+  it('le dialogue est monté sur document.body, hors de l’arbre d’appel', () => {
+    const { container } = setup();
+    const dialogue = screen.getByRole('dialog');
+
+    // La propriété qui compte n'est pas « createPortal est appelé » : c'est que
+    // le dialogue ne vit PLUS sous le conteneur de son appelant. Un `fixed`
+    // rendu en place s'ancre au premier ancêtre portant `transform`, `filter`
+    // ou `perspective` — trois propriétés qu'un composant voisin peut gagner
+    // à tout moment, sans rapport visible avec cette boîte. Le jour où cela
+    // arrive, elle est mal placée pour les UTILISATEURS.
+    expect(container.contains(dialogue)).toBe(false);
+    expect(document.body.contains(dialogue)).toBe(true);
+  });
+
+  it('le focus va toujours sur « Annuler » malgré le rendu différé', () => {
+    // Le portail impose d'attendre le montage (`document` n'existe pas au rendu
+    // serveur), donc le premier rendu ne produit rien. L'effet de focus doit
+    // se rejouer ensuite — sans quoi une touche Entrée retombe sur l'action
+    // destructrice, ce que cette boîte existe pour empêcher.
+    setup();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Annuler' }),
+    );
+  });
+});
+
 describe('ConfirmDialog (issue #38)', () => {
   it('ne rend rien tant qu’elle est fermée', () => {
     setup({ open: false });

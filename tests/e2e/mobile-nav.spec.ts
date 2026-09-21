@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ouvrirPanneau } from './_panneau';
 
 // Viewport mobile : la nav du header est masquée (hidden md:flex), seul le
 // menu hamburger donne accès aux liens.
@@ -19,7 +20,7 @@ test('menu mobile : ouvre, navigue, se ferme (F-05)', async ({ page }) => {
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(reseau).toHaveCount(0);
 
-  await toggle.click();
+  await ouvrirPanneau(toggle, page.locator('#mobile-nav'), 'menu mobile');
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
   await expect(reseau).toBeVisible();
@@ -36,7 +37,7 @@ test('menu mobile : se ferme au changement de langue (F-05)', async ({
 }) => {
   await page.goto('/fr');
   const toggle = page.locator(TOGGLE);
-  await toggle.click();
+  await ouvrirPanneau(toggle, page.locator('#mobile-nav'), 'menu mobile');
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
   // bascule FR -> EN depuis le LocaleSwitcher du panneau (bascule segmentée)
@@ -48,7 +49,7 @@ test('menu mobile : se ferme au changement de langue (F-05)', async ({
 test('menu mobile : Échap referme (F-05)', async ({ page }) => {
   await page.goto('/fr');
   const toggle = page.locator(TOGGLE);
-  await toggle.click();
+  await ouvrirPanneau(toggle, page.locator('#mobile-nav'), 'menu mobile');
   const jeunes = page.getByRole('link', { name: 'Jeunes', exact: true });
   await expect(jeunes).toBeVisible();
   await page.keyboard.press('Escape');
