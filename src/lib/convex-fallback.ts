@@ -19,7 +19,12 @@ import type { api } from '@convex/_generated/api';
 // éditoriales) continue de fonctionner.
 
 /**
- * Exécute une requête Convex et rend `fallback` si elle échoue.
+ * Exécute une requête et rend `fallback` si elle échoue.
+ *
+ * Le nom du module dit « convex » parce que c'est le constat qui l'a fait
+ * naître, mais cette fonction-ci ne connaît RIEN de Convex : elle prend un
+ * thunk. `actualites/[slug]` s'en sert pour Sanity (F-10). Seules les formes
+ * vides exportées plus bas sont propres à Convex.
  *
  * L'argument est une FONCTION, pas une promesse : une promesse serait déjà
  * créée — donc déjà en cours — au moment d'entrer dans le `try`, et un jet
