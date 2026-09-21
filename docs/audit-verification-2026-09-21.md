@@ -1,0 +1,446 @@
+# Audit de vérification — Democracy Together
+
+**Date** : 21 septembre 2026 · **Branche** : `claude/stoic-rubin-9thrja`
+· **Commit de base** : `8a5699b`
+**Méthode** : exécution réelle, preuves conservées. Aucune affirmation de ce
+rapport ne repose sur la seule lecture du code : chaque ligne du tableau § 2
+renvoie à une commande jouée et à son journal.
+
+---
+
+## 1. Verdict
+
+**Non, pas de mise en ligne en l'état** — mais aucun blocage n'est structurel.
+
+Les six portes de qualité passent, les 717 tests unitaires passent, et les deux
+vulnérabilités **ÉLEVÉES** du pentest du 18 septembre sont corrigées, vérifiées
+ici par des PoC indépendantes réexécutées. Ce qui reste : **cinq pages publiques
+répondent 500 quand Convex est injoignable** (F-02), **aucune balise de partage
+social n'existe sur tout le site** (F-03), et la page baromètre met **12,8 s** à
+afficher son contenu principal en 3G lente (F-05) — sur un produit dont le
+cadrage annonce un premier usage à faible débit.
+
+Un septième point mérite d'être vu même s'il ne bloque rien : la suite de tests
+est **verte par chance d'ordonnancement** (F-01). Six seeds sur dix la font
+rougir.
+
+**Non vérifié faute d'environnement** : les 213 tests E2E (aucun déploiement
+Convex disponible). C'est l'angle mort principal de cet audit — voir § 5.
+
+---
+
+## 2. Tableau de preuves
+
+Journaux sous `audit/logs/` (éphémères, régénérables) ; specs et PoC rejouables
+sous `audit/specs/` et `audit/poc/`. Commande de reproduction en § 6.
+
+| ID | Lot | Vérification | Méthode | Passes | Verdict | Artefact |
+|---|---|---|---|---|---|---|
+| A1 | Portes | `pnpm typecheck` | commande | 1/1 | ✅ code 0 | `A-typecheck.log` |
+| A2 | Portes | `pnpm typecheck:convex` | commande | 1/1 | ✅ code 0 | `A-typecheck-convex.log` |
+| A3 | Portes | `pnpm typecheck:tests` | commande | 1/1 | ✅ code 0 | `A-typecheck-tests.log` |
+| A4 | Portes | `pnpm lint` | commande | 1/1 | ✅ code 0 | `A-lint.log` |
+| A5 | Portes | `pnpm format:check` | commande | 1/1 | ✅ code 0 | `A-format-check.log` |
+| A6 | Portes | `next build` | commande | 1/1 | ✅ code 0, 103 pages | `A-build.log` |
+| B1 | Tests | Suite en ordre de déclaration | `pnpm test` | 3/3 | ✅ 90 fichiers, 717 tests | `B-unit-pass*.log` |
+| B2 | Tests | Suite en ordre **mélangé** | seeds 1→10 | 4/10 | ❌ **F-01** | `B-sweep-seed*.log` |
+| B3 | Tests | Cause racine de B2 | PoC vitest | 1/1 | ❌ fuite prouvée | `B-poc-restore.log` |
+| B4 | Tests | Correctif de B2 | PoC vitest | 1/1 | ✅ `mockRestore()` marche | `B-poc-fix.log` |
+| B5 | Tests | Inventaire des `skip` | grep | 1/1 | ✅ 1 seul, conditionnel | § 3, F-11 |
+| B6 | Tests | Couverture E2E des 57 routes | croisement | 1/1 | ⚠️ 3 routes sans spec | § 3, F-12 |
+| B7 | Tests | Suite E2E complète | `pnpm test:e2e` | 0/1 | ⛔ **BLOQUÉ** | `B-e2e-attempt.log` |
+| C1 | Sécu | Pentest **C-1** (RCE Next) | version + `pnpm audit` | 1/1 | ✅ **CORRIGÉ** (16.3.5) | `C-pnpm-audit.json` |
+| C2 | Sécu | Pentest **H-1** (publications membres) | PoC `convex-test` | 2/2 | ✅ **CORRIGÉ** | `C-poc-pentest.log` |
+| C3 | Sécu | Pentest **H-2** (file de modération) | PoC `convex-test` | 2/2 | ✅ **CORRIGÉ** | `C-poc-pentest.log` |
+| C4 | Sécu | Pentest **M-4** (gating client) | HTTP réel | 1/1 | ✅ 307 serveur | `D-status.tsv` |
+| C5 | Sécu | Pentest **M-7** (compteur de vues) | lecture source | 1/1 | ✅ quota posé | `publications.ts:166` |
+| C6 | Sécu | Pentest **M-8** (oracles `already`) | lecture source | 1/1 | ❌ **OUVERT** | `newsletter.ts:91` |
+| C7 | Sécu | Surface Convex publique | inventaire 73 fn | 1/1 | ✅ 54 gardées / 19 publiques légitimes | § 3 |
+| C8 | Sécu | Chaîne de dépendances | `pnpm audit` | 1/1 | ⚠️ 1 haute, 8 moy., 1 basse | `C-pnpm-audit.json` |
+| C9 | Sécu | En-têtes CSP/HSTS/XFO | réponse réelle | 1/1 | ✅ présents | `D-seo-run1.log` |
+| D1 | SEO | 10 critères × 48 pages | navigateur | 1/1 | ❌ **F-03, F-04** | `D-seo-donnees.txt` |
+| D2 | SEO | `robots.txt` | requête | 1/1 | ✅ 200 + sitemap | `D-seo-run1.log` |
+| D3 | SEO | `sitemap.xml` | requête + crawl | 1/1 | ❌ 6 URLs en 500 | `D-seo-run1.log` |
+| E1 | Perf | LCP/CLS/poids, 3 pages | CDP, 3 mesures | 3/3 | ✅ LCP 204–288 ms | `E-perf.log` |
+| E2 | Perf | Slow 3G, 2 pages | CDP throttling | 1/1 | ❌ **F-05** | `E-perf-3g.log` |
+| F1 | A11y | axe, 24 pages, méthodo dépôt | navigateur | 1/1 | ⚠️ voir F-07 | `F-a11y-hors-perimetre.log` |
+| F2 | A11y | 10 pages hors périmètre du dépôt | navigateur | 1/1 | ❌ 2 violations | `F-a11y-hors-perimetre.log` |
+| G1 | i18n | Texte français sur pages `/en` | navigateur | 1/1 | ✅ 24/24 propre | `G-i18n.log` |
+| H1 | Dégrad. | Rendu **sans JavaScript**, 24 pages | navigateur | 1/1 | ✅ 24/24 lisibles | `H-nojs.log` |
+| H2 | Dégrad. | 404 localisée sans JS | navigateur | 1/1 | ❌ **F-06** | `D-404-render.log` + captures |
+| H3 | Dégrad. | Convex injoignable, 49 routes | HTTP réel | 1/1 | ❌ **F-02** (5 pages en 500) | `D-status.tsv` |
+| H4 | Dégrad. | Sanity injoignable | HTTP + build | 1/1 | ✅ liste dégrade proprement | `A-build.log` |
+| H5 | Dégrad. | Sanity injoignable, page de détail | HTTP réel | 1/1 | ❌ **F-10** (500) | § 3 |
+
+---
+
+## 3. Findings
+
+Triés par sévérité. « Régression » = a déjà fonctionné ; « Défaut » = n'a jamais
+fonctionné ; « Risque » = fonctionne, mais.
+
+### F-02 · MOYENNE · Défaut · Cinq pages publiques rendent 500 quand Convex est injoignable
+
+`src/app/[locale]/{bibliotheque,experts,le-reseau,thematiques,tribune}/page.tsx`
+
+Les cinq appellent `fetchQuery(...)` **sans `try`/`catch`** (respectivement
+lignes 55, 41, 67, 45, 60). Backend injoignable → l'exception remonte → HTTP 500.
+
+**Reproduction** (serveur lancé avec un `NEXT_PUBLIC_CONVEX_URL` inatteignable) :
+
+```
+/fr/bibliotheque  500     /fr/thematiques  500
+/fr/experts       500     /fr/tribune      500
+/fr/le-reseau     500
+```
+
+Les 44 autres routes publiques répondent 200.
+
+**Asymétrie** : la même situation côté **Sanity** est traitée. `actualites/page.tsx:44`
+enveloppe sa requête, journalise `[actualites] Sanity indisponible` et rend la
+page en 200 avec sa liste vide. `TESTING.md` § « Sources externes » pose
+d'ailleurs la règle explicitement — « une source indisponible ne doit pas
+emporter la page ». Elle est tenue pour Sanity, pas pour Convex.
+
+**Aggravation** : `sitemap.xml` déclare ces URLs. Six d'entre elles
+(`/fr` et `/en` × `le-reseau`, `bibliotheque`, `thematiques`) sont donc
+proposées à l'indexation alors qu'elles rendent 500 dès que le backend tousse.
+
+**Correctif** : appliquer aux cinq pages le motif déjà en place sur `actualites`
+— `try`/`catch` autour du `fetchQuery`, état vide rendu, erreur journalisée.
+
+**Limite de cette preuve** : le déclencheur ici est un hôte inatteignable, ce qui
+simule fidèlement « backend indisponible » mais pas « backend qui répond une
+erreur ». Le second cas reste à vérifier sur un vrai déploiement.
+
+### F-03 · MOYENNE · Défaut · Aucune balise Open Graph, Twitter Card ou JSON-LD sur le site
+
+Mesuré sur **48 pages** (24 routes × 2 langues), confirmé hors Playwright par
+`curl` :
+
+| Critère | Conformes |
+|---|---|
+| `lang`, `<title>`, meta description, `h1` unique, `alt` des images | **48/48** ✅ |
+| `og:title` / `og:image` | **0/48** ❌ |
+| `application/ld+json` | **0/48** ❌ |
+
+Conséquence directe : tout lien partagé sur WhatsApp, LinkedIn, Facebook ou X
+apparaît nu — pas de titre, pas de description, pas d'image. Pour une
+organisation dont l'objet est la diffusion d'analyses, et dont le canal de
+partage principal sur la zone visée est la messagerie, c'est une perte sèche à
+chaque partage.
+
+L'absence de JSON-LD prive par ailleurs de résultats enrichis trois gisements
+déjà structurés en base : `Organization`, `Article` (publications), `Event`
+(événements).
+
+**Correctif** : `openGraph` et `twitter` dans les `metadata` du layout
+`[locale]`, surchargés par page ; une image OG par défaut ; un bloc JSON-LD
+`Organization` global + `Article`/`Event` sur les pages de détail.
+
+### F-05 · MOYENNE · Risque · 12,8 s avant contenu principal en 3G lente
+
+Émulation CDP Slow 3G (400 kbit/s, 400 ms de latence) :
+
+| Page | Chargement complet | LCP |
+|---|---|---|
+| `/fr` | 13 181 ms | **2 628 ms** |
+| `/fr/barometre` | 11 969 ms | **12 808 ms** |
+
+En local sans bridage, les mêmes pages sont excellentes (LCP 204 et 288 ms,
+CLS 0,001, 243–297 Ko transférés, 45–48 requêtes) — le code n'est pas lent, il
+est **lourd à transporter**. Le seuil annoncé était LCP < 2 500 ms : `/fr` le
+frôle, `/fr/barometre` le dépasse d'un facteur 5.
+
+Le build confirme la piste : 11 Mo de `chunks`, dont un de **2,7 Mo** et un de
+**1,1 Mo**. Aucune route n'est prérendue en statique (`ƒ` partout dans le rapport
+de build, sauf `/icon.png` et `/robots.txt`).
+
+**Correctif** : identifier le porteur des gros chunks (`d3-geo`, `topojson`,
+`world-atlas`, `sanity`) et le charger en différé sur les seules pages qui
+l'utilisent ; prérendre en statique les pages de contenu éditorial, qui ne
+dépendent d'aucune donnée utilisateur.
+
+**Limite** : mesures faites en localhost bridé, donc sans latence serveur réelle.
+Les chiffres sont un **plancher** : le terrain sera plus lent, pas plus rapide.
+
+### F-01 · MOYENNE · Défaut · L'isolation des tests n'est pas tenue : la suite est verte par ordonnancement
+
+`tests/unit/consent.test.ts`
+
+En ordre de déclaration — celui de la CI — la suite est verte : 90 fichiers,
+717 tests, 3 exécutions sur 3. En ordre **mélangé**, elle rougit **6 fois sur
+10** (seeds 2, 3, 7, 8, 9, 10 ; seed 3 : 12 tests en échec d'un coup). Toujours
+le même fichier.
+
+**Cause racine, prouvée** (`audit/poc/restore-spy.test.ts`) : sous happy-dom et
+Vitest 4.1.9, `vi.restoreAllMocks()` **ne restaure pas** un espion posé sur
+l'instance `window.localStorage`. Le `SecurityError` du test « stockage
+indisponible » (lignes 101-102) survit donc à l'`afterEach` et contamine les
+tests suivants.
+
+**Correctif, prouvé lui aussi** (`audit/poc/restore-fix.test.ts`) : conserver
+l'espion et appeler `spy.mockRestore()` explicitement. Testé : fonctionne.
+La remise en place manuelle (`window.localStorage.getItem = origine`) **ne
+fonctionne pas** — happy-dom sert bien `localStorage` derrière un proxy, comme
+le note déjà le commentaire du fichier.
+
+**Pourquoi ça compte au-delà de ce fichier** : le piège est silencieux. Tout
+test ajouté après ces deux-là hérite d'un `localStorage` qui lève. Il échouera
+pour une raison étrangère à son sujet — ou, pire, passera sans rien exercer.
+C'est exactement la classe de défaut que l'issue #18 a documentée dans ce dépôt.
+
+Le motif fautif n'est employé **que là** : les autres fichiers passent par
+`vi.stubGlobal` + `vi.unstubAllGlobals`, qui restaure correctement (vérifié :
+aucun d'eux ne rougit sur les 10 seeds).
+
+### F-08 · MOYENNE · Risque · 10 vulnérabilités de dépendances, dont une haute
+
+| Sév. | Paquet | Sujet | Corrigé en |
+|---|---|---|---|
+| **haute** | `postcss` | Path traversal via source map | ≥ 8.5.18 |
+| moyenne | `postcss` | Correctif incomplet de GHSA-6g55-p6wh-862q | ≥ 8.5.23 |
+| moyenne | `vitest`, `@vitest/mocker` | Path traversal / lecture de fichier arbitraire | ≥ 4.1.11 |
+| moyenne | `dompurify` (via `sanity`) | Sous-arbre détaché exécutable | ≥ 3.4.13 |
+| moyenne | `uuid`, `valibot`, `baseline-browser-mapping` | divers | voir journal |
+| basse | `dompurify` | `CUSTOM_ELEMENT_HANDLING` | ≥ 3.4.12 |
+
+Aucune ne touche Next, React ou Convex : **le C-1 du pentest est bien refermé**
+(16.2.9 → 16.3.5). `postcss` et `vitest` sont des dépendances de construction et
+de test, `dompurify` arrive par le Studio Sanity. Le risque d'exploitation en
+production est donc faible — ce qui ne dispense pas de la montée de version, la
+plus coûteuse étant `vitest` (majeure déjà en place, correctif de patch).
+
+### F-06 · FAIBLE · Défaut · La 404 localisée est entièrement vide sans JavaScript
+
+`src/app/[locale]/not-found.tsx`
+
+| Contexte | Texte visible |
+|---|---|
+| Avec JavaScript | **703 caractères** (« 404 / Page introuvable / … ») ✅ |
+| **Sans JavaScript** | **0 caractère** — page blanche ❌ |
+| Contre-épreuve `/fr/mentions-legales` | 2 759 caractères ✅ |
+| Contre-épreuve 404 par défaut de Next | 255 caractères ✅ |
+
+Captures : `audit/screenshots/404-localisee-{avec,sans}-js.png`.
+
+Le contenu n'est pas dans le HTML initial — il n'arrive que par la charge utile
+RSC, appliquée à l'hydratation. Vérifié sur `/fr/rapports/9999`, qui **ne dépend
+pas de Convex** : ce n'est donc pas une retombée du backend indisponible.
+
+À rapprocher de la raison d'être du niveau dev-browser (`TESTING.md`) : deux des
+régressions qui l'ont fait naître étaient des pages blanches. Les 24 pages
+publiques, elles, rendent toutes correctement sans JS (H1) — la 404 est la seule
+exception.
+
+Impact SEO nul (le statut 404 est correct de toute façon) ; impact réel sur les
+visiteurs à faible débit ou JS dégradé, précisément la cible du cadrage.
+
+### F-10 · FAIBLE · Défaut · La page de détail d'une actualité rend 500 quand Sanity est indisponible
+
+`/fr/actualites/inexistant-xyz` → **500**, alors que la page de liste
+`/fr/actualites` dégrade proprement en 200. Le `try`/`catch` de
+`actualites/page.tsx:44` n'a pas d'équivalent sur `actualites/[slug]`.
+Même correctif que F-02.
+
+### F-07 · FAIBLE · Défaut · Lien non distinguable dans un paragraphe, sur les deux pages de connexion
+
+`/fr/connexion` et `/fr/connexion-otp` — règle axe `link-in-text-block`
+[serious] sur `.text-accent-text.hover:underline[href$="adhesion"]`.
+
+Le lien vers l'adhésion n'est distingué du texte environnant que par la
+**couleur** ; le soulignement n'apparaît qu'au survol. WCAG 1.4.1.
+
+**Méthodologie** : mesuré avec **celle du dépôt** — reveals déroulés,
+`color-contrast` désactivé. Sur les 10 pages publiques absentes de la liste
+`PAGES` de `tests/e2e/a11y.spec.ts`, 8 sont parfaitement propres ; seules ces
+deux-là sortent.
+
+**Correctif** : `underline` permanent, ou `text-decoration: underline` +
+`text-underline-offset`.
+
+### F-09 · FAIBLE · Risque · Pentest M-8 toujours ouvert : les oracles d'existence subsistent
+
+`convex/newsletter.ts:91` et `convex/events.ts:77` renvoient toujours
+`{ ok: true, already: true }` lorsque l'adresse est déjà inscrite, et
+`already: false` sinon. Un anonyme peut donc tester l'appartenance d'une adresse
+à la base — c'est exactement ce que décrivait M-8, et l'action n° 10 du plan de
+remédiation (« réponses uniformes ») n'a pas été appliquée.
+
+Sévérité basse compte tenu du rate-limit désormais en place, mais le point reste
+ouvert et doit être déclaré comme tel plutôt que considéré comme traité.
+
+### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
+
+`tests/e2e/admin-recherche.spec.ts:256` :
+`test.skip(!word, 'aucun mot assez long dans le premier titre')`.
+Légitime, mais dépendant du jeu de données : sur une préversion peu peuplée, ce
+test peut ne jamais s'exécuter sans que rien ne le signale. C'est le seul `skip`
+du dépôt — les 717 tests unitaires s'exécutent tous.
+
+### F-12 · INFO · Trois routes sans aucune référence dans les specs E2E
+
+`/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`.
+
+Sur 57 routes, 54 sont citées par au moins une spec : la couverture est bonne.
+Méthode : croisement textuel des chemins `/fr/…` et `/en/…` dans `tests/e2e/` —
+elle repère l'absence de mention, pas la qualité de ce qui est vérifié.
+
+---
+
+## 4. Suivi du pentest du 18 septembre 2026
+
+| # | Sévérité | Sujet | Verdict | Preuve |
+|---|---|---|---|---|
+| C-1 | CRITIQUE | Next 16.2.9, RCE non authentifiée | ✅ **CORRIGÉ** | 16.3.5 installé ; absent de `pnpm audit` |
+| H-1 | ÉLEVÉE | Publications « membres » exposées | ✅ **CORRIGÉ** | PoC anonyme : `fileUrl` nul, `reviewNotes`/`authorUserId`/`fileId` absents, `body: []`, `locked: true` |
+| H-2 | ÉLEVÉE | Blocage de la file de modération | ✅ **CORRIGÉ** | PoC : `targetId` d'une autre table **rejeté** ; file toujours lisible par un modérateur |
+| M-1 | MOYENNE | `signUp` attache un mot de passe | 🟡 **PROBABLE** | `convex/auth-callback.test.ts` couvre `NO_SELF_SIGNUP` ; non rejoué faute de déploiement |
+| M-2 | MOYENNE | Rate-limit / reCAPTCHA fail-open | 🟡 **PROBABLE** | `rateLimit.test.ts` (14) + `recaptcha.test.ts` (15) verts |
+| M-3 | MOYENNE | `AUTH_DEV_OTP` | 🟡 **PROBABLE** | `otp.test.ts` (11) + `devAdmin.test.ts` (11) verts |
+| M-4 | MOYENNE | Zones protégées gardées côté client | ✅ **CORRIGÉ** | 11 routes renvoient **307 serveur** vers `/fr/connexion` avant tout code client |
+| M-5 | MOYENNE | Rappels d'événements | 🟡 **PROBABLE** | `eventReminders.test.ts` (4) vert |
+| M-6 | MOYENNE | Élévation via approbation d'adhésion | ⚪ **NON VÉRIFIÉ** | exige un parcours back-office complet |
+| M-7 | MOYENNE | Compteur de vues sans limite | ✅ **CORRIGÉ** | `consumePublicationViewQuota` — `publications.ts:166` |
+| M-8 | MOYENNE | Oracles d'existence `already` | ❌ **OUVERT** | `newsletter.ts:91`, `events.ts:77` |
+| M-9 | MOYENNE | Liens `javascript:` depuis le CMS | ⚪ **NON VÉRIFIÉ** | exige un projet Sanity configuré |
+
+**🟡 PROBABLE** veut dire : un test du dépôt couvre nommément le point et il est
+vert, mais je n'ai pas rejoué l'attaque moi-même. Ce n'est pas la même chose que
+« corrigé », et je ne l'écris pas comme tel.
+
+### Surface Convex publique
+
+73 fonctions exportées (`query`/`mutation`/`action`) : **54 gardées**,
+19 anonymes. Les 19 sont toutes des surfaces publiques assumées — formulaires
+(contact, newsletter, inscription événement, candidature jeunes/organisation,
+mentorat), lectures publiques (publications, annuaire, tribune, recherche,
+experts), `users.current` et `recordPublicationView`. **Aucune fonction
+privilégiée sans garde.**
+
+Répartition des rangs exigés : `moderateur` 22, `membre` 12, `editeur` 8,
+`admin` 4, authentifié sans rang 8.
+
+> *Note de méthode* : mon premier inventaire annonçait « 65 fonctions sur 73 sans
+> garde ». C'était faux — mon détecteur ignorait `requireNetworkRole`, le helper
+> réellement employé (`convex/lib/rbac.ts:38`). Chiffre corrigé après
+> vérification ; je le signale parce qu'un audit qui ne dit pas où il s'est
+> trompé n'est pas vérifiable.
+
+---
+
+## 5. Angles morts
+
+Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
+
+1. **Les 213 tests E2E — l'angle mort principal.** Aucun déploiement Convex
+   n'est joignable depuis cet environnement : les 8 sessions partagées
+   (`auth.setup.ts`) échouent, **200 tests ne sont pas joués**. Tout ce qui
+   touche l'authentification, les rôles, le back-office, le dépôt de
+   publication, la modération et les parcours connectés reste **non vérifié
+   dynamiquement**. *Pour le lever* : un `.env.local` pointant un déploiement de
+   dev avec `AUTH_DEV_OTP=true`.
+2. **Les navigateurs mobiles.** L'environnement fournit Chromium build 1194 ; le
+   Playwright épinglé (1.61.1) réclame 1228 et refuse de démarrer. J'ai
+   contourné en pointant l'exécutable, mais **les projets `mobile-chromium` et
+   `dev-browser` n'ont pas été joués**, et aucune mesure ne porte sur un vrai
+   viewport mobile. Le cadrage plaçant le mobile en usage premier, c'est une
+   lacune réelle de cet audit.
+3. **Les cinq pages Convex sur données réelles.** `bibliotheque`, `experts`,
+   `le-reseau`, `thematiques`, `tribune` n'ont pu être mesurées ni en SEO, ni en
+   accessibilité, ni en performance : elles rendent 500 ici. Leurs chiffres sont
+   absents des tableaux § 3, et ce sont probablement les pages les plus lourdes.
+4. **Firefox et WebKit.** Rien n'a été exercé hors Chromium.
+5. **Le contraste des couleurs.** Volontairement laissé de côté : le dépôt le
+   désactive avec une justification écrite (palette de marque, arbitrage RGAA
+   annoncé dans la déclaration d'accessibilité). Mes premières mesures brutes
+   montraient jusqu'à 45 nœuds en défaut sur `/fr/evenements/calendrier`, mais
+   sans dérouler les animations — donc **gonflées par de faux positifs**. Je ne
+   les retiens pas. L'arbitrage reste à mener, il n'est pas de nature technique.
+6. **Sanity.** Aucun projet configuré (`projectId = placeholder`) : le chemin
+   « contenu réel » du CMS n'a jamais été exercé, seulement le chemin dégradé.
+   M-9 (liens `javascript:` depuis PortableText) reste donc non vérifié.
+7. **La production.** Aucun accès, par construction et par consigne. La
+   checklist de `docs/deploiement.md` § 1.1 (`AUTH_DEV_OTP` et
+   `RECAPTCHA_DISABLED` absents de l'env de prod) **n'a pas été vérifiée** et
+   doit l'être manuellement avant mise en service.
+8. **Les journaux sont éphémères.** `audit/logs/` vit dans un conteneur qui sera
+   recyclé. Les specs et PoC, elles, sont versionnées : elles régénèrent tout.
+
+---
+
+## 6. Reproduire
+
+```bash
+pnpm install --frozen-lockfile
+
+# Portes (aucun prérequis)
+pnpm typecheck && pnpm typecheck:convex && pnpm typecheck:tests \
+  && pnpm lint && pnpm format:check && pnpm build
+
+# F-01 : la suite en ordre mélangé (6 seeds sur 10 rougissent)
+for s in 1 2 3 4 5 6 7 8 9 10; do
+  pnpm exec vitest run --sequence.shuffle --sequence.seed=$s >/dev/null 2>&1
+  echo "seed$s -> $?"
+done
+
+# F-01 : cause racine et correctif
+pnpm exec vitest run --config audit/poc/vitest.poc.config.ts
+
+# Régression du pentest (H-1, H-2)
+cp audit/poc/pentest-regression.test.ts.txt convex/zz-audit-poc.test.ts
+pnpm exec vitest run convex/zz-audit-poc.test.ts
+rm convex/zz-audit-poc.test.ts
+
+# Lots navigateur — serveur requis
+NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \
+NEXT_PUBLIC_SITE_URL="http://localhost:3000" pnpm start &
+pnpm exec playwright test --config audit/playwright.audit.config.ts --project=desktop
+```
+
+---
+
+## 7. Plan d'action priorisé
+
+### P0 — avant toute mise en ligne
+
+| # | Action | Couvre | Effort |
+|---|---|---|---|
+| 1 | `try`/`catch` + état vide sur les 5 `fetchQuery` de page, et sur `actualites/[slug]` | F-02, F-10 | 2 h |
+| 2 | Vérifier à la main que la prod n'a ni `AUTH_DEV_OTP` ni `RECAPTCHA_DISABLED` (`npx convex env list --prod`) | angle mort 7 | 15 min |
+| 3 | Rejouer les 213 E2E sur un déploiement de dev réel | angle mort 1 | 1 h |
+
+### P1 — dans la foulée
+
+| # | Action | Couvre | Effort |
+|---|---|---|---|
+| 4 | `openGraph` + `twitter` + image OG par défaut ; JSON-LD `Organization`/`Article`/`Event` | F-03 | ½ j |
+| 5 | `spy.mockRestore()` dans `consent.test.ts` ; ajouter `--sequence.shuffle` à un job CI | F-01 | 1 h |
+| 6 | `canonical` et `hreflang` sur les 12 (resp. 14) pages qui en manquent | F-04 | 2 h |
+| 7 | `pnpm up postcss vitest @vitest/mocker` puis `pnpm audit --audit-level=high` en CI | F-08 | 1 h |
+| 8 | Réponses uniformes sur `newsletter.subscribe` et `events.registerForEvent` | F-09 | 1 h |
+
+### P2 — dette
+
+| # | Action | Couvre | Effort |
+|---|---|---|---|
+| 9 | Alléger les chunks (`d3-geo`/`topojson`/`world-atlas` en différé) ; prérendre les pages éditoriales | F-05 | 1 j |
+| 10 | Rendre la 404 localisée en SSR | F-06 | 2 h |
+| 11 | Souligner le lien d'adhésion des pages de connexion ; les ajouter à `PAGES` de `a11y.spec.ts` | F-07 | 1 h |
+| 12 | Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription` | F-12 | 3 h |
+| 13 | Aligner le Chromium de l'environnement sur le Playwright épinglé, pour rendre le mobile testable | angle mort 2 | — |
+
+---
+
+## 8. Détail des critères SEO manquants
+
+**Sans `canonical` (12)** — `/fr` et `/en` × `connexion`, `connexion-otp`,
+`contact`, `don`, `mot-de-passe-oublie`, `newsletter/desinscription`.
+
+**Sans `hreflang` fr+en (14)** — les 12 ci-dessus, plus `/fr/recherche` et
+`/en/recherche`.
+
+`/contact` est le cas le plus gênant : c'est une page publique destinée à être
+indexée. Les autres sont des pages transactionnelles, pour lesquelles l'absence
+de canonical est moins coûteuse — mais l'incohérence suggère une génération de
+métadonnées qui ne passe pas par le helper partagé.

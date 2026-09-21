@@ -51,3 +51,9 @@ tests/e2e/.auth/
 
 # Journal du serveur Next capté pendant les E2E (diagnostic #66)
 server.log
+
+# Artefacts d'audit régénérables (journaux, traces) — les specs et PoC, elles,
+# sont versionnées : elles régénèrent tout.
+audit/logs/
+audit/traces/
+audit/routes-statiques.txt

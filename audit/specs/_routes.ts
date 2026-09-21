@@ -1,0 +1,30 @@
+// Routes publiques qui répondent 200 dans les deux langues sans Convex.
+// Les cinq pages adossées à Convex (bibliotheque, experts, le-reseau,
+// thematiques, tribune) sont exclues : elles répondent 500 ici — c'est un
+// constat à part (F-02), pas une raison de fausser les mesures SEO/a11y.
+export const PUBLIQUES = [
+  '',
+  '/a-propos',
+  '/accessibilite',
+  '/actualites',
+  '/adhesion',
+  '/appels-a-projets',
+  '/barometre',
+  '/confidentialite',
+  '/connexion',
+  '/connexion-otp',
+  '/contact',
+  '/don',
+  '/evenements',
+  '/evenements/calendrier',
+  '/jeunes',
+  '/mentions-legales',
+  '/mot-de-passe-oublie',
+  '/newsletter',
+  '/newsletter/desinscription',
+  '/partenaires',
+  '/presse',
+  '/rapports',
+  '/recherche',
+  '/replays',
+] as const;
