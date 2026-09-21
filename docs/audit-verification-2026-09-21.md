@@ -8,9 +8,14 @@ renvoie à une commande jouée et à son journal.
 
 ---
 
-> **Correctifs appliqués — F-02 et F-03 sont refermés.** Voir § 0. Le reste du
-> rapport décrit l'état constaté à l'audit ; les deux entrées corrigées sont
-> marquées comme telles.
+> **Correctifs appliqués — F-01 à F-10 sont refermés**, F-06 pour moitié
+> seulement (le cadriciel ne permet pas l'autre). Voir § 0. Le reste du rapport
+> décrit l'état CONSTATÉ À L'AUDIT ; les entrées corrigées sont marquées comme
+> telles, et leur description d'origine est conservée — un rapport réécrit
+> après coup ne dirait plus ce qui a été trouvé.
+>
+> **F-13 reste ouvert sur sa cause racine.** Il a gagné une quatrième
+> occurrence, qui a scindé le constat en deux familles : voir § 3.
 
 ## 0. Ce qui a été corrigé
 
@@ -260,6 +265,152 @@ Et cela ne ferait rien pour `bibliotheque/[slug]`, `le-reseau/[slug]` ni
 gagneraient là où trois autres resteraient en l'état, ce qui remplace un défaut
 uniforme par une incohérence. C'est un choix de produit, pas de code.
 
+### F-07 et les zones défilantes — ce qui était hors de portée du clavier
+
+**Une attribution à corriger d'abord.** En rendant compte de ces deux
+constats, j'ai d'abord annoncé « F-07 sur trois pages, dont `/fr/adhesion` ».
+C'était faux : j'avais fusionné les violations de toutes les pages avec un
+`sort -u` avant de les rattacher. Le détail par page dit autre chose — et le
+présent rapport, lui, avait raison depuis le début.
+
+| Page | Violation |
+|---|---|
+| `/fr/connexion`, `/fr/connexion-otp` (desktop + mobile) | `link-in-text-block` |
+| `/fr/adhesion`, `/fr/barometre` (mobile) | `scrollable-region-focusable` |
+
+**F-07** : « Pas encore de compte ? *Rejoindre* » portait `hover:underline`.
+Au repos, seule la teinte séparait le lien de la phrase. Le survol ne compte
+pas — il n'existe ni au clavier, ni au toucher, ni pour qui ne distingue pas
+ces deux teintes (WCAG 1.4.1). Souligné par défaut désormais, vérifié sur le
+**style calculé au repos** et non sur la présence de la classe.
+
+**Zones défilantes** : un `<div class="overflow-x-auto">` nu défile à la souris
+et pas au clavier. Ce qui dépasse devient littéralement inatteignable sans
+souris, et sur un tableau ce sont des colonnes entières de données. Mesuré en
+petit écran :
+
+| Tableau | Débordement |
+|---|---|
+| Classement du baromètre | **129 px** |
+| Jeux de données du baromètre | **292 px** |
+| Comparatif de l'adhésion | **158 px** |
+
+Une enveloppe partagée (`src/components/ui/scrollable-region.tsx`) rend la zone
+focalisable **et la nomme** : créer un arrêt de tabulation vers une boîte
+anonyme n'est guère mieux que de ne pas pouvoir y entrer. Le nom réutilise le
+titre que la section porte déjà — aucune chaîne en dur, aucune clé de
+traduction nouvelle. Rendu côté serveur, sans JavaScript.
+
+Trois tableaux d'administration avaient le même défaut, mot pour mot. Ils sont
+**hors du périmètre mesuré** (pages derrière authentification, absentes du
+scan) mais ont été corrigés : livrer l'enveloppe en laissant trois occurrences
+identiques du bogue qu'elle corrige n'aurait pas tenu debout. Il ne reste
+**aucun** `overflow-x-auto` nu dans `src/`.
+
+**Ce qui est testé, c'est le résultat.** La règle axe se satisfait d'un
+`tabindex` : elle ne vérifie jamais qu'on atteint les colonnes hors écran.
+`audit/specs/22-a11y-correctifs.spec.ts` appuie sur la touche et regarde
+`scrollLeft` bouger (0 → 80 sur le classement). Garde vérifié non vacant par un
+retour en arrière réel suivi d'une reconstruction : zéro zone déclarée,
+`text-decoration-line: "none"`, les quatre tests rougissent.
+
+### F-08 — neuf avis de dépendances ramenés à un
+
+L'audit en comptait dix ; le monde avait bougé entre-temps, il en restait neuf.
+
+| Paquet | Traitement |
+|---|---|
+| **postcss** | `^8.5.23` **et** un override `postcss@8` |
+| **vitest** | `^4.1.11` (lui-même et `@vitest/mocker`) |
+| **overrides** | bornés au majeur, comme les sept déjà présents : `dompurify@3`, `baseline-browser-mapping@2`, `valibot@1`, `@sanity/uuid@3` |
+
+**Le point qui ne se lisait pas dans la liste** : remonter la dépendance
+directe ne suffisait PAS. `@tailwindcss/postcss` gardait une copie imbriquée en
+8.5.15, hors de portée du plancher — et c'était le **seul avis haut** de
+l'arbre. Il a fallu l'override pour l'atteindre. Sans cette vérification,
+j'aurais annoncé le haut corrigé alors qu'il était encore là.
+
+`@sanity/uuid@3.0.3` méritait sa recherche : un simple **patch**, qui tire
+`uuid@11.1.1` et supprime l'instance 8.3.2 sans override cross-majeur sur
+`uuid`.
+
+**Reste un avis, assumé et documenté dans `ci.yml`** : `GHSA-w5hq-g745-h8pq`
+(uuid < 11.1.1, modéré) par `sanity > @sanity/cli > typeid-js > uuid`.
+`typeid-js@1.2.0` est la dernière version publiée et dépend de `uuid ^10.0.0` —
+aucun correctif amont. Le chemin est celui de la CLI Sanity, qui ne s'exécute
+ni dans le serveur Next ni dans le paquet navigateur, et l'avis vise `v3/v5/v6`
+appelés avec un `buf` quand `typeid-js` génère du v7.
+
+**Le seuil de la CI reste à `high`, volontairement.** Le dépôt a écrit
+pourquoi : un avis publié en amont peut faire rougir ce job sans qu'une ligne
+ait changé, et l'abaisser confondrait « le code est cassé » et « le monde a
+bougé ». Cet argument ne devient pas faux parce que l'arbre est propre
+aujourd'hui.
+
+### F-09 — cinq formulaires, pas deux
+
+**Le constat sous-estimait la surface.** Le pentest nommait `newsletter` et
+`events` ; l'inventaire en trouve **cinq** — `newsletter`, `events`,
+`mentorship`, `youth`, `eventReminders`. Toutes des actions PUBLIQUES, non
+authentifiées, toutes rendant `already: true/false`.
+
+Une seule requête suffisait donc pour savoir si une adresse donnée figure dans
+nos listes : appartenance à un réseau, inscription à un événement. Les plafonds
+par IP et par formulaire ralentissent une énumération de masse ; ils ne coûtent
+rien à une vérification ciblée.
+
+La distinction reste dans la mutation **interne**, qui en a besoin pour ne pas
+dupliquer ni recompter. Elle ne franchit plus la frontière publique. Rien n'est
+perdu côté produit : vérifié sur les cinq, **aucun formulaire ne lisait
+`already`** — tous affichent le même message de succès.
+
+**Ce qui est testé n'est pas « le drapeau a disparu »** : c'est que les deux
+réponses soient INDISCERNABLES, comparées entières et sérialisées
+(`convex/existence-oracle.test.ts`). Un test sur l'absence du champ passerait
+encore le jour où la distinction reviendrait sous un autre nom — `status:
+'existing'`, un code d'erreur, un champ en plus. Vérifié non vacant : oracle
+réintroduit, 5 des 10 tests rougissent en montrant la fuite exacte.
+
+### F-10 — une panne Sanity rendait une page blanche
+
+| | Avant | Après |
+|---|---|---|
+| Statut | 500 | **200** |
+| Lisible sans JavaScript | **0 caractère** | **695 caractères** |
+| Indexation du rendu dégradé | — | **`noindex, follow`** |
+
+La page relançait l'erreur pour atteindre `error.tsx` — sauf qu'une frontière
+d'erreur est un composant **client** : son contenu n'arrive que par la charge
+utile RSC. La même panne sur `/fr/bibliotheque/…` rendait déjà 671 caractères
+lisibles depuis F-02. Deux backends, deux comportements, et le pire des deux
+sur la seule page adossée à Sanity.
+
+**L'objection SEO du commentaire d'origine était juste, et elle est traitée,
+pas écartée.** `generateMetadata` pose `noindex` sur le **seul** rendu dégradé,
+pour qu'un moteur de passage pendant la panne ne remplace pas l'article par le
+panneau « indisponible » dans son index. Sur un article réellement absent,
+aucun `noindex` — la page rend son 404 et garde son référencement.
+
+*Ce que je n'ai pas pu vérifier* : les branches « article présent » et « article
+absent » de bout en bout, faute de projet Sanity joignable. Elles sont tenues
+par `tests/unit/actualites-degradation.test.ts`, qui exerce les trois issues de
+`generateMetadata` avec un client simulé — vérifié non vacant : sans le
+correctif, 2 des 4 tests rougissent, les 2 autres verrouillent ce qui ne doit
+pas changer.
+
+*Au passage* : `@dt-sanity` manquait aux alias de vitest. Tout module qui en
+dépend échouait à l'**import**, donc avant la moindre assertion — c'est ce qui
+obligeait `seo-coherence.test.ts` à analyser le texte source au lieu
+d'importer.
+
+### F-13 — deux pistes éliminées, un défaut trouvé, cause racine inconnue
+
+Détail complet en § 3. Ce qui a changé : la famille n'est plus « des panneaux
+qui s'ouvrent au clic » (une quatrième occurrence l'a démentie), deux pistes
+sont écartées par la mesure, `mobile-nav` avait un vrai défaut corrigé pour
+lui-même, `ConfirmDialog` passe par un portail, et le symptôme est mitigé sans
+être effacé. **Le mécanisme reste inexpliqué.**
+
 ### Ce que ces correctifs ont fermé au passage
 
 `audit/specs/11-robots-sitemap.spec.ts` passe désormais : le sitemap déclarait
@@ -267,22 +418,55 @@ six URLs qui répondaient 500, elles répondent 200.
 
 ### Ce qui reste ouvert
 
-F-07, F-08, F-09, F-10 et F-13 restent ouverts, ainsi que la moitié de F-06
-que le cadriciel ne permet pas de refermer (§ 0). La spec SEO ne signale plus
-rien.
+**Deux points, et un seul est technique.**
+
+1. **La cause racine de F-13.** Le symptôme est mitigé et mieux découpé, mais
+   le mécanisme n'est pas établi. Non reproduit en 45 tentatives, processeur
+   bridé jusqu'à ×6.
+2. **L'arbitrage produit de F-06** — `dynamicParams = false` sur les trois
+   routes à paramètres fermés. Ce n'est pas une décision d'ingénierie : on
+   échangerait un défaut uniforme contre une incohérence. Elle revient au
+   produit.
+
+Reste aussi la vérification manuelle de l'angle mort 7 (variables de prod),
+qu'aucun environnement d'audit ne peut faire à la place de quelqu'un ayant les
+accès.
 
 ### Vérifications passées avant de pousser
 
 `typecheck`, `typecheck:convex`, `typecheck:tests`, `lint`, `format:check`,
-`build` : verts. **741 tests unitaires** (92 fichiers, 24 ajoutés), verts — et
-verts aussi sur trois ordres mélangés (seeds 4, 5, 6), donc les tests ajoutés
-n'introduisent pas de dépendance d'ordre. Les specs d'audit rejouées : rendu
-sans JavaScript 24/24, i18n 24/24, en-têtes, sitemap. Les deux seuls échecs
-restants sont F-07, antérieur et hors mandat.
+`build` : verts. `pnpm install --frozen-lockfile` vérifié aussi, puisque c'est
+ainsi que la CI installe.
+
+**787 tests unitaires** (95 fichiers), verts en ordre de déclaration **et** sur
+ordres mélangés — 30 graines consécutives lors de F-01, 9 de plus depuis.
+
+**Suite d'audit : 314 passées, 0 échec, code de sortie 0.** Elle était à
+270/44 au moment où j'ai cru la lire verte (voir plus bas) ; elle est
+désormais entièrement verte, pour la première fois.
+
+**Une erreur de lecture, deux fois.** J'ai lu un bilan Playwright avec un
+`tail` trop court et annoncé « 272 passed » : le vrai chiffre était
+**270 passed / 44 failed**. Les bilans sont maintenant lus sur la ligne de
+compte **et** sur le code de sortie, jamais sur la fin du flux. Aucun de ces 44
+échecs n'était une régression — 36 relevaient de ma méthodologie a11y déjà
+rétractée, 2 de la limite Next de F-06 exigée comme si elle était corrigeable,
+2 de l'état *d'avant* F-05, et 4 de constats réellement ouverts, corrigés
+depuis. Le bruit masquait d'ailleurs une vraie trouvaille :
+`scrollable-region-focusable` était noyé sous 244 signalements de contraste.
+**Un scan bruyant ne fait pas que surestimer — il cache.**
+
+*Note d'outillage* : `NEXT_PUBLIC_*` est figé à la **compilation**. Un rebuild
+fait sans ces variables sert des 500 qu'on prend volontiers pour une
+régression. Les builds de vérification reprennent les valeurs du § 6.
 
 ---
 
 ## 1. Verdict
+
+> **Ce verdict est celui du 21 septembre au matin, avant correctifs.** Il est
+> conservé tel quel : c'est l'état constaté qui donne sa valeur au rapport.
+> **Mise à jour après correctifs en fin de § 1.**
 
 **Non, pas de mise en ligne en l'état** — mais aucun blocage n'est structurel.
 
@@ -304,6 +488,29 @@ d'audit ne pouvait pas jouer, ont tourné sur la préversion Convex de la PR :
 principal de cet audit est donc largement refermé — et il a livré un constat de
 plus, F-13 : deux exécutions identiques, deux défaillances DIFFÉRENTES, toutes
 deux sur un dialogue.
+
+### Mise à jour après correctifs (21 septembre, soir)
+
+**Le verdict s'inverse sur les trois blocages nommés ci-dessus.** Les cinq
+pages Convex répondent 200 avec du contenu réel, les 48 pages portent leurs
+métadonnées de partage, et le baromètre est passé de 12 808 ms à 2 376 ms en 3G
+lente. La suite unitaire n'est plus verte par chance d'ordonnancement.
+
+**F-01 à F-10 sont refermés**, F-06 pour moitié seulement — la 404 localisée
+reste vide sans JavaScript, et c'est une limite de Next 16.3.5, pas du dépôt.
+
+**Ce qui empêcherait encore de dire « allez-y » n'est pas technique** : la
+vérification manuelle des variables de production (angle mort 7), et
+l'arbitrage produit de F-06. F-13 ne bloque pas une mise en ligne — c'est une
+porte de CI instable, pas un défaut visible par un visiteur — mais sa cause
+racine reste inconnue et doit être déclarée comme telle.
+
+**Ce que je corrigerais dans ma propre méthode**, puisque ce rapport sert aussi
+à ça : trois de mes erreurs ont été trouvées par la mesure et non par
+relecture — un test d'isolation qui n'isolait rien (F-05), un bilan lu sur la
+fin du flux au lieu de la ligne de compte (deux fois), et une attribution faite
+sur des violations fusionnées avant d'être rattachées (F-07). Les trois ont la
+même forme : une conclusion tirée d'un instrument qu'on n'a pas vérifié.
 
 ---
 
@@ -333,7 +540,7 @@ sous `audit/specs/` et `audit/poc/`. Commande de reproduction en § 6.
 | C3 | Sécu | Pentest **H-2** (file de modération) | PoC `convex-test` | 2/2 | ✅ **CORRIGÉ** | `C-poc-pentest.log` |
 | C4 | Sécu | Pentest **M-4** (gating client) | HTTP réel | 1/1 | ✅ 307 serveur | `D-status.tsv` |
 | C5 | Sécu | Pentest **M-7** (compteur de vues) | lecture source | 1/1 | ✅ quota posé | `publications.ts:166` |
-| C6 | Sécu | Pentest **M-8** (oracles `already`) | lecture source | 1/1 | ❌ **OUVERT** | `newsletter.ts:91` |
+| C6 | Sécu | Pentest **M-8** (oracles `already`) | lecture source | 1/1 | ❌ **OUVERT** — voir J4 | `newsletter.ts:91` |
 | C7 | Sécu | Surface Convex publique | inventaire 73 fn | 1/1 | ✅ 54 gardées / 19 publiques légitimes | § 3 |
 | C8 | Sécu | Chaîne de dépendances | `pnpm audit` | 1/1 | ⚠️ 1 haute, 8 moy., 1 basse | `C-pnpm-audit.json` |
 | C9 | Sécu | En-têtes CSP/HSTS/XFO | réponse réelle | 1/1 | ✅ présents | `D-seo-run1.log` |
@@ -350,6 +557,22 @@ sous `audit/specs/` et `audit/poc/`. Commande de reproduction en § 6.
 | H3 | Dégrad. | Convex injoignable, 49 routes | HTTP réel | 1/1 | ❌ **F-02** (5 pages en 500) | `D-status.tsv` |
 | H4 | Dégrad. | Sanity injoignable | HTTP + build | 1/1 | ✅ liste dégrade proprement | `A-build.log` |
 | H5 | Dégrad. | Sanity injoignable, page de détail | HTTP réel | 1/1 | ❌ **F-10** (500) | § 3 |
+
+**Vérifications des correctifs** — mêmes règles : chaque ligne est une commande
+jouée. « Non vacant » signifie que le garde-fou a été vu ROUGIR sur le code
+d'avant, et non seulement passer sur le code d'après.
+
+| ID | Constat | Vérification | Résultat |
+|---|---|---|---|
+| J1 | F-07 | `text-decoration-line` **calculé** au repos, 2 pages × 2 projets | ✅ `underline` — non vacant |
+| J2 | zones défilantes | `scrollLeft` après deux flèches, 3 tableaux débordants | ✅ 0 → 80 — non vacant |
+| J3 | F-08 | `pnpm audit` avant / après ; `pnpm install --frozen-lockfile` | ✅ 9 avis → 1 ; verrou cohérent |
+| J4 | F-09 | réponses **entières sérialisées**, 2 envois × 5 actions | ✅ indiscernables — 5/10 rougissent sans le correctif |
+| J5 | F-10 | statut + texte sans JS + balise `robots` | ✅ 200 / 695 car. / `noindex, follow` — non vacant |
+| J6 | F-13 | helpers exercés sur page **synthétique** perdant son 1er clic | ✅ 3 propriétés, dont l'échec quand l'effet ne vient jamais |
+| J7 | portail | le dialogue n'est plus sous le conteneur appelant | ✅ + régression de focus attrapée par les tests en place |
+| J8 | suite d'audit | campagne complète, **code de sortie lu** | ✅ 314 passées, 0 échec, code 0 |
+| J9 | suite unitaire | ordre de déclaration + 3 ordres mélangés | ✅ 787 tests, 95 fichiers |
 
 ---
 
@@ -473,7 +696,7 @@ Le motif fautif n'est employé **que là** : les autres fichiers passent par
 `vi.stubGlobal` + `vi.unstubAllGlobals`, qui restaure correctement (vérifié :
 aucun d'eux ne rougit sur les 10 seeds).
 
-### F-08 · MOYENNE · Risque · 10 vulnérabilités de dépendances, dont une haute
+### F-08 · MOYENNE · Risque · 10 vulnérabilités de dépendances, dont une haute — **CORRIGÉ** (§ 0)
 
 | Sév. | Paquet | Sujet | Corrigé en |
 |---|---|---|---|
@@ -489,6 +712,12 @@ Aucune ne touche Next, React ou Convex : **le C-1 du pentest est bien refermé**
 de test, `dompurify` arrive par le Studio Sanity. Le risque d'exploitation en
 production est donc faible — ce qui ne dispense pas de la montée de version, la
 plus coûteuse étant `vitest` (majeure déjà en place, correctif de patch).
+
+> **Depuis** : neuf avis ramenés à un (§ 0). Le point qui ne se lisait pas dans
+> ce tableau : remonter la dépendance directe de `postcss` ne suffisait pas —
+> `@tailwindcss/postcss` gardait une copie imbriquée en 8.5.15, hors de portée
+> du plancher, et c'était précisément le seul avis **haut**. Il a fallu un
+> override pour l'atteindre.
 
 ### F-06 · FAIBLE · Défaut · La 404 localisée est entièrement vide sans JavaScript — **PARTIEL** (§ 0)
 
@@ -515,14 +744,20 @@ exception.
 Impact SEO nul (le statut 404 est correct de toute façon) ; impact réel sur les
 visiteurs à faible débit ou JS dégradé, précisément la cible du cadrage.
 
-### F-10 · FAIBLE · Défaut · La page de détail d'une actualité rend 500 quand Sanity est indisponible
+### F-10 · FAIBLE · Défaut · La page de détail d'une actualité rend 500 quand Sanity est indisponible — **CORRIGÉ** (§ 0)
 
 `/fr/actualites/inexistant-xyz` → **500**, alors que la page de liste
 `/fr/actualites` dégrade proprement en 200. Le `try`/`catch` de
 `actualites/page.tsx:44` n'a pas d'équivalent sur `actualites/[slug]`.
 Même correctif que F-02.
 
-### F-07 · FAIBLE · Défaut · Lien non distinguable dans un paragraphe, sur les deux pages de connexion
+> **Depuis** : 200 avec 695 caractères lisibles sans JavaScript, et `noindex,
+> follow` sur le seul rendu dégradé (§ 0). Ce que ce constat ne disait pas, et
+> qui est le vrai coût : la page ne rendait pas seulement 500, elle rendait
+> **zéro caractère** dans le HTML servi — `error.tsx` est un composant client.
+> Page blanche, donc, pour qui n'exécute pas JavaScript.
+
+### F-07 · FAIBLE · Défaut · Lien non distinguable dans un paragraphe, sur les deux pages de connexion — **CORRIGÉ** (§ 0)
 
 `/fr/connexion` et `/fr/connexion-otp` — règle axe `link-in-text-block`
 [serious] sur `.text-accent-text.hover:underline[href$="adhesion"]`.
@@ -538,18 +773,32 @@ deux-là sortent.
 **Correctif** : `underline` permanent, ou `text-decoration: underline` +
 `text-underline-offset`.
 
-### F-09 · FAIBLE · Risque · Pentest M-8 toujours ouvert : les oracles d'existence subsistent
+> **Depuis** : souligné par défaut, vérifié sur le style CALCULÉ au repos
+> (§ 0). Ce constat visait juste : les deux pages de connexion, et elles
+> seules. C'est mon compte rendu ultérieur qui y a ajouté `/fr/adhesion` à
+> tort — cette page-là relevait des zones défilantes.
+
+### F-09 · FAIBLE · Risque · Pentest M-8 toujours ouvert : les oracles d'existence subsistent — **CORRIGÉ** (§ 0)
 
 `convex/newsletter.ts:91` et `convex/events.ts:77` renvoient toujours
 `{ ok: true, already: true }` lorsque l'adresse est déjà inscrite, et
 `already: false` sinon. Un anonyme peut donc tester l'appartenance d'une adresse
 à la base — c'est exactement ce que décrivait M-8, et l'action n° 10 du plan de
-remédiation (« réponses uniformes ») n'a pas été appliquée.
+remédiation (« réponses uniformes ») n'avait pas été appliquée au moment de
+l'audit.
 
 Sévérité basse compte tenu du rate-limit désormais en place, mais le point reste
 ouvert et doit être déclaré comme tel plutôt que considéré comme traité.
 
-### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues
+> **Depuis, et ce constat SOUS-ESTIMAIT la surface** : l'oracle n'était pas sur
+> deux fonctions mais sur **cinq** — `newsletter`, `events`, `mentorship`,
+> `youth`, `eventReminders`, toutes des actions publiques non authentifiées.
+> Les cinq rendent désormais une réponse identique que l'adresse soit connue ou
+> non (§ 0). J'avais repris le périmètre du pentest sans l'inventorier
+> moi-même : la même erreur que sur F-02, où cinq pages annoncées en valaient
+> neuf.
+
+### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **TOUJOURS OUVERT**
 
 Le workflow `e2e.yml` a joué la suite **deux fois sur le commit `1390107`**, à
 huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
@@ -615,6 +864,74 @@ désormais trois à comparer, ce qui vaut mieux qu'une.
    `transform`, le dialogue est mal positionné **pour les utilisateurs**, pas
    seulement pour Playwright.
 
+---
+
+#### Mise à jour : une quatrième occurrence, et le constat se scinde
+
+La CI du commit `2c08208` a rendu une **quatrième** défaillance —
+`home.spec.ts:25`, le **sélecteur de langue**. Clic sur « EN » dans la
+bannière, puis l'URL reste sur `/fr` : treize sondages.
+
+**Ce n'est pas un panneau qui s'ouvre.** Le cadrage ci-dessus — « toujours un
+panneau qui s'ouvre au clic » — est donc **faux**. Ce que les occurrences
+partagent est à la fois plus large et plus précis : un **clic dont l'effet ne
+se produit jamais**. Et trois des quatre ont exactement la même forme :
+`page.goto()` suivi immédiatement d'un clic.
+
+| Famille | Occurrences | Erreur |
+|---|---|---|
+| **A — effet jamais produit** | `search.spec:14`, `mobile-nav:48`, `home.spec:25` | l'assertion réessaie et n'aboutit pas |
+| **B — boîte instable** | `admin-recherche:153` | *element is not stable*, en plein parcours chargé |
+
+**Deux pistes de plus, écartées par la mesure :**
+
+4. *l'animation d'entrée*. « element is not stable » est précisément ce que
+   Playwright émet quand une boîte bouge encore entre deux images, et
+   `reducedMotion` n'est posé nulle part globalement. Mais **aucun** des trois
+   panneaux n'anime son entrée — rien que des `transition-colors`, qui ne
+   déplacent aucune boîte.
+5. *« lent » est exclu pour la famille A*. Les assertions qui ont échoué
+   RÉESSAIENT : un panneau simplement lent les satisfait. Elles ne peuvent
+   échouer que si le clic n'a produit **aucun** changement d'état. Le constat
+   d'origine traitait les quatre comme une seule attente ; elles ne sont pas de
+   la même nature.
+
+**Un défaut réel trouvé, et corrigé pour lui-même** : `mobile-nav.tsx`
+refermait le menu **au montage**. Un effet à dépendances court aussi au premier
+rendu, donc un appui qui atterrit entre l'attachement du gestionnaire et le
+vidage des effets est pris puis annulé. **NON REPRODUIT** — 45 tentatives,
+processeur bridé jusqu'à ×6, navigation rendue au plus tôt (`waitUntil:
+'commit'`) : le menu s'ouvre à chaque fois. Ce correctif n'est donc pas la
+cause de F-13. Il tient tout seul : un effet qui dit « referme à chaque
+NAVIGATION » ne doit pas s'exécuter quand il n'y a pas eu de navigation, et la
+fenêtre qu'il ouvrait est d'autant plus large que l'appareil est lent —
+c'est-à-dire chez le premier public visé. `locale-switcher.tsx`, lui, n'a aucun
+effet de montage : rien à annuler.
+
+**La piste 2 est appliquée** : `ConfirmDialog` passe par un portail. Ce
+changement a introduit une régression que les tests unitaires en place ont
+attrapée — le panneau n'existant pas au premier rendu, l'effet de focus ne
+trouvait plus personne et le focus n'allait plus sur « Annuler », donc une
+touche Entrée retombait sur l'action destructrice, exactement ce que cette
+boîte existe pour empêcher. Corrigé, et deux tests épinglent le portail.
+
+**Le symptôme est mitigé, pas effacé.** `tests/e2e/_panneau.ts` fournit deux
+helpers — `ouvrirPanneau` (famille A avec un panneau) et `cliquerJusqua`
+(famille A sans élément localisable, comme une URL). Ils ne re-cliquent que
+tant que l'effet ne s'est pas produit — jamais deux fois sur une bascule déjà
+ouverte — et **impriment le nombre d'essais** : une ligne
+`[F-13] <nom> : N clics ont été nécessaires` dans le journal de CI dit que le
+symptôme s'est produit et a été absorbé. Si l'effet ne vient jamais, le test
+échoue comme avant. La suite E2E n'étant pas jouable dans l'environnement
+d'audit, ils ont été vérifiés sur une page **synthétique** qui perd son premier
+clic : les trois propriétés passent, y compris celle qui les empêche d'être une
+mise sous le tapis.
+
+**Ce qui reste à faire pour trancher** : récupérer le journal COMPLET du job
+« Parcours navigateur » et y chercher `[F-13]`. Ces lignes s'impriment tôt
+(`home.spec` passe tôt dans la suite), donc un `tail` ne les verra jamais.
+C'est le seul moyen de distinguer « aucun clic perdu » de « un clic absorbé ».
+
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 
 `tests/e2e/admin-recherche.spec.ts:256` :
@@ -647,7 +964,7 @@ elle repère l'absence de mention, pas la qualité de ce qui est vérifié.
 | M-5 | MOYENNE | Rappels d'événements | 🟡 **PROBABLE** | `eventReminders.test.ts` (4) vert |
 | M-6 | MOYENNE | Élévation via approbation d'adhésion | ⚪ **NON VÉRIFIÉ** | exige un parcours back-office complet |
 | M-7 | MOYENNE | Compteur de vues sans limite | ✅ **CORRIGÉ** | `consumePublicationViewQuota` — `publications.ts:166` |
-| M-8 | MOYENNE | Oracles d'existence `already` | ❌ **OUVERT** | `newsletter.ts:91`, `events.ts:77` |
+| M-8 | MOYENNE | Oracles d'existence `already` | ✅ **CORRIGÉ depuis** | ouvert à l'audit ; refermé sur **cinq** actions publiques, pas deux (§ 0, F-09) |
 | M-9 | MOYENNE | Liens `javascript:` depuis le CMS | ⚪ **NON VÉRIFIÉ** | exige un projet Sanity configuré |
 
 **🟡 PROBABLE** veut dire : un test du dépôt couvre nommément le point et il est
@@ -695,8 +1012,11 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    lacune réelle de cet audit.
 3. **Les cinq pages Convex sur données réelles.** `bibliotheque`, `experts`,
    `le-reseau`, `thematiques`, `tribune` n'ont pu être mesurées ni en SEO, ni en
-   accessibilité, ni en performance : elles rendent 500 ici. Leurs chiffres sont
-   absents des tableaux § 3, et ce sont probablement les pages les plus lourdes.
+   accessibilité, ni en performance : elles rendaient 500 ici. Leurs chiffres
+   sont absents des tableaux § 3, et ce sont probablement les pages les plus
+   lourdes. **Depuis F-02 elles répondent 200**, mais sur leur ÉTAT VIDE : la
+   lacune demeure entière, puisque c'est le poids des données réelles qui
+   importait.
 4. **Firefox et WebKit.** Rien n'a été exercé hors Chromium.
 5. **Le contraste des couleurs.** Volontairement laissé de côté : le dépôt le
    désactive avec une justification écrite (palette de marque, arbitrage RGAA
@@ -707,6 +1027,11 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
 6. **Sanity.** Aucun projet configuré (`projectId = placeholder`) : le chemin
    « contenu réel » du CMS n'a jamais été exercé, seulement le chemin dégradé.
    M-9 (liens `javascript:` depuis PortableText) reste donc non vérifié.
+   **La CI est dans le même cas** — son journal montre
+   `Dataset not found for project ID "placeholder"`. Conséquence utile : le
+   correctif F-10 est exercé à chaque campagne. Conséquence gênante : les deux
+   autres branches de cette page (article présent, article absent) ne le sont
+   par personne, et reposent sur un test unitaire à client simulé.
 7. **La production.** Aucun accès, par construction et par consigne. La
    checklist de `docs/deploiement.md` § 1.1 (`AUTH_DEV_OTP` et
    `RECAPTCHA_DISABLED` absents de l'env de prod) **n'a pas été vérifiée** et
@@ -753,7 +1078,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 
 | # | Action | Couvre | Effort |
 |---|---|---|---|
-| 1 | ~~`try`/`catch` + état vide~~ — **fait** pour F-02 (9 routes). F-10 (`actualites/[slug]`, source Sanity) reste ouvert | F-02 ✅ / F-10 | — |
+| 1 | ~~`try`/`catch` + état vide~~ — **fait** pour F-02 (9 routes) **et pour F-10** (`actualites/[slug]`) | F-02 ✅ / F-10 ✅ | — |
 | 2 | Vérifier à la main que la prod n'a ni `AUTH_DEV_OTP` ni `RECAPTCHA_DISABLED` (`npx convex env list --prod`) | angle mort 7 | 15 min |
 | 3 | ~~Rejouer les 213 E2E~~ — **fait** par la CI de la PR (212/213, deux fois) | angle mort 1 | — |
 
@@ -763,10 +1088,10 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 |---|---|---|---|
 | 4 | ~~`openGraph` + `twitter` + image OG ; JSON-LD `Organization`~~ — **fait**. JSON-LD `Article`/`Event` par page : reste à faire | F-03 ✅ | — |
 | 5 | ~~`spy.mockRestore()` ; `--sequence.shuffle` en CI~~ — **fait**, plus un second défaut d'isolation trouvé au passage | F-01 ✅ | — |
-| 6 | `canonical` et `hreflang` sur les 12 (resp. 14) pages qui en manquent | F-04 | 2 h |
-| 7 | `pnpm up postcss vitest @vitest/mocker` puis `pnpm audit --audit-level=high` en CI | F-08 | 1 h |
-| 8 | Réponses uniformes sur `newsletter.subscribe` et `events.registerForEvent` | F-09 | 1 h |
-| 8bis | Ouvrir la trace Playwright des deux échecs de dialogue ; portail pour `ConfirmDialog` | F-13 | ½ j |
+| 6 | ~~`canonical` et `hreflang`~~ — **fait**. Deux des quatorze signalements étaient de faux positifs (`/recherche`, en `noindex`) | F-04 ✅ | — |
+| 7 | ~~Montées de version + `pnpm audit` en CI~~ — **fait** : 9 avis → 1. L'override `postcss@8` était indispensable, `pnpm up` seul n'aurait pas suffi | F-08 ✅ | — |
+| 8 | ~~Réponses uniformes~~ — **fait**, et sur **cinq** actions publiques, pas deux | F-09 ✅ | — |
+| 8bis | ~~Portail pour `ConfirmDialog`~~ — **fait**. Reste : chercher `[F-13]` dans le journal COMPLET d'une campagne pour savoir si un clic a été absorbé | F-13 🟡 | ½ j |
 
 ### P2 — dette
 
@@ -774,13 +1099,22 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 |---|---|---|---|
 | 9 | Alléger les chunks (`d3-geo`/`topojson`/`world-atlas` en différé) ; prérendre les pages éditoriales | F-05 | 1 j |
 | 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; arbitrage `dynamicParams` à trancher | F-06 🟡 | — |
-| 11 | Souligner le lien d'adhésion des pages de connexion ; les ajouter à `PAGES` de `a11y.spec.ts` | F-07 | 1 h |
+| 11 | ~~Souligner le lien d'adhésion~~ — **fait**, plus les zones défilantes inatteignables au clavier (2 pages publiques + 3 tableaux d'administration) | F-07 ✅ | — |
 | 12 | Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription` | F-12 | 3 h |
 | 13 | Aligner le Chromium de l'environnement sur le Playwright épinglé, pour rendre le mobile testable | angle mort 2 | — |
 
 ---
 
 ## 8. Détail des critères SEO manquants
+
+> **État à l'audit — corrigé depuis (§ 0, F-04).** Deux des quatorze
+> signalements ci-dessous étaient de **faux positifs** : `/fr/recherche` et
+> `/en/recherche` sont en `noindex`, et un moteur ignore le hreflang d'une page
+> qu'il n'indexe pas. C'est une décision écrite du dépôt, tenue par
+> `tests/e2e/seo.spec.ts` ; ma spec l'exigeait sans regarder `robots`. **Elle a
+> été corrigée, pas le code.** Et six des douze pages « sans canonical » ne
+> POUVAIENT pas en avoir : elles portent `'use client'`, et un composant client
+> ne peut pas exporter `generateMetadata` — une conséquence, pas un oubli.
 
 **Sans `canonical` (12)** — `/fr` et `/en` × `connexion`, `connexion-otp`,
 `contact`, `don`, `mot-de-passe-oublie`, `newsletter/desinscription`.
