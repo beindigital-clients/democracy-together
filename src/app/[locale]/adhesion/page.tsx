@@ -6,6 +6,7 @@ import { MembershipForm } from '@/components/membership/membership-form';
 import { SolidarityEstimator } from '@/components/membership/solidarity-estimator';
 import { resolveLocale } from '@/i18n/locale';
 import { getMembershipContent } from '@/lib/membership-content';
+import { ScrollableRegion } from '@/components/ui/scrollable-region';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -142,7 +143,7 @@ export default async function MembershipPage({
           </p>
         </Reveal>
         <Reveal className="overflow-hidden rounded-md border border-line">
-          <div className="overflow-x-auto">
+          <ScrollableRegion label={c.comparison.title}>
             <table className="w-full border-collapse text-left text-sm">
               <caption className="bg-surface-2 px-5 py-3 text-left font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                 {c.comparison.caption}
@@ -201,7 +202,7 @@ export default async function MembershipPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableRegion>
         </Reveal>
       </section>
 

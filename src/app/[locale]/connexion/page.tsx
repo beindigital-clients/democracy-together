@@ -87,7 +87,10 @@ export default function ConnexionPage() {
 
       <p className="mt-6 text-sm text-ink-soft">
         {t('noAccount')}{' '}
-        <Link href="/adhesion" className="text-accent-text hover:underline">
+        <Link
+          href="/adhesion"
+          className="text-accent-text underline underline-offset-2"
+        >
           {tNav('join')}
         </Link>
       </p>

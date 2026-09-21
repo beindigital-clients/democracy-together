@@ -12,6 +12,7 @@ import { LoadMore } from '@/components/admin/load-more';
 import { RoleSelector } from '@/components/admin/role-selector';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ScrollableRegion } from '@/components/ui/scrollable-region';
 
 // Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 50;
@@ -104,7 +105,7 @@ function UsersTable() {
           {filtering ? t('noResults') : t('noUsers')}
         </p>
       ) : (
-        <div className="mt-6 overflow-x-auto">
+        <ScrollableRegion label={t('users')} className="mt-6">
           <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b border-line text-left font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
@@ -137,7 +138,7 @@ function UsersTable() {
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollableRegion>
       )}
 
       <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />

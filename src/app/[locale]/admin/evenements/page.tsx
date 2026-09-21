@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { resolveLocale } from '@/i18n/locale';
 import { getEventsLabels } from '@/lib/events-content';
+import { ScrollableRegion } from '@/components/ui/scrollable-region';
 
 export default function AdminEvents() {
   const t = useTranslations('admin');
@@ -54,7 +55,7 @@ export default function AdminEvents() {
                 </span>
               </div>
               <div className="mt-3 overflow-hidden rounded-md border border-line">
-                <div className="overflow-x-auto">
+                <ScrollableRegion label={labels.titles[slug] ?? slug}>
                   <table className="w-full border-collapse text-left text-sm">
                     <thead>
                       <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
@@ -99,7 +100,7 @@ export default function AdminEvents() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollableRegion>
               </div>
             </section>
           ))}
