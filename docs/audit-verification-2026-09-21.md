@@ -87,6 +87,101 @@ possède : un nom, une URL, une description traduite, un logo. Un test tient la
 liste des clés fermée, parce qu'une adresse postale inventée serait une donnée
 fausse servie aux moteurs, pire que son absence.
 
+### F-04 — ce que chaque page déclare aux moteurs
+
+**Deux de mes quatorze signalements étaient de FAUX POSITIFS.** `/fr/recherche`
+et `/en/recherche` étaient comptées « sans hreflang » : c'est une décision
+délibérée du dépôt, documentée dans `recherche/page.tsx` et tenue par
+`tests/e2e/seo.spec.ts` — sur une page en `noindex`, un moteur ignore le
+hreflang, l'y poser ne serait que du bruit. Ma spec l'exigeait sans regarder
+`robots`. Elle a été corrigée ; le code, lui, n'avait rien à corriger.
+
+**Et six des douze pages « sans canonical » ne pouvaient pas en avoir.** Elles
+portent `'use client'`, et un composant client ne peut pas exporter
+`generateMetadata`. Ce n'était pas un oubli mais une conséquence — ce qui
+explique qu'aucune relecture ne l'ait rattrapée. Le correctif passe par un
+`layout.tsx` par route, la façon prévue par Next de déclarer des métadonnées
+au-dessus d'une page client.
+
+Le traitement diffère selon ce que la page EST, et non selon une règle
+uniforme :
+
+| Route | Dans le sitemap | robots.txt | Posé |
+|---|---|---|---|
+| `/contact`, `/don` | **oui** | autorisé | **canonical + hreflang** |
+| `/connexion`, `/connexion-otp`, `/mot-de-passe-oublie` | non | interdit | titre + `noindex` |
+| `/newsletter/desinscription` | non | autorisé | titre + `noindex` |
+| `/recherche` | non | autorisé | inchangé — déjà juste |
+
+`/contact` et `/don` étaient le vrai trou : le sitemap les listait AVEC leurs
+alternates pendant que les pages n'annonçaient rien. Les trois pages
+d'authentification, elles, n'avaient aucune métadonnée du tout — pas même un
+titre : l'onglet du navigateur affichait « Democracy Together » pour les trois.
+
+*À signaler, sans le corriger ici* : le `noindex` posé sur les trois pages
+d'authentification est une seconde ceinture, pas un remplacement. Un moteur qui
+respecte le `Disallow` de `robots.txt` ne vient pas lire ce `noindex`. Les deux
+mécanismes se gênent — c'est une tension antérieure à ce correctif, et la
+trancher relève d'un arbitrage SEO, pas d'une retouche de code.
+
+**Vérification** : les 48 pages passent la spec SEO (canonical et hreflang là
+où la page est indexable, `noindex` là où elle ne l'est pas).
+
+**Et pour que ça ne revienne pas** : `tests/unit/seo-coherence.test.ts` rapproche
+les trois écritures qui parlent des mêmes adresses — le sitemap, `robots.txt`
+et les `generateMetadata`. Vérifié en le rejouant sans le correctif : il rougit
+bien sur `contact`.
+
+### F-05 — LCP 12,8 s → 2,4 s en 3G lente
+
+| Page | Avant | Après |
+|---|---|---|
+| `/fr/barometre` | **12 808 ms** | **2 376 ms** (médiane de 3) |
+| `/fr` | 2 572 ms | 2 552 ms |
+
+**Je me suis trompé deux fois avant de trouver, et les deux méritent d'être
+écrites.**
+
+*Première erreur — un test d'isolation qui ne testait rien.* Pour mesurer la
+part du `Reveal`, j'avais injecté une règle CSS avant navigation. Résultat :
+12 760 ms contre 12 808 — aucun effet, donc « le Reveal n'y est pour rien ».
+J'ai alors passé deux cycles à optimiser les polices. En réalité l'injection
+n'était jamais appliquée : elle posait un `<style>` sur `documentElement` avant
+que `<head>` n'existe, et React l'emportait. Rejouée en ajoutant la règle à la
+FEUILLE DE STYLE interceptée en vol — et en refusant de conclure sans avoir
+constaté l'opacité calculée à 1 — la même mesure donne **584 ms**. Vingt fois.
+
+La cause est mécanique : `Reveal` rend `initial={{ opacity: 0 }}` en style
+inline côté serveur, et un élément à opacité nulle n'est pas candidat au
+« largest contentful paint ». Le texte de la page ne comptait donc qu'une fois
+framer-motion chargé, hydraté et animé.
+
+*Seconde erreur — un correctif qui supprimait la fonctionnalité.* Passer
+`initial` de `false` à l'état voilé après le montage ne voile rien : framer ne
+lit `initial` qu'au montage. Le LCP tombait à 4 328 ms, mais **l'animation
+d'entrée avait disparu de tout le site**, sans bruit — une page répond 200 et
+affiche son contenu, aucun test fonctionnel ne s'en émeut. C'est
+`audit/specs/35-reveal-integrite.spec.ts`, écrit exprès pour ça, qui l'a dit.
+La version retenue pilote l'état par `useInView` : voile posé après montage, et
+seulement hors écran.
+
+*Ce qui se perd, et c'est assumé* : le fondu d'entrée du PREMIER écran. Un
+fondu depuis l'invisible exige d'attendre le script — c'est précisément ce
+qu'on refuse de faire payer. Tout le reste de la page s'anime comme avant, et
+trois tests tiennent les deux bouts (rien de masqué dans le HTML servi, voile
+bien posé hors écran, défilement qui révèle).
+
+*Les polices, cause secondaire mais réelle* : 233 Ko des 244 Ko de la page.
+`font-bold` n'apparaît nulle part dans `src/` et l'italique n'y sert que trois
+fois, sur du texte de corps — le 700 de Plex Sans et l'italique de Newsreader
+sont donc partis (−63 Ko, aucun changement visuel). Et seule la police de CORPS
+reste préchargée, celle dont dépend le LCP : mesuré, les trois préchargées
+donnent 4 328 ms, le corps seul 2 376 ms, et re-précharger les titres 2 660 ms.
+
+*Honnêtement* : `/fr` reste à 2 552 ms, au-dessus du seuil de 2 500 ms que je
+m'étais fixé. Mon correctif ne l'améliore ni ne le dégrade — cette page était
+déjà bornée par ses octets et ses allers-retours, pas par le voile.
+
 ### Ce que ces correctifs ont fermé au passage
 
 `audit/specs/11-robots-sitemap.spec.ts` passe désormais : le sitemap déclarait
@@ -94,10 +189,8 @@ six URLs qui répondaient 500, elles répondent 200.
 
 ### Ce qui reste ouvert
 
-**F-04** (canonical absent sur 12 pages, hreflang sur 14) n'est PAS corrigé :
-c'est un constat distinct, et il est aujourd'hui le seul que la spec SEO
-signale encore. F-01, F-05, F-06, F-07, F-08, F-09, F-10, F-13 restent ouverts
-eux aussi.
+F-01, F-06, F-07, F-08, F-09, F-10 et F-13 restent ouverts. La spec SEO ne
+signale plus rien ; les deux seuls échecs des specs d'audit sont F-07.
 
 ### Vérifications passées avant de pousser
 
@@ -245,7 +338,7 @@ déjà structurés en base : `Organization`, `Article` (publications), `Event`
 `[locale]`, surchargés par page ; une image OG par défaut ; un bloc JSON-LD
 `Organization` global + `Article`/`Event` sur les pages de détail.
 
-### F-05 · MOYENNE · Risque · 12,8 s avant contenu principal en 3G lente
+### F-05 · MOYENNE · Risque · 12,8 s avant contenu principal en 3G lente — **CORRIGÉ** (§ 0)
 
 Émulation CDP Slow 3G (400 kbit/s, 400 ms de latence) :
 

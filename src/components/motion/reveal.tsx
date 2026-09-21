@@ -1,7 +1,49 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { motion, type Variants } from 'framer-motion';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { motion, useInView, type Variants } from 'framer-motion';
+
+// Le voile n'est posé QU'APRÈS hydratation (audit F-05).
+//
+// Mesuré en 3G lente sur /fr/barometre : LCP 11 800 ms avec le voile,
+// 584 ms sans. Vingt fois. La raison est mécanique — framer rend
+// `initial={{opacity:0}}` en style INLINE côté serveur, et un élément à
+// opacity 0 n'est pas candidat au « largest contentful paint ». Le texte de la
+// page ne comptait donc qu'au moment où framer-motion avait fini de charger,
+// s'hydrater et animer : onze secondes sur le débit que le cadrage annonce
+// comme premier usage.
+//
+// `initial={false}` au premier rendu (serveur ET première passe client, pour
+// ne pas dépareiller l'hydratation) : le HTML servi montre son contenu, donc
+// il peint tout de suite. Le voile n'arrive qu'au montage, et il ne se voit
+// que là où il ne coûte rien — sur ce qui est HORS de l'écran, et qui sera
+// révélé au défilement comme avant.
+//
+// Ce qui se perd, et c'est assumé : le fondu d'entrée du PREMIER écran. Il ne
+// pouvait pas en être autrement — un fondu depuis l'invisible exige d'attendre
+// le script, et c'est exactement ce qu'on refuse de faire payer ici. Tout le
+// reste de la page s'anime comme avant.
+// Première tentative, et pourquoi elle ne suffisait pas : passer `initial` de
+// `false` à l'état voilé après le montage ne voile RIEN — framer ne lit
+// `initial` qu'au montage. Le contenu apparaissait bien tout de suite, mais
+// l'animation d'entrée avait disparu de tout le site, sans bruit. C'est le
+// test `audit/specs/35-reveal-integrite.spec.ts` qui l'a dit.
+//
+// D'où ce pilotage explicite : `useInView` décide, et `animate` applique.
+//   avant montage        -> 'show', et `initial={false}` : rendu tel quel,
+//                           donc visible dans le HTML servi ;
+//   monté, hors écran    -> 'hidden' : le voile arrive là où il ne se voit
+//                           pas, et il y a de nouveau quelque chose à révéler ;
+//   monté, à l'écran     -> 'show' : ce qui était déjà lu ne clignote pas.
+function useEtatReveal(ref: React.RefObject<Element | null>, margin: string) {
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
+  const vu = useInView(ref, {
+    once: true,
+    margin: margin as `${number}px`,
+  });
+  return !monte || vu ? 'show' : 'hidden';
+}
 
 // Primitives d'animation (entrée au scroll). Le respect de
 // prefers-reduced-motion est géré GLOBALEMENT par <MotionProvider>
@@ -36,15 +78,25 @@ export function Reveal({
   as?: 'div' | 'section' | 'li' | 'ul' | 'ol';
   id?: string;
 }) {
-  const Comp = motion[as];
+  // `motion[as]` est une UNION de composants ; typer la ref contre chacun à la
+  // fois est impossible. Le cast porte sur le TYPE seulement — à l'exécution
+  // c'est bien la balise demandée qui est rendue, et toutes les propriétés
+  // employées ici (className, ref, variants, animate) leur sont communes.
+  const Comp = motion[as] as typeof motion.div;
+  const ref = useRef<HTMLDivElement>(null);
+  const etat = useEtatReveal(ref, '-80px');
   return (
     <Comp
+      ref={ref}
       id={id}
       data-reveal=""
       className={className}
-      initial={{ opacity: 0, y: 26 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
+      initial={false}
+      animate={etat}
+      variants={{
+        hidden: { opacity: 0, y: 26 },
+        show: { opacity: 1, y: 0 },
+      }}
       transition={{ duration: 0.78, ease: EASE, delay }}
     >
       {children}
@@ -72,16 +124,18 @@ export function RevealGroup({
   as?: 'div' | 'ul' | 'ol';
   'aria-label'?: string;
 }) {
-  const Comp = motion[as];
+  const Comp = motion[as] as typeof motion.div;
+  const ref = useRef<HTMLDivElement>(null);
+  const etat = useEtatReveal(ref, '-60px');
   return (
     <Comp
+      ref={ref}
       data-reveal=""
       className={className}
       aria-label={ariaLabel}
       variants={groupVariants}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: '-60px' }}
+      initial={false}
+      animate={etat}
     >
       {children}
     </Comp>

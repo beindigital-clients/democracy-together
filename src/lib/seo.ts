@@ -39,6 +39,31 @@ export function alternateOpenGraphLocales(locale: string): string[] {
 }
 
 /**
+ * Bloc `alternates` d'une page indexable : adresse canonique + hreflang.
+ *
+ * La forme reprend EXACTEMENT celle que `src/app/sitemap.ts` déclare pour la
+ * même page (fr, en, x-default) — son en-tête dit que les alternates du
+ * sitemap sont « cohérents avec les canonicals posés par les
+ * generateMetadata ». Deux écritures séparées de la même règle finissent par
+ * diverger ; celle-ci est la seule.
+ *
+ * À NE PAS employer sur une page en `noindex` : un moteur y ignore le
+ * hreflang, et le dépôt a tranché (issue #35) que l'ajouter ne serait que du
+ * bruit. `/recherche` et les billets de Tribune en sont les cas testés.
+ */
+export function alternatesFor(locale: string, path: string) {
+  const suffix = path ? `/${path}` : '';
+  const languages: Record<string, string> = {
+    'x-default': `${SITE_URL}/fr${suffix}`,
+  };
+  for (const l of routing.locales) languages[l] = `${SITE_URL}/${l}${suffix}`;
+  return {
+    canonical: `${SITE_URL}/${locale}${suffix}`,
+    languages,
+  };
+}
+
+/**
  * Fiche `Organization` (schema.org), posée une fois pour tout le site.
  *
  * Volontairement minimale : on ne déclare que ce dont le dépôt dispose

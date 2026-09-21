@@ -15,6 +15,7 @@ type Meta = {
   h1: number;
   imgSansAlt: number;
   jsonLd: number;
+  robots: string | null;
 };
 
 for (const locale of ['fr', 'en'] as const) {
@@ -43,6 +44,7 @@ for (const locale of ['fr', 'en'] as const) {
           jsonLd: document.querySelectorAll(
             'script[type="application/ld+json"]',
           ).length,
+          robots: attr('meta[name="robots"]', 'content'),
         };
       });
 
@@ -51,9 +53,22 @@ for (const locale of ['fr', 'en'] as const) {
       expect(m.lang, `${url} : attribut lang`).toBe(locale);
       expect(m.title.trim().length, `${url} : <title> vide`).toBeGreaterThan(0);
       expect(m.description, `${url} : meta description absente`).toBeTruthy();
-      expect(m.canonical, `${url} : canonical absent`).toBeTruthy();
-      expect(m.hreflang, `${url} : hreflang fr`).toContain('fr');
-      expect(m.hreflang, `${url} : hreflang en`).toContain('en');
+      // Une page en `noindex` est EXCLUE de ces deux exigences, et ce n'est
+      // pas une tolérance : le dépôt a tranché (issue #35, testé dans
+      // tests/e2e/seo.spec.ts) qu'un moteur ignore le hreflang sur une telle
+      // page et que l'y poser ne serait que du bruit. Ma première version de
+      // cette spec l'exigeait partout — elle a signalé `/recherche` à tort.
+      const noindex = /noindex/.test(m.robots ?? '');
+      if (!noindex) {
+        expect(m.canonical, `${url} : canonical absent`).toBeTruthy();
+        expect(m.hreflang, `${url} : hreflang fr`).toContain('fr');
+        expect(m.hreflang, `${url} : hreflang en`).toContain('en');
+      } else {
+        expect(
+          m.hreflang,
+          `${url} : hreflang posé sur une page noindex`,
+        ).toEqual([]);
+      }
       // Présent NE SUFFIT PAS : un og:title figé au nom du site ferait
       // apparaître toutes les pages partagées sous le même titre.
       expect(m.ogTitle, `${url} : og:title absent`).toBeTruthy();
