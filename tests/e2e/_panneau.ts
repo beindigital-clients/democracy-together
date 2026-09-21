@@ -36,3 +36,37 @@ export async function ouvrirPanneau(
     console.log(`[F-13] ${nom} : ${essais} clics ont été nécessaires`);
   }
 }
+
+// Même symptôme, effet NON localisable (audit F-13, 4e occurrence).
+//
+// La CI du 21/09 a rendu `home.spec.ts:25` instable : clic sur « EN » dans la
+// bannière, puis l'URL reste sur `/fr` — treize sondages. Ce n'est PAS un
+// panneau qui s'ouvre, et cela élargit la famille : ce que les occurrences
+// partagent n'est pas « un panneau », c'est un CLIC DONT L'EFFET NE SE PRODUIT
+// JAMAIS. Trois des quatre ont d'ailleurs la même forme — `page.goto()` suivi
+// immédiatement d'un clic.
+//
+// L'effet attendu est ici une URL, pas un élément : d'où un prédicat. Les
+// mêmes garde-fous s'appliquent — on ne re-clique que tant que l'effet ne
+// s'est PAS produit, et le nombre d'essais est imprimé.
+//
+// À RÉSERVER aux gestes IDEMPOTENTS : re-cliquer « EN » quand on est déjà en
+// anglais ne fait rien. Sur une bascule, utiliser `ouvrirPanneau`.
+export async function cliquerJusqua(
+  declencheur: Locator,
+  effetObtenu: () => Promise<boolean>,
+  nom: string,
+): Promise<void> {
+  let essais = 0;
+  await expect(async () => {
+    if (!(await effetObtenu())) {
+      essais += 1;
+      await declencheur.click();
+    }
+    expect(await effetObtenu(), `effet attendu : ${nom}`).toBe(true);
+  }).toPass({ timeout: 20_000 });
+
+  if (essais > 1) {
+    console.log(`[F-13] ${nom} : ${essais} clics ont été nécessaires`);
+  }
+}

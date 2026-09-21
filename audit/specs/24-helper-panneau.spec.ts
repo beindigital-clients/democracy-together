@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ouvrirPanneau } from '../../tests/e2e/_panneau';
+import { ouvrirPanneau, cliquerJusqua } from '../../tests/e2e/_panneau';
 
 // Le helper d'ouverture de panneau est lui-même testé — sur une page
 // SYNTHÉTIQUE, parce que la suite E2E du dépôt exige un déploiement Convex que
@@ -46,5 +46,46 @@ test('panneau qui ne s’ouvre jamais : le test échoue toujours', async ({
   // La garantie qui empêche ce helper d'être une mise sous le tapis.
   await expect(
     ouvrirPanneau(page.locator('#d'), page.locator('#p'), 'synthétique'),
+  ).rejects.toThrow();
+});
+
+// --- cliquerJusqua : même symptôme, effet non localisable ------------------
+
+/** Page dont le bouton n'agit qu'au `perdus+1`-ième clic, de façon IDEMPOTENTE. */
+function pageEffetIdempotent(perdus: number) {
+  return `<!doctype html><meta charset="utf-8"><body>
+    <button id="d">Agir</button>
+    <script>
+      let n = 0;
+      document.getElementById('d').addEventListener('click', () => {
+        if (++n <= ${perdus}) return;
+        document.title = 'fait';        // idempotent : re-cliquer ne défait rien
+      });
+    </script>
+  </body>`;
+}
+
+test('cliquerJusqua — premier clic perdu : l’effet finit par se produire', async ({
+  page,
+}) => {
+  await page.setContent(pageEffetIdempotent(1));
+  await cliquerJusqua(
+    page.locator('#d'),
+    async () => (await page.title()) === 'fait',
+    'synthétique',
+  );
+  expect(await page.title()).toBe('fait');
+});
+
+test('cliquerJusqua — effet qui ne vient jamais : le test échoue toujours', async ({
+  page,
+}) => {
+  await page.setContent(pageEffetIdempotent(9999));
+  await expect(
+    cliquerJusqua(
+      page.locator('#d'),
+      async () => (await page.title()) === 'fait',
+      'synthétique',
+    ),
   ).rejects.toThrow();
 });

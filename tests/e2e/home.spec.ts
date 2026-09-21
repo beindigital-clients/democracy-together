@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { cliquerJusqua } from './_panneau';
 
 // Navigateur en français : rend la détection Accept-Language déterministe
 // (sinon `/` est redirigé vers /en avec le navigateur en-US par défaut).
@@ -27,7 +28,11 @@ test('le sélecteur de langue pose le cookie NEXT_LOCALE', async ({
   context,
 }) => {
   await page.goto('/fr');
-  await page.getByRole('banner').getByRole('button', { name: 'EN' }).click();
+  await cliquerJusqua(
+    page.getByRole('banner').getByRole('button', { name: 'EN' }),
+    async () => /\/en$/.test(page.url()),
+    'bascule de langue FR -> EN',
+  );
   await expect(page).toHaveURL(/\/en$/);
   // Le cookie est écrit par next-intl pendant la navigation : on l'attend
   // (expect.poll) au lieu d'une lecture unique -> pas de course.
