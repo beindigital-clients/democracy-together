@@ -421,8 +421,9 @@ six URLs qui répondaient 500, elles répondent 200.
 **Deux points, et un seul est technique.**
 
 1. **La cause racine de F-13.** Le symptôme est mitigé et mieux découpé, mais
-   le mécanisme n'est pas établi. Non reproduit en 45 tentatives, processeur
-   bridé jusqu'à ×6.
+   le mécanisme n'est pas établi. **Il se reproduit désormais en trente
+   secondes** (§ 3), et la question s'est resserrée : pourquoi l'en-tête reste
+   inerte quand le pied de page répond déjà.
 2. **L'arbitrage produit de F-06** — `dynamicParams = false` sur les trois
    routes à paramètres fermés. Ce n'est pas une décision d'ingénierie : on
    échangerait un défaut uniforme contre une incohérence. Elle revient au
@@ -997,20 +998,55 @@ disqualifie « c'est ce composant-là ».
 **4. Le poids de la page.** `/fr/mentions-legales`, bien plus légère que
 l'accueil, se comporte à l'identique : 0/3 à 0 ms, 3/3 à 500 ms.
 
-#### Ce qui reste à expliquer
+#### La comparaison appariée — je la cherchais au mauvais endroit
 
-Pourquoi la bascule du menu **mobile**, elle, répond dès 0 ms. Le DOM de
-l'en-tête est pourtant **identique aux deux viewports** — 14 éléments
-interactifs de part et d'autre, seule la visibilité change. Il n'y a donc pas
-« moins à hydrater » en mobile, et cette explication-là tombe aussi.
+J'écrivais ici qu'aucune comparaison strictement appariée n'était possible,
+faute de contrôle cliquable aux **deux** viewports. C'était vrai, et hors
+sujet : la paire appariée n'est pas entre deux viewports, elle est entre le
+**haut** et le **bas** de la même page.
 
-Et aucune comparaison strictement appariée n'est possible sur ce point : aucun
-contrôle n'est cliquable aux **deux** viewports (la recherche est masquée en
-mobile, la bascule du menu l'est en desktop). Je ne conclus donc pas — une
-dernière sonde par écouteur de capture suggérait un remplacement de nœud sous
-bridage, mais elle mesure peut-être ce remplacement plutôt que la délivrance du
-clic, et c'est exactement le genre d'instrument non vérifié qui m'a déjà fait
-tort trois fois ici.
+Au même viewport, au même bridage ×4, sur la même page, sans aucune attente :
+
+| contrôle | position | clic dispatché | abouties |
+| --- | --- | --- | --- |
+| bascule de langue | en-tête | 1037 ms | **0/6** |
+| bouton de thème | pied de page | 1060 ms | **5/5** |
+
+Les deux colonnes viennent de sondes distinctes — l'une chronomètre le
+dispatch, l'autre compte les aboutissements — jouées dans des conditions
+identiques ; le test versé au dépôt, lui, mesure les deux taux dans une même
+exécution (0/3 contre 3/3).
+
+À 23 ms près c'est le même instant, pour des résultats opposés et
+déterministes. Quatre explications tombent avec cette seule mesure :
+
+- **« le clic arrive trop tôt »** — non : les deux arrivent ensemble ;
+- **« il faut défiler jusqu'au pied de page, donc il attend »** — le retard est
+  de 23 ms, pas de 500 ;
+- **« c'est d'être rendu par le serveur »** — le bouton de thème et l'envoi du
+  formulaire de contact sont dans le HTML serveur au même titre que la bascule
+  de langue, et aboutissent tous deux dès 0 ms (5/5 et 6/6). La règle est
+  fausse ;
+- **le remplacement du nœud par React** — la sonde précédente le *suggérait*,
+  et je la disais moi-même non vérifiée. Instrument refait : une marque posée
+  en **propriété JS** sur le bouton (invisible de React, donc sans risque de
+  provoquer la divergence qu'elle cherche) **survit au clic des deux côtés**.
+  Réfutée.
+
+S'y ajoute : **zéro message en console, zéro `pageerror`** pendant un clic
+perdu. La perte est parfaitement silencieuse.
+
+Reste donc une question, plus étroite qu'avant : **pourquoi l'en-tête ?** Il
+précède le pied de page dans le document, donc l'ordre d'hydratation joue
+contre l'observation. Une différence de structure existe — le pied de page est
+un composant **serveur** portant un seul îlot client sans dépendance Convex, là
+où l'en-tête aligne `AuthButton`, `NotificationBell`, `SearchDialog` et
+`JoinButton`, tous consommateurs de Convex, aux côtés de `LocaleSwitcher`.
+Mais je n'ai **pas** montré que c'est la cause : le geste perdu ne dépend
+lui-même pas de Convex. Je ne conclus pas.
+
+`audit/specs/25-f13-reproduction.spec.ts` porte cette mesure en troisième
+test — **31 secondes**.
 
 #### Le symptôme se produit à chaque campagne
 
@@ -1026,12 +1062,53 @@ Sur `2c08208`, le test voisin `home.spec.ts:13`, qui fait le MÊME geste sans
 garde, a d'ailleurs rougi. Il a été protégé depuis ; la campagne `07f8ba1` est
 la première à finir **213 passés, 0 instable**.
 
+#### Trois clics de plus mis à l'abri — et le reste laissé nu
+
+Balayage de `tests/e2e/**` pour ce qui reste exposé, avec un filtre resserré :
+un **bouton** (les liens font une navigation native, immunisée) cliqué juste
+après `goto`, sans étape coûteuse en temps entre les deux — un `fill()` ou une
+attente explicite laissent le temps d'hydrater. Une soixantaine de
+correspondances brutes ; la **mesure** n'en retient qu'une :
+
+`tests/e2e/locale-switch.spec.ts`, trois clics sur la bascule de langue — le
+geste exact perdu à chaque campagne, et le seul fichier du dépôt qui l'émette
+trois fois de suite juste après un `goto`. Ils passent désormais par
+`cliquerJusqua`. Le **second** clic de chaque test reste nu, délibérément :
+`router.replace` navigue côté client sans recharger le document, donc
+l'application est déjà hydratée — s'il échouait un jour, ce serait un autre
+mécanisme, et il doit rester visible.
+
+Les autres candidats ont été mesurés, puis **laissés nus** : bouton de thème
+5/5 dès 0 ms, envoi du formulaire de contact 6/6, bandeau cookies 5/5. Deux
+d'entre eux contredisaient ma prédiction, et c'est le point : le helper absorbe
+un mécanisme **mesuré**, il ne se répand pas par précaution.
+
+Un discriminant utile est tombé en route : un contrôle **absent du HTML
+serveur** ne peut pas perdre son clic, puisque Playwright attend qu'il
+apparaisse et que son apparition prouve le montage. C'est le cas du bandeau
+cookies (`useEffect` puis `if (!show) return null`) et du bouton « Prendre la
+parole » de la tribune, qui n'existe que dans la charge RSC. La réciproque,
+elle, est fausse — voir ci-dessus.
+
+*Au passage, un piège d'instrument.* Le consentement aux cookies de l'audit
+était figé sur l'origine `http://localhost:3000`. Le `localStorage` étant
+cloisonné par origine, lancer l'audit sur un autre port fait réapparaître le
+bandeau — `fixed inset-x-0 bottom-0 z-[80]` — qui **intercepte les clics sur le
+pied de page** et s'ajoute à chaque scan d'accessibilité, **sans rien
+signaler**. Aucune mesure publiée ici n'est touchée : la procédure du § 6 sert
+sur `:3000`. Mais j'ai pris cette occlusion pour un résultat pendant trois
+sondes, jusqu'à ce que le journal d'actionnabilité de Playwright la nomme.
+`audit/playwright.audit.config.ts` construit désormais le consentement pour
+l'origine réellement servie.
+
 #### Ce que ça change pour le dépôt
 
 Le constat n'est plus « la suite E2E est instable sur les dialogues ». C'est :
-**tout contrôle de l'en-tête est inerte tant que la page n'est pas hydratée, et
-un clic qui y tombe est perdu sans le moindre signal.** La durée de cette
-fenêtre est proportionnelle à la lenteur de la machine — d'où un test sur 213
+**tout contrôle de l'en-tête reste inerte un moment après le chargement, et un
+clic qui y tombe est perdu sans le moindre signal.** Ce n'est pas « la page
+n'est pas encore hydratée » : au même instant, le pied de page, lui, répond
+déjà. La durée de cette fenêtre est proportionnelle à la lenteur de la
+machine — d'où un test sur 213
 en CI, et d'où un premier appui sans effet sur un téléphone lent.
 
 Les deux helpers de `tests/e2e/_panneau.ts` ne sont donc plus une mitigation à
@@ -1198,7 +1275,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 6 | ~~`canonical` et `hreflang`~~ — **fait**. Deux des quatorze signalements étaient de faux positifs (`/recherche`, en `noindex`) | F-04 ✅ | — |
 | 7 | ~~Montées de version + `pnpm audit` en CI~~ — **fait** : 9 avis → 1. L'override `postcss@8` était indispensable, `pnpm up` seul n'aurait pas suffi | F-08 ✅ | — |
 | 8 | ~~Réponses uniformes~~ — **fait**, et sur **cinq** actions publiques, pas deux | F-09 ✅ | — |
-| 8bis | ~~Portail pour `ConfirmDialog`~~ — **fait**. Reste : chercher `[F-13]` dans le journal COMPLET d'une campagne pour savoir si un clic a été absorbé | F-13 🟡 | ½ j |
+| 8bis | ~~Portail pour `ConfirmDialog`~~, ~~chercher `[F-13]` dans le journal complet d'une campagne~~ — **faits** : **trois** clics absorbés sur la seule campagne `0655b98` (2 bascules de langue, 1 palette de recherche), soit ~3 par campagne et non 1 sur 213. Reste : **pourquoi l'en-tête**, quand le pied de page répond déjà (§ 3) | F-13 🟡 | ½ j |
 
 ### P2 — dette
 

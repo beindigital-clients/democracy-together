@@ -40,15 +40,41 @@ const N = Number(process.env.F13_N ?? 12);
 //     À viewport égal, tout l'en-tête meurt et ressuscite ENSEMBLE — voir le
 //     second test de ce fichier ;
 //   • le poids de la page — une page légère (`/fr/mentions-legales`) se
-//     comporte exactement comme l'accueil : 0/3 à 0 ms, 3/3 à 500 ms.
+//     comporte exactement comme l'accueil : 0/3 à 0 ms, 3/3 à 500 ms ;
+//   • « le clic arrive simplement trop tôt » — le clic de l'en-tête est
+//     dispatché à 1037 ms (0/6) et celui du pied de page à 1060 ms (5/5). À
+//     23 ms près, c'est le MÊME instant, pour des résultats opposés et
+//     déterministes. Le retard du second (il faut défiler) n'explique rien ;
+//   • « c'est d'être rendu par le serveur » — le bouton de thème et le bouton
+//     d'envoi du formulaire de contact sont dans le HTML serveur au même titre
+//     que la bascule de langue, et tous deux aboutissent dès 0 ms (5/5 et
+//     6/6). La règle est fausse ;
+//   • le REMPLACEMENT DU NŒUD par React — une marque posée en propriété JS sur
+//     le bouton (invisible de React, donc sans risque de divergence) survit au
+//     clic des deux côtés. Le clic n'atterrit pas sur un nœud détaché ;
+//   • une erreur d'hydratation — zéro message en console, zéro `pageerror`
+//     pendant un clic perdu. La perte est parfaitement silencieuse.
 //
-// CE QUI RESTE À EXPLIQUER : pourquoi la bascule du menu mobile, elle, répond
-// dès 0 ms. Le DOM de l'en-tête est pourtant IDENTIQUE aux deux viewports —
-// 14 éléments interactifs de part et d'autre, seule la visibilité change. Il
-// n'y a donc pas « moins à hydrater » en mobile. Et aucun contrôle n'est
-// cliquable aux DEUX viewports (la recherche est masquée en mobile, la bascule
-// du menu l'est en desktop), donc aucune comparaison strictement appariée
-// n'est possible sur ce point. Je ne conclus pas.
+// CE QUI EST ÉTABLI, ET QUI CORRIGE LE CADRAGE PRÉCÉDENT. J'avais écrit ici
+// qu'aucune comparaison strictement appariée n'était possible, faute de
+// contrôle cliquable aux DEUX viewports. Je cherchais au mauvais endroit : la
+// paire appariée n'est pas entre deux viewports, elle est entre le HAUT et le
+// BAS de la même page. Au même viewport, au même bridage, sur la même page et
+// au même instant, le bouton de thème du PIED DE PAGE répond quand la bascule
+// de langue de l'EN-TÊTE ne répond pas (troisième test ci-dessous).
+//
+// Ce n'est donc pas « la page est inerte tant qu'elle n'est pas hydratée » :
+// une partie de la page est déjà vivante pendant que l'autre ne l'est pas.
+//
+// CE QUI RESTE À EXPLIQUER : pourquoi l'en-tête, précisément. Il précède
+// pourtant le pied de page dans le document, donc l'ordre d'hydratation joue
+// contre l'observation. Une différence de structure existe — le pied de page
+// est un composant SERVEUR portant un seul îlot client sans dépendance
+// Convex, là où l'en-tête aligne `AuthButton`, `NotificationBell`,
+// `SearchDialog` et `JoinButton`, tous consommateurs de Convex, aux côtés de
+// `LocaleSwitcher` — mais je n'ai PAS montré que c'est la cause : le geste
+// perdu (`LocaleSwitcher`) ne dépend lui-même pas de Convex. Je ne conclus
+// pas.
 
 async function tauxDeReussite(
   browser: Browser,
@@ -190,4 +216,77 @@ test('F-13 — la bascule de langue, au repos et sous charge', async ({
   // l'instrument a bien mesuré quelque chose, sans quoi ces chiffres ne
   // vaudraient rien.
   expect(repos).toBeGreaterThan(bride);
+});
+
+// Le TROISIÈME volet, et celui qui déplace le constat : l'en-tête est inerte
+// pendant que le pied de page répond DÉJÀ.
+//
+// Le consentement doit être posé pour l'origine réellement servie, sinon le
+// bandeau cookies — `fixed inset-x-0 bottom-0` — intercepte le clic du pied de
+// page et l'on mesure une occlusion en croyant mesurer une hydratation. C'est
+// exactement l'erreur que cette mesure a d'abord commise.
+const CONSENTI = {
+  cookies: [],
+  origins: [
+    {
+      origin: BASE,
+      localStorage: [{ name: 'dt-cookie-consent', value: 'essential' }],
+    },
+  ],
+};
+
+test("F-13 — l'en-tête est inerte quand le pied de page répond déjà", async ({
+  browser,
+}, info) => {
+  test.skip(info.project.name !== 'desktop', 'mesure de machine, un projet');
+  test.setTimeout(600_000);
+
+  const M = 3;
+  async function taux(
+    selecteur: string,
+    reussi: (p: import('@playwright/test').Page) => Promise<boolean>,
+  ): Promise<number> {
+    let ok = 0;
+    for (let i = 0; i < M; i++) {
+      const ctx = await browser.newContext({
+        locale: 'fr-FR',
+        viewport: { width: 1280, height: 800 },
+        storageState: CONSENTI,
+      });
+      const page = await ctx.newPage();
+      const cdp = await ctx.newCDPSession(page);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      // Aucune attente : le geste part dès le retour de `goto()`, comme dans
+      // les specs du dépôt.
+      await page.goto(`${BASE}/fr`);
+      try {
+        await page.locator(selecteur).first().click({ timeout: 8_000 });
+        await page.waitForTimeout(2_500);
+        if (await reussi(page)) ok++;
+      } catch {
+        /* clic impossible : compté comme un échec */
+      }
+      await ctx.close();
+    }
+    return ok;
+  }
+
+  const entete = await taux(
+    'header button[lang="en"]',
+    async (p) => new URL(p.url()).pathname === '/en',
+  );
+  const pied = await taux(
+    'footer button[aria-label="Changer de thème"]',
+    async (p) =>
+      (await p.locator('html').getAttribute('data-theme')) === 'dark',
+  );
+  console.log(`[F-13] en-tête (bascule de langue) — ${entete}/${M} abouties`);
+  console.log(`[F-13] pied de page (bouton thème) — ${pied}/${M} abouties`);
+
+  // On n'assertit PAS que l'en-tête échoue : le jour où la cause est trouvée,
+  // ce test doit virer au vert tout seul, pas rougir. On assertit l'ordre, qui
+  // ne dépend pas de la charge de la machine : le pied de page ne fait jamais
+  // MOINS BIEN que l'en-tête. Si cela s'inversait un jour, c'est un fait neuf
+  // et il mérite de faire rougir.
+  expect(pied).toBeGreaterThanOrEqual(entete);
 });
