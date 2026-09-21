@@ -24,8 +24,12 @@ Un septième point mérite d'être vu même s'il ne bloque rien : la suite de te
 est **verte par chance d'ordonnancement** (F-01). Six seeds sur dix la font
 rougir.
 
-**Non vérifié faute d'environnement** : les 213 tests E2E (aucun déploiement
-Convex disponible). C'est l'angle mort principal de cet audit — voir § 5.
+**Mise à jour après passage en CI.** Les 213 tests E2E, que l'environnement
+d'audit ne pouvait pas jouer, ont tourné sur la préversion Convex de la PR :
+**212 passés sur 213**, deux fois de suite sur le même commit. L'angle mort
+principal de cet audit est donc largement refermé — et il a livré un constat de
+plus, F-13 : deux exécutions identiques, deux défaillances DIFFÉRENTES, toutes
+deux sur un dialogue.
 
 ---
 
@@ -48,7 +52,8 @@ sous `audit/specs/` et `audit/poc/`. Commande de reproduction en § 6.
 | B4 | Tests | Correctif de B2 | PoC vitest | 1/1 | ✅ `mockRestore()` marche | `B-poc-fix.log` |
 | B5 | Tests | Inventaire des `skip` | grep | 1/1 | ✅ 1 seul, conditionnel | § 3, F-11 |
 | B6 | Tests | Couverture E2E des 57 routes | croisement | 1/1 | ⚠️ 3 routes sans spec | § 3, F-12 |
-| B7 | Tests | Suite E2E complète | `pnpm test:e2e` | 0/1 | ⛔ **BLOQUÉ** | `B-e2e-attempt.log` |
+| B7 | Tests | Suite E2E, en local | `pnpm test:e2e` | 0/1 | ⛔ bloqué (pas de Convex) | `B-e2e-attempt.log` |
+| B8 | Tests | Suite E2E, **en CI** (préversion Convex) | `e2e.yml` ×2 | 2/2 | ⚠️ 212/213, **F-13** | [run 35549604936](https://github.com/beindigital-clients/democracy-together/actions/runs/35549604936) |
 | C1 | Sécu | Pentest **C-1** (RCE Next) | version + `pnpm audit` | 1/1 | ✅ **CORRIGÉ** (16.3.5) | `C-pnpm-audit.json` |
 | C2 | Sécu | Pentest **H-1** (publications membres) | PoC `convex-test` | 2/2 | ✅ **CORRIGÉ** | `C-poc-pentest.log` |
 | C3 | Sécu | Pentest **H-2** (file de modération) | PoC `convex-test` | 2/2 | ✅ **CORRIGÉ** | `C-poc-pentest.log` |
@@ -270,6 +275,45 @@ remédiation (« réponses uniformes ») n'a pas été appliquée.
 Sévérité basse compte tenu du rate-limit désormais en place, mais le point reste
 ouvert et doit être déclaré comme tel plutôt que considéré comme traité.
 
+### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues
+
+Le workflow `e2e.yml` a joué la suite **deux fois sur le commit `1390107`**, à
+huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
+
+| Exécution | Résultat | Test concerné |
+|---|---|---|
+| 1re (01:02) | 212 passés, **1 en échec** | `admin-recherche.spec.ts:153` — `locator.click` sur le bouton du dialogue de confirmation : *element is not stable*, réessai jusqu'au timeout de 45 s |
+| 2de (01:11) | 212 passés, **1 « flaky »** | `search.spec.ts:14` — `getByRole('dialog', { name: 'Rechercher sur le site' })` jamais visible, puis vert à la reprise |
+
+Deux exécutions du même code, **deux défaillances différentes, toutes deux en
+attente d'un dialogue**. Ce n'est pas deux accidents indépendants : c'est un
+motif. Les deux tests franchissent la même frontière — un dialogue monté en
+réaction à un clic, sur un écran encore alimenté par une requête Convex
+réactive.
+
+**Ce que ça coûte** : une porte de CI qui rougit pour une raison étrangère au
+diff apprend aux relecteurs à ignorer le rouge. Le dépôt en a déjà fait
+l'expérience — `search.spec.ts` est signalé « flaky » depuis la PR #88, et
+`admin-recherche.spec.ts` a fait tomber la CI trois fois de suite lors de son
+introduction.
+
+**Ce que j'ai écarté** : l'hypothèse d'un ancêtre porteur d'un `transform` qui
+capturerait le `fixed` du dialogue (`src/components/ui/confirm-dialog.tsx:97`,
+rendu **sans portail**). Il n'y a ni `framer-motion` ni `transform` dans
+`src/components/admin/**`. Je ne nomme donc pas de cause racine : la trace
+Playwright de l'exécution en échec, conservée sept jours dans l'artefact
+`playwright-report`, est le prochain pas.
+
+**Deux pistes**, la seconde valant indépendamment des tests :
+
+1. attendre que la liste soit stabilisée avant d'ouvrir la confirmation — la
+   recherche est temporisée (250 ms) puis faite par le serveur, donc la table
+   est encore réécrite quand le dialogue se monte ;
+2. monter `ConfirmDialog` dans un portail (`createPortal` vers `document.body`).
+   Un `fixed` rendu en place reste fragile : le jour où un ancêtre gagne un
+   `transform`, le dialogue est mal positionné **pour les utilisateurs**, pas
+   seulement pour Playwright.
+
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 
 `tests/e2e/admin-recherche.spec.ts:256` :
@@ -333,13 +377,15 @@ Répartition des rangs exigés : `moderateur` 22, `membre` 12, `editeur` 8,
 
 Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
 
-1. **Les 213 tests E2E — l'angle mort principal.** Aucun déploiement Convex
-   n'est joignable depuis cet environnement : les 8 sessions partagées
-   (`auth.setup.ts`) échouent, **200 tests ne sont pas joués**. Tout ce qui
-   touche l'authentification, les rôles, le back-office, le dépôt de
-   publication, la modération et les parcours connectés reste **non vérifié
-   dynamiquement**. *Pour le lever* : un `.env.local` pointant un déploiement de
-   dev avec `AUTH_DEV_OTP=true`.
+1. **Les 213 tests E2E — largement refermé depuis.** Aucun déploiement Convex
+   n'était joignable depuis l'environnement d'audit : les 8 sessions partagées
+   échouaient et 200 tests n'étaient pas joués. **La CI de la PR les a joués**,
+   sur une préversion Convex dédiée : 212 passés sur 213, deux fois. Tout ce qui
+   touche l'authentification, les rôles, le back-office, la modération et les
+   parcours connectés est donc bien exercé — par la suite du dépôt, pas par moi.
+   Ce qui reste non vérifié **de ma main** : je n'ai rejoué aucune attaque du
+   pentest sur ces surfaces (cf. les cinq 🟡 du § 4), et l'instabilité relevée
+   en F-13 reste sans cause établie.
 2. **Les navigateurs mobiles.** L'environnement fournit Chromium build 1194 ; le
    Playwright épinglé (1.61.1) réclame 1228 et refuse de démarrer. J'ai
    contourné en pointant l'exécutable, mais **les projets `mobile-chromium` et
@@ -408,7 +454,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 |---|---|---|---|
 | 1 | `try`/`catch` + état vide sur les 5 `fetchQuery` de page, et sur `actualites/[slug]` | F-02, F-10 | 2 h |
 | 2 | Vérifier à la main que la prod n'a ni `AUTH_DEV_OTP` ni `RECAPTCHA_DISABLED` (`npx convex env list --prod`) | angle mort 7 | 15 min |
-| 3 | Rejouer les 213 E2E sur un déploiement de dev réel | angle mort 1 | 1 h |
+| 3 | ~~Rejouer les 213 E2E~~ — **fait** par la CI de la PR (212/213, deux fois) | angle mort 1 | — |
 
 ### P1 — dans la foulée
 
@@ -419,6 +465,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 6 | `canonical` et `hreflang` sur les 12 (resp. 14) pages qui en manquent | F-04 | 2 h |
 | 7 | `pnpm up postcss vitest @vitest/mocker` puis `pnpm audit --audit-level=high` en CI | F-08 | 1 h |
 | 8 | Réponses uniformes sur `newsletter.subscribe` et `events.registerForEvent` | F-09 | 1 h |
+| 8bis | Ouvrir la trace Playwright des deux échecs de dialogue ; portail pour `ConfirmDialog` | F-13 | ½ j |
 
 ### P2 — dette
 
