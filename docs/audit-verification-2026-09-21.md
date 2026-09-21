@@ -1063,6 +1063,28 @@ Sur `2c08208`, le test voisin `home.spec.ts:13`, qui fait le MÊME geste sans
 garde, a d'ailleurs rougi. Il a été protégé depuis ; la campagne `07f8ba1` est
 la première à finir **213 passés, 0 instable**.
 
+Le décompte par campagne monte à mesure que les gardes couvrent le geste :
+`0655b98` en portait **trois** (2 bascules de langue, 1 palette de recherche),
+et `286965a` en porte **quatre**, toutes sur la bascule de langue :
+
+```
+[F-13] bascule de langue FR -> EN (accueil) : 2 clics ont été nécessaires
+[F-13] bascule de langue FR -> EN : 2 clics ont été nécessaires
+[F-13] bascule de langue FR→EN (bibliothèque filtrée) : 2 clics ont été nécessaires
+[F-13] bascule de langue FR→EN (recherche) : 2 clics ont été nécessaires
+```
+
+Les deux dernières sont les gardes posées sur `locale-switch.spec.ts` : elles
+ont servi **dès la première campagne qui les exerce**. Sans elles, ces deux
+tests étaient exposés au rouge exactement comme `home.spec.ts:13` sur
+`2c08208`. Le troisième site protégé du même fichier (`/fr/le-reseau`) n'a pas
+eu besoin d'un second clic cette fois — le mécanisme est fréquent, pas
+systématique. Campagne verte : **213 passés, 0 instable**.
+
+Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat.
+Le jour où la cause est trouvée, elles disparaissent, et c'est ainsi qu'on le
+saura.
+
 #### Trois clics de plus mis à l'abri — et le reste laissé nu
 
 Balayage de `tests/e2e/**` pour ce qui reste exposé, avec un filtre resserré :
