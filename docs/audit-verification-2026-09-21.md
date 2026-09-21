@@ -1012,6 +1012,20 @@ bridage, mais elle mesure peut-être ce remplacement plutôt que la délivrance 
 clic, et c'est exactement le genre d'instrument non vérifié qui m'a déjà fait
 tort trois fois ici.
 
+#### Le symptôme se produit à chaque campagne
+
+Le journal complet de trois campagnes consécutives porte la même ligne :
+
+```
+[F-13] bascule de langue FR -> EN : 2 clics ont été nécessaires
+```
+
+`2c08208`, `148d099`, `07f8ba1` — trois fois sur trois. Ce n'est donc pas un
+accident rare : **c'est routinier**, et seul le helper le rendait invisible.
+Sur `2c08208`, le test voisin `home.spec.ts:13`, qui fait le MÊME geste sans
+garde, a d'ailleurs rougi. Il a été protégé depuis ; la campagne `07f8ba1` est
+la première à finir **213 passés, 0 instable**.
+
 #### Ce que ça change pour le dépôt
 
 Le constat n'est plus « la suite E2E est instable sur les dialogues ». C'est :
