@@ -965,26 +965,65 @@ versionne la mesure.
 sur « EN » ne fait rien, sans le moindre retour — le premier public visé par le
 cadrage.
 
-**Le constat est aussi COMPARATIF** : le même geste sur `MobileNav`, dans des
-conditions strictement identiques, aboutit **20/20 à ×4**. Même fenêtre, même
-clic, même page. Ce n'est donc pas « tout clic avant hydratation est perdu » :
-quelque chose distingue ces deux composants.
+#### Ce que ce n'est PAS — quatre pistes fermées par la mesure
 
-**Une hypothèse testée et RÉFUTÉE.** `LocaleSwitcher` lit `useSearchParams()`,
-un hook de RENDU, alors que sa valeur ne sert qu'au clic — piste séduisante, et
-le correctif tenait en une ligne (`window.location.search` dans le
-gestionnaire). Mesuré après reconstruction : **toujours 0/40**. Le changement a
-été **annulé** : expédier un correctif avec une justification fausse est pire
-que ne rien expédier.
+**1. Une lenteur.** À ×1 la bascule aboutit en 0,54 à 0,76 s (six mesures). À
+×4, elle n'aboutit **jamais** : l'URL est encore `/fr` après vingt secondes
+d'attente. Le clic est perdu, il n'est pas en retard.
 
-**Ce qui reste à trouver** : ce qui distingue ces deux composants. Une dernière
-sonde — écouteur en phase de capture posé depuis le test — suggère que le nœud
-est remplacé sous bridage, mais elle mesure peut-être ce remplacement plutôt
-que la délivrance du clic. Je ne conclus pas dessus : c'est exactement le genre
-d'instrument non vérifié qui m'a déjà fait tort trois fois dans cet audit.
+**2. `useSearchParams()`.** `LocaleSwitcher` lit ce hook de RENDU alors que sa
+valeur ne sert qu'au clic — piste séduisante, correctif d'une ligne
+(`window.location.search` dans le gestionnaire). Mesuré après reconstruction :
+**toujours 0/40**. Le changement a été **annulé**. Expédier un correctif avec
+une justification fausse est pire que ne rien expédier.
 
-Le travail restant est désormais d'une autre nature : **il se mesure en
-trente secondes au lieu d'une campagne de CI.**
+**3. Le composant — et ici c'est MOI qui me trompais.** J'ai d'abord annoncé
+que `LocaleSwitcher` perdait le clic là où `MobileNav` ne le perdait pas
+(0/20 contre 20/20 à ×4), et j'en ai conclu que quelque chose distinguait ces
+deux composants. **Ma comparaison opposait un contrôle desktop à un contrôle
+mobile.** À viewport égal, sur la même page, au même instant :
+
+| Geste, desktop, ×4 | à 0 ms | à 500 ms |
+|---|---|---|
+| ouvrir la palette de recherche (**état local**) | ✗ | ✓ |
+| basculer la langue (**navigation**) | ✗ | ✓ |
+
+Ils meurent et ressuscitent **ensemble**. La nature du geste n'y est pour rien,
+le composant non plus. C'est le second test de
+`audit/specs/25-f13-reproduction.spec.ts`, et son assertion ne porte pas sur
+l'échec mais sur le fait que les deux se comportent pareil — c'est ce qui
+disqualifie « c'est ce composant-là ».
+
+**4. Le poids de la page.** `/fr/mentions-legales`, bien plus légère que
+l'accueil, se comporte à l'identique : 0/3 à 0 ms, 3/3 à 500 ms.
+
+#### Ce qui reste à expliquer
+
+Pourquoi la bascule du menu **mobile**, elle, répond dès 0 ms. Le DOM de
+l'en-tête est pourtant **identique aux deux viewports** — 14 éléments
+interactifs de part et d'autre, seule la visibilité change. Il n'y a donc pas
+« moins à hydrater » en mobile, et cette explication-là tombe aussi.
+
+Et aucune comparaison strictement appariée n'est possible sur ce point : aucun
+contrôle n'est cliquable aux **deux** viewports (la recherche est masquée en
+mobile, la bascule du menu l'est en desktop). Je ne conclus donc pas — une
+dernière sonde par écouteur de capture suggérait un remplacement de nœud sous
+bridage, mais elle mesure peut-être ce remplacement plutôt que la délivrance du
+clic, et c'est exactement le genre d'instrument non vérifié qui m'a déjà fait
+tort trois fois ici.
+
+#### Ce que ça change pour le dépôt
+
+Le constat n'est plus « la suite E2E est instable sur les dialogues ». C'est :
+**tout contrôle de l'en-tête est inerte tant que la page n'est pas hydratée, et
+un clic qui y tombe est perdu sans le moindre signal.** La durée de cette
+fenêtre est proportionnelle à la lenteur de la machine — d'où un test sur 213
+en CI, et d'où un premier appui sans effet sur un téléphone lent.
+
+Les deux helpers de `tests/e2e/_panneau.ts` ne sont donc plus une mitigation à
+l'aveugle : ils absorbent un mécanisme **mesuré**. Et le travail restant est
+d'une autre nature — **il se mesure en trente secondes au lieu d'une campagne
+de CI.**
 
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 

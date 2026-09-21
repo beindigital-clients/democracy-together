@@ -27,14 +27,28 @@ const N = Number(process.env.F13_N ?? 12);
 // de test — c'est le premier public visé par le cadrage.
 //
 // CE QUI EST ÉCARTÉ, par la mesure et non par raisonnement :
-//   • l'animation d'entrée — aucun des panneaux concernés n'en a ;
-//   • « le panneau est lent » — les assertions qui ont échoué RÉESSAIENT ;
-//   • `useSearchParams()` dans le sélecteur de langue — hypothèse testée en
-//     retirant le hook, reconstruit, remesuré : TOUJOURS 0/40. Réfutée.
 //
-// CE QUI RESTE INEXPLIQUÉ : pourquoi ce composant-ci perd le clic quand
-// `MobileNav`, dans des conditions strictement identiques, ne le perd jamais
-// (20/20 à ×4). C'est là qu'il faut creuser, et c'est mesurable désormais.
+//   • l'animation d'entrée — aucun des panneaux concernés n'en a ;
+//   • « le panneau est lent » — les assertions qui ont échoué RÉESSAIENT, et
+//     mesuré : à ×4 l'URL ne bascule JAMAIS, même après 20 secondes, quand
+//     elle bascule en ~0,7 s au repos. C'est une perte, pas une lenteur ;
+//   • `useSearchParams()` dans le sélecteur de langue — hypothèse testée en
+//     retirant le hook, reconstruit, remesuré : TOUJOURS 0/40. Réfutée ;
+//   • LE COMPOSANT LUI-MÊME. J'ai d'abord cru que `LocaleSwitcher` perdait le
+//     clic là où `MobileNav` ne le perdait pas. C'était MA comparaison qui
+//     était fautive : elle opposait un contrôle desktop à un contrôle mobile.
+//     À viewport égal, tout l'en-tête meurt et ressuscite ENSEMBLE — voir le
+//     second test de ce fichier ;
+//   • le poids de la page — une page légère (`/fr/mentions-legales`) se
+//     comporte exactement comme l'accueil : 0/3 à 0 ms, 3/3 à 500 ms.
+//
+// CE QUI RESTE À EXPLIQUER : pourquoi la bascule du menu mobile, elle, répond
+// dès 0 ms. Le DOM de l'en-tête est pourtant IDENTIQUE aux deux viewports —
+// 14 éléments interactifs de part et d'autre, seule la visibilité change. Il
+// n'y a donc pas « moins à hydrater » en mobile. Et aucun contrôle n'est
+// cliquable aux DEUX viewports (la recherche est masquée en mobile, la bascule
+// du menu l'est en desktop), donc aucune comparaison strictement appariée
+// n'est possible sur ce point. Je ne conclus pas.
 
 async function tauxDeReussite(
   browser: Browser,
@@ -80,6 +94,81 @@ async function tauxDeReussite(
 // On imprime donc les deux taux. Le jour où la cause est trouvée, le second
 // chiffre remonte et se voit dans le rapport — sans qu'un test rouge ait eu à
 // l'annoncer, ce que ce même audit reproche ailleurs.
+// Le second volet du constat, et celui qui a corrigé mon erreur : ce n'est pas
+// LE COMPOSANT. Au même instant, au même viewport, sur la même page, un geste
+// d'ÉTAT LOCAL (ouvrir la palette de recherche) et un geste de NAVIGATION
+// (basculer la langue) échouent tous les deux — puis réussissent tous les deux.
+// Ils meurent et ressuscitent ensemble.
+test('F-13 — état local et navigation meurent ensemble', async ({
+  browser,
+}, info) => {
+  test.skip(info.project.name !== 'desktop', 'mesure de machine, un projet');
+  test.setTimeout(600_000);
+
+  async function essai(
+    attente: number,
+    geste: (p: import('@playwright/test').Page) => Promise<void>,
+    reussi: (p: import('@playwright/test').Page) => Promise<boolean>,
+  ): Promise<boolean> {
+    const ctx = await browser.newContext({
+      locale: 'fr-FR',
+      viewport: { width: 1280, height: 800 },
+    });
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await page.goto(`${BASE}/fr`);
+    await page.waitForTimeout(attente);
+    try {
+      await geste(page);
+    } catch {
+      await ctx.close();
+      return false;
+    }
+    await page.waitForTimeout(2_500);
+    const ok = await reussi(page);
+    await ctx.close();
+    return ok;
+  }
+
+  const etat = (a: number) =>
+    essai(
+      a,
+      (p) =>
+        p
+          .getByRole('banner')
+          .getByRole('button', { name: 'Recherche' })
+          .click({ timeout: 8_000 }),
+      (p) =>
+        p.getByRole('dialog', { name: 'Rechercher sur le site' }).isVisible(),
+    );
+  const navigation = (a: number) =>
+    essai(
+      a,
+      (p) =>
+        p
+          .getByRole('banner')
+          .getByRole('button', { name: 'EN' })
+          .click({ timeout: 8_000 }),
+      async (p) => /\/en$/.test(p.url()),
+    );
+
+  const t0 = { etat: await etat(0), nav: await navigation(0) };
+  const t500 = { etat: await etat(500), nav: await navigation(500) };
+  console.log(
+    `[F-13] à 0 ms   — état local ${t0.etat ? 'OK' : '--'} · navigation ${t0.nav ? 'OK' : '--'}`,
+  );
+  console.log(
+    `[F-13] à 500 ms — état local ${t500.etat ? 'OK' : '--'} · navigation ${t500.nav ? 'OK' : '--'}`,
+  );
+  // Ce qui est asserté n'est pas l'échec (le constat est OUVERT, le faire
+  // rougir en permanence apprendrait à ignorer le rouge) mais le fait que les
+  // deux natures de geste se comportent PAREIL. C'est ce qui disqualifie
+  // « c'est ce composant-là » comme explication.
+  expect(t0.etat).toBe(t0.nav);
+  expect(t500.etat).toBe(t500.nav);
+});
+
 test('F-13 — la bascule de langue, au repos et sous charge', async ({
   browser,
 }, info) => {
