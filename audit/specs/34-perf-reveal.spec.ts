@@ -31,17 +31,30 @@ async function lcp(page: import('@playwright/test').Page): Promise<number> {
   );
 }
 
-test('le voile des Reveal est-il bien posé au départ ?', async ({ page }) => {
+// Ce test DISAIT l'inverse : il exigeait `opacity:0` dans le HTML servi, ce
+// qui était le diagnostic de F-05 — un élément à opacité nulle n'est pas
+// candidat au LCP, d'où les 12 808 ms sur cette page en 3G lente. Le constat
+// posé et corrigé, l'affirmation est retournée : elle garde maintenant le
+// correctif au lieu de commémorer le défaut. Si quelqu'un remet un voile au
+// rendu serveur, le LCP repart à douze secondes — et ce test rougit d'abord.
+//
+// L'autre moitié du contrat est tenue par 35-reveal-integrite.spec.ts :
+// l'animation d'entrée doit TOUJOURS exister. Les deux ensemble interdisent
+// les deux façons de se tromper — reposer le voile, ou supprimer l'animation.
+test('aucun voile au rendu serveur (garde du correctif F-05)', async ({
+  page,
+}) => {
   await page.goto(ROUTE, { waitUntil: 'domcontentloaded' });
-  // Style INLINE posé par framer-motion côté serveur, avant toute hydratation.
+  // Style INLINE que framer-motion écrirait côté serveur, avant hydratation.
   const inline = await page
     .locator('[data-reveal]')
     .first()
     .getAttribute('style');
-  console.log(`[reveal] style inline servi : ${inline}`);
-  expect(inline ?? '', 'framer pose bien opacity:0 dans le HTML').toContain(
-    'opacity:0',
-  );
+  console.log(`[reveal] style inline servi : ${JSON.stringify(inline)}`);
+  expect(
+    (inline ?? '').replace(/\s/g, ''),
+    'le HTML servi ne doit plus masquer le contenu',
+  ).not.toContain('opacity:0');
 });
 
 test('LCP avec le voile retiré — méthode vérifiée', async ({ page }) => {

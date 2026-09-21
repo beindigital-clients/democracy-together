@@ -1,20 +1,21 @@
 import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
 import { PUBLIQUES } from './_routes';
+import { scanA11y } from './_a11y';
 
+// Accessibilité des pages publiques, méthodologie du dépôt (voir `_a11y.ts`).
+//
+// PÉRIMÈTRE : `PUBLIQUES` déborde la liste PAGES de tests/e2e/a11y.spec.ts —
+// c'est l'apport de l'audit. Les pages que la porte du dépôt ne regarde pas
+// (connexion, don, presse, replays, partenaires, calendrier…) sont scannées
+// ici avec exactement le même instrument.
 for (const route of PUBLIQUES) {
   test(`a11y fr${route || '/'}`, async ({ page }) => {
     await page.goto(`/fr${route}`, { waitUntil: 'domcontentloaded' });
-    const r = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-    const graves = r.violations.filter((v) =>
-      ['serious', 'critical'].includes(v.impact ?? ''),
-    );
-    const resume = graves.map((v) => `${v.id}(${v.impact},${v.nodes.length})`);
+    const { graves, differees } = await scanA11y(page);
     console.log(
-      `[a11y] /fr${route || '/'} total=${r.violations.length} graves=${graves.length} ${resume.join(' ')}`,
+      `[a11y] /fr${route || '/'} graves=${graves.length} ` +
+        `différées=${differees.join(' ') || 'aucune'}`,
     );
-    expect(resume, `/fr${route} : violations graves`).toEqual([]);
+    expect(graves, `/fr${route || '/'} : violations graves`).toEqual([]);
   });
 }
