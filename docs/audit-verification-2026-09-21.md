@@ -1194,6 +1194,27 @@ Deux réserves, et aucune ne doit être arrondie :
   campagne même où la sonde apparaît. Une campagne ne permet pas de distinguer
   cela de la variance ordinaire ; il en faudra plusieurs.
 
+**La campagne `0dda6c3` est la première à répondre**, et elle donne deux
+réponses différentes :
+
+```
+[F-13] bascule de langue FR -> EN : 2 clics — le déclencheur s'était déplacé de -998×-20 px
+[F-13] … (bibliothèque filtrée)  : 2 clics — sans déplacement du déclencheur
+[F-13] … (recherche)             : 2 clics — sans déplacement du déclencheur
+```
+
+Pour les deux sites de `locale-switch.spec.ts`, **le bouton n'a pas bougé** :
+ce qui reste n'est donc pas un décalage, c'est un autre mécanisme. La piste du
+reflux est épuisée pour ces cas-là.
+
+Le `-998×-20` de `home.spec.ts`, lui, est trop grand pour un reflux d'en-tête —
+c'est la signature d'une mesure prise sur un document **déjà en cours de
+navigation**. Auquel cas le premier clic avait porté et le compteur
+surestime. Une seule donnée les sépare : l'URL au moment de chaque clic, que le
+mouchard relève désormais. Validé contre un cas connu — la page synthétique de
+`24-helper-panneau.spec.ts`, qui avale réellement le premier clic sans naviguer,
+imprime « sans déplacement, **URL inchangée** ».
+
 Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat,
 et il n'est pas encore tombé à zéro.
 

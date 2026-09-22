@@ -23,33 +23,47 @@ import { expect, type Locator } from '@playwright/test';
 // trancher avant d'en avoir plusieurs.
 class Mouchard {
   private precedente: { x: number; y: number } | null = null;
+  private urlPrecedente: string | null = null;
   private constat = " — (le mouchard n'a pas pu comparer)";
 
   // `getBoundingClientRect` via `evaluate`, et NON `boundingBox()` : ce dernier
   // rend `null` dès qu'il juge l'élément non visible, et la première campagne
   // instrumentée n'a alors RIEN imprimé. Un mouchard muet est exactement le
-  // mode de défaillance que ce constat traque depuis le début : il dit
-  // désormais toujours quelque chose, y compris son propre échec.
+  // mode de défaillance que ce constat traque : il dit désormais toujours
+  // quelque chose, y compris son propre échec.
+  //
+  // L'URL EST RELEVÉE AUSSI, et c'est ce qui sépare un clic PERDU d'un clic
+  // ÉMIS PENDANT UNE NAVIGATION. Première campagne parlante : `home.spec.ts`
+  // annonçait « déplacé de -998×-20 px » — trop pour un reflux d'en-tête, mais
+  // exactement ce qu'on mesure sur un document déjà en train de changer. Si
+  // l'URL a bougé entre les deux clics, le premier avait porté et le compteur
+  // surestime ; si elle n'a pas bougé, le clic s'est bien perdu.
   async avantClic(declencheur: Locator): Promise<void> {
+    const url = declencheur.page().url();
     const b = await declencheur
       .evaluate((el) => {
         const r = (el as HTMLElement).getBoundingClientRect();
         return { x: Math.round(r.x), y: Math.round(r.y) };
       })
       .catch(() => null);
+    const bougee =
+      this.urlPrecedente !== null && this.urlPrecedente !== url
+        ? ', URL DÉJÀ CHANGÉE entre les deux clics'
+        : this.urlPrecedente !== null
+          ? ', URL inchangée'
+          : '';
     if (!b) {
-      this.constat = ' — position du déclencheur illisible';
-      return;
-    }
-    if (this.precedente) {
+      this.constat = ` — position du déclencheur illisible${bougee}`;
+    } else if (this.precedente) {
       const dx = b.x - this.precedente.x;
       const dy = b.y - this.precedente.y;
       this.constat =
-        dx || dy
+        (dx || dy
           ? ` — le déclencheur s'était déplacé de ${dx}×${dy} px`
-          : ' — sans déplacement du déclencheur';
+          : ' — sans déplacement du déclencheur') + bougee;
     }
-    this.precedente = b;
+    if (b) this.precedente = b;
+    this.urlPrecedente = url;
   }
 
   verdict(): string {
