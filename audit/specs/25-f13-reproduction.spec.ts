@@ -3,78 +3,99 @@ import { test, expect, type Browser } from '@playwright/test';
 const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
 const N = Number(process.env.F13_N ?? 12);
 
-// F-13 — LA REPRODUCTION, enfin.
+// F-13 — LA CAUSE, ET SA PREUVE.
 //
-// Le constat a résisté à quatre campagnes de CI parce qu'il ne s'observait
-// QU'EN CI : une défaillance sur 213 tests, jamais la même, et une campagne
-// complète pour la voir. Ce fichier la produit localement, en trente secondes.
+// Le constat a résisté à cinq campagnes de CI parce qu'il ne s'observait qu'en
+// CI : une défaillance sur 213 tests, jamais la même. Ce fichier l'a d'abord
+// reproduit localement en trente secondes ; il documente désormais SA CAUSE.
 //
-// LE LEVIER EST LE PROCESSEUR, pas le hasard. Dans les conditions exactes des
-// tests E2E (`page.goto()` par défaut, donc rendu la main à l'événement
-// `load`), la bascule de langue se comporte ainsi :
+// LA CAUSE. `JoinButton` rendait `null` le temps que Convex résolve l'état
+// d'authentification, puis insérait 94 px dans une grappe ancrée à droite
+// (`ml-auto`, site-header.tsx:41). Tout ce qui la précède — bascule de langue,
+// bouton de recherche — sautait de 104 px VERS LA GAUCHE, après le premier
+// rendu. Playwright calcule les coordonnées du clic, puis le dispatche : sous
+// bridage, l'en-tête reflue entre les deux, et le clic part vers une position
+// que le bouton vient de quitter.
 //
-//   bridage   bascules abouties
-//   ×1        40/40
-//   ×4         0/40
-//   ×10        0/40
+// MESURÉ, PAS DÉDUIT : au moment du clic, la cible réelle était
+// `div.hidden.items-center.gap-2` — le conteneur — et jamais le bouton. Le
+// bouton, lui, portait bien ses props React : il était hydraté et fonctionnel.
+// Ce n'était donc pas un défaut d'hydratation mais un clic qui rate sa cible.
 //
-// Un runner GitHub est plus lent que cette machine sans l'être autant qu'un
-// bridage ×4 : d'où le taux observé d'environ un test sur 213, et d'où
-// l'impossibilité de reproduire à la main.
+//   bridage   avant      après
+//   ×1        40/40      12/12
+//   ×4         0/40      12/12
 //
-// CE QUE ÇA VEUT DIRE POUR UN VISITEUR : sur un téléphone lent, le premier
-// appui sur « EN » ne fait rien, sans le moindre retour. Ce n'est pas un défaut
-// de test — c'est le premier public visé par le cadrage.
+// CE QUE ÇA EXPLIQUE, et qui était resté ouvert :
 //
-// CE QUI EST ÉCARTÉ, par la mesure et non par raisonnement :
+//   • pourquoi le PIED DE PAGE répondait au même instant — il ne reflue pas ;
+//   • pourquoi la bascule du MENU MOBILE répondait dès 0 ms — la grappe qui
+//     bouge est `hidden` sous 1120 px ; mesuré, la bascule mobile ne se
+//     déplace pas d'un pixel ;
+//   • pourquoi un geste d'ÉTAT LOCAL et un geste de NAVIGATION mouraient
+//     ENSEMBLE — ils sont voisins dans la grappe qui se déplace ;
+//   • pourquoi un SECOND clic aboutissait — il repart de coordonnées fraîches,
+//     ce qui est exactement ce que font les helpers de `tests/e2e/_panneau.ts` ;
+//   • pourquoi la fenêtre était proportionnelle à la lenteur de la machine —
+//     plus Convex tarde, plus le reflux est tardif ;
+//   • pourquoi RIEN n'apparaissait en console — un clic sur un `div` ne
+//     produit rien.
 //
-//   • l'animation d'entrée — aucun des panneaux concernés n'en a ;
-//   • « le panneau est lent » — les assertions qui ont échoué RÉESSAIENT, et
-//     mesuré : à ×4 l'URL ne bascule JAMAIS, même après 20 secondes, quand
-//     elle bascule en ~0,7 s au repos. C'est une perte, pas une lenteur ;
-//   • `useSearchParams()` dans le sélecteur de langue — hypothèse testée en
-//     retirant le hook, reconstruit, remesuré : TOUJOURS 0/40. Réfutée ;
-//   • LE COMPOSANT LUI-MÊME. J'ai d'abord cru que `LocaleSwitcher` perdait le
-//     clic là où `MobileNav` ne le perdait pas. C'était MA comparaison qui
-//     était fautive : elle opposait un contrôle desktop à un contrôle mobile.
-//     À viewport égal, tout l'en-tête meurt et ressuscite ENSEMBLE — voir le
-//     second test de ce fichier ;
-//   • le poids de la page — une page légère (`/fr/mentions-legales`) se
-//     comporte exactement comme l'accueil : 0/3 à 0 ms, 3/3 à 500 ms ;
-//   • « le clic arrive simplement trop tôt » — le clic de l'en-tête est
-//     dispatché à 1037 ms (0/6) et celui du pied de page à 1060 ms (5/5). À
-//     23 ms près, c'est le MÊME instant, pour des résultats opposés et
-//     déterministes. Le retard du second (il faut défiler) n'explique rien ;
-//   • « c'est d'être rendu par le serveur » — le bouton de thème et le bouton
-//     d'envoi du formulaire de contact sont dans le HTML serveur au même titre
-//     que la bascule de langue, et tous deux aboutissent dès 0 ms (5/5 et
-//     6/6). La règle est fausse ;
-//   • le REMPLACEMENT DU NŒUD par React — une marque posée en propriété JS sur
-//     le bouton (invisible de React, donc sans risque de divergence) survit au
-//     clic des deux côtés. Le clic n'atterrit pas sur un nœud détaché ;
-//   • une erreur d'hydratation — zéro message en console, zéro `pageerror`
-//     pendant un clic perdu. La perte est parfaitement silencieuse.
+// CE QUE ÇA VEUT DIRE POUR UN VISITEUR, et c'est le vrai coût : sur un
+// téléphone lent, l'en-tête se réorganise sous le doigt. Le premier appui sur
+// « EN » tombe à côté, sans le moindre retour. Ce n'était jamais un défaut de
+// test.
 //
-// CE QUI EST ÉTABLI, ET QUI CORRIGE LE CADRAGE PRÉCÉDENT. J'avais écrit ici
-// qu'aucune comparaison strictement appariée n'était possible, faute de
-// contrôle cliquable aux DEUX viewports. Je cherchais au mauvais endroit : la
-// paire appariée n'est pas entre deux viewports, elle est entre le HAUT et le
-// BAS de la même page. Au même viewport, au même bridage, sur la même page et
-// au même instant, le bouton de thème du PIED DE PAGE répond quand la bascule
-// de langue de l'EN-TÊTE ne répond pas (troisième test ci-dessous).
+// LE CORRECTIF : `JoinButton` réserve sa place pendant le chargement
+// (`invisible`, qui conserve la boîte), comme `AuthButton` le faisait déjà.
+// Résiduel mesuré : 2 px — le gabarit d'`AuthButton` (64 px) contre le lien
+// « Connexion » (66 px).
 //
-// Ce n'est donc pas « la page est inerte tant qu'elle n'est pas hydratée » :
-// une partie de la page est déjà vivante pendant que l'autre ne l'est pas.
+// GARDE DE NON-RÉGRESSION : `tests/e2e/header-stabilite.spec.ts`, jouée en CI.
+// Vue ROUGIR sur le code d'avant (103,9 px) et verte après (2,4 px).
 //
-// CE QUI RESTE À EXPLIQUER : pourquoi l'en-tête, précisément. Il précède
-// pourtant le pied de page dans le document, donc l'ordre d'hydratation joue
-// contre l'observation. Une différence de structure existe — le pied de page
-// est un composant SERVEUR portant un seul îlot client sans dépendance
-// Convex, là où l'en-tête aligne `AuthButton`, `NotificationBell`,
-// `SearchDialog` et `JoinButton`, tous consommateurs de Convex, aux côtés de
-// `LocaleSwitcher` — mais je n'ai PAS montré que c'est la cause : le geste
-// perdu (`LocaleSwitcher`) ne dépend lui-même pas de Convex. Je ne conclus
-// pas.
+// CE QUI RESTE : un visiteur CONNECTÉ voit toujours l'en-tête bouger, le
+// gabarit d'`AuthButton` étant bien plus étroit que « Espace membre ·
+// Déconnexion ». Hors du périmètre de ce correctif, et non mesuré ici.
+//
+// PISTES ÉCARTÉES EN CHEMIN, par la mesure et non par raisonnement. Elles
+// restent consignées : elles disent ce que le constat N'ÉTAIT PAS.
+//
+//   • « le panneau est lent » — à ×4 l'URL ne basculait JAMAIS, même après
+//     20 secondes ;
+//   • `useSearchParams()` — hypothèse testée, réfutée, correctif annulé ;
+//   • le poids de la page ;
+//   • le délai de dispatch — clic d'en-tête à 1037 ms (0/6), clic de pied de
+//     page à 1060 ms (5/5) : le même instant, des résultats opposés ;
+//   • « être rendu par le serveur » — le bouton de thème et l'envoi du
+//     formulaire de contact le sont aussi, et aboutissent dès 0 ms ;
+//   • le remplacement du nœud par React — une marque posée en propriété JS
+//     survit au clic des deux côtés ;
+//   • une erreur d'hydratation — zéro message en console, zéro `pageerror`.
+
+// Le décalage horizontal de la bascule de langue entre la mise en page SERVIE
+// (JavaScript désactivé) et la mise en page ÉTABLIE. C'était 104 px : la cause.
+// Deux états DÉTERMINISTES, donc aucune course avec l'hydratation et aucune
+// sensibilité à la charge — contrairement à un seuil sur des taux.
+async function ecartDeMiseEnPage(browser: Browser): Promise<number> {
+  async function abscisse(js: boolean): Promise<number> {
+    const ctx = await browser.newContext({
+      locale: 'fr-FR',
+      viewport: { width: 1280, height: 800 },
+      javaScriptEnabled: js,
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/fr`);
+    if (js) await page.waitForTimeout(4_000);
+    const b = await page
+      .locator('header button[lang="en"]')
+      .first()
+      .boundingBox();
+    await ctx.close();
+    return b?.x ?? NaN;
+  }
+  return Math.abs((await abscisse(true)) - (await abscisse(false)));
+}
 
 async function tauxDeReussite(
   browser: Browser,
@@ -125,7 +146,7 @@ async function tauxDeReussite(
 // d'ÉTAT LOCAL (ouvrir la palette de recherche) et un geste de NAVIGATION
 // (basculer la langue) échouent tous les deux — puis réussissent tous les deux.
 // Ils meurent et ressuscitent ensemble.
-test('F-13 — état local et navigation meurent ensemble', async ({
+test('F-13 — état local et navigation se comportent pareil', async ({
   browser,
 }, info) => {
   test.skip(info.project.name !== 'desktop', 'mesure de machine, un projet');
@@ -212,10 +233,16 @@ test('F-13 — la bascule de langue, au repos et sous charge', async ({
     `[F-13] bridage ×4 — ${bride}/${N} bascules abouties ` +
       `(0 = le constat se reproduit ; ${N} = il a été corrigé)`,
   );
-  // L'écart EST le constat. On ne l'assertit pas — mais on vérifie que
-  // l'instrument a bien mesuré quelque chose, sans quoi ces chiffres ne
-  // vaudraient rien.
-  expect(repos).toBeGreaterThan(bride);
+  // L'ASSERTION NE PORTE PLUS SUR LES TAUX. La cause étant corrigée, l'écart a
+  // disparu ; un seuil sur ces chiffres serait sensible à la charge — le piège
+  // que ce fichier documente plus haut, et dans lequel sa première version est
+  // tombée. On assertit donc l'invariant DÉTERMINISTE qui a été corrigé.
+  const ecart = await ecartDeMiseEnPage(browser);
+  console.log(
+    `[F-13] décalage de l'en-tête, servi → établi : ${ecart.toFixed(1)} px ` +
+      `(104 px = le défaut est revenu)`,
+  );
+  expect(ecart).toBeLessThanOrEqual(8);
 });
 
 // Le TROISIÈME volet, et celui qui déplace le constat : l'en-tête est inerte
@@ -235,7 +262,7 @@ const CONSENTI = {
   ],
 };
 
-test("F-13 — l'en-tête est inerte quand le pied de page répond déjà", async ({
+test('F-13 — en-tête et pied de page, au même instant', async ({
   browser,
 }, info) => {
   test.skip(info.project.name !== 'desktop', 'mesure de machine, un projet');

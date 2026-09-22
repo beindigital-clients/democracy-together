@@ -14,8 +14,9 @@ renvoie à une commande jouée et à son journal.
 > telles, et leur description d'origine est conservée — un rapport réécrit
 > après coup ne dirait plus ce qui a été trouvé.
 >
-> **F-13 reste ouvert sur sa cause racine.** Il a gagné une quatrième
-> occurrence, qui a scindé le constat en deux familles : voir § 3.
+> **F-13 a désormais sa cause**, trouvée et corrigée après cinq campagnes : un
+> décalage de l'en-tête de 104 px au moment où l'authentification se résout.
+> Voir § 3 — le détail, la preuve, et ce qui reste.
 
 ## 0. Ce qui a été corrigé
 
@@ -403,13 +404,19 @@ dépend échouait à l'**import**, donc avant la moindre assertion — c'est ce 
 obligeait `seo-coherence.test.ts` à analyser le texte source au lieu
 d'importer.
 
-### F-13 — deux pistes éliminées, un défaut trouvé, cause racine inconnue
+### F-13 — la cause : l'en-tête se décale de 104 px sous le doigt
 
-Détail complet en § 3. Ce qui a changé : la famille n'est plus « des panneaux
-qui s'ouvrent au clic » (une quatrième occurrence l'a démentie), deux pistes
-sont écartées par la mesure, `mobile-nav` avait un vrai défaut corrigé pour
-lui-même, `ConfirmDialog` passe par un portail, et le symptôme est mitigé sans
-être effacé. **Le mécanisme reste inexpliqué.**
+Détail complet en § 3. **`JoinButton` rendait `null`** le temps que Convex
+résolve l'état d'authentification, puis insérait 94 px dans une grappe ancrée à
+droite : la bascule de langue et le bouton de recherche sautaient de **104 px
+vers la gauche**, après le premier rendu. Un appui visant « EN » partait vers
+une position que le bouton venait de quitter — mesuré, la cible réelle du clic
+était le conteneur, jamais le bouton.
+
+Le bouton était pourtant **hydraté et fonctionnel** : ce n'était pas un défaut
+d'hydratation mais un clic qui rate sa cible. `JoinButton` réserve désormais sa
+place pendant le chargement, comme `AuthButton` le faisait déjà. **Sous bridage
+×4, la bascule passe de 0/40 à 12/12.**
 
 ### Ce que ces correctifs ont fermé au passage
 
@@ -420,10 +427,10 @@ six URLs qui répondaient 500, elles répondent 200.
 
 **Deux points, et un seul est technique.**
 
-1. **La cause racine de F-13.** Le symptôme est mitigé et mieux découpé, mais
-   le mécanisme n'est pas établi. **Il se reproduit désormais en trente
-   secondes** (§ 3), et la question s'est resserrée : pourquoi l'en-tête reste
-   inerte quand le pied de page répond déjà.
+1. ~~**La cause racine de F-13.**~~ **Trouvée et corrigée** (§ 3). Ce qui reste
+   de ce constat : un visiteur **connecté** voit toujours l'en-tête bouger, le
+   gabarit d'`AuthButton` étant bien plus étroit que « Espace membre ·
+   Déconnexion ». Non mesuré, et hors du périmètre du correctif.
 2. **L'arbitrage produit de F-06** — `dynamicParams = false` sur les trois
    routes à paramètres fermés. Ce n'est pas une décision d'ingénierie : on
    échangerait un défaut uniforme contre une incohérence. Elle revient au
@@ -800,7 +807,7 @@ ouvert et doit être déclaré comme tel plutôt que considéré comme traité.
 > moi-même : la même erreur que sur F-02, où cinq pages annoncées en valaient
 > neuf.
 
-### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **TOUJOURS OUVERT**
+### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **CAUSE TROUVÉE ET CORRIGÉE**
 
 Le workflow `e2e.yml` a joué la suite **deux fois sur le commit `1390107`**, à
 huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
@@ -1037,17 +1044,78 @@ déterministes. Quatre explications tombent avec cette seule mesure :
 S'y ajoute : **zéro message en console, zéro `pageerror`** pendant un clic
 perdu. La perte est parfaitement silencieuse.
 
-Reste donc une question, plus étroite qu'avant : **pourquoi l'en-tête ?** Il
-précède le pied de page dans le document, donc l'ordre d'hydratation joue
-contre l'observation. Une différence de structure existe — le pied de page est
-un composant **serveur** portant un seul îlot client sans dépendance Convex, là
-où l'en-tête aligne `AuthButton`, `NotificationBell`, `SearchDialog` et
-`JoinButton`, tous consommateurs de Convex, aux côtés de `LocaleSwitcher`.
-Mais je n'ai **pas** montré que c'est la cause : le geste perdu ne dépend
-lui-même pas de Convex. Je ne conclus pas.
+Restait une question : **pourquoi l'en-tête ?** La réponse tient en une
+mesure, et elle ne parle pas d'hydratation du tout.
 
-`audit/specs/25-f13-reproduction.spec.ts` porte cette mesure en troisième
-test — **31 secondes**.
+#### La cause : l'en-tête se décale de 104 px sous le doigt
+
+Instrumenté au moment précis du clic, **la cible réelle n'est pas le bouton**,
+mais `div.hidden.items-center.gap-2` — son conteneur. Et le bouton, lui, porte
+bien ses props React : il est **hydraté et fonctionnel**. Ce n'est donc pas un
+clic perdu faute de gestionnaire, c'est un clic **qui rate sa cible**.
+
+| | |
+| --- | --- |
+| position de la bascule dans le HTML servi | x = **1102** |
+| point calculé par Playwright | x = **1118** (centre du bouton) |
+| position de la bascule **au moment du clic** | x = **998** |
+| écart | **104 px vers la gauche** |
+
+`JoinButton` rendait `null` le temps que Convex résolve l'état
+d'authentification (`join-button.tsx`), puis insérait un bouton de 94 px dans
+une grappe **ancrée à droite** (`ml-auto`, `site-header.tsx:41`) : tout ce qui
+la précède recule d'autant. Playwright calcule les coordonnées, puis dispatche ;
+sous bridage, l'en-tête reflue entre les deux. Un visiteur sur téléphone lent
+vit exactement la même chose : l'en-tête se réorganise sous son doigt.
+
+`AuthButton`, juste à côté, réservait déjà sa place (`h-5 w-16`). C'est ce
+voisinage qui a fini par rendre l'écart lisible.
+
+**Ce que cette cause explique, et qui était resté ouvert :**
+
+- pourquoi le **pied de page** répondait au même instant — il ne reflue pas ;
+- pourquoi la bascule du **menu mobile** répondait dès 0 ms — la grappe qui
+  bouge est `hidden` sous 1120 px ; mesuré, la bascule mobile **ne se déplace
+  pas d'un pixel** ;
+- pourquoi un geste d'**état local** et un geste de **navigation** mouraient
+  ensemble — ils sont voisins dans la grappe qui se déplace ;
+- pourquoi un **second clic** aboutissait — il repart de coordonnées fraîches,
+  ce que font précisément les helpers de `tests/e2e/_panneau.ts` ;
+- pourquoi la fenêtre était **proportionnelle à la lenteur** de la machine —
+  plus Convex tarde, plus le reflux est tardif ;
+- pourquoi **rien** n'apparaissait en console — un clic sur un `div` ne produit
+  rien.
+
+**Le correctif et sa preuve.** `JoinButton` réserve sa place pendant le
+chargement via `invisible` (`visibility: hidden`), qui conserve la boîte — donc
+la largeur exacte dans toutes les langues, sans avoir à la deviner — et retire
+l'élément du parcours au clavier et de l'arbre d'accessibilité.
+
+| bridage | avant | après |
+| --- | --- | --- |
+| ×1 | 40/40 | **12/12** |
+| ×4 | **0/40** | **12/12** |
+
+**Garde de non-régression** : `tests/e2e/header-stabilite.spec.ts`, jouée en
+CI. Elle compare deux états **déterministes** — la mise en page servie
+(JavaScript désactivé) et la mise en page établie — plutôt que de faire la
+course avec l'hydratation, ce qui l'aurait rendue vacante sur une machine
+rapide. Vue **rougir sur le code d'avant (103,9 px)** et verte après
+(**2,4 px**). Le résiduel de 2 px est l'écart entre le gabarit d'`AuthButton`
+(64 px) et le lien « Connexion » (66 px).
+
+**Ce qui reste, et ce que le correctif aggrave.** Pour un visiteur
+**connecté**, la place réservée est ensuite **libérée** (`isAuthenticated` →
+`null`). Son en-tête bougeait déjà — le gabarit d'`AuthButton` est bien plus
+étroit que « Espace membre · Déconnexion » — et ce correctif **ajoute 94 px à
+ce mouvement-là**. Le cas anonyme, lui, est mesuré et corrigé. Ce n'est pas un
+oubli : l'environnement d'audit n'a pas de déploiement Convex, donc le cas
+connecté n'a pas pu être mesuré ici.
+
+La résolution des **deux** cas suppose de connaître l'état d'authentification
+au rendu **serveur** — un changement d'architecture, pas un correctif de
+composant. C'est la suite naturelle de ce constat, et elle appartient au
+produit.
 
 #### Le symptôme se produit à chaque campagne
 
@@ -1126,18 +1194,17 @@ l'origine réellement servie.
 
 #### Ce que ça change pour le dépôt
 
-Le constat n'est plus « la suite E2E est instable sur les dialogues ». C'est :
-**tout contrôle de l'en-tête reste inerte un moment après le chargement, et un
-clic qui y tombe est perdu sans le moindre signal.** Ce n'est pas « la page
-n'est pas encore hydratée » : au même instant, le pied de page, lui, répond
-déjà. La durée de cette fenêtre est proportionnelle à la lenteur de la
-machine — d'où un test sur 213
-en CI, et d'où un premier appui sans effet sur un téléphone lent.
+Le constat n'était pas « la suite E2E est instable sur les dialogues », ni même
+« l'en-tête est inerte ». C'était : **l'en-tête se réorganise après le premier
+rendu, et un appui visant un de ses contrôles tombe à côté, sans le moindre
+signal.** Un défaut de mise en page, pas d'hydratation — et un défaut qui
+touchait les visiteurs avant les tests.
 
-Les deux helpers de `tests/e2e/_panneau.ts` ne sont donc plus une mitigation à
-l'aveugle : ils absorbent un mécanisme **mesuré**. Et le travail restant est
-d'une autre nature — **il se mesure en trente secondes au lieu d'une campagne
-de CI.**
+Les deux helpers de `tests/e2e/_panneau.ts` restent, et leur rôle se précise :
+ils re-cliquent avec des coordonnées fraîches. Ils n'ont jamais masqué un
+mécanisme obscur — ils absorbaient un décalage. Ils gardent leur utilité pour
+les gestes encore exposés (visiteur connecté), et leurs lignes `[F-13]` dans le
+journal de CI restent le compteur : **elles doivent maintenant disparaître.**
 
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 
@@ -1209,8 +1276,8 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    touche l'authentification, les rôles, le back-office, la modération et les
    parcours connectés est donc bien exercé — par la suite du dépôt, pas par moi.
    Ce qui reste non vérifié **de ma main** : je n'ai rejoué aucune attaque du
-   pentest sur ces surfaces (cf. les cinq 🟡 du § 4), et l'instabilité relevée
-   en F-13 reste sans cause établie.
+   pentest sur ces surfaces (cf. les cinq 🟡 du § 4). L'instabilité relevée en
+   F-13, elle, a désormais sa cause — et une garde jouée en CI.
 2. **Les navigateurs mobiles.** L'environnement fournit Chromium build 1194 ; le
    Playwright épinglé (1.61.1) réclame 1228 et refuse de démarrer. J'ai
    contourné en pointant l'exécutable, mais **les projets `mobile-chromium` et
@@ -1298,7 +1365,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 6 | ~~`canonical` et `hreflang`~~ — **fait**. Deux des quatorze signalements étaient de faux positifs (`/recherche`, en `noindex`) | F-04 ✅ | — |
 | 7 | ~~Montées de version + `pnpm audit` en CI~~ — **fait** : 9 avis → 1. L'override `postcss@8` était indispensable, `pnpm up` seul n'aurait pas suffi | F-08 ✅ | — |
 | 8 | ~~Réponses uniformes~~ — **fait**, et sur **cinq** actions publiques, pas deux | F-09 ✅ | — |
-| 8bis | ~~Portail pour `ConfirmDialog`~~, ~~chercher `[F-13]` dans le journal complet d'une campagne~~ — **faits** : **trois** clics absorbés sur la seule campagne `0655b98` (2 bascules de langue, 1 palette de recherche), soit ~3 par campagne et non 1 sur 213. Reste : **pourquoi l'en-tête**, quand le pied de page répond déjà (§ 3) | F-13 🟡 | ½ j |
+| 8bis | ~~Portail pour `ConfirmDialog`~~, ~~journal complet d'une campagne~~, ~~**pourquoi l'en-tête**~~ — **faits**. Cause : décalage de 104 px de l'en-tête quand l'authentification se résout ; `JoinButton` réserve désormais sa place, garde en CI (§ 3). Reste : le même décalage pour un visiteur **connecté** | F-13 🟢 | ¼ j |
 
 ### P2 — dette
 
