@@ -14,10 +14,11 @@ renvoie à une commande jouée et à son journal.
 > telles, et leur description d'origine est conservée — un rapport réécrit
 > après coup ne dirait plus ce qui a été trouvé.
 >
-> **F-13 a UNE cause, trouvée et corrigée** : un décalage de l'en-tête de
-> 104 px au moment où l'authentification se résout. Mais la campagne qui a
-> suivi le correctif porte TOUJOURS des clics absorbés : **le constat n'est pas
-> refermé**. Voir § 3.
+> **F-13 a sa cause, trouvée et corrigée** : un décalage de l'en-tête de 104 px
+> au moment où l'authentification se résout. Les clics « absorbés » qui
+> semblaient persister après le correctif étaient un défaut de MON compteur,
+> corrigé depuis ; la première campagne au compteur juste en relève **zéro**.
+> Une campagne ne suffit pas à clore : **corrigé, sous surveillance**. § 3.
 
 ## 0. Ce qui a été corrigé
 
@@ -436,12 +437,11 @@ six URLs qui répondaient 500, elles répondent 200.
 
 **Deux points, et un seul est technique.**
 
-1. **F-13 — une cause corrigée, le constat ouvert.** Le décalage de 104 px est
-   trouvé, corrigé et gardé en CI (§ 3). Mais la campagne suivante porte encore
-   quatre clics absorbés : **au moins un autre mécanisme existe**, et il ne se
-   reproduit pas sur la machine d'audit. Les helpers sont instrumentés pour le
-   caractériser à la prochaine campagne. S'y ajoute le cas **connecté**, que le
-   correctif aggrave de 94 px (§ 3).
+1. **F-13 — corrigé, sous surveillance.** Le décalage de 104 px est trouvé,
+   corrigé et gardé en CI ; la première campagne au compteur juste relève zéro
+   clic perdu (§ 3). Ce qu'il faut pour clore honnêtement : plusieurs campagnes
+   consécutives à zéro. Reste par ailleurs le cas **connecté**, que le correctif
+   aggrave de 94 px et qui n'a pas pu être mesuré ici.
 2. **L'arbitrage produit de F-06** — `dynamicParams = false` sur les trois
    routes à paramètres fermés. Ce n'est pas une décision d'ingénierie : on
    échangerait un défaut uniforme contre une incohérence. Elle revient au
@@ -818,7 +818,7 @@ ouvert et doit être déclaré comme tel plutôt que considéré comme traité.
 > moi-même : la même erreur que sur F-02, où cinq pages annoncées en valaient
 > neuf.
 
-### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **UNE CAUSE CORRIGÉE, LE CONSTAT RESTE OUVERT**
+### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **CORRIGÉ, SOUS SURVEILLANCE**
 
 Le workflow `e2e.yml` a joué la suite **deux fois sur le commit `1390107`**, à
 huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
@@ -1252,6 +1252,20 @@ Le helper attend désormais que l'effet se produise avant d'envisager un second
 clic. Un clic réellement perdu épuise cette attente puis les 20 secondes de
 `toPass`, et le test échoue comme avant — vérifié sur la page synthétique, qui
 compte toujours ses deux clics.
+
+#### Première campagne au compteur juste : zéro
+
+`3459d11`, la première à porter le compteur corrigé : **aucune ligne `[F-13]`**,
+214 passés, 0 instable.
+
+C'est cohérent avec la mesure locale — 0/40 sous bridage ×4 avant le correctif
+du décalage, 12/12 après. Le décalage de l'en-tête était bien la cause des
+pertes **réelles** ; le reste des lignes comptait des navigations en vol.
+
+**Mais une campagne verte ne referme pas un constat qui a résisté six
+campagnes.** Ce qui fermerait honnêtement F-13 : plusieurs campagnes
+consécutives à zéro, le compteur étant désormais fiable. D'ici là, le constat
+est **corrigé et sous surveillance**, pas clos.
 
 Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat.
 Elles comptent maintenant ce qu'elles prétendent.
