@@ -1178,6 +1178,22 @@ Vérifié avant d'accuser l'instrument : sans bridage, `cliquerJusqua` ne compte
 Son compteur ne surestime donc pas — ces quatre lignes sont des premiers clics
 réellement sans effet.
 
+**La campagne suivante, `4c63040`, la première instrumentée, en compte deux** —
+les deux sur `home.spec.ts`, les trois sites de `locale-switch.spec.ts` ayant
+disparu. Campagne verte : **214 passés, 0 instable** (le total confirme au
+passage que la garde de stabilité tourne bien).
+
+Deux réserves, et aucune ne doit être arrondie :
+
+- **le mouchard n'a rien dit.** `boundingBox()` rend `null` dès qu'il juge
+  l'élément non visible, et le verdict restait alors vide — un instrument muet,
+  soit précisément le mode de défaillance que ce constat traque. Corrigé : il
+  lit maintenant `getBoundingClientRect` et parle même quand il échoue ;
+- **la sonde peut avoir déplacé le résultat.** Mesurer avant chaque clic ajoute
+  un aller-retour, donc du temps. Le compte passe de quatre à deux dans la
+  campagne même où la sonde apparaît. Une campagne ne permet pas de distinguer
+  cela de la variance ordinaire ; il en faudra plusieurs.
+
 Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat,
 et il n'est pas encore tombé à zéro.
 

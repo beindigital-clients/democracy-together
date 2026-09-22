@@ -13,21 +13,43 @@ import { expect, type Locator } from '@playwright/test';
 // clic est nécessaire, le journal dit s'il s'était déplacé entre les deux —
 // soit « c'est encore un décalage », soit « c'est autre chose », sans avoir à
 // attendre une campagne de plus pour poser la question.
+//
+// SA PREMIÈRE CAMPAGNE N'A RIEN DIT : `boundingBox()` rendait `null` et le
+// verdict restait vide. Corrigé ci-dessous — il parle maintenant même quand il
+// échoue. À surveiller aussi : mesurer avant chaque clic ajoute un
+// aller-retour, donc du temps. Sur cette même campagne le nombre de clics
+// absorbés est passé de quatre à deux ; UNE campagne ne permet pas de dire si
+// c'est la sonde qui a déplacé le résultat ou la variance ordinaire. À ne pas
+// trancher avant d'en avoir plusieurs.
 class Mouchard {
   private precedente: { x: number; y: number } | null = null;
-  private constat = '';
+  private constat = " — (le mouchard n'a pas pu comparer)";
 
+  // `getBoundingClientRect` via `evaluate`, et NON `boundingBox()` : ce dernier
+  // rend `null` dès qu'il juge l'élément non visible, et la première campagne
+  // instrumentée n'a alors RIEN imprimé. Un mouchard muet est exactement le
+  // mode de défaillance que ce constat traque depuis le début : il dit
+  // désormais toujours quelque chose, y compris son propre échec.
   async avantClic(declencheur: Locator): Promise<void> {
-    const b = await declencheur.boundingBox().catch(() => null);
-    if (this.precedente && b) {
-      const dx = Math.round(b.x - this.precedente.x);
-      const dy = Math.round(b.y - this.precedente.y);
+    const b = await declencheur
+      .evaluate((el) => {
+        const r = (el as HTMLElement).getBoundingClientRect();
+        return { x: Math.round(r.x), y: Math.round(r.y) };
+      })
+      .catch(() => null);
+    if (!b) {
+      this.constat = ' — position du déclencheur illisible';
+      return;
+    }
+    if (this.precedente) {
+      const dx = b.x - this.precedente.x;
+      const dy = b.y - this.precedente.y;
       this.constat =
         dx || dy
           ? ` — le déclencheur s'était déplacé de ${dx}×${dy} px`
           : ' — sans déplacement du déclencheur';
     }
-    if (b) this.precedente = { x: b.x, y: b.y };
+    this.precedente = b;
   }
 
   verdict(): string {
