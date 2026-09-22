@@ -14,11 +14,10 @@ renvoie à une commande jouée et à son journal.
 > telles, et leur description d'origine est conservée — un rapport réécrit
 > après coup ne dirait plus ce qui a été trouvé.
 >
-> **F-13 a sa cause, trouvée et corrigée** : un décalage de l'en-tête de 104 px
-> au moment où l'authentification se résout. Les clics « absorbés » qui
-> semblaient persister après le correctif étaient un défaut de MON compteur,
-> corrigé depuis ; la première campagne au compteur juste en relève **zéro**.
-> Une campagne ne suffit pas à clore : **corrigé, sous surveillance**. § 3.
+> **F-13 est CLOS.** Cause trouvée et corrigée pour les deux cas — visiteur
+> anonyme et visiteur connecté : l'en-tête se décalait de 104 px au moment où
+> l'authentification se résolvait, il lit désormais cet état au rendu serveur.
+> Trois campagnes consécutives à zéro clic perdu, compteur corrigé. § 3.
 
 ## 0. Ce qui a été corrigé
 
@@ -437,10 +436,9 @@ six URLs qui répondaient 500, elles répondent 200.
 
 **Deux points, et un seul est technique.**
 
-1. **F-13 — corrigé, sous surveillance.** Le décalage est trouvé, corrigé pour
-   les **deux** cas — anonyme et connecté — et gardé en CI ; les campagnes au
-   compteur juste relèvent zéro clic perdu (§ 3). Ce qu'il faut pour clore
-   honnêtement : plusieurs campagnes consécutives à zéro.
+1. ~~**F-13.**~~ **Clos** (§ 3) : décalage de l'en-tête corrigé pour les deux
+   cas, gardé en CI, trois campagnes consécutives à zéro clic perdu. Subsiste
+   un cas résiduel assumé et documenté — cookie « connecté » mais jeton expiré.
 2. **L'arbitrage produit de F-06** — `dynamicParams = false` sur les trois
    routes à paramètres fermés. Ce n'est pas une décision d'ingénierie : on
    échangerait un défaut uniforme contre une incohérence. Elle revient au
@@ -817,7 +815,7 @@ ouvert et doit être déclaré comme tel plutôt que considéré comme traité.
 > moi-même : la même erreur que sur F-02, où cinq pages annoncées en valaient
 > neuf.
 
-### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **CORRIGÉ, SOUS SURVEILLANCE**
+### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **CLOS**
 
 Le workflow `e2e.yml` a joué la suite **deux fois sur le commit `1390107`**, à
 huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
@@ -1292,10 +1290,17 @@ C'est cohérent avec la mesure locale — 0/40 sous bridage ×4 avant le correct
 du décalage, 12/12 après. Le décalage de l'en-tête était bien la cause des
 pertes **réelles** ; le reste des lignes comptait des navigations en vol.
 
-**Mais une campagne verte ne referme pas un constat qui a résisté six
-campagnes.** Ce qui fermerait honnêtement F-13 : plusieurs campagnes
-consécutives à zéro, le compteur étant désormais fiable. D'ici là, le constat
-est **corrigé et sous surveillance**, pas clos.
+**Trois campagnes consécutives à zéro**, compteur corrigé : `3459d11`,
+`c0e5534`, `76a03dd`. C'était le critère posé, il est atteint — **F-13 est
+clos.**
+
+Une précision d'honnêteté : ces trois campagnes ne portent pas le même code.
+La troisième embarque la lecture serveur de l'authentification, qui règle le
+cas connecté. Elles ne constituent donc pas une ligne de base stable observée
+trois fois, mais trois observations sur un code qui n'a fait que s'améliorer.
+La dernière campagne compte **216 tests** — +2 par rapport aux précédentes :
+la garde du cas connecté, et le provisionnement de sa session. Les deux ont
+bien tourné.
 
 Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat.
 Elles comptent maintenant ce qu'elles prétendent.
@@ -1513,7 +1518,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 6 | ~~`canonical` et `hreflang`~~ — **fait**. Deux des quatorze signalements étaient de faux positifs (`/recherche`, en `noindex`) | F-04 ✅ | — |
 | 7 | ~~Montées de version + `pnpm audit` en CI~~ — **fait** : 9 avis → 1. L'override `postcss@8` était indispensable, `pnpm up` seul n'aurait pas suffi | F-08 ✅ | — |
 | 8 | ~~Réponses uniformes~~ — **fait**, et sur **cinq** actions publiques, pas deux | F-09 ✅ | — |
-| 8bis | ~~Portail pour `ConfirmDialog`~~, ~~journal d'une campagne~~, ~~**une** cause de l'en-tête~~ — **faits** : décalage de 104 px corrigé, garde en CI (§ 3). **Reste** : le symptôme persiste en CI (4 clics absorbés sur `be86237`) — lire le mouchard des helpers à la prochaine campagne ; et le cas **connecté**, que le correctif aggrave | F-13 🟡 | ½ j |
+| 8bis | ~~Portail pour `ConfirmDialog`~~, ~~journal d'une campagne~~, ~~cause de l'en-tête~~, ~~cas **connecté**~~, ~~compteur faussé~~ — **tous faits**. F-13 clos : décalage corrigé pour les deux cas (lecture serveur de l'authentification), gardé en CI, trois campagnes à zéro (§ 3) | F-13 ✅ | — |
 
 ### P2 — dette
 
