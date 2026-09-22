@@ -1215,8 +1215,46 @@ mouchard relève désormais. Validé contre un cas connu — la page synthétiqu
 `24-helper-panneau.spec.ts`, qui avale réellement le premier clic sans naviguer,
 imprime « sans déplacement, **URL inchangée** ».
 
-Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat,
-et il n'est pas encore tombé à zéro.
+#### Le compteur comptait faux — correction
+
+La campagne `6d9ba83` n'a plus qu'une ligne, et elle porte enfin tous les
+éléments :
+
+```
+(recherche) : 2 clics — le déclencheur s'était déplacé de -998×-20 px, URL inchangée
+```
+
+Mesuré localement, la bascule est à **x = 998, y = 20**. Un « déplacement » de
+`-998×-20` l'amène donc exactement à **(0, 0)** : ce n'est pas une position,
+c'est un **rectangle nul** — ce que rend un élément d'un document qui n'a pas
+encore fait sa mise en page. Vérifié au passage : il n'existe qu'**un seul**
+bouton `lang="en"` dans l'en-tête, donc aucune confusion avec une copie masquée.
+
+La séquence réelle est donc : le premier clic lance la navigation ; `page.url()`
+ne reflète l'adresse qu'une fois celle-ci validée, donc le prédicat reste faux ;
+le helper reclique — sur le document suivant, pas encore mis en page. **Le
+premier clic avait porté.**
+
+**Ce que cela corrige dans ce rapport.** Les décomptes « trois par campagne »,
+puis « quatre », que j'ai mis en avant, **surestiment** : ils mêlaient des clics
+réellement perdus et des navigations en vol. Je ne sais pas, rétrospectivement,
+dans quelle proportion — les journaux d'alors ne portaient pas le mouchard.
+
+**Ce que cela ne remet pas en cause**, et qu'il faut distinguer :
+
+- l'**échec** de `home.spec.ts:13` sur `2c08208` (attendu `/en`, reçu `/fr`,
+  treize sondages d'une assertion qui réessaie) : un effet qui ne vient jamais
+  n'est pas une navigation lente ;
+- la mesure locale **0/40 sous bridage ×4**, et son retour à 12/12 après le
+  correctif du décalage.
+
+Le helper attend désormais que l'effet se produise avant d'envisager un second
+clic. Un clic réellement perdu épuise cette attente puis les 20 secondes de
+`toPass`, et le test échoue comme avant — vérifié sur la page synthétique, qui
+compte toujours ses deux clics.
+
+Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat.
+Elles comptent maintenant ce qu'elles prétendent.
 
 #### Trois clics de plus mis à l'abri — et le reste laissé nu
 

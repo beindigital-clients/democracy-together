@@ -22,7 +22,7 @@ import { expect, type Locator } from '@playwright/test';
 // c'est la sonde qui a déplacé le résultat ou la variance ordinaire. À ne pas
 // trancher avant d'en avoir plusieurs.
 class Mouchard {
-  private precedente: { x: number; y: number } | null = null;
+  private precedente: { x: number; y: number; nul: boolean } | null = null;
   private urlPrecedente: string | null = null;
   private constat = " — (le mouchard n'a pas pu comparer)";
 
@@ -42,8 +42,17 @@ class Mouchard {
     const url = declencheur.page().url();
     const b = await declencheur
       .evaluate((el) => {
-        const r = (el as HTMLElement).getBoundingClientRect();
-        return { x: Math.round(r.x), y: Math.round(r.y) };
+        const h = el as HTMLElement;
+        const r = h.getBoundingClientRect();
+        return {
+          x: Math.round(r.x),
+          y: Math.round(r.y),
+          // Un rectangle NUL n'est pas une position : c'est un élément masqué
+          // (`display:none`) ou détaché. Sans cette distinction le mouchard
+          // annonce un « déplacement » de la taille de la page, qui n'a jamais
+          // eu lieu — c'est ce qu'il a fait sur `-998×-20 px`.
+          nul: r.width === 0 && r.height === 0,
+        };
       })
       .catch(() => null);
     const bougee =
@@ -54,6 +63,8 @@ class Mouchard {
           : '';
     if (!b) {
       this.constat = ` — position du déclencheur illisible${bougee}`;
+    } else if (b.nul) {
+      this.constat = ` — déclencheur MASQUÉ au second clic (rectangle nul)${bougee}`;
     } else if (this.precedente) {
       const dx = b.x - this.precedente.x;
       const dy = b.y - this.precedente.y;
@@ -62,7 +73,7 @@ class Mouchard {
           ? ` — le déclencheur s'était déplacé de ${dx}×${dy} px`
           : ' — sans déplacement du déclencheur') + bougee;
     }
-    if (b) this.precedente = b;
+    if (b && !b.nul) this.precedente = b;
     this.urlPrecedente = url;
   }
 
@@ -139,6 +150,21 @@ export async function cliquerJusqua(
       await mouchard.avantClic(declencheur);
       essais += 1;
       await declencheur.click();
+      // LAISSER À L'EFFET LE TEMPS DE SE PRODUIRE avant d'envisager un second
+      // clic. Sans cette attente, une NAVIGATION EN VOL était comptée comme un
+      // clic perdu : `page.url()` ne reflète la nouvelle adresse qu'une fois
+      // celle-ci validée, si bien que le prédicat restait faux et qu'on
+      // recliquait — sur le document suivant, qui n'avait pas encore fait sa
+      // mise en page. C'est la signature « déplacé de -998×-20 px » relevée en
+      // CI : un rectangle nul, pas un déplacement.
+      //
+      // Un clic RÉELLEMENT perdu, lui, ne produit jamais l'effet : il épuise
+      // cette attente, puis les 20 secondes de `toPass`, et le test échoue
+      // comme avant. On ne masque rien — on cesse de compter faux.
+      const limite = Date.now() + 1_500;
+      while (Date.now() < limite && !(await effetObtenu())) {
+        await declencheur.page().waitForTimeout(50);
+      }
     }
     expect(await effetObtenu(), `effet attendu : ${nom}`).toBe(true);
   }).toPass({ timeout: 20_000 });
