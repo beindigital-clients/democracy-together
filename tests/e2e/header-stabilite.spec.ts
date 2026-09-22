@@ -1,4 +1,5 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
+import { SESSIONS } from './_sessions';
 
 // F-13 — L'EN-TÊTE NE DOIT PAS SE DÉCALER QUAND L'AUTHENTIFICATION SE RÉSOUT.
 //
@@ -67,6 +68,62 @@ test("l'en-tête ne se décale pas entre le rendu serveur et l'état établi (F-
   expect(
     ecart,
     `la bascule de langue s'est déplacée de ${ecart} px entre le rendu servi et l'état établi`,
+  ).toBeLessThanOrEqual(8);
+
+  await sansJs.close();
+  await avecJs.close();
+});
+
+// LE CAS CONNECTÉ, la seconde moitié du décalage. Chez un visiteur connecté,
+// `NotificationBell` apparaissait après coup (36 px) et `AuthButton` passait
+// d'un gabarit de 64 px à « Espace membre · Déconnexion », bien plus large :
+// l'en-tête se réorganisait comme pour un visiteur anonyme, mais davantage.
+// Depuis que `site-header.tsx` lit l'état d'authentification au rendu SERVEUR,
+// le HTML servi porte déjà la variante finale.
+//
+// Ce cas n'est mesurable qu'ICI : l'environnement d'audit n'a aucun
+// déploiement Convex, donc aucune session. La CI, elle, en a une par fichier.
+//
+// LA NON-VACANCE EST ASSERTÉE. Si la session était perdue, ce test comparerait
+// deux fois la mise en page ANONYME et passerait sans rien vérifier — le défaut
+// exact que cet audit reproche ailleurs. On exige donc que le HTML servi porte
+// le marqueur de l'état connecté AVANT de comparer quoi que ce soit.
+test("l'en-tête ne se décale pas non plus pour un visiteur connecté (F-13)", async ({
+  browser,
+  baseURL,
+}) => {
+  const url = `${baseURL}/fr`;
+  const etat = SESSIONS.enTete.state;
+
+  const sansJs = await browser.newContext({
+    javaScriptEnabled: false,
+    storageState: etat,
+  });
+  const servi = await abscisseBascule(sansJs, url);
+  // Sans JavaScript, seul le rendu SERVEUR s'exprime : « Déconnexion » n'y
+  // figure que si le serveur a bien reconnu la session.
+  await expect(
+    servi.page
+      .getByRole('banner')
+      .getByRole('button', { name: /déconnexion|sign out/i }),
+    'la session doit être reconnue au rendu serveur, sinon ce test est vacant',
+  ).toBeVisible();
+
+  const avecJs = await browser.newContext({ storageState: etat });
+  const etabli = await abscisseBascule(avecJs, url);
+  await expect(
+    etabli.page
+      .getByRole('banner')
+      .getByRole('link', { name: /espace membre|member space/i }),
+  ).toBeVisible();
+  const xEtabli = (
+    await etabli.page.locator('header button[lang="en"]').first().boundingBox()
+  )?.x;
+
+  const ecart = Math.abs((xEtabli as number) - (servi.x as number));
+  expect(
+    ecart,
+    `la bascule de langue s'est déplacée de ${ecart} px entre le rendu servi et l'état établi (visiteur connecté)`,
   ).toBeLessThanOrEqual(8);
 
   await sansJs.close();

@@ -437,11 +437,10 @@ six URLs qui répondaient 500, elles répondent 200.
 
 **Deux points, et un seul est technique.**
 
-1. **F-13 — corrigé, sous surveillance.** Le décalage de 104 px est trouvé,
-   corrigé et gardé en CI ; la première campagne au compteur juste relève zéro
-   clic perdu (§ 3). Ce qu'il faut pour clore honnêtement : plusieurs campagnes
-   consécutives à zéro. Reste par ailleurs le cas **connecté**, que le correctif
-   aggrave de 94 px et qui n'a pas pu être mesuré ici.
+1. **F-13 — corrigé, sous surveillance.** Le décalage est trouvé, corrigé pour
+   les **deux** cas — anonyme et connecté — et gardé en CI ; les campagnes au
+   compteur juste relèvent zéro clic perdu (§ 3). Ce qu'il faut pour clore
+   honnêtement : plusieurs campagnes consécutives à zéro.
 2. **L'arbitrage produit de F-06** — `dynamicParams = false` sur les trois
    routes à paramètres fermés. Ce n'est pas une décision d'ingénierie : on
    échangerait un défaut uniforme contre une incohérence. Elle revient au
@@ -1115,18 +1114,49 @@ rapide. Vue **rougir sur le code d'avant (103,9 px)** et verte après
 (**2,4 px**). Le résiduel de 2 px est l'écart entre le gabarit d'`AuthButton`
 (64 px) et le lien « Connexion » (66 px).
 
-**Ce qui reste, et ce que le correctif aggrave.** Pour un visiteur
-**connecté**, la place réservée est ensuite **libérée** (`isAuthenticated` →
-`null`). Son en-tête bougeait déjà — le gabarit d'`AuthButton` est bien plus
-étroit que « Espace membre · Déconnexion » — et ce correctif **ajoute 94 px à
-ce mouvement-là**. Le cas anonyme, lui, est mesuré et corrigé. Ce n'est pas un
-oubli : l'environnement d'audit n'a pas de déploiement Convex, donc le cas
-connecté n'a pas pu être mesuré ici.
+#### Le cas connecté : l'état d'authentification lu au rendu serveur
 
-La résolution des **deux** cas suppose de connaître l'état d'authentification
-au rendu **serveur** — un changement d'architecture, pas un correctif de
-composant. C'est la suite naturelle de ce constat, et elle appartient au
-produit.
+La réservation de place ne réglait que le cas anonyme, et **aggravait** le cas
+connecté : la place réservée y était ensuite libérée (`isAuthenticated` →
+`null`), ce qui ajoutait 94 px à un mouvement qui existait déjà —
+`NotificationBell` apparaissant (36 px) et `AuthButton` passant d'un gabarit de
+64 px à « Espace membre · Déconnexion », bien plus large.
+
+Aucune largeur réservée ne peut satisfaire les deux cas : ils n'ont pas la même
+largeur finale, et la deviner serait faux dans une langue sur deux. **La seule
+correction juste est de savoir, au rendu serveur, à qui l'on s'adresse.**
+
+`site-header.tsx` est donc devenu un composant **asynchrone** : il lit
+`isAuthenticatedNextjs()` et transmet la réponse aux trois îlots qui changeaient
+de largeur. Le HTML servi porte dès lors la mise en page **finale**, pour un
+visiteur anonyme comme pour un membre.
+
+**Ce que cela coûte : rien.** Lire le cookie rend la page dynamique — mais ce
+site l'est déjà entièrement. Vérifié dans `prerender-manifest.json` : quatre
+routes prérendues (`_not-found`, `_global-error`, `icon.png`, `robots.txt`), et
+**aucune page réelle**. Le middleware (`src/proxy.ts`) et
+`ConvexAuthNextjsServerProvider` lisent déjà ce cookie.
+
+**Mesuré.** Le résiduel de 2,4 px du cas anonyme disparaît lui aussi, puisque
+le serveur rend « Connexion » au lieu du gabarit :
+
+| | avant | réservation de place | lecture serveur |
+| --- | --- | --- | --- |
+| écart servi → établi (anonyme) | 103,9 px | 2,4 px | **0 px** |
+| bascule à ×4, 0 ms | 0/40 | 12/12 | **12/12** |
+
+**Le cas connecté est gardé en CI**, dans le même fichier, avec une session qui
+lui est propre (règle de `_sessions.ts` : un fichier, sa session). Il n'est
+mesurable que là — l'environnement d'audit n'a aucun déploiement Convex. Et il
+**assertit sa propre non-vacance** : si la session était perdue, il comparerait
+deux fois la mise en page anonyme et passerait sans rien vérifier ; il exige
+donc que « Déconnexion » figure dans le HTML servi avant de comparer quoi que
+ce soit.
+
+**Cas résiduel assumé** : si le cookie dit « connecté » mais que le jeton est
+expiré, le serveur rend la variante connectée et le client la corrige — un
+décalage subsiste alors. C'est strictement mieux qu'auparavant, où il était
+systématique.
 
 #### Le symptôme se produit à chaque campagne
 

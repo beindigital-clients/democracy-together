@@ -15,7 +15,16 @@ import { isNavActive, type NavItem } from './nav-links';
 // Accessible : aria-expanded / aria-controls, fermeture à Échap + clic hors
 // zone, focus envoyé dans le panneau à l'ouverture puis rendu au bouton, scroll
 // du corps verrouillé. Le menu se referme à toute navigation (effet pathname).
-export function MobileNav({ items }: { items: readonly NavItem[] }) {
+// `connecteAuRendu` n'est ici qu'un RELAIS : le menu mobile ne décide de rien,
+// il transmet aux îlots qui changeaient de largeur (`JoinButton`,
+// `AuthButton`). Voir `site-header.tsx` pour le pourquoi.
+export function MobileNav({
+  items,
+  connecteAuRendu,
+}: {
+  items: readonly NavItem[];
+  connecteAuRendu?: boolean;
+}) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const locale = useLocale();
@@ -154,10 +163,14 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
               </li>
             </ul>
 
-            <JoinButton className="mt-5 w-full" onClick={close} />
+            <JoinButton
+              className="mt-5 w-full"
+              onClick={close}
+              connecteAuRendu={connecteAuRendu}
+            />
 
             <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
-              <AuthButton />
+              <AuthButton connecteAuRendu={connecteAuRendu} />
               <div className="flex items-center gap-2">
                 <LocaleSwitcher />
                 <ThemeToggle />

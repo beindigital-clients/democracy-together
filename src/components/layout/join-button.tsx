@@ -10,45 +10,43 @@ import { cn } from '@/lib/utils';
 // déjà connecté : un membre n'a plus à « rejoindre » — le changement de statut se
 // gère dans son espace personnel.
 //
-// PENDANT LE CHARGEMENT, LA PLACE EST RÉSERVÉE — c'est la cause racine de F-13.
-// Rendre `null` le temps que Convex réponde faisait surgir 94 px dans une grappe
-// ancrée à droite (`ml-auto`, site-header.tsx:41) : tout ce qui la précède —
-// dont la bascule de langue — sautait de 104 px VERS LA GAUCHE, après le premier
-// rendu. Un appui visant « EN » partait alors vers une position que le bouton
-// venait de quitter et tombait sur le conteneur, sans le moindre retour.
+// CE COMPOSANT EST LA CAUSE RACINE DE F-13. Rendre `null` le temps que Convex
+// réponde faisait surgir 94 px dans une grappe ancrée à droite (`ml-auto`,
+// site-header.tsx:41) : la bascule de langue sautait de 104 px VERS LA GAUCHE
+// après le premier rendu, et un appui visant « EN » tombait sur le conteneur.
 // Mesuré : au clic, la cible réelle était un `div`, jamais le bouton.
 //
-// `invisible` (visibility: hidden) conserve la boîte — donc la largeur exacte,
-// dans toutes les langues, sans avoir à la deviner — tout en retirant l'élément
-// du parcours au clavier et de l'arbre d'accessibilité. `AuthButton`, juste à
-// côté, réservait déjà la sienne (`h-5 w-16`) ; c'est ce voisinage qui a fini
-// par rendre l'écart lisible.
+// `connecteAuRendu` vient du SERVEUR (`isAuthenticatedNextjs()`). Quand il est
+// fourni, la variante FINALE est rendue dès le HTML servi : un visiteur anonyme
+// voit le bouton tout de suite, un visiteur connecté ne voit rien du tout — et
+// aucun des deux ne subit de décalage.
 //
-// CE QUE CELA NE RÈGLE PAS, et il faut le dire : pour un visiteur CONNECTÉ, la
-// place réservée ici est ensuite LIBÉRÉE (`isAuthenticated` → `null`). Son
-// en-tête bougeait déjà — le gabarit d'`AuthButton` est bien plus étroit que
-// « Espace membre · Déconnexion » — et ce correctif ajoute 94 px à ce
-// mouvement-là. Le cas anonyme, lui, est mesuré et corrigé (0/40 → 12/12 sous
-// bridage ×4). La vraie résolution des deux cas suppose de connaître l'état
-// d'authentification au rendu SERVEUR : c'est un changement d'architecture,
-// pas un correctif de composant.
+// Sans lui (appel hérité), on retombe sur `invisible` : la boîte est conservée,
+// donc la largeur exacte dans toutes les langues, sans avoir à la deviner, et
+// l'élément sort du parcours clavier et de l'arbre d'accessibilité.
 export function JoinButton({
   className,
   onClick,
+  connecteAuRendu,
 }: {
   className?: string;
   onClick?: () => void;
+  connecteAuRendu?: boolean;
 }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const t = useTranslations('nav');
-  if (isAuthenticated) return null;
+
+  const connecte = isLoading ? connecteAuRendu : isAuthenticated;
+  if (connecte === true) return null;
+
+  const enAttente = connecte === undefined;
   return (
-    <Button asChild className={cn(className, isLoading && 'invisible')}>
+    <Button asChild className={cn(className, enAttente && 'invisible')}>
       <Link
         href="/adhesion"
         onClick={onClick}
-        aria-hidden={isLoading || undefined}
-        tabIndex={isLoading ? -1 : undefined}
+        aria-hidden={enAttente || undefined}
+        tabIndex={enAttente ? -1 : undefined}
       >
         {t('join')}
       </Link>
