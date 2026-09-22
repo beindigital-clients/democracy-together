@@ -14,9 +14,10 @@ renvoie à une commande jouée et à son journal.
 > telles, et leur description d'origine est conservée — un rapport réécrit
 > après coup ne dirait plus ce qui a été trouvé.
 >
-> **F-13 a désormais sa cause**, trouvée et corrigée après cinq campagnes : un
-> décalage de l'en-tête de 104 px au moment où l'authentification se résout.
-> Voir § 3 — le détail, la preuve, et ce qui reste.
+> **F-13 a UNE cause, trouvée et corrigée** : un décalage de l'en-tête de
+> 104 px au moment où l'authentification se résout. Mais la campagne qui a
+> suivi le correctif porte TOUJOURS des clics absorbés : **le constat n'est pas
+> refermé**. Voir § 3.
 
 ## 0. Ce qui a été corrigé
 
@@ -404,7 +405,7 @@ dépend échouait à l'**import**, donc avant la moindre assertion — c'est ce 
 obligeait `seo-coherence.test.ts` à analyser le texte source au lieu
 d'importer.
 
-### F-13 — la cause : l'en-tête se décale de 104 px sous le doigt
+### F-13 — une cause trouvée et corrigée, le symptôme persiste
 
 Détail complet en § 3. **`JoinButton` rendait `null`** le temps que Convex
 résolve l'état d'authentification, puis insérait 94 px dans une grappe ancrée à
@@ -418,6 +419,14 @@ d'hydratation mais un clic qui rate sa cible. `JoinButton` réserve désormais s
 place pendant le chargement, comme `AuthButton` le faisait déjà. **Sous bridage
 ×4, la bascule passe de 0/40 à 12/12.**
 
+**Et pourtant le symptôme persiste en CI.** La campagne `be86237`, la première
+à porter le correctif, compte **quatre clics absorbés** — autant que la
+précédente. Le décalage mesuré était donc réel et il est corrigé, mais il
+n'était pas la seule cause. Ce qui reste ne se produit pas sur la machine
+d'audit : les helpers portent désormais un mouchard qui dira, à la prochaine
+campagne, si le déclencheur s'était déplacé entre les deux clics — donc s'il
+s'agit encore d'un décalage ou d'autre chose.
+
 ### Ce que ces correctifs ont fermé au passage
 
 `audit/specs/11-robots-sitemap.spec.ts` passe désormais : le sitemap déclarait
@@ -427,10 +436,12 @@ six URLs qui répondaient 500, elles répondent 200.
 
 **Deux points, et un seul est technique.**
 
-1. ~~**La cause racine de F-13.**~~ **Trouvée et corrigée** (§ 3). Ce qui reste
-   de ce constat : un visiteur **connecté** voit toujours l'en-tête bouger, le
-   gabarit d'`AuthButton` étant bien plus étroit que « Espace membre ·
-   Déconnexion ». Non mesuré, et hors du périmètre du correctif.
+1. **F-13 — une cause corrigée, le constat ouvert.** Le décalage de 104 px est
+   trouvé, corrigé et gardé en CI (§ 3). Mais la campagne suivante porte encore
+   quatre clics absorbés : **au moins un autre mécanisme existe**, et il ne se
+   reproduit pas sur la machine d'audit. Les helpers sont instrumentés pour le
+   caractériser à la prochaine campagne. S'y ajoute le cas **connecté**, que le
+   correctif aggrave de 94 px (§ 3).
 2. **L'arbitrage produit de F-06** — `dynamicParams = false` sur les trois
    routes à paramètres fermés. Ce n'est pas une décision d'ingénierie : on
    échangerait un défaut uniforme contre une incohérence. Elle revient au
@@ -807,7 +818,7 @@ ouvert et doit être déclaré comme tel plutôt que considéré comme traité.
 > moi-même : la même erreur que sur F-02, où cinq pages annoncées en valaient
 > neuf.
 
-### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **CAUSE TROUVÉE ET CORRIGÉE**
+### F-13 · MOYENNE · Risque · La suite E2E est instable sur les dialogues — **UNE CAUSE CORRIGÉE, LE CONSTAT RESTE OUVERT**
 
 Le workflow `e2e.yml` a joué la suite **deux fois sur le commit `1390107`**, à
 huit minutes d'intervalle, sans aucune modification entre les deux. Résultat :
@@ -1145,13 +1156,30 @@ et `286965a` en porte **quatre**, toutes sur la bascule de langue :
 Les deux dernières sont les gardes posées sur `locale-switch.spec.ts` : elles
 ont servi **dès la première campagne qui les exerce**. Sans elles, ces deux
 tests étaient exposés au rouge exactement comme `home.spec.ts:13` sur
-`2c08208`. Le troisième site protégé du même fichier (`/fr/le-reseau`) n'a pas
-eu besoin d'un second clic cette fois — le mécanisme est fréquent, pas
-systématique. Campagne verte : **213 passés, 0 instable**.
+`2c08208`. Campagne verte : **213 passés, 0 instable**.
 
-Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat.
-Le jour où la cause est trouvée, elles disparaissent, et c'est ainsi qu'on le
-saura.
+**Et après le correctif du décalage, `be86237` en porte quatre de plus** — une
+sur `home.spec.ts`, et les trois sites de `locale-switch.spec.ts`, `le-reseau`
+compris, qui n'avait encore jamais figuré :
+
+```
+[F-13] bascule de langue FR -> EN : 2 clics ont été nécessaires
+[F-13] bascule de langue FR→EN (bibliothèque filtrée) : 2 clics ont été nécessaires
+[F-13] bascule de langue FR→EN (recherche) : 2 clics ont été nécessaires
+[F-13] bascule de langue FR→EN (le-reseau) : 2 clics ont été nécessaires
+```
+
+J'attendais qu'elles tombent à zéro. Elles n'ont pas bougé. Le décalage mesuré
+était réel et il est corrigé — **il n'était pas la seule cause**, et ce qui
+reste ne se reproduit pas sur la machine d'audit.
+
+Vérifié avant d'accuser l'instrument : sans bridage, `cliquerJusqua` ne compte
+**aucun** clic supplémentaire sur ce même geste (quatre essais, 227 à 353 ms).
+Son compteur ne surestime donc pas — ces quatre lignes sont des premiers clics
+réellement sans effet.
+
+Ces lignes ne sont pas du bruit à ignorer : elles sont le compteur du constat,
+et il n'est pas encore tombé à zéro.
 
 #### Trois clics de plus mis à l'abri — et le reste laissé nu
 
@@ -1200,11 +1228,11 @@ rendu, et un appui visant un de ses contrôles tombe à côté, sans le moindre
 signal.** Un défaut de mise en page, pas d'hydratation — et un défaut qui
 touchait les visiteurs avant les tests.
 
-Les deux helpers de `tests/e2e/_panneau.ts` restent, et leur rôle se précise :
-ils re-cliquent avec des coordonnées fraîches. Ils n'ont jamais masqué un
-mécanisme obscur — ils absorbaient un décalage. Ils gardent leur utilité pour
-les gestes encore exposés (visiteur connecté), et leurs lignes `[F-13]` dans le
-journal de CI restent le compteur : **elles doivent maintenant disparaître.**
+Les deux helpers de `tests/e2e/_panneau.ts` restent, et ils portent désormais
+un **mouchard** : quand un second clic est nécessaire, le journal dit si le
+déclencheur s'était déplacé entre les deux. La prochaine campagne répondra donc
+d'elle-même à la question qui reste — « est-ce encore un décalage, ou autre
+chose ? » — au lieu d'exiger une campagne de plus rien que pour la poser.
 
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 
@@ -1277,7 +1305,8 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    parcours connectés est donc bien exercé — par la suite du dépôt, pas par moi.
    Ce qui reste non vérifié **de ma main** : je n'ai rejoué aucune attaque du
    pentest sur ces surfaces (cf. les cinq 🟡 du § 4). L'instabilité relevée en
-   F-13, elle, a désormais sa cause — et une garde jouée en CI.
+   F-13 a désormais UNE cause corrigée et gardée en CI, mais elle n'a pas
+   disparu des journaux.
 2. **Les navigateurs mobiles.** L'environnement fournit Chromium build 1194 ; le
    Playwright épinglé (1.61.1) réclame 1228 et refuse de démarrer. J'ai
    contourné en pointant l'exécutable, mais **les projets `mobile-chromium` et
@@ -1365,7 +1394,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 6 | ~~`canonical` et `hreflang`~~ — **fait**. Deux des quatorze signalements étaient de faux positifs (`/recherche`, en `noindex`) | F-04 ✅ | — |
 | 7 | ~~Montées de version + `pnpm audit` en CI~~ — **fait** : 9 avis → 1. L'override `postcss@8` était indispensable, `pnpm up` seul n'aurait pas suffi | F-08 ✅ | — |
 | 8 | ~~Réponses uniformes~~ — **fait**, et sur **cinq** actions publiques, pas deux | F-09 ✅ | — |
-| 8bis | ~~Portail pour `ConfirmDialog`~~, ~~journal complet d'une campagne~~, ~~**pourquoi l'en-tête**~~ — **faits**. Cause : décalage de 104 px de l'en-tête quand l'authentification se résout ; `JoinButton` réserve désormais sa place, garde en CI (§ 3). Reste : le même décalage pour un visiteur **connecté** | F-13 🟢 | ¼ j |
+| 8bis | ~~Portail pour `ConfirmDialog`~~, ~~journal d'une campagne~~, ~~**une** cause de l'en-tête~~ — **faits** : décalage de 104 px corrigé, garde en CI (§ 3). **Reste** : le symptôme persiste en CI (4 clics absorbés sur `be86237`) — lire le mouchard des helpers à la prochaine campagne ; et le cas **connecté**, que le correctif aggrave | F-13 🟡 | ½ j |
 
 ### P2 — dette
 

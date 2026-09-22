@@ -1,5 +1,40 @@
 import { expect, type Locator } from '@playwright/test';
 
+// POURQUOI UN SECOND CLIC A-T-IL ÉTÉ NÉCESSAIRE ? Le compteur seul ne le dit
+// pas, et c'est ce qui a coûté le plus de temps sur F-13.
+//
+// Une cause est établie et corrigée : l'en-tête se décalait de 104 px quand
+// l'authentification se résolvait, et le clic tombait à côté du bouton
+// (`join-button.tsx`). Mais la campagne qui a suivi ce correctif portait
+// TOUJOURS des lignes `[F-13]` : il reste donc au moins un autre mécanisme, et
+// il ne se produit pas sur la machine d'audit.
+//
+// Ce mouchard note la position du déclencheur AVANT chaque clic. Si un second
+// clic est nécessaire, le journal dit s'il s'était déplacé entre les deux —
+// soit « c'est encore un décalage », soit « c'est autre chose », sans avoir à
+// attendre une campagne de plus pour poser la question.
+class Mouchard {
+  private precedente: { x: number; y: number } | null = null;
+  private constat = '';
+
+  async avantClic(declencheur: Locator): Promise<void> {
+    const b = await declencheur.boundingBox().catch(() => null);
+    if (this.precedente && b) {
+      const dx = Math.round(b.x - this.precedente.x);
+      const dy = Math.round(b.y - this.precedente.y);
+      this.constat =
+        dx || dy
+          ? ` — le déclencheur s'était déplacé de ${dx}×${dy} px`
+          : ' — sans déplacement du déclencheur';
+    }
+    if (b) this.precedente = { x: b.x, y: b.y };
+  }
+
+  verdict(): string {
+    return this.constat;
+  }
+}
+
 // Ouvrir un panneau qui se monte AU CLIC, sans masquer une panne (audit F-13).
 //
 // POURQUOI CE HELPER EXISTE. `declencheur.click()` suivi de
@@ -24,8 +59,10 @@ export async function ouvrirPanneau(
   nom: string,
 ): Promise<void> {
   let essais = 0;
+  const mouchard = new Mouchard();
   await expect(async () => {
     if (!(await panneau.isVisible())) {
+      await mouchard.avantClic(declencheur);
       essais += 1;
       await declencheur.click();
     }
@@ -33,7 +70,9 @@ export async function ouvrirPanneau(
   }).toPass({ timeout: 20_000 });
 
   if (essais > 1) {
-    console.log(`[F-13] ${nom} : ${essais} clics ont été nécessaires`);
+    console.log(
+      `[F-13] ${nom} : ${essais} clics ont été nécessaires${mouchard.verdict()}`,
+    );
   }
 }
 
@@ -58,8 +97,10 @@ export async function cliquerJusqua(
   nom: string,
 ): Promise<void> {
   let essais = 0;
+  const mouchard = new Mouchard();
   await expect(async () => {
     if (!(await effetObtenu())) {
+      await mouchard.avantClic(declencheur);
       essais += 1;
       await declencheur.click();
     }
@@ -67,6 +108,8 @@ export async function cliquerJusqua(
   }).toPass({ timeout: 20_000 });
 
   if (essais > 1) {
-    console.log(`[F-13] ${nom} : ${essais} clics ont été nécessaires`);
+    console.log(
+      `[F-13] ${nom} : ${essais} clics ont été nécessaires${mouchard.verdict()}`,
+    );
   }
 }
