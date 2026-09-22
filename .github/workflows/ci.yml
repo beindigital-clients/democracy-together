@@ -65,6 +65,24 @@ jobs:
       - name: Tests unitaires
         run: pnpm test
 
+      # Même suite, ORDRE MÉLANGÉ (audit F-01).
+      #
+      # `pnpm test` joue les fichiers dans l'ordre de déclaration, toujours le
+      # même : une dépendance d'ordre y reste invisible. Mesuré avant
+      # correctif, la suite était verte ici et rougissait six fois sur dix en
+      # ordre mélangé — jusqu'à douze tests d'un coup. Verte par chance
+      # d'ordonnancement, donc, et deux défauts d'isolation qu'aucune
+      # relecture n'aurait vus : un espion sur `window.localStorage` que
+      # `vi.restoreAllMocks()` ne restaure pas sous happy-dom, et une minuterie
+      # d'`input-otp` qui survivait à son fichier.
+      #
+      # La graine est TIRÉE À CHAQUE EXÉCUTION : c'est le but — on veut
+      # explorer des ordres, pas en figer un. Vitest imprime la graine employée
+      # en tête de rapport, et `--sequence.seed=<n>` rejoue exactement le même
+      # ordre pour diagnostiquer.
+      - name: Tests unitaires (ordre mélangé)
+        run: pnpm exec vitest run --sequence.shuffle
+
       # Aucune variable d'environnement : le build est vert sans déploiement
       # Convex ni projet Sanity. Si cela cesse d'être vrai, c'est une
       # régression à corriger, pas un secret à ajouter ici.
@@ -123,5 +141,22 @@ jobs:
       # L'isoler évite de confondre « le code est cassé » et « le monde a
       # bougé ». Le seuil `high` est tenable : l'arbre est à 0 avis critique et
       # 0 avis haut depuis la mise à jour de Next 16.3.5 et les overrides pnpm.
+      #
+      # ÉTAT AU 21/09/2026 (F-08) — 9 avis ramenés à 1 :
+      #   postcss   remonté à ^8.5.23, override `postcss@8` compris, sans quoi
+      #             @tailwindcss/postcss gardait une copie imbriquée en 8.5.15
+      #             (c'était le seul avis HAUT de l'arbre) ;
+      #   vitest    ^4.1.11 (lui-même et @vitest/mocker) ;
+      #   overrides bornés au majeur, comme les précédents : dompurify@3,
+      #             baseline-browser-mapping@2, valibot@1, @sanity/uuid@3.
+      #
+      # RESTE UN AVIS, ASSUMÉ : GHSA-w5hq-g745-h8pq (uuid < 11.1.1, modéré),
+      # par le chemin `sanity > @sanity/cli > typeid-js > uuid`. Aucun correctif
+      # amont — typeid-js 1.2.0 est la dernière version publiée et dépend de
+      # `uuid ^10.0.0` ; le seul remède serait un override CROSS-MAJEUR sur un
+      # paquet qu'on ne maîtrise pas. Le chemin est celui de la CLI Sanity, qui
+      # ne s'exécute ni dans le serveur Next ni dans le paquet navigateur, et
+      # l'avis vise `v3/v5/v6` appelés avec un `buf` — typeid-js génère du v7.
+      # À reprendre le jour où typeid-js publie une version sur `uuid >= 11.1.1`.
       - name: pnpm audit (production, seuil haut)
         run: pnpm audit --prod --audit-level=high

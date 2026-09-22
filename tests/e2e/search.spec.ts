@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { seedDirectory } from './_helpers';
+import { ouvrirPanneau } from './_panneau';
 
 test.use({ locale: 'fr-FR' });
 
@@ -17,12 +18,12 @@ test('recherche globale : header -> palette -> page -> résultats', async ({
   await page.goto('/fr');
 
   // Entrée header : le bouton recherche ouvre la palette (command palette).
-  await page
-    .getByRole('banner')
-    .getByRole('button', { name: 'Recherche' })
-    .click();
   const dialog = page.getByRole('dialog', { name: 'Rechercher sur le site' });
-  await expect(dialog).toBeVisible();
+  await ouvrirPanneau(
+    page.getByRole('banner').getByRole('button', { name: 'Recherche' }),
+    dialog,
+    'palette de recherche',
+  );
 
   // Recherche live dans la palette : la section Publications apparaît (terme
   // présent dans les publications seedées).
@@ -46,12 +47,12 @@ test('recherche globale : header -> palette -> page -> résultats', async ({
 
 test('recherche : la palette se ferme à Échap (F-06)', async ({ page }) => {
   await page.goto('/fr');
-  await page
-    .getByRole('banner')
-    .getByRole('button', { name: 'Recherche' })
-    .click();
   const dialog = page.getByRole('dialog', { name: 'Rechercher sur le site' });
-  await expect(dialog).toBeVisible();
+  await ouvrirPanneau(
+    page.getByRole('banner').getByRole('button', { name: 'Recherche' }),
+    dialog,
+    'palette de recherche',
+  );
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
 });

@@ -20,13 +20,45 @@ import {
 // Les quatre chemins de sortie du module sont donc exercés ici, et tous doivent
 // FERMER (`null` / `false`), jamais ouvrir.
 
+// Les espions sont rendus UN PAR UN, et non par `vi.restoreAllMocks()`
+// (audit F-01).
+//
+// Mesuré : sous happy-dom et Vitest 4, `restoreAllMocks()` ne restaure PAS un
+// espion posé sur l'instance `window.localStorage`. Le `SecurityError` du test
+// « stockage indisponible » survivait donc à l'`afterEach` et contaminait les
+// suivants. En ordre de déclaration — celui de la CI — la suite restait verte ;
+// en ordre mélangé elle rougissait six fois sur dix, jusqu'à douze tests d'un
+// coup. Verte par chance d'ordonnancement, donc.
+//
+// Le piège est silencieux : tout test ajouté après ceux-ci héritait d'un
+// `localStorage` qui lève, et aurait échoué pour une raison étrangère à son
+// sujet — ou, pire, serait passé sans rien exercer.
+//
+// `mockRestore()` sur l'espion lui-même, lui, fonctionne : vérifié avant
+// d'écrire ce correctif (`audit/poc/restore-fix.test.ts`). La remise en place
+// manuelle (`window.localStorage.getItem = origine`) ne fonctionne PAS — le
+// proxy de happy-dom ignore l'affectation.
+const espions: { mockRestore: () => void }[] = [];
+
+/** Pose un espion et l'inscrit pour restauration explicite. */
+function espionner(
+  methode: 'getItem' | 'setItem',
+  implementation: (...args: never[]) => never,
+) {
+  const espion = vi
+    .spyOn(window.localStorage, methode)
+    .mockImplementation(implementation as never);
+  espions.push(espion);
+  return espion;
+}
+
 beforeEach(() => {
   window.localStorage.clear();
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.restoreAllMocks();
+  while (espions.length) espions.pop()?.mockRestore();
 });
 
 describe('Consentement — lecture et écriture', () => {
@@ -98,8 +130,8 @@ describe('hasAnalyticsConsent — la garde de la mesure d’audience', () => {
     // Sur l'INSTANCE : happy-dom sert `localStorage` derrière un proxy, et un
     // correctif posé sur `Storage.prototype` ne serait jamais atteint — le test
     // passerait alors sans rien exercer du tout.
-    vi.spyOn(window.localStorage, 'getItem').mockImplementation(indisponible);
-    vi.spyOn(window.localStorage, 'setItem').mockImplementation(indisponible);
+    espionner('getItem', indisponible);
+    espionner('setItem', indisponible);
 
     expect(readConsent()).toBeNull();
     expect(hasAnalyticsConsent()).toBe(false);
@@ -110,11 +142,13 @@ describe('hasAnalyticsConsent — la garde de la mesure d’audience', () => {
     // Le visiteur clique « Tout accepter » alors que le stockage est bloqué :
     // le clic ne lève pas, mais rien n'a été retenu — la prochaine lecture doit
     // le dire, pas faire comme si le choix tenait.
-    vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+    espionner('setItem', () => {
       throw new DOMException('quota', 'QuotaExceededError');
     });
     writeConsent('all');
-    vi.restoreAllMocks();
+    // Rendu ICI, au milieu du test : la suite du scénario a besoin d'un
+    // stockage qui refonctionne pour prouver que rien n'a été retenu.
+    while (espions.length) espions.pop()?.mockRestore();
     expect(readConsent()).toBeNull();
     expect(hasAnalyticsConsent()).toBe(false);
   });

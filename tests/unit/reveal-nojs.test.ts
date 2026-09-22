@@ -16,6 +16,14 @@ import { join } from 'node:path';
 // Ce test vérifie les deux. Il échouera le jour où quelqu'un ajoutera un
 // `<motion.*>` sans le marqueur — cas que ni le typecheck ni les tests de
 // rendu ne rattraperaient.
+//
+// MISE À JOUR (audit F-05) : le HTML servi ne porte plus `opacity:0` du tout —
+// `reveal.tsx` ne pose le voile qu'APRÈS le montage, parce qu'un élément
+// invisible n'est pas candidat au LCP et repoussait celui de /fr/barometre à
+// 12,8 s en 3G lente. Les deux parties du contrat gardent néanmoins leur
+// raison d'être : `data-reveal` reste le marqueur par lequel on retrouve les
+// éléments animés, et la règle <noscript> reste le filet si le voile venait à
+// repasser côté serveur. Ce test tient donc toujours, en défense de fond.
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

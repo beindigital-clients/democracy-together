@@ -5,6 +5,7 @@ import { api } from '@convex/_generated/api';
 import { Badge } from '@/components/ui/badge';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { vocabulary } from '@/i18n/vocabulary';
+import { fetchOrFallback, EMPTY_EXPERT_LIST } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -38,7 +39,12 @@ export default async function ExpertsPage({
   setRequestLocale(locale);
   const t = await getTranslations('experts');
   const tl = await getTranslations('library'); // libellés des axes themes.*
-  const experts = await fetchQuery(api.experts.listExperts, {});
+  // Backend injoignable -> l'état vide que la page sait déjà rendre (F-02).
+  const experts = await fetchOrFallback(
+    'experts',
+    () => fetchQuery(api.experts.listExperts, {}),
+    EMPTY_EXPERT_LIST,
+  );
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 md:py-16">

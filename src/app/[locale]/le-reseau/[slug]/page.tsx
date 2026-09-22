@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { countryName, countryFlag, languageName } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { fetchOrFallback } from '@/lib/convex-fallback';
+import { DataUnavailable } from '@/components/ui/data-unavailable';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -17,7 +19,13 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const org = await fetchQuery(api.organizations.getBySlug, { slug });
+  // Voir bibliotheque/[slug] : un jet dans `generateMetadata` emporte la page
+  // avant même son rendu (F-02).
+  const org = await fetchOrFallback(
+    'le-reseau/[slug]:metadata',
+    () => fetchQuery(api.organizations.getBySlug, { slug }),
+    null,
+  );
   if (!org) return {};
   return {
     title: org.name,
@@ -40,7 +48,20 @@ export default async function OrgProfilePage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const org = await fetchQuery(api.organizations.getBySlug, { slug });
+  // `undefined` = la requête a échoué ; `null` = aucune fiche. Les confondre
+  // transformerait une panne en 404 (F-02).
+  const org = await fetchOrFallback(
+    'le-reseau/[slug]',
+    () => fetchQuery(api.organizations.getBySlug, { slug }),
+    undefined,
+  );
+  if (org === undefined) {
+    return (
+      <div className="mx-auto max-w-[1100px] px-4 py-16 sm:px-6">
+        <DataUnavailable />
+      </div>
+    );
+  }
   // `getBySlug` ne renvoie QUE des fiches actives (et ne sert plus `status`) :
   // une fiche pending/suspended est ici indistinguable d'une fiche absente.
   if (!org) notFound();

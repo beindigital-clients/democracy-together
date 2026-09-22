@@ -10,6 +10,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getThemeSynthesis } from '@/lib/themes-content';
 import { PublicationCard } from '@/components/library/publication-card';
 import { vocabulary } from '@/i18n/vocabulary';
+import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -50,10 +51,18 @@ export default async function ThemeSynthesisPage({
   const t = await getTranslations('thematiques');
   const tl = await getTranslations('library');
   const label = vocabulary(tl, 'themes.', slug);
-  const { items } = await fetchQuery(
-    api.publications.listPublished,
-    { themes: [slug], sort: 'recent' },
-    { token: await convexAuthNextjsToken() },
+  // Backend injoignable -> aucune publication listée, mais la synthèse (servie
+  // par le dépôt) reste affichée. Perdre la page entière pour une liste
+  // d'appoint serait payer cher (F-02).
+  const { items } = await fetchOrFallback(
+    'thematiques/[slug]',
+    async () =>
+      fetchQuery(
+        api.publications.listPublished,
+        { themes: [slug], sort: 'recent' },
+        { token: await convexAuthNextjsToken() },
+      ),
+    EMPTY_PUBLICATION_LIST,
   );
 
   return (

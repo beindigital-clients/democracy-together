@@ -57,7 +57,8 @@ export type SessionKey =
   | 'confirmations'
   | 'devBrowser'
   | 'adminNav'
-  | 'adminRecherche';
+  | 'adminRecherche'
+  | 'enTete';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -128,5 +129,14 @@ export const SESSIONS: Record<
     email: 'e2e_session_admin_recherche@democracytogether.test',
     state: 'tests/e2e/.auth/admin-recherche.json',
     role: 'admin',
+  },
+  // Session dédiée à `header-stabilite.spec.ts` (audit F-13, cas CONNECTÉ).
+  // Elle applique la règle ci-dessus : un fichier, sa session. Le rang le plus
+  // bas suffit — ce qui est mesuré est la largeur de l'en-tête d'un visiteur
+  // connecté, pas un écran réservé.
+  enTete: {
+    email: 'e2e_session_en_tete@democracytogether.test',
+    state: 'tests/e2e/.auth/en-tete.json',
+    role: 'membre',
   },
 };

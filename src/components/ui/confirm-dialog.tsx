@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 
 // GARDE-FOU des actions irréversibles du back-office (issue #38) : rejeter une
@@ -44,6 +45,12 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // `createPortal` a besoin de `document` : il n'existe pas au rendu serveur.
+  // Ce composant rend déjà `null` tant qu'il est fermé, mais on ne se repose
+  // pas là-dessus — un appelant peut le monter ouvert.
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
+
   const titleId = useId();
   const descId = useId();
 
@@ -58,7 +65,15 @@ export function ConfirmDialog({
       document.body.style.overflow = '';
       trigger?.focus?.();
     };
-  }, [open]);
+    // `monte` FAIT PARTIE DES DÉPENDANCES, et ce n'est pas décoratif : avec le
+    // portail, le premier rendu ne produit rien (`document` n'existe pas encore
+    // côté serveur, donc on attend le montage). `panelRef.current` est alors
+    // `null` et ce focus ne trouve personne. Sans cette dépendance, l'effet ne
+    // se rejoue jamais : le focus n'atterrit plus sur « Annuler », et une
+    // touche Entrée retombe sur l'action destructrice — exactement ce que ce
+    // composant existe pour empêcher. Attrapé par les tests unitaires déjà en
+    // place, pas par relecture.
+  }, [open, monte]);
 
   // Échap + piège à focus. Effet distinct : il dépend de `onCancel`, dont
   // l'identité change à chaque rendu du parent — le refondre avec le précédent
@@ -91,9 +106,22 @@ export function ConfirmDialog({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, pending, onCancel]);
 
-  if (!open) return null;
+  if (!open || !monte) return null;
 
-  return (
+  // PORTAIL vers `document.body` (audit F-13, piste 2 du rapport).
+  //
+  // Ce conteneur est `fixed`, donc positionné par rapport à la fenêtre — mais
+  // seulement tant qu'AUCUN ancêtre ne porte `transform`, `filter` ou
+  // `perspective` : l'un de ces trois crée un bloc conteneur, et le `fixed` s'y
+  // ancre à la place. Le back-office n'en porte aucun aujourd'hui (vérifié),
+  // mais c'est une propriété qu'un futur composant peut introduire à distance,
+  // sans rapport visible avec cette boîte de dialogue. Le jour où cela arrive,
+  // le dialogue est mal placé POUR LES UTILISATEURS, pas seulement pour un test.
+  //
+  // Le rendre depuis `body` retire cette dépendance à l'arbre d'appel. C'est
+  // aussi ce qui rend son empilement (`z-[60]`) fiable, pour la même raison :
+  // un contexte d'empilement créé par un ancêtre le plafonnerait.
+  return createPortal(
     <div className="fixed inset-0 z-[60]">
       <button
         type="button"
@@ -139,6 +167,7 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

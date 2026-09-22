@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { cliquerJusqua } from './_panneau';
 
 // Navigateur en français : rend la détection Accept-Language déterministe
 // (sinon `/` est redirigé vers /en avec le navigateur en-US par défaut).
@@ -15,7 +16,16 @@ test('home FR puis bascule EN par URL (F-03)', async ({ page }) => {
     'La démocratie a besoin',
   );
 
-  await page.getByRole('banner').getByRole('button', { name: 'EN' }).click();
+  // Même geste que le test suivant, donc même garde (audit F-13). Ce test-ci
+  // avait été laissé sans, et il a rougi en CI sur le commit `2c08208` :
+  // attendu `/en`, reçu `/fr`, treize sondages. Mesuré depuis, sur trois
+  // campagnes consécutives, le symptôme se produit À CHAQUE FOIS sur cette
+  // bascule — il n'était simplement absorbé que sur le test voisin.
+  await cliquerJusqua(
+    page.getByRole('banner').getByRole('button', { name: 'EN' }),
+    async () => /\/en$/.test(page.url()),
+    'bascule de langue FR -> EN (accueil)',
+  );
   await expect(page).toHaveURL(/\/en$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Democracy needs a network',
@@ -27,7 +37,11 @@ test('le sélecteur de langue pose le cookie NEXT_LOCALE', async ({
   context,
 }) => {
   await page.goto('/fr');
-  await page.getByRole('banner').getByRole('button', { name: 'EN' }).click();
+  await cliquerJusqua(
+    page.getByRole('banner').getByRole('button', { name: 'EN' }),
+    async () => /\/en$/.test(page.url()),
+    'bascule de langue FR -> EN',
+  );
   await expect(page).toHaveURL(/\/en$/);
   // Le cookie est écrit par next-intl pendant la navigation : on l'attend
   // (expect.poll) au lieu d'une lecture unique -> pas de course.

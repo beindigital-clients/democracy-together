@@ -11,6 +11,7 @@ import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { mapNameForIso } from '@/lib/country-map';
 import { countryName } from '@/lib/orgs';
 import { isDirectoryRegion, isDirectoryTheme } from '@convex/lib/directory';
+import { fetchOrFallback, EMPTY_DIRECTORY_LIST } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -64,9 +65,11 @@ export default async function NetworkPage({
   const hasFilters = Boolean(filters.region || filters.theme || filters.q);
 
   const t = await getTranslations('directory');
-  const { items, facets } = await fetchQuery(
-    api.organizations.listDirectory,
-    filters,
+  // Backend injoignable -> annuaire vide et carte sans pays, pas un 500 (F-02).
+  const { items, facets } = await fetchOrFallback(
+    'le-reseau',
+    () => fetchQuery(api.organizations.listDirectory, filters),
+    EMPTY_DIRECTORY_LIST,
   );
 
   // Carte des membres (F-19) : un pays mis en avant par pays représenté dans le

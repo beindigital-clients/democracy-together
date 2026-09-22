@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/reveal';
 import { countryName, countryFlag } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { fetchOrFallback } from '@/lib/convex-fallback';
+import { DataUnavailable } from '@/components/ui/data-unavailable';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -61,10 +63,22 @@ export default async function SearchPage({
   let organizations: { slug: string; name: string; country: string }[] = [];
   let posts: PostCardData[] = [];
 
+  // `undefined` = la requête a ÉCHOUÉ, et se distingue d'un résultat vide :
+  // afficher « aucun résultat » pendant une panne ferait croire au visiteur
+  // que sa recherche ne trouve rien (F-02).
+  let indisponible = false;
   if (q.length >= 2) {
-    const res = await fetchQuery(api.search.globalSearch, { q });
-    publications = res.publications;
-    organizations = res.organizations;
+    const res = await fetchOrFallback(
+      'recherche',
+      () => fetchQuery(api.search.globalSearch, { q }),
+      undefined,
+    );
+    if (res === undefined) {
+      indisponible = true;
+    } else {
+      publications = res.publications;
+      organizations = res.organizations;
+    }
     try {
       const all = await client.fetch<PostCardData[]>(postsQuery, {
         language: locale,
@@ -108,6 +122,8 @@ export default async function SearchPage({
 
       {q.length < 2 ? (
         <p className="mt-10 text-ink-soft">{t('prompt')}</p>
+      ) : indisponible ? (
+        <DataUnavailable className="mt-10" />
       ) : total === 0 ? (
         <p className="mt-10 text-ink-soft">{t('empty', { q })}</p>
       ) : (

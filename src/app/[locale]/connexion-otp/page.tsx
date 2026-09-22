@@ -92,7 +92,10 @@ export default function OtpSignInPage() {
       </Link>
       <p className="mt-3 text-sm text-ink-soft">
         {t('noAccount')}{' '}
-        <Link href="/adhesion" className="text-accent-text hover:underline">
+        <Link
+          href="/adhesion"
+          className="text-accent-text underline underline-offset-2"
+        >
           {tNav('join')}
         </Link>
       </p>

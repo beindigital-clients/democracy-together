@@ -13,6 +13,7 @@ import {
 } from '@/lib/barometer-content';
 import type { RegionMapItem } from '@/components/map/types';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
+import { ScrollableRegion } from '@/components/ui/scrollable-region';
 
 // Couleurs de remplissage de la carte par catégorie (1 = plus libre … 5).
 const CAT_FILL = [
@@ -263,7 +264,7 @@ export default async function BarometrePage({
             </a>
           </Reveal>
           <Reveal className="overflow-hidden rounded-sm border border-line bg-paper">
-            <div className="overflow-x-auto">
+            <ScrollableRegion label={c.ranking.title}>
               <table className="w-full border-collapse text-left text-sm">
                 <caption className="bg-surface-2 px-5 py-2.5 text-left font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {c.ranking.caption}
@@ -317,7 +318,7 @@ export default async function BarometrePage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableRegion>
           </Reveal>
         </div>
       </section>
@@ -509,7 +510,7 @@ export default async function BarometrePage({
             </p>
           </Reveal>
           <Reveal className="overflow-hidden rounded-sm border border-line bg-paper">
-            <div className="overflow-x-auto">
+            <ScrollableRegion label={c.datasets.title}>
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
@@ -594,7 +595,7 @@ export default async function BarometrePage({
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollableRegion>
           </Reveal>
         </div>
       </section>

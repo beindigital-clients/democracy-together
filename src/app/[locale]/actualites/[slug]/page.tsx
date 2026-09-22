@@ -6,6 +6,8 @@ import { PortableText } from 'next-sanity';
 import { Link } from '@/i18n/navigation';
 import { client } from '@dt-sanity/lib/client';
 import { postBySlugQuery } from '@dt-sanity/lib/queries';
+import { fetchOrFallback } from '@/lib/convex-fallback';
+import { DataUnavailable } from '@/components/ui/data-unavailable';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -38,14 +40,19 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  // Une panne Sanity ne doit pas faire échouer le rendu ENTIER de la page :
-  // les métadonnées sont accessoires, on les abandonne silencieusement et on
-  // laisse le composant de page décider du sort de la requête.
-  let post: Article | null;
-  try {
-    post = await client.fetch<Article | null>(postBySlugQuery, { slug });
-  } catch {
-    return {};
+  // `undefined` = la requête a ÉCHOUÉ ; `null` = l'article n'existe pas.
+  // Les confondre ferait traiter une panne comme une absence (F-02).
+  const post = await fetchOrFallback<Article | null | undefined>(
+    'actualites/[slug]:metadata',
+    () => client.fetch<Article | null>(postBySlugQuery, { slug }),
+    undefined,
+  );
+  if (post === undefined) {
+    // Rendu DÉGRADÉ : on interdit l'indexation. Sans cela, un moteur qui passe
+    // pendant la panne remplacerait l'article par le panneau « indisponible »
+    // dans son index — c'est la seule objection sérieuse au repli en 200, et
+    // elle se traite ici. `follow` reste vrai : les liens gardent leur valeur.
+    return { robots: { index: false, follow: true } };
   }
   if (!post) return {};
   return {
@@ -63,18 +70,44 @@ export default async function ArticlePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('news');
-  // Distinction volontaire (audit § 5.1) :
-  //  - article absent            -> 404 localisée (not-found.tsx) ;
-  //  - Sanity indisponible       -> page d'erreur localisée (error.tsx).
-  // Convertir une panne en 404 serait un mensonge : l'article existe peut-être,
-  // et un 404 indexé par les moteurs coûterait le référencement de l'article.
-  let post: Article | null;
-  try {
-    post = await client.fetch<Article | null>(postBySlugQuery, { slug });
-  } catch (err) {
-    console.error('[actualites/slug] Sanity indisponible :', err);
-    throw err;
+
+  // TROIS issues, et elles ne se confondent pas (audit § 5.1, F-02, F-10) :
+  //  - article absent      -> 404 localisée ;
+  //  - Sanity indisponible -> 200 + panneau « momentanément indisponible » ;
+  //  - article présent     -> l'article.
+  //
+  // Convertir une panne en 404 resterait un mensonge — l'article existe
+  // peut-être, et un 404 indexé coûterait son référencement. Mais la version
+  // précédente relançait l'erreur pour atteindre `error.tsx`, et c'est ce que
+  // F-10 a mesuré : `error.tsx` est un composant CLIENT, son contenu n'est pas
+  // dans le HTML servi. Résultat, 500 avec ZÉRO caractère — page blanche pour
+  // qui n'exécute pas JavaScript, quand la même panne sur /fr/bibliotheque/…
+  // rendait 671 caractères lisibles. Deux backends, deux comportements, et le
+  // pire des deux sur la seule page adossée à Sanity.
+  //
+  // L'objection SEO au 200 (un moteur indexant le panneau à la place de
+  // l'article) est traitée dans `generateMetadata` par un `noindex` posé sur le
+  // seul rendu dégradé.
+  const post = await fetchOrFallback<Article | null | undefined>(
+    'actualites/[slug]',
+    () => client.fetch<Article | null>(postBySlugQuery, { slug }),
+    undefined,
+  );
+
+  if (post === undefined) {
+    return (
+      <div className="mx-auto max-w-[760px] px-4 py-10 sm:px-6 md:py-14">
+        <Link
+          href="/actualites"
+          className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-ink"
+        >
+          <span aria-hidden="true">←</span> {t('back')}
+        </Link>
+        <DataUnavailable className="mt-8" />
+      </div>
+    );
   }
+
   if (!post || post.language !== locale) notFound();
   const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 

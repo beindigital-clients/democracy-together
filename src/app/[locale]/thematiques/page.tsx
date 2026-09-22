@@ -7,6 +7,7 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
 import { getThemeSyntheses } from '@/lib/themes-content';
 import { vocabulary } from '@/i18n/vocabulary';
+import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -42,9 +43,14 @@ export default async function ThematiquesPage({
   const t = await getTranslations('thematiques');
   const tl = await getTranslations('library'); // libellés themes.*
   const syntheses = getThemeSyntheses(loc);
-  const { facets } = await fetchQuery(api.publications.listPublished, {
-    sort: 'recent',
-  });
+  // Backend injoignable -> les synthèses restent servies, avec un compte à
+  // zéro. Elles viennent du dépôt (`getThemeSyntheses`), pas de Convex : les
+  // perdre pour un décompte serait payer cher une donnée d'appoint (F-02).
+  const { facets } = await fetchOrFallback(
+    'thematiques',
+    () => fetchQuery(api.publications.listPublished, { sort: 'recent' }),
+    EMPTY_PUBLICATION_LIST,
+  );
   const counts = new Map(facets.themes.map((f) => [f.value, f.count]));
 
   return (

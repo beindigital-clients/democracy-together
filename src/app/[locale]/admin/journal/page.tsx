@@ -10,6 +10,7 @@ import { isAdmin } from '@/lib/roles';
 import { Button } from '@/components/ui/button';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
+import { ScrollableRegion } from '@/components/ui/scrollable-region';
 
 type Row = FunctionReturnType<typeof api.journal.listAuditLog>['page'][number];
 
@@ -155,7 +156,7 @@ export default function AdminJournal() {
           {search || actor ? t('noResults') : t('jrEmpty')}
         </p>
       ) : (
-        <div className="mt-6 overflow-x-auto">
+        <ScrollableRegion label={t('jrTitle')} className="mt-6">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-line text-left font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
@@ -205,7 +206,7 @@ export default function AdminJournal() {
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollableRegion>
       )}
 
       <LoadMore status={status} loadMore={loadMore} pageSize={PAGE_SIZE} />

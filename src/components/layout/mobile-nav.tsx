@@ -15,7 +15,16 @@ import { isNavActive, type NavItem } from './nav-links';
 // Accessible : aria-expanded / aria-controls, fermeture à Échap + clic hors
 // zone, focus envoyé dans le panneau à l'ouverture puis rendu au bouton, scroll
 // du corps verrouillé. Le menu se referme à toute navigation (effet pathname).
-export function MobileNav({ items }: { items: readonly NavItem[] }) {
+// `connecteAuRendu` n'est ici qu'un RELAIS : le menu mobile ne décide de rien,
+// il transmet aux îlots qui changeaient de largeur (`JoinButton`,
+// `AuthButton`). Voir `site-header.tsx` pour le pourquoi.
+export function MobileNav({
+  items,
+  connecteAuRendu,
+}: {
+  items: readonly NavItem[];
+  connecteAuRendu?: boolean;
+}) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const locale = useLocale();
@@ -25,7 +34,26 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
 
   // Toute navigation referme le menu. `pathname` (next-intl) est dépouillé de la
   // locale -> on ajoute `locale` aux deps pour aussi fermer sur bascule FR/EN.
+  //
+  // LE PREMIER PASSAGE EST SAUTÉ (audit F-13). Un effet à dépendances court
+  // AUSSI au montage : celui-ci posait donc `open = false` juste après
+  // l'hydratation. Un appui qui atterrit dans cette fenêtre — entre le moment
+  // où React attache le gestionnaire et celui où il vide ses effets — est bien
+  // pris, puis annulé : le menu ne s'ouvre pas, et rien ne le signale.
+  //
+  // HONNÊTEMENT : je n'ai PAS reproduit ce scénario. 45 tentatives, processeur
+  // bridé jusqu'à ×6, navigation rendue au plus tôt (`waitUntil: 'commit'`) :
+  // le menu s'est ouvert à chaque fois. Ce correctif n'est donc pas présenté
+  // comme la cause de F-13. Il tient tout seul : un effet qui dit « referme à
+  // chaque NAVIGATION » ne doit pas s'exécuter quand il n'y a pas eu de
+  // navigation, et la fenêtre qu'il ouvrait est d'autant plus large que
+  // l'appareil est lent — c'est-à-dire chez le premier public visé.
+  const navigationDejaVue = useRef(false);
   useEffect(() => {
+    if (!navigationDejaVue.current) {
+      navigationDejaVue.current = true;
+      return;
+    }
     setOpen(false);
   }, [pathname, locale]);
 
@@ -135,10 +163,14 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
               </li>
             </ul>
 
-            <JoinButton className="mt-5 w-full" onClick={close} />
+            <JoinButton
+              className="mt-5 w-full"
+              onClick={close}
+              connecteAuRendu={connecteAuRendu}
+            />
 
             <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
-              <AuthButton />
+              <AuthButton connecteAuRendu={connecteAuRendu} />
               <div className="flex items-center gap-2">
                 <LocaleSwitcher />
                 <ThemeToggle />
