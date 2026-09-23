@@ -18,6 +18,13 @@ renvoie à une commande jouée et à son journal.
 > anonyme et visiteur connecté : l'en-tête se décalait de 104 px au moment où
 > l'authentification se résolvait, il lit désormais cet état au rendu serveur.
 > Trois campagnes consécutives à zéro clic perdu, compteur corrigé. § 3.
+>
+> **F-12 est CORRIGÉ** (23/09) : les trois routes qu'aucune spec E2E ne citait
+> en ont une — **57 routes sur 57**. 227 tests en CI, 0 échec, 0 instable.
+>
+> **F-01 à F-13 sont donc tous refermés**, F-06 pour moitié. Ce qui reste ne
+> m'appartient pas : l'arbitrage produit de F-06, et la vérification manuelle
+> des variables de production (angle mort 7).
 
 ## 0. Ce qui a été corrigé
 
@@ -405,7 +412,7 @@ dépend échouait à l'**import**, donc avant la moindre assertion — c'est ce 
 obligeait `seo-coherence.test.ts` à analyser le texte source au lieu
 d'importer.
 
-### F-13 — une cause trouvée et corrigée, le symptôme persiste
+### F-13 — l'en-tête se décalait de 104 px sous le doigt — **CLOS**
 
 Détail complet en § 3. **`JoinButton` rendait `null`** le temps que Convex
 résolve l'état d'authentification, puis insérait 94 px dans une grappe ancrée à
@@ -415,17 +422,44 @@ une position que le bouton venait de quitter — mesuré, la cible réelle du cl
 était le conteneur, jamais le bouton.
 
 Le bouton était pourtant **hydraté et fonctionnel** : ce n'était pas un défaut
-d'hydratation mais un clic qui rate sa cible. `JoinButton` réserve désormais sa
-place pendant le chargement, comme `AuthButton` le faisait déjà. **Sous bridage
-×4, la bascule passe de 0/40 à 12/12.**
+d'hydratation mais un clic qui rate sa cible.
 
-**Et pourtant le symptôme persiste en CI.** La campagne `be86237`, la première
-à porter le correctif, compte **quatre clics absorbés** — autant que la
-précédente. Le décalage mesuré était donc réel et il est corrigé, mais il
-n'était pas la seule cause. Ce qui reste ne se produit pas sur la machine
-d'audit : les helpers portent désormais un mouchard qui dira, à la prochaine
-campagne, si le déclencheur s'était déplacé entre les deux clics — donc s'il
-s'agit encore d'un décalage ou d'autre chose.
+**Il a fallu deux correctifs.** Le premier — `JoinButton` réservant sa place
+pendant le chargement, comme `AuthButton` le faisait déjà — réglait le cas
+anonyme et **aggravait de 94 px le cas connecté**, où cette place est ensuite
+libérée. Aucune largeur réservée ne pouvait satisfaire les deux : ils n'ont pas
+la même largeur finale. `site-header.tsx` lit donc l'authentification au **rendu
+serveur** et la transmet aux trois îlots qui changeaient de largeur ; le HTML
+servi porte dès lors la mise en page finale, anonyme comme connectée.
+
+    écart servi → établi (anonyme)   103,9 px → 2,4 px → 0 px
+    bascule à ×4, 0 ms                  0/40 → 12/12 → 12/12
+
+**Ce que ce paragraphe affirmait avant le 23/09, et pourquoi c'était faux.** Il
+disait « le symptôme persiste en CI », sur la foi de la campagne `be86237` et
+de ses « quatre clics absorbés ». Ce décompte était **le mien, et il comptait
+faux** : le helper relevait comme clic perdu ce qui était une navigation déjà en
+vol, `page.url()` ne reflétant l'adresse qu'une fois celle-ci validée. La
+signature en était un « déplacement de -998×-20 px » depuis (998, 20), c'est-à-dire
+un **rectangle nul** et non une position. Les décomptes « trois par campagne »
+puis « quatre » surestiment donc ; rétrospectivement je ne sais pas dans quelle
+proportion, les journaux d'alors ne portant pas le mouchard.
+
+Compteur corrigé, **trois campagnes consécutives à zéro clic perdu** :
+`3459d11`, `c0e5534`, `76a03dd`. C'était le critère posé. Le cas connecté est
+gardé en CI par `tests/e2e/header-stabilite.spec.ts`, qui assertit sa propre
+non-vacance — il exige « Déconnexion » dans le HTML servi avant de comparer
+quoi que ce soit.
+
+**Cas résiduel assumé** : cookie « connecté » mais jeton expiré — le serveur
+rend la variante connectée, le client la corrige, un décalage apparaît. Il n'est
+plus systématique.
+
+> Ce passage est resté périmé deux jours après la clôture de F-13, alors que le
+> bandeau d'ouverture, le § 3 et le plan d'action disaient tous « clos ». Un
+> rapport qui se contredit à trente lignes d'intervalle n'est pas une broutille
+> de présentation : c'est la section « ce qui a été corrigé » qui affirmait le
+> contraire de la correction.
 
 ### Ce que ces correctifs ont fermé au passage
 
@@ -520,6 +554,26 @@ vérification manuelle des variables de production (angle mort 7), et
 l'arbitrage produit de F-06. F-13 ne bloque pas une mise en ligne — c'est une
 porte de CI instable, pas un défaut visible par un visiteur — mais sa cause
 racine reste inconnue et doit être déclarée comme telle.
+
+### Suite (22 et 23 septembre)
+
+Le paragraphe ci-dessus est daté du 21 au soir et reste tel quel : « la cause
+racine reste inconnue » était vrai ce soir-là. Elle ne l'est plus.
+
+**F-13 est CLOS** (§ 0 et § 3). La cause était un décalage de 104 px de
+l'en-tête au moment où l'authentification se résolvait ; elle est corrigée pour
+le visiteur anonyme comme pour le membre, gardée en CI, et trois campagnes
+consécutives affichent zéro clic perdu — le compteur qui donnait les chiffres
+précédents comptait faux, et c'est écrit là où il servait.
+
+**F-12 est CORRIGÉ** : les trois routes qu'aucune spec E2E ne citait en ont
+une. 227 tests en CI, 0 échec, 0 instable.
+
+**F-01 à F-13 sont donc tous refermés**, F-06 pour moitié seulement.
+
+**Ce qui empêche encore de dire « allez-y » n'a pas bougé, et n'est toujours
+pas technique** : la vérification manuelle des variables de production (angle
+mort 7) et l'arbitrage produit de F-06.
 
 **Ce que je corrigerais dans ma propre méthode**, puisque ce rapport sert aussi
 à ça : trois de mes erreurs ont été trouvées par la mesure et non par
@@ -1414,6 +1468,29 @@ correctif, `aria-label="Novembre 2026"` est bien servi, et
 cas « sans jeton », qui n'appelle aucune mutation et passe ici. C'est la CI qui
 les tranche.
 
+**Trouvé APRÈS COUP, par une CI rouge, et corrigé.** `admin-moderation.spec.ts`
+partageait la session `moderateur` avec `admin-ecrans.spec.ts` — son `describe`
+s'intitulait d'ailleurs « session modérateur **partagée** ». C'est précisément
+ce que `tests/e2e/_sessions.ts` proscrit depuis l'issue #38 : Playwright
+exécute les FICHIERS en parallèle, deux contextes présentent donc le même jeton
+de rafraîchissement, Convex Auth le fait tourner, le second passage ressemble à
+un rejeu et la session meurt. Le symptôme annoncé s'est produit mot pour mot :
+l'instantané d'échec est **la page de connexion**, et le bouton « Approuver »
+se détache du DOM au milieu du parcours.
+
+Deux exécutions l'ont montré, avec des ENSEMBLES DIFFÉRENTS de tests en échec
+(trois, puis un seul) — c'est la signature d'une course, pas d'une régression
+déterministe. `admin-moderation` écrit la candidature par le chemin public puis
+la modère : il tient sa session d'un bout à l'autre, il prend donc la sienne.
+
+**Reste ouvert, même famille** : `SESSIONS.membre` est partagée par **trois**
+fichiers — `seo.spec.ts`, `library-submit.spec.ts` et `admin.spec.ts`. Deux
+d'entre eux écrivent puis relisent. Aucune campagne ne les a encore fait
+tomber ; la règle du dépôt dit pourtant que le mécanisme mord dès DEUX
+contextes. Ce n'est pas corrigé ici — on ne corrige pas à l'aveugle ce qui n'a
+pas encore échoué — mais c'est écrit, et c'est le premier endroit où regarder à
+la prochaine CI rouge sur un de ces trois fichiers.
+
 ---
 
 ## 4. Suivi du pentest du 18 septembre 2026
@@ -1423,11 +1500,11 @@ les tranche.
 | C-1 | CRITIQUE | Next 16.2.9, RCE non authentifiée | ✅ **CORRIGÉ** | 16.3.5 installé ; absent de `pnpm audit` |
 | H-1 | ÉLEVÉE | Publications « membres » exposées | ✅ **CORRIGÉ** | PoC anonyme : `fileUrl` nul, `reviewNotes`/`authorUserId`/`fileId` absents, `body: []`, `locked: true` |
 | H-2 | ÉLEVÉE | Blocage de la file de modération | ✅ **CORRIGÉ** | PoC : `targetId` d'une autre table **rejeté** ; file toujours lisible par un modérateur |
-| M-1 | MOYENNE | `signUp` attache un mot de passe | 🟡 **PROBABLE** | `convex/auth-callback.test.ts` couvre `NO_SELF_SIGNUP` ; non rejoué faute de déploiement |
-| M-2 | MOYENNE | Rate-limit / reCAPTCHA fail-open | 🟡 **PROBABLE** | `rateLimit.test.ts` (14) + `recaptcha.test.ts` (15) verts |
-| M-3 | MOYENNE | `AUTH_DEV_OTP` | 🟡 **PROBABLE** | `otp.test.ts` (11) + `devAdmin.test.ts` (11) verts |
+| M-1 | MOYENNE | `signUp` attache un mot de passe | 🟠 **REJOUÉ — partiellement ouvert** | PoC : **pas de prise de compte** (`tokens: null`, 0 session) ; mais liaison acceptée, déni de service sur la victime et oracle d'énumération **confirmés** (§ 4bis) |
+| M-2 | MOYENNE | Rate-limit / reCAPTCHA fail-open | ✅ **REJOUÉ — corrigé** | PoC : compteur non forgeable ✓, fail-closed sans secret ✓. Le **remplissage** était resté ouvert (1 Mo accepté et stocké) — **bornes posées** (§ 4bis) |
+| M-3 | MOYENNE | `AUTH_DEV_OTP` | ✅ **REJOUÉ — corrigé** | PoC : **aucun** des huit oracles nommés par le pentest n'est public, et `latestDevCode` lève sans le drapeau (§ 4bis) |
 | M-4 | MOYENNE | Zones protégées gardées côté client | ✅ **CORRIGÉ** | 11 routes renvoient **307 serveur** vers `/fr/connexion` avant tout code client |
-| M-5 | MOYENNE | Rappels d'événements | 🟡 **PROBABLE** | `eventReminders.test.ts` (4) vert |
+| M-5 | MOYENNE | Rappels d'événements | 🟠 **REJOUÉ — atténué** | PoC : 5 rappels/h vers une adresse tierce, file rechargeable. **Plafond absolu posé** ; validation du slug **ouverte**, elle exige un choix d'architecture (§ 4bis) |
 | M-6 | MOYENNE | Élévation via approbation d'adhésion | ⚪ **NON VÉRIFIÉ** | exige un parcours back-office complet |
 | M-7 | MOYENNE | Compteur de vues sans limite | ✅ **CORRIGÉ** | `consumePublicationViewQuota` — `publications.ts:166` |
 | M-8 | MOYENNE | Oracles d'existence `already` | ✅ **CORRIGÉ depuis** | ouvert à l'audit ; refermé sur **cinq** actions publiques, pas deux (§ 0, F-09) |
@@ -1436,6 +1513,113 @@ les tranche.
 **🟡 PROBABLE** veut dire : un test du dépôt couvre nommément le point et il est
 vert, mais je n'ai pas rejoué l'attaque moi-même. Ce n'est pas la même chose que
 « corrigé », et je ne l'écris pas comme tel.
+
+Il ne reste **aucun 🟡** : les quatre ont été rejoués le 23/09 (§ 4bis).
+
+## 4bis. M-1, M-2, M-3, M-5 rejoués — ce que la mesure a dit
+
+PoC indépendantes des tests du dépôt, sur le modèle de celles de H-1 et H-2 :
+`audit/poc/pentest-m-regression.test.ts.txt`. Elles chargent `auth.ts`, ce que
+la plupart des suites du dépôt excluent — c'était la condition pour rejouer
+M-1, que le pentest disait « non exécuté » pour cette raison précise.
+
+### Trois instruments ont menti avant de dire vrai
+
+C'est la moitié du travail, et ça vaut d'être écrit : **aucun des trois
+premiers détecteurs ne mesurait ce qu'il prétendait**.
+
+1. `Boolean(api.otp.latestDevCode)` pour décider si une fonction est publique.
+   L'objet `api` est un **proxy permissif** : `api.moduleQuiNexistePas.rien`
+   est vrai lui aussi (vérifié). Ce détecteur annonçait **huit oracles
+   publics** qui ne le sont pas — un faux positif que j'ai failli rapporter.
+2. Appeler `t.query(api.otp.latestDevCode, …)` pour voir si l'appel est
+   refusé. `convex-test` résout la référence **par son chemin** et n'applique
+   pas la frontière public/interne : le handler s'exécute quand même.
+3. `api.eventReminders.subscribe` — cette action s'appelle `requestReminder`.
+   Le proxy fabrique la référence, l'appel échoue « fonction introuvable », et
+   mon `catch` comptait cela comme un **refus**. Les deux tests M-5 passaient
+   donc **à vide**, en annonçant une défense jamais exercée.
+
+Ce qui porte réellement la visibilité d'une fonction est l'objet enregistré :
+`internalQuery` pose `isInternal`, `query` pose `isPublic`. La PoC le lit là,
+et vérifie à chaque exécution qu'elle reconnaît bien une query publique — sans
+ce témoin, elle pourrait ne rien voir et l'annoncer comme une bonne nouvelle.
+
+### M-3 — clos
+
+Les **huit** oracles nommés par le pentest (`otp`, `contact`, `organizations`,
+`newsletter`, `events`, `eventReminders`, `youth`, `mentorship`) sont tous des
+`internalQuery` : hors API publique, appelables par aucun client. Et
+`latestDevCode` lève sans `AUTH_DEV_OTP`. La double garde `NODE_ENV` que le
+pentest proposait n'a pas été posée — elle est devenue sans objet, la fonction
+n'étant plus atteignable même avec le drapeau.
+
+### M-2 — corrigé, après un constat qui restait ouvert
+
+Deux des trois angles tenaient déjà : le compteur de plafond ne dépend **pas**
+de l'adresse fournie (mesuré : cinq adresses différentes incrémentent une même
+clé), et reCAPTCHA **rejette** sans secret.
+
+Le troisième ne tenait pas. Mesuré : un corps de **1 000 000 de caractères**
+était accepté et **écrit en base**. `youth`, `mentorship` et `events`
+bornaient leurs champs ; `contact`, `organizations` et l'adresse e-mail elle-même
+ne bornaient rien.
+
+**Corrigé** : bornes 120 / 200 / 4000 (les valeurs que le pentest proposait) et
+254 caractères d'adresse, posée dans `isEmail` — donc valable d'un coup pour
+les sept formulaires. Gardé par `convex/public-form-bounds.test.ts`, qui joue
+**les deux côtés** de chaque borne : un test qui ne vérifierait que le refus
+passerait encore le jour où la validation refuserait tout.
+
+### M-1 — pas de prise de compte, mais deux conséquences confirmées
+
+Mesuré, l'attaque littérale du pentest : `signIn('password', {flow:'signUp'})`
+sur l'adresse d'un admin existant.
+
+    signUp sur l'adresse de la victime   ACCEPTÉ
+    authAccounts créé                    provider "password", emailVerified null
+    sessions ouvertes                    0
+    connexion ultérieure de l'attaquant  {"tokens": null}
+
+**La bibliothèque bloque bien** : aucun jeton, aucune session. Ce n'est pas une
+prise de compte, et l'assertion qui l'exigeait a dû être corrigée — elle
+demandait une *levée*, alors que le backend répond « vérification requise ».
+Exiger la mauvaise forme de refus aurait fait rougir un backend qui se défend.
+
+En revanche, les deux conséquences que le pentest annonçait sont **confirmées** :
+
+- **déni de service** : après le passage de l'attaquant, la victime ne peut plus
+  poser son propre mot de passe — `Account … already exists` ;
+- **énumération** : adresse inconnue → `NO_SELF_SIGNUP`, adresse connue →
+  accepté. Une requête suffit pour savoir si une adresse est chez nous.
+
+**Non corrigé, et c'est délibéré.** Le correctif proposé — refuser la liaison
+`password` quand aucun compte n'existe — casserait le provisionnement des
+sessions E2E : `tests/e2e/_helpers.ts` utilise précisément ce flux, faute
+d'écran permettant à un membre invité de se donner un mot de passe. Fermer M-1
+suppose donc d'abord de remplacer ce provisionnement (une `internalMutation`
+de développement, dans la lignée de `devAdmin`), ce qui demande le hachage de
+la bibliothèque. C'est un chantier, pas une ligne, et il est posé ici plutôt
+que tranché en passant.
+
+### M-5 — atténué, pas clos
+
+Mesuré : un slug **inventé** est accepté, et **cinq** rappels vers une adresse
+tierce sont enregistrés avant que le plafond horaire ne morde — un plafond qui
+**se reconstitue**, donc cinq de plus l'heure suivante.
+
+**Corrigé** : plafond **absolu** de rappels EN ATTENTE par adresse (5), qui ne
+se recharge pas avec le temps — la PoC avance l'horloge de deux heures pour le
+prouver, sans quoi elle testerait le compteur horaire et non le nouveau. Plus
+un bornage de `eventDate` (ni passée, ni au-delà d'un an). La place se libère
+quand un rappel part : c'est un plafond de file, pas un bannissement.
+
+**Ouvert, et c'est un choix d'architecture** : valider `eventSlug` contre les
+événements réels et calculer `eventDate` côté serveur supposent que le backend
+CONNAISSE les événements. La liste vit dans `src/lib/events-content.ts`, côté
+Next. La dupliquer créerait deux sources de vérité à tenir synchrones, sur une
+donnée qui change à chaque événement ajouté. `events.ts` a exactement la même
+limite sur `register`. Le point revient au produit.
 
 ### Surface Convex publique
 
@@ -1530,6 +1714,12 @@ pnpm exec vitest run --config audit/poc/vitest.poc.config.ts
 cp audit/poc/pentest-regression.test.ts.txt convex/zz-audit-poc.test.ts
 pnpm exec vitest run convex/zz-audit-poc.test.ts
 rm convex/zz-audit-poc.test.ts
+
+# Régression du pentest (M-1, M-2, M-3, M-5) — 7 passées, 3 « expected fail »
+# (les trois `it.fails` documentent les constats restés ouverts : cf. § 4bis)
+cp audit/poc/pentest-m-regression.test.ts.txt convex/zz-audit-poc-m.test.ts
+pnpm exec vitest run convex/zz-audit-poc-m.test.ts
+rm convex/zz-audit-poc-m.test.ts
 
 # Lots navigateur — serveur requis
 NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \

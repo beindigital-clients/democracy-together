@@ -30,7 +30,7 @@ import {
   projectOrganization,
   publicOrganizationValidator,
 } from './lib/directory';
-import { isEmail } from './lib/validation';
+import { isEmail, FIELD_MAX } from './lib/validation';
 import {
   enforcePublicFormLimit,
   enforceRateLimit,
@@ -133,9 +133,21 @@ export const storeApplication = internalMutation({
     const country = args.country.trim();
     const message = args.message?.trim() || undefined;
 
-    if (organizationName.length < 2) throw new Error('INVALID_NAME');
+    // Bornes HAUTES autant que basses (pentest M-2, « remplissage ») : ce
+    // formulaire est anonyme et n'en avait aucune.
+    if (
+      organizationName.length < 2 ||
+      organizationName.length > FIELD_MAX.name
+    ) {
+      throw new Error('INVALID_NAME');
+    }
     if (!isEmail(contactEmail)) throw new Error('INVALID_EMAIL');
-    if (country.length < 2) throw new Error('INVALID_COUNTRY');
+    if (country.length < 2 || country.length > FIELD_MAX.country) {
+      throw new Error('INVALID_COUNTRY');
+    }
+    if (message !== undefined && message.length > FIELD_MAX.body) {
+      throw new Error('INVALID_MESSAGE');
+    }
 
     // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
     // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
