@@ -83,6 +83,38 @@ function ApplicationRow({ app }: { app: Application }) {
           <p className="mt-1 text-sm text-ink-soft">
             {app.contactEmail} · {app.country}
           </p>
+          {/* LE COMPTE QUI SERA ÉLEVÉ (pentest M-6). Approuver n'accorde pas un
+              rôle à l'adresse de contact ci-dessus — saisie librement dans le
+              formulaire — mais au compte CONNECTÉ qui a déposé la demande. Les
+              deux sont indépendants, et le modérateur décidait sans le voir.
+              Quand ils DIFFÈRENT, c'est dit explicitement : c'est la signature
+              de l'abus décrit au pentest, et ce n'est pas au modérateur de
+              comparer deux adresses de tête. */}
+          {app.applicantEmail ? (
+            <p
+              className={`mt-1 text-sm ${
+                app.applicantEmail === app.contactEmail
+                  ? 'text-muted'
+                  : 'font-medium text-ink'
+              }`}
+            >
+              {t('appAccountElevated')}{' '}
+              <b className="font-semibold">{app.applicantEmail}</b>
+              {app.applicantRole
+                ? ` · ${vocabulary(t, 'role_', app.applicantRole)}`
+                : ''}
+              {app.applicantEmail !== app.contactEmail ? (
+                <>
+                  {' — '}
+                  <span className="text-accent-text">
+                    {t('appAccountDiffers')}
+                  </span>
+                </>
+              ) : null}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-muted">{t('appAccountNone')}</p>
+          )}
         </div>
         <Badge variant={app.status === 'pending' ? 'accent' : 'default'}>
           {vocabulary(t, 'status_', app.status)}

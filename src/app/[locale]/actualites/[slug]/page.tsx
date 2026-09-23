@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { PortableText } from 'next-sanity';
@@ -8,6 +7,7 @@ import { client } from '@dt-sanity/lib/client';
 import { postBySlugQuery } from '@dt-sanity/lib/queries';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
+import { ptComponents } from '@/components/news/portable-text';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -19,19 +19,6 @@ type Article = {
   excerpt?: string;
   publishedAt: string;
   body?: unknown;
-};
-
-const ptComponents = {
-  block: {
-    normal: ({ children }: { children?: ReactNode }) => (
-      <p className="mt-4 max-w-[68ch] leading-relaxed text-ink-soft">
-        {children}
-      </p>
-    ),
-    h2: ({ children }: { children?: ReactNode }) => (
-      <h2 className="mt-8 font-display text-2xl">{children}</h2>
-    ),
-  },
 };
 
 export async function generateMetadata({

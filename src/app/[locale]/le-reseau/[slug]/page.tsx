@@ -10,6 +10,7 @@ import { countryName, countryFlag, languageName } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
+import { safeHref } from '@/lib/safe-href';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -68,6 +69,7 @@ export default async function OrgProfilePage({
 
   const t = await getTranslations('directory.profile');
   const td = await getTranslations('directory');
+  const websiteHref = safeHref(org.websiteUrl);
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6 md:py-14">
@@ -138,14 +140,22 @@ export default async function OrgProfilePage({
                   {org.languages.map((l) => languageName(l, locale)).join(', ')}
                 </dd>
               </div>
-              {org.websiteUrl ? (
+              {/* ADRESSE FOURNIE PAR LA FICHE, donc par un tiers (pentest
+                  M-9) : renseignée à l'adhésion, relue par un modérateur qui
+                  juge une organisation, pas une chaîne de caractères. Le
+                  schéma est désormais refusé à l'écriture
+                  (convex/lib/onboarding.ts) ; ce filtre-ci couvre les fiches
+                  DÉJÀ enregistrées, qu'aucune validation n'a jamais vues. Un
+                  schéma refusé retire le bloc entier : il n'y a rien à
+                  proposer au visiteur, et surtout pas un lien inerte. */}
+              {websiteHref ? (
                 <div>
                   <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
                     {t('website')}
                   </dt>
                   <dd className="mt-1">
                     <a
-                      href={org.websiteUrl}
+                      href={websiteHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="break-words text-accent-text hover:underline"

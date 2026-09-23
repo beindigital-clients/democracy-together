@@ -8,6 +8,7 @@
 // comme le fera la connexion.
 
 import { REGIONS, DIRECTORY_THEMES } from './directory';
+import { isHttpUrl } from './validation';
 
 // Normalisation d'adresse : c'est le point de jonction entre la candidature
 // (saisie à la main, casse et espaces quelconques) et la connexion (qui
@@ -54,6 +55,14 @@ export function validateDirectoryFields(
   const languages = [...new Set(input.languages)].filter(Boolean);
   if (languages.length === 0) return { ok: false, reason: 'INVALID_LANGUAGES' };
 
+  // Le champ « site web » finit dans un `href` de page publique (pentest
+  // M-9) : le schéma est contraint ICI, à l'entrée, et pas seulement au
+  // rendu. Vide reste vide — l'adresse est facultative.
+  const websiteUrl = input.websiteUrl?.trim() || undefined;
+  if (websiteUrl !== undefined && !isHttpUrl(websiteUrl)) {
+    return { ok: false, reason: 'INVALID_WEBSITE' };
+  }
+
   return {
     ok: true,
     value: {
@@ -62,7 +71,7 @@ export function validateDirectoryFields(
       themes,
       languages,
       description: input.description?.trim() || undefined,
-      websiteUrl: input.websiteUrl?.trim() || undefined,
+      websiteUrl,
     },
   };
 }

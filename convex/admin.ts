@@ -70,6 +70,20 @@ const applicationValidator = v.object({
   ),
   reviewNotes: v.union(v.string(), v.null()),
   submittedAt: v.number(),
+  // LE COMPTE QUI SERA ÉLEVÉ (pentest M-6). Approuver une candidature n'accorde
+  // pas un rôle à `contactEmail` : ça l'accorde au compte CONNECTÉ qui a déposé
+  // la demande, et ces deux adresses sont indépendantes — l'une est saisie
+  // librement dans le formulaire, l'autre est celle de la session.
+  //
+  // Le pentest décrivait l'écart : un visiteur connecté dépose « Institut X —
+  // contact@institut-x.org », le modérateur approuve une organisation
+  // plausible, et c'est le compte du déposant qui devient membre. Rejoué, c'est
+  // exactement ce qui se produit. Ce n'est pas un défaut en soi — sans cette
+  // liaison, un membre invité ne récupérerait jamais son adhésion — mais le
+  // modérateur décidait à l'aveugle : la file ne portait AUCUN champ désignant
+  // ce compte. Elle le porte désormais, et l'écran signale la discordance.
+  applicantEmail: v.union(v.string(), v.null()),
+  applicantRole: v.union(networkRole, v.null()),
 });
 
 export const listApplications = query({
@@ -113,19 +127,30 @@ export const listApplications = query({
             .order('desc')
             .paginate(opts);
 
+    // Une lecture par ligne de la PAGE (taille déjà bornée par `clampPageSize`)
+    // pour résoudre le compte lié — pas un scan.
     return {
       ...result,
-      page: result.page.map((a) => ({
-        _id: a._id,
-        type: a.type,
-        organizationName: a.organizationName,
-        contactEmail: a.contactEmail,
-        country: a.country,
-        message: a.message ?? null,
-        status: a.status,
-        reviewNotes: a.reviewNotes ?? null,
-        submittedAt: a.submittedAt,
-      })),
+      page: await Promise.all(
+        result.page.map(async (a) => {
+          const applicant = a.applicantUserId
+            ? await ctx.db.get(a.applicantUserId)
+            : null;
+          return {
+            _id: a._id,
+            type: a.type,
+            organizationName: a.organizationName,
+            contactEmail: a.contactEmail,
+            country: a.country,
+            message: a.message ?? null,
+            status: a.status,
+            reviewNotes: a.reviewNotes ?? null,
+            submittedAt: a.submittedAt,
+            applicantEmail: applicant?.email ?? null,
+            applicantRole: applicant?.role ?? null,
+          };
+        }),
+      ),
     };
   },
 });

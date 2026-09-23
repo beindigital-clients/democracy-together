@@ -431,3 +431,61 @@ describe('Invitation manuelle par un admin (F-63)', () => {
     ).rejects.toThrow('INVALID_EMAIL');
   });
 });
+
+// ADRESSE DE SITE D'UNE FICHE (pentest M-9, côté écriture).
+//
+// `websiteUrl` n'était contraint que par `v.string()`, et la fiche publique le
+// posait tel quel dans un `href`. Le filtre de rendu
+// (src/lib/safe-href.ts + tests/unit/portable-text-liens.test.tsx) garde le
+// dernier mot — il couvre les fiches enregistrées avant cette validation —
+// mais accepter la charge utile en base pour ne la retenir qu'à l'affichage
+// reviendrait à la stocker en attendant le prochain écran qui oubliera.
+describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)", () => {
+  it('refuse un schéma non http(s), et ne crée alors NI compte NI organisation', async () => {
+    const t = convexTest(schema, modules);
+    const mod = await moderator(t);
+
+    for (const websiteUrl of [
+      'javascript:alert(1)',
+      'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+      'vbscript:msgbox(1)',
+      'institut-sahel.org', // saisie sans schéma : incomplète, pas un lien
+    ]) {
+      const applicationId = await applicationFrom(t, {
+        organizationName: `Institut ${websiteUrl.slice(0, 8)}`,
+      });
+      await expect(
+        mod.as.mutation(api.organizations.reviewApplication, {
+          applicationId,
+          decision: 'approved',
+          directory: { ...DIRECTORY, websiteUrl },
+        }),
+        `schéma accepté : ${websiteUrl}`,
+      ).rejects.toThrow('INVALID_WEBSITE');
+    }
+
+    // La décision n'a pas été prise à moitié : rien n'est passé.
+    expect(
+      await t.run((ctx) => ctx.db.query('organizations').collect()),
+    ).toHaveLength(0);
+    const candidatures = await t.run((ctx) =>
+      ctx.db.query('membershipApplications').collect(),
+    );
+    expect(candidatures.every((c) => c.status === 'pending')).toBe(true);
+  });
+
+  it('accepte http et https — sinon ce test ne mesurerait rien', async () => {
+    const t = convexTest(schema, modules);
+    const mod = await moderator(t);
+    const applicationId = await applicationFrom(t);
+
+    await mod.as.mutation(api.organizations.reviewApplication, {
+      applicationId,
+      decision: 'approved',
+      directory: { ...DIRECTORY, websiteUrl: 'https://institut-sahel.org' },
+    });
+
+    const [org] = await t.run((ctx) => ctx.db.query('organizations').collect());
+    expect(org.websiteUrl).toBe('https://institut-sahel.org');
+  });
+});
