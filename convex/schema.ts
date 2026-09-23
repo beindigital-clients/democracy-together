@@ -309,7 +309,12 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index('by_sent', ['sent'])
-    .index('by_event_and_email', ['eventSlug', 'email']),
+    .index('by_event_and_email', ['eventSlug', 'email'])
+    // Rappels NON ENVOYÉS d'une adresse (pentest M-5) : le dédoublonnage porte
+    // sur (slug, email), donc varier le slug rendait un créneau neuf et une
+    // adresse tierce pouvait être visée en série. Le plafond a besoin de
+    // compter, et compter a besoin de cet index.
+    .index('by_email_and_sent', ['email', 'sent']),
 
   // Candidatures Jeunes (F-58) — le hub Jeunes devient fonctionnel. Candidature
   // sans compte (comme l'adhésion F-22, par e-mail). Revue par le staff.

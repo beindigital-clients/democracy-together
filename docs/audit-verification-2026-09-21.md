@@ -1477,11 +1477,11 @@ les tranche.
 | C-1 | CRITIQUE | Next 16.2.9, RCE non authentifiée | ✅ **CORRIGÉ** | 16.3.5 installé ; absent de `pnpm audit` |
 | H-1 | ÉLEVÉE | Publications « membres » exposées | ✅ **CORRIGÉ** | PoC anonyme : `fileUrl` nul, `reviewNotes`/`authorUserId`/`fileId` absents, `body: []`, `locked: true` |
 | H-2 | ÉLEVÉE | Blocage de la file de modération | ✅ **CORRIGÉ** | PoC : `targetId` d'une autre table **rejeté** ; file toujours lisible par un modérateur |
-| M-1 | MOYENNE | `signUp` attache un mot de passe | 🟡 **PROBABLE** | `convex/auth-callback.test.ts` couvre `NO_SELF_SIGNUP` ; non rejoué faute de déploiement |
-| M-2 | MOYENNE | Rate-limit / reCAPTCHA fail-open | 🟡 **PROBABLE** | `rateLimit.test.ts` (14) + `recaptcha.test.ts` (15) verts |
-| M-3 | MOYENNE | `AUTH_DEV_OTP` | 🟡 **PROBABLE** | `otp.test.ts` (11) + `devAdmin.test.ts` (11) verts |
+| M-1 | MOYENNE | `signUp` attache un mot de passe | 🟠 **REJOUÉ — partiellement ouvert** | PoC : **pas de prise de compte** (`tokens: null`, 0 session) ; mais liaison acceptée, déni de service sur la victime et oracle d'énumération **confirmés** (§ 4bis) |
+| M-2 | MOYENNE | Rate-limit / reCAPTCHA fail-open | ✅ **REJOUÉ — corrigé** | PoC : compteur non forgeable ✓, fail-closed sans secret ✓. Le **remplissage** était resté ouvert (1 Mo accepté et stocké) — **bornes posées** (§ 4bis) |
+| M-3 | MOYENNE | `AUTH_DEV_OTP` | ✅ **REJOUÉ — corrigé** | PoC : **aucun** des huit oracles nommés par le pentest n'est public, et `latestDevCode` lève sans le drapeau (§ 4bis) |
 | M-4 | MOYENNE | Zones protégées gardées côté client | ✅ **CORRIGÉ** | 11 routes renvoient **307 serveur** vers `/fr/connexion` avant tout code client |
-| M-5 | MOYENNE | Rappels d'événements | 🟡 **PROBABLE** | `eventReminders.test.ts` (4) vert |
+| M-5 | MOYENNE | Rappels d'événements | 🟠 **REJOUÉ — atténué** | PoC : 5 rappels/h vers une adresse tierce, file rechargeable. **Plafond absolu posé** ; validation du slug **ouverte**, elle exige un choix d'architecture (§ 4bis) |
 | M-6 | MOYENNE | Élévation via approbation d'adhésion | ⚪ **NON VÉRIFIÉ** | exige un parcours back-office complet |
 | M-7 | MOYENNE | Compteur de vues sans limite | ✅ **CORRIGÉ** | `consumePublicationViewQuota` — `publications.ts:166` |
 | M-8 | MOYENNE | Oracles d'existence `already` | ✅ **CORRIGÉ depuis** | ouvert à l'audit ; refermé sur **cinq** actions publiques, pas deux (§ 0, F-09) |
@@ -1490,6 +1490,113 @@ les tranche.
 **🟡 PROBABLE** veut dire : un test du dépôt couvre nommément le point et il est
 vert, mais je n'ai pas rejoué l'attaque moi-même. Ce n'est pas la même chose que
 « corrigé », et je ne l'écris pas comme tel.
+
+Il ne reste **aucun 🟡** : les quatre ont été rejoués le 23/09 (§ 4bis).
+
+## 4bis. M-1, M-2, M-3, M-5 rejoués — ce que la mesure a dit
+
+PoC indépendantes des tests du dépôt, sur le modèle de celles de H-1 et H-2 :
+`audit/poc/pentest-m-regression.test.ts.txt`. Elles chargent `auth.ts`, ce que
+la plupart des suites du dépôt excluent — c'était la condition pour rejouer
+M-1, que le pentest disait « non exécuté » pour cette raison précise.
+
+### Trois instruments ont menti avant de dire vrai
+
+C'est la moitié du travail, et ça vaut d'être écrit : **aucun des trois
+premiers détecteurs ne mesurait ce qu'il prétendait**.
+
+1. `Boolean(api.otp.latestDevCode)` pour décider si une fonction est publique.
+   L'objet `api` est un **proxy permissif** : `api.moduleQuiNexistePas.rien`
+   est vrai lui aussi (vérifié). Ce détecteur annonçait **huit oracles
+   publics** qui ne le sont pas — un faux positif que j'ai failli rapporter.
+2. Appeler `t.query(api.otp.latestDevCode, …)` pour voir si l'appel est
+   refusé. `convex-test` résout la référence **par son chemin** et n'applique
+   pas la frontière public/interne : le handler s'exécute quand même.
+3. `api.eventReminders.subscribe` — cette action s'appelle `requestReminder`.
+   Le proxy fabrique la référence, l'appel échoue « fonction introuvable », et
+   mon `catch` comptait cela comme un **refus**. Les deux tests M-5 passaient
+   donc **à vide**, en annonçant une défense jamais exercée.
+
+Ce qui porte réellement la visibilité d'une fonction est l'objet enregistré :
+`internalQuery` pose `isInternal`, `query` pose `isPublic`. La PoC le lit là,
+et vérifie à chaque exécution qu'elle reconnaît bien une query publique — sans
+ce témoin, elle pourrait ne rien voir et l'annoncer comme une bonne nouvelle.
+
+### M-3 — clos
+
+Les **huit** oracles nommés par le pentest (`otp`, `contact`, `organizations`,
+`newsletter`, `events`, `eventReminders`, `youth`, `mentorship`) sont tous des
+`internalQuery` : hors API publique, appelables par aucun client. Et
+`latestDevCode` lève sans `AUTH_DEV_OTP`. La double garde `NODE_ENV` que le
+pentest proposait n'a pas été posée — elle est devenue sans objet, la fonction
+n'étant plus atteignable même avec le drapeau.
+
+### M-2 — corrigé, après un constat qui restait ouvert
+
+Deux des trois angles tenaient déjà : le compteur de plafond ne dépend **pas**
+de l'adresse fournie (mesuré : cinq adresses différentes incrémentent une même
+clé), et reCAPTCHA **rejette** sans secret.
+
+Le troisième ne tenait pas. Mesuré : un corps de **1 000 000 de caractères**
+était accepté et **écrit en base**. `youth`, `mentorship` et `events`
+bornaient leurs champs ; `contact`, `organizations` et l'adresse e-mail elle-même
+ne bornaient rien.
+
+**Corrigé** : bornes 120 / 200 / 4000 (les valeurs que le pentest proposait) et
+254 caractères d'adresse, posée dans `isEmail` — donc valable d'un coup pour
+les sept formulaires. Gardé par `convex/public-form-bounds.test.ts`, qui joue
+**les deux côtés** de chaque borne : un test qui ne vérifierait que le refus
+passerait encore le jour où la validation refuserait tout.
+
+### M-1 — pas de prise de compte, mais deux conséquences confirmées
+
+Mesuré, l'attaque littérale du pentest : `signIn('password', {flow:'signUp'})`
+sur l'adresse d'un admin existant.
+
+    signUp sur l'adresse de la victime   ACCEPTÉ
+    authAccounts créé                    provider "password", emailVerified null
+    sessions ouvertes                    0
+    connexion ultérieure de l'attaquant  {"tokens": null}
+
+**La bibliothèque bloque bien** : aucun jeton, aucune session. Ce n'est pas une
+prise de compte, et l'assertion qui l'exigeait a dû être corrigée — elle
+demandait une *levée*, alors que le backend répond « vérification requise ».
+Exiger la mauvaise forme de refus aurait fait rougir un backend qui se défend.
+
+En revanche, les deux conséquences que le pentest annonçait sont **confirmées** :
+
+- **déni de service** : après le passage de l'attaquant, la victime ne peut plus
+  poser son propre mot de passe — `Account … already exists` ;
+- **énumération** : adresse inconnue → `NO_SELF_SIGNUP`, adresse connue →
+  accepté. Une requête suffit pour savoir si une adresse est chez nous.
+
+**Non corrigé, et c'est délibéré.** Le correctif proposé — refuser la liaison
+`password` quand aucun compte n'existe — casserait le provisionnement des
+sessions E2E : `tests/e2e/_helpers.ts` utilise précisément ce flux, faute
+d'écran permettant à un membre invité de se donner un mot de passe. Fermer M-1
+suppose donc d'abord de remplacer ce provisionnement (une `internalMutation`
+de développement, dans la lignée de `devAdmin`), ce qui demande le hachage de
+la bibliothèque. C'est un chantier, pas une ligne, et il est posé ici plutôt
+que tranché en passant.
+
+### M-5 — atténué, pas clos
+
+Mesuré : un slug **inventé** est accepté, et **cinq** rappels vers une adresse
+tierce sont enregistrés avant que le plafond horaire ne morde — un plafond qui
+**se reconstitue**, donc cinq de plus l'heure suivante.
+
+**Corrigé** : plafond **absolu** de rappels EN ATTENTE par adresse (5), qui ne
+se recharge pas avec le temps — la PoC avance l'horloge de deux heures pour le
+prouver, sans quoi elle testerait le compteur horaire et non le nouveau. Plus
+un bornage de `eventDate` (ni passée, ni au-delà d'un an). La place se libère
+quand un rappel part : c'est un plafond de file, pas un bannissement.
+
+**Ouvert, et c'est un choix d'architecture** : valider `eventSlug` contre les
+événements réels et calculer `eventDate` côté serveur supposent que le backend
+CONNAISSE les événements. La liste vit dans `src/lib/events-content.ts`, côté
+Next. La dupliquer créerait deux sources de vérité à tenir synchrones, sur une
+donnée qui change à chaque événement ajouté. `events.ts` a exactement la même
+limite sur `register`. Le point revient au produit.
 
 ### Surface Convex publique
 
@@ -1584,6 +1691,12 @@ pnpm exec vitest run --config audit/poc/vitest.poc.config.ts
 cp audit/poc/pentest-regression.test.ts.txt convex/zz-audit-poc.test.ts
 pnpm exec vitest run convex/zz-audit-poc.test.ts
 rm convex/zz-audit-poc.test.ts
+
+# Régression du pentest (M-1, M-2, M-3, M-5) — 7 passées, 3 « expected fail »
+# (les trois `it.fails` documentent les constats restés ouverts : cf. § 4bis)
+cp audit/poc/pentest-m-regression.test.ts.txt convex/zz-audit-poc-m.test.ts
+pnpm exec vitest run convex/zz-audit-poc-m.test.ts
+rm convex/zz-audit-poc-m.test.ts
 
 # Lots navigateur — serveur requis
 NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \

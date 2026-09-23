@@ -7,7 +7,7 @@ import {
   query,
 } from './_generated/server';
 import { internal } from './_generated/api';
-import { isEmail } from './lib/validation';
+import { isEmail, FIELD_MAX } from './lib/validation';
 import {
   enforcePublicFormLimit,
   enforceRateLimit,
@@ -56,10 +56,19 @@ export const store = internalMutation({
     const subject = args.subject.trim();
     const body = args.body.trim();
 
-    if (name.length < 2) throw new Error('INVALID_NAME');
+    // Bornes HAUTES autant que basses (pentest M-2). Sans elles, ce formulaire
+    // anonyme acceptait ~1 Mo par soumission : mesuré, un corps de 1 000 000
+    // caractères était écrit en base tel quel.
+    if (name.length < 2 || name.length > FIELD_MAX.name) {
+      throw new Error('INVALID_NAME');
+    }
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
-    if (subject.length < 2) throw new Error('INVALID_SUBJECT');
-    if (body.length < 10) throw new Error('INVALID_BODY');
+    if (subject.length < 2 || subject.length > FIELD_MAX.subject) {
+      throw new Error('INVALID_SUBJECT');
+    }
+    if (body.length < 10 || body.length > FIELD_MAX.body) {
+      throw new Error('INVALID_BODY');
+    }
 
     // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
     // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.

@@ -26,6 +26,20 @@ import { locale } from './schema';
 // Fenêtre d'envoi : on prévient au plus 2 jours avant l'événement.
 const REMINDER_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
+// Rappels EN ATTENTE tolérés pour une même adresse (pentest M-5). Détail du
+// raisonnement et de la mesure dans `storeReminder`.
+const MAX_PENDING_REMINDERS_PER_EMAIL = 5;
+
+// CE QUI RESTE OUVERT ICI, ET POURQUOI CE N'EST PAS UN OUBLI. Le pentest
+// demandait aussi de « valider eventSlug contre la liste réelle et calculer
+// eventDate côté serveur ». Les deux supposent que le backend CONNAISSE les
+// événements — or la liste vit dans `src/lib/events-content.ts`, côté Next, et
+// le backend ne la voit pas. La dupliquer ici créerait deux sources de vérité
+// à tenir synchrones, sur une donnée qui change à chaque événement ajouté :
+// c'est un choix d'architecture, pas une ligne à écrire, et il est posé au
+// rapport d'audit plutôt que tranché en passant. `events.ts` a exactement la
+// même limite sur `register`.
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -102,6 +116,42 @@ export const storeReminder = internalMutation({
     const email = args.email.trim().toLowerCase();
     if (!eventSlug || eventSlug.length > 100) throw new Error('INVALID_EVENT');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
+
+    // PLAFOND DE RAPPELS NON ENVOYÉS PAR ADRESSE (pentest M-5).
+    //
+    // Ce que la mesure a montré, PoC à l'appui : le dédoublonnage porte sur
+    // (eventSlug, email), et le slug n'est pas validé contre les événements
+    // réels — seulement borné à 100 caractères. Varier le slug rendait donc un
+    // créneau neuf à chaque fois, et cinq rappels vers une adresse TIERCE
+    // étaient enregistrés avant que le plafond horaire ne morde. Ce plafond-là
+    // se reconstitue : cinq de plus l'heure suivante, cent vingt par jour, tous
+    // partant du domaine du site à 07:00 UTC.
+    //
+    // Le plafond ci-dessous ne se reconstitue pas tout seul : il compte les
+    // rappels EN ATTENTE. Une fois la file pleine pour une adresse, plus rien
+    // n'y entre tant qu'ils n'ont pas été envoyés. Cinq est large pour un
+    // usage humain — il y a moins d'événements à venir que cela.
+    const enAttente = await ctx.db
+      .query('eventReminders')
+      .withIndex('by_email_and_sent', (q) =>
+        q.eq('email', email).eq('sent', false),
+      )
+      .collect();
+    if (enAttente.length >= MAX_PENDING_REMINDERS_PER_EMAIL) {
+      throw new Error('TOO_MANY_PENDING_REMINDERS');
+    }
+
+    // Date fournie par l'appelant, donc bornée : ni dans le passé (un rappel
+    // qui ne partira jamais n'est qu'une ligne de remplissage), ni au-delà d'un
+    // an. Calculer la date côté serveur supposerait que le backend connaisse
+    // les événements — il ne les connaît pas, cf. la note en tête de fichier.
+    const maintenant = Date.now();
+    if (
+      args.eventDate < maintenant ||
+      args.eventDate > maintenant + 366 * 86_400_000
+    ) {
+      throw new Error('INVALID_EVENT_DATE');
+    }
 
     // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
     // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
