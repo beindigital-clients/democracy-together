@@ -18,6 +18,13 @@ renvoie à une commande jouée et à son journal.
 > anonyme et visiteur connecté : l'en-tête se décalait de 104 px au moment où
 > l'authentification se résolvait, il lit désormais cet état au rendu serveur.
 > Trois campagnes consécutives à zéro clic perdu, compteur corrigé. § 3.
+>
+> **F-12 est CORRIGÉ** (23/09) : les trois routes qu'aucune spec E2E ne citait
+> en ont une — **57 routes sur 57**. 227 tests en CI, 0 échec, 0 instable.
+>
+> **F-01 à F-13 sont donc tous refermés**, F-06 pour moitié. Ce qui reste ne
+> m'appartient pas : l'arbitrage produit de F-06, et la vérification manuelle
+> des variables de production (angle mort 7).
 
 ## 0. Ce qui a été corrigé
 
@@ -405,7 +412,7 @@ dépend échouait à l'**import**, donc avant la moindre assertion — c'est ce 
 obligeait `seo-coherence.test.ts` à analyser le texte source au lieu
 d'importer.
 
-### F-13 — une cause trouvée et corrigée, le symptôme persiste
+### F-13 — l'en-tête se décalait de 104 px sous le doigt — **CLOS**
 
 Détail complet en § 3. **`JoinButton` rendait `null`** le temps que Convex
 résolve l'état d'authentification, puis insérait 94 px dans une grappe ancrée à
@@ -415,17 +422,44 @@ une position que le bouton venait de quitter — mesuré, la cible réelle du cl
 était le conteneur, jamais le bouton.
 
 Le bouton était pourtant **hydraté et fonctionnel** : ce n'était pas un défaut
-d'hydratation mais un clic qui rate sa cible. `JoinButton` réserve désormais sa
-place pendant le chargement, comme `AuthButton` le faisait déjà. **Sous bridage
-×4, la bascule passe de 0/40 à 12/12.**
+d'hydratation mais un clic qui rate sa cible.
 
-**Et pourtant le symptôme persiste en CI.** La campagne `be86237`, la première
-à porter le correctif, compte **quatre clics absorbés** — autant que la
-précédente. Le décalage mesuré était donc réel et il est corrigé, mais il
-n'était pas la seule cause. Ce qui reste ne se produit pas sur la machine
-d'audit : les helpers portent désormais un mouchard qui dira, à la prochaine
-campagne, si le déclencheur s'était déplacé entre les deux clics — donc s'il
-s'agit encore d'un décalage ou d'autre chose.
+**Il a fallu deux correctifs.** Le premier — `JoinButton` réservant sa place
+pendant le chargement, comme `AuthButton` le faisait déjà — réglait le cas
+anonyme et **aggravait de 94 px le cas connecté**, où cette place est ensuite
+libérée. Aucune largeur réservée ne pouvait satisfaire les deux : ils n'ont pas
+la même largeur finale. `site-header.tsx` lit donc l'authentification au **rendu
+serveur** et la transmet aux trois îlots qui changeaient de largeur ; le HTML
+servi porte dès lors la mise en page finale, anonyme comme connectée.
+
+    écart servi → établi (anonyme)   103,9 px → 2,4 px → 0 px
+    bascule à ×4, 0 ms                  0/40 → 12/12 → 12/12
+
+**Ce que ce paragraphe affirmait avant le 23/09, et pourquoi c'était faux.** Il
+disait « le symptôme persiste en CI », sur la foi de la campagne `be86237` et
+de ses « quatre clics absorbés ». Ce décompte était **le mien, et il comptait
+faux** : le helper relevait comme clic perdu ce qui était une navigation déjà en
+vol, `page.url()` ne reflétant l'adresse qu'une fois celle-ci validée. La
+signature en était un « déplacement de -998×-20 px » depuis (998, 20), c'est-à-dire
+un **rectangle nul** et non une position. Les décomptes « trois par campagne »
+puis « quatre » surestiment donc ; rétrospectivement je ne sais pas dans quelle
+proportion, les journaux d'alors ne portant pas le mouchard.
+
+Compteur corrigé, **trois campagnes consécutives à zéro clic perdu** :
+`3459d11`, `c0e5534`, `76a03dd`. C'était le critère posé. Le cas connecté est
+gardé en CI par `tests/e2e/header-stabilite.spec.ts`, qui assertit sa propre
+non-vacance — il exige « Déconnexion » dans le HTML servi avant de comparer
+quoi que ce soit.
+
+**Cas résiduel assumé** : cookie « connecté » mais jeton expiré — le serveur
+rend la variante connectée, le client la corrige, un décalage apparaît. Il n'est
+plus systématique.
+
+> Ce passage est resté périmé deux jours après la clôture de F-13, alors que le
+> bandeau d'ouverture, le § 3 et le plan d'action disaient tous « clos ». Un
+> rapport qui se contredit à trente lignes d'intervalle n'est pas une broutille
+> de présentation : c'est la section « ce qui a été corrigé » qui affirmait le
+> contraire de la correction.
 
 ### Ce que ces correctifs ont fermé au passage
 
@@ -520,6 +554,26 @@ vérification manuelle des variables de production (angle mort 7), et
 l'arbitrage produit de F-06. F-13 ne bloque pas une mise en ligne — c'est une
 porte de CI instable, pas un défaut visible par un visiteur — mais sa cause
 racine reste inconnue et doit être déclarée comme telle.
+
+### Suite (22 et 23 septembre)
+
+Le paragraphe ci-dessus est daté du 21 au soir et reste tel quel : « la cause
+racine reste inconnue » était vrai ce soir-là. Elle ne l'est plus.
+
+**F-13 est CLOS** (§ 0 et § 3). La cause était un décalage de 104 px de
+l'en-tête au moment où l'authentification se résolvait ; elle est corrigée pour
+le visiteur anonyme comme pour le membre, gardée en CI, et trois campagnes
+consécutives affichent zéro clic perdu — le compteur qui donnait les chiffres
+précédents comptait faux, et c'est écrit là où il servait.
+
+**F-12 est CORRIGÉ** : les trois routes qu'aucune spec E2E ne citait en ont
+une. 227 tests en CI, 0 échec, 0 instable.
+
+**F-01 à F-13 sont donc tous refermés**, F-06 pour moitié seulement.
+
+**Ce qui empêche encore de dire « allez-y » n'a pas bougé, et n'est toujours
+pas technique** : la vérification manuelle des variables de production (angle
+mort 7) et l'arbitrage produit de F-06.
 
 **Ce que je corrigerais dans ma propre méthode**, puisque ce rapport sert aussi
 à ça : trois de mes erreurs ont été trouvées par la mesure et non par
