@@ -17,8 +17,23 @@ import { SESSIONS } from './_sessions';
 // publications (`library-submit.spec.ts`).
 test.use({ locale: 'fr-FR' });
 
-test.describe('file des candidatures jeunes (session modérateur partagée)', () => {
-  test.use({ storageState: SESSIONS.moderateur.state });
+// Le jeton de rafraîchissement tourne au premier test : on réécrit l'état pour
+// que les suivants ne repartent pas d'un jeton consommé (même précaution que
+// `admin-nav`, `admin-recherche`, `admin-confirmations` et `admin-contact`).
+test.afterEach(async ({ context }) => {
+  await context.storageState({ path: SESSIONS.adminModeration.state });
+});
+
+test.describe('file des candidatures jeunes (session dédiée)', () => {
+  // SESSION DÉDIÉE, et ce ne l'était pas : ce bloc partageait `moderateur`
+  // avec `admin-ecrans.spec.ts`. Playwright exécute les FICHIERS en parallèle,
+  // donc deux contextes présentaient le même jeton de rafraîchissement —
+  // Convex Auth le fait tourner à chaque renouvellement, le second passage
+  // ressemble à un rejeu, et la session meurt. Constaté en CI : l'instantané
+  // d'échec est la page de connexion, et « Approuver » se détache du DOM au
+  // milieu du parcours. C'est le mécanisme que `_sessions.ts` décrit depuis
+  // l'issue #38 ; ce fichier y échappait encore.
+  test.use({ storageState: SESSIONS.adminModeration.state });
 
   test('back-office : un modérateur approuve une candidature jeune (F-58/F-26)', async ({
     page,

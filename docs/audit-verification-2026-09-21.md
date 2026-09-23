@@ -1468,6 +1468,29 @@ correctif, `aria-label="Novembre 2026"` est bien servi, et
 cas « sans jeton », qui n'appelle aucune mutation et passe ici. C'est la CI qui
 les tranche.
 
+**Trouvé APRÈS COUP, par une CI rouge, et corrigé.** `admin-moderation.spec.ts`
+partageait la session `moderateur` avec `admin-ecrans.spec.ts` — son `describe`
+s'intitulait d'ailleurs « session modérateur **partagée** ». C'est précisément
+ce que `tests/e2e/_sessions.ts` proscrit depuis l'issue #38 : Playwright
+exécute les FICHIERS en parallèle, deux contextes présentent donc le même jeton
+de rafraîchissement, Convex Auth le fait tourner, le second passage ressemble à
+un rejeu et la session meurt. Le symptôme annoncé s'est produit mot pour mot :
+l'instantané d'échec est **la page de connexion**, et le bouton « Approuver »
+se détache du DOM au milieu du parcours.
+
+Deux exécutions l'ont montré, avec des ENSEMBLES DIFFÉRENTS de tests en échec
+(trois, puis un seul) — c'est la signature d'une course, pas d'une régression
+déterministe. `admin-moderation` écrit la candidature par le chemin public puis
+la modère : il tient sa session d'un bout à l'autre, il prend donc la sienne.
+
+**Reste ouvert, même famille** : `SESSIONS.membre` est partagée par **trois**
+fichiers — `seo.spec.ts`, `library-submit.spec.ts` et `admin.spec.ts`. Deux
+d'entre eux écrivent puis relisent. Aucune campagne ne les a encore fait
+tomber ; la règle du dépôt dit pourtant que le mécanisme mord dès DEUX
+contextes. Ce n'est pas corrigé ici — on ne corrige pas à l'aveugle ce qui n'a
+pas encore échoué — mais c'est écrit, et c'est le premier endroit où regarder à
+la prochaine CI rouge sur un de ces trois fichiers.
+
 ---
 
 ## 4. Suivi du pentest du 18 septembre 2026

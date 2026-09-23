@@ -59,7 +59,8 @@ export type SessionKey =
   | 'adminNav'
   | 'adminRecherche'
   | 'enTete'
-  | 'adminContact';
+  | 'adminContact'
+  | 'adminModeration';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -152,6 +153,22 @@ export const SESSIONS: Record<
   adminContact: {
     email: 'e2e_session_admin_contact@democracytogether.test',
     state: 'tests/e2e/.auth/admin-contact.json',
+    role: 'moderateur',
+  },
+  // Session dédiée à `admin-moderation.spec.ts`.
+  //
+  // CE FICHIER PARTAGEAIT `moderateur` AVEC `admin-ecrans.spec.ts`, et il
+  // l'annonçait lui-même — son `describe` s'intitulait « session modérateur
+  // PARTAGÉE ». C'est exactement ce que la règle ci-dessus proscrit, et le
+  // symptôme décrit s'est produit : en CI, le test s'est réveillé sur
+  // `/connexion` au milieu de son parcours, l'instantané d'échec montrant la
+  // page de connexion et le bouton « Approuver » détaché du DOM.
+  //
+  // Il écrit la candidature par le chemin public PUIS la modère : il tient
+  // donc sa session d'un bout à l'autre. Rang modérateur, celui qu'il exerce.
+  adminModeration: {
+    email: 'e2e_session_admin_moderation@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-moderation.json',
     role: 'moderateur',
   },
 };
