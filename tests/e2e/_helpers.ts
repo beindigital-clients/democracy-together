@@ -164,6 +164,13 @@ export function isNewsletterSubscribed(email: string) {
   return convexRunQuery<boolean>('newsletter:isSubscribed', { email });
 }
 
+// Jeton de désinscription d'un abonné — ce que porte le lien du pied de
+// l'e-mail de campagne. Sans lui, `/newsletter/desinscription` n'est testable
+// que sur ses branches d'échec (audit F-12).
+export function newsletterUnsubToken(email: string) {
+  return convexRunQuery<string | null>('newsletter:devUnsubToken', { email });
+}
+
 export function isEventRegistered(eventSlug: string, email: string) {
   return convexRunQuery<boolean>('events:isRegistered', { eventSlug, email });
 }
