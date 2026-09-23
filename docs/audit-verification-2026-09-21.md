@@ -1366,13 +1366,53 @@ Légitime, mais dépendant du jeu de données : sur une préversion peu peuplée
 test peut ne jamais s'exécuter sans que rien ne le signale. C'est le seul `skip`
 du dépôt — les 717 tests unitaires s'exécutent tous.
 
-### F-12 · INFO · Trois routes sans aucune référence dans les specs E2E
+### F-12 · INFO · Trois routes sans aucune référence dans les specs E2E — **CORRIGÉ**
 
 `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`.
 
 Sur 57 routes, 54 sont citées par au moins une spec : la couverture est bonne.
 Méthode : croisement textuel des chemins `/fr/…` et `/en/…` dans `tests/e2e/` —
 elle repère l'absence de mention, pas la qualité de ce qui est vérifié.
+
+**Les trois routes ont désormais leur fichier** : `calendrier.spec.ts` (5),
+`desinscription.spec.ts` (3), `admin-contact.spec.ts` (2) — **57 sur 57**.
+
+**Ce que chacune exigeait, et qui explique qu'elles soient restées de côté.**
+
+- `/evenements/calendrier` est la seule route de ce dossier à ne dépendre
+  d'AUCUN backend : sa grille vient de `buildMonthGrid` et ses événements de
+  `EVENTS`, tous deux versionnés. Le mois est piloté par `?ym=`, jamais par
+  l'horloge — les assertions sont donc déterministes, et c'est le seul de ces
+  trois fichiers jouable depuis l'environnement d'audit. **Joué ici : 5/5.**
+- `/newsletter/desinscription` n'existe qu'au bout d'un JETON, et aucun oracle
+  de lecture ne le rendait — `isSubscribed` ne rend qu'un booléen. Sans lui,
+  seules les branches d'ÉCHEC étaient testables, c'est-à-dire tout sauf la
+  désinscription. D'où `newsletter:devUnsubToken`, `internalQuery` gardée par
+  `AUTH_DEV_OTP`, sur le modèle exact de `isSubscribed` et
+  `contact:latestForEmail`. **Ce n'est pas l'oracle refermé en F-09** : celui-là
+  était public et non authentifié ; celui-ci est hors API publique et s'invoque
+  par la CLI Convex, en contexte de confiance.
+- `/admin/contact` écrit la donnée puis la modère : le fichier tient sa session
+  de bout en bout, donc **session dédiée** (règle de `_sessions.ts`), au rang
+  modérateur — le minimum qu'exigent `listMessages` et `setHandled`. Prendre un
+  administrateur aurait fait passer le test le jour où la garde serait relevée
+  par erreur.
+
+**Un défaut trouvé en écrivant ces specs, et corrigé.** `Reveal` n'acceptait
+pas `aria-label` ; seul `RevealGroup` le déclarait. Or
+`evenements/calendrier/page.tsx` lui en passait un pour nommer la grille du
+mois — le seul site du dépôt dans ce cas. **TypeScript ne le signale pas** : un
+attribut JSX à tiret échappe au contrôle des propriétés en trop. Constaté sur
+le HTML SERVI, avant correctif : `<section data-reveal="" class="…"
+style="…">`, sans `aria-label`. Un `<section>` sans nom accessible n'est pas
+exposé comme repère `region` — la grille était un conteneur anonyme. Après
+correctif, `aria-label="Novembre 2026"` est bien servi, et
+`calendrier.spec.ts` l'exige.
+
+**Ce qui n'a PAS pu être vérifié d'ici** : les deux fichiers adossés à Convex
+(`desinscription`, `admin-contact`), faute de déploiement joignable — sauf le
+cas « sans jeton », qui n'appelle aucune mutation et passe ici. C'est la CI qui
+les tranche.
 
 ---
 
@@ -1527,7 +1567,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 9 | Alléger les chunks (`d3-geo`/`topojson`/`world-atlas` en différé) ; prérendre les pages éditoriales | F-05 | 1 j |
 | 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; arbitrage `dynamicParams` à trancher | F-06 🟡 | — |
 | 11 | ~~Souligner le lien d'adhésion~~ — **fait**, plus les zones défilantes inatteignables au clavier (2 pages publiques + 3 tableaux d'administration) | F-07 ✅ | — |
-| 12 | Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription` | F-12 | 3 h |
+| 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
 | 13 | Aligner le Chromium de l'environnement sur le Playwright épinglé, pour rendre le mobile testable | angle mort 2 | — |
 
 ---

@@ -65,18 +65,28 @@ function useEtatReveal(ref: React.RefObject<Element | null>, margin: string) {
 
 const EASE = [0.165, 0.84, 0.44, 1] as const;
 
+// `aria-label` EST RELAYÉ, et il a fallu le constater pour le savoir.
+// `RevealGroup` le déclarait depuis le début ; `Reveal`, non — et
+// `evenements/calendrier/page.tsx` lui en passait un pour nommer la grille du
+// mois. TypeScript ne dit rien : un attribut JSX À TIRET échappe au contrôle
+// des propriétés en trop, si bien que le nom était écrit dans la page et
+// ABSENT du DOM. Vérifié sur le HTML servi avant correctif : le `<section>`
+// ne portait que `data-reveal`, `class` et `style`. Un `<section>` sans nom
+// accessible n'est pas un repère `region` — c'est une balise neutre.
 export function Reveal({
   children,
   delay = 0,
   className,
   as = 'div',
   id,
+  'aria-label': ariaLabel,
 }: {
   children: ReactNode;
   delay?: number;
   className?: string;
   as?: 'div' | 'section' | 'li' | 'ul' | 'ol';
   id?: string;
+  'aria-label'?: string;
 }) {
   // `motion[as]` est une UNION de composants ; typer la ref contre chacun à la
   // fois est impossible. Le cast porte sur le TYPE seulement — à l'exécution
@@ -91,6 +101,7 @@ export function Reveal({
       id={id}
       data-reveal=""
       className={className}
+      aria-label={ariaLabel}
       initial={false}
       animate={etat}
       variants={{

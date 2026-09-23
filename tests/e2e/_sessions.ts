@@ -58,7 +58,8 @@ export type SessionKey =
   | 'devBrowser'
   | 'adminNav'
   | 'adminRecherche'
-  | 'enTete';
+  | 'enTete'
+  | 'adminContact';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -138,5 +139,19 @@ export const SESSIONS: Record<
     email: 'e2e_session_en_tete@democracytogether.test',
     state: 'tests/e2e/.auth/en-tete.json',
     role: 'membre',
+  },
+  // Session dédiée à `admin-contact.spec.ts` (audit F-12). Ce fichier écrit un
+  // message par le formulaire PUBLIC puis le traite depuis le back-office : il
+  // tient donc sa session d'un bout à l'autre, exactement le cas que la règle
+  // ci-dessus vise.
+  //
+  // Rang MODÉRATEUR, et pas plus : c'est ce qu'exigent `contact.listMessages`
+  // et `contact.setHandled`. Prendre un administrateur « pour être tranquille »
+  // ferait passer le test même le jour où la garde serait relevée par erreur —
+  // le rang minimal est ce qui rend l'écran vérifié.
+  adminContact: {
+    email: 'e2e_session_admin_contact@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-contact.json',
+    role: 'moderateur',
   },
 };

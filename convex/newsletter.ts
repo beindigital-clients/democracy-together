@@ -128,6 +128,30 @@ export const unsubscribe = mutation({
   },
 });
 
+// DEV/TEST seulement (garde AUTH_DEV_OTP) : rend le jeton de désinscription
+// d'une adresse, pour que l'E2E puisse suivre le lien de l'e-mail comme le
+// ferait un abonné (audit F-12 — `/newsletter/desinscription` n'était citée
+// par aucune spec, faute justement de pouvoir obtenir un jeton).
+//
+// CE N'EST PAS UNE RÉOUVERTURE DE L'ORACLE REFERMÉ EN F-09. Cet oracle-là
+// était PUBLIC et non authentifié : n'importe qui pouvait demander « cette
+// adresse est-elle chez vous ? ». Celui-ci est une `internalQuery` — hors API
+// publique, donc appelable par aucun client — doublée de la garde
+// AUTH_DEV_OTP, exactement comme `isSubscribed`, `latestForEmail` ou
+// `otp.latestDevCode` juste à côté. Il s'invoque par la CLI Convex, en
+// contexte de confiance.
+export const devUnsubToken = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    if (process.env.AUTH_DEV_OTP !== 'true') return null;
+    const sub = await ctx.db
+      .query('newsletterSubscriptions')
+      .withIndex('by_email', (q) => q.eq('email', email.trim().toLowerCase()))
+      .unique();
+    return sub?.unsubToken ?? null;
+  },
+});
+
 // DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
 export const isSubscribed = internalQuery({
   args: { email: v.string() },
