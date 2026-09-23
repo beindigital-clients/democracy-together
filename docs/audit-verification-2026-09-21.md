@@ -26,6 +26,13 @@ renvoie à une commande jouée et à son journal.
 > m'appartient pas : l'arbitrage produit de F-06, et la vérification manuelle
 > des variables de production (angle mort 7).
 >
+> **L'angle mort 2 est refermé** (23/09) : la suite a tourné sur un vrai Pixel 7
+> — 165 tests, 0 échec, instrument vérifié. Elle a livré **F-14** : l'accueil
+> sert encore 7 `opacity:0` dans son HTML, et son LCP mobile est de 2 000 ms
+> contre 312 ms en desktop. Le correctif F-05 ne l'avait jamais couvert, parce
+> que `HomeHero` n'utilise pas `Reveal` — et parce que la garde ne regardait
+> qu'une route. § 4quater.
+>
 > **Les neuf constats du pentest sont rejoués** (23/09) : plus aucun 🟡 ni ⚪.
 > **M-9 est corrigé** — `javascript:` était neutralisé par React, mais
 > `data:text/html` et `vbscript:` passaient tels quels ; liste blanche de
@@ -595,6 +602,13 @@ une. 227 tests en CI, 0 échec, 0 instable.
 
 **F-01 à F-13 sont donc tous refermés**, F-06 pour moitié seulement.
 
+**L'angle mort 2 est refermé** (§ 4quater) : le viewport mobile est mesuré, le
+blocage Chromium est levé pour tout le monde, et le panneau de navigation
+mobile — seul chemin de navigation sous 1120 px — est scanné pour la première
+fois, puis gardé. La mesure a livré **F-14**, le premier constat NOUVEAU depuis
+le 21 : l'accueil masque encore son contenu au rendu serveur, et son LCP mobile
+est six fois celui du desktop. Le corriger est un arbitrage de produit.
+
 **Les neuf constats du pentest du 18 septembre ont été rejoués** (§ 4, § 4bis,
 § 4ter) : il ne reste ni 🟡 « probable », ni ⚪ « non vérifié ». Le rejeu a
 corrigé le rapport autant qu'il a corrigé le code — M-1 n'est **pas** une prise
@@ -679,6 +693,10 @@ d'avant, et non seulement passer sur le code d'après.
 | J9 | suite unitaire | ordre de déclaration + 3 ordres mélangés | ✅ 787 tests, 95 fichiers |
 | J10 | M-6 | file de modération relue par la **vraie** query, PoC avant/après | ✅ 1 échec → 3/3 ; gardes permanentes rouges sur le code d'avant |
 | J11 | M-9 | 9 variantes de schéma à travers le **vrai** `<PortableText>`, filtre désactivé puis restauré | ✅ 2/6 rouges sans le filtre, 6/6 avec — non vacant |
+| J12 | angle mort 2 | suite d'audit sur Pixel 7, instrument mesuré avant les tests | ✅ 165 passées ; 412 px, `pointer: coarse`, tactile, UA Android |
+| J13 | menu mobile | scan axe du panneau OUVERT, `<button>` sans nom injecté | ✅ 0 violation grave ; rougit sur `button-name [critical]` — non vacant |
+| J14 | WCAG 2.5.8 | exception d'espacement calculée, témoin injecté (2 cibles de 16 px à 10 px) | ✅ 0 non-conformité sur 24 pages ; le témoin est bien détecté |
+| J15 | F-14 | `opacity:0` comptés dans le HTML servi de 3 routes | ❌ `/fr` : 7 — `test.fail()` posé, arbitrage produit (§ 3) |
 
 ---
 
@@ -1448,6 +1466,59 @@ déclencheur s'était déplacé entre les deux. La prochaine campagne répondra 
 d'elle-même à la question qui reste — « est-ce encore un décalage, ou autre
 chose ? » — au lieu d'exiger une campagne de plus rien que pour la poser.
 
+### F-14 · MOYENNE · Défaut · L'accueil masque encore son contenu au rendu serveur — le correctif F-05 ne l'a jamais couvert
+
+**Constaté le 23/09**, en jouant la suite d'audit sur un viewport mobile pour la
+première fois (§ 4quater).
+
+| HTML servi | `opacity:0` |
+|---|---|
+| `/fr/barometre` | 0 |
+| `/fr/a-propos` | 0 |
+| **`/fr`** | **7** |
+
+F-05 avait retiré le voile de `Reveal`, et sa garde vérifie `/fr/barometre` —
+la page du constat. Mais **`HomeHero` n'utilise pas `Reveal`** : il pose ses
+propres `motion.p` avec `initial={{ opacity: 0 }}`, c'est-à-dire exactement le
+motif que F-05 a supprimé partout ailleurs. Corriger le composant ne pouvait
+donc rien y faire, et une garde sur une seule route ne pouvait pas le dire.
+
+**Pourquoi ça ne se voyait pas.** En desktop, le plus grand élément de `/fr`
+est le `<h1>`, révélé mot à mot dès 0,18 s : il peint tôt, LCP 312 ms. Sur
+412 px de large le `<h1>` rétrécit, et c'est le **paragraphe d'accroche** qui
+devient le plus grand — or lui attend la fin de la séquence du titre
+(`delay = 0,18 + 6 mots × 0,075 + 0,05`), puis 0,85 s de fondu.
+
+Mesuré, sans contrainte réseau, médiane de trois :
+
+| | desktop | mobile |
+|---|---|---|
+| LCP `/fr` | **312 ms** | **2 000 ms** |
+| élément LCP | `<h1>` | `<p>` d'accroche |
+| opacité du `<p>` | — | nulle jusqu'à 1 153 ms, pleine à 2 011 ms |
+
+Six fois le desktop, sur la plateforme que le cadrage annonce comme premier
+usage. En Slow-3G, `/fr` mesure 2 620 ms sur mobile — au-dessus du seuil de
+2 500 ms que cet audit s'était fixé.
+
+**Ce qui est fait ici** : la garde de F-05 porte désormais sur trois routes au
+lieu d'une, et `/fr` y figure en `test.fail()` — le constat est documenté, la
+suite reste honnête, et le jour où l'accueil est corrigé le test passe « de
+façon inattendue » et demande qu'on le retire.
+
+**Ce qui ne l'est pas, et pourquoi.** Le correctif est connu : c'est celui de
+F-05 — rendre le HTML servi non voilé et piloter l'animation après montage.
+Appliqué au hero, il revient à **renoncer au fondu d'entrée du premier écran de
+l'accueil**. F-05 avait assumé ce renoncement pour `Reveal` (« un fondu depuis
+l'invisible exige d'attendre le script ») ; sur un hero chorégraphié
+volontairement — entrée séquentielle, titre mot à mot — c'est un arbitrage de
+produit, pas une décision d'ingénierie. Il n'est pas pris ici.
+
+Corollaire de méthode, et c'est le vrai enseignement : **une garde posée sur la
+page du constat ne garde que cette page.** F-05 a été vérifié sur
+`/fr/barometre` et déclaré clos ; l'accueil, plus visité, portait le même
+défaut sans que rien ne le dise.
+
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 
 `tests/e2e/admin-recherche.spec.ts:256` :
@@ -1800,6 +1871,99 @@ aura coûté un constat classé « non vérifié » pendant cinq jours.
 
 ---
 
+## 4quater. Le viewport mobile, mesuré pour la première fois
+
+L'angle mort 2 disait : « les projets `mobile-chromium` et `dev-browser` n'ont
+pas été joués, et aucune mesure ne porte sur un vrai viewport mobile ». Il
+mélangeait deux causes, et une seule tenait.
+
+**Le blocage Chromium est levé.** L'environnement fournit le build 1194, le
+Playwright épinglé en réclame 1228. Le contournement existait déjà — pointer
+l'exécutable — mais il vivait en dur dans la config d'AUDIT, donc il n'aidait
+personne à jouer les projets du dépôt. `playwright.config.ts` lit désormais
+`PLAYWRIGHT_CHROMIUM_PATH` : non définie, rien ne change (le cas de la CI, qui
+installe le build attendu) ; définie, tous les projets démarrent.
+
+    PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm test:e2e
+
+**`dev-browser` reste injoué, pour une autre raison.** Il dépend du projet
+`setup`, donc de sessions authentifiées, donc d'un déploiement Convex. C'est
+l'angle mort 1 — pas celui-ci. Constaté : les onze sessions échouent, les 40
+captures ne s'exécutent pas.
+
+### Ce que la suite dit sur un Pixel 7
+
+Le projet `mobile` de la config d'audit existait depuis le début et n'avait
+jamais été joué. Rejoué tel quel : **165 tests, 0 échec** (desktop : 168, dont
+6 propres au mobile qui s'y sautent ; campagne complète 333 passées, 9 sautées,
+code de sortie 0).
+
+C'est un résultat, et il faut dire ce qu'il ne vaut pas : l'essentiel de la
+suite — SEO, en-têtes, robots, rendu sans JavaScript, i18n — lit des balises et
+des réponses HTTP, que la largeur de la fenêtre ne change pas. Une suite verte
+sur un viewport qu'elle n'avait jamais vu méritait donc d'abord qu'on vérifie
+qu'elle l'avait vu cette fois : `audit/specs/50-mobile.spec.ts` commence par
+mesurer l'instrument — 412 px, `(pointer: coarse)`, tactile présent, UA
+Android, DPR 2,625.
+
+### Deux écrans que personne n'avait regardés
+
+**Le panneau de navigation mobile.** Sous 1120 px, la barre de bureau est
+masquée : le menu tactile est le **seul** chemin de navigation du site. Il
+n'était analysé par aucune garde — `a11y.spec.ts` tourne en desktop, où le
+composant n'existe pas ; les specs `mobile-chromium` exercent des parcours et
+n'analysent rien. Scanné pour la première fois : **0 violation grave**,
+`aria-modal` correct, 10 liens, 16 signalements de contraste (règle différée,
+arbitrage de palette connu). C'est propre — et depuis cette PR, une garde du
+dépôt (`tests/e2e/mobile/a11y-menu.spec.ts`) le tient, en français et en
+anglais. Vérifiée capable d'échouer : un `<button>` sans nom injecté dans le
+panneau la fait rougir sur `button-name [critical]`.
+
+**Les cibles tactiles (WCAG 2.2, critère 2.5.8, niveau AA).** Un balayage naïf
+— « moins de 24 × 24 px » — rend **568 cibles sur 24 pages**. Publier ce nombre
+aurait refait l'erreur que ce rapport dénonce ailleurs : un scan bruyant ne
+fait pas que surestimer, il cache. La règle prévoit une exception d'espacement,
+qui se calcule : un cercle de 24 px centré sur la cible ne doit recouper ni le
+rectangle d'une autre cible, ni le cercle d'une autre cible sous-dimensionnée.
+Appliquée, il reste **zéro** non-conformité, menu ouvert compris.
+
+### L'instrument a menti deux fois avant de dire vrai
+
+Ça vaut d'être écrit, parce que c'est la quatrième fois dans cet audit et que
+les deux erreurs ont la même forme — une conclusion tirée d'un outil qu'on n'a
+pas vérifié.
+
+1. **Le détecteur 2.5.8 comparait les mauvais points.** Première version :
+   distance de centre à centre pour toutes les voisines. La règle compare le
+   cercle de la cible au **rectangle** des voisines pleine taille. Corrigé,
+   puis re-corrigé : la seconde version passait le CENTRE des voisines à une
+   fonction qui attendait leur coin supérieur gauche, ce qui décale chaque
+   rectangle d'une demi-largeur. Elle annonçait une non-conformité à −6 px sur
+   `/fr/connexion` ; mesurée à la main, la distance réelle est de 29 px pour 12
+   exigés. Le détecteur porte maintenant un témoin injecté — deux cibles de
+   16 px posées à 10 px d'écart — sans quoi son zéro ne prouverait rien.
+2. **Un serveur périmé a fabriqué un faux correctif.** Après un `pkill` qui
+   n'a pas abouti, l'ancien processus servait encore l'ancien build pendant que
+   je mesurais le nouveau. Résultat affiché : LCP mobile 1 960 ms → 244 ms, un
+   correctif « spectaculaire » sur `Reveal`. Sur un serveur propre : 2 000 ms,
+   inchangé. Le correctif ne servait à rien — le voile de l'accueil ne vient
+   pas de `Reveal` (F-14) — et il a été **retiré**. Un chunk répondant 500 en
+   `text/plain` dans la console était le signe ; c'est lui qui a mis la puce à
+   l'oreille, pas la relecture.
+
+### Ce qui reste
+
+**F-14** (§ 3) : l'accueil sert 7 `opacity:0` dans son HTML, son LCP mobile est
+de 2 000 ms contre 312 ms en desktop, et le corriger demande de renoncer au
+fondu d'entrée du premier écran — un arbitrage de produit. La garde de F-05
+couvre désormais trois routes, `/fr` marquée `test.fail()`.
+
+Restent aussi, inchangés : `dev-browser` (angle mort 1), Firefox et WebKit
+(angle mort 4), et les cinq pages Convex sur données réelles (angle mort 3),
+qui n'ont pas plus été mesurées en mobile qu'en desktop.
+
+---
+
 ## 5. Angles morts
 
 Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
@@ -1814,12 +1978,16 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    pentest sur ces surfaces (cf. les cinq 🟡 du § 4). L'instabilité relevée en
    F-13 a désormais UNE cause corrigée et gardée en CI, mais elle n'a pas
    disparu des journaux.
-2. **Les navigateurs mobiles.** L'environnement fournit Chromium build 1194 ; le
-   Playwright épinglé (1.61.1) réclame 1228 et refuse de démarrer. J'ai
-   contourné en pointant l'exécutable, mais **les projets `mobile-chromium` et
-   `dev-browser` n'ont pas été joués**, et aucune mesure ne porte sur un vrai
-   viewport mobile. Le cadrage plaçant le mobile en usage premier, c'est une
-   lacune réelle de cet audit.
+2. ~~**Les navigateurs mobiles.**~~ **Refermé le 23/09 (§ 4quater), et ce point
+   confondait deux causes.** Le blocage Chromium (build 1194 présent, 1228
+   réclamé) est levé : `playwright.config.ts` accepte désormais
+   `PLAYWRIGHT_CHROMIUM_PATH`, donc `mobile-chromium` se joue ici comme en CI.
+   **La suite d'audit a tourné sur un vrai Pixel 7** — 165 tests, 0 échec — et
+   l'instrument est vérifié (412 px, `pointer: coarse`, tactile, UA Android).
+   `dev-browser`, lui, reste injoué : il dépend du projet `setup`, donc d'un
+   déploiement Convex — c'est l'angle mort 1, pas celui-ci. La mesure a livré
+   deux constats : le panneau de navigation mobile n'avait **jamais** été
+   analysé par personne (il l'est, et il est propre), et **F-14** ci-dessous.
 3. **Les cinq pages Convex sur données réelles.** `bibliotheque`, `experts`,
    `le-reseau`, `thematiques`, `tribune` n'ont pu être mesurées ni en SEO, ni en
    accessibilité, ni en performance : elles rendaient 500 ici. Leurs chiffres
@@ -1894,6 +2062,13 @@ rm convex/zz-audit-poc-m6.test.ts
 # donc elle se garde par un test permanent plutôt que par un fichier à copier.
 pnpm exec vitest run tests/unit/portable-text-liens.test.tsx
 
+# Viewport mobile (angle mort 2) — serveur requis, cf. plus bas
+pnpm exec playwright test --config audit/playwright.audit.config.ts --project=mobile
+
+# Projets mobiles du DÉPÔT dans un environnement au Chromium dépareillé
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
+  pnpm exec playwright test --project=mobile-chromium
+
 # Lots navigateur — serveur requis
 NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \
 NEXT_PUBLIC_SITE_URL="http://localhost:3000" pnpm start &
@@ -1931,7 +2106,8 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; arbitrage `dynamicParams` à trancher | F-06 🟡 | — |
 | 11 | ~~Souligner le lien d'adhésion~~ — **fait**, plus les zones défilantes inatteignables au clavier (2 pages publiques + 3 tableaux d'administration) | F-07 ✅ | — |
 | 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
-| 13 | Aligner le Chromium de l'environnement sur le Playwright épinglé, pour rendre le mobile testable | angle mort 2 | — |
+| 13 | ~~Aligner le Chromium de l'environnement sur le Playwright épinglé~~ — **fait** autrement : `PLAYWRIGHT_CHROMIUM_PATH` dans `playwright.config.ts`. Suite jouée sur Pixel 7, panneau mobile scanné et gardé | angle mort 2 ✅ | — |
+| 14 | **Accueil : renoncer au fondu d'entrée du premier écran, ou l'assumer.** LCP mobile 2 000 ms contre 312 ms en desktop ; le correctif est celui de F-05, son coût est visuel | F-14 | arbitrage |
 
 ---
 
