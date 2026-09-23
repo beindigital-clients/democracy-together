@@ -14,7 +14,23 @@ export const blockContent = defineType({
             name: 'link',
             type: 'object',
             title: 'Lien',
-            fields: [{ name: 'href', type: 'url', title: 'URL' }],
+            // SCHÉMA CONTRAINT À LA SAISIE (pentest M-9). Le type `url` de
+            // Sanity accepte par défaut plus que ce qu'un lien d'article a à
+            // contenir ; `scheme` ferme la liste. C'est la première des deux
+            // barrières. La seconde est le rendu
+            // (src/components/news/portable-text.tsx), et c'est elle qui garde
+            // le dernier mot : le contenu DÉJÀ publié n'est pas revalidé, et
+            // un document peut entrer par l'API sans jamais passer par ce
+            // formulaire.
+            fields: [
+              {
+                name: 'href',
+                type: 'url',
+                title: 'URL',
+                validation: (Rule) =>
+                  Rule.uri({ scheme: ['http', 'https', 'mailto'] }),
+              },
+            ],
           },
         ],
       },

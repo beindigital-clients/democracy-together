@@ -25,6 +25,14 @@ renvoie à une commande jouée et à son journal.
 > **F-01 à F-13 sont donc tous refermés**, F-06 pour moitié. Ce qui reste ne
 > m'appartient pas : l'arbitrage produit de F-06, et la vérification manuelle
 > des variables de production (angle mort 7).
+>
+> **Les neuf constats du pentest sont rejoués** (23/09) : plus aucun 🟡 ni ⚪.
+> **M-9 est corrigé** — `javascript:` était neutralisé par React, mais
+> `data:text/html` et `vbscript:` passaient tels quels ; liste blanche de
+> schémas posée au rendu, à l'écriture et à la saisie. **M-6 : l'angle mort
+> est comblé** — la file de modération nomme désormais le compte que
+> l'approbation va élever, et signale sa discordance avec l'adresse de
+> contact. § 4ter.
 
 ## 0. Ce qui a été corrigé
 
@@ -482,6 +490,22 @@ Reste aussi la vérification manuelle de l'angle mort 7 (variables de prod),
 qu'aucun environnement d'audit ne peut faire à la place de quelqu'un ayant les
 accès.
 
+**Ajout du 23 septembre — les résidus du pentest.** La liste ci-dessus est
+datée du 21 et ne portait que sur les constats F-*. Le rejeu des neuf constats
+du pentest (§ 4bis, § 4ter) en laisse trois ouverts, tous écrits :
+
+- **M-5** — la validation du slug d'événement. Le plafond absolu de rappels en
+  attente est posé ; valider le slug demande que le backend connaisse la liste
+  des événements, qui vit aujourd'hui dans `src/lib/events-content.ts`. C'est
+  un choix d'architecture, pas une correction.
+- **M-1** — le déni de service et l'oracle d'énumération sur `signUp`. Le
+  correctif est écrit mais bloqué par la provisionnalisation des mots de passe
+  en E2E.
+- **M-6** — faut-il exiger que l'adresse de contact d'une candidature
+  « organisation » corresponde au compte déposant ? L'écran dit désormais qui
+  sera élevé et signale la discordance ; le durcissement, lui, est un
+  arbitrage produit.
+
 ### Vérifications passées avant de pousser
 
 `typecheck`, `typecheck:convex`, `typecheck:tests`, `lint`, `format:check`,
@@ -571,6 +595,16 @@ une. 227 tests en CI, 0 échec, 0 instable.
 
 **F-01 à F-13 sont donc tous refermés**, F-06 pour moitié seulement.
 
+**Les neuf constats du pentest du 18 septembre ont été rejoués** (§ 4, § 4bis,
+§ 4ter) : il ne reste ni 🟡 « probable », ni ⚪ « non vérifié ». Le rejeu a
+corrigé le rapport autant qu'il a corrigé le code — M-1 n'est **pas** une prise
+de compte (mais le déni de service et l'énumération, eux, sont confirmés), M-2
+restait ouvert sur le remplissage, et **les deux « prérequis d'environnement »
+qui bloquaient M-6 et M-9 étaient faux** : les deux se vérifient sans navigateur
+et sans CMS. Restent ouverts et **écrits comme tels** : la validation du slug
+d'événement (M-5, choix d'architecture), la provisionnalisation E2E des mots de
+passe (M-1) et l'arbitrage produit de M-6.
+
 **Ce qui empêche encore de dire « allez-y » n'a pas bougé, et n'est toujours
 pas technique** : la vérification manuelle des variables de production (angle
 mort 7) et l'arbitrage produit de F-06.
@@ -643,6 +677,8 @@ d'avant, et non seulement passer sur le code d'après.
 | J7 | portail | le dialogue n'est plus sous le conteneur appelant | ✅ + régression de focus attrapée par les tests en place |
 | J8 | suite d'audit | campagne complète, **code de sortie lu** | ✅ 314 passées, 0 échec, code 0 |
 | J9 | suite unitaire | ordre de déclaration + 3 ordres mélangés | ✅ 787 tests, 95 fichiers |
+| J10 | M-6 | file de modération relue par la **vraie** query, PoC avant/après | ✅ 1 échec → 3/3 ; gardes permanentes rouges sur le code d'avant |
+| J11 | M-9 | 9 variantes de schéma à travers le **vrai** `<PortableText>`, filtre désactivé puis restauré | ✅ 2/6 rouges sans le filtre, 6/6 avec — non vacant |
 
 ---
 
@@ -1505,16 +1541,18 @@ la prochaine CI rouge sur un de ces trois fichiers.
 | M-3 | MOYENNE | `AUTH_DEV_OTP` | ✅ **REJOUÉ — corrigé** | PoC : **aucun** des huit oracles nommés par le pentest n'est public, et `latestDevCode` lève sans le drapeau (§ 4bis) |
 | M-4 | MOYENNE | Zones protégées gardées côté client | ✅ **CORRIGÉ** | 11 routes renvoient **307 serveur** vers `/fr/connexion` avant tout code client |
 | M-5 | MOYENNE | Rappels d'événements | 🟠 **REJOUÉ — atténué** | PoC : 5 rappels/h vers une adresse tierce, file rechargeable. **Plafond absolu posé** ; validation du slug **ouverte**, elle exige un choix d'architecture (§ 4bis) |
-| M-6 | MOYENNE | Élévation via approbation d'adhésion | ⚪ **NON VÉRIFIÉ** | exige un parcours back-office complet |
+| M-6 | MOYENNE | Élévation via approbation d'adhésion | 🟠 **REJOUÉ — angle mort comblé** | PoC : le compte du DÉPOSANT devient « membre », pas l'adresse de contact — et la file ne nommait ce compte nulle part. `applicantEmail`/`applicantRole` **exposés et affichés**, discordance signalée (§ 4ter) |
 | M-7 | MOYENNE | Compteur de vues sans limite | ✅ **CORRIGÉ** | `consumePublicationViewQuota` — `publications.ts:166` |
 | M-8 | MOYENNE | Oracles d'existence `already` | ✅ **CORRIGÉ depuis** | ouvert à l'audit ; refermé sur **cinq** actions publiques, pas deux (§ 0, F-09) |
-| M-9 | MOYENNE | Liens `javascript:` depuis le CMS | ⚪ **NON VÉRIFIÉ** | exige un projet Sanity configuré |
+| M-9 | MOYENNE | Liens `javascript:` depuis le CMS | ✅ **REJOUÉ — corrigé** | PoC de rendu : `javascript:` est neutralisé **par React**, mais `data:text/html` et `vbscript:` passaient **tels quels**. Liste blanche de schémas posée au rendu, à l'écriture et à la saisie (§ 4ter) |
 
 **🟡 PROBABLE** veut dire : un test du dépôt couvre nommément le point et il est
 vert, mais je n'ai pas rejoué l'attaque moi-même. Ce n'est pas la même chose que
 « corrigé », et je ne l'écris pas comme tel.
 
-Il ne reste **aucun 🟡** : les quatre ont été rejoués le 23/09 (§ 4bis).
+Il ne reste **aucun 🟡** : les quatre ont été rejoués le 23/09 (§ 4bis). Il ne
+reste **aucun ⚪** non plus : les deux derniers l'ont été le 23/09 également
+(§ 4ter). Les neuf constats du pentest ont donc tous été rejoués ici.
 
 ## 4bis. M-1, M-2, M-3, M-5 rejoués — ce que la mesure a dit
 
@@ -1641,6 +1679,127 @@ Répartition des rangs exigés : `moderateur` 22, `membre` 12, `editeur` 8,
 
 ---
 
+## 4ter. M-6 et M-9 rejoués — les deux « prérequis » n'en étaient pas
+
+Ces deux constats étaient les seuls ⚪ du tableau. Le motif inscrit en face de
+chacun était un prérequis d'environnement : « exige un parcours back-office
+complet » pour M-6, « exige un projet Sanity configuré » pour M-9. **Les deux
+sont faux**, et il vaut la peine de dire pourquoi, parce que c'est le même
+raccourci dans les deux cas : j'avais confondu *ce qu'il faut pour VOIR le
+défaut* avec *ce qu'il faut pour le VÉRIFIER*.
+
+- **M-6** est un parcours **backend de bout en bout** — dépôt public, file de
+  modération, décision. `convex-test` le joue en entier. Le navigateur n'était
+  nécessaire qu'à le regarder.
+- **M-9** ne demande pas Sanity : la défense contre un lien hostile n'est pas
+  dans le CMS, elle est dans le **rendu**. Un document Portable Text est un
+  objet JSON qu'on écrit à la main en dix lignes, et le composant qui le rend
+  se rend dans un test.
+
+### M-6 — l'approbation élève un compte, et la file ne disait pas lequel
+
+PoC : `audit/poc/pentest-m69-regression.test.ts.txt`. Mesure d'avant
+correction : **1 échec / 2 succès**.
+
+Ce que le rejeu confirme, et ce qu'il corrige de la description du pentest :
+
+1. **Le mécanisme est réel.** Un visiteur connecté dépose une candidature au nom
+   d'une organisation plausible, avec une adresse de contact qui n'est pas la
+   sienne. Le modérateur approuve. C'est **le compte du déposant** qui devient
+   « membre » — aucun compte n'est créé pour l'adresse de contact affichée.
+2. **Ce n'est pas un défaut en soi.** Lier la candidature au compte déposant est
+   voulu : sans cette liaison, un membre ne récupérerait jamais son adhésion.
+   Le « correctif » consistant à délier les deux priverait les membres de leur
+   adhésion pour faire taire un symptôme. Un test l'interdit explicitement.
+3. **Le défaut est ailleurs, et il est net** : la file de modération ne portait
+   **aucun champ** désignant ce compte. `listApplications` renvoyait le nom, le
+   pays, l'adresse de contact, le message — rien sur le compte qui allait être
+   élevé. Le modérateur jugeait une organisation et accordait un rôle à un
+   inconnu, sans que rien à l'écran ne le lui dise.
+4. **Le rejeu d'une décision était déjà fermé** : `ALREADY_REVIEWED` lève à la
+   seconde décision. Le point correspondant du pentest est clos.
+
+**Correctif.** `listApplications` expose `applicantEmail` et `applicantRole`
+(une lecture par ligne de la page, dont la taille est déjà bornée par
+`clampPageSize` — pas un balayage), et `/admin/candidatures` nomme ce compte
+sous l'adresse de contact. Quand les deux **diffèrent**, l'écart est écrit en
+toutes lettres : c'est la signature de l'abus décrit, et ce n'est pas au
+modérateur de comparer deux adresses de tête. Une candidature anonyme remonte
+`null` — surtout pas un repli sur `contactEmail`, qui ferait croire à un compte
+qui n'existe pas.
+
+Garde permanente : trois tests dans `convex/admin.test.ts`. Les deux premiers
+échouent sur le code d'avant (le champ n'existait pas) ; le troisième passait
+déjà, et c'est son rôle — il fixe le comportement voulu pour qu'on ne le
+« corrige » pas par erreur.
+
+**Ce qui reste ouvert.** Rien de technique. Il reste une question de produit,
+qui n'est pas la mienne : faut-il exiger que l'adresse de contact d'une
+candidature « organisation » corresponde au compte déposant ? Ce serait un
+durcissement défendable et une gêne réelle (une assistante qui dépose pour sa
+direction). L'écran dit désormais ce qu'il fait ; le reste est un arbitrage.
+
+### M-9 — `javascript:` était le moins grave des trois schémas
+
+PoC : `tests/unit/portable-text-liens.test.tsx` — un test de composant, écrit
+pour rester dans le dépôt plutôt que pour être joué une fois.
+
+Deux surfaces alimentent des `href` que ce dépôt n'écrit pas : les liens du
+texte riche Sanity (annotation `link`) et `websiteUrl` d'une fiche d'annuaire,
+renseignée à l'adhésion puis publiée sur `/le-reseau/[slug]`. Aucune des deux
+ne regardait le schéma. Sur le texte riche, `ptComponents` ne déclarait même
+pas de `marks` : c'est le composant `link` **par défaut** de
+`@portabletext/react` qui s'appliquait, et il pose `value.href` tel quel.
+
+Ce que la mesure a dit, et c'est l'essentiel du constat :
+
+| Entrée | Ce que React 19 en fait |
+|---|---|
+| `javascript:alert(1)` | **neutralisé par React lui-même** : l'attribut est réécrit en `javascript:throw new Error('React has blocked a javascript: URL…')` |
+| `data:text/html;base64,…` | **passe tel quel** — une page HTML complète, d'origine opaque, ouverte depuis un clic sur le site |
+| `vbscript:msgbox(1)` | **passe tel quel** |
+
+Autrement dit : le seul schéma que le pentest nommait est le seul contre lequel
+le framework protégeait déjà, et les deux autres passaient. S'en remettre au
+garde-fou de React, c'est se protéger du cas qu'il couvre et d'aucun autre.
+
+**Correctif** — une liste blanche (`http:`, `https:`, `mailto:`), pas une liste
+noire, et trois barrières :
+
+1. **Rendu** (`src/lib/safe-href.ts` + `src/components/news/portable-text.tsx`)
+   — c'est elle qui garde le dernier mot, parce que le contenu déjà publié
+   n'est jamais revalidé. Un schéma refusé rend un `<span>` : le texte de
+   l'auteur reste lu, seule la navigation disparaît. Un `<a>` sans `href`
+   serait un lien mort, cliquable et silencieux. Les liens acceptés portent
+   `rel="noopener noreferrer"`, qui manquait.
+2. **Écriture** (`convex/lib/validation.ts` → `validateDirectoryFields`) — le
+   champ « site web » n'accepte plus que `http`/`https`. Retenir la charge utile
+   au seul affichage reviendrait à la stocker en attendant le prochain écran qui
+   oubliera de filtrer.
+3. **Saisie** (`sanity/schemaTypes/objects/blockContent.ts`) —
+   `Rule.uri({ scheme })` sur l'annotation de lien, pour que le défaut se voie
+   dans le CMS plutôt qu'en production.
+
+Le filtre passe par `new URL` et non par un test de préfixe, et c'est délibéré :
+l'analyseur du standard WHATWG — celui que le navigateur applique lui aussi à
+l'attribut `href` — retire les tabulations et les retours à la ligne, ignore les
+caractères de contrôle de tête et met le schéma en minuscules. `JaVaScRiPt:`,
+`java\tscript:` et ` javascript:` sont donc comparés **normalisés**, là où un
+`startsWith` écrit à la main les laisserait passer. Les neuf variantes sont dans
+le test.
+
+**Non-vacuité.** Les deux gardes ont été montrées capables d'échouer : filtre de
+rendu désactivé → 2 tests rouges sur 6 avec le bon message (`schéma passé :
+"javascript:alert(1)"`) ; validation d'écriture neutralisée → le test
+`INVALID_WEBSITE` rougit. Restaurées, 6/6 et 17/17.
+
+**Ce qui reste ouvert.** L'angle mort n°6 demeure entier pour tout le reste :
+sans projet Sanity, le chemin « contenu réel » du CMS n'est toujours exercé par
+personne. Ce qui change, c'est que **M-9 n'en dépendait pas** — et le supposer
+aura coûté un constat classé « non vérifié » pendant cinq jours.
+
+---
+
 ## 5. Angles morts
 
 Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
@@ -1677,7 +1836,11 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    les retiens pas. L'arbitrage reste à mener, il n'est pas de nature technique.
 6. **Sanity.** Aucun projet configuré (`projectId = placeholder`) : le chemin
    « contenu réel » du CMS n'a jamais été exercé, seulement le chemin dégradé.
-   M-9 (liens `javascript:` depuis PortableText) reste donc non vérifié.
+   ~~M-9 (liens `javascript:` depuis PortableText) reste donc non vérifié.~~
+   **Faux, et corrigé le 23/09** : M-9 se vérifie sur le composant de rendu,
+   sans CMS (§ 4ter) — un document Portable Text s'écrit à la main. L'angle
+   mort demeure pour tout le reste de cette page ; il ne couvrait simplement
+   pas M-9.
    **La CI est dans le même cas** — son journal montre
    `Dataset not found for project ID "placeholder"`. Conséquence utile : le
    correctif F-10 est exercé à chaque campagne. Conséquence gênante : les deux
@@ -1720,6 +1883,16 @@ rm convex/zz-audit-poc.test.ts
 cp audit/poc/pentest-m-regression.test.ts.txt convex/zz-audit-poc-m.test.ts
 pnpm exec vitest run convex/zz-audit-poc-m.test.ts
 rm convex/zz-audit-poc-m.test.ts
+
+# Régression du pentest (M-6) — 3/3 depuis le correctif ; le premier test
+# échouait avant lui (§ 4ter). Aucun navigateur, aucun back-office déployé.
+cp audit/poc/pentest-m69-regression.test.ts.txt convex/zz-audit-poc-m6.test.ts
+pnpm exec vitest run convex/zz-audit-poc-m6.test.ts
+rm convex/zz-audit-poc-m6.test.ts
+
+# M-9 — le PoC est resté dans le dépôt : sa défense est un composant de rendu,
+# donc elle se garde par un test permanent plutôt que par un fichier à copier.
+pnpm exec vitest run tests/unit/portable-text-liens.test.tsx
 
 # Lots navigateur — serveur requis
 NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \

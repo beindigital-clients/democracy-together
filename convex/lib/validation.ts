@@ -34,3 +34,30 @@ export const FIELD_MAX = {
   body: 4000,
   country: 120,
 } as const;
+
+// Schémas acceptés pour une ADRESSE DE SITE (pentest M-9, côté écriture).
+//
+// `websiteUrl` d'une fiche d'annuaire n'était contraint que par `v.string()` :
+// n'importe quelle chaîne entrait en base, et la fiche publique la posait
+// telle quelle dans un `href`. Le filtre de rendu (src/lib/safe-href.ts) reste
+// nécessaire — il couvre les fiches enregistrées avant cette validation — mais
+// laisser entrer `data:text/html;…` pour ne le retenir qu'à l'affichage
+// reviendrait à stocker une charge utile en attendant le prochain écran qui
+// oubliera de la filtrer.
+//
+// Plus restrictif que la liste du rendu, et volontairement : `mailto:` y est
+// autorisé pour un lien de texte riche, mais le champ nommé « site web » d'une
+// organisation ne l'est pas.
+const SCHEMAS_SITE = ['http:', 'https:'];
+
+export function isHttpUrl(value: string): boolean {
+  let url: URL;
+  try {
+    // Sans base : une adresse de site est ABSOLUE. `institut-x.org` sans
+    // schéma est refusé — c'est une saisie incomplète, pas un lien.
+    url = new URL(value.trim());
+  } catch {
+    return false;
+  }
+  return SCHEMAS_SITE.includes(url.protocol);
+}

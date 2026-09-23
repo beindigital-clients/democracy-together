@@ -161,3 +161,134 @@ describe('Back-office — rôle affiché (F-63)', () => {
     );
   });
 });
+
+// LE COMPTE QUE L'APPROBATION VA ÉLEVER (pentest M-6, resté « non vérifié »).
+//
+// Le rejeu confirme le mécanisme décrit : approuver une candidature n'accorde
+// pas un rôle à `contactEmail` — adresse saisie librement dans un formulaire
+// public — mais au compte CONNECTÉ qui a déposé la demande. Les deux sont
+// indépendants. Ce n'est pas un défaut : sans cette liaison, un membre ne
+// récupérerait jamais son adhésion. Le défaut était que la file de modération
+// ne portait AUCUN champ désignant ce compte : le modérateur jugeait un nom
+// d'organisation plausible et élevait, sans le voir, un compte quelconque.
+//
+// Les deux premiers tiennent ce que l'écran DIT avant la décision — le champ
+// n'existait pas, ils échouent sur le code d'avant. Le troisième fixe ce que
+// la décision FAIT : il passait déjà, et c'est le but — il empêche qu'on
+// « corrige » M-6 en déliant la candidature de son déposant, ce qui priverait
+// les membres de leur adhésion pour faire taire un symptôme.
+describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)', () => {
+  async function candidatureDeposeePar(
+    t: ReturnType<typeof convexTest>,
+    email: string,
+    contactEmail: string,
+  ) {
+    const userId = await t.run((ctx) =>
+      ctx.db.insert('users', { email, role: 'visiteur' }),
+    );
+    await t
+      .withIdentity({ subject: `${userId}|s` })
+      .mutation(internal.organizations.storeApplication, {
+        type: 'organisation',
+        organizationName: 'Institut X pour la gouvernance',
+        contactEmail,
+        country: 'Belgique',
+      });
+    return userId;
+  }
+
+  it('listApplications expose le compte déposant, et sa DISCORDANCE avec le contact', async () => {
+    const t = convexTest(schema, modules);
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const deposant = await candidatureDeposeePar(
+      t,
+      'attaquant@mail-jetable.test',
+      'contact@institut-x.org',
+    );
+
+    const { page } = await t
+      .withIdentity({ subject: `${modId}|s` })
+      .query(api.admin.listApplications, { ...PAGE, status: 'pending' });
+
+    // NON-VACUITÉ : la candidature est bien liée en base — sans quoi le test
+    // vérifierait seulement qu'un champ nul est nul.
+    const enBase = await t.run((ctx) =>
+      ctx.db.query('membershipApplications').first(),
+    );
+    expect(enBase?.applicantUserId).toBe(deposant);
+
+    expect(page).toHaveLength(1);
+    expect(page[0].applicantEmail).toBe('attaquant@mail-jetable.test');
+    expect(page[0].applicantRole).toBe('visiteur');
+    // C'est l'écart qui se voit : l'adresse de façade reste affichée telle
+    // quelle, et l'écran signale qu'elle n'est pas celle du compte.
+    expect(page[0].contactEmail).toBe('contact@institut-x.org');
+    expect(page[0].applicantEmail).not.toBe(page[0].contactEmail);
+  });
+
+  it('une candidature anonyme remonte un compte NUL, pas le contact', async () => {
+    const t = convexTest(schema, modules);
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    // Déposée sans session : le formulaire d'adhésion est ouvert.
+    await t.mutation(internal.organizations.storeApplication, {
+      type: 'organisation',
+      organizationName: 'Institut Y',
+      contactEmail: 'contact@institut-y.org',
+      country: 'Sénégal',
+    });
+
+    const { page } = await t
+      .withIdentity({ subject: `${modId}|s` })
+      .query(api.admin.listApplications, { ...PAGE, status: 'pending' });
+
+    // Rien à élever : le champ ne doit surtout pas se REPLIER sur
+    // `contactEmail`, ce qui ferait croire à un compte qui n'existe pas.
+    expect(page[0].applicantEmail).toBeNull();
+    expect(page[0].applicantRole).toBeNull();
+  });
+
+  it("approuver élève le compte déposant — pas l'adresse de contact", async () => {
+    const t = convexTest(schema, modules);
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const deposant = await candidatureDeposeePar(
+      t,
+      'attaquant@mail-jetable.test',
+      'contact@institut-x.org',
+    );
+    const candidature = await t.run((ctx) =>
+      ctx.db.query('membershipApplications').first(),
+    );
+
+    await t
+      .withIdentity({ subject: `${modId}|s` })
+      .mutation(api.organizations.reviewApplication, {
+        applicationId: candidature!._id,
+        decision: 'approved',
+        directory: {
+          countryCode: 'BE',
+          region: 'europe-ouest',
+          themes: ['gouvernance'],
+          languages: ['fr'],
+        },
+      });
+
+    // Ce que la décision a fait, en une phrase : c'est le compte du déposant
+    // qui devient membre, et aucun compte n'est créé pour l'adresse affichée.
+    expect(await t.run((ctx) => ctx.db.get(deposant))).toMatchObject({
+      role: 'membre',
+    });
+    const compteFaçade = await t.run((ctx) =>
+      ctx.db
+        .query('users')
+        .withIndex('email', (q) => q.eq('email', 'contact@institut-x.org'))
+        .first(),
+    );
+    expect(compteFaçade).toBeNull();
+  });
+});
