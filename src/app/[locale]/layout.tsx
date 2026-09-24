@@ -22,6 +22,7 @@ import {
   openGraphLocale,
   alternateOpenGraphLocales,
   organizationJsonLd,
+  jsonLdScript,
 } from '@/lib/seo';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
 import '../globals.css';
@@ -130,7 +131,7 @@ export default async function LocaleLayout({
               lisibles par un robot qui n'exécute pas JavaScript. */}
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+            dangerouslySetInnerHTML={{ __html: jsonLdScript(orgJsonLd) }}
           />
         </head>
         <body className="flex min-h-dvh flex-col">

@@ -12,6 +12,20 @@ try {
   /* .env.local absent : on continue */
 }
 
+// Échappatoire pour un environnement dont le Chromium ne correspond PAS au
+// build épinglé par Playwright (angle mort 2 de l'audit : build 1194 présent,
+// 1228 réclamé — le navigateur refuse de démarrer, et aucun projet de ce
+// fichier n'est jouable). Le contournement existait, mais dans la config
+// d'audit seulement, en dur : il n'aidait donc personne à jouer
+// `mobile-chromium` ou `dev-browser` hors CI.
+//
+//   PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm test:e2e
+//
+// Non définie — le cas de la CI, qui installe le build attendu — la variable
+// ne change rien : `launchOptions` reste absent.
+const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const launchOptions = CHROMIUM ? { executablePath: CHROMIUM } : undefined;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -39,6 +53,7 @@ export default defineConfig({
     // invitait à y committer un jour une vraie session. Les états de session,
     // eux, sont produits par le projet `setup` dans `tests/e2e/.auth/` (ignoré).
     storageState: './tests/e2e/cookie-consent-state.json',
+    ...(launchOptions ? { launchOptions } : {}),
   },
   projects: [
     {

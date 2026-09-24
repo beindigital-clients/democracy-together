@@ -57,6 +57,47 @@ test('aucun voile au rendu serveur (garde du correctif F-05)', async ({
   ).not.toContain('opacity:0');
 });
 
+// LA GARDE NE REGARDAIT QU'UNE ROUTE (angle mort 2).
+//
+// `/fr/barometre` était la page du constat F-05, donc celle qu'on a gardée. Le
+// balayage mobile a montré que le correctif ne couvre PAS l'accueil : `/fr`
+// sert encore 7 `opacity:0` dans son HTML. La raison est nette une fois vue —
+// `HomeHero` n'utilise pas `Reveal`. Il pose ses propres `motion.p` avec
+// `initial={{ opacity: 0 }}`, c'est-à-dire exactement le motif que F-05 a
+// retiré partout ailleurs. Corriger `Reveal` ne pouvait donc rien y faire, et
+// une garde sur une seule route ne pouvait pas le dire.
+//
+// Pourquoi ça ne se voyait pas en desktop : le plus grand élément y est le
+// `<h1>`, révélé mot à mot dès 0,18 s — il peint tôt, et le LCP est bon
+// (312 ms). Sur 412 px de large le `<h1>` rétrécit, le PARAGRAPHE d'accroche
+// devient le plus grand, et lui attend la fin de la séquence du titre :
+// `delay = 0,18 + 6 mots × 0,075 + 0,05`, puis 0,85 s de fondu. Mesuré :
+// opacité nulle jusqu'à 1 153 ms, pleine à 2 011 ms, LCP médian 2 000 ms.
+// Six fois le desktop, sur la plateforme annoncée comme premier usage.
+const ROUTES_SERVIES = ['/fr/barometre', '/fr/a-propos', '/fr'];
+
+for (const route of ROUTES_SERVIES) {
+  // `/fr` est ATTENDU EN ÉCHEC : le correctif demanderait de renoncer au fondu
+  // d'entrée du premier écran de l'accueil, ce que F-05 a assumé pour `Reveal`
+  // mais qui, sur un hero chorégraphié volontairement, est un arbitrage de
+  // produit et non d'ingénierie. Ce marqueur documente le constat sans
+  // maquiller la suite en vert : le jour où l'accueil est corrigé, ce test
+  // passe « de façon inattendue » et demande qu'on le retire.
+  const attendu = route === '/fr';
+  test(`aucun opacity:0 dans le HTML servi de ${route}`, async ({
+    request,
+  }) => {
+    test.fail(
+      attendu,
+      'accueil : arbitrage produit, cf. commentaire ci-dessus',
+    );
+    const html = await (await request.get(route)).text();
+    const n = (html.match(/opacity:0/g) ?? []).length;
+    console.log(`[reveal] ${route} : ${n} opacity:0 servis`);
+    expect(n, `${route} masque du contenu dans le HTML servi`).toBe(0);
+  });
+}
+
 test('LCP avec le voile retiré — méthode vérifiée', async ({ page }) => {
   await brider(page);
   // La règle est ajoutée à la feuille de style servie : elle ne peut pas être

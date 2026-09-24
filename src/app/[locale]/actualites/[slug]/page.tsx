@@ -8,6 +8,7 @@ import { postBySlugQuery } from '@dt-sanity/lib/queries';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { ptComponents } from '@/components/news/portable-text';
+import { articleJsonLd, jsonLdScript } from '@/lib/seo';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -98,8 +99,28 @@ export default async function ArticlePage({
   if (!post || post.language !== locale) notFound();
   const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 
+  // Fiche `Article` (F-03, P1 n° 4 du plan d'action), posée SEULEMENT ICI :
+  // le rendu dégradé ci-dessus n'affiche aucun article et porte déjà un
+  // `noindex` — une fiche y décrirait un contenu que la page ne sert pas.
+  //
+  // `post.title` et `post.excerpt` viennent du CMS : leur sérialisation passe
+  // par `jsonLdScript`, qui empêche un titre contenant `</script>` de sortir
+  // du bloc.
+  const fiche = articleJsonLd({
+    headline: post.title,
+    slug,
+    locale,
+    description: post.excerpt,
+    datePublished: post.publishedAt,
+    inLanguage: post.language,
+  });
+
   return (
     <article className="mx-auto max-w-[760px] px-4 py-10 sm:px-6 md:py-14">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(fiche) }}
+      />
       <Link
         href="/actualites"
         className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-ink"

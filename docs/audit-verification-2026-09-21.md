@@ -26,6 +26,13 @@ renvoie à une commande jouée et à son journal.
 > m'appartient pas : l'arbitrage produit de F-06, et la vérification manuelle
 > des variables de production (angle mort 7).
 >
+> **L'angle mort 2 est refermé** (23/09) : la suite a tourné sur un vrai Pixel 7
+> — 165 tests, 0 échec, instrument vérifié. Elle a livré **F-14** : l'accueil
+> sert encore 7 `opacity:0` dans son HTML, et son LCP mobile est de 2 000 ms
+> contre 312 ms en desktop. Le correctif F-05 ne l'avait jamais couvert, parce
+> que `HomeHero` n'utilise pas `Reveal` — et parce que la garde ne regardait
+> qu'une route. § 4quater.
+>
 > **Les neuf constats du pentest sont rejoués** (23/09) : plus aucun 🟡 ni ⚪.
 > **M-9 est corrigé** — `javascript:` était neutralisé par React, mais
 > `data:text/html` et `vbscript:` passaient tels quels ; liste blanche de
@@ -33,6 +40,13 @@ renvoie à une commande jouée et à son journal.
 > est comblé** — la file de modération nomme désormais le compte que
 > l'approbation va élever, et signale sa discordance avec l'adresse de
 > contact. § 4ter.
+>
+> **Les fiches de PAGE existent** (24/09) : `Event` et `Article` étaient
+> annoncées comme faites au § 3 et « à faire » au § 7 — c'est le § 7 qui
+> disait vrai. Elles sont posées, lues dans le HTML servi par 9 gardes, et
+> ne déclarent NI image, NI tarif, NI auteur : rien que la page ne montre.
+> Le correctif ouvrait au passage une sortie de balise depuis un titre de
+> CMS ; elle est fermée avant d'avoir servi. § 0.
 
 ## 0. Ce qui a été corrigé
 
@@ -108,6 +122,87 @@ robot qui n'exécute pas JavaScript — et ne déclare **que** ce que le dépôt
 possède : un nom, une URL, une description traduite, un logo. Un test tient la
 liste des clés fermée, parce qu'une adresse postale inventée serait une donnée
 fausse servie aux moteurs, pire que son absence.
+
+### F-03 (suite, 24/09) — les fiches de PAGE, et la porte qu'elles ouvraient
+
+Le rapport se contredisait sur ce point, et c'est la première chose que ce lot
+a corrigée. Le « Correctif » de F-03 (§ 3) annonçait « un bloc JSON-LD
+`Organization` global **+ `Article`/`Event` sur les pages de détail** », quand
+la ligne P1 n° 4 du plan d'action disait, elle, « JSON-LD `Article`/`Event` par
+page : **reste à faire** ». C'est la seconde qui était vraie : sur les 48
+pages, le seul bloc servi était `Organization`, et il répondait « qui publie »
+sans jamais décrire **ce qui** est publié.
+
+**Ce qui est posé.** `eventJsonLd` et `articleJsonLd` dans `src/lib/seo.ts`,
+rendus dans le HTML servi par `evenements/[slug]` et `actualites/[slug]`. Les
+deux **référencent** l'organisation du layout (`@id`) au lieu de la recopier :
+deux copies d'une même entité finissent par diverger.
+
+**Ce qui est volontairement ABSENT, et pourquoi.** La règle est celle que la
+fiche `Organization` s'était déjà donnée — on ne déclare que ce que la page
+montre — appliquée cette fois à des champs que Google recommande :
+
+| Champ | Pourquoi il n'est pas déclaré |
+|---|---|
+| `image` (Event) | la page sert `/library/paris.jpg` pour TOUS les événements, Dakar compris, et sa **propre légende** dit « Image d'illustration » |
+| `offers` | les tarifs de la conférence sont fictifs (l'en-tête de `events-content.ts` le dit) et le bouton « réserver » mène à l'adhésion, pas à une billetterie |
+| `performer` | les intervenants relèvent du même jeu de données d'illustration |
+| `author` (Article) | le schéma Sanity du dépôt n'a **pas** de champ auteur ; l'éditeur responsable est déjà déclaré par `publisher` |
+| `image` (Article) | `postBySlugQuery` projette bien `coverUrl`, mais **la page ne rend pas cette image**. Une fiche décrit la page, pas la requête |
+
+**Un piège attrapé au passage.** La même page sert déjà un iCalendar
+(`agenda.ics`). Or les deux formats décrivent le même jour entier avec des
+conventions **opposées** : le `DTEND` d'un VEVENT désigne le **lendemain**
+(exclusif), là où `endDate` de schema.org désigne le **dernier jour**
+(inclusif). Reprendre la date de fin de l'ICS aurait annoncé aux moteurs un
+événement de deux jours. Un test tient les deux côtés à la fois — `DTEND` au
+15 novembre, `endDate` au 14 — pour qu'aligner l'un sur l'autre fasse rougir
+plutôt que dériver en silence.
+
+**Et une porte, qui est le vrai résultat de ce lot.** Un titre d'actualité est
+saisi dans le CMS : c'est du texte qu'on ne contrôle pas, et il partait droit
+dans un `<script>` via `JSON.stringify`. Un analyseur HTML ferme un `<script>`
+sur la première séquence `</script` qu'il rencontre, **sans regarder si elle
+est entre guillemets JSON** : un titre valant `Fin</script><img src=x
+onerror=…>` serait sorti du bloc et aurait rendu sa balise. C'est la famille de
+M-9 (§ 4ter) sur une autre surface — et cette fois elle aurait été ouverte
+**par le correctif lui-même**.
+
+`jsonLdScript()` échappe tous les `<` en `<`, un échappement JSON
+parfaitement légal que `JSON.parse` relit en `<` : le moteur reçoit la donnée
+intacte, l'analyseur HTML ne voit jamais de balise. La fonction est appliquée
+aux **trois** blocs, y compris celui du layout qui n'en avait pas besoin.
+Témoin permanent dans `tests/unit/seo.test.ts` : un test affirme que
+`JSON.stringify` **seul** laisse bien sortir la séquence, juste à côté de celui
+qui vérifie qu'elle ne sort plus. Retirer l'échappement fait rougir 4 tests.
+
+**Mesuré sur le HTML servi**, sans navigateur, par requête HTTP —
+`audit/specs/16-donnees-structurees.spec.ts`, **9 gardes, 0 échec** :
+
+| Vérifié | Résultat |
+|---|---|
+| fiche `Event` dans le HTML servi (donc sans JS) | ✅ conférence, webinaire, atelier |
+| `name` de la fiche = `<h1>` **affiché** | ✅ fr et en |
+| `startDate` = `endDate` = 2026-11-14, `DTEND` = 20261115 | ✅ les deux conventions côte à côte |
+| lieu selon le format réel | ✅ `Place` / `VirtualLocation` / les deux |
+| le renvoi `organizer` **se résout** sur la même page | ✅ `@id` identique |
+| ni `image`, ni `offers`, ni `performer` | ✅ |
+| CMS injoignable → **aucune** fiche `Article`, `noindex` maintenu | ✅ l'organisation, elle, reste |
+
+**Non-vacuité, deux fois.** Un témoin permanent dans la spec exige les deux
+réponses du même lecteur sur deux pages : l'organisation **oui** et l'événement
+**non** sur la page de liste — une fonction qui renverrait toujours `[]`
+passerait les gardes d'absence, une qui renverrait tout passerait celles de
+présence, aucune ne passe les deux. Et en pointant les gardes sur une page sans
+fiche, **6 des 9 rougissent**.
+
+**Ce qui n'est PAS mesuré ici, et c'est écrit** : la fiche `Article` n'a jamais
+été vue sur un article réel — Sanity n'a pas de projet configuré dans cet
+environnement (angle mort 6), la page rend son panneau dégradé. Ce qui est
+vérifié, c'est son **absence** là où elle serait fausse, plus le constructeur
+lui-même en test unitaire. Le jour où un CMS sera branché, la garde du rendu
+dégradé deviendra fausse et devra être reprise : c'est voulu, elle date l'état
+de la dépendance.
 
 ### F-04 — ce que chaque page déclare aux moteurs
 
@@ -274,7 +369,24 @@ correctif userland ne le contourne sans renoncer à autre chose.
 **L'arbitrage qui reste, et qui ne m'appartient pas.** Trois routes ont un jeu
 de paramètres FERMÉ (`rapports/[year]`, `thematiques/[slug]`,
 `evenements/[slug]`). En leur posant `dynamicParams = false`, un paramètre
-inconnu cesse de matcher — et la 404 redevient rendue dans le HTML. Prix à
+inconnu cesse de matcher — ~~et la 404 redevient rendue dans le HTML~~.
+
+> **RÉFUTÉ PAR LA MESURE (24/09).** Cette dernière affirmation était une
+> hypothèse, écrite au présent de l'indicatif comme si elle avait été
+> vérifiée. Elle ne l'avait pas été. Posé sur les trois routes et mesuré :
+> **18 caractères lisibles sans JavaScript avant comme après**, contre 194
+> pour une adresse sans route du tout. Une frontière `not-found` posée au
+> niveau du SEGMENT — quatrième hypothèse, que l'audit n'avait pas testée —
+> ne change rien non plus. Le comportement de Next 16.3.5 ne dépend ni du
+> drapeau ni de l'emplacement de la frontière : tout `notFound()` levé depuis
+> une route qui matche n'émet pas son contenu. Le client avait tranché en
+> faveur de ce correctif le 23/09 ; il a été **retiré**, puisqu'il ne change
+> rien pour un visiteur. Une piste subsiste, non explorée : une réécriture au
+> niveau du middleware vers une vraie route « introuvable » localisée, qui
+> rendrait une page normale avec le statut 404. Elle demande un vrai
+> développement, et une mesure avant toute promesse.
+
+Le reste du paragraphe décrit ce qu'on aurait payé, si le gain avait existé : Prix à
 payer : ces trois routes servent alors la 404 racine, sans l'en-tête ni le pied
 de page du site, dans une page bilingue plutôt que dans la langue du visiteur.
 Et cela ne ferait rien pour `bibliotheque/[slug]`, `le-reseau/[slug]` ni
@@ -595,6 +707,13 @@ une. 227 tests en CI, 0 échec, 0 instable.
 
 **F-01 à F-13 sont donc tous refermés**, F-06 pour moitié seulement.
 
+**L'angle mort 2 est refermé** (§ 4quater) : le viewport mobile est mesuré, le
+blocage Chromium est levé pour tout le monde, et le panneau de navigation
+mobile — seul chemin de navigation sous 1120 px — est scanné pour la première
+fois, puis gardé. La mesure a livré **F-14**, le premier constat NOUVEAU depuis
+le 21 : l'accueil masque encore son contenu au rendu serveur, et son LCP mobile
+est six fois celui du desktop. Le corriger est un arbitrage de produit.
+
 **Les neuf constats du pentest du 18 septembre ont été rejoués** (§ 4, § 4bis,
 § 4ter) : il ne reste ni 🟡 « probable », ni ⚪ « non vérifié ». Le rejeu a
 corrigé le rapport autant qu'il a corrigé le code — M-1 n'est **pas** une prise
@@ -608,6 +727,56 @@ passe (M-1) et l'arbitrage produit de M-6.
 **Ce qui empêche encore de dire « allez-y » n'a pas bougé, et n'est toujours
 pas technique** : la vérification manuelle des variables de production (angle
 mort 7) et l'arbitrage produit de F-06.
+
+### Suite (24 septembre)
+
+Deux choses, et la seconde est la plus utile.
+
+**La ligne P1 n° 4 est close.** Les fiches `Event` et `Article` sont posées et
+mesurées sur le HTML servi (§ 0). Ce lot a d'abord corrigé une **contradiction
+du rapport lui-même** : le « Correctif » de F-03 les annonçait faites, le plan
+d'action les disait à faire. Aucune des deux n'existait.
+
+**Le correctif ouvrait une porte, et c'est lui qui l'a fermée.** Poser du texte
+de CMS dans un `<script>` par `JSON.stringify` seul aurait suffi : un titre
+d'actualité contenant `</script` sort du bloc, l'analyseur HTML ne regarde pas
+les guillemets JSON. Rien n'exploitait cela avant — il n'y avait pas de fiche
+de page à servir. C'est donc un défaut qu'on allait **introduire**, attrapé en
+l'écrivant, avec son témoin permanent à côté.
+
+Ce que je retiens pour la méthode : ce lot n'a rien mesuré de nouveau sur le
+site, il a **relu le rapport** et trouvé deux affirmations en désaccord l'une
+avec l'autre. Une contradiction interne est un signal gratuit, et je ne l'avais
+pas cherché une seule fois en trois jours.
+
+**Et un quatrième artefact a menti — celui-là était écrit dans ce rapport.**
+La recette du § 6 posait `NEXT_PUBLIC_CONVEX_URL` sur `pnpm start`, et sur lui
+seul. Or une variable `NEXT_PUBLIC_*` est **inlinée dans le bundle client au
+build** : le rendu serveur devenait correct et le client jetait `Missing
+environment variable NEXT_PUBLIC_CONVEX_URL`, après quoi Next remplaçait la
+page par sa coquille d'erreur. Conséquence, sur une campagne entière :
+`html-has-lang` et `document-title` comptés « graves » sur **les 24 pages
+publiques**, titres vides sur les 48 du lot SEO, 70 caractères de texte en 3G,
+et un scan de contraste rendant **zéro paire** là où la mesure du 24/09 en
+trouve 14.
+
+Ce qui rend cette panne-là particulièrement traître : un `curl` sur les mêmes
+adresses rend une page **parfaite**, `lang` compris. J'ai d'abord accusé la
+charge du conteneur — plausible, et faux. C'est la capture des erreurs de page
+dans le navigateur, pas une relecture, qui a donné la réponse en une ligne. Sur
+un build correct, les mêmes **81 tests** (24 a11y + 48 SEO + 9 fiches de page)
+passent tous : **0 violation grave**. Et la campagne desktop complète, rejouée
+sur ce build : **176 passées, 6 sautées, 0 échec, code 0** — les 6 sautées étant
+les tests du lot mobile, qui se déclarent hors sujet sur un viewport desktop.
+
+Un contrôle de plus, gratuit, et qui vaut la peine d'être écrit : le scan de
+contraste de cette campagne retrouve **exactement** les chiffres du § 5 — 36
+nœuds pour 14 paires en clair, 21 nœuds pour 8 paires en sombre. Deux mesures
+indépendantes, le même résultat : le correctif `data-universe` tient, et les
+chiffres publiés ne sont pas ceux d'une seule exécution heureuse.
+
+Le § 6 est corrigé en conséquence : les variables sont **exportées avant le
+build**, et le pourquoi est écrit dans la recette elle-même.
 
 **Ce que je corrigerais dans ma propre méthode**, puisque ce rapport sert aussi
 à ça : trois de mes erreurs ont été trouvées par la mesure et non par
@@ -679,6 +848,16 @@ d'avant, et non seulement passer sur le code d'après.
 | J9 | suite unitaire | ordre de déclaration + 3 ordres mélangés | ✅ 787 tests, 95 fichiers |
 | J10 | M-6 | file de modération relue par la **vraie** query, PoC avant/après | ✅ 1 échec → 3/3 ; gardes permanentes rouges sur le code d'avant |
 | J11 | M-9 | 9 variantes de schéma à travers le **vrai** `<PortableText>`, filtre désactivé puis restauré | ✅ 2/6 rouges sans le filtre, 6/6 avec — non vacant |
+| J12 | angle mort 2 | suite d'audit sur Pixel 7, instrument mesuré avant les tests | ✅ 165 passées ; 412 px, `pointer: coarse`, tactile, UA Android |
+| J13 | menu mobile | scan axe du panneau OUVERT, `<button>` sans nom injecté | ✅ 0 violation grave ; rougit sur `button-name [critical]` — non vacant |
+| J14 | WCAG 2.5.8 | exception d'espacement calculée, témoin injecté (2 cibles de 16 px à 10 px) | ✅ 0 non-conformité sur 24 pages ; le témoin est bien détecté |
+| J15 | F-14 | `opacity:0` comptés dans le HTML servi de 3 routes | ❌ `/fr` : 7 — `test.fail()` posé, arbitrage produit (§ 3) |
+| J16 | F-06 | `dynamicParams = false` posé sur les 3 routes fermées, 404 relue sans JS | ❌ **18 caractères avant comme après** — le remède supposé ne marche pas ; modification retirée |
+| J17 | contraste | axe sans exclusion, animations déroulées, 24 pages × 2 thèmes | ✅ 36 clair / 35 sombre ; défaut `data-universe` corrigé -> **21 en sombre** |
+| J18 | F-04 | `noindex` et `Disallow` ne se cumulent plus, garde ajoutée | ✅ 5 routes en `noindex`, aucune interdite au crawl — rougit si on les recombine |
+| J19 | F-03 (suite) | fiches `Event`/`Article` lues dans le HTML SERVI, par requête HTTP sans navigateur | ✅ 9 gardes ; 6 rougissent pointées sur une page sans fiche — non vacant |
+| J20 | sérialisation JSON-LD | un titre CMS portant `</script` passé aux trois blocs | ✅ la séquence ne sort plus ; le témoin montre que `JSON.stringify` seul la laissait sortir |
+| J21 | recette du § 6 | erreurs de PAGE capturées dans le navigateur, build refait avec les variables | ❌→✅ `#__next_error__` sur 24 pages → **176 passées, 0 échec, code 0** ; contraste retrouvé à l'identique (36/21) |
 
 ---
 
@@ -744,7 +923,13 @@ déjà structurés en base : `Organization`, `Article` (publications), `Event`
 
 **Correctif** : `openGraph` et `twitter` dans les `metadata` du layout
 `[locale]`, surchargés par page ; une image OG par défaut ; un bloc JSON-LD
-`Organization` global + `Article`/`Event` sur les pages de détail.
+`Organization` global.
+
+> **Correction (24/09).** Cette ligne disait aussi « + `Article`/`Event` sur
+> les pages de détail », ce qui était faux : seul `Organization` était posé,
+> et la ligne P1 n° 4 du plan d'action le disait correctement (« reste à
+> faire »). Les deux fiches de page existent depuis le 24/09 — voir
+> « F-03 (suite) » au § 0, qui donne aussi ce qu'elles ne déclarent PAS.
 
 ### F-05 · MOYENNE · Risque · 12,8 s avant contenu principal en 3G lente — **CORRIGÉ** (§ 0)
 
@@ -1448,6 +1633,59 @@ déclencheur s'était déplacé entre les deux. La prochaine campagne répondra 
 d'elle-même à la question qui reste — « est-ce encore un décalage, ou autre
 chose ? » — au lieu d'exiger une campagne de plus rien que pour la poser.
 
+### F-14 · MOYENNE · Défaut · L'accueil masque encore son contenu au rendu serveur — le correctif F-05 ne l'a jamais couvert
+
+**Constaté le 23/09**, en jouant la suite d'audit sur un viewport mobile pour la
+première fois (§ 4quater).
+
+| HTML servi | `opacity:0` |
+|---|---|
+| `/fr/barometre` | 0 |
+| `/fr/a-propos` | 0 |
+| **`/fr`** | **7** |
+
+F-05 avait retiré le voile de `Reveal`, et sa garde vérifie `/fr/barometre` —
+la page du constat. Mais **`HomeHero` n'utilise pas `Reveal`** : il pose ses
+propres `motion.p` avec `initial={{ opacity: 0 }}`, c'est-à-dire exactement le
+motif que F-05 a supprimé partout ailleurs. Corriger le composant ne pouvait
+donc rien y faire, et une garde sur une seule route ne pouvait pas le dire.
+
+**Pourquoi ça ne se voyait pas.** En desktop, le plus grand élément de `/fr`
+est le `<h1>`, révélé mot à mot dès 0,18 s : il peint tôt, LCP 312 ms. Sur
+412 px de large le `<h1>` rétrécit, et c'est le **paragraphe d'accroche** qui
+devient le plus grand — or lui attend la fin de la séquence du titre
+(`delay = 0,18 + 6 mots × 0,075 + 0,05`), puis 0,85 s de fondu.
+
+Mesuré, sans contrainte réseau, médiane de trois :
+
+| | desktop | mobile |
+|---|---|---|
+| LCP `/fr` | **312 ms** | **2 000 ms** |
+| élément LCP | `<h1>` | `<p>` d'accroche |
+| opacité du `<p>` | — | nulle jusqu'à 1 153 ms, pleine à 2 011 ms |
+
+Six fois le desktop, sur la plateforme que le cadrage annonce comme premier
+usage. En Slow-3G, `/fr` mesure 2 620 ms sur mobile — au-dessus du seuil de
+2 500 ms que cet audit s'était fixé.
+
+**Ce qui est fait ici** : la garde de F-05 porte désormais sur trois routes au
+lieu d'une, et `/fr` y figure en `test.fail()` — le constat est documenté, la
+suite reste honnête, et le jour où l'accueil est corrigé le test passe « de
+façon inattendue » et demande qu'on le retire.
+
+**Ce qui ne l'est pas, et pourquoi.** Le correctif est connu : c'est celui de
+F-05 — rendre le HTML servi non voilé et piloter l'animation après montage.
+Appliqué au hero, il revient à **renoncer au fondu d'entrée du premier écran de
+l'accueil**. F-05 avait assumé ce renoncement pour `Reveal` (« un fondu depuis
+l'invisible exige d'attendre le script ») ; sur un hero chorégraphié
+volontairement — entrée séquentielle, titre mot à mot — c'est un arbitrage de
+produit, pas une décision d'ingénierie. Il n'est pas pris ici.
+
+Corollaire de méthode, et c'est le vrai enseignement : **une garde posée sur la
+page du constat ne garde que cette page.** F-05 a été vérifié sur
+`/fr/barometre` et déclaré clos ; l'accueil, plus visité, portait le même
+défaut sans que rien ne le dise.
+
 ### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
 
 `tests/e2e/admin-recherche.spec.ts:256` :
@@ -1800,6 +2038,99 @@ aura coûté un constat classé « non vérifié » pendant cinq jours.
 
 ---
 
+## 4quater. Le viewport mobile, mesuré pour la première fois
+
+L'angle mort 2 disait : « les projets `mobile-chromium` et `dev-browser` n'ont
+pas été joués, et aucune mesure ne porte sur un vrai viewport mobile ». Il
+mélangeait deux causes, et une seule tenait.
+
+**Le blocage Chromium est levé.** L'environnement fournit le build 1194, le
+Playwright épinglé en réclame 1228. Le contournement existait déjà — pointer
+l'exécutable — mais il vivait en dur dans la config d'AUDIT, donc il n'aidait
+personne à jouer les projets du dépôt. `playwright.config.ts` lit désormais
+`PLAYWRIGHT_CHROMIUM_PATH` : non définie, rien ne change (le cas de la CI, qui
+installe le build attendu) ; définie, tous les projets démarrent.
+
+    PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm test:e2e
+
+**`dev-browser` reste injoué, pour une autre raison.** Il dépend du projet
+`setup`, donc de sessions authentifiées, donc d'un déploiement Convex. C'est
+l'angle mort 1 — pas celui-ci. Constaté : les onze sessions échouent, les 40
+captures ne s'exécutent pas.
+
+### Ce que la suite dit sur un Pixel 7
+
+Le projet `mobile` de la config d'audit existait depuis le début et n'avait
+jamais été joué. Rejoué tel quel : **165 tests, 0 échec** (desktop : 168, dont
+6 propres au mobile qui s'y sautent ; campagne complète 333 passées, 9 sautées,
+code de sortie 0).
+
+C'est un résultat, et il faut dire ce qu'il ne vaut pas : l'essentiel de la
+suite — SEO, en-têtes, robots, rendu sans JavaScript, i18n — lit des balises et
+des réponses HTTP, que la largeur de la fenêtre ne change pas. Une suite verte
+sur un viewport qu'elle n'avait jamais vu méritait donc d'abord qu'on vérifie
+qu'elle l'avait vu cette fois : `audit/specs/50-mobile.spec.ts` commence par
+mesurer l'instrument — 412 px, `(pointer: coarse)`, tactile présent, UA
+Android, DPR 2,625.
+
+### Deux écrans que personne n'avait regardés
+
+**Le panneau de navigation mobile.** Sous 1120 px, la barre de bureau est
+masquée : le menu tactile est le **seul** chemin de navigation du site. Il
+n'était analysé par aucune garde — `a11y.spec.ts` tourne en desktop, où le
+composant n'existe pas ; les specs `mobile-chromium` exercent des parcours et
+n'analysent rien. Scanné pour la première fois : **0 violation grave**,
+`aria-modal` correct, 10 liens, 16 signalements de contraste (règle différée,
+arbitrage de palette connu). C'est propre — et depuis cette PR, une garde du
+dépôt (`tests/e2e/mobile/a11y-menu.spec.ts`) le tient, en français et en
+anglais. Vérifiée capable d'échouer : un `<button>` sans nom injecté dans le
+panneau la fait rougir sur `button-name [critical]`.
+
+**Les cibles tactiles (WCAG 2.2, critère 2.5.8, niveau AA).** Un balayage naïf
+— « moins de 24 × 24 px » — rend **568 cibles sur 24 pages**. Publier ce nombre
+aurait refait l'erreur que ce rapport dénonce ailleurs : un scan bruyant ne
+fait pas que surestimer, il cache. La règle prévoit une exception d'espacement,
+qui se calcule : un cercle de 24 px centré sur la cible ne doit recouper ni le
+rectangle d'une autre cible, ni le cercle d'une autre cible sous-dimensionnée.
+Appliquée, il reste **zéro** non-conformité, menu ouvert compris.
+
+### L'instrument a menti deux fois avant de dire vrai
+
+Ça vaut d'être écrit, parce que c'est la quatrième fois dans cet audit et que
+les deux erreurs ont la même forme — une conclusion tirée d'un outil qu'on n'a
+pas vérifié.
+
+1. **Le détecteur 2.5.8 comparait les mauvais points.** Première version :
+   distance de centre à centre pour toutes les voisines. La règle compare le
+   cercle de la cible au **rectangle** des voisines pleine taille. Corrigé,
+   puis re-corrigé : la seconde version passait le CENTRE des voisines à une
+   fonction qui attendait leur coin supérieur gauche, ce qui décale chaque
+   rectangle d'une demi-largeur. Elle annonçait une non-conformité à −6 px sur
+   `/fr/connexion` ; mesurée à la main, la distance réelle est de 29 px pour 12
+   exigés. Le détecteur porte maintenant un témoin injecté — deux cibles de
+   16 px posées à 10 px d'écart — sans quoi son zéro ne prouverait rien.
+2. **Un serveur périmé a fabriqué un faux correctif.** Après un `pkill` qui
+   n'a pas abouti, l'ancien processus servait encore l'ancien build pendant que
+   je mesurais le nouveau. Résultat affiché : LCP mobile 1 960 ms → 244 ms, un
+   correctif « spectaculaire » sur `Reveal`. Sur un serveur propre : 2 000 ms,
+   inchangé. Le correctif ne servait à rien — le voile de l'accueil ne vient
+   pas de `Reveal` (F-14) — et il a été **retiré**. Un chunk répondant 500 en
+   `text/plain` dans la console était le signe ; c'est lui qui a mis la puce à
+   l'oreille, pas la relecture.
+
+### Ce qui reste
+
+**F-14** (§ 3) : l'accueil sert 7 `opacity:0` dans son HTML, son LCP mobile est
+de 2 000 ms contre 312 ms en desktop, et le corriger demande de renoncer au
+fondu d'entrée du premier écran — un arbitrage de produit. La garde de F-05
+couvre désormais trois routes, `/fr` marquée `test.fail()`.
+
+Restent aussi, inchangés : `dev-browser` (angle mort 1), Firefox et WebKit
+(angle mort 4), et les cinq pages Convex sur données réelles (angle mort 3),
+qui n'ont pas plus été mesurées en mobile qu'en desktop.
+
+---
+
 ## 5. Angles morts
 
 Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
@@ -1814,12 +2145,16 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    pentest sur ces surfaces (cf. les cinq 🟡 du § 4). L'instabilité relevée en
    F-13 a désormais UNE cause corrigée et gardée en CI, mais elle n'a pas
    disparu des journaux.
-2. **Les navigateurs mobiles.** L'environnement fournit Chromium build 1194 ; le
-   Playwright épinglé (1.61.1) réclame 1228 et refuse de démarrer. J'ai
-   contourné en pointant l'exécutable, mais **les projets `mobile-chromium` et
-   `dev-browser` n'ont pas été joués**, et aucune mesure ne porte sur un vrai
-   viewport mobile. Le cadrage plaçant le mobile en usage premier, c'est une
-   lacune réelle de cet audit.
+2. ~~**Les navigateurs mobiles.**~~ **Refermé le 23/09 (§ 4quater), et ce point
+   confondait deux causes.** Le blocage Chromium (build 1194 présent, 1228
+   réclamé) est levé : `playwright.config.ts` accepte désormais
+   `PLAYWRIGHT_CHROMIUM_PATH`, donc `mobile-chromium` se joue ici comme en CI.
+   **La suite d'audit a tourné sur un vrai Pixel 7** — 165 tests, 0 échec — et
+   l'instrument est vérifié (412 px, `pointer: coarse`, tactile, UA Android).
+   `dev-browser`, lui, reste injoué : il dépend du projet `setup`, donc d'un
+   déploiement Convex — c'est l'angle mort 1, pas celui-ci. La mesure a livré
+   deux constats : le panneau de navigation mobile n'avait **jamais** été
+   analysé par personne (il l'est, et il est propre), et **F-14** ci-dessous.
 3. **Les cinq pages Convex sur données réelles.** `bibliotheque`, `experts`,
    `le-reseau`, `thematiques`, `tribune` n'ont pu être mesurées ni en SEO, ni en
    accessibilité, ni en performance : elles rendaient 500 ici. Leurs chiffres
@@ -1828,12 +2163,28 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    lacune demeure entière, puisque c'est le poids des données réelles qui
    importait.
 4. **Firefox et WebKit.** Rien n'a été exercé hors Chromium.
-5. **Le contraste des couleurs.** Volontairement laissé de côté : le dépôt le
-   désactive avec une justification écrite (palette de marque, arbitrage RGAA
-   annoncé dans la déclaration d'accessibilité). Mes premières mesures brutes
-   montraient jusqu'à 45 nœuds en défaut sur `/fr/evenements/calendrier`, mais
-   sans dérouler les animations — donc **gonflées par de faux positifs**. Je ne
-   les retiens pas. L'arbitrage reste à mener, il n'est pas de nature technique.
+5. **Le contraste des couleurs — MESURÉ le 24/09**, après arbitrage client
+   (« ajuster les teintes concernées »). Il était volontairement laissé de côté :
+   le dépôt le désactive avec une justification écrite (palette de marque,
+   arbitrage RGAA annoncé dans la déclaration d'accessibilité), et mes premières
+   mesures brutes — jusqu'à 45 nœuds sur une seule page, sans dérouler les
+   animations — étaient **gonflées par de faux positifs**. Elles restent
+   rétractées.
+   **Repris proprement** (`audit/specs/51-contraste.spec.ts`, animations
+   déroulées, un thème à la fois, 24 pages) : **36 nœuds en clair, 35 en
+   sombre**, pour 14 paires de couleurs distinctes chacune — deux ordres de
+   grandeur sous les premiers chiffres.
+   La mesure a livré un **défaut, et non une question de teinte** : en thème
+   sombre, l'univers « jeunes » gardait ses jetons de thème CLAIR, la règle CSS
+   exigeant `data-theme` et `data-universe` sur le même élément alors que le
+   premier vit sur `<html>` et le second sur un `<div>` de page. La variante
+   sombre du safran existait depuis le début sans jamais atteindre la page.
+   Corrigé avec la valeur prévue par le designer : **sombre passe de 35 à 21
+   nœuds**, aucune couleur inventée.
+   Le reste — texte clair sur safran (27 nœuds), couleurs du baromètre en petit
+   texte, gris sourds — demande des VALEURS, pas du code, et relève de l'agence.
+   Le détail par paire, avec ratios, est dans
+   `docs/arbitrages-client-2026-09-23.md`.
 6. **Sanity.** Aucun projet configuré (`projectId = placeholder`) : le chemin
    « contenu réel » du CMS n'a jamais été exercé, seulement le chemin dégradé.
    ~~M-9 (liens `javascript:` depuis PortableText) reste donc non vérifié.~~
@@ -1846,6 +2197,10 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    correctif F-10 est exercé à chaque campagne. Conséquence gênante : les deux
    autres branches de cette page (article présent, article absent) ne le sont
    par personne, et reposent sur un test unitaire à client simulé.
+   **Et depuis le 24/09, la fiche `Article` aussi** : elle n'a jamais été vue
+   sur un article réel. Ce qui est mesuré, c'est son ABSENCE sur le rendu
+   dégradé — là où elle serait fausse — plus son constructeur en test
+   unitaire.
 7. **La production.** Aucun accès, par construction et par consigne. La
    checklist de `docs/deploiement.md` § 1.1 (`AUTH_DEV_OTP` et
    `RECAPTCHA_DISABLED` absents de l'env de prod) **n'a pas été vérifiée** et
@@ -1894,9 +2249,35 @@ rm convex/zz-audit-poc-m6.test.ts
 # donc elle se garde par un test permanent plutôt que par un fichier à copier.
 pnpm exec vitest run tests/unit/portable-text-liens.test.tsx
 
-# Lots navigateur — serveur requis
-NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \
-NEXT_PUBLIC_SITE_URL="http://localhost:3000" pnpm start &
+# Viewport mobile (angle mort 2) — serveur requis, cf. plus bas
+pnpm exec playwright test --config audit/playwright.audit.config.ts --project=mobile
+
+# Projets mobiles du DÉPÔT dans un environnement au Chromium dépareillé
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
+  pnpm exec playwright test --project=mobile-chromium
+
+# Fiches de page (F-03 suite) — serveur requis, aucune dépendance navigateur :
+# la spec lit le HTML servi par requête HTTP.
+pnpm exec playwright test --config audit/playwright.audit.config.ts \
+  --project=desktop audit/specs/16-donnees-structurees.spec.ts
+
+# Lots navigateur — serveur requis.
+#
+# LES VARIABLES DOIVENT ÊTRE POSÉES AU BUILD, pas seulement au démarrage.
+# Une variable `NEXT_PUBLIC_*` est INLINÉE dans le bundle client au moment du
+# build : la poser sur `pnpm start` seul corrige le rendu serveur et laisse le
+# client jeter `Missing environment variable NEXT_PUBLIC_CONVEX_URL`. Next
+# remplace alors la page par sa coquille d'erreur (`#__next_error__`), et TOUT
+# ce qui se mesure dans un navigateur devient faux en silence : `html-has-lang`
+# et `document-title` « graves » sur les 24 pages publiques, titres vides sur
+# les 48 du lot SEO, texte compté à 70 caractères en 3G, contraste à zéro
+# paire. Un `curl`
+# sur les mêmes adresses rend une page parfaite — c'est ce qui rend la panne
+# difficile à voir. Mesuré le 24/09.
+export NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud"
+export NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+rm -rf .next && pnpm build
+pnpm start &
 pnpm exec playwright test --config audit/playwright.audit.config.ts --project=desktop
 ```
 
@@ -1916,7 +2297,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 
 | # | Action | Couvre | Effort |
 |---|---|---|---|
-| 4 | ~~`openGraph` + `twitter` + image OG ; JSON-LD `Organization`~~ — **fait**. JSON-LD `Article`/`Event` par page : reste à faire | F-03 ✅ | — |
+| 4 | ~~`openGraph` + `twitter` + image OG ; JSON-LD `Organization`~~ — **fait**. ~~JSON-LD `Article`/`Event` par page~~ — **fait le 24/09**, et l'échappement du texte CMS avec (§ 0) | F-03 ✅ | — |
 | 5 | ~~`spy.mockRestore()` ; `--sequence.shuffle` en CI~~ — **fait**, plus un second défaut d'isolation trouvé au passage | F-01 ✅ | — |
 | 6 | ~~`canonical` et `hreflang`~~ — **fait**. Deux des quatorze signalements étaient de faux positifs (`/recherche`, en `noindex`) | F-04 ✅ | — |
 | 7 | ~~Montées de version + `pnpm audit` en CI~~ — **fait** : 9 avis → 1. L'override `postcss@8` était indispensable, `pnpm up` seul n'aurait pas suffi | F-08 ✅ | — |
@@ -1931,7 +2312,8 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; arbitrage `dynamicParams` à trancher | F-06 🟡 | — |
 | 11 | ~~Souligner le lien d'adhésion~~ — **fait**, plus les zones défilantes inatteignables au clavier (2 pages publiques + 3 tableaux d'administration) | F-07 ✅ | — |
 | 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
-| 13 | Aligner le Chromium de l'environnement sur le Playwright épinglé, pour rendre le mobile testable | angle mort 2 | — |
+| 13 | ~~Aligner le Chromium de l'environnement sur le Playwright épinglé~~ — **fait** autrement : `PLAYWRIGHT_CHROMIUM_PATH` dans `playwright.config.ts`. Suite jouée sur Pixel 7, panneau mobile scanné et gardé | angle mort 2 ✅ | — |
+| 14 | **Accueil : renoncer au fondu d'entrée du premier écran, ou l'assumer.** LCP mobile 2 000 ms contre 312 ms en desktop ; le correctif est celui de F-05, son coût est visuel | F-14 | arbitrage |
 
 ---
 
