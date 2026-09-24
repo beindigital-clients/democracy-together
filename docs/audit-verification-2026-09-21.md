@@ -23,15 +23,17 @@ renvoie à une commande jouée et à son journal.
 > en ont une — **57 routes sur 57**. 227 tests en CI, 0 échec, 0 instable.
 >
 > **F-01 à F-13 sont donc tous refermés**, F-06 pour moitié. Ce qui reste ne
-> m'appartient pas : l'arbitrage produit de F-06, et la vérification manuelle
-> des variables de production (angle mort 7).
+> m'appartient pas : la vérification manuelle des variables de production
+> (angle mort 7). *L'arbitrage de F-06 a été rendu le 24/09 — et le remède que
+> ce rapport annonçait s'est révélé inexistant (§ 0, § 3).*
 >
 > **L'angle mort 2 est refermé** (23/09) : la suite a tourné sur un vrai Pixel 7
 > — 165 tests, 0 échec, instrument vérifié. Elle a livré **F-14** : l'accueil
 > sert encore 7 `opacity:0` dans son HTML, et son LCP mobile est de 2 000 ms
 > contre 312 ms en desktop. Le correctif F-05 ne l'avait jamais couvert, parce
 > que `HomeHero` n'utilise pas `Reveal` — et parce que la garde ne regardait
-> qu'une route. § 4quater.
+> qu'une route. § 4quater. *F-14 reste ouvert PAR DÉCISION depuis le 24/09 :
+> le client garde l'animation, son coût est connu.*
 >
 > **Les neuf constats du pentest sont rejoués** (23/09) : plus aucun 🟡 ni ⚪.
 > **M-9 est corrigé** — `javascript:` était neutralisé par React, mais
@@ -617,6 +619,41 @@ du pentest (§ 4bis, § 4ter) en laisse trois ouverts, tous écrits :
   « organisation » corresponde au compte déposant ? L'écran dit désormais qui
   sera élevé et signale la discordance ; le durcissement, lui, est un
   arbitrage produit.
+
+**Mise à jour du 24 septembre — les arbitrages sont rendus.** Les deux listes
+ci-dessus sont datées des 21 et 23 ; elles attendaient des décisions qui sont
+tombées depuis. Elles restent telles quelles — c'est la règle de ce rapport —
+et voici ce qu'elles deviennent.
+
+**F-06 — l'arbitrage a été rendu, et il ne peut pas être suivi.** Le client a
+demandé de corriger les trois rubriques. Le remède que ce rapport annonçait
+(`dynamicParams = false`) a été **réfuté par la mesure** : 18 caractères sans
+JavaScript avant comme après (§ 3). La modification a été retirée plutôt que
+livrée. Ce n'est donc plus un arbitrage en attente : c'est une limite du
+cadriciel, écrite comme telle. Une piste au niveau du middleware est **nommée,
+pas promise**.
+
+**M-6 — tranché : non.** L'adhésion n'est pas durcie. L'écran nomme le compte
+que l'approbation va élever et signale sa discordance avec l'adresse de
+contact ; c'est l'état final, et non une étape.
+
+**F-14 — tranché : assumé.** Absent de ces listes : il a été trouvé le 23,
+après leur rédaction. Le fondu d'entrée de
+l'accueil est conservé, avec son coût connu : LCP mobile 2 000 ms contre
+312 ms en desktop. Le constat reste ouvert **par décision**, pas par oubli.
+
+**Ce qui reste réellement ouvert au 24 septembre**, une fois ces trois-là
+écartés :
+
+| | Quoi | Qui |
+|---|---|---|
+| P0 | variables de production (`AUTH_DEV_OTP`, `RECAPTCHA_DISABLED`) — angle mort 7 | quelqu'un ayant les accès |
+| P2 | **F-05 : alléger les chunks** (`d3-geo`/`topojson`/`world-atlas` en différé, prérendre les pages éditoriales), ~1 j | ingénierie — **le seul chantier de code encore à faire** |
+| — | **M-5** (où vit la liste des événements) et **M-1** (provisionnalisation des mots de passe en E2E) | choix d'architecture, pas des corrections |
+| — | valeurs de palette (angle mort 5) | l'agence — des VALEURS, pas du code |
+| — | angles morts 1, 3, 4, 6 | un déploiement Convex peuplé, Firefox/WebKit, un projet Sanity |
+
+La ligne P1 du plan d'action est **vide** : ses huit entrées sont fermées.
 
 ### Vérifications passées avant de pousser
 
@@ -2309,11 +2346,11 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | # | Action | Couvre | Effort |
 |---|---|---|---|
 | 9 | Alléger les chunks (`d3-geo`/`topojson`/`world-atlas` en différé) ; prérendre les pages éditoriales | F-05 | 1 j |
-| 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; arbitrage `dynamicParams` à trancher | F-06 🟡 | — |
+| 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; ~~arbitrage `dynamicParams` à trancher~~ — **tranché le 24/09 : le remède annoncé est réfuté par la mesure**, modification retirée (§ 0, § 3) | F-06 🟡 | — |
 | 11 | ~~Souligner le lien d'adhésion~~ — **fait**, plus les zones défilantes inatteignables au clavier (2 pages publiques + 3 tableaux d'administration) | F-07 ✅ | — |
 | 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
 | 13 | ~~Aligner le Chromium de l'environnement sur le Playwright épinglé~~ — **fait** autrement : `PLAYWRIGHT_CHROMIUM_PATH` dans `playwright.config.ts`. Suite jouée sur Pixel 7, panneau mobile scanné et gardé | angle mort 2 ✅ | — |
-| 14 | **Accueil : renoncer au fondu d'entrée du premier écran, ou l'assumer.** LCP mobile 2 000 ms contre 312 ms en desktop ; le correctif est celui de F-05, son coût est visuel | F-14 | arbitrage |
+| 14 | ~~Accueil : renoncer au fondu d'entrée du premier écran, ou l'assumer~~ — **tranché le 24/09 : assumé**. L'animation est conservée, son coût est connu (LCP mobile 2 000 ms contre 312 ms en desktop). Le constat reste ouvert PAR DÉCISION | F-14 | — |
 
 ---
 
