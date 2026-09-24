@@ -11,10 +11,14 @@ import { getTranslations } from 'next-intl/server';
 //
 // `noindex` plutôt qu'un canonical : c'est une page de tunnel, elle n'a pas
 // vocation à entrer dans un index, et le dépôt a déjà tranché que le hreflang
-// y serait du bruit (issue #35, cas `/recherche`). `robots.txt` l'interdit
-// DÉJÀ au crawl — la déclaration posée ici est donc une seconde ceinture, qui
-// vaudra le jour où cette liste changera. Elle ne remplace pas l'autre : un
-// moteur qui respecte le `Disallow` ne vient pas lire ce `noindex`.
+// y serait du bruit (issue #35, cas `/recherche`).
+//
+// C'est désormais la SEULE protection, et c'est voulu (arbitrage client du
+// 23/09). `robots.txt` interdisait aussi le crawl de cette page ; les deux
+// mesures se neutralisaient, puisqu'un moteur qui respecte le `Disallow` ne
+// vient jamais lire ce `noindex`. Le `Disallow` est parti : le moteur passe,
+// lit la consigne et l'applique. `tests/unit/seo-coherence.test.ts` interdit
+// de reposer l'un sur l'autre.
 export async function generateMetadata({
   params,
 }: {

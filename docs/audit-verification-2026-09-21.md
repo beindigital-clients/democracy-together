@@ -281,7 +281,24 @@ correctif userland ne le contourne sans renoncer à autre chose.
 **L'arbitrage qui reste, et qui ne m'appartient pas.** Trois routes ont un jeu
 de paramètres FERMÉ (`rapports/[year]`, `thematiques/[slug]`,
 `evenements/[slug]`). En leur posant `dynamicParams = false`, un paramètre
-inconnu cesse de matcher — et la 404 redevient rendue dans le HTML. Prix à
+inconnu cesse de matcher — ~~et la 404 redevient rendue dans le HTML~~.
+
+> **RÉFUTÉ PAR LA MESURE (24/09).** Cette dernière affirmation était une
+> hypothèse, écrite au présent de l'indicatif comme si elle avait été
+> vérifiée. Elle ne l'avait pas été. Posé sur les trois routes et mesuré :
+> **18 caractères lisibles sans JavaScript avant comme après**, contre 194
+> pour une adresse sans route du tout. Une frontière `not-found` posée au
+> niveau du SEGMENT — quatrième hypothèse, que l'audit n'avait pas testée —
+> ne change rien non plus. Le comportement de Next 16.3.5 ne dépend ni du
+> drapeau ni de l'emplacement de la frontière : tout `notFound()` levé depuis
+> une route qui matche n'émet pas son contenu. Le client avait tranché en
+> faveur de ce correctif le 23/09 ; il a été **retiré**, puisqu'il ne change
+> rien pour un visiteur. Une piste subsiste, non explorée : une réécriture au
+> niveau du middleware vers une vraie route « introuvable » localisée, qui
+> rendrait une page normale avec le statut 404. Elle demande un vrai
+> développement, et une mesure avant toute promesse.
+
+Le reste du paragraphe décrit ce qu'on aurait payé, si le gain avait existé : Prix à
 payer : ces trois routes servent alors la 404 racine, sans l'en-tête ni le pied
 de page du site, dans une page bilingue plutôt que dans la langue du visiteur.
 Et cela ne ferait rien pour `bibliotheque/[slug]`, `le-reseau/[slug]` ni
@@ -697,6 +714,9 @@ d'avant, et non seulement passer sur le code d'après.
 | J13 | menu mobile | scan axe du panneau OUVERT, `<button>` sans nom injecté | ✅ 0 violation grave ; rougit sur `button-name [critical]` — non vacant |
 | J14 | WCAG 2.5.8 | exception d'espacement calculée, témoin injecté (2 cibles de 16 px à 10 px) | ✅ 0 non-conformité sur 24 pages ; le témoin est bien détecté |
 | J15 | F-14 | `opacity:0` comptés dans le HTML servi de 3 routes | ❌ `/fr` : 7 — `test.fail()` posé, arbitrage produit (§ 3) |
+| J16 | F-06 | `dynamicParams = false` posé sur les 3 routes fermées, 404 relue sans JS | ❌ **18 caractères avant comme après** — le remède supposé ne marche pas ; modification retirée |
+| J17 | contraste | axe sans exclusion, animations déroulées, 24 pages × 2 thèmes | ✅ 36 clair / 35 sombre ; défaut `data-universe` corrigé -> **21 en sombre** |
+| J18 | F-04 | `noindex` et `Disallow` ne se cumulent plus, garde ajoutée | ✅ 5 routes en `noindex`, aucune interdite au crawl — rougit si on les recombine |
 
 ---
 
@@ -1996,12 +2016,28 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    lacune demeure entière, puisque c'est le poids des données réelles qui
    importait.
 4. **Firefox et WebKit.** Rien n'a été exercé hors Chromium.
-5. **Le contraste des couleurs.** Volontairement laissé de côté : le dépôt le
-   désactive avec une justification écrite (palette de marque, arbitrage RGAA
-   annoncé dans la déclaration d'accessibilité). Mes premières mesures brutes
-   montraient jusqu'à 45 nœuds en défaut sur `/fr/evenements/calendrier`, mais
-   sans dérouler les animations — donc **gonflées par de faux positifs**. Je ne
-   les retiens pas. L'arbitrage reste à mener, il n'est pas de nature technique.
+5. **Le contraste des couleurs — MESURÉ le 24/09**, après arbitrage client
+   (« ajuster les teintes concernées »). Il était volontairement laissé de côté :
+   le dépôt le désactive avec une justification écrite (palette de marque,
+   arbitrage RGAA annoncé dans la déclaration d'accessibilité), et mes premières
+   mesures brutes — jusqu'à 45 nœuds sur une seule page, sans dérouler les
+   animations — étaient **gonflées par de faux positifs**. Elles restent
+   rétractées.
+   **Repris proprement** (`audit/specs/51-contraste.spec.ts`, animations
+   déroulées, un thème à la fois, 24 pages) : **36 nœuds en clair, 35 en
+   sombre**, pour 14 paires de couleurs distinctes chacune — deux ordres de
+   grandeur sous les premiers chiffres.
+   La mesure a livré un **défaut, et non une question de teinte** : en thème
+   sombre, l'univers « jeunes » gardait ses jetons de thème CLAIR, la règle CSS
+   exigeant `data-theme` et `data-universe` sur le même élément alors que le
+   premier vit sur `<html>` et le second sur un `<div>` de page. La variante
+   sombre du safran existait depuis le début sans jamais atteindre la page.
+   Corrigé avec la valeur prévue par le designer : **sombre passe de 35 à 21
+   nœuds**, aucune couleur inventée.
+   Le reste — texte clair sur safran (27 nœuds), couleurs du baromètre en petit
+   texte, gris sourds — demande des VALEURS, pas du code, et relève de l'agence.
+   Le détail par paire, avec ratios, est dans
+   `docs/arbitrages-client-2026-09-23.md`.
 6. **Sanity.** Aucun projet configuré (`projectId = placeholder`) : le chemin
    « contenu réel » du CMS n'a jamais été exercé, seulement le chemin dégradé.
    ~~M-9 (liens `javascript:` depuis PortableText) reste donc non vérifié.~~

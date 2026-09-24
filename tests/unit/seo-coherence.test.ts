@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Les deux listes sont LUES dans le source plutôt qu'importées : `sitemap.ts`
@@ -43,9 +43,35 @@ describe('Les listes lues dans le source ne sont pas vides', () => {
     expect(STATIC_PATHS.length).toBeGreaterThan(15);
   });
   it('robots.txt déclare des zones privées', () => {
-    expect(PRIVATE.length).toBeGreaterThan(3);
+    // Un seuil numérique se serait tu le jour où la liste rétrécit pour une
+    // bonne raison — c'est arrivé le 23/09, quand les trois tunnels
+    // d'authentification en sont sortis. On vérifie donc ce qui doit y être.
+    expect(PRIVATE).toContain('admin');
+    expect(PRIVATE).toContain('espace-membre');
   });
 });
+
+/**
+ * Routes (relatives à `[locale]`) dont les métadonnées annoncent `index: false`.
+ * Parcourt deux niveaux : `connexion`, `newsletter/desinscription`… — ce qui
+ * couvre toutes les routes du dépôt qui portent un `generateMetadata`.
+ */
+function routesDeclarantNoindex(): string[] {
+  const trouvees: string[] = [];
+  const visiter = (rel: string) => {
+    if (/index:\s*false/.test(metadataSources(rel))) trouvees.push(rel);
+  };
+  for (const e of readdirSync(APP, { withFileTypes: true })) {
+    if (!e.isDirectory() || e.name.startsWith('[')) continue;
+    visiter(e.name);
+    for (const f of readdirSync(join(APP, e.name), { withFileTypes: true })) {
+      if (f.isDirectory() && !f.name.startsWith('[')) {
+        visiter(`${e.name}/${f.name}`);
+      }
+    }
+  }
+  return trouvees.sort();
+}
 
 /** Le texte des fichiers qui peuvent porter les métadonnées d'une route. */
 function metadataSources(path: string): string {
@@ -104,5 +130,34 @@ describe('Une page en noindex ne déclare pas de hreflang (issue #35)', () => {
     expect(src, `${route} : hreflang inutile sur une page noindex`).not.toMatch(
       /languages\s*:/,
     );
+  });
+});
+
+describe('« Interdit au crawl » et « noindex » ne se cumulent pas', () => {
+  // ARBITRAGE DU 23/09, et la raison pour laquelle il fallait le trancher :
+  // les deux mesures se neutralisent. Un moteur qui respecte le `Disallow` de
+  // `robots.txt` ne vient JAMAIS lire le `noindex` de la page — la seconde
+  // ceinture ne protège donc rien, elle documente une intention. Les trois
+  // tunnels d'authentification portaient les deux ; ils ne gardent que le
+  // `noindex`, qui est la mesure effective.
+  //
+  // Ce test interdit de les recombiner, dans un sens comme dans l'autre :
+  // une route qui annonce `index: false` ne doit pas être interdite au crawl,
+  // sans quoi son annonce ne sera lue par personne.
+  const routesNoindex = routesDeclarantNoindex();
+
+  it('au moins une route se déclare noindex (sinon ce test est vide)', () => {
+    expect(routesNoindex.length).toBeGreaterThan(0);
+  });
+
+  it.each(routesNoindex)('%s : noindex, donc pas de Disallow', (route) => {
+    const interdite = PRIVATE.some(
+      (priv) => route === priv || route.startsWith(`${priv}/`),
+    );
+    expect(
+      interdite,
+      `${route} annonce « noindex » ET figure dans robots.txt : ` +
+        `le moteur ne viendra pas lire l'annonce.`,
+    ).toBe(false);
   });
 });

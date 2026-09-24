@@ -108,7 +108,17 @@
   --accent-edge: rgba(126, 163, 217, 0.3);
 }
 
-[data-theme='dark'][data-universe='jeunes'] {
+/* SÉLECTEUR COMPOSÉ *ET* DESCENDANT, et c'est le second qui sert (audit,
+   contraste). `data-theme` est posé sur <html> (cf. themeInit du layout) tandis
+   que `data-universe="jeunes"` l'est sur un <div> DANS la page — accueil,
+   à-propos, /jeunes. La forme composée exige les deux attributs sur le MÊME
+   élément : elle ne s'appliquait donc jamais, et l'univers safran gardait en
+   sombre ses jetons de thème clair. Conséquence mesurée : `--accent-text`
+   restait à #8a4a08, un orange foncé, sur des fonds sombres — ratio 2,15:1 là
+   où il en faut 4,5. La variante sombre #f8a44b existait depuis le début ; elle
+   n'atteignait simplement pas la page. */
+[data-theme='dark'][data-universe='jeunes'],
+[data-theme='dark'] [data-universe='jeunes'] {
   --accent: #f58b1a;
   --accent-strong: #f8a44b;
   --accent-text: #f8a44b;

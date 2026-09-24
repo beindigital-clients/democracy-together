@@ -190,3 +190,75 @@ chiffre que le rapport désavoue.
 mort 7). Elle est nommée sans détail technique parce qu'elle conditionne la
 mise en ligne et que le client doit savoir qu'elle reste due ; à qui elle
 incombe dépend de qui détient les accès.
+
+---
+
+## Réponses reçues — 24 septembre 2026
+
+| # | Sujet | Décision | Suite donnée |
+| - | ----- | -------- | ------------ |
+| 1 | Animation de l'accueil | **Garder l'animation** | Aucun code. F-14 reste ouvert et assumé ; le `test.fail()` de la garde F-05 devient la trace d'un choix, plus d'un constat en attente. |
+| 2 | Adresses à l'approbation d'adhésion | **Non** | Aucun code. M-6 est clos : l'écran nomme le compte élevé, la souplesse est conservée. |
+| 3 | Pages de connexion | **Retirer l'interdiction d'exploration** | **Fait.** `Disallow` retiré des trois tunnels, `noindex` conservé, et un garde interdit désormais de recombiner les deux. |
+| 4 | Pages « introuvables » | **Corriger ces trois rubriques** | **Impossible en l'état** — voir ci-dessous. |
+| 5 | Contraste | **Ajuster les teintes concernées** | **Commencé.** Un défaut trouvé et corrigé (−14 nœuds en sombre) ; le reste attend des valeurs de l'agence. |
+
+### Point 4 — ce que j'avais annoncé était inexact, et la mesure le confirme
+
+Deux erreurs, dont une dans le message envoyé :
+
+1. **« La page d'erreur y devient correctement traduite » était faux.** Le
+   rapport décrivait une 404 **bilingue**, servie sans l'en-tête ni le pied de
+   page du site — pas une page traduite dans la langue du visiteur. J'ai
+   surestimé le gain en le reformulant.
+2. **Le gain lui-même n'existe pas.** Le rapport supposait qu'en posant
+   `dynamicParams = false`, un paramètre inconnu cesserait de matcher et la 404
+   redeviendrait rendue dans le HTML. C'était une hypothèse, pas une mesure.
+   Mesurée : **18 caractères lisibles sans JavaScript avant comme après**. Une
+   frontière `not-found` posée au niveau du segment ne change rien non plus.
+   Le comportement de Next 16.3.5 ne dépend ni du drapeau ni de l'emplacement
+   de la frontière : tout `notFound()` levé depuis une route qui matche n'émet
+   pas son contenu.
+
+La modification a donc été **retirée** : la livrer aurait laissé croire que ces
+trois rubriques étaient corrigées alors que rien n'aurait changé pour un
+visiteur.
+
+**Ce qui reste possible**, et qui n'a pas été exploré par l'audit : intercepter
+au niveau du middleware. Les trois jeux de paramètres étant fermés et connus,
+le middleware peut reconnaître un paramètre inconnu et **réécrire** vers une
+vraie route de page « introuvable », localisée, avec le statut 404. Une
+réécriture rend une page normale — donc lisible sans JavaScript, dans la langue
+du visiteur, avec l'en-tête et le pied de page. C'est un vrai développement, pas
+un drapeau, et il faudrait le mesurer avant de le promettre.
+
+### Point 5 — un défaut d'abord, la palette ensuite
+
+La mesure a été **reprise à zéro** (`audit/specs/51-contraste.spec.ts`), les
+premiers chiffres de l'audit ayant été rétractés. État réel, 24 pages
+publiques, animations déroulées :
+
+| Thème | Avant | Après le correctif |
+| ----- | ----- | ------------------ |
+| Clair | 36 nœuds, 14 paires | 36 nœuds, 14 paires |
+| Sombre | 35 nœuds, 14 paires | **21 nœuds, 8 paires** |
+
+**Le défaut corrigé n'était pas une question de teinte.** En thème sombre,
+l'univers « jeunes » gardait ses couleurs de thème clair : la règle CSS exigeait
+`data-theme` et `data-universe` sur le **même** élément, alors que le premier
+vit sur `<html>` et le second sur un `<div>` de page. La variante sombre du
+safran existait depuis le début et n'atteignait jamais la page. Corrigé avec la
+valeur que le designer avait prévue — aucune couleur inventée.
+
+**Ce qui reste demande des valeurs, pas du code.** Par famille :
+
+| Famille | Paires | Nœuds | Ce qu'il faudrait décider |
+| ------- | ------ | ----- | ------------------------- |
+| Texte clair sur safran (`#f4f2ec` et ses variantes sur `#f58b1a`/`#f59024`, ratios 1,71 à 2,18) | 8 | 27 | Ce n'est pas un ajustement de teinte : il faut **inverser le texte** (encre foncée sur le safran) ou assombrir fortement le safran. Le premier préserve la couleur de marque. |
+| Safran employé comme texte (`#f58b1a` sur `#f4f2ec`, 2,18) | 1 | 4 | Employer `--accent-text` (`#8a4a08`, ratio ≈ 5,9), qui existe déjà pour cet usage. Correctif de code, pas de palette. |
+| Couleurs du baromètre en petit texte (`#2e6e8e`, `#9a4b3b`, `#7ba7b0`, `#cc8748` à 11–12,5 px) | 6 | 15 | Variantes assombries réservées aux libellés, ou libellés agrandis. |
+| Gris sourds (`#8f9196`, `#8b8e96`, `#676a71`, ratios 2,73 à 3,93) | 3 | 6 | Nudges de quelques points de luminosité. |
+| Deux cas limites (`#d8e0ed`/`#3a63a6` à 4,49 ; `#583a1b`/`#f58b1a` à 4,21) | 2 | 2 | À un cheveu du seuil. |
+
+Je n'ai pas choisi ces valeurs : les inventer reviendrait à trancher la charte
+à la place de l'agence, ce que ma propre recommandation déconseillait.
