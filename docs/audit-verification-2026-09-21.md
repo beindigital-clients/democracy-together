@@ -765,7 +765,15 @@ adresses rend une page **parfaite**, `lang` compris. J'ai d'abord accusé la
 charge du conteneur — plausible, et faux. C'est la capture des erreurs de page
 dans le navigateur, pas une relecture, qui a donné la réponse en une ligne. Sur
 un build correct, les mêmes **81 tests** (24 a11y + 48 SEO + 9 fiches de page)
-passent tous : **0 violation grave**.
+passent tous : **0 violation grave**. Et la campagne desktop complète, rejouée
+sur ce build : **176 passées, 6 sautées, 0 échec, code 0** — les 6 sautées étant
+les tests du lot mobile, qui se déclarent hors sujet sur un viewport desktop.
+
+Un contrôle de plus, gratuit, et qui vaut la peine d'être écrit : le scan de
+contraste de cette campagne retrouve **exactement** les chiffres du § 5 — 36
+nœuds pour 14 paires en clair, 21 nœuds pour 8 paires en sombre. Deux mesures
+indépendantes, le même résultat : le correctif `data-universe` tient, et les
+chiffres publiés ne sont pas ceux d'une seule exécution heureuse.
 
 Le § 6 est corrigé en conséquence : les variables sont **exportées avant le
 build**, et le pourquoi est écrit dans la recette elle-même.
@@ -849,6 +857,7 @@ d'avant, et non seulement passer sur le code d'après.
 | J18 | F-04 | `noindex` et `Disallow` ne se cumulent plus, garde ajoutée | ✅ 5 routes en `noindex`, aucune interdite au crawl — rougit si on les recombine |
 | J19 | F-03 (suite) | fiches `Event`/`Article` lues dans le HTML SERVI, par requête HTTP sans navigateur | ✅ 9 gardes ; 6 rougissent pointées sur une page sans fiche — non vacant |
 | J20 | sérialisation JSON-LD | un titre CMS portant `</script` passé aux trois blocs | ✅ la séquence ne sort plus ; le témoin montre que `JSON.stringify` seul la laissait sortir |
+| J21 | recette du § 6 | erreurs de PAGE capturées dans le navigateur, build refait avec les variables | ❌→✅ `#__next_error__` sur 24 pages → **176 passées, 0 échec, code 0** ; contraste retrouvé à l'identique (36/21) |
 
 ---
 
