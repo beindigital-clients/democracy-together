@@ -38,15 +38,34 @@ async function fiches(
 const parType = (f: Fiche[], type: string) =>
   f.filter((x) => x['@type'] === type);
 
-/** Le titre VISIBLE de la page, lu dans le HTML servi. */
+// Entités que React émet dans du texte. Remplacées en UN seul passage : décoder
+// `&amp;` à part rendrait `&amp;lt;` en `<`, ce qui serait faux.
+const ENTITES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#x27;': "'",
+  '&#39;': "'",
+};
+
+/**
+ * Le titre VISIBLE de la page, lu dans le HTML servi.
+ *
+ * Aucun retrait de balises ici, et c'est délibéré : un nettoyeur écrit à la
+ * main est faux par construction — un seul passage de `<[^>]*>` laisse
+ * ressortir `<scr<span>ipt>`, et CodeQL a raison de le signaler. Ces `<h1>`
+ * sont du texte simple ; on l'AFFIRME au lieu de le supposer, et le jour où
+ * l'un d'eux portera du balisage, ce test le dira plutôt que de comparer des
+ * chaînes amputées en silence.
+ */
 async function h1(request: APIRequestContext, url: string): Promise<string> {
   const html = await (await request.get(url)).text();
   const m = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/);
-  return (m?.[1] ?? '')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&#x27;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&')
+  const brut = m?.[1] ?? '';
+  expect(brut, `${url} : <h1> attendu en texte simple`).not.toContain('<');
+  return brut
+    .replace(/&(?:amp|lt|gt|quot|#x27|#39);/g, (e) => ENTITES[e])
     .trim();
 }
 
