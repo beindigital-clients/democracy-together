@@ -749,6 +749,27 @@ site, il a **relu le rapport** et trouvé deux affirmations en désaccord l'une
 avec l'autre. Une contradiction interne est un signal gratuit, et je ne l'avais
 pas cherché une seule fois en trois jours.
 
+**Et un quatrième artefact a menti — celui-là était écrit dans ce rapport.**
+La recette du § 6 posait `NEXT_PUBLIC_CONVEX_URL` sur `pnpm start`, et sur lui
+seul. Or une variable `NEXT_PUBLIC_*` est **inlinée dans le bundle client au
+build** : le rendu serveur devenait correct et le client jetait `Missing
+environment variable NEXT_PUBLIC_CONVEX_URL`, après quoi Next remplaçait la
+page par sa coquille d'erreur. Conséquence, sur une campagne entière :
+`html-has-lang` et `document-title` comptés « graves » sur **les 24 pages
+publiques**, titres vides sur les 48 du lot SEO, 70 caractères de texte en 3G,
+et un scan de contraste rendant **zéro paire** là où la mesure du 24/09 en
+trouve 14.
+
+Ce qui rend cette panne-là particulièrement traître : un `curl` sur les mêmes
+adresses rend une page **parfaite**, `lang` compris. J'ai d'abord accusé la
+charge du conteneur — plausible, et faux. C'est la capture des erreurs de page
+dans le navigateur, pas une relecture, qui a donné la réponse en une ligne. Sur
+un build correct, les mêmes **81 tests** (24 a11y + 48 SEO + 9 fiches de page)
+passent tous : **0 violation grave**.
+
+Le § 6 est corrigé en conséquence : les variables sont **exportées avant le
+build**, et le pourquoi est écrit dans la recette elle-même.
+
 **Ce que je corrigerais dans ma propre méthode**, puisque ce rapport sert aussi
 à ça : trois de mes erreurs ont été trouvées par la mesure et non par
 relecture — un test d'isolation qui n'isolait rien (F-05), un bilan lu sur la
@@ -2231,9 +2252,23 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
 pnpm exec playwright test --config audit/playwright.audit.config.ts \
   --project=desktop audit/specs/16-donnees-structurees.spec.ts
 
-# Lots navigateur — serveur requis
-NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \
-NEXT_PUBLIC_SITE_URL="http://localhost:3000" pnpm start &
+# Lots navigateur — serveur requis.
+#
+# LES VARIABLES DOIVENT ÊTRE POSÉES AU BUILD, pas seulement au démarrage.
+# Une variable `NEXT_PUBLIC_*` est INLINÉE dans le bundle client au moment du
+# build : la poser sur `pnpm start` seul corrige le rendu serveur et laisse le
+# client jeter `Missing environment variable NEXT_PUBLIC_CONVEX_URL`. Next
+# remplace alors la page par sa coquille d'erreur (`#__next_error__`), et TOUT
+# ce qui se mesure dans un navigateur devient faux en silence : `html-has-lang`
+# et `document-title` « graves » sur les 24 pages publiques, titres vides sur
+# les 48 du lot SEO, texte compté à 70 caractères en 3G, contraste à zéro
+# paire. Un `curl`
+# sur les mêmes adresses rend une page parfaite — c'est ce qui rend la panne
+# difficile à voir. Mesuré le 24/09.
+export NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud"
+export NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+rm -rf .next && pnpm build
+pnpm start &
 pnpm exec playwright test --config audit/playwright.audit.config.ts --project=desktop
 ```
 
