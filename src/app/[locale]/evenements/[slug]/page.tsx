@@ -12,6 +12,7 @@ import {
   monthAbbr,
   type EventData,
 } from '@/lib/events-content';
+import { eventJsonLd, jsonLdScript } from '@/lib/seo';
 import { EventRegisterForm } from '@/components/events/event-register-form';
 import { ReminderForm } from '@/components/events/reminder-form';
 
@@ -73,8 +74,29 @@ export default async function EventDetailPage({
     (e) => e.upcoming && e.slug !== event.slug,
   ).slice(0, 3);
 
+  // Fiche `Event` (F-03, P1 n° 4 du plan d'action). Elle reprend le chapô
+  // AFFICHÉ (`lead`), et non celui de la page de liste que `generateMetadata`
+  // sert en description : une fiche doit décrire la page où elle se trouve.
+  const fiche = eventJsonLd({
+    name: L.titles[event.slug],
+    slug: event.slug,
+    locale,
+    description: lead,
+    start: { y: event.y, mo: event.mo, d: event.d },
+    format: event.format,
+    placeName: L.cities[event.cityKey],
+    inLanguage: event.langs,
+  });
+
   return (
     <div>
+      {/* Données structurées : posées dans le HTML SERVI, donc lisibles par un
+          robot qui n'exécute pas JavaScript. L'organisation, elle, est déclarée
+          une seule fois par le layout et simplement référencée ici. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(fiche) }}
+      />
       <div className={`${WRAP} pt-8`}>
         <p className="text-[13px] text-muted">
           <Link href="/" className="text-muted hover:text-ink">

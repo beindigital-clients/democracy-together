@@ -40,6 +40,13 @@ renvoie à une commande jouée et à son journal.
 > est comblé** — la file de modération nomme désormais le compte que
 > l'approbation va élever, et signale sa discordance avec l'adresse de
 > contact. § 4ter.
+>
+> **Les fiches de PAGE existent** (24/09) : `Event` et `Article` étaient
+> annoncées comme faites au § 3 et « à faire » au § 7 — c'est le § 7 qui
+> disait vrai. Elles sont posées, lues dans le HTML servi par 9 gardes, et
+> ne déclarent NI image, NI tarif, NI auteur : rien que la page ne montre.
+> Le correctif ouvrait au passage une sortie de balise depuis un titre de
+> CMS ; elle est fermée avant d'avoir servi. § 0.
 
 ## 0. Ce qui a été corrigé
 
@@ -115,6 +122,87 @@ robot qui n'exécute pas JavaScript — et ne déclare **que** ce que le dépôt
 possède : un nom, une URL, une description traduite, un logo. Un test tient la
 liste des clés fermée, parce qu'une adresse postale inventée serait une donnée
 fausse servie aux moteurs, pire que son absence.
+
+### F-03 (suite, 24/09) — les fiches de PAGE, et la porte qu'elles ouvraient
+
+Le rapport se contredisait sur ce point, et c'est la première chose que ce lot
+a corrigée. Le « Correctif » de F-03 (§ 3) annonçait « un bloc JSON-LD
+`Organization` global **+ `Article`/`Event` sur les pages de détail** », quand
+la ligne P1 n° 4 du plan d'action disait, elle, « JSON-LD `Article`/`Event` par
+page : **reste à faire** ». C'est la seconde qui était vraie : sur les 48
+pages, le seul bloc servi était `Organization`, et il répondait « qui publie »
+sans jamais décrire **ce qui** est publié.
+
+**Ce qui est posé.** `eventJsonLd` et `articleJsonLd` dans `src/lib/seo.ts`,
+rendus dans le HTML servi par `evenements/[slug]` et `actualites/[slug]`. Les
+deux **référencent** l'organisation du layout (`@id`) au lieu de la recopier :
+deux copies d'une même entité finissent par diverger.
+
+**Ce qui est volontairement ABSENT, et pourquoi.** La règle est celle que la
+fiche `Organization` s'était déjà donnée — on ne déclare que ce que la page
+montre — appliquée cette fois à des champs que Google recommande :
+
+| Champ | Pourquoi il n'est pas déclaré |
+|---|---|
+| `image` (Event) | la page sert `/library/paris.jpg` pour TOUS les événements, Dakar compris, et sa **propre légende** dit « Image d'illustration » |
+| `offers` | les tarifs de la conférence sont fictifs (l'en-tête de `events-content.ts` le dit) et le bouton « réserver » mène à l'adhésion, pas à une billetterie |
+| `performer` | les intervenants relèvent du même jeu de données d'illustration |
+| `author` (Article) | le schéma Sanity du dépôt n'a **pas** de champ auteur ; l'éditeur responsable est déjà déclaré par `publisher` |
+| `image` (Article) | `postBySlugQuery` projette bien `coverUrl`, mais **la page ne rend pas cette image**. Une fiche décrit la page, pas la requête |
+
+**Un piège attrapé au passage.** La même page sert déjà un iCalendar
+(`agenda.ics`). Or les deux formats décrivent le même jour entier avec des
+conventions **opposées** : le `DTEND` d'un VEVENT désigne le **lendemain**
+(exclusif), là où `endDate` de schema.org désigne le **dernier jour**
+(inclusif). Reprendre la date de fin de l'ICS aurait annoncé aux moteurs un
+événement de deux jours. Un test tient les deux côtés à la fois — `DTEND` au
+15 novembre, `endDate` au 14 — pour qu'aligner l'un sur l'autre fasse rougir
+plutôt que dériver en silence.
+
+**Et une porte, qui est le vrai résultat de ce lot.** Un titre d'actualité est
+saisi dans le CMS : c'est du texte qu'on ne contrôle pas, et il partait droit
+dans un `<script>` via `JSON.stringify`. Un analyseur HTML ferme un `<script>`
+sur la première séquence `</script` qu'il rencontre, **sans regarder si elle
+est entre guillemets JSON** : un titre valant `Fin</script><img src=x
+onerror=…>` serait sorti du bloc et aurait rendu sa balise. C'est la famille de
+M-9 (§ 4ter) sur une autre surface — et cette fois elle aurait été ouverte
+**par le correctif lui-même**.
+
+`jsonLdScript()` échappe tous les `<` en `<`, un échappement JSON
+parfaitement légal que `JSON.parse` relit en `<` : le moteur reçoit la donnée
+intacte, l'analyseur HTML ne voit jamais de balise. La fonction est appliquée
+aux **trois** blocs, y compris celui du layout qui n'en avait pas besoin.
+Témoin permanent dans `tests/unit/seo.test.ts` : un test affirme que
+`JSON.stringify` **seul** laisse bien sortir la séquence, juste à côté de celui
+qui vérifie qu'elle ne sort plus. Retirer l'échappement fait rougir 4 tests.
+
+**Mesuré sur le HTML servi**, sans navigateur, par requête HTTP —
+`audit/specs/16-donnees-structurees.spec.ts`, **9 gardes, 0 échec** :
+
+| Vérifié | Résultat |
+|---|---|
+| fiche `Event` dans le HTML servi (donc sans JS) | ✅ conférence, webinaire, atelier |
+| `name` de la fiche = `<h1>` **affiché** | ✅ fr et en |
+| `startDate` = `endDate` = 2026-11-14, `DTEND` = 20261115 | ✅ les deux conventions côte à côte |
+| lieu selon le format réel | ✅ `Place` / `VirtualLocation` / les deux |
+| le renvoi `organizer` **se résout** sur la même page | ✅ `@id` identique |
+| ni `image`, ni `offers`, ni `performer` | ✅ |
+| CMS injoignable → **aucune** fiche `Article`, `noindex` maintenu | ✅ l'organisation, elle, reste |
+
+**Non-vacuité, deux fois.** Un témoin permanent dans la spec exige les deux
+réponses du même lecteur sur deux pages : l'organisation **oui** et l'événement
+**non** sur la page de liste — une fonction qui renverrait toujours `[]`
+passerait les gardes d'absence, une qui renverrait tout passerait celles de
+présence, aucune ne passe les deux. Et en pointant les gardes sur une page sans
+fiche, **6 des 9 rougissent**.
+
+**Ce qui n'est PAS mesuré ici, et c'est écrit** : la fiche `Article` n'a jamais
+été vue sur un article réel — Sanity n'a pas de projet configuré dans cet
+environnement (angle mort 6), la page rend son panneau dégradé. Ce qui est
+vérifié, c'est son **absence** là où elle serait fausse, plus le constructeur
+lui-même en test unitaire. Le jour où un CMS sera branché, la garde du rendu
+dégradé deviendra fausse et devra être reprise : c'est voulu, elle date l'état
+de la dépendance.
 
 ### F-04 — ce que chaque page déclare aux moteurs
 
@@ -640,6 +728,27 @@ passe (M-1) et l'arbitrage produit de M-6.
 pas technique** : la vérification manuelle des variables de production (angle
 mort 7) et l'arbitrage produit de F-06.
 
+### Suite (24 septembre)
+
+Deux choses, et la seconde est la plus utile.
+
+**La ligne P1 n° 4 est close.** Les fiches `Event` et `Article` sont posées et
+mesurées sur le HTML servi (§ 0). Ce lot a d'abord corrigé une **contradiction
+du rapport lui-même** : le « Correctif » de F-03 les annonçait faites, le plan
+d'action les disait à faire. Aucune des deux n'existait.
+
+**Le correctif ouvrait une porte, et c'est lui qui l'a fermée.** Poser du texte
+de CMS dans un `<script>` par `JSON.stringify` seul aurait suffi : un titre
+d'actualité contenant `</script` sort du bloc, l'analyseur HTML ne regarde pas
+les guillemets JSON. Rien n'exploitait cela avant — il n'y avait pas de fiche
+de page à servir. C'est donc un défaut qu'on allait **introduire**, attrapé en
+l'écrivant, avec son témoin permanent à côté.
+
+Ce que je retiens pour la méthode : ce lot n'a rien mesuré de nouveau sur le
+site, il a **relu le rapport** et trouvé deux affirmations en désaccord l'une
+avec l'autre. Une contradiction interne est un signal gratuit, et je ne l'avais
+pas cherché une seule fois en trois jours.
+
 **Ce que je corrigerais dans ma propre méthode**, puisque ce rapport sert aussi
 à ça : trois de mes erreurs ont été trouvées par la mesure et non par
 relecture — un test d'isolation qui n'isolait rien (F-05), un bilan lu sur la
@@ -717,6 +826,8 @@ d'avant, et non seulement passer sur le code d'après.
 | J16 | F-06 | `dynamicParams = false` posé sur les 3 routes fermées, 404 relue sans JS | ❌ **18 caractères avant comme après** — le remède supposé ne marche pas ; modification retirée |
 | J17 | contraste | axe sans exclusion, animations déroulées, 24 pages × 2 thèmes | ✅ 36 clair / 35 sombre ; défaut `data-universe` corrigé -> **21 en sombre** |
 | J18 | F-04 | `noindex` et `Disallow` ne se cumulent plus, garde ajoutée | ✅ 5 routes en `noindex`, aucune interdite au crawl — rougit si on les recombine |
+| J19 | F-03 (suite) | fiches `Event`/`Article` lues dans le HTML SERVI, par requête HTTP sans navigateur | ✅ 9 gardes ; 6 rougissent pointées sur une page sans fiche — non vacant |
+| J20 | sérialisation JSON-LD | un titre CMS portant `</script` passé aux trois blocs | ✅ la séquence ne sort plus ; le témoin montre que `JSON.stringify` seul la laissait sortir |
 
 ---
 
@@ -782,7 +893,13 @@ déjà structurés en base : `Organization`, `Article` (publications), `Event`
 
 **Correctif** : `openGraph` et `twitter` dans les `metadata` du layout
 `[locale]`, surchargés par page ; une image OG par défaut ; un bloc JSON-LD
-`Organization` global + `Article`/`Event` sur les pages de détail.
+`Organization` global.
+
+> **Correction (24/09).** Cette ligne disait aussi « + `Article`/`Event` sur
+> les pages de détail », ce qui était faux : seul `Organization` était posé,
+> et la ligne P1 n° 4 du plan d'action le disait correctement (« reste à
+> faire »). Les deux fiches de page existent depuis le 24/09 — voir
+> « F-03 (suite) » au § 0, qui donne aussi ce qu'elles ne déclarent PAS.
 
 ### F-05 · MOYENNE · Risque · 12,8 s avant contenu principal en 3G lente — **CORRIGÉ** (§ 0)
 
@@ -2050,6 +2167,10 @@ Ce que cet audit **n'a pas** couvert, et ce qu'il faudrait pour le couvrir.
    correctif F-10 est exercé à chaque campagne. Conséquence gênante : les deux
    autres branches de cette page (article présent, article absent) ne le sont
    par personne, et reposent sur un test unitaire à client simulé.
+   **Et depuis le 24/09, la fiche `Article` aussi** : elle n'a jamais été vue
+   sur un article réel. Ce qui est mesuré, c'est son ABSENCE sur le rendu
+   dégradé — là où elle serait fausse — plus son constructeur en test
+   unitaire.
 7. **La production.** Aucun accès, par construction et par consigne. La
    checklist de `docs/deploiement.md` § 1.1 (`AUTH_DEV_OTP` et
    `RECAPTCHA_DISABLED` absents de l'env de prod) **n'a pas été vérifiée** et
@@ -2105,6 +2226,11 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=mo
 PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
   pnpm exec playwright test --project=mobile-chromium
 
+# Fiches de page (F-03 suite) — serveur requis, aucune dépendance navigateur :
+# la spec lit le HTML servi par requête HTTP.
+pnpm exec playwright test --config audit/playwright.audit.config.ts \
+  --project=desktop audit/specs/16-donnees-structurees.spec.ts
+
 # Lots navigateur — serveur requis
 NEXT_PUBLIC_CONVEX_URL="https://audit-placeholder.convex.cloud" \
 NEXT_PUBLIC_SITE_URL="http://localhost:3000" pnpm start &
@@ -2127,7 +2253,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 
 | # | Action | Couvre | Effort |
 |---|---|---|---|
-| 4 | ~~`openGraph` + `twitter` + image OG ; JSON-LD `Organization`~~ — **fait**. JSON-LD `Article`/`Event` par page : reste à faire | F-03 ✅ | — |
+| 4 | ~~`openGraph` + `twitter` + image OG ; JSON-LD `Organization`~~ — **fait**. ~~JSON-LD `Article`/`Event` par page~~ — **fait le 24/09**, et l'échappement du texte CMS avec (§ 0) | F-03 ✅ | — |
 | 5 | ~~`spy.mockRestore()` ; `--sequence.shuffle` en CI~~ — **fait**, plus un second défaut d'isolation trouvé au passage | F-01 ✅ | — |
 | 6 | ~~`canonical` et `hreflang`~~ — **fait**. Deux des quatorze signalements étaient de faux positifs (`/recherche`, en `noindex`) | F-04 ✅ | — |
 | 7 | ~~Montées de version + `pnpm audit` en CI~~ — **fait** : 9 avis → 1. L'override `postcss@8` était indispensable, `pnpm up` seul n'aurait pas suffi | F-08 ✅ | — |
