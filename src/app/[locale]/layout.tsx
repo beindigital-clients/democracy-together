@@ -24,6 +24,10 @@ import {
   organizationJsonLd,
   jsonLdScript,
 } from '@/lib/seo';
+import {
+  BASE_CLIENT_NAMESPACES,
+  pickNamespaces,
+} from '@/i18n/client-namespaces';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
 import '../globals.css';
 
@@ -102,7 +106,11 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   setRequestLocale(locale);
-  const messages = await getMessages();
+  // Seuls les espaces que des composants CLIENT demandent franchissent la
+  // frontière RSC (F-05) : le reste est lu côté serveur par `getTranslations`
+  // et n'a rien à faire dans le HTML. Le back-office pose les siens dans son
+  // propre layout.
+  const messages = pickNamespaces(await getMessages(), BASE_CLIENT_NAMESPACES);
   // `NextIntlClientProvider` rendu directement depuis un composant serveur
   // hérite seul de la locale et du fuseau. Le passage par `IntlClientProvider`
   // — nécessaire pour lui poser `getMessageFallback` et `onError`, qui sont des
