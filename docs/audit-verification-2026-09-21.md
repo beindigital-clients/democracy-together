@@ -51,8 +51,8 @@ renvoie à une commande jouée et à son journal.
 > CMS ; elle est fermée avant d'avoir servi. § 0.
 >
 > **Le plan d'action n'a plus une seule ligne de code ouverte** (25/09). Les
-> huit lots de cet audit sont fusionnés dans `doums85/democracy-app-features`,
-> le dernier — **F-05** — en `58272c9`. Ce qui reste n'est pas du code : la
+> **dix** lots de cet audit sont fusionnés dans `doums85/democracy-app-features`,
+> le dernier — **F-15** — en `820b407`. Ce qui reste n'est pas du code : la
 > vérification des variables de production (P0 n° 2), deux choix
 > d'architecture, des valeurs de palette, et quatre angles morts qui demandent
 > des environnements que cet audit n'a pas. § 0, « Où le travail a atterri ».
@@ -874,6 +874,50 @@ verte). La suite E2E, elle, n'est déclenchée que par `pull_request` : elle n'a
 pas rejoué sur l'intégration, et c'est l'identité des arbres qui y transporte
 son verdict — pas une seconde exécution.
 
+### Relecture à la tête d'intégration (25 septembre, soir)
+
+**Ce qu'une table de traçabilité ne peut pas contenir.** Le tableau ci-dessus
+est exact pour l'intervalle qu'il nomme. Mais il a été écrit dans la PR #104 —
+et une table qui liste les fusions ne peut pas contenir la sienne, ni celles qui
+la suivent. À la tête `820b407` l'intervalle en compte **dix**, pas huit, et les
+deux manquantes sont précisément celle qui a introduit ce tableau et celle qui
+porte le constat le plus récent :
+
+| PR | Commit | Ce qu'elle portait |
+|---|---|---|
+| #104 | `40750bb` | ce tableau lui-même — le rapport cesse de décrire des correctifs sans dire où ils vivent |
+| #105 | `820b407` | **F-15** — la borne de temps sur les lectures Sanity |
+
+Rallonger la liste à chaque fusion la laisserait fausse entre deux. Ce qui reste
+vrai, c'est la **règle** : `git log --first-parent 8a5699b..HEAD` donne l'état
+courant, et `grep -v '(#[0-9]\+)$'` sur ses sujets doit rendre zéro — aucune poussée
+directe. Vérifié à `820b407` : dix fusions, zéro poussée directe.
+
+**Un piège qui se répète — cette fois sur le vérificateur.** Cette relecture a
+recoupé les affirmations du rapport contre le dépôt. Quatre ont d'abord paru
+fausses ; les quatre fois, c'était l'instrument de la relecture :
+
+| ce que le relevé naïf a dit | ce qu'il en est |
+|---|---|
+| `font-bold` : 1 occurrence dans `src/` | c'est le commentaire de `src/lib/fonts.ts` **qui affirme qu'il n'y en a aucune** |
+| 3 `overflow-x-auto` nus | deux commentaires, et la seule occurrence réelle porte `tabIndex={0}` deux lignes plus haut |
+| 43 routes publiques | un `find` sur `page.tsx` ratisse trop large ; la liste versionnée `audit/specs/_routes.ts` en compte **24** |
+| 23 dans cette liste | une expression régulière avait avalé l'entrée vide `''` |
+
+C'est la **deuxième fois** que ce rapport se fait prendre par un instrument
+naïf, après le retrait de balises qui comptait le `<title>` (§ 0, F-06). La
+première fois c'était l'auteur ; cette fois le vérificateur. La leçon n'est donc
+pas « mieux compter » : c'est que **le dépôt porte déjà des instruments
+versionnés, et qu'un relevé refait pour l'occasion doit leur céder le pas.**
+
+**Ce qui tient**, vérifié une à une : 57 routes hors studio ; 24 routes
+publiques × 2 langues ; 7 appels Sanity répartis sur 6 modules ; `timeout: 2500`
+et `maxRetries: 0` conformes au texte ; F-15 cohérent entre la bannière, le § 0,
+le § 2 (J25), le § 3 et le § 7 ; et le § 7 sans une seule entrée de code non
+barrée — seule la ligne P0 n° 2 reste ouverte, et ce n'est pas du code. L'arbre
+de `820b407` est `107037b4`, identique à celui de `24a1252` : les 9 check runs
+verts portent tels quels sur l'intégration.
+
 **Un piège pour le lecteur.** L'en-tête de ce rapport nomme la branche
 `claude/stoic-rubin-9thrja`. Elle est repartie de la tête d'intégration après
 chaque fusion : elle ne porte plus le travail d'audit, elle le suit. Les huit
@@ -1271,6 +1315,7 @@ d'avant, et non seulement passer sur le code d'après.
 | J23 | F-05 (suite) | poids transféré par route, catalogue de messages compté dans le HTML servi, LCP 3G médiane de quatre passes | ✅ −22 Ko par page ; `/fr` **2 532 → 2 448 ms**, sous le seuil de 2 500 ; 53 gardes vertes, vues rougir en retirant `nav` |
 | J24 | fusion de F-05 | arbre du commit d'intégration comparé à celui de la tête de PR testée ; CI relue sur la poussée d'intégration | ✅ `58272c9` et `87fe102` portent le **même arbre** `f00419fe` — le verdict des 9 check runs porte tel quel ; CI verte sur l'intégration (run 172) |
 | J25 | F-15 (Sanity) | hôte Sanity redirigé vers un puits qui accepte et ne répond jamais ; page servie chronométrée avant/après ; client sondé seul | ✅ `/fr` **13,9 → 2,5 s**, chemin sain inchangé à 0,03 s ; sans borne la requête n'est **jamais** revenue (>12 min) ; `timeout` seul mesuré à **21,4 s** — les réessais le multipliaient |
+| J26 | cohérence à la tête d'intégration | affirmations recoupables revérifiées contre le dépôt à `820b407` ; intervalle de fusions recompté ; arbres comparés | ✅ tout tient ; **4 faux positifs, tous imputables à l'instrument de relecture**, aucun au rapport ; le tableau des fusions s'arrête 2 commits avant la tête — corrigé par la règle plutôt que par la liste |
 
 ---
 
