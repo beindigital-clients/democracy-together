@@ -49,6 +49,13 @@ renvoie à une commande jouée et à son journal.
 > ne déclarent NI image, NI tarif, NI auteur : rien que la page ne montre.
 > Le correctif ouvrait au passage une sortie de balise depuis un titre de
 > CMS ; elle est fermée avant d'avoir servi. § 0.
+>
+> **Le plan d'action n'a plus une seule ligne de code ouverte** (25/09). Les
+> huit lots de cet audit sont fusionnés dans `doums85/democracy-app-features`,
+> le dernier — **F-05** — en `58272c9`. Ce qui reste n'est pas du code : la
+> vérification des variables de production (P0 n° 2), deux choix
+> d'architecture, des valeurs de palette, et quatre angles morts qui demandent
+> des environnements que cet audit n'a pas. § 0, « Où le travail a atterri ».
 
 ## 0. Ce qui a été corrigé
 
@@ -828,6 +835,52 @@ l'accueil est conservé, avec son coût connu : LCP mobile 2 000 ms contre
 
 La ligne P1 du plan d'action est **vide** : ses huit entrées sont fermées.
 
+### Où le travail a atterri — fusion du 25 septembre
+
+Le tableau ci-dessus est daté du 24 et dit ce qu'il restait à faire ; il reste
+tel quel. Voici ce qu'il devient une fois le dernier lot intégré.
+
+Ce rapport décrivait des correctifs sans jamais dire **où** ils vivent : un
+lecteur ne pouvait pas remonter d'une affirmation au commit qui la tient. Huit
+fusions, toutes dans `doums85/democracy-app-features` — et ce sont les **seuls**
+commits de l'intervalle `8a5699b..58272c9` : aucune poussée directe, la liste
+est donc exhaustive et non choisie.
+
+| PR | Commit | Ce qu'elle portait |
+|---|---|---|
+| #89 | `0f6f63e` | l'audit lui-même, puis F-01 à F-08, F-10 et F-13 |
+| #97 | `ca9b7d5` | F-12 — les trois routes sans spec E2E en ont une |
+| #98 | `5ca7563` | pentest M-1/M-2/M-3/M-5 rejoués, session E2E dédiée |
+| #99 | `2ca58ed` | pentest M-6 et M-9 rejoués |
+| #100 | `39a8589` | viewport mobile (F-14), les cinq arbitrages, les fiches de page |
+| #101 | `5a39c73` | le rapport cesse de présenter comme ouverts trois arbitrages rendus |
+| #102 | `6179b7e` | relecture de cohérence — cinq contradictions |
+| #103 | `58272c9` | **F-05** — le catalogue de traductions retiré des pages qui ne l'utilisent pas |
+
+**Ce que la fusion n'a pas changé — vérifié, pas supposé.** L'arbre de
+`58272c9` est `f00419fe`, exactement celui de `87fe102`, la tête de PR sur
+laquelle les **9 check runs** étaient verts. Une égalité de hachage est un
+constat plus fort qu'un rejeu : un rejeu peut diverger, deux arbres égaux non.
+La CI a par ailleurs tourné d'elle-même sur la poussée d'intégration (run 172,
+verte). La suite E2E, elle, n'est déclenchée que par `pull_request` : elle n'a
+pas rejoué sur l'intégration, et c'est l'identité des arbres qui y transporte
+son verdict — pas une seconde exécution.
+
+**Un piège pour le lecteur.** L'en-tête de ce rapport nomme la branche
+`claude/stoic-rubin-9thrja`. Elle est repartie de la tête d'intégration après
+chaque fusion : elle ne porte plus le travail d'audit, elle le suit. Les huit
+commits ci-dessus sont la seule référence stable.
+
+**Ce qui reste au 25 septembre — plus rien qui soit du code.**
+
+| | Quoi | Qui |
+|---|---|---|
+| P0 | variables de production (`AUTH_DEV_OTP`, `RECAPTCHA_DISABLED`) — angle mort 7 | quelqu'un ayant les accès ; **une commande** |
+| — | **M-5** (où vit la liste des événements) et **M-1** (mots de passe provisionnés en E2E) | choix d'architecture |
+| — | valeurs de palette (angle mort 5) | l'agence — des VALEURS, pas du code |
+| — | angles morts 1, 3, 4, 6 | un déploiement Convex peuplé, Firefox/WebKit, un projet Sanity |
+| — | **F-14** et **F-06** | ouverts par DÉCISION et par limite du cadriciel — pas par oubli |
+
 ### Vérifications passées avant de pousser (21–23 septembre)
 
 `typecheck`, `typecheck:convex`, `typecheck:tests`, `lint`, `format:check`,
@@ -1149,6 +1202,7 @@ d'avant, et non seulement passer sur le code d'après.
 | J21 | recette du § 6 | erreurs de PAGE capturées dans le navigateur, build refait avec les variables | ❌→✅ `#__next_error__` sur 24 pages → **176 passées, 0 échec, code 0** ; contraste retrouvé à l'identique (36/21) |
 | J22 | cohérence interne | rapport relu **contre lui-même** : chiffres recoupés, dénominateurs, renvois, dates ; puis remesure de ce qui divergeait | ❌→✅ **5 contradictions**, dont aucune n'avait demandé d'instrument. « 18 caractères » = le `<title>` ; « 14 routes » = **18 sur 18** mesurées. Le reste des affirmations recoupables tient |
 | J23 | F-05 (suite) | poids transféré par route, catalogue de messages compté dans le HTML servi, LCP 3G médiane de quatre passes | ✅ −22 Ko par page ; `/fr` **2 532 → 2 448 ms**, sous le seuil de 2 500 ; 53 gardes vertes, vues rougir en retirant `nav` |
+| J24 | fusion de F-05 | arbre du commit d'intégration comparé à celui de la tête de PR testée ; CI relue sur la poussée d'intégration | ✅ `58272c9` et `87fe102` portent le **même arbre** `f00419fe` — le verdict des 9 check runs porte tel quel ; CI verte sur l'intégration (run 172) |
 
 ---
 
@@ -2605,6 +2659,12 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
 | 13 | ~~Aligner le Chromium de l'environnement sur le Playwright épinglé~~ — **fait** autrement : `PLAYWRIGHT_CHROMIUM_PATH` dans `playwright.config.ts`. Suite jouée sur Pixel 7, panneau mobile scanné et gardé | angle mort 2 ✅ | — |
 | 14 | ~~Accueil : renoncer au fondu d'entrée du premier écran, ou l'assumer~~ — **tranché le 24/09 : assumé**. L'animation est conservée, son coût est connu (LCP mobile 2 000 ms contre 312 ms en desktop). Le constat reste ouvert PAR DÉCISION | F-14 | — |
+
+**État du plan au 25 septembre.** Les trois niveaux n'ont plus une seule entrée
+de code ouverte : P1 est vide depuis le 24, P2 depuis la fusion de F-05
+(`58272c9`), et il ne subsiste en P0 que la ligne n° 2 — une vérification
+manuelle, pas du code. Où chaque lot a atterri : § 0, « Où le travail a
+atterri ».
 
 ---
 
