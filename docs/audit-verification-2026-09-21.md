@@ -55,7 +55,20 @@ renvoie à une commande jouée et à son journal.
 ### F-02 — plus aucune page ne rend 500 quand Convex est injoignable
 
 **Vérification** : serveur lancé avec un `NEXT_PUBLIC_CONVEX_URL` inatteignable,
-**14 routes sur 14** (fr et en) répondent **200** avec du contenu réel.
+**18 routes sur 18** — les neuf motifs ci-dessous × deux langues — répondent
+**200** avec du contenu réel.
+
+> **Correction (25/09), à la relecture de cohérence.** Cette ligne annonçait
+> « 14 routes sur 14 », un chiffre qui ne se raccordait à rien dans ce rapport :
+> le titre du § 3 dit **neuf** routes, le tableau de preuves (H3) en a sondé
+> **49** pour en trouver cinq en 500, et 14 n'est ni 9, ni 9 × 2. Le
+> dénominateur n'était écrit nulle part, donc le chiffre était invérifiable.
+> Remesuré sur le même dispositif : les neuf motifs, dans les deux langues,
+> **18 sur 18 en 200**. Une précision que la mesure a imposée et qui manquait :
+> `/thematiques/[slug]` doit être sondée avec un slug **valide**. Un slug
+> inconnu y rend un 404 — légitime, la liste des thématiques étant servie par
+> le dépôt et non par Convex — et le compter comme un échec de dégradation
+> serait une erreur de lecture.
 
 L'audit en nommait cinq. Il en manquait quatre, et c'est ma mesure qui était en
 défaut : je n'avais sondé que les routes STATIQUES, et `/recherche` sans `?q=`
@@ -251,6 +264,45 @@ les trois écritures qui parlent des mêmes adresses — le sitemap, `robots.txt
 et les `generateMetadata`. Vérifié en le rejouant sans le correctif : il rougit
 bien sur `contact`.
 
+### F-04 (suite, 24/09) — l'interdiction d'exploration retirée
+
+La section ci-dessus signalait une tension **sans la corriger** : « le `noindex`
+posé sur les trois pages d'authentification est une seconde ceinture, pas un
+remplacement. Un moteur qui respecte le `Disallow` de `robots.txt` ne vient pas
+lire ce `noindex`. » Le client a tranché le 24/09 : retirer l'interdiction
+d'exploration, garder la consigne de non-indexation.
+
+**Ce qui change.** `connexion`, `connexion-otp` et `mot-de-passe-oublie` sortent
+de la liste `PRIVATE` de `src/app/robots.ts`. Elles gardent leur `noindex`, qui
+est la mesure réellement efficace : un moteur autorisé à venir lit la consigne
+et n'indexe pas. Les commentaires des trois `layout.tsx` sont corrigés en
+conséquence — le `noindex` n'est plus une seconde ceinture, il est la seule.
+
+**Vérifié sur le serveur** (25/09, à la relecture de cohérence) :
+
+```
+robots.txt  ->  Disallow: /studio, /api/, {fr,en}/admin,
+                {fr,en}/espace-membre, {fr,en}/espaces, {fr,en}/inscription
+/fr/connexion            <meta name="robots" content="noindex, follow">
+/fr/connexion-otp        <meta name="robots" content="noindex, follow">
+/fr/mot-de-passe-oublie  <meta name="robots" content="noindex, follow">
+```
+
+Plus aucune route en `noindex` n'est interdite au crawl ; les zones réellement
+privées le restent.
+
+**Le garde qui manquait.** `tests/unit/seo-coherence.test.ts` rapprochait déjà
+le sitemap, `robots.txt` et les `generateMetadata` ; il lui manquait
+l'assertion qui aurait vu la tension d'origine — **une route en `noindex` ne
+doit pas être interdite au crawl**. Elle porte sur 5 routes, et a été vue
+rougir en remettant `connexion` dans `PRIVATE`.
+
+> **Pourquoi ce bloc n'existait pas avant le 25/09.** La correction a été
+> livrée le 24 et poussée ; sa seule trace dans ce rapport était la ligne J18
+> du tableau de preuves. La section « Ce qui a été corrigé » ne la mentionnait
+> nulle part, et le paragraphe ci-dessus continuait d'annoncer la tension
+> comme non traitée. Un lecteur du § 0 pouvait donc la croire ouverte.
+
 ### F-05 — LCP 12,8 s → 2,4 s en 3G lente
 
 | Page | Avant | Après |
@@ -387,6 +439,31 @@ inconnu cesse de matcher — ~~et la 404 redevient rendue dans le HTML~~.
 > niveau du middleware vers une vraie route « introuvable » localisée, qui
 > rendrait une page normale avec le statut 404. Elle demande un vrai
 > développement, et une mesure avant toute promesse.
+
+> **Les chiffres de ce bloc étaient faux — relevé du 25/09.** Pas la
+> conclusion : les deux valeurs. « 18 caractères lisibles sans JavaScript »,
+> ce sont **les 18 caractères du `<title>`** — `Democracy Together` — qu'un
+> retrait naïf de balises laisse passer et qu'aucun visiteur ne lit. Le
+> nombre de caractères **visibles** est **zéro**, et l'instrument permanent du
+> dépôt le dit depuis le 21/09 : `audit/specs/36-404.spec.ts` imprime
+> « 404 localisée, HTML servi : 0 caractères », avec un filtre de scripts qui
+> est lui-même testé sur cinq pièges. Rejoué le 25/09 : **0**.
+>
+> De même pour « 194 pour une adresse sans route ». Le même instrument mesure
+> **161** — le chiffre que **cette même section** annonce quarante lignes plus
+> haut, ce qui rendait la contradiction lisible à l'œil nu ; le retrait naïf,
+> lui, en compte **187**, titre inclus. Trois chiffres pour une
+> page, parce que trois instruments — dont un qui n'a jamais été versé au
+> dépôt.
+>
+> **Ce que la conclusion doit à ces chiffres : rien.** Elle repose sur
+> l'ÉGALITÉ avant/après, pas sur la valeur, et l'égalité tient — avec le bon
+> instrument elle est même plus nette, 0 contre 0. Mais le chiffre publié
+> se trompait **dans le sens qui arrange** : 18 laisse croire qu'il reste
+> quelque chose à lire, là où il n'y a rien. La leçon est celle que ce
+> rapport tire déjà ailleurs, à une nuance près qui coûte cher : l'instrument
+> existait, il était bon, il était versé au dépôt — et j'en ai fabriqué un
+> autre pour la même mesure sans comparer les deux.
 
 Le reste du paragraphe décrit ce qu'on aurait payé, si le gain avait existé : Prix à
 payer : ces trois routes servent alors la 404 racine, sans l'en-tête ni le pied
@@ -627,9 +704,10 @@ et voici ce qu'elles deviennent.
 
 **F-06 — l'arbitrage a été rendu, et il ne peut pas être suivi.** Le client a
 demandé de corriger les trois rubriques. Le remède que ce rapport annonçait
-(`dynamicParams = false`) a été **réfuté par la mesure** : 18 caractères sans
-JavaScript avant comme après (§ 3). La modification a été retirée plutôt que
-livrée. Ce n'est donc plus un arbitrage en attente : c'est une limite du
+(`dynamicParams = false`) a été **réfuté par la mesure** : le texte visible
+sans JavaScript est **identique avant comme après** — zéro caractère (§ 3 ; le
+« 18 » publié ce jour-là comptait le `<title>`, relevé du 25/09). La
+modification a été retirée plutôt que livrée. Ce n'est donc plus un arbitrage en attente : c'est une limite du
 cadriciel, écrite comme telle. Une piste au niveau du middleware est **nommée,
 pas promise**.
 
@@ -655,7 +733,7 @@ l'accueil est conservé, avec son coût connu : LCP mobile 2 000 ms contre
 
 La ligne P1 du plan d'action est **vide** : ses huit entrées sont fermées.
 
-### Vérifications passées avant de pousser
+### Vérifications passées avant de pousser (21–23 septembre)
 
 `typecheck`, `typecheck:convex`, `typecheck:tests`, `lint`, `format:check`,
 `build` : verts. `pnpm install --frozen-lockfile` vérifié aussi, puisque c'est
@@ -664,9 +742,16 @@ ainsi que la CI installe.
 **787 tests unitaires** (95 fichiers), verts en ordre de déclaration **et** sur
 ordres mélangés — 30 graines consécutives lors de F-01, 9 de plus depuis.
 
-**Suite d'audit : 314 passées, 0 échec, code de sortie 0.** Elle était à
-270/44 au moment où j'ai cru la lire verte (voir plus bas) ; elle est
-désormais entièrement verte, pour la première fois.
+**Suite d'audit : 314 passées, 0 échec, code de sortie 0** — les **deux**
+projets, `desktop` et `mobile`. Elle était à 270/44 au moment où j'ai cru la
+lire verte (voir plus bas) ; elle est désormais entièrement verte, pour la
+première fois.
+
+> **Portée des totaux, précisée le 25/09.** Trois chiffres de campagne
+> circulent dans ce rapport et ne comptent pas la même chose : **314** puis
+> **333** pour les deux projets (§ 4quater), **176** pour le seul projet
+> `desktop` (§ 1, 24/09). Aucun n'est une régression de l'autre ; ils ne
+> portaient simplement pas la même portée, et elle n'était pas écrite.
 
 **Une erreur de lecture, deux fois.** J'ai lu un bilan Playwright avec un
 `tail` trop court et annoncé « 272 passed » : le vrai chiffre était
@@ -815,6 +900,78 @@ chiffres publiés ne sont pas ceux d'une seule exécution heureuse.
 Le § 6 est corrigé en conséquence : les variables sont **exportées avant le
 build**, et le pourquoi est écrit dans la recette elle-même.
 
+### Suite (25 septembre) — relecture de cohérence
+
+Trois contradictions internes trouvées en deux jours, toutes **sans
+instrument**, ont justifié une passe complète : relire ce rapport CONTRE
+LUI-MÊME plutôt que d'attendre de tomber sur la quatrième. Méthode : relevé
+mécanique de tout ce qui se recoupe — chiffres répétés, statuts par constat,
+renvois de section, dates — puis lecture linéaire, puis vérification contre le
+dépôt et contre un serveur de ce qui pouvait l'être.
+
+**1. Les chiffres de la réfutation de F-06 comptaient le `<title>`.** Le bloc du
+24/09 annonçait « 18 caractères lisibles sans JavaScript ». Ces 18 caractères
+sont `Democracy Together` — le titre de la page, qu'un retrait naïf de balises
+laisse passer et qu'aucun visiteur ne lit. Le nombre de caractères **visibles**
+est **zéro**, et l'instrument permanent du dépôt le dit depuis le 21/09
+(`audit/specs/36-404.spec.ts`, ajouté avec le correctif de la 404 racine). Même
+chose pour « 194 pour une adresse sans route » : l'instrument mesure **161**,
+chiffre que la même section du § 0 annonçait quarante lignes plus haut. La
+conclusion, elle, ne devait rien à ces valeurs — elle repose sur l'égalité
+avant/après — mais le chiffre publié se trompait dans le sens qui arrange.
+
+**2. « 14 routes sur 14 » ne se raccordait à rien.** Ni aux neuf routes du titre
+de F-02 au § 3, ni aux 49 sondées au § 2. Remesuré : **18 sur 18**, neuf motifs
+× deux langues, et le dénominateur est désormais écrit.
+
+**3. Une correction livrée n'était décrite nulle part.** Le retrait de
+l'interdiction d'exploration sur les trois tunnels d'authentification
+(décision client du 24/09) n'avait pour trace que la ligne J18 du tableau de
+preuves ; la section « Ce qui a été corrigé » n'en disait rien, et le
+paragraphe d'origine de F-04 continuait d'annoncer la tension comme non
+traitée. Le bloc manquant est écrit, et la vérification refaite sur le serveur.
+
+**4. L'avertissement et la recette se contredisaient.** Le § 0 portait déjà une
+note d'outillage exacte — « `NEXT_PUBLIC_*` est figé à la compilation ; un
+rebuild fait sans ces variables sert des 500 » — et concluait que « les builds
+de vérification reprennent les valeurs du § 6 ». Or le § 6 ne les posait que
+sur `pnpm start`. L'avertissement était juste, la recette le démentait, et
+c'est la recette qui a été suivie : une campagne entière de fausses mesures le
+24. **Une note qui renvoie à une recette qui la contredit est pire qu'une note
+absente — elle rassure.**
+
+**5. Deux marqueurs pour un même symbole.** Le § 4 définit 🟡 (« un test du
+dépôt couvre le point, mais je n'ai pas rejoué l'attaque ») ; le § 7 l'employait
+pour F-06 au sens de « à moitié ». Remplacé par des mots.
+
+**Ce que la passe n'a PAS trouvé, et qui compte autant.** Les affirmations
+recoupables du rapport tiennent. Vérifié : aucun `overflow-x-auto` nu dans
+`src/` (F-07) ; `font-bold` absent de `src/` (F-05) ; **57 routes** hors studio,
+donc « 57 sur 57 » de F-12 est exact, comme « 54 citées + 3 » ; 24 routes
+publiques × 2 langues = les 48 pages de F-03 ; 54 + 19 = 73 fonctions Convex
+(C7) ; 12 pages sans canonical et 14 sans hreflang (§ 8) ; les 161 caractères
+de la 404 racine ; et les chiffres de contraste, retrouvés à l'identique par
+une seconde campagne.
+
+Deux endroits se contredisent **et se corrigent eux-mêmes quelques lignes plus
+bas** — le cadrage de F-13 (« toujours un panneau qui s'ouvre », réfuté par sa
+propre mise à jour) et son décompte de campagnes. Ils sont laissés tels quels :
+c'est la règle du rapport, et le lecteur a la correction sous les yeux.
+
+**Mesures refaites ce jour** : **836 tests unitaires** (97 fichiers) ; campagne
+complète, les **deux** projets — **353 passées, 11 sautées, 0 échec, code 0**.
+À ne pas comparer telle quelle aux 333 du 23/09 : deux specs se sont ajoutées
+depuis (`16-donnees-structurees`, `51-contraste`). Les deux 404 ont été relues
+par l'instrument versionné, `robots.txt` et les trois `noindex` sur le serveur.
+
+**Le motif, puisque c'est le quatrième jour qu'il se répète.** Aucune de ces
+cinq trouvailles n'a demandé une mesure de terrain : toutes étaient lisibles
+dans le rapport, en confrontant deux passages. Ce qui les rendait invisibles
+n'est pas leur subtilité, c'est la distance — un chiffre au § 0 et son
+contradicteur au § 3, une note au § 0 et sa recette au § 6. **Relire un
+document long contre lui-même est une mesure**, et c'est la moins chère de
+toutes celles de cet audit.
+
 **Ce que je corrigerais dans ma propre méthode**, puisque ce rapport sert aussi
 à ça : trois de mes erreurs ont été trouvées par la mesure et non par
 relecture — un test d'isolation qui n'isolait rien (F-05), un bilan lu sur la
@@ -881,7 +1038,7 @@ d'avant, et non seulement passer sur le code d'après.
 | J5 | F-10 | statut + texte sans JS + balise `robots` | ✅ 200 / 695 car. / `noindex, follow` — non vacant |
 | J6 | F-13 | helpers exercés sur page **synthétique** perdant son 1er clic | ✅ 3 propriétés, dont l'échec quand l'effet ne vient jamais |
 | J7 | portail | le dialogue n'est plus sous le conteneur appelant | ✅ + régression de focus attrapée par les tests en place |
-| J8 | suite d'audit | campagne complète, **code de sortie lu** | ✅ 314 passées, 0 échec, code 0 |
+| J8 | suite d'audit | campagne complète (**deux** projets), **code de sortie lu** | ✅ 314 passées, 0 échec, code 0 |
 | J9 | suite unitaire | ordre de déclaration + 3 ordres mélangés | ✅ 787 tests, 95 fichiers |
 | J10 | M-6 | file de modération relue par la **vraie** query, PoC avant/après | ✅ 1 échec → 3/3 ; gardes permanentes rouges sur le code d'avant |
 | J11 | M-9 | 9 variantes de schéma à travers le **vrai** `<PortableText>`, filtre désactivé puis restauré | ✅ 2/6 rouges sans le filtre, 6/6 avec — non vacant |
@@ -889,12 +1046,13 @@ d'avant, et non seulement passer sur le code d'après.
 | J13 | menu mobile | scan axe du panneau OUVERT, `<button>` sans nom injecté | ✅ 0 violation grave ; rougit sur `button-name [critical]` — non vacant |
 | J14 | WCAG 2.5.8 | exception d'espacement calculée, témoin injecté (2 cibles de 16 px à 10 px) | ✅ 0 non-conformité sur 24 pages ; le témoin est bien détecté |
 | J15 | F-14 | `opacity:0` comptés dans le HTML servi de 3 routes | ❌ `/fr` : 7 — `test.fail()` posé, arbitrage produit (§ 3) |
-| J16 | F-06 | `dynamicParams = false` posé sur les 3 routes fermées, 404 relue sans JS | ❌ **18 caractères avant comme après** — le remède supposé ne marche pas ; modification retirée |
+| J16 | F-06 | `dynamicParams = false` posé sur les 3 routes fermées, 404 relue sans JS | ❌ **identique avant comme après** — le remède supposé ne marche pas ; modification retirée. *(Le « 18 caractères » publié ici le 24/09 comptait le `<title>` : l'instrument du dépôt mesure **0**. § 3.)* |
 | J17 | contraste | axe sans exclusion, animations déroulées, 24 pages × 2 thèmes | ✅ 36 clair / 35 sombre ; défaut `data-universe` corrigé -> **21 en sombre** |
 | J18 | F-04 | `noindex` et `Disallow` ne se cumulent plus, garde ajoutée | ✅ 5 routes en `noindex`, aucune interdite au crawl — rougit si on les recombine |
 | J19 | F-03 (suite) | fiches `Event`/`Article` lues dans le HTML SERVI, par requête HTTP sans navigateur | ✅ 9 gardes ; 6 rougissent pointées sur une page sans fiche — non vacant |
 | J20 | sérialisation JSON-LD | un titre CMS portant `</script` passé aux trois blocs | ✅ la séquence ne sort plus ; le témoin montre que `JSON.stringify` seul la laissait sortir |
 | J21 | recette du § 6 | erreurs de PAGE capturées dans le navigateur, build refait avec les variables | ❌→✅ `#__next_error__` sur 24 pages → **176 passées, 0 échec, code 0** ; contraste retrouvé à l'identique (36/21) |
+| J22 | cohérence interne | rapport relu **contre lui-même** : chiffres recoupés, dénominateurs, renvois, dates ; puis remesure de ce qui divergeait | ❌→✅ **5 contradictions**, dont aucune n'avait demandé d'instrument. « 18 caractères » = le `<title>` ; « 14 routes » = **18 sur 18** mesurées. Le reste des affirmations recoupables tient |
 
 ---
 
@@ -1723,7 +1881,7 @@ page du constat ne garde que cette page.** F-05 a été vérifié sur
 `/fr/barometre` et déclaré clos ; l'accueil, plus visité, portait le même
 défaut sans que rien ne le dise.
 
-### F-11 · INFO · Un `test.skip` conditionnel, pilote par la donnée
+### F-11 · INFO · Un `test.skip` conditionnel, piloté par la donnée
 
 `tests/e2e/admin-recherche.spec.ts:256` :
 `test.skip(!word, 'aucun mot assez long dans le premier titre')`.
@@ -2346,7 +2504,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | # | Action | Couvre | Effort |
 |---|---|---|---|
 | 9 | Alléger les chunks (`d3-geo`/`topojson`/`world-atlas` en différé) ; prérendre les pages éditoriales | F-05 | 1 j |
-| 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; ~~arbitrage `dynamicParams` à trancher~~ — **tranché le 24/09 : le remède annoncé est réfuté par la mesure**, modification retirée (§ 0, § 3) | F-06 🟡 | — |
+| 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; ~~arbitrage `dynamicParams` à trancher~~ — **tranché le 24/09 : le remède annoncé est réfuté par la mesure**, modification retirée (§ 0, § 3) | F-06 — moitié atteignable | — |
 | 11 | ~~Souligner le lien d'adhésion~~ — **fait**, plus les zones défilantes inatteignables au clavier (2 pages publiques + 3 tableaux d'administration) | F-07 ✅ | — |
 | 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
 | 13 | ~~Aligner le Chromium de l'environnement sur le Playwright épinglé~~ — **fait** autrement : `PLAYWRIGHT_CHROMIUM_PATH` dans `playwright.config.ts`. Suite jouée sur Pixel 7, panneau mobile scanné et gardé | angle mort 2 ✅ | — |
