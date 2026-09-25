@@ -56,6 +56,14 @@ renvoie à une commande jouée et à son journal.
 > vérification des variables de production (P0 n° 2), deux choix
 > d'architecture, des valeurs de palette, et quatre angles morts qui demandent
 > des environnements que cet audit n'a pas. § 0, « Où le travail a atterri ».
+>
+> **F-15 (25/09) : une lecture Sanity qui ne revient jamais ne tient plus la
+> page.** Les sept appels publics repliaient déjà sur du contenu local — mais
+> un `catch` n'attend pas moins que la fin de la requête. Mesuré, `/fr` mettait
+> **13,9 s** quand l'hôte Sanity accepte la connexion sans jamais répondre ;
+> **2,5 s** désormais, et le chemin sain reste à 0,03 s. Trouvé en instruisant
+> une piste qui, elle, **n'est pas confirmée** : l'aléa de CI qui a lancé
+> l'enquête reste inexpliqué. § 0, § 3.
 
 ## 0. Ce qui a été corrigé
 
@@ -881,6 +889,65 @@ commits ci-dessus sont la seule référence stable.
 | — | angles morts 1, 3, 4, 6 | un déploiement Convex peuplé, Firefox/WebKit, un projet Sanity |
 | — | **F-14** et **F-06** | ouverts par DÉCISION et par limite du cadriciel — pas par oubli |
 
+### F-15 — une lecture Sanity qui ne revient jamais tenait la page (25/09)
+
+Ce constat est arrivé **après** le tableau ci-dessus, qui annonçait qu'il ne
+restait plus rien de code. C'était vrai du plan ; ça ne l'était pas du produit.
+
+**D'où il vient, et ce qu'il ne prouve pas.** La CI de la PR #104 a rougi une
+fois sur deux gardes de F-13 — `/fr` n'atteignait pas `load` en 45 s — pendant
+que le journal serveur s'emplissait de 404 Sanity. La piste a été écrite comme
+**non établie**, et elle le reste : en CI, Sanity **répond** (404, avec en-têtes
+de cache), donc le chemin décrit ci-dessous n'y était pas emprunté. **L'aléa de
+CI demeure inexpliqué.** L'enquête, elle, a trouvé autre chose.
+
+**Ce qu'un repli ne peut pas couvrir.** Les sept appels publics à Sanity — répartis sur six modules —
+replient tous sur du contenu local quand la lecture ÉCHOUE — c'est le travail de
+F-02 et de `fetchOrFallback`, et il est complet. Mais un `catch` ne s'exécute
+qu'une fois la requête **terminée**. Tant qu'elle ne l'est pas, le rendu serveur
+attend.
+
+Mesuré sur le serveur de production, hôte Sanity redirigé vers un puits qui
+accepte la connexion et ne répond jamais :
+
+| état de Sanity | HTML servi de `/fr` |
+|---|---|
+| joignable | 0,03 s |
+| refuse la connexion | 3,4 s |
+| **accepte puis se tait** | **13,9 s** |
+
+La page rend bien **200**, avec son contenu local — au bout de 13,9 s. Et **rien
+n'est journalisé** : le `catch` de `src/lib/home.ts` est muet. Une panne du CMS
+se lirait donc « le site est lent », sans une ligne pour la nommer.
+
+Sondé au niveau du client seul, **sans borne la requête n'est jamais revenue** :
+sonde arrêtée après douze minutes.
+
+**Le piège du correctif — et il a failli m'avoir.** Poser `timeout` ne borne
+rien, parce que le client **rejoue** la requête et que le délai se paie une fois
+par tentative. Mesuré, `timeout: 3000` sans couper les réessais rejette après
+**21,4 s**, sept fois la valeur demandée. Livré tel quel, le correctif aurait
+annoncé 3 s et servi 21.
+
+**Ce qui est posé** : `timeout: 2500` **et** `maxRetries: 0` sur le client
+public. La borne vaut une cinquantaine de fois la latence nominale du CDN Sanity
+— elle ne peut pas se déclencher sur une lecture saine. Le Studio n'est pas
+touché : il monte `sanity.config`, pas ce client.
+
+| | avant | après |
+|---|---|---|
+| `/fr`, Sanity muet | 13,9 s | **2,5 s** |
+| `/fr`, Sanity sain | 0,03 s | **0,03 s** |
+
+**Non-vacuité** : réessais rétablis, la garde comportementale mesure **18,5 s**
+et rougit ; borne retirée, les trois gardes rougissent et la comportementale ne
+revient jamais dans ses 30 s.
+
+**Ce qui n'est PAS corrigé, et pourquoi.** Le silence des `catch` de `home.ts`
+et `about.ts` reste : les rendre bavards ferait une ligne de journal **par
+requête** pendant toute la panne, c'est-à-dire un journal inutilisable au moment
+précis où on le lirait. Le signaler ici vaut mieux que le bruit.
+
 ### Vérifications passées avant de pousser (21–23 septembre)
 
 `typecheck`, `typecheck:convex`, `typecheck:tests`, `lint`, `format:check`,
@@ -1203,6 +1270,7 @@ d'avant, et non seulement passer sur le code d'après.
 | J22 | cohérence interne | rapport relu **contre lui-même** : chiffres recoupés, dénominateurs, renvois, dates ; puis remesure de ce qui divergeait | ❌→✅ **5 contradictions**, dont aucune n'avait demandé d'instrument. « 18 caractères » = le `<title>` ; « 14 routes » = **18 sur 18** mesurées. Le reste des affirmations recoupables tient |
 | J23 | F-05 (suite) | poids transféré par route, catalogue de messages compté dans le HTML servi, LCP 3G médiane de quatre passes | ✅ −22 Ko par page ; `/fr` **2 532 → 2 448 ms**, sous le seuil de 2 500 ; 53 gardes vertes, vues rougir en retirant `nav` |
 | J24 | fusion de F-05 | arbre du commit d'intégration comparé à celui de la tête de PR testée ; CI relue sur la poussée d'intégration | ✅ `58272c9` et `87fe102` portent le **même arbre** `f00419fe` — le verdict des 9 check runs porte tel quel ; CI verte sur l'intégration (run 172) |
+| J25 | F-15 (Sanity) | hôte Sanity redirigé vers un puits qui accepte et ne répond jamais ; page servie chronométrée avant/après ; client sondé seul | ✅ `/fr` **13,9 → 2,5 s**, chemin sain inchangé à 0,03 s ; sans borne la requête n'est **jamais** revenue (>12 min) ; `timeout` seul mesuré à **21,4 s** — les réessais le multipliaient |
 
 ---
 
@@ -2031,6 +2099,36 @@ page du constat ne garde que cette page.** F-05 a été vérifié sur
 `/fr/barometre` et déclaré clos ; l'accueil, plus visité, portait le même
 défaut sans que rien ne le dise.
 
+### F-15 · MOYENNE · Défaut · Une lecture Sanity qui ne revient jamais tenait la page — **CORRIGÉ** (§ 0)
+
+**Constaté le 25/09**, en instruisant une piste qui, elle, n'est pas confirmée
+(voir § 0 : l'aléa de CI à l'origine de l'enquête reste inexpliqué).
+
+Le défaut ne se voit **ni dans le code ni à l'écran**. Le code montre six
+appelants qui replient proprement ; l'écran montre une page complète en 200.
+Seule la **durée** trahit la panne — et le journal reste vide, le `catch` de
+`src/lib/home.ts` étant muet.
+
+| état de Sanity | HTML servi de `/fr` | après correctif |
+|---|---|---|
+| joignable | 0,03 s | 0,03 s |
+| refuse la connexion | 3,4 s | 3,4 s |
+| **accepte puis se tait** | **13,9 s** | **2,5 s** |
+
+Sondé au niveau du client, sans borne, la requête **n'est jamais revenue**
+(arrêtée à douze minutes).
+
+**La leçon, qui vaut au-delà de Sanity** : un repli ne protège que du
+**résultat** d'une panne, jamais de sa **durée**. Tout appel réseau au rendu
+serveur a besoin des deux — et `timeout` seul n'est pas une borne tant que les
+réessais ne sont pas coupés : mesuré, `timeout: 3000` avec la politique de
+reprise par défaut rejette après **21,4 s**.
+
+Trois gardes dans `tests/unit/sanity-borne-lecture.test.ts` : deux sur la
+configuration exportée, une comportementale qui pointe **les options réelles de
+l'application** vers un puits muet — recopier la configuration à la main
+l'aurait laissée diverger en silence.
+
 ### F-11 · INFO · Un `test.skip` conditionnel, piloté par la donnée
 
 `tests/e2e/admin-recherche.spec.ts:256` :
@@ -2659,11 +2757,13 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 | 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
 | 13 | ~~Aligner le Chromium de l'environnement sur le Playwright épinglé~~ — **fait** autrement : `PLAYWRIGHT_CHROMIUM_PATH` dans `playwright.config.ts`. Suite jouée sur Pixel 7, panneau mobile scanné et gardé | angle mort 2 ✅ | — |
 | 14 | ~~Accueil : renoncer au fondu d'entrée du premier écran, ou l'assumer~~ — **tranché le 24/09 : assumé**. L'animation est conservée, son coût est connu (LCP mobile 2 000 ms contre 312 ms en desktop). Le constat reste ouvert PAR DÉCISION | F-14 | — |
+| 15 | ~~Borner les lectures Sanity~~ — **fait le 25/09** : le repli existait et marchait, mais rien ne bornait l'ATTENTE — `/fr` tenait 13,9 s quand l'hôte accepte sans répondre. `timeout` seul ne suffisait pas, les réessais le multipliaient par sept (§ 0) | F-15 ✅ | — |
 
 **État du plan au 25 septembre.** Les trois niveaux n'ont plus une seule entrée
-de code ouverte : P1 est vide depuis le 24, P2 depuis la fusion de F-05
-(`58272c9`), et il ne subsiste en P0 que la ligne n° 2 — une vérification
-manuelle, pas du code. Où chaque lot a atterri : § 0, « Où le travail a
+de code ouverte : P1 est vide depuis le 24 ; P2 l'a été à la fusion de F-05
+(`58272c9`), a repris une ligne le 25 avec **F-15** — trouvé après la rédaction
+de ce paragraphe — et la referme aussitôt ; il ne subsiste en P0 que la ligne
+n° 2, une vérification manuelle, pas du code. Où chaque lot a atterri : § 0, « Où le travail a
 atterri ».
 
 ---
