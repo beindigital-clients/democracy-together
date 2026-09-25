@@ -353,6 +353,101 @@ donnent 4 328 ms, le corps seul 2 376 ms, et re-précharger les titres 2 660 ms.
 m'étais fixé. Mon correctif ne l'améliore ni ne le dégrade — cette page était
 déjà bornée par ses octets et ses allers-retours, pas par le voile.
 
+### F-05 (suite, 25/09) — le poids était ailleurs que là où le plan le cherchait
+
+La ligne P2 n° 9 disait : « identifier le porteur des gros chunks (`d3-geo`,
+`topojson`, `world-atlas`, `sanity`) et le charger en différé ; prérendre les
+pages éditoriales ». Mesuré avant de toucher quoi que ce soit, **les deux
+moitiés étaient caduques** — et le vrai poids était ailleurs.
+
+**Le différé de la carte était déjà fait.** `src/components/map/region-globe-lazy.tsx`
+existe, avec son `ssr: false` et sa place réservée contre le décalage de mise
+en page. Les trois pages qui affichent le globe ne chargent plus `d3-geo` dans
+leur chemin critique.
+
+**Le chunk de 2,7 Mo n'atteint aucun visiteur.** C'est le Studio Sanity, et il
+ne part que sur `/studio` — route interdite au crawl, derrière
+authentification. Mesuré, par route, ce qui est réellement transféré :
+
+| Route | total | dont JS | chunks | plus gros chunk |
+|---|---|---|---|---|
+| `/fr` | 668 Ko | 316 Ko | 18 | 63 Ko |
+| `/fr/barometre` | 607 Ko | 309 Ko | 17 | 63 Ko |
+| `/fr/a-propos` | 555 Ko | 257 Ko | 16 | 63 Ko |
+| `/studio` | **2 038 Ko** | **1 943 Ko** | 48 | 855 Ko |
+
+Aucun chunk ne domine sur une page publique. Les « 11 Mo de chunks » du § 3
+décrivaient la **sortie de build**, pas ce qu'un visiteur télécharge : la
+phrase était juste, la conclusion qu'on en tirait ne l'était pas.
+
+**Ce qui pesait vraiment : le catalogue de traductions, en entier, sur chaque
+page.** Le layout passait `getMessages()` complet au fournisseur client.
+Mesuré sur `/fr/a-propos` : **39 valeurs longues sur 39** appartenant à des
+écrans que la page ne rend pas — rappels d'événement, back-office, tunnel
+d'adhésion — présentes dans le document servi. Sur 144 Ko de HTML, le
+catalogue en pesait **44**.
+
+Or un composant SERVEUR lit ses messages par `getTranslations`, qui n'envoie
+rien au navigateur. Seuls les composants `'use client'` ont besoin d'un
+catalogue de ce côté-là. `src/i18n/client-namespaces.ts` restreint donc le
+catalogue transmis à ce qu'ils demandent, et sort `admin` — 10 Ko, 22 % du
+catalogue, pour des écrans derrière authentification — vers
+`admin/layout.tsx`.
+
+| | HTML servi avant | après |
+|---|---|---|
+| `/fr` | 164 Ko | **142 Ko** |
+| `/fr/a-propos` | 144 Ko | **122 Ko** |
+| `/fr/barometre` | 200 Ko | **178 Ko** |
+
+**22 Ko de moins sur chaque page**, dans les deux langues. Et en 3G lente,
+médiane de quatre passes :
+
+| | avant | après | seuil de l'audit |
+|---|---|---|---|
+| LCP `/fr` | 2 532 ms | **2 448 ms** | 2 500 ms |
+| LCP `/fr/barometre` | 2 336 ms | **2 228 ms** | 2 500 ms |
+
+`/fr` passe sous le seuil que cet audit s'était fixé, **pour la première
+fois**. Le « avant » ci-dessus est ma propre mesure du 25/09, sur le même
+instrument et juste avant le correctif ; le § 0 de F-05 donnait 2 552 ms le
+21/09, en concluant « honnêtement, au-dessus du seuil ». Les deux chiffres
+sont proches et ne se contredisent pas : ils datent de deux jours et de deux
+builds différents, et c'est le premier qui sert de référence à l'écart
+mesuré ici.
+
+**Deux gardes, et l'instrument du premier a dû être refait.** Le test unitaire
+recalcule la liste depuis les sources par l'API du compilateur TypeScript ; la
+spec servie visite les 24 routes publiques dans les deux langues et échoue sur
+tout `[i18n] clé de message absente`. C'est le bon filet pour ce défaut-là :
+une clé retirée ne casse pas la page, elle rend le dernier segment de son
+chemin — invisible à l'écran.
+
+Le garde a trouvé une erreur dans ma liste **à sa première exécution** :
+`footer` n'est demandé par aucun composant client, `site-footer.tsx` étant un
+composant serveur. Et il a révélé un trou dans son propre instrument : je ne
+regardais que les fichiers portant `'use client'`, alors qu'un module importé
+depuis une frontière client s'exécute lui aussi dans le navigateur, directive
+ou non. La fermeture transitive des imports a été ajoutée avant d'aller plus
+loin.
+
+Non-vacuité, vérifiée en retirant `nav` de la liste : le test unitaire rougit
+sur l'écart liste/sources, et la spec servie nomme les huit clés exactes
+(`nav.about`, `nav.network`…) sur une page réelle.
+
+**Le prérendu : possible, mesuré, et NON livré.** `force-static` sur
+`/fr/a-propos` fonctionne — la route passe en `●`. Mais la page prérendue est
+servie **identique à l'octet près** avec ou sans cookie d'authentification
+(125 030 octets dans les deux cas) : l'en-tête y est figé au build. C'est
+exactement ce que le correctif de F-13 avait supprimé — « le HTML servi porte
+dès lors la mise en page finale, anonyme comme connectée ». Et le gain serait
+nul sur la mesure qui nous intéresse : le HTML pèse le même poids, or en 3G
+lente la contrainte est la bande passante, pas le temps serveur.
+
+Prérendre reviendrait donc à rendre un défaut mesuré (F-13, clics perdus) pour
+un gain nul sur F-05. Ce n'est pas fait, et c'est écrit plutôt que passé sous
+silence.
+
 ### F-01 — la suite n'est plus verte par chance d'ordonnancement
 
 **Vérification** : **30 graines mélangées consécutives, aucun échec.** Avant
@@ -726,7 +821,7 @@ l'accueil est conservé, avec son coût connu : LCP mobile 2 000 ms contre
 | | Quoi | Qui |
 |---|---|---|
 | P0 | variables de production (`AUTH_DEV_OTP`, `RECAPTCHA_DISABLED`) — angle mort 7 | quelqu'un ayant les accès |
-| P2 | **F-05 : alléger les chunks** (`d3-geo`/`topojson`/`world-atlas` en différé, prérendre les pages éditoriales), ~1 j | ingénierie — **le seul chantier de code encore à faire** |
+| ~~P2~~ | ~~**F-05 : alléger les chunks**~~ — **fait le 25/09**, mais pas comme annoncé : le poids était le catalogue de traductions, pas les chunks (§ 0) | — |
 | — | **M-5** (où vit la liste des événements) et **M-1** (provisionnalisation des mots de passe en E2E) | choix d'architecture, pas des corrections |
 | — | valeurs de palette (angle mort 5) | l'agence — des VALEURS, pas du code |
 | — | angles morts 1, 3, 4, 6 | un déploiement Convex peuplé, Firefox/WebKit, un projet Sanity |
@@ -1053,6 +1148,7 @@ d'avant, et non seulement passer sur le code d'après.
 | J20 | sérialisation JSON-LD | un titre CMS portant `</script` passé aux trois blocs | ✅ la séquence ne sort plus ; le témoin montre que `JSON.stringify` seul la laissait sortir |
 | J21 | recette du § 6 | erreurs de PAGE capturées dans le navigateur, build refait avec les variables | ❌→✅ `#__next_error__` sur 24 pages → **176 passées, 0 échec, code 0** ; contraste retrouvé à l'identique (36/21) |
 | J22 | cohérence interne | rapport relu **contre lui-même** : chiffres recoupés, dénominateurs, renvois, dates ; puis remesure de ce qui divergeait | ❌→✅ **5 contradictions**, dont aucune n'avait demandé d'instrument. « 18 caractères » = le `<title>` ; « 14 routes » = **18 sur 18** mesurées. Le reste des affirmations recoupables tient |
+| J23 | F-05 (suite) | poids transféré par route, catalogue de messages compté dans le HTML servi, LCP 3G médiane de quatre passes | ✅ −22 Ko par page ; `/fr` **2 532 → 2 448 ms**, sous le seuil de 2 500 ; 53 gardes vertes, vues rougir en retirant `nav` |
 
 ---
 
@@ -2503,7 +2599,7 @@ pnpm exec playwright test --config audit/playwright.audit.config.ts --project=de
 
 | # | Action | Couvre | Effort |
 |---|---|---|---|
-| 9 | Alléger les chunks (`d3-geo`/`topojson`/`world-atlas` en différé) ; prérendre les pages éditoriales | F-05 | 1 j |
+| 9 | ~~Alléger les chunks~~ — **caduc, mesuré le 25/09** : la carte était déjà différée et le chunk de 2,7 Mo est le Studio, jamais servi à un visiteur. Le poids était le **catalogue de traductions**, retiré des pages qui ne l'utilisent pas : −22 Ko par page, LCP 3G `/fr` **sous le seuil** pour la première fois. ~~Prérendre les pages éditoriales~~ — **possible mais non livré** : rendrait le défaut de F-13 pour un gain nul (§ 0) | F-05 ✅ | — |
 | 10 | ~~Rendre la 404 localisée en SSR~~ — **impossible en userland** (limite Next mesurée). 404 racine livrée ; ~~arbitrage `dynamicParams` à trancher~~ — **tranché le 24/09 : le remède annoncé est réfuté par la mesure**, modification retirée (§ 0, § 3) | F-06 — moitié atteignable | — |
 | 11 | ~~Souligner le lien d'adhésion~~ — **fait**, plus les zones défilantes inatteignables au clavier (2 pages publiques + 3 tableaux d'administration) | F-07 ✅ | — |
 | 12 | ~~Specs E2E pour `/admin/contact`, `/evenements/calendrier`, `/newsletter/desinscription`~~ — **fait** : 10 tests, 3 fichiers, **57 routes sur 57** citées. Un défaut d'accessibilité trouvé au passage (`Reveal` n'acceptait pas `aria-label`) et corrigé | F-12 ✅ | — |
