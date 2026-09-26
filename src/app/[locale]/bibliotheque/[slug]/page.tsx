@@ -101,6 +101,7 @@ export default async function PublicationPage({
 
   const t = await getTranslations('library');
   const td = await getTranslations('library.detail');
+  const tTrad = await getTranslations('translation');
   // Les publications liées sont un complément : leur absence ne justifie pas
   // de perdre la fiche déjà chargée.
   const related = await fetchOrFallback(
@@ -380,6 +381,18 @@ export default async function PublicationPage({
                 >
                   {td('download')}
                 </a>
+                {/* Le document joint, reconstruit dans la langue du lecteur
+                    (images conservées). Proposé UNIQUEMENT quand il y a un
+                    fichier : sans PDF, la vue document n'aurait rien à
+                    montrer et le lien mènerait à une page vide. */}
+                {pub.fileUrl ? (
+                  <Link
+                    href={`/bibliotheque/${slug}/document`}
+                    className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong bg-surface px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+                  >
+                    {tTrad('docTitle')}
+                  </Link>
+                ) : null}
                 <a
                   href={fileHref}
                   target="_blank"

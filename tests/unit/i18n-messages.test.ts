@@ -214,7 +214,11 @@ describe('Catalogues de messages — syntaxe ICU', () => {
     (locale) => {
       // `Intl.PluralRules` est la source de vérité CLDR : l'arabe y déclare
       // zero/one/two/few/many/other, le français one/many/other.
-      const admises = new Set(
+      // `Set<string>` et non `Set<LDMLPluralRule>` : les catégories relevées
+      // dans les messages sont des chaînes quelconques — c'est justement ce
+      // qu'on vérifie. Comparer deux ensembles typés reviendrait à supposer
+      // valide ce que le test doit établir.
+      const admises: ReadonlySet<string> = new Set<string>(
         new Intl.PluralRules(locale).resolvedOptions().pluralCategories,
       );
       const fautives: string[] = [];

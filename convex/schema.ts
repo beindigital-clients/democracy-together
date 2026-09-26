@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { authTables } from '@convex-dev/auth/server';
+import { documentBlock, documentStatus, extractedImage } from './lib/documents';
 import {
   translatableFields,
   translationSourceType,
@@ -683,6 +684,65 @@ export default defineSchema({
     // Purge des traductions d'un contenu supprimé (devAdmin), et affichage des
     // langues déjà disponibles sous un article.
     .index('by_source', ['sourceType', 'sourceId']),
+
+  // DOCUMENT EXTRAIT D'UN PDF — une ligne par publication.
+  //
+  // L'extraction est faite UNE FOIS et sert les cinq langues : elle relit le
+  // PDF, ce qui est l'opération coûteuse (le fichier entier part au modèle).
+  // Les traductions, elles, partent de ces blocs — du JSON, quelques dizaines
+  // de kilo-octets — et n'ont plus jamais besoin du fichier.
+  //
+  // `fileId` est celui du PDF au moment de l'extraction. Un membre qui
+  // remplace son document change de `fileId` : la comparaison suffit à savoir
+  // que l'extraction décrit un fichier qui n'est plus joint, sans empreinte à
+  // calculer sur plusieurs mégaoctets.
+  //
+  // `images` porte les illustrations RECOPIÉES du PDF dans le stockage Convex
+  // (convex/lib/pdfImages.ts). Elles ne sont extraites qu'une fois, et les
+  // cinq langues pointent les mêmes fichiers : une figure n'est ni
+  // recompressée ni dupliquée par langue.
+  documentExtractions: defineTable({
+    publicationId: v.id('publications'),
+    fileId: v.id('_storage'),
+    status: documentStatus,
+    sourceLocale: locale,
+    title: v.optional(v.string()),
+    blocks: v.optional(v.array(documentBlock)),
+    images: v.optional(v.array(extractedImage)),
+    /** Images repérées dans un codage que l'extracteur ne sait pas lire. */
+    skippedImages: v.optional(v.number()),
+    pageCount: v.optional(v.number()),
+    model: v.optional(v.string()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_publication', ['publicationId']),
+
+  // VERSION TRADUITE D'UN DOCUMENT — une ligne par (publication, langue).
+  //
+  // Séparée de l'extraction pour la même raison que `contentTranslations` est
+  // séparée des contenus : la vue document n'en lit JAMAIS qu'une, et les
+  // porter toutes sur la ligne d'extraction la ferait relire en entier à
+  // chaque langue. `extractionId` lie la traduction à la version du document
+  // dont elle est issue — si le PDF est remplacé, une nouvelle extraction naît
+  // et les anciennes traductions cessent d'être servies.
+  documentRenditions: defineTable({
+    publicationId: v.id('publications'),
+    extractionId: v.id('documentExtractions'),
+    sourceLocale: locale,
+    targetLocale: locale,
+    status: documentStatus,
+    title: v.optional(v.string()),
+    blocks: v.optional(v.array(documentBlock)),
+    model: v.optional(v.string()),
+    error: v.optional(v.string()),
+    requestedBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_publication_and_locale', ['publicationId', 'targetLocale'])
+    // Purge des versions rattachées à une extraction remplacée.
+    .index('by_extraction', ['extractionId']),
 
   notifications: defineTable({
     userId: v.id('users'),
