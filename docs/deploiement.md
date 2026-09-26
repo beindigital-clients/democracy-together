@@ -141,6 +141,18 @@ distincte de l'absence de clé :
 npx convex env set RECAPTCHA_DISABLED true   # dev / préversion UNIQUEMENT
 ```
 
+Posé **sans** `AUTH_DEV_OTP`, le contournement journalise une erreur à chaque
+soumission : selon les règles du § 1.1, un déploiement qui n'a pas ce second
+drapeau n'est ni un dev local ni une préversion de CI. Le filet reste la
+vérification avant mise en service (`npx convex env list --prod`) ; cette alarme
+n'en est que le rappel au moment où la porte s'ouvre.
+
+> L'alarme testait auparavant `NODE_ENV`, que Convex pose à « production » sur
+> **tous** ses déploiements. Elle criait donc aussi sur le dev et sur chaque
+> préversion, où le contournement est posé exprès — au point qu'une vraie erreur
+> en production aurait produit la ligne que tout le monde avait appris à
+> ignorer.
+
 S'y ajoutent des plafonds **non forgeables** (`enforcePublicFormLimit`) : par IP
 et globaux par formulaire, indépendants de toute donnée fournie par l'appelant.
 Rien à configurer, mais c'est ce qui rend le quota réel.

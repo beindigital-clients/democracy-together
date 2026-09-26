@@ -58,6 +58,58 @@ describe('verifyRecaptcha — helper de vérification', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  // L'ALARME DU CONTOURNEMENT — elle doit sonner là où c'est anormal, et
+  // seulement là. Elle testait `NODE_ENV === 'production'`, que Convex pose à
+  // « production » sur TOUS ses déploiements : elle sonnait donc aussi sur le
+  // dev et sur chaque préversion de CI, où le contournement est posé exprès.
+  // Une alarme qui sonne toujours ne distingue plus rien, et c'est justement
+  // ce qu'on lui demande.
+  describe("l'alarme du contournement", () => {
+    it('se tait sur un déploiement de dev ou de préversion (AUTH_DEV_OTP posé)', async () => {
+      vi.stubEnv('RECAPTCHA_DISABLED', 'true');
+      vi.stubEnv('AUTH_DEV_OTP', 'true');
+      // `NODE_ENV` vaut « production » ici comme sur le vrai déploiement : si
+      // l'alarme le lisait encore, ce test la prendrait en défaut.
+      vi.stubEnv('NODE_ENV', 'production');
+      const cri = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const r = await verifyRecaptcha('tok', 'contact');
+
+      expect(r).toMatchObject({ ok: true, skipped: true });
+      expect(cri).not.toHaveBeenCalled();
+      cri.mockRestore();
+    });
+
+    it('sonne quand le contournement est posé SANS AUTH_DEV_OTP', async () => {
+      vi.stubEnv('RECAPTCHA_DISABLED', 'true');
+      vi.stubEnv('AUTH_DEV_OTP', '');
+      const cri = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const r = await verifyRecaptcha('tok', 'contact');
+
+      // Elle AVERTIT sans rien casser : le contournement reste effectif, comme
+      // avant. Le rendre bloquant couperait les sept formulaires publics sur
+      // une erreur de configuration, ce qui est un autre arbitrage.
+      expect(r).toMatchObject({ ok: true, skipped: true });
+      expect(cri).toHaveBeenCalledTimes(1);
+      expect(String(cri.mock.calls[0][0])).toContain('RECAPTCHA_DISABLED');
+      cri.mockRestore();
+    });
+
+    it('ne sonne pas quand il n’y a rien à contourner', async () => {
+      vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
+      vi.stubEnv('RECAPTCHA_DISABLED', '');
+      vi.stubEnv('AUTH_DEV_OTP', '');
+      vi.stubGlobal('fetch', fetchReturning({ success: true, score: 0.9 }));
+      const cri = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await verifyRecaptcha('tok', 'contact');
+
+      expect(cri).not.toHaveBeenCalled();
+      cri.mockRestore();
+    });
+  });
+
   // La variable doit être DÉDIÉE : une valeur autre que 'true' ne contourne
   // rien (pas de « truthy » accidentel sur 'false', '0', 'oui'…).
   it('seul RECAPTCHA_DISABLED=true contourne : toute autre valeur -> rejet', async () => {

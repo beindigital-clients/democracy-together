@@ -63,9 +63,31 @@ export async function verifyRecaptcha(
   // vérifier. Testé AVANT la clé, pour que « désactivé » veuille dire désactivé
   // quelle que soit la configuration Google du déploiement.
   if (process.env.RECAPTCHA_DISABLED === 'true') {
-    if (process.env.NODE_ENV === 'production') {
+    // L'ALARME NE POUVAIT PAS DISTINGUER CE QU'ELLE PRÉTENDAIT DISTINGUER.
+    //
+    // Elle testait `NODE_ENV === 'production'`. Or Convex exécute les fonctions
+    // avec cette valeur sur TOUS ses déploiements, développement compris :
+    // mesuré le 26/09 sur `dev:…`, qui a imprimé « en PRODUCTION » pendant une
+    // campagne E2E locale. Elle criait donc partout où le contournement est
+    // posé LÉGITIMEMENT — un déploiement de dev, et chaque préversion de CI,
+    // puisque `e2e.yml` l'y pose exprès.
+    //
+    // Le coût n'est pas le bruit : c'est qu'une vraie erreur de configuration
+    // en production aurait produit EXACTEMENT la ligne que tout le monde a
+    // appris à ignorer. Une alarme qui sonne toujours ne dit plus rien.
+    //
+    // `AUTH_DEV_OTP` est le marqueur que ce dépôt possède déjà. La doc de
+    // déploiement lui interdit la production dans les mêmes termes qu'à cette
+    // variable-ci, et ses deux seuls lieux légitimes sont les mêmes : le dev
+    // local et les préversions de CI. Un déploiement qui contourne reCAPTCHA
+    // SANS lui n'est donc, selon les règles de ce dépôt, aucun des deux.
+    //
+    // Le sens de l'erreur est voulu : un déploiement de dev qui aurait oublié
+    // `AUTH_DEV_OTP` déclenche l'alarme. Un garde-fou se trompe du côté où il
+    // avertit, jamais du côté où il se tait.
+    if (process.env.AUTH_DEV_OTP !== 'true') {
       console.error(
-        '[recaptcha] RECAPTCHA_DISABLED=true en PRODUCTION — vérification anti-bot volontairement désactivée. Retirez la variable : npx convex env remove RECAPTCHA_DISABLED',
+        '[recaptcha] RECAPTCHA_DISABLED=true hors dev/préversion — vérification anti-bot volontairement désactivée. Retirez la variable : npx convex env remove RECAPTCHA_DISABLED',
       );
     }
     return { ok: true, skipped: true, reason: 'disabled' };
