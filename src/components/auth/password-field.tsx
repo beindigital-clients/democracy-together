@@ -71,14 +71,14 @@ export function PasswordField({
             {...props}
             {...control}
             type={shown ? 'text' : 'password'}
-            className={cn('pr-11', controlClassName)}
+            className={cn('pe-11', controlClassName)}
           />
           <button
             type="button"
             onClick={() => setShown((s) => !s)}
             aria-label={shown ? t('hidePassword') : t('showPassword')}
             aria-pressed={shown}
-            className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-sm text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+            className="absolute inset-y-0 end-0 grid w-11 place-items-center rounded-e-sm text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
           >
             {shown ? <EyeOffIcon /> : <EyeIcon />}
           </button>

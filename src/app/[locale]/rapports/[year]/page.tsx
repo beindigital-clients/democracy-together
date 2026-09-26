@@ -6,6 +6,7 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
 import { getReport } from '@/lib/reports-content';
 import { PrintButton } from '@/components/reports/print-button';
+import { ArrowBack } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -108,7 +109,7 @@ export default async function ReportPage({
           href="/rapports"
           className="text-sm font-semibold text-accent-text hover:underline"
         >
-          ← {t('allReports')}
+          <ArrowBack /> {t('allReports')}
         </Link>
       </footer>
     </article>

@@ -606,7 +606,7 @@ function TestBench() {
                     {f.explanation}
                   </p>
                   {f.quote ? (
-                    <blockquote className="mt-1 border-l-2 border-line pl-3 text-xs italic text-muted">
+                    <blockquote className="mt-1 border-s-2 border-line ps-3 text-xs italic text-muted">
                       {f.quote}
                     </blockquote>
                   ) : null}

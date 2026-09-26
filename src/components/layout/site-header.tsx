@@ -59,7 +59,7 @@ export async function SiteHeader() {
 
         <NavLinks items={NAV} />
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 min-[1120px]:flex">
             <SearchDialog />
             <LocaleSwitcher />

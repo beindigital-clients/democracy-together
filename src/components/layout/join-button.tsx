@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 // gère dans son espace personnel.
 //
 // CE COMPOSANT EST LA CAUSE RACINE DE F-13. Rendre `null` le temps que Convex
-// réponde faisait surgir 94 px dans une grappe ancrée à droite (`ml-auto`,
+// réponde faisait surgir 94 px dans une grappe ancrée à droite (`ms-auto`,
 // site-header.tsx:41) : la bascule de langue sautait de 104 px VERS LA GAUCHE
 // après le premier rendu, et un appui visant « EN » tombait sur le conteneur.
 // Mesuré : au clic, la cible réelle était un `div`, jamais le bouton.

@@ -69,7 +69,7 @@ export default function ConnexionPage() {
           required
           {...field('password')}
         />
-        <div className="text-right">
+        <div className="text-end">
           <Link
             href="/mot-de-passe-oublie"
             className="text-sm text-accent-text hover:underline"

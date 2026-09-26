@@ -14,6 +14,7 @@ import {
 import type { RegionMapItem } from '@/components/map/types';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { ArrowForward } from '@/components/ui/arrow';
 
 // Couleurs de remplissage de la carte par catégorie (1 = plus libre … 5).
 const CAT_FILL = [
@@ -220,7 +221,7 @@ export default async function BarometrePage({
           />
         </Reveal>
 
-        <p className="mt-3 text-right font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+        <p className="mt-3 text-end font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
           {c.map.note}
         </p>
 
@@ -228,14 +229,14 @@ export default async function BarometrePage({
           {c.legend.map((lv, i) => (
             <div
               key={lv.label}
-              className="flex items-center gap-2.5 border-line px-4 py-3 text-[13px] text-ink-soft [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
+              className="flex items-center gap-2.5 border-line px-4 py-3 text-[13px] text-ink-soft [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-s sm:[&:not(:first-child)]:border-t-0"
             >
               <i
                 className={`h-3.5 w-3.5 shrink-0 rounded-[3px] ${CAT_BG[i]}`}
                 aria-hidden="true"
               />
               {lv.label}
-              <span className="ml-auto font-mono text-[11px] text-muted">
+              <span className="ms-auto font-mono text-[11px] text-muted">
                 {lv.range}
               </span>
             </div>
@@ -260,13 +261,13 @@ export default async function BarometrePage({
               href="#datasets"
               className="text-sm font-semibold text-accent-text hover:underline"
             >
-              {c.ranking.cta} →
+              {c.ranking.cta} <ArrowForward />
             </a>
           </Reveal>
           <Reveal className="overflow-hidden rounded-sm border border-line bg-paper">
             <ScrollableRegion label={c.ranking.title}>
-              <table className="w-full border-collapse text-left text-sm">
-                <caption className="bg-surface-2 px-5 py-2.5 text-left font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+              <table className="w-full border-collapse text-start text-sm">
+                <caption className="bg-surface-2 px-5 py-2.5 text-start font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {c.ranking.caption}
                 </caption>
                 <thead>
@@ -346,7 +347,7 @@ export default async function BarometrePage({
                     {p.region}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <div className="font-mono text-[34px] font-semibold leading-none tracking-[-0.02em] text-ink">
                     {p.score}
                   </div>
@@ -373,7 +374,7 @@ export default async function BarometrePage({
                         delay={bi * 0.1}
                       />
                     </span>
-                    <span className="w-9 shrink-0 text-right font-mono text-ink">
+                    <span className="w-9 shrink-0 text-end font-mono text-ink">
                       {(b.value / 100).toFixed(2)}
                     </span>
                   </div>
@@ -511,7 +512,7 @@ export default async function BarometrePage({
           </Reveal>
           <Reveal className="overflow-hidden rounded-sm border border-line bg-paper">
             <ScrollableRegion label={c.datasets.title}>
-              <table className="w-full border-collapse text-left text-sm">
+              <table className="w-full border-collapse text-start text-sm">
                 <thead>
                   <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
                     <th scope="col" className="px-4 py-3 font-medium">

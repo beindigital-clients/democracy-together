@@ -11,6 +11,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { safeHref } from '@/lib/safe-href';
+import { ArrowBack } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -77,7 +78,7 @@ export default async function OrgProfilePage({
         href="/le-reseau"
         className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-ink"
       >
-        <span aria-hidden="true">←</span> {t('back')}
+        <ArrowBack /> {t('back')}
       </Link>
 
       <header className="mt-6 border-b border-line pb-8">

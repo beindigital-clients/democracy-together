@@ -129,7 +129,7 @@ export async function PublicationCard({
           >
             ❝ {pub.citations}
           </span>
-          <span className="ml-auto truncate font-mono text-[10.5px] text-muted">
+          <span className="ms-auto truncate font-mono text-[10.5px] text-muted">
             {pub.doi}
           </span>
         </div>

@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { ArrowForward } from '@/components/ui/arrow';
 
 export type PostCardData = {
   _id: string;
@@ -45,7 +46,7 @@ export function PostCard({
         </p>
       ) : null}
       <span className="mt-auto pt-4 font-mono text-[11px] uppercase tracking-[0.1em] text-accent-text">
-        {t('readMore')} →
+        {t('readMore')} <ArrowForward />
       </span>
     </Link>
   );

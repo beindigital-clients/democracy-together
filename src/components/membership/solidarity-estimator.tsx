@@ -99,7 +99,7 @@ function RadioGroup({
       <legend className="mb-2 text-sm font-medium text-ink">
         {legend}
         {hint ? (
-          <span className="ml-1 font-normal text-muted">{hint}</span>
+          <span className="ms-1 font-normal text-muted">{hint}</span>
         ) : null}
       </legend>
       <div

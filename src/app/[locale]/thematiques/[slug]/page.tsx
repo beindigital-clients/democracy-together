@@ -11,6 +11,7 @@ import { getThemeSynthesis } from '@/lib/themes-content';
 import { PublicationCard } from '@/components/library/publication-card';
 import { vocabulary } from '@/i18n/vocabulary';
 import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -140,13 +141,13 @@ export default async function ThemeSynthesisPage({
               href={`/${locale}/barometre#dimensions`}
               className="text-sm font-semibold text-accent-text hover:underline"
             >
-              {t('barometer')} →
+              {t('barometer')} <ArrowForward />
             </a>
             <Link
               href={{ pathname: '/bibliotheque', query: { theme: slug } }}
               className="text-sm font-semibold text-accent-text hover:underline"
             >
-              {t('pubsAll')} →
+              {t('pubsAll')} <ArrowForward />
             </Link>
           </Reveal>
         </aside>
@@ -163,7 +164,7 @@ export default async function ThemeSynthesisPage({
                 href={{ pathname: '/bibliotheque', query: { theme: slug } }}
                 className="text-sm font-semibold text-accent-text hover:underline"
               >
-                {t('pubsAll')} →
+                {t('pubsAll')} <ArrowForward />
               </Link>
             ) : null}
           </Reveal>

@@ -19,7 +19,7 @@ export function NavLinks({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="ml-2 hidden items-center gap-4 min-[1120px]:flex">
+    <nav className="ms-2 hidden items-center gap-4 min-[1120px]:flex">
       {items.map(({ href, key }) => {
         const active = isNavActive(pathname, href);
         return (
@@ -27,7 +27,7 @@ export function NavLinks({ items }: { items: readonly NavItem[] }) {
             key={key}
             href={href}
             aria-current={active ? 'page' : undefined}
-            className={`relative whitespace-nowrap text-sm transition-colors after:absolute after:-bottom-1 after:left-0 after:right-0 after:h-[2px] after:rounded-full after:transition-colors ${
+            className={`relative whitespace-nowrap text-sm transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-[2px] after:rounded-full after:transition-colors ${
               active
                 ? 'font-medium text-ink after:bg-accent'
                 : 'text-ink-soft after:bg-transparent hover:text-ink'

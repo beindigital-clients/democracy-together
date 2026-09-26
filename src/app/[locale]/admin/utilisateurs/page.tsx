@@ -137,9 +137,9 @@ function UsersTable() {
         <ScrollableRegion label={t('users')} className="mt-6">
           <table className="w-full min-w-[520px] text-sm">
             <thead>
-              <tr className="border-b border-line text-left font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                <th className="py-2 pr-4 font-normal">{t('userEmail')}</th>
-                <th className="py-2 pr-4 font-normal">{t('userName')}</th>
+              <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                <th className="py-2 pe-4 font-normal">{t('userEmail')}</th>
+                <th className="py-2 pe-4 font-normal">{t('userName')}</th>
                 <th className="py-2 font-normal">{t('userRole')}</th>
               </tr>
             </thead>
@@ -149,10 +149,10 @@ function UsersTable() {
                 const name = u.email ?? u.name ?? u._id;
                 return (
                   <tr key={u._id} className="border-b border-line">
-                    <td className="py-3 pr-4 font-mono text-[13px]">
+                    <td className="py-3 pe-4 font-mono text-[13px]">
                       {u.email}
                     </td>
-                    <td className="py-3 pr-4">{u.name ?? '—'}</td>
+                    <td className="py-3 pe-4">{u.name ?? '—'}</td>
                     <td className="py-3">
                       <RoleSelector
                         name={name}

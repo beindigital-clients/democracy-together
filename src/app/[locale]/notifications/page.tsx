@@ -76,7 +76,7 @@ function NotificationsList() {
               <button
                 type="button"
                 onClick={() => open(n)}
-                className={`flex w-full items-start gap-3 rounded-md border p-4 text-left transition-colors ${
+                className={`flex w-full items-start gap-3 rounded-md border p-4 text-start transition-colors ${
                   n.read
                     ? 'border-line bg-surface hover:border-line-strong'
                     : 'border-accent-edge bg-accent-tint hover:bg-accent-tint/70'

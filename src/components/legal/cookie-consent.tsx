@@ -43,7 +43,7 @@ export function CookieConsent() {
             {t('learnMore')}
           </Link>
         </p>
-        <div className="flex shrink-0 gap-2 sm:ml-auto">
+        <div className="flex shrink-0 gap-2 sm:ms-auto">
           <Button
             variant="outline"
             size="sm"

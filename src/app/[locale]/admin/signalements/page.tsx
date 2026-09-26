@@ -9,6 +9,7 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActionFeedback } from '@/components/admin/action-feedback';
+import { ArrowForward } from '@/components/ui/arrow';
 
 export default function AdminReports() {
   const t = useTranslations('admin');
@@ -85,7 +86,7 @@ export default function AdminReports() {
                     href={`/tribune/${r.postId}`}
                     className="text-[13px] font-semibold text-accent-text hover:underline"
                   >
-                    {t('repView')} →
+                    {t('repView')} <ArrowForward />
                   </Link>
                 ) : null}
                 <span className="flex-1" />

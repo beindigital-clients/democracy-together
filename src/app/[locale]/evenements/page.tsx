@@ -20,6 +20,7 @@ import {
   hasActiveEventFilters,
   monthAbbr,
 } from '@/lib/events-content';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -163,7 +164,7 @@ export default async function EventsPage({
               sizes="(max-width: 768px) 100vw, 620px"
               className="object-cover"
             />
-            <span className="absolute left-4 top-4 rounded-pill bg-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-contrast">
+            <span className="absolute start-4 top-4 rounded-pill bg-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-contrast">
               {L.featuredBadge}
             </span>
           </div>
@@ -302,7 +303,7 @@ export default async function EventsPage({
                         <span className={active ? 'text-ink' : undefined}>
                           {label}
                         </span>
-                        <span className="ml-auto font-mono text-[11px] text-muted">
+                        <span className="ms-auto font-mono text-[11px] text-muted">
                           {count}
                         </span>
                       </Link>
@@ -373,7 +374,7 @@ export default async function EventsPage({
               href="/bibliotheque"
               className="text-sm font-semibold text-accent-text hover:underline"
             >
-              {L.replays.cta} →
+              {L.replays.cta} <ArrowForward />
             </Link>
           </Reveal>
           <RevealGroup
@@ -399,7 +400,7 @@ export default async function EventsPage({
                       {L.cities[e.cityKey]}
                     </span>
                   </span>
-                  <span className="ml-auto text-right">
+                  <span className="ms-auto text-end">
                     <span className="block text-[13px] font-semibold text-accent-text">
                       {L.replays.watch}
                     </span>

@@ -4,6 +4,7 @@ import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
+import { ArrowForward } from '@/components/ui/arrow';
 
 export default function AdminDashboard() {
   const t = useTranslations('admin');
@@ -50,13 +51,13 @@ export default function AdminDashboard() {
           href="/admin/candidatures"
           className="inline-block text-sm text-accent-text hover:underline"
         >
-          {t('quickApplications')} →
+          {t('quickApplications')} <ArrowForward />
         </Link>
         <Link
           href="/admin/publications"
           className="inline-block text-sm text-accent-text hover:underline"
         >
-          {t('quickPublications')} →
+          {t('quickPublications')} <ArrowForward />
         </Link>
       </div>
     </div>

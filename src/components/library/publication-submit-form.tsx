@@ -429,7 +429,7 @@ export function PublicationSubmitForm() {
               setFile(e.target.files?.[0] ?? null);
               setGroupErrors((cur) => ({ ...cur, file: undefined }));
             }}
-            className="block w-full text-sm text-ink-soft file:mr-3 file:cursor-pointer file:rounded-sm file:border file:border-line-strong file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-line"
+            className="block w-full text-sm text-ink-soft file:me-3 file:cursor-pointer file:rounded-sm file:border file:border-line-strong file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-line"
           />
         )}
       </Field>

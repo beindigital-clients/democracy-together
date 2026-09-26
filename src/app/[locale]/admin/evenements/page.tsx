@@ -56,7 +56,7 @@ export default function AdminEvents() {
               </div>
               <div className="mt-3 overflow-hidden rounded-md border border-line">
                 <ScrollableRegion label={labels.titles[slug] ?? slug}>
-                  <table className="w-full border-collapse text-left text-sm">
+                  <table className="w-full border-collapse text-start text-sm">
                     <thead>
                       <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
                         <th scope="col" className="px-4 py-2.5 font-medium">

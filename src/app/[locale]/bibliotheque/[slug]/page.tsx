@@ -196,7 +196,7 @@ export default async function PublicationPage({
                 {pub.keypoints.map((kp) => (
                   <li
                     key={kp}
-                    className="relative max-w-[68ch] pl-7 text-base leading-relaxed text-ink-soft before:absolute before:left-0 before:top-2.5 before:h-2 before:w-2 before:rounded-full before:bg-accent"
+                    className="relative max-w-[68ch] ps-7 text-base leading-relaxed text-ink-soft before:absolute before:start-0 before:top-2.5 before:h-2 before:w-2 before:rounded-full before:bg-accent"
                   >
                     {kp}
                   </li>
@@ -332,7 +332,7 @@ export default async function PublicationPage({
               <CopyButton
                 text={doiUrl}
                 copiedLabel={td('copied')}
-                className="ml-auto shrink-0 rounded-[3px] border border-line-strong bg-surface px-2 py-1 text-[11px] font-semibold text-ink-soft"
+                className="ms-auto shrink-0 rounded-[3px] border border-line-strong bg-surface px-2 py-1 text-[11px] font-semibold text-ink-soft"
               >
                 {td('copy')}
               </CopyButton>
@@ -421,7 +421,7 @@ function MetaRow({ k, v, first }: { k: string; v: string; first?: boolean }) {
       }`}
     >
       <dt className="text-muted">{k}</dt>
-      <dd className="text-right font-medium text-ink">{v}</dd>
+      <dd className="text-end font-medium text-ink">{v}</dd>
     </div>
   );
 }

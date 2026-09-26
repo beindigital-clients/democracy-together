@@ -17,7 +17,18 @@ export const networkRole = v.union(
   v.literal('admin'),
 );
 
-export const locale = v.union(v.literal('fr'), v.literal('en'));
+// Langues servies par le site. MIROIR de `routing.locales`
+// (src/i18n/routing.ts) : Convex ne peut pas importer un module de `src/`, donc
+// la liste est recopiée — et `tests/unit/i18n-locales.test.ts` compare les deux
+// pour qu'elles ne puissent pas diverger en silence. Élargir cette union est
+// rétrocompatible : les documents existants ne portent que 'fr' ou 'en'.
+export const locale = v.union(
+  v.literal('fr'),
+  v.literal('en'),
+  v.literal('es'),
+  v.literal('pt'),
+  v.literal('ar'),
+);
 
 export default defineSchema({
   // Tables de Convex Auth (users, authSessions, authAccounts, ...).

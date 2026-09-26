@@ -227,3 +227,111 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   ARABE ET SENS D'ÉCRITURE (issue #23)
+   ------------------------------------------------------------
+   Le `dir` est posé sur <html> par le layout, donc SERVI dans le
+   document : les propriétés logiques de Tailwind (ms-, pe-,
+   text-start, border-s…) se résolvent dès la première peinture,
+   sans bascule après hydratation.
+
+   Ce bloc ne traite QUE ce que le sens d'écriture ne règle pas
+   tout seul : la typographie arabe. Tailwind retourne la mise en
+   page ; il ne sait pas qu'une écriture cursive n'admet pas
+   d'interlettrage, ni qu'elle demande plus d'interligne.
+   ============================================================ */
+
+/* Les familles arabes n'existent que sur les pages arabes : le layout
+   n'attache `--font-naskh-arabic` / `--font-plex-sans-arabic` au <html> que
+   pour cette locale (cf. `fontVariables`). Ailleurs, ces `var()` sont vides
+   et la pile passe au terme suivant — aucune page latine ne les réclame. */
+[lang='ar'] {
+  --ff-display:
+    var(--font-naskh-arabic), 'Noto Naskh Arabic', 'Amiri', Georgia, serif;
+  --ff-body:
+    var(--font-plex-sans-arabic), 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  /* La donnée reste en Plex Mono — elle porte des CHIFFRES, dessinés par
+     cette famille dans les cinq langues. Le texte arabe qui les accompagne
+     tombe sur Plex Sans Arabic, déclaré juste derrière. */
+  --ff-data:
+    var(--font-plex-mono), var(--font-plex-sans-arabic), ui-monospace, monospace;
+
+  /* LARGEUR DE COLONNE. `ch` vaut la largeur du « 0 » de la police courante ;
+     à valeur égale, une colonne de 66ch en naskh est sensiblement plus large
+     qu'en Newsreader, et dépasse la longueur de ligne confortable. 58ch
+     redonne un nombre de signes par ligne équivalent. */
+  --measure: 58ch;
+}
+
+/* INTERLETTRAGE : REMIS À ZÉRO, et ce n'est pas un réglage esthétique.
+   L'arabe est une écriture CURSIVE — les lettres d'un mot sont liées. Le
+   `letter-spacing: -0.015em` des titres (réglage latin, hérité de la charte)
+   écarte les glyphes et casse visuellement la liaison : le mot se lit comme
+   une suite de lettres détachées. Aucune valeur non nulle n'est correcte ici,
+   pas même positive. */
+[lang='ar'] h1,
+[lang='ar'] h2,
+[lang='ar'] h3,
+[lang='ar'] h4 {
+  letter-spacing: normal;
+  /* Le naskh porte ses diacritiques AU-DESSUS et EN DESSOUS de la ligne. Un
+     interligne de 1.12 — juste pour des capitales latines — fait chevaucher
+     la hamza d'une ligne avec la kasra de la suivante. */
+  line-height: 1.45;
+}
+
+[lang='ar'] body {
+  /* Même raison, sur le corps de texte : l'arabe demande plus d'air vertical
+     que le latin à taille égale. */
+  line-height: 1.85;
+  letter-spacing: normal;
+}
+
+/* Les chiffres restent en chiffres arabes occidentaux (0-9) dans toute
+   l'interface arabe : c'est l'usage dominant de la presse au Maghreb, la zone
+   visée par cette langue, et cela garde les scores du Baromètre comparables
+   d'une langue à l'autre sans retraduire la donnée. */
+[lang='ar'] {
+  font-variant-numeric: lining-nums;
+}
+
+/* FLÈCHES DE LECTURE (cf. `src/components/ui/arrow.tsx`). Le glyphe est
+   substitué plutôt que retourné : « ← » est un caractère dessiné, là où un
+   `scaleX(-1)` sur « → » donnerait un miroir aux extrémités approximatives.
+   `::before` porte le contenu pour que la flèche reste inaccessible aux
+   lecteurs d'écran — le libellé du lien dit déjà où il mène. */
+.dt-arrow-fwd::before {
+  content: '\2192';
+}
+.dt-arrow-back::before {
+  content: '\2190';
+}
+[dir='rtl'] .dt-arrow-fwd::before {
+  content: '\2190';
+}
+[dir='rtl'] .dt-arrow-back::before {
+  content: '\2192';
+}
+
+/* ICÔNES DIRECTIONNELLES. Une flèche « suivant » pointe vers la fin de la
+   ligne, pas vers la droite : en arabe, « suivant » est à gauche. Les icônes
+   qui portent ce sens (chevrons de pagination, flèches de lien, fil
+   d'Ariane) reçoivent cette classe et se retournent avec le document.
+
+   Les icônes NON directionnelles — loupe, croix, horloge, téléchargement,
+   cadenas — ne la reçoivent PAS : les retourner toutes ferait une loupe
+   gauchère et un cadenas à l'envers, ce qui est le défaut le plus courant
+   des mises en RTL faites à la va-vite. */
+[dir='rtl'] .dt-flip-rtl {
+  transform: scaleX(-1);
+}
+
+/* Le retournement ne doit pas s'appliquer à l'IMPRESSION d'un document dont
+   le texte, lui, reste dans sa langue : la vue document imprimable pose son
+   propre `dir` (cf. `document-view.tsx`), et une icône y est déjà orientée. */
+@media print {
+  [dir='rtl'] .dt-flip-rtl {
+    transform: none;
+  }
+}

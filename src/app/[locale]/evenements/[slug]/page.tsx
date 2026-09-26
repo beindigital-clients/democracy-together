@@ -188,7 +188,7 @@ export default async function EventDetailPage({
             </div>
           </div>
           <div className="relative overflow-hidden rounded-md border border-line">
-            <span className="absolute left-3 top-3 z-10 rounded-pill bg-ink/85 px-2.5 py-1 font-mono text-[11px] text-paper">
+            <span className="absolute start-3 top-3 z-10 rounded-pill bg-ink/85 px-2.5 py-1 font-mono text-[11px] text-paper">
               {d.visualPin}
             </span>
             <div className="relative aspect-[4/3]">
@@ -431,7 +431,7 @@ export default async function EventDetailPage({
                   className={`flex justify-between gap-4 px-5 py-3 text-[13.5px] ${i === 0 ? '' : 'border-t border-line'}`}
                 >
                   <dt className="text-muted">{r.k}</dt>
-                  <dd className="text-right font-medium text-ink">{r.v}</dd>
+                  <dd className="text-end font-medium text-ink">{r.v}</dd>
                 </div>
               ))}
             </dl>

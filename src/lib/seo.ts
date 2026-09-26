@@ -22,6 +22,15 @@ export const SITE_URL =
 const OG_LOCALES: Record<string, string> = {
   fr: 'fr_FR',
   en: 'en_US',
+  // Les territoires retenus sont ceux du public visé par chaque langue, pas
+  // les plus peuplés : l'Espagne et le Portugal pour les diasporas et les
+  // partenaires européens du réseau, l'Égypte pour l'arabe — le dialecte
+  // écrit de la presse maghrébine et levantine partage l'arabe standard
+  // moderne, et `ar_EG` est l'étiquette que les plateformes reconnaissent le
+  // plus largement pour cette variante.
+  es: 'es_ES',
+  pt: 'pt_PT',
+  ar: 'ar_EG',
 };
 
 export function openGraphLocale(locale: string): string | undefined {

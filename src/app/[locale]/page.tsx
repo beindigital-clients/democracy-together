@@ -12,6 +12,7 @@ import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { MAP_DATA, getBarometerContent, CAT_BG } from '@/lib/barometer-content';
 import { resolveLocale } from '@/i18n/locale';
 import { getHomeContent } from '@/lib/home';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -163,7 +164,7 @@ export default async function HomePage({
               href="/bibliotheque"
               className="font-mono text-xs uppercase tracking-[0.1em] text-accent-text hover:underline"
             >
-              {c.analyses.cta} →
+              {c.analyses.cta} <ArrowForward />
             </Link>
           </Reveal>
 
@@ -233,7 +234,7 @@ export default async function HomePage({
                         delay={i * 0.1}
                       />
                     </span>
-                    <span className="w-10 shrink-0 text-right font-mono text-xs text-ink-soft">
+                    <span className="w-10 shrink-0 text-end font-mono text-xs text-ink-soft">
                       {co.score}
                     </span>
                   </li>
@@ -254,7 +255,7 @@ export default async function HomePage({
                         aria-hidden="true"
                       />
                       <span className="min-w-0 truncate">{lv.label}</span>
-                      <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-muted">
+                      <span className="ms-auto shrink-0 font-mono text-[11px] tabular-nums text-muted">
                         {lv.range}
                       </span>
                     </li>
@@ -323,7 +324,7 @@ export default async function HomePage({
               href="/evenements"
               className="font-mono text-xs uppercase tracking-[0.1em] text-accent-text hover:underline"
             >
-              {c.events.cta} →
+              {c.events.cta} <ArrowForward />
             </Link>
           </Reveal>
 
@@ -435,7 +436,7 @@ export default async function HomePage({
                 {p.features.map((f) => (
                   <li key={f} className="flex gap-2">
                     <span aria-hidden="true" className="text-accent-text">
-                      →
+                      <ArrowForward />
                     </span>
                     <span>{f}</span>
                   </li>

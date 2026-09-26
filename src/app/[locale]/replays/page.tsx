@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { resolveLocale } from '@/i18n/locale';
 import { getReplays } from '@/lib/replays';
 import { monthAbbr } from '@/lib/events-content';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -91,7 +92,7 @@ export default async function ReplaysPage({
                   href={`/evenements/${r.slug}`}
                   className="mt-4 text-sm font-semibold text-accent-text hover:underline"
                 >
-                  {t('viewEvent')} →
+                  {t('viewEvent')} <ArrowForward />
                 </Link>
               </article>
             </RevealItem>

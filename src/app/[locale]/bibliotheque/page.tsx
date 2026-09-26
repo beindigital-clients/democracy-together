@@ -11,6 +11,7 @@ import { PublicationCard } from '@/components/library/publication-card';
 import { SortSelect } from '@/components/library/sort-select';
 import { parseFilters, buildHref, PAGE_SIZE } from '@/lib/publications';
 import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
+import { ArrowBack, ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -204,7 +205,7 @@ export default async function LibraryPage({
                   rel="prev"
                   className="inline-flex h-9 items-center rounded-sm border border-line px-3 text-sm text-ink-soft hover:border-line-strong hover:text-ink"
                 >
-                  ← {t('prev')}
+                  <ArrowBack /> {t('prev')}
                 </Link>
               ) : null}
               {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
@@ -227,7 +228,7 @@ export default async function LibraryPage({
                   rel="next"
                   className="inline-flex h-9 items-center rounded-sm border border-line px-3 text-sm font-semibold text-ink hover:border-line-strong"
                 >
-                  {t('next')} →
+                  {t('next')} <ArrowForward />
                 </Link>
               ) : null}
             </nav>

@@ -17,7 +17,9 @@ export const PUB_TYPES = [
 // que fait le formulaire d'annuaire du back-office.
 export { NETWORK_THEMES as PUB_THEMES } from '@convex/lib/themes';
 export const PUB_REGIONS = ['afrique', 'europe', 'mondial'] as const;
-export const PUB_LANGS = ['fr', 'en'] as const;
+// Même motif que PUB_THEMES juste au-dessus : la liste des langues n'est plus
+// recopiée ici, elle vient de sa déclaration unique côté Convex (issue #30).
+export { PUB_LANGS } from '@convex/lib/publications';
 export const PUB_ACCESS = ['open', 'members'] as const;
 export const PUB_SORTS = ['recent', 'cited', 'az'] as const;
 

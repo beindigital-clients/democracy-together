@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { REGIONS, DIRECTORY_THEMES } from '@convex/lib/directory';
 import { Button } from '@/components/ui/button';
 import { FormError, SelectField, TextField } from '@/components/ui/field';
+import { PUB_LANGS } from '@/lib/publications';
 
 export type DirectoryDraft = {
   countryCode: string;
@@ -15,7 +16,11 @@ export type DirectoryDraft = {
   websiteUrl?: string;
 };
 
-const LANGS = ['fr', 'en'] as const;
+// Les langues de travail proposées à la saisie sont celles que le site sert :
+// une même déclaration pour la facette bibliothèque, l'annuaire et le
+// sélecteur de langue. Recopier la liste ici la ferait diverger le jour où une
+// sixième langue arrive.
+const LANGS = PUB_LANGS;
 
 // Saisie des champs d'annuaire au moment d'approuver une candidature
 // d'organisation (F-19/F-22). La candidature ne collecte qu'un pays en texte

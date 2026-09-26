@@ -21,7 +21,11 @@ export { NETWORK_THEMES as PUB_THEMES } from './themes';
 
 export const PUB_REGIONS = ['afrique', 'europe', 'mondial'] as const;
 
-export const PUB_LANGS = ['fr', 'en'] as const;
+// Langues de publication proposées en facette. MIROIR de `routing.locales`
+// (src/i18n/routing.ts), comme `locale` dans schema.ts : une publication peut
+// être déposée dans n'importe quelle langue servie par le site.
+// `tests/unit/i18n-locales.test.ts` compare les deux listes.
+export const PUB_LANGS = ['fr', 'en', 'es', 'pt', 'ar'] as const;
 
 export const PUB_ACCESS = ['open', 'members'] as const;
 

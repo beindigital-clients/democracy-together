@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { TextareaField } from '@/components/ui/field';
 import { isMember } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ArrowBack } from '@/components/ui/arrow';
 
 type WorkspaceDetail = {
   _id: Id<'workspaces'>;
@@ -139,7 +140,7 @@ export function WorkspaceDetail({
           href="/espaces"
           className="mt-4 inline-block text-sm font-medium text-accent-text hover:underline"
         >
-          ← {t('back')}
+          <ArrowBack /> {t('back')}
         </Link>
       </div>
     );
