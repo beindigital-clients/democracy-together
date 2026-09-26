@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 // Charge .env.local pour le process de test (NEXT_PUBLIC_CONVEX_URL sert à lire
 // les codes OTP de dev via le client Convex).
@@ -26,6 +26,44 @@ try {
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 const launchOptions = CHROMIUM ? { executablePath: CHROMIUM } : undefined;
 
+// PORT DÉDIÉ — `E2E_PORT`, 3000 par défaut.
+//
+// POURQUOI. Le port était écrit en dur à trois endroits, et `reuseExistingServer`
+// est actif hors CI : tout serveur qui écoute déjà sur 3000 est repris tel
+// quel. Sur un poste où plusieurs arbres de travail (ou plusieurs agents)
+// travaillent en parallèle, cela va du désagrément — on attend la campagne d'un
+// autre — au faux verdict : la campagne interroge le serveur d'UN AUTRE PROJET
+// et chaque spec échoue sur une 404 qui ne dit rien du code. C'est arrivé.
+//
+// Un port par arbre de travail sépare les campagnes sans rien changer à la CI,
+// qui ne pose pas la variable et reste sur 3000.
+//
+//   E2E_PORT=3217 pnpm test:e2e
+//
+// `next start` lit `PORT` : la commande du serveur la pose, et l'URL d'attente
+// comme la `baseURL` en découlent.
+const PORT = Number(process.env.E2E_PORT ?? 3000);
+const ORIGINE = `http://localhost:${PORT}`;
+
+// LE CONSENTEMENT COOKIES EST LIÉ À UNE ORIGINE. `storageState` associe son
+// `localStorage` à `http://localhost:3000` : servi sur un autre port, le
+// bandeau F-09 reparaît et intercepte les clics des specs qui ne le visent
+// pas. On dérive donc l'état pour l'origine réellement utilisée, dans
+// `tests/e2e/.auth/` (ignoré par git). Sur 3000, le fichier committé sert tel
+// quel — aucun fichier produit, aucun changement de comportement.
+const CONSENTEMENT = './tests/e2e/cookie-consent-state.json';
+function etatDeConsentement(): string {
+  if (PORT === 3000) return CONSENTEMENT;
+  const etat = JSON.parse(readFileSync(CONSENTEMENT, 'utf8')) as {
+    origins: { origin: string }[];
+  };
+  etat.origins = etat.origins.map((o) => ({ ...o, origin: ORIGINE }));
+  mkdirSync('tests/e2e/.auth', { recursive: true });
+  const chemin = `./tests/e2e/.auth/cookie-consent-${PORT}.json`;
+  writeFileSync(chemin, `${JSON.stringify(etat, null, 2)}\n`);
+  return chemin;
+}
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -43,7 +81,7 @@ export default defineConfig({
   // déjà captées par `trace: 'on-first-retry'`.
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: ORIGINE,
     trace: 'on-first-retry',
     // Consentement cookies pré-positionné (utilisateur « déjà venu ») pour que le
     // bandeau F-09 (fixed, bas de page) n'intercepte pas les clics des autres
@@ -52,7 +90,7 @@ export default defineConfig({
     // est la convention Playwright pour un état d'AUTHENTIFICATION, et ce nom
     // invitait à y committer un jour une vraie session. Les états de session,
     // eux, sont produits par le projet `setup` dans `tests/e2e/.auth/` (ignoré).
-    storageState: './tests/e2e/cookie-consent-state.json',
+    storageState: etatDeConsentement(),
     ...(launchOptions ? { launchOptions } : {}),
   },
   projects: [
@@ -120,10 +158,10 @@ export default defineConfig({
     // build ; dans un fichier, le pas d'atelier peut en imprimer la fin, à un
     // endroit prévisible. C'est ce qui manquait pour diagnostiquer une page qui
     // répond « Internal Server Error » (issue #66).
-    command: 'pnpm build && pnpm start 2>&1 | tee server.log',
+    command: `pnpm build && PORT=${PORT} pnpm start 2>&1 | tee server.log`,
     stdout: 'pipe',
     stderr: 'pipe',
-    url: 'http://localhost:3000/fr',
+    url: `${ORIGINE}/fr`,
     reuseExistingServer: !process.env.CI,
     // Le runner GitHub est plus lent qu'un poste de dev, et ce démarrage inclut
     // un build de prod complet : 3 min y suffisent rarement. Un dépassement ici

@@ -405,9 +405,10 @@ function RuleRow({ rule }: { rule: Settings['rules'][number] }) {
         </Badge>
         <span className="font-medium">{rule.label}</span>
         {rule.enabled ? null : (
-          <span className="text-xs text-muted">
-            {t('aiRuleEnabledField')} : {t('filterAll')}
-          </span>
+          // Le critère au repos le DIT. Ces deux clés-ci disaient « Actif :
+          // Toutes » — le libellé du champ suivi de celui d'un filtre de
+          // liste, qui se lisait comme l'inverse de l'état affiché.
+          <span className="text-xs text-muted">{t('aiRuleDisabled')}</span>
         )}
       </div>
       <p className="mt-2 max-w-[72ch] text-sm text-ink-soft">

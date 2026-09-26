@@ -854,6 +854,7 @@
     "aiRuleDescriptionPlaceholder": "Le document cite-t-il ses sources de manière vérifiable (références, jeux de données, méthodologie) ?",
     "aiRuleSeverityField": "Sévérité",
     "aiRuleEnabledField": "Actif",
+    "aiRuleDisabled": "Inactif",
     "aiRuleAdd": "Ajouter un critère",
     "aiRuleCreate": "Créer le critère",
     "aiRuleSave": "Enregistrer",
