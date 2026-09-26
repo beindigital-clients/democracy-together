@@ -13,15 +13,20 @@ import { CopyButton } from '@/components/library/copy-button';
 import { PublicationCard } from '@/components/library/publication-card';
 import { ViewCounter } from '@/components/library/view-counter';
 import { buildCitations, formatLongDate } from '@/lib/publications';
+import { alternatesFor } from '@/lib/seo';
+import { resolveLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
+import {
+  TranslationNotice,
+  textAttrs,
+} from '@/components/i18n/translation-notice';
+import { resolveArticleDisplay } from '@/lib/article-translation';
 import {
   fetchOrFallback,
   EMPTY_RELATED_PUBLICATIONS,
 } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { intlLocale } from '@/i18n/locale';
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 function initials(name: string): string {
   return name
@@ -53,14 +58,12 @@ export async function generateMetadata({
   return {
     title: pub.title,
     description: pub.abstract,
-    alternates: {
-      canonical: `${SITE}/${locale}/bibliotheque/${slug}`,
-      languages: {
-        fr: `${SITE}/fr/bibliotheque/${slug}`,
-        en: `${SITE}/en/bibliotheque/${slug}`,
-        'x-default': `${SITE}/fr/bibliotheque/${slug}`,
-      },
-    },
+    // `alternatesFor` dérive les hreflang de `routing.locales`. La table était
+    // écrite à la main avec fr et en : les trois langues ajoutées n'y seraient
+    // jamais apparues, et /es/bibliotheque/<slug> serait resté invisible aux
+    // moteurs. Le sitemap déclare déjà ces mêmes alternates par la même
+    // fonction — c'était le contrat annoncé par son en-tête.
+    alternates: alternatesFor(locale, `bibliotheque/${slug}`),
   };
 }
 
@@ -68,8 +71,10 @@ const WRAP = 'mx-auto w-full max-w-[1180px] px-4 sm:px-6';
 
 export default async function PublicationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
@@ -108,6 +113,57 @@ export default async function PublicationPage({
       ),
     EMPTY_RELATED_PUBLICATIONS,
   );
+
+  // TRADUCTION À LA LECTURE (cf. convex/translation.ts). La langue de rédaction
+  // est la PREMIÈRE de `languages` ; si le lecteur la partage, aucun bandeau.
+  // La lecture du cache est tolérante à la panne : une traduction manquante ne
+  // doit pas emporter une fiche déjà chargée.
+  const sp = await searchParams;
+  const loc = resolveLocale(locale);
+  const pubLang = resolveLocale(pub.languages[0]);
+  const cached =
+    pubLang === loc
+      ? null
+      : await fetchOrFallback(
+          'bibliotheque/[slug]:traduction',
+          () =>
+            fetchQuery(
+              api.translation.getTranslation,
+              {
+                sourceType: 'publication',
+                sourceId: pub._id,
+                targetLocale: loc,
+              },
+              { token },
+            ),
+          null,
+        );
+  const display = resolveArticleDisplay(
+    pubLang,
+    loc,
+    cached,
+    sp.original === '1',
+  );
+  // Le texte affiché et sa langue vont de pair. `keypoints` et `body` gardent
+  // leur découpage : le schéma de sortie de la traduction impose le MÊME
+  // nombre d'éléments, ce qui rend l'appariement sûr.
+  const shown =
+    display.kind === 'translated'
+      ? {
+          title: display.fields.title,
+          abstract: display.fields.abstract ?? pub.abstract,
+          keypoints: display.fields.keypoints ?? pub.keypoints,
+          body: display.fields.body,
+          lang: loc,
+        }
+      : {
+          title: pub.title,
+          abstract: pub.abstract,
+          keypoints: pub.keypoints,
+          body: pub.body,
+          lang: pubLang,
+        };
+  const attrs = textAttrs(shown.lang, loc);
 
   const citations = buildCitations(pub, locale);
   const doiUrl = `https://doi.org/${pub.doi}`;
@@ -158,8 +214,11 @@ export default async function PublicationPage({
                 {vocabulary(t, 'accessShort.', pub.access)}
               </span>
             </div>
-            <h1 className="max-w-[22ch] font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em]">
-              {pub.title}
+            <h1
+              {...attrs}
+              className="max-w-[22ch] font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em]"
+            >
+              {shown.title}
             </h1>
             <p className="mt-5 text-[15px] text-ink-soft">
               {td('by')}{' '}
@@ -183,18 +242,29 @@ export default async function PublicationPage({
       >
         {/* Article */}
         <article>
-          <Reveal>
+          <TranslationNotice
+            display={display}
+            readerLocale={loc}
+            sourceType="publication"
+            sourceId={pub._id}
+            pathname={`/bibliotheque/${slug}`}
+          />
+
+          <Reveal className="mt-8 block" as="div">
             <h2 className="font-display text-2xl">{td('abstract')}</h2>
-            <p className="mt-4 max-w-[68ch] font-display text-xl leading-relaxed text-ink">
-              {pub.abstract}
+            <p
+              {...attrs}
+              className="mt-4 max-w-[68ch] font-display text-xl leading-relaxed text-ink"
+            >
+              {shown.abstract}
             </p>
           </Reveal>
 
-          {pub.keypoints.length ? (
+          {shown.keypoints.length ? (
             <Reveal className="mt-12">
               <h2 className="font-display text-2xl">{td('keypoints')}</h2>
-              <ul className="mt-4 flex flex-col gap-3">
-                {pub.keypoints.map((kp) => (
+              <ul {...attrs} className="mt-4 flex flex-col gap-3">
+                {shown.keypoints.map((kp) => (
                   <li
                     key={kp}
                     className="relative max-w-[68ch] ps-7 text-base leading-relaxed text-ink-soft before:absolute before:start-0 before:top-2.5 before:h-2 before:w-2 before:rounded-full before:bg-accent"
@@ -226,11 +296,11 @@ export default async function PublicationPage({
             </Reveal>
           ) : null}
 
-          {pub.body.length ? (
+          {shown.body.length ? (
             <Reveal>
               <h2 className="font-display text-2xl">{td('extract')}</h2>
-              <div className="mt-4">
-                {pub.body.map((para) => (
+              <div {...attrs} className="mt-4">
+                {shown.body.map((para) => (
                   <p
                     key={para.slice(0, 24)}
                     className="mb-4 max-w-[68ch] font-display text-lg leading-[1.7] text-ink"

@@ -117,10 +117,16 @@ function extractUsage(body: unknown): GatewayUsage {
 
 // Appel unique, sortie contrainte par schéma JSON.
 //
+// LE NOM DIT CE QUE FAIT LA FONCTION, pas ce que fait l'appelant. Elle
+// s'appelait `runStructuredAnalysis` quand la modération éditoriale en était
+// le seul usage ; la traduction des contenus (convex/translation.ts) s'en sert
+// pour tout autre chose, avec le même contrat — une requête, un schéma, une
+// réponse ou un code d'échec.
+//
 // Ne lève jamais : tout échec sort en `{ ok: false, code }`. L'appelant est
-// une action qui doit, dans TOUS les cas, aller écrire une trace et laisser le
-// dépôt en file — une exception qui remonterait ferait perdre les deux.
-export async function runStructuredAnalysis(
+// une action qui doit, dans TOUS les cas, aller écrire une trace — une
+// exception qui remonterait la ferait perdre.
+export async function runStructured(
   req: GatewayRequest,
 ): Promise<GatewayResult> {
   const apiKey = process.env.AI_GATEWAY_API_KEY;

@@ -2,6 +2,11 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { authTables } from '@convex-dev/auth/server';
 import {
+  translatableFields,
+  translationSourceType,
+  translationStatus,
+} from './lib/translation';
+import {
   aiModerationMode,
   aiModerationSeverity,
   aiModerationVerdict,
@@ -17,18 +22,11 @@ export const networkRole = v.union(
   v.literal('admin'),
 );
 
-// Langues servies par le site. MIROIR de `routing.locales`
-// (src/i18n/routing.ts) : Convex ne peut pas importer un module de `src/`, donc
-// la liste est recopiée — et `tests/unit/i18n-locales.test.ts` compare les deux
-// pour qu'elles ne puissent pas diverger en silence. Élargir cette union est
-// rétrocompatible : les documents existants ne portent que 'fr' ou 'en'.
-export const locale = v.union(
-  v.literal('fr'),
-  v.literal('en'),
-  v.literal('es'),
-  v.literal('pt'),
-  v.literal('ar'),
-);
+// Le validateur de langue vit dans `./lib/locales` (cycle d'imports : la table
+// `contentTranslations` tire `./lib/translation`, qui en a besoin aussi). Il
+// reste ré-exporté ici : une dizaine de modules l'importent de `./schema`.
+import { locale } from './lib/locales';
+export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
 
 export default defineSchema({
   // Tables de Convex Auth (users, authSessions, authAccounts, ...).
@@ -639,6 +637,53 @@ export default defineSchema({
   // candidature). `titleKey` = clé i18n (namespace `notifications`), `params`
   // interpolés côté client ; `link` = chemin interne facultatif. Index composite
   // (user, read) : sert la liste par utilisateur ET le décompte des non-lues.
+  // TRADUCTIONS DES CONTENUS DÉPOSÉS PAR LES MEMBRES (billets de Tribune,
+  // publications). Une ligne par couple (contenu, langue de lecture).
+  //
+  // POURQUOI UNE TABLE À PART et pas des champs sur `tribunePosts` /
+  // `publications`. Cinq langues, deux familles de contenus : porter les
+  // traductions sur le document source le ferait grossir de cinq fois son
+  // texte, alors qu'une page n'en lit JAMAIS qu'une. Or ces documents sont lus
+  // partout — listes, facettes, fiches liées, file de modération — et Convex
+  // facture, comme il invalide, au document entier. C'est le raisonnement de
+  // `publicationViews` (issue #8), appliqué à un texte au lieu d'un compteur.
+  //
+  // `sourceId` est une CHAÎNE et non un `v.id` : la table couvre deux tables
+  // sources, et `sourceType` porte laquelle. Le même motif que
+  // `tribuneReports.targetId`.
+  //
+  // `sourceHash` est l'empreinte du texte AU MOMENT DE LA TRADUCTION
+  // (`sourceFingerprint`, convex/lib/translation.ts). Elle est relue à
+  // l'affichage : si l'auteur a corrigé son texte depuis, la traduction décrit
+  // une version qui n'existe plus, et la page sert l'original plutôt qu'un
+  // contenu périmé sans le dire.
+  //
+  // `status: 'failed'` EST CONSERVÉ, et ce n'est pas un oubli de nettoyage :
+  // sans ligne, l'interface ne saurait pas distinguer « jamais demandé » de
+  // « demandé, et la passerelle n'a pas répondu ». Le premier propose un
+  // bouton, le second explique et propose de réessayer.
+  contentTranslations: defineTable({
+    sourceType: translationSourceType,
+    sourceId: v.string(),
+    sourceLocale: locale,
+    targetLocale: locale,
+    sourceHash: v.string(),
+    status: translationStatus,
+    // Absent tant que `status` n'est pas 'ready'.
+    fields: v.optional(translatableFields),
+    model: v.optional(v.string()),
+    // Code d'échec de la passerelle (GATEWAY_ERRORS), affiché traduit.
+    error: v.optional(v.string()),
+    requestedBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    // Lecture d'une page : un contenu, une langue. C'est l'accès unique.
+    .index('by_source_and_target', ['sourceType', 'sourceId', 'targetLocale'])
+    // Purge des traductions d'un contenu supprimé (devAdmin), et affichage des
+    // langues déjà disponibles sous un article.
+    .index('by_source', ['sourceType', 'sourceId']),
+
   notifications: defineTable({
     userId: v.id('users'),
     type: v.string(),

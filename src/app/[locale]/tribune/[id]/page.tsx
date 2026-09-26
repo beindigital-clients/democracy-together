@@ -11,6 +11,12 @@ import { CommentForm } from '@/components/tribune/comment-form';
 import { ReportButton } from '@/components/tribune/report-button';
 import { ReactionButton } from '@/components/tribune/reaction-button';
 import { vocabulary } from '@/i18n/vocabulary';
+import {
+  TranslationNotice,
+  textAttrs,
+} from '@/components/i18n/translation-notice';
+import { resolveArticleDisplay } from '@/lib/article-translation';
+import { fetchOrFallback } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -24,10 +30,15 @@ async function load(id: string) {
   }
 }
 
-// Un billet de Tribune est rédigé dans UNE seule langue par son auteur et
-// n'est jamais traduit : /fr/tribune/<id> et /en/tribune/<id> servent le même
-// titre et le même corps, seul l'habillage change. D'où deux décisions (issue
-// #35), qui valent l'une pour l'autre :
+// Un billet de Tribune est rédigé dans UNE seule langue par son auteur. Il
+// peut désormais être TRADUIT À LA LECTURE (convex/translation.ts), et cela ne
+// change rien aux deux décisions ci-dessous — au contraire, cela les appuie :
+// une traduction automatique, non relue, affichée sous mention et révocable
+// d'un clic, n'est pas une version linguistique du billet. La déclarer aux
+// moteurs reviendrait à leur promettre un contenu éditorial qui n'existe pas,
+// et à faire indexer une page dont le texte peut changer au prochain modèle.
+//
+// D'où deux décisions (issue #35), qui valent l'une pour l'autre :
 //
 //  - AUCUN `languages` / hreflang. Un `hreflang="en"` promet une version
 //    anglaise ; sur un billet français, il en désigne une qui n'existe pas et
@@ -58,8 +69,10 @@ export async function generateMetadata({
 
 export default async function TribunePostPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale, id } = await params;
   setRequestLocale(locale);
@@ -70,6 +83,39 @@ export default async function TribunePostPage({
   const t = await getTranslations('tribune');
   const tl = await getTranslations('library');
   const postLang = resolveLocale(post.lang);
+
+  // TRADUCTION À LA LECTURE. Le billet est rédigé dans une seule langue ; quand
+  // ce n'est pas celle de la page, on cherche une traduction en cache et, à
+  // défaut, on propose de la demander. La lecture est TOLÉRANTE À LA PANNE
+  // (`fetchOrFallback`) : Convex injoignable rend un billet sans bandeau, pas
+  // une page en erreur — l'original reste lisible, c'est ce qui compte.
+  const sp = await searchParams;
+  const wantsOriginal = sp.original === '1';
+  const cached =
+    postLang === loc
+      ? null
+      : await fetchOrFallback(
+          'tribune/traduction',
+          () =>
+            fetchQuery(api.translation.getTranslation, {
+              sourceType: 'tribunePost',
+              sourceId: id,
+              targetLocale: loc,
+            }),
+          null,
+        );
+  const display = resolveArticleDisplay(postLang, loc, cached, wantsOriginal);
+  // Le texte AFFICHÉ et sa langue vont de pair : les dissocier, c'est poser
+  // `lang="fr"` sur un texte arabe au premier refactor.
+  const shown =
+    display.kind === 'translated'
+      ? {
+          title: display.fields.title,
+          body: display.fields.body.join('\n\n'),
+          lang: loc,
+        }
+      : { title: post.title, body: post.body, lang: postLang };
+  const attrs = textAttrs(shown.lang, loc);
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(intlLocale(loc), {
@@ -105,10 +151,10 @@ export default async function TribunePostPage({
             la page, le dire à l'assistance technique, sans quoi un lecteur
             d'écran lit un texte anglais avec la voix française (issue #35). */}
         <h1
-          lang={postLang !== loc ? postLang : undefined}
+          {...attrs}
           className="mt-3 font-display text-[clamp(26px,3.6vw,40px)] font-medium leading-[1.1] tracking-[-0.015em]"
         >
-          {post.title}
+          {shown.title}
         </h1>
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted">
           <span>{post.authorName}</span>
@@ -119,11 +165,19 @@ export default async function TribunePostPage({
         </div>
       </header>
 
+      <TranslationNotice
+        display={display}
+        readerLocale={loc}
+        sourceType="tribunePost"
+        sourceId={id}
+        pathname={`/tribune/${id}`}
+      />
+
       <div
-        lang={postLang !== loc ? postLang : undefined}
+        {...attrs}
         className="mt-6 whitespace-pre-line text-[17px] leading-relaxed text-ink-soft"
       >
-        {post.body}
+        {shown.body}
       </div>
 
       {/* Soutien (réaction « like ») */}
