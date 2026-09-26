@@ -50,6 +50,30 @@ function UsersTable() {
   const setRole_ = useMutation(api.users.setRole);
   const notify = useActionFeedback();
 
+  // GELER LA LISTE PENDANT QU'UNE CONFIRMATION EST OUVERTE.
+  //
+  // La boîte de confirmation vit DANS une ligne : si la ligne disparaît, la
+  // boîte part avec, au milieu du geste. `useConnu` a fermé le premier chemin
+  // — le clignotement de `users.current`. Il en restait un second, et la CI
+  // l'a montré : la recherche est TEMPORISÉE, donc frapper puis cliquer
+  // « Appliquer » dans la foulée laisse partir la requête pendant que la boîte
+  // est ouverte. Les arguments de la query changent, `status` repasse à
+  // `LoadingFirstPage`, la liste se vide, la confirmation s'évanouit.
+  //
+  // On fige donc les lignes AFFICHÉES le temps de la confirmation. La fenêtre
+  // est courte et bornée par un geste de l'utilisateur : rien ne peut y
+  // vieillir longtemps, et la liste repart fraîche dès la fermeture — y
+  // compris après un changement accepté, dont la valeur arrive alors.
+  //
+  // Une seule boîte à la fois : le voile couvre l'écran et intercepte les
+  // clics, donc un booléen suffit là où un compteur ne servirait qu'à
+  // décrire une situation impossible.
+  const [gel, setGel] = useState<typeof users | null>(null);
+  const lignes = gel ?? users;
+  function signalerConfirmation(ouverte: boolean) {
+    setGel(ouverte ? users : null);
+  }
+
   // Appelée depuis `RoleSelector`, donc APRÈS « Appliquer » puis confirmation
   // (issue #38) : la molette au-dessus de la liste déroulante n'arrive plus
   // jusqu'ici. Rend `true` si le serveur a accepté.
@@ -103,9 +127,9 @@ function UsersTable() {
         </SelectField>
       </div>
 
-      {status === 'LoadingFirstPage' || !me ? (
+      {(status === 'LoadingFirstPage' && gel === null) || !me ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
-      ) : users.length === 0 ? (
+      ) : lignes.length === 0 ? (
         <p className="mt-6 text-ink-soft">
           {filtering ? t('noResults') : t('noUsers')}
         </p>
@@ -120,7 +144,7 @@ function UsersTable() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => {
+              {lignes.map((u) => {
                 const isSelf = u._id === me._id;
                 const name = u.email ?? u.name ?? u._id;
                 return (
@@ -136,6 +160,7 @@ function UsersTable() {
                         locked={isSelf}
                         lockedReason={isSelf ? t('selfRoleLocked') : undefined}
                         onApply={(next) => changeRole(u._id, name, next)}
+                        onConfirmation={signalerConfirmation}
                       />
                     </td>
                   </tr>

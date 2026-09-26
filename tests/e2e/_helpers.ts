@@ -381,6 +381,24 @@ export async function chercherUtilisateur(
   await page
     .getByRole('searchbox', { name: 'Rechercher un utilisateur' })
     .fill(email);
+
+  // CE HELPER N'ATTEND PAS QUE LE FILTRE SOIT APPLIQUÉ, ET NE LE PEUT PAS.
+  //
+  // La tentation est réelle, parce que « la ligne existe » est vrai D'AVANCE
+  // sur une base presque vide — celle d'une préversion de CI —, où le compte
+  // figure en première page sans aucun filtre. La recherche TEMPORISÉE part
+  // alors pendant la suite du parcours.
+  //
+  // Mais « le filtre est appliqué » ne s'observe pas ici : `admin:listUsers`
+  // cherche par index PLEIN TEXTE, donc tokenisé. Une adresse de test partage
+  // « democracytogether » et « test » avec toutes les autres : la liste
+  // filtrée en garde des dizaines. Mesuré — 50 lignes restantes là où une
+  // assertion « plus aucune ligne étrangère » en attendait une.
+  //
+  // La course est donc neutralisée À LA SOURCE, côté produit : la liste est
+  // gelée tant qu'une confirmation est ouverte (`utilisateurs/page.tsx`), si
+  // bien qu'une requête qui revient entre-temps ne peut plus emporter la boîte.
+  // Ce helper n'a rien à compenser.
   await expect(
     page.getByRole('row').filter({ hasText: email }),
     `compte introuvable après recherche : ${email}`,
