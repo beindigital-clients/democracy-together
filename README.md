@@ -11,6 +11,7 @@ Plateforme numérique : portail éditorial public + espace membres + back-office
 | i18n | next-intl (FR/EN par URL ; pt s'ajoute tel quel, ar demande le RTL — #23) |
 | Application / données / temps réel | Convex (+ Convex Auth) |
 | CMS éditorial | Sanity (Studio monté sur `/studio`) |
+| Modération assistée | Vercel AI Gateway (`/v1/responses`, sans SDK) — facultative, éteinte par défaut |
 | Tests | Vitest (+ convex-test) · Playwright |
 
 Décision de stack et périmètre : voir `Democracy-Together-fonctionnalites.md`
@@ -145,6 +146,13 @@ pull request (`.github/workflows/e2e.yml`).
   donnée fournie par l'appelant.
 - Rate-limit applicatif et journal d'audit (`convex/lib/rateLimit.ts`,
   `convex/lib/audit.ts`, écran `/admin/journal`).
+- **Modération éditoriale assistée par IA** (`convex/aiModeration.ts`,
+  `/admin/moderation-ia`) : facultative, **éteinte par défaut**, et
+  fail-closed dans le sens qui convient à une décision de publication — clé
+  absente, passerelle en panne ou réponse illisible renvoient le dépôt en file
+  HUMAINE, jamais en ligne. Le modèle rend un avis ; c'est le serveur qui
+  décide, en relisant le mode, le périmètre et le statut dans la transaction
+  qui écrit. Cadrage complet : `docs/moderation-ia.md`.
 - **`AUTH_DEV_OTP` ne doit JAMAIS être défini en production.** Ce drapeau ouvre
   toute la surface de développement d'un coup : chaque code de connexion OTP est
   écrit **en clair** dans `devOtpCodes` et relisible, les sept oracles de lecture
@@ -186,7 +194,8 @@ src/
   messages/          fr.json · en.json
   proxy.ts           middleware Next : auth Convex + routage de langue
 convex/              backend ÉCRIT À LA MAIN : schema, auth, fonctions, crons
-  lib/               rbac, audit, rate-limit, reCAPTCHA, validation, slug
+  lib/               rbac, audit, rate-limit, reCAPTCHA, validation, slug,
+                     aiModeration (barème + décision, pur) · aiGateway (appel)
   _generated/        seul dossier produit par `convex dev` (versionné, cf. supra)
 sanity/              schémas, client (CMS éditorial)
 tests/

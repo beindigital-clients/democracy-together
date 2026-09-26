@@ -129,6 +129,22 @@ async function recomputeKey(
           .withIndex('by_status', (q) => q.eq('status', 'pending')),
         key,
       );
+    case COUNTER.AI_REVIEWS:
+      return await countRows(ctx.db.query('aiModerationReviews'), key);
+    case COUNTER.AI_REVIEWS_PUBLISHED:
+      return await countRows(
+        ctx.db
+          .query('aiModerationReviews')
+          .withIndex('by_applied', (q) => q.eq('applied', 'published')),
+        key,
+      );
+    case COUNTER.AI_REVIEWS_ESCALATED:
+      return await countRows(
+        ctx.db
+          .query('aiModerationReviews')
+          .withIndex('by_applied', (q) => q.eq('applied', 'escalated')),
+        key,
+      );
   }
 }
 

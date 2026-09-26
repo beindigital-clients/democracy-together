@@ -23,6 +23,18 @@ export const AUDIT = {
   YOUTH_REOPENED: 'youth.reopened',
   MENTORSHIP_REOPENED: 'mentorship.reopened',
   PROJECT_REOPENED: 'project.reopened',
+  // Modération assistée par IA (convex/aiModeration.ts). Trois actions
+  // DISTINCTES, et la distinction n'est pas décorative : « analysé » se
+  // produit à chaque dépôt, « publié par l'IA » est le seul moment où un
+  // texte passe en ligne sans qu'un humain l'ait lu, et « remis en file »
+  // est la sortie arrière de ce moment-là. Les fondre en une action
+  // rendrait invisible, dans le journal, la seule qui engage l'association.
+  PUBLICATION_AI_REVIEWED: 'publication.ai_reviewed',
+  PUBLICATION_AI_PUBLISHED: 'publication.ai_published',
+  PUBLICATION_AI_REVERTED: 'publication.ai_reverted',
+  // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
+  AI_MODERATION_CONFIGURED: 'aiModeration.configured',
+  AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

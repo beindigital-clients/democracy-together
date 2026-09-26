@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as aiModeration from "../aiModeration.js";
 import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
@@ -22,6 +23,8 @@ import type * as experts from "../experts.js";
 import type * as http from "../http.js";
 import type * as impact from "../impact.js";
 import type * as journal from "../journal.js";
+import type * as lib_aiGateway from "../lib/aiGateway.js";
+import type * as lib_aiModeration from "../lib/aiModeration.js";
 import type * as lib_audit from "../lib/audit.js";
 import type * as lib_auditActions from "../lib/auditActions.js";
 import type * as lib_directory from "../lib/directory.js";
@@ -54,6 +57,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiModeration: typeof aiModeration;
   admin: typeof admin;
   auth: typeof auth;
   bootstrap: typeof bootstrap;
@@ -68,6 +72,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   impact: typeof impact;
   journal: typeof journal;
+  "lib/aiGateway": typeof lib_aiGateway;
+  "lib/aiModeration": typeof lib_aiModeration;
   "lib/audit": typeof lib_audit;
   "lib/auditActions": typeof lib_auditActions;
   "lib/directory": typeof lib_directory;

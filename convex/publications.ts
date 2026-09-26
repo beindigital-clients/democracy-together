@@ -2,12 +2,14 @@ import { v } from 'convex/values';
 import { paginationOptsValidator } from 'convex/server';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { query, mutation, type QueryCtx } from './_generated/server';
+import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { requireNetworkRole, getCurrentUser, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { assertTransition, type ReviewMachine } from './lib/reviewState';
+import { aiModerationApplied, aiModerationVerdict } from './lib/aiModeration';
 import {
   enforceRateLimit,
   consumePublicationViewQuota,
@@ -365,6 +367,32 @@ export const submitPublication = mutation({
       targetId: id,
       metadata: { type: args.type, theme: args.theme },
     });
+
+    // Modération assistée par IA (convex/aiModeration.ts) — PLANIFIÉE, jamais
+    // appelée ici. Trois raisons, dans cet ordre :
+    //
+    //  1. une mutation Convex n'a pas `fetch` : l'appel au modèle ne peut
+    //     vivre que dans une action ;
+    //  2. le membre qui dépose n'a pas à attendre l'arbitrage. Sa soumission
+    //     est acquise à l'insertion, quoi qu'il advienne ensuite ;
+    //  3. si l'analyse échoue, le dépôt reste simplement `pending` — l'état
+    //     dans lequel cette mutation vient de l'écrire. L'échec du dispositif
+    //     ramène donc au comportement d'avant le dispositif, jamais à une
+    //     publication.
+    //
+    // La lecture du mode ici n'est pas une garde de sécurité (`runReview` le
+    // revérifie) : elle évite simplement de planifier une action dont on sait
+    // déjà qu'elle n'aura rien à faire.
+    const aiConfig = await ctx.db
+      .query('aiModerationConfig')
+      .withIndex('by_key', (q) => q.eq('key', 'default'))
+      .unique();
+    if (aiConfig && aiConfig.mode !== 'off') {
+      await ctx.scheduler.runAfter(0, internal.aiModeration.runReview, {
+        publicationId: id,
+      });
+    }
+
     return { id, slug };
   },
 });
@@ -432,6 +460,25 @@ const reviewItemValidator = v.object({
   authorEmail: v.union(v.string(), v.null()),
   fileName: v.union(v.string(), v.null()),
   fileUrl: v.union(v.string(), v.null()),
+  // Avis IA — RÉSUMÉ seulement (verdict, décision, nombre de signaux). Le
+  // détail (constats, extraits cités) se lit par `aiModeration.getReview`, sur
+  // la ligne qu'un modérateur ouvre : le charger pour cent lignes rendrait la
+  // file plus lourde que ce qu'elle affiche.
+  aiReview: v.union(
+    v.object({
+      verdict: aiModerationVerdict,
+      applied: aiModerationApplied,
+      reason: v.string(),
+      confidence: v.number(),
+      blocking: v.number(),
+      warnings: v.number(),
+      at: v.number(),
+    }),
+    v.null(),
+  ),
+  // Mise en ligne SANS relecture humaine : la file le dit, et c'est ce qui
+  // ouvre « remettre en file ».
+  autoPublished: v.boolean(),
 });
 
 // CHERCHABLE (issue #49) : le titre, par index plein texte, avec le statut
@@ -498,6 +545,8 @@ export const listForReview = query({
             null,
           fileName: p.fileName ?? null,
           fileUrl: p.fileId ? await ctx.storage.getUrl(p.fileId) : null,
+          aiReview: p.aiReview ?? null,
+          autoPublished: p.autoPublished === true,
         })),
       ),
     };
@@ -673,6 +722,67 @@ export const reopenPublicationReview = mutation({
       action: AUDIT.PUBLICATION_REOPENED,
       targetId: publicationId,
       metadata: { from },
+    });
+    return { ok: true };
+  },
+});
+
+// Remise en file d'une publication mise en ligne par l'IA (modérateur+, audité).
+//
+// POURQUOI CETTE SORTIE EXISTE, alors que `published` est un cul-de-sac.
+//
+// La machine ci-dessus ferme `published` pour une raison précise : dépublier
+// un document déjà en ligne et déjà indexé est un RETRAIT DE CATALOGUE, qui
+// attend l'état `archived` de l'issue #32 — pas l'effet de bord d'un second
+// clic sur un bouton de revue.
+//
+// Une publication automatique n'est pas ce cas-là. Personne ne l'a lue : le
+// premier regard humain n'INVERSE pas une décision, il est la décision —
+// celle que le dispositif a anticipée. Refuser ce retour reviendrait à rendre
+// l'arbitrage du modèle plus définitif que celui d'un modérateur, dont les
+// refus, eux, se rouvrent (`reopenPublicationReview`).
+//
+// La porte est donc étroite, et trois clefs la tiennent ensemble :
+//   - `autoPublished === true` — un document validé par un humain, même
+//     approuvé après un avis IA, n'entre pas ici ;
+//   - `status === 'published'` — on ne « remet en file » que ce qui est
+//     en ligne ;
+//   - le drapeau est RETIRÉ au passage : la sortie ne sert qu'une fois, et
+//     la décision qui suivra sera humaine, donc définitive au sens de la
+//     machine.
+//
+// Auditée sous son action propre (`publication.ai_reverted`) : le journal doit
+// pouvoir montrer la séquence complète — publiée par l'IA, retirée par un
+// humain, puis tranchée — sans que les trois se confondent.
+export const revertAutoPublication = mutation({
+  args: { publicationId: v.id('publications') },
+  returns: v.object({ ok: v.boolean() }),
+  handler: async (ctx, { publicationId }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub) throw new Error('NOT_FOUND');
+    if (pub.autoPublished !== true || pub.status !== 'published') {
+      throw new Error('INVALID_TRANSITION');
+    }
+
+    await ctx.db.patch(publicationId, {
+      status: 'pending',
+      autoPublished: false,
+      // `reviewedAt` posé par l'IA est EFFACÉ : le laisser ferait lire un
+      // `pending` comme un dossier déjà tranché — exactement la confusion que
+      // `reviewState` doit éviter sur les brouillons refusés.
+      reviewedAt: undefined,
+    });
+    await trackPublicationStatus(ctx, 'published', 'pending');
+
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.PUBLICATION_AI_REVERTED,
+      targetId: publicationId,
+      metadata: {
+        reason: pub.aiReview?.reason ?? null,
+        confidence: pub.aiReview?.confidence ?? null,
+      },
     });
     return { ok: true };
   },
