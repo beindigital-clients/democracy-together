@@ -13,6 +13,7 @@ import { RoleSelector } from '@/components/admin/role-selector';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { useConnu } from '@/hooks/use-connu';
 
 // Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 50;
@@ -41,7 +42,11 @@ function UsersTable() {
     },
     { initialNumItems: PAGE_SIZE },
   );
-  const me = useQuery(api.users.current);
+  // `useConnu` : un clignotement de cette query ne doit pas DÉMONTER le
+  // tableau. Il emporterait avec lui la boîte de dialogue de confirmation
+  // ouverte dans une ligne — constaté en CI, le bouton « Changer le rôle »
+  // détaché du DOM pendant qu'on le cliquait.
+  const me = useConnu(useQuery(api.users.current));
   const setRole_ = useMutation(api.users.setRole);
   const notify = useActionFeedback();
 
@@ -148,7 +153,10 @@ function UsersTable() {
 
 export default function AdminUsers() {
   const t = useTranslations('admin');
-  const me = useQuery(api.users.current);
+  // Même raison qu'au-dessus, et l'enjeu est ici le sous-arbre ENTIER :
+  // sans cela, un clignotement démonte le formulaire d'invitation et le
+  // tableau d'un coup, saisie en cours comprise.
+  const me = useConnu(useQuery(api.users.current));
 
   if (me === undefined) {
     return <p className="mt-6 text-ink-soft">{t('loading')}</p>;

@@ -170,10 +170,15 @@ test.describe('recherche des listes (session dédiée)', () => {
     await expect(row).toHaveCount(1);
     await row.getByLabel(`Rôle ${email}`).selectOption('moderateur');
     await row.getByRole('button', { name: 'Appliquer' }).click();
-    await page
-      .getByRole('dialog', { name: `Changer le rôle de ${email} ?` })
-      .getByRole('button', { name: 'Changer le rôle' })
-      .click();
+    // On ATTEND le dialogue avant de viser son bouton, comme le fait
+    // `admin-confirmations.spec.ts`. Viser directement mélange deux échecs
+    // sous un même message : « la confirmation ne s'est pas ouverte » et « le
+    // bouton n'était pas cliquable ». Le second a coûté une campagne.
+    const confirmation = page.getByRole('dialog', {
+      name: `Changer le rôle de ${email} ?`,
+    });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Changer le rôle' }).click();
     await expect(page.getByLabel(`Rôle ${email}`)).toHaveValue('moderateur');
 
     await openScreen(page, '/fr/admin/journal', "Journal d'activité");
