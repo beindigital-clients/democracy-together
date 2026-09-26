@@ -12,6 +12,7 @@ import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActionFeedback } from '@/components/admin/action-feedback';
+import { AiVerdictPanel } from '@/components/admin/ai-verdict';
 import { vocabulary } from '@/i18n/vocabulary';
 
 type ReviewItem = FunctionReturnType<
@@ -26,9 +27,15 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
   const tl = useTranslations('library');
   const review = useMutation(api.publications.reviewPublication);
   const reopen = useMutation(api.publications.reopenPublicationReview);
+  const analyze = useMutation(api.aiModeration.requestReview);
+  const revert = useMutation(api.publications.revertAutoPublication);
   const notify = useActionFeedback();
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
+  // Retirer de la bibliothèque un document déjà en ligne passe par une
+  // confirmation nommée, comme le refus : c'est l'action la plus visible de
+  // cet écran vers l'extérieur.
+  const [confirmingRevert, setConfirmingRevert] = useState(false);
   // Le REJET passe par une confirmation qui nomme la publication visée
   // (issue #38) : sur une file où les lignes se ressemblent, un clic d'une
   // ligne trop bas se voyait seulement au départ de la mauvaise entrée.
@@ -76,6 +83,38 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
     }
   }
 
+  // Analyse à la demande — pour un dépôt arrivé alors que le dispositif était
+  // éteint, ou à réexaminer après un durcissement du barème. Le serveur
+  // respecte le mode : si le dispositif est désactivé, rien n'est planifié et
+  // l'écran le dit, plutôt que de laisser croire à une analyse en cours.
+  async function requestAiReview() {
+    setPending(true);
+    try {
+      const { scheduled } = await analyze({ publicationId: pub._id });
+      notify(
+        scheduled ? t('aiAnalyzeScheduled') : t('aiAnalyzeDisabled'),
+        scheduled ? 'success' : 'error',
+      );
+    } catch {
+      notify(t('feedbackError'), 'error');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function revertAuto() {
+    setPending(true);
+    try {
+      await revert({ publicationId: pub._id });
+      setConfirmingRevert(false);
+      notify(t('aiRevertDone', { title: pub.title }));
+    } catch {
+      notify(t('feedbackError'), 'error');
+    } finally {
+      setPending(false);
+    }
+  }
+
   const meta = [
     pub.authorEmail,
     vocabulary(tl, 'types.', pub.type),
@@ -96,9 +135,14 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
           </div>
           <p className="mt-1 text-sm text-ink-soft">{meta}</p>
         </div>
-        <Badge variant={pub.status === 'pending' ? 'accent' : 'default'}>
-          {vocabulary(t, 'pubStatus_', pub.status)}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          {pub.autoPublished ? (
+            <Badge variant="outline">{t('aiAutoPublishedBadge')}</Badge>
+          ) : null}
+          <Badge variant={pub.status === 'pending' ? 'accent' : 'default'}>
+            {vocabulary(t, 'pubStatus_', pub.status)}
+          </Badge>
+        </div>
       </div>
 
       <p className="mt-3 max-w-[72ch] text-sm leading-relaxed text-ink-soft">
@@ -121,6 +165,8 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
         )}
       </p>
 
+      <AiVerdictPanel publicationId={pub._id} review={pub.aiReview} />
+
       {pub.status === 'pending' ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Input
@@ -139,6 +185,13 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
             disabled={pending}
           >
             {t('reject')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={requestAiReview}
+            disabled={pending}
+          >
+            {t('aiAnalyze')}
           </Button>
 
           <ConfirmDialog
@@ -170,6 +223,32 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
             >
               {t('reopen')}
             </Button>
+          ) : null}
+          {/* Sortie arrière RÉSERVÉE aux mises en ligne automatiques : une
+              publication approuvée par un humain n'a pas ce bouton, son
+              retrait relève du catalogue (issue #32). */}
+          {pub.autoPublished ? (
+            <>
+              <Button
+                variant="outline"
+                className="mt-3"
+                disabled={pending}
+                onClick={() => setConfirmingRevert(true)}
+              >
+                {t('aiRevert')}
+              </Button>
+              <ConfirmDialog
+                open={confirmingRevert}
+                title={t('aiConfirmRevertTitle', { title: pub.title })}
+                description={t('aiConfirmRevertBody')}
+                confirmLabel={t('aiConfirmRevertConfirm')}
+                cancelLabel={t('confirmCancel')}
+                destructive
+                pending={pending}
+                onConfirm={revertAuto}
+                onCancel={() => setConfirmingRevert(false)}
+              />
+            </>
           ) : null}
         </>
       )}

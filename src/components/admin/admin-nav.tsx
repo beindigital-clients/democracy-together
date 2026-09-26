@@ -97,6 +97,21 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       { href: '/admin/newsletter', key: 'newsletter' },
     ],
   },
+  // L'automatisation est un groupe à part, et réservé à l'administrateur.
+  //
+  // Deux découpages se discutaient : ranger « Modération IA » sous
+  // « Modération », là où travaillent les modérateurs, ou lui donner son
+  // groupe. Le premier aurait montré à un modérateur une entrée que le
+  // serveur lui refuse — la navigation cesserait de dire la vérité sur ce
+  // qu'on peut ouvrir. Et ce que règle cet écran n'est pas une modération :
+  // c'est la décision de s'en passer. L'AVIS de l'IA, lui, reste là où on
+  // modère — dans la file de /admin/publications, que voit tout le staff.
+  {
+    key: 'automatisation',
+    labelKey: 'navGroup_automatisation',
+    minRole: 'admin',
+    items: [{ href: '/admin/moderation-ia', key: 'aiModeration' }],
+  },
   {
     key: 'comptes',
     labelKey: 'navGroup_comptes',

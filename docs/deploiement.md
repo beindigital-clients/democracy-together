@@ -69,6 +69,7 @@ côté client. Elles sont lues par les fonctions Convex.
 | `AUTH_EMAIL_FROM` | expéditeur, ex. `Democracy Together <no-reply@…>` | recommandé |
 | `AUTH_EMAIL_PROVIDER` | `resend` (défaut déduit de la clé) | non |
 | `RECAPTCHA_SECRET_KEY` | vérification serveur du jeton reCAPTCHA v3 | **oui** (voir § 1.4) |
+| `AI_GATEWAY_API_KEY` | passerelle Vercel AI Gateway, pour la modération assistée par IA | non — sans elle, la modération reste entièrement humaine (voir § 1.5) |
 | `BOOTSTRAP_ADMIN_EMAIL` | adresse autorisée à devenir le **premier** administrateur | le temps de l'amorçage seulement (§ 5) |
 | `AUTH_DEV_OTP` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** | — |
 | `RECAPTCHA_DISABLED` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** (contournement de dev) | — |
@@ -143,6 +144,47 @@ npx convex env set RECAPTCHA_DISABLED true   # dev / préversion UNIQUEMENT
 S'y ajoutent des plafonds **non forgeables** (`enforcePublicFormLimit`) : par IP
 et globaux par formulaire, indépendants de toute donnée fournie par l'appelant.
 Rien à configurer, mais c'est ce qui rend le quota réel.
+
+### 1.5 Modération assistée par IA : facultative, et éteinte par défaut
+
+`AI_GATEWAY_API_KEY` alimente la modération éditoriale assistée
+(`convex/aiModeration.ts`, cadrage complet dans `docs/moderation-ia.md`). Elle
+se pose comme les autres, sur le **déploiement Convex** — la clé ne transite
+jamais par le navigateur :
+
+```bash
+npx convex env set AI_GATEWAY_API_KEY vck_xxxxxxxx
+```
+
+Trois points qui distinguent cette variable des précédentes :
+
+1. **elle n'est pas obligatoire.** Sans elle, aucun dépôt n'est analysé et la
+   file de modération fonctionne comme avant — c'est-à-dire entièrement à la
+   main. Un déploiement qui ne veut pas de ce dispositif n'a rien à faire ;
+2. **son absence ne publie jamais rien.** Contrairement à reCAPTCHA, où
+   « fail-closed » veut dire *rejeter*, ici il veut dire *laisser à un
+   humain* : clé absente, passerelle injoignable ou réponse illisible
+   renvoient le dépôt dans la file. Le pire cas du dispositif est son
+   inexistence ;
+3. **la clé ne suffit pas à l'armer.** Le mode est réglé dans
+   `/admin/moderation-ia`, et vaut `off` tant qu'un administrateur ne l'a pas
+   changé. Poser la clé ouvre la possibilité, pas la fonction.
+
+Le plafond de dépense vit dans le même écran (« plafond d'appels par
+24 heures ») et non dans une variable : il se change sans redéploiement, et
+son dépassement renvoie les dépôts en file au lieu de les publier en aveugle.
+
+Avant de poser la clé, un aller-retour réel avec la passerelle se vérifie en
+une commande — elle n'écrit rien et coûte deux appels :
+
+```bash
+AI_GATEWAY_API_KEY=vck_xxx node scripts/verifier-passerelle-ia.mjs
+```
+
+C'est la seule vérification que la CI ne peut pas jouer (elle simule la
+passerelle). Elle contrôle le transport, la sortie contrainte par schéma, la
+lecture de la réponse, puis — sur un texte volontairement fautif — que le
+barème est réellement appliqué.
 
 ---
 

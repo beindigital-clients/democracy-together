@@ -20,7 +20,8 @@ test.use({ locale: 'fr-FR' });
 
 const PHONE = { width: 412, height: 839 };
 
-// Les quatorze entrées de l'issue, telles qu'elles s'affichent.
+// Les quatorze entrées de l'issue, telles qu'elles s'affichent, plus la
+// quinzième arrivée depuis (« Modération IA »).
 const ALL_ITEMS = [
   'Tableau de bord',
   'Impact',
@@ -34,6 +35,7 @@ const ALL_ITEMS = [
   'Événements',
   'Comité de lecture',
   'Newsletter',
+  'Modération IA',
   'Utilisateurs',
   'Journal',
 ];
@@ -43,6 +45,7 @@ const GROUPS = [
   'Modération',
   'Programmes',
   'Édition',
+  'Automatisation',
   'Comptes et audit',
 ];
 
@@ -97,7 +100,7 @@ test.afterEach(async ({ context }) => {
 test.describe('navigation du back-office sur téléphone (session dédiée)', () => {
   test.use({ storageState: SESSIONS.adminNav.state, viewport: PHONE });
 
-  test('back-office : les 14 entrées tiennent sans défilement horizontal (F-26)', async ({
+  test('back-office : les 15 entrées tiennent sans défilement horizontal (F-26)', async ({
     page,
   }) => {
     await page.goto('/fr/admin');

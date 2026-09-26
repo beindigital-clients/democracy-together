@@ -79,6 +79,12 @@ const SCREENS = [
     min: 'editeur',
   },
   {
+    path: '/fr/admin/moderation-ia',
+    nav: 'Modération IA',
+    h1: 'Modération assistée par IA',
+    min: 'admin',
+  },
+  {
     path: '/fr/admin/utilisateurs',
     nav: 'Utilisateurs',
     h1: 'Utilisateurs',
@@ -144,7 +150,7 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
     for (const group of ['Pilotage', 'Modération', 'Programmes']) {
       await expect(tabs.getByRole('list', { name: group })).toBeVisible();
     }
-    for (const group of ['Édition', 'Comptes et audit']) {
+    for (const group of ['Édition', 'Automatisation', 'Comptes et audit']) {
       await expect(tabs.getByRole('list', { name: group })).toHaveCount(0);
     }
     await expect(tabs.getByRole('list')).toHaveCount(3);

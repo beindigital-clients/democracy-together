@@ -317,6 +317,91 @@ rendraient la comparaison tenable — alors références en LFS (pas en blobs gi
 tolérance explicite, animations coupées, et job en déclenchement manuel sur le
 modèle d'`e2e.yml`.
 
+## Modération assistée par IA — éprouver le dispositif
+
+Quatre fichiers couvrent la fonctionnalité **sans réseau** (`fetch` simulé) et
+tournent dans `pnpm test` :
+
+| Fichier | Ce qu'il prouve |
+|---|---|
+| `tests/unit/ai-moderation.test.ts` | la table de vérité de la décision : on part du seul cas qui publie, et on casse une condition à la fois |
+| `convex/aiModeration.test.ts` | l'orchestration : fail-closed, plafond, chaque mode, concurrence, pièce jointe, droits |
+| `convex/aiModeration.scenario.test.ts` | les parcours complets, par les seules fonctions publiques — l'assertion finale interroge la bibliothèque **non authentifié** |
+| `tests/unit/ai-moderation-ui.test.tsx` | les écrans, montés avec les vrais catalogues FR et EN |
+
+```bash
+pnpm exec vitest run convex/aiModeration convex/aiModeration.scenario tests/unit/ai-moderation
+```
+
+### Ce que la CI ne peut pas jouer
+
+Aucun de ces tests n'appelle la passerelle : ils prouvent la chaîne **autour**
+du modèle, pas que Vercel accepte notre requête. Trois niveaux, du moins cher
+au plus complet.
+
+**1 — L'aller-retour réel (une clé, aucune autre installation).** N'écrit rien,
+coûte deux appels :
+
+```bash
+AI_GATEWAY_API_KEY=vck_xxx node scripts/verifier-passerelle-ia.mjs
+```
+
+Le premier appel contrôle le transport, la sortie contrainte par schéma et la
+lecture de la réponse ; le second soumet un texte volontairement fautif et
+**exige** les signaux correspondants. Sans ce second appel, un modèle qui
+répondrait « conforme » à tout passerait pour fonctionnel.
+
+**2 — Le banc d'essai, dans l'écran.** C'est le moyen le plus rapide d'exercer
+le VRAI modèle contre le VRAI barème : il ne demande ni dépôt, ni compte
+membre, et n'écrit aucune ligne d'avis.
+
+```bash
+npx convex dev                                    # provisionne et remplit .env.local
+npx convex env set AI_GATEWAY_API_KEY vck_xxx     # sur le DÉPLOIEMENT, jamais dans .env.local
+npx convex env set AUTH_DEV_OTP true              # dev uniquement — ouvre les helpers ci-dessous
+pnpm dev
+```
+
+Créez un compte par l'interface, promouvez-le, puis ouvrez
+`/fr/admin/moderation-ia` :
+
+```bash
+npx convex run devAdmin:setRoleByEmail '{"email":"vous@exemple.org","role":"admin"}'
+```
+
+L'écran dit en tête si la clé est vue par le déploiement. Écrivez un critère,
+collez un texte conforme puis un texte fautif dans le banc d'essai, et vérifiez
+que le signal tombe là où vous l'attendez. **Un critère qui ne se déclenche
+jamais est mal formulé, pas inutile.**
+
+**3 — Le parcours de bout en bout.** Il faut deux comptes : l'administrateur
+ci-dessus, et un membre.
+
+```bash
+npx convex run devAdmin:setRoleByEmail '{"email":"membre@exemple.org","role":"membre"}'
+```
+
+Dans `/fr/admin/moderation-ia` : mode **Auto-publication**, et cochez au moins
+un type dans le périmètre — le périmètre vide est le défaut, et il bloque tout
+même en mode auto. Puis, connecté comme membre, déposez sur
+`/fr/espace-membre/deposer`.
+
+Ce qu'on observe :
+
+- un dépôt conforme apparaît dans `/fr/bibliotheque` en quelques secondes, et
+  la file `/admin/publications` le marque « publiée sans relecture humaine » ;
+- un dépôt fautif reste dans la file, le signal y est détaillé avec son extrait
+  cité, et les modérateurs reçoivent une notification ;
+- `/admin/moderation-ia` journalise les deux, y compris les analyses en échec.
+
+Pour rejouer proprement :
+`npx convex run devAdmin:deleteTestPublications '{}'`.
+
+> Le plus instructif est de commencer en mode **Observation** : le dispositif
+> analyse et journalise sans que rien n'apparaisse dans la file. C'est ainsi
+> qu'on calibre un barème sur de vrais dépôts sans qu'un avis immature
+> n'oriente une décision humaine.
+
 ## Convention
 
 Aucune feature n'est « terminée » sans **test(s) unitaire(s) + E2E**. Ces deux

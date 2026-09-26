@@ -1,6 +1,12 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { authTables } from '@convex-dev/auth/server';
+import {
+  aiModerationMode,
+  aiModerationSeverity,
+  aiModerationVerdict,
+  aiModerationApplied,
+} from './lib/aiModeration';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -143,6 +149,27 @@ export default defineSchema({
         v.literal('reviewed'),
       ),
     ),
+    // Modération assistée par IA — RÉSUMÉ DÉNORMALISÉ du dernier avis rendu
+    // (convex/aiModeration.ts). L'avis complet — signaux, extraits cités,
+    // modèle, jetons — vit dans `aiModerationReviews` : la file de modération
+    // affiche un badge par ligne sans relire cent avis, et ne charge le détail
+    // que sur la ligne qu'un modérateur ouvre.
+    aiReview: v.optional(
+      v.object({
+        verdict: aiModerationVerdict,
+        applied: aiModerationApplied,
+        reason: v.string(),
+        confidence: v.number(),
+        blocking: v.number(),
+        warnings: v.number(),
+        at: v.number(),
+      }),
+    ),
+    // Publiée SANS relecture humaine. Le drapeau n'est pas cosmétique : il est
+    // la condition d'existence de `revertAutoPublication` — la seule sortie
+    // arrière de `published`, et elle ne doit s'ouvrir que sur ce qu'un humain
+    // n'a jamais validé.
+    autoPublished: v.optional(v.boolean()),
     // Document téléversé (F-32) : fichier dans le stockage Convex + nom d'origine.
     fileId: v.optional(v.id('_storage')),
     fileName: v.optional(v.string()),
@@ -484,6 +511,117 @@ export default defineSchema({
     body: v.string(),
     createdAt: v.number(),
   }).index('by_workspace', ['workspaceId']),
+
+  // --- Modération éditoriale assistée par IA (auto-acceptation) -------------
+  //
+  // Couche AU-DESSUS de la modération humaine (convex/publications.ts), jamais
+  // à sa place : le modèle rend un AVIS, le serveur décide. Voir le module
+  // convex/lib/aiModeration.ts pour la logique de décision, et
+  // docs/moderation-ia.md pour le cadrage.
+
+  // Réglages — SINGLETON (`key` vaut toujours 'default'). Un document unique
+  // plutôt qu'une ligne par réglage : ces valeurs se lisent TOUJOURS ensemble
+  // (une décision les consulte toutes), et se modifient ensemble depuis un même
+  // écran. `version` s'incrémente à chaque écriture — réglages ET règles — et
+  // chaque avis rendu l'enregistre : un avis passé reste lisible à la lumière
+  // du barème qui l'a produit, et non du barème d'aujourd'hui.
+  aiModerationConfig: defineTable({
+    key: v.literal('default'),
+    mode: aiModerationMode,
+    model: v.string(),
+    // Modèle de repli, essayé UNE fois si le premier échoue (panne fournisseur,
+    // modèle retiré du catalogue). Absent = pas de repli.
+    fallbackModel: v.optional(v.string()),
+    // Confiance minimale (0..100) exigée pour une publication automatique.
+    autoPublishMinConfidence: v.number(),
+    // Consignes éditoriales libres, en tête du barème. C'est là que
+    // l'administrateur écrit la ligne de la maison ; les critères vérifiables
+    // un par un vivent dans `aiModerationRules`.
+    instructions: v.string(),
+    // Types de publication éligibles à l'AUTO-PUBLICATION (slugs PUB_TYPES).
+    // Liste VIDE = aucun type éligible : un mode `auto` activé sans avoir
+    // choisi de périmètre n'ouvre rien tant que l'administrateur n'a pas dit
+    // sur quoi. L'analyse, elle, porte sur tous les dépôts.
+    eligibleTypes: v.array(v.string()),
+    // Pièces jointes : le dépôt F-32 est un PDF. Sans lecture du PDF, l'avis ne
+    // porte que sur les métadonnées — et un dépôt non lu n'est JAMAIS
+    // auto-publié (cf. decideApplication).
+    analyzeAttachments: v.boolean(),
+    maxAttachmentMb: v.number(),
+    // Plafond d'appels par 24 h (maîtrise du coût). Dépassé -> le dépôt part en
+    // file humaine, il n'est pas publié en aveugle.
+    dailyCallCap: v.number(),
+    version: v.number(),
+    updatedBy: v.optional(v.id('users')),
+    updatedAt: v.number(),
+  }).index('by_key', ['key']),
+
+  // Critères d'acceptation rédigés par l'administrateur. Table séparée, et non
+  // un tableau dans le document de réglages : la liste est ouverte (un réseau
+  // qui s'étoffe ajoute des critères), et activer un critère ne doit pas
+  // réécrire tout le barème. Le SOCLE de sécurité, lui, n'est pas ici : il est
+  // écrit en dur (BASELINE_RULES) pour qu'aucun écran ne puisse le retirer.
+  aiModerationRules: defineTable({
+    label: v.string(),
+    description: v.string(),
+    severity: aiModerationSeverity,
+    enabled: v.boolean(),
+    order: v.number(),
+    createdBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_order', ['order']),
+
+  // Avis rendus — un par analyse, y compris les analyses qui n'ont RIEN
+  // appliqué (mode observation, échec d'appel, décision humaine arrivée
+  // avant). C'est la pièce de traçabilité : sans elle, « pourquoi cet article
+  // est-il en ligne sans relecture humaine ? » n'a pas de réponse.
+  aiModerationReviews: defineTable({
+    publicationId: v.id('publications'),
+    // Ce que le MODÈLE conclut.
+    verdict: aiModerationVerdict,
+    // Ce que le SERVEUR en a fait. Les deux diffèrent dès que le mode, le
+    // périmètre, le seuil ou l'état courant s'y opposent — et c'est le second
+    // qui dit ce qui s'est passé.
+    applied: aiModerationApplied,
+    // Motif de la décision d'application, en code stable (cf. APPLY_REASONS) :
+    // affiché traduit, et lisible dans le journal sans relire le barème.
+    reason: v.string(),
+    confidence: v.number(),
+    summary: v.string(),
+    findings: v.array(
+      v.object({
+        // Clé du critère : identifiant de règle, ou `socle:<clé>` pour le
+        // plancher de sécurité. Une CHAÎNE et non un v.id : une règle
+        // supprimée ne doit pas rendre illisible l'avis qu'elle a produit.
+        ruleKey: v.string(),
+        ruleLabel: v.string(),
+        severity: aiModerationSeverity,
+        outcome: v.union(
+          v.literal('pass'),
+          v.literal('fail'),
+          v.literal('unsure'),
+        ),
+        explanation: v.string(),
+        // Extrait cité du document. C'est ce qui rend un signal vérifiable en
+        // un coup d'œil, au lieu d'obliger à relire le dépôt entier.
+        quote: v.optional(v.string()),
+      }),
+    ),
+    // Traçabilité de l'appel.
+    model: v.string(),
+    configVersion: v.number(),
+    attachmentAnalyzed: v.boolean(),
+    promptTokens: v.optional(v.number()),
+    completionTokens: v.optional(v.number()),
+    latencyMs: v.optional(v.number()),
+    // Code d'échec (AI_GATEWAY_NOT_CONFIGURED, DAILY_CAP, BAD_RESPONSE…).
+    error: v.optional(v.string()),
+    triggeredBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+  })
+    .index('by_publication', ['publicationId'])
+    .index('by_applied', ['applied']),
 
   // Notifications par utilisateur (F-25/F-51) — réactif (Convex temps réel).
   // Déclenchées par les moments existants (modération de publication, revue de

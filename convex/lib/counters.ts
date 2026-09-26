@@ -38,6 +38,14 @@ export const COUNTER = {
   TRIBUNE_COMMENTS_PUBLISHED: 'tribuneComments.published',
   YOUTH_APPLICATIONS: 'youthApplications',
   YOUTH_APPLICATIONS_PENDING: 'youthApplications.pending',
+  // Modération assistée par IA — trois nombres qui disent, sans relire le
+  // journal, ce que le dispositif fait réellement : combien d'analyses, dont
+  // combien de mises en ligne automatiques et combien de renvois en file.
+  // C'est le rapport des deux derniers qui dira si le barème est trop lâche
+  // (tout passe) ou inutile (rien ne passe).
+  AI_REVIEWS: 'aiModerationReviews',
+  AI_REVIEWS_PUBLISHED: 'aiModerationReviews.published',
+  AI_REVIEWS_ESCALATED: 'aiModerationReviews.escalated',
 } as const;
 
 export type CounterKey = (typeof COUNTER)[keyof typeof COUNTER];
