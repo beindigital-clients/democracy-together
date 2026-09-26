@@ -76,38 +76,8 @@ export function validateDirectoryFields(
   };
 }
 
-// Corps de l'e-mail d'invitation. Le membre n'a PAS de mot de passe : on
-// l'oriente vers la connexion par code à usage unique, qui fonctionne dès lors
-// que son compte existe.
-export function invitationEmail(args: {
-  organizationName?: string;
-  siteUrl: string;
-}): { subject: string; html: string } {
-  const signInUrl = `${args.siteUrl.replace(/\/+$/, '')}/fr/connexion-otp`;
-  // Deux origines possibles : l'approbation d'une candidature, ou l'ouverture
-  // d'un compte par un administrateur depuis le back-office.
-  const intro = args.organizationName
-    ? `<p>La candidature de <b>${escapeHtml(args.organizationName)}</b> a été validée par le secrétariat. Votre compte est désormais actif.</p>`
-    : '<p>Un compte vous a été ouvert sur la plateforme Democracy Together.</p>';
-  return {
-    subject: args.organizationName
-      ? 'Votre adhésion est validée · Democracy Together'
-      : 'Votre compte Democracy Together',
-    html: `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;color:#16191f">
-    <h2 style="font-family:Georgia,serif;color:#1f3d6e">Democracy Together</h2>
-    <p>Bonjour,</p>
-    ${intro}
-    <p>Pour vous connecter, demandez un code à usage unique à cette adresse e-mail :</p>
-    <p><a href="${signInUrl}" style="display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600">Se connecter</a></p>
-    <p style="color:#646771;font-size:13px">Aucun mot de passe n'est nécessaire : un code vous sera envoyé à chaque connexion. Vous pourrez en définir un depuis votre espace membre.</p>
-  </div>`,
-  };
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+// Le corps de l'e-mail d'invitation vit désormais dans `lib/emailContent.ts`,
+// avec les autres courriels transactionnels et leurs cinq langues. Il est
+// ré-exporté d'ici pour que les deux appelants (approbation d'une candidature,
+// ouverture d'un compte par un administrateur) n'aient pas à changer d'import.
+export { invitationEmail } from './emailContent';

@@ -10,6 +10,7 @@ import {
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { getAuthUserId } from '@convex-dev/auth/server';
+import { locale } from './lib/locales';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
@@ -106,6 +107,7 @@ export const submitApplication = action({
     contactEmail: v.string(),
     country: v.string(),
     message: v.optional(v.string()),
+    locale: v.optional(locale),
     captchaToken: v.optional(v.string()),
   },
   handler: async (ctx, { captchaToken, ...input }) => {
@@ -126,6 +128,7 @@ export const storeApplication = internalMutation({
     contactEmail: v.string(),
     country: v.string(),
     message: v.optional(v.string()),
+    locale: v.optional(locale),
   },
   handler: async (ctx, args) => {
     const organizationName = args.organizationName.trim();
@@ -167,6 +170,7 @@ export const storeApplication = internalMutation({
       message,
       status: 'pending',
       submittedAt: Date.now(),
+      ...(args.locale ? { locale: args.locale } : {}),
       ...(userId ? { applicantUserId: userId } : {}),
     });
     await trackMembershipApplicationStatus(ctx, null, 'pending');
@@ -369,7 +373,14 @@ export const reviewApplication = mutation({
     await ctx.scheduler.runAfter(
       0,
       internal.organizations.sendMembershipInvitation,
-      { applicationId, email, organizationName: application.organizationName },
+      {
+        applicationId,
+        email,
+        organizationName: application.organizationName,
+        // Langue relevée au dépôt de la candidature. Absente sur les
+        // candidatures antérieures à ce champ : le repli reste le français.
+        locale: application.locale ?? 'fr',
+      },
     );
 
     return { userCreated, organizationId };
@@ -384,11 +395,16 @@ export const sendMembershipInvitation = internalAction({
     applicationId: v.id('membershipApplications'),
     email: v.string(),
     organizationName: v.string(),
+    locale,
   },
-  handler: async (ctx, { applicationId, email, organizationName }) => {
+  handler: async (
+    ctx,
+    { applicationId, email, organizationName, locale: loc },
+  ) => {
     const { subject, html } = invitationEmail({
       organizationName,
       siteUrl: process.env.SITE_URL ?? 'http://localhost:3000',
+      locale: loc,
     });
     await sendEmail({ to: email, subject, html });
     await ctx.runMutation(internal.organizations.markInvited, {

@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useConvexAuth, useMutation } from 'convex/react';
+import { api } from '@convex/_generated/api';
 import { useSearchParams } from 'next/navigation';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { withSearchParams } from '@/i18n/href';
@@ -61,6 +63,12 @@ export function LocaleSwitcher({
   const [pending, startTransition] = useTransition();
   const menuId = useId();
   const root = useRef<HTMLDivElement>(null);
+  // La préférence suit le COMPTE, pas seulement l'onglet : c'est elle que lisent
+  // les courriels transactionnels, qui sont composés sur le serveur bien après
+  // la visite (code de connexion, validation d'adhésion). Le cookie NEXT_LOCALE
+  // ne leur est d'aucun secours — ils ne voient aucune requête HTTP.
+  const { isAuthenticated } = useConvexAuth();
+  const rememberLocale = useMutation(api.users.setPreferredLocale);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Fermeture au clic extérieur. `pointerdown` plutôt que `click` : un `click`
@@ -118,6 +126,15 @@ export function LocaleSwitcher({
   function select(next: Locale) {
     setOpen(false);
     if (next === active) return;
+    // AU MIEUX, JAMAIS BLOQUANT. La navigation ne dépend pas de cet appel : si
+    // Convex ne répond pas, le visiteur change quand même de langue et le
+    // serveur n'apprend simplement rien. L'inverse — attendre l'écriture avant
+    // de naviguer — ferait payer une aller-retour réseau à un geste d'interface.
+    if (isAuthenticated) {
+      void rememberLocale({ locale: next }).catch(() => {
+        /* la préférence est un confort, pas une condition */
+      });
+    }
     startTransition(() => {
       router.replace(withSearchParams(pathname, searchParams.toString()), {
         locale: next,

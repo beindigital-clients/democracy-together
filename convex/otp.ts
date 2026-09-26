@@ -6,12 +6,43 @@ import { internalMutation, internalQuery } from './_generated/server';
 import type { DataModel } from './_generated/dataModel';
 import { sendOtpEmail, type OtpPurpose } from './email';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { locale, type SiteLocale } from './lib/locales';
+import { normalizeEmail } from './lib/onboarding';
 
 // Code numérique à 6 chiffres (Web Crypto, dispo dans le runtime Convex).
 function generateCode(): string {
   const a = new Uint32Array(1);
   crypto.getRandomValues(a);
   return (a[0] % 1_000_000).toString().padStart(6, '0');
+}
+
+// LA LANGUE DU DESTINATAIRE, et pourquoi elle se lit en base.
+//
+// Convex Auth ne transmet à `sendVerificationRequest` que
+// `{ identifier, url, token, expires, provider }` : les paramètres passés au
+// `signIn` du client n'arrivent PAS jusqu'ici (vérifié dans
+// `@convex-dev/auth/dist/server/implementation/signIn.js`). La langue ne peut
+// donc pas voyager avec la demande — elle est lue sur le compte, où
+// `users.preferredLocale` la conserve d'un appareil à l'autre.
+//
+// UNE LANGUE NE DOIT JAMAIS EMPÊCHER UNE CONNEXION. C'est la règle de ce bloc,
+// et elle est absolue : ce code s'exécute sur le chemin du code à usage unique,
+// qui est le seul moyen d'entrer pour un membre sans mot de passe. Toute panne
+// de la lecture — index manquant, table vide, déploiement en cours de
+// migration — retombe sur le français et laisse le courriel partir. Un message
+// dans la mauvaise langue est un désagrément ; un message qui ne part pas est
+// une porte fermée.
+async function recipientLocale(
+  ctx: GenericActionCtxWithAuthConfig<DataModel> | undefined,
+  email: string,
+): Promise<SiteLocale> {
+  if (!ctx) return 'fr';
+  try {
+    const loc = await ctx.runQuery(internal.otp.localeForEmail, { email });
+    return loc ?? 'fr';
+  } catch {
+    return 'fr';
+  }
 }
 
 // Fabrique un provider OTP par e-mail (vérification, reset, ou connexion).
@@ -54,7 +85,12 @@ function otpProvider(id: string, purpose: OtpPurpose) {
       }
 
       if (hasProvider && !isTest) {
-        await sendOtpEmail(email, code, purpose);
+        await sendOtpEmail(
+          email,
+          code,
+          purpose,
+          await recipientLocale(ctx, email),
+        );
       } else if (!hasProvider) {
         console.log(`[DEV OTP] ${purpose} -> ${email} : ${code}`);
       }
@@ -76,6 +112,27 @@ export const enforceSendRate = internalMutation({
       key: `otpSend:${email.trim().toLowerCase()}`,
       ...RATE_LIMITS.otpSend,
     });
+  },
+});
+
+// Langue préférée d'un compte, pour composer un courriel dans la bonne langue.
+//
+// `first()` et non `unique()` : deux lignes pour une même adresse ne devraient
+// pas exister, mais si cela arrivait, `unique()` LÈVERAIT — et ferait échouer
+// l'envoi du code. Voir la règle ci-dessus.
+//
+// L'adresse est normalisée avant la lecture parce que les comptes sont créés
+// avec une adresse déjà normalisée (cf. `lib/signIn.ts`, qui documente cette
+// décision), tandis que l'identifiant reçu ici vient de la saisie.
+export const localeForEmail = internalQuery({
+  args: { email: v.string() },
+  returns: v.union(locale, v.null()),
+  handler: async (ctx, { email }) => {
+    const user = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', normalizeEmail(email)))
+      .first();
+    return user?.preferredLocale ?? null;
   },
 });
 

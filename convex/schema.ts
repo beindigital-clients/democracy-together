@@ -255,6 +255,13 @@ export default defineSchema({
     contactEmail: v.string(),
     country: v.string(),
     message: v.optional(v.string()),
+    // LANGUE DU CANDIDAT, relevée au dépôt du formulaire. Les cinq autres
+    // formulaires publics (newsletter, inscription à un événement, rappel,
+    // candidature jeunes, mentorat) la stockaient déjà ; celui-ci était le seul
+    // à ne pas le faire — et c'est le seul dont l'approbation déclenche un
+    // courriel. Sans elle, un candidat arabophone recevait sa validation
+    // d'adhésion en français, avec un lien vers une page française.
+    locale: v.optional(locale),
     status: v.union(
       v.literal('pending'),
       v.literal('approved'),

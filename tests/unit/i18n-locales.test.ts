@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { routing } from '@/i18n/routing';
-import { SITE_LOCALES, locale } from '@convex/lib/locales';
+import { SITE_LOCALES, locale, intlTag } from '@convex/lib/locales';
 import { PUB_LANGS } from '@convex/lib/publications';
 import { LOCALE_ENDONYMS, direction } from '@/i18n/direction';
+import { intlLocale } from '@/i18n/locale';
 
 // LA LISTE DES LANGUES EST ÉCRITE À TROIS ENDROITS, et elle ne peut pas l'être
 // ailleurs :
@@ -83,6 +84,20 @@ describe('Langues du site — chacune est complètement décrite', () => {
         () => readFileSync(path, 'utf8'),
         `catalogue absent : src/messages/${l}.json`,
       ).not.toThrow();
+    }
+  });
+
+  it('porte la MÊME étiquette `Intl` des deux côtés de la cloison', () => {
+    // Convex n'a pas l'alias `@/` : la table des étiquettes régionales est
+    // recopiée dans `convex/lib/locales.ts`, comme la liste des langues l'est
+    // déjà. Elles doivent dire la même chose, sans quoi un courriel de rappel
+    // formaterait sa date autrement que la page de l'événement qu'il annonce —
+    // et l'arbitrage `ar-MA` (chiffres arabes occidentaux) vaudrait pour le
+    // site mais pas pour les courriels, qui annonceraient « ٢٠٢٦ ».
+    for (const l of routing.locales) {
+      expect(intlTag(l), `étiquette Intl divergente pour « ${l} »`).toBe(
+        intlLocale(l),
+      );
     }
   });
 });
