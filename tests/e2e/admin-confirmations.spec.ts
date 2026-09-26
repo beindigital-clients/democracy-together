@@ -3,6 +3,7 @@ import {
   submitApplication,
   provisionUser,
   deleteTestPublications,
+  chercherUtilisateur,
 } from './_helpers';
 import { SESSIONS } from './_sessions';
 
@@ -221,6 +222,7 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   await provisionUser(email, 'membre');
 
   await page.goto('/fr/admin/utilisateurs');
+  await chercherUtilisateur(page, email);
   const row = page.getByRole('row').filter({ hasText: email });
   await expect(row).toBeVisible();
 
@@ -231,6 +233,10 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   await row.getByLabel(`Rôle ${email}`).selectOption('visiteur');
   await expect(row.getByRole('button', { name: 'Appliquer' })).toBeVisible();
   await page.reload();
+  // Le rechargement vide le champ de recherche — c'est un état local. Sans le
+  // reposer, la ligne repart hors de la première page dès que la base est
+  // peuplée, et l'échec ne dit plus rien du sujet du test.
+  await chercherUtilisateur(page, email);
   await expect(
     page
       .getByRole('row')
@@ -254,6 +260,10 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   await dialog.getByRole('button', { name: 'Annuler' }).click();
   await expect(dialog).toHaveCount(0);
   await page.reload();
+  // Le rechargement vide le champ de recherche — c'est un état local. Sans le
+  // reposer, la ligne repart hors de la première page dès que la base est
+  // peuplée, et l'échec ne dit plus rien du sujet du test.
+  await chercherUtilisateur(page, email);
   await expect(
     page
       .getByRole('row')
@@ -278,6 +288,10 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   ).toBeVisible();
 
   await page.reload();
+  // Le rechargement vide le champ de recherche — c'est un état local. Sans le
+  // reposer, la ligne repart hors de la première page dès que la base est
+  // peuplée, et l'échec ne dit plus rien du sujet du test.
+  await chercherUtilisateur(page, email);
   await expect(
     page
       .getByRole('row')

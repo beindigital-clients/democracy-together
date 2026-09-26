@@ -356,3 +356,33 @@ export async function signUpAndVerify(
     timeout: 15_000,
   });
 }
+
+// TROUVER UN COMPTE DANS `/admin/utilisateurs`, QUEL QUE SOIT LE VOLUME.
+//
+// Le tableau est PAGINÉ — 50 lignes — et trié par e-mail côté index. Aller sur
+// l'écran puis attendre la ligne d'un compte créé à l'instant ne tient donc que
+// sur une base presque vide. C'est le cas d'une préversion de CI, qui naît
+// vide ; ce n'est pas celui d'un déploiement de développement, qui vit
+// longtemps et accumule les comptes de test.
+//
+// Mesuré sur le déploiement de dev de ce projet : ~900 lignes dans `users`, et
+// trois parcours du back-office rouges parce que leur compte n'était pas en
+// première page. L'échec ne dit rien de ce qu'ils vérifient — « élément
+// introuvable » là où le sujet est la confirmation d'un changement de rôle.
+//
+// On cherche donc le compte, comme le ferait un administrateur. L'assertion
+// n'est pas affaiblie : elle attend toujours la ligne, et la spec échoue
+// toujours si elle n'existe pas. Le champ est temporisé et la recherche est
+// faite par le SERVEUR, d'où une assertion qui réessaie.
+export async function chercherUtilisateur(
+  page: Page,
+  email: string,
+): Promise<void> {
+  await page
+    .getByRole('searchbox', { name: 'Rechercher un utilisateur' })
+    .fill(email);
+  await expect(
+    page.getByRole('row').filter({ hasText: email }),
+    `compte introuvable après recherche : ${email}`,
+  ).toHaveCount(1);
+}
