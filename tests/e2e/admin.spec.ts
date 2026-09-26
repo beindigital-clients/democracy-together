@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { submitApplication, provisionUser, clearRole } from './_helpers';
+import {
+  submitApplication,
+  provisionUser,
+  clearRole,
+  chercherUtilisateur,
+} from './_helpers';
 import { SESSIONS } from './_sessions';
 
 test.use({ locale: 'fr-FR' });
@@ -83,6 +88,7 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     // gestion des utilisateurs (admin)
     await page.getByRole('link', { name: 'Utilisateurs', exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/utilisateurs$/);
+    await chercherUtilisateur(page, adminEmail);
     await expect(page.getByText(adminEmail)).toBeVisible();
   });
 
@@ -108,6 +114,7 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     await clearRole(legacyEmail);
 
     await page.goto('/fr/admin/utilisateurs');
+    await chercherUtilisateur(page, legacyEmail);
     const roleSelect = page.getByLabel(`Rôle ${legacyEmail}`);
     await expect(roleSelect).toBeVisible();
     // La VALEUR, pas seulement le libellé : c'est elle que le <Select> contrôlé
