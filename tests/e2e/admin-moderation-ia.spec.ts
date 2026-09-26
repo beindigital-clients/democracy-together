@@ -310,11 +310,22 @@ test('un dépôt analysé reste en file, et le public ne le voit pas (F-32)', as
   try {
     const visiteur = await anonyme.newPage();
     await visiteur.goto(`/fr/recherche?q=${encodeURIComponent(titre)}`);
+    // ON CHERCHE LE RÉSULTAT, PAS LE TITRE. La page de recherche REPREND la
+    // requête dans son propre message de vacuité — « Aucun résultat pour
+    // « … » » —, si bien qu'un `getByText(titre)` trouve un élément dans les
+    // DEUX cas : quand le dépôt a fuité, et quand il est absent. Première
+    // campagne CI : l'assertion est tombée sur la phrase qui prouvait
+    // justement l'absence.
+    //
+    // Un LIEN portant ce titre, lui, n'existe que si la recherche a rendu une
+    // fiche : c'est le seul élément dont la présence signifie ce qu'on croit.
     await expect(
-      visiteur.getByText(titre),
+      visiteur.getByRole('link', { name: titre, exact: false }),
       'un dépôt non relu par un humain est visible du public',
     ).toHaveCount(0);
-    await expect(visiteur.getByText(/Aucun résultat/)).toBeVisible();
+    // Et la vacuité est dite pour de bon : ce message ne s'affiche que lorsque
+    // les TROIS sources — bibliothèque, annuaire, actualités — n'ont rien.
+    await expect(visiteur.getByText(/Aucun résultat pour/)).toBeVisible();
   } finally {
     await anonyme.close();
   }
