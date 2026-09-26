@@ -22,6 +22,17 @@ import { test, expect, type Page } from '@playwright/test';
 const HAUT_ATTENDU = 80;
 const TOLERANCE = 8;
 
+// TRACER LE PREMIER ESSAI, PAS LA REPRISE. La configuration du dépôt capture
+// la trace `on-first-retry` : sur un test INSTABLE — qui échoue puis passe —
+// l'artefact publié est donc celui de l'exécution RÉUSSIE, et l'échec ne
+// laisse rien. C'est ce qui s'est produit le 26/09 : le rapport contenait le
+// déroulé complet d'un parcours vert, et pas une image de la panne.
+//
+// `retain-on-failure` enregistre chaque essai et ne garde que ceux qui
+// échouent. Posé sur CE fichier seulement : le coût est celui de ses sept
+// parcours, pas celui de la suite entière.
+test.use({ trace: 'retain-on-failure' });
+
 // Les `id` sont ceux du composant de page, communs aux deux langues ; seuls les
 // libellés du pied de page sont traduits.
 const ANCRES = {
@@ -43,13 +54,36 @@ function lienDuPiedDePage(page: Page, libelle: string) {
     .getByRole('link', { name: libelle, exact: true });
 }
 
+// Qui détient le focus, dit en clair. `toBeFocused()` ne sait répondre que
+// « inactive » : la section n'a pas le focus, sans dire où il est allé. Or
+// c'est exactement ce que la panne du 26/09 n'a pas permis de trancher — focus
+// JAMAIS POSÉ (l'écouteur d'`AnchorFocus` manquait au moment du clic) ou POSÉ
+// PUIS PERDU (le routeur l'a déplacé après coup). Les deux se corrigent à des
+// endroits différents.
+//
+// L'assertion ne s'affaiblit pas : `activeElement` doit ÊTRE la section, comme
+// avant. Elle nomme seulement le coupable quand ce n'est pas le cas.
+async function focusCourant(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const a = document.activeElement;
+    if (!a) return 'aucun';
+    return (
+      a.id || a.getAttribute('href') || a.tagName.toLowerCase() || 'sans nom'
+    );
+  });
+}
+
 // Le focus est posé par le composant client, le défilement par le routeur : sur
 // un clic visant la page courante, le premier précède le second. On attend donc
 // les deux, plutôt que de supposer qu'ils arrivent ensemble.
 async function attendLeSautDAncre(page: Page, id: string): Promise<void> {
   const section = page.locator(`#${id}`);
 
-  await expect(section, 'le focus doit suivre l’ancre').toBeFocused();
+  await expect
+    .poll(() => focusCourant(page), {
+      message: `le focus doit suivre l’ancre #${id} — élément focalisé`,
+    })
+    .toBe(id);
 
   const haut = () =>
     section.evaluate((el) => Math.round(el.getBoundingClientRect().top));
