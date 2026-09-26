@@ -242,19 +242,43 @@ describe('Catalogues de messages — syntaxe ICU', () => {
     },
   );
 
-  it('l’arabe couvre ses catégories propres là où le français n’en a que deux', () => {
-    // Vérification de FOND, pas de forme : que la traduction arabe ait bien
-    // été écrite avec les règles de l'arabe, et non recopiée du français.
-    // `library.count` est le cas type — il s'affiche sous chaque facette.
-    const ar = CATALOGUES.get('ar')!.get('library.count');
-    expect(ar, 'library.count absente du catalogue arabe').toBeDefined();
-    const cats = pluralCategories(ar!)[0] ?? [];
-    for (const attendue of ['one', 'two', 'few', 'many', 'other']) {
-      expect(
-        cats,
-        `« ${attendue} » manque au pluriel arabe de library.count`,
-      ).toContain(attendue);
+  it('l’arabe couvre ses catégories propres dans TOUS ses messages à pluriel', () => {
+    // Vérification de FOND, pas de forme : que les pluriels arabes aient été
+    // écrits avec les règles de l'arabe, et non recopiés du français.
+    //
+    // CE TEST NE PORTAIT QUE SUR `library.count`, « le cas type ». Les quinze
+    // autres messages à pluriel n'étaient couverts que par la vérification de
+    // validité ci-dessus — laquelle accepte `one`/`other`, puisque ces deux
+    // catégories EXISTENT en arabe. Autrement dit : une régression ramenant
+    // `experts.count` aux trois catégories du français serait passée en CI, et
+    // la page aurait affiché « 3 منشور » au lieu de « 3 منشورات ». C'était la
+    // qualité du traducteur qui tenait ces quinze clés, pas la garde.
+    //
+    // L'arabe est la seule langue où l'exigence vaut pour tous les messages :
+    // ses six catégories changent réellement le mot (duel, pluriel de petit
+    // nombre, accusatif de 11–99), alors que le `many` français ou espagnol ne
+    // sert qu'à la notation compacte et manque légitimement presque partout.
+    const REQUISES = ['one', 'two', 'few', 'many', 'other'];
+    const incomplets: string[] = [];
+    let pluriels = 0;
+
+    for (const [key, msg] of CATALOGUES.get('ar')!) {
+      for (const cats of pluralCategories(msg)) {
+        pluriels++;
+        const manquantes = REQUISES.filter((c) => !cats.includes(c));
+        if (manquantes.length > 0) {
+          incomplets.push(`${key} — manque : ${manquantes.join(', ')}`);
+        }
+      }
     }
+
+    // Une garde qui ne trouve aucun message à pluriel ne garde rien : si le
+    // relevé se casse, ce test doit tomber ici plutôt que réussir à vide.
+    expect(
+      pluriels,
+      'aucun message à pluriel relevé dans le catalogue arabe',
+    ).toBeGreaterThan(10);
+    expect(incomplets).toEqual([]);
   });
 });
 

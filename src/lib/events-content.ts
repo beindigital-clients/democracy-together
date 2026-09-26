@@ -2045,35 +2045,35 @@ const ar: Labels = {
         'البرمجة جارية. المؤسسون وأوائل المتدخلين المؤكَّدين أدناه (لائحة إرشادية).',
       speakers: [
         {
-          initials: 'AS',
+          initials: 'ع.س',
           name: 'عبدو سامب',
           role: 'شريك مؤسِّس لـ Democracy Together. افتتاح اليوم واختتامه.',
           founder: true,
         },
         {
-          initials: 'PK',
+          initials: 'ف.ك',
           name: 'فيليب كوريلسكي',
           role: 'شريك مؤسِّس لـ Democracy Together. الجلسة العامة الافتتاحية.',
           founder: true,
         },
         {
-          initials: 'PV',
+          initials: 'ب.ف',
           name: 'بيير فيمون',
           role: 'شريك مؤسِّس لـ Democracy Together. الجلسة الافتتاحية والمائدة المستديرة.',
           founder: true,
         },
         {
-          initials: 'KM',
+          initials: 'خ.م',
           name: 'خادي منساه',
           role: 'منسقة قطب الحوكمة الرقمية. ورشة ما بعد الزوال.',
         },
         {
-          initials: 'LT',
+          initials: 'ل.ت',
           name: 'لسانا تراوري',
           role: 'باحث بقطب مكافحة الفساد. الجلسة العامة الصباحية.',
         },
         {
-          initials: 'SD',
+          initials: 'س.د',
           name: 'سيرا ديالو',
           role: 'مندوبة فضاء الشباب. المائدة المستديرة بين الأجيال.',
         },

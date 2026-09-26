@@ -216,11 +216,25 @@ export function parseTranslation(
   const str = (x: unknown): string | null =>
     typeof x === 'string' && x.trim() !== '' ? x : null;
 
-  const strArray = (x: unknown, expected: number): string[] | null => {
-    if (!Array.isArray(x) || x.length !== expected) return null;
+  // LE VIDE EST REFUSÉ LÀ OÙ LA SOURCE NE L'EST PAS. Le contrôle de longueur
+  // seul laissait passer `["texte", "", "", ""]` : le compte est bon, le modèle
+  // a « rendu » N paragraphes. C'est le mode d'échec le plus coûteux du
+  // dispositif — à court de budget de sortie, un modèle contraint à rendre
+  // exactement N entrées termine volontiers par des chaînes vides. La ligne
+  // serait écrite `ready`, l'empreinte correspondrait, et le lecteur verrait un
+  // article dont la seconde moitié est blanche sous un bandeau affirmant qu'il
+  // s'agit d'une traduction — sans bouton pour retraduire, puisqu'elle est « à
+  // jour ». Le titre était déjà protégé (`str`), pas le corps.
+  const strArray = (
+    x: unknown,
+    expected: readonly string[],
+  ): string[] | null => {
+    if (!Array.isArray(x) || x.length !== expected.length) return null;
     const out: string[] = [];
-    for (const item of x) {
+    for (let i = 0; i < x.length; i++) {
+      const item: unknown = x[i];
       if (typeof item !== 'string') return null;
+      if (item.trim() === '' && expected[i].trim() !== '') return null;
       out.push(item);
     }
     return out;
@@ -229,7 +243,7 @@ export function parseTranslation(
   const title = str(d.title);
   if (title === null) return null;
 
-  const body = strArray(d.body, source.body.length);
+  const body = strArray(d.body, source.body);
   if (body === null) return null;
 
   const result: TranslatableFields = { title, body };
@@ -240,7 +254,7 @@ export function parseTranslation(
     result.abstract = abstract;
   }
   if (source.keypoints !== undefined) {
-    const keypoints = strArray(d.keypoints, source.keypoints.length);
+    const keypoints = strArray(d.keypoints, source.keypoints);
     if (keypoints === null) return null;
     result.keypoints = keypoints;
   }

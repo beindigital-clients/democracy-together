@@ -138,6 +138,33 @@ describe('Validation de la réponse — la garde est côté serveur', () => {
     expect(parseTranslation(SOURCE, sansTitre)).toBeNull();
   });
 
+  it('refuse un paragraphe VIDE là où la source n’est pas vide', () => {
+    // Le contrôle de longueur seul laissait passer `["texte", "", ""]` : le
+    // compte est bon, le modèle a « rendu » N paragraphes. C'est le mode
+    // d'échec attendu quand le budget de sortie s'épuise — contraint à rendre
+    // exactement N entrées, un modèle à court de jetons termine par des chaînes
+    // vides. La ligne aurait été écrite `ready`, l'empreinte aurait
+    // correspondu, et le lecteur aurait vu la seconde moitié de l'article en
+    // blanc sous un bandeau affirmant qu'il s'agit d'une traduction — sans
+    // bouton pour retraduire, puisqu'elle est « à jour ». Le titre était
+    // protégé depuis le début ; le corps ne l'était pas.
+    expect(
+      parseTranslation(SOURCE, { ...good, body: [good.body[0], '', ''] }),
+    ).toBeNull();
+    expect(
+      parseTranslation(SOURCE, {
+        ...good,
+        body: [good.body[0], '   ', good.body[2]],
+      }),
+    ).toBeNull();
+    expect(
+      parseTranslation(SOURCE, {
+        ...good,
+        keypoints: good.keypoints.map(() => ''),
+      }),
+    ).toBeNull();
+  });
+
   it('refuse un champ attendu par la source et absent de la réponse', () => {
     const { abstract: _abstract, ...sansResume } = good;
     expect(parseTranslation(SOURCE, sansResume)).toBeNull();

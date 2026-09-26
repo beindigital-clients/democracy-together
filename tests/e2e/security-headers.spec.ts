@@ -17,9 +17,27 @@ test('en-têtes de sécurité sur les pages publiques', async ({ request }) => {
   expect(csp).toContain("default-src 'self'");
   expect(csp).toContain("frame-ancestors 'self'");
   expect(csp).toContain("object-src 'none'");
-  // Convex (sync + stockage) et images Sanity autorisés.
-  expect(csp).toContain('*.convex.cloud');
-  expect(csp).toContain('https://cdn.sanity.io');
+  // PAR DIRECTIVE, et non sur la chaîne entière : `toContain('*.convex.cloud')`
+  // passait grâce à `connect-src` pendant qu'`img-src` OMETTAIT cette origine —
+  // le test était vert, et le navigateur refusait toutes les illustrations des
+  // PDF traduits, servies depuis le stockage Convex. Un contrôle qui ne
+  // distingue pas les directives ne garde pas ce qu'il prétend garder.
+  const directive = (nom: string) =>
+    csp
+      .split(';')
+      .map((d) => d.trim())
+      .find((d) => d.startsWith(`${nom} `)) ?? '';
+
+  expect(directive('connect-src'), 'sync temps réel Convex').toContain(
+    'https://*.convex.cloud',
+  );
+  expect(
+    directive('img-src'),
+    'illustrations extraites des PDF, servies par le stockage Convex',
+  ).toContain('https://*.convex.cloud');
+  expect(directive('img-src'), 'images Sanity').toContain(
+    'https://cdn.sanity.io',
+  );
 });
 
 test('le Studio Sanity garde les en-têtes de base mais est exclu de la CSP', async ({

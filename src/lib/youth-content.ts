@@ -725,19 +725,19 @@ const ar: YouthContent = {
     cta: 'ابحث عن موجّهي',
     mentors: [
       {
-        initials: 'AW',
+        initials: 'أ.و',
         name: 'أميناتا واد',
         field: 'الحوكمة المحلية · داكار',
         role: 'موجِّهة',
       },
       {
-        initials: 'PV',
+        initials: 'ب.ف',
         name: 'بيتر فاندنبرغ',
         field: 'الديمقراطية الرقمية · بروكسل',
         role: 'موجِّه',
       },
       {
-        initials: 'LK',
+        initials: 'ل.ك',
         name: 'ليندا كواسي',
         field: 'مكافحة الفساد · أبيدجان',
         role: 'موجِّهة',

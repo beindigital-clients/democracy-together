@@ -77,7 +77,7 @@ export default async function HomePage({
     name: d.name,
     region: d.region,
     fill: CAT_FILL[d.cat - 1],
-    title: loc === 'en' ? d.en : d.fr,
+    title: d.label[loc],
     rows: [{ label: '', value: d.index }],
   }));
 

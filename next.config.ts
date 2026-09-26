@@ -23,7 +23,14 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'self'",
   "form-action 'self'",
-  "img-src 'self' data: blob: https://cdn.sanity.io",
+  // `*.convex.cloud` EST NÉCESSAIRE ICI, et pas seulement dans `connect-src` :
+  // les illustrations extraites des PDF joints sont servies depuis le stockage
+  // Convex (`ctx.storage.getUrl()` -> https://<déploiement>.convex.cloud/api/
+  // storage/<id>) et rendues par la vue document. Sans cette origine, le
+  // navigateur refuse CHAQUE image du document traduit — c'est-à-dire ce que la
+  // fonctionnalité existe pour préserver — et le lecteur n'obtient que des
+  // icônes cassées, qu'il enregistre telles quelles dans son PDF.
+  "img-src 'self' data: blob: https://cdn.sanity.io https://*.convex.cloud",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,

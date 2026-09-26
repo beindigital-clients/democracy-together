@@ -100,7 +100,17 @@ async function readSource(
   sourceId: string,
 ): Promise<Source | null> {
   if (sourceType === 'tribunePost') {
-    const post = await ctx.db.get(sourceId as Id<'tribunePosts'>);
+    // `normalizeId` AVANT `db.get`, et ce n'est pas une précaution de style :
+    // la surcharge à un argument de `db.get` ne vérifie PAS la table. Avec
+    // `sourceType` fourni par le client, un identifiant de publication réservée
+    // passé comme « billet » chargeait le document publication puis prenait la
+    // branche ci-dessous, qui pose `membersOnly: false` EN DUR. Seul un
+    // `TypeError` fortuit (le corps d'une publication est un tableau) refermait
+    // la porte. `normalizeId` rend `null` dès que l'identifiant vient d'une
+    // autre table : le discriminant du client cesse d'être une autorité.
+    const postId = ctx.db.normalizeId('tribunePosts', sourceId);
+    if (!postId) return null;
+    const post = await ctx.db.get(postId);
     if (!post || post.status !== 'published') return null;
     return {
       // Le corps d'un billet est un seul champ de saisie : on le découpe en
@@ -113,7 +123,9 @@ async function readSource(
     };
   }
 
-  const pub = await ctx.db.get(sourceId as Id<'publications'>);
+  const pubId = ctx.db.normalizeId('publications', sourceId);
+  if (!pubId) return null;
+  const pub = await ctx.db.get(pubId);
   if (!pub || pub.status !== 'published') return null;
   return {
     fields: {

@@ -39,15 +39,22 @@ export async function generateMetadata({
 const WRAP = 'mx-auto w-full max-w-[1240px] px-4 sm:px-6';
 const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
-// Nom du mois localisé (ex. « novembre 2026 » / « November 2026 »).
+// Nom du mois localisé (ex. « Novembre 2026 », « November 2026 », « نوفمبر 2026 »).
+//
+// LA LOCALE EST CELLE DE LA PAGE, et non plus « anglais ou français ». Le
+// ternaire précédent (`… === 'en' ? 'en-GB' : 'fr-FR'`) servait des mois
+// FRANÇAIS aux pages espagnole, portugaise et arabe : le calendrier arabe
+// affichait « Septembre 2026 » en tête, y compris dans son `aria-label`.
+//
+// `intlLocale` — et non la locale brute — parce que c'est lui qui porte les
+// arbitrages régionaux du dépôt : `ar-MA` sert des chiffres arabes occidentaux,
+// pour ne pas mêler deux systèmes de numération à ceux du Baromètre.
 function monthTitle(year: number, month: number, loc: Locale): string {
-  const label = new Intl.DateTimeFormat(
-    intlLocale(loc) === 'en' ? 'en-GB' : 'fr-FR',
-    {
-      month: 'long',
-      year: 'numeric',
-    },
-  ).format(new Date(year, month - 1, 1));
+  const label = new Intl.DateTimeFormat(intlLocale(loc), {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(year, month - 1, 1));
+  // La capitale initiale est sans effet sur l'arabe, qui n'a pas de casse.
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 

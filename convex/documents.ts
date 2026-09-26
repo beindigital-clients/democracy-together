@@ -242,7 +242,11 @@ export const listDocumentLocales = query({
 // --- Temps 1 : contexte -----------------------------------------------------
 
 export const loadDocumentContext = internalQuery({
-  args: { slug: v.string(), userId: v.union(v.id('users'), v.null()) },
+  args: {
+    slug: v.string(),
+    userId: v.union(v.id('users'), v.null()),
+    targetLocale: locale,
+  },
   returns: v.union(
     v.object({
       ok: v.literal(true),
@@ -254,6 +258,8 @@ export const loadDocumentContext = internalQuery({
       blocks: v.optional(v.array(documentBlock)),
       title: v.optional(v.string()),
       imageCount: v.number(),
+      /** La version demandée existe déjà et décrit le fichier courant. */
+      renditionFresh: v.boolean(),
     }),
     v.object({ ok: v.literal(false), reason: v.string() }),
   ),
@@ -282,6 +288,20 @@ export const loadDocumentContext = internalQuery({
       extraction.fileId === pub.fileId &&
       extraction.status === 'ready';
 
+    // La version demandée est-elle déjà prête ET rattachée à CETTE extraction ?
+    // C'est ce qui permet à `prepareDocument` de tenir la promesse de son
+    // commentaire et de ne rien dépenser deux fois.
+    const rendition = fresh
+      ? await ctx.db
+          .query('documentRenditions')
+          .withIndex('by_publication_and_locale', (q) =>
+            q
+              .eq('publicationId', pub._id)
+              .eq('targetLocale', args.targetLocale),
+          )
+          .unique()
+      : null;
+
     return {
       ok: true as const,
       publicationId: pub._id,
@@ -292,6 +312,11 @@ export const loadDocumentContext = internalQuery({
       blocks: fresh ? extraction.blocks : undefined,
       title: fresh ? extraction.title : undefined,
       imageCount: fresh ? (extraction.images?.length ?? 0) : 0,
+      renditionFresh:
+        rendition !== null &&
+        rendition.status === 'ready' &&
+        extraction !== null &&
+        rendition.extractionId === extraction._id,
     };
   },
 });
@@ -549,8 +574,19 @@ export const prepareDocument = action({
     const context = await ctx.runQuery(internal.documents.loadDocumentContext, {
       slug: args.slug,
       userId,
+      targetLocale: args.targetLocale,
     });
     if (!context.ok) return { ok: false, code: context.reason };
+
+    // IDEMPOTENCE, que le commentaire ci-dessus promettait sans que rien ne la
+    // tienne. Deux lecteurs qui ouvrent la même page et cliquent la même langue
+    // déclenchaient deux extractions du PDF entier et deux traductions
+    // complètes, la seconde écrasant la première. Pire : si la passerelle
+    // échouait sur ce second appel inutile, `saveRendition` remplaçait une
+    // version PRÊTE par une ligne `failed`, et une traduction déjà payée était
+    // perdue pour tous les lecteurs. On relit donc avant de dépenser, comme
+    // `requestTranslation` le fait déjà avec `peekCached`.
+    if (context.renditionFresh) return { ok: true };
 
     try {
       await ctx.runMutation(internal.documents.consumeDocumentQuota, {
@@ -581,6 +617,7 @@ export const prepareDocument = action({
       const after = await ctx.runQuery(internal.documents.loadDocumentContext, {
         slug: args.slug,
         userId,
+        targetLocale: args.targetLocale,
       });
       if (!after.ok || !after.extractionFresh) {
         return { ok: false, code: GATEWAY_ERRORS.BAD_RESPONSE };

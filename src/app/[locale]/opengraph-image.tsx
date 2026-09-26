@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { getTranslations } from 'next-intl/server';
 import { resolveLocale } from '@/i18n/locale';
+import { isRtl } from '@/i18n/direction';
 import { SITE_NAME } from '@/lib/seo';
 
 // Image de partage (F-03), GÉNÉRÉE plutôt que versionnée.
@@ -31,6 +32,20 @@ export default async function OpenGraphImage({
   const loc = resolveLocale(params.locale);
   const t = await getTranslations({ locale: loc, namespace: 'site' });
 
+  // SATORI NE LIT PAS `globals.css`, et c'est tout l'enjeu de ces deux lignes.
+  //
+  // Le correctif RTL du site vit dans la feuille de style — `[lang='ar'] h1..h4
+  // { letter-spacing: normal }` et le `dir` posé sur `<html>`. Cette image est
+  // composée par Satori, qui n'a ni l'un ni l'autre : c'est la SEULE surface
+  // arabe du produit que ce correctif ne couvre pas, et elle est publique à
+  // chaque partage de lien.
+  //
+  // `letterSpacing` sur de l'arabe détache les lettres d'un même mot — l'arabe
+  // est une écriture cursive, et « أفريقيا · أوروبا » sortait disloqué. La
+  // direction manquante, elle, renvoyait le point final et le séparateur « · »
+  // du mauvais côté de la phrase.
+  const rtl = isRtl(loc);
+
   return new ImageResponse(
     <div
       style={{
@@ -42,6 +57,7 @@ export default async function OpenGraphImage({
         background: '#0d1b2a',
         padding: '72px 80px',
         fontFamily: 'sans-serif',
+        direction: rtl ? 'rtl' : 'ltr',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -57,7 +73,10 @@ export default async function OpenGraphImage({
           style={{
             color: '#f58b1a',
             fontSize: 26,
-            letterSpacing: 4,
+            // L'interlettrage est une respiration typographique latine ; sur
+            // une écriture cursive, il casse les liaisons entre lettres.
+            letterSpacing: rtl ? 0 : 4,
+            // `uppercase` est inoffensif : l'arabe n'a pas de casse.
             textTransform: 'uppercase',
           }}
         >

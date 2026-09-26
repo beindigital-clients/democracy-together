@@ -341,6 +341,31 @@ export function parseExtraction(
  * document — et l'appariement des figures à leurs images, qui se fait par
  * position, deviendrait faux sans que rien ne le signale.
  */
+/**
+ * La traduction d'un bloc décrit-elle la MÊME structure que sa source ?
+ *
+ * Les listes et les tableaux sont les deux seuls blocs dont la forme peut
+ * maigrir sans changer de type. Le schéma envoyé à la passerelle ne porte pas
+ * de `minItems` sur eux — il est partagé avec l'extraction, où le nombre n'est
+ * pas connu d'avance —, donc la contrainte n'existe qu'ici.
+ */
+function sameShape(source: DocumentBlock, out: DocumentBlock): boolean {
+  if (source.items !== undefined || out.items !== undefined) {
+    if (source.items?.length !== out.items?.length) return false;
+  }
+  if (source.rows !== undefined || out.rows !== undefined) {
+    const a = source.rows;
+    const b = out.rows;
+    if (a?.length !== b?.length) return false;
+    if (a && b) {
+      for (let i = 0; i < a.length; i++) {
+        if (a[i].length !== b[i].length) return false;
+      }
+    }
+  }
+  return true;
+}
+
 export function parseDocumentTranslation(
   source: DocumentBlock[],
   data: unknown,
@@ -354,6 +379,18 @@ export function parseDocumentTranslation(
   for (let i = 0; i < source.length; i++) {
     const block = normalizeBlock(d.blocks[i]);
     if (!block || block.type !== source[i].type) return null;
+    // LA FORME INTERNE DU BLOC EST VÉRIFIÉE AUSSI, pas seulement son type.
+    //
+    // Compter les blocs ne suffit pas : un tableau de 25 lignes rendu avec
+    // l'en-tête et trois lignes reste UN bloc, de type `table`, et passait donc
+    // la garde. La page imprimable l'affichait parfaitement mis en forme, sous
+    // la mention « traduit automatiquement » — et le lecteur l'enregistrait en
+    // PDF puis le citait, amputé, sans que rien ne l'ait signalé. Même chose
+    // pour une liste de douze puces rendue en trois.
+    //
+    // C'est la même discipline que le nombre de blocs, appliquée d'un cran plus
+    // bas : la traduction change les mots, jamais la structure.
+    if (!sameShape(source[i], block)) return null;
     // L'index d'image vient de la SOURCE, jamais de la traduction : c'est la
     // seule façon d'être certain qu'aucune illustration n'a changé de place.
     if (source[i].imageIndex !== undefined)

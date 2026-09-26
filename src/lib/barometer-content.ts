@@ -96,6 +96,8 @@ export type BarometerContent = {
       formats: string;
       doi: string;
       codebook: string;
+      /** Colonne de téléchargement : en-tête réservé aux lecteurs d'écran. */
+      action: string;
     };
     codebookLabel: string;
     downloadLabel: string;
@@ -422,6 +424,7 @@ const fr: BarometerContent = {
       formats: 'Formats',
       doi: 'DOI',
       codebook: 'Codebook',
+      action: 'Action',
     },
     codebookLabel: 'Codebook',
     downloadLabel: 'Télécharger',
@@ -768,6 +771,7 @@ const en: BarometerContent = {
       formats: 'Formats',
       doi: 'DOI',
       codebook: 'Codebook',
+      action: 'Action',
     },
     codebookLabel: 'Codebook',
     downloadLabel: 'Download',
@@ -1114,6 +1118,7 @@ const es: BarometerContent = {
       formats: 'Formatos',
       doi: 'DOI',
       codebook: 'Libro de códigos',
+      action: 'Acción',
     },
     codebookLabel: 'Libro de códigos',
     downloadLabel: 'Descargar',
@@ -1458,6 +1463,7 @@ const pt: BarometerContent = {
       formats: 'Formatos',
       doi: 'DOI',
       codebook: 'Livro de códigos',
+      action: 'Ação',
     },
     codebookLabel: 'Livro de códigos',
     downloadLabel: 'Descarregar',
@@ -1802,6 +1808,7 @@ const ar: BarometerContent = {
       formats: 'الصيغ',
       doi: 'DOI',
       codebook: 'دليل الترميز',
+      action: 'إجراء',
     },
     codebookLabel: 'دليل الترميز',
     downloadLabel: 'تنزيل',
@@ -1868,8 +1875,16 @@ export const CAT_TEXT = [
 // bon pays ; `fr`/`en` servent l'affichage. Données d'illustration (cf. en-tête).
 export type MapDatum = {
   name: string;
-  fr: string;
-  en: string;
+  /**
+   * Libellé affiché, PAR LANGUE.
+   *
+   * C'était `fr` et `en`, lus par un ternaire `loc === 'en' ? d.en : d.fr` sur
+   * la page Baromètre ET sur l'accueil : les trois langues ajoutées retombaient
+   * donc sur le français, et la carte annonçait « Afrique du Sud » à un lecteur
+   * arabophone. Une table indexée par la locale rend le cas impossible — il ne
+   * compile plus si une langue manque.
+   */
+  label: Record<Locale, string>;
   region: 'afrique' | 'europe';
   cat: 1 | 2 | 3 | 4 | 5;
   index: string;
@@ -1878,112 +1893,182 @@ export type MapDatum = {
 export const MAP_DATA: MapDatum[] = [
   {
     name: 'Belgium',
-    fr: 'Belgique',
-    en: 'Belgium',
+    label: {
+      fr: 'Belgique',
+      en: 'Belgium',
+      es: 'Bélgica',
+      pt: 'Bélgica',
+      ar: 'بلجيكا',
+    },
     region: 'europe',
     cat: 1,
     index: '0.86',
   },
   {
     name: 'France',
-    fr: 'France',
-    en: 'France',
+    label: {
+      fr: 'France',
+      en: 'France',
+      es: 'Francia',
+      pt: 'França',
+      ar: 'فرنسا',
+    },
     region: 'europe',
     cat: 1,
     index: '0.83',
   },
   {
     name: 'Portugal',
-    fr: 'Portugal',
-    en: 'Portugal',
+    label: {
+      fr: 'Portugal',
+      en: 'Portugal',
+      es: 'Portugal',
+      pt: 'Portugal',
+      ar: 'البرتغال',
+    },
     region: 'europe',
     cat: 1,
     index: '0.82',
   },
   {
     name: 'Spain',
-    fr: 'Espagne',
-    en: 'Spain',
+    label: {
+      fr: 'Espagne',
+      en: 'Spain',
+      es: 'España',
+      pt: 'Espanha',
+      ar: 'إسبانيا',
+    },
     region: 'europe',
     cat: 1,
     index: '0.80',
   },
   {
     name: 'Botswana',
-    fr: 'Botswana',
-    en: 'Botswana',
+    label: {
+      fr: 'Botswana',
+      en: 'Botswana',
+      es: 'Botsuana',
+      pt: 'Botsuana',
+      ar: 'بوتسوانا',
+    },
     region: 'afrique',
     cat: 2,
     index: '0.72',
   },
   {
     name: 'Senegal',
-    fr: 'Sénégal',
-    en: 'Senegal',
+    label: {
+      fr: 'Sénégal',
+      en: 'Senegal',
+      es: 'Senegal',
+      pt: 'Senegal',
+      ar: 'السنغال',
+    },
     region: 'afrique',
     cat: 2,
     index: '0.71',
   },
   {
     name: 'South Africa',
-    fr: 'Afrique du Sud',
-    en: 'South Africa',
+    label: {
+      fr: 'Afrique du Sud',
+      en: 'South Africa',
+      es: 'Sudáfrica',
+      pt: 'África do Sul',
+      ar: 'جنوب أفريقيا',
+    },
     region: 'afrique',
     cat: 2,
     index: '0.70',
   },
   {
     name: 'Ghana',
-    fr: 'Ghana',
-    en: 'Ghana',
+    label: {
+      fr: 'Ghana',
+      en: 'Ghana',
+      es: 'Ghana',
+      pt: 'Gana',
+      ar: 'غانا',
+    },
     region: 'afrique',
     cat: 2,
     index: '0.68',
   },
   {
     name: 'Greece',
-    fr: 'Grèce',
-    en: 'Greece',
+    label: {
+      fr: 'Grèce',
+      en: 'Greece',
+      es: 'Grecia',
+      pt: 'Grécia',
+      ar: 'اليونان',
+    },
     region: 'europe',
     cat: 2,
     index: '0.66',
   },
   {
     name: 'Namibia',
-    fr: 'Namibie',
-    en: 'Namibia',
+    label: {
+      fr: 'Namibie',
+      en: 'Namibia',
+      es: 'Namibia',
+      pt: 'Namíbia',
+      ar: 'ناميبيا',
+    },
     region: 'afrique',
     cat: 3,
     index: '0.63',
   },
   {
     name: 'Kenya',
-    fr: 'Kenya',
-    en: 'Kenya',
+    label: {
+      fr: 'Kenya',
+      en: 'Kenya',
+      es: 'Kenia',
+      pt: 'Quénia',
+      ar: 'كينيا',
+    },
     region: 'afrique',
     cat: 3,
     index: '0.58',
   },
   {
     name: 'Morocco',
-    fr: 'Maroc',
-    en: 'Morocco',
+    label: {
+      fr: 'Maroc',
+      en: 'Morocco',
+      es: 'Marruecos',
+      pt: 'Marrocos',
+      ar: 'المغرب',
+    },
     region: 'afrique',
     cat: 3,
     index: '0.52',
   },
   {
     name: 'Tunisia',
-    fr: 'Tunisie',
-    en: 'Tunisia',
+    label: {
+      fr: 'Tunisie',
+      en: 'Tunisia',
+      es: 'Túnez',
+      pt: 'Tunísia',
+      ar: 'تونس',
+    },
     region: 'afrique',
     cat: 4,
     index: '0.49',
   },
   {
     name: 'Mali',
-    fr: 'Mali',
-    en: 'Mali',
+    label: {
+      fr: 'Mali',
+      en: 'Mali',
+      es: 'Malí',
+      pt: 'Mali',
+      ar: 'مالي',
+    },
     region: 'afrique',
     cat: 5,
     index: '0.34',

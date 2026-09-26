@@ -79,9 +79,18 @@ export function DocumentLanguagePicker({
           const isReady = ready.includes(l);
           const busy = preparing === l || (pending && preparing === l);
           const label = LOCALE_ENDONYMS[l];
+          // LA LANGUE COURANTE N'EST INERTE QUE SI ELLE EST PRÊTE.
+          //
+          // Elle était rendue en `<span>` dans tous les cas, et c'était une
+          // impasse : la page ouvre par défaut sur la langue de l'application
+          // (c'est la demande), donc le premier visiteur d'un document jamais
+          // préparé arrivait sur SA langue, lisait « aucun contenu » et n'avait
+          // aucun bouton pour le préparer. Le seul chemin était de préparer une
+          // AUTRE langue — un appel complet payé pour rien — puis de revenir.
+          const inerte = isCurrent && isReady;
           return (
             <li key={l}>
-              {isCurrent ? (
+              {inerte ? (
                 <span
                   aria-current="true"
                   lang={l}
@@ -97,8 +106,13 @@ export function DocumentLanguagePicker({
                   dir={direction(l)}
                   disabled={busy}
                   aria-busy={busy}
+                  aria-current={isCurrent ? 'true' : undefined}
                   onClick={() => (isReady ? goTo(l) : void run(l))}
-                  className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-3 py-1.5 text-[13px] text-ink-soft transition-colors hover:text-ink disabled:opacity-60"
+                  className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[13px] transition-colors disabled:opacity-60 ${
+                    isCurrent
+                      ? 'border-accent-edge bg-accent-tint font-medium text-accent-text'
+                      : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
+                  }`}
                 >
                   {label}
                   {isReady ? (

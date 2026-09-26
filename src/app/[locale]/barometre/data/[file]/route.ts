@@ -4,13 +4,16 @@
 // middleware i18n ignore ces URLs (elles contiennent un point) : la locale vient
 // du segment de chemin. Voir aussi la section « Jeux de données » de la page.
 import { buildDataFile, type DatasetLocale } from '@/lib/barometer-dataset';
+import { resolveLocale } from '@/i18n/locale';
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ locale: string; file: string }> },
 ) {
   const { locale: rawLocale, file } = await params;
-  const locale: DatasetLocale = rawLocale === 'en' ? 'en' : 'fr';
+  // `resolveLocale` et non un ternaire : le ternaire servait un fichier FRANÇAIS
+  // à /es, /pt et /ar. Même motif que la route sœur `agenda.ics`.
+  const locale: DatasetLocale = resolveLocale(rawLocale);
 
   const built = buildDataFile(file, locale);
   if (!built) {

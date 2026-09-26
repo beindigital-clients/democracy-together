@@ -228,6 +228,48 @@ describe('Traduction d’un document — la structure est celle de la source', (
     ).toBeNull();
   });
 
+  it('REFUSE un tableau qui a maigri', () => {
+    // LE DÉFAUT LE PLUS COÛTEUX ET LE PLUS DISCRET du dispositif. Compter les
+    // blocs ne suffit pas : un tableau de N lignes rendu avec trois lignes
+    // reste UN bloc, de type `table`. La page l'affichait parfaitement mis en
+    // forme, sous la mention « traduit automatiquement » — et le lecteur
+    // l'enregistrait en PDF puis le citait, amputé, sans que rien ne l'ait
+    // signalé. Le schéma de la passerelle ne peut pas l'empêcher : il est
+    // partagé avec l'extraction, où le nombre de lignes n'est pas connu.
+    const source = SOURCE[4];
+    expect(source.type).toBe('table');
+    expect(source.rows?.length).toBeGreaterThan(1);
+
+    const ampute = translated({
+      4: { type: 'table', rows: [source.rows![0]] },
+    });
+    expect(parseDocumentTranslation(SOURCE, ampute)).toBeNull();
+  });
+
+  it('REFUSE une ligne de tableau qui a perdu une cellule', () => {
+    const source = SOURCE[4];
+    const rows = source.rows!.map((r, i) => (i === 1 ? r.slice(0, 1) : [...r]));
+    expect(
+      parseDocumentTranslation(
+        SOURCE,
+        translated({ 4: { type: 'table', rows } }),
+      ),
+    ).toBeNull();
+  });
+
+  it('REFUSE une liste qui a perdu des puces', () => {
+    const i = SOURCE.findIndex((b) => b.type === 'list');
+    expect(
+      i,
+      'la source de test doit contenir une liste',
+    ).toBeGreaterThanOrEqual(0);
+    expect(SOURCE[i].items!.length).toBeGreaterThan(1);
+    const ampute = translated({
+      [i]: { type: 'list', items: [SOURCE[i].items![0]] },
+    });
+    expect(parseDocumentTranslation(SOURCE, ampute)).toBeNull();
+  });
+
   it('REFUSE un bloc dont le type a changé', () => {
     // Un paragraphe rendu à la place d'un tableau décalerait toutes les
     // figures suivantes : c'est le défaut que cette garde existe pour attraper.

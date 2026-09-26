@@ -125,7 +125,7 @@ export default async function BarometrePage({
     name: d.name,
     region: d.region,
     fill: CAT_FILL[d.cat - 1],
-    title: loc === 'en' ? d.en : d.fr,
+    title: d.label[loc],
     rows: [
       { label: c.map.indexLabel, value: d.index },
       {
@@ -528,7 +528,9 @@ export default async function BarometrePage({
                       {c.datasets.headers.codebook}
                     </th>
                     <th scope="col" className="px-4 py-3">
-                      <span className="sr-only">Action</span>
+                      <span className="sr-only">
+                        {c.datasets.headers.action}
+                      </span>
                     </th>
                   </tr>
                 </thead>
