@@ -34,7 +34,21 @@ import { LOCALE_ENDONYMS, direction, localeBadge } from '@/i18n/direction';
 // les filtres. C'est le motif déjà suivi par les sélecteurs de tri
 // (`SortSelect`, `UrlSortSelect`).
 
-export function LocaleSwitcher() {
+export function LocaleSwitcher({
+  placement = 'down',
+}: {
+  /**
+   * Sens d'ouverture du menu.
+   *
+   * `up` sert au MENU MOBILE, et ce n'est pas un réglage esthétique : le
+   * panneau mobile est un conteneur à défilement (`overflow-y-auto`), et le
+   * sélecteur vit tout en bas, sous la liste des rubriques. Ouvert vers le
+   * bas, le menu dépassait le panneau de 148 px — mesuré — et trois des cinq
+   * langues n'étaient atteignables qu'en faisant défiler un menu qu'on venait
+   * d'ouvrir. Vers le haut, il se déploie dans l'espace libre au-dessus.
+   */
+  placement?: 'down' | 'up';
+}) {
   const active = useLocale() as Locale;
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -49,28 +63,49 @@ export function LocaleSwitcher() {
   const root = useRef<HTMLDivElement>(null);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Fermeture au clic extérieur et à Échap. `pointerdown` plutôt que `click` :
-  // un `click` sur un lien de la page naviguerait avant que le menu se ferme,
-  // et le menu resterait ouvert sur la page suivante.
+  // Fermeture au clic extérieur. `pointerdown` plutôt que `click` : un `click`
+  // sur un lien de la page naviguerait avant que le menu se ferme, et le menu
+  // resterait ouvert sur la page suivante.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        // Le focus DOIT revenir au déclencheur : sans cela, Échap le laisse sur
-        // le <body> et la tabulation suivante repart du haut du document.
-        root.current?.querySelector('button')?.focus();
-      }
-    };
     document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  // ÉCHAP EST ÉCOUTÉ SUR LA RACINE DU COMPOSANT, ET NON SUR `document`.
+  // C'est un correctif, pas un détail d'implémentation.
+  //
+  // Le menu mobile (`mobile-nav.tsx`) écoute lui aussi Échap sur `document`
+  // pour se refermer, et il CONTIENT un sélecteur de langue. Tant que les deux
+  // écoutaient au même endroit, une seule touche fermait le menu de langue ET
+  // le panneau autour de lui — mesuré : le panneau repassait à
+  // `aria-expanded="false"`. La règle attendue est celle du motif « menu
+  // button » de l'ARIA APG : Échap ferme le calque le PLUS INTÉRIEUR, lui seul.
+  //
+  // POURQUOI PAS UN `onKeyDown` REACT AVEC `stopPropagation`. Essayé, et sans
+  // effet : dans l'App Router, React hydrate le DOCUMENT, donc sa délégation
+  // d'événements est posée sur `document` — exactement là où le menu mobile
+  // écoute. Or `stopPropagation` n'empêche PAS les autres écouteurs du MÊME
+  // nœud de s'exécuter. Un écouteur natif posé sur la racine du composant, lui,
+  // s'exécute pendant que l'événement remonte, STRICTEMENT avant d'atteindre
+  // `document` : l'interrompre là le rend invisible aux deux.
+  useEffect(() => {
+    if (!open) return;
+    const node = root.current;
+    if (!node) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      setOpen(false);
+      // Le focus DOIT revenir au déclencheur : sans cela, Échap le laisse sur
+      // le <body> et la tabulation suivante repart du haut du document.
+      node.querySelector('button')?.focus();
     };
+    node.addEventListener('keydown', onKeyDown);
+    return () => node.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
   // À l'ouverture, le focus va sur la langue courante — c'est le repère de
@@ -162,7 +197,11 @@ export function LocaleSwitcher() {
           // `end-0` et non `right-0` : le menu s'aligne sur le bord FINAL de
           // son déclencheur, donc à gauche quand le document est en arabe.
           // C'est précisément ce que les propriétés physiques empêchaient.
-          className="absolute end-0 top-[calc(100%+4px)] z-50 min-w-[10rem] overflow-hidden rounded-sm border border-line-strong bg-surface py-1 shadow-pop"
+          className={`absolute end-0 z-50 min-w-[10rem] overflow-hidden rounded-sm border border-line-strong bg-surface py-1 shadow-pop ${
+            placement === 'up'
+              ? 'bottom-[calc(100%+4px)]'
+              : 'top-[calc(100%+4px)]'
+          }`}
         >
           {routing.locales.map((l, index) => {
             const current = l === active;

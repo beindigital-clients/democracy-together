@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { getOtp, latestApplicationForEmail, provisionUser } from './_helpers';
+import { ouvrirSelecteurDeLangue } from './_langue';
 
 // PARCOURS COMPLET EN ANGLAIS sur les chemins principaux : accueil,
 // bibliothèque, adhésion, connexion.
@@ -20,13 +21,20 @@ test('EN : / est redirigé vers /en et la page est annoncée en anglais (F-03)',
   // `lang` conditionne la synthèse vocale et la césure : un `lang="fr"` sur une
   // page anglaise est un vrai défaut d'accessibilité.
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  const group = page
+  // Le sélecteur de langue est un menu (cf. `_langue.ts`). Son nom accessible
+  // est visé EN CLAIR et en anglais, conformément au parti pris de ce fichier :
+  // c'est un `aria-label` traduit, donc exactement le genre de chaîne qui
+  // reste en français sans que rien ne le signale (#34). « Langue » ferait
+  // échouer ce locator, et c'est le but.
+  const declencheur = page
     .getByRole('banner')
-    .getByRole('group', { name: 'Language' });
-  await expect(group.getByRole('button', { name: 'EN' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+    .getByRole('button', { name: 'Language' });
+  await expect(declencheur).toBeVisible();
+
+  const menu = await ouvrirSelecteurDeLangue(page);
+  await expect(
+    menu.getByRole('menuitemradio', { name: 'English' }),
+  ).toHaveAttribute('aria-checked', 'true');
 });
 
 test('EN : accueil -> bibliothèque -> facette -> fiche de publication (F-03/F-32)', async ({

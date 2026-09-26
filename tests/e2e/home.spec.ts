@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { cliquerJusqua } from './_panneau';
+import { choixLangue, ouvrirSelecteurDeLangue } from './_langue';
 
 // Navigateur en français : rend la détection Accept-Language déterministe
 // (sinon `/` est redirigé vers /en avec le navigateur en-US par défaut).
@@ -21,12 +21,13 @@ test('home FR puis bascule EN par URL (F-03)', async ({ page }) => {
   // attendu `/en`, reçu `/fr`, treize sondages. Mesuré depuis, sur trois
   // campagnes consécutives, le symptôme se produit À CHAQUE FOIS sur cette
   // bascule — il n'était simplement absorbé que sur le test voisin.
-  await cliquerJusqua(
-    page.getByRole('banner').getByRole('button', { name: 'EN' }),
-    async () => /\/en$/.test(page.url()),
-    'bascule de langue FR -> EN (accueil)',
-  );
-  await expect(page).toHaveURL(/\/en$/);
+  //
+  // La garde porte maintenant sur l'OUVERTURE du menu, qui est le clic exposé
+  // (le sélecteur est devenu un menu : cf. `_langue.ts`). Le choix de la
+  // langue suit sur une page dont l'ouverture vient de prouver l'hydratation.
+  await ouvrirSelecteurDeLangue(page);
+  await choixLangue(page, 'en').click();
+  await expect(page).toHaveURL(/\/en$/, { timeout: 20_000 });
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Democracy needs a network',
   );
@@ -37,12 +38,9 @@ test('le sélecteur de langue pose le cookie NEXT_LOCALE', async ({
   context,
 }) => {
   await page.goto('/fr');
-  await cliquerJusqua(
-    page.getByRole('banner').getByRole('button', { name: 'EN' }),
-    async () => /\/en$/.test(page.url()),
-    'bascule de langue FR -> EN',
-  );
-  await expect(page).toHaveURL(/\/en$/);
+  await ouvrirSelecteurDeLangue(page);
+  await choixLangue(page, 'en').click();
+  await expect(page).toHaveURL(/\/en$/, { timeout: 20_000 });
   // Le cookie est écrit par next-intl pendant la navigation : on l'attend
   // (expect.poll) au lieu d'une lecture unique -> pas de course.
   await expect
@@ -66,17 +64,43 @@ test('le bouton thème bascule data-theme (F-04)', async ({ page }) => {
   await expect(html).not.toHaveAttribute('data-theme', before ?? 'light');
 });
 
-test('sélecteur de langue : bascule segmentée FR | EN (F-03)', async ({
+// LA FORME A CHANGÉ, L'EXIGENCE NON. La rangée segmentée « FR | EN » donnait
+// deux choses gratuitement : la langue courante lisible SANS rien ouvrir, et
+// le choix visible d'un coup d'œil. Un menu peut faire perdre la première —
+// c'est son défaut classique. Ce test tient donc les deux séparément, plutôt
+// que de constater la présence du menu.
+test('sélecteur de langue : langue courante lisible fermé, cinq langues dans le menu (F-03)', async ({
   page,
 }) => {
   await page.goto('/fr');
-  const group = page.getByRole('banner').getByRole('group', { name: 'Langue' });
-  // les deux langues sont visibles côte à côte, l'active (FR) surlignée
-  await expect(group.getByRole('button', { name: 'FR' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(group.getByRole('button', { name: 'EN' })).toBeVisible();
+
+  // 1. Fermé : le déclencheur annonce la langue courante.
+  const declencheur = page
+    .getByRole('banner')
+    .getByRole('button', { name: 'Langue' });
+  await expect(declencheur).toContainText('FR');
+  await expect(declencheur).toHaveAttribute('aria-expanded', 'false');
+
+  // 2. Ouvert : les cinq langues, l'active cochée.
+  const menu = await ouvrirSelecteurDeLangue(page);
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(5);
+  await expect(
+    menu.getByRole('menuitemradio', { name: 'Français' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    menu.getByRole('menuitemradio', { name: 'English' }),
+  ).toHaveAttribute('aria-checked', 'false');
+
+  // 3. Les libellés sont des ENDONYMES, y compris sur une page française :
+  // « العربية » et non « Arabe ». Quelqu'un qui cherche sa langue dans une
+  // interface qu'il ne lit pas cherche le mot qu'il connaît. Un nom traduit
+  // ici passerait inaperçu de toute relecture francophone.
+  await expect(
+    menu.getByRole('menuitemradio', { name: 'العربية' }),
+  ).toBeVisible();
+  await expect(
+    menu.getByRole('menuitemradio', { name: 'Português' }),
+  ).toBeVisible();
 });
 
 test('accueil : toutes les sections de la maquette présentes (F-10)', async ({

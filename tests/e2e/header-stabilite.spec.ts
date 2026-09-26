@@ -1,5 +1,6 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 import { SESSIONS } from './_sessions';
+import { declencheurLangue } from './_langue';
 
 // F-13 — L'EN-TÊTE NE DOIT PAS SE DÉCALER QUAND L'AUTHENTIFICATION SE RÉSOUT.
 //
@@ -18,13 +19,17 @@ import { SESSIONS } from './_sessions';
 // par le serveur (JavaScript désactivé) et la mise en page établie — ce qui est
 // exactement l'invariant qui compte, et ne dépend ni de la vitesse de la
 // machine ni de la charge.
+//
+// LE POINT DE MESURE EST LE DÉCLENCHEUR DU SÉLECTEUR DE LANGUE, depuis qu'il
+// est un menu : les langues elles-mêmes ne sont plus dans le document tant
+// qu'il est fermé, et ce test mesure justement un document JAMAIS ouvert —
+// dont l'un des deux rendus a JavaScript désactivé. Le déclencheur, lui, est
+// servi par le serveur, et il occupe la même place dans la grappe ancrée à
+// droite : c'est le même invariant qui est tenu.
 async function abscisseBascule(ctx: BrowserContext, url: string) {
   const page = await ctx.newPage();
   await page.goto(url);
-  const boite = await page
-    .locator('header button[lang="en"]')
-    .first()
-    .boundingBox();
+  const boite = await declencheurLangue(page).boundingBox();
   return { page, x: boite?.x ?? null };
 }
 
@@ -51,9 +56,7 @@ test("l'en-tête ne se décale pas entre le rendu serveur et l'état établi (F-
       .getByRole('banner')
       .getByRole('link', { name: /connexion|sign in/i }),
   ).toBeVisible();
-  const xEtabli = (
-    await etabli.page.locator('header button[lang="en"]').first().boundingBox()
-  )?.x;
+  const xEtabli = (await declencheurLangue(etabli.page).boundingBox())?.x;
 
   expect(servi.x, 'la bascule doit exister dans le HTML servi').not.toBeNull();
   expect(
@@ -116,9 +119,7 @@ test("l'en-tête ne se décale pas non plus pour un visiteur connecté (F-13)", 
       .getByRole('banner')
       .getByRole('link', { name: /espace membre|member space/i }),
   ).toBeVisible();
-  const xEtabli = (
-    await etabli.page.locator('header button[lang="en"]').first().boundingBox()
-  )?.x;
+  const xEtabli = (await declencheurLangue(etabli.page).boundingBox())?.x;
 
   const ecart = Math.abs((xEtabli as number) - (servi.x as number));
   expect(

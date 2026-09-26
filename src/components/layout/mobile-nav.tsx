@@ -172,7 +172,9 @@ export function MobileNav({
             <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
               <AuthButton connecteAuRendu={connecteAuRendu} />
               <div className="flex items-center gap-2">
-                <LocaleSwitcher />
+                {/* Vers le HAUT : ce panneau défile et le sélecteur est sur sa
+                    dernière ligne — un menu ouvert vers le bas en sortait. */}
+                <LocaleSwitcher placement="up" />
                 <ThemeToggle />
               </div>
             </div>
