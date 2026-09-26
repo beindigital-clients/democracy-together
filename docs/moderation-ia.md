@@ -235,7 +235,43 @@ Le banc d'essai consomme lui aussi le plafond : l'appel qu'il fait est réel.
 
 ---
 
-## 10. Mise en service recommandée
+## 10. Ce qui est vérifié, et comment
+
+| Fichier | Ce qu'il prouve |
+|---|---|
+| `tests/unit/ai-moderation.test.ts` | la **table de vérité de la décision** : on part du seul cas qui publie et on casse une condition à la fois. Plus le parsing prudent (critère absent → `unsure`), le socle, la neutralisation des marqueurs |
+| `convex/aiModeration.test.ts` | l'**orchestration**, unité par unité : fail-closed, plafond, chaque mode, concurrence, pièce jointe, droits, notifications |
+| `convex/aiModeration.scenario.test.ts` | les **parcours complets**, par les seules fonctions publiques : l'admin règle, le membre dépose, le planificateur analyse — et on regarde ce qu'un **visiteur non authentifié** voit dans la bibliothèque |
+| `tests/unit/ai-moderation-ui.test.tsx` | les **écrans**, montés avec les vrais catalogues FR et EN : libellés attendus, repli du détail, avertissement du mode `auto`, refus à un non-admin |
+| `scripts/verifier-passerelle-ia.mjs` | l'**appel réel** — le seul test que la CI ne peut pas jouer |
+
+La dernière ligne est la plus importante à comprendre. Tout le reste simule
+`fetch` : cela prouve la chaîne **autour** du modèle, pas que Vercel accepte
+notre corps de requête. Deux choses comblent l'écart :
+
+- un **test de contrat** (fin de `aiModeration.scenario.test.ts`) épingle la
+  forme envoyée champ par champ — endpoint, en-tête d'autorisation,
+  `instructions`, `input[].content[]`, `text.format.json_schema`,
+  `max_output_tokens`, et la pièce jointe en `input_file` avec sa *data URL*.
+  Il ne remplace pas un appel réel ; il transforme une dérive silencieuse en
+  test rouge, et donne au relecteur un seul endroit à comparer à la
+  documentation ;
+- le **script de vérification**, à lancer une fois, avec une vraie clé :
+
+  ```bash
+  AI_GATEWAY_API_KEY=vck_xxx node scripts/verifier-passerelle-ia.mjs
+  ```
+
+  Il n'écrit rien (ni base, ni déploiement) et coûte deux appels. Le premier
+  vérifie le transport, le schéma et la lecture de la réponse ; le second
+  soumet un texte fautif — accusation nominative non sourcée **et** consigne
+  adressée au relecteur — et exige les deux signaux correspondants. Sans ce
+  second appel, un modèle qui répondrait « conforme » à tout passerait pour
+  fonctionnel.
+
+---
+
+## 11. Mise en service recommandée
 
 1. Poser `AI_GATEWAY_API_KEY` sur le déploiement Convex (`docs/deploiement.md`
    § 1.5). Le panneau dit en tête si la clé est présente.
@@ -254,7 +290,7 @@ Le banc d'essai consomme lui aussi le plafond : l'appel qu'il fait est réel.
 
 ---
 
-## 11. Limites connues
+## 12. Limites connues
 
 - **Le corps du PDF n'est lu que si le fichier tient sous le plafond de taille
   réglé** (6 Mo par défaut). Au-delà, le dépôt part en file humaine — jamais
@@ -270,7 +306,7 @@ Le banc d'essai consomme lui aussi le plafond : l'appel qu'il fait est réel.
   panneau n'affiche pas de série temporelle : les trois compteurs sont des
   totaux depuis l'origine.
 
-## 12. Suites possibles
+## 13. Suites possibles
 
 Par ordre de rapport valeur/coût, si l'usage le justifie :
 

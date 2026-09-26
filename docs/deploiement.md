@@ -174,6 +174,18 @@ Le plafond de dépense vit dans le même écran (« plafond d'appels par
 24 heures ») et non dans une variable : il se change sans redéploiement, et
 son dépassement renvoie les dépôts en file au lieu de les publier en aveugle.
 
+Avant de poser la clé, un aller-retour réel avec la passerelle se vérifie en
+une commande — elle n'écrit rien et coûte deux appels :
+
+```bash
+AI_GATEWAY_API_KEY=vck_xxx node scripts/verifier-passerelle-ia.mjs
+```
+
+C'est la seule vérification que la CI ne peut pas jouer (elle simule la
+passerelle). Elle contrôle le transport, la sortie contrainte par schéma, la
+lecture de la réponse, puis — sur un texte volontairement fautif — que le
+barème est réellement appliqué.
+
 ---
 
 ## 2. Déployer Convex
