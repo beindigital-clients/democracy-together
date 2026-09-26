@@ -19,6 +19,7 @@ import {
   EMPTY_RELATED_PUBLICATIONS,
 } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
+import { intlLocale } from '@/i18n/locale';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -377,10 +378,13 @@ export default async function PublicationPage({
             </h2>
             <div className="grid grid-cols-3 gap-3 text-center">
               {pub.views ? (
-                <Metric n={pub.views.toLocaleString(locale)} l={td('views')} />
+                <Metric
+                  n={pub.views.toLocaleString(intlLocale(locale))}
+                  l={td('views')}
+                />
               ) : null}
               <Metric
-                n={pub.downloads.toLocaleString(locale)}
+                n={pub.downloads.toLocaleString(intlLocale(locale))}
                 l={td('downloadsShort')}
               />
               <Metric n={String(pub.citations)} l={td('citationsShort')} />

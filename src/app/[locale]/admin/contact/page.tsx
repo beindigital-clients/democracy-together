@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import type { Doc } from '@convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { intlLocale } from '@/i18n/locale';
 
 // F-17 / F-26 — les messages de contact n'avaient AUCUN écran de lecture :
 // ils s'accumulaient en base et `handled` n'était jamais mis à jour (audit
@@ -18,7 +19,7 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
   const setHandled = useMutation(api.contact.setHandled);
   const [pending, setPending] = useState(false);
 
-  const received = new Intl.DateTimeFormat(locale, {
+  const received = new Intl.DateTimeFormat(intlLocale(locale), {
     dateStyle: 'long',
     timeStyle: 'short',
   }).format(msg.createdAt);

@@ -29,8 +29,11 @@ describe('Étiquettes de langue Open Graph', () => {
   });
 
   it('rend `undefined` pour une locale inconnue plutôt qu’une valeur inventée', () => {
-    // On ne devine pas le territoire : `pt` pourrait être pt_PT ou pt_BR.
-    expect(openGraphLocale('pt')).toBeUndefined();
+    // On ne devine pas le territoire d'une langue qu'on ne sert pas : `de`
+    // pourrait être de_DE, de_AT ou de_CH. L'exemple était `pt` avant que le
+    // portugais ne devienne une langue du site — il porte maintenant une
+    // étiquette DÉCLARÉE (pt_PT), ce que le test suivant vérifie.
+    expect(openGraphLocale('de')).toBeUndefined();
     expect(openGraphLocale('')).toBeUndefined();
   });
 
@@ -48,8 +51,18 @@ describe('Étiquettes de langue Open Graph', () => {
 
 describe('Locales alternées', () => {
   it('annonce les AUTRES langues, jamais la sienne', () => {
-    expect(alternateOpenGraphLocales('fr')).toEqual(['en_US']);
-    expect(alternateOpenGraphLocales('en')).toEqual(['fr_FR']);
+    expect(alternateOpenGraphLocales('fr')).toEqual([
+      'en_US',
+      'es_ES',
+      'pt_PT',
+      'ar_EG',
+    ]);
+    // La sienne en est absente, quelle que soit la langue interrogée : c'est
+    // la propriété qui compte, et elle se vérifie sur les cinq d'un coup
+    // plutôt que sur un couple choisi à la main.
+    for (const l of routing.locales) {
+      expect(alternateOpenGraphLocales(l)).not.toContain(openGraphLocale(l));
+    }
   });
 
   it('n’en compte jamais plus que le site n’a de langues', () => {

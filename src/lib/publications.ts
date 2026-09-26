@@ -1,3 +1,4 @@
+import { intlLocale } from '@/i18n/locale';
 // Bibliothèque (F-32/F-34) — helpers d'affichage côté Next : libellés via i18n
 // (namespace `library`), formatage de date, parsing des filtres depuis l'URL et
 // construction des citations (APA / BibTeX / RIS). Le vocabulaire de slugs
@@ -129,7 +130,7 @@ export function hasActiveFilters(f: LibraryFilters): boolean {
 
 // Mois + année dans la langue courante ("Mai 2026" / "May 2026").
 export function formatMonthYear(ts: number, locale: string): string {
-  const s = new Intl.DateTimeFormat(locale, {
+  const s = new Intl.DateTimeFormat(intlLocale(locale), {
     month: 'short',
     year: 'numeric',
     timeZone: 'UTC',
@@ -139,7 +140,7 @@ export function formatMonthYear(ts: number, locale: string): string {
 
 // Date longue ("15 mai 2026" / "May 15, 2026").
 export function formatLongDate(ts: number, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -156,7 +157,10 @@ export function formatLongDate(ts: number, locale: string): string {
 // pour toutes, y compris celles que le site n'a pas encore.
 
 function authorListFormat(locale: string): Intl.ListFormat {
-  return new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' });
+  return new Intl.ListFormat(intlLocale(locale), {
+    style: 'long',
+    type: 'conjunction',
+  });
 }
 
 // Liste d'auteurs en une seule chaîne — pour les citations.

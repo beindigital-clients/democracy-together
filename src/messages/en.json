@@ -287,7 +287,10 @@
     },
     "langs": {
       "fr": "French",
-      "en": "English"
+      "en": "English",
+      "es": "Spanish",
+      "pt": "Portuguese",
+      "ar": "Arabic"
     },
     "access": {
       "open": "Open access",

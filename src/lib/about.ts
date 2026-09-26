@@ -1,15 +1,14 @@
 import { client } from '@dt-sanity/lib/client';
 import { aboutPageQuery } from '@dt-sanity/lib/queries';
 import { aboutFallback, type AboutContent } from '@/lib/about-content';
+import type { Locale } from '@/i18n/routing';
 
 // Page À propos (F-11/F-12) côté Sanity : un document `aboutPage` par langue,
 // édité par l'équipe (F-62). Lecture publique cachée (client CDN). Fallback
 // **par section** sur le contenu local : si une section manque côté Sanity (ou
 // si Sanity est indisponible), on rend la version locale — la page ne casse
 // jamais et le SSR reste rapide.
-export async function getAboutContent(
-  locale: 'fr' | 'en',
-): Promise<AboutContent> {
+export async function getAboutContent(locale: Locale): Promise<AboutContent> {
   const fb = aboutFallback(locale);
   let doc: Partial<AboutContent> | null;
   try {

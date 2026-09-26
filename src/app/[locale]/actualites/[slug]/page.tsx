@@ -10,6 +10,7 @@ import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { ptComponents } from '@/components/news/portable-text';
 import { articleJsonLd, jsonLdScript } from '@/lib/seo';
 import { ArrowBack } from '@/components/ui/arrow';
+import { intlLocale } from '@/i18n/locale';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -98,7 +99,9 @@ export default async function ArticlePage({
   }
 
   if (!post || post.language !== locale) notFound();
-  const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), {
+    dateStyle: 'long',
+  });
 
   // Fiche `Article` (F-03, P1 n° 4 du plan d'action), posée SEULEMENT ICI :
   // le rendu dégradé ci-dessus n'affiche aucun article et porte déjà un

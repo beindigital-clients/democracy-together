@@ -1,12 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import { routing } from '@/i18n/routing';
+import { direction } from '@/i18n/direction';
 import { buttonVariants } from '@/components/ui/button';
 
 describe('i18n — routing (F-03)', () => {
-  it('FR par défaut, locales FR/EN, préfixe toujours', () => {
+  it('FR par défaut, cinq langues servies, préfixe toujours', () => {
     expect(routing.defaultLocale).toBe('fr');
-    expect(routing.locales).toEqual(['fr', 'en']);
+    expect(routing.locales).toEqual(['fr', 'en', 'es', 'pt', 'ar']);
     expect(routing.localePrefix).toBe('always');
+  });
+
+  it('chaque locale servie déclare son sens d’écriture', () => {
+    // `direction()` est typée `Record<Locale, Direction>`, donc exhaustive à la
+    // compilation. Ce test tient l'autre moitié : que la VALEUR déclarée soit
+    // l'une des deux admises — une faute de frappe (`'rlt'`) passerait le
+    // compilateur si la table venait un jour à être élargie.
+    for (const l of routing.locales) {
+      expect(['ltr', 'rtl'], `sens inconnu pour « ${l} »`).toContain(
+        direction(l),
+      );
+    }
+    expect(direction('ar')).toBe('rtl');
+    expect(direction('fr')).toBe('ltr');
   });
 });
 

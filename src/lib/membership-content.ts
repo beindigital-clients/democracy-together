@@ -1,3 +1,5 @@
+import type { Locale } from '@/i18n/routing';
+
 // Adhésion (F-20) — contenu éditorial porté 1:1 depuis la maquette agence
 // `design/rmdl-adhesion.html` (sections autour du formulaire F-22). Cotisation
 // SOLIDAIRE (ajustée au niveau de revenu du pays) : pilier d'accessibilité
@@ -407,6 +409,506 @@ const en: MembershipContent = {
   },
 };
 
-export function getMembershipContent(locale: 'fr' | 'en'): MembershipContent {
-  return locale === 'en' ? en : fr;
+const es: MembershipContent = {
+  pills: ['Cuota solidaria', 'Recibo fiscal · loi 1901', 'Pago en euros (EUR)'],
+  intro: {
+    eyebrow: 'Adhesión',
+    title: 'Elegir un tipo de adhesión',
+    body: 'Tres perfiles, tres papeles en la red. Organizaciones, personas individuales y jóvenes menores de 35 años: presenten su candidatura y la secretaría les responderá con la cuota solidaria adaptada a su situación.',
+  },
+  estimator: {
+    eyebrow: 'Tarifa solidaria',
+    title: 'Calculadora de tarifa solidaria',
+    body: 'La cuota se ajusta al nivel de renta del país de su organización o de su residencia. Indique estos datos para obtener un importe orientativo.',
+    incomeLabel: 'Nivel de renta del país',
+    incomeHint: '(clasificación orientativa)',
+    incomes: [
+      { value: 'high', label: 'Alto', desc: 'Renta alta' },
+      { value: 'mid', label: 'Intermedio', desc: 'Renta media' },
+      { value: 'low', label: 'Bajo', desc: 'Renta modesta' },
+    ],
+    typeLabel: 'Tipo de adhesión',
+    types: [
+      { value: 'org', label: 'Organización', desc: 'Centro de estudios' },
+      { value: 'ind', label: 'Individual', desc: 'Investigador' },
+      { value: 'jeu', label: 'Joven', desc: 'Menor de 35 años' },
+    ],
+    outLabel: 'Cuota anual sugerida',
+    perYear: 'al año',
+    ctxTemplate: '{type}, país de renta {income}.',
+    solidarity:
+      'Tarifa solidaria. Estos importes son orientativos. La cuota real puede adaptarse a su situación, con una simple solicitud a la secretaría, para que ninguna barrera económica impida adherirse.',
+  },
+  comparison: {
+    eyebrow: 'Comparativa',
+    title: 'Lo que incluye cada tipo',
+    body: 'Las ventajas difieren según el papel de cada miembro en la red. Este es el detalle de los accesos y derechos asociados.',
+    caption: 'Comparativa de ventajas · datos de ilustración',
+    advantageHeader: 'Ventaja',
+    tiers: [
+      { label: 'Centro de estudios', sub: 'Organización' },
+      { label: 'Individual', sub: 'Investigador · ciudadano' },
+      { label: 'Joven', sub: 'Menor de 35 años' },
+    ],
+    rows: [
+      {
+        advantage: 'Perfil público en el directorio',
+        detail: 'Visibilidad en la red',
+        cells: [
+          'Perfil de organización detallado',
+          'Perfil de miembro individual',
+          'Perfil de joven contribuidor',
+        ],
+      },
+      {
+        advantage: 'Acceso a las publicaciones',
+        detail: 'Biblioteca de la red',
+        cells: [
+          'Acceso íntegro, incluidos contenidos reservados',
+          'Acceso íntegro, incluidos contenidos reservados',
+          'Acceso íntegro de lectura',
+        ],
+      },
+      {
+        advantage: 'Publicar en la biblioteca',
+        detail: 'Depósito de análisis citables',
+        cells: [
+          'Depósito institucional ilimitado',
+          'Depósito como contribuidor',
+          'Mediante mentoría editorial',
+        ],
+      },
+      {
+        advantage: 'Espacios colaborativos',
+        detail: 'Grupos de trabajo temáticos',
+        cells: [
+          'Varias plazas por grupo',
+          'Una plaza por grupo',
+          'Grupos jóvenes y observación',
+        ],
+      },
+      {
+        advantage: 'Convocatorias y fondos comunes',
+        detail: 'Financiación y coproducciones',
+        cells: [
+          'Elegible y promotor de proyecto',
+          'Elegible en equipo',
+          'Becas específicas para jóvenes',
+        ],
+      },
+      {
+        advantage: 'Mentoría y formación',
+        detail: 'Desarrollo de competencias',
+        cells: [
+          'Mentor para estructuras emergentes',
+          'Talleres y pares',
+          'Mentoría prioritaria',
+        ],
+      },
+      {
+        advantage: 'Voz en la gobernanza',
+        detail: 'Asamblea general',
+        cells: [
+          'Voto deliberativo',
+          'Voz consultiva',
+          'Voz en el consejo de jóvenes',
+        ],
+      },
+      {
+        advantage: 'Cumbre anual en París',
+        detail: 'Tarifa y plazas',
+        cells: [
+          'Varias plazas, tarifa de miembro',
+          'Una plaza, tarifa de miembro',
+          'Plazas para jóvenes a tarifa reducida',
+        ],
+      },
+    ],
+  },
+  faq: {
+    eyebrow: 'Ayuda',
+    title: 'Preguntas frecuentes',
+    body: 'Cuota solidaria, recibos fiscales, formas de pago, donaciones y baja.',
+    items: [
+      {
+        q: '¿Cómo funciona la cuota solidaria?',
+        a: [
+          'La cuota se ajusta al nivel de renta del país de su organización o de su residencia, según tres tramos (alto, intermedio, bajo). El objetivo es que un miembro con sede en Dakar y otro con sede en París contribuyan en la medida de sus respectivos medios, sin que la tarifa se convierta en un obstáculo.',
+          'Los importes que figuran en esta página son orientativos. Si su situación no encaja en ningún tramo, escriba a la secretaría: adaptamos la cuota caso por caso.',
+        ],
+      },
+      {
+        q: '¿El recibo fiscal es automático (asociación loi 1901)?',
+        a: [
+          'Sí. Democracy Together es una asociación francesa de tipo loi 1901. Después de cada pago de cuota o donación, se genera un recibo que se envía automáticamente a la dirección de correo indicada. La posibilidad de una deducción fiscal depende de su país de residencia y de su régimen tributario; infórmese en su administración.',
+        ],
+      },
+      {
+        q: '¿Cómo se paga la cuota?',
+        a: [
+          'Por ahora, la cuota y las donaciones se abonan en euros (EUR). Sea cual sea su país, el pago se tramita en esa divisa; su banco aplicará, en su caso, su propia conversión.',
+          '¿Reside en África Occidental? La oficina de Dakar puede acompañarle en el pago y estudiar otros medios de pago locales.',
+        ],
+      },
+      {
+        q: '¿Cómo funcionan las donaciones y el mecenazgo?',
+        a: [
+          'Puede apoyar a la red sin ser miembro, mediante una donación puntual o periódica. Las organizaciones interesadas en un acuerdo de mecenazgo (apoyo al Barómetro, a la cumbre de París o al programa joven) pueden contactar con la secretaría para definir un convenio específico.',
+        ],
+      },
+      {
+        q: '¿Cómo doy de baja o no renuevo mi adhesión?',
+        a: [
+          'La adhesión es anual y sin renovación tácita: no se renueva automáticamente. Recibirá un aviso antes del vencimiento y decidirá libremente si renueva. También puede escribirnos en cualquier momento para poner fin a su adhesión.',
+        ],
+      },
+    ],
+  },
+  don: {
+    eyebrow: 'Sin adherirse',
+    title: '¿No es miembro? Apoye con una donación',
+    body: 'Una donación puntual o periódica financia directamente la producción de análisis abiertos, el Barómetro y la mentoría de jóvenes contribuidores. El recibo fiscal se envía automáticamente.',
+    cta: 'Hacer una donación',
+  },
+  cta: {
+    title: '¿Listo para unirse a la red?',
+    body: 'Elija su perfil, calcule su cuota solidaria y adhiérase en unos minutos.',
+    primary: 'Elegir mi adhesión',
+    secondary: 'Hacer una donación',
+  },
+};
+const pt: MembershipContent = {
+  pills: [
+    'Quota solidária',
+    'Recibo fiscal · loi 1901',
+    'Pagamento em euros (EUR)',
+  ],
+  intro: {
+    eyebrow: 'Adesão',
+    title: 'Escolher um tipo de adesão',
+    body: 'Três perfis, três papéis na rede. Organizações, pessoas individuais e jovens com menos de 35 anos: apresentem a vossa candidatura e o secretariado responderá com a quota solidária adaptada à vossa situação.',
+  },
+  estimator: {
+    eyebrow: 'Tarifa solidária',
+    title: 'Simulador de tarifa solidária',
+    body: 'A quota ajusta-se ao nível de rendimento do país da sua organização ou da sua residência. Indique estes elementos para obter um montante indicativo.',
+    incomeLabel: 'Nível de rendimento do país',
+    incomeHint: '(classificação indicativa)',
+    incomes: [
+      { value: 'high', label: 'Elevado', desc: 'Rendimento elevado' },
+      { value: 'mid', label: 'Intermédio', desc: 'Rendimento médio' },
+      { value: 'low', label: 'Baixo', desc: 'Rendimento modesto' },
+    ],
+    typeLabel: 'Tipo de adesão',
+    types: [
+      { value: 'org', label: 'Organização', desc: 'Centro de estudos' },
+      { value: 'ind', label: 'Individual', desc: 'Investigador' },
+      { value: 'jeu', label: 'Jovem', desc: 'Menos de 35 anos' },
+    ],
+    outLabel: 'Quota anual sugerida',
+    perYear: 'por ano',
+    ctxTemplate: '{type}, país de rendimento {income}.',
+    solidarity:
+      'Tarifa solidária. Estes montantes são indicativos. A quota real pode ser adaptada à sua situação, mediante simples pedido ao secretariado, para que nenhum obstáculo financeiro impeça a adesão.',
+  },
+  comparison: {
+    eyebrow: 'Comparativo',
+    title: 'O que está incluído, por tipo',
+    body: 'As vantagens diferem consoante o papel de cada membro na rede. Eis o detalhe dos acessos e direitos associados.',
+    caption: 'Comparativo de vantagens · dados de ilustração',
+    advantageHeader: 'Vantagem',
+    tiers: [
+      { label: 'Centro de estudos', sub: 'Organização' },
+      { label: 'Individual', sub: 'Investigador · cidadão' },
+      { label: 'Jovem', sub: 'Menos de 35 anos' },
+    ],
+    rows: [
+      {
+        advantage: 'Perfil público no diretório',
+        detail: 'Visibilidade na rede',
+        cells: [
+          'Perfil de organização detalhado',
+          'Perfil de membro individual',
+          'Perfil de jovem contribuidor',
+        ],
+      },
+      {
+        advantage: 'Acesso às publicações',
+        detail: 'Biblioteca da rede',
+        cells: [
+          'Acesso integral, incluindo conteúdos reservados',
+          'Acesso integral, incluindo conteúdos reservados',
+          'Acesso integral de leitura',
+        ],
+      },
+      {
+        advantage: 'Publicar na biblioteca',
+        detail: 'Depósito de análises citáveis',
+        cells: [
+          'Depósito institucional ilimitado',
+          'Depósito enquanto contribuidor',
+          'Através de mentoria editorial',
+        ],
+      },
+      {
+        advantage: 'Espaços colaborativos',
+        detail: 'Grupos de trabalho temáticos',
+        cells: [
+          'Vários lugares por grupo',
+          'Um lugar por grupo',
+          'Grupos jovens e observação',
+        ],
+      },
+      {
+        advantage: 'Convites a projetos e fundos comuns',
+        detail: 'Financiamentos e coproduções',
+        cells: [
+          'Elegível e promotor de projeto',
+          'Elegível em equipa',
+          'Bolsas dedicadas a jovens',
+        ],
+      },
+      {
+        advantage: 'Mentoria e formação',
+        detail: 'Reforço de competências',
+        cells: [
+          'Mentor para estruturas emergentes',
+          'Oficinas e pares',
+          'Mentoria prioritária',
+        ],
+      },
+      {
+        advantage: 'Voz na governação',
+        detail: 'Assembleia geral',
+        cells: [
+          'Voto deliberativo',
+          'Voz consultiva',
+          'Voz no conselho de jovens',
+        ],
+      },
+      {
+        advantage: 'Cimeira anual em Paris',
+        detail: 'Tarifa e lugares',
+        cells: [
+          'Vários lugares, tarifa de membro',
+          'Um lugar, tarifa de membro',
+          'Lugares para jovens a tarifa reduzida',
+        ],
+      },
+    ],
+  },
+  faq: {
+    eyebrow: 'Ajuda',
+    title: 'Perguntas frequentes',
+    body: 'Quota solidária, recibos fiscais, formas de pagamento, donativos e cessação.',
+    items: [
+      {
+        q: 'Como funciona a quota solidária?',
+        a: [
+          'A quota ajusta-se ao nível de rendimento do país da sua organização ou da sua residência, segundo três escalões (elevado, intermédio, baixo). O objetivo é que um membro sediado em Dakar e outro sediado em Paris contribuam na medida dos seus meios respetivos, sem que a tarifa se torne um obstáculo.',
+          'Os montantes apresentados nesta página são indicativos. Se a sua situação não corresponder a nenhum escalão, escreva ao secretariado: adaptamos a quota caso a caso.',
+        ],
+      },
+      {
+        q: 'O recibo fiscal é automático (associação loi 1901)?',
+        a: [
+          'Sim. A Democracy Together é uma associação francesa do tipo loi 1901. Após cada pagamento de quota ou donativo, é gerado um recibo e enviado automaticamente para o endereço de correio eletrónico indicado. A elegibilidade para uma dedução fiscal depende do seu país de residência e do seu regime fiscal; informe-se junto da sua administração.',
+        ],
+      },
+      {
+        q: 'Como se paga a quota?',
+        a: [
+          'Por agora, a quota e os donativos são pagos em euros (EUR). Seja qual for o seu país, o pagamento é processado nessa moeda; o seu banco aplicará, se for caso disso, a sua própria conversão.',
+          'Reside na África Ocidental? O escritório de Dakar pode acompanhá-lo no pagamento e estudar outros meios de pagamento locais.',
+        ],
+      },
+      {
+        q: 'Como funcionam os donativos e o mecenato?',
+        a: [
+          'Pode apoiar a rede sem ser membro, através de um donativo pontual ou regular. As organizações interessadas numa parceria de mecenato (apoio ao Barómetro, à cimeira de Paris ou ao programa jovem) podem contactar o secretariado para definir uma convenção dedicada.',
+        ],
+      },
+      {
+        q: 'Como cesso ou não renovo a minha adesão?',
+        a: [
+          'A adesão é anual e sem renovação tácita: não se renova automaticamente. Recebe um aviso antes do termo e decide livremente se renova. Pode também escrever-nos a qualquer momento para pôr fim à sua adesão.',
+        ],
+      },
+    ],
+  },
+  don: {
+    eyebrow: 'Sem aderir',
+    title: 'Não é membro? Apoie com um donativo',
+    body: 'Um donativo pontual ou regular financia diretamente a produção de análises abertas, o Barómetro e a mentoria de jovens contribuidores. O recibo fiscal é enviado automaticamente.',
+    cta: 'Fazer um donativo',
+  },
+  cta: {
+    title: 'Pronto para se juntar à rede?',
+    body: 'Escolha o seu perfil, estime a sua quota solidária e adira em poucos minutos.',
+    primary: 'Escolher a minha adesão',
+    secondary: 'Fazer um donativo',
+  },
+};
+const ar: MembershipContent = {
+  pills: ['اشتراك تضامني', 'وصل ضريبي · قانون 1901', 'الأداء باليورو (EUR)'],
+  intro: {
+    eyebrow: 'الانضمام',
+    title: 'اختيار نوع العضوية',
+    body: 'ثلاثة أنماط، وثلاثة أدوار داخل الشبكة. منظمات وأفراد وشباب دون الخامسة والثلاثين: قدّموا ترشيحكم، وستعود إليكم الأمانة بالاشتراك التضامني الملائم لوضعكم.',
+  },
+  estimator: {
+    eyebrow: 'التعرفة التضامنية',
+    title: 'حاسبة التعرفة التضامنية',
+    body: 'يتكيّف الاشتراك مع مستوى دخل بلد منظمتكم أو بلد إقامتكم. حدّدوا هذين العنصرين للحصول على مبلغ تقريبي.',
+    incomeLabel: 'مستوى دخل البلد',
+    incomeHint: '(تصنيف تقريبي)',
+    incomes: [
+      { value: 'high', label: 'مرتفع', desc: 'دخل مرتفع' },
+      { value: 'mid', label: 'متوسط', desc: 'دخل متوسط' },
+      { value: 'low', label: 'منخفض', desc: 'دخل محدود' },
+    ],
+    typeLabel: 'نوع العضوية',
+    types: [
+      { value: 'org', label: 'منظمة', desc: 'مركز دراسات' },
+      { value: 'ind', label: 'فردية', desc: 'باحث' },
+      { value: 'jeu', label: 'شاب', desc: 'دون 35 سنة' },
+    ],
+    outLabel: 'الاشتراك السنوي المقترح',
+    perYear: 'في السنة',
+    ctxTemplate: '{type}، بلد ذو دخل {income}.',
+    solidarity:
+      'تعرفة تضامنية. هذه المبالغ تقريبية، ويمكن تكييف الاشتراك الفعلي مع وضعكم بمجرد طلب يوجَّه إلى الأمانة، حتى لا يحول أي عائق مالي دون الانضمام.',
+  },
+  comparison: {
+    eyebrow: 'مقارنة',
+    title: 'ما يشمله كل نوع',
+    body: 'تختلف المزايا باختلاف دور كل عضو داخل الشبكة. وفيما يلي تفصيل الخدمات والحقوق المرتبطة بها.',
+    caption: 'مقارنة المزايا · بيانات توضيحية',
+    advantageHeader: 'الميزة',
+    tiers: [
+      { label: 'مركز دراسات', sub: 'منظمة' },
+      { label: 'فردية', sub: 'باحث · مواطن' },
+      { label: 'شاب', sub: 'دون 35 سنة' },
+    ],
+    rows: [
+      {
+        advantage: 'ملف عمومي في الدليل',
+        detail: 'الحضور داخل الشبكة',
+        cells: ['ملف منظمة مفصَّل', 'ملف عضو فردي', 'ملف مساهم شاب'],
+      },
+      {
+        advantage: 'النفاذ إلى المنشورات',
+        detail: 'مكتبة الشبكة',
+        cells: [
+          'نفاذ كامل، بما في ذلك المحتويات المحجوزة',
+          'نفاذ كامل، بما في ذلك المحتويات المحجوزة',
+          'نفاذ كامل للقراءة',
+        ],
+      },
+      {
+        advantage: 'النشر في المكتبة',
+        detail: 'إيداع تحليلات قابلة للاستشهاد',
+        cells: [
+          'إيداع مؤسسي غير محدود',
+          'إيداع بصفة مساهم',
+          'عبر التوجيه التحريري',
+        ],
+      },
+      {
+        advantage: 'فضاءات العمل المشترك',
+        detail: 'مجموعات عمل مواضيعية',
+        cells: [
+          'عدة مقاعد في كل مجموعة',
+          'مقعد واحد في كل مجموعة',
+          'مجموعات الشباب وصفة الملاحظ',
+        ],
+      },
+      {
+        advantage: 'الدعوات إلى المشاريع والصناديق المشتركة',
+        detail: 'تمويلات وإنتاج مشترك',
+        cells: ['مؤهَّل وصاحب مشروع', 'مؤهَّل ضمن فريق', 'منح مخصصة للشباب'],
+      },
+      {
+        advantage: 'التوجيه والتكوين',
+        detail: 'تطوير الكفاءات',
+        cells: [
+          'موجِّه للهياكل الناشئة',
+          'ورشات وتبادل بين الأقران',
+          'توجيه بالأولوية',
+        ],
+      },
+      {
+        advantage: 'صوت في الحوكمة',
+        detail: 'الجمع العام',
+        cells: ['صوت تقريري', 'صوت استشاري', 'صوت في مجلس الشباب'],
+      },
+      {
+        advantage: 'القمة السنوية بباريس',
+        detail: 'التعرفة والمقاعد',
+        cells: [
+          'عدة مقاعد بتعرفة الأعضاء',
+          'مقعد واحد بتعرفة الأعضاء',
+          'مقاعد للشباب بتعرفة مخفَّضة',
+        ],
+      },
+    ],
+  },
+  faq: {
+    eyebrow: 'مساعدة',
+    title: 'أسئلة متكررة',
+    body: 'الاشتراك التضامني، والوصولات الضريبية، وطرق الأداء، والتبرعات، وإنهاء العضوية.',
+    items: [
+      {
+        q: 'كيف يشتغل الاشتراك التضامني؟',
+        a: [
+          'يتكيّف الاشتراك مع مستوى دخل بلد منظمتكم أو بلد إقامتكم، وفق ثلاث شرائح (مرتفع، متوسط، منخفض). والهدف أن يساهم عضو مقيم بداكار وعضو مقيم بباريس كل بقدر إمكاناته، دون أن تصير التعرفة عائقاً.',
+          'المبالغ المعروضة في هذه الصفحة تقريبية. وإذا لم يوافق وضعكم أي شريحة، فاكتبوا إلى الأمانة: نكيّف الاشتراك حالة بحالة.',
+        ],
+      },
+      {
+        q: 'هل الوصل الضريبي تلقائي (جمعية خاضعة لقانون 1901)؟',
+        a: [
+          'نعم. Democracy Together جمعية فرنسية خاضعة لقانون 1901. وبعد كل أداء لاشتراك أو تبرع، يُصدَر وصل ويُرسَل تلقائياً إلى عنوان البريد الإلكتروني المصرَّح به. أما أهلية الاستفادة من تخفيض ضريبي فتتوقف على بلد إقامتكم وعلى نظامكم الجبائي؛ استعلموا لدى إدارتكم.',
+        ],
+      },
+      {
+        q: 'كيف يتم أداء الاشتراك؟',
+        a: [
+          'في الوقت الحالي، يُؤدى الاشتراك وتُؤدى التبرعات باليورو (EUR). ومهما كان بلدكم، تُعالَج العملية بهذه العملة؛ ويطبّق بنككم عند الاقتضاء سعر صرفه الخاص.',
+          'هل تقيمون في غرب أفريقيا؟ يمكن لمكتب داكار مرافقتكم في الأداء ودراسة وسائل دفع محلية أخرى.',
+        ],
+      },
+      {
+        q: 'كيف تشتغل التبرعات والرعاية؟',
+        a: [
+          'يمكنكم دعم الشبكة دون أن تكونوا أعضاء، بتبرع ظرفي أو منتظم. أما المنظمات المهتمة بشراكة رعاية (دعم المؤشر أو قمة باريس أو برنامج الشباب) فيمكنها الاتصال بالأمانة لتحديد اتفاقية خاصة.',
+        ],
+      },
+      {
+        q: 'كيف أنهي عضويتي أو لا أجدّدها؟',
+        a: [
+          'العضوية سنوية وبلا تجديد ضمني: فهي لا تتجدد تلقائياً. تصلكم رسالة تذكير قبل حلول الأجل وتختارون بحرية التجديد من عدمه. ويمكنكم أيضاً مراسلتنا في أي وقت لإنهاء عضويتكم.',
+        ],
+      },
+    ],
+  },
+  don: {
+    eyebrow: 'دون انضمام',
+    title: 'لستم أعضاء؟ ادعموا بتبرع',
+    body: 'التبرع الظرفي أو المنتظم يموّل مباشرةً إنتاج تحليلات مفتوحة، والمؤشر، وتوجيه المساهمين الشباب. ويُرسَل الوصل الضريبي تلقائياً.',
+    cta: 'تبرّعوا',
+  },
+  cta: {
+    title: 'هل أنتم مستعدون للانضمام إلى الشبكة؟',
+    body: 'اختاروا نمطكم، وقدّروا اشتراككم التضامني، وانضموا في بضع دقائق.',
+    primary: 'اختيار عضويتي',
+    secondary: 'تبرّعوا',
+  },
+};
+
+// Table exhaustive par construction (cf. `projects-content.ts`).
+const BY_LOCALE: Record<Locale, MembershipContent> = { fr, en, es, pt, ar };
+
+export function getMembershipContent(locale: Locale): MembershipContent {
+  return BY_LOCALE[locale];
 }

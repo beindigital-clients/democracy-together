@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
+import { routing } from '@/i18n/routing';
 
 // Garde de parité des clés de traduction (issue #33).
 //
@@ -228,10 +229,17 @@ for (const file of walk(SRC)) {
   collectCalls(source);
 }
 
-const catalogues = {
-  fr: JSON.parse(readFileSync(join(MESSAGES, 'fr.json'), 'utf8')) as unknown,
-  en: JSON.parse(readFileSync(join(MESSAGES, 'en.json'), 'utf8')) as unknown,
-};
+// Les CINQ catalogues, dérivés de `routing.locales` : une clé écrite dans le
+// code doit exister dans chacun, pas seulement en français et en anglais.
+// Cette liste était figée à deux langues ; elle se serait tue le jour où une
+// clé aurait manqué au seul catalogue arabe.
+const LANGUES = routing.locales;
+const catalogues = Object.fromEntries(
+  LANGUES.map((l) => [
+    l,
+    JSON.parse(readFileSync(join(MESSAGES, `${l}.json`), 'utf8')) as unknown,
+  ]),
+) as Record<(typeof LANGUES)[number], unknown>;
 
 function resolvePath(tree: unknown, path: string): unknown {
   let node = tree;
@@ -271,13 +279,13 @@ describe('Clés de traduction — le code et les messages disent la même chose'
   it('chaque clé littérale existe en français ET en anglais', () => {
     const absentes = keys
       .filter((k) =>
-        (['fr', 'en'] as const).some(
+        LANGUES.some(
           (langue) =>
             typeof resolvePath(catalogues[langue], k.path) !== 'string',
         ),
       )
       .map((k) => {
-        const manquantes = (['fr', 'en'] as const).filter(
+        const manquantes = LANGUES.filter(
           (langue) =>
             typeof resolvePath(catalogues[langue], k.path) !== 'string',
         );
@@ -295,7 +303,7 @@ describe('Clés de traduction — le code et les messages disent la même chose'
     // terme en silence, et toute une colonne s'afficherait en slugs.
     const orphelins = prefixes
       .filter((p) =>
-        (['fr', 'en'] as const).some(
+        LANGUES.some(
           (langue) =>
             !hasVocabularyGroup(catalogues[langue], p.namespace, p.prefix),
         ),

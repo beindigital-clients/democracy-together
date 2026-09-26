@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { intlLocale } from '@/i18n/locale';
 
 type Row = FunctionReturnType<typeof api.journal.listAuditLog>['page'][number];
 
@@ -172,7 +173,7 @@ export default function AdminJournal() {
                 return (
                   <tr key={i} className="border-b border-line align-top">
                     <td className="py-3 pe-4 whitespace-nowrap text-ink-soft">
-                      {new Date(e.createdAt).toLocaleString(locale)}
+                      {new Date(e.createdAt).toLocaleString(intlLocale(locale))}
                     </td>
                     <td className="py-3 pe-4 font-mono text-[13px]">
                       {e.action}

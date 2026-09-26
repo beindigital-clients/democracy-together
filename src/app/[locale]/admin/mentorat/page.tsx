@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { vocabulary } from '@/i18n/vocabulary';
+import { intlLocale } from '@/i18n/locale';
 
 export default function AdminMentorship() {
   const t = useTranslations('admin');
@@ -24,7 +25,7 @@ export default function AdminMentorship() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const fmt = (ms: number) =>
-    new Intl.DateTimeFormat(locale, {
+    new Intl.DateTimeFormat(intlLocale(locale), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

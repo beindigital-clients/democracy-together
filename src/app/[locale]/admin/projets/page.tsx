@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { vocabulary } from '@/i18n/vocabulary';
+import { intlLocale } from '@/i18n/locale';
 
 // File de revue des propositions de projets collaboratifs (F-60). Modérateur+.
 export default function AdminProjects() {
@@ -25,7 +26,7 @@ export default function AdminProjects() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const fmt = (ms: number) =>
-    new Intl.DateTimeFormat(locale, {
+    new Intl.DateTimeFormat(intlLocale(locale), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

@@ -6,7 +6,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { CommentForm } from '@/components/tribune/comment-form';
 import { ReportButton } from '@/components/tribune/report-button';
 import { ReactionButton } from '@/components/tribune/reaction-button';
@@ -72,7 +72,7 @@ export default async function TribunePostPage({
   const postLang = resolveLocale(post.lang);
 
   const fmtDate = (ms: number) =>
-    new Intl.DateTimeFormat(loc, {
+    new Intl.DateTimeFormat(intlLocale(loc), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

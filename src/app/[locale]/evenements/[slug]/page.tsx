@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import {
   EVENTS,
   FEATURED_SLUG,
@@ -15,11 +15,12 @@ import {
 import { eventJsonLd, jsonLdScript } from '@/lib/seo';
 import { EventRegisterForm } from '@/components/events/event-register-form';
 import { ReminderForm } from '@/components/events/reminder-form';
+import type { Locale } from '@/i18n/routing';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-function longDate(e: EventData, loc: 'fr' | 'en'): string {
-  return new Intl.DateTimeFormat(loc, {
+function longDate(e: EventData, loc: Locale): string {
+  return new Intl.DateTimeFormat(intlLocale(loc), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

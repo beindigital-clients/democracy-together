@@ -10,6 +10,7 @@ import { SelectField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { LoadMore } from '@/components/admin/load-more';
 import { vocabulary } from '@/i18n/vocabulary';
+import { intlLocale } from '@/i18n/locale';
 
 type Recommendation = 'accept' | 'minor' | 'major' | 'reject';
 const RECOMMENDATIONS: Recommendation[] = [
@@ -60,7 +61,7 @@ export default function AdminReview() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const fmt = (ms: number) =>
-    new Intl.DateTimeFormat(locale, {
+    new Intl.DateTimeFormat(intlLocale(locale), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

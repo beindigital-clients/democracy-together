@@ -5,6 +5,7 @@
 // types, villes) viennent de `getEventsLabels(locale)` — pas de duplication.
 
 import { EVENTS, getEventsLabels, whenOf } from './events-content';
+import type { Locale } from '@/i18n/routing';
 
 export type Replay = {
   slug: string;
@@ -18,7 +19,7 @@ export type Replay = {
 
 // Liste des événements passés (`upcoming === false`), du plus récent au plus
 // ancien (date décroissante), avec libellés localisés prêts à afficher.
-export function getReplays(locale: 'fr' | 'en'): Replay[] {
+export function getReplays(locale: Locale): Replay[] {
   const labels = getEventsLabels(locale);
   return EVENTS.filter((e) => e.upcoming === false)
     .slice()

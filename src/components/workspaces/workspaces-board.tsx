@@ -16,6 +16,7 @@ import {
 import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
+import { intlLocale } from '@/i18n/locale';
 
 // Formulaire de création d'espace (membre réseau). Réplique le motif du
 // composer de la Tribune (champs Input/Textarea, select natif de thème).
@@ -129,7 +130,7 @@ export function WorkspacesBoard() {
   const items = useQuery(api.workspaces.listWorkspaces);
 
   const fmtDate = (ms: number) =>
-    new Intl.DateTimeFormat(locale, {
+    new Intl.DateTimeFormat(intlLocale(locale), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

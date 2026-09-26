@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { getEventsLabels } from '@/lib/events-content';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 
@@ -28,7 +28,7 @@ export default function AdminEvents() {
   }, [regs]);
 
   const fmtDate = (ms: number) =>
-    new Intl.DateTimeFormat(loc, {
+    new Intl.DateTimeFormat(intlLocale(loc), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

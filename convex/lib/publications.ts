@@ -242,7 +242,20 @@ export const publicPublicationValidator = v.object({
     v.literal('europe'),
     v.literal('mondial'),
   ),
-  languages: v.array(v.union(v.literal('fr'), v.literal('en'))),
+  // Recopie le vocabulaire de `locale` (convex/schema.ts) : une publication
+  // peut être déposée dans n'importe quelle langue servie par le site. Ce
+  // validateur BORNE la projection publique — il doit donc accepter ce que le
+  // schéma accepte, sans quoi une publication en espagnol ne sortirait pas de
+  // la query.
+  languages: v.array(
+    v.union(
+      v.literal('fr'),
+      v.literal('en'),
+      v.literal('es'),
+      v.literal('pt'),
+      v.literal('ar'),
+    ),
+  ),
   access: v.union(v.literal('open'), v.literal('members')),
   authors: v.array(
     v.object({ name: v.string(), role: v.optional(v.string()) }),

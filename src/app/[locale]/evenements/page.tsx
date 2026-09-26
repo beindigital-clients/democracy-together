@@ -21,6 +21,7 @@ import {
   monthAbbr,
 } from '@/lib/events-content';
 import { ArrowForward } from '@/components/ui/arrow';
+import type { Locale } from '@/i18n/routing';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -430,7 +431,7 @@ function EventCard({
 }: {
   event: EventData;
   L: ReturnType<typeof getEventsLabels>;
-  locale: 'fr' | 'en';
+  locale: Locale;
 }) {
   return (
     <article className="flex h-full gap-4 rounded-sm border border-line bg-surface p-4">

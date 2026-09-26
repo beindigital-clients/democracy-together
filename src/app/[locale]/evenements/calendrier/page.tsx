@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import {
   getEventsLabels,
   monthAbbr,
@@ -11,6 +11,7 @@ import {
 import { buildMonthGrid, monthShift, parseYm, formatYm } from '@/lib/calendar';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowBack, ArrowForward } from '@/components/ui/arrow';
+import type { Locale } from '@/i18n/routing';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -39,11 +40,14 @@ const WRAP = 'mx-auto w-full max-w-[1240px] px-4 sm:px-6';
 const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 // Nom du mois localisé (ex. « novembre 2026 » / « November 2026 »).
-function monthTitle(year: number, month: number, loc: 'fr' | 'en'): string {
-  const label = new Intl.DateTimeFormat(loc === 'en' ? 'en-GB' : 'fr-FR', {
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(year, month - 1, 1));
+function monthTitle(year: number, month: number, loc: Locale): string {
+  const label = new Intl.DateTimeFormat(
+    intlLocale(loc) === 'en' ? 'en-GB' : 'fr-FR',
+    {
+      month: 'long',
+      year: 'numeric',
+    },
+  ).format(new Date(year, month - 1, 1));
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -256,7 +260,7 @@ function CalendarEvent({
 }: {
   event: EventData;
   L: ReturnType<typeof getEventsLabels>;
-  loc: 'fr' | 'en';
+  loc: Locale;
 }) {
   return (
     <Link
