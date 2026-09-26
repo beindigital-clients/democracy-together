@@ -27,7 +27,7 @@ importers:
         version: 0.41.3
       '@convex-dev/auth':
         specifier: ^0.0.94
-        version: 0.0.94(@auth/core@0.41.3)(convex@1.42.0(react@19.2.7))(react@19.2.7)
+        version: 0.0.94(@auth/core@0.41.3)(convex@1.46.0(react@19.2.7))(react@19.2.7)
       '@radix-ui/react-label':
         specifier: ^2.1.10
         version: 2.1.10(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -50,8 +50,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       convex:
-        specifier: ^1.42.0
-        version: 1.42.0(react@19.2.7)
+        specifier: ^1.46.0
+        version: 1.46.0(react@19.2.7)
       d3-geo:
         specifier: ^3.1.1
         version: 3.1.1
@@ -136,7 +136,7 @@ importers:
         version: 6.0.3(@rolldown/plugin-babel@0.2.3(@babel/core@7.29.7)(@babel/runtime@7.29.7)(rolldown@1.2.9)(vite@8.3.0(@types/node@26.0.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(vite@8.3.0(@types/node@26.0.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       convex-test:
         specifier: ^0.0.53
-        version: 0.0.53(convex@1.42.0(react@19.2.7))
+        version: 0.0.53(convex@1.46.0(react@19.2.7))
       eslint:
         specifier: ^10.11.0
         version: 10.11.0(jiti@2.7.0)
@@ -3875,9 +3875,9 @@ packages:
     peerDependencies:
       convex: ^1.32.0
 
-  convex@1.42.0:
-    resolution: {integrity: sha512-KS1U+YkE7N7jDfucPW28iNehnb9/N5n9RJmdAFNdPIHTeNpbLKNqk1pJHp4ajHyMBAhGmri8Z4S1lc1LjliZWQ==}
-    engines: {node: '>=18.0.0', npm: '>=7.0.0'}
+  convex@1.46.0:
+    resolution: {integrity: sha512-dhBwDQTZDOhi5SUGAX17EWNehCdNq6/UFrSL0eLZuGfMkdsQbCVWVRZCzbZ5CF+/pgvoGxtApbEoTSipqL4JTw==}
+    engines: {node: '>=20.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
       '@auth0/auth0-react': ^2.0.1
@@ -7387,12 +7387,12 @@ snapshots:
       style-mod: 4.1.3
       w3c-keyname: 2.2.8
 
-  '@convex-dev/auth@0.0.94(@auth/core@0.41.3)(convex@1.42.0(react@19.2.7))(react@19.2.7)':
+  '@convex-dev/auth@0.0.94(@auth/core@0.41.3)(convex@1.46.0(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@auth/core': 0.41.3
       '@oslojs/crypto': 1.0.1
       '@oslojs/encoding': 1.1.0
-      convex: 1.42.0(react@19.2.7)
+      convex: 1.46.0(react@19.2.7)
       cookie: 1.1.1
       is-network-error: 1.3.2
       jose: 5.10.0
@@ -10492,11 +10492,11 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-test@0.0.53(convex@1.42.0(react@19.2.7)):
+  convex-test@0.0.53(convex@1.46.0(react@19.2.7)):
     dependencies:
-      convex: 1.42.0(react@19.2.7)
+      convex: 1.46.0(react@19.2.7)
 
-  convex@1.42.0(react@19.2.7):
+  convex@1.46.0(react@19.2.7):
     dependencies:
       esbuild: 0.27.0
       prettier: 3.9.8
