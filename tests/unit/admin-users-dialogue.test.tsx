@@ -118,6 +118,53 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
     expect(screen.queryByText('Chargement…')).toBeNull();
   });
 
+  it('la confirmation survit au rechargement d’une première page', () => {
+    // LE SECOND CHEMIN DE DÉMONTAGE, celui que la CI a montré après coup. La
+    // recherche est temporisée : frapper puis cliquer « Appliquer » dans la
+    // foulée laisse partir la requête pendant que la boîte est ouverte. Les
+    // arguments changent, `usePaginatedQuery` repasse à `LoadingFirstPage` et
+    // rend une liste VIDE — la ligne disparaît, la confirmation avec.
+    const { rerender } = afficher();
+    expect(ouvrirLaConfirmation()).toBeTruthy();
+
+    convex.page = { results: [], status: 'LoadingFirstPage' as never };
+    rerender(
+      <NextIntlClientProvider locale="fr" messages={fr}>
+        <AdminUsers />
+      </NextIntlClientProvider>,
+    );
+
+    expect(
+      screen.queryByRole('dialog', {
+        name: `Changer le rôle de ${CIBLE} ?`,
+      }),
+      'le dialogue a été démonté par un rechargement de la liste',
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Changer le rôle' }),
+    ).toBeTruthy();
+    // La ligne gelée reste à l'écran : c'est elle qui porte la boîte.
+    expect(screen.getByText(CIBLE)).toBeTruthy();
+  });
+
+  it('sans confirmation ouverte, un rechargement montre « Chargement… »', () => {
+    // Le gel est BORNÉ au geste. Hors de lui, l'écran dit ce qu'il fait, comme
+    // avant : sans cette limite, une liste périmée resterait affichée
+    // indéfiniment après un changement de recherche.
+    const { rerender } = afficher();
+    expect(screen.getByText(CIBLE)).toBeTruthy();
+
+    convex.page = { results: [], status: 'LoadingFirstPage' as never };
+    rerender(
+      <NextIntlClientProvider locale="fr" messages={fr}>
+        <AdminUsers />
+      </NextIntlClientProvider>,
+    );
+
+    expect(screen.getByText('Chargement…')).toBeTruthy();
+    expect(screen.queryByText(CIBLE)).toBeNull();
+  });
+
   it('le premier rendu, lui, montre bien « Chargement… »', () => {
     // La correction ne doit pas supprimer l'état de chargement INITIAL : il n'y
     // a alors aucune valeur connue à retenir, et l'écran doit le dire.

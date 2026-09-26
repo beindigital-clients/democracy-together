@@ -27,6 +27,7 @@ export function RoleSelector({
   locked = false,
   lockedReason,
   onApply,
+  onConfirmation,
 }: {
   // Ce qui NOMME le compte dans l'étiquette et dans la confirmation
   // (l'e-mail : c'est la colonne d'identité de cet écran).
@@ -37,6 +38,11 @@ export function RoleSelector({
   // Rend `true` si le serveur a accepté. Un refus (dernier admin, droits
   // insuffisants) ramène le sélecteur à la valeur réelle.
   onApply: (role: NetworkRole) => Promise<boolean>;
+  // Signale l'ouverture et la fermeture de la confirmation. L'écran qui rend
+  // la LISTE en a besoin : cette boîte vit dans une ligne, et une ligne qui
+  // disparaît l'emporte avec elle (cf. `utilisateurs/page.tsx`). Facultatif —
+  // un appelant qui ne rend pas de liste n'a rien à en faire.
+  onConfirmation?: (ouverte: boolean) => void;
 }) {
   const t = useTranslations('admin');
   const [draft, setDraft] = useState<NetworkRole | null>(null);
@@ -45,6 +51,13 @@ export function RoleSelector({
 
   const value = draft ?? role;
   const changed = draft !== null && draft !== role;
+
+  // Un seul endroit change `confirming`, pour que le signal ne puisse pas se
+  // désynchroniser de l'état.
+  function confirmer(ouverte: boolean) {
+    setConfirming(ouverte);
+    onConfirmation?.(ouverte);
+  }
 
   async function apply() {
     if (draft === null) return;
@@ -57,7 +70,7 @@ export function RoleSelector({
       if (!ok) setDraft(null);
     } finally {
       setPending(false);
-      setConfirming(false);
+      confirmer(false);
     }
   }
 
@@ -82,7 +95,7 @@ export function RoleSelector({
           size="sm"
           disabled={pending}
           aria-label={t('roleApplyFor', { name })}
-          onClick={() => setConfirming(true)}
+          onClick={() => confirmer(true)}
         >
           {t('roleApply')}
         </Button>
@@ -99,7 +112,7 @@ export function RoleSelector({
         cancelLabel={t('confirmCancel')}
         pending={pending}
         onConfirm={apply}
-        onCancel={() => setConfirming(false)}
+        onCancel={() => confirmer(false)}
       />
     </div>
   );
