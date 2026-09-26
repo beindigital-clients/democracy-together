@@ -8,8 +8,8 @@
  * @module
  */
 
-import type * as aiModeration from "../aiModeration.js";
 import type * as admin from "../admin.js";
+import type * as aiModeration from "../aiModeration.js";
 import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
 import type * as contact from "../contact.js";
@@ -27,12 +27,22 @@ import type * as lib_aiGateway from "../lib/aiGateway.js";
 import type * as lib_aiModeration from "../lib/aiModeration.js";
 import type * as lib_audit from "../lib/audit.js";
 import type * as lib_auditActions from "../lib/auditActions.js";
+import type * as lib_counters from "../lib/counters.js";
 import type * as lib_directory from "../lib/directory.js";
 import type * as lib_notify from "../lib/notify.js";
+import type * as lib_onboarding from "../lib/onboarding.js";
+import type * as lib_pagination from "../lib/pagination.js";
+import type * as lib_passwordPolicy from "../lib/passwordPolicy.js";
 import type * as lib_publications from "../lib/publications.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as lib_recaptcha from "../lib/recaptcha.js";
+import type * as lib_reviewState from "../lib/reviewState.js";
+import type * as lib_roles from "../lib/roles.js";
+import type * as lib_search from "../lib/search.js";
+import type * as lib_signIn from "../lib/signIn.js";
+import type * as lib_slug from "../lib/slug.js";
+import type * as lib_themes from "../lib/themes.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as mentorship from "../mentorship.js";
 import type * as newsletter from "../newsletter.js";
@@ -57,8 +67,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  aiModeration: typeof aiModeration;
   admin: typeof admin;
+  aiModeration: typeof aiModeration;
   auth: typeof auth;
   bootstrap: typeof bootstrap;
   contact: typeof contact;
@@ -76,12 +86,22 @@ declare const fullApi: ApiFromModules<{
   "lib/aiModeration": typeof lib_aiModeration;
   "lib/audit": typeof lib_audit;
   "lib/auditActions": typeof lib_auditActions;
+  "lib/counters": typeof lib_counters;
   "lib/directory": typeof lib_directory;
   "lib/notify": typeof lib_notify;
+  "lib/onboarding": typeof lib_onboarding;
+  "lib/pagination": typeof lib_pagination;
+  "lib/passwordPolicy": typeof lib_passwordPolicy;
   "lib/publications": typeof lib_publications;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/rbac": typeof lib_rbac;
   "lib/recaptcha": typeof lib_recaptcha;
+  "lib/reviewState": typeof lib_reviewState;
+  "lib/roles": typeof lib_roles;
+  "lib/search": typeof lib_search;
+  "lib/signIn": typeof lib_signIn;
+  "lib/slug": typeof lib_slug;
+  "lib/themes": typeof lib_themes;
   "lib/validation": typeof lib_validation;
   mentorship: typeof mentorship;
   newsletter: typeof newsletter;

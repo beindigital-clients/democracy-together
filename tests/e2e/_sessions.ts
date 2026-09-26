@@ -60,7 +60,8 @@ export type SessionKey =
   | 'adminRecherche'
   | 'enTete'
   | 'adminContact'
-  | 'adminModeration';
+  | 'adminModeration'
+  | 'adminModerationIa';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -170,5 +171,18 @@ export const SESSIONS: Record<
     email: 'e2e_session_admin_moderation@democracytogether.test',
     state: 'tests/e2e/.auth/admin-moderation.json',
     role: 'moderateur',
+  },
+  // Session dédiée à `admin-moderation-ia.spec.ts` (F-32, auto-acceptation).
+  //
+  // Elle règle le dispositif PUIS dépose PUIS relit la file et le journal :
+  // elle tient donc sa session d'un bout à l'autre, le cas que la règle
+  // ci-dessus vise. Rang ADMINISTRATEUR, parce que c'est le rang qu'exige
+  // `/admin/moderation-ia` — et les gardes étant hiérarchiques, le même
+  // compte dépose depuis l'espace membre, ce qui évite un second compte dans
+  // le fichier.
+  adminModerationIa: {
+    email: 'e2e_session_admin_moderation_ia@democracytogether.test',
+    state: 'tests/e2e/.auth/admin-moderation-ia.json',
+    role: 'admin',
   },
 };

@@ -310,9 +310,37 @@ describe("Panneau d'administration de la modération IA", () => {
     }
   });
 
+  it('un critère désactivé le dit, au lieu de se déclarer actif', () => {
+    // Le barème se règle sur DEUX axes — la sévérité et l'activation — et un
+    // critère au repos est le cas où l'écran ment le plus cher : lu comme
+    // actif, il fait croire que le dépôt a été mesuré contre lui.
+    //
+    // L'assertion porte sur le LIBELLÉ, comme partout dans ce fichier : c'est
+    // la seule qui attrape une clé voisine demandée à la place de la bonne,
+    // et c'est exactement ce qui était écrit ici — « Actif : Toutes », la
+    // mention du filtre de liste collée à celle de l'état du critère.
+    showPanel({
+      rules: [
+        {
+          ...REGLAGES.rules[0],
+          label: 'Critère en sommeil',
+          enabled: false,
+        },
+      ],
+    });
+    expect(screen.getByText('Critère en sommeil')).toBeTruthy();
+    expect(screen.getByText('Inactif')).toBeTruthy();
+    expect(screen.queryByText(/Actif\s*:/)).toBeNull();
+  });
+
   it('monte entièrement en anglais, sans clé manquante', () => {
     convex.queries.set('users:current', { _id: 'u1', role: 'admin' });
-    convex.queries.set('aiModeration:getSettings', REGLAGES);
+    convex.queries.set('aiModeration:getSettings', {
+      ...REGLAGES,
+      // Un critère au repos, pour que le catalogue anglais soit tenu sur les
+      // DEUX états : c'est l'état second qui vieillit sans se faire voir.
+      rules: [{ ...REGLAGES.rules[0], enabled: false }],
+    });
     show(<AdminAiModeration />, 'en');
     expect(
       screen.getByRole('heading', { name: 'AI-assisted moderation' }),
@@ -322,6 +350,7 @@ describe("Panneau d'administration de la modération IA", () => {
         (o) => o.textContent,
       ),
     ).toEqual(['Disabled', 'Observation', 'Assist', 'Auto-publish']);
+    expect(screen.getByText('Inactive')).toBeTruthy();
     expect(screen.getByText('Safety floor')).toBeTruthy();
     expect(screen.getByText('Test bench')).toBeTruthy();
   });

@@ -243,6 +243,7 @@ Le banc d'essai consomme lui aussi le plafond : l'appel qu'il fait est réel.
 | `convex/aiModeration.test.ts` | l'**orchestration**, unité par unité : fail-closed, plafond, chaque mode, concurrence, pièce jointe, droits, notifications |
 | `convex/aiModeration.scenario.test.ts` | les **parcours complets**, par les seules fonctions publiques : l'admin règle, le membre dépose, le planificateur analyse — et on regarde ce qu'un **visiteur non authentifié** voit dans la bibliothèque |
 | `tests/unit/ai-moderation-ui.test.tsx` | les **écrans**, montés avec les vrais catalogues FR et EN : libellés attendus, repli du détail, avertissement du mode `auto`, refus à un non-admin |
+| `tests/e2e/admin-moderation-ia.spec.ts` | le **câblage**, par le navigateur : le panneau sur sa vraie route, le barème et les réglages relus après rechargement, et un dépôt par le formulaire réel qui reste en file — vérifié depuis un contexte **non authentifié** |
 | `scripts/verifier-passerelle-ia.mjs` | l'**appel réel** — le seul test que la CI ne peut pas jouer |
 
 La dernière ligne est la plus importante à comprendre. Tout le reste simule

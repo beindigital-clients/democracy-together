@@ -117,6 +117,19 @@ Relancer une spec ne repaie donc plus toutes les connexions.
 | `pnpm test:e2e:login` | efface `tests/e2e/.auth/` et rouvre toutes les sessions |
 | `pnpm test:e2e:ui` | mode interactif, mêmes sessions |
 | `E2E_FRESH_LOGIN=1 pnpm test:e2e` | ignore les fichiers pour cette exécution |
+| `E2E_PORT=3217 pnpm test:e2e` | sert l'application sur 3217 au lieu de 3000 |
+
+**Un port par arbre de travail.** `reuseExistingServer` est actif hors CI :
+tout serveur qui écoute déjà sur le port est repris TEL QUEL. Quand plusieurs
+arbres de travail — ou plusieurs agents — tournent sur le même poste, cela va
+de l'attente au faux verdict, la campagne interrogeant le serveur d'un AUTRE
+projet et chaque spec échouant sur une 404 qui ne dit rien du code. `E2E_PORT`
+sépare les campagnes ; la CI ne la pose pas et reste sur 3000.
+
+Le consentement cookies suit : son `localStorage` est lié à une ORIGINE, et
+`playwright.config.ts` dérive l'état pour le port demandé dans
+`tests/e2e/.auth/` (ignoré par git). Sans cela le bandeau F-09 reparaîtrait sur
+un autre port et intercepterait les clics des specs qui ne le visent pas.
 
 Prérequis : un `.env.local` dont `NEXT_PUBLIC_CONVEX_URL` pointe sur un
 déploiement où `AUTH_DEV_OTP=true` — les helpers de provisionnement sont des
@@ -332,6 +345,28 @@ tournent dans `pnpm test` :
 ```bash
 pnpm exec vitest run convex/aiModeration convex/aiModeration.scenario tests/unit/ai-moderation
 ```
+
+Un cinquième fichier tient la SECONDE porte, celle du navigateur —
+`tests/e2e/admin-moderation-ia.spec.ts`, joué par `pnpm test:e2e` :
+
+| Ce qu'il exerce | Ce que les quatre autres ne peuvent pas voir |
+|---|---|
+| le panneau sur sa vraie route | l'écran sert, annonce l'état de la clé, et montre un socle sans bouton pour le retirer |
+| le barème, créé puis supprimé, avec rechargement entre les deux | l'écriture a porté jusqu'au serveur, et pas seulement jusqu'à l'état React |
+| les réglages enregistrés, relus après rechargement | idem, plus l'avertissement d'auto-publication au moment de choisir le mode |
+| un dépôt par le formulaire réel, en mode assistance | le déclenchement est CÂBLÉ à la soumission, la file en rend compte, le journal aussi — et un contexte NON AUTHENTIFIÉ ne voit rien paraître |
+
+Ses assertions sont choisies pour valoir **avec ou sans clé de passerelle** : en
+mode assistance, `decideApplication` rend « renvoyée en file » avant même de
+regarder le verdict, si bien que la ligne du journal dit la même chose que la
+passerelle ait répondu, échoué, ou manqué à l'appel. C'est ce qui rend ce
+fichier jouable en CI, où aucune clé n'est posée — même motif que `news.spec.ts`
+pour Sanity.
+
+Ce qu'il n'exerce PAS, délibérément : le mode **auto-publication**. L'armer sur
+un déploiement partagé ferait paraître les dépôts des autres specs sans
+relecture ; ce que ce mode change est tenu par `convex/aiModeration.test.ts`,
+qui peut le poser sans conséquence pour personne.
 
 ### Ce que la CI ne peut pas jouer
 

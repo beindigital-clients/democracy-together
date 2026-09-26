@@ -854,6 +854,7 @@
     "aiRuleDescriptionPlaceholder": "Does the document cite its sources verifiably (references, datasets, methodology)?",
     "aiRuleSeverityField": "Severity",
     "aiRuleEnabledField": "Active",
+    "aiRuleDisabled": "Inactive",
     "aiRuleAdd": "Add a criterion",
     "aiRuleCreate": "Create criterion",
     "aiRuleSave": "Save",
