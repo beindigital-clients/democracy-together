@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { paginationOptsValidator } from 'convex/server';
 import { mutation, query } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
-import { requireNetworkRole } from './lib/rbac';
+import { requireNetworkRole, rank } from './lib/rbac';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -67,12 +67,29 @@ function peerStage(pub: Doc<'publications'>): PeerStage {
   return pub.reviewStage ?? 'none';
 }
 
+// Le lien de la notification d'assignation. C'était `/admin/revue` — la file
+// complète, réservée à l'éditeur : un relecteur de rang modérateur qui suivait
+// sa notification tombait sur un refus (campagne du 27/09, A-02). « Mes
+// relectures » est ouverte au rang modérateur et ne rend que SES assignations.
+const MY_REVIEWS_LINK = '/admin/mes-relectures';
+
 // Assigne un relecteur à une publication (éditeur+). Place la publication en
-// revue ('in_review') et notifie le relecteur. N'altère pas `status`.
+// revue ('in_review'), retient l'assignation et notifie le relecteur. N'altère
+// pas `status`.
 //
 // C'est la transition d'OUVERTURE, et la seule de RÉOUVERTURE (issue #9) :
 // désigner un relecteur sur une revue arbitrée la rouvre explicitement, sous
 // une notification et une entrée d'audit nominatives.
+//
+// Deux refus nommés (campagne du 27/09, R-08) — l'écran les traduit, là où un
+// `throw` générique se lisait « vérifiez vos droits » :
+//  - REVIEWER_NOT_STAFF : le compte désigné n'a pas le rang pour déposer un
+//    avis (`submitReview` exige modérateur) — l'assigner créerait une revue
+//    que personne ne peut faire avancer ;
+//  - ALREADY_ASSIGNED : ce relecteur est déjà désigné sur cette revue OUVERTE.
+//    Le renotifier ne l'aiderait pas, et un double clic n'est pas un second
+//    relecteur. Sur une revue close, la même personne peut être redésignée :
+//    c'est la réouverture, et elle s'audite.
 export const assignReviewer = mutation({
   args: {
     publicationId: v.id('publications'),
@@ -84,6 +101,35 @@ export const assignReviewer = mutation({
     if (!pub) throw new Error('NOT_FOUND');
     const reviewer = await ctx.db.get(reviewerUserId);
     if (!reviewer) throw new Error('REVIEWER_NOT_FOUND');
+    if (rank(reviewer.role) < rank('moderateur')) {
+      throw new Error('REVIEWER_NOT_STAFF');
+    }
+
+    const existing = await ctx.db
+      .query('peerReviewAssignments')
+      .withIndex('by_publication_and_reviewer', (q) =>
+        q
+          .eq('publicationId', publicationId)
+          .eq('reviewerUserId', reviewerUserId),
+      )
+      .unique();
+    if (existing && peerStage(pub) === 'in_review') {
+      throw new Error('ALREADY_ASSIGNED');
+    }
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        assignedBy: editor._id,
+        assignedAt: now,
+      });
+    } else {
+      await ctx.db.insert('peerReviewAssignments', {
+        publicationId,
+        reviewerUserId,
+        assignedBy: editor._id,
+        assignedAt: now,
+      });
+    }
 
     await ctx.db.patch(publicationId, { reviewStage: 'in_review' });
 
@@ -92,7 +138,7 @@ export const assignReviewer = mutation({
       type: 'peer_review_assigned',
       titleKey: 'peerReviewAssigned',
       params: { title: pub.title },
-      link: '/admin/revue',
+      link: MY_REVIEWS_LINK,
     });
 
     await recordAudit(ctx, {
@@ -364,6 +410,166 @@ export const listStaffUsers = query({
         email: u.email ?? null,
         role,
       })),
+    );
+  },
+});
+
+// --- Porte d'entrée et vue du relecteur (campagne du 27/09, R-01 / A-02) ---
+//
+// Mesuré le 27/09 : la revue n'avait AUCUNE porte d'entrée. `getReviewQueue`
+// ne liste que ce qui est DÉJÀ en revue, et le sélecteur d'assignation ne
+// vivait que dans ces cartes — le circuit était fermé sur lui-même, seule une
+// écriture hors interface amorçait une revue. Et le relecteur de rang
+// modérateur, notifié, n'avait aucun écran qui lui rende ses assignations.
+//
+// Trois lectures répondent, chacune bornée :
+//  - `listOpenable` (éditeur+) : ce qu'un éditeur PEUT envoyer en revue — les
+//    dépôts en attente de modération, jamais entrés en revue ;
+//  - `myAssignments` (modérateur+) : les assignations DU COMPTE CONNECTÉ, et
+//    rien d'autre — l'identité vient de la session, jamais d'un argument ;
+//  - `reviewStagesFor` (modérateur+) : l'étape de revue d'une poignée de
+//    publications, pour que la file de modération montre où en est chaque
+//    ligne sans une requête par ligne.
+
+// Ce que la file de modération peut envoyer en revue. Les dépôts en attente se
+// comptent en dizaines : `by_status` puis un filtre sur l'étape (le seul
+// prédicat que cet index ne porte pas) restent une lecture bornée par
+// `OPENABLE_MAX`, et non par la taille de la bibliothèque.
+const OPENABLE_MAX = 100;
+
+export const listOpenable = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id('publications'),
+      title: v.string(),
+      type: queueItemValidator.fields.type,
+      submittedAt: v.union(v.number(), v.null()),
+    }),
+  ),
+  handler: async (ctx) => {
+    await requireNetworkRole(ctx, 'editeur');
+    const pending = await ctx.db
+      .query('publications')
+      .withIndex('by_status', (q) => q.eq('status', 'pending'))
+      .order('desc')
+      .take(OPENABLE_MAX);
+    return pending
+      .filter((p) => p.reviewStage === undefined)
+      .map((p) => ({
+        _id: p._id,
+        title: p.title,
+        type: p.type,
+        submittedAt: p.submittedAt ?? null,
+      }));
+  },
+});
+
+// Les assignations du compte connecté. Plafond large : un relecteur n'en porte
+// pas cinquante, et une revue arbitrée reste listée (close) pour qu'il voie
+// que son avis a servi — jusqu'à ce que la liste se renouvelle.
+const MY_ASSIGNMENTS_MAX = 50;
+
+export const myAssignments = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id('publications'),
+      title: v.string(),
+      slug: v.string(),
+      type: queueItemValidator.fields.type,
+      theme: v.string(),
+      status: queueItemValidator.fields.status,
+      reviewStage: reviewStageValidator,
+      assignedAt: v.number(),
+      // L'avis DU relecteur, s'il l'a déjà déposé. Les avis des autres ne sont
+      // pas rendus ici : la vue sert à relire, pas à arbitrer.
+      myReview: v.union(
+        v.null(),
+        v.object({
+          recommendation: recommendationValidator,
+          comment: v.string(),
+          createdAt: v.number(),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx) => {
+    const me = await requireNetworkRole(ctx, 'moderateur');
+    const assignments = await ctx.db
+      .query('peerReviewAssignments')
+      .withIndex('by_reviewer', (q) => q.eq('reviewerUserId', me._id))
+      .order('desc')
+      .take(MY_ASSIGNMENTS_MAX);
+
+    const items = await Promise.all(
+      assignments.map(async (a) => {
+        const pub = await ctx.db.get(a.publicationId);
+        // Publication supprimée, ou étape effacée : rien à relire.
+        if (!pub || pub.reviewStage === undefined) return null;
+        const mine = await ctx.db
+          .query('peerReviews')
+          .withIndex('by_publication_and_reviewer', (q) =>
+            q.eq('publicationId', pub._id).eq('reviewerUserId', me._id),
+          )
+          .first();
+        return {
+          _id: pub._id,
+          title: pub.title,
+          slug: pub.slug,
+          type: pub.type,
+          theme: pub.theme,
+          status: pub.status,
+          reviewStage: pub.reviewStage,
+          assignedAt: a.assignedAt,
+          myReview: mine
+            ? {
+                recommendation: mine.recommendation,
+                comment: mine.comment,
+                createdAt: mine.createdAt,
+              }
+            : null,
+        };
+      }),
+    );
+    return items.filter((i) => i !== null);
+  },
+});
+
+// Étape de revue d'un lot de publications — celles qu'une page de la file de
+// modération affiche. Borné à la taille d'une page ; au-delà, l'écran a mal
+// découpé, et le validateur le dit plutôt que de lire sans limite.
+const STAGES_FOR_MAX = 100;
+
+export const reviewStagesFor = query({
+  args: { publicationIds: v.array(v.id('publications')) },
+  returns: v.array(
+    v.object({
+      publicationId: v.id('publications'),
+      reviewStage: v.union(reviewStageValidator, v.null()),
+      reviewerCount: v.number(),
+    }),
+  ),
+  handler: async (ctx, { publicationIds }) => {
+    await requireNetworkRole(ctx, 'moderateur');
+    if (publicationIds.length > STAGES_FOR_MAX) throw new Error('TOO_MANY_IDS');
+    return await Promise.all(
+      publicationIds.map(async (publicationId) => {
+        const pub = await ctx.db.get(publicationId);
+        const assignments = pub?.reviewStage
+          ? await ctx.db
+              .query('peerReviewAssignments')
+              .withIndex('by_publication', (q) =>
+                q.eq('publicationId', publicationId),
+              )
+              .take(STAFF_PER_ROLE_MAX)
+          : [];
+        return {
+          publicationId,
+          reviewStage: pub?.reviewStage ?? null,
+          reviewerCount: assignments.length,
+        };
+      }),
     );
   },
 });

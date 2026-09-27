@@ -18,6 +18,7 @@ export default function OtpSignInPage() {
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // L'adresse survit au passage à l'étape du code — et à un échec d'envoi : la
   // retaper après un refus serveur était la première chose à éviter.
@@ -50,9 +51,31 @@ export default function OtpSignInPage() {
     }
   }
 
+  // RENVOI DU CODE, depuis l'étape du code (auth A-5). Sans ce bouton,
+  // l'utilisateur qui n'a rien reçu rechargeait la page et retapait son
+  // adresse. Même règle anti-énumération que `onEmail` : une adresse inconnue
+  // reçoit le même « si un compte existe » ; seul le plafond d'envoi
+  // (`RATE_LIMITED`, convex/otp.ts) a son propre message — il disait
+  // « réessayez » là où il faut attendre (A-4).
+  async function onResend() {
+    setError(null);
+    setNotice(null);
+    setPending(true);
+    try {
+      await signIn('otp-signin', { email });
+      setNotice(t('resendDone'));
+    } catch (err) {
+      if (isSendLimited(err)) setError(t('errorSendLimit'));
+      else setNotice(t('resendDone'));
+    } finally {
+      setPending(false);
+    }
+  }
+
   async function onCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     if (!validate({ code: (v) => (v.length === 6 ? null : t('errCode')) })) {
       return;
     }
@@ -76,9 +99,22 @@ export default function OtpSignInPage() {
       >
         <form onSubmit={onCode} noValidate className="space-y-5">
           <OtpField {...field('code')} />
+          {notice ? (
+            <p role="status" className="text-sm text-ink-soft">
+              {notice}
+            </p>
+          ) : null}
           <FormError>{error}</FormError>
           <SubmitButton pending={pending}>{t('otpVerifyCta')}</SubmitButton>
         </form>
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={pending}
+          className="mt-4 text-sm text-accent-text hover:underline disabled:opacity-50"
+        >
+          {t('resendCode')}
+        </button>
       </AuthCard>
     );
   }

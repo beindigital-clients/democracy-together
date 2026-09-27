@@ -110,7 +110,220 @@ describe('Peer review — assignReviewer (F-43)', () => {
     expect(notifs).toHaveLength(1);
     expect(notifs[0].titleKey).toBe('peerReviewAssigned');
     expect(notifs[0].params.title).toBe('Analyse X');
-    expect(notifs[0].link).toBe('/admin/revue');
+    // Le lien mène à « Mes relectures », ouverte au rang modérateur — et non
+    // à la file éditeur, où un relecteur modérateur tombait sur un refus
+    // (campagne du 27/09, A-02).
+    expect(notifs[0].link).toBe('/admin/mes-relectures');
+
+    // L'assignation est RETENUE (27/09, R-01) : c'est ce qui rend la vue du
+    // relecteur possible, là où seule la notification en gardait la trace.
+    const assignments = await t.run((ctx) =>
+      ctx.db
+        .query('peerReviewAssignments')
+        .withIndex('by_publication', (q) => q.eq('publicationId', pubId))
+        .collect(),
+    );
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].reviewerUserId).toBe(mod.id);
+    expect(assignments[0].assignedBy).toBe(editor.id);
+  });
+
+  it('refuse un relecteur sans rang de modérateur, et une double désignation sur une revue ouverte', async () => {
+    const t = convexTest(schema, modules);
+    const pubId = await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'garde-assign' })),
+    );
+    const member = await userWithRole(t, 'membre', 'm@test.org', 'Membre');
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+    const editor = await userWithRole(t, 'editeur', 'ed@test.org');
+
+    // Un membre ne peut pas déposer d'avis (`submitReview` exige modérateur) :
+    // le désigner ouvrirait une revue que personne ne peut faire avancer.
+    await expect(
+      editor.as.mutation(api.peerReview.assignReviewer, {
+        publicationId: pubId,
+        reviewerUserId: member.id,
+      }),
+    ).rejects.toThrow('REVIEWER_NOT_STAFF');
+    expect(await t.run((ctx) => ctx.db.get(pubId))).toMatchObject({
+      status: 'pending',
+    });
+
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: pubId,
+      reviewerUserId: mod.id,
+    });
+    // Double clic : le même relecteur sur la même revue OUVERTE n'est pas un
+    // second relecteur — refus nommé, une seule notification.
+    await expect(
+      editor.as.mutation(api.peerReview.assignReviewer, {
+        publicationId: pubId,
+        reviewerUserId: mod.id,
+      }),
+    ).rejects.toThrow('ALREADY_ASSIGNED');
+    expect(
+      await mod.as.query(api.notifications.myNotifications, {}),
+    ).toHaveLength(1);
+
+    // Sur une revue CLOSE, la même personne peut être redésignée : c'est la
+    // réouverture (issue #9), et la ligne d'assignation est mise à jour, pas
+    // dupliquée.
+    await editor.as.mutation(api.peerReview.decideReview, {
+      publicationId: pubId,
+      decision: 'reviewed',
+    });
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: pubId,
+      reviewerUserId: mod.id,
+    });
+    const assignments = await t.run((ctx) =>
+      ctx.db
+        .query('peerReviewAssignments')
+        .withIndex('by_publication', (q) => q.eq('publicationId', pubId))
+        .collect(),
+    );
+    expect(assignments).toHaveLength(1);
+    expect(
+      await mod.as.query(api.notifications.myNotifications, {}),
+    ).toHaveLength(2);
+  });
+});
+
+// Porte d'entrée de la revue (campagne du 27/09, R-01) : ce qu'un éditeur
+// peut envoyer en relecture, depuis l'interface.
+describe('Peer review — listOpenable (27/09, R-01)', () => {
+  it('réservé à l’éditeur ; ne rend que les dépôts en attente jamais entrés en revue', async () => {
+    const t = convexTest(schema, modules);
+    const pending = await t.run((ctx) =>
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'ouvrable', title: 'Ouvrable', submittedAt: 10 }),
+      ),
+    );
+    await t.run((ctx) =>
+      ctx.db.insert(
+        'publications',
+        pubDoc({
+          slug: 'deja',
+          title: 'Déjà en revue',
+          reviewStage: 'in_review',
+        }),
+      ),
+    );
+    await t.run((ctx) =>
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'publiee', title: 'Publiée', status: 'published' }),
+      ),
+    );
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+    const editor = await userWithRole(t, 'editeur', 'ed@test.org');
+
+    await expect(
+      mod.as.query(api.peerReview.listOpenable, {}),
+    ).rejects.toThrow();
+
+    const before = await editor.as.query(api.peerReview.listOpenable, {});
+    expect(before.map((p) => p.title)).toEqual(['Ouvrable']);
+    expect(before[0].submittedAt).toBe(10);
+
+    // Une fois la revue ouverte, la publication quitte la liste : la porte
+    // ne propose que ce qui n'est pas encore entré.
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: pending,
+      reviewerUserId: mod.id,
+    });
+    expect(await editor.as.query(api.peerReview.listOpenable, {})).toEqual([]);
+  });
+});
+
+// La vue du RELECTEUR (campagne du 27/09, A-02) : un modérateur voit ce qu'on
+// lui a confié, rien d'autre, et peut y déposer son avis.
+describe('Peer review — myAssignments (27/09, A-02)', () => {
+  it('rend au modérateur SES assignations, avec son avis une fois déposé', async () => {
+    const t = convexTest(schema, modules);
+    const mine = await t.run((ctx) =>
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'mienne', title: 'Mienne' }),
+      ),
+    );
+    const theirs = await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'autre', title: 'Autre' })),
+    );
+    const member = await userWithRole(t, 'membre', 'm@test.org');
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+    const other = await userWithRole(t, 'moderateur', 'mod2@test.org', 'Mod 2');
+    const editor = await userWithRole(t, 'editeur', 'ed@test.org');
+
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: mine,
+      reviewerUserId: mod.id,
+    });
+    await editor.as.mutation(api.peerReview.assignReviewer, {
+      publicationId: theirs,
+      reviewerUserId: other.id,
+    });
+
+    // sous modérateur : refusé ; l'identité vient de la session, pas d'un
+    // argument — il n'y a rien à falsifier.
+    await expect(
+      member.as.query(api.peerReview.myAssignments, {}),
+    ).rejects.toThrow();
+    // la file complète reste réservée à l'éditeur (A-02 ne l'ouvre pas)
+    await expect(
+      mod.as.query(api.peerReview.getReviewQueue, PAGE),
+    ).rejects.toThrow();
+
+    const list = await mod.as.query(api.peerReview.myAssignments, {});
+    expect(list.map((p) => p.title)).toEqual(['Mienne']);
+    expect(list[0].reviewStage).toBe('in_review');
+    expect(list[0].myReview).toBeNull();
+
+    // Le relecteur modérateur dépose son avis — c'est le parcours que la
+    // page d'erreur interdisait — et le retrouve dans sa vue.
+    await mod.as.mutation(api.peerReview.submitReview, {
+      publicationId: mine,
+      recommendation: 'minor',
+      comment: 'Quelques précisions à apporter en section 2.',
+    });
+    const after = await mod.as.query(api.peerReview.myAssignments, {});
+    expect(after[0].myReview).toMatchObject({ recommendation: 'minor' });
+
+    // L'autre relecteur ne voit que la sienne.
+    const others = await other.as.query(api.peerReview.myAssignments, {});
+    expect(others.map((p) => p.title)).toEqual(['Autre']);
+  });
+});
+
+describe('Peer review — reviewStagesFor (27/09, R-01)', () => {
+  it('rend l’étape des publications demandées, null hors revue', async () => {
+    const t = convexTest(schema, modules);
+    const a = await t.run((ctx) =>
+      ctx.db.insert(
+        'publications',
+        pubDoc({ slug: 'a', reviewStage: 'revision' }),
+      ),
+    );
+    const b = await t.run((ctx) =>
+      ctx.db.insert('publications', pubDoc({ slug: 'b' })),
+    );
+    const mod = await userWithRole(t, 'moderateur', 'mod@test.org', 'Mod');
+    const member = await userWithRole(t, 'membre', 'm@test.org');
+
+    await expect(
+      member.as.query(api.peerReview.reviewStagesFor, {
+        publicationIds: [a],
+      }),
+    ).rejects.toThrow();
+
+    const stages = await mod.as.query(api.peerReview.reviewStagesFor, {
+      publicationIds: [a, b],
+    });
+    expect(stages).toEqual([
+      { publicationId: a, reviewStage: 'revision', reviewerCount: 0 },
+      { publicationId: b, reviewStage: null, reviewerCount: 0 },
+    ]);
   });
 });
 

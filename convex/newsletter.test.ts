@@ -67,20 +67,39 @@ describe('Newsletter — désinscription par jeton', () => {
     const token = sub!.unsubToken!;
 
     const r = await t.mutation(api.newsletter.unsubscribe, { token });
-    expect(r.ok).toBe(true);
+    expect(r).toEqual({ ok: true, found: true });
     expect(
       (await t.run((ctx) => ctx.db.query('newsletterSubscriptions').collect()))
         .length,
     ).toBe(0);
 
-    // un second appel (lien cliqué deux fois) ne casse pas
-    expect((await t.mutation(api.newsletter.unsubscribe, { token })).ok).toBe(
-      true,
-    );
+    // un second appel (lien cliqué deux fois) ne casse pas — mais dit que
+    // rien ne correspondait plus : la page affiche « lien expiré » plutôt
+    // qu'une confirmation à vide (R-09).
+    expect(await t.mutation(api.newsletter.unsubscribe, { token })).toEqual({
+      ok: true,
+      found: false,
+    });
     // jeton vide ignoré
+    expect(await t.mutation(api.newsletter.unsubscribe, { token: '' })).toEqual(
+      { ok: false, found: false },
+    );
+  });
+
+  it('un jeton inconnu ne retire personne et le dit (R-09)', async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.newsletter.recordSubscription, {
+      email: 'temoin@example.org',
+    });
     expect(
-      (await t.mutation(api.newsletter.unsubscribe, { token: '' })).ok,
-    ).toBe(false);
+      await t.mutation(api.newsletter.unsubscribe, {
+        token: '0000000000000000jeton-inexistant',
+      }),
+    ).toEqual({ ok: true, found: false });
+    // L'abonné témoin est toujours là.
+    expect(
+      await t.run((ctx) => ctx.db.query('newsletterSubscriptions').collect()),
+    ).toHaveLength(1);
   });
 });
 
@@ -188,8 +207,11 @@ describe('Newsletter — campagnes (F-65)', () => {
 
   // Garde anti-régression de l'audit H3 : sans fournisseur e-mail configuré, une
   // campagne ne doit JAMAIS être marquée « sent » avec un compteur de
-  // destinataires mensonger. Elle part en 'error', rien n'a été livré.
-  it('sans fournisseur (production) : la campagne part en erreur, pas en « sent »', async () => {
+  // destinataires mensonger. Depuis la campagne du 27/09 (R-07), l'envoi est
+  // REFUSÉ avant même de partir — par un code que l'écran traduit — et le
+  // brouillon reste un brouillon ; la livraison, appelée malgré tout, marque
+  // toujours 'error' sans rien livrer.
+  it('sans fournisseur (production) : l’envoi est refusé, et la livraison forcée part en erreur, pas en « sent »', async () => {
     const prev = process.env.AUTH_EMAIL_PROVIDER;
     const prevDev = process.env.AUTH_DEV_OTP;
     delete process.env.AUTH_EMAIL_PROVIDER;
@@ -209,9 +231,19 @@ describe('Newsletter — campagnes (F-65)', () => {
         subject: 'Lettre de juillet',
         body: 'Actualités du réseau, édition de juillet 2026.',
       });
-      await ed.mutation(api.newsletter.sendCampaign, { campaignId: id });
-      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      expect(await ed.query(api.newsletter.emailStatus, {})).toMatchObject({
+        mode: 'none',
+      });
+      await expect(
+        ed.mutation(api.newsletter.sendCampaign, { campaignId: id }),
+      ).rejects.toThrow('EMAIL_PROVIDER_NOT_CONFIGURED');
+      expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({
+        status: 'draft',
+      });
 
+      // La livraison elle-même reste fail-closed (audit H3).
+      await t.action(internal.newsletter.deliverCampaign, { campaignId: id });
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
       const done = await t.run((ctx) => ctx.db.get(id));
       expect(done?.status).toBe('error');
       expect(done?.recipientCount).toBe(0);

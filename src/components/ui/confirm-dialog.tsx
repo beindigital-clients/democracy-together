@@ -143,7 +143,12 @@ export function ConfirmDialog({
         {/* `text-balance` : le titre porte le nom de la cible, donc sa longueur
             n'est pas maîtrisée — sans équilibrage, un nom un peu long laisse le
             « ? » seul sur la dernière ligne. */}
-        <h2 id={titleId} className="text-balance font-display text-lg text-ink">
+        {/* `wrap-anywhere` : le nom de la cible peut être une adresse e-mail
+            sans espace — mesuré le 27/09 sur mobile, elle sortait du panneau. */}
+        <h2
+          id={titleId}
+          className="wrap-anywhere text-balance font-display text-lg text-ink"
+        >
           {title}
         </h2>
         {description ? (

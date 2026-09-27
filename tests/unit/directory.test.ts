@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   matchesFilters,
   computeFacets,
+  countryTerms,
+  isCountryCode,
+  isLanguageCode,
   REGIONS,
   DIRECTORY_THEMES,
 } from '../../convex/lib/directory';
@@ -39,6 +42,48 @@ describe('Annuaire — matchesFilters (F-19)', () => {
     ).toBe(true);
     expect(matchesFilters(org(), { q: 'introuvable' })).toBe(false);
     expect(matchesFilters(org(), { q: '   ' })).toBe(true); // recherche vide = neutre
+  });
+
+  it('filtre par pays et par langue (codes ISO, casse indifférente)', () => {
+    // F-19 demande quatre filtres ; pays et langue manquaient (27/09).
+    const o = org({ country: 'KE', languages: ['en', 'sw'] });
+    expect(matchesFilters(o, { country: 'ke' })).toBe(true);
+    expect(matchesFilters(o, { country: 'KE' })).toBe(true);
+    expect(matchesFilters(o, { country: 'SN' })).toBe(false);
+    expect(matchesFilters(o, { language: 'EN' })).toBe(true);
+    expect(matchesFilters(o, { language: 'fr' })).toBe(false);
+    expect(matchesFilters(o, { country: 'ke', language: 'sw' })).toBe(true);
+    expect(matchesFilters(o, { country: 'ke', language: 'fr' })).toBe(false);
+  });
+
+  it('la recherche texte trouve un membre par nom de pays, dans les langues du site', () => {
+    // Mesuré le 27/09 : « Kenya » -> 0 (la meule ne portait que nom +
+    // description ; le pays n'est stocké qu'en code).
+    const o = org({ name: 'Institute for Policy', country: 'KE' });
+    expect(matchesFilters(o, { q: 'Kenya' })).toBe(true);
+    expect(matchesFilters(o, { q: 'ke' })).toBe(true);
+    const ci = org({ name: 'Centre', country: 'CI' });
+    expect(matchesFilters(ci, { q: "cote d'ivoire" })).toBe(true);
+    expect(matchesFilters(ci, { q: 'Costa do Marfim' })).toBe(true);
+    expect(matchesFilters(ci, { q: 'Kenya' })).toBe(false);
+  });
+
+  it('countryTerms : le code ISO est toujours présent, un code inconnu ne jette pas', () => {
+    expect(countryTerms('SN').split(' ')).toContain('sn');
+    expect(countryTerms('SN')).toContain('senegal');
+    // `QM` (plage réservée à l'usage privé) : ICU n'a pas de nom, le code reste.
+    expect(countryTerms('QM')).toBe('qm');
+    expect(() => countryTerms('!!')).not.toThrow();
+    expect(countryTerms('!!')).toBe('!!');
+  });
+
+  it('isCountryCode / isLanguageCode : deux ou trois lettres, rien d’autre', () => {
+    expect(isCountryCode('ke')).toBe(true);
+    expect(isCountryCode('KEN')).toBe(true);
+    expect(isCountryCode('<script>')).toBe(false);
+    expect(isCountryCode('')).toBe(false);
+    expect(isLanguageCode('fr')).toBe(true);
+    expect(isLanguageCode('fr-FR')).toBe(false);
   });
 
   it('respecte tous les filtres simultanément', () => {

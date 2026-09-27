@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import {
   action,
   internalMutation,
@@ -7,6 +7,40 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import { isEmail } from './lib/validation';
+
+// ÉVÉNEMENTS OUVERTS À L'INSCRIPTION — catalogue partagé MINIMAL (A-03).
+//
+// Le 27/09, l'inscription à un événement PASSÉ (« IA générative et intégrité
+// de l'information », 4 juin 2026) était acceptée et stockée : la fiche
+// affichait le formulaire, et ce backend ne connaît pas les dates. La fiche
+// masque désormais le formulaire ; mais l'action est publique, et un appel
+// direct la contournait. D'où ce refus côté serveur.
+//
+// POURQUOI UNE LISTE DE SLUGS ET PAS LES ÉVÉNEMENTS. Le catalogue vit dans
+// `src/lib/events-content.ts` (2 300 lignes de libellés en cinq langues),
+// que ce bundle ne peut pas importer : il n'a ni l'alias `@/` ni de raison
+// d'embarquer les titres. Dupliquer les dates créerait deux sources de
+// vérité ; recopier les SEULS slugs des événements à venir est le minimum
+// qui rende le refus possible. `convex/events.test.ts` rapproche cette liste
+// des `upcoming: true` du catalogue Next à chaque exécution : elle ne peut
+// pas dériver en silence. Quand un événement passe, retirer son slug ici EN
+// MÊME TEMPS que `upcoming: false` là-bas — le test le rappelle.
+export const UPCOMING_EVENT_SLUGS: readonly string[] = [
+  'conference-inaugurale',
+  'webinaire-gouvernance-plateformes',
+  'atelier-dakar-transparence-budgetaire',
+  'atelier-bruxelles-democratie-ue',
+  'webinaire-jeunes-releve',
+  'atelier-dakar-integrite-electorale',
+  'webinaire-desinformation-confiance',
+  'atelier-bruxelles-souverainete-numerique',
+  'webinaire-financer-societe-civile',
+  'restitution-barometre-annuel',
+];
+
+export function isEventOpenForRegistration(slug: string): boolean {
+  return UPCOMING_EVENT_SLUGS.includes(slug);
+}
 import {
   enforcePublicFormLimit,
   enforceRateLimit,
@@ -18,10 +52,11 @@ import { COUNTER, bumpCounter } from './lib/counters';
 import { locale } from './schema';
 
 // --- Inscription publique à un événement (F-53) -----------------------------
-// RSVP en ligne. `eventSlug` provient du module Next `events-content.ts` ; on ne
-// valide pas son existence côté serveur (pas de table événements) mais on borne
-// la chaîne. Idempotent : une même adresse réinscrite au même event ne crée pas
-// de doublon. Rate-limité par adresse.
+// RSVP en ligne. `eventSlug` provient du module Next `events-content.ts` ; il
+// n'y a pas de table événements, mais le slug est confronté à la liste des
+// événements OUVERTS (`UPCOMING_EVENT_SLUGS`, ci-dessus) : un événement passé
+// ou inconnu est refusé (A-03). Idempotent : une même adresse réinscrite au
+// même event ne crée pas de doublon. Rate-limité par adresse.
 // Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
 // `storeRegistration` (internalMutation -> non contournable).
 export const registerForEvent = action({
@@ -67,6 +102,11 @@ export const storeRegistration = internalMutation({
     const name = args.name.trim();
     const email = args.email.trim().toLowerCase();
     if (!eventSlug || eventSlug.length > 100) throw new Error('INVALID_EVENT');
+    // Événement passé, ou inconnu du catalogue : inscription fermée (A-03).
+    // `ConvexError` pour que le formulaire dise « inscriptions closes » plutôt
+    // qu'un échec générique.
+    if (!isEventOpenForRegistration(eventSlug))
+      throw new ConvexError('EVENT_CLOSED');
     if (name.length < 2 || name.length > 120) throw new Error('INVALID_NAME');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
 

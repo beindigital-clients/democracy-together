@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import {
   action,
   internalMutation,
@@ -7,7 +7,7 @@ import {
   query,
 } from './_generated/server';
 import { internal } from './_generated/api';
-import { isEmail } from './lib/validation';
+import { FIELD_MAX, isEmail } from './lib/validation';
 import {
   enforcePublicFormLimit,
   enforceRateLimit,
@@ -72,11 +72,16 @@ export const storeApplication = internalMutation({
     const email = args.email.trim().toLowerCase();
     const country = args.country.trim();
     const motivation = args.motivation.trim();
-    if (name.length < 2 || name.length > 120) throw new Error('INVALID_NAME');
+    if (name.length < 2 || name.length > FIELD_MAX.name)
+      throw new Error('INVALID_NAME');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
-    if (country.length < 2) throw new Error('INVALID_COUNTRY');
-    if (motivation.length < 10 || motivation.length > 4000) {
-      throw new Error('INVALID_MOTIVATION');
+    if (country.length < 2 || country.length > FIELD_MAX.country)
+      throw new Error('INVALID_COUNTRY');
+    // Borne partagée avec le formulaire (`maxLength` + compteur) ; le code
+    // traverse en `ConvexError` pour qu'un refus dise « 4 000 caractères
+    // maximum » et non « L'envoi a échoué » (A-04, mesuré avec 5 000 car.).
+    if (motivation.length < 10 || motivation.length > FIELD_MAX.body) {
+      throw new ConvexError('INVALID_MOTIVATION');
     }
 
     // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
@@ -143,6 +148,9 @@ export const listYouthApplications = query({
         motivation: a.motivation,
         status: a.status,
         createdAt: a.createdAt,
+        // La note saisie à la décision (campagne du 27/09, A-08) : elle était
+        // stockée mais jamais rendue, donc invisible dans « Toutes ».
+        reviewNotes: a.reviewNotes ?? null,
       }));
   },
 });

@@ -59,8 +59,89 @@ export function isDirectoryTheme(value: string): value is DirectoryTheme {
 export type DirectoryFilters = {
   region?: string;
   theme?: string;
+  // Pays (ISO 3166-1 alpha-2) et langue de travail (ISO 639-1) : les deux
+  // filtres que F-19 demandait et que l'interface n'exposait pas (mesuré le
+  // 27/09 : région + thématique seulement). Domaine OUVERT côté query — les
+  // codes viennent des fiches elles-mêmes, pas d'une liste tenue ici — donc
+  // assainis en amont (`isCountryCode` / `isLanguageCode`).
+  country?: string;
+  language?: string;
   q?: string;
 };
+
+// Un code pays / langue plausible : deux ou trois lettres. Sert à ne passer à
+// la query qu'une valeur d'URL qui a la forme attendue — le reste vaut « pas
+// de filtre », même règle que `region` / `theme`.
+const CODE = /^[a-z]{2,3}$/i;
+export function isCountryCode(value: string): boolean {
+  return CODE.test(value);
+}
+export function isLanguageCode(value: string): boolean {
+  return CODE.test(value);
+}
+
+// Langues dans lesquelles le site est servi (miroir de `routing.locales`,
+// comme `PUB_LANGS`) : celles dans lesquelles un visiteur peut taper un nom
+// de pays.
+const SITE_LOCALES = ['fr', 'en', 'es', 'pt', 'ar'] as const;
+
+// Minuscules SANS diacritiques : « senegal » doit trouver « Sénégal », « cote
+// d'ivoire » « Côte d'Ivoire » — même règle que la bibliothèque.
+export function fold(s: string): string {
+  return (
+    s
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      // Apostrophe typographique (« Côte d’Ivoire » dans les données ICU) et
+      // apostrophe droite du clavier : un seul signe.
+      .replace(/[\u2019\u2018]/g, "'")
+      .trim()
+      .toLowerCase()
+  );
+}
+
+// Termes sous lesquels un pays peut être cherché : son code ISO ET son nom
+// dans chacune des langues du site. Mesuré le 27/09 : « Kenya » ne trouvait
+// aucun membre, la meule ne contenant que le nom et la description de la
+// fiche (le pays n'y est stocké qu'en code, `KE`). `Intl.DisplayNames` sert
+// de table de noms — côté client, `src/lib/orgs.ts#countryName` fait de même
+// — et un runtime sans données ICU retombe sur le seul code, jamais sur un
+// jet : la recherche dégrade, elle ne casse pas.
+const countryTermsCache = new Map<string, string>();
+export function countryTerms(code: string): string {
+  const cc = code.toUpperCase();
+  const cached = countryTermsCache.get(cc);
+  if (cached !== undefined) return cached;
+  const names = new Set<string>([cc.toLowerCase()]);
+  for (const loc of SITE_LOCALES) {
+    try {
+      const n = new Intl.DisplayNames([loc], {
+        type: 'region',
+        fallback: 'none',
+      }).of(cc);
+      if (n && n !== cc) names.add(fold(n));
+    } catch {
+      // ICU absent ou code hors norme : le code seul reste cherchable.
+    }
+  }
+  const terms = [...names].join(' ');
+  countryTermsCache.set(cc, terms);
+  return terms;
+}
+
+// Meule de recherche d'une fiche : nom + description + pays (code et noms
+// localisés), repliée (`fold`). Partagée avec la recherche globale
+// (convex/search.ts) pour que « Kenya » trouve le même membre dans la palette
+// et dans l'annuaire.
+export function organizationHaystack(org: {
+  name: string;
+  country: string;
+  description?: string;
+}): string {
+  return fold(
+    `${org.name} ${org.description ?? ''} ${countryTerms(org.country)}`,
+  );
+}
 
 // Forme minimale lue par les filtres / facettes (compatible avec Doc<'organizations'>).
 type OrgLike = {
@@ -73,16 +154,23 @@ type OrgLike = {
 };
 
 // Un think tank correspond aux filtres fournis (combinés en ET). La recherche
-// plein texte porte sur le nom + la description, sans tenir compte de la casse.
+// plein texte porte sur le nom, la description et le pays (code ISO et nom
+// dans les langues du site), sans tenir compte de la casse ni des accents.
+// Pays et langue se comparent en codes, insensibles à la casse : l'URL peut
+// porter `?country=ke` comme `?country=KE`.
 export function matchesFilters(org: OrgLike, f: DirectoryFilters): boolean {
   if (f.region && org.region !== f.region) return false;
   if (f.theme && !org.themes.includes(f.theme)) return false;
+  if (f.country && org.country.toLowerCase() !== f.country.toLowerCase()) {
+    return false;
+  }
+  if (f.language) {
+    const wanted = f.language.toLowerCase();
+    if (!org.languages.some((l) => l.toLowerCase() === wanted)) return false;
+  }
   if (f.q) {
-    const q = f.q.trim().toLowerCase();
-    if (q) {
-      const haystack = `${org.name} ${org.description ?? ''}`.toLowerCase();
-      if (!haystack.includes(q)) return false;
-    }
+    const q = fold(f.q);
+    if (q && !organizationHaystack(org).includes(q)) return false;
   }
   return true;
 }

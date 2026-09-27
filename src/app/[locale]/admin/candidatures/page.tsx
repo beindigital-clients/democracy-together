@@ -15,7 +15,10 @@ import {
   type DirectoryDraft,
 } from '@/components/admin/directory-fields';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useActionFeedback } from '@/components/admin/action-feedback';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 
 type Application = FunctionReturnType<
@@ -29,6 +32,7 @@ function ApplicationRow({ app }: { app: Application }) {
   const t = useTranslations('admin');
   const review = useMutation(api.organizations.reviewApplication);
   const notify = useActionFeedback();
+  const fail = useFailureFeedback();
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
   // Approuver une ORGANISATION ouvre la saisie de la fiche annuaire : c'est à
@@ -62,11 +66,12 @@ function ApplicationRow({ app }: { app: Application }) {
           { name: app.organizationName },
         ),
       );
-    } catch {
-      // Action refusée côté serveur (ex. rôle insuffisant, décision déjà
-      // prise) : la file reste inchangée — mais l'écran le DIT, là où il
-      // restait muet et laissait croire à un clic non enregistré.
-      notify(t('feedbackError'), 'error');
+    } catch (err) {
+      // Action refusée côté serveur : la file reste inchangée — et l'écran
+      // dit POURQUOI (27/09, m-3). Un site `javascript:` refusé
+      // (`INVALID_WEBSITE`) accusait « vos droits » : le modérateur ne savait
+      // pas quel champ corriger.
+      fail(err);
     } finally {
       setPending(false);
     }

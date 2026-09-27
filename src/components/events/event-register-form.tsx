@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
+import { ConvexError } from 'convex/values';
 import { useLocale, useTranslations } from 'next-intl';
 import { resolveLocale } from '@/i18n/locale';
 import { api } from '@convex/_generated/api';
@@ -57,12 +58,18 @@ export function EventRegisterForm({
       });
       setStatus('success');
     } catch (err) {
+      // Événement passé ou inconnu : le serveur refuse désormais (A-03) et le
+      // dit — la fiche ne rend plus ce formulaire, mais une page restée
+      // ouverte pendant que l'événement passait peut encore l'envoyer.
+      const closed = err instanceof ConvexError && err.data === 'EVENT_CLOSED';
       setError(
         isCaptchaFailed(err)
           ? t('captchaFailed')
           : isRateLimited(err)
             ? t('rateLimited')
-            : t('errorGeneric'),
+            : closed
+              ? t('closed')
+              : t('errorGeneric'),
       );
       setStatus('idle');
     }

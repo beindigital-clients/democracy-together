@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { hreflangFor } from '@/lib/seo';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { AnimatedBar } from '@/components/motion/animated-bar';
@@ -86,7 +86,17 @@ export default async function BarometrePage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const c = getBarometerContent(loc);
+  const tBar = await getTranslations('barometer');
   const catLabel = (cat: 1 | 2 | 3 | 4 | 5) => c.legend[cat - 1].label;
+  // Libellés de catégorie EN TEXTE : les teintes 2 et 4 de la palette sont
+  // faites pour la carte, pas pour du 11 px sur fond clair (2,5:1 et 2,8:1
+  // mesurés le 27/09) — leurs variantes `-ink` de globals.css tiennent 4,5:1.
+  const catText = (cat: 1 | 2 | 3 | 4 | 5) =>
+    cat === 2
+      ? 'text-bar-2-ink'
+      : cat === 4
+        ? 'text-bar-4-ink'
+        : CAT_TEXT[cat - 1];
 
   // F-40 — câblage des téléchargements réels (route /[locale]/barometre/data/*).
   // Une entrée par ligne du tableau « Jeux de données » (même ordre). `formats`
@@ -128,7 +138,7 @@ export default async function BarometrePage({
       {
         label: c.map.categoryLabel,
         value: c.legend[d.cat - 1].label,
-        valueClassName: `font-medium ${CAT_TEXT[d.cat - 1]}`,
+        valueClassName: `font-medium ${catText(d.cat)}`,
       },
     ],
   }));
@@ -210,6 +220,7 @@ export default async function BarometrePage({
             items={mapItems}
             hint={c.map.interactiveHint}
             ariaLabel={c.map.tilesLabel}
+            fallback={tBar('mapNoScript')}
             chips={{
               all: c.map.chips[0],
               afrique: c.map.chips[1],
@@ -349,7 +360,7 @@ export default async function BarometrePage({
                     {p.score}
                   </div>
                   <span
-                    className={`mt-1 block text-[11px] font-semibold uppercase tracking-[0.06em] ${CAT_TEXT[p.cat - 1]}`}
+                    className={`mt-1 block text-[11px] font-semibold uppercase tracking-[0.06em] ${catText(p.cat)}`}
                   >
                     {catLabel(p.cat)}
                   </span>
@@ -554,14 +565,14 @@ export default async function BarometrePage({
                                   key={f}
                                   href={href}
                                   download
-                                  className="rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-soft transition-colors hover:border-ink hover:bg-accent-tint hover:text-ink"
+                                  className="rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-ink-soft transition-colors hover:border-ink hover:bg-accent-tint hover:text-ink"
                                 >
                                   {f}
                                 </a>
                               ) : (
                                 <span
                                   key={f}
-                                  className="rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-soft"
+                                  className="rounded-[3px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-ink-soft"
                                 >
                                   {f}
                                 </span>

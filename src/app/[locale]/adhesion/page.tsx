@@ -158,7 +158,7 @@ export default async function MembershipPage({
                       className="px-4 py-3 font-medium"
                     >
                       {tier.label}
-                      <span className="block font-mono text-[10.5px] font-normal uppercase tracking-[0.04em] text-muted">
+                      <span className="block font-mono text-[11px] font-normal uppercase tracking-[0.04em] text-muted">
                         {tier.sub}
                       </span>
                     </th>

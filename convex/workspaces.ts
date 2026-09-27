@@ -6,13 +6,23 @@ import { requireNetworkRole } from './lib/rbac';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { isNetworkTheme } from './lib/themes';
 
-// Espaces de travail collaboratifs (F-24, incrément 1). Lecture réservée aux
-// membres du réseau (membre+) ; l'écriture de notes est réservée aux membres DE
-// L'ESPACE (workspaceMembers). `theme` = un des 5 axes du réseau (miroir de
+// Espaces de travail collaboratifs (F-24, incrément 1). Lecture de la fiche
+// (titre, description, participants) réservée aux membres du réseau (membre+) ;
+// les NOTES — lecture comme écriture — sont réservées aux membres DE L'ESPACE
+// (workspaceMembers). `theme` = un des 5 axes du réseau (miroir de
 // PUB_THEMES, src/lib/publications.ts — garder synchrone).
 
+// Nom affiché d'un membre dans un espace (animateur, participant, auteur de
+// note). Les comptes créés par invitation ou par approbation d'adhésion n'ont
+// pas de `name` — seulement une adresse : tous s'affichaient « Membre », donc
+// indiscernables entre eux (mesuré le 27/09, membre A-11). Repli sur la partie
+// locale de l'adresse, qui identifie sans exposer le domaine complet ; le
+// libellé générique ne reste que pour un compte sans nom NI adresse.
 function memberName(user: Doc<'users'>): string {
-  return user.name?.trim() || 'Membre';
+  const name = user.name?.trim();
+  if (name) return name;
+  const local = user.email?.split('@')[0]?.trim();
+  return local || 'Membre';
 }
 
 // Appartenance (espace, utilisateur) — unicité via l'index composite.
@@ -215,12 +225,22 @@ export const getWorkspace = query({
       .query('workspaceMembers')
       .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
       .collect();
-    const notes = await ctx.db
-      .query('workspaceNotes')
-      .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
-      .collect();
 
     const isMember = members.some((m) => m.userId === user._id);
+
+    // LES NOTES NE SORTENT QUE POUR LES MEMBRES DE L'ESPACE. Tout membre du
+    // réseau lisait le fil complet d'un espace qu'il n'avait pas rejoint
+    // (mesuré le 27/09, membre A-6 / R-11) : l'écriture était réservée aux
+    // membres de l'espace, pas la lecture. Titre, description et participants
+    // restent visibles — c'est ce qu'il faut pour décider de rejoindre ; le
+    // fil, lui, ne se lit qu'une fois dedans. Un tableau vide plutôt qu'un
+    // refus : la page dit « rejoignez l'espace pour lire les notes ».
+    const notes = isMember
+      ? await ctx.db
+          .query('workspaceNotes')
+          .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
+          .collect()
+      : [];
 
     return {
       _id: workspace._id,

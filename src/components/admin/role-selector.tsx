@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -51,6 +51,10 @@ export function RoleSelector({
 
   const value = draft ?? role;
   const changed = draft !== null && draft !== role;
+  // Le verrou (son propre compte) s'expliquait seulement en `title`, donc au
+  // survol : invisible au doigt, non annoncé (campagne du 27/09, C-4). Le
+  // motif est un texte visible, relié au sélecteur par `aria-describedby`.
+  const lockedId = useId();
 
   // Un seul endroit change `confirming`, pour que le signal ne puisse pas se
   // désynchroniser de l'état.
@@ -80,7 +84,7 @@ export function RoleSelector({
         value={value}
         disabled={locked || pending}
         aria-label={`${t('userRole')} ${name}`}
-        title={lockedReason}
+        aria-describedby={locked && lockedReason ? lockedId : undefined}
         onChange={(e) => setDraft(e.target.value as NetworkRole)}
       >
         {ROLE_ORDER.map((r) => (
@@ -89,6 +93,11 @@ export function RoleSelector({
           </option>
         ))}
       </Select>
+      {locked && lockedReason ? (
+        <p id={lockedId} className="basis-full text-xs text-muted">
+          {lockedReason}
+        </p>
+      ) : null}
 
       {changed ? (
         <Button

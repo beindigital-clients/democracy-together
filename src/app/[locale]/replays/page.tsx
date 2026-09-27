@@ -5,7 +5,16 @@ import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { Badge } from '@/components/ui/badge';
 import { resolveLocale } from '@/i18n/locale';
-import { getReplays } from '@/lib/replays';
+import {
+  getReplays,
+  parseReplayFilters,
+  filterReplays,
+  replayFacets,
+  replaysHref,
+  hasReplayFilters,
+  type ReplayFilters,
+  type ReplayFacet,
+} from '@/lib/replays';
 import { monthAbbr } from '@/lib/events-content';
 import { ArrowForward } from '@/components/ui/arrow';
 
@@ -28,16 +37,90 @@ export async function generateMetadata({
   };
 }
 
+// Chip de filtre — même forme que l'annuaire : un lien GET, `aria-current`
+// quand actif, donc utilisable sans JavaScript et partageable.
+function Chip({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? 'true' : undefined}
+      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors ${
+        active
+          ? 'border-accent-edge bg-accent-tint text-accent-text'
+          : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function FacetGroup({
+  legend,
+  all,
+  items,
+  filters,
+  keyName,
+}: {
+  legend: string;
+  all: string;
+  items: ReplayFacet[];
+  filters: ReplayFilters;
+  keyName: keyof ReplayFilters;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+        {legend}
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        <Chip
+          href={replaysHref(filters, { [keyName]: undefined })}
+          active={!filters[keyName]}
+        >
+          {all}
+        </Chip>
+        {items.map((f) => (
+          <Chip
+            key={f.value}
+            href={replaysHref(filters, { [keyName]: f.value })}
+            active={filters[keyName] === f.value}
+          >
+            {f.label}
+            <span className="text-muted">{f.count}</span>
+          </Chip>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 export default async function ReplaysPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const t = await getTranslations('replays');
-  const replays = getReplays(loc);
+  const all = getReplays(loc);
+  // Filtres type / thématique / langue dans l'URL (communauté A-12). Les
+  // facettes sont comptées sur l'ensemble, la liste sur la sélection.
+  const filters = parseReplayFilters(await searchParams, all);
+  const facets = replayFacets(all, loc);
+  const replays = filterReplays(all, filters);
+  const filtered = hasReplayFilters(filters);
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 md:py-16">
@@ -55,22 +138,64 @@ export default async function ReplaysPage({
         </Reveal>
       </header>
 
+      {all.length > 0 ? (
+        <section aria-label={t('filtersLabel')} className="mt-10 space-y-5">
+          <FacetGroup
+            legend={t('filterType')}
+            all={t('all')}
+            items={facets.types}
+            filters={filters}
+            keyName="type"
+          />
+          <FacetGroup
+            legend={t('filterTheme')}
+            all={t('all')}
+            items={facets.themes}
+            filters={filters}
+            keyName="theme"
+          />
+          <FacetGroup
+            legend={t('filterLang')}
+            all={t('all')}
+            items={facets.langs}
+            filters={filters}
+            keyName="lang"
+          />
+          <div className="flex items-center justify-between gap-4">
+            <p className="font-mono text-xs uppercase tracking-[0.12em] text-muted">
+              {t('count', { count: replays.length })}
+            </p>
+            {filtered ? (
+              <Link
+                href="/replays"
+                className="shrink-0 text-sm text-accent-text hover:underline"
+              >
+                {t('reset')}
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       {replays.length === 0 ? (
         <Reveal>
-          <p className="mt-10 rounded-sm border border-line bg-surface p-8 text-center text-ink-soft">
-            {t('empty')}
+          <p className="mt-6 rounded-sm border border-line bg-surface p-8 text-center text-ink-soft">
+            {filtered ? t('emptyFiltered') : t('empty')}
           </p>
         </Reveal>
       ) : (
         <RevealGroup
           as="ul"
-          className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+          className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3"
         >
           {replays.map((r) => (
             <RevealItem as="li" key={r.slug}>
               <article className="flex h-full flex-col rounded-sm border border-line bg-surface p-6">
                 <div className="flex items-center justify-between gap-3">
-                  <Badge>{r.type}</Badge>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <Badge>{r.type}</Badge>
+                    <Badge variant="accent">{r.theme}</Badge>
+                  </span>
                   <span className="font-mono text-xs uppercase tracking-[0.06em] text-muted">
                     {r.d} {monthAbbr({ mo: r.mo }, loc)} {r.y}
                     {r.durationMin != null

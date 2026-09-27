@@ -10,7 +10,10 @@ import { InviteUserForm } from '@/components/admin/invite-user-form';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { RoleSelector } from '@/components/admin/role-selector';
-import { useActionFeedback } from '@/components/admin/action-feedback';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { useConnu } from '@/hooks/use-connu';
@@ -49,6 +52,7 @@ function UsersTable() {
   const me = useConnu(useQuery(api.users.current));
   const setRole_ = useMutation(api.users.setRole);
   const notify = useActionFeedback();
+  const fail = useFailureFeedback();
 
   // GELER LA LISTE PENDANT QU'UNE CONFIRMATION EST OUVERTE.
   //
@@ -89,10 +93,10 @@ function UsersTable() {
         t('feedbackRoleChanged', { name, role: vocabulary(t, 'role_', next) }),
       );
       return true;
-    } catch {
+    } catch (err) {
       // Rejet serveur (ex. dernier admin / rôle insuffisant) : l'écran le DIT,
-      // là où il restait muet, et le sélecteur revient à la valeur réelle.
-      notify(t('feedbackError'), 'error');
+      // par le motif du refus, et le sélecteur revient à la valeur réelle.
+      fail(err);
       return false;
     }
   }
@@ -138,7 +142,14 @@ function UsersTable() {
           <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                <th className="py-2 pe-4 font-normal">{t('userEmail')}</th>
+                {/* Colonne d'IDENTITÉ figée : une fois le tableau défilé
+                    jusqu'à « Appliquer » sur mobile, l'adresse sortait de
+                    l'écran et l'on confirmait un rôle sans voir à qui
+                    (27/09, C-1). `bg-paper` : sans fond, les autres colonnes
+                    passeraient sous elle en transparence. */}
+                <th className="sticky start-0 z-[1] bg-paper py-2 pe-4 font-normal">
+                  {t('userEmail')}
+                </th>
                 <th className="py-2 pe-4 font-normal">{t('userName')}</th>
                 <th className="py-2 font-normal">{t('userRole')}</th>
               </tr>
@@ -149,7 +160,7 @@ function UsersTable() {
                 const name = u.email ?? u.name ?? u._id;
                 return (
                   <tr key={u._id} className="border-b border-line">
-                    <td className="py-3 pe-4 font-mono text-[13px]">
+                    <td className="sticky start-0 z-[1] max-w-[14rem] wrap-anywhere bg-paper py-3 pe-4 font-mono text-[13px]">
                       {u.email}
                     </td>
                     <td className="py-3 pe-4">{u.name ?? '—'}</td>

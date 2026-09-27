@@ -255,12 +255,10 @@ export const E2E_PASSWORD = 'phrase-de-passe-e2e';
 // avec `verify`, l'inscription n'ouvre pas de session : elle envoie un code,
 // qu'on relit puis qu'on présente en `email-verification`.
 //
-// À NOTER, et à traiter ailleurs : aucun écran de l'application ne fait cela.
-// L'e-mail d'invitation promet « vous pourrez en définir un depuis votre espace
-// membre » — cet écran n'existe pas, et `src/` ne contient aucun `flow:
-// 'signUp'`. Un membre invité ne peut donc PAS se donner de mot de passe ;
-// seule la connexion par code lui est ouverte. Ce helper passe par l'API parce
-// qu'il n'y a pas d'interface à exercer, pas pour contourner une interface.
+// L'écran `/espace-membre/mot-de-passe` fait la même chose par l'interface
+// depuis le lot 3 du 27/09 (`auth-mot-de-passe.spec.ts` l'exerce). Ce helper
+// garde le chemin API parce qu'il provisionne des comptes AVANT toute session —
+// pas pour contourner une interface.
 export async function provisionPassword(
   email: string,
   password: string,

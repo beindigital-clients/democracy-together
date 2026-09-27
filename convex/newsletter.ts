@@ -17,7 +17,7 @@ import {
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
 import { COUNTER, bumpCounter, readCounter } from './lib/counters';
-import { sendEmail } from './email';
+import { emailProviderStatus, sendEmail } from './email';
 import { locale } from './schema';
 
 // Jeton aléatoire (lien de désinscription).
@@ -112,19 +112,28 @@ export const recordSubscription = internalMutation({
 });
 
 // Désinscription par jeton (lien dans l'e-mail) — idempotente.
+//
+// `found` dit si le jeton correspondait à un abonnement. Sans lui, la page
+// confirmait « vous êtes désinscrit » à un jeton inventé (mesuré le 27/09,
+// vitrine O2 / R-09) : un abonné dont le lien est tronqué ou expiré croyait
+// avoir réussi, et restait abonné. CE N'EST PAS UN ORACLE D'EXISTENCE : le
+// jeton est un secret aléatoire de 128 bits, il n'identifie aucune adresse —
+// contrairement à l'oracle refermé sur `subscribe` (F-09), qui répondait à une
+// adresse choisie. Un lien cliqué deux fois répond `found: false` la seconde
+// fois : l'abonné est parti, la page le dit comme « lien expiré ».
 export const unsubscribe = mutation({
   args: { token: v.string() },
+  returns: v.object({ ok: v.boolean(), found: v.boolean() }),
   handler: async (ctx, { token }) => {
-    if (!token) return { ok: false };
+    if (!token) return { ok: false, found: false };
     const sub = await ctx.db
       .query('newsletterSubscriptions')
       .withIndex('by_token', (q) => q.eq('unsubToken', token))
       .unique();
-    if (sub) {
-      await ctx.db.delete(sub._id);
-      await bumpCounter(ctx, COUNTER.NEWSLETTER_SUBSCRIBERS, -1);
-    }
-    return { ok: true };
+    if (!sub) return { ok: true, found: false };
+    await ctx.db.delete(sub._id);
+    await bumpCounter(ctx, COUNTER.NEWSLETTER_SUBSCRIBERS, -1);
+    return { ok: true, found: true };
   },
 });
 
@@ -178,6 +187,25 @@ export const subscriberCount = query({
   },
 });
 
+// État du fournisseur d'e-mail, annoncé en tête de l'écran (campagne du
+// 27/09, R-07). Lu au moment de la requête : poser la clé sur le déploiement
+// suffit, sans redéploiement du code.
+export const emailStatus = query({
+  args: {},
+  returns: v.object({
+    provider: v.string(),
+    mode: v.union(
+      v.literal('configured'),
+      v.literal('simulated'),
+      v.literal('none'),
+    ),
+  }),
+  handler: async (ctx) => {
+    await requireNetworkRole(ctx, 'editeur');
+    return emailProviderStatus();
+  },
+});
+
 export const listCampaigns = query({
   args: {},
   handler: async (ctx) => {
@@ -188,6 +216,8 @@ export const listCampaigns = query({
       .map((c) => ({
         _id: c._id,
         subject: c.subject,
+        // Le corps sert l'aperçu AVANT envoi (campagne du 27/09, R-07).
+        body: c.body,
         status: c.status,
         createdAt: c.createdAt,
         sentAt: c.sentAt ?? null,
@@ -223,6 +253,13 @@ export const sendCampaign = mutation({
     const campaign = await ctx.db.get(campaignId);
     if (!campaign) throw new Error('NOT_FOUND');
     if (campaign.status !== 'draft') throw new Error('ALREADY_SENT');
+    // Sans fournisseur, la livraison échouerait abonné par abonné et la
+    // campagne finirait « Erreur » sans un mot : on refuse AVANT, et l'écran
+    // traduit le code (campagne du 27/09, R-07). En dev/test explicite
+    // (AUTH_DEV_OTP=true) l'envoi simulé reste possible.
+    if (emailProviderStatus().mode === 'none') {
+      throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
+    }
     await ctx.db.patch(campaignId, { status: 'sending' });
     await ctx.scheduler.runAfter(0, internal.newsletter.deliverCampaign, {
       campaignId,

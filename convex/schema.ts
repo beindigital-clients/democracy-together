@@ -247,6 +247,24 @@ export default defineSchema({
     // sans relire toute la liste des avis.
     .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId']),
 
+  // Assignations de relecture (campagne du 27/09, R-01 / A-02). `assignReviewer`
+  // ne faisait que NOTIFIER : rien ne retenait qui avait été désigné sur quoi.
+  // Or la file complète (`getReviewQueue`) est réservée à l'éditeur, alors que
+  // le relecteur est souvent un modérateur : notifié, il n'avait aucun écran
+  // qui lui rende « ce qu'on lui a confié ». Cette table est ce que lit la vue
+  // « Mes relectures » — par l'index `by_reviewer`, sans parcourir les
+  // publications. Une ligne par (publication, relecteur) ; réassigner sur une
+  // revue rouverte met la ligne à jour au lieu d'en créer une seconde.
+  peerReviewAssignments: defineTable({
+    publicationId: v.id('publications'),
+    reviewerUserId: v.id('users'),
+    assignedBy: v.id('users'),
+    assignedAt: v.number(),
+  })
+    .index('by_reviewer', ['reviewerUserId'])
+    .index('by_publication', ['publicationId'])
+    .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId']),
+
   // Candidatures d'adhésion (F-22) — workflow de validation par un modérateur.
   membershipApplications: defineTable({
     type: v.union(v.literal('organisation'), v.literal('individu')),
@@ -401,6 +419,9 @@ export default defineSchema({
     ),
     reviewedBy: v.optional(v.id('users')),
     reviewedAt: v.optional(v.number()),
+    // Note de décision (campagne du 27/09, A-08) : elle n'existait que dans
+    // les métadonnées d'audit, donc jamais à l'écran de mentorat.
+    reviewNotes: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index('by_status', ['status'])

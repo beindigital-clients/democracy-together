@@ -73,6 +73,12 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     items: [
       { href: '/admin/candidatures', key: 'applications' },
       { href: '/admin/publications', key: 'publications' },
+      // « Mes relectures » (campagne du 27/09, A-02) : la vue du RELECTEUR,
+      // ouverte au rang modérateur parce que `submitReview` l'est. Elle ne
+      // rend que ses assignations ; la file complète et les décisions
+      // restent dans « Comité de lecture », réservé à l'éditeur. Rangée avec
+      // la modération : c'est là que travaille un modérateur.
+      { href: '/admin/mes-relectures', key: 'myReviews' },
       { href: '/admin/signalements', key: 'reports' },
       { href: '/admin/contact', key: 'contactMessages' },
     ],

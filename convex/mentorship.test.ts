@@ -312,3 +312,71 @@ describe('Mentorat — contenu éditorial (terme banni)', () => {
     expect(blob).not.toMatch(/liberal\s+democracy/i);
   });
 });
+
+// A-13 : aucun parcours membre. Premier pas — un compte connecté voit SES
+// demandes (retrouvées par l'adresse de son compte) et leur statut.
+describe('Mentorat — ma demande, vue par le membre connecté (A-13)', () => {
+  it('rend les demandes de l’adresse du compte, avec leur statut', async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.mentorship.storeRequest, {
+      ...REQ,
+      email: 'Awa@Example.org',
+    });
+    await t.mutation(internal.mentorship.storeRequest, {
+      ...REQ,
+      email: 'awa@example.org',
+      role: 'mentor',
+    });
+    await t.mutation(internal.mentorship.storeRequest, {
+      ...REQ,
+      email: 'autre@example.org',
+    });
+
+    // Le compte porte l'adresse avec une casse différente : la recherche se
+    // fait sur la forme normalisée, comme à l'écriture.
+    const awaId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'membre', email: 'AWA@example.org' }),
+    );
+    const asAwa = t.withIdentity({ subject: `${awaId}|s` });
+    const mine = await asAwa.query(api.mentorship.myMentorshipRequest, {});
+    expect(mine.map((m) => [m.role, m.status]).sort()).toEqual([
+      ['mentor', 'pending'],
+      ['mentore', 'pending'],
+    ]);
+
+    // Le statut suit la décision du back-office.
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const mentee = mine.find((m) => m.role === 'mentore');
+    if (!mentee) throw new Error('demande mentoré attendue');
+    await t
+      .withIdentity({ subject: `${modId}|s` })
+      .mutation(api.mentorship.reviewMentorshipRequest, {
+        requestId: mentee._id,
+        status: 'matched',
+      });
+    const apres = await asAwa.query(api.mentorship.myMentorshipRequest, {});
+    expect(apres.find((m) => m.role === 'mentore')?.status).toBe('matched');
+    expect(apres.find((m) => m.role === 'mentore')?.reviewedAt).toEqual(
+      expect.any(Number),
+    );
+  });
+
+  it('ne rend rien à un autre compte, ni à un visiteur anonyme', async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.mentorship.storeRequest, {
+      ...REQ,
+      email: 'awa@example.org',
+    });
+    const bobId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'membre', email: 'bob@example.org' }),
+    );
+    expect(
+      await t
+        .withIdentity({ subject: `${bobId}|s` })
+        .query(api.mentorship.myMentorshipRequest, {}),
+    ).toEqual([]);
+    expect(await t.query(api.mentorship.myMentorshipRequest, {})).toEqual([]);
+  });
+});

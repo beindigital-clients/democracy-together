@@ -60,6 +60,14 @@ const SCREENS = [
     h1: 'Propositions de projets',
     min: 'moderateur',
   },
+  // Vue du RELECTEUR (campagne du 27/09, A-02) : ouverte au rang modérateur,
+  // elle ne rend que ses assignations — la file complète reste à l'éditeur.
+  {
+    path: '/fr/admin/mes-relectures',
+    nav: 'Mes relectures',
+    h1: 'Mes relectures',
+    min: 'moderateur',
+  },
   {
     path: '/fr/admin/signalements',
     nav: 'Signalements',

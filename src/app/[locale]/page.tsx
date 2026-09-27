@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { hreflangFor } from '@/lib/seo';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { NewsletterForm } from '@/components/newsletter/newsletter-form';
@@ -63,6 +63,7 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const tHome = await getTranslations('home');
   const loc = resolveLocale(locale);
   const c = await getHomeContent(loc);
   // Contenu canonique du baromètre (légende, titre de légende, aide de la
@@ -111,7 +112,9 @@ export default async function HomePage({
                   {c.mission.cells[0].title}
                 </h3>
               </div>
-              <p className="mt-3 text-[14.5px] leading-relaxed text-accent-contrast/80 md:mt-0">
+              {/* 90 % et non 80 : mesuré le 27/09 en sombre, 4,49:1 sur le bleu
+                  d'accent — un centième sous le seuil. */}
+              <p className="mt-3 text-[14.5px] leading-relaxed text-accent-contrast/90 md:mt-0">
                 {c.mission.cells[0].body}
               </p>
             </RevealItem>
@@ -263,6 +266,11 @@ export default async function HomePage({
 
             <Reveal className="flex min-h-[220px] flex-col rounded-md border border-line bg-paper p-6">
               <div className="flex-1">
+                {/* Le canevas du globe est `aria-hidden` et, en variante
+                    compacte, la page n'a ni tableau ni boutons de région
+                    (vitrine O5, 27/09) : ce texte est l'équivalent pour un
+                    lecteur d'écran ou un clavier. */}
+                <p className="sr-only">{tHome('globeAlt')}</p>
                 <RegionGlobeLazy
                   items={mapItems}
                   variant="compact"

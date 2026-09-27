@@ -32,6 +32,15 @@ export type EventData = {
   d: number;
   upcoming: boolean;
   durationMin?: number; // pour les rediffusions (événements passés)
+  // Liens OPTIONNELS (A-10, campagne du 27/09) : rediffusion d'un événement
+  // passé, visioconférence d'un événement en ligne ou hybride à venir. Une
+  // fiche passée n'affichait ni replay ni lien visio, et la vedette promettait
+  // des replays « en accès ouvert » sans lien. Absents tant qu'aucun
+  // enregistrement ni salle n'existe : `src/lib/replays.ts` n'en connaît
+  // aucun (données d'illustration), la fiche le dit honnêtement au lieu
+  // d'inventer un lecteur.
+  replayUrl?: string;
+  visioUrl?: string;
 };
 
 // Liste neutre (la plus proche en haut). `when` dérivé pour le tri.
@@ -323,6 +332,16 @@ type DetailLabels = {
   founderBadge: string;
   related: string;
   resources: string;
+  // Bloc rediffusion / visioconférence de la fiche (A-10).
+  replay: {
+    title: string;
+    available: string;
+    soon: string;
+    seeAll: string;
+    visioTitle: string;
+    visioLink: string;
+    visioSent: string;
+  };
   // contenu riche de la conférence (featured)
   conf: {
     lead: string;
@@ -588,6 +607,16 @@ const fr: Labels = {
     founderBadge: 'Fondateur',
     related: 'Autres rendez-vous',
     resources: 'Replays et ressources',
+    replay: {
+      title: 'Rediffusion',
+      available: 'Replay disponible',
+      soon: 'Enregistrement bientôt disponible.',
+      seeAll: 'Voir toutes les rediffusions',
+      visioTitle: 'Visioconférence',
+      visioLink: 'Lien de visioconférence',
+      visioSent:
+        'Le lien de visioconférence est envoyé par e-mail aux inscrits avant l’événement.',
+    },
     conf: {
       lead: "Une journée pour fonder publiquement le réseau : think tanks d'Afrique et d'Europe, chercheurs, responsables publics et jeunes engagés, réunis pour penser et défendre la démocratie.",
       dayIntro: [
@@ -930,6 +959,16 @@ const en: Labels = {
     founderBadge: 'Founder',
     related: 'Other gatherings',
     resources: 'Replays and resources',
+    replay: {
+      title: 'Replay',
+      available: 'Replay available',
+      soon: 'Recording coming soon.',
+      seeAll: 'See all replays',
+      visioTitle: 'Video conference',
+      visioLink: 'Video conference link',
+      visioSent:
+        'The video conference link is e-mailed to registered participants before the event.',
+    },
     conf: {
       lead: 'A day to publicly found the network: think tanks from Africa and Europe, researchers, public officials and engaged young people, gathered to think about and defend democracy.',
       dayIntro: [
@@ -1268,6 +1307,16 @@ const es: Labels = {
     founderBadge: 'Fundador',
     related: 'Otras citas',
     resources: 'Repeticiones y recursos',
+    replay: {
+      title: 'Retransmisión',
+      available: 'Repetición disponible',
+      soon: 'Grabación disponible próximamente.',
+      seeAll: 'Ver todas las repeticiones',
+      visioTitle: 'Videoconferencia',
+      visioLink: 'Enlace de videoconferencia',
+      visioSent:
+        'El enlace de videoconferencia se envía por correo a las personas inscritas antes del evento.',
+    },
     conf: {
       lead: 'Una jornada para fundar públicamente la red: centros de estudios de África y de Europa, investigadores, responsables públicos y jóvenes comprometidos, reunidos para pensar y defender la democracia.',
       dayIntro: [
@@ -1614,6 +1663,16 @@ const pt: Labels = {
     founderBadge: 'Fundador',
     related: 'Outros encontros',
     resources: 'Repetições e recursos',
+    replay: {
+      title: 'Gravação',
+      available: 'Gravação disponível',
+      soon: 'Gravação disponível em breve.',
+      seeAll: 'Ver todas as gravações',
+      visioTitle: 'Videoconferência',
+      visioLink: 'Ligação de videoconferência',
+      visioSent:
+        'A ligação de videoconferência é enviada por e-mail aos inscritos antes do evento.',
+    },
     conf: {
       lead: 'Um dia para fundar publicamente a rede: centros de estudos de África e da Europa, investigadores, responsáveis públicos e jovens empenhados, reunidos para pensar e defender a democracia.',
       dayIntro: [
@@ -1956,6 +2015,16 @@ const ar: Labels = {
     founderBadge: 'عضو مؤسِّس',
     related: 'مواعيد أخرى',
     resources: 'التسجيلات والموارد',
+    replay: {
+      title: 'إعادة البث',
+      available: 'التسجيل متاح',
+      soon: 'التسجيل سيكون متاحًا قريبًا.',
+      seeAll: 'عرض كل التسجيلات',
+      visioTitle: 'الاجتماع المرئي',
+      visioLink: 'رابط الاجتماع المرئي',
+      visioSent:
+        'يُرسل رابط الاجتماع المرئي عبر البريد الإلكتروني إلى المسجّلين قبل الفعالية.',
+    },
     conf: {
       lead: 'يوم لتأسيس الشبكة علناً: مراكز دراسات من أفريقيا وأوروبا، وباحثون، ومسؤولون عموميون، وشباب منخرطون، يجتمعون للتفكير في الديمقراطية والدفاع عنها.',
       dayIntro: [

@@ -653,8 +653,16 @@ function DecisionLog() {
                   >
                     {vocabulary(t, 'aiApplied_', review.applied)}
                   </Badge>
-                  <span className="font-medium">
-                    {review.publicationTitle ?? review.publicationId}
+                  {/* Titre absent = dépôt supprimé : le dire, plutôt que
+                      d'afficher l'identifiant brut (27/09, m-7). */}
+                  <span
+                    className={
+                      review.publicationTitle
+                        ? 'wrap-anywhere font-medium'
+                        : 'italic text-muted'
+                    }
+                  >
+                    {review.publicationTitle ?? t('aiLogDeletedPublication')}
                   </span>
                   <span className="text-xs text-muted">
                     {vocabulary(t, 'aiVerdict_', review.verdict)} ·{' '}

@@ -149,9 +149,11 @@ checkout neuf : les connexions s'exécutent toutes pour de vrai.
 `provisionPassword` passe par `flow: 'signUp'` puis la vérification par code.
 C'est le SEUL chemin ouvert : `flow: 'reset'` exige un compte mot de passe
 existant et lève `InvalidAccountId` sinon — c'est ce qui tenait quinze specs en
-échec. À noter, côté produit : aucun écran ne permet aujourd'hui de définir un
-mot de passe (l'e-mail d'invitation le promet pourtant), donc ce helper passe
-par l'API faute d'interface à exercer.
+échec. Depuis le lot 3 de la campagne du 27/09, l'écran
+`/espace-membre/mot-de-passe` fait exactement cela par l'interface (`signUp`
+puis `email-verification`, ou `reset` quand un mot de passe existe déjà) — le
+helper garde le chemin API parce qu'il provisionne des comptes AVANT toute
+session, et `tests/e2e/auth-mot-de-passe.spec.ts` exerce l'écran.
 
 ### Sources externes — le CMS n'est pas toujours là
 Sanity n'est pas configuré en CI : `sanity/env.ts` retombe sur l'identifiant

@@ -14,6 +14,14 @@ import {
 import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { ConvexError } from 'convex/values';
+
+// Seconde candidature « en attente » pour la même adresse (convex/organizations.ts
+// -> ConvexError('DUPLICATE_APPLICATION'), lot 3 du 27/09) : la file du
+// back-office se remplissait de doublons, et le candidat n'en savait rien.
+function isDuplicateApplication(error: unknown): boolean {
+  return error instanceof ConvexError && error.data === 'DUPLICATE_APPLICATION';
+}
 import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
 
@@ -77,7 +85,9 @@ export function MembershipForm() {
           ? t('captchaFailed')
           : isRateLimited(err)
             ? t('rateLimited')
-            : t('errorGeneric'),
+            : isDuplicateApplication(err)
+              ? t('duplicate')
+              : t('errorGeneric'),
       );
       setStatus('idle');
     }

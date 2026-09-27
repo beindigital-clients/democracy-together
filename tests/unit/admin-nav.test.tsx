@@ -41,13 +41,16 @@ function renderNav(role: NetworkRole, pathname = '/admin') {
 
 // Les quatorze entrées de l'issue, par le libellé qu'elles portent à l'écran,
 // plus la quinzième arrivée depuis (« Modération IA », réservée à
-// l'administrateur). Le total est réaffirmé ci-dessous : une entrée ajoutée
-// sans passer par ici fait échouer le test, ce qui est l'objet du fichier.
+// l'administrateur) et la seizième (« Mes relectures », la vue du relecteur
+// de rang modérateur — campagne du 27/09, A-02). Le total est réaffirmé
+// ci-dessous : une entrée ajoutée sans passer par ici fait échouer le test,
+// ce qui est l'objet du fichier.
 const STAFF_ITEMS = [
   'Tableau de bord',
   'Impact',
   'Candidatures',
   'Publications',
+  'Mes relectures',
   'Signalements',
   'Messages',
   'Jeunes',
@@ -68,7 +71,7 @@ function linkNames(nav: HTMLElement): string[] {
 }
 
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
-  it('un modérateur voit les 10 entrées communes, et aucune entrée réservée', () => {
+  it('un modérateur voit les 11 entrées communes, et aucune entrée réservée', () => {
     const nav = renderNav('moderateur');
     expect(linkNames(nav).sort()).toEqual([...STAFF_ITEMS].sort());
     for (const reserved of [...EDITOR_ITEMS, ...ADMIN_ITEMS]) {
@@ -86,10 +89,10 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
   });
 
-  it('un administrateur voit les 15 entrées attendues', () => {
+  it('un administrateur voit les 16 entrées attendues', () => {
     const nav = renderNav('admin');
     const expected = [...STAFF_ITEMS, ...EDITOR_ITEMS, ...ADMIN_ITEMS];
-    expect(expected).toHaveLength(15);
+    expect(expected).toHaveLength(16);
     expect(linkNames(nav).sort()).toEqual([...expected].sort());
   });
 
@@ -119,9 +122,9 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       // est donc annoncé, sans introduire un `<h2>` avant le `<h1>` de l'écran.
       expect(within(nav).getByRole('list', { name: label })).toBeTruthy();
     }
-    // Aucune entrée hors groupe : la somme des listes rend bien les 15 liens.
+    // Aucune entrée hors groupe : la somme des listes rend bien les 16 liens.
     const grouped = lists.flatMap((l) => within(l).getAllByRole('link'));
-    expect(grouped).toHaveLength(15);
+    expect(grouped).toHaveLength(16);
   });
 
   it('ne défile plus horizontalement : aucun conteneur en overflow-x', () => {
@@ -201,9 +204,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
 
   it('aucun chemin ni aucune clé de libellé en double', () => {
     const items = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-    expect(items).toHaveLength(15);
-    expect(new Set(items.map((i) => i.href)).size).toBe(15);
-    expect(new Set(items.map((i) => i.key)).size).toBe(15);
+    expect(items).toHaveLength(16);
+    expect(new Set(items.map((i) => i.href)).size).toBe(16);
+    expect(new Set(items.map((i) => i.key)).size).toBe(16);
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
@@ -227,6 +230,10 @@ describe('adminMinRoleForPath', () => {
   it('reprend le rang du groupe de navigation qui porte le chemin', () => {
     expect(adminMinRoleForPath('/admin')).toBe('moderateur');
     expect(adminMinRoleForPath('/admin/candidatures')).toBe('moderateur');
+    // La vue du relecteur est ouverte au rang modérateur (27/09, A-02) — la
+    // file complète, elle, reste à l'éditeur. Les deux chemins ne se
+    // préfixent pas l'un l'autre.
+    expect(adminMinRoleForPath('/admin/mes-relectures')).toBe('moderateur');
     expect(adminMinRoleForPath('/admin/revue')).toBe('editeur');
     expect(adminMinRoleForPath('/admin/newsletter')).toBe('editeur');
     expect(adminMinRoleForPath('/admin/utilisateurs')).toBe('admin');

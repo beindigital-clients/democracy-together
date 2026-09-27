@@ -1,7 +1,8 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
 import { requireNetworkRole } from './lib/rbac';
+import { FIELD_MAX } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -32,8 +33,11 @@ export const submitProject = mutation({
     if (!isNetworkTheme(theme)) throw new Error('INVALID_THEME');
     if (title.length < 4 || title.length > 160)
       throw new Error('INVALID_TITLE');
-    if (summary.length < 20 || summary.length > 4000) {
-      throw new Error('INVALID_SUMMARY');
+    // Borne partagée avec le formulaire ; `ConvexError` pour qu'un résumé de
+    // 4 001 caractères reçoive « 4 000 maximum » et non « Envoi impossible »
+    // (A-04).
+    if (summary.length < 20 || summary.length > FIELD_MAX.body) {
+      throw new ConvexError('INVALID_SUMMARY');
     }
 
     await enforceRateLimit(ctx, {

@@ -30,7 +30,9 @@
     "errTitle": "The title must be at least 4 characters.",
     "errSummary": "The summary must be at least 20 characters.",
     "rateLimited": "Too many proposals sent. Please try again later.",
-    "errGeneric": "Could not send right now. Please try again."
+    "errGeneric": "Could not send right now. Please try again.",
+    "charCount": "{count, number} / {max, number} characters",
+    "errSummaryLong": "The summary exceeds {max, number} characters."
   },
   "youthApply": {
     "sectionTitle": "Join the youth hub",
@@ -51,7 +53,10 @@
     "errMotivation": "Add a few words of motivation.",
     "rateLimited": "Too many attempts. Try again in a moment.",
     "captchaFailed": "Anti-bot verification failed. Please reload the page and try again.",
-    "errGeneric": "Sending failed. Please try again."
+    "errGeneric": "Sending failed. Please try again.",
+    "charCount": "{count, number} / {max, number} characters",
+    "errMotivationLong": "Your motivation exceeds {max, number} characters.",
+    "successDedupe": "If an application with this address was already pending, it stays unique: we don’t create a second one."
   },
   "mentorship": {
     "sectionTitle": "Find my mentor, or become one",
@@ -76,7 +81,17 @@
     "errMessage": "Add a few words to your message.",
     "rateLimited": "Too many attempts. Try again in a moment.",
     "captchaFailed": "Anti-bot verification failed. Please reload the page and try again.",
-    "errGeneric": "Sending failed. Please try again."
+    "errGeneric": "Sending failed. Please try again.",
+    "charCount": "{count, number} / {max, number} characters",
+    "errMessageLong": "Your message exceeds {max, number} characters.",
+    "myRequestTitle": "Your mentorship request",
+    "myRequestLead": "Requests linked to your account’s e-mail address.",
+    "status_pending": "Awaiting a match",
+    "status_matched": "Matched — the team will contact you by e-mail",
+    "status_closed": "Closed",
+    "requestedOn": "Requested on {date}",
+    "role_mentore": "Mentee",
+    "role_mentor": "Mentor"
   },
   "tribune": {
     "metaTitle": "Democratic forum",
@@ -118,7 +133,27 @@
     "reported": "Reported",
     "react": "Support",
     "reacted": "Supported",
-    "reactionsCount": "{count, plural, =0 {No support} one {# support} other {# supports}}"
+    "reactionsCount": "{count, plural, =0 {No support} one {# support} other {# supports}}",
+    "bodyCount": "{count, number} / {max, number} characters",
+    "bodyLimitReached": "Limit reached: {max, number} characters at most for this format.",
+    "errBodyTooLong": "The text exceeds {max, number} characters, the limit for this format.",
+    "formatHint": "Short piece: up to {court, number} characters. Analysis: up to {fond, number}.",
+    "rateLimited": "Too many posts in a short time. Try again later.",
+    "cancelConfirmTitle": "Discard this draft?",
+    "cancelConfirmBody": "The text you typed will be erased and the form reset.",
+    "cancelConfirmYes": "Discard",
+    "cancelConfirmNo": "Keep writing",
+    "published": "Your post is published. Any content can be reported and reviewed by moderators.",
+    "myPostsTitle": "My posts",
+    "myPostsEmpty": "You haven’t published anything yet.",
+    "statusNote": "A post is published immediately, then moderated after the fact when reported.",
+    "status_published": "Published",
+    "status_removed": "Removed by moderation",
+    "errCommentShort": "{min, number} characters minimum.",
+    "errCommentLong": "{max, number} characters maximum.",
+    "errCommentRange": "A comment is between {min, number} and {max, number} characters long.",
+    "commentRateLimited": "Too many comments, try again later.",
+    "errCommentGeneric": "The comment could not be sent. Try again."
   },
   "notifications": {
     "title": "Notifications",
@@ -151,7 +186,8 @@
     "errorInvalid": "Please enter a valid email address.",
     "rateLimited": "Too many attempts. Please try again in a moment.",
     "captchaFailed": "Anti-bot verification failed. Please reload the page and try again.",
-    "errorGeneric": "Registration failed. Please try again."
+    "errorGeneric": "Registration failed. Please try again.",
+    "closed": "Registration for this event is closed."
   },
   "reminder": {
     "title": "Get a reminder",
@@ -234,7 +270,15 @@
     "empty": "No past gathering yet. Replays will appear here as soon as an event has taken place.",
     "soon": "Recording available soon",
     "durationLabel": "{count, plural, one {# min} other {# min}}",
-    "viewEvent": "View the event"
+    "viewEvent": "View the event",
+    "filterType": "Type",
+    "filterTheme": "Theme",
+    "filterLang": "Language",
+    "all": "All",
+    "reset": "Reset filters",
+    "emptyFiltered": "No replay matches these filters.",
+    "count": "{count, plural, =0 {No replays} one {# replay} other {# replays}}",
+    "filtersLabel": "Filter replays"
   },
   "library": {
     "eyebrow": "Library",
@@ -399,7 +443,9 @@
       "lockedBody": "The full text and the downloadable document are reserved for member organisations of the network. The summary above is abridged.",
       "lockedCta": "Apply for membership",
       "lockedSignIn": "Sign in",
-      "lockedBadge": "Members only"
+      "lockedBadge": "Members only",
+      "consultDoi": "View (DOI)",
+      "noFileNote": "No file is attached to this publication: the link opens its DOI record."
     }
   },
   "translation": {
@@ -511,7 +557,25 @@
     "errorSignUp": "Could not create the account (email already used?).",
     "errorMismatch": "The passwords do not match.",
     "errorPasswordTooShort": "Password too short: {min} characters minimum.",
-    "errorPasswordTooCommon": "This password is too common. Please choose another one."
+    "errorPasswordTooCommon": "This password is too common. Please choose another one.",
+    "role_visiteur": "Visitor",
+    "role_membre": "Member",
+    "role_moderateur": "Moderator",
+    "role_editeur": "Editor",
+    "role_admin": "Administrator",
+    "resendCode": "Resend the code",
+    "resendDone": "If an account exists for this address, a new code has just been sent.",
+    "passwordLink": "Set or change my password",
+    "passwordTitle": "My password",
+    "passwordSubtitle": "Choose a password for {email}. A verification code will be sent to this address to confirm it. Signing in with a code remains possible.",
+    "passwordCta": "Send the verification code",
+    "passwordVerifyTitle": "Confirm your password",
+    "passwordVerifySubtitle": "A code has just been sent to {email}. Enter it to save your password.",
+    "passwordVerifyCta": "Save the password",
+    "passwordDoneTitle": "Password saved",
+    "passwordDoneBody": "You can now sign in with your email and this password. Signing in with a code remains available.",
+    "passwordBack": "Back to the member area",
+    "passwordNoEmail": "No email address is linked to this account, so no password can be set for it."
   },
   "directory": {
     "eyebrow": "The network",
@@ -564,7 +628,10 @@
       "visitWebsite": "Visit the website",
       "joinCta": "Does your think tank share these commitments?",
       "joinLink": "Submit an application"
-    }
+    },
+    "filterCountry": "Country",
+    "filterLanguage": "Working language",
+    "mapNoScript": "Interactive map of members: it requires JavaScript. The countries represented appear on each card in the list below."
   },
   "contact": {
     "metaTitle": "Contact",
@@ -616,7 +683,8 @@
     "errCountry": "Enter a country.",
     "errorGeneric": "Sending failed. Please try again in a moment.",
     "rateLimited": "Too many attempts. Please try again in a moment.",
-    "captchaFailed": "Anti-bot verification failed. Please reload the page and try again."
+    "captchaFailed": "Anti-bot verification failed. Please reload the page and try again.",
+    "duplicate": "An application is already in progress for this address. We will get back to you by email."
   },
   "admin": {
     "title": "Administration",
@@ -967,7 +1035,77 @@
     "aiConfirmRevertBody": "The publication leaves the library and becomes a submission awaiting a human decision again.",
     "aiConfirmRevertConfirm": "Send back",
     "aiRevertDone": "“{title}” is back in the queue.",
-    "aiModelUsed": "Model: {model}"
+    "aiModelUsed": "Model: {model}",
+    "myReviews": "My reviews",
+    "myRevTitle": "My reviews",
+    "myRevIntro": "The publications an editor has entrusted to you. Submit your opinion; the editor then decides.",
+    "myRevEmpty": "No review is entrusted to you at the moment.",
+    "myRevAssignedOn": "Entrusted on {date}",
+    "myRevMine": "Your opinion",
+    "myRevSubmittedOn": "submitted on {date}",
+    "myRevClosed": "The review is closed: the editor has made a decision.",
+    "revOpenTitle": "Open a review",
+    "revOpenIntro": "Choose a publication awaiting moderation and the reviewer who takes it on. They are notified right away.",
+    "revOpenPublication": "Publication",
+    "revOpenPublicationPlaceholder": "Choose a publication…",
+    "revOpenNoPending": "No pending publication to send for review.",
+    "revOpen": "Open the review",
+    "revOpenFromQueue": "Send to peer review",
+    "revQueueTitle": "Publications under review",
+    "revStatusLabel": "Peer review:",
+    "revSeeInQueue": "See in peer review",
+    "revCommentHint": "At least 10 characters.",
+    "reviewNoteLabel": "Note:",
+    "feedbackRevOpened": "Review opened on “{title}”: {name} has been notified.",
+    "feedbackRevAssigned": "{name} is assigned as reviewer of “{title}” and has been notified.",
+    "feedbackRevSubmitted": "Your opinion on “{title}” has been recorded.",
+    "feedbackRevDecidedRevision": "“{title}” has been sent back for revisions.",
+    "feedbackRevDecidedReviewed": "Review of “{title}” closed.",
+    "feedbackYouthApproved": "Application from {name} approved.",
+    "feedbackYouthRejected": "Application from {name} rejected.",
+    "feedbackMentorMatched": "Request from {name} matched.",
+    "feedbackMentorClosed": "Request from {name} closed.",
+    "feedbackProjectAccepted": "Project “{title}” accepted.",
+    "feedbackProjectRejected": "Project “{title}” declined.",
+    "feedbackReopened": "“{name}” is back in the pending queue.",
+    "feedbackContactHandled": "Message “{subject}” marked as handled.",
+    "feedbackContactReopened": "Message “{subject}” put back to pending.",
+    "feedbackErr_ALREADY_REVIEWED": "Action not completed: a decision has already been made on this item, perhaps from another tab. The list has just been refreshed.",
+    "feedbackErr_INVALID_TRANSITION": "Action not completed: this item is not awaiting that decision (already reopened, or never put under review).",
+    "feedbackErr_NOT_FOUND": "Action not completed: this item no longer exists.",
+    "feedbackErr_REVIEWER_NOT_FOUND": "Reviewer not found: reload the list, then try again.",
+    "feedbackErr_REVIEWER_NOT_STAFF": "This account does not have the moderator rank required to review.",
+    "feedbackErr_ALREADY_ASSIGNED": "This reviewer is already assigned to this publication.",
+    "feedbackErr_INVALID_COMMENT": "The opinion must be at least 10 characters long.",
+    "feedbackErr_INVALID_WEBSITE": "Invalid website address: enter a full address starting with http:// or https://.",
+    "feedbackErr_INVALID_COUNTRY_CODE": "Directory entry: invalid country.",
+    "feedbackErr_INVALID_REGION": "Directory entry: invalid region.",
+    "feedbackErr_INVALID_THEMES": "Directory entry: choose at least one theme.",
+    "feedbackErr_INVALID_LANGUAGES": "Directory entry: choose at least one language.",
+    "feedbackErr_INVALID_CAMPAIGN": "Draft refused: the subject needs at least 3 characters and the message at least 10.",
+    "feedbackErr_ALREADY_SENT": "This campaign has already been sent.",
+    "feedbackErr_EMAIL_PROVIDER_NOT_CONFIGURED": "Sending refused: no e-mail provider is configured on this deployment.",
+    "feedbackErr_FORBIDDEN": "Action refused: your role does not allow it.",
+    "feedbackErr_UNAUTHENTICATED": "Session expired: sign in again, then retry.",
+    "nlEmailStatus_configured": "E-mail provider configured ({provider}): campaigns are really sent.",
+    "nlEmailStatus_simulated": "Development mode: no e-mail provider, sendings are only logged — no subscriber will receive this message.",
+    "nlEmailStatus_none": "No e-mail provider is configured on this deployment: sending campaigns is refused. Set AUTH_RESEND_KEY (or AUTH_EMAIL_PROVIDER) on the Convex environment.",
+    "nlTooShort": "The subject needs at least 3 characters and the message at least 10.",
+    "nlSubjectHint": "At least 3 characters.",
+    "nlCreated": "Draft “{subject}” created.",
+    "nlSendStarted": "Sending “{subject}” to {count, plural, =0 {0 subscribers} one {# subscriber} other {# subscribers}} has started.",
+    "nlConfirmSendTitle": "Send “{subject}” to {count, plural, =0 {0 subscribers} one {# subscriber} other {# subscribers}}?",
+    "nlConfirmSendBody": "The sending starts immediately and cannot be recalled. Check the preview before confirming.",
+    "nlConfirmSendConfirm": "Send",
+    "nlPreviewShow": "Preview",
+    "nlPreviewHide": "Hide preview",
+    "nlPreviewTitle": "E-mail preview",
+    "nlPreviewEmpty": "Enter a subject and a message to see the preview.",
+    "nlPreviewSubject": "Subject:",
+    "nlPreviewFooter": "Each sending ends with the notice “You receive this e-mail because you subscribed to the Democracy Together newsletter” and an unsubscribe link specific to the subscriber.",
+    "nlErrorInfo": "Sending failed: no recipient could be reached ({failed} failed). Check the e-mail provider.",
+    "nlSendDisabledNoProvider": "Sending is impossible without a configured e-mail provider.",
+    "aiLogDeletedPublication": "Deleted submission"
   },
   "news": {
     "eyebrow": "News",
@@ -993,7 +1131,8 @@
     "viewAll": "See all results",
     "kbdNavigate": "navigate",
     "kbdOpen": "open",
-    "kbdClose": "close"
+    "kbdClose": "close",
+    "unavailable": "The search service is not responding. Please try again in a moment."
   },
   "newsletter": {
     "eyebrow": "Newsletter",
@@ -1011,7 +1150,8 @@
     "unsubPending": "Processing…",
     "unsubDone": "You've been unsubscribed from the Democracy Together letter. See you soon.",
     "unsubInvalid": "Invalid or expired unsubscribe link.",
-    "unsubHome": "Back to home"
+    "unsubHome": "Back to home",
+    "unsubError": "The unsubscribe request could not be processed. Reload the page to try again."
   },
   "comingSoon": {
     "eyebrow": "Coming soon",
@@ -1064,7 +1204,8 @@
       "eyebrow": "News",
       "title": "Latest news",
       "viewAll": "All news"
-    }
+    },
+    "globeAlt": "Interactive Barometer globe: African and European countries coloured by score, from most free to least free. Detailed scores are on the Barometer page."
   },
   "experts": {
     "metaTitle": "Experts directory",
@@ -1171,7 +1312,8 @@
     "noteJoinPrompt": "Join the workspace to add notes.",
     "noteLabel": "Your note",
     "notePlaceholder": "Share an idea, a resource, a question…",
-    "noteSubmit": "Post note"
+    "noteSubmit": "Post note",
+    "notesJoinToRead": "Join the workspace to read the notes."
   },
   "errors": {
     "notFoundTitle": "Page not found",
@@ -1193,5 +1335,8 @@
     "skipToContent": "Skip to content",
     "description": "International network of think tanks for democracy · Africa–Europe.",
     "regions": "Africa · Europe"
+  },
+  "barometer": {
+    "mapNoScript": "Interactive Barometer map: it requires JavaScript. Country scores can be read in the ranking and tables on this page."
   }
 }

@@ -5,10 +5,15 @@ import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import type { FunctionReturnType } from 'convex/server';
 import { Button } from '@/components/ui/button';
 import { SelectField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { LoadMore } from '@/components/admin/load-more';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 
@@ -23,14 +28,117 @@ const RECOMMENDATIONS: Recommendation[] = [
 type Stage = 'in_review' | 'revision' | 'reviewed';
 const STAGES: Stage[] = ['in_review', 'revision', 'reviewed'];
 
+type Staff = FunctionReturnType<typeof api.peerReview.listStaffUsers>;
+
 // Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 20;
+
+// Ce qui NOMME un relecteur dans le sélecteur et dans le retour d'action.
+function staffName(u: Staff[number]): string {
+  return u.name || u.email || u._id;
+}
+
+// OUVRIR UNE REVUE (campagne du 27/09, R-01 / A-01). La file ci-dessous ne
+// liste que ce qui est DÉJÀ en revue, et le sélecteur d'assignation ne vivait
+// que dans ses cartes : aucune publication ne pouvait y ENTRER depuis
+// l'interface. Ce panneau est la porte : un dépôt en attente de modération,
+// un relecteur, et la revue s'ouvre — le relecteur en est notifié.
+function OpenReviewPanel({ staff }: { staff: Staff | undefined }) {
+  const t = useTranslations('admin');
+  const openable = useQuery(api.peerReview.listOpenable, {});
+  const assign = useMutation(api.peerReview.assignReviewer);
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
+  const [publicationId, setPublicationId] = useState('');
+  const [reviewerId, setReviewerId] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function open() {
+    const pub = openable?.find((p) => p._id === publicationId);
+    const reviewer = staff?.find((u) => u._id === reviewerId);
+    if (!pub || !reviewer) return;
+    setBusy(true);
+    try {
+      await assign({
+        publicationId: pub._id,
+        reviewerUserId: reviewer._id,
+      });
+      setPublicationId('');
+      setReviewerId('');
+      notify(
+        t('feedbackRevOpened', {
+          title: pub.title,
+          name: staffName(reviewer),
+        }),
+      );
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section
+      aria-labelledby="admin-review-open"
+      className="mt-6 rounded-md border border-line bg-surface p-5"
+    >
+      <h2 id="admin-review-open" className="font-display text-xl">
+        {t('revOpenTitle')}
+      </h2>
+      <p className="mt-1 max-w-[72ch] text-sm text-ink-soft">
+        {t('revOpenIntro')}
+      </p>
+      {openable !== undefined && openable.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">{t('revOpenNoPending')}</p>
+      ) : staff !== undefined && staff.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">{t('revNoStaff')}</p>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <SelectField
+            label={t('revOpenPublication')}
+            className="min-w-0 flex-1 basis-64"
+            value={publicationId}
+            onChange={(e) => setPublicationId(e.target.value)}
+          >
+            <option value="">{t('revOpenPublicationPlaceholder')}</option>
+            {(openable ?? []).map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.title}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label={t('revAssignLabel')}
+            className="min-w-0 flex-1 basis-56"
+            value={reviewerId}
+            onChange={(e) => setReviewerId(e.target.value)}
+          >
+            <option value="">{t('revAssignPlaceholder')}</option>
+            {(staff ?? []).map((u) => (
+              <option key={u._id} value={u._id}>
+                {staffName(u)}
+              </option>
+            ))}
+          </SelectField>
+          <Button
+            disabled={busy || !publicationId || !reviewerId}
+            onClick={open}
+          >
+            {t('revOpen')}
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // Revue à comité de lecture (F-43) — RÉSERVÉE AU STAFF. Surcouche de la
 // modération : les relecteurs (modérateur+) déposent un avis, l'éditeur arbitre
 // (assignation, décision revision/reviewed). La file `getReviewQueue` et les
 // actions d'arbitrage exigent le rôle éditeur côté serveur (défense en
-// profondeur) ; ici on s'appuie sur le même garde-fou que l'onglet (isEditor).
+// profondeur) ; la coquille refuse l'écran en dessous de ce rang. Un relecteur
+// de rang modérateur passe par « Mes relectures » (A-02).
 export default function AdminReview() {
   const t = useTranslations('admin');
   const tl = useTranslations('library');
@@ -51,6 +159,12 @@ export default function AdminReview() {
   const assign = useMutation(api.peerReview.assignReviewer);
   const submit = useMutation(api.peerReview.submitReview);
   const decide = useMutation(api.peerReview.decideReview);
+  // Retour d'action (campagne du 27/09, R-08 / A-06 / A-08) : assigner,
+  // déposer un avis et arbitrer passaient par un `catch {}` muet — un second
+  // avis refusé (`ALREADY_REVIEWED`) laissait le texte dans le champ sans un
+  // mot, et une assignation réussie ne changeait qu'une étiquette.
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
 
   // États de formulaire indexés par publication (chaque carte est autonome).
   const [reviewer, setReviewer] = useState<Record<string, string>>({});
@@ -67,9 +181,10 @@ export default function AdminReview() {
       year: 'numeric',
     }).format(ms);
 
-  async function onAssign(pubId: string) {
+  async function onAssign(pubId: string, title: string) {
     const uid = reviewer[pubId];
-    if (!uid) return;
+    const who = staff?.find((u) => u._id === uid);
+    if (!uid || !who) return;
     setBusy(`assign:${pubId}`);
     try {
       await assign({
@@ -77,14 +192,15 @@ export default function AdminReview() {
         reviewerUserId: uid as Id<'users'>,
       });
       setReviewer((r) => ({ ...r, [pubId]: '' }));
-    } catch {
-      /* refusé côté serveur (rôle) : la file se rafraîchit toute seule */
+      notify(t('feedbackRevAssigned', { title, name: staffName(who) }));
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
   }
 
-  async function onSubmitReview(pubId: string) {
+  async function onSubmitReview(pubId: string, title: string) {
     const text = (comment[pubId] ?? '').trim();
     if (text.length < 10) return;
     setBusy(`review:${pubId}`);
@@ -95,22 +211,35 @@ export default function AdminReview() {
         comment: text,
       });
       setComment((c) => ({ ...c, [pubId]: '' }));
-    } catch {
-      /* idem */
+      notify(t('feedbackRevSubmitted', { title }));
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
   }
 
-  async function onDecide(pubId: string, decision: 'revision' | 'reviewed') {
+  async function onDecide(
+    pubId: string,
+    title: string,
+    decision: 'revision' | 'reviewed',
+  ) {
     setBusy(`decide:${pubId}`);
     try {
       await decide({
         publicationId: pubId as Id<'publications'>,
         decision,
       });
-    } catch {
-      /* idem */
+      notify(
+        t(
+          decision === 'revision'
+            ? 'feedbackRevDecidedRevision'
+            : 'feedbackRevDecidedReviewed',
+          { title },
+        ),
+      );
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
@@ -121,13 +250,17 @@ export default function AdminReview() {
       <h1 className="font-display text-3xl">{t('revTitle')}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t('revIntro')}</p>
 
+      <OpenReviewPanel staff={staff} />
+
+      <h2 className="mt-10 font-display text-xl">{t('revQueueTitle')}</h2>
+
       {/* Filtre d'étape (#71) passé par la coquille de champ (#72) : le
           libellé y est porté par un vrai `<label>` masqué, au lieu d'un
           `aria-label` posé à côté. */}
       <SelectField
         label={t('revStageFilterLabel')}
         labelHidden
-        className="mt-5"
+        className="mt-4"
         controlClassName="w-auto"
         value={stage}
         onChange={(e) => setStage(e.target.value as Stage | '')}
@@ -145,14 +278,16 @@ export default function AdminReview() {
       ) : queue.length === 0 ? (
         <p className="mt-6 text-ink-soft">{t('revEmpty')}</p>
       ) : (
-        <ul className="mt-6 space-y-4">
+        <ul aria-label={t('revQueueTitle')} className="mt-6 space-y-4">
           {queue.map((p) => (
             <li
               key={p._id}
               className="rounded-md border border-line bg-surface p-5"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-medium text-ink">{p.title}</h2>
+                <h3 className="min-w-0 wrap-anywhere font-medium text-ink">
+                  {p.title}
+                </h3>
                 <Badge variant="accent">
                   {vocabulary(t, 'revStage_', p.reviewStage)}
                 </Badge>
@@ -164,9 +299,9 @@ export default function AdminReview() {
               {/* Avis des relecteurs + recommandation agrégée */}
               <div className="mt-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-sm font-medium text-ink-soft">
+                  <h4 className="text-sm font-medium text-ink-soft">
                     {t('revReviewsLabel')}
-                  </h3>
+                  </h4>
                   {p.aggregate ? (
                     <span className="text-[13px] text-muted">
                       {t('revAggregateLabel')}{' '}
@@ -198,7 +333,7 @@ export default function AdminReview() {
                             {fmt(r.createdAt)}
                           </span>
                         </div>
-                        <p className="mt-1 text-[14px] leading-relaxed text-ink">
+                        <p className="mt-1 wrap-anywhere text-[14px] leading-relaxed text-ink">
                           {r.comment}
                         </p>
                       </li>
@@ -209,9 +344,9 @@ export default function AdminReview() {
 
               {/* Déposer un avis (relecteur = modérateur+) */}
               <div className="mt-4 rounded border border-line p-3">
-                <h3 className="text-sm font-medium text-ink-soft">
+                <h4 className="text-sm font-medium text-ink-soft">
                   {t('revSubmitLabel')}
-                </h3>
+                </h4>
                 <SelectField
                   label={t('revRecommendationLabel')}
                   className="mt-2"
@@ -233,6 +368,7 @@ export default function AdminReview() {
                 <TextareaField
                   label={t('revSubmitLabel')}
                   labelHidden
+                  hint={t('revCommentHint')}
                   className="mt-2"
                   value={comment[p._id] ?? ''}
                   onChange={(e) =>
@@ -250,7 +386,7 @@ export default function AdminReview() {
                     (comment[p._id] ?? '').trim().length < 10 ||
                     p.reviewStage !== 'in_review'
                   }
-                  onClick={() => onSubmitReview(p._id)}
+                  onClick={() => onSubmitReview(p._id, p.title)}
                 >
                   {t('revSubmit')}
                 </Button>
@@ -284,7 +420,7 @@ export default function AdminReview() {
                         <option value="">{t('revAssignPlaceholder')}</option>
                         {(staff ?? []).map((u) => (
                           <option key={u._id} value={u._id}>
-                            {u.name || u.email || u._id}
+                            {staffName(u)}
                           </option>
                         ))}
                       </SelectField>
@@ -294,7 +430,7 @@ export default function AdminReview() {
                         disabled={
                           busy === `assign:${p._id}` || !reviewer[p._id]
                         }
-                        onClick={() => onAssign(p._id)}
+                        onClick={() => onAssign(p._id, p.title)}
                       >
                         {t('revAssign')}
                       </Button>
@@ -314,7 +450,7 @@ export default function AdminReview() {
                         busy === `decide:${p._id}` ||
                         p.reviewStage !== 'in_review'
                       }
-                      onClick={() => onDecide(p._id, 'revision')}
+                      onClick={() => onDecide(p._id, p.title, 'revision')}
                     >
                       {t('revDecideRevision')}
                     </Button>
@@ -324,7 +460,7 @@ export default function AdminReview() {
                         busy === `decide:${p._id}` ||
                         p.reviewStage !== 'in_review'
                       }
-                      onClick={() => onDecide(p._id, 'reviewed')}
+                      onClick={() => onDecide(p._id, p.title, 'reviewed')}
                     >
                       {t('revDecideReviewed')}
                     </Button>

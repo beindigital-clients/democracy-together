@@ -9,6 +9,7 @@ import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { PUB_THEMES } from '@/lib/publications';
 import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
+import { MyPosts } from '@/components/tribune/my-posts';
 import { vocabulary } from '@/i18n/vocabulary';
 import { fetchOrFallback, EMPTY_TRIBUNE_POSTS } from '@/lib/convex-fallback';
 
@@ -87,8 +88,10 @@ export default async function TribunePage({
 
       {/* Code de conduite (F-50) + prise de parole */}
       <Reveal className="mt-8 grid gap-4 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-        <div>
+        <div className="space-y-4">
           <TribuneComposer />
+          {/* Statut de ses propres billets, visible du seul auteur (A-11). */}
+          <MyPosts />
         </div>
         <aside className="rounded-md border border-line bg-surface p-5">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">

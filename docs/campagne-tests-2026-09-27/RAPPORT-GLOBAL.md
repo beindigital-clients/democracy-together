@@ -260,3 +260,124 @@ Les scripts d'exploration des agents (harnais `harness.mjs`, un dossier par
 module) vivent dans le scratchpad de la session ; ils ne sont pas versionnés,
 comme les captures (≈ 650 Ko l'une) et les vidéos — c'est la règle du dépôt
 (`TESTING.md`, § Dev-browser).
+
+## 9. Troisième lot — toutes les anomalies restantes
+
+Demande du 27/09 au soir : régler sans exception ce que la campagne avait
+relevé. Quatre chantiers en parallèle, un par module, chacun avec ses tests ;
+puis fusion, portes, reconstruction et rejeu complet (§ 9.5).
+
+### 9.1 Back-office et revue à comité de lecture (P1)
+
+| # | Anomalie | Correctif |
+|---|---|---|
+| C-28 | **R-01 (bloquant)** — la revue à comité de lecture n'avait aucune porte d'entrée | un éditeur ouvre une revue depuis la file des publications (`listOpenable`, choix du relecteur, `assignReviewer`), le relecteur est notifié et voit **« Mes relectures »** (`myAssignments`, rang modérateur) ; table `peerReviewAssignments` (index par relecteur et par publication) ; décision éditeur inchangée. Tests convex-test |
+| C-29 | relecteur de rang modérateur → 403 sur `/admin/revue` | écran `/admin/mes-relectures` au rang modérateur, file complète et décisions réservées à l'éditeur ; table de navigation et `adminMinRoleForPath` alignés, test de cohérence |
+| C-30 | **R-08** — refus serveur silencieux ou génériques (déjà traité ailleurs, second avis, assignation, « Rouvrir », site web `javascript:` → « vérifiez vos droits ») | `server-error.ts` traduit chaque code (`ALREADY_REVIEWED`, `INVALID_WEBSITE`, `EMAIL_PROVIDER_NOT_CONFIGURED`…) et chaque écran passe par le retour d'action ; les notes saisies sont affichées |
+| C-31 | **R-07** — newsletter : brouillon trop court muet, envoi sans retour, « Envoyée » sans fournisseur, pas d'aperçu | validation, retour d'action, état du fournisseur d'e-mail annoncé en tête (`newsletter.emailStatus` sur `emailProviderStatus`), envoi refusé sans fournisseur, **aperçu** de la campagne (`campaign-preview.tsx`, composant pur testé) |
+| C-32 | **R-17** — journal IA affichant un identifiant brut pour un dépôt supprimé | libellé « dépôt supprimé » |
+| C-33 | mobile / cosmétique du back-office : colonne e-mail hors écran, e-mail long coupé dans une boîte de confirmation, cibles tactiles < 24 px, verrou de l'auto-rétrogradation expliqué seulement en `title`, un seul toast à la fois | tableaux dans `ScrollableRegion`, `break-all`, cibles ≥ 24 px, aide visible sous le sélecteur de rôle, retours d'action empilés (test) |
+
+### 9.2 Authentification, espace membre, espaces (P2)
+
+| # | Anomalie | Correctif |
+|---|---|---|
+| C-34 | **R-05** — membre invité sans écran de mot de passe | `/espace-membre/mot-de-passe` : mot de passe + confirmation (politique du serveur), `signUp` → code → `email-verification`, ou `reset` quand un mot de passe existe déjà ; lien depuis l'espace membre ; test du rattachement sans changement de rôle ; spec E2E dédiée |
+| C-35 | pas de bouton « Renvoyer le code » | présent sur la connexion par code et « mot de passe oublié », message du plafond, réponse neutre (anti-énumération conservée) |
+| C-36 | déconnexion laissant `/espace-membre` puis `?_rsc=` au retour | `signOut` puis navigation explicite vers l'accueil |
+| C-37 | rôle brut non traduit (« Role membre ») | libellés traduits dans l'espace membre |
+| C-38 | bascule de thème introuvable sur desktop, cloche absente en mobile | bascule dans l'en-tête desktop, cloche dans la barre mobile pour un compte connecté |
+| C-39 | **R-11** — notes d'un espace lisibles par tout membre réseau ; participants tous nommés « Membre » ; « Annuler » qui garde le brouillon | notes réservées aux membres de l'espace (« Rejoignez l'espace pour lire les notes »), nom du compte ou partie locale de l'adresse, brouillon vidé. Tests |
+| C-40 | **R-12** — dialogue `beforeunload` anglais | `unsavedChangesWarning: false` sur le client Convex (documenté) |
+| C-41 | **R-09** — candidatures d'adhésion en double ; jeton de désinscription inconnu qui confirme | seconde candidature en attente refusée (`DUPLICATE_APPLICATION`, message dans le formulaire) ; `unsubscribe` rend `{ ok, found }` et la page dit « lien invalide ou expiré ». Tests, spec adaptée |
+
+### 9.3 Vitrine, annuaire, bibliothèque, 404 (P3)
+
+| # | Anomalie | Correctif |
+|---|---|---|
+| C-42 | **R-04** — 404 hors charte pour tout segment inconnu (`/ar/xyz`, `/xx`, `/de`) | réécriture au middleware vers `/<langue>/introuvable` (statut 404), rendue dans le layout de langue : en-tête, pied de page, `lang`/`dir`, lisible sans JavaScript ; catalogue des premiers segments connus (`not-found-routes.ts`) testé — la piste retenue avec le client le 24/09 |
+| C-43 | **R-06** — annuaire sans filtres pays ni langue, recherche ignorant le pays | facettes **pays** et **langue** (serveur + interface, conservées dans l'URL) ; la recherche texte inclut le nom de pays localisé et le code ISO. Tests |
+| C-44 | actualités : panne Sanity confondue avec une liste vide ; `/studio` blanc sans Sanity | `DataUnavailable` sur la liste ; page explicative du Studio quand le projet n'est pas configuré |
+| C-45 | bibliothèque : recherche limitée au titre, guillemets littéraux, « Télécharger le PDF » sur un seed sans fichier, facette inconnue cochée, compteur de vues en retard | résumé et mots-clés dans la meule, guillemets ignorés, « Consulter (DOI) » compté au clic, facettes inconnues ignorées, vue courante comptée |
+| C-46 | palette de recherche muette quand le backend ne répond pas | message « service indisponible » après 8 s |
+| C-47 | replays sans filtres | filtres type / thème / langue, conservés dans l'URL |
+| C-48 | **R-15** — texte clair sur safran (1,8–2,2:1, 32 nœuds sur `/`, `/jeunes`, `/a-propos`) ; `text-muted` sur teinte d'accent ; teintes 2 et 4 du baromètre en texte de 11 px | texte **encre** sur safran (`--accent-contrast: var(--ink)` dans l'univers jeunes, ajustement validé par le client le 24/09, le safran ne bouge pas) ; variantes texte `--bar-2-ink` / `--bar-4-ink` (≥ 4,7:1) ; `text-ink-soft` |
+| C-49 | cosmétique : bouton du contact < 44 px en mobile, textes de 10–10,5 px, globe sans légende sans JavaScript, globe de l'accueil sans équivalent textuel, `/icon.png` de 95 Ko sur les pages de contenu, `/le-reseau/%00` en 200 | 44 px, ≥ 11 px partout, légende `<noscript>`, texte `sr-only`, icône ramenée à 6 Ko, slug vide → 404 |
+
+### 9.4 Tribune, événements, jeunes, projets, mentorat (P4)
+
+| # | Anomalie | Correctif |
+|---|---|---|
+| C-50 | **F-46** — tribune sans compteur ni borne par format | `court` ≤ 10 000, `fond` ≤ 20 000 (serveur + client, constantes partagées), compteur « n / max », message de limite, `noValidate`. Tests |
+| C-51 | commentaires trop courts / trop longs refusés en silence | messages sous le champ, `maxLength`, compteur, plafond de débit annoncé ; code serveur explicite |
+| C-52 | « Annuler » du composer qui rejoue le brouillon | remise à zéro, confirmation au-delà de 50 caractères |
+| C-53 | auteur sans visibilité sur le statut de ses billets | `tribune.myPosts` et section « Mes billets » (publié / retiré), mention de la modération a posteriori |
+| C-54 | **R-13** — inscription acceptée côté serveur sur un événement passé ; fiche sans replay ni visio | catalogue minimal des événements à venir côté Convex (`EVENT_CLOSED`, test de synchronisation avec le contenu) ; champs `replayUrl` / `visioUrl` et blocs « Rediffusion » / « Visioconférence » sur la fiche |
+| C-55 | jeunes / projets / mentorat : refus de longueur sans la limite | `maxLength` sur `FIELD_MAX`, compteur, messages explicites ; doublon jeune annoncé |
+| C-56 | mentorat sans visibilité côté membre | `myMentorshipRequest` et carte « Ta demande de mentorat » (rôle, date, statut). Le parcours complet (choix du mentor, suivi du binôme) reste une fonctionnalité à part (§ 10) |
+
+### 9.5 Vérification du troisième lot
+
+_RÉSULTATS_LOT3_
+
+## 10. Ce qui manque pour un réseau social 100 % fonctionnel et déployable
+
+Les correctifs ci-dessus ferment toutes les anomalies relevées par la
+campagne. Ce qui suit n'est pas une anomalie mais une **fonctionnalité
+absente** ou une **condition de mise en service**, établi à partir du backlog
+canonique (`Democracy-Together-fonctionnalites.md`), de l'audit du 18/09
+(`docs/audit-plateforme-2026-09.md`), de la feuille de route
+(`docs/roadmap-post-mvp.md`) et de la procédure de déploiement
+(`docs/deploiement.md`). Trois familles, par ordre de blocage.
+
+### 10.1 Bloquant pour la mise en service
+
+1. **Configuration de production, aujourd'hui inexistante** : déploiement
+   Convex de production (la plateforme tourne sur le déploiement de
+   développement), variables `JWT_PRIVATE_KEY` / `JWKS` / `SITE_URL`,
+   **fournisseur d'e-mail** (`AUTH_RESEND_KEY` — sans lui, aucun code de
+   connexion, aucune invitation, aucune newsletter ne part : l'application
+   refuse volontairement d'envoyer), **clés reCAPTCHA** (sans elles, contact,
+   newsletter, adhésion, jeunes, événements sont rejetés — fail-closed),
+   projet **Sanity** (sans lui, accueil, à-propos et actualités sont sur leur
+   repli local), amorçage de l'administrateur (`bootstrap:bootstrapAdmin`),
+   clé de préversion pour la CI E2E. Le runbook `docs/deploiement.md` est
+   écrit ; il n'a jamais été déroulé.
+2. **Données réelles** : annuaire, publications et baromètre sont des jeux
+   d'illustration (seeds gardés par `AUTH_DEV_OTP`, donc inexécutables en
+   production) ; les événements sont codés dans `src/lib/events-content.ts`
+   sans aucune gestion ; les replays n'ont aucune vidéo. L'import initial (§ 6
+   du runbook) est bloqué par l'issue #48.
+3. **Textes légaux et RGPD** : 24 champs à compléter dans les mentions
+   légales et la politique de confidentialité (audit F-09), pas d'export ni de
+   suppression de compte en libre-service, arbitrage de l'hébergement (Convex
+   et Vercel aux États-Unis, Sanity en région EU) non rendu.
+4. **Sauvegardes, rotation des secrets, supervision** : aucun plan de
+   sauvegarde ni test de restauration, aucune procédure de rotation, aucune
+   alerte (runbook § 9). Une plateforme sans sauvegarde testée n'est pas
+   déployable.
+
+### 10.2 Fonctionnalités du backlog encore absentes ou partielles
+
+| Domaine | Ce qui manque | Réf. |
+|---|---|---|
+| Adhésions et dons | aucun prestataire de paiement : cotisations en ligne, dons ponctuels et récurrents, reçus, suivi financier — `/don` affiche « Bientôt » ; l'estimateur de cotisation est indicatif. Stripe ne couvre pas le XOF : un PSP local (Sénégal) reste à choisir | F-27, F-28, F-29, F-30, F-31 |
+| Gestion des contenus | événements, partenaires, presse, thématiques, rapports, replays sont codés dans le dépôt : ni écran d'administration ni CMS pour les éditer ; bibliothèque de médias absente | F-52, F-54, F-62, F-64 |
+| Comptes et organisations | pas de création, suspension ni suppression de compte par l'administrateur (invitation seulement) ; pas d'édition de sa fiche par une organisation ; pas de lien organisation ↔ publications ↔ comptes ; pas de profil membre (photo, biographie, préférences) ; pas d'authentification à deux facteurs pour les rôles sensibles | F-21, F-63, sécurité |
+| Réseau social | pas de profils publics de personnes, ni de suivi, ni de messagerie privée ; espaces collaboratifs sans fichiers ni invitations ; tribune sans approfondissement (lien court → fond), sans historique de modération, modération a posteriori là où le backlog demande a priori | F-24, F-45, F-48, F-49 |
+| Programmes | mentorat sans appariement ni suivi de binôme ; jeunes sans profil persistant ; appels à projets sans appels datés ; boîte à outils et parcours de formation absents | F-56, F-57, F-58, F-59, F-60 |
+| Newsletter | pas de double opt-in (exigé par le cadrage) ; envoi en volume non éprouvé | F-18, F-65 |
+| Recherche | sous-chaîne en mémoire après lecture complète des tables : correcte à l'échelle actuelle, à indexer (index de recherche Convex) avant croissance | F-06, F-34 |
+| Rapports annuels | web et impression navigateur, pas de PDF généré | F-41 |
+| Revue à comité de lecture | ouverture, assignation, avis, décision existent désormais ; pas de double aveugle, pas de versions, pas de machine à états formelle | F-43 |
+| Mesure | compteurs agrégés, aucune mesure d'audience web | F-66 |
+| Accessibilité | conformité mesurée par axe, mais aucune déclaration RGAA fondée sur un audit humain ni test avec lecteur d'écran | F-08 |
+
+### 10.3 Ce que le dépôt attend encore
+
+- Un **second audit de complétude** des 22 « Must » (le décompte 11 / 9 / 2
+  du 18/09 n'a pas été réévalué depuis).
+- **ADR et CHANGELOG** : aucune décision d'architecture n'est tracée.
+- La **CI E2E** ne tourne qu'avec une clé de préversion Convex sur le
+  dépôt ; elle est verte sur cette PR.
+

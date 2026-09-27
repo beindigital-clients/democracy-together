@@ -44,9 +44,15 @@ test('actualités : liste depuis Sanity + article (F-15)', async ({ page }) => {
   );
 
   if (!sanityConfigured) {
+    // CMS absent = PANNE, pas liste vide : la page le dit (doctrine F-02,
+    // comme le détail d'article). « Aucune actualité » est réservé à un CMS
+    // qui répond et n'a rien.
     await expect(
-      page.getByText('Aucune actualité pour le moment'),
+      page.getByText('Contenu momentanément indisponible'),
     ).toBeVisible();
+    await expect(page.getByText('Aucune actualité pour le moment')).toHaveCount(
+      0,
+    );
     await expect(cards(page)).toHaveCount(0);
     return;
   }

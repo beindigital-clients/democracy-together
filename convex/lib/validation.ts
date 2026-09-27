@@ -61,3 +61,23 @@ export function isHttpUrl(value: string): boolean {
   }
   return SCHEMAS_SITE.includes(url.protocol);
 }
+
+// Bornes du CORPS d'un billet de Tribune, PAR FORMAT (F-46, campagne du
+// 27/09, anomalie A-05). La spécification parle d'une contribution « calibrée
+// ~10 000 caractères » ; le serveur acceptait 20 000 quel que soit le format,
+// et le composer n'affichait ni compteur ni limite : 12 000 caractères
+// passaient en « Brève » sans un mot, 21 000 échouaient sur un message
+// générique. Une « Brève » est bornée à 10 000, une « Analyse » à 20 000 —
+// le composer (src/components/tribune/tribune-composer.tsx) lit les MÊMES
+// nombres par l'alias `@convex/lib/validation`, pour que le compteur, le
+// `maxLength` et le refus serveur ne puissent pas diverger.
+export const TRIBUNE_BODY = {
+  court: { min: 10, max: 10000 },
+  fond: { min: 200, max: 20000 },
+} as const;
+
+export type TribuneFormat = keyof typeof TRIBUNE_BODY;
+
+// Commentaire de Tribune : même nombre que `FIELD_MAX.body`, mais nommé pour
+// ce qu'il borne — le formulaire de commentaire l'affiche à l'écran (A-06).
+export const TRIBUNE_COMMENT = { min: 2, max: FIELD_MAX.body } as const;

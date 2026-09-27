@@ -30,7 +30,9 @@
     "errTitle": "El título debe tener al menos 4 caracteres.",
     "errSummary": "El resumen debe tener al menos 20 caracteres.",
     "rateLimited": "Demasiadas propuestas enviadas. Vuelva a intentarlo más tarde.",
-    "errGeneric": "Envío imposible por ahora. Vuelva a intentarlo."
+    "errGeneric": "Envío imposible por ahora. Vuelva a intentarlo.",
+    "charCount": "{count, number} / {max, number} caracteres",
+    "errSummaryLong": "El resumen supera los {max, number} caracteres."
   },
   "youthApply": {
     "sectionTitle": "Unirse al hub joven",
@@ -51,7 +53,10 @@
     "errMotivation": "Añade unas palabras de motivación.",
     "rateLimited": "Demasiados intentos. Vuelve a intentarlo dentro de un momento.",
     "captchaFailed": "Ha fallado la verificación antirrobot. Recargue la página y vuelva a intentarlo.",
-    "errGeneric": "El envío ha fallado. Vuelve a intentarlo."
+    "errGeneric": "El envío ha fallado. Vuelve a intentarlo.",
+    "charCount": "{count, number} / {max, number} caracteres",
+    "errMotivationLong": "Tu motivación supera los {max, number} caracteres.",
+    "successDedupe": "Si ya había una candidatura pendiente con esta dirección, sigue siendo única: no creamos una segunda."
   },
   "mentorship": {
     "sectionTitle": "Encontrar a mi mentor, o convertirme en uno",
@@ -76,7 +81,17 @@
     "errMessage": "Añade unas palabras a tu mensaje.",
     "rateLimited": "Demasiados intentos. Vuelve a intentarlo dentro de un momento.",
     "captchaFailed": "Ha fallado la verificación antirrobot. Recargue la página y vuelva a intentarlo.",
-    "errGeneric": "El envío ha fallado. Vuelve a intentarlo."
+    "errGeneric": "El envío ha fallado. Vuelve a intentarlo.",
+    "charCount": "{count, number} / {max, number} caracteres",
+    "errMessageLong": "Tu mensaje supera los {max, number} caracteres.",
+    "myRequestTitle": "Tu solicitud de mentoría",
+    "myRequestLead": "Solicitudes vinculadas a la dirección de correo de tu cuenta.",
+    "status_pending": "Pendiente de emparejamiento",
+    "status_matched": "Emparejado — el equipo te contacta por correo",
+    "status_closed": "Cerrada",
+    "requestedOn": "Solicitud del {date}",
+    "role_mentore": "Mentorizado/a",
+    "role_mentor": "Mentor/a"
   },
   "tribune": {
     "metaTitle": "Tribuna democrática",
@@ -118,7 +133,27 @@
     "reported": "Denunciado",
     "react": "Apoyar",
     "reacted": "Apoyado",
-    "reactionsCount": "{count, plural, =0 {Ningún apoyo} one {# apoyo} other {# apoyos}}"
+    "reactionsCount": "{count, plural, =0 {Ningún apoyo} one {# apoyo} other {# apoyos}}",
+    "bodyCount": "{count, number} / {max, number} caracteres",
+    "bodyLimitReached": "Límite alcanzado: {max, number} caracteres como máximo para este formato.",
+    "errBodyTooLong": "El texto supera los {max, number} caracteres, el límite de este formato.",
+    "formatHint": "Breve: hasta {court, number} caracteres. Análisis: hasta {fond, number}.",
+    "rateLimited": "Demasiadas publicaciones en poco tiempo. Inténtalo más tarde.",
+    "cancelConfirmTitle": "¿Descartar este borrador?",
+    "cancelConfirmBody": "El texto escrito se borrará y el formulario se reiniciará.",
+    "cancelConfirmYes": "Descartar",
+    "cancelConfirmNo": "Seguir escribiendo",
+    "published": "Tu intervención está publicada. Cualquier contenido puede ser denunciado y revisado por la moderación.",
+    "myPostsTitle": "Mis publicaciones",
+    "myPostsEmpty": "Todavía no has publicado nada.",
+    "statusNote": "Una publicación se publica de inmediato y se modera a posteriori si se denuncia.",
+    "status_published": "Publicado",
+    "status_removed": "Retirado por la moderación",
+    "errCommentShort": "Mínimo {min, number} caracteres.",
+    "errCommentLong": "Máximo {max, number} caracteres.",
+    "errCommentRange": "Un comentario tiene entre {min, number} y {max, number} caracteres.",
+    "commentRateLimited": "Demasiados comentarios, inténtalo de nuevo más tarde.",
+    "errCommentGeneric": "No se pudo enviar el comentario. Inténtalo de nuevo."
   },
   "notifications": {
     "title": "Notificaciones",
@@ -151,7 +186,8 @@
     "errorInvalid": "Introduzca una dirección de correo válida.",
     "rateLimited": "Demasiados intentos. Vuelva a intentarlo dentro de un momento.",
     "captchaFailed": "Ha fallado la verificación antirrobot. Recargue la página y vuelva a intentarlo.",
-    "errorGeneric": "La inscripción ha fallado. Vuelva a intentarlo."
+    "errorGeneric": "La inscripción ha fallado. Vuelva a intentarlo.",
+    "closed": "Las inscripciones a este evento están cerradas."
   },
   "reminder": {
     "title": "Recibir un recordatorio",
@@ -234,7 +270,15 @@
     "empty": "Por ahora no hay ningún encuentro pasado. Las repeticiones aparecerán aquí en cuanto se haya celebrado un evento.",
     "soon": "Grabación disponible próximamente",
     "durationLabel": "{count, plural, one {# min} other {# min}}",
-    "viewEvent": "Ver el evento"
+    "viewEvent": "Ver el evento",
+    "filterType": "Tipo",
+    "filterTheme": "Temática",
+    "filterLang": "Idioma",
+    "all": "Todos",
+    "reset": "Restablecer los filtros",
+    "emptyFiltered": "Ningún replay coincide con estos filtros.",
+    "count": "{count, plural, =0 {Ningún replay} one {# replay} other {# replays}}",
+    "filtersLabel": "Filtrar los replays"
   },
   "library": {
     "eyebrow": "Biblioteca",
@@ -399,7 +443,9 @@
       "lockedBody": "El texto íntegro y el documento descargable están reservados a las organizaciones miembros de la red. El resumen anterior está abreviado.",
       "lockedCta": "Solicitar la adhesión",
       "lockedSignIn": "Iniciar sesión",
-      "lockedBadge": "Reservado a los miembros"
+      "lockedBadge": "Reservado a los miembros",
+      "consultDoi": "Consultar (DOI)",
+      "noFileNote": "Ningún archivo está adjunto a esta publicación: el enlace abre su registro DOI."
     }
   },
   "translation": {
@@ -511,7 +557,25 @@
     "errorSignUp": "No se ha podido crear la cuenta (¿correo ya utilizado?).",
     "errorMismatch": "Las contraseñas no coinciden.",
     "errorPasswordTooShort": "Contraseña demasiado corta: mínimo {min} caracteres.",
-    "errorPasswordTooCommon": "Esta contraseña es demasiado común. Elija otra."
+    "errorPasswordTooCommon": "Esta contraseña es demasiado común. Elija otra.",
+    "role_visiteur": "Visitante",
+    "role_membre": "Miembro",
+    "role_moderateur": "Moderador",
+    "role_editeur": "Editor",
+    "role_admin": "Administrador",
+    "resendCode": "Reenviar el código",
+    "resendDone": "Si existe una cuenta para esta dirección, se acaba de enviar un nuevo código.",
+    "passwordLink": "Definir o cambiar mi contraseña",
+    "passwordTitle": "Mi contraseña",
+    "passwordSubtitle": "Elija una contraseña para {email}. Se enviará un código de verificación a esta dirección para confirmarla. Seguirá siendo posible iniciar sesión con un código.",
+    "passwordCta": "Enviar el código de verificación",
+    "passwordVerifyTitle": "Confirme su contraseña",
+    "passwordVerifySubtitle": "Se acaba de enviar un código a {email}. Introdúzcalo para guardar su contraseña.",
+    "passwordVerifyCta": "Guardar la contraseña",
+    "passwordDoneTitle": "Contraseña guardada",
+    "passwordDoneBody": "Ahora puede iniciar sesión con su correo electrónico y esta contraseña. El inicio de sesión con código sigue disponible.",
+    "passwordBack": "Volver al área de miembros",
+    "passwordNoEmail": "Ninguna dirección de correo electrónico está asociada a esta cuenta: no es posible definir una contraseña."
   },
   "directory": {
     "eyebrow": "La red",
@@ -564,7 +628,10 @@
       "visitWebsite": "Visitar el sitio",
       "joinCta": "¿Su centro de estudios comparte estos compromisos?",
       "joinLink": "Presentar una candidatura"
-    }
+    },
+    "filterCountry": "País",
+    "filterLanguage": "Idioma de trabajo",
+    "mapNoScript": "Mapa interactivo de los miembros: requiere JavaScript. Los países representados aparecen en cada ficha de la lista siguiente."
   },
   "contact": {
     "metaTitle": "Contacto",
@@ -616,7 +683,8 @@
     "errCountry": "Indique un país.",
     "errorGeneric": "El envío ha fallado. Vuelva a intentarlo en un instante.",
     "rateLimited": "Demasiados intentos. Vuelva a intentarlo dentro de un momento.",
-    "captchaFailed": "Ha fallado la verificación antirrobot. Recargue la página y vuelva a intentarlo."
+    "captchaFailed": "Ha fallado la verificación antirrobot. Recargue la página y vuelva a intentarlo.",
+    "duplicate": "Ya hay una candidatura en curso para esta dirección. Nos pondremos en contacto con usted por correo electrónico."
   },
   "admin": {
     "title": "Administración",
@@ -967,7 +1035,77 @@
     "aiConfirmRevertBody": "La publicación sale de la biblioteca y vuelve a ser un depósito a la espera de decisión humana.",
     "aiConfirmRevertConfirm": "Devolver a la cola",
     "aiRevertDone": "«{title}» ha vuelto a la cola.",
-    "aiModelUsed": "Modelo: {model}"
+    "aiModelUsed": "Modelo: {model}",
+    "myReviews": "Mis revisiones",
+    "myRevTitle": "Mis revisiones",
+    "myRevIntro": "Las publicaciones que un editor le ha confiado. Deposite su dictamen; el editor decide después.",
+    "myRevEmpty": "Por ahora no se le ha confiado ninguna revisión.",
+    "myRevAssignedOn": "Confiada el {date}",
+    "myRevMine": "Su dictamen",
+    "myRevSubmittedOn": "depositado el {date}",
+    "myRevClosed": "La revisión está cerrada: el editor ya ha decidido.",
+    "revOpenTitle": "Abrir una revisión",
+    "revOpenIntro": "Elija una publicación pendiente de moderación y el revisor que se encargará de ella. Se le avisa de inmediato.",
+    "revOpenPublication": "Publicación",
+    "revOpenPublicationPlaceholder": "Elegir una publicación…",
+    "revOpenNoPending": "No hay ninguna publicación pendiente que enviar a revisión.",
+    "revOpen": "Abrir la revisión",
+    "revOpenFromQueue": "Enviar al comité de lectura",
+    "revQueueTitle": "Publicaciones en revisión",
+    "revStatusLabel": "Comité de lectura:",
+    "revSeeInQueue": "Ver en el comité de lectura",
+    "revCommentHint": "Al menos 10 caracteres.",
+    "reviewNoteLabel": "Nota:",
+    "feedbackRevOpened": "Revisión abierta sobre «{title}»: se ha avisado a {name}.",
+    "feedbackRevAssigned": "{name} queda designado revisor de «{title}» y se le ha avisado.",
+    "feedbackRevSubmitted": "Su dictamen sobre «{title}» ha quedado registrado.",
+    "feedbackRevDecidedRevision": "«{title}» se devuelve para modificaciones.",
+    "feedbackRevDecidedReviewed": "Revisión de «{title}» cerrada.",
+    "feedbackYouthApproved": "Candidatura de {name} aprobada.",
+    "feedbackYouthRejected": "Candidatura de {name} rechazada.",
+    "feedbackMentorMatched": "Solicitud de {name} emparejada.",
+    "feedbackMentorClosed": "Solicitud de {name} cerrada.",
+    "feedbackProjectAccepted": "Proyecto «{title}» aceptado.",
+    "feedbackProjectRejected": "Proyecto «{title}» rechazado.",
+    "feedbackReopened": "«{name}» vuelve a la cola de espera.",
+    "feedbackContactHandled": "Mensaje «{subject}» marcado como tratado.",
+    "feedbackContactReopened": "Mensaje «{subject}» devuelto a pendiente.",
+    "feedbackErr_ALREADY_REVIEWED": "Acción no efectuada: ya se ha tomado una decisión sobre este elemento, quizá desde otra pestaña. La lista acaba de actualizarse.",
+    "feedbackErr_INVALID_TRANSITION": "Acción no efectuada: este elemento no espera esa decisión (ya reabierto o nunca puesto en revisión).",
+    "feedbackErr_NOT_FOUND": "Acción no efectuada: este elemento ya no existe.",
+    "feedbackErr_REVIEWER_NOT_FOUND": "Revisor no encontrado: recargue la lista y vuelva a intentarlo.",
+    "feedbackErr_REVIEWER_NOT_STAFF": "Esta cuenta no tiene el rango de moderador necesario para revisar.",
+    "feedbackErr_ALREADY_ASSIGNED": "Este revisor ya está designado para esta publicación.",
+    "feedbackErr_INVALID_COMMENT": "El dictamen debe tener al menos 10 caracteres.",
+    "feedbackErr_INVALID_WEBSITE": "Dirección web no válida: indique una dirección completa que empiece por http:// o https://.",
+    "feedbackErr_INVALID_COUNTRY_CODE": "Ficha del directorio: país no válido.",
+    "feedbackErr_INVALID_REGION": "Ficha del directorio: región no válida.",
+    "feedbackErr_INVALID_THEMES": "Ficha del directorio: elija al menos una temática.",
+    "feedbackErr_INVALID_LANGUAGES": "Ficha del directorio: elija al menos un idioma.",
+    "feedbackErr_INVALID_CAMPAIGN": "Borrador rechazado: el asunto necesita al menos 3 caracteres y el mensaje al menos 10.",
+    "feedbackErr_ALREADY_SENT": "Esta campaña ya se ha enviado.",
+    "feedbackErr_EMAIL_PROVIDER_NOT_CONFIGURED": "Envío rechazado: no hay ningún proveedor de correo configurado en este despliegue.",
+    "feedbackErr_FORBIDDEN": "Acción rechazada: su rol no lo permite.",
+    "feedbackErr_UNAUTHENTICATED": "Sesión caducada: vuelva a iniciar sesión y reinténtelo.",
+    "nlEmailStatus_configured": "Proveedor de correo configurado ({provider}): las campañas se envían de verdad.",
+    "nlEmailStatus_simulated": "Modo de desarrollo: sin proveedor de correo, los envíos solo se registran; ningún suscriptor recibirá este mensaje.",
+    "nlEmailStatus_none": "No hay ningún proveedor de correo configurado en este despliegue: el envío de campañas está rechazado. Configure AUTH_RESEND_KEY (o AUTH_EMAIL_PROVIDER) en el entorno Convex.",
+    "nlTooShort": "El asunto necesita al menos 3 caracteres y el mensaje al menos 10.",
+    "nlSubjectHint": "Al menos 3 caracteres.",
+    "nlCreated": "Borrador «{subject}» creado.",
+    "nlSendStarted": "Envío de «{subject}» iniciado a {count, plural, =0 {0 suscriptores} one {# suscriptor} other {# suscriptores}}.",
+    "nlConfirmSendTitle": "¿Enviar «{subject}» a {count, plural, =0 {0 suscriptores} one {# suscriptor} other {# suscriptores}}?",
+    "nlConfirmSendBody": "El envío sale de inmediato y no se puede revocar. Compruebe la vista previa antes de confirmar.",
+    "nlConfirmSendConfirm": "Enviar",
+    "nlPreviewShow": "Vista previa",
+    "nlPreviewHide": "Ocultar la vista previa",
+    "nlPreviewTitle": "Vista previa del correo",
+    "nlPreviewEmpty": "Escriba un asunto y un mensaje para ver la vista previa.",
+    "nlPreviewSubject": "Asunto:",
+    "nlPreviewFooter": "Cada envío termina con la mención «Recibe este correo porque está inscrito en la carta de Democracy Together» y un enlace de baja propio de cada suscriptor.",
+    "nlErrorInfo": "Envío fallido: no se pudo llegar a ningún destinatario ({failed} fallidos). Compruebe el proveedor de correo.",
+    "nlSendDisabledNoProvider": "No es posible enviar sin un proveedor de correo configurado.",
+    "aiLogDeletedPublication": "Depósito eliminado"
   },
   "news": {
     "eyebrow": "Actualidad",
@@ -993,7 +1131,8 @@
     "viewAll": "Ver todos los resultados",
     "kbdNavigate": "navegar",
     "kbdOpen": "abrir",
-    "kbdClose": "cerrar"
+    "kbdClose": "cerrar",
+    "unavailable": "El servicio de búsqueda no responde. Inténtelo de nuevo en unos instantes."
   },
   "newsletter": {
     "eyebrow": "Boletín",
@@ -1011,7 +1150,8 @@
     "unsubPending": "Procesando…",
     "unsubDone": "Se ha dado de baja de la carta de Democracy Together. Hasta pronto.",
     "unsubInvalid": "Enlace de baja no válido o caducado.",
-    "unsubHome": "Volver al inicio"
+    "unsubHome": "Volver al inicio",
+    "unsubError": "No se ha podido procesar la baja. Recargue la página para volver a intentarlo."
   },
   "comingSoon": {
     "eyebrow": "Próximamente",
@@ -1064,7 +1204,8 @@
       "eyebrow": "Actualidad",
       "title": "Últimas noticias",
       "viewAll": "Todas las noticias"
-    }
+    },
+    "globeAlt": "Globo interactivo del Barómetro: los países de África y Europa coloreados según su puntuación, del más libre al menos libre. Las puntuaciones detalladas están en la página del Barómetro."
   },
   "experts": {
     "metaTitle": "Directorio de expertos",
@@ -1171,7 +1312,8 @@
     "noteJoinPrompt": "Únase al espacio para añadir notas.",
     "noteLabel": "Su nota",
     "notePlaceholder": "Comparta una idea, un recurso, una pregunta…",
-    "noteSubmit": "Publicar la nota"
+    "noteSubmit": "Publicar la nota",
+    "notesJoinToRead": "Únase al espacio para leer las notas."
   },
   "errors": {
     "notFoundTitle": "Página no encontrada",
@@ -1193,5 +1335,8 @@
     "skipToContent": "Ir al contenido",
     "description": "Red internacional de centros de estudios por la democracia · África–Europa.",
     "regions": "África · Europa"
+  },
+  "barometer": {
+    "mapNoScript": "Mapa interactivo del Barómetro: requiere JavaScript. Las puntuaciones por país se leen en la clasificación y en las tablas de esta página."
   }
 }

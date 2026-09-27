@@ -110,7 +110,7 @@ export async function PublicationCard({
         </div>
         <div className="mt-auto flex items-center gap-2.5 pt-4">
           <span
-            className={`rounded-pill border px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.06em] ${
+            className={`rounded-pill border px-2 py-[3px] font-mono text-[11px] uppercase tracking-[0.06em] ${
               pub.access === 'open'
                 ? 'border-[color-mix(in_srgb,var(--color-bar-1)_40%,transparent)] text-bar-1'
                 : 'border-accent-edge bg-accent-tint text-accent-text'
@@ -130,7 +130,7 @@ export async function PublicationCard({
           >
             ❝ {pub.citations}
           </span>
-          <span className="ms-auto truncate font-mono text-[10.5px] text-muted">
+          <span className="ms-auto truncate font-mono text-[11px] text-muted">
             {pub.doi}
           </span>
         </div>

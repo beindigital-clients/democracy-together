@@ -48,7 +48,7 @@ export function NotificationBell({
     >
       <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
       {n > 0 ? (
-        <span className="absolute -end-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-accent-contrast">
+        <span className="absolute -end-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold leading-none text-accent-contrast">
           {capped ? `${n}+` : n}
         </span>
       ) : null}

@@ -248,7 +248,7 @@ export function LocaleSwitcher({
                 <span>{LOCALE_ENDONYMS[l]}</span>
                 <span
                   aria-hidden="true"
-                  className="font-mono text-[10.5px] uppercase text-muted"
+                  className="font-mono text-[11px] uppercase text-muted"
                 >
                   {l}
                 </span>

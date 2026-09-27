@@ -2,9 +2,11 @@
 
 import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
+import { ConvexError } from 'convex/values';
 import { useLocale, useTranslations } from 'next-intl';
 import { resolveLocale } from '@/i18n/locale';
 import { api } from '@convex/_generated/api';
+import { FIELD_MAX } from '@convex/lib/validation';
 import { PUB_THEMES } from '@/lib/publications';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +39,11 @@ export function YouthApplyForm() {
     motivation: '',
   });
 
+  // Bornes ALIGNÉES sur le serveur (`convex/youth.ts` via `FIELD_MAX`) : une
+  // motivation de 5 000 caractères était refusée sous « L'envoi a échoué »
+  // sans que la limite (4 000) soit dite nulle part (mesuré le 27/09, A-04).
+  const motivationMax = FIELD_MAX.body;
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -47,7 +54,12 @@ export function YouthApplyForm() {
         name: (v) => (v.trim().length < 2 ? t('errName') : null),
         email: (v) => (isEmail(v) ? null : t('errEmail')),
         country: (v) => (v.trim().length < 2 ? t('errCountry') : null),
-        motivation: (v) => (v.trim().length < 10 ? t('errMotivation') : null),
+        motivation: (v) =>
+          v.trim().length < 10
+            ? t('errMotivation')
+            : v.trim().length > motivationMax
+              ? t('errMotivationLong', { max: motivationMax })
+              : null,
       })
     ) {
       return;
@@ -68,12 +80,20 @@ export function YouthApplyForm() {
       });
       setStatus('success');
     } catch (err) {
+      // Le refus serveur de longueur porte son code (`ConvexError`) : il est
+      // dit tel quel, au lieu d'être rabattu sur le message générique.
+      const code =
+        err instanceof ConvexError && typeof err.data === 'string'
+          ? err.data
+          : null;
       setError(
         isCaptchaFailed(err)
           ? t('captchaFailed')
           : isRateLimited(err)
             ? t('rateLimited')
-            : t('errGeneric'),
+            : code === 'INVALID_MOTIVATION'
+              ? t('errMotivationLong', { max: motivationMax })
+              : t('errGeneric'),
       );
       setStatus('idle');
     }
@@ -86,6 +106,13 @@ export function YouthApplyForm() {
         className="rounded-md border border-accent-edge bg-accent-tint p-5"
       >
         <p className="font-medium text-ink">{t('success')}</p>
+        {/* Dédoublonnage doux (une candidature en attente par adresse) : la
+            réponse du serveur ne distingue pas les deux cas — c'est voulu, un
+            formulaire public ne doit pas révéler qu'une adresse est connue
+            (pentest M-8). On le DIT donc dans tous les cas, sans le trahir. */}
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+          {t('successDedupe')}
+        </p>
       </div>
     );
   }
@@ -101,6 +128,7 @@ export function YouthApplyForm() {
         id="y-name"
         autoComplete="name"
         required
+        maxLength={FIELD_MAX.name}
         {...field('name')}
       />
       <TextField
@@ -115,6 +143,7 @@ export function YouthApplyForm() {
         label={t('country')}
         id="y-country"
         required
+        maxLength={FIELD_MAX.country}
         {...field('country')}
       />
       <SelectField label={t('theme')} id="y-theme" {...field('theme')}>
@@ -131,6 +160,15 @@ export function YouthApplyForm() {
         id="y-motivation"
         rows={4}
         required
+        maxLength={motivationMax}
+        hint={
+          <span className="wrap-anywhere">
+            {t('charCount', {
+              count: values.motivation.length,
+              max: motivationMax,
+            })}
+          </span>
+        }
         placeholder={t('motivationPlaceholder')}
         {...field('motivation')}
       />

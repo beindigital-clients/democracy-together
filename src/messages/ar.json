@@ -30,7 +30,9 @@
     "errTitle": "يجب ألا يقل العنوان عن 4 أحرف.",
     "errSummary": "يجب ألا يقل الملخص عن 20 حرفاً.",
     "rateLimited": "أرسلتم مقترحات كثيرة. أعيدوا المحاولة لاحقاً.",
-    "errGeneric": "تعذّر الإرسال حالياً. أعيدوا المحاولة."
+    "errGeneric": "تعذّر الإرسال حالياً. أعيدوا المحاولة.",
+    "charCount": "{count, number} / {max, number} حرفًا",
+    "errSummaryLong": "يتجاوز الملخص {max, number} حرف."
   },
   "youthApply": {
     "sectionTitle": "الانضمام إلى فضاء الشباب",
@@ -51,7 +53,10 @@
     "errMotivation": "أضف بضع كلمات عن دوافعك.",
     "rateLimited": "محاولات كثيرة. أعد المحاولة بعد قليل.",
     "captchaFailed": "فشل التحقق من أنكم لستم روبوتاً. أعيدوا تحميل الصفحة وحاولوا من جديد.",
-    "errGeneric": "فشل الإرسال. أعد المحاولة."
+    "errGeneric": "فشل الإرسال. أعد المحاولة.",
+    "charCount": "{count, number} / {max, number} حرفًا",
+    "errMotivationLong": "تتجاوز دوافعك {max, number} حرف.",
+    "successDedupe": "إذا كان هناك ترشيح قيد الانتظار بهذا العنوان، فسيبقى واحدًا: لن ننشئ ترشيحًا ثانيًا."
   },
   "mentorship": {
     "sectionTitle": "أجد موجّهي، أو أصير موجّهاً",
@@ -76,7 +81,17 @@
     "errMessage": "أضف بضع كلمات إلى رسالتك.",
     "rateLimited": "محاولات كثيرة. أعد المحاولة بعد قليل.",
     "captchaFailed": "فشل التحقق من أنكم لستم روبوتاً. أعيدوا تحميل الصفحة وحاولوا من جديد.",
-    "errGeneric": "فشل الإرسال. أعد المحاولة."
+    "errGeneric": "فشل الإرسال. أعد المحاولة.",
+    "charCount": "{count, number} / {max, number} حرفًا",
+    "errMessageLong": "تتجاوز رسالتك {max, number} حرف.",
+    "myRequestTitle": "طلبك للإرشاد",
+    "myRequestLead": "الطلبات المرتبطة بعنوان البريد الإلكتروني لحسابك.",
+    "status_pending": "في انتظار المطابقة",
+    "status_matched": "تمت المطابقة — سيتواصل معك الفريق عبر البريد الإلكتروني",
+    "status_closed": "مغلق",
+    "requestedOn": "طلب بتاريخ {date}",
+    "role_mentore": "مُرشَد",
+    "role_mentor": "مرشد"
   },
   "tribune": {
     "metaTitle": "المنبر الديمقراطي",
@@ -118,7 +133,27 @@
     "reported": "تم الإبلاغ",
     "react": "تأييد",
     "reacted": "تم التأييد",
-    "reactionsCount": "{count, plural, =0 {لا تأييد} one {تأييد واحد} two {تأييدان} few {# تأييدات} many {# تأييداً} other {# تأييد}}"
+    "reactionsCount": "{count, plural, =0 {لا تأييد} one {تأييد واحد} two {تأييدان} few {# تأييدات} many {# تأييداً} other {# تأييد}}",
+    "bodyCount": "{count, number} / {max, number} حرفًا",
+    "bodyLimitReached": "تم بلوغ الحد: {max, number} حرف كحد أقصى لهذا الشكل.",
+    "errBodyTooLong": "يتجاوز النص {max, number} حرف، وهو الحد الأقصى لهذا الشكل.",
+    "formatHint": "موجز: حتى {court, number} حرف. تحليل: حتى {fond, number}.",
+    "rateLimited": "منشورات كثيرة في وقت قصير. حاول مجددًا لاحقًا.",
+    "cancelConfirmTitle": "هل تريد التخلي عن هذه المسودة؟",
+    "cancelConfirmBody": "سيُمحى النص المكتوب ويُعاد ضبط النموذج.",
+    "cancelConfirmYes": "تخلٍّ عن المسودة",
+    "cancelConfirmNo": "متابعة الكتابة",
+    "published": "نُشرت مساهمتك. يمكن الإبلاغ عن أي محتوى ومراجعته من طرف فريق الإشراف.",
+    "myPostsTitle": "مقالاتي",
+    "myPostsEmpty": "لم تنشر شيئًا بعد.",
+    "statusNote": "يُنشر المقال فورًا، ثم يُراجع لاحقًا عند الإبلاغ عنه.",
+    "status_published": "منشور",
+    "status_removed": "أُزيل من طرف الإشراف",
+    "errCommentShort": "الحد الأدنى {min, number} حرفًا.",
+    "errCommentLong": "الحد الأقصى {max, number} حرف.",
+    "errCommentRange": "يتراوح طول التعليق بين {min, number} و{max, number} حرفًا.",
+    "commentRateLimited": "تعليقات كثيرة جدًا، حاول مجددًا لاحقًا.",
+    "errCommentGeneric": "تعذّر إرسال التعليق. حاول مجددًا."
   },
   "notifications": {
     "title": "الإشعارات",
@@ -151,7 +186,8 @@
     "errorInvalid": "يُرجى إدخال عنوان بريد إلكتروني صالح.",
     "rateLimited": "محاولات كثيرة. أعيدوا المحاولة بعد قليل.",
     "captchaFailed": "فشل التحقق من أنكم لستم روبوتاً. أعيدوا تحميل الصفحة وحاولوا من جديد.",
-    "errorGeneric": "فشل التسجيل. أعيدوا المحاولة."
+    "errorGeneric": "فشل التسجيل. أعيدوا المحاولة.",
+    "closed": "أُغلق التسجيل في هذه الفعالية."
   },
   "reminder": {
     "title": "تلقّي تذكير",
@@ -234,7 +270,15 @@
     "empty": "لا لقاءات منصرمة في الوقت الحالي. ستظهر التسجيلات هنا بمجرد انعقاد أول فعالية.",
     "soon": "التسجيل متاح قريباً",
     "durationLabel": "{count, plural, one {# د} two {# د} few {# د} many {# د} other {# د}}",
-    "viewEvent": "الاطلاع على الفعالية"
+    "viewEvent": "الاطلاع على الفعالية",
+    "filterType": "النوع",
+    "filterTheme": "الموضوع",
+    "filterLang": "اللغة",
+    "all": "الكل",
+    "reset": "إعادة تعيين عوامل التصفية",
+    "emptyFiltered": "لا يوجد تسجيل يطابق عوامل التصفية هذه.",
+    "count": "{count, plural, =0 {لا توجد تسجيلات} one {تسجيل واحد} two {تسجيلان} few {# تسجيلات} many {# تسجيلاً} other {# تسجيل}}",
+    "filtersLabel": "تصفية التسجيلات"
   },
   "library": {
     "eyebrow": "المكتبة",
@@ -399,7 +443,9 @@
       "lockedBody": "النص الكامل والوثيقة القابلة للتنزيل خاصان بالمنظمات الأعضاء في الشبكة. والملخص أعلاه مختصر.",
       "lockedCta": "طلب الانضمام",
       "lockedSignIn": "تسجيل الدخول",
-      "lockedBadge": "خاص بالأعضاء"
+      "lockedBadge": "خاص بالأعضاء",
+      "consultDoi": "الاطلاع (DOI)",
+      "noFileNote": "لا يوجد ملف مرفق بهذا المنشور: يفتح الرابط سجل DOI الخاص به."
     }
   },
   "translation": {
@@ -511,7 +557,25 @@
     "errorSignUp": "تعذّر إنشاء الحساب (هل البريد مستعمل من قبل؟).",
     "errorMismatch": "كلمتا السر غير متطابقتين.",
     "errorPasswordTooShort": "كلمة السر قصيرة جداً: {min} حرفاً على الأقل.",
-    "errorPasswordTooCommon": "كلمة السر هذه شائعة جداً. اختاروا غيرها."
+    "errorPasswordTooCommon": "كلمة السر هذه شائعة جداً. اختاروا غيرها.",
+    "role_visiteur": "زائر",
+    "role_membre": "عضو",
+    "role_moderateur": "مراجِع",
+    "role_editeur": "محرِّر",
+    "role_admin": "مدير",
+    "resendCode": "إعادة إرسال الرمز",
+    "resendDone": "إذا كان هناك حساب لهذا العنوان، فقد أُرسل رمز جديد للتو.",
+    "passwordLink": "تعيين كلمة المرور أو تغييرها",
+    "passwordTitle": "كلمة المرور",
+    "passwordSubtitle": "اختاروا كلمة مرور للحساب {email}. سيُرسل رمز تحقق إلى هذا العنوان لتأكيدها. ويبقى تسجيل الدخول بالرمز ممكنًا.",
+    "passwordCta": "إرسال رمز التحقق",
+    "passwordVerifyTitle": "أكّدوا كلمة المرور",
+    "passwordVerifySubtitle": "أُرسل رمز للتو إلى {email}. أدخلوه لحفظ كلمة المرور.",
+    "passwordVerifyCta": "حفظ كلمة المرور",
+    "passwordDoneTitle": "تم حفظ كلمة المرور",
+    "passwordDoneBody": "يمكنكم الآن تسجيل الدخول بالبريد الإلكتروني وكلمة المرور هذه. ويبقى تسجيل الدخول بالرمز متاحًا.",
+    "passwordBack": "العودة إلى فضاء العضو",
+    "passwordNoEmail": "لا يوجد عنوان بريد إلكتروني مرتبط بهذا الحساب، لذا يتعذر تعيين كلمة مرور له."
   },
   "directory": {
     "eyebrow": "الشبكة",
@@ -564,7 +628,10 @@
       "visitWebsite": "زيارة الموقع",
       "joinCta": "هل يتقاسم مركزكم هذه الالتزامات؟",
       "joinLink": "تقديم ترشيح"
-    }
+    },
+    "filterCountry": "البلد",
+    "filterLanguage": "لغة العمل",
+    "mapNoScript": "خريطة تفاعلية للأعضاء: تتطلب JavaScript. تظهر البلدان الممثَّلة في كل بطاقة من القائمة أدناه."
   },
   "contact": {
     "metaTitle": "اتصلوا بنا",
@@ -616,7 +683,8 @@
     "errCountry": "اذكروا بلداً.",
     "errorGeneric": "فشل الإرسال. أعيدوا المحاولة بعد لحظة.",
     "rateLimited": "محاولات كثيرة. أعيدوا المحاولة بعد قليل.",
-    "captchaFailed": "فشل التحقق من أنكم لستم روبوتاً. أعيدوا تحميل الصفحة وحاولوا من جديد."
+    "captchaFailed": "فشل التحقق من أنكم لستم روبوتاً. أعيدوا تحميل الصفحة وحاولوا من جديد.",
+    "duplicate": "هناك طلب انضمام قيد الدراسة بالفعل لهذا العنوان. سنتواصل معكم عبر البريد الإلكتروني."
   },
   "admin": {
     "title": "الإدارة",
@@ -967,7 +1035,77 @@
     "aiConfirmRevertBody": "يغادر المنشور المكتبة ويعود إيداعاً في انتظار قرار بشري.",
     "aiConfirmRevertConfirm": "الإعادة إلى القائمة",
     "aiRevertDone": "«{title}» عاد إلى القائمة.",
-    "aiModelUsed": "النموذج: {model}"
+    "aiModelUsed": "النموذج: {model}",
+    "myReviews": "مراجعاتي",
+    "myRevTitle": "مراجعاتي",
+    "myRevIntro": "المنشورات التي عهد بها إليكم محرّر. أودعوا رأيكم، ثم يبتّ المحرّر.",
+    "myRevEmpty": "لم يُعهد إليكم بأي مراجعة حتى الآن.",
+    "myRevAssignedOn": "أُسندت في {date}",
+    "myRevMine": "رأيكم",
+    "myRevSubmittedOn": "أُودع في {date}",
+    "myRevClosed": "أُغلقت المراجعة: أصدر المحرّر قراره.",
+    "revOpenTitle": "فتح مراجعة",
+    "revOpenIntro": "اختاروا منشوراً بانتظار الإشراف والمحكّم الذي سيتولاه. يُخطَر فوراً.",
+    "revOpenPublication": "المنشور",
+    "revOpenPublicationPlaceholder": "اختيار منشور…",
+    "revOpenNoPending": "لا منشورات بانتظار الإرسال إلى المراجعة.",
+    "revOpen": "فتح المراجعة",
+    "revOpenFromQueue": "إرسال إلى لجنة القراءة",
+    "revQueueTitle": "المنشورات قيد المراجعة",
+    "revStatusLabel": "لجنة القراءة:",
+    "revSeeInQueue": "عرض في لجنة القراءة",
+    "revCommentHint": "10 أحرف على الأقل.",
+    "reviewNoteLabel": "ملاحظة:",
+    "feedbackRevOpened": "فُتحت المراجعة على «{title}»: أُخطر {name}.",
+    "feedbackRevAssigned": "عُيّن {name} محكّماً لـ«{title}» وأُخطر بذلك.",
+    "feedbackRevSubmitted": "سُجّل رأيكم في «{title}».",
+    "feedbackRevDecidedRevision": "أُعيد «{title}» لإجراء تعديلات.",
+    "feedbackRevDecidedReviewed": "أُغلقت مراجعة «{title}».",
+    "feedbackYouthApproved": "تمت الموافقة على ترشّح {name}.",
+    "feedbackYouthRejected": "رُفض ترشّح {name}.",
+    "feedbackMentorMatched": "تمت مواءمة طلب {name}.",
+    "feedbackMentorClosed": "أُغلق طلب {name}.",
+    "feedbackProjectAccepted": "قُبل المشروع «{title}».",
+    "feedbackProjectRejected": "رُفض المشروع «{title}».",
+    "feedbackReopened": "عاد «{name}» إلى قائمة الانتظار.",
+    "feedbackContactHandled": "وُسمت الرسالة «{subject}» بأنها عولجت.",
+    "feedbackContactReopened": "أُعيدت الرسالة «{subject}» إلى الانتظار.",
+    "feedbackErr_ALREADY_REVIEWED": "لم يُنفَّذ الإجراء: سبق اتخاذ قرار بشأن هذا العنصر، ربما من لسان تبويب آخر. حُدّثت القائمة للتو.",
+    "feedbackErr_INVALID_TRANSITION": "لم يُنفَّذ الإجراء: هذا العنصر لا ينتظر هذا القرار (أُعيد فتحه من قبل، أو لم يُعرض للمراجعة قط).",
+    "feedbackErr_NOT_FOUND": "لم يُنفَّذ الإجراء: هذا العنصر لم يعد موجوداً.",
+    "feedbackErr_REVIEWER_NOT_FOUND": "المحكّم غير موجود: أعيدوا تحميل القائمة ثم أعيدوا المحاولة.",
+    "feedbackErr_REVIEWER_NOT_STAFF": "هذا الحساب لا يملك رتبة المشرف اللازمة للتحكيم.",
+    "feedbackErr_ALREADY_ASSIGNED": "هذا المحكّم معيَّن بالفعل على هذا المنشور.",
+    "feedbackErr_INVALID_COMMENT": "يجب أن يتألف الرأي من 10 أحرف على الأقل.",
+    "feedbackErr_INVALID_WEBSITE": "عنوان الموقع غير صالح: أدخلوا عنواناً كاملاً يبدأ بـ http:// أو https://.",
+    "feedbackErr_INVALID_COUNTRY_CODE": "بطاقة الدليل: البلد غير صالح.",
+    "feedbackErr_INVALID_REGION": "بطاقة الدليل: المنطقة غير صالحة.",
+    "feedbackErr_INVALID_THEMES": "بطاقة الدليل: اختاروا موضوعاً واحداً على الأقل.",
+    "feedbackErr_INVALID_LANGUAGES": "بطاقة الدليل: اختاروا لغة واحدة على الأقل.",
+    "feedbackErr_INVALID_CAMPAIGN": "رُفضت المسودة: يلزم 3 أحرف على الأقل للموضوع و10 على الأقل للرسالة.",
+    "feedbackErr_ALREADY_SENT": "سبق إرسال هذه الحملة.",
+    "feedbackErr_EMAIL_PROVIDER_NOT_CONFIGURED": "رُفض الإرسال: لم يُضبط أي مزوّد بريد إلكتروني على هذا النشر.",
+    "feedbackErr_FORBIDDEN": "رُفض الإجراء: دوركم لا يسمح به.",
+    "feedbackErr_UNAUTHENTICATED": "انتهت الجلسة: سجّلوا الدخول مجدداً ثم أعيدوا المحاولة.",
+    "nlEmailStatus_configured": "مزوّد البريد الإلكتروني مضبوط ({provider}): تُرسل الحملات فعلياً.",
+    "nlEmailStatus_simulated": "وضع التطوير: لا مزوّد بريد إلكتروني، وتُسجَّل عمليات الإرسال في السجل فقط — لن يتلقى أي مشترك هذه الرسالة.",
+    "nlEmailStatus_none": "لم يُضبط أي مزوّد بريد إلكتروني على هذا النشر: إرسال الحملات مرفوض. ضعوا AUTH_RESEND_KEY (أو AUTH_EMAIL_PROVIDER) في بيئة Convex.",
+    "nlTooShort": "يلزم 3 أحرف على الأقل للموضوع و10 على الأقل للرسالة.",
+    "nlSubjectHint": "3 أحرف على الأقل.",
+    "nlCreated": "أُنشئت المسودة «{subject}».",
+    "nlSendStarted": "بدأ إرسال «{subject}» إلى {count, plural, =0 {0 مشترك} one {مشترك واحد} two {مشتركين} few {# مشتركين} many {# مشتركاً} other {# مشترك}}.",
+    "nlConfirmSendTitle": "إرسال «{subject}» إلى {count, plural, =0 {0 مشترك} one {مشترك واحد} two {مشتركين} few {# مشتركين} many {# مشتركاً} other {# مشترك}}؟",
+    "nlConfirmSendBody": "ينطلق الإرسال فوراً ولا يمكن استرجاعه. راجعوا المعاينة قبل التأكيد.",
+    "nlConfirmSendConfirm": "إرسال",
+    "nlPreviewShow": "معاينة",
+    "nlPreviewHide": "إخفاء المعاينة",
+    "nlPreviewTitle": "معاينة البريد الإلكتروني",
+    "nlPreviewEmpty": "أدخلوا موضوعاً ورسالة لعرض المعاينة.",
+    "nlPreviewSubject": "الموضوع:",
+    "nlPreviewFooter": "تنتهي كل رسالة بعبارة «تتلقون هذا البريد لأنكم مشتركون في نشرة Democracy Together» ورابط لإلغاء الاشتراك خاص بكل مشترك.",
+    "nlErrorInfo": "فشل الإرسال: تعذّر الوصول إلى أي متلقٍّ ({failed} فاشلة). تحققوا من مزوّد البريد الإلكتروني.",
+    "nlSendDisabledNoProvider": "يتعذّر الإرسال من دون مزوّد بريد إلكتروني مضبوط.",
+    "aiLogDeletedPublication": "إيداع محذوف"
   },
   "news": {
     "eyebrow": "المستجدات",
@@ -993,7 +1131,8 @@
     "viewAll": "عرض كل النتائج",
     "kbdNavigate": "التنقّل",
     "kbdOpen": "فتح",
-    "kbdClose": "إغلاق"
+    "kbdClose": "إغلاق",
+    "unavailable": "خدمة البحث لا تستجيب. يرجى المحاولة مرة أخرى بعد قليل."
   },
   "newsletter": {
     "eyebrow": "النشرة البريدية",
@@ -1011,7 +1150,8 @@
     "unsubPending": "جارٍ التنفيذ…",
     "unsubDone": "تم إلغاء اشتراككم في نشرة Democracy Together. إلى اللقاء.",
     "unsubInvalid": "رابط إلغاء الاشتراك غير صالح أو منتهي الصلاحية.",
-    "unsubHome": "العودة إلى الرئيسية"
+    "unsubHome": "العودة إلى الرئيسية",
+    "unsubError": "تعذّرت معالجة إلغاء الاشتراك. أعيدوا تحميل الصفحة للمحاولة مجددًا."
   },
   "comingSoon": {
     "eyebrow": "قريباً",
@@ -1064,7 +1204,8 @@
       "eyebrow": "المستجدات",
       "title": "آخر المستجدات",
       "viewAll": "كل المستجدات"
-    }
+    },
+    "globeAlt": "كرة أرضية تفاعلية للمؤشر: بلدان أفريقيا وأوروبا ملوَّنة حسب درجتها، من الأكثر حرية إلى الأقل. الدرجات التفصيلية في صفحة المؤشر."
   },
   "experts": {
     "metaTitle": "دليل الخبراء",
@@ -1171,7 +1312,8 @@
     "noteJoinPrompt": "انضموا إلى الفضاء لإضافة ملاحظات.",
     "noteLabel": "ملاحظتكم",
     "notePlaceholder": "شاركوا فكرة أو مورداً أو سؤالاً…",
-    "noteSubmit": "نشر الملاحظة"
+    "noteSubmit": "نشر الملاحظة",
+    "notesJoinToRead": "انضموا إلى الفضاء لقراءة الملاحظات."
   },
   "errors": {
     "notFoundTitle": "الصفحة غير موجودة",
@@ -1193,5 +1335,8 @@
     "skipToContent": "الانتقال إلى المحتوى",
     "description": "شبكة دولية من مراكز الدراسات من أجل الديمقراطية · أفريقيا–أوروبا.",
     "regions": "أفريقيا · أوروبا"
+  },
+  "barometer": {
+    "mapNoScript": "خريطة تفاعلية للمؤشر: تتطلب JavaScript. يمكن قراءة درجات البلدان في الترتيب والجداول في هذه الصفحة."
   }
 }

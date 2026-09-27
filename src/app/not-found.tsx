@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
 
-// 404 de RACINE — celle que sert une adresse sans route du tout
-// (`/fr/nimporte-quoi`, `/en/whatever`, `/xx`), par opposition à la 404
-// localisée de `[locale]/not-found.tsx`, qui répond aux `notFound()` levés
-// depuis une route existante.
+// 404 de RACINE — celle que sert une adresse sans route du tout ET que le
+// middleware n'a pas pu réécrire (R-04) : depuis le 27/09, `src/proxy.ts`
+// réécrit tout premier segment inconnu sous un préfixe de langue
+// (`/fr/nimporte-quoi`, `/ar/xyz`) vers `/<locale>/introuvable`, rendue dans
+// le layout de langue ; et un chemin sans préfixe (`/xx`, `/de`) est d'abord
+// redirigé par next-intl vers sa langue. Il ne reste à cette page que ce que
+// le matcher du middleware exclut — les chemins « fichiers » (`/favicon-truc.
+// png`, `/x.y`) — par opposition à la 404 localisée de `[locale]/not-found.
+// tsx`, qui répond aux `notFound()` levés depuis une route existante.
 //
 // POURQUOI DEUX, et pourquoi celle-ci ne peut pas être celle-là (audit F-06).
 //

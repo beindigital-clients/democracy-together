@@ -15,11 +15,10 @@ test.use({ locale: 'fr-FR' });
 // publique, appelée par la CLI Convex en contexte de confiance. Ce n'est PAS
 // l'oracle public refermé en F-09, qui répondait à n'importe qui.
 //
-// CE QUI EST VÉRIFIÉ, ET QUI NE L'EST PAS PAR LE MESSAGE À L'ÉCRAN. La page
-// confirme la désinscription MÊME quand la mutation a échoué : son `.catch()`
-// mène au même état que le succès, délibérément (la désinscription est
-// idempotente côté serveur). Le message ne prouve donc rien à lui seul, et
-// c'est la BASE qu'on relit.
+// CE QUI EST VÉRIFIÉ, ET QUI NE L'EST PAS PAR LE MESSAGE À L'ÉCRAN. Depuis
+// R-09, la page ne confirme que si le serveur a TROUVÉ le jeton (`found`) ;
+// mais c'est toujours la BASE qu'on relit : le message dit ce que le serveur
+// a répondu, pas ce qu'il a fait.
 
 test('désinscription : le lien de l’e-mail retire vraiment l’abonné (F-12)', async ({
   page,
@@ -87,7 +86,7 @@ test('désinscription : sans jeton, la page le dit au lieu de faire semblant (F-
   ).toHaveCount(0);
 });
 
-test('désinscription : un jeton inconnu ne retire personne, et ne dit pas qu’il est inconnu (F-12)', async ({
+test('désinscription : un jeton inconnu ne retire personne, et le dit (F-12, R-09)', async ({
   page,
 }) => {
   // Un abonné témoin, qui doit SURVIVRE au passage d'un jeton inventé. Sans
@@ -106,15 +105,19 @@ test('désinscription : un jeton inconnu ne retire personne, et ne dit pas qu’
     '/fr/newsletter/desinscription?token=0000000000000000jeton-inexistant',
   );
 
-  // MÊME message que le succès. C'est délibéré et c'est la propriété qu'on
-  // garde ici : une page qui répondrait « jeton inconnu » distinguerait un
-  // jeton valide d'un jeton inventé, donc rendrait un oracle à qui essaie —
-  // le défaut refermé en F-09, par une autre porte.
+  // « Lien invalide ou expiré », et NON la confirmation : un abonné dont le
+  // lien a été tronqué par son client mail croyait s'être désinscrit et
+  // restait abonné (mesuré le 27/09, vitrine O2). Ce n'est pas l'oracle
+  // refermé en F-09 : celui-là répondait à une ADRESSE choisie ; ici le jeton
+  // est un secret aléatoire de 128 bits, qui n'identifie personne — le
+  // distinguer d'un jeton inventé ne renseigne sur aucun abonné.
   await expect(
-    page.getByText(
-      'Vous êtes désinscrit de la lettre de Democracy Together. À bientôt.',
-    ),
+    page.getByText('Lien de désinscription invalide ou expiré.'),
   ).toBeVisible();
+  await expect(
+    page.getByText(/Vous êtes désinscrit/),
+    'un jeton inconnu ne doit pas annoncer une désinscription',
+  ).toHaveCount(0);
 
   // Et le témoin est toujours là.
   expect(

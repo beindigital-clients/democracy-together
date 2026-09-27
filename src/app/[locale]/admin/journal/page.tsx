@@ -161,7 +161,10 @@ export default function AdminJournal() {
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                <th className="py-2 pe-4 font-normal">{t('jrDate')}</th>
+                {/* Première colonne figée au défilement (27/09, C-1). */}
+                <th className="sticky start-0 z-[1] bg-paper py-2 pe-4 font-normal">
+                  {t('jrDate')}
+                </th>
                 <th className="py-2 pe-4 font-normal">{t('jrAction')}</th>
                 <th className="py-2 pe-4 font-normal">{t('jrActor')}</th>
                 <th className="py-2 font-normal">{t('jrTarget')}</th>
@@ -172,7 +175,7 @@ export default function AdminJournal() {
                 const rowActorId = e.actorId;
                 return (
                   <tr key={i} className="border-b border-line align-top">
-                    <td className="py-3 pe-4 whitespace-nowrap text-ink-soft">
+                    <td className="sticky start-0 z-[1] bg-paper py-3 pe-4 whitespace-nowrap text-ink-soft">
                       {new Date(e.createdAt).toLocaleString(intlLocale(locale))}
                     </td>
                     <td className="py-3 pe-4 font-mono text-[13px]">
@@ -191,7 +194,7 @@ export default function AdminJournal() {
                           aria-label={t('jrFilterActor', {
                             actor: actorLabel(e),
                           })}
-                          className="text-start text-accent-text hover:underline"
+                          className="inline-block py-1 text-start text-accent-text hover:underline"
                         >
                           {actorLabel(e)}
                         </button>

@@ -206,7 +206,9 @@ export default async function JeunesPage({
         </Reveal>
         <RevealGroup className="mt-8 grid gap-4 lg:grid-cols-3">
           <RevealItem className="flex flex-col rounded-md bg-accent p-6 text-accent-contrast lg:row-span-2">
-            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent-contrast/70">
+            {/* 80 % et non 70 : à 70 % l'encre fondue dans le safran tombe à 4,1:1
+                (mesuré le 27/09) ; 80 % tient 5,1:1. */}
+            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent-contrast/80">
               {c.programmes.featured.kicker}
             </span>
             <h3 className="mt-2 font-display text-2xl text-accent-contrast">

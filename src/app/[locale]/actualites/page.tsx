@@ -5,6 +5,7 @@ import { client } from '@dt-sanity/lib/client';
 import { postsQuery } from '@dt-sanity/lib/queries';
 import { PostCard, type PostCardData } from '@/components/news/post-card';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
+import { DataUnavailable } from '@/components/ui/data-unavailable';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -35,9 +36,13 @@ export default async function NewsPage({
   const t = await getTranslations('news');
   // Repli si Sanity est indisponible (audit § 5.1) : la page rendait un 500
   // générique faute de try/catch, contrairement à src/lib/home.ts et about.ts
-  // qui replient déjà. Ici, la dégradation gracieuse est le bon comportement :
-  // la liste se vide et le reste du site continue de fonctionner.
-  let posts: PostCardData[] = [];
+  // qui replient déjà. La dégradation reste gracieuse — le reste du site
+  // continue de fonctionner — mais la PANNE n'est plus affichée comme une
+  // liste VIDE : mesuré le 27/09, « Aucune actualité pour le moment » sortait
+  // dans les deux cas, alors que le détail d'article distingue déjà les deux
+  // (doctrine F-02, `DataUnavailable`). `undefined` = la requête a échoué ;
+  // `[]` = le CMS a répondu et n'a rien.
+  let posts: PostCardData[] | undefined;
   try {
     posts =
       (await client.fetch<PostCardData[]>(postsQuery, {
@@ -63,7 +68,9 @@ export default async function NewsPage({
         </Reveal>
       </header>
 
-      {posts.length === 0 ? (
+      {posts === undefined ? (
+        <DataUnavailable className="mt-10" />
+      ) : posts.length === 0 ? (
         <Reveal className="mt-10 rounded-md border border-dashed border-line-strong bg-surface px-6 py-16 text-center text-ink-soft">
           {t('empty')}
         </Reveal>

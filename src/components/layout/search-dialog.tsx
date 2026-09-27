@@ -32,9 +32,29 @@ function useDebounced<T>(value: T, delay: number): T {
 const ROW =
   'flex items-baseline gap-2 rounded-md border px-3.5 py-2.5 transition-colors';
 const KBD =
-  'rounded border border-line bg-surface px-1 py-px font-mono text-[10px] leading-none text-muted';
+  'rounded border border-line bg-surface px-1 py-px font-mono text-[11px] leading-none text-muted';
 
 const optionId = (i: number) => `dt-search-opt-${i}`;
+
+// Délai au-delà duquel une recherche sans réponse est déclarée indisponible.
+// Mesuré le 27/09 (transversal A-4) : backend injoignable, la palette
+// affichait « Recherche… » sans fin — `useQuery` reste `undefined` tant que
+// le client reconnecte en boucle, et rien ne le dit. Huit secondes couvrent
+// largement un aller-retour lent en 3G ; au-delà, c'est une panne.
+const UNAVAILABLE_AFTER_MS = 8000;
+
+// `true` quand `pending` dure depuis plus de `delay` ms ; se réarme à chaque
+// nouvelle recherche.
+function useStalled(pending: boolean, delay: number): boolean {
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    setStalled(false);
+    if (!pending) return;
+    const id = setTimeout(() => setStalled(true), delay);
+    return () => clearTimeout(id);
+  }, [pending, delay]);
+  return stalled;
+}
 
 export function SearchDialog() {
   const t = useTranslations('search');
@@ -57,6 +77,10 @@ export function SearchDialog() {
     api.search.globalSearch,
     enabled ? { q: dq } : 'skip',
   );
+  // `dq` est dans la clé : le compteur repart à chaque nouvelle recherche,
+  // même si la précédente était déjà en attente.
+  const pending = enabled && results === undefined;
+  const unavailable = useStalled(pending, UNAVAILABLE_AFTER_MS) && pending;
 
   // Liste plate (publications puis membres), dans l'ordre d'affichage, pour la
   // navigation clavier et la résolution de la cible à « Entrée ».
@@ -220,8 +244,11 @@ export function SearchDialog() {
                   {t('prompt')}
                 </p>
               ) : results === undefined ? (
-                <p className="px-2 py-7 text-center text-sm text-muted">
-                  {t('loading')}
+                <p
+                  role="status"
+                  className={`px-2 py-7 text-center text-sm ${unavailable ? 'text-ink-soft' : 'text-muted'}`}
+                >
+                  {unavailable ? t('unavailable') : t('loading')}
                 </p>
               ) : total === 0 ? (
                 <p className="px-2 py-7 text-center text-sm text-ink-soft">

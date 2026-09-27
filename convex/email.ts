@@ -9,6 +9,29 @@ export type { OtpPurpose };
 // changer pour passer de Resend à AWS SES (ou Scaleway/Brevo). Utilisé par l'OTP
 // (auth) ET la newsletter. Sans clé fournisseur (dev/test) -> no-op (log) : on
 // n'envoie jamais de vrai e-mail en local/CI.
+// État du fournisseur, tel que `sendEmail` le déduit — exposé pour que le
+// back-office l'annonce AVANT un envoi (campagne du 27/09, R-07 : une campagne
+// partait « Envoyée · 3 envoyés » sans qu'aucun fournisseur n'existe).
+//  - `configured` : un fournisseur répondra ;
+//  - `simulated`  : aucun fournisseur, mais AUTH_DEV_OTP=true — l'envoi est
+//    journalisé, pas livré (dev/test) ;
+//  - `none`       : aucun fournisseur, et l'envoi échouera.
+export type EmailProviderStatus = {
+  provider: string;
+  mode: 'configured' | 'simulated' | 'none';
+};
+
+export function emailProviderStatus(): EmailProviderStatus {
+  const provider =
+    process.env.AUTH_EMAIL_PROVIDER ??
+    (process.env.AUTH_RESEND_KEY ? 'resend' : 'none');
+  if (provider !== 'none') return { provider, mode: 'configured' };
+  return {
+    provider,
+    mode: process.env.AUTH_DEV_OTP === 'true' ? 'simulated' : 'none',
+  };
+}
+
 export async function sendEmail({
   to,
   subject,

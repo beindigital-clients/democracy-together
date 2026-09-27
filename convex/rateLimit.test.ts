@@ -94,6 +94,18 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
         contactEmail: 'flood@example.org',
         country: 'SN',
       });
+      // Depuis le lot 3 du 27/09, une seconde candidature EN ATTENTE pour la
+      // même adresse est refusée (`DUPLICATE_APPLICATION`) — avant même de
+      // compter pour le plafond. On clôt donc chaque candidature pour que ce
+      // soit bien le plafond, et lui seul, qui refuse la sixième.
+      await t.run(async (ctx) => {
+        for (const app of await ctx.db
+          .query('membershipApplications')
+          .filter((q) => q.eq(q.field('status'), 'pending'))
+          .collect()) {
+          await ctx.db.patch(app._id, { status: 'rejected' });
+        }
+      });
     }
     await expectRateLimited(
       t.mutation(internal.organizations.storeApplication, {

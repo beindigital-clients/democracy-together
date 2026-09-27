@@ -8,6 +8,7 @@ import { JoinButton } from './join-button';
 import { LocaleSwitcher } from './locale-switcher';
 import { ThemeToggle } from './theme-toggle';
 import { AuthButton } from './auth-button';
+import { NotificationBell } from './notification-bell';
 import { isNavActive, type NavItem } from './nav-links';
 
 // Menu de navigation mobile (F-05) : sous md, la barre ne porte que le logo et
@@ -17,7 +18,8 @@ import { isNavActive, type NavItem } from './nav-links';
 // du corps verrouillé. Le menu se referme à toute navigation (effet pathname).
 // `connecteAuRendu` n'est ici qu'un RELAIS : le menu mobile ne décide de rien,
 // il transmet aux îlots qui changeaient de largeur (`JoinButton`,
-// `AuthButton`). Voir `site-header.tsx` pour le pourquoi.
+// `AuthButton`, et la cloche `NotificationBell` posée dans la barre à côté du
+// bouton du menu). Voir `site-header.tsx` pour le pourquoi.
 export function MobileNav({
   items,
   connecteAuRendu,
@@ -98,7 +100,13 @@ export function MobileNav({
   }
 
   return (
-    <div className="min-[1120px]:hidden">
+    <div className="flex items-center gap-1 min-[1120px]:hidden">
+      {/* La cloche vit dans la BARRE, pas dans le panneau : sur bureau elle
+          est dans l'en-tête, sur mobile un membre n'atteignait ses
+          notifications que par l'URL (mesuré le 27/09, auth A-9). Rendue
+          selon `connecteAuRendu` comme sur bureau, donc déjà là dans le HTML
+          servi — rien ne se décale à l'hydratation. */}
+      <NotificationBell connecteAuRendu={connecteAuRendu} />
       <button
         ref={buttonRef}
         type="button"

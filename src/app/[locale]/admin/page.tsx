@@ -46,16 +46,17 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* `py-1` sur les liens : 20 px de cible au doigt, mesuré le 27/09 (C-3). */}
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
         <Link
           href="/admin/candidatures"
-          className="inline-block text-sm text-accent-text hover:underline"
+          className="inline-block py-1 text-sm text-accent-text hover:underline"
         >
           {t('quickApplications')} <ArrowForward />
         </Link>
         <Link
           href="/admin/publications"
-          className="inline-block text-sm text-accent-text hover:underline"
+          className="inline-block py-1 text-sm text-accent-text hover:underline"
         >
           {t('quickPublications')} <ArrowForward />
         </Link>

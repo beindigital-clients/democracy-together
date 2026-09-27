@@ -54,7 +54,9 @@ const CAS = [
     table: 'eventRegistrations',
     appel: (t: ReturnType<typeof harnais>) =>
       t.action(api.events.registerForEvent, {
-        eventSlug: 'sommet-2026',
+        // Un slug du catalogue : depuis A-03, un événement inconnu ou passé
+        // est refusé AVANT toute lecture — l'oracle se teste sur un ouvert.
+        eventSlug: 'conference-inaugurale',
         name: 'Awa Diop',
         email: EMAIL,
         captchaToken: '',

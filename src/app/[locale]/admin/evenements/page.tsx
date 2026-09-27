@@ -59,7 +59,11 @@ export default function AdminEvents() {
                   <table className="w-full border-collapse text-start text-sm">
                     <thead>
                       <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
-                        <th scope="col" className="px-4 py-2.5 font-medium">
+                        {/* Première colonne figée au défilement (27/09, C-1). */}
+                        <th
+                          scope="col"
+                          className="sticky start-0 z-[1] bg-paper px-4 py-2.5 font-medium"
+                        >
                           {t('evName')}
                         </th>
                         <th scope="col" className="px-4 py-2.5 font-medium">
@@ -79,13 +83,13 @@ export default function AdminEvents() {
                           key={r._id}
                           className="border-b border-line last:border-0"
                         >
-                          <td className="px-4 py-2.5 font-medium text-ink">
+                          <td className="sticky start-0 z-[1] wrap-anywhere bg-paper px-4 py-2.5 font-medium text-ink">
                             {r.name}
                           </td>
                           <td className="px-4 py-2.5 text-ink-soft">
                             <a
                               href={`mailto:${r.email}`}
-                              className="hover:text-ink hover:underline"
+                              className="inline-block py-1 hover:text-ink hover:underline"
                             >
                               {r.email}
                             </a>

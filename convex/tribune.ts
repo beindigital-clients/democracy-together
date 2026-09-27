@@ -1,8 +1,9 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query } from './_generated/server';
 import type { Id, Doc } from './_generated/dataModel';
 import { requireNetworkRole, requireUser } from './lib/rbac';
+import { TRIBUNE_BODY, TRIBUNE_COMMENT } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -80,9 +81,14 @@ export const createPost = mutation({
     if (!isNetworkTheme(theme)) throw new Error('INVALID_THEME');
     if (title.length < 4 || title.length > 160)
       throw new Error('INVALID_TITLE');
-    const min = args.format === 'court' ? 10 : 200;
-    if (body.length < min || body.length > 20000)
-      throw new Error('INVALID_BODY');
+    // Bornes PAR FORMAT (F-46, A-05) : une « Brève » n'a pas la longueur
+    // d'une « Analyse ». `ConvexError` et non `Error` : le code traverse
+    // jusqu'au navigateur (le message d'un `Error` nu est masqué en prod), et
+    // le composer peut dire « trop long pour ce format » au lieu d'un échec
+    // générique — c'est ce que 21 000 caractères produisaient le 27/09.
+    const bounds = TRIBUNE_BODY[args.format];
+    if (body.length < bounds.min) throw new ConvexError('INVALID_BODY');
+    if (body.length > bounds.max) throw new ConvexError('BODY_TOO_LONG');
 
     await enforceRateLimit(ctx, {
       key: `tribunePost:${user._id}`,
@@ -111,8 +117,10 @@ export const addComment = mutation({
   handler: async (ctx, { postId, body }) => {
     const user = await requireNetworkRole(ctx, 'membre');
     const text = body.trim();
-    if (text.length < 2 || text.length > 4000)
-      throw new Error('INVALID_COMMENT');
+    // `ConvexError` : le refus (« 1 caractère », « 4 001 caractères ») était
+    // avalé par le formulaire faute de code lisible côté client (A-06).
+    if (text.length < TRIBUNE_COMMENT.min || text.length > TRIBUNE_COMMENT.max)
+      throw new ConvexError('INVALID_COMMENT');
     const post = await ctx.db.get(postId);
     if (!post || post.status !== 'published') throw new Error('NOT_FOUND');
 
@@ -336,6 +344,55 @@ export const reactionState = query({
     const userId = await getAuthUserId(ctx);
     const mine = userId ? reactions.some((r) => r.userId === userId) : false;
     return { count: reactions.length, mine };
+  },
+});
+
+// --- Mes billets (auteur) ----------------------------------------------------
+// Un membre ne voyait jamais le STATUT de ses propres billets (A-11) : le fil
+// public ne montre que les billets publiés, et un billet retiré par la
+// modération disparaissait sans explication. Cette query rend les billets de
+// l'appelant, y compris ceux retirés — mais seulement le titre et l'état, pas
+// le corps d'un billet retiré, qui n'a plus vocation à circuler.
+//
+// PAS D'ÉTAT « EN ATTENTE » : la Tribune publie immédiatement et modère A
+// POSTERIORI par signalement (F-50, `status: 'published'` à la création). Le
+// schéma ne connaît que `published` et `removed` ; l'écran le dit tel quel.
+// Un visiteur anonyme reçoit une liste vide, pas une erreur : la query est
+// montée sur une page publique.
+const MY_POSTS_MAX = 50;
+
+export const myPosts = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id('tribunePosts'),
+      theme: v.string(),
+      format: v.union(v.literal('court'), v.literal('fond')),
+      title: v.string(),
+      status: v.union(v.literal('published'), v.literal('removed')),
+      commentCount: v.number(),
+      createdAt: v.number(),
+    }),
+  ),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    const posts = await ctx.db
+      .query('tribunePosts')
+      .withIndex('by_author', (q) => q.eq('authorUserId', userId))
+      .order('desc')
+      .take(MY_POSTS_MAX);
+    return posts
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((p) => ({
+        _id: p._id,
+        theme: p.theme,
+        format: p.format,
+        title: p.title,
+        status: p.status,
+        commentCount: p.commentCount,
+        createdAt: p.createdAt,
+      }));
   },
 });
 

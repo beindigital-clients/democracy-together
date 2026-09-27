@@ -148,10 +148,12 @@ export default function ContactPage() {
 
               <FormError>{error}</FormError>
 
+              {/* `min-h-11` : 40 px mesurés au doigt le 27/09 ; 44 px est la
+                  taille de cible recommandée sur mobile. */}
               <Button
                 type="submit"
                 disabled={status === 'pending'}
-                className="w-full sm:w-auto"
+                className="min-h-11 w-full sm:w-auto"
               >
                 {status === 'pending' ? t('sending') : t('send')}
               </Button>

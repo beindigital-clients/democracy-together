@@ -36,6 +36,18 @@ function CreateForm() {
     return <Button onClick={() => setOpen(true)}>{t('createCta')}</Button>;
   }
 
+  // « Annuler » VIDE le brouillon. Le composant reste monté quand le
+  // formulaire est replié (il rend le bouton d'ouverture) : ses états
+  // survivaient, et la saisie abandonnée réapparaissait à l'ouverture
+  // suivante — le même défaut que le composer de la tribune (R-13).
+  function cancel() {
+    setTitle('');
+    setTheme(PUB_THEMES[0]);
+    setDescription('');
+    setError(null);
+    setOpen(false);
+  }
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -115,7 +127,7 @@ function CreateForm() {
         <Button type="submit" disabled={pending}>
           {t('create')}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+        <Button type="button" variant="outline" onClick={cancel}>
           {t('cancel')}
         </Button>
       </div>
@@ -205,7 +217,7 @@ export function WorkspacesBoard() {
                         {vocabulary(tl, 'themes.', w.theme)}
                       </span>
                       {w.mine ? (
-                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
+                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                           {t('mineBadge')}
                         </span>
                       ) : null}

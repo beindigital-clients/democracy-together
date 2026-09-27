@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
+import { UPCOMING_EVENT_SLUGS } from './events';
+import { EVENTS } from '../src/lib/events-content';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -109,5 +111,38 @@ describe('Inscriptions événements — back-office (F-53)', () => {
     expect(list).toHaveLength(1);
     expect(list[0].eventSlug).toBe('conference-inaugurale');
     expect(list[0].email).toBe('awa@example.org');
+  });
+});
+
+// A-03 (campagne du 27/09) : l'inscription à un événement PASSÉ était acceptée
+// et stockée. Le backend ne connaît pas les dates ; il confronte désormais le
+// slug à la liste des événements ouverts (`UPCOMING_EVENT_SLUGS`).
+describe('Inscriptions événements — événement passé refusé (A-03)', () => {
+  it('refuse un événement passé ou inconnu avec EVENT_CLOSED, sans rien stocker', async () => {
+    const t = convexTest(schema, modules);
+    for (const eventSlug of [
+      'ia-generative-integrite-information', // passé (4 juin 2026)
+      'evenement-inexistant',
+    ]) {
+      await expect(
+        t.mutation(internal.events.storeRegistration, {
+          eventSlug,
+          name: 'Awa Diop',
+          email: 'awa@example.org',
+        }),
+      ).rejects.toMatchObject({ data: 'EVENT_CLOSED' });
+    }
+    expect(
+      await t.run((ctx) => ctx.db.query('eventRegistrations').collect()),
+    ).toHaveLength(0);
+  });
+
+  // La liste des slugs ouverts est RECOPIÉE côté backend (il ne peut pas
+  // importer le catalogue Next). Ce test est ce qui l'empêche de dériver :
+  // un événement passé en `upcoming: false` dans events-content.ts sans être
+  // retiré ici resterait ouvert à l'inscription — et inversement.
+  it('la liste des slugs ouverts est exactement celle du catalogue Next', () => {
+    const attendus = EVENTS.filter((e) => e.upcoming).map((e) => e.slug);
+    expect([...UPCOMING_EVENT_SLUGS].sort()).toEqual([...attendus].sort());
   });
 });

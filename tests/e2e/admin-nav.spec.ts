@@ -21,12 +21,14 @@ test.use({ locale: 'fr-FR' });
 const PHONE = { width: 412, height: 839 };
 
 // Les quatorze entrées de l'issue, telles qu'elles s'affichent, plus la
-// quinzième arrivée depuis (« Modération IA »).
+// quinzième arrivée depuis (« Modération IA ») et la seizième (« Mes
+// relectures », vue du relecteur — campagne du 27/09, A-02).
 const ALL_ITEMS = [
   'Tableau de bord',
   'Impact',
   'Candidatures',
   'Publications',
+  'Mes relectures',
   'Signalements',
   'Messages',
   'Jeunes',
@@ -100,7 +102,7 @@ test.afterEach(async ({ context }) => {
 test.describe('navigation du back-office sur téléphone (session dédiée)', () => {
   test.use({ storageState: SESSIONS.adminNav.state, viewport: PHONE });
 
-  test('back-office : les 15 entrées tiennent sans défilement horizontal (F-26)', async ({
+  test('back-office : les 16 entrées tiennent sans défilement horizontal (F-26)', async ({
     page,
   }) => {
     await page.goto('/fr/admin');

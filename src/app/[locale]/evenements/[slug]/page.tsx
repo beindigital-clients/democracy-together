@@ -136,7 +136,7 @@ export default async function EventDetailPage({
             </p>
             <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3 border-y border-line py-4">
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {d.factDate}
                 </dt>
                 <dd className="mt-0.5 font-mono text-sm font-medium text-ink">
@@ -144,7 +144,7 @@ export default async function EventDetailPage({
                 </dd>
               </div>
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {d.factPlace}
                 </dt>
                 <dd className="mt-0.5 text-sm font-medium text-ink">
@@ -152,7 +152,7 @@ export default async function EventDetailPage({
                 </dd>
               </div>
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {d.factFormat}
                 </dt>
                 <dd className="mt-0.5 text-sm font-medium text-ink">
@@ -257,7 +257,7 @@ export default async function EventDetailPage({
                         </div>
                       </div>
                       <div className="min-w-0">
-                        <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-accent-text">
+                        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent-text">
                           {s.kind}
                         </span>
                         <h3 className="mt-1 font-display text-lg leading-snug">
@@ -304,7 +304,7 @@ export default async function EventDetailPage({
                           {sp.role}
                         </p>
                         {sp.founder ? (
-                          <span className="mt-1.5 inline-block rounded-pill border border-accent-edge bg-accent-tint px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-accent-text">
+                          <span className="mt-1.5 inline-block rounded-pill border border-accent-edge bg-accent-tint px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
                             {d.founderBadge}
                           </span>
                         ) : null}
@@ -426,13 +426,61 @@ export default async function EventDetailPage({
           ) : (
             // Événement PASSÉ : le formulaire d'inscription était rendu quand
             // même, et l'inscription acceptée et stockée (mesuré le 27/09).
-            // Le rappel par e-mail, lui, testait déjà `upcoming`.
-            <div className="rounded-md border border-line bg-surface p-5">
+            // Le rappel par e-mail, lui, testait déjà `upcoming`. À la place :
+            // le bloc REDIFFUSION (A-10) — le lien du replay s'il existe,
+            // sinon la mention honnête et le chemin vers la page des replays.
+            <div
+              id="rediffusion"
+              className="scroll-mt-24 rounded-md border border-line bg-surface p-5"
+            >
               <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
                 {L.filter.past}
               </p>
+              <h2 className="mt-1 font-display text-lg">{d.replay.title}</h2>
+              {event.replayUrl ? (
+                <a
+                  href={event.replayUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 flex w-full items-center justify-center rounded-sm bg-accent px-4 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
+                  {d.replay.available}
+                </a>
+              ) : (
+                <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">
+                  {d.replay.soon}
+                </p>
+              )}
+              <Link
+                href="/replays"
+                className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline"
+              >
+                {d.replay.seeAll}
+              </Link>
             </div>
           )}
+
+          {/* Visioconférence (A-10) — événement À VENIR en ligne ou hybride :
+              le lien s'il est connu, sinon comment il parvient aux inscrits. */}
+          {event.upcoming && event.format !== 'presentiel' ? (
+            <div className="mt-5 rounded-md border border-line bg-surface p-5">
+              <h2 className="font-display text-lg">{d.replay.visioTitle}</h2>
+              {event.visioUrl ? (
+                <a
+                  href={event.visioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-block break-all text-sm font-semibold text-accent-text hover:underline"
+                >
+                  {d.replay.visioLink}
+                </a>
+              ) : (
+                <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+                  {d.replay.visioSent}
+                </p>
+              )}
+            </div>
+          ) : null}
 
           {isFeatured ? (
             <dl className="mt-5 overflow-hidden rounded-md border border-line bg-surface">

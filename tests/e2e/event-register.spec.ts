@@ -35,3 +35,23 @@ test('événement : nom manquant bloqué (F-53)', async ({ page }) => {
   await form.getByRole('button', { name: 'Confirmer mon inscription' }).click();
   await expect(page.getByText(/indiquer votre nom/)).toBeVisible();
 });
+
+// A-03 / A-10 (campagne du 27/09) — un événement PASSÉ ne propose plus le
+// formulaire d'inscription ; sa fiche porte le bloc rediffusion (mention
+// honnête tant qu'aucun enregistrement n'existe, lien vers les replays).
+test('événement passé : pas de formulaire, bloc rediffusion (A-03, A-10)', async ({
+  page,
+}) => {
+  await page.goto('/fr/evenements/ia-generative-integrite-information');
+  await expect(page.locator('#inscription')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Confirmer mon inscription' }),
+  ).toHaveCount(0);
+  const bloc = page.locator('#rediffusion');
+  await expect(
+    bloc.getByRole('heading', { name: 'Rediffusion' }),
+  ).toBeVisible();
+  await expect(
+    bloc.getByRole('link', { name: 'Voir toutes les rediffusions' }),
+  ).toHaveAttribute('href', /\/fr\/replays$/);
+});

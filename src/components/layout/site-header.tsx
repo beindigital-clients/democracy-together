@@ -2,10 +2,12 @@ import { getTranslations } from 'next-intl/server';
 import { isAuthenticatedNextjs } from '@convex-dev/auth/nextjs/server';
 import { Link } from '@/i18n/navigation';
 import { Logo } from './logo';
-// Bascule de thème retirée de la barre desktop pour gagner de la place et
-// faire tenir la nav complète sur des écrans type MacBook Air (reste accessible
-// dans le menu mobile). Décommenter pour la réactiver dans le header.
-// import { ThemeToggle } from './theme-toggle';
+// La bascule de thème avait été retirée de la barre desktop « pour gagner de
+// la place » : sur un écran ≥ 1120 px, le seul bouton restant était en pied de
+// page, à quelque 5 900 px de haut (mesuré le 27/09, transversal A-8). Elle
+// revient dans la grappe de droite — 36 px, toujours rendue côté serveur,
+// donc sans décalage à l'hydratation (tests/e2e/header-stabilite.spec.ts).
+import { ThemeToggle } from './theme-toggle';
 import { LocaleSwitcher } from './locale-switcher';
 import { AuthButton } from './auth-button';
 import { JoinButton } from './join-button';
@@ -63,7 +65,7 @@ export async function SiteHeader() {
           <div className="hidden items-center gap-2 min-[1120px]:flex">
             <SearchDialog />
             <LocaleSwitcher />
-            {/* <ThemeToggle /> — retiré du header desktop (espace) ; reste dans le menu */}
+            <ThemeToggle />
             <NotificationBell connecteAuRendu={connecte} />
             <AuthButton connecteAuRendu={connecte} />
             <JoinButton connecteAuRendu={connecte} />

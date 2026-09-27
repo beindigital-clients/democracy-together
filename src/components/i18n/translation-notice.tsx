@@ -89,7 +89,7 @@ export async function TranslationNotice({
     return (
       <Frame tone="info">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="rounded-pill border border-accent-edge px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.06em] text-accent-text">
+          <span className="rounded-pill border border-accent-edge px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
             {t('badge')}
           </span>
           <span>{t('translatedFrom', { language: sourceName })}</span>

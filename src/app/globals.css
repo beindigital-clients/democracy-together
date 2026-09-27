@@ -33,6 +33,12 @@
   --bar-3: #e0b85c;
   --bar-4: #cc8748;
   --bar-5: #9a4b3b;
+  /* Variantes TEXTE des teintes 2 et 4 du baromètre. Comme aplats de carte,
+     `--bar-2`/`--bar-4` sont justes ; comme texte de 11 px sur `--surface`,
+     mesuré le 27/09 : 2,51:1 et 2,81:1. Ces deux jetons ne servent qu'aux
+     libellés de catégorie (5,0:1 et 4,7:1), la carte garde sa palette. */
+  --bar-2-ink: #3a7480;
+  --bar-4-ink: #a2601f;
 
   /* carte choroplèthe */
   --map-land: #dedad0;
@@ -80,7 +86,14 @@
   --accent: #f58b1a;
   --accent-strong: #d4770e;
   --accent-text: #8a4a08;
-  --accent-contrast: var(--paper);
+  /* TEXTE SOMBRE sur safran, pas le papier. Mesuré le 27/09 (axe, thème
+     clair) : papier #f4f2ec sur safran = 2,18:1, et 1,8 à 2,1 pour les
+     variantes à 80–90 % d'opacité — 32 nœuds sur /, /jeunes et /a-propos.
+     Aucun orange qui reste du safran n'atteint 4,5:1 sous du texte clair ;
+     l'encre, elle, tient 7:1 sur #f58b1a — et c'est déjà ce que fait le thème
+     sombre, où `--paper` est sombre. Ajustement validé par le client (point 5
+     des arbitrages du 23/09). Le safran ne bouge pas. */
+  --accent-contrast: var(--ink);
   --accent-tint: rgba(245, 139, 26, 0.13);
   --accent-edge: rgba(245, 139, 26, 0.35);
 }
@@ -109,6 +122,10 @@
      catégorie « libre » (baromètre) : 2,66:1 sur `--surface-2` en sombre,
      5,4:1 avec celui-ci. Les trois autres teintes tiennent déjà (≥ 5:1). */
   --bar-1: #5fa3c4;
+  /* En sombre, les teintes 2 et 4 tiennent déjà comme texte (≥ 5:1 sur
+     `--surface-2`) : les variantes texte se confondent avec les aplats. */
+  --bar-2-ink: var(--bar-2);
+  --bar-4-ink: var(--bar-4);
 
   --accent: #3a63a6;
   --accent-strong: #4b74b8;
@@ -175,6 +192,8 @@
   --color-bar-3: var(--bar-3);
   --color-bar-4: var(--bar-4);
   --color-bar-5: var(--bar-5);
+  --color-bar-2-ink: var(--bar-2-ink);
+  --color-bar-4-ink: var(--bar-4-ink);
 
   --radius-xs: var(--r-xs);
   --radius-sm: var(--r-sm);

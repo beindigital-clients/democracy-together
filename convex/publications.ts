@@ -189,6 +189,34 @@ export const recordPublicationView = mutation({
   },
 });
 
+// Compteur de téléchargements / consultations — mutation PUBLIQUE, appelée au
+// clic sur « Télécharger le PDF » ou « Consulter (DOI) » de la fiche.
+//
+// Mesuré le 27/09 (membre A-8) : AUCUNE mutation n'écrivait `downloads` — le
+// compteur « Télécharg. » affiché n'était que la valeur posée par le seed, et
+// ne bougeait jamais. Même garde que les vues : quota par (bloc d'adresses,
+// publication), dépassement = non compté et non signalé ; no-op sur une
+// publication absente ou non publiée. Le décompte reste sur le document
+// (`downloads`, lu par la liste et la fiche) : un clic est un événement rare
+// — sans commune mesure avec une consultation — et c'est ce champ que le
+// tri « plus téléchargées » et les cartes affichent.
+export const recordPublicationDownload = mutation({
+  args: { slug: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { slug }) => {
+    if (!(await consumePublicationViewQuota(ctx, `dl:${slug}`))) return null;
+
+    const pub = await ctx.db
+      .query('publications')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique();
+    if (!pub || pub.status !== 'published') return null;
+
+    await ctx.db.patch(pub._id, { downloads: pub.downloads + 1 });
+    return null;
+  },
+});
+
 // Publications liées (même thématique) — pour le bloc « Dans la même
 // thématique » du détail. Exclut la publication courante, bornée à `limit`.
 export const relatedByTheme = query({

@@ -179,7 +179,7 @@ export default async function EventsPage({
             <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
               {L.featured.facts.map((f) => (
                 <div key={f.k}>
-                  <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                     {f.k}
                   </dt>
                   <dd className="mt-0.5 text-sm font-medium text-ink">{f.v}</dd>
@@ -439,7 +439,7 @@ function EventCard({
         <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.04em] text-accent-text">
           {monthAbbr(event, locale)}
         </div>
-        <div className="font-mono text-[10px] text-muted">{event.y}</div>
+        <div className="font-mono text-[11px] text-muted">{event.y}</div>
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">

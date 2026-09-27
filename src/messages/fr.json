@@ -30,7 +30,9 @@
     "errTitle": "Le titre doit faire au moins 4 caractères.",
     "errSummary": "Le résumé doit faire au moins 20 caractères.",
     "rateLimited": "Trop de propositions envoyées. Réessayez plus tard.",
-    "errGeneric": "Envoi impossible pour le moment. Réessayez."
+    "errGeneric": "Envoi impossible pour le moment. Réessayez.",
+    "charCount": "{count, number} / {max, number} caractères",
+    "errSummaryLong": "Le résumé dépasse {max, number} caractères."
   },
   "youthApply": {
     "sectionTitle": "Rejoindre le hub jeunes",
@@ -51,7 +53,10 @@
     "errMotivation": "Ajoute quelques mots de motivation.",
     "rateLimited": "Trop de tentatives. Réessaie dans un moment.",
     "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
-    "errGeneric": "L'envoi a échoué. Réessaie."
+    "errGeneric": "L'envoi a échoué. Réessaie.",
+    "charCount": "{count, number} / {max, number} caractères",
+    "errMotivationLong": "Ta motivation dépasse {max, number} caractères.",
+    "successDedupe": "Si une candidature avec cette adresse était déjà en attente, elle reste unique : nous n’en créons pas de seconde."
   },
   "mentorship": {
     "sectionTitle": "Trouver mon mentor, ou en devenir un",
@@ -76,7 +81,17 @@
     "errMessage": "Ajoute quelques mots à ton message.",
     "rateLimited": "Trop de tentatives. Réessaie dans un moment.",
     "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
-    "errGeneric": "L'envoi a échoué. Réessaie."
+    "errGeneric": "L'envoi a échoué. Réessaie.",
+    "charCount": "{count, number} / {max, number} caractères",
+    "errMessageLong": "Ton message dépasse {max, number} caractères.",
+    "myRequestTitle": "Ta demande de mentorat",
+    "myRequestLead": "Demandes liées à l’adresse e-mail de ton compte.",
+    "status_pending": "En attente d’appariement",
+    "status_matched": "Binôme constitué — l’équipe te contacte par e-mail",
+    "status_closed": "Clôturée",
+    "requestedOn": "Demande du {date}",
+    "role_mentore": "Mentoré·e",
+    "role_mentor": "Mentor"
   },
   "tribune": {
     "metaTitle": "Tribune démocratique",
@@ -118,7 +133,27 @@
     "reported": "Signalé",
     "react": "Soutenir",
     "reacted": "Soutenu",
-    "reactionsCount": "{count, plural, =0 {Aucun soutien} one {# soutien} other {# soutiens}}"
+    "reactionsCount": "{count, plural, =0 {Aucun soutien} one {# soutien} other {# soutiens}}",
+    "bodyCount": "{count, number} / {max, number} caractères",
+    "bodyLimitReached": "Limite atteinte : {max, number} caractères maximum pour ce format.",
+    "errBodyTooLong": "Le texte dépasse {max, number} caractères, la limite de ce format.",
+    "formatHint": "Brève : jusqu’à {court, number} caractères. Analyse : jusqu’à {fond, number}.",
+    "rateLimited": "Trop de publications en peu de temps. Réessayez plus tard.",
+    "cancelConfirmTitle": "Abandonner ce brouillon ?",
+    "cancelConfirmBody": "Le texte saisi sera effacé et le formulaire remis à zéro.",
+    "cancelConfirmYes": "Abandonner",
+    "cancelConfirmNo": "Continuer à écrire",
+    "published": "Votre prise de parole est publiée. Tout contenu peut être signalé et relu par la modération.",
+    "myPostsTitle": "Mes billets",
+    "myPostsEmpty": "Vous n’avez encore rien publié.",
+    "statusNote": "Un billet est publié immédiatement, puis modéré a posteriori sur signalement.",
+    "status_published": "Publié",
+    "status_removed": "Retiré par la modération",
+    "errCommentShort": "{min, number} caractères minimum.",
+    "errCommentLong": "{max, number} caractères maximum.",
+    "errCommentRange": "Un commentaire fait entre {min, number} et {max, number} caractères.",
+    "commentRateLimited": "Trop de commentaires, réessayez plus tard.",
+    "errCommentGeneric": "Le commentaire n’a pas pu être envoyé. Réessayez."
   },
   "notifications": {
     "title": "Notifications",
@@ -151,7 +186,8 @@
     "errorInvalid": "Veuillez saisir une adresse e-mail valide.",
     "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
     "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
-    "errorGeneric": "L'inscription a échoué. Réessayez."
+    "errorGeneric": "L'inscription a échoué. Réessayez.",
+    "closed": "Les inscriptions à cet événement sont closes."
   },
   "reminder": {
     "title": "Recevoir un rappel",
@@ -234,7 +270,15 @@
     "empty": "Aucune rencontre passée pour le moment. Les replays s'afficheront ici dès qu'un événement aura eu lieu.",
     "soon": "Enregistrement bientôt disponible",
     "durationLabel": "{count, plural, one {# min} other {# min}}",
-    "viewEvent": "Voir l'événement"
+    "viewEvent": "Voir l'événement",
+    "filterType": "Type",
+    "filterTheme": "Thématique",
+    "filterLang": "Langue",
+    "all": "Tous",
+    "reset": "Réinitialiser les filtres",
+    "emptyFiltered": "Aucun replay ne correspond à ces filtres.",
+    "count": "{count, plural, =0 {Aucun replay} one {# replay} other {# replays}}",
+    "filtersLabel": "Filtrer les replays"
   },
   "library": {
     "eyebrow": "Bibliothèque",
@@ -399,7 +443,9 @@
       "lockedBody": "Le texte intégral et le document téléchargeable sont réservés aux organisations membres du réseau. Le résumé ci-dessus est abrégé.",
       "lockedCta": "Demander l'adhésion",
       "lockedSignIn": "Se connecter",
-      "lockedBadge": "Réservé aux membres"
+      "lockedBadge": "Réservé aux membres",
+      "consultDoi": "Consulter (DOI)",
+      "noFileNote": "Aucun fichier n’est joint à cette publication : le lien mène à sa notice DOI."
     }
   },
   "translation": {
@@ -511,7 +557,25 @@
     "errorSignUp": "Impossible de créer le compte (e-mail déjà utilisé ?).",
     "errorMismatch": "Les mots de passe ne correspondent pas.",
     "errorPasswordTooShort": "Mot de passe trop court : {min} caractères minimum.",
-    "errorPasswordTooCommon": "Ce mot de passe est trop courant. Choisissez-en un autre."
+    "errorPasswordTooCommon": "Ce mot de passe est trop courant. Choisissez-en un autre.",
+    "role_visiteur": "Visiteur",
+    "role_membre": "Membre",
+    "role_moderateur": "Modérateur",
+    "role_editeur": "Éditeur",
+    "role_admin": "Administrateur",
+    "resendCode": "Renvoyer le code",
+    "resendDone": "Si un compte existe pour cette adresse, un nouveau code vient d'être envoyé.",
+    "passwordLink": "Définir ou changer mon mot de passe",
+    "passwordTitle": "Mon mot de passe",
+    "passwordSubtitle": "Choisissez un mot de passe pour {email}. Un code de vérification vous sera envoyé à cette adresse pour le confirmer. La connexion par code reste possible.",
+    "passwordCta": "Envoyer le code de vérification",
+    "passwordVerifyTitle": "Confirmez votre mot de passe",
+    "passwordVerifySubtitle": "Un code vient d'être envoyé à {email}. Saisissez-le pour enregistrer votre mot de passe.",
+    "passwordVerifyCta": "Enregistrer le mot de passe",
+    "passwordDoneTitle": "Mot de passe enregistré",
+    "passwordDoneBody": "Vous pouvez désormais vous connecter avec votre e-mail et ce mot de passe. La connexion par code reste disponible.",
+    "passwordBack": "Retour à l'espace membre",
+    "passwordNoEmail": "Aucune adresse e-mail n'est associée à ce compte : impossible d'y définir un mot de passe."
   },
   "directory": {
     "eyebrow": "Le réseau",
@@ -564,7 +628,10 @@
       "visitWebsite": "Visiter le site",
       "joinCta": "Votre think tank partage ces engagements ?",
       "joinLink": "Déposer une candidature"
-    }
+    },
+    "filterCountry": "Pays",
+    "filterLanguage": "Langue de travail",
+    "mapNoScript": "Carte interactive des membres : elle nécessite JavaScript. Les pays représentés apparaissent sur chaque fiche de la liste ci-dessous."
   },
   "contact": {
     "metaTitle": "Contact",
@@ -616,7 +683,8 @@
     "errCountry": "Indiquez un pays.",
     "errorGeneric": "L'envoi a échoué. Réessayez dans un instant.",
     "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
-    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez."
+    "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
+    "duplicate": "Une candidature est déjà en cours pour cette adresse. Nous reviendrons vers vous par e-mail."
   },
   "admin": {
     "title": "Administration",
@@ -967,7 +1035,77 @@
     "aiConfirmRevertBody": "La publication quitte la bibliothèque et redevient un dépôt en attente de décision humaine.",
     "aiConfirmRevertConfirm": "Remettre en file",
     "aiRevertDone": "« {title} » est de retour dans la file.",
-    "aiModelUsed": "Modèle : {model}"
+    "aiModelUsed": "Modèle : {model}",
+    "myReviews": "Mes relectures",
+    "myRevTitle": "Mes relectures",
+    "myRevIntro": "Les publications qu'un éditeur vous a confiées. Déposez votre avis ; l'éditeur arbitre ensuite.",
+    "myRevEmpty": "Aucune relecture ne vous est confiée pour le moment.",
+    "myRevAssignedOn": "Confiée le {date}",
+    "myRevMine": "Votre avis",
+    "myRevSubmittedOn": "déposé le {date}",
+    "myRevClosed": "La revue est close : l'éditeur a rendu sa décision.",
+    "revOpenTitle": "Ouvrir une revue",
+    "revOpenIntro": "Choisissez une publication en attente de modération et le relecteur qui la reprend. Il en est notifié aussitôt.",
+    "revOpenPublication": "Publication",
+    "revOpenPublicationPlaceholder": "Choisir une publication…",
+    "revOpenNoPending": "Aucune publication en attente à envoyer en relecture.",
+    "revOpen": "Ouvrir la revue",
+    "revOpenFromQueue": "Envoyer au comité de lecture",
+    "revQueueTitle": "Publications en revue",
+    "revStatusLabel": "Comité de lecture :",
+    "revSeeInQueue": "Voir dans le comité de lecture",
+    "revCommentHint": "Au moins 10 caractères.",
+    "reviewNoteLabel": "Note :",
+    "feedbackRevOpened": "Revue ouverte sur « {title} » : {name} en est notifié.",
+    "feedbackRevAssigned": "{name} est désigné relecteur de « {title} » et en est notifié.",
+    "feedbackRevSubmitted": "Votre avis sur « {title} » est enregistré.",
+    "feedbackRevDecidedRevision": "« {title} » est renvoyée pour modifications.",
+    "feedbackRevDecidedReviewed": "Revue de « {title} » close.",
+    "feedbackYouthApproved": "Candidature de {name} approuvée.",
+    "feedbackYouthRejected": "Candidature de {name} rejetée.",
+    "feedbackMentorMatched": "Demande de {name} appariée.",
+    "feedbackMentorClosed": "Demande de {name} clôturée.",
+    "feedbackProjectAccepted": "Projet « {title} » accepté.",
+    "feedbackProjectRejected": "Projet « {title} » refusé.",
+    "feedbackReopened": "« {name} » est de retour dans la file d'attente.",
+    "feedbackContactHandled": "Message « {subject} » marqué traité.",
+    "feedbackContactReopened": "Message « {subject} » remis en attente.",
+    "feedbackErr_ALREADY_REVIEWED": "Action non effectuée : une décision a déjà été prise sur cet élément, peut-être depuis un autre onglet. La liste vient d'être mise à jour.",
+    "feedbackErr_INVALID_TRANSITION": "Action non effectuée : cet élément n'attend pas cette décision (déjà rouvert, ou jamais mis en revue).",
+    "feedbackErr_NOT_FOUND": "Action non effectuée : cet élément n'existe plus.",
+    "feedbackErr_REVIEWER_NOT_FOUND": "Relecteur introuvable : rechargez la liste, puis réessayez.",
+    "feedbackErr_REVIEWER_NOT_STAFF": "Ce compte n'a pas le rang de modérateur requis pour relire.",
+    "feedbackErr_ALREADY_ASSIGNED": "Ce relecteur est déjà désigné sur cette publication.",
+    "feedbackErr_INVALID_COMMENT": "L'avis doit compter au moins 10 caractères.",
+    "feedbackErr_INVALID_WEBSITE": "Adresse de site invalide : indiquez une adresse complète commençant par http:// ou https://.",
+    "feedbackErr_INVALID_COUNTRY_CODE": "Fiche annuaire : pays invalide.",
+    "feedbackErr_INVALID_REGION": "Fiche annuaire : région invalide.",
+    "feedbackErr_INVALID_THEMES": "Fiche annuaire : choisissez au moins une thématique.",
+    "feedbackErr_INVALID_LANGUAGES": "Fiche annuaire : choisissez au moins une langue.",
+    "feedbackErr_INVALID_CAMPAIGN": "Brouillon refusé : l'objet demande au moins 3 caractères et le message au moins 10.",
+    "feedbackErr_ALREADY_SENT": "Cette campagne a déjà été envoyée.",
+    "feedbackErr_EMAIL_PROVIDER_NOT_CONFIGURED": "Envoi refusé : aucun fournisseur d'e-mail n'est configuré sur ce déploiement.",
+    "feedbackErr_FORBIDDEN": "Action refusée : votre rôle ne le permet pas.",
+    "feedbackErr_UNAUTHENTICATED": "Session expirée : reconnectez-vous, puis réessayez.",
+    "nlEmailStatus_configured": "Fournisseur d'e-mail configuré ({provider}) : les campagnes sont réellement envoyées.",
+    "nlEmailStatus_simulated": "Mode développement : aucun fournisseur d'e-mail, les envois sont seulement journalisés — aucun abonné ne recevra ce message.",
+    "nlEmailStatus_none": "Aucun fournisseur d'e-mail n'est configuré sur ce déploiement : l'envoi des campagnes est refusé. Posez AUTH_RESEND_KEY (ou AUTH_EMAIL_PROVIDER) sur l'environnement Convex.",
+    "nlTooShort": "L'objet demande au moins 3 caractères et le message au moins 10.",
+    "nlSubjectHint": "Au moins 3 caractères.",
+    "nlCreated": "Brouillon « {subject} » créé.",
+    "nlSendStarted": "Envoi de « {subject} » lancé vers {count, plural, =0 {0 abonné} one {# abonné} other {# abonnés}}.",
+    "nlConfirmSendTitle": "Envoyer « {subject} » à {count, plural, =0 {0 abonné} one {# abonné} other {# abonnés}} ?",
+    "nlConfirmSendBody": "L'envoi part immédiatement et ne peut pas être rappelé. Vérifiez l'aperçu avant de confirmer.",
+    "nlConfirmSendConfirm": "Envoyer",
+    "nlPreviewShow": "Aperçu",
+    "nlPreviewHide": "Masquer l'aperçu",
+    "nlPreviewTitle": "Aperçu de l'e-mail",
+    "nlPreviewEmpty": "Saisissez un objet et un message pour voir l'aperçu.",
+    "nlPreviewSubject": "Objet :",
+    "nlPreviewFooter": "Chaque envoi se termine par la mention « Vous recevez cet e-mail car vous êtes inscrit à la lettre de Democracy Together » et un lien de désinscription propre à l'abonné.",
+    "nlErrorInfo": "Envoi en échec : aucun destinataire n'a pu être atteint ({failed} en échec). Vérifiez le fournisseur d'e-mail.",
+    "nlSendDisabledNoProvider": "Envoi impossible sans fournisseur d'e-mail configuré.",
+    "aiLogDeletedPublication": "Dépôt supprimé"
   },
   "news": {
     "eyebrow": "Actualités",
@@ -993,7 +1131,8 @@
     "viewAll": "Voir tous les résultats",
     "kbdNavigate": "naviguer",
     "kbdOpen": "ouvrir",
-    "kbdClose": "fermer"
+    "kbdClose": "fermer",
+    "unavailable": "Le service de recherche ne répond pas. Réessayez dans quelques instants."
   },
   "newsletter": {
     "eyebrow": "Newsletter",
@@ -1011,7 +1150,8 @@
     "unsubPending": "Traitement en cours…",
     "unsubDone": "Vous êtes désinscrit de la lettre de Democracy Together. À bientôt.",
     "unsubInvalid": "Lien de désinscription invalide ou expiré.",
-    "unsubHome": "Retour à l'accueil"
+    "unsubHome": "Retour à l'accueil",
+    "unsubError": "La désinscription n'a pas pu être traitée. Rechargez la page pour réessayer."
   },
   "comingSoon": {
     "eyebrow": "Bientôt",
@@ -1064,7 +1204,8 @@
       "eyebrow": "Actualités",
       "title": "Dernières actualités",
       "viewAll": "Toutes les actualités"
-    }
+    },
+    "globeAlt": "Globe interactif du Baromètre : les pays d’Afrique et d’Europe colorés selon leur score, du plus libre au moins libre. Les scores détaillés sont sur la page du Baromètre."
   },
   "experts": {
     "metaTitle": "Annuaire d'experts",
@@ -1171,7 +1312,8 @@
     "noteJoinPrompt": "Rejoignez l’espace pour ajouter des notes.",
     "noteLabel": "Votre note",
     "notePlaceholder": "Partagez une idée, une ressource, une question…",
-    "noteSubmit": "Publier la note"
+    "noteSubmit": "Publier la note",
+    "notesJoinToRead": "Rejoignez l'espace pour lire les notes."
   },
   "errors": {
     "notFoundTitle": "Page introuvable",
@@ -1193,5 +1335,8 @@
     "skipToContent": "Aller au contenu",
     "description": "Réseau international de think tanks pour la démocratie · Afrique–Europe.",
     "regions": "Afrique · Europe"
+  },
+  "barometer": {
+    "mapNoScript": "Carte interactive du Baromètre : elle nécessite JavaScript. Les scores par pays se lisent dans le classement et les tableaux de cette page."
   }
 }

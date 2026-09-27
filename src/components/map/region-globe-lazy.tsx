@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import type { RegionGlobe as RegionGlobeType } from './region-globe';
 
 // Chargement différé du globe (audit § 5.6).
@@ -36,6 +36,27 @@ const Globe = dynamic(
   },
 );
 
-export function RegionGlobeLazy(props: ComponentProps<typeof RegionGlobeType>) {
-  return <Globe {...props} />;
+// `fallback` : légende affichée SANS JavaScript, par-dessus le disque de
+// réservation. Mesuré le 27/09 (transversal C-3) : /barometre et /le-reseau
+// montraient un grand disque gris nu, sans un mot. Le `<noscript>` n'existe
+// que dans le HTML servi à un navigateur sans script ; avec script, le globe
+// prend la place et rien ne se superpose.
+export function RegionGlobeLazy({
+  fallback,
+  ...props
+}: ComponentProps<typeof RegionGlobeType> & { fallback?: ReactNode }) {
+  return (
+    <div className="relative">
+      <Globe {...props} />
+      {fallback ? (
+        <noscript>
+          <div className="absolute inset-0 grid place-items-center p-8 text-center">
+            <p className="max-w-[32ch] text-sm leading-relaxed text-ink-soft">
+              {fallback}
+            </p>
+          </div>
+        </noscript>
+      ) : null}
+    </div>
+  );
 }

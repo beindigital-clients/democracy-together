@@ -253,7 +253,7 @@ export function WorkspaceDetail({
               className="flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm"
             >
               <span className="text-ink">{m.userName}</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
+              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                 {m.role === 'owner' ? t('roleOwner') : t('roleMember')}
               </span>
             </li>
@@ -261,13 +261,19 @@ export function WorkspaceDetail({
         </ul>
       </section>
 
-      {/* Notes partagées */}
+      {/* Notes partagées — le serveur ne les rend qu'aux membres de l'espace
+          (R-11) : pour les autres, le titre reste générique (le nombre de
+          notes n'est pas connu) et l'invitation à rejoindre remplace le fil. */}
       <section className="mt-12 border-t border-line pt-8">
         <h2 className="font-display text-2xl">
-          {t('notesCount', { count: data.notes.length })}
+          {data.isMember
+            ? t('notesCount', { count: data.notes.length })
+            : t('notesTitle')}
         </h2>
 
-        {data.notes.length > 0 ? (
+        {!data.isMember ? (
+          <p className="mt-4 text-sm text-ink-soft">{t('notesJoinToRead')}</p>
+        ) : data.notes.length > 0 ? (
           <ul className="mt-5 flex flex-col gap-4">
             {data.notes.map((n) => (
               <li

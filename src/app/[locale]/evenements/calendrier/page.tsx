@@ -273,7 +273,7 @@ function CalendarEvent({
       className={`block rounded-[3px] border-s-2 bg-accent-tint px-1.5 py-1 text-[11.5px] leading-tight text-ink transition-colors hover:bg-accent-edge/40 ${TYPE_BAR[event.type]}`}
     >
       <span className="block truncate font-medium">{L.titles[event.slug]}</span>
-      <span className="block truncate font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
+      <span className="block truncate font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
         {L.types[event.type]} · {monthAbbr(event, loc).toLowerCase()}
       </span>
     </Link>

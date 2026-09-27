@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import {
   action,
   internalAction,
@@ -57,6 +57,10 @@ export const listDirectory = query({
     // erreur d'argument sur une page publique.
     region: v.optional(directoryRegionValidator),
     theme: v.optional(directoryThemeValidator),
+    // Pays et langue (F-19, ajoutés le 27/09) : codes ISO lus sur les fiches,
+    // domaine ouvert — l'appelant vérifie la forme (`isCountryCode`).
+    country: v.optional(v.string()),
+    language: v.optional(v.string()),
     q: v.optional(v.string()),
   },
   returns: v.object({
@@ -64,13 +68,13 @@ export const listDirectory = query({
     facets: directoryFacetsValidator,
     total: v.number(),
   }),
-  handler: async (ctx, { region, theme, q }) => {
+  handler: async (ctx, { region, theme, country, language, q }) => {
     const active = await ctx.db
       .query('organizations')
       .withIndex('by_status', (qi) => qi.eq('status', 'active'))
       .collect();
     const items = active
-      .filter((o) => matchesFilters(o, { region, theme, q }))
+      .filter((o) => matchesFilters(o, { region, theme, country, language, q }))
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(projectOrganization);
     return { items, facets: computeFacets(active), total: active.length };
@@ -121,6 +125,11 @@ export const submitApplication = action({
   },
 });
 
+// Borne de lecture de la file en attente pour le dédoublonnage ci-dessous :
+// au-delà, la file n'est plus une file de modération mais un stock, et le
+// doublon éventuel serait de toute façon visible du modérateur.
+const PENDING_APPLICATIONS_MAX = 500;
+
 export const storeApplication = internalMutation({
   args: {
     type: v.union(v.literal('organisation'), v.literal('individu')),
@@ -160,6 +169,25 @@ export const storeApplication = internalMutation({
       key: `apply:${contactEmail.toLowerCase()}`,
       ...RATE_LIMITS.apply,
     });
+
+    // UNE SEULE CANDIDATURE EN ATTENTE PAR ADRESSE. Deux envois — double
+    // clic tardif, second essai après un doute — produisaient deux lignes
+    // `pending` que le back-office voyait en double (mesuré le 27/09, vitrine
+    // O3 / R-09). La file des candidatures en attente est courte par
+    // construction (elle se vide à la main, par un modérateur) : la lire par
+    // l'index `by_status` reste borné, sans index supplémentaire sur
+    // l'adresse. La comparaison est normalisée comme le fera l'approbation
+    // (`normalizeEmail`) : « Contact@X.org » et « contact@x.org » sont la
+    // même personne. `ConvexError` : `data` traverse l'action jusqu'au
+    // formulaire, qui peut dire « une candidature est déjà en cours ».
+    const wanted = normalizeEmail(contactEmail);
+    const pending = await ctx.db
+      .query('membershipApplications')
+      .withIndex('by_status', (q) => q.eq('status', 'pending'))
+      .take(PENDING_APPLICATIONS_MAX);
+    if (pending.some((a) => normalizeEmail(a.contactEmail) === wanted)) {
+      throw new ConvexError('DUPLICATE_APPLICATION');
+    }
 
     const userId = await getAuthUserId(ctx);
     const applicationId = await ctx.db.insert('membershipApplications', {

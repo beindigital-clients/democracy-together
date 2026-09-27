@@ -131,7 +131,9 @@ function RadioGroup({
               >
                 {o.label}
               </span>
-              <span className="text-[12px] text-muted">{o.desc}</span>
+              {/* `text-ink-soft`, pas `text-muted` : sur `bg-accent-tint` en
+                  sombre, muted fait 3,93:1 (mesuré le 27/09). */}
+              <span className="text-[12px] text-ink-soft">{o.desc}</span>
             </label>
           );
         })}
