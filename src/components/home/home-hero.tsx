@@ -7,7 +7,6 @@ import {
   useReducedMotion,
   useScroll,
   useTransform,
-  type Variants,
 } from 'framer-motion';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
@@ -23,22 +22,15 @@ type Hero = {
   creds: { label: string; value: string }[];
 };
 
-// Ease doux (easeOutQuart) : décélération progressive, sans à-coup au départ.
-const SMOOTH = [0.165, 0.84, 0.44, 1] as const;
-
-// Objets d'animation hoistés au module (skill framer-motion : éviter de recréer
-// des objets variants/transition à chaque rendu).
-const credsContainer: Variants = {
-  hidden: {},
-  show: (after: number) => ({
-    transition: { staggerChildren: 0.12, delayChildren: after },
-  }),
-};
-const credItem: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: SMOOTH } },
-};
-
+// ENTRÉE EN CSS, PAS EN STYLE INLINE. `initial={{ opacity: 0 }}` de
+// framer-motion est rendu en `style="opacity:0"` dans le HTML servi, et le
+// contenu n'apparaît qu'une fois le script exécuté : mesuré le 27/09 en 3G
+// lente, le premier écran de l'accueil restait vide 11 à 13 secondes, là où la
+// bibliothèque était lisible à 2,5 s. Les keyframes `dt-hero-*` (globals.css)
+// jouent dès l'arrivée de la feuille de style, script ou pas ; la règle
+// <noscript> du layout et `prefers-reduced-motion` les neutralisent. Seul le
+// parallaxe de l'image reste piloté par framer-motion — il n'a rien à cacher.
+//
 // Hero cinématique de l'accueil. Entrée SÉQUENTIELLE et fluide (« les uns après
 // les autres, comme une musique ») : eyebrow → titre révélé MOT PAR MOT (chaque
 // mot remonte de derrière sa ligne, effet masque) → accroche → boutons ;
@@ -68,64 +60,46 @@ export function HomeHero({ hero }: { hero: Hero }) {
     <>
       <div className="grid gap-8 lg:grid-cols-[1.08fr_.92fr] lg:gap-16 lg:items-center">
         <div>
-          <motion.p
+          <p
             data-reveal=""
-            className="font-mono text-xs uppercase tracking-[0.14em] text-muted"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: SMOOTH, delay: 0.05 }}
+            className="dt-hero-in font-mono text-xs uppercase tracking-[0.14em] text-muted"
+            style={{ animationDelay: '0.05s' }}
           >
             {hero.eyebrow}
-          </motion.p>
+          </p>
 
           {/* Titre révélé mot par mot — chaque mot remonte de derrière la ligne */}
           <h1 className="mt-5 max-w-[15ch] font-display text-[clamp(38px,5.6vw,68px)] font-medium leading-[1.06] tracking-[-0.02em]">
             {words.map((w, i) => (
               <Fragment key={`${w}-${i}`}>
                 <span className="inline-block overflow-hidden align-bottom">
-                  <motion.span
+                  <span
                     data-reveal=""
-                    className="inline-block"
-                    initial={{ y: '108%' }}
-                    animate={{ y: 0 }}
-                    transition={{
-                      duration: 0.95,
-                      ease: SMOOTH,
-                      delay: titleStart + i * wordStagger,
+                    className="dt-hero-word inline-block"
+                    style={{
+                      animationDelay: `${titleStart + i * wordStagger}s`,
                     }}
                   >
                     {w}
-                  </motion.span>
+                  </span>
                 </span>
                 {i < words.length - 1 ? ' ' : ''}
               </Fragment>
             ))}
           </h1>
 
-          <motion.p
+          <p
             data-reveal=""
-            className="mt-6 max-w-[48ch] text-lg leading-relaxed text-ink-soft"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.85,
-              ease: SMOOTH,
-              delay: afterTitle + 0.05,
-            }}
+            className="dt-hero-in mt-6 max-w-[48ch] text-lg leading-relaxed text-ink-soft"
+            style={{ animationDelay: `${afterTitle + 0.05}s` }}
           >
             {hero.lead}
-          </motion.p>
+          </p>
 
-          <motion.div
+          <div
             data-reveal=""
-            className="mt-8 flex flex-wrap gap-3"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.85,
-              ease: SMOOTH,
-              delay: afterTitle + 0.16,
-            }}
+            className="dt-hero-in mt-8 flex flex-wrap gap-3"
+            style={{ animationDelay: `${afterTitle + 0.16}s` }}
           >
             <Button asChild>
               <Link href="/adhesion">{hero.ctaPrimary}</Link>
@@ -133,16 +107,14 @@ export function HomeHero({ hero }: { hero: Hero }) {
             <Button asChild variant="outline">
               <Link href="/bibliotheque">{hero.ctaSecondary}</Link>
             </Button>
-          </motion.div>
+          </div>
         </div>
 
         {/* Image : zoom-out + fondu à l'entrée, puis parallaxe doux au scroll. */}
-        <motion.div
+        <div
           data-reveal=""
-          className="order-first lg:order-none"
-          initial={{ opacity: 0, scale: 1.06 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.3, ease: SMOOTH, delay: 0.25 }}
+          className="dt-hero-image order-first lg:order-none"
+          style={{ animationDelay: '0.25s' }}
         >
           <figure
             ref={figureRef}
@@ -167,32 +139,25 @@ export function HomeHero({ hero }: { hero: Hero }) {
               {hero.visualCaption}
             </figcaption>
           </figure>
-        </motion.div>
+        </div>
       </div>
 
       {/* Bande méta — apparaît en dernier, en cascade douce */}
-      <motion.div
-        data-reveal=""
-        className="mt-16 flex flex-col border-t border-line pt-6 sm:flex-row sm:flex-wrap"
-        initial="hidden"
-        animate="show"
-        custom={afterTitle + 0.28}
-        variants={credsContainer}
-      >
-        {hero.creds.map((cred) => (
-          <motion.div
+      <div className="mt-16 flex flex-col border-t border-line pt-6 sm:flex-row sm:flex-wrap">
+        {hero.creds.map((cred, i) => (
+          <div
             data-reveal=""
             key={cred.label}
-            variants={credItem}
-            className="border-line py-2 [&:not(:first-child)]:border-t sm:px-6 sm:py-0 sm:first:ps-0 sm:[&:not(:first-child)]:border-s sm:[&:not(:first-child)]:border-t-0"
+            className="dt-hero-in border-line py-2 [&:not(:first-child)]:border-t sm:px-6 sm:py-0 sm:first:ps-0 sm:[&:not(:first-child)]:border-s sm:[&:not(:first-child)]:border-t-0"
+            style={{ animationDelay: `${afterTitle + 0.28 + i * 0.12}s` }}
           >
             <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
               {cred.label}
             </p>
             <p className="mt-[3px] text-[14.5px] text-ink">{cred.value}</p>
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
+      </div>
     </>
   );
 }

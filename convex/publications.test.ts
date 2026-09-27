@@ -55,6 +55,17 @@ const docBase = {
 };
 
 describe('Bibliothèque — logique pure (lib/publications)', () => {
+  it('matchesPublication ignore les accents et la casse (« democratie » trouve « Démocratie »)', () => {
+    const p = pub({
+      title: 'L’état de la Démocratie en Afrique',
+      authors: [{ name: 'Aïssatou Ndiaye' }],
+    });
+    expect(matchesPublication(p, { q: 'democratie' })).toBe(true);
+    expect(matchesPublication(p, { q: 'DÉMOCRATIE' })).toBe(true);
+    expect(matchesPublication(p, { q: 'aissatou' })).toBe(true);
+    expect(matchesPublication(p, { q: 'senegal' })).toBe(false);
+  });
+
   it('matchesPublication combine les facettes en OU intra / ET inter', () => {
     const p = pub({
       theme: 'gouvernance-numerique',

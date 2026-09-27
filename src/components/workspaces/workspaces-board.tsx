@@ -68,6 +68,10 @@ function CreateForm() {
     <form
       id="workspace-create"
       onSubmit={onSubmit}
+      // Les règles vivent dans `onSubmit`, traduites ; la bulle native du
+      // navigateur (« Please fill out this field ») parlait anglais sur un
+      // écran français (mesuré le 27/09).
+      noValidate
       className="space-y-4 rounded-md border border-line bg-surface p-5"
     >
       <h2 className="font-display text-lg">{t('createTitle')}</h2>

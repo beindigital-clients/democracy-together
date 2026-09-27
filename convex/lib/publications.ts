@@ -77,14 +77,24 @@ export function matchesPublication(
     if (!f.langs.some((l) => pub.languages.includes(l))) return false;
   }
   if (f.q) {
-    const q = f.q.trim().toLowerCase();
+    const q = fold(f.q);
     if (q) {
       const authors = pub.authors.map((a) => a.name).join(' ');
-      const haystack = `${pub.title} ${authors}`.toLowerCase();
-      if (!haystack.includes(q)) return false;
+      if (!fold(`${pub.title} ${authors}`).includes(q)) return false;
     }
   }
   return true;
+}
+
+// Minuscules SANS diacritiques : « democratie » doit trouver « démocratie »
+// (mesuré le 27/09 : 0 résultat sans l'accent, 2 avec). Un lecteur sur un
+// clavier sans accents — le cas courant en mobile — ne doit pas être puni.
+function fold(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
 }
 
 // Tri stable : plus récentes (année puis téléchargements), plus citées, ou A→Z.

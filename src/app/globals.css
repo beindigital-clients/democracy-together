@@ -418,3 +418,52 @@
     font-weight: 600;
   }
 }
+
+/* ---- entrée du hero de l'accueil (F-05) ----
+   En CSS pour que le premier écran soit visible avant l'hydratation en faible
+   débit — cf. src/components/home/home-hero.tsx. `both` : l'état de départ
+   tient pendant le délai, puis l'état final reste. */
+@keyframes dt-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dt-hero-word {
+  from {
+    transform: translateY(108%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes dt-hero-image {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dt-hero-in {
+  animation: dt-hero-in 0.85s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+.dt-hero-word {
+  animation: dt-hero-word 0.95s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+.dt-hero-image {
+  animation: dt-hero-image 1.3s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dt-hero-in,
+  .dt-hero-word,
+  .dt-hero-image {
+    animation: none;
+  }
+}

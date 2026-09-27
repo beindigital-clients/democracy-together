@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Authenticated, AuthLoading, Unauthenticated } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -16,11 +16,29 @@ import { cn } from '@/lib/utils';
 // pas : une navigation côté client, et une session qui expire pendant que la
 // page est ouverte.
 
+// Au-delà de ce délai, « Chargement… » n'est plus une attente mais un
+// silence : le websocket Convex ne répond pas (CSP, proxy, panne). Mesuré le
+// 27/09 : les pages privées restaient sur « Chargement… » indéfiniment.
+const SLOW_MS = 8000;
+
 export function AuthGateLoading({ className }: { className?: string }) {
   const t = useTranslations('auth');
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setSlow(true), SLOW_MS);
+    return () => clearTimeout(id);
+  }, []);
   return (
-    <div className={cn('mx-auto px-4 py-16 text-ink-soft sm:px-6', className)}>
-      {t('loading')}
+    <div
+      className={cn('mx-auto px-4 py-16 text-ink-soft sm:px-6', className)}
+      role="status"
+    >
+      <p>{t('loading')}</p>
+      {slow ? (
+        <p className="mt-3 max-w-[60ch] text-sm leading-relaxed text-bar-5">
+          {t('loadingSlow')}
+        </p>
+      ) : null}
     </div>
   );
 }

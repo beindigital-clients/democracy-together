@@ -226,6 +226,21 @@ export const reportContent = mutation({
     if (!normalized || !(await ctx.db.get(normalized))) {
       throw new Error('INVALID_TARGET');
     }
+    // Un signalement OUVERT par personne et par cible : rechargeant la page,
+    // le même compte pouvait signaler le même billet à volonté, et la file
+    // des modérateurs se remplissait de doublons (mesuré le 27/09). Le second
+    // appel est idempotent — l'écran dit « signalé » dans les deux cas.
+    const existing = await ctx.db
+      .query('tribuneReports')
+      .withIndex('by_resolved', (q) => q.eq('resolved', false))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('targetId'), normalized),
+          q.eq(q.field('reporterUserId'), user._id),
+        ),
+      )
+      .first();
+    if (existing) return { ok: true } as const;
     await ctx.db.insert('tribuneReports', {
       targetType,
       targetId: normalized,

@@ -18,7 +18,7 @@ function Centered({ children }: { children: ReactNode }) {
   );
 }
 
-function AccessDenied() {
+function AccessDenied({ rank = false }: { rank?: boolean }) {
   const t = useTranslations('admin');
   return (
     <Centered>
@@ -26,7 +26,9 @@ function AccessDenied() {
         403
       </p>
       <h1 className="mt-3 font-display text-3xl">{t('accessDeniedTitle')}</h1>
-      <p className="mt-3 text-ink-soft">{t('accessDeniedBody')}</p>
+      <p className="mt-3 text-ink-soft">
+        {rank ? t('accessDeniedBodyRank') : t('accessDeniedBody')}
+      </p>
       <Link
         href="/"
         className="mt-6 inline-block text-sm font-medium text-accent-text hover:underline"
@@ -45,7 +47,7 @@ function Gate({ children }: { children: ReactNode }) {
   // Rang de l'ÉCRAN, pas seulement du back-office : la page enfant ne se
   // monte pas — donc ne pose aucune requête — si le rôle est insuffisant.
   if (roleRank(me?.role) < roleRank(adminMinRoleForPath(pathname))) {
-    return <AccessDenied />;
+    return <AccessDenied rank />;
   }
 
   // Les régions live du retour d'action sont montées ICI, une fois pour tout

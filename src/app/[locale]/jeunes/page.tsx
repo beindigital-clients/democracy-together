@@ -149,7 +149,7 @@ export default async function JeunesPage({
                 {c.parcours.gam.badges.map((b) => (
                   <span
                     key={b.letter}
-                    className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[13px] ${b.locked ? 'border-line bg-surface-2 text-muted opacity-70' : 'border-accent-edge bg-accent-tint text-accent-text'}`}
+                    className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[13px] ${b.locked ? 'border-line bg-surface-2 text-ink-soft opacity-85' : 'border-accent-edge bg-accent-tint text-accent-text'}`}
                   >
                     <span
                       className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[11px] font-semibold ${b.locked ? 'bg-line-strong text-paper' : 'bg-accent text-accent-contrast'}`}

@@ -105,6 +105,20 @@ describe('Signalements Tribune — validation de la cible (audit M1)', () => {
     expect(reports[0].excerpt).toBe('Sur les transitions');
   });
 
+  it('un même compte ne signale une même cible qu’une fois (doublons de la file)', async () => {
+    const { membre, mod, postId } = await setup();
+    for (let i = 0; i < 3; i++) {
+      const r = await membre.as.mutation(api.tribune.reportContent, {
+        targetType: 'post',
+        targetId: postId,
+        reason: `essai ${i}`,
+      });
+      expect(r.ok).toBe(true);
+    }
+    const reports = await mod.as.query(api.tribune.listReports, {});
+    expect(reports).toHaveLength(1);
+  });
+
   it('accepte un signalement légitime sur un commentaire', async () => {
     const { t, membre, mod, postId } = await setup();
     const commentId = await t.run((ctx) =>
