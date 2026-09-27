@@ -15,6 +15,7 @@ import { Reveal } from '@/components/motion/reveal';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { FIELD_MAX } from '@convex/lib/validation';
 
 export default function ContactPage() {
   const t = useTranslations('contact');
@@ -42,7 +43,16 @@ export default function ContactPage() {
         name: (v) => (v.trim().length < 2 ? t('errName') : null),
         email: (v) => (isEmail(v) ? null : t('errEmail')),
         subject: (v) => (v.trim().length < 2 ? t('errSubject') : null),
-        body: (v) => (v.trim().length < 10 ? t('errMessage') : null),
+        // La borne HAUTE est celle du serveur (pentest M-2). Sans elle, un
+        // message de 4 001 caractères était refusé par `INVALID_BODY` et
+        // l'écran répondait « réessayez » — une consigne qui ne peut pas
+        // aboutir, faute de dire la limite.
+        body: (v) =>
+          v.trim().length < 10
+            ? t('errMessage')
+            : v.trim().length > FIELD_MAX.body
+              ? t('errMessageTooLong', { max: FIELD_MAX.body })
+              : null,
       })
     ) {
       return;
@@ -131,6 +141,7 @@ export default function ContactPage() {
                 label={t('message')}
                 rows={6}
                 required
+                maxLength={FIELD_MAX.body}
                 placeholder={t('messagePlaceholder')}
                 {...field('body')}
               />

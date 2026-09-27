@@ -582,6 +582,7 @@
     "errEmail": "Saisissez une adresse e-mail valide.",
     "errSubject": "Indiquez un sujet.",
     "errMessage": "Votre message doit faire au moins 10 caractères.",
+    "errMessageTooLong": "Votre message ne peut pas dépasser {max} caractères.",
     "errorGeneric": "L'envoi a échoué. Réessayez dans un instant.",
     "rateLimited": "Trop de tentatives. Réessayez dans un moment.",
     "captchaFailed": "Vérification anti-robot échouée. Rechargez la page et réessayez."

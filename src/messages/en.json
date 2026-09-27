@@ -582,6 +582,7 @@
     "errEmail": "Enter a valid email address.",
     "errSubject": "Enter a subject.",
     "errMessage": "Your message must be at least 10 characters long.",
+    "errMessageTooLong": "Your message cannot exceed {max} characters.",
     "errorGeneric": "Sending failed. Please try again in a moment.",
     "rateLimited": "Too many attempts. Please try again in a moment.",
     "captchaFailed": "Anti-bot verification failed. Please reload the page and try again."

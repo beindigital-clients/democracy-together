@@ -121,11 +121,11 @@ export default async function SearchPage({
       </Reveal>
 
       {q.length < 2 ? (
-        <p className="mt-10 text-ink-soft">{t('prompt')}</p>
+        <p className="mt-10 break-words text-ink-soft">{t('prompt')}</p>
       ) : indisponible ? (
         <DataUnavailable className="mt-10" />
       ) : total === 0 ? (
-        <p className="mt-10 text-ink-soft">{t('empty', { q })}</p>
+        <p className="mt-10 break-words text-ink-soft">{t('empty', { q })}</p>
       ) : (
         <div className="mt-10 flex flex-col gap-9">
           {publications.length ? (

@@ -582,6 +582,7 @@
     "errEmail": "Escriba una dirección de correo válida.",
     "errSubject": "Indique un asunto.",
     "errMessage": "Su mensaje debe tener al menos 10 caracteres.",
+    "errMessageTooLong": "Su mensaje no puede superar los {max} caracteres.",
     "errorGeneric": "El envío ha fallado. Vuelva a intentarlo en un instante.",
     "rateLimited": "Demasiados intentos. Vuelva a intentarlo dentro de un momento.",
     "captchaFailed": "Ha fallado la verificación antirrobot. Recargue la página y vuelva a intentarlo."

@@ -149,7 +149,12 @@ export default async function PressePage({
               <RevealItem as="li" key={r.slug}>
                 {r.external ? (
                   <a
-                    href={r.href}
+                    // Fichier servi sous la route localisée : le préfixe est
+                    // celui de la page, pas « /fr » en dur (mesuré : /en/presse
+                    // envoyait vers /fr/barometre/data/…).
+                    href={
+                      r.href.startsWith('/') ? `/${locale}${r.href}` : r.href
+                    }
                     className={className}
                     rel="noopener"
                     download

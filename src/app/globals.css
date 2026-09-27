@@ -99,6 +99,12 @@
   --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.45);
   --map-land: #2a303a;
   --map-stroke: #14171c;
+  /* Le rouge des erreurs de formulaire et du bouton destructif. Le jeton clair
+     (#9a4b3b) fait 2,68:1 sur `--surface` sombre — WCAG AA échoué sur chaque
+     message d'erreur, mesuré sur /contact et /adhesion en sombre. Celui-ci
+     tient 4,9:1 sur la plus claire des surfaces (`--surface-2`), et le texte
+     `--paper` posé dessus par le bouton destructif reste à 5,9:1. */
+  --bar-5: #d97a66;
 
   --accent: #3a63a6;
   --accent-strong: #4b74b8;
