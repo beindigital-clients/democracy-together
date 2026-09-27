@@ -61,7 +61,8 @@ export type SessionKey =
   | 'enTete'
   | 'adminContact'
   | 'adminModeration'
-  | 'adminModerationIa';
+  | 'adminModerationIa'
+  | 'comptes';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -183,6 +184,16 @@ export const SESSIONS: Record<
   adminModerationIa: {
     email: 'e2e_session_admin_moderation_ia@democracytogether.test',
     state: 'tests/e2e/.auth/admin-moderation-ia.json',
+    role: 'admin',
+  },
+  // Session dédiée à `comptes-suspension.spec.ts` (chantier comptes, F-63).
+  // Le fichier crée un compte, le fait se connecter, le suspend puis le
+  // supprime : il tient la session d'un bout à l'autre, le cas que la règle
+  // ci-dessus vise. Rang ADMINISTRATEUR, celui qu'exigent la création, la
+  // suspension et la suppression.
+  comptes: {
+    email: 'e2e_session_comptes@democracytogether.test',
+    state: 'tests/e2e/.auth/comptes.json',
     role: 'admin',
   },
 };

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as accounts from "../accounts.js";
 import type * as admin from "../admin.js";
 import type * as aiModeration from "../aiModeration.js";
 import type * as auth from "../auth.js";
@@ -24,6 +25,9 @@ import type * as experts from "../experts.js";
 import type * as http from "../http.js";
 import type * as impact from "../impact.js";
 import type * as journal from "../journal.js";
+import type * as lib_accountAccess from "../lib/accountAccess.js";
+import type * as lib_accountDeletion from "../lib/accountDeletion.js";
+import type * as lib_accountEmails from "../lib/accountEmails.js";
 import type * as lib_aiGateway from "../lib/aiGateway.js";
 import type * as lib_aiModeration from "../lib/aiModeration.js";
 import type * as lib_audit from "../lib/audit.js";
@@ -35,6 +39,7 @@ import type * as lib_emailContent from "../lib/emailContent.js";
 import type * as lib_locales from "../lib/locales.js";
 import type * as lib_notify from "../lib/notify.js";
 import type * as lib_onboarding from "../lib/onboarding.js";
+import type * as lib_orgMembership from "../lib/orgMembership.js";
 import type * as lib_pagination from "../lib/pagination.js";
 import type * as lib_passwordPolicy from "../lib/passwordPolicy.js";
 import type * as lib_pdfImages from "../lib/pdfImages.js";
@@ -45,14 +50,18 @@ import type * as lib_recaptcha from "../lib/recaptcha.js";
 import type * as lib_reviewState from "../lib/reviewState.js";
 import type * as lib_roles from "../lib/roles.js";
 import type * as lib_search from "../lib/search.js";
+import type * as lib_secretBox from "../lib/secretBox.js";
 import type * as lib_signIn from "../lib/signIn.js";
 import type * as lib_slug from "../lib/slug.js";
+import type * as lib_tables_comptes from "../lib/tables/comptes.js";
 import type * as lib_themes from "../lib/themes.js";
+import type * as lib_totp from "../lib/totp.js";
 import type * as lib_translation from "../lib/translation.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as mentorship from "../mentorship.js";
 import type * as newsletter from "../newsletter.js";
 import type * as notifications from "../notifications.js";
+import type * as orgAdmin from "../orgAdmin.js";
 import type * as organizations from "../organizations.js";
 import type * as otp from "../otp.js";
 import type * as peerReview from "../peerReview.js";
@@ -63,6 +72,7 @@ import type * as seed from "../seed.js";
 import type * as seedPublications from "../seedPublications.js";
 import type * as translation from "../translation.js";
 import type * as tribune from "../tribune.js";
+import type * as twoFactor from "../twoFactor.js";
 import type * as users from "../users.js";
 import type * as workspaces from "../workspaces.js";
 import type * as youth from "../youth.js";
@@ -74,6 +84,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accounts: typeof accounts;
   admin: typeof admin;
   aiModeration: typeof aiModeration;
   auth: typeof auth;
@@ -90,6 +101,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   impact: typeof impact;
   journal: typeof journal;
+  "lib/accountAccess": typeof lib_accountAccess;
+  "lib/accountDeletion": typeof lib_accountDeletion;
+  "lib/accountEmails": typeof lib_accountEmails;
   "lib/aiGateway": typeof lib_aiGateway;
   "lib/aiModeration": typeof lib_aiModeration;
   "lib/audit": typeof lib_audit;
@@ -101,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   "lib/locales": typeof lib_locales;
   "lib/notify": typeof lib_notify;
   "lib/onboarding": typeof lib_onboarding;
+  "lib/orgMembership": typeof lib_orgMembership;
   "lib/pagination": typeof lib_pagination;
   "lib/passwordPolicy": typeof lib_passwordPolicy;
   "lib/pdfImages": typeof lib_pdfImages;
@@ -111,14 +126,18 @@ declare const fullApi: ApiFromModules<{
   "lib/reviewState": typeof lib_reviewState;
   "lib/roles": typeof lib_roles;
   "lib/search": typeof lib_search;
+  "lib/secretBox": typeof lib_secretBox;
   "lib/signIn": typeof lib_signIn;
   "lib/slug": typeof lib_slug;
+  "lib/tables/comptes": typeof lib_tables_comptes;
   "lib/themes": typeof lib_themes;
+  "lib/totp": typeof lib_totp;
   "lib/translation": typeof lib_translation;
   "lib/validation": typeof lib_validation;
   mentorship: typeof mentorship;
   newsletter: typeof newsletter;
   notifications: typeof notifications;
+  orgAdmin: typeof orgAdmin;
   organizations: typeof organizations;
   otp: typeof otp;
   peerReview: typeof peerReview;
@@ -129,6 +148,7 @@ declare const fullApi: ApiFromModules<{
   seedPublications: typeof seedPublications;
   translation: typeof translation;
   tribune: typeof tribune;
+  twoFactor: typeof twoFactor;
   users: typeof users;
   workspaces: typeof workspaces;
   youth: typeof youth;

@@ -13,6 +13,7 @@ import {
   aiModerationVerdict,
   aiModerationApplied,
 } from './lib/aiModeration';
+import { comptesTables } from './lib/tables/comptes';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -45,6 +46,13 @@ export default defineSchema({
     // --- Democracy Together ---
     role: v.optional(networkRole),
     preferredLocale: v.optional(locale),
+    // Suspension (chantier comptes, F-63). Posée sur le compte lui-même et non
+    // dans une table à part : TOUTES les gardes de convex/lib/rbac.ts la
+    // lisent, et elles lisent déjà ce document — la vérifier ne coûte aucune
+    // lecture de plus. Le motif est obligatoire à la suspension.
+    suspendedAt: v.optional(v.number()),
+    suspensionReason: v.optional(v.string()),
+    suspendedBy: v.optional(v.id('users')),
   })
     .index('email', ['email'])
     // `by_role` sert la garde « zéro admin » de l'amorçage (convex/bootstrap.ts) :
@@ -79,6 +87,12 @@ export default defineSchema({
       v.literal('suspended'),
     ),
     createdAt: v.number(),
+    // Fiche membre (F-21, chantier comptes) : logo dans le stockage Convex
+    // (contenu vérifié avant d'être accepté) et choix de l'organisation de
+    // montrer, ou non, ses membres sur sa page publique.
+    logoFileId: v.optional(v.id('_storage')),
+    showMembers: v.optional(v.boolean()),
+    updatedAt: v.optional(v.number()),
   })
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
@@ -183,12 +197,17 @@ export default defineSchema({
     // Document téléversé (F-32) : fichier dans le stockage Convex + nom d'origine.
     fileId: v.optional(v.id('_storage')),
     fileName: v.optional(v.string()),
+    // Organisation du déposant (F-21, chantier comptes) : posée au dépôt quand
+    // le compte est rattaché à une organisation. C'est ce qui permet à la
+    // fiche publique de lister SES publications.
+    organizationId: v.optional(v.id('organizations')),
     createdAt: v.number(),
   })
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
     .index('by_author', ['authorUserId'])
+    .index('by_organization_and_status', ['organizationId', 'status'])
     // File de revue (F-43, convex/peerReview.ts) : `reviewStage` n'est posé que
     // sur les publications ENGAGÉES dans une revue — une infime minorité de la
     // table. L'index les isole sans lire les autres. Les documents où le champ
@@ -462,7 +481,11 @@ export default defineSchema({
     body: v.string(),
     status: v.union(v.literal('published'), v.literal('removed')),
     createdAt: v.number(),
-  }).index('by_post', ['postId']),
+  })
+    .index('by_post', ['postId'])
+    // Suppression de compte (chantier comptes) : retrouver les commentaires
+    // d'un auteur sans parcourir tous les fils.
+    .index('by_author', ['authorUserId']),
 
   // Réactions de la Tribune — un seul type, « soutien » (comme un like). Une
   // réaction par membre et par post : unicité via l'index composite
@@ -471,7 +494,10 @@ export default defineSchema({
     postId: v.id('tribunePosts'),
     userId: v.id('users'),
     createdAt: v.number(),
-  }).index('by_post_and_user', ['postId', 'userId']),
+  })
+    .index('by_post_and_user', ['postId', 'userId'])
+    // Suppression de compte (chantier comptes).
+    .index('by_user', ['userId']),
 
   // Signalements (F-50) — file de modération a posteriori. `targetId` = id d'un
   // post ou d'un commentaire (stocké en chaîne, type porté par `targetType`).
@@ -482,7 +508,10 @@ export default defineSchema({
     reporterUserId: v.id('users'),
     resolved: v.boolean(),
     createdAt: v.number(),
-  }).index('by_resolved', ['resolved']),
+  })
+    .index('by_resolved', ['resolved'])
+    // Suppression de compte (chantier comptes).
+    .index('by_reporter', ['reporterUserId']),
 
   // Appels à projets collaboratifs (F-60) — propositions de projets menés en
   // commun entre membres. La page publique présente le DISPOSITIF (aucun appel
@@ -548,7 +577,10 @@ export default defineSchema({
     authorName: v.string(),
     body: v.string(),
     createdAt: v.number(),
-  }).index('by_workspace', ['workspaceId']),
+  })
+    .index('by_workspace', ['workspaceId'])
+    // Suppression de compte (chantier comptes).
+    .index('by_author', ['authorUserId']),
 
   // --- Modération éditoriale assistée par IA (auto-acceptation) -------------
   //
@@ -835,4 +867,6 @@ export default defineSchema({
     purpose: v.string(),
     createdAt: v.number(),
   }).index('by_email', ['email']),
+
+  ...comptesTables,
 });

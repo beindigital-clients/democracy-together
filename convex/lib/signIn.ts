@@ -54,3 +54,26 @@ export async function resolveSignInUserId(
   if (existing) return existing._id;
   throw new ConvexError('NO_SELF_SIGNUP');
 }
+
+// SUSPENSION À LA CONNEXION (chantier comptes, F-63).
+//
+// Appelée par le callback `beforeSessionCreation` de convex/auth.ts, donc sur
+// TOUS les chemins qui ouvrent une session — mot de passe, code par e-mail,
+// vérification d'adresse — et APRÈS la vérification du secret : refuser ici
+// ne dit rien de l'existence d'un compte à qui ne connaît pas son mot de
+// passe ou son code.
+//
+// Les sessions déjà ouvertes au moment de la suspension sont supprimées par
+// `accounts.suspendAccount` ; cette garde empêche d'en ouvrir une nouvelle.
+// Le code `ACCOUNT_SUSPENDED` traverse `/api/auth` dans le message d'erreur :
+// l'écran de connexion le reconnaît et affiche un message clair
+// (src/lib/auth-errors.ts).
+export async function assertMaySignIn(
+  db: GenericDatabaseReader<DataModel>,
+  userId: Id<'users'>,
+): Promise<void> {
+  const user = await db.get(userId);
+  if (user && user.suspendedAt !== undefined) {
+    throw new ConvexError('ACCOUNT_SUSPENDED');
+  }
+}

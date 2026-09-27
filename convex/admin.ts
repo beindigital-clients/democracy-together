@@ -165,6 +165,13 @@ const adminUserValidator = v.object({
   name: v.union(v.string(), v.null()),
   email: v.union(v.string(), v.null()),
   role: networkRole,
+  // Cycle de vie (chantier comptes) : suspension et son motif, suppression en
+  // cours, double authentification active. Lus sur la ligne affichée — la
+  // suspension est sur le document, la 2FA coûte une lecture indexée.
+  suspended: v.boolean(),
+  suspensionReason: v.union(v.string(), v.null()),
+  deleting: v.boolean(),
+  twoFactor: v.boolean(),
 });
 
 // CHERCHABLE ET FILTRABLE (issue #49) — les deux par index, jamais en mémoire.
@@ -212,12 +219,25 @@ export const listUsers = query({
 
     return {
       ...result,
-      page: result.page.map((u) => ({
-        _id: u._id,
-        name: u.name ?? null,
-        email: u.email ?? null,
-        role: effectiveRole(u.role),
-      })),
+      page: await Promise.all(
+        result.page.map(async (u) => {
+          const cred = await ctx.db
+            .query('twoFactorCredentials')
+            .withIndex('by_user', (q) => q.eq('userId', u._id))
+            .unique();
+          const deleting = u.suspensionReason === 'deletion';
+          return {
+            _id: u._id,
+            name: u.name ?? null,
+            email: u.email ?? null,
+            role: effectiveRole(u.role),
+            suspended: u.suspendedAt !== undefined,
+            suspensionReason: deleting ? null : (u.suspensionReason ?? null),
+            deleting,
+            twoFactor: cred?.status === 'active',
+          };
+        }),
+      ),
     };
   },
 });

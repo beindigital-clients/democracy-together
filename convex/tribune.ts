@@ -1,8 +1,7 @@
 import { v, ConvexError } from 'convex/values';
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query } from './_generated/server';
 import type { Id, Doc } from './_generated/dataModel';
-import { requireNetworkRole, requireUser } from './lib/rbac';
+import { requireNetworkRole, requireUser, getActiveUserId } from './lib/rbac';
 import { TRIBUNE_BODY, TRIBUNE_COMMENT } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
@@ -341,7 +340,7 @@ export const reactionState = query({
       .query('tribuneReactions')
       .withIndex('by_post_and_user', (q) => q.eq('postId', postId))
       .collect();
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     const mine = userId ? reactions.some((r) => r.userId === userId) : false;
     return { count: reactions.length, mine };
   },
@@ -375,7 +374,7 @@ export const myPosts = query({
     }),
   ),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return [];
     const posts = await ctx.db
       .query('tribunePosts')

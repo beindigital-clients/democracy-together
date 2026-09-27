@@ -9,10 +9,9 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { locale } from './lib/locales';
 import { enforceRecaptcha } from './lib/recaptcha';
-import { requireNetworkRole, rank } from './lib/rbac';
+import { requireNetworkRole, getActiveUserId, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import {
   COUNTER,
@@ -189,7 +188,7 @@ export const storeApplication = internalMutation({
       throw new ConvexError('DUPLICATE_APPLICATION');
     }
 
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     const applicationId = await ctx.db.insert('membershipApplications', {
       type: args.type,
       organizationName,

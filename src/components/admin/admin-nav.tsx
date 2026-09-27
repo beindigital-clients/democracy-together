@@ -81,6 +81,10 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       { href: '/admin/mes-relectures', key: 'myReviews' },
       { href: '/admin/signalements', key: 'reports' },
       { href: '/admin/contact', key: 'contactMessages' },
+      // Fiches d'annuaire proposées par les responsables d'organisation
+      // (F-21, chantier comptes) : c'est une modération, au rang de
+      // `orgAdmin.reviewRevision`.
+      { href: '/admin/organisations', key: 'organizations' },
     ],
   },
   {

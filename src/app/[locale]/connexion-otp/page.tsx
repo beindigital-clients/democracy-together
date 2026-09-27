@@ -9,11 +9,13 @@ import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { OtpField } from '@/components/auth/otp-field';
 import { isSendLimited, isTooManyAttempts } from '@/lib/auth-errors';
+import { isAccountSuspended } from '@/lib/account-errors';
 import { isEmail } from '@/lib/validation';
 
 export default function OtpSignInPage() {
   const t = useTranslations('auth');
   const tNav = useTranslations('nav');
+  const tAccounts = useTranslations('accounts');
   const { signIn } = useAuthActions();
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<'email' | 'code'>('email');
@@ -84,8 +86,14 @@ export default function OtpSignInPage() {
       await signIn('otp-signin', { email, code: values.code });
       redirectAfterAuth();
     } catch (err) {
+      // Compte suspendu : refusé APRÈS la vérification du code, donc sans
+      // rien apprendre à qui ne le possède pas (convex/lib/signIn.ts).
       setError(
-        isTooManyAttempts(err) ? t('errorTooManyAttempts') : t('errorCode'),
+        isAccountSuspended(err)
+          ? tAccounts('suspendedSignIn')
+          : isTooManyAttempts(err)
+            ? t('errorTooManyAttempts')
+            : t('errorCode'),
       );
       setPending(false);
     }
