@@ -408,3 +408,90 @@ canonique (`Democracy-Together-fonctionnalites.md`), de l'audit du 18/09
 - La **CI E2E** ne tourne qu'avec une clé de préversion Convex sur le
   dépôt ; elle est verte sur cette PR.
 
+
+## 11. Livraison du backlog (27/09, soir)
+
+Demande du client après le § 10 : « implémente tout le backlog ». Les onze
+lignes du tableau 10.2 ont été livrées en neuf chantiers menés en parallèle,
+chacun dans sa propre copie de travail, puis fusionnés, branchés entre eux et
+rejoués ensemble. Chaque chantier a sa fiche d'exploitation dans
+`docs/backlog/` ; l'ordre de mise en service est au § 10 de
+`docs/deploiement.md`.
+
+| Ligne du § 10.2 | Livré | Fiche |
+|---|---|---|
+| Adhésions et dons (F-27 à F-31) | couche de paiement indépendante du prestataire : Stripe (EUR, abonnements) et PayDunya (XOF, relance planifiée pour le mensuel), prestataire factice gardé pour les tests ; `/don` fonctionnel, barème de cotisation administrable, reçus PDF numérotés sans trou, espace « cotisations », écran Finances (tableau de bord, transactions, remboursements, export CSV) | `paiements.md` |
+| Gestion des contenus (F-52, F-54, F-62, F-64) | événements, replays, partenaires, presse, thématiques en base avec back-office éditeur, repli sur le contenu codé, migration fidèle ; lien visio réservé aux inscrits ; médiathèque avec texte alternatif obligatoire et contenu vérifié ; inscriptions validées contre la table (point M-5) | `contenus.md` |
+| Comptes et organisations, sécurité (F-21, F-63) | création, suspension (sessions invalidées, toutes les gardes refusent), suppression en deux temps et en libre-service, export RGPD ; rattachement compte ↔ organisation, fiche éditée par son responsable et relue par un modérateur, publications liées à l'organisation ; double authentification TOTP (secret chiffré, codes de secours, preuve par session), obligatoire pour les rôles sensibles sur réglage | `comptes.md` |
+| Réseau social — personnes (F-21, F-23, F-25) | profil membre (photo vérifiée, biographie, préférences de notification et de visibilité), pages publiques de personnes, annuaire des membres, suivi de personnes et d'organisations, fil d'activité, messagerie privée temps réel avec blocage et signalement | `social.md` |
+| Réseau social — communauté (F-24, F-45, F-48, F-49) | espaces : fichiers versionnés, invitations, rôles ; Tribune modérée **a priori** (billets), pré-tri IA, file unifiée avec historique complet, approfondissement d'un billet en contribution de fond | `communaute.md` |
+| Programmes (F-56 à F-60) | profil Jeunes persistant, mentorat avec appariement expliqué et suivi du binôme (alerte d'inactivité), appels à projets datés avec grille d'évaluation et conflits d'intérêts, boîte à outils et parcours avec attestation | `programmes.md` |
+| Newsletter (F-18, F-65) | double opt-in (jeton haché, expirant, preuve du consentement), envoi par lots idempotent, désinscription en un clic | `diffusion.md` |
+| Recherche (F-06, F-34) | index de recherche Convex sur un texte « plié » (insensible aux accents), filtres, pagination, registre de sources extensible | `diffusion.md` |
+| Rapports annuels (F-41) | rapports administrables ; PDF composé dans les cinq langues, arabe compris (lettres liées, ordre logique, mesuré à l'extraction), balisé | `editorial.md` |
+| Revue à comité (F-43) | machine à états formelle, versions avec lettre de réponse, double aveugle tenu côté serveur (PDF anonymisé), plusieurs relecteurs avec échéances et relances | `editorial.md` |
+| Mesure (F-66) | mesure d'audience sans cookie ni identifiant, agrégée par jour, conforme aux conditions d'exemption de la CNIL, tableau de bord dans Impact | `diffusion.md` |
+| Accessibilité (F-08) | audit RGAA 4.1.2 (106 critères × 19 pages) : 72,6 % mesuré, les 20 non-conformités relevant du code corrigées ; déclaration au format RGAA ; tests clavier, annonces et affichage ; protocole lecteurs d'écran | `accessibilite.md`, `docs/rgaa/` |
+
+### 11.1 Intégration après fusion
+
+- **Suppression et export de compte** branchés sur les sept chantiers qui
+  portent des données personnelles, la communauté passant avant les modules
+  « tribune » et « espaces » du socle (test `account-deletion-chantiers`).
+- **Compte suspendu** : la garde du chantier comptes étendue au code des
+  autres chantiers (queries, mutations et actions de téléversement).
+- **Recherche** : la meule de recherche d'un billet suit ses corrections ;
+  les correctifs RGAA de la palette réappliqués sur la recherche réécrite.
+- Les tests d'autres chantiers qui partent d'un billet publié posent le mode
+  a posteriori, la Tribune étant désormais a priori par défaut.
+
+### 11.2 Ce qui reste hors de portée du code
+
+- **Clés et comptes réels** : Stripe, PayDunya, fournisseur d'e-mail,
+  reCAPTCHA, Sanity, clé de chiffrement 2FA — la plateforme refuse proprement
+  sans elles (§ 10.1 inchangé).
+- **PayDunya** : l'adaptateur n'a pas pu être confronté à la documentation
+  officielle (hôte bloqué par le proxy de sortie) ; les points à valider avec
+  des clés sandbox sont listés dans `paiements.md` § 6.
+- **Accessibilité** : aucune restitution vocale réelle (pas de lecteur
+  d'écran dans l'environnement) ; le protocole est prêt à être déroulé par une
+  personne, et la déclaration n'affiche que le taux mesuré.
+- **Éligibilité au mécénat** : le reçu ne cite les articles 200 et 238 bis du
+  CGI qu'une fois le rescrit obtenu (`ASSOCIATION_TAX_RECEIPT_ELIGIBLE`).
+
+### 11.3 Vérification
+
+Branche fusionnée, fonctions poussées sur le backend local, migrations de
+mise en service lancées (import des contenus codés, meules de recherche,
+rattachement des publications), application reconstruite.
+
+| Vérification | Résultat |
+|---|---|
+| Portes statiques | `pnpm test` **151 fichiers / 1 686 tests verts** (1 159 avant le backlog) ; typage (app, Convex, tests), lint, format verts |
+| `pnpm test:e2e` (build final, desktop + mobile) | **417 / 417**, sans reprise, en 7,6 min |
+| Specs d'accessibilité nouvelles (`a11y-clavier`, `a11y-annonces`, `a11y-affichage`) | vertes sur le build final — elles échouaient sur l'ancien build exactement là où l'audit relevait une non-conformité |
+
+Le premier rejeu complet après fusion avait donné **398 / 416** ; les
+écarts ont été diagnostiqués un par un, et cinq étaient de vrais défauts
+qu'aucun test unitaire ne pouvait voir :
+
+- **La recherche globale ne rendait plus rien** : Convex refuse plusieurs
+  requêtes paginées dans une même fonction, règle que le simulateur des tests
+  unitaires n'applique pas. Chaque source lit désormais sa première page par
+  `take`.
+- **La recherche rendait du bruit** : l'index plein texte de Convex ramène
+  tout document contenant *un* des mots ; chaque mot est de nouveau exigé.
+- **Le ménage des tests** d'un projet (bureau) effaçait l'événement que le
+  même fichier testait en parallèle sur l'autre (mobile).
+- **Les cases d'étape des parcours** ne bougeaient qu'au retour du serveur :
+  elles sont désormais cochées aussitôt.
+- **Le bouton « BibTeX »** était rogné sous espacement de texte élargi.
+
+Les autres écarts étaient des specs antérieures au backlog dont le texte
+attendu a légitimement changé (`/don` n'est plus « Bientôt », double opt-in,
+lien « Messages » de l'en-tête, mentions CNIL de la mesure d'audience).
+
+Deux alertes CodeQL ouvertes sur la PR pendant la fusion ont été corrigées :
+tirage biaisé des codes de secours 2FA (rejet des octets au-delà du plus grand
+multiple de l'alphabet) et aperçu du logo d'organisation lu depuis le fichier
+local (désormais l'URL signée du stockage).
