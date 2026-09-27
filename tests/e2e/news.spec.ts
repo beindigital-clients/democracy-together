@@ -88,7 +88,12 @@ test('actualités : accessible depuis la nav, version EN (F-03/F-15)', async ({
   );
 
   if (!sanityConfigured) {
-    await expect(page.getByText('No news yet.')).toBeVisible();
+    // Même doctrine qu'en français : CMS absent = panne annoncée, pas liste
+    // vide (lot 3 du 27/09).
+    await expect(
+      page.getByText('Content temporarily unavailable'),
+    ).toBeVisible();
+    await expect(page.getByText('No news yet.')).toHaveCount(0);
     return;
   }
 
