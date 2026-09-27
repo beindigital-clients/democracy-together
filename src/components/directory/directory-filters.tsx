@@ -11,6 +11,7 @@ import {
   type Facets,
 } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Check } from 'lucide-react';
 
 // Construit l'URL de l'annuaire avec un filtre modifié, en préservant les
 // autres (undefined = on retire le filtre). next-intl ajoute le préfixe locale.
@@ -45,6 +46,9 @@ function Chip({
           : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
       }`}
     >
+      {/* Le filtre actif était signalé par la seule teinte (RGAA 3.1) :
+          une coche le dit aussi à qui ne distingue pas les couleurs. */}
+      {active ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
       {children}
     </Link>
   );
@@ -87,6 +91,9 @@ export function DirectoryFilters({
           defaultValue={filters.q ?? ''}
           placeholder={t('searchPlaceholder')}
           aria-label={t('searchPlaceholder')}
+          // Étiquette NON visible : `title` la rend lisible au survol et remplit
+          // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+          title={t('searchPlaceholder')}
         />
         <Button type="submit" variant="outline" className="shrink-0">
           {t('searchCta')}

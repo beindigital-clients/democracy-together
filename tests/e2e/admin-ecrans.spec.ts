@@ -116,7 +116,12 @@ test.describe('parcours des onglets (session admin partagée)', () => {
     const tabs = page.getByRole('navigation', { name: 'Administration' });
 
     for (const screen of SCREENS) {
-      await tabs.getByRole('link', { name: screen.nav, exact: true }).click();
+      await tabs
+        .getByRole('link', {
+          name: `${screen.nav} (Administration)`,
+          exact: true,
+        })
+        .click();
       await expect(page).toHaveURL(
         new RegExp(`${screen.path.replace('/fr', '')}$`),
       );
@@ -125,7 +130,10 @@ test.describe('parcours des onglets (session admin partagée)', () => {
       ).toBeVisible();
       // l'onglet courant est signalé (et lui seul)
       await expect(
-        tabs.getByRole('link', { name: screen.nav, exact: true }),
+        tabs.getByRole('link', {
+          name: `${screen.nav} (Administration)`,
+          exact: true,
+        }),
       ).toHaveAttribute('aria-current', 'page');
     }
   });
@@ -144,7 +152,10 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
     ).toBeVisible();
 
     for (const screen of SCREENS) {
-      const tab = tabs.getByRole('link', { name: screen.nav, exact: true });
+      const tab = tabs.getByRole('link', {
+        name: `${screen.nav} (Administration)`,
+        exact: true,
+      });
       if (screen.min === 'moderateur') {
         await expect(tab).toBeVisible();
       } else {

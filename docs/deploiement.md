@@ -450,6 +450,84 @@ rapport.
 
 ---
 
+## 10. Mise en service des fonctionnalités du backlog (27/09)
+
+Le backlog restant (§ 10.2 du rapport de campagne) a été livré en neuf
+chantiers. Chacun a sa fiche d'exploitation dans `docs/backlog/` ; cette
+section en donne l'ordre de mise en service, pour qu'aucune étape ne manque.
+
+### 10.1 Variables d'environnement nouvelles (déploiement Convex)
+
+| Variable | Chantier | Sans elle |
+|---|---|---|
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | paiements (EUR) | Stripe désactivé ; l'interface propose virement ou contact |
+| `PAYDUNYA_MASTER_KEY`, `PAYDUNYA_PRIVATE_KEY`, `PAYDUNYA_TOKEN`, `PAYDUNYA_MODE` | paiements (XOF) | PayDunya désactivé |
+| `PAYMENTS_BANK_*`, `ASSOCIATION_*`, `ASSOCIATION_TAX_RECEIPT_ELIGIBLE` | paiements (reçus, virement) | reçus marqués « à compléter », pas de coordonnées de virement |
+| `TWO_FACTOR_ENCRYPTION_KEY` (32 octets base64) | comptes (2FA) | inscription à la double authentification refusée |
+| `NEWSLETTER_BATCH_SIZE`, `NEWSLETTER_RATE_PER_MINUTE`, `NEWSLETTER_UNSUBSCRIBE_MAILTO` | diffusion | valeurs par défaut prudentes |
+| `AUDIENCE_RETENTION_DAYS`, `AUDIENCE_MAX_HITS_PER_MINUTE` | diffusion (audience) | 13 mois, plafond par défaut |
+
+Variables de développement à **ne jamais** poser en production, en plus
+d'`AUTH_DEV_OTP` et `RECAPTCHA_DISABLED` : `PAYMENTS_FAKE_PROVIDER`,
+`PAYMENTS_FAKE_WEBHOOK_SECRET`. Le contrôle du § 7 devient :
+
+```bash
+npx convex env list --prod | grep -E '^(AUTH_DEV_OTP|RECAPTCHA_DISABLED|PAYMENTS_FAKE_PROVIDER)=' \
+  && echo "ARRÊT : variable de développement en production"
+```
+
+### 10.2 Webhooks à déclarer
+
+| Prestataire | URL | Fiche |
+|---|---|---|
+| Stripe | `POST <CONVEX_SITE_URL>/payments/webhook/stripe` | `docs/backlog/paiements.md` § 3 |
+| PayDunya | transmise à chaque facture (`<CONVEX_SITE_URL>/payments/webhook/paydunya`) | idem |
+| Désinscription en un clic | `POST <CONVEX_SITE_URL>/newsletter/unsubscribe` (rien à déclarer : en-tête `List-Unsubscribe`) | `docs/backlog/diffusion.md` |
+
+### 10.3 Commandes à lancer une fois, après le déploiement, dans cet ordre
+
+```bash
+# Contenus codés recopiés en base (agenda, replays, partenaires, thématiques).
+# SANS cet import, les inscriptions aux événements sont refusées : le serveur
+# ne valide plus que contre la table (point M-5 de l'audit).
+npx convex run --prod contenus/migration:importCodedContent '{}'
+# Meules de recherche des documents existants, puis compteur d'abonnés
+# (désormais les CONFIRMÉS seulement).
+npx convex run --prod searchIndexing:backfill '{}'
+npx convex run --prod counters:recompute '{"key":"newsletterSubscriptions"}'
+# Publications déjà déposées rattachées à leur organisation.
+npx convex run --prod orgAdmin:backfillPublicationOrganizations '{}'
+# Abonnés hérités : UNE demande de confirmation (double opt-in), après avoir
+# posé AUTH_RESEND_KEY — décision RGPD dans docs/backlog/diffusion.md § 4.
+npx convex run --prod newsletter:migrateLegacySubscribers '{}'
+```
+
+Puis, dans le back-office :
+
+1. `/admin/rapports` : « Importer l'édition 2026 » (les cinq PDF se composent
+   seuls).
+2. `/admin/finances/formules` : « Initialiser avec le barème indicatif », puis
+   ajuster.
+3. Chaque administrateur active sa double authentification (Espace membre ›
+   Sécurité), puis `/admin/utilisateurs` › « Double authentification
+   obligatoire » › Rendre obligatoire. **Obligatoire en production** ; le
+   tableau de bord le rappelle tant que ce n'est pas fait.
+4. Prévenir les modérateurs : la Tribune est modérée **a priori** (les billets
+   attendent `/admin/file-moderation`).
+5. `/admin/boite-a-outils` et `/admin/projets/appels` : premiers contenus.
+
+### 10.4 Contrôles propres à ces chantiers
+
+- Un don de test par prestataire (clés de test), reçu PDF téléchargé depuis
+  l'espace membre, ligne visible dans `/admin/finances`.
+- Une inscription à la newsletter : l'e-mail de confirmation arrive, le lien
+  confirme, l'abonné apparaît comme confirmé.
+- Le PDF du rapport annuel se télécharge en français et en arabe.
+- Les trois specs `a11y-*` rejouées contre la production, puis le protocole
+  lecteurs d'écran (`docs/rgaa/protocole-lecteurs-ecran.md`) déroulé par une
+  personne ; la déclaration d'accessibilité est mise à jour à partir de la
+  grille (le test unitaire refuse un taux qui ne lui correspond pas).
+
 ## 9. Ce que ce document ne couvre pas encore
 
 À écrire, dans l'ordre de risque décroissant — l'audit les relève comme absents :

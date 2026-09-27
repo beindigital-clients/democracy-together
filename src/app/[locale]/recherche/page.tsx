@@ -21,6 +21,8 @@ import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import {
   hasFilters,
+  hitFlag,
+  hitLangAttrs,
   hitMeta,
   parseSearchFilters,
   searchHref,
@@ -182,6 +184,9 @@ export default async function SearchPage({
               defaultValue={q}
               placeholder={t('placeholder')}
               aria-label={t('placeholder')}
+              // Étiquette NON visible : `title` la rend lisible au survol et remplit
+              // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+              title={t('placeholder')}
               autoFocus
             />
             <Button type="submit" className="shrink-0">
@@ -300,16 +305,32 @@ export default async function SearchPage({
                 {sectionTitle(s.source)}
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
-                {s.hits.map((h) => (
-                  <li key={h.id}>
-                    <Link href={h.path} className={ROW}>
-                      <span className="min-w-0 wrap-anywhere font-medium text-ink">
-                        {h.title}
-                      </span>
-                      <span className="text-[13px] text-muted">{meta(h)}</span>
-                    </Link>
-                  </li>
-                ))}
+                {s.hits.map((h) => {
+                  const flag = hitFlag(h);
+                  return (
+                    <li key={h.id}>
+                      <Link href={h.path} className={ROW}>
+                        {/* Titre dans sa langue de rédaction (RGAA 8.7). */}
+                        <span
+                          {...hitLangAttrs(h, locale)}
+                          className="min-w-0 wrap-anywhere font-medium text-ink"
+                        >
+                          {h.title}
+                        </span>
+                        <span className="text-[13px] text-muted">
+                          {/* Le drapeau double le nom du pays : masqué, sans
+                              quoi il est lu « drapeau : Sénégal, Sénégal ». */}
+                          {flag ? (
+                            <>
+                              <span aria-hidden="true">{flag}</span>{' '}
+                            </>
+                          ) : null}
+                          {meta(h)}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
               {!source && s.more ? (
                 <Link

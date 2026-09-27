@@ -351,6 +351,9 @@ export const attachDocument = action({
   handler: async (ctx, args): Promise<Id<'projectCallAttachments'>> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError('NOT_AUTHENTICATED');
+    // Compte suspendu (chantier comptes) : l'action n'a pas de base, la
+    // garde complète est rejouée par la query qui connaît l'état du compte.
+    await ctx.runQuery(internal.accounts.selfForAction, {});
     const blob = await ctx.storage.get(args.storageId);
     const reject = async (code: string): Promise<never> => {
       await ctx.storage.delete(args.storageId);

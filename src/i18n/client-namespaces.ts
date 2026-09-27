@@ -38,6 +38,7 @@ export const BASE_CLIENT_NAMESPACES = [
   // ne peuvent pas être réservés à `admin/layout.tsx` : des pages publiques
   // les demandent.
   'accounts',
+  'accessibility',
   'auth',
   'contact',
   'cookies',

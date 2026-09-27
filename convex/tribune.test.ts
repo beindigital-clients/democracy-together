@@ -185,6 +185,10 @@ describe('Tribune — fil & commentaires (F-47)', () => {
     expect(trans[0].title).toBe('Sur les transitions');
     // sans filtre : les deux
     expect((await t.query(api.tribune.listPosts, {})).length).toBe(2);
+    // La langue de rédaction sort dans le FIL (audit RGAA du 27/09, 8.7) : la
+    // page pose `lang` sur le titre et l'extrait d'un billet qui n'est pas
+    // dans la langue de la page.
+    expect(trans[0].lang).toBe('fr');
 
     // un autre membre commente -> compteur +1, notif à l'auteur
     await commenter.as.mutation(api.tribune.addComment, {

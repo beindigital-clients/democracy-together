@@ -336,6 +336,9 @@ export const setPhoto = action({
   handler: async (ctx, { storageId }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('UNAUTHENTICATED');
+    // Compte suspendu (chantier comptes) : l'action n'a pas de base, la
+    // garde complète est rejouée par la query qui connaît l'état du compte.
+    await ctx.runQuery(internal.accounts.selfForAction, {});
 
     const meta: { size: number; contentType: string | null } | null =
       await ctx.runQuery(internal.social.profiles.photoMeta, { storageId });

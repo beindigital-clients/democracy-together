@@ -92,9 +92,14 @@ export default async function JeunesPage({
           </div>
           <div className="relative overflow-hidden rounded-md border border-line">
             <div className="relative aspect-[4/3]">
+              {/* Photo d'ILLUSTRATION (la même pour plusieurs contenus) : elle
+                n'apporte aucune information, elle est donc décorative et
+                ignorée des aides techniques (RGAA 1.2). Son ancienne
+                alternative répétait le titre voisin — lu deux fois de suite
+                (audit RGAA du 27/09). */}
               <Image
                 src="/library/youth.jpg"
-                alt={c.hero.chip}
+                alt=""
                 fill
                 sizes="(max-width: 1024px) 100vw, 520px"
                 className="object-cover"

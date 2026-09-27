@@ -89,3 +89,39 @@ describe('Recherche globale (F-06)', () => {
     expect(short.organizations).toEqual([]);
   });
 });
+
+describe('Recherche globale — langue des résultats (audit RGAA, 8.7)', () => {
+  it('chaque publication sort avec sa langue de rédaction (`languages[0]`)', async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert(
+        'publications',
+        pubDoc({
+          title: 'Plateformes et démocratie',
+          slug: 'pd',
+          languages: ['en', 'fr'],
+        }),
+      );
+    });
+    // Document posé en direct : la migration calcule sa meule (voir plus haut).
+    await t.mutation(internal.searchIndexing.backfill, {
+      table: 'publications',
+    });
+    const res = await t.query(api.search.globalSearch, { q: 'Plateformes' });
+    // Le résultat GÉNÉRIQUE du registre, que rendent la palette et la page
+    // /recherche : c'est lui qui porte la langue du titre.
+    const hits = res.sections.flatMap((s) => s.hits);
+    expect(hits.map((h) => [h.source, h.title, h.lang])).toEqual([
+      ['publications', 'Plateformes et démocratie', 'en'],
+    ]);
+    // Et la forme historique, pour les appelants qui la lisent encore.
+    expect(res.publications).toEqual([
+      {
+        slug: 'pd',
+        title: 'Plateformes et démocratie',
+        type: 'rapport',
+        lang: 'en',
+      },
+    ]);
+  });
+});

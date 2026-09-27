@@ -51,8 +51,10 @@ test('« democratie » (sans accent) trouve « démocratie » — palette et pag
     'palette de recherche',
   );
   await dialog.getByRole('combobox').fill('democratie');
+  // Un GROUPE d'options nommé, et non un titre : le `listbox` ne contient que
+  // des groupes et des options (audit RGAA du 27/09, 7.1).
   await expect(
-    dialog.getByRole('heading', { name: 'Publications' }),
+    dialog.getByRole('group', { name: 'Publications' }),
   ).toBeVisible();
   await expect(dialog.getByRole('option').first()).toBeVisible();
 });

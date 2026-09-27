@@ -878,7 +878,8 @@
       "lockedBadge": "خاص بالأعضاء",
       "consultDoi": "الاطلاع (DOI)",
       "noFileNote": "لا يوجد ملف مرفق بهذا المنشور: يفتح الرابط سجل DOI الخاص به."
-    }
+    },
+    "pageNumber": "الصفحة {n}"
   },
   "translation": {
     "badge": "ترجمة آلية",
@@ -1655,7 +1656,8 @@
     "backToAll": "كل الأقسام",
     "nextPage": "النتائج التالية",
     "firstPage": "العودة إلى البداية",
-    "expertCount": "{count, plural, zero {# منشور} one {منشور واحد} two {منشوران} few {# منشورات} many {# منشوراً} other {# منشور}}"
+    "expertCount": "{count, plural, zero {# منشور} one {منشور واحد} two {منشوران} few {# منشورات} many {# منشوراً} other {# منشور}}",
+    "resultsCount": "{count, plural, =0 {لا نتائج} one {نتيجة واحدة} two {نتيجتان} few {# نتائج} many {# نتيجةً} other {# نتيجة}}"
   },
   "newsletter": {
     "eyebrow": "النشرة البريدية",
@@ -3401,5 +3403,9 @@
     "revisionSubmit": "تقديم النسخة المنقحة",
     "revisionSent": "قُدّمت النسخة {version}: أُبلغ المحرر.",
     "fileSelected": "الملف المختار: {name}"
+  },
+  "accessibility": {
+    "globePause": "إيقاف دوران الكرة الأرضية مؤقتاً",
+    "globePlay": "تشغيل دوران الكرة الأرضية"
   }
 }

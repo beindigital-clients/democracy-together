@@ -18,6 +18,11 @@
   --muted: #646771;
   --line: #d9d6cd;
   --line-strong: #c3bfb3;
+  /* Bordure des CHAMPS de formulaire (RGAA 3.3, WCAG 1.4.11). `--line`
+     (1,4:1 sur la surface) était la seule limite visible d'un champ de
+     saisie — un composant d'interface dont la limite doit atteindre 3:1.
+     3,7:1 sur `--surface`, 3,5:1 sur `--paper` (mesuré à l'audit du 27/09). */
+  --line-field: #858176;
 
   /* accent — institutionnel (indigo civique) */
   --accent: #1f3d6e;
@@ -115,6 +120,8 @@
   --muted: #8b8e96;
   --line: #2b313a;
   --line-strong: #3a414c;
+  /* 3,7:1 sur `--surface`, 4,1:1 sur `--paper` (thème sombre). */
+  --line-field: #727884;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.45);
   --map-land: #2a303a;
@@ -186,6 +193,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-line-field: var(--line-field);
 
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);

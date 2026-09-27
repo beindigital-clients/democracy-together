@@ -5,6 +5,7 @@ import type { PublicPublication } from '@convex/lib/publications';
 import { formatMonthYear } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
+import { contentLangAttrs } from '@/i18n/content-lang';
 
 // La carte ne reçoit que ce que les queries publiques servent — pas le
 // document complet (issue #30).
@@ -39,6 +40,9 @@ export async function PublicationCard({
   variant?: 'full' | 'compact';
 }) {
   const t = await getTranslations('library');
+  // Le titre est dans la langue de RÉDACTION (`languages[0]`, comme la fiche),
+  // pas forcément celle de la page : RGAA 8.7 — cf. `@/i18n/content-lang`.
+  const titleLang = contentLangAttrs(pub.languages[0], locale);
   const date = formatMonthYear(pub.publishedAt, locale);
   const meta = `${vocabulary(t, 'types.', pub.type)} · ${date}${
     variant === 'full' ? ` · ${langsLabel(pub.languages)}` : ''
@@ -67,7 +71,10 @@ export async function PublicationCard({
           <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
             {meta}
           </p>
-          <h3 className="mt-1.5 font-display text-[17px] font-medium leading-snug">
+          <h3
+            {...titleLang}
+            className="mt-1.5 font-display text-[17px] font-medium leading-snug"
+          >
             {pub.title}
           </h3>
         </div>
@@ -97,7 +104,10 @@ export async function PublicationCard({
         <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
           {meta}
         </p>
-        <h3 className="mb-2 mt-1.5 font-display text-[19px] font-medium leading-tight">
+        <h3
+          {...titleLang}
+          className="mb-2 mt-1.5 font-display text-[19px] font-medium leading-tight"
+        >
           {pub.title}
         </h3>
         <p className="text-[13px] text-ink-soft">
@@ -122,13 +132,20 @@ export async function PublicationCard({
             className="inline-flex items-center gap-1 font-mono text-[11px] text-muted"
             title={t('downloads')}
           >
-            ↓ {pub.downloads.toLocaleString(intlLocale(locale))}
+            {/* Symbole seul = contenu cryptique (RGAA 13.5) : un lecteur
+                d'écran lisait « flèche vers le bas 1 234 », et `title` sur un
+                `<span>` n'est pas restitué. Le symbole est masqué, le mot est
+                donné en texte. */}
+            <span aria-hidden="true">↓</span>
+            <span className="sr-only">{t('downloads')} :</span>{' '}
+            {pub.downloads.toLocaleString(intlLocale(locale))}
           </span>
           <span
             className="inline-flex items-center gap-1 font-mono text-[11px] text-muted"
             title={t('citations')}
           >
-            ❝ {pub.citations}
+            <span aria-hidden="true">❝</span>
+            <span className="sr-only">{t('citations')} :</span> {pub.citations}
           </span>
           <span className="ms-auto truncate font-mono text-[11px] text-muted">
             {pub.doi}

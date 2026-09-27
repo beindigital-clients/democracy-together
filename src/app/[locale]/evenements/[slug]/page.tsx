@@ -258,9 +258,11 @@ export default async function EventDetailPage({
                   {d.visualPin}
                 </span>
                 <div className="relative aspect-[4/3]">
+                  {/* Photo d'ILLUSTRATION (la même pour plusieurs contenus) : décorative,
+                    ignorée des aides techniques (RGAA 1.2, audit du 27/09). */}
                   <Image
                     src="/library/paris.jpg"
-                    alt={event.title}
+                    alt=""
                     fill
                     sizes="(max-width: 1024px) 100vw, 460px"
                     className="object-cover"

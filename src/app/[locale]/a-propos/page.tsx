@@ -28,11 +28,21 @@ export async function generateMetadata({
   };
 }
 
-function Eyebrow({ children }: { children: string }) {
+// `as="h2"` quand l'étiquette est le SEUL titre d'une section (RGAA 9.1) :
+// sous « Mission », quatre `<h3>` suivaient directement le `<h1>` — la
+// hiérarchie sautait un niveau (mesuré à l'audit du 27/09, axe
+// `heading-order`), et la section n'apparaissait pas dans la liste des titres.
+function Eyebrow({
+  children,
+  as: Tag = 'p',
+}: {
+  children: string;
+  as?: 'p' | 'h2';
+}) {
   return (
-    <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">
+    <Tag className="font-mono text-xs font-normal uppercase leading-normal tracking-[0.14em] text-muted">
       {children}
-    </p>
+    </Tag>
   );
 }
 
@@ -107,7 +117,7 @@ export default async function AboutPage({
       <section className="border-y border-line bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal>
-            <Eyebrow>{c.mission.eyebrow}</Eyebrow>
+            <Eyebrow as="h2">{c.mission.eyebrow}</Eyebrow>
           </Reveal>
           <RevealGroup className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {c.mission.axes.map((a) => (

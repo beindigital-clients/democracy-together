@@ -170,6 +170,9 @@ export default async function EventsPage({
                 defaultValue={filters.q ?? ''}
                 placeholder={L.hero.searchPlaceholder}
                 aria-label={L.hero.searchPlaceholder}
+                // Étiquette NON visible : `title` la rend lisible au survol et remplit
+                // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+                title={L.hero.searchPlaceholder}
                 className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-2.5 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               />
               <button
@@ -202,11 +205,9 @@ export default async function EventsPage({
               ) : (
                 <Image
                   src="/library/paris.jpg"
-                  alt={
-                    featured.slug === FEATURED_SLUG
-                      ? L.featured.title
-                      : featured.title
-                  }
+                  // Illustration décorative (RGAA 1.2, audit du 27/09) : le
+                  // titre voisin la nommerait deux fois.
+                  alt=""
                   fill
                   sizes="(max-width: 768px) 100vw, 620px"
                   className="object-cover"
@@ -367,7 +368,7 @@ export default async function EventsPage({
                       >
                         <span
                           aria-hidden="true"
-                          className={`grid h-4 w-4 shrink-0 place-items-center rounded-[3px] border transition-colors ${active ? 'border-accent bg-accent text-accent-contrast' : 'border-line-strong bg-surface group-hover:border-ink'}`}
+                          className={`grid h-4 w-4 shrink-0 place-items-center rounded-[3px] border transition-colors ${active ? 'border-accent bg-accent text-accent-contrast' : 'border-line-field bg-surface group-hover:border-ink'}`}
                         >
                           {active ? (
                             <svg

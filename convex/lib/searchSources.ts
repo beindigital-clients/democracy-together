@@ -191,7 +191,11 @@ const SOURCES: Record<SearchSourceKey, SourceDef> = {
           path: `/tribune/${p._id}`,
           kind: p.format,
           theme: p.theme,
-          lang: p.lang,
+          // Langue de RÉDACTION, pour le `lang` du titre (RGAA 8.7). Un billet
+          // antérieur au champ `lang` est en français — le repli retenu
+          // partout ailleurs (tribune.ts, translation.ts). Sans effet sur le
+          // filtre « langue », qui interroge l'index, pas ce champ.
+          lang: p.lang ?? 'fr',
           year: p.searchYear,
         }),
       ),

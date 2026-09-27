@@ -187,6 +187,30 @@ export function adminMinRoleForPath(pathname: string): NetworkRole {
   return 'moderateur';
 }
 
+/**
+ * Clé de libellé de l'écran courant (`admin.<clé>`), ou `null` hors du menu.
+ *
+ * Sert au TITRE DE PAGE (RGAA 8.6) : les écrans du back-office sont des
+ * composants client, sans `generateMetadata` ; mesuré à l'audit du 27/09, les
+ * seize portaient le même titre. Le libellé du menu est celui que la personne
+ * vient de choisir — c'est donc le nom de l'écran le plus sûr à annoncer.
+ */
+export function adminScreenKey(pathname: string): string | null {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (
+        item.href === '/admin'
+          ? path === '/admin'
+          : isAdminNavItemActive(item.href, path)
+      ) {
+        return item.key;
+      }
+    }
+  }
+  return null;
+}
+
 export function visibleAdminNavGroups(
   role: NetworkRole,
 ): readonly AdminNavGroup[] {
@@ -241,6 +265,14 @@ export function AdminNav({
                     <Link
                       href={href}
                       aria-current={active ? 'page' : undefined}
+                      // LIEN EXPLICITE (RGAA 6.1). « Événements », « Jeunes »,
+                      // « Newsletter » existent AUSSI dans l'en-tête public, vers
+                      // d'autres pages : mesuré à l'audit du 27/09, une liste des
+                      // liens de `/admin/utilisateurs` en montrait deux de chaque,
+                      // sans rien pour les distinguer (le nom du repère n'est pas un
+                      // contexte au sens du RGAA). Le nom commence par le texte
+                      // visible (WCAG 2.5.3) et dit l'espace visé.
+                      aria-label={`${t(key)} (${t('title')})`}
                       className={`block rounded-sm px-2.5 py-1.5 text-sm transition-colors ${
                         active
                           ? 'bg-accent-tint font-medium text-accent-text'

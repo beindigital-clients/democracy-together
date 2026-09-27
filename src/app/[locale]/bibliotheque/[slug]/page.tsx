@@ -247,11 +247,16 @@ export default async function PublicationPage({
         </header>
 
         {/* Corps */}
+        {/* `minmax(0, 1fr)` et non la piste implicite `auto` (RGAA 10.11) :
+            une piste `auto` s'élargit à la largeur MINIMALE de son contenu,
+            et un mot insécable de l'article (DOI, URL de citation) la portait
+            à 331 px dans une fenêtre de 320 — défilement horizontal mesuré à
+            l'audit du 27/09, en français comme en arabe. */}
         <div
-          className={`${WRAP} grid gap-12 pb-24 pt-12 lg:grid-cols-[1fr_340px]`}
+          className={`${WRAP} grid grid-cols-[minmax(0,1fr)] gap-12 pb-24 pt-12 lg:grid-cols-[minmax(0,1fr)_340px]`}
         >
           {/* Article */}
-          <article>
+          <article className="min-w-0">
             <TranslationNotice
               display={display}
               readerLocale={loc}
@@ -288,7 +293,12 @@ export default async function PublicationPage({
 
             {pub.image ? (
               <Reveal className="my-8 block" as="div">
-                <figure className="my-6">
+                {/* Image légendée (RGAA 1.9) : cf. `home-hero.tsx`. */}
+                <figure
+                  role="figure"
+                  aria-label={`${vocabulary(t, 'types.', pub.type)} · ${vocabulary(t, 'themes.', pub.theme)} · Democracy Together`}
+                  className="my-6"
+                >
                   <div className="relative aspect-[16/9] overflow-hidden rounded-sm border border-line bg-surface-2">
                     <Image
                       src={pub.image}

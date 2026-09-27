@@ -1,5 +1,6 @@
 import { countryFlag, countryName } from '@/lib/orgs';
 import { vocabulary, type VocabularyTranslator } from '@/i18n/vocabulary';
+import { contentLangAttrs } from '@/i18n/content-lang';
 
 // RÉSULTATS DE LA RECHERCHE GLOBALE — rendu partagé par la palette et la page
 // /recherche (F-06 / F-34, chantier diffusion).
@@ -17,6 +18,7 @@ export type SearchHitLike = {
   theme?: string;
   country?: string;
   count?: number;
+  lang?: string;
 };
 
 type PluralTranslator = (
@@ -37,7 +39,8 @@ export function hitMeta(
     return vocabulary(ctx.library, 'types.', hit.kind);
   }
   if (hit.source === 'organizations' && hit.country) {
-    return `${countryFlag(hit.country)} ${countryName(hit.country, ctx.locale)}`;
+    // Le drapeau est rendu À PART (`hitFlag`), masqué aux aides techniques.
+    return countryName(hit.country, ctx.locale);
   }
   if (hit.source === 'tribune' && hit.theme) {
     return vocabulary(ctx.library, 'themes.', hit.theme);
@@ -46,6 +49,31 @@ export function hitMeta(
     return ctx.search('expertCount', { count: hit.count });
   }
   return '';
+}
+
+/**
+ * Drapeau d'un résultat, à rendre dans un `aria-hidden` à côté de `hitMeta` :
+ * il double le nom du pays, et une synthèse vocale le lirait « drapeau :
+ * Sénégal, Sénégal » (audit RGAA du 27/09).
+ */
+export function hitFlag(hit: SearchHitLike): string {
+  return hit.source === 'organizations' && hit.country
+    ? countryFlag(hit.country)
+    : '';
+}
+
+/**
+ * `lang`/`dir` du TITRE d'un résultat (RGAA 8.7) : un titre anglais dans une
+ * page arabe doit être lu par la voix anglaise et composé de gauche à droite.
+ * Seuls les résultats qui ont une langue de rédaction (publications, billets)
+ * en portent une ; un nom de membre ou d'expert est un nom propre, sans langue
+ * à déclarer — on n'y pose donc rien.
+ */
+export function hitLangAttrs(
+  hit: SearchHitLike,
+  pageLocale: string,
+): { lang?: string; dir?: 'ltr' | 'rtl' } {
+  return hit.lang ? contentLangAttrs(hit.lang, pageLocale) : {};
 }
 
 // Filtres de la page de résultats, lus dans l'URL et ASSAINIS : une valeur

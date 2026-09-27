@@ -52,6 +52,9 @@ const CLES_NON_LITTERALES = [
   // entrées et titres de groupe — existe en français ET en anglais.
   'src/components/admin/admin-nav.tsx -> t(group.labelKey)',
   'src/components/admin/admin-nav.tsx -> t(key)',
+  // Titre d'onglet par écran (RGAA 8.6) : la clé vient de `adminScreenKey`,
+  // qui ne rend que des clés de cette même table `ADMIN_NAV_GROUPS`.
+  'src/components/admin/admin-shell.tsx -> t(key)',
   'src/components/layout/mobile-nav.tsx -> t(item.key)',
   'src/components/layout/nav-links.tsx -> t(key)',
 ];

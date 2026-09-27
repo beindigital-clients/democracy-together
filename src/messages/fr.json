@@ -878,7 +878,8 @@
       "lockedBadge": "Réservé aux membres",
       "consultDoi": "Consulter (DOI)",
       "noFileNote": "Aucun fichier n’est joint à cette publication : le lien mène à sa notice DOI."
-    }
+    },
+    "pageNumber": "Page {n}"
   },
   "translation": {
     "badge": "Traduction automatique",
@@ -1655,7 +1656,8 @@
     "backToAll": "Toutes les sections",
     "nextPage": "Résultats suivants",
     "firstPage": "Revenir au début",
-    "expertCount": "{count, plural, one {# publication} other {# publications}}"
+    "expertCount": "{count, plural, one {# publication} other {# publications}}",
+    "resultsCount": "{count, plural, one {# résultat} other {# résultats}}"
   },
   "newsletter": {
     "eyebrow": "Newsletter",
@@ -3401,5 +3403,9 @@
     "revisionSubmit": "Déposer la révision",
     "revisionSent": "Version {version} déposée : l'éditeur en est prévenu.",
     "fileSelected": "Fichier choisi : {name}"
+  },
+  "accessibility": {
+    "globePause": "Mettre en pause la rotation du globe",
+    "globePlay": "Lancer la rotation du globe"
   }
 }

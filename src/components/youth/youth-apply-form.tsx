@@ -20,6 +20,7 @@ import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Candidature au hub Jeunes (F-58) — îlot client sur /jeunes (#rejoindre). Sans
 // compte. Axe d'intérêt facultatif (relie aux 5 axes du réseau).
@@ -101,10 +102,7 @@ export function YouthApplyForm() {
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-5"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-5">
         <p className="font-medium text-ink">{t('success')}</p>
         {/* Dédoublonnage doux (une candidature en attente par adresse) : la
             réponse du serveur ne distingue pas les deux cas — c'est voulu, un
@@ -113,7 +111,7 @@ export function YouthApplyForm() {
         <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
           {t('successDedupe')}
         </p>
-      </div>
+      </StatusMessage>
     );
   }
 
@@ -142,6 +140,8 @@ export function YouthApplyForm() {
       <TextField
         label={t('country')}
         id="y-country"
+        // Finalité déclarée pour le remplissage automatique (RGAA 11.13).
+        autoComplete="country-name"
         required
         maxLength={FIELD_MAX.country}
         {...field('country')}

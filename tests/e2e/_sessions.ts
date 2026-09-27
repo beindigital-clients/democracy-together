@@ -80,7 +80,10 @@ export type SessionKey =
   | 'editorialAuteur'
   | 'editorialEditeur'
   | 'editorialRelecteur1'
-  | 'editorialRelecteur2';
+  | 'editorialRelecteur2'
+  | 'a11yClavier'
+  | 'a11yAnnonces'
+  | 'a11yAffichage';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -332,5 +335,27 @@ export const SESSIONS: Record<
     email: 'e2e_session_editorial_relecteur2@democracytogether.test',
     state: 'tests/e2e/.auth/editorial-relecteur2.json',
     role: 'moderateur',
+  },
+  // Sessions des specs d'accessibilité (F-08, audit RGAA) : `a11y-clavier`,
+  // `a11y-annonces` et `a11y-affichage` parcourent l'espace membre et un écran
+  // du back-office. Une session PAR FICHIER, selon la règle ci-dessus ; chacun
+  // réécrit son état après chaque test (`test.afterEach`), comme
+  // `admin-confirmations`, pour ne jamais repartir d'un jeton consommé. Rang
+  // administrateur : les gardes étant hiérarchiques, un compte couvre l'espace
+  // membre ET `/admin/utilisateurs`.
+  a11yClavier: {
+    email: 'e2e_session_a11y_clavier@democracytogether.test',
+    state: 'tests/e2e/.auth/a11y-clavier.json',
+    role: 'admin',
+  },
+  a11yAnnonces: {
+    email: 'e2e_session_a11y_annonces@democracytogether.test',
+    state: 'tests/e2e/.auth/a11y-annonces.json',
+    role: 'admin',
+  },
+  a11yAffichage: {
+    email: 'e2e_session_a11y_affichage@democracytogether.test',
+    state: 'tests/e2e/.auth/a11y-affichage.json',
+    role: 'admin',
   },
 };

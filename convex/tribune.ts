@@ -38,6 +38,10 @@ const postSummaryValidator = v.object({
   format: v.union(v.literal('court'), v.literal('fond')),
   title: v.string(),
   excerpt: v.string(),
+  // Langue de rédaction, pour l'attribut `lang` du titre et de l'extrait dans
+  // le FIL (RGAA 8.7) — la fiche la recevait déjà. Optionnelle pour la même
+  // raison qu'ici-dessous : les billets antérieurs au champ n'en portent pas.
+  lang: v.optional(locale),
   authorName: v.string(),
   commentCount: v.number(),
   createdAt: v.number(),
@@ -535,6 +539,7 @@ export const listPosts = query({
         format: p.format,
         title: p.title,
         excerpt: p.body.length > 220 ? `${p.body.slice(0, 220)}…` : p.body,
+        lang: p.lang,
         authorName: p.authorName,
         commentCount: p.commentCount,
         createdAt: p.createdAt,

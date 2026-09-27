@@ -105,7 +105,10 @@ function styles(rtl: boolean) {
   } satisfies Record<string, TextStyle>;
 }
 
-const RTL_TEXT = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/u;
+// Exportés (avec `featuresFor` et `visualOrderLigatures`) pour le reçu de
+// paiement (convex/lib/payments/receiptPdf.ts), qui compose les noms arabes
+// avec les mêmes corrections mesurées.
+export const RTL_TEXT = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/u;
 
 // Crénage COUPÉ dans les mots arabes, et seulement là. Mesuré : Plex Sans
 // Arabic écarte de 90/1000 d'em la lettre qui suit un ر (« تقرير »), et les
@@ -113,7 +116,7 @@ const RTL_TEXT = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/u;
 // espace — « تقر ير ». Sans crénage, l'écart visuel perdu est d'un demi-point ;
 // l'extraction, elle, rend le mot entier. Le latin garde son crénage.
 type Features = PDFKit.Mixins.TextOptions['features'];
-function featuresFor(text: string): Features {
+export function featuresFor(text: string): Features {
   return RTL_TEXT.test(text)
     ? ({ kern: false } as unknown as Features)
     : undefined;
@@ -134,7 +137,7 @@ function featuresFor(text: string): Features {
 //
 // Accès à un champ interne de pdfkit (`_fontFamilies`, `unicode`) : le test
 // « الإصدار » de render.test.ts échoue si une version de pdfkit le déplace.
-function visualOrderLigatures(doc: PDFKit.PDFDocument) {
+export function visualOrderLigatures(doc: PDFKit.PDFDocument) {
   const families = (
     doc as unknown as {
       _fontFamilies?: Record<string, { unicode?: number[][] }>;

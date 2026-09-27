@@ -14,6 +14,7 @@ import {
 } from '@/lib/membership-content';
 import { intlLocale } from '@/i18n/locale';
 import type { Locale } from '@/i18n/routing';
+import { Check } from 'lucide-react';
 
 type EstimatorContent = MembershipContent['estimator'];
 
@@ -159,7 +160,10 @@ function RadioGroup({
           return (
             <label
               key={o.value}
-              className={`flex cursor-pointer flex-col rounded-sm border px-3.5 py-2.5 transition-colors ${
+              // Focus porté par la carte (le bouton radio est masqué, son
+              // contour serait invisible — RGAA 10.7), sélection doublée d'une
+              // coche (RGAA 3.1).
+              className={`relative flex cursor-pointer flex-col rounded-sm border px-3.5 py-2.5 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
                 active
                   ? 'border-accent bg-accent-tint'
                   : 'border-line-strong bg-surface hover:border-ink'
@@ -174,8 +178,11 @@ function RadioGroup({
                 className="sr-only"
               />
               <span
-                className={`text-sm font-semibold ${active ? 'text-accent-text' : 'text-ink'}`}
+                className={`inline-flex items-center gap-1.5 text-sm font-semibold ${active ? 'text-accent-text' : 'text-ink'}`}
               >
+                {active ? (
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : null}
                 {o.label}
               </span>
               {/* `text-ink-soft`, pas `text-muted` : sur `bg-accent-tint` en

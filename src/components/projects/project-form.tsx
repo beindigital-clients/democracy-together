@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/field';
 import { isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Proposition de projet collaboratif (F-60) — îlot client sur /appels-a-projets.
 // Réservé aux membres : un visiteur (anonyme ou compte sans rôle membre) est
@@ -121,13 +122,10 @@ export function ProjectForm() {
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-5"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-5">
         <p className="font-medium text-ink">{t('success')}</p>
         <p className="mt-1 text-[14px] text-ink-soft">{t('successBody')}</p>
-      </div>
+      </StatusMessage>
     );
   }
 

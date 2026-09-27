@@ -32,10 +32,15 @@ import {
 // Résultats par source dans la palette : de quoi choisir, pas un inventaire.
 const LIMIT = 8;
 
+// `lang` : langue de RÉDACTION de la publication (celle du hit du registre,
+// `searchLang ?? languages[0]`, la même règle que la fiche). Les listes de
+// résultats en ont besoin pour poser `lang` sur un titre qui n'est pas dans la
+// langue de la page (RGAA 8.7) — la forme historique la porte donc aussi.
 const legacyPublication = v.object({
   slug: v.string(),
   title: v.string(),
   type: v.string(),
+  lang: v.optional(v.string()),
 });
 const legacyOrganization = v.object({
   slug: v.string(),
@@ -87,6 +92,7 @@ export const globalSearch = query({
         slug: lastSegment(h.path),
         title: h.title,
         type: h.kind ?? '',
+        lang: h.lang,
       })),
       organizations: hitsOf('organizations').map((h) => ({
         slug: lastSegment(h.path),

@@ -1,5 +1,18 @@
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
+import { deleteUserDataSocial, exportUserDataSocial } from '../social/account';
+import {
+  deleteUserDataProgrammes,
+  exportUserDataProgrammes,
+} from '../programmes';
+import { deleteUserDataEditorial, exportUserDataEditorial } from '../editorial';
+import {
+  deleteUserDataCommunaute,
+  exportUserDataCommunaute,
+} from '../communaute';
+import { deleteUserDataContenus } from './contenus/userData';
+import { deleteUserDataPaiements } from './payments/ledger';
+import { deleteUserDataDiffusion } from '../newsletter';
 import {
   COUNTER,
   bumpCounter,
@@ -735,16 +748,87 @@ const authAccountsModule: UserDataModule = {
 
 // --- REGISTRE DES CHANTIERS --------------------------------------------------
 //
-// À COMPLÉTER PAR L'ORCHESTRATEUR à la fusion des branches : chaque chantier
-// dont les tables portent un `userId` exporte `deleteUserData<Chantier>(ctx,
-// userId)` (et, s'il le peut, `exportUserData<Chantier>`). Une ligne par
-// chantier, par exemple :
+// Branché à la fusion des chantiers du backlog (27/09). Chaque chantier porte
+// sa règle (suppression ou anonymisation, justifiée dans docs/backlog/*.md) ;
+// ce registre ne fait que les appeler. Les appels passent par des fonctions
+// fléchées : les modules importés importent eux-mêmes `lib/`, et une lecture
+// au chargement du module tomberait sur un import circulaire pas encore
+// initialisé.
 //
-//   { key: 'profil', delete: deleteUserDataProfil, export: exportUserDataProfil },
-//
-// Ils sont appelés APRÈS les modules du socle et AVANT la suppression des
-// moyens de connexion et du compte, qui restent en dernier.
-export const CHANTIER_USER_DATA_MODULES: UserDataModule[] = [];
+// La COMMUNAUTÉ passe AVANT les modules « tribune » et « workspaces » du socle
+// (cf. USER_DATA_MODULES) : elle connaît les fichiers, versions et invitations
+// d'un espace et l'historique de modération d'un billet, que le socle, écrit
+// avant elle, ignore — le socle ne trouve ensuite plus rien à faire.
+const communauteModule: UserDataModule = {
+  key: 'communaute',
+  delete: async (ctx, userId) =>
+    (await deleteUserDataCommunaute(ctx, userId)).complete,
+  export: (ctx, userId) => exportUserDataCommunaute(ctx, userId),
+};
+
+export const CHANTIER_USER_DATA_MODULES: UserDataModule[] = [
+  {
+    key: 'social',
+    delete: async (ctx, userId) =>
+      (await deleteUserDataSocial(ctx, userId)).done,
+    export: (ctx, userId) => exportUserDataSocial(ctx, userId),
+  },
+  {
+    key: 'programmes',
+    delete: async (ctx, userId) => {
+      await deleteUserDataProgrammes(ctx, userId);
+    },
+    export: (ctx, userId) => exportUserDataProgrammes(ctx, userId),
+  },
+  {
+    key: 'editorial',
+    delete: (ctx, userId) => deleteUserDataEditorial(ctx, userId),
+    export: (ctx, userId) => exportUserDataEditorial(ctx, userId),
+  },
+  {
+    key: 'contenus',
+    delete: (ctx, userId) => deleteUserDataContenus(ctx, userId),
+  },
+  {
+    // Les pièces comptables sont CONSERVÉES (obligation légale) et seulement
+    // détachées du compte ; l'export montre au membre ce qui reste à son nom.
+    key: 'paiements',
+    delete: (ctx, userId) => deleteUserDataPaiements(ctx, userId),
+    export: async (ctx, userId) => {
+      const transactions = await ctx.db
+        .query('paymentTransactions')
+        .withIndex('by_user_and_paidAt', (q) => q.eq('userId', userId))
+        .take(EXPORT_MAX);
+      const receipts = await ctx.db
+        .query('paymentReceipts')
+        .withIndex('by_user', (q) => q.eq('userId', userId))
+        .take(EXPORT_MAX);
+      const subscriptions = await ctx.db
+        .query('paymentSubscriptions')
+        .withIndex('by_user', (q) => q.eq('userId', userId))
+        .take(EXPORT_MAX);
+      return {
+        transactions: transactions.map((t) => ({
+          kind: t.kind,
+          amountMinor: t.amountMinor,
+          currency: t.currency,
+          status: t.status,
+          paidAt: t.paidAt,
+        })),
+        receipts: receipts.map((r) => ({ number: r.number, year: r.year })),
+        subscriptions: subscriptions.map((sub) => ({
+          status: sub.status,
+          amountMinor: sub.amountMinor,
+          currency: sub.currency,
+        })),
+      };
+    },
+  },
+  {
+    key: 'diffusion',
+    delete: (ctx, userId) => deleteUserDataDiffusion(ctx, userId),
+  },
+];
 
 /** Registre ordonné — l'ordre est celui de la suppression. */
 export const USER_DATA_MODULES: readonly UserDataModule[] = [
@@ -754,6 +838,7 @@ export const USER_DATA_MODULES: readonly UserDataModule[] = [
   organizationsModule,
   publicationsModule,
   peerReviewModule,
+  communauteModule,
   tribuneModule,
   workspacesModule,
   projectsModule,

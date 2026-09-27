@@ -11,6 +11,7 @@ import { FormError, TextField } from '@/components/ui/field';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Formulaire d'inscription à un événement (F-53) — îlot client, sur la page de
 // détail. Idempotent côté serveur (réinscription = succès sans doublon). Les
@@ -81,12 +82,9 @@ export function EventRegisterForm({
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-4"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-4">
         <p className="text-sm font-medium text-ink">{t('success')}</p>
-      </div>
+      </StatusMessage>
     );
   }
 

@@ -78,6 +78,9 @@ const EDITOR_ITEMS = [
 // (cf. le groupe `automatisation` de admin-nav.tsx).
 const ADMIN_ITEMS = ['Modération IA', 'Finances', 'Utilisateurs', 'Journal'];
 
+// Le NOM accessible des entrées précise l'espace (RGAA 6.1, cf. admin-nav.tsx) :
+// « Publications (Administration) ». Le texte VISIBLE, lui, reste le libellé
+// seul — c'est ce que compare `linkNames`.
 function linkNames(nav: HTMLElement): string[] {
   return within(nav)
     .getAllByRole('link')
@@ -95,7 +98,11 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     const nav = renderNav('moderateur');
     expect(linkNames(nav).sort()).toEqual([...STAFF_ITEMS].sort());
     for (const reserved of [...EDITOR_ITEMS, ...ADMIN_ITEMS]) {
-      expect(within(nav).queryByRole('link', { name: reserved })).toBeNull();
+      expect(
+        within(nav).queryByRole('link', {
+          name: `${reserved} (Administration)`,
+        }),
+      ).toBeNull();
     }
   });
 
@@ -105,7 +112,11 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       [...STAFF_ITEMS, ...EDITOR_ITEMS].sort(),
     );
     for (const reserved of ADMIN_ITEMS) {
-      expect(within(nav).queryByRole('link', { name: reserved })).toBeNull();
+      expect(
+        within(nav).queryByRole('link', {
+          name: `${reserved} (Administration)`,
+        }),
+      ).toBeNull();
     }
   });
 
@@ -178,7 +189,7 @@ describe('Navigation du back-office — entrée courante (issue #49)', () => {
     const nav = renderNav('admin', '/admin/publications/en-attente');
     expect(
       within(nav)
-        .getByRole('link', { name: 'Publications' })
+        .getByRole('link', { name: 'Publications (Administration)' })
         .getAttribute('aria-current'),
     ).toBe('page');
   });
@@ -194,7 +205,7 @@ describe('Navigation du back-office — entrée courante (issue #49)', () => {
     const nav = renderNav('admin', '/admin/journal');
     expect(
       within(nav)
-        .getByRole('link', { name: 'Tableau de bord' })
+        .getByRole('link', { name: 'Tableau de bord (Administration)' })
         .getAttribute('aria-current'),
     ).toBeNull();
   });

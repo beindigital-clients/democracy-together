@@ -56,6 +56,15 @@ export function LegalDocument({
                   {p}
                 </p>
               ))}
+              {s.items?.length ? (
+                <ul className="flex max-w-[68ch] list-disc flex-col gap-2 ps-5 leading-relaxed text-ink-soft marker:text-muted">
+                  {s.items.map((item) => (
+                    <li key={item.slice(0, 60)} className="wrap-anywhere">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               {s.after}
             </div>
           </Reveal>

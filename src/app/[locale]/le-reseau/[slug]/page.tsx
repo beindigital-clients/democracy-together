@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { countryName, countryFlag, languageName } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { contentLangAttrs, ORG_DESCRIPTION_LOCALE } from '@/i18n/content-lang';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { safeHref } from '@/lib/safe-href';
@@ -124,7 +125,12 @@ export default async function OrgProfilePage({
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_300px]">
         <div>
           <h2 className="font-display text-2xl">{t('about')}</h2>
-          <p className="mt-3 max-w-[68ch] leading-relaxed text-ink-soft">
+          <p
+            {...(org.description
+              ? contentLangAttrs(ORG_DESCRIPTION_LOCALE, locale)
+              : {})}
+            className="mt-3 max-w-[68ch] leading-relaxed text-ink-soft"
+          >
             {org.description ?? '—'}
           </p>
 

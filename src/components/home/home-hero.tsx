@@ -72,7 +72,12 @@ export function HomeHero({ hero }: { hero: Hero }) {
           <h1 className="mt-5 max-w-[15ch] font-display text-[clamp(38px,5.6vw,68px)] font-medium leading-[1.06] tracking-[-0.02em]">
             {words.map((w, i) => (
               <Fragment key={`${w}-${i}`}>
-                <span className="inline-block overflow-hidden align-bottom">
+                {/* `overflow-clip` + marge de rognage plutôt que
+                    `overflow-hidden` (RGAA 10.12) : avec l'espacement de texte
+                    élargi, le bas des lettres arabes était rogné de 4 px
+                    (mesuré le 27/09). La marge laisse dépasser les jambages ;
+                    le mot qui monte reste masqué pendant l'animation. */}
+                <span className="inline-block overflow-clip align-bottom [overflow-clip-margin:0.25em]">
                   <span
                     data-reveal=""
                     className="dt-hero-word inline-block"
@@ -116,8 +121,13 @@ export function HomeHero({ hero }: { hero: Hero }) {
           className="dt-hero-image order-first lg:order-none"
           style={{ animationDelay: '0.25s' }}
         >
+          {/* Image LÉGENDÉE (RGAA 1.9) : `role="figure"` et un `aria-label`
+              identique à la légende relient les deux pour les aides
+              techniques qui ne rattachent pas `<figcaption>` d'elles-mêmes. */}
           <figure
             ref={figureRef}
+            role="figure"
+            aria-label={hero.visualCaption}
             className="relative aspect-[16/10] overflow-hidden rounded-sm border border-line bg-surface-2 shadow-pop lg:aspect-[4/5]"
           >
             {/* sur-cadrage pour absorber le décalage du parallaxe (pas de vide) */}
