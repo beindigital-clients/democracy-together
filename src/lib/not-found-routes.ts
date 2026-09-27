@@ -44,6 +44,7 @@ export const KNOWN_LOCALE_SEGMENTS = [
   'mot-de-passe-oublie',
   'newsletter',
   'notifications',
+  'paiement',
   'partenaires',
   'presse',
   'rapports',

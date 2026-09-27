@@ -282,10 +282,12 @@ describe('Plafond non forgeable — global par formulaire', () => {
     ).toHaveLength(1);
   });
 
-  it('les sept formulaires publics ont un barème, et des compteurs indépendants', async () => {
+  it('les formulaires publics ont un barème, et des compteurs indépendants', async () => {
+    // `donation` : formulaire de don (F-28), ouvert aux visiteurs.
     expect(Object.keys(PUBLIC_FORM_LIMITS).sort()).toEqual([
       'apply',
       'contact',
+      'donation',
       'eventRegister',
       'eventReminder',
       'mentorship',

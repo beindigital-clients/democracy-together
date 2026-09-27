@@ -122,6 +122,10 @@ jobs:
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" AUTH_DEV_OTP true
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" RECAPTCHA_DISABLED true
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" SITE_URL http://localhost:3000
+          # Prestataire de paiement FACTICE (F-28, paiements-don.spec.ts) :
+          # refusé par le serveur sans AUTH_DEV_OTP et en présence d'une clé
+          # de production (convex/lib/payments/config.ts).
+          npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" PAYMENTS_FAKE_PROVIDER 1
 
       - name: Vérifier les clés Convex Auth de la préversion
         run: |

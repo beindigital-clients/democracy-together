@@ -61,7 +61,8 @@ export type SessionKey =
   | 'enTete'
   | 'adminContact'
   | 'adminModeration'
-  | 'adminModerationIa';
+  | 'adminModerationIa'
+  | 'paiements';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -183,6 +184,16 @@ export const SESSIONS: Record<
   adminModerationIa: {
     email: 'e2e_session_admin_moderation_ia@democracytogether.test',
     state: 'tests/e2e/.auth/admin-moderation-ia.json',
+    role: 'admin',
+  },
+  // Session dédiée à `paiements-don.spec.ts` (F-28 à F-31). Le fichier donne
+  // PUIS relit son reçu dans l'espace membre PUIS retrouve la transaction au
+  // back-office : il tient sa session d'un bout à l'autre. Rang
+  // ADMINISTRATEUR, celui qu'exige /admin/finances — les gardes étant
+  // hiérarchiques, le même compte donne et consulte son espace membre.
+  paiements: {
+    email: 'e2e_session_paiements@democracytogether.test',
+    state: 'tests/e2e/.auth/paiements.json',
     role: 'admin',
   },
 };

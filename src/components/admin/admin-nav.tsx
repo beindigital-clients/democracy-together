@@ -118,6 +118,16 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     minRole: 'admin',
     items: [{ href: '/admin/moderation-ia', key: 'aiModeration' }],
   },
+  // Trésorerie (F-31) : montants, identités des payeurs et remboursements —
+  // réservée à l'administrateur, comme la garde des fonctions de
+  // convex/payments/finances.ts. Le barème (/admin/finances/formules) hérite
+  // du rang de l'écran par préfixe.
+  {
+    key: 'finances',
+    labelKey: 'navGroup_finances',
+    minRole: 'admin',
+    items: [{ href: '/admin/finances', key: 'finances' }],
+  },
   {
     key: 'comptes',
     labelKey: 'navGroup_comptes',

@@ -11,7 +11,9 @@ export type IncomeLevel = 'high' | 'mid' | 'low';
 export type MemberType = 'org' | 'ind' | 'jeu';
 
 // Barème indicatif EUR/an : base par type au revenu élevé, atténuée par palier.
-// Paiement en euro (EUR) uniquement pour le moment.
+// Affiché tant que le barème RÉEL (table `paymentPlans`, F-27) n'est pas publié.
+// Pastilles : « reçu de paiement » et non « reçu fiscal » — l'éligibilité au
+// mécénat n'est pas acquise (cf. convex/lib/payments/config.ts).
 export const BASE_EUR: Record<MemberType, number> = {
   org: 1200,
   ind: 120,
@@ -66,8 +68,8 @@ export type MembershipContent = {
 const fr: MembershipContent = {
   pills: [
     'Cotisation solidaire',
-    'Reçu fiscal · loi 1901',
-    'Paiement en euro (EUR)',
+    'Reçu de paiement',
+    'Euro (EUR) ou franc CFA (XOF)',
   ],
   intro: {
     eyebrow: 'Adhésion',
@@ -239,8 +241,8 @@ const fr: MembershipContent = {
 const en: MembershipContent = {
   pills: [
     'Solidarity contribution',
-    'Tax receipt · loi 1901',
-    'Pay in euro (EUR)',
+    'Payment receipt',
+    'Euro (EUR) or CFA franc (XOF)',
   ],
   intro: {
     eyebrow: 'Membership',
@@ -410,7 +412,7 @@ const en: MembershipContent = {
 };
 
 const es: MembershipContent = {
-  pills: ['Cuota solidaria', 'Recibo fiscal · loi 1901', 'Pago en euros (EUR)'],
+  pills: ['Cuota solidaria', 'Recibo de pago', 'Euro (EUR) o franco CFA (XOF)'],
   intro: {
     eyebrow: 'Adhesión',
     title: 'Elegir un tipo de adhesión',
@@ -580,8 +582,8 @@ const es: MembershipContent = {
 const pt: MembershipContent = {
   pills: [
     'Quota solidária',
-    'Recibo fiscal · loi 1901',
-    'Pagamento em euros (EUR)',
+    'Recibo de pagamento',
+    'Euro (EUR) ou franco CFA (XOF)',
   ],
   intro: {
     eyebrow: 'Adesão',
@@ -750,7 +752,7 @@ const pt: MembershipContent = {
   },
 };
 const ar: MembershipContent = {
-  pills: ['اشتراك تضامني', 'وصل ضريبي · قانون 1901', 'الأداء باليورو (EUR)'],
+  pills: ['اشتراك تضامني', 'وصل أداء', 'اليورو (EUR) أو الفرنك الإفريقي (XOF)'],
   intro: {
     eyebrow: 'الانضمام',
     title: 'اختيار نوع العضوية',

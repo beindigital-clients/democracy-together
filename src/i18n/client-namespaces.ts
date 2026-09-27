@@ -47,6 +47,9 @@ export const BASE_CLIENT_NAMESPACES = [
   'nav',
   'newsletter',
   'notifications',
+  // `payments` : formulaire de don, retour de paiement, espace membre
+  // (cotisations, reçus) — et l'écran Finances, qui le partage.
+  'payments',
   'projects',
   'reminder',
   'search',

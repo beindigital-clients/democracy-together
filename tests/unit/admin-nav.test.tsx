@@ -62,7 +62,7 @@ const EDITOR_ITEMS = ['Comité de lecture', 'Newsletter'];
 // « Modération IA » rejoint les entrées réservées à l'administrateur : ce
 // qu'elle règle n'est pas une modération, c'est la décision de s'en passer
 // (cf. le groupe `automatisation` de admin-nav.tsx).
-const ADMIN_ITEMS = ['Modération IA', 'Utilisateurs', 'Journal'];
+const ADMIN_ITEMS = ['Modération IA', 'Finances', 'Utilisateurs', 'Journal'];
 
 function linkNames(nav: HTMLElement): string[] {
   return within(nav)
@@ -89,10 +89,10 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
   });
 
-  it('un administrateur voit les 16 entrées attendues', () => {
+  it('un administrateur voit les 17 entrées attendues', () => {
     const nav = renderNav('admin');
     const expected = [...STAFF_ITEMS, ...EDITOR_ITEMS, ...ADMIN_ITEMS];
-    expect(expected).toHaveLength(16);
+    expect(expected).toHaveLength(17);
     expect(linkNames(nav).sort()).toEqual([...expected].sort());
   });
 
@@ -115,6 +115,7 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       'Programmes',
       'Édition',
       'Automatisation',
+      'Trésorerie',
       'Comptes et audit',
     ];
     for (const label of labels) {
@@ -122,9 +123,9 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       // est donc annoncé, sans introduire un `<h2>` avant le `<h1>` de l'écran.
       expect(within(nav).getByRole('list', { name: label })).toBeTruthy();
     }
-    // Aucune entrée hors groupe : la somme des listes rend bien les 16 liens.
+    // Aucune entrée hors groupe : la somme des listes rend bien les 17 liens.
     const grouped = lists.flatMap((l) => within(l).getAllByRole('link'));
-    expect(grouped).toHaveLength(16);
+    expect(grouped).toHaveLength(17);
   });
 
   it('ne défile plus horizontalement : aucun conteneur en overflow-x', () => {
@@ -204,9 +205,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
 
   it('aucun chemin ni aucune clé de libellé en double', () => {
     const items = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-    expect(items).toHaveLength(16);
-    expect(new Set(items.map((i) => i.href)).size).toBe(16);
-    expect(new Set(items.map((i) => i.key)).size).toBe(16);
+    expect(items).toHaveLength(17);
+    expect(new Set(items.map((i) => i.href)).size).toBe(17);
+    expect(new Set(items.map((i) => i.key)).size).toBe(17);
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
@@ -239,6 +240,9 @@ describe('adminMinRoleForPath', () => {
     expect(adminMinRoleForPath('/admin/utilisateurs')).toBe('admin');
     expect(adminMinRoleForPath('/admin/journal')).toBe('admin');
     expect(adminMinRoleForPath('/admin/moderation-ia')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/finances')).toBe('admin');
+    // Le barème hérite du rang de l'écran Finances.
+    expect(adminMinRoleForPath('/admin/finances/formules')).toBe('admin');
   });
 
   it('un sous-chemin hérite du rang de son écran ; un chemin inconnu vaut le rang de la coquille', () => {

@@ -35,6 +35,13 @@ export const AUDIT = {
   // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
   AI_MODERATION_CONFIGURED: 'aiModeration.configured',
   AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
+  // Paiements (F-27 à F-31). Préfixe commun `payment.` : l'écran Finances
+  // filtre le journal sur ce mot par l'index plein texte.
+  PAYMENT_PLAN_CHANGED: 'payment.plan_changed',
+  PAYMENT_PLANS_SEEDED: 'payment.plans_seeded',
+  PAYMENT_REFUNDED: 'payment.refunded',
+  PAYMENT_SUBSCRIPTION_CANCELLED: 'payment.subscription_cancelled',
+  PAYMENT_EXPORTED: 'payment.exported',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];
