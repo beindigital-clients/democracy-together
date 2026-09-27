@@ -97,7 +97,7 @@ C-xx (correctif) ; les références A-x / M-x renvoient aux rapports de module.
 | C-19 | Mineur | `X-Powered-By: Next.js` exposé | `poweredByHeader: false` | `next.config.ts` |
 | C-20 | Dette | `convex/_generated/api.d.ts` en retard sur les modules (`lib/emailContent` absent) | régénéré par la CLI | `convex/_generated/api.d.ts` |
 | C-21 | Majeur (F-05) | accueil vide en 3G lente jusqu'à l'hydratation (≈ 11–13 s) : sept éléments du hero rendus `opacity:0` en style inline par framer-motion | entrée du hero en keyframes CSS (`dt-hero-*`), qui jouent dès la feuille de style, script ou pas ; noscript et reduced-motion les neutralisent ; seul le parallaxe reste à framer-motion | `home-hero.tsx`, `globals.css` |
-| C-22 | Majeur | backend Convex injoignable côté navigateur : « Chargement… » sans fin sur les pages privées, bouton de connexion grisé sans message | la garde des pages privées annonce après 8 s que le service tarde et quoi faire (5 langues) ; la redirection après connexion n'attend plus indéfiniment la confirmation du client | `auth-gate.tsx`, `redirect-after-auth.ts`, messages |
+| C-22 | Majeur | backend Convex injoignable côté navigateur : « Chargement… » sans fin sur les pages privées, bouton de connexion grisé sans message, puis rebond muet vers /connexion | la garde des pages privées annonce après 8 s que le service tarde et quoi faire (5 langues) ; elle ne renvoie vers la connexion que si le backend a vraiment répondu « non authentifié » ; la redirection après connexion n'attend plus indéfiniment la confirmation du client | `auth-gate.tsx`, `redirect-after-auth.ts`, messages |
 | C-23 | Mineur | re-signalement d'un billet à chaque rechargement → doublons dans la file des modérateurs | un signalement ouvert par personne et par cible, second appel idempotent. Test | `convex/tribune.ts` |
 | C-24 | Mineur | recherche de la bibliothèque sensible aux accents (« democratie » → 0) | recherche sans diacritiques ni casse. Test | `convex/lib/publications.ts` |
 | C-25 | Mineur | création d'espace : bulle native anglaise « Please fill out this field » | `noValidate` (les règles traduites existaient) | `workspaces-board.tsx` |
@@ -214,6 +214,14 @@ telle que l'agent l'avait décrite.
 | `pnpm test:dev-browser` | **52 / 52** (les 4 échecs de `/bibliotheque` sont levés par C-02) ; en mobile, plus aucune capture plus large que le viewport |
 | Script de contre-vérification (`verif--*`, 7 scénarios, captures et vidéos) | **24 / 24** : espaces (visiteur, `zzz`, identifiant étranger), 403 du modérateur sur revue / newsletter / utilisateurs, file des candidatures sans débordement, OTP et « mot de passe oublié » sur adresse inconnue, message du verrou, recherche longue, liens presse EN, `<main>` unique, événement passé (ni formulaire ni bouton), couleur des erreurs en sombre, espace membre mobile |
 | CI GitHub (PR #117) | verte sur chaque commit, dont le job E2E sur préversion Convex |
+
+**Second lot (C-21 à C-27)** — rejoué de la même façon sur un build
+reconstruit : `pnpm test` 1 097 tests verts ; `pnpm test:e2e` **239 / 239** ;
+script `verif-lot2` **8 / 8** (HTML servi de l'accueil sans `opacity:0` et
+hero visible sans aucun script, backend bloqué côté navigateur → arrivée sur
+l'espace membre avec le message de service en difficulté, création d'espace
+en français, « democratie » sans accent) ; les specs d'authentification et
+de gating rejouées après le dernier ajustement de la garde : 60 / 60.
 
 Deux enseignements du passage lui-même, consignés pour la prochaine campagne :
 le premier tour de contre-vérification avait laissé le backend local sur les
