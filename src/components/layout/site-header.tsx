@@ -12,6 +12,7 @@ import { LocaleSwitcher } from './locale-switcher';
 import { AuthButton } from './auth-button';
 import { JoinButton } from './join-button';
 import { NotificationBell } from './notification-bell';
+import { MessagesBadge } from './messages-badge';
 import { MobileNav } from './mobile-nav';
 import { NavLinks } from './nav-links';
 import { SearchDialog } from './search-dialog';
@@ -66,6 +67,7 @@ export async function SiteHeader() {
             <SearchDialog />
             <LocaleSwitcher />
             <ThemeToggle />
+            <MessagesBadge connecteAuRendu={connecte} />
             <NotificationBell connecteAuRendu={connecte} />
             <AuthButton connecteAuRendu={connecte} />
             <JoinButton connecteAuRendu={connecte} />

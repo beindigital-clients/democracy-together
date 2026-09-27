@@ -44,9 +44,16 @@ export const BASE_CLIENT_NAMESPACES = [
   'library',
   'membership',
   'mentorship',
+  // `messages` : la pastille de la messagerie est dans l'en-tête de TOUTES
+  // les pages (chantier « social »).
+  'messages',
   'nav',
   'newsletter',
   'notifications',
+  // `people` et `profile` : écrans du réseau social (annuaire des personnes,
+  // boutons d'une page de profil publique, espace membre).
+  'people',
+  'profile',
   'projects',
   'reminder',
   'search',

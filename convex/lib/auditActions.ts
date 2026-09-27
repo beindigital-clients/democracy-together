@@ -35,6 +35,9 @@ export const AUDIT = {
   // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
   AI_MODERATION_CONFIGURED: 'aiModeration.configured',
   AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
+  // Messagerie privée (chantier « social ») : décision sur un message signalé.
+  // Les métadonnées ne portent que la décision, jamais le contenu du message.
+  MESSAGE_REPORT_RESOLVED: 'message.report_resolved',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

@@ -40,6 +40,7 @@ export const KNOWN_LOCALE_SEGMENTS = [
   'inscription',
   'jeunes',
   'le-reseau',
+  'membres',
   'mentions-legales',
   'mot-de-passe-oublie',
   'newsletter',

@@ -80,6 +80,9 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       // la modération : c'est là que travaille un modérateur.
       { href: '/admin/mes-relectures', key: 'myReviews' },
       { href: '/admin/signalements', key: 'reports' },
+      // Messages privés signalés (chantier « social ») : même rang que la file
+      // de la Tribune, celui qu'exige `social.messages.listReports`.
+      { href: '/admin/messages-signales', key: 'messageReports' },
       { href: '/admin/contact', key: 'contactMessages' },
     ],
   },

@@ -52,6 +52,8 @@ const STAFF_ITEMS = [
   'Publications',
   'Mes relectures',
   'Signalements',
+  // Messages privés signalés (chantier « social »), rang modérateur.
+  'Messages signalés',
   'Messages',
   'Jeunes',
   'Mentorat',
@@ -71,7 +73,7 @@ function linkNames(nav: HTMLElement): string[] {
 }
 
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
-  it('un modérateur voit les 11 entrées communes, et aucune entrée réservée', () => {
+  it('un modérateur voit les 12 entrées communes, et aucune entrée réservée', () => {
     const nav = renderNav('moderateur');
     expect(linkNames(nav).sort()).toEqual([...STAFF_ITEMS].sort());
     for (const reserved of [...EDITOR_ITEMS, ...ADMIN_ITEMS]) {
@@ -89,10 +91,10 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
   });
 
-  it('un administrateur voit les 16 entrées attendues', () => {
+  it('un administrateur voit les 17 entrées attendues', () => {
     const nav = renderNav('admin');
     const expected = [...STAFF_ITEMS, ...EDITOR_ITEMS, ...ADMIN_ITEMS];
-    expect(expected).toHaveLength(16);
+    expect(expected).toHaveLength(17);
     expect(linkNames(nav).sort()).toEqual([...expected].sort());
   });
 
@@ -124,7 +126,7 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
     // Aucune entrée hors groupe : la somme des listes rend bien les 16 liens.
     const grouped = lists.flatMap((l) => within(l).getAllByRole('link'));
-    expect(grouped).toHaveLength(16);
+    expect(grouped).toHaveLength(17);
   });
 
   it('ne défile plus horizontalement : aucun conteneur en overflow-x', () => {
@@ -204,9 +206,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
 
   it('aucun chemin ni aucune clé de libellé en double', () => {
     const items = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-    expect(items).toHaveLength(16);
-    expect(new Set(items.map((i) => i.href)).size).toBe(16);
-    expect(new Set(items.map((i) => i.key)).size).toBe(16);
+    expect(items).toHaveLength(17);
+    expect(new Set(items.map((i) => i.href)).size).toBe(17);
+    expect(new Set(items.map((i) => i.key)).size).toBe(17);
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
