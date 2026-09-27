@@ -9,6 +9,7 @@ import { LocaleSwitcher } from './locale-switcher';
 import { ThemeToggle } from './theme-toggle';
 import { AuthButton } from './auth-button';
 import { NotificationBell } from './notification-bell';
+import { MessagesBadge } from './messages-badge';
 import { isNavActive, type NavItem } from './nav-links';
 
 // Menu de navigation mobile (F-05) : sous md, la barre ne porte que le logo et
@@ -106,6 +107,7 @@ export function MobileNav({
           notifications que par l'URL (mesuré le 27/09, auth A-9). Rendue
           selon `connecteAuRendu` comme sur bureau, donc déjà là dans le HTML
           servi — rien ne se décale à l'hydratation. */}
+      <MessagesBadge connecteAuRendu={connecteAuRendu} />
       <NotificationBell connecteAuRendu={connecteAuRendu} />
       <button
         ref={buttonRef}

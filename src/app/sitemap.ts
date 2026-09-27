@@ -108,6 +108,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* idem */
   }
 
+  // Profils PUBLICS de personnes (chantier « social »). La query ne rend que
+  // les profils dont la visibilité est « public » : un profil réservé aux
+  // membres ou privé n'a rien à faire dans un index.
+  try {
+    const people = await fetchQuery(api.social.profiles.listPublicHandles, {});
+    for (const p of people) {
+      entries.push(
+        ...localized(`membres/${p.handle}`, new Date(p.updatedAt), 'monthly'),
+      );
+    }
+  } catch {
+    /* idem */
+  }
+
   // Actualités (Sanity) — une URL par langue selon le champ `language` du post.
   try {
     const posts: { slug: string; language: string; _updatedAt?: string }[] =

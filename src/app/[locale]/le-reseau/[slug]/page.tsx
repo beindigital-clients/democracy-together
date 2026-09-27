@@ -13,6 +13,7 @@ import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { safeHref } from '@/lib/safe-href';
 import { ArrowBack } from '@/components/ui/arrow';
+import { OrgFollowButton } from '@/components/social/org-follow-button';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -111,6 +112,9 @@ export default async function OrgProfilePage({
         </div>
 
         <aside className="space-y-6">
+          {/* Suivi de l'organisation (chantier « social ») : îlot client,
+              absent pour un visiteur anonyme ou non membre. */}
+          <OrgFollowButton orgId={org._id} />
           <div className="rounded-md border border-line bg-surface p-5">
             <dl className="space-y-4 text-sm">
               <div>
