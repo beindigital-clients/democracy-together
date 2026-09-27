@@ -23,6 +23,18 @@ const AUTH_DIR = 'tests/e2e/.auth';
 // avoir été redéployé entre-temps, la préversion peut avoir été purgée). Seule
 // la réponse de l'application fait foi — on demande une page réservée aux
 // connectés et on regarde où l'on atterrit.
+//
+// ET ON ATTEND LE RAFRAÎCHISSEMENT (campagne du 27/09). Le client Convex
+// échange le jeton de rafraîchissement à CHAQUE chargement de page
+// (`POST /api/auth`, `refreshToken`), et Convex Auth n'accepte un jeton déjà
+// échangé que tant qu'il est le PARENT du jeton actif ; au-delà, la session
+// entière est invalidée (cf. _sessions.ts). Un fichier repris d'un run
+// précédent porte donc un jeton peut-être périmé, alors que la page, rendue à
+// partir du JWT encore valide, montre « Déconnexion » : le contrôle disait
+// « utilisable », et la première spec à s'en servir se réveillait sur
+// `/connexion` (admin-ecrans, session modérateur — mesuré). On lit donc la
+// réponse de l'échange : nulle, l'état est mort ; sinon on RÉENREGISTRE l'état
+// avec le jeton fraîchement émis, qui est celui que les specs présenteront.
 async function sessionIsUsable(
   browser: Browser,
   state: string,
@@ -34,6 +46,12 @@ async function sessionIsUsable(
   const context = await browser.newContext({ storageState: state, baseURL });
   try {
     const page = await context.newPage();
+    const refresh = page.waitForResponse(
+      (r) =>
+        r.url().endsWith('/api/auth') &&
+        (r.request().postData() ?? '').includes('refreshToken'),
+      { timeout: 15_000 },
+    );
     await page.goto('/fr/espace-membre');
     // Session morte = redirection vers la connexion. On le constate tout de
     // suite plutôt que d'attendre l'expiration d'un `toBeVisible`.
@@ -43,6 +61,10 @@ async function sessionIsUsable(
         timeout: 10_000,
       },
     );
+    const tokens = ((await (await refresh).json()) as { tokens: unknown })
+      .tokens;
+    if (tokens === null) return false;
+    await context.storageState({ path: state });
     return true;
   } catch {
     return false;
