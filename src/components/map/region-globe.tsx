@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Pause, Play } from 'lucide-react';
 import { geoOrthographic, geoPath, geoContains, geoGraticule10 } from 'd3-geo';
 import { feature } from 'topojson-client';
 
@@ -53,6 +55,25 @@ export function RegionGlobe({
   const [region, setRegion] = useState<Region>('all');
   const [selected, setSelected] = useState<RegionMapItem | null>(null);
 
+  // ROTATION AUTOMATIQUE CONTRÔLABLE (RGAA 13.8, WCAG 2.2.2). Le globe tourne
+  // seul, sans fin : un contenu en mouvement de plus de cinq secondes, démarré
+  // sans action de l'utilisateur, doit pouvoir être arrêté ET relancé. Honorer
+  // `prefers-reduced-motion` ne suffit pas — c'est un réglage du système que
+  // la plupart des personnes gênées par le mouvement ne connaissent pas, et
+  // que l'audit du 27/09 a mesuré comme SEUL moyen d'arrêter le globe. Le
+  // bouton ci-dessous est ce moyen ; la préférence système décide seulement
+  // de l'état de départ (arrêté quand elle demande moins de mouvement).
+  const [rotating, setRotating] = useState(false);
+  const rotatingRef = useRef(false);
+  useEffect(() => {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setRotating(!reduce);
+  }, []);
+  useEffect(() => {
+    rotatingRef.current = rotating;
+  }, [rotating]);
+  const t = useTranslations('accessibility');
+
   const regionRef = useRef<Region>('all');
   // Écrire un ref PENDANT le rendu casse le rendu concurrent. `regionRef` n'est
   // relu que dans la boucle de dessin du canevas, qui tourne après la
@@ -99,8 +120,6 @@ export function RegionGlobe({
     let lastX = 0,
       lastY = 0;
     let hoverName: string | null = null;
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const auto = !reduce;
 
     function resize() {
       // La taille d'AFFICHAGE est 100 % pilotée par le CSS : `wrap` est
@@ -202,7 +221,7 @@ export function RegionGlobe({
         }
       }
 
-      if (auto && !dragging && !hoverName) rotation[0] += 0.16;
+      if (rotatingRef.current && !dragging && !hoverName) rotation[0] += 0.16;
       raf = requestAnimationFrame(draw);
     }
     raf = requestAnimationFrame(draw);
@@ -325,6 +344,22 @@ export function RegionGlobe({
         aria-hidden="true"
         className="absolute inset-0 block h-full w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
       />
+      {/* Le libellé DIT l'action (« mettre en pause » / « lancer ») plutôt
+          qu'un `aria-pressed` sur un nom fixe : c'est ce qu'annonce un lecteur
+          d'écran, et ce qu'un utilisateur de commande vocale doit prononcer. */}
+      <button
+        type="button"
+        onClick={() => setRotating((v) => !v)}
+        aria-label={rotating ? t('globePause') : t('globePlay')}
+        title={rotating ? t('globePause') : t('globePlay')}
+        className="absolute bottom-1 end-1 grid h-11 w-11 place-items-center rounded-full border border-line-strong bg-surface/90 text-ink shadow-card transition-colors hover:bg-surface"
+      >
+        {rotating ? (
+          <Pause className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Play className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
     </div>
   );
 

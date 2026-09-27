@@ -8,6 +8,7 @@ import { api } from '@convex/_generated/api';
 import { Link, useRouter } from '@/i18n/navigation';
 import { countryFlag, countryName } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { contentLangAttrs } from '@/i18n/content-lang';
 
 // Recherche en modal (command palette) — évite le saut de page : on ouvre par
 // ⌘K / Ctrl+K ou clic, on cherche en direct (query Convex réactive) et on
@@ -35,6 +36,41 @@ const KBD =
   'rounded border border-line bg-surface px-1 py-px font-mono text-[11px] leading-none text-muted';
 
 const optionId = (i: number) => `dt-search-opt-${i}`;
+const LISTBOX_ID = 'dt-search-listbox';
+
+// Une option du `listbox`. Ni lien ni bouton : les enfants d'une option sont
+// présentationnels (ARIA), un élément interactif y serait perdu — c'est ce
+// qu'axe signalait (`nested-interactive`). Le focus reste dans le champ, qui
+// désigne l'option active par `aria-activedescendant` ; la souris la choisit
+// au clic.
+function SearchOption({
+  index,
+  active,
+  onHover,
+  onPick,
+  children,
+}: {
+  index: number;
+  active: boolean;
+  onHover: (i: number) => void;
+  onPick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      id={optionId(index)}
+      role="option"
+      aria-selected={active}
+      onMouseMove={() => onHover(index)}
+      onClick={onPick}
+      className={`${ROW} cursor-pointer ${
+        active ? 'border-line-strong bg-accent-tint/50' : 'border-transparent'
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
 
 // Délai au-delà duquel une recherche sans réponse est déclarée indisponible.
 // Mesuré le 27/09 (transversal A-4) : backend injoignable, la palette
@@ -91,6 +127,21 @@ export function SearchDialog() {
     ...orgs.map((o) => `/le-reseau/${o.slug}`),
   ];
   const total = hrefs.length;
+  const hasResults = enabled && results !== undefined && total > 0;
+
+  // Texte de la région live : ce qu'un lecteur d'écran doit apprendre après
+  // une frappe. Rien tant que la saisie est trop courte (l'invite est à
+  // l'écran et le champ la décrit déjà), rien non plus pendant l'attente — une
+  // annonce « Recherche… » à chaque frappe serait du bruit.
+  const announcement = !enabled
+    ? ''
+    : results === undefined
+      ? unavailable
+        ? t('unavailable')
+        : ''
+      : total === 0
+        ? t('empty', { q: dq })
+        : t('resultsCount', { count: total });
 
   // Réinitialise l'option active à chaque nouvelle recherche.
   useEffect(() => {
@@ -224,28 +275,50 @@ export function SearchDialog() {
                 onKeyDown={onInputKey}
                 placeholder={t('placeholder')}
                 aria-label={t('placeholder')}
+                // Étiquette NON visible : `title` la rend lisible au survol et remplit
+                // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+                title={t('placeholder')}
                 role="combobox"
-                aria-expanded={enabled && total > 0}
-                aria-controls="dt-search-listbox"
-                aria-activedescendant={total ? optionId(active) : undefined}
+                aria-expanded={hasResults}
+                aria-controls={hasResults ? LISTBOX_ID : undefined}
+                aria-activedescendant={
+                  hasResults ? optionId(active) : undefined
+                }
                 autoComplete="off"
-                className="h-12 w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-muted"
+                // FOCUS VISIBLE (RGAA 10.7). `outline-none` retirait l'indicateur
+                // sans rien mettre à la place — mesuré à l'audit du 27/09 : ni
+                // contour, ni bordure, ni ombre sur le champ qui reçoit le focus
+                // à l'ouverture. Le contour global revient, rentré de 3 px : le
+                // panneau (`overflow-hidden`) rognerait un contour extérieur.
+                className="h-12 w-full bg-transparent text-[15px] text-ink placeholder:text-muted focus-visible:outline-offset-[-3px]"
               />
             </div>
 
-            <div
-              id="dt-search-listbox"
-              role="listbox"
-              aria-label={t('title')}
-              className="max-h-[min(60vh,28rem)] overflow-y-auto p-2"
-            >
+            {/* ANNONCE DES RÉSULTATS (RGAA 7.5). Région live montée en
+                permanence, vide ou non : une région créée en même temps que son
+                texte n'est pas annoncée de façon fiable. Elle dit ce que la
+                personne ne voit pas — combien de résultats, ou pourquoi aucun —
+                sans déplacer le focus, qui reste dans le champ. */}
+            <p role="status" className="sr-only">
+              {announcement}
+            </p>
+
+            {/* STRUCTURE ARIA DE LA LISTE (RGAA 7.1). Mesuré à l'audit du 27/09
+                sur la palette ouverte : un `listbox` qui contenait des titres,
+                des listes et un paragraphe, et des options qui contenaient un
+                lien — quatre violations « critiques » ou « graves » d'axe,
+                invisibles aux analyses de page puisque la palette est fermée.
+                Désormais : le `listbox` n'existe que s'il y a des résultats, ne
+                contient que des groupes nommés d'options, et une option n'est
+                plus un lien (Entrée ou clic naviguent, comme avant). Les
+                messages (invite, attente, aucun résultat) vivent hors de lui. */}
+            <div className="max-h-[min(60vh,28rem)] overflow-y-auto p-2">
               {!enabled ? (
                 <p className="px-2 py-7 text-center text-sm text-muted">
                   {t('prompt')}
                 </p>
               ) : results === undefined ? (
                 <p
-                  role="status"
                   className={`px-2 py-7 text-center text-sm ${unavailable ? 'text-ink-soft' : 'text-muted'}`}
                 >
                   {unavailable ? t('unavailable') : t('loading')}
@@ -255,90 +328,79 @@ export function SearchDialog() {
                   {t('empty', { q: dq })}
                 </p>
               ) : (
-                <div className="flex flex-col gap-4 py-1">
+                <div
+                  id={LISTBOX_ID}
+                  role="listbox"
+                  aria-label={t('title')}
+                  className="flex flex-col gap-4 py-1"
+                >
                   {pubs.length ? (
-                    <section>
-                      <h2 className="px-2 pb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                    <div role="group" aria-label={t('sectionPublications')}>
+                      <div
+                        aria-hidden="true"
+                        className="px-2 pb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted"
+                      >
                         {t('sectionPublications')}
-                      </h2>
-                      <ul className="flex flex-col gap-0.5">
-                        {pubs.map((p, j) => {
-                          const i = j;
-                          const on = i === active;
-                          const href = `/bibliotheque/${p.slug}`;
-                          return (
-                            <li
-                              key={p.slug}
-                              id={optionId(i)}
-                              role="option"
-                              aria-selected={on}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        {pubs.map((p, i) => (
+                          <SearchOption
+                            key={p.slug}
+                            index={i}
+                            active={i === active}
+                            onHover={setActive}
+                            onPick={() => navigate(`/bibliotheque/${p.slug}`)}
+                          >
+                            {/* Titre dans sa langue de rédaction (RGAA 8.7). */}
+                            <span
+                              {...contentLangAttrs(p.lang, locale)}
+                              className="truncate font-medium text-ink"
                             >
-                              <Link
-                                href={href}
-                                tabIndex={-1}
-                                onMouseMove={() => setActive(i)}
-                                onClick={reset}
-                                className={`${ROW} ${
-                                  on
-                                    ? 'border-line-strong bg-accent-tint/50'
-                                    : 'border-transparent'
-                                }`}
-                              >
-                                <span className="truncate font-medium text-ink">
-                                  {p.title}
-                                </span>
-                                <span className="ms-auto shrink-0 text-[12px] text-muted">
-                                  {vocabulary(tl, 'types.', p.type)}
-                                </span>
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </section>
+                              {p.title}
+                            </span>
+                            <span className="ms-auto shrink-0 text-[12px] text-muted">
+                              {vocabulary(tl, 'types.', p.type)}
+                            </span>
+                          </SearchOption>
+                        ))}
+                      </div>
+                    </div>
                   ) : null}
 
                   {orgs.length ? (
-                    <section>
-                      <h2 className="px-2 pb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                    <div role="group" aria-label={t('sectionMembers')}>
+                      <div
+                        aria-hidden="true"
+                        className="px-2 pb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted"
+                      >
                         {t('sectionMembers')}
-                      </h2>
-                      <ul className="flex flex-col gap-0.5">
+                      </div>
+                      <div className="flex flex-col gap-0.5">
                         {orgs.map((o, j) => {
                           const i = pubs.length + j;
-                          const on = i === active;
-                          const href = `/le-reseau/${o.slug}`;
                           return (
-                            <li
+                            <SearchOption
                               key={o.slug}
-                              id={optionId(i)}
-                              role="option"
-                              aria-selected={on}
+                              index={i}
+                              active={i === active}
+                              onHover={setActive}
+                              onPick={() => navigate(`/le-reseau/${o.slug}`)}
                             >
-                              <Link
-                                href={href}
-                                tabIndex={-1}
-                                onMouseMove={() => setActive(i)}
-                                onClick={reset}
-                                className={`${ROW} ${
-                                  on
-                                    ? 'border-line-strong bg-accent-tint/50'
-                                    : 'border-transparent'
-                                }`}
-                              >
-                                <span className="truncate font-medium text-ink">
-                                  {o.name}
-                                </span>
-                                <span className="ms-auto shrink-0 text-[12px] text-muted">
-                                  {countryFlag(o.country)}{' '}
-                                  {countryName(o.country, locale)}
-                                </span>
-                              </Link>
-                            </li>
+                              <span className="truncate font-medium text-ink">
+                                {o.name}
+                              </span>
+                              <span className="ms-auto shrink-0 text-[12px] text-muted">
+                                {/* Le drapeau double le nom du pays. */}
+                                <span aria-hidden="true">
+                                  {countryFlag(o.country)}
+                                </span>{' '}
+                                {countryName(o.country, locale)}
+                              </span>
+                            </SearchOption>
                           );
                         })}
-                      </ul>
-                    </section>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               )}

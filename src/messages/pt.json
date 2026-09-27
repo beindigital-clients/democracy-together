@@ -446,7 +446,8 @@
       "lockedBadge": "Reservado aos membros",
       "consultDoi": "Consultar (DOI)",
       "noFileNote": "Nenhum ficheiro está anexado a esta publicação: a ligação abre o respetivo registo DOI."
-    }
+    },
+    "pageNumber": "Página {n}"
   },
   "translation": {
     "badge": "Tradução automática",
@@ -1132,7 +1133,8 @@
     "kbdNavigate": "navegar",
     "kbdOpen": "abrir",
     "kbdClose": "fechar",
-    "unavailable": "O serviço de pesquisa não responde. Tente novamente dentro de instantes."
+    "unavailable": "O serviço de pesquisa não responde. Tente novamente dentro de instantes.",
+    "resultsCount": "{count, plural, one {# resultado} other {# resultados}}"
   },
   "newsletter": {
     "eyebrow": "Boletim",
@@ -1338,5 +1340,9 @@
   },
   "barometer": {
     "mapNoScript": "Mapa interativo do Barómetro: requer JavaScript. As pontuações por país leem-se na classificação e nas tabelas desta página."
+  },
+  "accessibility": {
+    "globePause": "Pausar a rotação do globo",
+    "globePlay": "Iniciar a rotação do globo"
   }
 }

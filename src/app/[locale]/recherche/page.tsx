@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/motion/reveal';
 import { countryName, countryFlag } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { contentLangAttrs } from '@/i18n/content-lang';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 
@@ -59,7 +60,12 @@ export default async function SearchPage({
   const t = await getTranslations('search');
   const tl = await getTranslations('library');
 
-  let publications: { slug: string; title: string; type: string }[] = [];
+  let publications: {
+    slug: string;
+    title: string;
+    type: string;
+    lang?: string;
+  }[] = [];
   let organizations: { slug: string; name: string; country: string }[] = [];
   let posts: PostCardData[] = [];
 
@@ -112,6 +118,9 @@ export default async function SearchPage({
             defaultValue={q}
             placeholder={t('placeholder')}
             aria-label={t('placeholder')}
+            // Étiquette NON visible : `title` la rend lisible au survol et remplit
+            // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+            title={t('placeholder')}
             autoFocus
           />
           <Button type="submit" className="shrink-0">
@@ -137,7 +146,13 @@ export default async function SearchPage({
                 {publications.map((p) => (
                   <li key={p.slug}>
                     <Link href={`/bibliotheque/${p.slug}`} className={ROW}>
-                      <span className="font-medium text-ink">{p.title}</span>
+                      {/* Titre dans sa langue de rédaction (RGAA 8.7). */}
+                      <span
+                        {...contentLangAttrs(p.lang, locale)}
+                        className="font-medium text-ink"
+                      >
+                        {p.title}
+                      </span>
                       <span className="ms-2 text-[13px] text-muted">
                         {vocabulary(tl, 'types.', p.type)}
                       </span>
@@ -159,7 +174,9 @@ export default async function SearchPage({
                     <Link href={`/le-reseau/${o.slug}`} className={ROW}>
                       <span className="font-medium text-ink">{o.name}</span>
                       <span className="ms-2 text-[13px] text-muted">
-                        {countryFlag(o.country)}{' '}
+                        {/* Le drapeau double le nom du pays : masqué, sans quoi
+                            il est lu « drapeau : Sénégal, Sénégal ». */}
+                        <span aria-hidden="true">{countryFlag(o.country)}</span>{' '}
                         {countryName(o.country, locale)}
                       </span>
                     </Link>

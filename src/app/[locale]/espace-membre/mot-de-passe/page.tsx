@@ -17,6 +17,7 @@ import {
   PASSWORD_MIN_LENGTH,
   passwordRefusal,
 } from '@convex/lib/passwordPolicy';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // DÉFINIR (OU CHANGER) SON MOT DE PASSE, CONNECTÉ — R-05 / auth A-3.
 //
@@ -194,9 +195,9 @@ function PasswordForm({ email }: { email: string }) {
   if (step === 'done') {
     return (
       <AuthCard title={t('passwordDoneTitle')}>
-        <p role="status" className="wrap-anywhere text-ink-soft">
+        <StatusMessage as="p" className="wrap-anywhere text-ink-soft">
           {t('passwordDoneBody')}
-        </p>
+        </StatusMessage>
         <Link
           href="/espace-membre"
           className="mt-6 inline-block text-sm font-medium text-accent-text hover:underline"

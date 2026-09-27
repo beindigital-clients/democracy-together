@@ -31,6 +31,7 @@ import type { AbstractIntlMessages } from 'next-intl';
  * C'est ce que porte le HTML de toutes les pages publiques.
  */
 export const BASE_CLIENT_NAMESPACES = [
+  'accessibility',
   'auth',
   'contact',
   'cookies',

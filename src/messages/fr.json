@@ -446,7 +446,8 @@
       "lockedBadge": "Réservé aux membres",
       "consultDoi": "Consulter (DOI)",
       "noFileNote": "Aucun fichier n’est joint à cette publication : le lien mène à sa notice DOI."
-    }
+    },
+    "pageNumber": "Page {n}"
   },
   "translation": {
     "badge": "Traduction automatique",
@@ -1132,7 +1133,8 @@
     "kbdNavigate": "naviguer",
     "kbdOpen": "ouvrir",
     "kbdClose": "fermer",
-    "unavailable": "Le service de recherche ne répond pas. Réessayez dans quelques instants."
+    "unavailable": "Le service de recherche ne répond pas. Réessayez dans quelques instants.",
+    "resultsCount": "{count, plural, one {# résultat} other {# résultats}}"
   },
   "newsletter": {
     "eyebrow": "Newsletter",
@@ -1338,5 +1340,9 @@
   },
   "barometer": {
     "mapNoScript": "Carte interactive du Baromètre : elle nécessite JavaScript. Les scores par pays se lisent dans le classement et les tableaux de cette page."
+  },
+  "accessibility": {
+    "globePause": "Mettre en pause la rotation du globe",
+    "globePlay": "Lancer la rotation du globe"
   }
 }

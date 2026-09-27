@@ -1,13 +1,18 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link, usePathname } from '@/i18n/navigation';
 import { effectiveRole, isStaff, roleRank } from '@/lib/roles';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
-import { AdminNav, adminMinRoleForPath } from '@/components/admin/admin-nav';
+import {
+  AdminNav,
+  adminMinRoleForPath,
+  adminScreenKey,
+} from '@/components/admin/admin-nav';
+import { SITE_NAME } from '@/lib/seo';
 import { ActionFeedbackProvider } from '@/components/admin/action-feedback';
 
 function Centered({ children }: { children: ReactNode }) {
@@ -39,9 +44,27 @@ function AccessDenied({ rank = false }: { rank?: boolean }) {
   );
 }
 
+// Titre de l'onglet par écran (RGAA 8.6) : « Utilisateurs · Administration ·
+// Democracy Together ». `admin/layout.tsx` sert « Administration » dans le HTML
+// initial ; l'effet précise l'écran une fois la route connue côté client. Il
+// dépend du chemin : une navigation interne au back-office, qui ne change pas
+// les métadonnées du layout, le rejoue quand même. Il se rejoue aussi quand la
+// session est connue (`loading`) : les métadonnées étant diffusées en flux, un
+// `<title>` du layout arrivé APRÈS le premier passage l'aurait écrasé.
+function useAdminDocumentTitle(pathname: string, loading: boolean) {
+  const t = useTranslations('admin');
+  const key = adminScreenKey(pathname);
+  const screen = key ? t(key) : null;
+  const admin = t('title');
+  useEffect(() => {
+    document.title = [screen, admin, SITE_NAME].filter(Boolean).join(' · ');
+  }, [screen, admin, loading]);
+}
+
 function Gate({ children }: { children: ReactNode }) {
   const me = useQuery(api.users.current);
   const pathname = usePathname();
+  useAdminDocumentTitle(pathname, me === undefined);
   if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
   // Rang de l'ÉCRAN, pas seulement du back-office : la page enfant ne se

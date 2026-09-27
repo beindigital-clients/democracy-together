@@ -35,7 +35,7 @@ export function UrlSortSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-ink"
+        className="rounded-sm border border-line-field bg-surface px-2.5 py-1.5 text-sm text-ink"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

@@ -20,6 +20,7 @@ import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 const ROLES = ['mentore', 'mentor'] as const;
 
@@ -106,12 +107,9 @@ export function MentorshipForm() {
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-5"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-5">
         <p className="font-medium text-ink">{t('success')}</p>
-      </div>
+      </StatusMessage>
     );
   }
 
@@ -146,6 +144,8 @@ export function MentorshipForm() {
         <TextField
           label={t('country')}
           id="m-country"
+          // Finalité déclarée pour le remplissage automatique (RGAA 11.13).
+          autoComplete="country-name"
           required
           maxLength={FIELD_MAX.country}
           {...field('country')}

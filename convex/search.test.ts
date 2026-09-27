@@ -82,3 +82,28 @@ describe('Recherche globale (F-06)', () => {
     expect(short.organizations).toEqual([]);
   });
 });
+
+describe('Recherche globale — langue des résultats (audit RGAA, 8.7)', () => {
+  it('chaque publication sort avec sa langue de rédaction (`languages[0]`)', async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert(
+        'publications',
+        pubDoc({
+          title: 'Plateformes et démocratie',
+          slug: 'pd',
+          languages: ['en', 'fr'],
+        }),
+      );
+    });
+    const res = await t.query(api.search.globalSearch, { q: 'Plateformes' });
+    expect(res.publications).toEqual([
+      {
+        slug: 'pd',
+        title: 'Plateformes et démocratie',
+        type: 'rapport',
+        lang: 'en',
+      },
+    ]);
+  });
+});

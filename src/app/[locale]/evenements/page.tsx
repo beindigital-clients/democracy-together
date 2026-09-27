@@ -138,6 +138,9 @@ export default async function EventsPage({
                 defaultValue={filters.q ?? ''}
                 placeholder={L.hero.searchPlaceholder}
                 aria-label={L.hero.searchPlaceholder}
+                // Étiquette NON visible : `title` la rend lisible au survol et remplit
+                // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+                title={L.hero.searchPlaceholder}
                 className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-2.5 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               />
               <button
@@ -155,9 +158,14 @@ export default async function EventsPage({
       <section className={`${WRAP} py-10`}>
         <Reveal className="grid items-stretch gap-0 overflow-hidden rounded-md border border-line bg-surface md:grid-cols-[1.05fr_1fr]">
           <div className="relative min-h-[240px]">
+            {/* Photo d'ILLUSTRATION (la même pour plusieurs contenus) : elle
+                n'apporte aucune information, elle est donc décorative et
+                ignorée des aides techniques (RGAA 1.2). Son ancienne
+                alternative répétait le titre voisin — lu deux fois de suite
+                (audit RGAA du 27/09). */}
             <Image
               src="/library/paris.jpg"
-              alt={L.featured.title}
+              alt=""
               fill
               sizes="(max-width: 768px) 100vw, 620px"
               className="object-cover"
@@ -280,7 +288,7 @@ export default async function EventsPage({
                       >
                         <span
                           aria-hidden="true"
-                          className={`grid h-4 w-4 shrink-0 place-items-center rounded-[3px] border transition-colors ${active ? 'border-accent bg-accent text-accent-contrast' : 'border-line-strong bg-surface group-hover:border-ink'}`}
+                          className={`grid h-4 w-4 shrink-0 place-items-center rounded-[3px] border transition-colors ${active ? 'border-accent bg-accent text-accent-contrast' : 'border-line-field bg-surface group-hover:border-ink'}`}
                         >
                           {active ? (
                             <svg

@@ -10,6 +10,7 @@ import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Formulaire d'inscription newsletter (F-18) — îlot client réutilisable (accueil
 // + page /newsletter). Les libellés `placeholder`/`cta` sont passés en props ;
@@ -63,12 +64,12 @@ export function NewsletterForm({
 
   if (status === 'success') {
     return (
-      <p
-        role="status"
+      <StatusMessage
+        as="p"
         className={`text-sm font-medium text-bar-1 ${className ?? ''}`}
       >
         {t('success')}
-      </p>
+      </StatusMessage>
     );
   }
 

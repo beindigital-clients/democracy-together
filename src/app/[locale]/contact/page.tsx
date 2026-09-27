@@ -16,6 +16,7 @@ import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 import { FIELD_MAX } from '@convex/lib/validation';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 export default function ContactPage() {
   const t = useTranslations('contact');
@@ -110,14 +111,14 @@ export default function ContactPage() {
           className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8"
         >
           {status === 'success' ? (
-            <div role="status" className="py-6">
+            <StatusMessage className="py-6">
               <h2 className="font-display text-2xl text-ink">
                 {t('successTitle')}
               </h2>
               <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">
                 {t('successBody')}
               </p>
-            </div>
+            </StatusMessage>
           ) : (
             <form onSubmit={onSubmit} noValidate className="space-y-5">
               <TextField

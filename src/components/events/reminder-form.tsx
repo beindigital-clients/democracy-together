@@ -10,6 +10,7 @@ import { FormError, TextField } from '@/components/ui/field';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Rappel d'événement (F-55) — îlot client, sur la page de détail d'un événement
 // À VENIR. Le visiteur (sans compte) laisse son e-mail ; un cron quotidien
@@ -64,12 +65,9 @@ export function ReminderForm({
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-4"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-4">
         <p className="text-sm font-medium text-ink">{t('success')}</p>
-      </div>
+      </StatusMessage>
     );
   }
 

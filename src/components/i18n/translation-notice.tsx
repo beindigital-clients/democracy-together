@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
-import { direction } from '@/i18n/direction';
 import { vocabulary } from '@/i18n/vocabulary';
 import {
   translationErrorSuffix,
@@ -150,24 +149,7 @@ export async function TranslationNotice({
   );
 }
 
-/**
- * Attributs `lang` et `dir` d'un bloc de texte.
- *
- * Un titre arabe dans une page française doit se composer de DROITE À GAUCHE,
- * et être annoncé comme arabe à la synthèse vocale : sans `dir`, la ponctuation
- * et les chiffres se placent du mauvais côté ; sans `lang`, un lecteur d'écran
- * lit l'arabe avec la voix française. La page posait déjà `lang` sur le titre
- * et le corps d'un billet de Tribune (issue #35) ; `dir` manquait, parce
- * qu'aucune langue servie ne s'écrivait alors de droite à gauche.
- *
- * Les deux attributs sont OMIS quand le bloc est dans la langue de la page :
- * un `lang="fr" dir="ltr"` redondant sur chaque paragraphe alourdit le HTML
- * sans rien apporter.
- */
-export function textAttrs(
-  contentLocale: Locale,
-  pageLocale: Locale,
-): { lang?: string; dir?: 'ltr' | 'rtl' } {
-  if (contentLocale === pageLocale) return {};
-  return { lang: contentLocale, dir: direction(contentLocale) };
-}
+// `textAttrs` vit désormais dans `@/i18n/content-lang` : les LISTES en ont
+// besoin aussi, y compris côté client (RGAA 8.7). Ré-exporté ici pour les
+// fiches qui l'importaient de ce module.
+export { textAttrs } from '@/i18n/content-lang';

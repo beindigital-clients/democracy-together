@@ -24,6 +24,8 @@ function isDuplicateApplication(error: unknown): boolean {
 }
 import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
+import { Check } from 'lucide-react';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 type ApplicantType = 'organisation' | 'individu';
 
@@ -98,23 +100,29 @@ export function MembershipForm() {
   return (
     <div className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8">
       {status === 'success' ? (
-        <div role="status" className="py-6">
+        <StatusMessage className="py-6">
           <h2 className="font-display text-2xl text-ink">
             {t('successTitle')}
           </h2>
           <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">
             {t('successBody')}
           </p>
-        </div>
+        </StatusMessage>
       ) : (
         <form onSubmit={onSubmit} noValidate className="space-y-5">
           <fieldset>
             <legend className="text-sm text-ink-soft">{t('typeLabel')}</legend>
-            <div className="mt-2 flex flex-wrap gap-2" role="radiogroup">
+            {/* Pas de `role="radiogroup"` ANONYME ici (RGAA 11.6) : il
+                s'interposait entre les boutons radio et le `<fieldset>`, et le
+                groupe annoncé n'avait plus de nom. Le `<fieldset>` suffit.
+                Le bouton radio est masqué visuellement : c'est la pastille qui
+                montre le focus (RGAA 10.7) et une coche qui montre la
+                sélection sans passer par la seule couleur (RGAA 3.1). */}
+            <div className="mt-2 flex flex-wrap gap-2">
               {types.map((opt) => (
                 <label
                   key={opt}
-                  className={`cursor-pointer rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
                     type === opt
                       ? 'border-accent-edge bg-accent-tint text-accent-text'
                       : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
@@ -128,6 +136,9 @@ export function MembershipForm() {
                     onChange={() => setType(opt)}
                     className="sr-only"
                   />
+                  {type === opt ? (
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : null}
                   {vocabulary(t, 'type_', opt)}
                 </label>
               ))}

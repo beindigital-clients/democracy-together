@@ -40,7 +40,13 @@ function Figure({
   fallbackLabel: string;
 }) {
   return (
-    <figure className="dt-doc-figure my-7">
+    // Image légendée (RGAA 1.9) : `role` et `aria-label` relient la légende à
+    // l'image, comme dans `home-hero.tsx`.
+    <figure
+      role={block.caption ? 'figure' : undefined}
+      aria-label={block.caption ?? undefined}
+      className="dt-doc-figure my-7"
+    >
       {url ? (
         // L'image vient du PDF d'origine, recopiée sans ré-encodage. `alt` porte
         // la légende quand il y en a une ; à défaut il reste VIDE plutôt que de

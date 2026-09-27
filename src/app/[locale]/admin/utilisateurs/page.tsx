@@ -140,6 +140,9 @@ function UsersTable() {
       ) : (
         <ScrollableRegion label={t('users')} className="mt-6">
           <table className="w-full min-w-[520px] text-sm">
+            {/* Titre du tableau (RGAA 5.4) : le `<h1>` de l'écran le nomme pour
+                l'œil ; la légende le relie au tableau pour la synthèse vocale. */}
+            <caption className="sr-only">{t('users')}</caption>
             <thead>
               <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
                 {/* Colonne d'IDENTITÉ figée : une fois le tableau défilé

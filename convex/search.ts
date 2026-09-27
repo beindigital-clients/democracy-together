@@ -13,8 +13,26 @@ import { fold, organizationHaystack } from './lib/directory';
 // la page /recherche. Ne renvoie QUE des contenus publics.
 const LIMIT = 8;
 
+// `lang` : langue de RÉDACTION de la publication (`languages[0]`, la même
+// règle que la fiche). Les listes de résultats en ont besoin pour poser `lang`
+// sur un titre qui n'est pas dans la langue de la page (RGAA 8.7).
+const searchResultValidator = v.object({
+  publications: v.array(
+    v.object({
+      slug: v.string(),
+      title: v.string(),
+      type: v.string(),
+      lang: v.optional(v.string()),
+    }),
+  ),
+  organizations: v.array(
+    v.object({ slug: v.string(), name: v.string(), country: v.string() }),
+  ),
+});
+
 export const globalSearch = query({
   args: { q: v.string() },
+  returns: searchResultValidator,
   handler: async (ctx, { q }) => {
     const needle = fold(q);
     if (needle.length < 2) {
@@ -39,7 +57,12 @@ export const globalSearch = query({
         ).includes(needle),
       )
       .slice(0, LIMIT)
-      .map((p) => ({ slug: p.slug, title: p.title, type: p.type }));
+      .map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        type: p.type,
+        lang: p.languages[0],
+      }));
 
     const organizations = orgs
       .filter((o) => organizationHaystack(o).includes(needle))

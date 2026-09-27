@@ -521,6 +521,9 @@ export default async function BarometrePage({
           <Reveal className="overflow-hidden rounded-sm border border-line bg-paper">
             <ScrollableRegion label={c.datasets.title}>
               <table className="w-full border-collapse text-start text-sm">
+                {/* Titre du tableau (RGAA 5.4) : le `<h2>` au-dessus le nomme
+                    pour l'œil, rien ne le reliait au tableau. */}
+                <caption className="sr-only">{c.datasets.title}</caption>
                 <thead>
                   <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
                     <th scope="col" className="px-4 py-3 font-medium">
@@ -550,12 +553,19 @@ export default async function BarometrePage({
                         key={d.doi}
                         className="border-b border-line align-top last:border-0"
                       >
-                        <td className="px-4 py-3.5">
+                        {/* En-tête de LIGNE (RGAA 5.6 et 6.1) : c'est lui qui
+                            donne leur contexte aux liens « CSV » de la ligne —
+                            sans lui, trois liens « CSV » vers deux fichiers
+                            différents ne se distinguaient pas. */}
+                        <th
+                          scope="row"
+                          className="px-4 py-3.5 text-start font-normal"
+                        >
                           <div className="font-medium text-ink">{d.name}</div>
                           <div className="mt-0.5 text-[12.5px] text-muted">
                             {d.sub}
                           </div>
-                        </td>
+                        </th>
                         <td className="px-4 py-3.5">
                           <div className="flex flex-wrap gap-1.5">
                             {d.formats.map((f) => {

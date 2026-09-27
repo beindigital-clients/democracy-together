@@ -84,7 +84,7 @@ export async function LibraryFacets({
                       className={`grid h-4 w-4 shrink-0 place-items-center rounded-[3px] border transition-colors ${
                         active
                           ? 'border-accent bg-accent text-accent-contrast'
-                          : 'border-line-strong bg-surface group-hover:border-ink'
+                          : 'border-line-field bg-surface group-hover:border-ink'
                       }`}
                     >
                       {active ? (

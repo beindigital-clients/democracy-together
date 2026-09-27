@@ -11,6 +11,7 @@ import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
 import { MyPosts } from '@/components/tribune/my-posts';
 import { vocabulary } from '@/i18n/vocabulary';
+import { contentLangAttrs } from '@/i18n/content-lang';
 import { fetchOrFallback, EMPTY_TRIBUNE_POSTS } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -162,10 +163,17 @@ export default async function TribunePage({
                     {vocabulary(t, 'format_', p.format)}
                   </span>
                 </div>
-                <h2 className="mt-2 font-display text-xl leading-snug">
+                {/* Langue de rédaction du billet (RGAA 8.7) : cf. la fiche. */}
+                <h2
+                  {...contentLangAttrs(p.lang, loc)}
+                  className="mt-2 font-display text-xl leading-snug"
+                >
                   {p.title}
                 </h2>
-                <p className="mt-1.5 line-clamp-2 text-[15px] leading-relaxed text-ink-soft">
+                <p
+                  {...contentLangAttrs(p.lang, loc)}
+                  className="mt-1.5 line-clamp-2 text-[15px] leading-relaxed text-ink-soft"
+                >
                   {p.excerpt}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted">

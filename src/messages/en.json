@@ -446,7 +446,8 @@
       "lockedBadge": "Members only",
       "consultDoi": "View (DOI)",
       "noFileNote": "No file is attached to this publication: the link opens its DOI record."
-    }
+    },
+    "pageNumber": "Page {n}"
   },
   "translation": {
     "badge": "Machine translation",
@@ -1132,7 +1133,8 @@
     "kbdNavigate": "navigate",
     "kbdOpen": "open",
     "kbdClose": "close",
-    "unavailable": "The search service is not responding. Please try again in a moment."
+    "unavailable": "The search service is not responding. Please try again in a moment.",
+    "resultsCount": "{count, plural, one {# result} other {# results}}"
   },
   "newsletter": {
     "eyebrow": "Newsletter",
@@ -1338,5 +1340,9 @@
   },
   "barometer": {
     "mapNoScript": "Interactive Barometer map: it requires JavaScript. Country scores can be read in the ranking and tables on this page."
+  },
+  "accessibility": {
+    "globePause": "Pause the globe rotation",
+    "globePlay": "Start the globe rotation"
   }
 }

@@ -70,7 +70,7 @@ async function fitsOnScreen(page: Page, width: number) {
 
   for (const item of ALL_ITEMS) {
     const box = await bar
-      .getByRole('link', { name: item, exact: true })
+      .getByRole('link', { name: `${item} (Administration)`, exact: true })
       .boundingBox();
     expect(
       box,
@@ -145,7 +145,10 @@ test.describe('navigation du back-office en large (session dédiée)', () => {
     await expect(current).toHaveCount(1);
     await expect(current).toHaveText('Journal');
     await expect(
-      nav(page).getByRole('link', { name: 'Tableau de bord', exact: true }),
+      nav(page).getByRole('link', {
+        name: 'Tableau de bord (Administration)',
+        exact: true,
+      }),
     ).not.toHaveAttribute('aria-current', 'page');
   });
 });
