@@ -11,14 +11,17 @@ import AxeBuilder from '@axe-core/playwright';
 
 export const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
-// `color-contrast` est sorti du gate automatique : les écarts restants sont
-// enracinés dans la PALETTE DE MARQUE validée par l'agence (univers safran des
-// Jeunes = texte clair sur safran ; couleurs data-viz bar-2/bar-4 en petit
-// texte). Les ajuster = dévier des couleurs de la maquette, ce qui relève d'un
-// arbitrage agence dans le cadre de l'audit RGAA (déjà annoncé comme à mener
-// dans la déclaration d'accessibilité). Le harnais impose tout le RESTE
-// (ARIA, labels, noms, landmarks, ordre des titres, lang…), qui est propre.
-export const DEFERRED_RULES = ['color-contrast'];
+// `color-contrast` FAIT PARTIE DU GATE depuis le lot 3 du 27/09. La règle
+// avait été différée parce que les écarts restants tenaient à la palette de
+// marque (univers safran des Jeunes, couleurs data-viz bar-2/bar-4 en petit
+// texte). Ils ont été résolus sans quitter la maquette : le texte sur safran
+// prend l'encre (`--accent-contrast`), les barres de données ont une teinte
+// « encre » dédiée pour le texte (`--bar-2-ink`, `--bar-4-ink`), et les plus
+// petites tailles sont montées à 11 px. Mesuré à zéro violation, clair et
+// sombre, sur les pages du spec `a11y`. La liste reste là pour qu'une règle à
+// différer un jour le soit AU MÊME ENDROIT pour toutes les specs — avec sa
+// raison écrite ici.
+export const DEFERRED_RULES: string[] = [];
 
 // Les contenus animés (Reveal `whileInView`) démarrent à opacity:0 : axe lirait
 // une couleur de texte fondue (faux positif de contraste). On parcourt la page

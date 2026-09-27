@@ -581,7 +581,7 @@
     "eyebrow": "Le réseau",
     "metaTitle": "Annuaire des think tanks",
     "title": "Le réseau des think tanks",
-    "subtitle": "Les institutions membres de Democracy Together, d'Afrique et d'Europe. Filtrez par région et par thématique.",
+    "subtitle": "Les institutions membres de Democracy Together, d'Afrique et d'Europe. Filtrez par région, thématique, pays ou langue de travail.",
     "listLabel": "Liste des think tanks",
     "count": "{count, plural, =0 {Aucun think tank} one {# think tank} other {# think tanks}}",
     "searchPlaceholder": "Rechercher un think tank…",

@@ -581,7 +581,7 @@
     "eyebrow": "The network",
     "metaTitle": "Think-tank directory",
     "title": "The think-tank network",
-    "subtitle": "The member institutions of Democracy Together, across Africa and Europe. Filter by region and theme.",
+    "subtitle": "The member institutions of Democracy Together, across Africa and Europe. Filter by region, theme, country or working language.",
     "listLabel": "Think tanks list",
     "count": "{count, plural, =0 {No think tank} one {# think tank} other {# think tanks}}",
     "searchPlaceholder": "Search a think tank…",

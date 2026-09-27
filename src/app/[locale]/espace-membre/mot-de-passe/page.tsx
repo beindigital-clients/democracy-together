@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useQuery } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
@@ -47,6 +47,18 @@ import {
 // L'adresse vient du COMPTE CONNECTÉ (`users.current`), jamais d'un champ : on
 // ne pose un mot de passe que sur son propre compte, et le code part à
 // l'adresse du compte — c'est ce qui prouve qu'on la détient.
+//
+// POURQUOI L'ACTION DIRECTE et non `signIn` de `useAuthActions` (mesuré le
+// 27/09, spec auth-mot-de-passe) : quand l'étape n'ouvre pas de session —
+// `signUp` avec `verify`, `reset`, ou un code faux — `auth:signIn` répond
+// `{ tokens: null }`, et le client Next.js de Convex Auth prend ce « null »
+// pour une déconnexion : il EFFACE les cookies de session (proxy `/api/auth`,
+// « No tokens returned, clearing auth cookies »). Le membre se retrouvait sur
+// « Se connecter » au moment même où il demandait son code. L'action appelée
+// directement ne touche pas aux cookies. Une fois le mot de passe posé et
+// vérifié, on se reconnecte AVEC — par `signIn` cette fois, qui renouvelle la
+// session : c'est aussi la preuve que le mot de passe fonctionne, et, en mode
+// `reset`, la seule session qui survit (les autres sont invalidées).
 type Mode = 'verify' | 'reset';
 
 // Le refus de Convex Auth quand un compte mot de passe existe déjà pour cette
@@ -60,6 +72,7 @@ function isAccountAlreadyExists(error: unknown): boolean {
 function PasswordForm({ email }: { email: string }) {
   const t = useTranslations('auth');
   const { signIn } = useAuthActions();
+  const authSignIn = useAction(api.auth.signIn);
   const [step, setStep] = useState<'password' | 'code' | 'done'>('password');
   const [mode, setMode] = useState<Mode>('verify');
   const [error, setError] = useState<string | null>(null);
@@ -75,15 +88,17 @@ function PasswordForm({ email }: { email: string }) {
   // Rend le mode retenu, pour que le renvoi de code reprenne le même chemin.
   async function requestCode(): Promise<Mode> {
     try {
-      await signIn('password', {
-        email,
-        password: values.newPassword,
-        flow: 'signUp',
+      await authSignIn({
+        provider: 'password',
+        params: { email, password: values.newPassword, flow: 'signUp' },
       });
       return 'verify';
     } catch (err) {
       if (!isAccountAlreadyExists(err)) throw err;
-      await signIn('password', { email, flow: 'reset' });
+      await authSignIn({
+        provider: 'password',
+        params: { email, flow: 'reset' },
+      });
       return 'reset';
     }
   }
@@ -144,20 +159,28 @@ function PasswordForm({ email }: { email: string }) {
     }
     setPending(true);
     try {
-      if (mode === 'reset') {
-        await signIn('password', {
-          email,
-          code: values.code,
-          newPassword: values.newPassword,
-          flow: 'reset-verification',
-        });
-      } else {
-        await signIn('password', {
-          email,
-          code: values.code,
-          flow: 'email-verification',
-        });
-      }
+      // Code faux : `{ tokens: null }`, sans erreur — on le dit, session intacte.
+      const verified = await authSignIn({
+        provider: 'password',
+        params:
+          mode === 'reset'
+            ? {
+                email,
+                code: values.code,
+                newPassword: values.newPassword,
+                flow: 'reset-verification',
+              }
+            : { email, code: values.code, flow: 'email-verification' },
+      });
+      if (!verified || verified.tokens === null)
+        throw new Error('INVALID_CODE');
+      // Reconnexion par le mot de passe qui vient d'être posé : les cookies
+      // suivent la nouvelle session, et le mot de passe est prouvé.
+      await signIn('password', {
+        email,
+        password: values.newPassword,
+        flow: 'signIn',
+      });
       setStep('done');
     } catch (err) {
       setError(

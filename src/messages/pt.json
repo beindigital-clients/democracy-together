@@ -581,7 +581,7 @@
     "eyebrow": "A rede",
     "metaTitle": "Diretório de centros de estudos",
     "title": "A rede de centros de estudos",
-    "subtitle": "As instituições membros da Democracy Together, de África e da Europa. Filtre por região e por temática.",
+    "subtitle": "As instituições membros da Democracy Together, de África e da Europa. Filtre por região, temática, país ou língua de trabalho.",
     "listLabel": "Lista de centros de estudos",
     "count": "{count, plural, =0 {Nenhum centro de estudos} one {# centro de estudos} other {# centros de estudos}}",
     "searchPlaceholder": "Procurar um centro de estudos…",
