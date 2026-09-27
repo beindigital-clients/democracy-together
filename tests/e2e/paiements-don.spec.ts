@@ -121,6 +121,11 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
 
   // Le reçu s'ouvre et c'est un PDF.
   const [pdf] = await Promise.all([context.waitForEvent('page'), recu.click()]);
+  // L'onglet naît sur « about:blank » puis navigue vers l'URL signée du
+  // stockage. Lire son adresse trop tôt (vu en CI le 27/09, machine plus
+  // lente) faisait retomber la requête sur la page d'accueil du site : on
+  // attend qu'il ait quitté la page vide.
+  await expect.poll(() => pdf.url()).not.toBe('about:blank');
   const reponse = await request.get(pdf.url());
   expect(reponse.ok()).toBe(true);
   expect((await reponse.body()).subarray(0, 5).toString()).toBe('%PDF-');
