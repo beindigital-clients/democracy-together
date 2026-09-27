@@ -96,6 +96,13 @@ C-xx (correctif) ; les références A-x / M-x renvoient aux rapports de module.
 | C-18 | Mineur (a11y) | pas de lien d'évitement : 12 tabulations avant le contenu | « Aller au contenu » (5 langues), `id="contenu"` sur `<main>` | `layout.tsx`, messages |
 | C-19 | Mineur | `X-Powered-By: Next.js` exposé | `poweredByHeader: false` | `next.config.ts` |
 | C-20 | Dette | `convex/_generated/api.d.ts` en retard sur les modules (`lib/emailContent` absent) | régénéré par la CLI | `convex/_generated/api.d.ts` |
+| C-21 | Majeur (F-05) | accueil vide en 3G lente jusqu'à l'hydratation (≈ 11–13 s) : sept éléments du hero rendus `opacity:0` en style inline par framer-motion | entrée du hero en keyframes CSS (`dt-hero-*`), qui jouent dès la feuille de style, script ou pas ; noscript et reduced-motion les neutralisent ; seul le parallaxe reste à framer-motion | `home-hero.tsx`, `globals.css` |
+| C-22 | Majeur | backend Convex injoignable côté navigateur : « Chargement… » sans fin sur les pages privées, bouton de connexion grisé sans message | la garde des pages privées annonce après 8 s que le service tarde et quoi faire (5 langues) ; la redirection après connexion n'attend plus indéfiniment la confirmation du client | `auth-gate.tsx`, `redirect-after-auth.ts`, messages |
+| C-23 | Mineur | re-signalement d'un billet à chaque rechargement → doublons dans la file des modérateurs | un signalement ouvert par personne et par cible, second appel idempotent. Test | `convex/tribune.ts` |
+| C-24 | Mineur | recherche de la bibliothèque sensible aux accents (« democratie » → 0) | recherche sans diacritiques ni casse. Test | `convex/lib/publications.ts` |
+| C-25 | Mineur | création d'espace : bulle native anglaise « Please fill out this field » | `noValidate` (les règles traduites existaient) | `workspaces-board.tsx` |
+| C-26 | Mineur (a11y) | bascule de thème sans état annoncé ; badge verrouillé de l'univers jeunes à 2,9:1 en sombre | `aria-pressed` ; `text-ink-soft` | `theme-toggle.tsx`, `jeunes/page.tsx` |
+| C-27 | Mineur | modérateur refusé sur un écran éditeur lisant « réservé à l'équipe de modération » | texte du 403 selon la cause (rang), 5 langues | `admin-shell.tsx`, messages |
 | — | Outillage | skill `find-skills` (vercel-labs/skills) demandé | installé via le CLI `skills`, verrouillé dans `skills-lock.json` | `.claude/skills/find-skills/` |
 
 ## 5. Anomalies restantes, à arbitrer
@@ -117,20 +124,10 @@ ponctuel.
 
 ### Majeur
 
-- **R-02 — Backend Convex injoignable côté navigateur : attente muette**
-  (`transversal` A-4). Bouton « Se connecter » grisé sans fin après le code,
-  « Chargement… » permanent sur `/espace-membre` et `/admin`, palette
-  « Recherche… » sans fin. Les pages publiques restent lisibles (rendu
-  serveur). Piste : délai maximal sur `useConvexAuth().isLoading` /
-  `useQuery` dans `auth-gate.tsx`, `redirect-after-auth.ts`,
-  `search-dialog.tsx`, avec un message « service indisponible ». Cas réel
-  aujourd'hui : CSP (corrigée, C-01), panne réseau, proxy d'entreprise.
-- **R-03 — Accueil vide en faible débit jusqu'à l'hydratation** (≈ 11–13 s
-  en 3G lente ; `transversal` A-3). Le hero rend en SSR sept éléments
-  `opacity:0` via `initial` de framer-motion (`home-hero.tsx`), là où
-  `reveal.tsx` a déjà reçu le correctif F-05 (`initial={false}`). Bibliothèque
-  et baromètre sont lisibles à 2,5 s. Enjeu direct de F-05 (premier usage
-  attendu en Afrique).
+- **R-02 — Backend Convex injoignable côté navigateur** : corrigé en second
+  lot (C-22) pour la garde des pages privées et la connexion ; reste la
+  palette de recherche (« Recherche… » sans fin, `search-dialog.tsx`).
+- **R-03 — Accueil vide en faible débit** : corrigé en second lot (C-21).
 - **R-04 — 404 hors charte pour tout segment inconnu de premier niveau**
   (`/ar/xyz`, `/xx`, `/de` ; `transversal` A-2, `admin` m-1). La 404 racine
   est bilingue fr/en, `lang="fr"`, sans en-tête. Le dépôt documente dans
@@ -161,30 +158,30 @@ ponctuel.
   trop court ou trop long, second avis de relecture (`communaute` A-06),
   site web `javascript:` refusé avec « vérifiez vos droits » (`admin` m-3),
   refus de longueur jeunes / projets sans la limite (`communaute` A-04).
-- **R-09** — Re-signalement possible d'un billet après rechargement →
-  doublons dans la file (`communaute` A-07) ; candidatures d'adhésion non
-  dédoublonnées (`vitrine` O3) ; jeton de désinscription faux qui confirme
-  quand même (`vitrine` O2).
-- **R-10** — Recherche de la bibliothèque sensible aux accents et limitée au
-  titre + auteurs, guillemets littéraux (`membre` A-4).
+- **R-09** — Candidatures d'adhésion non dédoublonnées (`vitrine` O3) ;
+  jeton de désinscription faux qui confirme quand même (`vitrine` O2). Le
+  re-signalement d'un billet est corrigé (C-23).
+- **R-10** — Recherche de la bibliothèque limitée au titre + auteurs,
+  guillemets littéraux (`membre` A-4). La sensibilité aux accents est
+  corrigée (C-24).
 - **R-11** — Tout membre réseau lit un espace collaboratif dont il n'est pas
   membre, notes comprises (`membre` A-6) — conforme au code, à confirmer
   produit.
-- **R-12** — Validation native anglaise « Please fill out this field » sur la
-  création d'espace (`membre` A-7) ; dialogue `beforeunload` anglais en
-  quittant `/recherche` (`membre` A-12, librairie `@convex-dev/auth`).
+- **R-12** — Dialogue `beforeunload` anglais en quittant `/recherche`
+  (`membre` A-12, librairie `@convex-dev/auth`). La validation native sur la
+  création d'espace est corrigée (C-25).
 - **R-13** — Fiche d'événement passé sans lien replay / visio ; replays sans
   filtre ; mentorat sans parcours membre (formulaire public + admin
   seulement) ; « Annuler » du composer de tribune qui ré-affiche le brouillon
   précédent (`communaute` A-09, A-10, A-12, A-13).
 - **R-14** — Bascule de thème introuvable sur desktop hors pied de page
-  (y ≈ 5 900 px), sans `aria-pressed` (`transversal` A-8) ; cloche de
-  notifications absente de la barre mobile (`auth` A-9) ; rôle brut non
-  traduit dans l'espace membre (« Role membre » en EN, `auth` A-7).
-- **R-15** — Contrastes en sombre restant sous 4,5:1 hors correctif C-15 :
-  `text-muted` sur `bg-accent-tint` (3,93), badges `opacity-70` de
-  l'univers jeunes (2,93), et la palette safran connue en clair (1,8–2,2,
-  règle `color-contrast` différée par le dépôt) (`transversal` A-11).
+  (y ≈ 5 900 px ; `transversal` A-8 — l'état est désormais annoncé, C-26) ;
+  cloche de notifications absente de la barre mobile (`auth` A-9) ; rôle brut
+  non traduit dans l'espace membre (« Role membre » en EN, `auth` A-7).
+- **R-15** — Contrastes en sombre restant sous 4,5:1 hors correctifs C-15 et
+  C-26 : `text-muted` sur `bg-accent-tint` (3,93) et la palette safran
+  connue en clair (1,8–2,2, règle `color-contrast` différée par le dépôt)
+  (`transversal` A-11).
 - **R-16** — `/studio` : page blanche et spinner infini quand Sanity est
   injoignable (`transversal` A-13) ; liste d'actualités en panne affichant le
   même message qu'une liste vide (`vitrine` O1).
