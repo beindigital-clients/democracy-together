@@ -82,7 +82,7 @@ C-xx (correctif) ; les références A-x / M-x renvoient aux rapports de module.
 | C-04 | Majeur (sécurité) | énumération des comptes : adresse inconnue → « une erreur est survenue » sur la connexion par code et « mot de passe oublié », adresse connue → étape du code | les deux écrans passent à l'étape suivante dans tous les cas ; sous-titres « si un compte existe » (5 langues), renvoi du membre invité vers la connexion par code | `connexion-otp/page.tsx`, `mot-de-passe-oublie/page.tsx`, messages |
 | C-05 | Majeur | verrou anti-force-brute silencieux : après 5 échecs, le BON mot de passe ou code est refusé avec « incorrect » | `src/lib/auth-errors.ts` lit le message relayé par `/api/auth` ; messages dédiés au verrou et au plafond d'envoi (5 langues) | `connexion/page.tsx`, `connexion-otp`, `mot-de-passe-oublie` |
 | C-06 | Majeur | modérateur sur `/admin/revue` ou `/admin/newsletter` en URL directe → page d'erreur (requête « éditeur » sans garde d'écran) | la coquille du back-office lit le rang minimal de l'écran dans la table de navigation (`adminMinRoleForPath`) et refuse en 403 avant de monter la page. 3 tests ; spec E2E des rôles étendue | `admin-shell.tsx`, `admin-nav.tsx`, `tests/e2e/admin-ecrans.spec.ts` |
-| C-07 | Majeur | chaînes longues sans espace faisant défiler tout le back-office en largeur (jusqu'à 28 415 px : candidatures, contact, jeunes) ; idem `/recherche` (24 744 px) et l'adresse e-mail de l'espace membre en mobile | `break-words` / `break-all` sur les textes concernés | pages admin, `recherche/page.tsx`, `espace-membre/page.tsx` |
+| C-07 | Majeur | chaînes longues sans espace faisant défiler tout le back-office en largeur (jusqu'à 28 415 px : candidatures, contact, jeunes) ; idem `/recherche` (24 744 px) et l'adresse e-mail de l'espace membre en mobile | `break-words` sur les blocs, `min-w-0` + `wrap-anywhere` dans les conteneurs flex (un titre en `flex-wrap` ne se coupe pas avec `break-words`) | pages admin, `recherche/page.tsx`, `espace-membre/page.tsx` |
 | C-08 | Majeur | inscription acceptée et stockée sur un événement PASSÉ (formulaire rendu sans test `upcoming`) | formulaire monté seulement pour un événement à venir ; mention « Passés » sinon | `evenements/[slug]/page.tsx` |
 | C-09 | Majeur (SEO) | hreflang limité à `fr`, `en`, `x-default` sur 26 pages, alors que le site est servi en 5 langues et que le sitemap en déclare 6 | `hreflangFor` lit le catalogue du routage ; 26 pages migrées | `src/lib/seo.ts`, 26 `page.tsx` |
 | C-10 | Majeur (RTL) | arabe en mobile : champ de recherche de la bibliothèque et des événements débordant de 34 px, bouton « بحث » tronqué | `min-w-0` sur les `input` en `flex-1` | `bibliotheque/page.tsx`, `evenements/page.tsx` |
@@ -210,7 +210,19 @@ intégralement : suite E2E, matrice dev-browser, et un script dédié
 (`explore/verif/verif-correctifs.mjs`) qui reproduit chaque anomalie corrigée
 telle que l'agent l'avait décrite.
 
-_RÉSULTATS_FINAUX_
+| Vérification | Résultat |
+|---|---|
+| Portes statiques | `pnpm test` 112 fichiers / **1 095 tests verts** ; typage, lint, format verts |
+| `pnpm test:e2e` (build final) | **239 / 239 verts** : 236 au premier passage, plus 3 rejoués — `en-journey` et `membership` avaient buté sur le plafond de **20 candidatures par heure et par IP** épuisé par les agents (« Too many attempts » dans l'instantané, pas une régression), verts une fois la fenêtre écoulée ; `tribune` trouvait deux liens « Transitions démocratiques » dès qu'un billet publié porte cette thématique — la spec est désormais `exact`, et passe |
+| `pnpm test:dev-browser` | **52 / 52** (les 4 échecs de `/bibliotheque` sont levés par C-02) ; en mobile, plus aucune capture plus large que le viewport |
+| Script de contre-vérification (`verif--*`, 7 scénarios, captures et vidéos) | **24 / 24** : espaces (visiteur, `zzz`, identifiant étranger), 403 du modérateur sur revue / newsletter / utilisateurs, file des candidatures sans débordement, OTP et « mot de passe oublié » sur adresse inconnue, message du verrou, recherche longue, liens presse EN, `<main>` unique, événement passé (ni formulaire ni bouton), couleur des erreurs en sombre, espace membre mobile |
+| CI GitHub (PR #117) | verte sur chaque commit, dont le job E2E sur préversion Convex |
+
+Deux enseignements du passage lui-même, consignés pour la prochaine campagne :
+le premier tour de contre-vérification avait laissé le backend local sur les
+fonctions d'AVANT les correctifs (les fonctions Convex se poussent séparément
+du build Next : `npx convex dev --once`), et `break-words` ne suffit pas dans
+un conteneur `flex-wrap` — d'où C-07 repris avec `wrap-anywhere`.
 
 ## 7. Ce que la campagne n'a pas pu couvrir
 

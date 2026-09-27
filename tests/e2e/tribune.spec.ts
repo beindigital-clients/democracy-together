@@ -19,8 +19,13 @@ test('tribune : page publique, code de conduite, filtre, accès réservé', asyn
     page.getByText('La prise de parole est réservée aux membres du réseau.'),
   ).toBeVisible();
 
-  // filtre par thématique -> querystring
-  await page.getByRole('link', { name: 'Transitions démocratiques' }).click();
+  // filtre par thématique -> querystring. `exact` : le nom accessible d'une
+  // CARTE de billet commence par sa thématique, donc dès qu'un billet publié
+  // porte celle-ci, le locateur sans `exact` en trouve deux (mesuré le 27/09
+  // sur un déploiement qui a vécu ; une préversion neuve ne le voit pas).
+  await page
+    .getByRole('link', { name: 'Transitions démocratiques', exact: true })
+    .click();
   await expect(page).toHaveURL(/\/tribune\?theme=transitions$/);
 });
 
