@@ -69,8 +69,13 @@ export async function importCodedContent(): Promise<void> {
 
 // Retire les contenus créés par les specs (slugs et fichiers `e2e-…`). Gardé
 // par AUTH_DEV_OTP côté Convex, comme les autres helpers de test.
-export async function deleteE2eContent(): Promise<void> {
-  convexRun('contenus/devCleanup:deleteE2eContent');
+// `stamp` : l'horodatage de la spec — le ménage ne touche que SES contenus
+// (le même fichier tourne en parallèle sur le projet mobile).
+export async function deleteE2eContent(stamp?: number): Promise<void> {
+  convexRun(
+    'contenus/devCleanup:deleteE2eContent',
+    stamp === undefined ? {} : { stamp: String(stamp) },
+  );
 }
 
 type NetworkRole = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';

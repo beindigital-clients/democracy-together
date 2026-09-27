@@ -92,7 +92,9 @@ test.describe('messages annoncés', () => {
     await champ.fill(`e2e_a11y_nl_${Date.now()}@democracytogether.test`);
     await page.getByRole('button', { name: "S'inscrire" }).first().click();
     const statut = page.getByRole('status').filter({
-      hasText: 'Merci ! Votre inscription est bien prise en compte.',
+      // Double opt-in (chantier diffusion) : le succès annonce le courriel
+      // de confirmation, plus une inscription immédiate.
+      hasText: 'Merci ! Un e-mail de confirmation vient de vous être envoyé',
     });
     await expect(statut).toBeVisible({ timeout: 15_000 });
     await expect(statut).toBeFocused();

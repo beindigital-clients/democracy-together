@@ -119,5 +119,7 @@ test('événements : accès via la nav + version EN (F-03/F-23)', async ({
 
   await page.goto('/en/evenements');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Events');
-  await expect(page.getByText(/upcoming events?|past events?/)).toBeVisible();
+  await expect(
+    page.getByText(/upcoming events?|past events?/).first(),
+  ).toBeVisible();
 });

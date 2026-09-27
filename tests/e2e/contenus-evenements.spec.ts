@@ -39,7 +39,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await deleteE2eContent();
+  await deleteE2eContent(stamp);
 });
 
 test.describe('éditeur', () => {

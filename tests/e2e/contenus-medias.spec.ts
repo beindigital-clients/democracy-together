@@ -39,7 +39,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await deleteE2eContent();
+  await deleteE2eContent(stamp);
 });
 
 test('téléverse une image avec texte alternatif, l’utilise comme logo de partenaire', async ({

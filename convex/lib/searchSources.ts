@@ -77,6 +77,62 @@ function isLocale(x: string | undefined): x is SiteLocale {
   return x !== undefined && (SITE_LOCALES as readonly string[]).includes(x);
 }
 
+// UNE SEULE requête paginée par fonction : c'est une règle du moteur Convex
+// (« This query or mutation function ran multiple paginated queries »), que
+// convex-test n'applique pas — mesuré le 27/09 au rejeu E2E : la palette ne
+// rendait plus rien. La recherche GLOBALE interroge toutes les sources dans
+// la même query : elle lit donc la première page par `take` (une ligne de
+// plus pour savoir s'il en reste). Seule la page d'UNE source (« voir
+// plus », `searchBySource`) pagine vraiment.
+export type SourcePage = PaginationOptions & { firstPageOnly?: boolean };
+
+// TOUS LES MOTS (mesuré au rejeu E2E du 27/09). L'index plein texte de
+// Convex rend les documents qui contiennent AU MOINS UN des termes, classés
+// par pertinence : « Auto-acceptation E2E 1790… » ramenait tout billet
+// contenant « e2e ». L'ancienne recherche exigeait chaque mot ; on rétablit
+// cette règle en filtrant la meule pliée — chaque terme doit y commencer un
+// mot (le dernier, en cours de frappe, comme les autres). L'index reste ce
+// qui borne la lecture ; le filtre ne fait que retirer le bruit.
+export function textMatchesAll(
+  searchText: string | undefined,
+  needle: string,
+): boolean {
+  if (!searchText) return false;
+  const words = searchText.split(' ');
+  return needle
+    .split(' ')
+    .filter(Boolean)
+    .every((t) => words.some((w) => w.startsWith(t)));
+}
+
+// Lecture filtrée : on lit davantage de lignes que la page n'en montre, pour
+// que le filtre « tous les mots » ne vide pas la première page.
+const OVERFETCH = 4;
+
+async function pageOf<T extends { searchText?: string }>(
+  q: {
+    paginate(p: PaginationOptions): Promise<PaginationResult<T>>;
+    take(n: number): Promise<T[]>;
+  },
+  page: SourcePage,
+  needle: string,
+): Promise<PaginationResult<T>> {
+  const keep = (row: T) => textMatchesAll(row.searchText, needle);
+  if (page.firstPageOnly) {
+    const want = page.numItems * OVERFETCH + 1;
+    const rows = await q.take(want);
+    const kept = rows.filter(keep);
+    return {
+      page: kept.slice(0, page.numItems),
+      isDone: kept.length <= page.numItems && rows.length < want,
+      continueCursor: '',
+    };
+  }
+  const { firstPageOnly: _ignored, ...opts } = page;
+  const r = await q.paginate(opts);
+  return { ...r, page: r.page.filter(keep) };
+}
+
 type SourceDef = {
   /** Filtres que la source sait honorer. Un filtre demandé qu'elle ne
    *  connaît pas l'EXCLUT des résultats : « type = rapport » ne doit pas
@@ -86,7 +142,7 @@ type SourceDef = {
     ctx: QueryCtx,
     needle: string,
     f: SearchFilters,
-    page: PaginationOptions,
+    page: SourcePage,
   ) => Promise<PaginationResult<SearchHit>>;
 };
 
@@ -143,7 +199,7 @@ const SOURCES: Record<SearchSourceKey, SourceDef> = {
     filters: ['type', 'theme', 'region', 'lang', 'year'],
     search: async (ctx, needle, f, page) =>
       mapPage(
-        await publicationQuery(ctx, needle, f).paginate(page),
+        await pageOf(publicationQuery(ctx, needle, f), page, needle),
         publicationHit,
       ),
   },
@@ -152,13 +208,14 @@ const SOURCES: Record<SearchSourceKey, SourceDef> = {
     filters: ['region'],
     search: async (ctx, needle, f, page) =>
       mapPage(
-        await ctx.db
-          .query('organizations')
-          .withSearchIndex('search_text', (q) => {
+        await pageOf(
+          ctx.db.query('organizations').withSearchIndex('search_text', (q) => {
             const s = q.search('searchText', needle).eq('status', 'active');
             return f.region ? s.eq('region', f.region) : s;
-          })
-          .paginate(page),
+          }),
+          page,
+          needle,
+        ),
         (o) => ({
           source: 'organizations',
           id: o._id,
@@ -174,16 +231,17 @@ const SOURCES: Record<SearchSourceKey, SourceDef> = {
     filters: ['theme', 'lang', 'year'],
     search: async (ctx, needle, f, page) =>
       mapPage(
-        await ctx.db
-          .query('tribunePosts')
-          .withSearchIndex('search_text', (q) => {
+        await pageOf(
+          ctx.db.query('tribunePosts').withSearchIndex('search_text', (q) => {
             let s = q.search('searchText', needle).eq('status', 'published');
             if (f.theme) s = s.eq('theme', f.theme);
             if (isLocale(f.lang)) s = s.eq('lang', f.lang);
             if (f.year !== undefined) s = s.eq('searchYear', f.year);
             return s;
-          })
-          .paginate(page),
+          }),
+          page,
+          needle,
+        ),
         (p) => ({
           source: 'tribune',
           id: p._id,
@@ -251,7 +309,7 @@ export async function searchSource(
   key: SearchSourceKey,
   needle: string,
   f: SearchFilters,
-  page: PaginationOptions,
+  page: SourcePage,
 ): Promise<PaginationResult<SearchHit>> {
   if (!sourceAccepts(key, f)) {
     return { page: [], isDone: true, continueCursor: '' };

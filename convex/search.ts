@@ -79,6 +79,9 @@ export const globalSearch = query({
         const r = await searchSource(ctx, source, needle, f, {
           numItems: LIMIT,
           cursor: null,
+          // Plusieurs sources dans la même query : lecture par `take`, pas de
+          // pagination (cf. `pageOf` dans convex/lib/searchSources.ts).
+          firstPageOnly: true,
         });
         return { source, hits: r.page.slice(0, LIMIT), more: !r.isDone };
       }),

@@ -5,6 +5,7 @@ import { useMutation, useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/ui/field';
@@ -33,6 +34,13 @@ export function PathSteps({ path }: { path: Path }) {
   const [error, setError] = useState<string | null>(null);
   const enrolled = !!progress;
   const done = new Set(progress?.doneStepIds ?? []);
+  // Case cochée AVANT la réponse du serveur (optimiste) : sans cela la case
+  // ne bougeait qu'au retour de la mutation, et un clic semblait sans effet
+  // (mesuré au rejeu E2E du 27/09). La valeur serveur reprend la main dès
+  // qu'elle arrive ; un refus rétablit l'état et affiche l'erreur.
+  const [pendingSteps, setPendingSteps] = useState<Record<string, boolean>>({});
+  const isDone = (id: Id<'learningPathSteps'>) =>
+    pendingSteps[id] ?? done.has(id);
 
   return (
     <div>
@@ -120,16 +128,21 @@ export function PathSteps({ path }: { path: Path }) {
                       <input
                         type="checkbox"
                         className="mt-1 h-5 w-5 shrink-0 accent-accent"
-                        checked={done.has(s._id)}
+                        checked={isDone(s._id)}
                         onChange={async (e) => {
+                          const next = e.target.checked;
                           setError(null);
+                          setPendingSteps((p) => ({ ...p, [s._id]: next }));
                           try {
-                            await setDone({
-                              stepId: s._id,
-                              done: e.target.checked,
-                            });
+                            await setDone({ stepId: s._id, done: next });
                           } catch (err) {
                             setError(errorMessage(err));
+                          } finally {
+                            setPendingSteps((p) => {
+                              const rest = { ...p };
+                              delete rest[s._id];
+                              return rest;
+                            });
                           }
                         }}
                       />

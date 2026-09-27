@@ -80,7 +80,7 @@ test.describe
       .fill(SESSIONS.progAppelsEvaluateur.email);
     await row.getByRole('button', { name: 'Désigner' }).click();
     await expect(
-      row.getByText(SESSIONS.progAppelsEvaluateur.email),
+      row.getByText(SESSIONS.progAppelsEvaluateur.email).first(),
     ).toBeVisible();
     await admin.done();
 

@@ -105,7 +105,7 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await pageB.getByRole('button', { name: 'Envoyer' }).click();
   await expect(pageB).toHaveURL(/\/espace-membre\/messages\?c=/);
   await expect(
-    pageB.getByText('Bonjour Awa, ravi de vous lire.'),
+    pageB.getByText('Bonjour Awa, ravi de vous lire.', { exact: true }),
   ).toBeVisible();
 
   // --- A : pastille non lue dans l'en-tête, lecture, réponse ---------------------
@@ -120,7 +120,7 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
     .first()
     .click();
   await expect(
-    pageA.getByText('Bonjour Awa, ravi de vous lire.'),
+    pageA.getByText('Bonjour Awa, ravi de vous lire.', { exact: true }),
   ).toBeVisible();
   // Ouvrir le fil vaut lecture : la pastille retombe.
   await expect(
@@ -131,7 +131,9 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await pageA.getByRole('button', { name: 'Envoyer' }).click();
 
   // --- B reçoit la réponse sans recharger (temps réel) --------------------------
-  await expect(pageB.getByText('Merci Bob, avec plaisir.')).toBeVisible({
+  await expect(
+    pageB.getByText('Merci Bob, avec plaisir.', { exact: true }).last(),
+  ).toBeVisible({
     timeout: 20_000,
   });
 

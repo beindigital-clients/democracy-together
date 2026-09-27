@@ -212,8 +212,14 @@ test('F-43 : soumis → deux relecteurs → révision demandée → v2 → accep
       'Merci : la méthode de sélection des cas est détaillée en section 2.',
     );
   await mine.getByRole('button', { name: 'Déposer la révision' }).click();
+  // L'avis « Version 2 déposée » est bref : la carte se redessine aussitôt
+  // (requête réactive, étape « re-soumis »). On vérifie l'état DURABLE : la
+  // v2 listée avec sa lettre de réponse, et l'étape annoncée à l'autrice.
   await expect(
-    mine.getByText('Version 2 déposée', { exact: false }),
+    mine.getByRole('listitem').filter({ hasText: /^v2 —.*lettre de réponse/ }),
+  ).toBeVisible();
+  await expect(
+    mine.getByText("Votre révision est déposée : l'éditeur l'examine."),
   ).toBeVisible();
 
   // --- Nouveau tour : le relecteur 1 évalue la v2 ----------------------------

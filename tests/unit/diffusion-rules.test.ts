@@ -245,3 +245,16 @@ describe('Newsletter — règles du double opt-in et de l’envoi', () => {
     expect(backoffMs(30, 1000)).toBe(600_000);
   });
 });
+
+describe('Recherche — tous les mots (rejeu E2E du 27/09)', () => {
+  it('exige chaque terme au début d’un mot de la meule pliée', async () => {
+    const { textMatchesAll } = await import('@convex/lib/searchSources');
+    const meule = 'etat de la democratie entre l afrique et l europe';
+    expect(textMatchesAll(meule, 'democratie afrique')).toBe(true);
+    // Le dernier terme, en cours de frappe, se complète.
+    expect(textMatchesAll(meule, 'democratie afr')).toBe(true);
+    // Un seul mot commun ne suffit plus : l'index le rendait, pas le filtre.
+    expect(textMatchesAll(meule, 'democratie 1790550524787')).toBe(false);
+    expect(textMatchesAll(undefined, 'democratie')).toBe(false);
+  });
+});
