@@ -6,7 +6,7 @@
 // génération vit dans `@/lib/ics` (pure et testée).
 import { getTranslations } from 'next-intl/server';
 import { resolveLocale } from '@/i18n/locale';
-import { EVENTS, getEventsLabels } from '@/lib/events-content';
+import { loadEvent } from '@/lib/contenus/load';
 import { eventToIcs } from '@/lib/ics';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -18,19 +18,20 @@ export async function GET(
   const { locale: rawLocale, slug } = await params;
   const locale = resolveLocale(rawLocale);
 
-  const event = EVENTS.find((e) => e.slug === slug);
-  if (!event) {
+  // Même source que la fiche : la table, ou le catalogue codé en repli.
+  const detail = await loadEvent(slug, locale);
+  if (!detail) {
     return new Response('Not found', {
       status: 404,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   }
 
-  const L = getEventsLabels(locale);
+  const { event } = detail;
   const t = await getTranslations({ locale, namespace: 'agenda' });
 
-  const title = L.titles[slug];
-  const location = L.cities[event.cityKey];
+  const title = event.title;
+  const location = event.place;
   const url = `${SITE}/${rawLocale}/evenements/${slug}`;
 
   const ics = eventToIcs({

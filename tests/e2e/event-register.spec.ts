@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test';
-import { isEventRegistered } from './_helpers';
+import { importCodedContent, isEventRegistered } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
+// Depuis le chantier « contenus », le serveur valide l'inscription CONTRE LA
+// TABLE `contentEvents` (point M-5 du pentest) : l'événement doit y exister,
+// publié et non terminé. La CI importe le contenu codé ; en local, on
+// l'importe ici (idempotent) pour ne pas dépendre de l'état du déploiement.
+test.beforeAll(async () => {
+  await importCodedContent();
+});
+
 // Événement non vedette (le formulaire RSVP s'affiche ; la conférence inaugurale
-// garde sa billetterie payante, hors périmètre F-53).
+// garde sa billetterie payante, hors périmètre F-53). Daté du 3 décembre
+// 2026 : passé cette date, le serveur le ferme (EVENT_CLOSED) et la fiche
+// n'affiche plus le formulaire — c'est la règle, et ce test devra alors viser
+// un événement à venir (cf. `contenus-evenements.spec.ts`, qui en crée un).
 const SLUG = 'webinaire-gouvernance-plateformes';
 
 // F-53 — Inscription événement : formulaire -> succès + stockage Convex réel.

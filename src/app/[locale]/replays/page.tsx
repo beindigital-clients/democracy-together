@@ -6,7 +6,6 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { Badge } from '@/components/ui/badge';
 import { resolveLocale } from '@/i18n/locale';
 import {
-  getReplays,
   parseReplayFilters,
   filterReplays,
   replayFacets,
@@ -16,6 +15,7 @@ import {
   type ReplayFacet,
 } from '@/lib/replays';
 import { monthAbbr } from '@/lib/events-content';
+import { loadReplays } from '@/lib/contenus/load';
 import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -114,7 +114,9 @@ export default async function ReplaysPage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const t = await getTranslations('replays');
-  const all = getReplays(loc);
+  // Replays : la table `contentReplays`, ou le catalogue codé en repli (table
+  // vide, backend injoignable) — cf. src/lib/contenus/load.ts.
+  const { items: all } = await loadReplays(loc);
   // Filtres type / thématique / langue dans l'URL (communauté A-12). Les
   // facettes sont comptées sur l'ensemble, la liste sur la sélection.
   const filters = parseReplayFilters(await searchParams, all);
@@ -203,19 +205,59 @@ export default async function ReplaysPage({
                       : ''}
                   </span>
                 </div>
-                <h2 className="mt-3 font-display text-xl leading-snug">
+                <h2 className="mt-3 font-display text-xl leading-snug wrap-anywhere">
                   {r.title}
                 </h2>
-                <div className="mt-4 flex items-center gap-2 rounded-sm border border-dashed border-line bg-paper px-3 py-2.5 text-sm text-muted">
-                  <span aria-hidden="true">●</span>
-                  <span>{t('soon')}</span>
-                </div>
-                <Link
-                  href={`/evenements/${r.slug}`}
-                  className="mt-4 text-sm font-semibold text-accent-text hover:underline"
-                >
-                  {t('viewEvent')} <ArrowForward />
-                </Link>
+                {r.description ? (
+                  <p className="mt-2 text-sm leading-relaxed text-ink-soft wrap-anywhere">
+                    {r.description}
+                  </p>
+                ) : null}
+                {r.embedUrl ? (
+                  // Lecteur intégré : YouTube en domaine « nocookie », Vimeo.
+                  // L'adresse est calculée côté serveur depuis un lien validé
+                  // contre sa plateforme (`validateVideoUrl`).
+                  <div className="relative mt-4 aspect-video overflow-hidden rounded-sm border border-line bg-paper">
+                    <iframe
+                      src={r.embedUrl}
+                      title={t('playerTitle', { title: r.title })}
+                      loading="lazy"
+                      allow="encrypted-media; picture-in-picture; fullscreen"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      className="absolute inset-0 h-full w-full"
+                    />
+                  </div>
+                ) : r.videoKind === 'file' && r.videoUrl ? (
+                  <video
+                    controls
+                    preload="none"
+                    src={r.videoUrl}
+                    aria-label={t('playerTitle', { title: r.title })}
+                    className="mt-4 w-full rounded-sm border border-line bg-paper"
+                  />
+                ) : r.videoUrl ? (
+                  <a
+                    href={r.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex min-h-11 items-center justify-center rounded-sm bg-accent px-4 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                  >
+                    {t('watch')}
+                  </a>
+                ) : (
+                  <div className="mt-4 flex items-center gap-2 rounded-sm border border-dashed border-line bg-paper px-3 py-2.5 text-sm text-muted">
+                    <span aria-hidden="true">●</span>
+                    <span>{t('soon')}</span>
+                  </div>
+                )}
+                {r.eventSlug ? (
+                  <Link
+                    href={`/evenements/${r.eventSlug}`}
+                    className="mt-4 inline-block py-2 text-sm font-semibold text-accent-text hover:underline"
+                  >
+                    {t('viewEvent')} <ArrowForward />
+                  </Link>
+                ) : null}
               </article>
             </RevealItem>
           ))}

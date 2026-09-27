@@ -6,7 +6,7 @@ import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
-import { getThemeSyntheses } from '@/lib/themes-content';
+import { loadThemes } from '@/lib/contenus/load';
 import { vocabulary } from '@/i18n/vocabulary';
 import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
 import { ArrowForward } from '@/components/ui/arrow';
@@ -40,10 +40,11 @@ export default async function ThematiquesPage({
   const loc = resolveLocale(locale);
   const t = await getTranslations('thematiques');
   const tl = await getTranslations('library'); // libellés themes.*
-  const syntheses = getThemeSyntheses(loc);
-  // Backend injoignable -> les synthèses restent servies, avec un compte à
-  // zéro. Elles viennent du dépôt (`getThemeSyntheses`), pas de Convex : les
-  // perdre pour un décompte serait payer cher une donnée d'appoint (F-02).
+  // Synthèses : la table `contentThemes` (ordre et textes édités au
+  // back-office), ou le texte codé en repli. Backend injoignable -> les
+  // synthèses codées restent servies, avec un compte à zéro : les perdre pour
+  // un décompte serait payer cher une donnée d'appoint (F-02).
+  const { items: syntheses } = await loadThemes(loc);
   const { facets } = await fetchOrFallback(
     'thematiques',
     () => fetchQuery(api.publications.listPublished, { sort: 'recent' }),
@@ -76,14 +77,15 @@ export default async function ThematiquesPage({
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-accent-text">
-                  {String(i + 1).padStart(2, '0')} · {s.dimension}
+                  {String(i + 1).padStart(2, '0')}
+                  {s.dimension ? ` · ${s.dimension}` : ''}
                 </span>
                 <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {t('count', { count: counts.get(s.slug) ?? 0 })}
                 </span>
               </div>
               <h2 className="mt-3 font-display text-2xl leading-tight">
-                {vocabulary(tl, 'themes.', s.slug)}
+                {s.title ?? vocabulary(tl, 'themes.', s.slug)}
               </h2>
               <p className="mt-2 flex-1 text-[15px] leading-relaxed text-ink-soft">
                 {s.lead}

@@ -9,6 +9,8 @@ import {
   monthAbbr,
   type EventData,
 } from '@/lib/events-content';
+import { loadAgenda } from '@/lib/contenus/load';
+import type { AgendaEvent } from '@/lib/contenus/agenda';
 import { buildMonthGrid, monthShift, parseYm, formatYm } from '@/lib/calendar';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowBack, ArrowForward } from '@/components/ui/arrow';
@@ -75,7 +77,9 @@ export default async function CalendrierPage({
     year: now.getFullYear(),
     month: now.getMonth() + 1,
   };
-  const grid = buildMonthGrid(ym.year, ym.month);
+  // Agenda : table `contentEvents`, ou catalogue codé en repli.
+  const { items: events } = await loadAgenda(loc);
+  const grid = buildMonthGrid(ym.year, ym.month, events);
   const prev = monthShift(ym.year, ym.month, -1);
   const next = monthShift(ym.year, ym.month, 1);
 
@@ -262,17 +266,17 @@ function CalendarEvent({
   L,
   loc,
 }: {
-  event: EventData;
+  event: AgendaEvent;
   L: ReturnType<typeof getEventsLabels>;
   loc: Locale;
 }) {
   return (
     <Link
       href={`/evenements/${event.slug}`}
-      title={`${L.titles[event.slug]} — ${L.types[event.type]} · ${L.cities[event.cityKey]}`}
+      title={`${event.title} — ${L.types[event.type]} · ${event.place}`}
       className={`block rounded-[3px] border-s-2 bg-accent-tint px-1.5 py-1 text-[11.5px] leading-tight text-ink transition-colors hover:bg-accent-edge/40 ${TYPE_BAR[event.type]}`}
     >
-      <span className="block truncate font-medium">{L.titles[event.slug]}</span>
+      <span className="block truncate font-medium">{event.title}</span>
       <span className="block truncate font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
         {L.types[event.type]} · {monthAbbr(event, loc).toLowerCase()}
       </span>

@@ -35,6 +35,25 @@ export const AUDIT = {
   // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
   AI_MODERATION_CONFIGURED: 'aiModeration.configured',
   AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
+  // Contenus éditoriaux (chantier « contenus », F-62/F-64). Une action par
+  // GESTE, et non une action « modifié » unique : publier et dépublier sont
+  // les deux seuls moments où le public voit changer quelque chose, le journal
+  // doit les montrer tels quels. `targetId` porte l'identifiant du document,
+  // `metadata.kind` le type de contenu (event, replay, partner, press, theme).
+  CONTENT_CREATED: 'content.created',
+  CONTENT_UPDATED: 'content.updated',
+  CONTENT_PUBLISHED: 'content.published',
+  CONTENT_UNPUBLISHED: 'content.unpublished',
+  CONTENT_CANCELLED: 'content.cancelled',
+  CONTENT_DELETED: 'content.deleted',
+  CONTENT_REORDERED: 'content.reordered',
+  // Import du contenu codé (migration unique, commande interne).
+  CONTENT_IMPORTED: 'content.imported',
+  MEDIA_UPLOADED: 'media.uploaded',
+  MEDIA_UPDATED: 'media.updated',
+  MEDIA_DELETED: 'media.deleted',
+  // Export CSV des inscrits : des données personnelles sortent du système.
+  EVENT_REGISTRATIONS_EXPORTED: 'event.registrations_exported',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

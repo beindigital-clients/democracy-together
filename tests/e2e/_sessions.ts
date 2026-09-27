@@ -61,7 +61,10 @@ export type SessionKey =
   | 'enTete'
   | 'adminContact'
   | 'adminModeration'
-  | 'adminModerationIa';
+  | 'adminModerationIa'
+  | 'contenusEvenements'
+  | 'contenusMembre'
+  | 'contenusMedias';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -184,5 +187,26 @@ export const SESSIONS: Record<
     email: 'e2e_session_admin_moderation_ia@democracytogether.test',
     state: 'tests/e2e/.auth/admin-moderation-ia.json',
     role: 'admin',
+  },
+  // Sessions dédiées aux specs `contenus-*.spec.ts` (chantier « contenus »).
+  // Chacune crée un contenu puis le publie puis le relit côté public : elles
+  // tiennent leur session d'un bout à l'autre. Rang ÉDITEUR, celui qu'exige
+  // `requireEditor` — un administrateur ferait passer le test même le jour où
+  // la garde serait relevée par erreur. Le MEMBRE inscrit à l'événement a la
+  // sienne : c'est son adresse qui lui ouvre le lien de visioconférence.
+  contenusEvenements: {
+    email: 'e2e_session_contenus_evenements@democracytogether.test',
+    state: 'tests/e2e/.auth/contenus-evenements.json',
+    role: 'editeur',
+  },
+  contenusMembre: {
+    email: 'e2e_session_contenus_membre@democracytogether.test',
+    state: 'tests/e2e/.auth/contenus-membre.json',
+    role: 'membre',
+  },
+  contenusMedias: {
+    email: 'e2e_session_contenus_medias@democracytogether.test',
+    state: 'tests/e2e/.auth/contenus-medias.json',
+    role: 'editeur',
   },
 };

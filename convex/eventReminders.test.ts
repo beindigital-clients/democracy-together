@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { internal } from './_generated/api';
+import { insertTestEvent } from './lib/contenus/fixtures';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -33,6 +34,13 @@ describe('Rappels événements — requestReminder (F-55)', () => {
   it('stocke (normalise), dédoublonne par event+email, rejette invalides', async () => {
     const t = convexTest(schema, modules);
     const eventDate = Date.now() + 5 * DAY;
+    await t.run(async (ctx) => {
+      await insertTestEvent(ctx, {
+        slug: 'conference-inaugurale',
+        startsAt: eventDate,
+      });
+      await insertTestEvent(ctx, { slug: 'webinaire-jeunes-releve' });
+    });
 
     const r1 = await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'conference-inaugurale',
@@ -46,6 +54,8 @@ describe('Rappels événements — requestReminder (F-55)', () => {
     expect(all[0].email).toBe('awa@example.org');
     expect(all[0].sent).toBe(false);
     expect(all[0].eventSlug).toBe('conference-inaugurale');
+    // La date du rappel est celle de l'ÉVÉNEMENT, lue dans la table.
+    expect(all[0].eventDate).toBe(eventDate);
 
     // redemander le MÊME rappel = idempotent, pas de doublon
     const r2 = await t.mutation(internal.eventReminders.storeReminder, {
@@ -79,6 +89,53 @@ describe('Rappels événements — requestReminder (F-55)', () => {
   });
 });
 
+describe('Rappels événements — validés contre la table (pentest M-5)', () => {
+  it('refuse un événement inconnu, brouillon, annulé ou commencé ; ignore la date fournie', async () => {
+    const t = convexTest(schema, modules);
+    const past = Date.now() - 2 * DAY;
+    await t.run(async (ctx) => {
+      await insertTestEvent(ctx, { slug: 'brouillon', status: 'draft' });
+      await insertTestEvent(ctx, { slug: 'annule', status: 'cancelled' });
+      await insertTestEvent(ctx, {
+        slug: 'passe',
+        startsAt: past,
+        endsAt: past + 3_600_000,
+      });
+      await insertTestEvent(ctx, {
+        slug: 'commence',
+        startsAt: Date.now() - 3_600_000,
+        endsAt: Date.now() + 3_600_000,
+      });
+    });
+    for (const eventSlug of [
+      'inconnu',
+      'brouillon',
+      'annule',
+      'passe',
+      'commence',
+    ]) {
+      await expect(
+        t.mutation(internal.eventReminders.storeReminder, {
+          eventSlug,
+          email: 'awa@example.org',
+          eventDate: Date.now() + DAY,
+        }),
+      ).rejects.toMatchObject({ data: 'EVENT_CLOSED' });
+    }
+    // La date fournie par l'appelant est IGNORÉE : on ne peut plus programmer
+    // un envoi au moment de son choix.
+    const startsAt = Date.now() + 7 * DAY;
+    await t.run((ctx) => insertTestEvent(ctx, { slug: 'ouvert', startsAt }));
+    await t.mutation(internal.eventReminders.storeReminder, {
+      eventSlug: 'ouvert',
+      email: 'awa@example.org',
+      eventDate: Date.now() + DAY,
+    });
+    const row = await t.run((ctx) => ctx.db.query('eventReminders').first());
+    expect(row?.eventDate).toBe(startsAt);
+  });
+});
+
 describe('Rappels événements — sendDueReminders (F-55)', () => {
   it('marque sent=true un rappel proche ; ignore les rappels hors fenêtre et déjà envoyés', async () => {
     // Mode dev explicite : depuis le correctif H3, l'adaptateur e-mail n'accepte
@@ -88,6 +145,20 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
     try {
       const t = convexTest(schema, modules);
       const now = Date.now();
+      await t.run(async (ctx) => {
+        await insertTestEvent(ctx, {
+          slug: 'event-proche',
+          startsAt: now + DAY,
+        });
+        await insertTestEvent(ctx, {
+          slug: 'event-lointain',
+          startsAt: now + 10 * DAY,
+        });
+        await insertTestEvent(ctx, {
+          slug: 'event-deja-envoye',
+          startsAt: now + DAY,
+        });
+      });
 
       // (a) proche (dans 1 jour) -> doit être envoyé puis marqué sent=true
       await t.mutation(internal.eventReminders.storeReminder, {
@@ -151,6 +222,9 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
     try {
       const t = convexTest(schema, modules);
       const now = Date.now();
+      await t.run((ctx) =>
+        insertTestEvent(ctx, { slug: 'event-proche', startsAt: now + DAY }),
+      );
       await t.mutation(internal.eventReminders.storeReminder, {
         eventSlug: 'event-proche',
         email: 'soon@dt.test',

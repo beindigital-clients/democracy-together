@@ -5,6 +5,7 @@ import { convexTest } from 'convex-test';
 import schema from './schema';
 import { internal } from './_generated/api';
 import { EMAIL_MAX_LENGTH, FIELD_MAX, isEmail } from './lib/validation';
+import { insertTestEvent } from './lib/contenus/fixtures';
 
 // BORNES DES FORMULAIRES PUBLICS — pentest M-2 (« remplissage ») et M-5.
 //
@@ -200,6 +201,26 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
 
   it('plafonne les rappels EN ATTENTE d’une adresse, et ne se recharge pas avec le temps', async () => {
     const t = convexTest(schema, modules);
+    // Depuis le chantier « contenus », le slug est validé contre la table :
+    // varier le slug ne rend plus un créneau neuf que s'il désigne un VRAI
+    // événement ouvert. Le plafond reste l'objet du test, on crée donc ces
+    // événements (à 30 jours : l'horloge avancée ci-dessous ne les rattrape pas).
+    await t.run(async (ctx) => {
+      for (const slug of [
+        'evenement-0',
+        'evenement-1',
+        'evenement-2',
+        'evenement-3',
+        'evenement-4',
+        'evenement-de-trop',
+        'evenement-apres-envoi',
+      ]) {
+        await insertTestEvent(ctx, {
+          slug,
+          startsAt: Date.now() + 30 * 86_400_000,
+        });
+      }
+    });
 
     // L'HORLOGE EST AVANCÉE ENTRE CHAQUE DEMANDE, et c'est le cœur du test.
     // Le plafond HORAIRE par adresse (5/h) mordrait sinon en premier — or
@@ -243,19 +264,27 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
     expect(enAttente).toHaveLength(5);
   });
 
-  it('refuse une date passée et une date à plus d’un an', async () => {
+  // La date n'est plus fournie par l'appelant mais lue dans la table : la
+  // borne « ni passée, ni à plus d'un an » a cédé la place au refus d'un
+  // événement commencé ou inconnu (`EVENT_CLOSED`).
+  it('la date fournie est ignorée : un événement passé est refusé, un événement ouvert accepté', async () => {
     const t = convexTest(schema, modules);
+    const passe = Date.now() - 86_400_000;
+    await t.run(async (ctx) => {
+      await insertTestEvent(ctx, {
+        slug: 'evenement-passe',
+        startsAt: passe,
+        endsAt: passe + 3_600_000,
+      });
+      await insertTestEvent(ctx, { slug: 'evenement-normal' });
+    });
 
     await expect(
-      demander(t, 'evenement-passe', CIBLE, Date.now() - 86_400_000),
-    ).rejects.toThrow('INVALID_EVENT_DATE');
+      demander(t, 'evenement-passe', CIBLE, Date.now() + 86_400_000),
+    ).rejects.toMatchObject({ data: 'EVENT_CLOSED' });
 
-    await expect(
-      demander(t, 'evenement-lointain', CIBLE, Date.now() + 400 * 86_400_000),
-    ).rejects.toThrow('INVALID_EVENT_DATE');
-
-    // Non-vacuité : une date normale passe.
-    await demander(t, 'evenement-normal');
+    // Non-vacuité : un événement ouvert passe, quelle que soit la date fournie.
+    await demander(t, 'evenement-normal', CIBLE, Date.now() + 400 * 86_400_000);
     expect(
       await t.run((ctx) => ctx.db.query('eventReminders').collect()),
     ).toHaveLength(1);
