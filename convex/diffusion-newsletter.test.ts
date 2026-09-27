@@ -35,16 +35,25 @@ afterEach(() => {
 
 type Sent = { to: string[]; subject: string; html: string };
 
-/** Fournisseur Resend simulé : capture ce qui « part ». */
-function resendCapture() {
+/**
+ * Fournisseur Resend simulé : capture ce qui « part » VERS `recipient`.
+ *
+ * `fetch` est un stub GLOBAL : l'envoi planifié d'un test précédent, qui finit
+ * en retard sur une machine lente, tombe dans le stub du test suivant (vu deux
+ * fois en CI le 27/09). Chaque test ne compte donc que les courriels destinés
+ * à SON adresse ; les autres sont acceptés sans être comptés.
+ */
+function resendCapture(recipient: string) {
   const sent: Sent[] = [];
+  const target = recipient.toLowerCase();
   vi.stubEnv('AUTH_RESEND_KEY', 're_test');
   vi.stubEnv('AUTH_EMAIL_PROVIDER', 'resend');
   vi.stubEnv('SITE_URL', 'https://dt.test');
   vi.stubGlobal(
     'fetch',
     vi.fn(async (_url: string, init: { body: string }) => {
-      sent.push(JSON.parse(init.body) as Sent);
+      const mail = JSON.parse(init.body) as Sent;
+      if (mail.to.includes(target)) sent.push(mail);
       return new Response(JSON.stringify({ id: 'x' }), { status: 200 });
     }),
   );
@@ -66,7 +75,7 @@ async function allSubs(t: ReturnType<typeof convexTest>) {
 describe('Double opt-in — inscription et confirmation', () => {
   it('crée une ATTENTE, envoie le lien, et ne stocke que l’empreinte du jeton', async () => {
     vi.useFakeTimers();
-    const sent = resendCapture();
+    const sent = resendCapture('awa@example.org');
     const t = convexTest(schema, modules);
 
     await t.mutation(internal.newsletter.recordSubscription, {
@@ -172,7 +181,7 @@ describe('Double opt-in — inscription et confirmation', () => {
 
   it('un nouveau lien REMPLACE le précédent : seul le dernier confirme', async () => {
     vi.useFakeTimers();
-    const sent = resendCapture();
+    const sent = resendCapture('deux@dt.test');
     const t = convexTest(schema, modules);
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'deux@dt.test',
@@ -198,7 +207,7 @@ describe('Double opt-in — inscription et confirmation', () => {
 describe('Double opt-in — renvoi borné et réinscriptions', () => {
   it('se réinscrire en attente renvoie le lien, au plus 3 fois, jamais deux fois en 10 min', async () => {
     vi.useFakeTimers();
-    const sent = resendCapture();
+    const sent = resendCapture('insiste@dt.test');
     const t = convexTest(schema, modules);
     const inscrire = () =>
       t.mutation(internal.newsletter.recordSubscription, {
@@ -225,7 +234,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
 
   it('un abonné CONFIRMÉ qui se réinscrit ne reçoit rien et reste confirmé', async () => {
     vi.useFakeTimers();
-    const sent = resendCapture();
+    const sent = resendCapture('fidele@dt.test');
     const t = convexTest(schema, modules);
     await t.run((ctx) =>
       ctx.db.insert('newsletterSubscriptions', {
@@ -381,7 +390,7 @@ describe('Migration des abonnés hérités', () => {
     expect((await allSubs(t))[0].status).toBeUndefined();
 
     vi.useFakeTimers();
-    const sent = resendCapture();
+    const sent = resendCapture('ancien@dt.test');
     expect(
       await t.mutation(internal.newsletter.migrateLegacySubscribers, {}),
     ).toEqual({ migrated: 1, done: true });
@@ -391,14 +400,10 @@ describe('Migration des abonnés hérités', () => {
     expect(sub.status).toBe('pending');
     expect(sub.consent).toMatchObject({ at: 12345, source: 'legacy' });
     expect(sub.confirmExpiresAt! - Date.now()).toBeGreaterThan(29 * 86_400_000);
-    // On ne compte que les envois à CET abonné : `fetch` est un stub global,
-    // et un envoi planifié par un test précédent qui finit en retard (vu en CI
-    // le 27/09, machine plus lente) atterrit dans la même capture.
-    const mine = sent.filter((m) => m.to.includes('ancien@dt.test'));
-    expect(mine).toHaveLength(1);
+    expect(sent).toHaveLength(1);
     // Le courriel dit POURQUOI on écrit, dans la langue de l'abonné.
-    expect(mine[0].html).toContain('/es/newsletter/confirmation');
-    expect(mine[0].html).toContain('30');
+    expect(sent[0].html).toContain('/es/newsletter/confirmation');
+    expect(sent[0].html).toContain('30');
   });
 });
 
