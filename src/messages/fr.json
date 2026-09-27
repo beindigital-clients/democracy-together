@@ -358,6 +358,7 @@
       "errAbstract": "Le résumé doit faire au moins 20 caractères.",
       "errorFile": "Le téléversement du document a échoué. Réessayez.",
       "errorFileSize": "Le fichier dépasse {mb} Mo.",
+      "errorFileType": "Ce fichier n'est pas un PDF lisible (vide, ou d'un autre format). Choisissez un document PDF.",
       "errorGeneric": "Une erreur est survenue. Réessayez.",
       "rateLimited": "Trop de tentatives. Réessayez dans un moment."
     },
@@ -1148,6 +1149,7 @@
     "errTitle": "Le titre doit comporter au moins 4 caractères.",
     "errDescription": "La description doit comporter au moins 10 caractères.",
     "errGeneric": "Une erreur est survenue. Réessayez.",
+    "errNote": "La note ne peut pas dépasser {max} caractères.",
     "create": "Créer l’espace",
     "cancel": "Annuler",
     "back": "Tous les espaces",

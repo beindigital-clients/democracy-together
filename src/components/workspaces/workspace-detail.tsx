@@ -40,21 +40,34 @@ type WorkspaceDetail = {
 
 // Formulaire de note (réservé aux membres DE L'ESPACE). Réplique le motif du
 // CommentForm de la Tribune.
+// Même nombre que `convex/workspaces.ts#addNote` (INVALID_NOTE au-delà).
+const NOTE_MAX = 4000;
+
 function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
   const t = useTranslations('workspaces');
   const add = useMutation(api.workspaces.addNote);
   const [body, setBody] = useState('');
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
     if (body.trim().length < 2) return;
+    // Borne du serveur (`addNote` : INVALID_NOTE au-delà). Sans ce message, une
+    // note trop longue disparaissait sans un mot — le refus était attrapé et tu.
+    if (body.trim().length > NOTE_MAX) {
+      setError(t('errNote', { max: NOTE_MAX }));
+      return;
+    }
     setPending(true);
     try {
       await add({ workspaceId, body: body.trim() });
       setBody('');
     } catch {
-      /* refusé (rôle / appartenance / rate-limit) : on n'insiste pas */
+      // Refusé (rôle / appartenance / rate-limit / borne) : le texte reste, et
+      // l'auteur sait que rien n'est parti.
+      setError(t('errGeneric'));
     } finally {
       setPending(false);
     }
@@ -70,8 +83,14 @@ function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         required
+        maxLength={NOTE_MAX}
         placeholder={t('notePlaceholder')}
       />
+      {error ? (
+        <p role="alert" className="text-sm text-bar-5">
+          {error}
+        </p>
+      ) : null}
       <Button type="submit" size="sm" disabled={pending}>
         {t('noteSubmit')}
       </Button>
@@ -90,7 +109,13 @@ export function WorkspaceDetail({
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  const data = useQuery(api.workspaces.getWorkspace, { workspaceId });
+  // Même garde que la liste : la requête n'est posée qu'une fois le rôle
+  // connu et suffisant (cf. workspaces-board.tsx). L'identifiant malformé ou
+  // étranger, lui, est absorbé par le serveur, qui rend `null` -> « introuvable ».
+  const data = useQuery(
+    api.workspaces.getWorkspace,
+    me !== undefined && isMember(me?.role) ? { workspaceId } : 'skip',
+  );
   const join = useMutation(api.workspaces.joinWorkspace);
   const leave = useMutation(api.workspaces.leaveWorkspace);
   const [pending, setPending] = useState(false);

@@ -358,6 +358,7 @@
       "errAbstract": "O resumo deve ter pelo menos 20 caracteres.",
       "errorFile": "O carregamento do documento falhou. Tente de novo.",
       "errorFileSize": "O ficheiro excede {mb} MB.",
+      "errorFileType": "Este ficheiro não é um PDF legível (vazio ou noutro formato). Escolha um documento PDF.",
       "errorGeneric": "Ocorreu um erro. Tente de novo.",
       "rateLimited": "Demasiadas tentativas. Tente de novo dentro de momentos."
     },
@@ -1148,6 +1149,7 @@
     "errTitle": "O título deve ter pelo menos 4 caracteres.",
     "errDescription": "A descrição deve ter pelo menos 10 caracteres.",
     "errGeneric": "Ocorreu um erro. Tente de novo.",
+    "errNote": "A nota não pode ultrapassar {max} caracteres.",
     "create": "Criar o espaço",
     "cancel": "Cancelar",
     "back": "Todos os espaços",

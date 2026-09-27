@@ -28,6 +28,18 @@ import { UPLOAD_FAILED, uploadWithProgress } from '@/lib/upload';
 import { vocabulary } from '@/i18n/vocabulary';
 
 const MAX_FILE_MB = 20;
+
+// Le CONTENU, pas l'extension : un `.txt` renommé `.pdf`, ou un fichier vide,
+// passait le sélecteur (`accept`) et le serveur, qui ne peut relire que la
+// taille et le type annoncé (mesuré le 27/09). Un PDF commence par `%PDF-`.
+async function looksLikePdf(file: File): Promise<boolean> {
+  if (file.size < 5) return false;
+  try {
+    return (await file.slice(0, 5).text()) === '%PDF-';
+  } catch {
+    return true; // navigateur sans `Blob.text()` : on laisse le serveur trancher
+  }
+}
 const CURRENT_YEAR = new Date().getFullYear();
 
 type Status = 'idle' | 'uploading' | 'sending' | 'success';
@@ -121,6 +133,8 @@ export function PublicationSubmitForm() {
     if (languages.length === 0) groups.languages = t('submit.errLanguages');
     if (file && file.size > MAX_FILE_MB * 1024 * 1024) {
       groups.file = t('submit.errorFileSize', { mb: MAX_FILE_MB });
+    } else if (file && !(await looksLikePdf(file))) {
+      groups.file = t('submit.errorFileType');
     }
     setGroupErrors(groups);
 
@@ -207,7 +221,9 @@ export function PublicationSubmitForm() {
           ? t('submit.rateLimited')
           : err instanceof Error && err.message === UPLOAD_FAILED
             ? t('submit.errorFile')
-            : t('submit.errorGeneric'),
+            : err instanceof Error && /INVALID_FILE/.test(err.message)
+              ? t('submit.errorFileType')
+              : t('submit.errorGeneric'),
       );
       // La saisie reste en place : un refus n'est pas une raison de tout
       // reprendre (le fichier choisi non plus).

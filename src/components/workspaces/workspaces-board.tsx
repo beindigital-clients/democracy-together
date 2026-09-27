@@ -127,7 +127,16 @@ export function WorkspacesBoard() {
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  const items = useQuery(api.workspaces.listWorkspaces);
+  // `listWorkspaces` REFUSE un compte sans rôle « membre » (garde serveur).
+  // Appelée avant de connaître le rôle, la requête levait côté client et la
+  // page entière tombait sur « Une erreur est survenue » — pour un visiteur
+  // qui n'avait rien à voir d'autre que le message d'adhésion ci-dessous.
+  // Mesuré (exploration du 27/09). On attend donc le rôle, et on ne demande
+  // la liste qu'à qui peut la lire.
+  const items = useQuery(
+    api.workspaces.listWorkspaces,
+    me !== undefined && isMember(me?.role) ? {} : 'skip',
+  );
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(intlLocale(locale), {

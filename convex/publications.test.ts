@@ -755,6 +755,22 @@ describe('Dépôt de publication (F-32) — validation serveur du fichier', () =
     expect(doc?.fileId).toBe(fileId);
   });
 
+  it('rejette un fichier VIDE (INVALID_FILE) : 0 octet n’est pas un document', async () => {
+    const { t, as } = await asMember();
+    const fileId = await t.run((ctx) =>
+      ctx.storage.store(new Blob([], { type: 'application/pdf' })),
+    );
+    await expect(
+      as.mutation(api.publications.submitPublication, {
+        ...SUBMIT,
+        fileId,
+        fileName: 'vide.pdf',
+      }),
+    ).rejects.toThrow('INVALID_FILE');
+    const all = await t.run((ctx) => ctx.db.query('publications').collect());
+    expect(all).toHaveLength(0);
+  });
+
   it('rejette un fichier au-dela de la limite de taille (INVALID_FILE)', async () => {
     const { t, as } = await asMember();
     const fileId = await t.run((ctx) =>

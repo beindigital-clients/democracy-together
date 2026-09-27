@@ -183,6 +183,38 @@ describe('Espaces — notes réservées aux membres de l’espace (F-24)', () =>
   });
 });
 
+describe('Espaces — identifiant venu de l’URL (F-24)', () => {
+  // L'identifiant de /espaces/<id> vient de n'importe qui. Avec `v.id`, un
+  // `zzz` ou l'identifiant d'une AUTRE table faisaient lever la validation
+  // d'arguments avant le handler, et la page tombait sur « Une erreur est
+  // survenue » au lieu d'« introuvable » (mesuré le 27/09).
+  it('un identifiant malformé ou étranger rend null, sans lever', async () => {
+    const t = convexTest(schema, modules);
+    const m = await member(t, 'm@dt.test', 'M');
+    expect(
+      await m.as.query(api.workspaces.getWorkspace, { workspaceId: 'zzz' }),
+    ).toBeNull();
+    // identifiant BIEN FORMÉ, mais d'une autre table
+    expect(
+      await m.as.query(api.workspaces.getWorkspace, { workspaceId: m.id }),
+    ).toBeNull();
+  });
+
+  it('un visiteur reste refusé (la garde de rôle ne bouge pas)', async () => {
+    const t = convexTest(schema, modules);
+    const id = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'visiteur', email: 'v@dt.test' }),
+    );
+    const v = t.withIdentity({ subject: `${id}|s` });
+    await expect(
+      v.query(api.workspaces.getWorkspace, { workspaceId: 'zzz' }),
+    ).rejects.toThrow(/rôle « membre » requis/);
+    await expect(v.query(api.workspaces.listWorkspaces, {})).rejects.toThrow(
+      /rôle « membre » requis/,
+    );
+  });
+});
+
 describe('Espaces — listWorkspaces.mine (F-24)', () => {
   it('mine reflète l’appartenance de l’utilisateur courant', async () => {
     const t = convexTest(schema, modules);

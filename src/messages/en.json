@@ -358,6 +358,7 @@
       "errAbstract": "The abstract must be at least 20 characters.",
       "errorFile": "The document upload failed. Please try again.",
       "errorFileSize": "The file exceeds {mb} MB.",
+      "errorFileType": "This file is not a readable PDF (empty, or another format). Choose a PDF document.",
       "errorGeneric": "Something went wrong. Please try again.",
       "rateLimited": "Too many attempts. Please try again in a moment."
     },
@@ -1148,6 +1149,7 @@
     "errTitle": "The title must be at least 4 characters long.",
     "errDescription": "The description must be at least 10 characters long.",
     "errGeneric": "Something went wrong. Please try again.",
+    "errNote": "The note cannot exceed {max} characters.",
     "create": "Create workspace",
     "cancel": "Cancel",
     "back": "All workspaces",

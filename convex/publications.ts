@@ -314,7 +314,14 @@ export const submitPublication = mutation({
       const typeRejected = meta?.contentType
         ? !ALLOWED_FILE_TYPES.includes(meta.contentType)
         : false;
-      if (!meta || meta.size > MAX_FILE_BYTES || typeRejected) {
+      // Un fichier VIDE n'est pas un document : accepté, il devenait une
+      // publication dont le « PDF » pèse 0 octet (mesuré le 27/09).
+      if (
+        !meta ||
+        meta.size === 0 ||
+        meta.size > MAX_FILE_BYTES ||
+        typeRejected
+      ) {
         throw new Error('INVALID_FILE');
       }
     }

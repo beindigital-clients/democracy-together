@@ -198,9 +198,16 @@ export const listWorkspaces = query({
 });
 
 export const getWorkspace = query({
-  args: { workspaceId: v.id('workspaces') },
-  handler: async (ctx, { workspaceId }) => {
+  // `v.string()` et non `v.id('workspaces')` : l'identifiant vient de l'URL
+  // (/espaces/<id>), donc de n'importe qui. Avec `v.id`, `/espaces/zzz` ou un
+  // identifiant d'une AUTRE table faisaient lever la validation d'arguments
+  // avant le handler, et la page tombait sur « Une erreur est survenue » là où
+  // un identifiant inconnu doit dire « introuvable » (mesuré le 27/09).
+  args: { workspaceId: v.string() },
+  handler: async (ctx, args) => {
     const user = await requireNetworkRole(ctx, 'membre');
+    const workspaceId = ctx.db.normalizeId('workspaces', args.workspaceId);
+    if (!workspaceId) return null;
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace) return null;
 
