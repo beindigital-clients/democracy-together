@@ -132,6 +132,7 @@ function BecomeMember() {
 
 function MemberDashboard() {
   const t = useTranslations('auth');
+  const tAccounts = useTranslations('accounts');
   const me = useQuery(api.users.current);
   const member = isMember(me?.role);
 
@@ -197,6 +198,26 @@ function MemberDashboard() {
           className="inline-block text-sm font-medium text-accent-text hover:underline"
         >
           {t('paymentsLink')} <ArrowForward />
+        </Link>
+        {/* Chantier comptes : double authentification, données personnelles
+            (export, suppression), organisation (F-21). */}
+        <Link
+          href="/espace-membre/securite"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {tAccounts('linkSecurity')} <ArrowForward />
+        </Link>
+        <Link
+          href="/espace-membre/organisation"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {tAccounts('linkOrganization')} <ArrowForward />
+        </Link>
+        <Link
+          href="/espace-membre/donnees"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {tAccounts('linkData')} <ArrowForward />
         </Link>
       </div>
 

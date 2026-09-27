@@ -62,6 +62,23 @@ export const SERVER_ERROR_CODES = [
   'MEDIA_IN_USE',
   'INVALID_MEDIA',
   'EVENT_HAS_REGISTRATIONS',
+  // Cycle de vie des comptes et 2FA (chantier comptes).
+  'LAST_ADMIN',
+  'SELF_ACTION',
+  'INVALID_REASON',
+  'INVALID_EMAIL',
+  'ALREADY_SUSPENDED',
+  'NOT_SUSPENDED',
+  'DELETION_IN_PROGRESS',
+  'CONFIRMATION_MISMATCH',
+  'NOT_ENABLED',
+  'ENROLL_FIRST',
+  'TWO_FACTOR_KEY_NOT_CONFIGURED',
+  'ACCOUNT_SUSPENDED',
+  'TWO_FACTOR_REQUIRED',
+  'TWO_FACTOR_ENROLLMENT_REQUIRED',
+  'INVALID_NAME',
+  'INVALID_DESCRIPTION',
   // Refus de rôle et de session : `requireNetworkRole` lève en français
   // (« Accès refusé : rôle « editeur » requis. », « Non authentifié. ») — ils
   // sont reconnus par leur texte et ramenés à un code, comme les autres.

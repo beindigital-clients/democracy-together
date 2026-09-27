@@ -66,7 +66,8 @@ export type SessionKey =
   | 'diffusion'
   | 'contenusEvenements'
   | 'contenusMembre'
-  | 'contenusMedias';
+  | 'contenusMedias'
+  | 'comptes';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -229,5 +230,15 @@ export const SESSIONS: Record<
     email: 'e2e_session_contenus_medias@democracytogether.test',
     state: 'tests/e2e/.auth/contenus-medias.json',
     role: 'editeur',
+  },
+  // Session dédiée à `comptes-suspension.spec.ts` (chantier comptes, F-63).
+  // Le fichier crée un compte, le fait se connecter, le suspend puis le
+  // supprime : il tient la session d'un bout à l'autre, le cas que la règle
+  // ci-dessus vise. Rang ADMINISTRATEUR, celui qu'exigent la création, la
+  // suspension et la suppression.
+  comptes: {
+    email: 'e2e_session_comptes@democracytogether.test',
+    state: 'tests/e2e/.auth/comptes.json',
+    role: 'admin',
   },
 };

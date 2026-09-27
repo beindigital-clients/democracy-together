@@ -44,6 +44,13 @@
   --map-land: #dedad0;
   --map-stroke: #efede4;
 
+  /* QR code d'inscription 2FA (chantier comptes). Noir sur blanc dans LES
+     DEUX thèmes, et c'est voulu : beaucoup d'applications d'authentification
+     ne lisent pas un QR code inversé. Ces deux jetons ne sont donc pas
+     redéfinis sous [data-theme='dark']. */
+  --qr-ink: #000000;
+  --qr-paper: #ffffff;
+
   /* layout */
   --measure: 66ch;
   --max: 1200px;
@@ -194,6 +201,8 @@
   --color-bar-5: var(--bar-5);
   --color-bar-2-ink: var(--bar-2-ink);
   --color-bar-4-ink: var(--bar-4-ink);
+  --color-qr-ink: var(--qr-ink);
+  --color-qr-paper: var(--qr-paper);
 
   --radius-xs: var(--r-xs);
   --radius-sm: var(--r-sm);

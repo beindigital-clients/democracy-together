@@ -68,7 +68,18 @@ export default async function OrgProfilePage({
 
   const t = await getTranslations('directory.profile');
   const td = await getTranslations('directory');
+  const to = await getTranslations('orgAdmin');
+  const tl = await getTranslations('library');
   const websiteHref = safeHref(org.websiteUrl);
+  // Complément de fiche (F-21, chantier comptes) : logo, publications de ses
+  // comptes, membres si l'organisation l'a choisi. Une panne de cette
+  // seconde lecture ne doit pas emporter la fiche : elle rend `null`, et la
+  // page se contente de ce qu'elle a.
+  const details = await fetchOrFallback(
+    'le-reseau/[slug]:details',
+    () => fetchQuery(api.orgAdmin.publicDetails, { slug }),
+    null,
+  );
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6 md:py-14">
@@ -86,9 +97,21 @@ export default async function OrgProfilePage({
           <span className="text-line-strong">·</span>
           <span>{vocabulary(td, 'regions.', org.region)}</span>
         </div>
-        <h1 className="mt-3 font-display text-[clamp(30px,4.5vw,48px)] font-medium leading-[1.05] tracking-[-0.02em]">
-          {org.name}
-        </h1>
+        <div className="mt-3 flex items-center gap-4">
+          {details?.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL signée du stockage Convex, hors du chargeur d'images de Next
+            <img
+              src={details.logoUrl}
+              alt={to('logoAlt', { org: org.name })}
+              width={64}
+              height={64}
+              className="h-16 w-16 shrink-0 rounded-sm border border-line bg-paper object-contain"
+            />
+          ) : null}
+          <h1 className="min-w-0 wrap-anywhere font-display text-[clamp(30px,4.5vw,48px)] font-medium leading-[1.05] tracking-[-0.02em]">
+            {org.name}
+          </h1>
+        </div>
         <div className="mt-5 flex flex-wrap gap-1.5">
           {org.themes.map((theme) => (
             <Badge key={theme} variant="accent">
@@ -106,9 +129,47 @@ export default async function OrgProfilePage({
           </p>
 
           <h2 className="mt-10 font-display text-2xl">{t('publications')}</h2>
-          <div className="mt-3 rounded-md border border-dashed border-line-strong bg-surface px-5 py-8 text-sm text-ink-soft">
-            {t('publicationsSoon')}
-          </div>
+          {details && details.publications.length > 0 ? (
+            <ul className="mt-3 divide-y divide-line rounded-md border border-line bg-surface">
+              {details.publications.map((p) => (
+                <li key={p.slug}>
+                  <Link
+                    href={`/bibliotheque/${p.slug}`}
+                    className="flex min-h-11 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-3 hover:bg-accent-tint/60"
+                  >
+                    <span className="wrap-anywhere font-medium text-ink">
+                      {p.title}
+                    </span>
+                    <span className="font-mono text-xs text-muted">
+                      {vocabulary(tl, 'types.', p.type)} · {p.year}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-3 rounded-md border border-dashed border-line-strong bg-surface px-5 py-8 text-sm text-ink-soft">
+              {to('publicPublicationsEmpty')}
+            </div>
+          )}
+
+          {details?.members && details.members.length > 0 ? (
+            <>
+              <h2 className="mt-10 font-display text-2xl">
+                {to('publicMembersTitle')}
+              </h2>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {details.members.map((m, i) => (
+                  <li
+                    key={`${m.name}-${i}`}
+                    className="wrap-anywhere rounded-pill border border-line bg-surface px-3 py-1 text-sm"
+                  >
+                    {m.name}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </div>
 
         <aside className="space-y-6">

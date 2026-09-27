@@ -1,8 +1,9 @@
 import { v } from 'convex/values';
-import { getAuthUserId } from '@convex-dev/auth/server';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
 import { roleRank } from './roles';
+// Un compte suspendu (chantier comptes) est lu comme un visiteur.
+import { getActiveUserId } from './rbac';
 import { canViewProfile, isNotificationPrefType } from './social';
 
 // Lectures partagées du chantier « social » : qui regarde, qui a bloqué qui,
@@ -22,7 +23,7 @@ export function isMemberRole(role: string | null | undefined): boolean {
 }
 
 export async function loadViewer(ctx: Ctx): Promise<Viewer> {
-  const userId = await getAuthUserId(ctx);
+  const userId = await getActiveUserId(ctx);
   if (!userId) return null;
   const user = await ctx.db.get(userId);
   if (!user) return null;

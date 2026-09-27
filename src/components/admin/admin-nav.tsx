@@ -90,6 +90,10 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       // de la Tribune, celui qu'exige `social.messages.listReports`.
       { href: '/admin/messages-signales', key: 'messageReports' },
       { href: '/admin/contact', key: 'contactMessages' },
+      // Fiches d'annuaire proposées par les responsables d'organisation
+      // (F-21, chantier comptes) : c'est une modération, au rang de
+      // `orgAdmin.reviewRevision`.
+      { href: '/admin/organisations', key: 'organizations' },
     ],
   },
   {

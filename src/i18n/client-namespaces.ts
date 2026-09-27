@@ -31,6 +31,13 @@ import type { AbstractIntlMessages } from 'next-intl';
  * C'est ce que porte le HTML de toutes les pages publiques.
  */
 export const BASE_CLIENT_NAMESPACES = [
+  // Chantier comptes : écrans de l'espace membre (données, sécurité,
+  // organisation), saisie du second facteur après connexion, message de
+  // compte suspendu sur la page de connexion. Le back-office s'en sert aussi
+  // (cycle de vie des comptes, réglage 2FA, fiches d'organisation), mais ils
+  // ne peuvent pas être réservés à `admin/layout.tsx` : des pages publiques
+  // les demandent.
+  'accounts',
   'auth',
   'contact',
   'cookies',
@@ -60,6 +67,7 @@ export const BASE_CLIENT_NAMESPACES = [
   // `privacy` : le réglage d'opposition à la mesure d'audience, posé dans la
   // politique de confidentialité (F-66, chantier diffusion).
   'privacy',
+  'orgAdmin',
   'projects',
   'reminder',
   'search',
@@ -69,6 +77,7 @@ export const BASE_CLIENT_NAMESPACES = [
   // la frontière RSC.
   'translation',
   'tribune',
+  'twoFactor',
   'workspaces',
   'youthApply',
 ] as const;

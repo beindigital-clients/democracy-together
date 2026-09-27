@@ -1,5 +1,4 @@
 import { ConvexError, v } from 'convex/values';
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { internal } from '../_generated/api';
 import {
   action,
@@ -15,7 +14,7 @@ import {
   enforceRateLimit,
   RATE_LIMITS,
 } from '../lib/rateLimit';
-import { requireNetworkRole } from '../lib/rbac';
+import { getActiveUserId, requireNetworkRole } from '../lib/rbac';
 import { FIELD_MAX, isEmail } from '../lib/validation';
 import { normalizeEmail } from '../lib/onboarding';
 import {
@@ -285,7 +284,8 @@ export const createDonationCheckout = internalMutation({
       ...RATE_LIMITS.donation,
     });
 
-    const userId = await getAuthUserId(ctx);
+    // Un compte suspendu donne comme un visiteur : rien n'est rattaché à lui.
+    const userId = await getActiveUserId(ctx);
     const ref = randomToken(16);
     const checkoutId = await ctx.db.insert('paymentCheckouts', {
       ref,

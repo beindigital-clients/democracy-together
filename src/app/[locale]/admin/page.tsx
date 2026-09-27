@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { ArrowForward } from '@/components/ui/arrow';
+import { TwoFactorPolicyWarning } from '@/components/admin/two-factor-policy';
 
 export default function AdminDashboard() {
   const t = useTranslations('admin');
@@ -21,6 +22,9 @@ export default function AdminDashboard() {
   return (
     <div>
       <h1 className="font-display text-3xl">{t('dashboard')}</h1>
+      {/* Chantier comptes : tant que la 2FA n'est pas obligatoire pour
+          l'encadrement, l'administrateur le voit à chaque visite. */}
+      <TwoFactorPolicyWarning />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (

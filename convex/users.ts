@@ -58,9 +58,15 @@ export const setRole = mutation({
             'Un administrateur ne peut pas se rétrograder lui-même.',
           );
         }
-        const admins = (await ctx.db.query('users').collect()).filter(
-          (u) => u.role === 'admin',
-        );
+        // Par l'index `by_role`, et sans compter les administrateurs
+        // SUSPENDUS (chantier comptes) : un administrateur suspendu ne peut
+        // plus rien réattribuer, il ne protège donc pas du verrouillage.
+        const admins = (
+          await ctx.db
+            .query('users')
+            .withIndex('by_role', (q) => q.eq('role', 'admin'))
+            .take(100)
+        ).filter((u) => u.suspendedAt === undefined);
         if (admins.length <= 1) {
           throw new Error(
             'Impossible de rétrograder le dernier administrateur.',

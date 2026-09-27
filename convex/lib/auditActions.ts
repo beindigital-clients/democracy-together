@@ -88,6 +88,27 @@ export const AUDIT = {
   MEDIA_DELETED: 'media.deleted',
   // Export CSV des inscrits : des données personnelles sortent du système.
   EVENT_REGISTRATIONS_EXPORTED: 'event.registrations_exported',
+  // Cycle de vie des comptes (chantier comptes, F-63). La suspension et la
+  // réactivation sont deux actions : le journal doit dire laquelle a eu lieu,
+  // et le MOTIF de la suspension y est conservé.
+  USER_CREATED: 'user.created',
+  USER_SUSPENDED: 'user.suspended',
+  USER_REACTIVATED: 'user.reactivated',
+  USER_DELETION_STARTED: 'user.deletion_started',
+  USER_DELETED: 'user.deleted',
+  // Double authentification. La RÉINITIALISATION par un administrateur est
+  // distincte de la désactivation par le titulaire : c'est le geste qui
+  // permet de reprendre un compte, il doit se lire comme tel.
+  TWO_FACTOR_ENABLED: 'twoFactor.enabled',
+  TWO_FACTOR_DISABLED: 'twoFactor.disabled',
+  TWO_FACTOR_RESET: 'twoFactor.reset',
+  SECURITY_POLICY_CHANGED: 'security.policy_changed',
+  // Organisations (F-21) : rattachements et fiche.
+  ORG_MEMBER_ADDED: 'organization.member_added',
+  ORG_MEMBER_REMOVED: 'organization.member_removed',
+  ORG_MEMBER_ROLE_CHANGED: 'organization.member_role_changed',
+  ORG_REVISION_SUBMITTED: 'organization.revision_submitted',
+  ORG_REVISION_REVIEWED: 'organization.revision_reviewed',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

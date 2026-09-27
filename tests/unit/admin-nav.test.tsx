@@ -42,7 +42,9 @@ function renderNav(role: NetworkRole, pathname = '/admin') {
 // Les quatorze entrées de l'issue, par le libellé qu'elles portent à l'écran,
 // plus la quinzième arrivée depuis (« Modération IA », réservée à
 // l'administrateur) et la seizième (« Mes relectures », la vue du relecteur
-// de rang modérateur — campagne du 27/09, A-02). Le total est réaffirmé
+// de rang modérateur — campagne du 27/09, A-02), puis « Organisations » (la
+// relecture des fiches proposées par les responsables d'organisation, F-21,
+// chantier comptes — une modération). Le total est réaffirmé
 // ci-dessous : une entrée ajoutée sans passer par ici fait échouer le test,
 // ce qui est l'objet du fichier.
 const STAFF_ITEMS = [
@@ -57,6 +59,7 @@ const STAFF_ITEMS = [
   // Messages privés signalés (chantier « social »), rang modérateur.
   'Messages signalés',
   'Messages',
+  'Organisations',
   'Jeunes',
   'Mentorat',
   'Projets',

@@ -1,5 +1,7 @@
 import { v } from 'convex/values';
-import { getAuthUserId } from '@convex-dev/auth/server';
+// Le compte courant passe par la garde commune : un compte suspendu, ou une
+// session qui n'a pas présenté son second facteur, n'a pas de notifications.
+import { getActiveUserId } from './lib/rbac';
 import { mutation, query } from './_generated/server';
 
 // Notifications de l'utilisateur courant (F-25/F-51), les plus récentes d'abord.
@@ -8,7 +10,7 @@ import { mutation, query } from './_generated/server';
 export const myNotifications = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return [];
     const rows = await ctx.db
       .query('notifications')
@@ -46,7 +48,7 @@ export const unreadCount = query({
   args: {},
   returns: v.object({ count: v.number(), capped: v.boolean() }),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return { count: 0, capped: false };
     const unread = await ctx.db
       .query('notifications')
@@ -64,7 +66,7 @@ export const unreadCount = query({
 export const markRead = mutation({
   args: { notificationId: v.id('notifications') },
   handler: async (ctx, { notificationId }) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) throw new Error('UNAUTHENTICATED');
     const n = await ctx.db.get(notificationId);
     // On ne peut marquer que SES propres notifications.
@@ -84,7 +86,7 @@ export const markAllRead = mutation({
   args: {},
   returns: v.object({ count: v.number(), remaining: v.boolean() }),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) throw new Error('UNAUTHENTICATED');
     const unread = await ctx.db
       .query('notifications')

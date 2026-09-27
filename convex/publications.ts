@@ -1,10 +1,14 @@
 import { v } from 'convex/values';
 import { paginationOptsValidator } from 'convex/server';
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { query, mutation, type QueryCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { requireNetworkRole, getCurrentUser, rank } from './lib/rbac';
+import {
+  requireNetworkRole,
+  getCurrentUser,
+  getActiveUserId,
+  rank,
+} from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
@@ -16,6 +20,7 @@ import {
   RATE_LIMITS,
 } from './lib/rateLimit';
 import { trackPublicationStatus } from './lib/counters';
+import { organizationOfAuthor } from './lib/orgMembership';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { normalizeSearchTerm } from './lib/search';
 import { publicationSearchText } from './lib/searchText';
@@ -368,6 +373,10 @@ export const submitPublication = mutation({
       slug = `${root}-${n++}`;
     }
 
+    // Organisation du déposant (F-21) : la fiche publique de l'organisation
+    // liste ce que ses comptes publient.
+    const organizationId = await organizationOfAuthor(ctx, user._id);
+
     const now = Date.now();
     const id = await ctx.db.insert('publications', {
       title,
@@ -403,6 +412,7 @@ export const submitPublication = mutation({
         keypoints,
       }),
       searchLang: languages[0],
+      ...(organizationId ? { organizationId } : {}),
     });
 
     await trackPublicationStatus(ctx, null, 'pending');
@@ -448,7 +458,7 @@ export const submitPublication = mutation({
 export const listMine = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return [];
     const mine = await ctx.db
       .query('publications')

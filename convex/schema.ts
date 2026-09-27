@@ -22,6 +22,7 @@ import {
 } from './lib/communaute';
 import { communauteTables } from './lib/tables/communaute';
 import { contenusTables } from './lib/tables/contenus';
+import { comptesTables } from './lib/tables/comptes';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -55,6 +56,13 @@ export default defineSchema({
     // --- Democracy Together ---
     role: v.optional(networkRole),
     preferredLocale: v.optional(locale),
+    // Suspension (chantier comptes, F-63). Posée sur le compte lui-même et non
+    // dans une table à part : TOUTES les gardes de convex/lib/rbac.ts la
+    // lisent, et elles lisent déjà ce document — la vérifier ne coûte aucune
+    // lecture de plus. Le motif est obligatoire à la suspension.
+    suspendedAt: v.optional(v.number()),
+    suspensionReason: v.optional(v.string()),
+    suspendedBy: v.optional(v.id('users')),
   })
     .index('email', ['email'])
     // `by_role` sert la garde « zéro admin » de l'amorçage (convex/bootstrap.ts) :
@@ -95,6 +103,12 @@ export default defineSchema({
     // `searchIndexing.backfill`. Optionnelle : un document qui ne la porte pas
     // n'est simplement pas trouvé par la recherche globale.
     searchText: v.optional(v.string()),
+    // Fiche membre (F-21, chantier comptes) : logo dans le stockage Convex
+    // (contenu vérifié avant d'être accepté) et choix de l'organisation de
+    // montrer, ou non, ses membres sur sa page publique.
+    logoFileId: v.optional(v.id('_storage')),
+    showMembers: v.optional(v.boolean()),
+    updatedAt: v.optional(v.number()),
   })
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
@@ -205,6 +219,10 @@ export default defineSchema({
     // Document téléversé (F-32) : fichier dans le stockage Convex + nom d'origine.
     fileId: v.optional(v.id('_storage')),
     fileName: v.optional(v.string()),
+    // Organisation du déposant (F-21, chantier comptes) : posée au dépôt quand
+    // le compte est rattaché à une organisation. C'est ce qui permet à la
+    // fiche publique de lister SES publications.
+    organizationId: v.optional(v.id('organizations')),
     createdAt: v.number(),
     // Recherche plein texte (F-06/F-34, chantier diffusion) : meule PLIÉE
     // (titre, auteurs, résumé, points clés) et langue principale — un tableau
@@ -217,6 +235,7 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
     .index('by_author', ['authorUserId'])
+    .index('by_organization_and_status', ['organizationId', 'status'])
     // File de revue (F-43, convex/peerReview.ts) : `reviewStage` n'est posé que
     // sur les publications ENGAGÉES dans une revue — une infime minorité de la
     // table. L'index les isole sans lire les autres. Les documents où le champ
@@ -1003,4 +1022,5 @@ export default defineSchema({
   ...diffusionTables,
   ...communauteTables,
   ...contenusTables,
+  ...comptesTables,
 });

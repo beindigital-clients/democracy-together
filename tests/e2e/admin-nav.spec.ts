@@ -23,7 +23,8 @@ const PHONE = { width: 412, height: 839 };
 // Les quatorze entrées de l'issue, telles qu'elles s'affichent, plus la
 // quinzième arrivée depuis (« Modération IA »), la seizième (« Mes
 // relectures », vue du relecteur — campagne du 27/09, A-02) et la
-// dix-septième (« File de modération » de la tribune, chantier communauté).
+// dix-septième (« File de modération » de la tribune, chantier communauté),
+// puis la dix-huitième (« Organisations », relecture des fiches — chantier comptes).
 const ALL_ITEMS = [
   'Tableau de bord',
   'Impact',
@@ -33,6 +34,7 @@ const ALL_ITEMS = [
   'File de modération',
   'Signalements',
   'Messages',
+  'Organisations',
   'Jeunes',
   'Mentorat',
   'Projets',

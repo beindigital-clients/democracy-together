@@ -1,9 +1,8 @@
 import { v, ConvexError } from 'convex/values';
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Id, Doc } from './_generated/dataModel';
-import { requireNetworkRole, requireUser } from './lib/rbac';
+import { requireNetworkRole, requireUser, getActiveUserId } from './lib/rbac';
 import { roleRank } from './lib/roles';
 import { TRIBUNE_BODY, TRIBUNE_COMMENT, isEmail } from './lib/validation';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
@@ -611,7 +610,7 @@ export const reactionState = query({
       .query('tribuneReactions')
       .withIndex('by_post_and_user', (q) => q.eq('postId', postId))
       .take(5000);
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     const mine = userId ? reactions.some((r) => r.userId === userId) : false;
     return { count: reactions.length, mine };
   },
@@ -654,7 +653,7 @@ export const myPosts = query({
   args: {},
   returns: v.array(myPostValidator),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return [];
     const posts = await ctx.db
       .query('tribunePosts')
@@ -700,7 +699,7 @@ export const getOwnPost = query({
     v.null(),
   ),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return null;
     const id = ctx.db.normalizeId('tribunePosts', args.postId);
     const post = id ? await ctx.db.get(id) : null;
@@ -739,7 +738,7 @@ export const myComments = query({
     }),
   ),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return [];
     const comments = await ctx.db
       .query('tribuneComments')
@@ -789,7 +788,7 @@ export const deepeningState = query({
       canProposeToLibrary: false,
       proposedToLibrary: false,
     };
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return none;
     const user = await ctx.db.get(userId);
     const post = await ctx.db.get(postId);
@@ -903,7 +902,7 @@ export const myDeepeningInvites = query({
     }),
   ),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return [];
     const user = await ctx.db.get(userId);
     if (!user) return [];

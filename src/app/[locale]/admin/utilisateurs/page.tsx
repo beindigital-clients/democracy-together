@@ -6,7 +6,9 @@ import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { ROLE_ORDER, isAdmin, type NetworkRole } from '@/lib/roles';
 import { SelectField } from '@/components/ui/field';
-import { InviteUserForm } from '@/components/admin/invite-user-form';
+import { CreateAccountForm } from '@/components/admin/create-account-form';
+import { AccountActions } from '@/components/admin/account-actions';
+import { TwoFactorPolicyPanel } from '@/components/admin/two-factor-policy';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { RoleSelector } from '@/components/admin/role-selector';
@@ -23,6 +25,7 @@ const PAGE_SIZE = 50;
 
 function UsersTable() {
   const t = useTranslations('admin');
+  const ta = useTranslations('accounts');
   // PAGINÉ (issue #8) : la liste chargeait la table `users` en entier. L'ordre
   // (par e-mail) vient désormais de l'index côté serveur, pas d'un tri client.
   //
@@ -139,7 +142,7 @@ function UsersTable() {
         </p>
       ) : (
         <ScrollableRegion label={t('users')} className="mt-6">
-          <table className="w-full min-w-[520px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
                 {/* Colonne d'IDENTITÉ figée : une fois le tableau défilé
@@ -151,7 +154,9 @@ function UsersTable() {
                   {t('userEmail')}
                 </th>
                 <th className="py-2 pe-4 font-normal">{t('userName')}</th>
-                <th className="py-2 font-normal">{t('userRole')}</th>
+                <th className="py-2 pe-4 font-normal">{t('userRole')}</th>
+                <th className="py-2 pe-4 font-normal">{ta('colStatus')}</th>
+                <th className="py-2 font-normal">{ta('colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -164,13 +169,50 @@ function UsersTable() {
                       {u.email}
                     </td>
                     <td className="py-3 pe-4">{u.name ?? '—'}</td>
-                    <td className="py-3">
+                    <td className="py-3 pe-4">
                       <RoleSelector
                         name={name}
                         role={u.role}
                         locked={isSelf}
                         lockedReason={isSelf ? t('selfRoleLocked') : undefined}
                         onApply={(next) => changeRole(u._id, name, next)}
+                        onConfirmation={signalerConfirmation}
+                      />
+                    </td>
+                    {/* Cycle de vie (chantier comptes) : état, puis actions. */}
+                    <td className="max-w-[14rem] py-3 pe-4 align-top">
+                      <span className="flex flex-wrap gap-1">
+                        <span
+                          className={`rounded-pill border px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] ${
+                            u.suspended || u.deleting
+                              ? 'border-bar-5 text-bar-5'
+                              : 'border-line text-ink-soft'
+                          }`}
+                        >
+                          {u.deleting
+                            ? ta('statusDeleting')
+                            : u.suspended
+                              ? ta('statusSuspended')
+                              : ta('statusActive')}
+                        </span>
+                        {u.twoFactor ? (
+                          <span className="rounded-pill border border-accent-edge px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
+                            {ta('badge2fa')}
+                          </span>
+                        ) : null}
+                      </span>
+                      {u.suspensionReason ? (
+                        <span className="mt-1 block wrap-anywhere text-xs text-ink-soft">
+                          {ta('suspensionReasonLabel', {
+                            reason: u.suspensionReason,
+                          })}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="py-3 align-top">
+                      <AccountActions
+                        row={u}
+                        self={isSelf}
                         onConfirmation={signalerConfirmation}
                       />
                     </td>
@@ -204,7 +246,8 @@ export default function AdminUsers() {
   return (
     <div>
       <h1 className="font-display text-3xl">{t('users')}</h1>
-      <InviteUserForm />
+      <TwoFactorPolicyPanel />
+      <CreateAccountForm />
       <UsersTable />
     </div>
   );
