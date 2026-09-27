@@ -33,9 +33,14 @@ test('rapports : rapport 2026 (sections + bouton PDF) (F-41)', async ({
   await expect(
     page.getByRole('heading', { name: 'Perspectives 2026-2027' }),
   ).toBeVisible();
-  // bouton d'impression présent (non actionné)
+  // Un moyen d'obtenir le PDF : le PDF composé une fois l'édition migrée en
+  // base (editorial-rapports.spec.ts), l'impression du navigateur tant que
+  // l'édition est servie depuis le contenu codé. Les deux fichiers tournent
+  // sur le même déploiement, dans un ordre quelconque.
   await expect(
-    page.getByRole('button', { name: 'Imprimer / Enregistrer en PDF' }),
+    page
+      .getByRole('link', { name: 'Télécharger le PDF' })
+      .or(page.getByRole('button', { name: 'Imprimer / Enregistrer en PDF' })),
   ).toBeVisible();
 });
 

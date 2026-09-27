@@ -183,6 +183,15 @@ function MemberDashboard() {
         >
           {t('passwordLink')} <ArrowForward />
         </Link>
+        {/* Suivi des manuscrits soumis au comité de lecture (F-43). */}
+        {member ? (
+          <Link
+            href="/espace-membre/manuscrits"
+            className="inline-block text-sm font-medium text-accent-text hover:underline"
+          >
+            {t('manuscriptsLink')} <ArrowForward />
+          </Link>
+        ) : null}
       </div>
 
       {member ? <MyContributions /> : <BecomeMember />}

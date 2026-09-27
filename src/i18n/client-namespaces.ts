@@ -47,6 +47,9 @@ export const BASE_CLIENT_NAMESPACES = [
   'nav',
   'newsletter',
   'notifications',
+  // `peerReview` : le suivi de l'auteur (espace membre, F-43) est un
+  // composant client ; le back-office réutilise le même espace.
+  'peerReview',
   'projects',
   'reminder',
   'search',
@@ -69,7 +72,7 @@ export const BASE_CLIENT_NAMESPACES = [
  * racine. Vérifié : tous les composants client qui le demandent vivent sous
  * `app/[locale]/admin/` ou `components/admin/`.
  */
-export const ADMIN_NAMESPACES = ['admin'] as const;
+export const ADMIN_NAMESPACES = ['admin', 'reports'] as const;
 
 /** Tous les espaces demandés par un composant client, où qu'il soit. */
 export const CLIENT_NAMESPACES = [

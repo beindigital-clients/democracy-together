@@ -528,7 +528,13 @@ export const listForReview = query({
   },
   returns: paginatedValidator(reviewItemValidator),
   handler: async (ctx, { status, search, paginationOpts }) => {
-    await requireNetworkRole(ctx, 'moderateur');
+    const viewer = await requireNetworkRole(ctx, 'moderateur');
+    // DOUBLE AVEUGLE (F-43, chantier editorial) : un modérateur peut être le
+    // RELECTEUR d'un manuscrit présent dans cette file. Pour une publication
+    // engagée dans une revue à comité de lecture, l'identité de l'auteur — noms,
+    // adresse, fichier d'origine (ses métadonnées le nomment souvent) — n'est
+    // rendue qu'à l'éditeur, qui pilote la revue.
+    const seesAuthors = rank(viewer.role) >= rank('editeur');
     const opts = clampPageSize(paginationOpts);
     const term = normalizeSearchTerm(search);
     const result = term
@@ -557,32 +563,37 @@ export const listForReview = query({
     return {
       ...result,
       page: await Promise.all(
-        result.page.map(async (p) => ({
-          _id: p._id,
-          title: p.title,
-          slug: p.slug,
-          type: p.type,
-          theme: p.theme,
-          region: p.region,
-          languages: p.languages,
-          access: p.access,
-          year: p.year,
-          abstract: p.abstract,
-          authors: p.authors,
-          status: p.status,
-          submittedAt: p.submittedAt ?? p.createdAt,
-          // Un `draft` AVEC `reviewedAt` est un refus, pas un brouillon jamais
-          // soumis (issue #32) : c'est ce qui rend le bouton « Rouvrir ».
-          reviewedAt: p.reviewedAt ?? null,
-          reviewNotes: p.reviewNotes ?? null,
-          authorEmail:
-            (p.authorUserId ? authors.get(p.authorUserId)?.email : null) ??
-            null,
-          fileName: p.fileName ?? null,
-          fileUrl: p.fileId ? await ctx.storage.getUrl(p.fileId) : null,
-          aiReview: p.aiReview ?? null,
-          autoPublished: p.autoPublished === true,
-        })),
+        result.page.map(async (p) => {
+          const blind = p.reviewStage !== undefined && !seesAuthors;
+          return {
+            _id: p._id,
+            title: p.title,
+            slug: p.slug,
+            type: p.type,
+            theme: p.theme,
+            region: p.region,
+            languages: p.languages,
+            access: p.access,
+            year: p.year,
+            abstract: p.abstract,
+            authors: blind ? [] : p.authors,
+            status: p.status,
+            submittedAt: p.submittedAt ?? p.createdAt,
+            // Un `draft` AVEC `reviewedAt` est un refus, pas un brouillon jamais
+            // soumis (issue #32) : c'est ce qui rend le bouton « Rouvrir ».
+            reviewedAt: p.reviewedAt ?? null,
+            reviewNotes: p.reviewNotes ?? null,
+            authorEmail: blind
+              ? null
+              : ((p.authorUserId ? authors.get(p.authorUserId)?.email : null) ??
+                null),
+            fileName: blind ? null : (p.fileName ?? null),
+            fileUrl:
+              !blind && p.fileId ? await ctx.storage.getUrl(p.fileId) : null,
+            aiReview: p.aiReview ?? null,
+            autoPublished: p.autoPublished === true,
+          };
+        }),
       ),
     };
   },

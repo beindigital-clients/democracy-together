@@ -15,4 +15,15 @@ crons.cron(
   {},
 );
 
+// F-43 — Relances des relecteurs : chaque jour à 06:13 UTC (minute décalée de
+// l'heure pleine, où se concentrent les tâches), les relectures dont
+// l'échéance est passée reçoivent une relance — au plus trois, espacées de
+// trois jours — puis l'éditeur qui a désigné le relecteur est prévenu.
+crons.cron(
+  'peer-review-reminders',
+  '13 6 * * *',
+  internal.peerReview.sendDueReminders,
+  {},
+);
+
 export default crons;

@@ -100,6 +100,9 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     minRole: 'editeur',
     items: [
       { href: '/admin/revue', key: 'review' },
+      // Rapports annuels (F-41, chantier editorial) : la garde Convex est au
+      // rang éditeur (`annualReports.*`), comme la revue.
+      { href: '/admin/rapports', key: 'annualReports' },
       { href: '/admin/newsletter', key: 'newsletter' },
     ],
   },

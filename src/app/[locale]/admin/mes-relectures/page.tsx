@@ -5,6 +5,8 @@ import { useQuery, useMutation } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import type { FunctionReturnType } from 'convex/server';
+import { MANUSCRIPT_BOUNDS } from '@convex/lib/manuscripts';
 import { Button } from '@/components/ui/button';
 import { SelectField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
@@ -22,59 +24,356 @@ const RECOMMENDATIONS: Recommendation[] = [
   'major',
   'reject',
 ];
+type Assignment = FunctionReturnType<
+  typeof api.peerReview.myAssignments
+>[number];
 
-// MES RELECTURES (campagne du 27/09, A-02). Le relecteur désigné par un
-// éditeur est souvent un MODÉRATEUR : `submitReview` accepte ce rang, mais la
-// notification l'envoyait sur `/admin/revue`, dont la file exige l'éditeur —
-// page d'erreur, avis impossible à déposer. Cette vue est ouverte au rang
-// modérateur et ne rend QUE ses assignations (`myAssignments` lit l'identité
-// dans la session). La file complète, l'assignation et les décisions restent
-// dans « Comité de lecture », réservé à l'éditeur.
-export default function AdminMyReviews() {
-  const t = useTranslations('admin');
-  const tl = useTranslations('library');
+// Instant d'ouverture de l'écran (lu au chargement du module, pas pendant le
+// rendu) : sert à signaler une échéance dépassée.
+const OPENED_AT = Date.now();
+
+function useDateFormat() {
   const locale = useLocale();
-  const items = useQuery(api.peerReview.myAssignments, {});
-  const submit = useMutation(api.peerReview.submitReview);
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return (ms: number) => fmt.format(ms);
+}
+
+// Déclaration de conflit d'intérêts : PRÉALABLE à tout le reste. Le serveur
+// ne rend le fichier et n'accepte l'avis qu'une fois la déclaration faite.
+function ConflictForm({
+  publicationId,
+}: {
+  publicationId: Id<'publications'>;
+}) {
+  const tp = useTranslations('peerReview');
+  const declare = useMutation(api.peerReview.declareConflict);
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
+  const [choice, setChoice] = useState<'clear' | 'conflict' | ''>('');
+  const [details, setDetails] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const [recommendation, setRecommendation] = useState<
-    Record<string, Recommendation>
-  >({});
-  const [comment, setComment] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-
-  const fmt = (ms: number) =>
-    new Intl.DateTimeFormat(intlLocale(locale), {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(ms);
-
-  async function onSubmit(pubId: string, title: string) {
-    const text = (comment[pubId] ?? '').trim();
-    if (text.length < 10) return;
-    setBusy(pubId);
+  async function submit() {
+    if (!choice) return;
+    setBusy(true);
     try {
-      await submit({
-        publicationId: pubId as Id<'publications'>,
-        recommendation: recommendation[pubId] ?? 'accept',
-        comment: text,
+      await declare({
+        publicationId,
+        hasConflict: choice === 'conflict',
+        details: details.trim() || undefined,
       });
-      setComment((c) => ({ ...c, [pubId]: '' }));
-      notify(t('feedbackRevSubmitted', { title }));
+      notify(
+        choice === 'conflict'
+          ? tp('feedbackRecused')
+          : tp('feedbackConflictClear'),
+      );
     } catch (err) {
       fail(err);
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
   return (
+    <fieldset className="mt-4 rounded border border-accent-edge bg-accent-tint p-4">
+      <legend className="px-1 text-sm font-medium text-ink">
+        {tp('conflictTitle')}
+      </legend>
+      <p className="text-sm text-ink-soft">{tp('conflictIntro')}</p>
+      <div className="mt-3 space-y-2">
+        {(['clear', 'conflict'] as const).map((c) => (
+          <label
+            key={c}
+            className="flex min-h-11 items-center gap-3 text-sm text-ink"
+          >
+            <input
+              type="radio"
+              name={`conflict-${publicationId}`}
+              value={c}
+              checked={choice === c}
+              onChange={() => setChoice(c)}
+              className="h-5 w-5 accent-accent"
+            />
+            {c === 'clear' ? tp('conflictNone') : tp('conflictYes')}
+          </label>
+        ))}
+      </div>
+      {choice === 'conflict' ? (
+        <TextareaField
+          label={tp('conflictDetails')}
+          className="mt-2"
+          rows={2}
+          maxLength={MANUSCRIPT_BOUNDS.conflictDetails.max}
+          value={details}
+          onChange={(e) => setDetails(e.target.value)}
+        />
+      ) : null}
+      <Button
+        size="sm"
+        className="mt-3"
+        disabled={busy || !choice}
+        onClick={submit}
+      >
+        {tp('conflictSubmit')}
+      </Button>
+    </fieldset>
+  );
+}
+
+function ReviewForm({
+  publicationId,
+  title,
+}: {
+  publicationId: Id<'publications'>;
+  title: string;
+}) {
+  const t = useTranslations('admin');
+  const tp = useTranslations('peerReview');
+  const submit = useMutation(api.peerReview.submitReview);
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
+  const [recommendation, setRecommendation] = useState<Recommendation>('minor');
+  const [comment, setComment] = useState('');
+  const [toEditor, setToEditor] = useState('');
+  const [busy, setBusy] = useState(false);
+  const ok = comment.trim().length >= MANUSCRIPT_BOUNDS.comment.min;
+
+  async function onSubmit() {
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await submit({
+        publicationId,
+        recommendation,
+        comment: comment.trim(),
+        commentToEditor: toEditor.trim() || undefined,
+      });
+      setComment('');
+      setToEditor('');
+      notify(t('feedbackRevSubmitted', { title }));
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded border border-line p-4">
+      <h3 className="text-sm font-medium text-ink-soft">
+        {t('revSubmitLabel')}
+      </h3>
+      <SelectField
+        label={t('revRecommendationLabel')}
+        className="mt-2"
+        controlClassName="w-auto"
+        value={recommendation}
+        onChange={(e) => setRecommendation(e.target.value as Recommendation)}
+      >
+        {RECOMMENDATIONS.map((rec) => (
+          <option key={rec} value={rec}>
+            {vocabulary(t, 'revRec_', rec)}
+          </option>
+        ))}
+      </SelectField>
+      <TextareaField
+        label={tp('commentToAuthor')}
+        hint={t('revCommentHint')}
+        className="mt-2"
+        rows={6}
+        maxLength={MANUSCRIPT_BOUNDS.comment.max}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+      />
+      <TextareaField
+        label={tp('commentToEditor')}
+        hint={tp('commentToEditorHint')}
+        className="mt-2"
+        rows={3}
+        maxLength={MANUSCRIPT_BOUNDS.commentToEditor.max}
+        value={toEditor}
+        onChange={(e) => setToEditor(e.target.value)}
+      />
+      <Button
+        size="sm"
+        className="mt-3"
+        disabled={busy || !ok}
+        onClick={onSubmit}
+      >
+        {t('revSubmit')}
+      </Button>
+    </div>
+  );
+}
+
+// Le manuscrit tel que le voit son relecteur : version évaluée, ce qui a
+// changé depuis la précédente, lettre de réponse, fichier ANONYMISÉ. Rien
+// n'y nomme l'auteur — c'est le serveur qui le garantit (convex/peerReview.ts).
+function AssignmentDetail({ item }: { item: Assignment }) {
+  const t = useTranslations('admin');
+  const tp = useTranslations('peerReview');
+  const fmt = useDateFormat();
+  const view = useQuery(api.peerReview.getAssignment, {
+    publicationId: item._id,
+  });
+  if (view === undefined) {
+    return <p className="mt-3 text-sm text-muted">{t('loading')}</p>;
+  }
+  if (view === null) return null;
+
+  return (
+    <div className="mt-4 space-y-4">
+      {view.conflict === 'undeclared' && view.reviewStage === 'in_review' ? (
+        <ConflictForm publicationId={view.publicationId} />
+      ) : null}
+      {view.conflict === 'conflict' ? (
+        <p className="rounded border border-line bg-surface-2 p-3 text-sm text-ink-soft">
+          {tp('recusedNotice')}
+        </p>
+      ) : null}
+
+      <div>
+        <h3 className="text-sm font-medium text-ink-soft">
+          {tp('abstractLabel')}
+        </h3>
+        <p className="mt-1 max-w-[70ch] whitespace-pre-line wrap-anywhere text-[15px] leading-relaxed text-ink">
+          {view.abstract}
+        </p>
+        {view.keywords.length > 0 ? (
+          <p className="mt-2 flex flex-wrap gap-2">
+            {view.keywords.map((k) => (
+              <Badge key={k} variant="default">
+                {k}
+              </Badge>
+            ))}
+          </p>
+        ) : null}
+      </div>
+
+      {view.conflict === 'clear' ? (
+        <div className="text-sm">
+          {view.file.url ? (
+            <a
+              href={view.file.url}
+              download={view.file.name ?? undefined}
+              className="inline-flex min-h-11 items-center rounded-sm border border-line-strong px-4 font-medium text-ink hover:bg-surface-2"
+            >
+              {tp('downloadBlind', { name: view.file.name ?? '' })}
+            </a>
+          ) : view.file.blindStatus ? (
+            <p className="text-muted">
+              {vocabulary(tp, 'reviewerFile_', view.file.blindStatus)}
+            </p>
+          ) : null}
+          {view.file.url ? (
+            <p className="mt-1 text-[13px] text-muted">{tp('blindNotice')}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {view.diff ? (
+        <div className="rounded border border-line bg-surface-2 p-3 text-sm">
+          <h3 className="font-medium text-ink">
+            {tp('diffTitle', { from: view.diff.fromVersion, to: view.version })}
+          </h3>
+          <ul className="mt-2 space-y-1 text-ink-soft">
+            {view.diff.title ? (
+              <li className="wrap-anywhere">
+                {tp('diffTitleChanged', {
+                  from: view.diff.title.from,
+                  to: view.diff.title.to,
+                })}
+              </li>
+            ) : null}
+            {view.diff.abstract ? <li>{tp('diffAbstractChanged')}</li> : null}
+            {view.diff.keywordsAdded.length > 0 ? (
+              <li className="wrap-anywhere">
+                {tp('diffKeywordsAdded', {
+                  list: view.diff.keywordsAdded.join(', '),
+                })}
+              </li>
+            ) : null}
+            {view.diff.keywordsRemoved.length > 0 ? (
+              <li className="wrap-anywhere">
+                {tp('diffKeywordsRemoved', {
+                  list: view.diff.keywordsRemoved.join(', '),
+                })}
+              </li>
+            ) : null}
+            {view.diff.fileReplaced ? <li>{tp('diffFileReplaced')}</li> : null}
+          </ul>
+        </div>
+      ) : null}
+
+      {view.responseLetter ? (
+        <div>
+          <h3 className="text-sm font-medium text-ink-soft">
+            {tp('responseLetter')}
+          </h3>
+          <p className="mt-1 max-w-[70ch] whitespace-pre-line wrap-anywhere text-[15px] leading-relaxed text-ink">
+            {view.responseLetter}
+          </p>
+        </div>
+      ) : null}
+
+      {view.myReviews.length > 0 ? (
+        <div>
+          <h3 className="text-sm font-medium text-ink-soft">
+            {t('myRevMine')}
+          </h3>
+          <ul className="mt-2 space-y-2">
+            {view.myReviews.map((r) => (
+              <li
+                key={r.version}
+                className="rounded border border-line bg-surface-2 p-3 text-sm"
+              >
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-ink">
+                    {tp('versionLabel', { version: r.version })}
+                  </span>
+                  <Badge variant="default">
+                    {vocabulary(t, 'revRec_', r.recommendation)}
+                  </Badge>
+                  <span className="font-mono text-[11px] text-muted">
+                    {t('myRevSubmittedOn', { date: fmt(r.createdAt) })}
+                  </span>
+                </p>
+                <p className="mt-1 whitespace-pre-line wrap-anywhere text-ink">
+                  {r.comment}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {view.open ? (
+        <ReviewForm publicationId={view.publicationId} title={view.title} />
+      ) : null}
+    </div>
+  );
+}
+
+// MES RELECTURES (campagne du 27/09, A-02 ; F-43 chantier editorial). Ouverte
+// au rang modérateur, elle ne rend QUE les assignations du compte connecté
+// (`myAssignments` lit l'identité dans la session). La file complète, les
+// désignations et les décisions restent dans « Comité de lecture ».
+export default function AdminMyReviews() {
+  const t = useTranslations('admin');
+  const tp = useTranslations('peerReview');
+  const tl = useTranslations('library');
+  const fmt = useDateFormat();
+  const items = useQuery(api.peerReview.myAssignments, {});
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  return (
     <div id="admin-my-reviews">
       <h1 className="font-display text-3xl">{t('myRevTitle')}</h1>
-      <p className="mt-2 max-w-2xl text-ink-soft">{t('myRevIntro')}</p>
+      <p className="mt-2 max-w-2xl text-ink-soft">{tp('reviewerIntro')}</p>
 
       {items === undefined ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
@@ -82,103 +381,68 @@ export default function AdminMyReviews() {
         <p className="mt-6 text-ink-soft">{t('myRevEmpty')}</p>
       ) : (
         <ul aria-label={t('myRevTitle')} className="mt-6 space-y-4">
-          {items.map((p) => (
-            <li
-              key={p._id}
-              className="rounded-md border border-line bg-surface p-5"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="min-w-0 wrap-anywhere font-medium text-ink">
-                  {p.title}
-                </h2>
-                <Badge
-                  variant={p.reviewStage === 'in_review' ? 'accent' : 'default'}
-                >
-                  {vocabulary(t, 'revStage_', p.reviewStage)}
-                </Badge>
-                <span className="text-accent-text text-[13px]">
-                  #{vocabulary(tl, 'themes.', p.theme)}
-                </span>
-              </div>
-              <p className="mt-1 font-mono text-[11px] text-muted">
-                {t('myRevAssignedOn', { date: fmt(p.assignedAt) })}
-              </p>
-
-              {p.myReview ? (
-                // L'avis déposé reste visible : un relecteur ne pèse qu'une
-                // fois (issue #9), le formulaire ne revient donc pas.
-                <div className="mt-4 rounded border border-line bg-surface-2 p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-ink-soft">
-                      {t('myRevMine')}
-                    </span>
-                    <Badge variant="default">
-                      {vocabulary(t, 'revRec_', p.myReview.recommendation)}
-                    </Badge>
-                    <span className="font-mono text-[11px] text-muted">
-                      {t('myRevSubmittedOn', {
-                        date: fmt(p.myReview.createdAt),
-                      })}
-                    </span>
-                  </div>
-                  <p className="mt-1 wrap-anywhere text-[14px] leading-relaxed text-ink">
-                    {p.myReview.comment}
-                  </p>
+          {items.map((p) => {
+            const expanded = openId === p._id;
+            const detailId = `review-detail-${p._id}`;
+            return (
+              <li
+                key={p._id}
+                className="rounded-md border border-line bg-surface p-5"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="min-w-0 wrap-anywhere font-medium text-ink">
+                    {p.title}
+                  </h2>
+                  <Badge variant={p.open ? 'accent' : 'default'}>
+                    {vocabulary(tp, 'stage_', p.reviewStage)}
+                  </Badge>
+                  <Badge variant="outline">
+                    {tp('versionLabel', { version: p.version })}
+                  </Badge>
+                  <span className="text-[13px] text-accent-text">
+                    #{vocabulary(tl, 'themes.', p.theme)}
+                  </span>
                 </div>
-              ) : p.reviewStage !== 'in_review' ? (
-                <p className="mt-3 text-[13px] text-muted">
-                  {t('myRevClosed')}
+                <p className="mt-1 flex flex-wrap gap-x-4 font-mono text-[11px] text-muted">
+                  <span>
+                    {t('myRevAssignedOn', { date: fmt(p.assignedAt) })}
+                  </span>
+                  {p.dueAt ? (
+                    <span
+                      className={p.dueAt < OPENED_AT ? 'text-bar-5' : undefined}
+                    >
+                      {tp('dueOn', { date: fmt(p.dueAt) })}
+                    </span>
+                  ) : null}
                 </p>
-              ) : (
-                <div className="mt-4 rounded border border-line p-3">
-                  <h3 className="text-sm font-medium text-ink-soft">
-                    {t('revSubmitLabel')}
-                  </h3>
-                  <SelectField
-                    label={t('revRecommendationLabel')}
-                    className="mt-2"
-                    controlClassName="w-auto"
-                    value={recommendation[p._id] ?? 'accept'}
-                    onChange={(e) =>
-                      setRecommendation((s) => ({
-                        ...s,
-                        [p._id]: e.target.value as Recommendation,
-                      }))
-                    }
-                  >
-                    {RECOMMENDATIONS.map((rec) => (
-                      <option key={rec} value={rec}>
-                        {vocabulary(t, 'revRec_', rec)}
-                      </option>
-                    ))}
-                  </SelectField>
-                  <TextareaField
-                    label={t('revSubmitLabel')}
-                    labelHidden
-                    hint={t('revCommentHint')}
-                    className="mt-2"
-                    value={comment[p._id] ?? ''}
-                    onChange={(e) =>
-                      setComment((c) => ({ ...c, [p._id]: e.target.value }))
-                    }
-                    rows={4}
-                    placeholder={t('revCommentPlaceholder')}
-                  />
-                  <Button
-                    size="sm"
-                    className="mt-2"
-                    disabled={
-                      busy === p._id ||
-                      (comment[p._id] ?? '').trim().length < 10
-                    }
-                    onClick={() => onSubmit(p._id, p.title)}
-                  >
-                    {t('revSubmit')}
-                  </Button>
+                <p className="mt-2 text-sm text-ink-soft">
+                  {p.myReview
+                    ? tp('statusReviewed')
+                    : p.conflict === 'conflict'
+                      ? tp('statusRecused')
+                      : p.conflict === 'undeclared' &&
+                          p.reviewStage === 'in_review'
+                        ? tp('statusDeclare')
+                        : p.open
+                          ? tp('statusToReview')
+                          : t('myRevClosed')}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  aria-expanded={expanded}
+                  aria-controls={detailId}
+                  onClick={() => setOpenId(expanded ? null : p._id)}
+                >
+                  {expanded ? tp('hideManuscript') : tp('openManuscript')}
+                </Button>
+                <div id={detailId}>
+                  {expanded ? <AssignmentDetail item={p} /> : null}
                 </div>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

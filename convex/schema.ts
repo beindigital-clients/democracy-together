@@ -27,6 +27,8 @@ export const networkRole = v.union(
 // `contentTranslations` tire `./lib/translation`, qui en a besoin aussi). Il
 // reste ré-exporté ici : une dizaine de modules l'importent de `./schema`.
 import { locale } from './lib/locales';
+import { manuscriptStage } from './lib/manuscripts';
+import { editorialTables } from './lib/tables/editorial';
 export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
 
 export default defineSchema({
@@ -150,15 +152,10 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
     reviewNotes: v.optional(v.string()),
     // Revue à comité de lecture (F-43) — couche AU-DESSUS de la modération.
-    // Étape optionnelle : 'in_review' (relecteur assigné), 'revision' (retour
-    // à l'auteur), 'reviewed' (avis rendu). Voir convex/peerReview.ts.
-    reviewStage: v.optional(
-      v.union(
-        v.literal('in_review'),
-        v.literal('revision'),
-        v.literal('reviewed'),
-      ),
-    ),
+    // Étape de la machine à états du manuscrit (convex/lib/manuscripts.ts) :
+    // submitted → in_review → revision → resubmitted → accepted / rejected.
+    // `reviewed` est l'étape héritée de la première version (« avis rendu »).
+    reviewStage: v.optional(manuscriptStage),
     // Modération assistée par IA — RÉSUMÉ DÉNORMALISÉ du dernier avis rendu
     // (convex/aiModeration.ts). L'avis complet — signaux, extraits cités,
     // modèle, jetons — vit dans `aiModerationReviews` : la file de modération
@@ -238,6 +235,11 @@ export default defineSchema({
       v.literal('reject'),
     ),
     comment: v.string(),
+    // Version du manuscrit évaluée (F-43, chantier editorial). Absente sur les
+    // avis antérieurs aux versions : ils portent sur la version 1.
+    version: v.optional(v.number()),
+    // Commentaire CONFIDENTIEL à l'éditeur — jamais montré à l'auteur.
+    commentToEditor: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index('by_publication', ['publicationId'])
@@ -260,10 +262,31 @@ export default defineSchema({
     reviewerUserId: v.id('users'),
     assignedBy: v.id('users'),
     assignedAt: v.number(),
+    // --- Chantier editorial (F-43) : tours, échéances, conflits d'intérêts ---
+    // Version que ce relecteur évalue dans le tour en cours.
+    version: v.optional(v.number()),
+    // Échéance de l'avis. Posée tant que l'avis est ATTENDU, effacée quand il
+    // est rendu, que le relecteur se récuse ou que la revue se clôt : l'index
+    // `by_dueAt` ne contient donc que les relectures en souffrance, et la
+    // tâche de relance les lit sans parcourir les assignations closes.
+    dueAt: v.optional(v.number()),
+    remindersSent: v.optional(v.number()),
+    lastReminderAt: v.optional(v.number()),
+    // L'éditeur a été prévenu du retard après la dernière relance.
+    overdueNotifiedAt: v.optional(v.number()),
+    // Déclaration de conflit d'intérêts, préalable à l'accès au manuscrit.
+    conflict: v.optional(
+      v.object({
+        hasConflict: v.boolean(),
+        details: v.optional(v.string()),
+        declaredAt: v.number(),
+      }),
+    ),
   })
     .index('by_reviewer', ['reviewerUserId'])
     .index('by_publication', ['publicationId'])
-    .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId']),
+    .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId'])
+    .index('by_dueAt', ['dueAt']),
 
   // Candidatures d'adhésion (F-22) — workflow de validation par un modérateur.
   membershipApplications: defineTable({
@@ -835,4 +858,5 @@ export default defineSchema({
     purpose: v.string(),
     createdAt: v.number(),
   }).index('by_email', ['email']),
+  ...editorialTables,
 });

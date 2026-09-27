@@ -35,6 +35,22 @@ export const AUDIT = {
   // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
   AI_MODERATION_CONFIGURED: 'aiModeration.configured',
   AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
+  // Rapports annuels (F-41, chantier editorial). La migration du contenu
+  // codé a son action propre : le journal doit montrer qu'une édition est
+  // passée de la source codée à la base, et par qui.
+  REPORT_CREATED: 'report.created',
+  REPORT_IMPORTED: 'report.imported',
+  REPORT_UPDATED: 'report.updated',
+  REPORT_PUBLISHED: 'report.published',
+  REPORT_DELETED: 'report.deleted',
+  // Revue à comité de lecture (F-43) : chaque transition de la machine à
+  // états du manuscrit est une entrée — soumission, révision, décision — et
+  // la libération d'un fichier non anonymisé engage l'éditeur qui la fait.
+  MANUSCRIPT_SUBMITTED: 'manuscript.submitted',
+  MANUSCRIPT_REVISED: 'manuscript.revised',
+  MANUSCRIPT_DECIDED: 'manuscript.decided',
+  MANUSCRIPT_FILE_RELEASED: 'manuscript.file_released',
+  PEER_REVIEW_CONFLICT: 'publication.peer_review_conflict',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];
