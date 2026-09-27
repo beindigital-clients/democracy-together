@@ -171,6 +171,38 @@ export function newsletterUnsubToken(email: string) {
   return convexRunQuery<string | null>('newsletter:devUnsubToken', { email });
 }
 
+// Double opt-in (chantier diffusion) : état de l'abonnement et dernier lien
+// de confirmation « envoyé » — lus dans la boîte d'envoi de DÉVELOPPEMENT
+// (`devOutbox`, garde AUTH_DEV_OTP), exactement comme `getOtp` lit les codes.
+export function newsletterStatus(email: string) {
+  return convexRunQuery<'pending' | 'confirmed' | 'legacy' | null>(
+    'newsletter:devSubscriptionStatus',
+    { email },
+  );
+}
+
+// Le lien est écrit par une action planifiée juste après l'inscription : petit
+// retry, comme pour le code OTP.
+export async function getNewsletterConfirmationLink(
+  email: string,
+): Promise<string> {
+  for (let i = 0; i < 24; i++) {
+    const link = convexRunQuery<string | null>(
+      'newsletter:devLatestConfirmationLink',
+      { email },
+    );
+    if (link) return link;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`Aucun lien de confirmation trouvé pour ${email}`);
+}
+
+// Remplit les meules de recherche des documents seedés avant les index
+// `search_text` (migration idempotente, cf. convex/searchIndexing.ts).
+export async function backfillSearch(): Promise<void> {
+  convexRun('searchIndexing:backfill', {});
+}
+
 export function isEventRegistered(eventSlug: string, email: string) {
   return convexRunQuery<boolean>('events:isRegistered', { eventSlug, email });
 }

@@ -151,7 +151,7 @@ describe('Newsletter — campagnes (F-65)', () => {
     expect(doc?.subject).toBe('Lettre de juin');
   });
 
-  it('envoie : draft → sending → sent, livre à tous (no-op en dev), compte les destinataires', async () => {
+  it('envoie : draft → sending → sent, livre aux CONFIRMÉS (no-op en dev), compte les destinataires', async () => {
     // Forcer le no-op : aucun e-mail réel quel que soit l'env de test. Depuis le
     // correctif H3, le no-op doit être EXPLICITE (AUTH_DEV_OTP=true) — sans lui,
     // l'absence de fournisseur est une erreur (voir le test suivant).
@@ -159,16 +159,28 @@ describe('Newsletter — campagnes (F-65)', () => {
     const prevDev = process.env.AUTH_DEV_OTP;
     process.env.AUTH_EMAIL_PROVIDER = 'none';
     process.env.AUTH_DEV_OTP = 'true';
-    // L'envoi passe par scheduler.runAfter(0, ...) : il faut faire avancer les
-    // timers (faux timers) pour déclencher l'action de livraison planifiée.
+    // L'envoi passe par scheduler.runAfter(...) : il faut faire avancer les
+    // timers (faux timers) pour déclencher la mise en file et les lots.
     vi.useFakeTimers();
     try {
       const t = convexTest(schema, modules);
-      await t.mutation(internal.newsletter.recordSubscription, {
-        email: 'a@dt.test',
-      });
-      await t.mutation(internal.newsletter.recordSubscription, {
-        email: 'b@dt.test',
+      // Double opt-in (chantier diffusion) : deux abonnés CONFIRMÉS, et une
+      // attente qui ne doit rien recevoir.
+      await t.run(async (ctx) => {
+        for (const email of ['a@dt.test', 'b@dt.test']) {
+          await ctx.db.insert('newsletterSubscriptions', {
+            email,
+            unsubToken: email.replace(/\W/g, '').padEnd(32, '0'),
+            createdAt: Date.now(),
+            status: 'confirmed',
+          });
+        }
+        await ctx.db.insert('newsletterSubscriptions', {
+          email: 'attente@dt.test',
+          unsubToken: 'f'.repeat(32),
+          createdAt: Date.now(),
+          status: 'pending',
+        });
       });
 
       const ed = await asEditor(t);
@@ -181,16 +193,16 @@ describe('Newsletter — campagnes (F-65)', () => {
         campaignId: id,
       });
       expect(r.ok).toBe(true);
-      // statut intermédiaire avant que l'action planifiée ne tourne
+      // statut intermédiaire avant que les fonctions planifiées ne tournent
       expect((await t.run((ctx) => ctx.db.get(id)))?.status).toBe('sending');
 
-      // exécute l'action de livraison (runAfter 0) en avançant les timers
       await t.finishAllScheduledFunctions(vi.runAllTimers);
 
       const done = await t.run((ctx) => ctx.db.get(id));
       expect(done?.status).toBe('sent');
       expect(done?.recipientCount).toBe(2);
       expect(done?.failedCount).toBe(0);
+      expect(done?.totalCount).toBe(2);
 
       // ré-envoyer une campagne déjà partie échoue
       await expect(
@@ -219,11 +231,15 @@ describe('Newsletter — campagnes (F-65)', () => {
     vi.useFakeTimers();
     try {
       const t = convexTest(schema, modules);
-      await t.mutation(internal.newsletter.recordSubscription, {
-        email: 'a@dt.test',
-      });
-      await t.mutation(internal.newsletter.recordSubscription, {
-        email: 'b@dt.test',
+      await t.run(async (ctx) => {
+        for (const email of ['a@dt.test', 'b@dt.test']) {
+          await ctx.db.insert('newsletterSubscriptions', {
+            email,
+            unsubToken: email.replace(/\W/g, '').padEnd(32, '0'),
+            createdAt: Date.now(),
+            status: 'confirmed',
+          });
+        }
       });
 
       const ed = await asEditor(t);
@@ -241,8 +257,21 @@ describe('Newsletter — campagnes (F-65)', () => {
         status: 'draft',
       });
 
-      // La livraison elle-même reste fail-closed (audit H3).
-      await t.action(internal.newsletter.deliverCampaign, { campaignId: id });
+      // La livraison elle-même reste fail-closed (audit H3) : on force la
+      // campagne en envoi (comme si le fournisseur avait disparu en cours de
+      // route) et on laisse la mise en file et les lots tourner.
+      await t.run((ctx) =>
+        ctx.db.patch(id, {
+          status: 'sending',
+          totalCount: 0,
+          recipientCount: 0,
+          failedCount: 0,
+        }),
+      );
+      await t.mutation(internal.newsletter._enqueue, {
+        campaignId: id,
+        cursor: null,
+      });
       await t.finishAllScheduledFunctions(vi.runAllTimers);
       const done = await t.run((ctx) => ctx.db.get(id));
       expect(done?.status).toBe('error');

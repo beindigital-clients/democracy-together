@@ -14,7 +14,7 @@ test('newsletter : inscription valide -> succès + stockage (F-18)', async ({
   await page.getByRole('button', { name: "S'inscrire" }).click();
 
   await expect(
-    page.getByText(/Votre inscription est bien prise en compte/),
+    page.getByText(/Un e-mail de confirmation vient de vous être envoyé/),
   ).toBeVisible();
 
   // vérifie le stockage réel (lecture dev, garde AUTH_DEV_OTP)

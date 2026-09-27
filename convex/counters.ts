@@ -95,7 +95,17 @@ async function recomputeKey(
     case COUNTER.EVENT_REGISTRATIONS:
       return await countRows(ctx.db.query('eventRegistrations'), key);
     case COUNTER.NEWSLETTER_SUBSCRIBERS:
-      return await countRows(ctx.db.query('newsletterSubscriptions'), key);
+      // Abonnés CONFIRMÉS seulement (double opt-in, chantier diffusion) :
+      // ceux qu'une campagne atteint. Les attentes et les abonnés hérités non
+      // migrés n'en font pas partie.
+      return await countRows(
+        ctx.db
+          .query('newsletterSubscriptions')
+          .withIndex('by_status_and_expiry', (q) =>
+            q.eq('status', 'confirmed'),
+          ),
+        key,
+      );
     case COUNTER.TRIBUNE_POSTS_PUBLISHED:
       return await countRows(
         ctx.db

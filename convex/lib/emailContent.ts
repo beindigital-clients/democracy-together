@@ -50,7 +50,7 @@ const GREETING: Phrase = {
  * Les styles sont EN LIGNE parce qu'un client de messagerie n'exécute pas de
  * feuille externe : c'est la contrainte du format, pas un oubli.
  */
-function shell(loc: SiteLocale, inner: string): string {
+export function shell(loc: SiteLocale, inner: string): string {
   const rtl = isRtlLocale(loc);
   return `<div lang="${loc}" dir="${rtl ? 'rtl' : 'ltr'}" style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;color:#16191f;text-align:${rtl ? 'right' : 'left'}">
     <h2 style="font-family:Georgia,serif;color:#1f3d6e">${BRAND}</h2>

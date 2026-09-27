@@ -468,6 +468,7 @@ export default async function HomePage({
             <NewsletterForm
               placeholder={c.newsletter.placeholder}
               cta={c.newsletter.cta}
+              source="home"
               className="max-w-md"
             />
           </Reveal>

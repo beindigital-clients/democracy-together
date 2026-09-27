@@ -18,6 +18,7 @@ import {
 import { trackPublicationStatus } from './lib/counters';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { normalizeSearchTerm } from './lib/search';
+import { publicationSearchText } from './lib/searchText';
 import {
   matchesPublication,
   sortPublications,
@@ -392,6 +393,16 @@ export const submitPublication = mutation({
       createdAt: now,
       ...(args.fileId ? { fileId: args.fileId } : {}),
       ...(args.fileName ? { fileName: args.fileName.slice(0, 200) } : {}),
+      // Recherche globale (chantier diffusion) : meule tenue à l'écriture.
+      // Un dépôt `pending` est indexé mais JAMAIS servi — la recherche fixe
+      // `status: 'published'` dans la lecture d'index.
+      searchText: publicationSearchText({
+        title,
+        authors,
+        abstract,
+        keypoints,
+      }),
+      searchLang: languages[0],
     });
 
     await trackPublicationStatus(ctx, null, 'pending');

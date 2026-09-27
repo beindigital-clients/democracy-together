@@ -47,6 +47,9 @@ export const BASE_CLIENT_NAMESPACES = [
   'nav',
   'newsletter',
   'notifications',
+  // `privacy` : le réglage d'opposition à la mesure d'audience, posé dans la
+  // politique de confidentialité (F-66, chantier diffusion).
+  'privacy',
   'projects',
   'reminder',
   'search',
@@ -69,7 +72,11 @@ export const BASE_CLIENT_NAMESPACES = [
  * racine. Vérifié : tous les composants client qui le demandent vivent sous
  * `app/[locale]/admin/` ou `components/admin/`.
  */
-export const ADMIN_NAMESPACES = ['admin'] as const;
+export const ADMIN_NAMESPACES = [
+  'admin',
+  // Tableau de bord d'audience de l'écran d'impact (F-66, chantier diffusion).
+  'analytics',
+] as const;
 
 /** Tous les espaces demandés par un composant client, où qu'il soit. */
 export const CLIENT_NAMESPACES = [

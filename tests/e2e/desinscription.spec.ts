@@ -31,7 +31,7 @@ test('désinscription : le lien de l’e-mail retire vraiment l’abonné (F-12)
   await page.getByLabel('Votre adresse e-mail').fill(email);
   await page.getByRole('button', { name: "S'inscrire" }).click();
   await expect(
-    page.getByText(/Votre inscription est bien prise en compte/),
+    page.getByText(/Un e-mail de confirmation vient de vous être envoyé/),
   ).toBeVisible();
 
   // NON-VACUITÉ : si l'inscription n'avait pas eu lieu, tout ce qui suit
@@ -97,7 +97,7 @@ test('désinscription : un jeton inconnu ne retire personne, et le dit (F-12, R-
   await page.getByLabel('Votre adresse e-mail').fill(temoin);
   await page.getByRole('button', { name: "S'inscrire" }).click();
   await expect(
-    page.getByText(/Votre inscription est bien prise en compte/),
+    page.getByText(/Un e-mail de confirmation vient de vous être envoyé/),
   ).toBeVisible();
   expect(isNewsletterSubscribed(temoin)).toBe(true);
 

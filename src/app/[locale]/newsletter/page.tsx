@@ -42,7 +42,11 @@ export default async function NewsletterPage({
         {t('subtitle')}
       </p>
       <div className="mt-8 max-w-md">
-        <NewsletterForm placeholder={t('placeholder')} cta={t('cta')} />
+        <NewsletterForm
+          placeholder={t('placeholder')}
+          cta={t('cta')}
+          source="newsletter-page"
+        />
       </div>
       <p className="mt-4 text-xs text-muted">{t('privacy')}</p>
     </div>

@@ -17,6 +17,7 @@ import { IntlClientProvider } from '@/components/providers/intl-client-provider'
 import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
 import { MotionProvider } from '@/components/motion/motion-provider';
 import { CookieConsent } from '@/components/legal/cookie-consent';
+import { AudienceBeacon } from '@/components/analytics/audience-beacon';
 import {
   SITE_NAME,
   SITE_URL,
@@ -178,6 +179,8 @@ export default async function LocaleLayout({
                 </main>
                 <SiteFooter />
                 <CookieConsent />
+                {/* Mesure d'audience first-party, sans cookie (F-66). */}
+                <AudienceBeacon />
               </MotionProvider>
             </ConvexClientProvider>
           </IntlClientProvider>

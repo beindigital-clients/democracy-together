@@ -8,10 +8,10 @@ import { readConsent, writeConsent, type ConsentValue } from '@/lib/consent';
 
 // Bandeau de consentement cookies (F-09). N'apparaît que si aucun choix n'a été
 // mémorisé. Honnête vu l'état réel du site : seuls des cookies essentiels sont
-// posés ; « Tout accepter » autorise EN PLUS une future mesure d'audience
-// anonyme (rien n'est chargé tant qu'aucun outil n'est branché — cf.
-// hasAnalyticsConsent). Rendu côté client uniquement (pas de SSR -> pas de
-// mismatch d'hydratation).
+// posés, et la mesure d'audience first-party (F-66) ne dépose rien — elle est
+// exemptée de consentement, mais « Essentiels uniquement » vaut opposition et
+// la coupe sur ce navigateur (src/lib/audience.ts). Rendu côté client
+// uniquement (pas de SSR -> pas de mismatch d'hydratation).
 export function CookieConsent() {
   const t = useTranslations('cookies');
   const [show, setShow] = useState(false);

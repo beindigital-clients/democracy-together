@@ -37,6 +37,12 @@ afterEach(() => {
 function harnais() {
   vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
   vi.stubEnv('RECAPTCHA_DISABLED', 'true');
+  // Mode d'envoi SIMULÉ, comme le déploiement de développement et la CI :
+  // depuis le double opt-in (chantier diffusion), l'inscription newsletter
+  // refuse — pour toutes les adresses également — quand aucun courriel de
+  // confirmation ne peut partir. Sans fournisseur, la propriété testée ici
+  // ne serait pas atteinte.
+  vi.stubEnv('AUTH_DEV_OTP', 'true');
   return convexTest(schema, modules);
 }
 

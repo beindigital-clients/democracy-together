@@ -35,6 +35,13 @@ export const AUDIT = {
   // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
   AI_MODERATION_CONFIGURED: 'aiModeration.configured',
   AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
+  // Newsletter (chantier diffusion) : l'envoi d'une campagne engage
+  // l'association auprès de tous ses abonnés ; la relance des échecs et la
+  // migration des abonnés hérités aussi.
+  NEWSLETTER_CAMPAIGN_SENT: 'newsletter.campaign_sent',
+  NEWSLETTER_CAMPAIGN_RETRIED: 'newsletter.campaign_retried',
+  NEWSLETTER_TEST_SENT: 'newsletter.test_sent',
+  NEWSLETTER_LEGACY_MIGRATED: 'newsletter.legacy_migrated',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

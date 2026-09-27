@@ -1,51 +1,119 @@
 import { v } from 'convex/values';
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from 'convex/server';
 import { query } from './_generated/server';
-import { fold, organizationHaystack } from './lib/directory';
+import { searchQuery } from './lib/searchText';
+import {
+  SEARCH_SOURCES,
+  searchFiltersValidator,
+  searchHitValidator,
+  searchSource,
+  searchSourceValidator,
+  type SearchHit,
+} from './lib/searchSources';
 
-// Recherche globale (F-06) — sur les contenus Convex : publications publiées
-// (titre / auteurs / résumé / points clés) + membres actifs (nom / description
-// / pays). Recherche par sous-chaîne, insensible à la casse ET aux accents
-// (`fold`, partagé avec l'annuaire — mesuré le 27/09 : « democratie » ne
-// trouvait rien ici alors que la bibliothèque, corrigée, le trouvait). Volume
-// modeste ; pas d'index plein-texte nécessaire. Le pays d'un membre est
-// cherchable par son nom dans les langues du site, pas seulement par son code
-// (`organizationHaystack`). Les actualités (Sanity) sont cherchées à part dans
-// la page /recherche. Ne renvoie QUE des contenus publics.
+// RECHERCHE GLOBALE (F-06) ET PLEIN TEXTE (F-34) — sur les INDEX DE RECHERCHE
+// Convex, plus sur des lectures complètes filtrées en mémoire.
+//
+// Avant (mesuré au rapport de campagne, § 10.2) : chaque frappe dans la palette
+// chargeait toutes les publications publiées et tous les membres actifs, puis
+// cherchait une sous-chaîne. Correct à vingt documents, linéaire ensuite — et
+// la palette interroge à chaque frappe. Désormais chaque source lit SON index
+// (`search_text`), sur une meule repliée tenue à l'écriture
+// (`lib/searchText.ts`) : « democratie » trouve « démocratie » comme avant,
+// mais en une lecture d'index bornée.
+//
+// Les sources et leurs règles de visibilité vivent dans le REGISTRE
+// (`lib/searchSources.ts`). Ce module ne connaît aucune table. Les actualités
+// (Sanity) restent cherchées à part par la page /recherche.
+
+// Résultats par source dans la palette : de quoi choisir, pas un inventaire.
 const LIMIT = 8;
 
+const legacyPublication = v.object({
+  slug: v.string(),
+  title: v.string(),
+  type: v.string(),
+});
+const legacyOrganization = v.object({
+  slug: v.string(),
+  name: v.string(),
+  country: v.string(),
+});
+
+function lastSegment(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1);
+}
+
 export const globalSearch = query({
-  args: { q: v.string() },
-  handler: async (ctx, { q }) => {
-    const needle = fold(q);
-    if (needle.length < 2) {
-      return { publications: [], organizations: [] };
-    }
+  args: { q: v.string(), filters: v.optional(searchFiltersValidator) },
+  returns: v.object({
+    // Sections GÉNÉRIQUES, dans l'ordre du registre : une source ajoutée au
+    // registre apparaît ici sans toucher à cette fonction ni à son contrat.
+    sections: v.array(
+      v.object({
+        source: searchSourceValidator,
+        hits: v.array(searchHitValidator),
+        more: v.boolean(),
+      }),
+    ),
+    // Forme historique (palette et page d'avant le registre), conservée pour
+    // les appelants existants.
+    publications: v.array(legacyPublication),
+    organizations: v.array(legacyOrganization),
+  }),
+  handler: async (ctx, { q, filters }) => {
+    const needle = searchQuery(q);
+    if (!needle) return { sections: [], publications: [], organizations: [] };
+    const f = filters ?? {};
 
-    const [pubs, orgs] = await Promise.all([
-      ctx.db
-        .query('publications')
-        .withIndex('by_status', (s) => s.eq('status', 'published'))
-        .collect(),
-      ctx.db
-        .query('organizations')
-        .withIndex('by_status', (s) => s.eq('status', 'active'))
-        .collect(),
-    ]);
+    const sections = await Promise.all(
+      SEARCH_SOURCES.map(async (source) => {
+        const r = await searchSource(ctx, source, needle, f, {
+          numItems: LIMIT,
+          cursor: null,
+        });
+        return { source, hits: r.page.slice(0, LIMIT), more: !r.isDone };
+      }),
+    );
+    const hitsOf = (s: string): SearchHit[] =>
+      sections.find((x) => x.source === s)?.hits ?? [];
 
-    const publications = pubs
-      .filter((p) =>
-        fold(
-          `${p.title} ${p.authors.map((a) => a.name).join(' ')} ${p.abstract} ${p.keypoints.join(' ')}`,
-        ).includes(needle),
-      )
-      .slice(0, LIMIT)
-      .map((p) => ({ slug: p.slug, title: p.title, type: p.type }));
+    return {
+      sections: sections.filter((s) => s.hits.length > 0),
+      publications: hitsOf('publications').map((h) => ({
+        slug: lastSegment(h.path),
+        title: h.title,
+        type: h.kind ?? '',
+      })),
+      organizations: hitsOf('organizations').map((h) => ({
+        slug: lastSegment(h.path),
+        name: h.title,
+        country: h.country ?? '',
+      })),
+    };
+  },
+});
 
-    const organizations = orgs
-      .filter((o) => organizationHaystack(o).includes(needle))
-      .slice(0, LIMIT)
-      .map((o) => ({ slug: o.slug, name: o.name, country: o.country }));
-
-    return { publications, organizations };
+// Résultats PAGINÉS d'une source — « voir plus » de la page /recherche.
+export const searchBySource = query({
+  args: {
+    source: searchSourceValidator,
+    q: v.string(),
+    filters: v.optional(searchFiltersValidator),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(searchHitValidator),
+  handler: async (ctx, { source, q, filters, paginationOpts }) => {
+    const needle = searchQuery(q);
+    if (!needle) return { page: [], isDone: true, continueCursor: '' };
+    // Taille de page bornée côté serveur : le client ne fixe pas la borne.
+    const opts = {
+      ...paginationOpts,
+      numItems: Math.max(1, Math.min(50, paginationOpts.numItems)),
+    };
+    return await searchSource(ctx, source, needle, filters ?? {}, opts);
   },
 });

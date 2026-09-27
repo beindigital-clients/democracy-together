@@ -13,3 +13,13 @@ export function isRateLimited(error: unknown): boolean {
 export function isCaptchaFailed(error: unknown): boolean {
   return error instanceof ConvexError && error.data === 'CAPTCHA_FAILED';
 }
+
+// Inscription à la newsletter refusée faute de fournisseur d'e-mail
+// (convex/newsletter.ts -> ConvexError('EMAIL_PROVIDER_NOT_CONFIGURED')) : le
+// lien de confirmation du double opt-in ne pourrait pas partir.
+export function isEmailProviderMissing(error: unknown): boolean {
+  return (
+    error instanceof ConvexError &&
+    error.data === 'EMAIL_PROVIDER_NOT_CONFIGURED'
+  );
+}
