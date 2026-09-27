@@ -82,13 +82,12 @@ export const BASE_CLIENT_NAMESPACES = [
  * racine. Vérifié : tous les composants client qui le demandent vivent sous
  * `app/[locale]/admin/` ou `components/admin/`.
  */
+// Espaces de noms du back-office : chaque chantier y ajoute les siens.
 export const ADMIN_NAMESPACES = [
   'admin',
-  // Tableau de bord d'audience de l'écran d'impact (F-66, chantier diffusion).
   'analytics',
-  // `moderationQueue` : la file de modération de la tribune (chantier
-  // communauté), écran du back-office seulement.
   'moderationQueue',
+  'contentAdmin',
 ] as const;
 
 /** Tous les espaces demandés par un composant client, où qu'il soit. */

@@ -62,6 +62,8 @@ export function EventRegisterForm({
       // dit — la fiche ne rend plus ce formulaire, mais une page restée
       // ouverte pendant que l'événement passait peut encore l'envoyer.
       const closed = err instanceof ConvexError && err.data === 'EVENT_CLOSED';
+      // Capacité atteinte entre l'affichage de la fiche et l'envoi.
+      const full = err instanceof ConvexError && err.data === 'EVENT_FULL';
       setError(
         isCaptchaFailed(err)
           ? t('captchaFailed')
@@ -69,7 +71,9 @@ export function EventRegisterForm({
             ? t('rateLimited')
             : closed
               ? t('closed')
-              : t('errorGeneric'),
+              : full
+                ? t('full')
+                : t('errorGeneric'),
       );
       setStatus('idle');
     }

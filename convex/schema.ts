@@ -21,6 +21,7 @@ import {
   workspaceVisibilityValidator,
 } from './lib/communaute';
 import { communauteTables } from './lib/tables/communaute';
+import { contenusTables } from './lib/tables/contenus';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -425,9 +426,10 @@ export default defineSchema({
     createdAt: v.number(),
   }).index('by_handled', ['handled']),
 
-  // Inscriptions aux événements (F-53) — RSVP en ligne. `eventSlug` = slug neutre
-  // du module Next `events-content.ts` (pas de table événements en base). Index
-  // composite (event, email) : sert le dédoublonnage ET le décompte par event.
+  // Inscriptions aux événements (F-53) — RSVP en ligne. `eventSlug` = slug de
+  // l'événement dans `contentEvents` (chantier « contenus ») : le serveur le
+  // valide contre la table avant d'écrire. Index composite (event, email) :
+  // sert le dédoublonnage ET le décompte par event.
   eventRegistrations: defineTable({
     eventSlug: v.string(),
     name: v.string(),
@@ -435,12 +437,15 @@ export default defineSchema({
     organization: v.optional(v.string()),
     locale: v.optional(locale),
     createdAt: v.number(),
+    // Envoi du lien de visioconférence (chantier « contenus ») : posé quand le
+    // courriel est parti, pour ne jamais l'envoyer deux fois.
+    visioSentAt: v.optional(v.number()),
   }).index('by_event_and_email', ['eventSlug', 'email']),
 
   // Rappels d'événements par e-mail (F-55) — un visiteur (sans compte) demande
-  // à être prévenu avant un événement à venir. `eventSlug` = slug neutre du
-  // module Next `events-content.ts` ; `eventDate` = horodatage UTC du jour de
-  // l'événement (calculé côté appelant). Un cron quotidien envoie les rappels
+  // à être prévenu avant un événement à venir. `eventSlug` = slug d'un
+  // événement publié de `contentEvents` ; `eventDate` = son début (`startsAt`),
+  // CALCULÉ CÔTÉ SERVEUR depuis la table. Un cron quotidien envoie les rappels
   // dont la date approche (sendEmail NO-OP sans clé fournisseur). Index by_sent
   // = file des rappels à traiter ; index composite (event, email) = dédoublonnage.
   eventReminders: defineTable({
@@ -997,4 +1002,5 @@ export default defineSchema({
   ...paiementsTables,
   ...diffusionTables,
   ...communauteTables,
+  ...contenusTables,
 });

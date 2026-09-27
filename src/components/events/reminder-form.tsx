@@ -13,16 +13,11 @@ import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 
 // Rappel d'événement (F-55) — îlot client, sur la page de détail d'un événement
 // À VENIR. Le visiteur (sans compte) laisse son e-mail ; un cron quotidien
-// enverra le rappel quelques jours avant. `eventDate` est calculé par
-// l'appelant (Date.UTC). Idempotent côté serveur (redemander = succès sans
-// doublon). Libellés du namespace i18n `reminder`.
-export function ReminderForm({
-  eventSlug,
-  eventDate,
-}: {
-  eventSlug: string;
-  eventDate: number;
-}) {
+// enverra le rappel quelques jours avant. La date du rappel est celle de
+// l'événement, LUE CÔTÉ SERVEUR dans la table (pentest M-5) : ce formulaire ne
+// l'envoie plus. Idempotent côté serveur (redemander = succès sans doublon).
+// Libellés du namespace i18n `reminder`.
+export function ReminderForm({ eventSlug }: { eventSlug: string }) {
   const t = useTranslations('reminder');
   const locale = useLocale();
   const requestReminder = useAction(api.eventReminders.requestReminder);
@@ -45,7 +40,6 @@ export function ReminderForm({
       await requestReminder({
         eventSlug,
         email,
-        eventDate,
         locale: resolveLocale(locale),
         captchaToken,
       });

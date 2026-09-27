@@ -5,14 +5,13 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { UrlSortSelect } from '@/components/ui/url-sort-select';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import {
-  EVENTS,
   FEATURED_SLUG,
   EVENT_SORTS,
-  type EventData,
   type EventFacetKey,
   getEventsLabels,
+  langLabel,
   parseEventFilters,
   filterAndSortEvents,
   computeEventFacets,
@@ -21,6 +20,8 @@ import {
   hasActiveEventFilters,
   monthAbbr,
 } from '@/lib/events-content';
+import { loadAgenda } from '@/lib/contenus/load';
+import { featuredEvent, type AgendaEvent } from '@/lib/contenus/agenda';
 import { ArrowForward } from '@/components/ui/arrow';
 import type { Locale } from '@/i18n/routing';
 
@@ -45,15 +46,24 @@ export async function generateMetadata({
 
 const WRAP = 'mx-auto w-full max-w-[1240px] px-4 sm:px-6';
 
-const FACET_OPTIONS: {
-  key: EventFacetKey;
-  dict: 'types' | 'regions' | 'formats' | 'langName';
-}[] = [
-  { key: 'types', dict: 'types' },
-  { key: 'regions', dict: 'regions' },
-  { key: 'formats', dict: 'formats' },
-  { key: 'langs', dict: 'langName' },
+const FACET_OPTIONS: EventFacetKey[] = [
+  'types',
+  'regions',
+  'formats',
+  'langs',
+  'months',
 ];
+
+// « novembre 2026 » : libellé d'une valeur de la facette « mois ».
+function monthLabel(ym: string, loc: Locale): string {
+  const [y, m] = ym.split('-').map(Number);
+  const label = new Intl.DateTimeFormat(intlLocale(loc), {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(Date.UTC(y, m - 1, 1));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 export default async function EventsPage({
   params,
@@ -67,13 +77,35 @@ export default async function EventsPage({
   const loc = resolveLocale(locale);
   const L = getEventsLabels(loc);
   const tc = await getTranslations('calendar');
+  const ta = await getTranslations('agenda');
   const filters = parseEventFilters(await searchParams);
-  const results = filterAndSortEvents(filters, L);
-  const facets = computeEventFacets(filters, L);
+  // Agenda : la table `contentEvents`, ou le catalogue codé en repli (table
+  // vide, backend injoignable) — cf. src/lib/contenus/load.ts.
+  const { items: events } = await loadAgenda(loc);
+  const results = filterAndSortEvents(filters, L, events);
+  const facets = computeEventFacets(filters, L, events);
+  const featured = featuredEvent(events);
 
-  const replays = EVENTS.filter((e) => !e.upcoming).sort(
-    (a, b) => b.y * 10000 + b.mo * 100 + b.d - (a.y * 10000 + a.mo * 100 + a.d),
-  );
+  const replays = events
+    .filter((e) => !e.upcoming && e.status === 'published')
+    .sort((a, b) => b.startsAt - a.startsAt);
+
+  const facetLegend: Record<EventFacetKey, string> = {
+    types: L.filter.type,
+    regions: L.filter.region,
+    formats: L.filter.format,
+    langs: L.filter.lang,
+    months: ta('filterMonth'),
+  };
+  const facetLabel = (key: EventFacetKey, value: string): string => {
+    if (key === 'types') return L.types[value as AgendaEvent['type']] ?? value;
+    if (key === 'regions')
+      return L.regions[value as AgendaEvent['region']] ?? value;
+    if (key === 'formats')
+      return L.formats[value as AgendaEvent['format']] ?? value;
+    if (key === 'langs') return langLabel(L, value, loc);
+    return monthLabel(value, loc);
+  };
 
   const isUpcoming = filters.period === 'venir';
   const countLabel =
@@ -151,58 +183,118 @@ export default async function EventsPage({
         </div>
       </header>
 
-      {/* Événement en vedette */}
-      <section className={`${WRAP} py-10`}>
-        <Reveal className="grid items-stretch gap-0 overflow-hidden rounded-md border border-line bg-surface md:grid-cols-[1.05fr_1fr]">
-          <div className="relative min-h-[240px]">
-            <Image
-              src="/library/paris.jpg"
-              alt={L.featured.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 620px"
-              className="object-cover"
-            />
-            <span className="absolute start-4 top-4 rounded-pill bg-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-contrast">
-              {L.featuredBadge}
-            </span>
-          </div>
-          <div className="p-6 md:p-8">
-            <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
-              {L.featured.kicker}
-            </p>
-            <h2 className="mt-2 font-display text-2xl leading-snug md:text-3xl">
-              {L.featured.title}
-            </h2>
-            <p className="mt-3 leading-relaxed text-ink-soft">
-              {L.featured.body}
-            </p>
-            <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-              {L.featured.facts.map((f) => (
-                <div key={f.k}>
-                  <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
-                    {f.k}
-                  </dt>
-                  <dd className="mt-0.5 text-sm font-medium text-ink">{f.v}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href={`/evenements/${FEATURED_SLUG}`}
-                className="inline-flex items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-              >
-                {L.featured.register}
-              </Link>
-              <Link
-                href={`/evenements/${FEATURED_SLUG}`}
-                className="inline-flex items-center justify-center rounded-sm border border-line-strong px-[18px] py-[11px] text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
-              >
-                {L.featured.details}
-              </Link>
+      {/* Événement en vedette — le contenu riche codé pour la conférence
+          inaugurale, une carte tirée de la table pour tout autre événement
+          « à la une » ; rien s'il n'y en a pas à venir. */}
+      {featured ? (
+        <section className={`${WRAP} py-10`}>
+          <Reveal className="grid items-stretch gap-0 overflow-hidden rounded-md border border-line bg-surface md:grid-cols-[1.05fr_1fr]">
+            <div className="relative min-h-[240px]">
+              {featured.image ? (
+                <Image
+                  src={featured.image.url}
+                  alt={featured.image.alt}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, 620px"
+                  className="object-cover"
+                />
+              ) : (
+                <Image
+                  src="/library/paris.jpg"
+                  alt={
+                    featured.slug === FEATURED_SLUG
+                      ? L.featured.title
+                      : featured.title
+                  }
+                  fill
+                  sizes="(max-width: 768px) 100vw, 620px"
+                  className="object-cover"
+                />
+              )}
+              <span className="absolute start-4 top-4 rounded-pill bg-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-contrast">
+                {featured.slug === FEATURED_SLUG
+                  ? L.featuredBadge
+                  : `${ta('featuredBadge')} · ${L.types[featured.type]}`}
+              </span>
             </div>
-          </div>
-        </Reveal>
-      </section>
+            <div className="p-6 md:p-8">
+              {featured.slug === FEATURED_SLUG ? (
+                <>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                    {L.featured.kicker}
+                  </p>
+                  <h2 className="mt-2 font-display text-2xl leading-snug md:text-3xl">
+                    {L.featured.title}
+                  </h2>
+                  <p className="mt-3 leading-relaxed text-ink-soft">
+                    {L.featured.body}
+                  </p>
+                  <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                    {L.featured.facts.map((f) => (
+                      <div key={f.k}>
+                        <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                          {f.k}
+                        </dt>
+                        <dd className="mt-0.5 text-sm font-medium text-ink">
+                          {f.v}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              ) : (
+                <>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                    {L.types[featured.type]} · {L.formats[featured.format]}
+                  </p>
+                  <h2 className="mt-2 font-display text-2xl leading-snug wrap-anywhere md:text-3xl">
+                    {featured.title}
+                  </h2>
+                  {featured.lead ? (
+                    <p className="mt-3 leading-relaxed text-ink-soft wrap-anywhere">
+                      {featured.lead}
+                    </p>
+                  ) : null}
+                  <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3">
+                    <div>
+                      <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                        {L.detail.factDate}
+                      </dt>
+                      <dd className="mt-0.5 text-sm font-medium text-ink">
+                        {featured.d} {monthAbbr(featured, loc).toLowerCase()}{' '}
+                        {featured.y}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                        {L.detail.factPlace}
+                      </dt>
+                      <dd className="mt-0.5 text-sm font-medium text-ink wrap-anywhere">
+                        {featured.place}
+                      </dd>
+                    </div>
+                  </dl>
+                </>
+              )}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href={`/evenements/${featured.slug}`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
+                  {L.featured.register}
+                </Link>
+                <Link
+                  href={`/evenements/${featured.slug}`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-sm border border-line-strong px-[18px] py-[11px] text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+                >
+                  {L.featured.details}
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+      ) : null}
 
       {/* Liste filtrable */}
       <div
@@ -222,6 +314,7 @@ export default async function EventsPage({
                   regions: [],
                   formats: [],
                   langs: [],
+                  months: [],
                   q: undefined,
                 })}
                 className="text-[12.5px] text-accent-text hover:underline"
@@ -253,28 +346,22 @@ export default async function EventsPage({
             ))}
           </div>
 
-          {FACET_OPTIONS.map((g) => {
-            const opts = facets[g.key];
+          {FACET_OPTIONS.map((key) => {
+            const opts = facets[key];
             if (opts.length === 0) return null;
             return (
-              <fieldset key={g.key} className="border-t border-line py-4">
+              <fieldset key={key} className="border-t border-line py-4">
                 <legend className="mb-3 font-mono text-[12px] uppercase tracking-[0.08em] text-muted">
-                  {g.key === 'types'
-                    ? L.filter.type
-                    : g.key === 'regions'
-                      ? L.filter.region
-                      : g.key === 'formats'
-                        ? L.filter.format
-                        : L.filter.lang}
+                  {facetLegend[key]}
                 </legend>
                 <div className="flex flex-col">
                   {opts.map(({ value, count }) => {
-                    const active = filters[g.key].includes(value);
-                    const label = (L[g.dict] as Record<string, string>)[value];
+                    const active = filters[key].includes(value);
+                    const label = facetLabel(key, value);
                     return (
                       <Link
                         key={value}
-                        href={toggleEventHref(filters, g.key, value)}
+                        href={toggleEventHref(filters, key, value)}
                         aria-current={active ? 'true' : undefined}
                         className="group flex items-center gap-2.5 py-1 text-sm text-ink-soft transition-colors hover:text-ink"
                       >
@@ -348,7 +435,12 @@ export default async function EventsPage({
             >
               {results.map((e) => (
                 <RevealItem as="li" key={e.slug}>
-                  <EventCard event={e} L={L} locale={loc} />
+                  <EventCard
+                    event={e}
+                    L={L}
+                    locale={loc}
+                    cancelledLabel={ta('cancelled')}
+                  />
                 </RevealItem>
               ))}
             </RevealGroup>
@@ -389,13 +481,13 @@ export default async function EventsPage({
                     {e.d} {monthAbbr(e, loc).toLowerCase()} {e.y}
                   </span>
                   <span className="min-w-[200px] flex-1">
-                    <span className="block font-display text-[17px] leading-snug">
-                      {L.titles[e.slug]}
+                    <span className="block font-display text-[17px] leading-snug wrap-anywhere">
+                      {e.title}
                     </span>
-                    <span className="mt-0.5 block text-[12.5px] text-muted">
+                    <span className="mt-0.5 block text-[12.5px] text-muted wrap-anywhere">
                       {L.types[e.type]} · {L.formats[e.format]} ·{' '}
                       {e.langs.map((l) => l.toUpperCase()).join(' / ')} ·{' '}
-                      {L.cities[e.cityKey]}
+                      {e.place}
                     </span>
                   </span>
                   <span className="ms-auto text-end">
@@ -425,10 +517,12 @@ function EventCard({
   event,
   L,
   locale,
+  cancelledLabel,
 }: {
-  event: EventData;
+  event: AgendaEvent;
   L: ReturnType<typeof getEventsLabels>;
   locale: Locale;
+  cancelledLabel: string;
 }) {
   return (
     <article className="flex h-full gap-4 rounded-sm border border-line bg-surface p-4">
@@ -442,24 +536,29 @@ function EventCard({
         <div className="font-mono text-[11px] text-muted">{event.y}</div>
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
           {L.types[event.type]}
+          {event.status === 'cancelled' ? (
+            <span className="rounded-pill border border-line-strong bg-surface-2 px-2 py-0.5 text-ink">
+              {cancelledLabel}
+            </span>
+          ) : null}
         </div>
-        <h3 className="mt-1 font-display text-[18px] leading-snug">
+        <h3 className="mt-1 font-display text-[18px] leading-snug wrap-anywhere">
           <Link
             href={`/evenements/${event.slug}`}
             className="text-ink hover:underline"
           >
-            {L.titles[event.slug]}
+            {event.title}
           </Link>
         </h3>
-        <div className="mt-1.5 text-[13px] text-ink-soft">
-          {L.cities[event.cityKey]}{' '}
+        <div className="mt-1.5 text-[13px] text-ink-soft wrap-anywhere">
+          {event.place}{' '}
           <span className="text-muted">· {L.formats[event.format]}</span>
         </div>
         <div className="mt-2">
           <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 text-[11.5px] font-medium text-accent-text">
-            {L.themes[event.theme]}
+            {L.themes[event.theme] ?? event.theme}
           </span>
         </div>
         <div className="mt-auto flex items-center justify-between gap-3 pt-3">

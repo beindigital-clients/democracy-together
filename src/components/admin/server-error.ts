@@ -43,6 +43,25 @@ export const SERVER_ERROR_CODES = [
   'VARIANT_IS_REFERENCE',
   'NO_EDITOR_EMAIL',
   'NOT_RETRYABLE',
+  // Contenus éditoriaux et médiathèque (chantier « contenus »).
+  'INVALID_SLUG',
+  'SLUG_TAKEN',
+  'TITLE_REQUIRED',
+  'PLACE_REQUIRED',
+  'OUTLET_REQUIRED',
+  'INVALID_DATE',
+  'INVALID_TIMEZONE',
+  'INVALID_URL',
+  'INVALID_VIDEO_URL',
+  'INVALID_CAPACITY',
+  'INVALID_DURATION',
+  'TEXT_TOO_LONG',
+  'ALT_REQUIRED',
+  'INVALID_FILE',
+  'FILE_TOO_LARGE',
+  'MEDIA_IN_USE',
+  'INVALID_MEDIA',
+  'EVENT_HAS_REGISTRATIONS',
   // Refus de rôle et de session : `requireNetworkRole` lève en français
   // (« Accès refusé : rôle « editeur » requis. », « Non authentifié. ») — ils
   // sont reconnus par leur texte et ramenés à un code, comme les autres.

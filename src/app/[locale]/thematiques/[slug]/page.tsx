@@ -8,7 +8,7 @@ import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
-import { getThemeSynthesis } from '@/lib/themes-content';
+import { loadTheme } from '@/lib/contenus/load';
 import { PublicationCard } from '@/components/library/publication-card';
 import { vocabulary } from '@/i18n/vocabulary';
 import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
@@ -22,11 +22,11 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const s = getThemeSynthesis(resolveLocale(locale), slug);
+  const s = await loadTheme(slug, resolveLocale(locale));
   if (!s) return {};
   const tl = await getTranslations({ locale, namespace: 'library' });
   return {
-    title: vocabulary(tl, 'themes.', slug),
+    title: s.title ?? vocabulary(tl, 'themes.', slug),
     description: s.lead,
     alternates: {
       canonical: `${SITE}/${locale}/thematiques/${slug}`,
@@ -43,12 +43,14 @@ export default async function ThemeSynthesisPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
-  const s = getThemeSynthesis(loc, slug);
+  // Synthèse : la table `contentThemes`, ou le texte codé en repli (table
+  // vide, backend injoignable) — cf. src/lib/contenus/load.ts.
+  const s = await loadTheme(slug, loc);
   if (!s) notFound();
 
   const t = await getTranslations('thematiques');
   const tl = await getTranslations('library');
-  const label = vocabulary(tl, 'themes.', slug);
+  const label = s.title ?? vocabulary(tl, 'themes.', slug);
   // Backend injoignable -> aucune publication listée, mais la synthèse (servie
   // par le dépôt) reste affichée. Perdre la page entière pour une liste
   // d'appoint serait payer cher (F-02).
@@ -81,7 +83,8 @@ export default async function ThemeSynthesisPage({
           </Reveal>
           <Reveal>
             <p className="mt-4 font-mono text-xs uppercase tracking-[0.14em] text-muted">
-              {t('eyebrow')} · {s.dimension}
+              {t('eyebrow')}
+              {s.dimension ? ` · ${s.dimension}` : ''}
             </p>
             <h1 className="mt-3 max-w-[18ch] font-display text-[clamp(32px,4.4vw,52px)] font-medium leading-[1.05] tracking-[-0.02em]">
               {label}
@@ -132,7 +135,8 @@ export default async function ThemeSynthesisPage({
         <aside>
           <Reveal className="flex flex-col gap-3 rounded-sm border border-line bg-surface p-5">
             <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-              {t('dimension')} · {s.dimension}
+              {t('dimension')}
+              {s.dimension ? ` · ${s.dimension}` : ''}
             </h2>
             <a
               href={`/${locale}/barometre#dimensions`}

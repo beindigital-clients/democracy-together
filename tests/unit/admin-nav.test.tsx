@@ -62,7 +62,8 @@ const STAFF_ITEMS = [
   'Projets',
   'Événements',
 ];
-const EDITOR_ITEMS = ['Comité de lecture', 'Newsletter'];
+// « Contenus » (chantier « contenus », F-62) : rang éditeur.
+const EDITOR_ITEMS = ['Comité de lecture', 'Newsletter', 'Contenus'];
 // « Modération IA » rejoint les entrées réservées à l'administrateur : ce
 // qu'elle règle n'est pas une modération, c'est la décision de s'en passer
 // (cf. le groupe `automatisation` de admin-nav.tsx).
@@ -89,7 +90,7 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
   });
 
-  it('un éditeur ajoute revue et newsletter, sans les entrées admin', () => {
+  it('un éditeur ajoute revue, newsletter et contenus, sans les entrées admin', () => {
     const nav = renderNav('editeur');
     expect(linkNames(nav).sort()).toEqual(
       [...STAFF_ITEMS, ...EDITOR_ITEMS].sort(),

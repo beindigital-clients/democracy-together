@@ -5,11 +5,13 @@ test.use({ locale: 'fr-FR' });
 
 // F-12 — `/fr/evenements/calendrier` n'était citée par AUCUNE spec E2E.
 //
-// CE QUI REND CETTE ROUTE TESTABLE SANS CONVEX, et pourquoi c'est un cas à
-// part dans ce dossier : elle ne lit aucun backend. Sa grille vient de
-// `buildMonthGrid` et ses événements de `EVENTS` (src/lib/events-content.ts),
-// deux sources VERSIONNÉES. Un mois donné a donc toujours les mêmes
-// événements, aux mêmes jours — on peut l'affirmer au lieu de le sonder.
+// CE QUI REND CETTE ROUTE DÉTERMINISTE. Depuis le chantier « contenus », ses
+// événements viennent de la table `contentEvents`, ou du catalogue codé
+// (`convex/lib/contenus/coded/events.ts`) en repli. La CI importe ce catalogue
+// tel quel (`contenus/migration:importCodedContent`, mêmes dates) : un mois
+// donné a donc les mêmes événements, aux mêmes jours, dans les deux cas. Les
+// specs qui CRÉENT des événements (`contenus-*.spec.ts`) les datent de 2030,
+// hors des mois comptés ici.
 //
 // Le mois affiché est piloté par `?ym=YYYY-MM`, jamais par l'horloge : toutes
 // les assertions ci-dessous sont déterministes. Le seul test qui touche à

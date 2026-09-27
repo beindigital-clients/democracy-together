@@ -59,6 +59,20 @@ export async function seedDirectory(): Promise<void> {
   convexRun('seed:seedDirectory');
 }
 
+// Recopie le contenu codé (agenda, replays, partenaires, thématiques) dans les
+// tables du chantier « contenus ». IDEMPOTENT : la CI le fait déjà
+// (`e2e.yml`) ; en local, une spec qui dépend de l'agenda l'appelle pour ne
+// pas dépendre de l'état du déploiement de dev.
+export async function importCodedContent(): Promise<void> {
+  convexRun('contenus/migration:importCodedContent');
+}
+
+// Retire les contenus créés par les specs (slugs et fichiers `e2e-…`). Gardé
+// par AUTH_DEV_OTP côté Convex, comme les autres helpers de test.
+export async function deleteE2eContent(): Promise<void> {
+  convexRun('contenus/devCleanup:deleteE2eContent');
+}
+
 type NetworkRole = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 // Élève le rôle d'un utilisateur (DEV, garde AUTH_DEV_OTP) — amorce un admin

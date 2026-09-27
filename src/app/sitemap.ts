@@ -3,8 +3,7 @@ import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import { client } from '@dt-sanity/lib/client';
 import { routing } from '@/i18n/routing';
-import { EVENTS } from '@/lib/events-content';
-import { THEME_SLUGS } from '@/lib/themes-content';
+import { loadAgenda, loadThemes } from '@/lib/contenus/load';
 import { REPORT_YEARS } from '@/lib/reports-content';
 
 // Sitemap bilingue (F-07). Chaque page logique est listée une fois par locale
@@ -71,12 +70,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push(...localized(p, undefined, p === '' ? 'daily' : 'weekly'));
   }
 
-  // Événements (slugs neutres, partagés fr/en).
-  for (const e of EVENTS) entries.push(...localized(`evenements/${e.slug}`));
+  // Événements (slugs neutres, partagés par les langues) — table
+  // `contentEvents`, ou catalogue codé en repli : jamais un brouillon.
+  const { items: events } = await loadAgenda(routing.defaultLocale);
+  for (const e of events) entries.push(...localized(`evenements/${e.slug}`));
 
-  // Synthèses thématiques (F-36) — 5 axes, slugs neutres partagés fr/en.
-  for (const slug of THEME_SLUGS) {
-    entries.push(...localized(`thematiques/${slug}`));
+  // Synthèses thématiques (F-36) — slugs stables, même règle de source.
+  const { items: themes } = await loadThemes(routing.defaultLocale);
+  for (const th of themes) {
+    entries.push(...localized(`thematiques/${th.slug}`));
   }
 
   // Rapports annuels (F-41) — une URL par année, partagée fr/en.

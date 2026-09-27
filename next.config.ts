@@ -41,7 +41,14 @@ const csp = [
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
-  "frame-src 'self' https://www.google.com",
+  // Replays (F-54, chantier « contenus ») : lecteurs YouTube — domaine
+  // « nocookie », sans traceur avant lecture — et Vimeo. Seules ces deux
+  // origines : l'adresse intégrée est recalculée côté serveur à partir d'un
+  // lien validé contre sa plateforme, jamais recopiée telle que saisie.
+  "frame-src 'self' https://www.google.com https://www.youtube-nocookie.com https://player.vimeo.com",
+  // Replays en FICHIER vidéo (mp4, webm…) hébergés hors du site : https
+  // uniquement, contrôlé à la saisie (`validateVideoUrl`).
+  "media-src 'self' https:",
   `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.sanity.io wss://*.sanity.io https://www.google.com${extra(convexOrigins.connect)}${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",

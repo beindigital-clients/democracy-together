@@ -110,6 +110,11 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     items: [
       { href: '/admin/revue', key: 'review' },
       { href: '/admin/newsletter', key: 'newsletter' },
+      // Contenus éditoriaux (F-62/F-64) : événements, replays, partenaires,
+      // presse, thématiques, médiathèque. Rang éditeur, comme la garde
+      // `requireEditor` de convex/lib/contenus/access.ts. Les INSCRIPTIONS aux
+      // événements restent sous « Programmes », au rang modérateur.
+      { href: '/admin/contenus', key: 'contents' },
     ],
   },
   // L'automatisation est un groupe à part, et réservé à l'administrateur.
