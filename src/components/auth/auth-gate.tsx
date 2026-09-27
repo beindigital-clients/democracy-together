@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { Authenticated, AuthLoading, Unauthenticated } from 'convex/react';
+import {
+  Authenticated,
+  AuthLoading,
+  Unauthenticated,
+  useConvex,
+} from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
@@ -46,12 +51,28 @@ export function AuthGateLoading({ className }: { className?: string }) {
 // Ne redirige que si l'état est DÉFINITIVEMENT non authentifié, jamais pendant
 // le chargement : sans ce délai, la page rebondissait vers /connexion juste
 // après une connexion réussie, le temps que l'état client se propage.
+//
+// ET SEULEMENT SI LE VERDICT VIENT D'UN BACKEND JOINT. Websocket coupé (CSP,
+// proxy, panne), le client Convex répond « non authentifié » faute de pouvoir
+// demander : la page rebondissait vers /connexion sans un mot, alors que le
+// serveur venait d'ouvrir la session (mesuré le 27/09, backend bloqué côté
+// navigateur). Tant que la connexion n'est pas établie, on reste sur la garde
+// de chargement — qui, passé huit secondes, dit que le service tarde.
 function RedirectToSignIn({ className }: { className?: string }) {
   const router = useRouter();
+  const convex = useConvex();
   useEffect(() => {
-    const id = setTimeout(() => router.replace('/connexion'), 1200);
+    let id: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (convex.connectionState().isWebSocketConnected) {
+        router.replace('/connexion');
+      } else {
+        id = setTimeout(tick, 1500);
+      }
+    };
+    id = setTimeout(tick, 1200);
     return () => clearTimeout(id);
-  }, [router]);
+  }, [router, convex]);
   return <AuthGateLoading className={className} />;
 }
 
