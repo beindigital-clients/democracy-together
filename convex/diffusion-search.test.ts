@@ -5,6 +5,26 @@ import schema from './schema';
 import { api, internal } from './_generated/api';
 import { publicationSearchText } from './lib/searchText';
 
+// La Tribune est modérée A PRIORI par défaut (chantier communauté, F-45) : un
+// billet créé attend une validation. Ces tests portent sur ce qui se passe
+// APRÈS publication ; ils posent donc le mode a posteriori, comme le réglage
+// que l'administrateur peut choisir.
+async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages-tribune@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+}
+
 // RECHERCHE SUR INDEX (F-06 / F-34, chantier diffusion).
 //
 // Les contenus sont écrits par les VRAIES mutations quand elles existent
@@ -128,6 +148,7 @@ describe('Recherche — insensible aux accents, via l’index', () => {
 
   it('Tribune : billet publié trouvé, billet retiré jamais', async () => {
     const t = convexTest(schema, modules);
+    await tribuneAPosteriori(t);
     const m = await member(t);
     const postId = await m.mutation(api.tribune.createPost, {
       theme: 'participation',

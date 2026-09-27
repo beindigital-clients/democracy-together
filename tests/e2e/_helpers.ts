@@ -87,6 +87,18 @@ export async function deleteTestPublications(marker: string): Promise<void> {
   convexRun('devAdmin:deleteTestPublications', { marker });
 }
 
+// Valide les billets de la tribune EN ATTENTE dont le titre contient
+// `marker` (DEV, garde AUTH_DEV_OTP), comme le ferait un modérateur.
+//
+// Depuis la modération A PRIORI (F-45, chantier communauté), un billet soumis
+// n'est visible du public qu'après validation. Les specs qui publient pour
+// tester AUTRE CHOSE (signalement, canonical, retrait) passent donc par la
+// validation — sans rejouer l'écran de modération, qui a sa propre spec
+// (`communaute-tribune.spec.ts`).
+export async function approveTribunePosts(marker: string): Promise<void> {
+  convexRun('communityModeration:devApprovePendingByTitle', { marker });
+}
+
 // Dépose une candidature d'adhésion (F-22) — pour alimenter la file de modération.
 export async function submitApplication(args: {
   type: 'organisation' | 'individu';

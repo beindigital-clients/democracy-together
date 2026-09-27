@@ -16,8 +16,17 @@ import { routing } from '@/i18n/routing';
 afterEach(cleanup);
 
 const createPost = vi.fn();
+// Une seule réponse pour toutes les requêtes du composer : l'utilisateur
+// (`users.current`) ET la règle de modération (`tribune.moderationPolicy`),
+// dont seul `postMode` est lu. Le mode est réglable par test.
+const policy = { postMode: 'a_priori' as 'a_priori' | 'a_posteriori' };
 vi.mock('convex/react', () => ({
-  useQuery: () => ({ _id: 'u1', role: 'membre', name: 'Awa Diop' }),
+  useQuery: () => ({
+    _id: 'u1',
+    role: 'membre',
+    name: 'Awa Diop',
+    postMode: policy.postMode,
+  }),
   useMutation: () => createPost,
 }));
 vi.mock('@/i18n/navigation', () => ({
@@ -65,7 +74,9 @@ describe('Composer de la Tribune — langue du billet (#35)', () => {
         value: 'A short English contribution written from the French UI.',
       },
     });
-    fireEvent.click(screen.getByRole('button', { name: fr.tribune.publish }));
+    fireEvent.click(
+      screen.getByRole('button', { name: fr.tribune.submitForReview }),
+    );
 
     await vi.waitFor(() => expect(createPost).toHaveBeenCalledTimes(1));
     expect(createPost.mock.calls[0][0]).toMatchObject({ lang: 'en' });
@@ -149,7 +160,9 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
     expect(compteur()).toBe(
       message('bodyLimitReached', { max: TRIBUNE_BODY.court.max }),
     );
-    fireEvent.click(screen.getByRole('button', { name: fr.tribune.publish }));
+    fireEvent.click(
+      screen.getByRole('button', { name: fr.tribune.submitForReview }),
+    );
     // Comparaison sur `textContent` : le séparateur de milliers français est
     // une espace fine insécable, que le normaliseur de `findByText` replie.
     expect((await screen.findByRole('alert')).textContent).toBe(
@@ -217,21 +230,45 @@ describe('Composer de la Tribune — « Annuler » et brouillon (A-09)', () => {
   });
 });
 
-describe('Composer de la Tribune — publication immédiate annoncée (A-11)', () => {
-  it('après publication, dit que le billet est publié et peut être signalé', async () => {
-    createPost.mockReset();
-    createPost.mockResolvedValue('post1');
-    openComposer('fr');
+// A-11 puis F-45 : l'auteur doit savoir ce qu'il advient de son billet. En
+// modération A PRIORI (le défaut), il attend la validation — l'écran le dit
+// AVANT l'envoi (bouton « Soumettre à la modération ») et APRÈS ; en a
+// posteriori, il est publié aussitôt.
+describe('Composer de la Tribune — sort du billet annoncé (A-11, F-45)', () => {
+  function fill() {
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldTitle), {
       target: { value: 'Sur les transitions' },
     });
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldBody), {
       target: { value: 'Une contribution courte mais valable.' },
     });
+  }
+
+  it('a priori : le billet est soumis à la modération, et l’écran le dit', async () => {
+    policy.postMode = 'a_priori';
+    createPost.mockReset();
+    createPost.mockResolvedValue('post1');
+    openComposer('fr');
+    expect(screen.getByText(fr.tribune.policyAPriori)).toBeTruthy();
+    fill();
+    fireEvent.click(
+      screen.getByRole('button', { name: fr.tribune.submitForReview }),
+    );
+    expect((await screen.findByRole('status')).textContent).toContain(
+      fr.tribune.submittedPending,
+    );
+  });
+
+  it('a posteriori : le billet est publié aussitôt, et l’écran le dit', async () => {
+    policy.postMode = 'a_posteriori';
+    createPost.mockReset();
+    createPost.mockResolvedValue('post1');
+    openComposer('fr');
+    fill();
     fireEvent.click(screen.getByRole('button', { name: fr.tribune.publish }));
-    expect(await screen.findByRole('status')).toHaveProperty(
-      'textContent',
+    expect((await screen.findByRole('status')).textContent).toContain(
       fr.tribune.published,
     );
+    policy.postMode = 'a_priori';
   });
 });

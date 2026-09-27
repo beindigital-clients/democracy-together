@@ -16,6 +16,28 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
+// notifications, signalements) : le mode A POSTERIORI y est réglé
+// explicitement, comme le ferait l'administrateur. La modération a priori —
+// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// (convex/communaute-moderation.test.ts).
+async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+  return t;
+}
+
 async function member(
   t: ReturnType<typeof convexTest>,
   email: string,
@@ -43,7 +65,7 @@ function countOf(notifs: { titleKey: string }[], titleKey: string): number {
 
 describe('Tribune — notifications de fil (F-25/F-51)', () => {
   it('notifie auteur + participants distincts, sans auto-notif ni doublon', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const a = await member(t, 'a@test.org', 'A');
     const b = await member(t, 'b@test.org', 'B');
     const c = await member(t, 'c@test.org', 'C');
@@ -91,7 +113,7 @@ describe('Tribune — notifications de fil (F-25/F-51)', () => {
   });
 
   it('pas de doublon : B recommente ne crée pas de notif de fil pour B', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const a = await member(t, 'a@test.org', 'A');
     const b = await member(t, 'b@test.org', 'B');
     const c = await member(t, 'c@test.org', 'C');

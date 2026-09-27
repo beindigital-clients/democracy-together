@@ -17,6 +17,7 @@ import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
+import { MyInvitations } from './workspace-invitations';
 
 // Formulaire de création d'espace (membre réseau). Réplique le motif du
 // composer de la Tribune (champs Input/Textarea, select natif de thème).
@@ -29,6 +30,9 @@ function CreateForm() {
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState<string>(PUB_THEMES[0]);
   const [description, setDescription] = useState('');
+  // Ouvert par défaut (comportement de l'incrément 1) ; privé = sur
+  // invitation seulement.
+  const [visibility, setVisibility] = useState<'open' | 'private'>('open');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +48,7 @@ function CreateForm() {
     setTitle('');
     setTheme(PUB_THEMES[0]);
     setDescription('');
+    setVisibility('open');
     setError(null);
     setOpen(false);
   }
@@ -65,6 +70,7 @@ function CreateForm() {
         title: title.trim(),
         theme,
         description: description.trim(),
+        visibility,
       });
       setTitle('');
       setDescription('');
@@ -110,6 +116,19 @@ function CreateForm() {
           ))}
         </SelectField>
       </div>
+
+      <SelectField
+        label={t('fieldVisibility')}
+        id="ws-visibility"
+        value={visibility}
+        hint={t('visibilityHint')}
+        onChange={(e) =>
+          setVisibility(e.target.value === 'private' ? 'private' : 'open')
+        }
+      >
+        <option value="open">{t('visibilityOpen')}</option>
+        <option value="private">{t('visibilityPrivate')}</option>
+      </SelectField>
 
       <TextareaField
         label={t('fieldDescription')}
@@ -194,6 +213,11 @@ export function WorkspacesBoard() {
         </section>
       ) : (
         <>
+          {/* Invitations reçues : c'est ici qu'on entre dans un espace
+              privé (F-24). */}
+          <div className="mt-8">
+            <MyInvitations />
+          </div>
           <div className="mt-8">
             <CreateForm />
           </div>
@@ -216,6 +240,11 @@ export function WorkspacesBoard() {
                       <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
                         {vocabulary(tl, 'themes.', w.theme)}
                       </span>
+                      {w.visibility === 'private' ? (
+                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                          {t('privateBadge')}
+                        </span>
+                      ) : null}
                       {w.mine ? (
                         <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                           {t('mineBadge')}

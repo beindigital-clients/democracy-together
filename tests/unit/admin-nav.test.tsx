@@ -51,6 +51,8 @@ const STAFF_ITEMS = [
   'Candidatures',
   'Publications',
   'Mes relectures',
+  // File de modération de la tribune (chantier communauté), rang modérateur.
+  'File de modération',
   'Signalements',
   // Messages privés signalés (chantier « social »), rang modérateur.
   'Messages signalés',

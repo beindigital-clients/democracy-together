@@ -5,6 +5,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { ConvexError } from 'convex/values';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 import { TRIBUNE_BODY, type TribuneFormat } from '@convex/lib/validation';
 import { routing, type Locale } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
@@ -38,18 +39,29 @@ function errorCode(error: unknown): string | null {
 }
 
 // Prise de parole (F-44) — îlot client. Visible aux membres ; les autres voient
-// une invitation à adhérer. Après publication, on rafraîchit le fil (server).
-export function TribuneComposer() {
+// une invitation à adhérer. Après envoi, on rafraîchit le fil (server).
+//
+// Avec `parent`, le composer ouvre une CONTRIBUTION DE FOND qui prolonge un
+// billet court (F-48) : format « Analyse » imposé, axe hérité du billet.
+export function TribuneComposer({
+  parent,
+}: {
+  parent?: { id: Id<'tribunePosts'>; title: string; theme: string };
+} = {}) {
   const t = useTranslations('tribune');
   const tl = useTranslations('library');
   const uiLocale = resolveLocale(useLocale());
   const me = useQuery(api.users.current);
+  // Règle du lieu, lue AVANT l'envoi : l'écran dit « soumis à validation »
+  // ou « publié », selon le mode réglé par l'administrateur (F-45).
+  const policy = useQuery(api.tribune.moderationPolicy);
   const create = useMutation(api.tribune.createPost);
   const router = useRouter();
+  const initialFormat: TribuneFormat = parent ? 'fond' : DEFAULT_FORMAT;
 
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<string>(PUB_THEMES[0]);
-  const [format, setFormat] = useState<TribuneFormat>(DEFAULT_FORMAT);
+  const [theme, setTheme] = useState<string>(parent?.theme ?? PUB_THEMES[0]);
+  const [format, setFormat] = useState<TribuneFormat>(initialFormat);
   // Langue du billet (issue #35) : PRÉ-REMPLIE avec la langue de l'interface,
   // pas déduite d'elle. Un membre qui navigue en français peut écrire en
   // anglais, et lui seul le sait. C'est cette valeur qui décide plus tard du
@@ -60,10 +72,13 @@ export function TribuneComposer() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  // Un billet est publié IMMÉDIATEMENT (modération a posteriori, F-50) :
-  // rien ne le disait à l'auteur, qui pouvait croire à une attente de
-  // modération (A-11). Le message reste affiché sous le bouton après envoi.
-  const [published, setPublished] = useState(false);
+  // Ce qu'il advient du billet, DIT à l'auteur (A-11) : en modération a
+  // priori (défaut, F-45), il attend la validation d'un modérateur ; en a
+  // posteriori, il est en ligne. Le message reste affiché après envoi.
+  const [sent, setSent] = useState<'pending' | 'published' | null>(null);
+  // Mode a posteriori seulement si le serveur le dit : en attendant la
+  // réponse, l'écran annonce la règle la plus prudente.
+  const aPosteriori = policy?.postMode === 'a_posteriori';
 
   if (me === undefined) return null;
 
@@ -89,8 +104,8 @@ export function TribuneComposer() {
   function reset() {
     setTitle('');
     setBody('');
-    setTheme(PUB_THEMES[0]);
-    setFormat(DEFAULT_FORMAT);
+    setTheme(parent?.theme ?? PUB_THEMES[0]);
+    setFormat(initialFormat);
     setLang(uiLocale);
     setError(null);
   }
@@ -109,21 +124,30 @@ export function TribuneComposer() {
   if (!open) {
     return (
       <div className="space-y-3">
-        {published ? (
+        {sent ? (
           <p
             role="status"
             className="rounded-md border border-accent-edge bg-accent-tint px-4 py-3 text-sm text-ink"
           >
-            {t('published')}
+            {sent === 'published' ? t('published') : t('submittedPending')}{' '}
+            {sent === 'pending' ? (
+              <Link
+                href="/espace-membre/contributions"
+                className="font-semibold text-accent-text hover:underline"
+              >
+                {t('followContributions')}
+              </Link>
+            ) : null}
           </p>
         ) : null}
         <Button
+          className="min-h-11"
           onClick={() => {
-            setPublished(false);
+            setSent(null);
             setOpen(true);
           }}
         >
-          {t('startCta')}
+          {parent ? t('deepenCta') : t('startCta')}
         </Button>
       </div>
     );
@@ -159,10 +183,11 @@ export function TribuneComposer() {
         lang,
         title: title.trim(),
         body: text,
+        ...(parent ? { parentPostId: parent.id } : {}),
       });
       reset();
       setOpen(false);
-      setPublished(true);
+      setSent(aPosteriori ? 'published' : 'pending');
       router.refresh();
     } catch (err) {
       const code = errorCode(err);
@@ -173,7 +198,9 @@ export function TribuneComposer() {
             ? t('errBodyTooLong', { max: bounds.max })
             : code === 'INVALID_BODY'
               ? t('errBody')
-              : t('errGeneric'),
+              : code === 'NOT_INVITED' || code === 'NOT_DEEPENABLE'
+                ? t('errNotDeepenable')
+                : t('errGeneric'),
       );
     } finally {
       setPending(false);
@@ -190,35 +217,44 @@ export function TribuneComposer() {
       noValidate
       className="space-y-4 rounded-md border border-line bg-surface p-5"
     >
-      <h2 className="font-display text-lg">{t('composeTitle')}</h2>
+      <h2 className="font-display text-lg">
+        {parent
+          ? t('deepenComposeTitle', { title: parent.title })
+          : t('composeTitle')}
+      </h2>
+      <p className="text-[13px] text-ink-soft">
+        {aPosteriori ? t('policyAPosteriori') : t('policyAPriori')}
+      </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <SelectField
-          label={t('fieldTheme')}
-          id="tr-theme"
-          value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-        >
-          {PUB_THEMES.map((s) => (
-            <option key={s} value={s}>
-              {vocabulary(tl, 'themes.', s)}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label={t('fieldFormat')}
-          id="tr-format"
-          value={format}
-          hint={t('formatHint', {
-            court: TRIBUNE_BODY.court.max,
-            fond: TRIBUNE_BODY.fond.max,
-          })}
-          onChange={(e) => setFormat(e.target.value as TribuneFormat)}
-        >
-          <option value="court">{t('format_court')}</option>
-          <option value="fond">{t('format_fond')}</option>
-        </SelectField>
-      </div>
+      {parent ? null : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SelectField
+            label={t('fieldTheme')}
+            id="tr-theme"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+          >
+            {PUB_THEMES.map((s) => (
+              <option key={s} value={s}>
+                {vocabulary(tl, 'themes.', s)}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label={t('fieldFormat')}
+            id="tr-format"
+            value={format}
+            hint={t('formatHint', {
+              court: TRIBUNE_BODY.court.max,
+              fond: TRIBUNE_BODY.fond.max,
+            })}
+            onChange={(e) => setFormat(e.target.value as TribuneFormat)}
+          >
+            <option value="court">{t('format_court')}</option>
+            <option value="fond">{t('format_fond')}</option>
+          </SelectField>
+        </div>
+      )}
 
       <SelectField
         label={t('fieldLang')}
@@ -269,10 +305,15 @@ export function TribuneComposer() {
       <FormError>{error}</FormError>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>
-          {t('publish')}
+        <Button type="submit" className="min-h-11" disabled={pending}>
+          {aPosteriori ? t('publish') : t('submitForReview')}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={onCancel}
+        >
           {t('cancel')}
         </Button>
       </div>

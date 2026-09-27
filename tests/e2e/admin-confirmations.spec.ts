@@ -4,6 +4,7 @@ import {
   provisionUser,
   deleteTestPublications,
   chercherUtilisateur,
+  approveTribunePosts,
 } from './_helpers';
 import { SESSIONS } from './_sessions';
 
@@ -162,6 +163,8 @@ test('retirer un contenu signalé : confirmation nommant la cible (issue #38)', 
   const postTitle = `Prise de parole à retirer E2E ${Date.now()}`;
 
   // Un contenu publié, puis signalé (tout compte authentifié peut signaler).
+  // Modération A PRIORI (F-45) : le billet soumis attend sa validation avant
+  // d'être public — on la donne, puis on le retrouve dans le fil.
   await page.goto('/fr/tribune');
   await page.getByRole('button', { name: 'Prendre la parole' }).click();
   const composer = page
@@ -173,9 +176,18 @@ test('retirer un contenu signalé : confirmation nommant la cible (issue #38)', 
     .fill(
       'Un court billet de test E2E destiné à être retiré par la modération.',
     );
-  await composer.getByRole('button', { name: 'Publier' }).click();
+  await composer
+    .getByRole('button', { name: 'Soumettre à la modération' })
+    .click();
+  await expect(page.getByText(/soumise à la modération/)).toBeVisible();
+  await approveTribunePosts(postTitle);
 
-  await page.getByRole('link').filter({ hasText: postTitle }).first().click();
+  await page.goto('/fr/tribune');
+  await page
+    .locator('a[href*="/tribune/"]')
+    .filter({ hasText: postTitle })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/fr\/tribune\/[a-z0-9]+$/);
   await page.getByRole('button', { name: 'Signaler' }).first().click();
   await expect(page.getByText('Signalé')).toBeVisible();
@@ -207,10 +219,13 @@ test('retirer un contenu signalé : confirmation nommant la cible (issue #38)', 
   );
   await expect(row).toHaveCount(0);
 
-  // Le contenu a bien quitté la tribune publique.
+  // Le contenu a bien quitté la tribune publique. On regarde le FIL (liens
+  // vers une fiche publique) : « Mes billets », sous le composer, garde le
+  // billet retiré de son auteur — avec son état — et pointe vers l'espace
+  // membre, pas vers la tribune.
   await page.goto('/fr/tribune');
   await expect(
-    page.getByRole('link').filter({ hasText: postTitle }),
+    page.locator('a[href*="/tribune/"]').filter({ hasText: postTitle }),
   ).toHaveCount(0);
 });
 

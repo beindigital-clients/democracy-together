@@ -83,6 +83,13 @@ export const RATE_LIMITS = {
   donation: { max: 10, windowMs: HOUR },
   dues: { max: 10, windowMs: HOUR },
   checkoutSync: { max: 30, windowMs: HOUR },
+  // Chantier communauté : invitations (espace, approfondissement) et
+  // téléversements dans un espace. Une invitation notifie quelqu'un d'autre :
+  // c'est le plafond qui empêche d'en faire un canal de harcèlement.
+  workspaceInvite: { max: 30, windowMs: 24 * HOUR },
+  workspaceUpload: { max: 60, windowMs: HOUR },
+  deepeningInvite: { max: 20, windowMs: 24 * HOUR },
+  tribuneEdit: { max: 30, windowMs: HOUR },
 } as const;
 
 // --- Plafonds NON FORGEABLES (audit M2, issue #24) ---------------------------

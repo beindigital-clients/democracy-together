@@ -10,6 +10,7 @@ import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { CommentForm } from '@/components/tribune/comment-form';
 import { ReportButton } from '@/components/tribune/report-button';
 import { ReactionButton } from '@/components/tribune/reaction-button';
+import { DeepenPanel } from '@/components/tribune/deepen-panel';
 import { vocabulary } from '@/i18n/vocabulary';
 import {
   TranslationNotice,
@@ -165,6 +166,23 @@ export default async function TribunePostPage({
         </div>
       </header>
 
+      {/* APPROFONDISSEMENT (F-48) : la contribution de fond nomme le billet
+          qu'elle prolonge… */}
+      {post.parent ? (
+        <p className="mt-4 rounded-md border border-accent-edge bg-accent-tint px-4 py-3 text-sm text-ink">
+          {t('deepensLabel')}{' '}
+          <Link
+            href={`/tribune/${post.parent._id}`}
+            className="wrap-anywhere font-semibold text-accent-text hover:underline"
+          >
+            {post.parent.title}
+          </Link>{' '}
+          <span className="text-ink-soft">
+            {t('byAuthor', { name: post.parent.authorName })}
+          </span>
+        </p>
+      ) : null}
+
       <TranslationNotice
         display={display}
         readerLocale={loc}
@@ -179,6 +197,38 @@ export default async function TribunePostPage({
       >
         {shown.body}
       </div>
+
+      {/* …et le billet court liste les contributions qui le prolongent. */}
+      {post.deepenings.length > 0 ? (
+        <section
+          aria-labelledby="tr-deepenings"
+          className="mt-8 rounded-md border border-line bg-surface p-5"
+        >
+          <h2 id="tr-deepenings" className="font-display text-lg">
+            {t('deepeningsTitle', { count: post.deepenings.length })}
+          </h2>
+          <ul className="mt-3 flex flex-col gap-2">
+            {post.deepenings.map((d) => (
+              <li key={d._id}>
+                <Link
+                  href={`/tribune/${d._id}`}
+                  className="wrap-anywhere font-medium text-accent-text hover:underline"
+                >
+                  {d.title}
+                </Link>{' '}
+                <span className="font-mono text-[11px] text-muted">
+                  {t('byAuthor', { name: d.authorName })} ·{' '}
+                  {fmtDate(d.createdAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Approfondir / inviter / proposer à la bibliothèque (îlot client,
+          selon les droits que le serveur reconnaît au lecteur). */}
+      <DeepenPanel postId={post._id} title={post.title} theme={post.theme} />
 
       {/* Soutien (réaction « like ») */}
       <div className="mt-8 flex items-center">

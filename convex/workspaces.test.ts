@@ -88,7 +88,7 @@ describe('Espaces — création & gating (F-24)', () => {
     );
     expect(memberships).toHaveLength(1);
     expect(memberships[0].userId).toBe(owner.id);
-    expect(memberships[0].role).toBe('owner');
+    expect(memberships[0].role).toBe('animateur');
   });
 });
 

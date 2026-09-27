@@ -15,6 +15,28 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
+// notifications, signalements) : le mode A POSTERIORI y est réglé
+// explicitement, comme le ferait l'administrateur. La modération a priori —
+// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// (convex/communaute-moderation.test.ts).
+async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+  return t;
+}
+
 // Compteurs dénormalisés du back-office (issue #8).
 //
 // Ce qui est vérifié ici n'est pas « le tableau de bord affiche le bon
@@ -96,7 +118,7 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
   });
 
   it('retirer un billet de la Tribune décrémente le compteur des publiés', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const memberId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
     );

@@ -79,6 +79,12 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       // restent dans « Comité de lecture », réservé à l'éditeur. Rangée avec
       // la modération : c'est là que travaille un modérateur.
       { href: '/admin/mes-relectures', key: 'myReviews' },
+      // File unifiée de la tribune (chantier communauté, F-45/F-49) : billets
+      // et commentaires en attente, validés, rejetés, retirés, signalés, avec
+      // l'historique de chacun. Chemin distinct de `/admin/moderation-ia` —
+      // l'actif se décide par préfixe, et `/admin/moderation` l'aurait
+      // allumé (et en aurait abaissé le rang minimal).
+      { href: '/admin/file-moderation', key: 'fileModeration' },
       { href: '/admin/signalements', key: 'reports' },
       // Messages privés signalés (chantier « social ») : même rang que la file
       // de la Tribune, celui qu'exige `social.messages.listReports`.

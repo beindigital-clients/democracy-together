@@ -15,6 +15,28 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
+// notifications, signalements) : le mode A POSTERIORI y est réglé
+// explicitement, comme le ferait l'administrateur. La modération a priori —
+// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// (convex/communaute-moderation.test.ts).
+async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+  return t;
+}
+
 async function member(
   t: ReturnType<typeof convexTest>,
   email: string,
@@ -38,7 +60,7 @@ const POST = {
 
 describe('Tribune — écriture (F-44)', () => {
   it('réserve la prise de parole aux membres, valide les champs', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
 
     // anonyme refusé
     await expect(t.mutation(api.tribune.createPost, POST)).rejects.toThrow();
@@ -82,7 +104,7 @@ describe('Tribune — langue de rédaction (issue #35)', () => {
   // et non le préfixe d'URL visité, qui décide du canonical de la fiche. Elle
   // doit donc survivre à l'aller-retour écriture -> lecture.
   it('conserve la langue déclarée et la ressert au détail', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org', 'Awa Diop');
 
     // Rédigé en anglais — le cas que la langue de l'interface aurait deviné
@@ -98,7 +120,7 @@ describe('Tribune — langue de rédaction (issue #35)', () => {
   });
 
   it('refuse une langue hors du vocabulaire servi', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org');
 
     // Le cast exerce ce qu'un client non typé peut émettre : le validateur
@@ -114,7 +136,7 @@ describe('Tribune — langue de rédaction (issue #35)', () => {
   });
 
   it('un billet antérieur au champ reste lisible, sans langue déclarée', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const authorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'ancien@test.org' }),
     );
@@ -144,7 +166,7 @@ describe('Tribune — langue de rédaction (issue #35)', () => {
 
 describe('Tribune — fil & commentaires (F-47)', () => {
   it('liste par thème, commente (compteur + notif auteur)', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const author = await member(t, 'author@test.org', 'Auteur');
     const commenter = await member(t, 'c@test.org', 'Commentateur');
 
@@ -191,7 +213,7 @@ describe('Tribune — fil & commentaires (F-47)', () => {
 
 describe('Tribune — signalement & modération (F-50)', () => {
   it('signaler puis retirer masque le contenu ; gating modérateur', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const author = await member(t, 'author@test.org', 'Auteur');
     const id = await author.as.mutation(api.tribune.createPost, POST);
 
@@ -233,7 +255,7 @@ describe('Tribune — signalement & modération (F-50)', () => {
 // « La publication a échoué » générique mesuré avec 21 000 caractères.
 describe('Tribune — longueur calibrée par format (F-46, A-05)', () => {
   it('refuse une Brève de plus de 10 000 caractères, accepte l’Analyse équivalente', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org');
     const body = 'a'.repeat(TRIBUNE_BODY.court.max + 1);
 
@@ -251,7 +273,7 @@ describe('Tribune — longueur calibrée par format (F-46, A-05)', () => {
   });
 
   it('refuse une Analyse de plus de 20 000 caractères', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org');
     await expect(
       as.mutation(api.tribune.createPost, {
@@ -263,7 +285,7 @@ describe('Tribune — longueur calibrée par format (F-46, A-05)', () => {
   });
 
   it('accepte exactement la limite de chaque format', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org');
     for (const format of ['court', 'fond'] as const) {
       const id = await as.mutation(api.tribune.createPost, {
@@ -280,7 +302,7 @@ describe('Tribune — longueur calibrée par format (F-46, A-05)', () => {
 // silence — le formulaire ne recevait aucun code exploitable.
 describe('Tribune — commentaire refusé avec un code lisible (A-06)', () => {
   it('trop court et trop long portent INVALID_COMMENT dans `data`', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org');
     const postId = await as.mutation(api.tribune.createPost, POST);
     for (const body of ['a', 'b'.repeat(TRIBUNE_COMMENT.max + 1)]) {
@@ -301,7 +323,7 @@ describe('Tribune — commentaire refusé avec un code lisible (A-06)', () => {
 // les siens — publiés ET retirés — et seulement les siens.
 describe('Tribune — mes billets et leur statut (A-11)', () => {
   it('rend les billets de l’appelant avec leur statut, et rien aux autres', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const awa = await member(t, 'awa@test.org', 'Awa Diop');
     const bob = await member(t, 'bob@test.org', 'Bob');
     const kept = await awa.as.mutation(api.tribune.createPost, POST);
@@ -330,7 +352,7 @@ describe('Tribune — mes billets et leur statut (A-11)', () => {
   });
 
   it('un visiteur anonyme reçoit une liste vide, pas une erreur', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     expect(await t.query(api.tribune.myPosts, {})).toEqual([]);
   });
 });

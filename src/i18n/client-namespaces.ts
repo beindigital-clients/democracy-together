@@ -86,6 +86,9 @@ export const ADMIN_NAMESPACES = [
   'admin',
   // Tableau de bord d'audience de l'écran d'impact (F-66, chantier diffusion).
   'analytics',
+  // `moderationQueue` : la file de modération de la tribune (chantier
+  // communauté), écran du back-office seulement.
+  'moderationQueue',
 ] as const;
 
 /** Tous les espaces demandés par un composant client, où qu'il soit. */

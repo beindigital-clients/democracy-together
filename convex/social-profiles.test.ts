@@ -5,6 +5,26 @@ import schema from './schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 
+// La Tribune est modérée A PRIORI par défaut (chantier communauté, F-45) : un
+// billet créé attend une validation. Ces tests portent sur ce qui se passe
+// APRÈS publication ; ils posent donc le mode a posteriori, comme le réglage
+// que l'administrateur peut choisir.
+async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages-tribune@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+}
+
 const modules = import.meta.glob([
   './**/*.ts',
   './**/*.js',
@@ -479,6 +499,7 @@ describe('Préférences de notification', () => {
 
   it('branché sur les notifications EXISTANTES : un commentaire de Tribune coupé ne notifie plus', async () => {
     const t = convexTest(schema, modules);
+    await tribuneAPosteriori(t);
     const a = await person(t, 'a@test.org');
     const b = await person(t, 'b@test.org');
     await saveProfile(a.as, {

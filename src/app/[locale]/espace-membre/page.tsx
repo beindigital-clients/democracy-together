@@ -176,6 +176,13 @@ function MemberDashboard() {
         >
           {t('workspacesLink')} <ArrowForward />
         </Link>
+        {/* État de ses contributions à la tribune (F-45). */}
+        <Link
+          href="/espace-membre/contributions"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {t('contributionsLink')} <ArrowForward />
+        </Link>
         {/* L'e-mail d'invitation promet « vous pourrez en définir un depuis
             votre espace membre » : c'est ici (R-05). */}
         <Link
