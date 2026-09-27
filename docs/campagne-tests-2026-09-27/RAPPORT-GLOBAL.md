@@ -32,10 +32,10 @@ tombait à l'ouverture des sessions (§ 4, C-01).
 
 | Niveau | Commande | Résultat |
 |---|---|---|
-| Unitaire (Vitest + convex-test) | `pnpm test` | **112 fichiers, 1 095 tests verts** (1 084 au départ ; 11 tests ajoutés par les correctifs) |
+| Unitaire (Vitest + convex-test) | `pnpm test` | **116 fichiers, 1 159 tests verts** (1 084 au départ ; 75 tests ajoutés par les trois lots de correctifs) |
 | Typage | `pnpm typecheck`, `typecheck:convex`, `typecheck:tests` | verts |
 | Qualité | `pnpm lint`, `pnpm format:check` | verts (aucune règle en `warn`) |
-| E2E desktop + mobile | `pnpm test:e2e` (projets `setup`, `chromium`, `mobile-chromium`) | **239 parcours verts** sur 59 fichiers de spec, avant correctifs ; rejoués sur le build final (§ 6) |
+| E2E desktop + mobile | `pnpm test:e2e` (projets `setup`, `chromium`, `mobile-chromium`) | **239 parcours verts** sur 59 fichiers de spec, avant correctifs ; **249 / 249** sur le build final du troisième lot (§ 6 et § 9.5) |
 | Dev-browser | `pnpm test:dev-browser` | 48 captures (2 thèmes × 2 tailles × 10 pages, avec reprises) ; **4 échecs** sur `/bibliotheque` (deux landmarks `main`, § 4 C-02), corrigés puis rejoués (§ 6) |
 | CI GitHub (PR #117) | `ci.yml` + `e2e.yml` (préversion Convex) + CodeQL | vertes sur chaque commit poussé |
 
@@ -180,7 +180,8 @@ ponctuel.
   non traduit dans l'espace membre (« Role membre » en EN, `auth` A-7).
 - **R-15** — Contrastes en sombre restant sous 4,5:1 hors correctifs C-15 et
   C-26 : `text-muted` sur `bg-accent-tint` (3,93) et la palette safran
-  connue en clair (1,8–2,2, règle `color-contrast` différée par le dépôt)
+  connue en clair (1,8–2,2 ; règle `color-contrast` différée par le dépôt
+  jusqu'au lot 3, C-48 et C-58)
   (`transversal` A-11).
 - **R-16** — `/studio` : page blanche et spinner infini quand Sanity est
   injoignable (`transversal` A-13) ; liste d'actualités en panne affichant le
@@ -290,6 +291,8 @@ puis fusion, portes, reconstruction et rejeu complet (§ 9.5).
 | C-39 | **R-11** — notes d'un espace lisibles par tout membre réseau ; participants tous nommés « Membre » ; « Annuler » qui garde le brouillon | notes réservées aux membres de l'espace (« Rejoignez l'espace pour lire les notes »), nom du compte ou partie locale de l'adresse, brouillon vidé. Tests |
 | C-40 | **R-12** — dialogue `beforeunload` anglais | `unsavedChangesWarning: false` sur le client Convex (documenté) |
 | C-41 | **R-09** — candidatures d'adhésion en double ; jeton de désinscription inconnu qui confirme | seconde candidature en attente refusée (`DUPLICATE_APPLICATION`, message dans le formulaire) ; `unsubscribe` rend `{ ok, found }` et la page dit « lien invalide ou expiré ». Tests, spec adaptée |
+| C-57 | **R-05 (suite)** — l'écran de mot de passe DÉCONNECTAIT le membre au moment de demander son code (spec `auth-mot-de-passe` rouge) | cause : quand l'étape n'ouvre pas de session (`signUp` avec vérification, `reset`, code faux), `auth:signIn` répond `{ tokens: null }` et le client Next.js de Convex Auth efface les cookies. La demande de code et la vérification passent désormais par l'action Convex appelée directement (sans effet sur les cookies), puis l'écran se reconnecte AVEC le mot de passe posé — preuve qu'il fonctionne, et seule session survivante en mode `reset`. Spec verte |
+| C-59 | harnais E2E : une session enregistrée d'un run précédent était jugée « utilisable » alors que son jeton de rafraîchissement était périmé ; la première spec à s'en servir se réveillait sur `/connexion` (admin-ecrans, session modérateur, 1 échec sur 249 au rejeu) | `auth.setup.ts` attend la réponse de l'échange de jeton (`POST /api/auth`) : nulle, l'état est mort et la connexion est refaite ; sinon l'état est réenregistré avec le jeton actif. Mécanisme consigné (Convex Auth n'accepte un jeton déjà échangé que tant qu'il est le parent du jeton actif) |
 
 ### 9.3 Vitrine, annuaire, bibliothèque, 404 (P3)
 
@@ -303,6 +306,7 @@ puis fusion, portes, reconstruction et rejeu complet (§ 9.5).
 | C-47 | replays sans filtres | filtres type / thème / langue, conservés dans l'URL |
 | C-48 | **R-15** — texte clair sur safran (1,8–2,2:1, 32 nœuds sur `/`, `/jeunes`, `/a-propos`) ; `text-muted` sur teinte d'accent ; teintes 2 et 4 du baromètre en texte de 11 px | texte **encre** sur safran (`--accent-contrast: var(--ink)` dans l'univers jeunes, ajustement validé par le client le 24/09, le safran ne bouge pas) ; variantes texte `--bar-2-ink` / `--bar-4-ink` (≥ 4,7:1) ; `text-ink-soft` |
 | C-49 | cosmétique : bouton du contact < 44 px en mobile, textes de 10–10,5 px, globe sans légende sans JavaScript, globe de l'accueil sans équivalent textuel, `/icon.png` de 95 Ko sur les pages de contenu, `/le-reseau/%00` en 200 | 44 px, ≥ 11 px partout, légende `<noscript>`, texte `sr-only`, icône ramenée à 6 Ko, slug vide → 404 |
+| C-58 | règle `color-contrast` différée par le dépôt depuis la refonte de la palette | réintégrée au gate `a11y` (`DEFERRED_RULES` vide, motif consigné dans `tests/e2e/_a11y.ts`), et le spec balaie aussi le **thème sombre** sur sept pages (accueil, jeunes, baromètre, réseau, tribune, rapport, adhésion) : 0 violation, clair et sombre, desktop et mobile. Sous-titre de l'annuaire mis à jour (cinq langues) pour annoncer les quatre facettes |
 
 ### 9.4 Tribune, événements, jeunes, projets, mentorat (P4)
 
@@ -318,7 +322,30 @@ puis fusion, portes, reconstruction et rejeu complet (§ 9.5).
 
 ### 9.5 Vérification du troisième lot
 
-_RÉSULTATS_LOT3_
+Après fusion des quatre chantiers, reconstruction de l'application (`.next`
+vidé, fonctions Convex repoussées sur le backend local) et rejeu complet.
+
+| Vérification | Résultat |
+|---|---|
+| Portes statiques | `pnpm test` **116 fichiers / 1 159 tests verts** (+62 depuis le second lot) ; typage, lint, format verts |
+| `pnpm test:e2e` (build final) | **249 / 249 verts** (57 fichiers de spec, desktop et mobile, 4 min) — au premier rejeu 248 / 249, le seul échec étant C-59, corrigé puis rejoué intégralement |
+| `pnpm test:dev-browser` | **52 / 52** |
+| Mesure de contraste (script `contraste2`, calcul WCAG sur les nœuds rendus) | **0 nœud sous 4,5:1** sur `/fr`, `/fr/jeunes`, `/fr/a-propos`, `/fr/evenements` — le texte sur safran vaut désormais 13,8:1 (`--accent-contrast` = encre) |
+| Gate axe `color-contrast` réintégré (C-58) | 0 violation grave sur les 22 pages du spec `a11y` en clair, et sur 7 pages en **thème sombre**, desktop et mobile |
+| Script de contre-vérification (`verif-lot3`, 4 scénarios, captures et vidéos) | **17 / 17** : 404 dans la langue du visiteur pour `/fr/…`, `/ar/…`, `/xx`, `/de/…`, `/en/library` (en-tête et pied présents) ; « Kenya » trouve le membre de Nairobi ; facettes pays et langue rendues ; replays filtrés ; « Mes relectures » ouvert au modérateur et `/admin/revue` toujours refusé ; lien et écran de mot de passe depuis l'espace membre ; aucun débordement mobile sur réseau, tribune, admin, événements, bibliothèque en arabe |
+
+Deux faux négatifs du premier passage, consignés : le script comparait la
+langue de la 404 à `fr` alors qu'un chemin sans préfixe (`/xx`) suit la
+langue déjà choisie par le visiteur (cookie posé par la visite précédente de
+`/ar/xyz`) — c'est le comportement voulu (R-04, arbitrage du 23/09), le script
+efface maintenant les cookies avant chaque essai ; et la présence des facettes
+était cherchée en casse mixte dans un `innerText` qui rend les légendes en
+capitales (CSS `uppercase`). Deux vrais défauts, eux, ont été trouvés par le rejeu et corrigés : l'écran
+de mot de passe déconnectait le membre en demandant son code (C-57, spec
+`auth-mot-de-passe`), et le harnais reprenait une session enregistrée dont le
+jeton était périmé (C-59, un échec sur 249 au premier rejeu, la trace
+Playwright montrant l'échange de jeton répondre `tokens: null`).
+
 
 ## 10. Ce qui manque pour un réseau social 100 % fonctionnel et déployable
 
