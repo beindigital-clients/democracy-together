@@ -10,6 +10,7 @@ import { isStaff, isMember } from '@/lib/roles';
 import { formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowForward } from '@/components/ui/arrow';
+import { ProgrammeMemberLinks } from '@/components/programmes/member-links';
 const STATUS_BADGE: Record<string, string> = {
   published:
     'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
@@ -184,6 +185,8 @@ function MemberDashboard() {
           {t('passwordLink')} <ArrowForward />
         </Link>
       </div>
+
+      <ProgrammeMemberLinks member={member} />
 
       {member ? <MyContributions /> : <BecomeMember />}
     </div>

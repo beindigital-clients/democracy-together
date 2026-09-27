@@ -101,6 +101,9 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     items: [
       { href: '/admin/revue', key: 'review' },
       { href: '/admin/newsletter', key: 'newsletter' },
+      // Boîte à outils et parcours (F-56, F-57) : contenu éditorial, donc
+      // rang éditeur — celui de `toolbox.saveResource` et `savePath`.
+      { href: '/admin/boite-a-outils', key: 'toolbox' },
     ],
   },
   // L'automatisation est un groupe à part, et réservé à l'administrateur.

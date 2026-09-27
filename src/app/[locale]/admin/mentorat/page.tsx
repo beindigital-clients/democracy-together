@@ -14,6 +14,7 @@ import {
 } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
+import { ProgrammeAdminLink } from '@/components/programmes/admin-links';
 
 export default function AdminMentorship() {
   const t = useTranslations('admin');
@@ -85,7 +86,10 @@ export default function AdminMentorship() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl">{t('mTitle')}</h1>
+        <div>
+          <h1 className="font-display text-3xl">{t('mTitle')}</h1>
+          <ProgrammeAdminLink kind="mentoring" />
+        </div>
         <div className="flex gap-1 rounded-md border border-line p-0.5">
           <button
             type="button"

@@ -50,6 +50,9 @@ export const BASE_CLIENT_NAMESPACES = [
   'projects',
   'reminder',
   'search',
+  // Chantier « programmes » (F-56 à F-60) : boîte à outils et parcours, profil
+  // Jeunes — îlots client des pages publiques et de l'espace membre.
+  'toolbox',
   // `translation` : le bandeau de traduction est un composant SERVEUR, mais il
   // monte `TranslateButton` — un bouton qui appelle une action Convex, donc
   // nécessairement client. C'est le seul morceau de ce dispositif qui traverse
@@ -57,6 +60,7 @@ export const BASE_CLIENT_NAMESPACES = [
   'translation',
   'tribune',
   'workspaces',
+  'youth',
   'youthApply',
 ] as const;
 

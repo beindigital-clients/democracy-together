@@ -9,6 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getYouthContent } from '@/lib/youth-content';
 import { YouthApplyForm } from '@/components/youth/youth-apply-form';
 import { MentorshipForm } from '@/components/youth/mentorship-form';
+import { YouthAccountHint } from '@/components/youth/account-hint';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -326,6 +327,7 @@ export default async function JeunesPage({
               {tm('sectionLead')}
             </p>
             <div className="mt-7">
+              <YouthAccountHint kind="mentoring" />
               <MentorshipForm />
             </div>
           </Reveal>
@@ -375,6 +377,7 @@ export default async function JeunesPage({
               {ty('sectionLead')}
             </p>
             <div className="mt-7">
+              <YouthAccountHint kind="youth" />
               <YouthApplyForm />
             </div>
           </Reveal>

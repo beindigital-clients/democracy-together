@@ -15,4 +15,15 @@ crons.cron(
   {},
 );
 
+// F-59 — Mentorat : chaque jour à 06:30 UTC, alerte le coordinateur des
+// binômes actifs sans séance journalisée depuis quatre semaines
+// (INACTIVITY_WEEKS, convex/lib/programmes.ts). Une alerte par période
+// d'inactivité, pas une par nuit.
+crons.cron(
+  'mentoring-inactivity',
+  '30 6 * * *',
+  internal.mentoring.checkInactivity,
+  {},
+);
+
 export default crons;

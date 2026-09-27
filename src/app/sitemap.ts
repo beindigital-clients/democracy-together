@@ -53,6 +53,8 @@ const STATIC_PATHS = [
   'jeunes',
   'adhesion',
   'appels-a-projets',
+  'boite-a-outils',
+  'parcours',
   'actualites',
   'contact',
   'partenaires',
@@ -97,6 +99,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch {
     /* Convex injoignable : on garde les pages statiques. */
+  }
+
+  // Appels à projets publiés et parcours d'apprentissage (F-60, F-57).
+  try {
+    const calls = await fetchQuery(api.projectCalls.listPublicCalls, {});
+    for (const c of calls)
+      entries.push(...localized(`appels-a-projets/${c.slug}`));
+    const paths = await fetchQuery(api.toolbox.listPaths, {});
+    for (const p of paths) entries.push(...localized(`parcours/${p.slug}`));
+  } catch {
+    /* idem */
   }
 
   // Fiches membres actives (Convex).

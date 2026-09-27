@@ -35,6 +35,16 @@ export const AUDIT = {
   // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
   AI_MODERATION_CONFIGURED: 'aiModeration.configured',
   AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
+  // Chantier « programmes » (F-56 à F-60) : chaque décision de coordination,
+  // de sélection ou d'édition laisse sa ligne, sous une action qui la nomme.
+  YOUTH_PROGRAM_REVIEWED: 'youth.program_reviewed',
+  MENTORING_PAIR_PROPOSED: 'mentoring.pair_proposed',
+  MENTORING_PAIR_STATUS: 'mentoring.pair_status',
+  PROJECT_CALL_SAVED: 'projectCall.saved',
+  PROJECT_CALL_EVALUATORS: 'projectCall.evaluators',
+  PROJECT_CALL_DECIDED: 'projectCall.decided',
+  TOOLBOX_RESOURCE_SAVED: 'toolbox.resource_saved',
+  TOOLBOX_PATH_SAVED: 'toolbox.path_saved',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];
