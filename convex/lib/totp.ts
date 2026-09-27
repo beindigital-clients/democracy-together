@@ -204,22 +204,39 @@ const BACKUP_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 10;
 
-/** Génère les codes de secours à partir d'octets aléatoires fournis. */
+/**
+ * Génère les codes de secours à partir d'octets aléatoires fournis.
+ *
+ * TIRAGE SANS BIAIS (alerte CodeQL du 27/09) : un octet vaut 0 à 255, et 256
+ * n'est pas multiple de 31 — un simple `% 31` favorise les neuf premiers
+ * symboles. On REJETTE donc les octets ≥ 248 (plus grand multiple de 31
+ * sous 256) : chaque octet retenu donne un symbole uniforme. Il faut par
+ * conséquent plus d'octets que de symboles ; `BACKUP_RANDOM_BYTES` en fournit
+ * le double, et l'épuisement (probabilité négligeable) lève une erreur plutôt
+ * que de produire un code plus court.
+ */
 export function backupCodesFromBytes(random: Uint8Array): string[] {
-  const needed = BACKUP_CODE_COUNT * BACKUP_CODE_LENGTH;
-  if (random.length < needed) throw new Error('NOT_ENOUGH_RANDOMNESS');
+  const alphabetSize = BACKUP_ALPHABET.length;
+  const limit = 256 - (256 % alphabetSize);
+  let cursor = 0;
+  const nextSymbol = (): string => {
+    while (cursor < random.length) {
+      const byte = random[cursor++];
+      if (byte < limit) return BACKUP_ALPHABET[byte % alphabetSize];
+    }
+    throw new Error('NOT_ENOUGH_RANDOMNESS');
+  };
   const codes: string[] = [];
   for (let c = 0; c < BACKUP_CODE_COUNT; c++) {
     let code = '';
-    for (let i = 0; i < BACKUP_CODE_LENGTH; i++) {
-      // 256 n'est pas multiple de 31 : le biais (< 1 %) est négligeable pour
-      // un code à usage unique limité en débit.
-      code += BACKUP_ALPHABET[random[c * BACKUP_CODE_LENGTH + i] % 31];
-    }
+    for (let i = 0; i < BACKUP_CODE_LENGTH; i++) code += nextSymbol();
     codes.push(`${code.slice(0, 5)}-${code.slice(5)}`);
   }
   return codes;
 }
+
+/** Octets aléatoires à fournir : le double des symboles, pour le rejet. */
+export const BACKUP_RANDOM_BYTES = BACKUP_CODE_COUNT * BACKUP_CODE_LENGTH * 2;
 
 /** Forme canonique d'un code de secours saisi, ou `null`. */
 export function normalizeBackupCode(input: string): string | null {

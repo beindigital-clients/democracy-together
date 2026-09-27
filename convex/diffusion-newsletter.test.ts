@@ -391,10 +391,14 @@ describe('Migration des abonnés hérités', () => {
     expect(sub.status).toBe('pending');
     expect(sub.consent).toMatchObject({ at: 12345, source: 'legacy' });
     expect(sub.confirmExpiresAt! - Date.now()).toBeGreaterThan(29 * 86_400_000);
-    expect(sent).toHaveLength(1);
+    // On ne compte que les envois à CET abonné : `fetch` est un stub global,
+    // et un envoi planifié par un test précédent qui finit en retard (vu en CI
+    // le 27/09, machine plus lente) atterrit dans la même capture.
+    const mine = sent.filter((m) => m.to.includes('ancien@dt.test'));
+    expect(mine).toHaveLength(1);
     // Le courriel dit POURQUOI on écrit, dans la langue de l'abonné.
-    expect(sent[0].html).toContain('/es/newsletter/confirmation');
-    expect(sent[0].html).toContain('30');
+    expect(mine[0].html).toContain('/es/newsletter/confirmation');
+    expect(mine[0].html).toContain('30');
   });
 });
 

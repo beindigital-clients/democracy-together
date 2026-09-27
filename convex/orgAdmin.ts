@@ -517,7 +517,10 @@ export const discardFile = internalMutation({
 export const attachLogo = action({
   args: { orgId: v.id('organizations'), fileId: v.id('_storage') },
   returns: v.union(
-    v.object({ ok: v.literal(true) }),
+    // `url` : adresse signée du stockage, pour l'aperçu. L'aperçu se lit
+    // ainsi depuis le serveur, pas depuis le fichier local (alerte CodeQL
+    // « DOM text reinterpreted as HTML » du 27/09 sur `createObjectURL`).
+    v.object({ ok: v.literal(true), url: v.union(v.string(), v.null()) }),
     v.object({
       ok: v.literal(false),
       reason: v.union(
@@ -531,7 +534,7 @@ export const attachLogo = action({
     ctx,
     { orgId, fileId },
   ): Promise<
-    | { ok: true }
+    | { ok: true; url: string | null }
     | { ok: false; reason: 'LOGO_TOO_LARGE' | 'LOGO_TYPE' | 'LOGO_MISSING' }
   > => {
     await ctx.runQuery(internal.orgAdmin.assertOwnerForAction, { orgId });
@@ -552,7 +555,7 @@ export const attachLogo = action({
       fileId,
       contentType: type,
     });
-    return { ok: true };
+    return { ok: true, url: await ctx.storage.getUrl(fileId) };
   },
 });
 

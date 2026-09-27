@@ -22,13 +22,13 @@ import { normalizeEmail } from './lib/onboarding';
 import {
   TOTP_SECRET_BYTES,
   backupCodesFromBytes,
+  BACKUP_RANDOM_BYTES,
   base32Encode,
   matchTotpStep,
   normalizeBackupCode,
   normalizeTotpCode,
   otpauthUri,
   sha256Hex,
-  BACKUP_CODE_COUNT,
 } from './lib/totp';
 import { openSecret, sealSecret, secretKeyStatus } from './lib/secretBox';
 
@@ -340,7 +340,7 @@ async function freshBackupCodes(): Promise<{
   hashes: string[];
 }> {
   const codes = backupCodesFromBytes(
-    crypto.getRandomValues(new Uint8Array(BACKUP_CODE_COUNT * 10)),
+    crypto.getRandomValues(new Uint8Array(BACKUP_RANDOM_BYTES)),
   );
   const hashes = await Promise.all(
     codes.map(async (c) => sha256Hex(normalizeBackupCode(c) ?? c)),

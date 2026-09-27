@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   backupCodesFromBytes,
+  BACKUP_RANDOM_BYTES,
   base32Decode,
   base32Encode,
   hotp,
@@ -105,7 +106,7 @@ describe('Base32 et URI d’inscription', () => {
 describe('Codes de secours', () => {
   it('en produit dix, lisibles et normalisables', () => {
     const codes = backupCodesFromBytes(
-      crypto.getRandomValues(new Uint8Array(100)),
+      crypto.getRandomValues(new Uint8Array(BACKUP_RANDOM_BYTES)),
     );
     expect(codes).toHaveLength(BACKUP_CODE_COUNT);
     for (const c of codes) {
@@ -113,6 +114,20 @@ describe('Codes de secours', () => {
       expect(normalizeBackupCode(c.toLowerCase())).toBe(c.replace('-', ''));
     }
     expect(normalizeBackupCode('0OIL1-00000')).toBe(null);
+  });
+
+  it('rejette les octets qui biaiseraient le tirage, et refuse de manquer d’aléa', () => {
+    // 248 à 255 sont rejetés : un flux qui n'en contient que très peu
+    // d'utilisables ne produit PAS de code tronqué, il échoue.
+    const biased = new Uint8Array(200).fill(250);
+    expect(() => backupCodesFromBytes(biased)).toThrow('NOT_ENOUGH_RANDOMNESS');
+    // Un octet rejeté ne décale pas le tirage vers un symbole favori : 250
+    // puis 0 donne le même premier symbole que 0 seul.
+    const bytes = new Uint8Array(100).fill(0);
+    const withReject = new Uint8Array([250, ...bytes]);
+    expect(backupCodesFromBytes(withReject)).toEqual(
+      backupCodesFromBytes(bytes),
+    );
   });
 });
 

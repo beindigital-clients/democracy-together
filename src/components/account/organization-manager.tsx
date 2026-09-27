@@ -102,7 +102,7 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
   const [showMembers, setShowMembers] = useState(base.showMembers);
   const [logo, setLogo] = useState<{
     fileId: Id<'_storage'>;
-    preview: string;
+    preview?: string;
   } | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -139,7 +139,7 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
         setError(errorText(check.reason));
         return;
       }
-      setLogo({ fileId: storageId, preview: URL.createObjectURL(file) });
+      setLogo({ fileId: storageId, preview: check.url ?? undefined });
       setRemoveLogo(false);
     } catch (err) {
       setError(errorText(err));

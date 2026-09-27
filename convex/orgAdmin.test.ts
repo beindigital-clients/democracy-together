@@ -208,7 +208,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
     const fileId = await t.run((ctx) => ctx.storage.store(new Blob([png])));
     expect(
       await owner.as.action(api.orgAdmin.attachLogo, { orgId: orgA, fileId }),
-    ).toEqual({ ok: true });
+    ).toMatchObject({ ok: true });
     await owner.as.mutation(api.orgAdmin.submitRevision, {
       orgId: orgA,
       fields: FIELDS,

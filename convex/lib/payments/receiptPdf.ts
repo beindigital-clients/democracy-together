@@ -1,25 +1,45 @@
+'use node';
+
+import PDFDocument from 'pdfkit';
+import { loadFonts, type FontKey } from '../reportPdf/fonts';
 import {
-  PDFDocument,
-  StandardFonts,
-  rgb,
-  type PDFFont,
-  type PDFPage,
-} from 'pdf-lib';
+  breakLines,
+  logicalText,
+  placeLine,
+  tokenize,
+  type Measure,
+  type Placed,
+  type Token,
+} from '../reportPdf/layout';
+import {
+  featuresFor,
+  RTL_TEXT,
+  visualOrderLigatures,
+} from '../reportPdf/render';
 import { formatAmountFr, type Currency } from './amounts';
 import type { AssociationInfo } from './config';
 
-// REÇU PDF (F-29) — généré côté serveur, en JavaScript pur (pdf-lib : aucune
-// dépendance native, s'exécute dans le runtime Convex par défaut).
+// REÇU PDF (F-29) — composé côté serveur par pdfkit + fontkit, dans une
+// action Convex Node (convex/payments/receiptsNode.ts).
 //
 // EN FRANÇAIS, quelle que soit la langue du payeur : c'est une pièce
 // comptable de l'association, qui tient sa comptabilité en français. Le
 // courriel qui l'accompagne, lui, est dans la langue du payeur.
 //
-// POLICES STANDARD (Helvetica) : rien à embarquer, un reçu de quelques Ko. Leur
-// encodage (WinAnsi) couvre le français — accents, « € », guillemets — mais pas
-// l'arabe ni l'espace fine insécable. Tout texte venu de l'extérieur (nom du
-// payeur) passe donc par `winAnsiSafe` : un caractère non représentable
-// devient « ? » plutôt que de faire échouer la génération du reçu.
+// MAIS LE NOM DU PAYEUR EST LE SIEN. Jusqu'au 27/09, le reçu employait les
+// polices standard du PDF (Helvetica, encodage WinAnsi) : « عائشة ديوب » ou
+// « Nguyễn Thị Ánh » s'imprimaient « ???? ». Le choix de la technique qui
+// lève cette limite est MESURÉ (docs/backlog/paiements.md § 7) :
+//  - pdf-lib + @pdf-lib/fontkit embarque bien la police, mais n'applique pas
+//    la mise en forme contextuelle arabe (chaque lettre sort en forme isolée)
+//    et retourne toute la chaîne (« بويد ةشئاع ») ;
+//  - pdfkit + fontkit, avec la mise en ligne bidirectionnelle et les
+//    corrections du PDF des rapports annuels (convex/lib/reportPdf), sort les
+//    lettres liées et un texte extrait dans l'ordre de lecture. Retenu : même
+//    code, mêmes polices embarquées (aucune seconde copie), mêmes tests.
+// La contrepartie est le runtime Node (pdfkit s'appuie sur les flux et zlib de
+// Node) : seule la COMPOSITION du PDF y va, le numéro du reçu reste attribué
+// dans la transaction du paiement (convex/lib/payments/ledger.ts).
 
 export type ReceiptData = {
   number: string;
@@ -38,26 +58,6 @@ export type ReceiptData = {
   issuedAt: number;
 };
 
-// Caractères hors WinAnsi (CP1252) remplacés. Le tableau couvre les
-// substitutions typographiques courantes avant le repli « ? ».
-const WINANSI_EXTRA = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'.split(''));
-
-export function winAnsiSafe(text: string): string {
-  return text
-    .replace(/[\u202F\u2009\u2007]/g, ' ')
-    .replace(/[\u2010\u2011]/g, '-')
-    .replace(/ᵉʳ/g, 'er')
-    .split('')
-    .map((ch) => {
-      const code = ch.charCodeAt(0);
-      if (code >= 0x20 && code <= 0x7e) return ch;
-      if (code >= 0xa0 && code <= 0xff) return ch;
-      if (WINANSI_EXTRA.has(ch)) return ch;
-      return '?';
-    })
-    .join('');
-}
-
 const DATE_FR = new Intl.DateTimeFormat('fr-FR', {
   day: '2-digit',
   month: '2-digit',
@@ -75,97 +75,264 @@ const PROVIDER_LABEL: Record<string, string> = {
   fake: 'Paiement simulé (environnement de test : sans valeur comptable)',
 };
 
-// Découpe un texte en lignes qui tiennent dans `width`.
-function wrap(
-  text: string,
-  font: PDFFont,
-  size: number,
-  width: number,
-): string[] {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let line = '';
-  for (const w of words) {
-    const next = line ? `${line} ${w}` : w;
-    if (font.widthOfTextAtSize(next, size) > width && line) {
-      lines.push(line);
-      line = w;
-    } else {
-      line = next;
-    }
+// Jetons du site (src/app/globals.css, thème clair), ceux du PDF des rapports.
+const COLOR = { ink: '#16191f', muted: '#646771', accent: '#1f3d6e' };
+
+const PAGE = { width: 595.28, height: 841.89 }; // A4, en points
+
+type Weight = 'regular' | 'bold';
+
+// IBM Plex Sans compose le latin, le grec, le cyrillique et le vietnamien ;
+// un mot arabe (ou persan, ourdou) bascule sur IBM Plex Sans Arabic.
+const FONTS: Record<Weight, { latin: FontKey; arabic: FontKey }> = {
+  regular: { latin: 'body', arabic: 'arabic' },
+  bold: { latin: 'bodyBold', arabic: 'arabicBold' },
+};
+
+type Glyphs = { hasGlyphForCodePoint(codePoint: number): boolean };
+
+// Couverture d'une police, lue sur l'objet fontkit que pdfkit garde en
+// `_font.font` (champ interne : le test « 李 → ? » de receiptPdf.test.ts
+// échoue si une version de pdfkit le déplace). Sans elle, un caractère
+// qu'aucune police n'a serait dessiné par le glyphe vide `.notdef` — un blanc
+// muet au lieu du « ? » qui signale la perte.
+function glyphsOf(doc: PDFKit.PDFDocument, key: FontKey): Glyphs | null {
+  doc.font(key);
+  const font = (doc as unknown as { _font?: { font?: Partial<Glyphs> } })._font
+    ?.font;
+  return typeof font?.hasGlyphForCodePoint === 'function'
+    ? (font as Glyphs)
+    : null;
+}
+
+const INVISIBLE = /[\p{Cc}\p{Cf}]/u;
+
+// Réunit les mots d'une même course droite-à-gauche en UN morceau, posé d'un
+// bloc. `placeLine` les rend mot par mot, dessinés de droite à gauche : pdf.js
+// (le lecteur de Firefox) n'insère alors aucune espace entre eux, et
+// « عائشة ديوب » se relisait « عائشةديوب » (mesuré). Une course qui ne
+// contient QUE des mots arabes et leur ponctuation — les chiffres et le latin
+// forment leurs propres courses — peut être confiée entière à fontkit, dont
+// le retournement de la chaîne est alors exactement l'ordre visuel ; les
+// espaces sont dessinées, et l'extracteur les retrouve. Les signes appariés
+// ont déjà été mis en miroir par `placeLine`.
+function mergeRtl(placed: Placed[], measure: Measure): Placed[] {
+  const out: Placed[] = [];
+  for (const piece of placed) {
+    const last = out[out.length - 1];
+    // Dans une course, le mot logiquement suivant est posé À GAUCHE du
+    // précédent, séparé de rien (ponctuation collée) ou d'une espace.
+    const gap = last ? last.x - (piece.x + piece.width) : -1;
+    if (last?.dir === 'rtl' && piece.dir === 'rtl' && gap > -0.01) {
+      const text = `${last.text}${gap > 0.01 ? ' ' : ''}${piece.text}`;
+      const width = measure(text);
+      out[out.length - 1] = {
+        text,
+        dir: 'rtl',
+        // Ancré sur le bord DROIT de la course, là où la lecture commence.
+        x: last.x + last.width - width,
+        width,
+      };
+    } else out.push(piece);
   }
-  if (line) lines.push(line);
-  return lines;
+  return out;
 }
 
 export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create();
-  pdf.setTitle(winAnsiSafe(`Reçu ${data.number}`));
-  pdf.setAuthor(winAnsiSafe(data.association.name));
-  pdf.setCreationDate(new Date(data.issuedAt));
-  pdf.setModificationDate(new Date(data.issuedAt));
-  const page: PDFPage = pdf.addPage([595.28, 841.89]); // A4
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const ink = rgb(0.086, 0.098, 0.122);
-  const muted = rgb(0.39, 0.4, 0.44);
-  const accent = rgb(0.122, 0.239, 0.431);
+  const fonts = loadFonts();
+  const a = data.association;
+  const doc = new PDFDocument({
+    size: [PAGE.width, PAGE.height],
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    pdfVersion: '1.7',
+    // Accessibilité, comme les rapports : PDF balisé, langue du document,
+    // titre affiché à la place du nom de fichier.
+    tagged: true,
+    lang: 'fr',
+    displayTitle: true,
+    // Police par défaut = une police EMBARQUÉE : sans cela pdfkit charge
+    // Helvetica depuis ses fichiers AFM, absents d'un bundle d'action.
+    font: fonts.body as unknown as string,
+    info: {
+      Title: `Reçu ${data.number}`,
+      Author: a.name,
+      Creator: a.name,
+      CreationDate: new Date(data.issuedAt),
+      ModDate: new Date(data.issuedAt),
+    },
+  });
+  for (const key of ['body', 'bodyBold', 'arabic', 'arabicBold'] as const) {
+    doc.registerFont(key, fonts[key]);
+  }
+
+  const chunks: Buffer[] = [];
+  doc.on('data', (c: Buffer) => chunks.push(c));
+  const done = new Promise<void>((resolve, reject) => {
+    doc.on('end', () => resolve());
+    doc.on('error', reject);
+  });
+
+  const glyphs = Object.fromEntries(
+    (['body', 'bodyBold', 'arabic', 'arabicBold'] as const).map((k) => [
+      k,
+      glyphsOf(doc, k),
+    ]),
+  ) as Record<FontKey, Glyphs | null>;
+  const has = (key: FontKey, ch: string) =>
+    glyphs[key]?.hasGlyphForCodePoint(ch.codePointAt(0)!) ?? true;
+
+  // Texte venu de l'extérieur (nom, adresse, e-mail, informations légales
+  // configurées) : forme composée (NFC — un « ễ » saisi en lettre + deux
+  // accents combinants a son glyphe précomposé dans Plex Sans), caractères
+  // de contrôle et marques bidirectionnelles invisibles retirés (le placement
+  // est fait par `layout`), et « ? » pour ce qu'aucune police embarquée ne
+  // porte (idéogrammes, devanagari… : limite écrite dans paiements.md § 7).
+  const printable = (text: string) =>
+    [...text.normalize('NFC').replace(/ᵉʳ/g, 'er')]
+      .map((ch) => {
+        if (/\s/u.test(ch)) return ' ';
+        if (has('body', ch) || has('arabic', ch)) return ch;
+        return INVISIBLE.test(ch) ? '' : '?';
+      })
+      .join('');
+
+  // Police d'un morceau de ligne (déjà mis dans l'ordre visuel par
+  // `placeLine`), et son texte ramené aux glyphes de cette police — un mot
+  // qui colle deux écritures sans espace ne peut pas en porter deux.
+  const shape = (weight: Weight, text: string) => {
+    const { latin, arabic } = FONTS[weight];
+    const chars = [...text];
+    const key = RTL_TEXT.test(text)
+      ? arabic
+      : chars.every((ch) => has(latin, ch)) ||
+          !chars.every((ch) => has(arabic, ch))
+        ? latin
+        : arabic;
+    return {
+      key,
+      text: chars.map((ch) => (has(key, ch) ? ch : '?')).join(''),
+    };
+  };
+  const measureWith = (weight: Weight, size: number) => (text: string) => {
+    const s = shape(weight, text);
+    return doc
+      .font(s.key)
+      .fontSize(size)
+      .widthOfString(s.text, { features: featuresFor(s.text) });
+  };
+
+  const root = doc.struct('Document');
+  doc.addStructure(root);
+
   const left = 56;
-  const width = 595.28 - left * 2;
+  const width = PAGE.width - left * 2;
+  // Ordonnée de la LIGNE DE BASE, comptée depuis le BAS de la page : la
+  // géométrie du reçu pdf-lib d'origine, reprise telle quelle.
   let y = 790;
+
+  type Style = { weight?: Weight; size?: number; color?: string };
+
+  // Pose une ligne dans l'ordre visuel et la relie à l'élément de structure.
+  // Une ligne qui contient de l'arabe porte son texte LOGIQUE en
+  // `/ActualText` : c'est ce que lisent un lecteur d'écran et un
+  // copier-coller, quel que soit l'ordre de dessin des mots.
+  const drawLine = (
+    element: PDFKit.PDFStructureElement,
+    line: Token[],
+    x0: number,
+    lineWidth: number,
+    style: Required<Style>,
+  ) => {
+    const measure = measureWith(style.weight, style.size);
+    const placed = placeLine(line, 'ltr', lineWidth, measure, measure(' '));
+    const logical = logicalText(line);
+    const content = RTL_TEXT.test(logical)
+      ? doc.markStructureContent('Span', { actual: logical })
+      : doc.markStructureContent('Span');
+    doc.fillColor(style.color);
+    for (const piece of mergeRtl(placed, measure)) {
+      const s = shape(style.weight, piece.text);
+      doc
+        .font(s.key)
+        .fontSize(style.size)
+        .text(s.text, x0 + piece.x, PAGE.height - y, {
+          lineBreak: false,
+          baseline: 'alphabetic',
+          features: featuresFor(s.text),
+        });
+    }
+    doc.endMarkedContent();
+    element.add(content);
+  };
+
+  const linesOf = (
+    value: string,
+    lineWidth: number,
+    style: Required<Style>,
+  ) => {
+    const measure = measureWith(style.weight, style.size);
+    return breakLines(
+      tokenize(printable(value), 'ltr'),
+      lineWidth,
+      measure,
+      measure(' '),
+    );
+  };
 
   const text = (
     value: string,
-    opts: {
-      font?: PDFFont;
-      size?: number;
-      color?: typeof ink;
-      gap?: number;
-    } = {},
+    opts: Style & { gap?: number; tag?: 'P' | 'H1' } = {},
   ) => {
-    const font = opts.font ?? regular;
-    const size = opts.size ?? 10.5;
-    for (const line of wrap(winAnsiSafe(value), font, size, width)) {
-      page.drawText(line, { x: left, y, size, font, color: opts.color ?? ink });
-      y -= size + 4;
+    const style = {
+      weight: opts.weight ?? 'regular',
+      size: opts.size ?? 10.5,
+      color: opts.color ?? COLOR.ink,
+    };
+    const element = doc.struct(opts.tag ?? 'P');
+    root.add(element);
+    for (const line of linesOf(value, width, style)) {
+      drawLine(element, line, left, width, style);
+      y -= style.size + 4;
     }
+    element.end();
     y -= opts.gap ?? 0;
   };
 
   const row = (label: string, value: string) => {
-    page.drawText(winAnsiSafe(label), {
-      x: left,
-      y,
+    const element = doc.struct('P');
+    root.add(element);
+    const labelStyle = {
+      weight: 'regular',
       size: 10.5,
-      font: regular,
-      color: muted,
-    });
-    const lines = wrap(winAnsiSafe(value), bold, 10.5, width - 170);
-    for (const line of lines) {
-      page.drawText(line, {
-        x: left + 170,
-        y,
-        size: 10.5,
-        font: bold,
-        color: ink,
-      });
+      color: COLOR.muted,
+    } as const;
+    for (const line of linesOf(label, 160, labelStyle)) {
+      drawLine(element, line, left, 160, labelStyle);
+    }
+    const valueStyle = {
+      weight: 'bold',
+      size: 10.5,
+      color: COLOR.ink,
+    } as const;
+    for (const line of linesOf(value, width - 170, valueStyle)) {
+      drawLine(element, line, left + 170, width - 170, valueStyle);
       y -= 15;
     }
+    element.end();
     y -= 3;
   };
 
-  const a = data.association;
   // En-tête : l'émetteur.
-  text(a.name, { font: bold, size: 18, color: accent, gap: 2 });
-  text(a.legalForm, { size: 9.5, color: muted });
-  text(`Siège : ${a.address}`, { size: 9.5, color: muted });
+  text(a.name, { weight: 'bold', size: 18, color: COLOR.accent, gap: 2 });
+  text(a.legalForm, { size: 9.5, color: COLOR.muted });
+  text(`Siège : ${a.address}`, { size: 9.5, color: COLOR.muted });
   text(`RNA : ${a.rna}${a.siret ? ` · SIRET : ${a.siret}` : ''}`, {
     size: 9.5,
-    color: muted,
+    color: COLOR.muted,
   });
   text(`Représentant légal : ${a.representative}`, {
     size: 9.5,
-    color: muted,
+    color: COLOR.muted,
     gap: 18,
   });
 
@@ -175,15 +342,23 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
       : data.recurring
         ? 'Reçu de don (don mensuel)'
         : 'Reçu de don';
-  text(title, { font: bold, size: 16, gap: 2 });
-  text(`N° ${data.number}`, { font: bold, size: 12, color: accent, gap: 16 });
-
-  page.drawLine({
-    start: { x: left, y: y + 6 },
-    end: { x: left + width, y: y + 6 },
-    thickness: 0.6,
-    color: muted,
+  text(title, { weight: 'bold', size: 16, gap: 2, tag: 'H1' });
+  text(`N° ${data.number}`, {
+    weight: 'bold',
+    size: 12,
+    color: COLOR.accent,
+    gap: 16,
   });
+
+  // Décor : jamais lu par un lecteur d'écran (artefact de mise en page).
+  doc.markContent('Artifact', { type: 'Layout' });
+  doc
+    .moveTo(left, PAGE.height - (y + 6))
+    .lineTo(left + width, PAGE.height - (y + 6))
+    .lineWidth(0.6)
+    .strokeColor(COLOR.muted)
+    .stroke();
+  doc.endMarkedContent();
   y -= 10;
 
   row(
@@ -226,14 +401,21 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
     a.taxReceiptEligible
       ? 'Ce reçu est délivré au titre des articles 200 et 238 bis du Code général des impôts.'
       : 'Ce document atteste un paiement. Il ne constitue pas un reçu fiscal ouvrant droit à réduction d’impôt (articles 200 et 238 bis du Code général des impôts).',
-    { size: 9.5, color: muted, gap: 8 },
+    { size: 9.5, color: COLOR.muted, gap: 8 },
   );
   if (data.provider === 'fake') {
     text('DOCUMENT DE TEST — AUCUN PAIEMENT RÉEL.', {
-      font: bold,
-      color: accent,
+      weight: 'bold',
+      color: COLOR.accent,
     });
   }
 
-  return await pdf.save({ useObjectStreams: false });
+  root.end();
+  visualOrderLigatures(doc);
+  doc.end();
+  await done;
+  const all = Buffer.concat(chunks);
+  const bytes = new Uint8Array(all.byteLength);
+  bytes.set(all);
+  return bytes;
 }

@@ -20,7 +20,6 @@ import {
   SUGGESTED_DONATIONS,
   toMinor,
 } from '@convex/lib/payments/amounts';
-import { winAnsiSafe } from '@convex/lib/payments/receiptPdf';
 
 afterEach(cleanup);
 
@@ -93,13 +92,8 @@ describe('Reçu PDF — texte', () => {
     expect(formatAmountFr(25000, 'XOF')).toBe('25 000 FCFA');
     expect(formatAmountFr(500, 'EUR')).toBe('5,00 €');
   });
-
-  it('remplace ce que WinAnsi ne sait pas dessiner, garde les accents', () => {
-    expect(winAnsiSafe('Aïssatou — « reçu » 1\u202F000')).toBe(
-      'Aïssatou — « reçu » 1 000',
-    );
-    expect(winAnsiSafe('محمد')).toBe('????');
-  });
+  // Les noms hors Latin-1 (arabe, vietnamien…) : convex/lib/payments/
+  // receiptPdf.test.ts, depuis que le reçu embarque ses polices (27/09).
 });
 
 describe('Montants à l’écran', () => {

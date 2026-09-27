@@ -141,6 +141,7 @@ import type * as payments_finances from "../payments/finances.js";
 import type * as payments_member from "../payments/member.js";
 import type * as payments_plans from "../payments/plans.js";
 import type * as payments_receipts from "../payments/receipts.js";
+import type * as payments_receiptsNode from "../payments/receiptsNode.js";
 import type * as payments_recurring from "../payments/recurring.js";
 import type * as payments_webhooks from "../payments/webhooks.js";
 import type * as peerReview from "../peerReview.js";
@@ -308,6 +309,7 @@ declare const fullApi: ApiFromModules<{
   "payments/member": typeof payments_member;
   "payments/plans": typeof payments_plans;
   "payments/receipts": typeof payments_receipts;
+  "payments/receiptsNode": typeof payments_receiptsNode;
   "payments/recurring": typeof payments_recurring;
   "payments/webhooks": typeof payments_webhooks;
   peerReview: typeof peerReview;

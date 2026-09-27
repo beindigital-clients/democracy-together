@@ -1,28 +1,21 @@
 import { v } from 'convex/values';
 import { internal } from '../_generated/api';
-import {
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from '../_generated/server';
-import { sendEmail } from '../email';
+import { internalMutation, internalQuery } from '../_generated/server';
 import { locale } from '../lib/locales';
-import { associationInfo, receiptLinkUrl } from '../lib/payments/config';
-import { buildReceiptPdf } from '../lib/payments/receiptPdf';
-import { paymentConfirmationEmail } from '../lib/payments/emails';
 import {
   currencyValidator,
   paymentPurposeValidator,
   providerIdValidator,
 } from '../lib/payments/validators';
 
-// REÇUS (F-29) — production du PDF et courriel de confirmation.
+// REÇUS (F-29) — données du reçu et enregistrement de son fichier.
 //
-// Planifié par le grand livre juste après l'inscription d'un paiement. Le
-// numéro est DÉJÀ attribué (dans la transaction du paiement) : cette action ne
-// fait que produire le fichier, le ranger dans le stockage Convex, et
-// prévenir le payeur. Rejouable sans effet de bord : un reçu déjà produit
-// n'est pas refait.
+// La composition du PDF et le courriel de confirmation sont dans
+// `./receiptsNode.ts` (action Node : pdfkit + polices embarquées, pour
+// imprimer un nom arabe ou vietnamien). Elle est planifiée par le grand livre
+// juste après l'inscription d'un paiement ; le numéro est DÉJÀ attribué, dans
+// la transaction du paiement (convex/lib/payments/ledger.ts). Rejouable sans
+// effet de bord : un reçu déjà produit n'est pas refait.
 
 const CATEGORY_LABEL: Record<string, string> = {
   org: 'Organisation (think tank)',
@@ -108,74 +101,13 @@ export const saveReceiptFile = internalMutation({
   },
 });
 
-export const generate = internalAction({
-  args: { receiptId: v.id('paymentReceipts') },
-  returns: v.null(),
-  handler: async (ctx, { receiptId }) => {
-    const data = await ctx.runQuery(internal.payments.receipts.receiptData, {
-      receiptId,
-    });
-    if (!data || data.alreadyGenerated) return null;
-
-    const pdf = await buildReceiptPdf({
-      number: data.number,
-      kind: data.kind,
-      recurring: data.recurring,
-      amountMinor: data.amountMinor,
-      currency: data.currency,
-      paidAt: data.paidAt,
-      payerName: data.payerName,
-      payerEmail: data.payerEmail,
-      provider: data.provider,
-      providerPaymentId: data.providerPaymentId,
-      period: data.period,
-      planLabel: data.planLabel,
-      association: associationInfo(),
-      issuedAt: Date.now(),
-    });
-    const storageId = await ctx.storage.store(
-      new Blob([pdf as BlobPart], { type: 'application/pdf' }),
-    );
-    const saved = await ctx.runMutation(
-      internal.payments.receipts.saveReceiptFile,
-      {
-        receiptId,
-        storageId,
-      },
-    );
-    if (!saved) return null;
-
-    // Courriel de confirmation : un échec (pas de fournisseur e-mail) ne défait
-    // rien — le paiement et le reçu existent, le reçu reste dans l'espace
-    // membre et au back-office.
-    try {
-      const { subject, html } = paymentConfirmationEmail({
-        kind: data.kind,
-        recurring: data.recurring,
-        amountMinor: data.amountMinor,
-        currency: data.currency,
-        receiptNumber: data.number,
-        receiptUrl: receiptLinkUrl(data.locale, data.accessToken),
-        locale: data.locale,
-      });
-      await sendEmail({ to: data.payerEmail, subject, html });
-    } catch (err) {
-      console.error(
-        `[payments] courriel de confirmation non envoyé (${data.number})`,
-        err,
-      );
-    }
-    return null;
-  },
-});
-
 // Régénération (reçu dont le PDF a échoué) — rejouable depuis la CLI :
 // `npx convex run payments/receipts:regenerate '{"receiptId":"…"}'`.
 export const regenerate = internalMutation({
   args: { receiptId: v.id('paymentReceipts') },
   returns: v.null(),
   handler: async (ctx, { receiptId }) => {
-    await ctx.scheduler.runAfter(0, internal.payments.receipts.generate, {
+    await ctx.scheduler.runAfter(0, internal.payments.receiptsNode.generate, {
       receiptId,
     });
     return null;

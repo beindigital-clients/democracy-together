@@ -9,7 +9,7 @@
 |---|---|
 | **F-27** Formules & cotisations | Barème en base (`paymentPlans` : catégorie organisation / individuel / jeune × zone de revenu élevé / intermédiaire / modeste, un montant EUR et XOF par formule). Écran d'édition `/admin/finances/formules` (admin, audité) avec initialisation depuis le barème indicatif. `/adhesion` affiche le barème réel dès qu'il existe (sinon l'estimation, dite indicative). Règlement dans `/espace-membre/cotisations` : le montant vient du barème, jamais du navigateur ; période de 12 mois, renouvellement anticipé prolongé depuis la fin de la période en cours. |
 | **F-28** Dons | `/don` : montants suggérés, montant libre borné (5–10 000 € ; 1 000–5 000 000 FCFA), ponctuel ou mensuel, EUR/XOF selon les prestataires configurés, anonymat public, message, reCAPTCHA v3 + plafonds (IP, global, adresse). Retour `/paiement/retour` (succès, en attente, annulé, échoué) avec relecture chez le prestataire si le webhook tarde. Mensuel : abonnement Stripe (EUR) ; relance planifiée par e-mail pour PayDunya (XOF). |
-| **F-29** Reçus | PDF généré côté serveur (pdf-lib), stocké dans Convex, numéro `DT-AAAA-NNNNNN` continu par année (attribué dans la transaction du paiement : ni trou, ni doublon). Téléchargeable par le compte propriétaire, par un administrateur, ou par le lien personnel envoyé par e-mail (donateur sans compte). En français (pièce comptable). |
+| **F-29** Reçus | PDF composé côté serveur (pdfkit + fontkit, action Node `payments/receiptsNode:generate`, polices du site embarquées : nom du payeur dans son écriture, arabe compris), stocké dans Convex, numéro `DT-AAAA-NNNNNN` continu par année (attribué dans la transaction du paiement : ni trou, ni doublon). Téléchargeable par le compte propriétaire, par un administrateur, ou par le lien personnel envoyé par e-mail (donateur sans compte). En français (pièce comptable). |
 | **F-30** Espace membre | `/espace-membre/cotisations` : cotisation en cours et échéance, règlement, dons mensuels (arrêt), historique des paiements et reçus. |
 | **F-31** Back-office | `/admin/finances` (admin) : encaissé par mois × devise × type (remboursements déduits), transactions filtrables (type, devise, statut, prestataire), remboursement (marqué, ou exécuté chez Stripe), export CSV journalisé, cotisations en retard, dons mensuels (arrêt), journal des opérations `payment.*`. |
 
@@ -118,9 +118,39 @@ de l'IPN. À vérifier :
 - **Reçu non fiscal** tant que l'éligibilité au mécénat n'est pas confirmée
   (RMDL-cadrage-technique.md, risques juridiques) ; flag
   `ASSOCIATION_TAX_RECEIPT_ELIGIBLE`.
-- **Polices standard du PDF** : un nom en écriture arabe s'imprime « ???? »
-  sur le reçu (le nom latin et l'adresse restent exacts). Embarquer une police
-  Unicode (Noto) lèverait la limite au prix de ~300 Ko par reçu.
+- **Écritures du reçu** (levée le 27/09 de la limite « nom arabe imprimé
+  ???? ») : le nom du payeur, son e-mail et les informations légales
+  configurées (adresse du siège…) s'impriment dans leur écriture — latin
+  étendu, vietnamien, grec, cyrillique (IBM Plex Sans), arabe, persan, ourdou
+  (IBM Plex Sans Arabic, lettres liées, ordre de lecture correct). Le reste du
+  reçu est en français. Technique **mesurée** (27/09, extraction par pdf.js ;
+  `RECEIPT_PDF_OUT=/chemin pnpm exec vitest run
+  convex/lib/payments/receiptPdf.test.ts` écrit les reçus d'essai) :
+
+  | | pdf-lib + `@pdf-lib/fontkit` | **pdfkit + fontkit (retenu)** |
+  |---|---|---|
+  | « عائشة ديوب » : glyphes | formes isolées (aucune mise en forme contextuelle) | **formes initiale / médiane / finale** |
+  | Texte extrait | « بويد ةشئاع » (retourné) | **« عائشة ديوب »** |
+  | « Nguyễn Thị Ánh », grec, cyrillique | exacts | exacts |
+  | Taille d'un reçu (latin / arabe) | non mesurée (écarté) | 22 Ko / 25,5 Ko (3,7 Ko avec Helvetica) |
+  | Temps de composition | non mesuré (écarté) | 0,17–0,3 s |
+  | Runtime | défaut | **Node** |
+
+  pdfkit réutilise la mise en ligne bidirectionnelle et les corrections
+  (crénage, ligatures) du PDF des rapports annuels (`convex/lib/reportPdf`,
+  docs/backlog/editorial.md § Mesure) et **ses polices embarquées** : aucune
+  seconde copie dans le bundle Node. Une course de mots arabes est posée d'un
+  bloc (mot par mot, pdf.js les recollait : « عائشةديوب »). Contrepartie : la
+  composition passe dans une action **Node** (`convex/payments/receiptsNode.ts`) ;
+  le numéro reste attribué dans la transaction du paiement, qui ne planifie
+  que la composition. Un reçu latin garde exactement son texte (numéro,
+  montants, mentions : test de non-régression contre l'ancien générateur),
+  dans la police du site au lieu d'Helvetica.
+  Restent : un caractère qu'aucune des deux polices ne porte (idéogrammes
+  chinois, devanagari, emoji…) s'imprime « ? » ; un mot qui colle arabe et
+  latin sans espace n'a qu'une police ; le reçu n'imprime **pas** le message
+  libre du don (la suppression de compte l'efface ; un PDF archivé le
+  garderait) ni d'adresse postale du payeur (non collectée).
 - **Remboursement** : total uniquement. Stripe : exécutable depuis le
   back-office pour un don ponctuel (intention de paiement connue) ; une
   échéance d'abonnement se rembourse dans le dashboard Stripe (le webhook
@@ -150,6 +180,10 @@ de l'IPN. À vérifier :
   même paiement, factures d'abonnement), montant incohérent, IPN PayDunya
   (hash faux sans appel réseau, confirmation serveur, rejeu), garde du
   factice, bornes des montants, plafonds, reCAPTCHA.
+- `convex/lib/payments/receiptPdf.test.ts` — reçu au nom « عائشة ديوب »
+  (s'ouvre, nom extrait entier et dans l'ordre, lettres liées), noms
+  vietnamien (y compris saisi décomposé), grec, cyrillique, adresse arabe du
+  siège, repli « ? », et reçu latin au texte identique à l'ancien générateur.
 - `convex/payments-ledger.test.ts` — numérotation continue (y compris
   paiement rejeté entre deux, changement d'année), PDF produit, accès au reçu
   (propriétaire, autre compte, anonyme, admin, jeton), barème et cotisations,

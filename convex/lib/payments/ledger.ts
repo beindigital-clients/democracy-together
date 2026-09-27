@@ -411,7 +411,9 @@ export async function applyPaymentSucceeded(
 
   // Le PDF (et le courriel qui l'annonce) sont produits hors transaction : une
   // action peut échouer et se relancer sans toucher au paiement enregistré.
-  await ctx.scheduler.runAfter(0, internal.payments.receipts.generate, {
+  // Seule la COMPOSITION est planifiée (action Node, pour les polices
+  // Unicode) ; le numéro vient d'être attribué ci-dessus, dans la transaction.
+  await ctx.scheduler.runAfter(0, internal.payments.receiptsNode.generate, {
     receiptId,
   });
 
