@@ -6,6 +6,7 @@ import messages from '@/messages/fr.json';
 import {
   AdminNav,
   ADMIN_NAV_GROUPS,
+  adminMinRoleForPath,
   isAdminNavItemActive,
   visibleAdminNavGroups,
 } from '@/components/admin/admin-nav';
@@ -214,6 +215,41 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
       for (const group of ADMIN_NAV_GROUPS) {
         expect(dict[group.labelKey]).toBeTruthy();
         for (const item of group.items) expect(dict[item.key]).toBeTruthy();
+      }
+    }
+  });
+});
+
+// Rang minimal d'un ÉCRAN, lu par la coquille avant de monter la page. Un
+// modérateur qui tapait /admin/revue ou /admin/newsletter tombait sur la page
+// d'erreur (requête « éditeur » levée avant tout garde) — mesuré le 27/09.
+describe('adminMinRoleForPath', () => {
+  it('reprend le rang du groupe de navigation qui porte le chemin', () => {
+    expect(adminMinRoleForPath('/admin')).toBe('moderateur');
+    expect(adminMinRoleForPath('/admin/candidatures')).toBe('moderateur');
+    expect(adminMinRoleForPath('/admin/revue')).toBe('editeur');
+    expect(adminMinRoleForPath('/admin/newsletter')).toBe('editeur');
+    expect(adminMinRoleForPath('/admin/utilisateurs')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/journal')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/moderation-ia')).toBe('admin');
+  });
+
+  it('un sous-chemin hérite du rang de son écran ; un chemin inconnu vaut le rang de la coquille', () => {
+    expect(adminMinRoleForPath('/admin/utilisateurs/')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/revue/abc')).toBe('editeur');
+    expect(adminMinRoleForPath('/admin/inconnu')).toBe('moderateur');
+  });
+
+  it('est cohérent avec la barre : ce qu’elle cache à un rôle, la coquille le refuse', () => {
+    for (const role of ROLE_ORDER) {
+      const visible = new Set(
+        visibleAdminNavGroups(role).flatMap((g) => g.items.map((i) => i.href)),
+      );
+      for (const item of ADMIN_NAV_GROUPS.flatMap((g) => g.items)) {
+        const allowed =
+          ROLE_ORDER.indexOf(role) >=
+          ROLE_ORDER.indexOf(adminMinRoleForPath(item.href));
+        expect(allowed).toBe(visible.has(item.href));
       }
     }
   });

@@ -155,9 +155,21 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
     }
     await expect(tabs.getByRole('list')).toHaveCount(3);
 
-    // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus —
-    // l'écran refuse de rendre la liste (et la requête Convex la refuserait aussi).
-    await page.goto('/fr/admin/utilisateurs');
-    await expect(page.getByText('Réservé aux administrateurs.')).toBeVisible();
+    // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus.
+    // La COQUILLE refuse l'écran (403, rang lu dans la table de navigation)
+    // avant de le monter, donc avant toute requête — c'est ce qui manquait à
+    // /admin/revue et /admin/newsletter, qui tombaient sur la page d'erreur
+    // pour un modérateur (exploration du 27/09). La requête Convex refuserait
+    // aussi ; elle n'est plus posée.
+    for (const path of [
+      '/fr/admin/utilisateurs',
+      '/fr/admin/revue',
+      '/fr/admin/newsletter',
+    ]) {
+      await page.goto(path);
+      await expect(
+        page.getByRole('heading', { name: 'Accès réservé' }),
+      ).toBeVisible();
+    }
   });
 });

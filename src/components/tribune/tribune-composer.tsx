@@ -152,6 +152,9 @@ export function TribuneComposer() {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={format === 'fond' ? 10 : 5}
+        // Même borne que `convex/tribune.ts#createPost` : au-delà, le dépôt
+        // échouait sans dire pourquoi (mesuré le 27/09 avec 21 000 caractères).
+        maxLength={20000}
         required
       />
 

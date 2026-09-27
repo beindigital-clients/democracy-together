@@ -409,7 +409,7 @@ export default async function EventDetailPage({
                 </p>
               </div>
             </div>
-          ) : (
+          ) : event.upcoming ? (
             <div
               id="inscription"
               className="scroll-mt-24 rounded-md border border-line bg-surface p-5"
@@ -421,6 +421,15 @@ export default async function EventDetailPage({
                   eventTitle={L.titles[event.slug]}
                 />
               </div>
+            </div>
+          ) : (
+            // Événement PASSÉ : le formulaire d'inscription était rendu quand
+            // même, et l'inscription acceptée et stockée (mesuré le 27/09).
+            // Le rappel par e-mail, lui, testait déjà `upcoming`.
+            <div className="rounded-md border border-line bg-surface p-5">
+              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                {L.filter.past}
+              </p>
             </div>
           )}
 

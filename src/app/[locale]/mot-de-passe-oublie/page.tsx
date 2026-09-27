@@ -9,6 +9,7 @@ import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
+import { isSendLimited, isTooManyAttempts } from '@/lib/auth-errors';
 import { isEmail } from '@/lib/validation';
 import {
   PASSWORD_MIN_LENGTH,
@@ -40,8 +41,17 @@ export default function ForgotPasswordPage() {
     try {
       await signIn('password', { email, flow: 'reset' });
       setStep('reset');
-    } catch {
-      setError(t('errorGeneric'));
+    } catch (err) {
+      if (isSendLimited(err)) {
+        setError(t('errorSendLimit'));
+      } else {
+        // ANTI-ÉNUMÉRATION, comme sur la connexion par code : une adresse
+        // sans compte mot de passe (`InvalidAccountId`) ne doit pas se
+        // distinguer d'une adresse connue. Le sous-titre de l'étape suivante
+        // dit « si un compte avec mot de passe existe » et renvoie vers la
+        // connexion par code, seul chemin d'un membre invité.
+        setStep('reset');
+      }
     } finally {
       setPending(false);
     }
@@ -83,8 +93,10 @@ export default function ForgotPasswordPage() {
         flow: 'reset-verification',
       });
       redirectAfterAuth();
-    } catch {
-      setError(t('errorCode'));
+    } catch (err) {
+      setError(
+        isTooManyAttempts(err) ? t('errorTooManyAttempts') : t('errorCode'),
+      );
       setPending(false);
     }
   }

@@ -9,6 +9,7 @@ import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { Button } from '@/components/ui/button';
+import { isTooManyAttempts } from '@/lib/auth-errors';
 import { isEmail } from '@/lib/validation';
 
 export default function ConnexionPage() {
@@ -47,8 +48,14 @@ export default function ConnexionPage() {
         flow: 'signIn',
       });
       redirectAfterAuth();
-    } catch {
-      setError(t('errorSignIn'));
+    } catch (err) {
+      // Le verrou anti-force-brute de Convex Auth refusait AUSSI le bon mot de
+      // passe, avec le même « incorrect » : l'utilisateur corrigeait un mot de
+      // passe qui était juste (mesuré le 27/09). Le message du serveur
+      // traverse `/api/auth` tel quel : on le lit.
+      setError(
+        isTooManyAttempts(err) ? t('errorTooManyAttempts') : t('errorSignIn'),
+      );
       setPending(false);
     }
   }

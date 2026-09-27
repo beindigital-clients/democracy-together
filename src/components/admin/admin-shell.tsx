@@ -5,9 +5,9 @@ import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link, usePathname } from '@/i18n/navigation';
-import { effectiveRole, isStaff } from '@/lib/roles';
+import { effectiveRole, isStaff, roleRank } from '@/lib/roles';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
-import { AdminNav } from '@/components/admin/admin-nav';
+import { AdminNav, adminMinRoleForPath } from '@/components/admin/admin-nav';
 import { ActionFeedbackProvider } from '@/components/admin/action-feedback';
 
 function Centered({ children }: { children: ReactNode }) {
@@ -42,6 +42,11 @@ function Gate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
+  // Rang de l'ÉCRAN, pas seulement du back-office : la page enfant ne se
+  // monte pas — donc ne pose aucune requête — si le rôle est insuffisant.
+  if (roleRank(me?.role) < roleRank(adminMinRoleForPath(pathname))) {
+    return <AccessDenied />;
+  }
 
   // Les régions live du retour d'action sont montées ICI, une fois pour tout
   // le back-office : chaque écran de modération pousse son message dedans

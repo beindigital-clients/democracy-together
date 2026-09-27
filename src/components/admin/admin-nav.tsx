@@ -125,6 +125,28 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
 
 // Groupes proposés à un rôle. Un groupe entier disparaît, pas une entrée à
 // l'intérieur : c'est ce qui évite un groupe au titre sans contenu.
+// Rang minimal pour un CHEMIN du back-office, lu dans la même table que la
+// navigation : un écran que la barre cache à un rôle ne doit pas s'ouvrir par
+// URL directe. Mesuré le 27/09 : un modérateur tapant /admin/revue ou
+// /admin/newsletter tombait sur « Une erreur est survenue », la requête
+// « éditeur » de la page ayant levé avant tout garde d'écran. Un chemin hors
+// table (page inconnue sous /admin) vaut le rang de la coquille : modérateur.
+export function adminMinRoleForPath(pathname: string): NetworkRole {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (
+        item.href === '/admin'
+          ? path === '/admin'
+          : isAdminNavItemActive(item.href, path)
+      ) {
+        return group.minRole;
+      }
+    }
+  }
+  return 'moderateur';
+}
+
 export function visibleAdminNavGroups(
   role: NetworkRole,
 ): readonly AdminNavGroup[] {

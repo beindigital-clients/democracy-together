@@ -61,7 +61,7 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
         </Badge>
       </div>
 
-      <p className="mt-3 max-w-[70ch] whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+      <p className="mt-3 max-w-[70ch] whitespace-pre-line break-words text-sm leading-relaxed text-ink-soft">
         {msg.body}
       </p>
 

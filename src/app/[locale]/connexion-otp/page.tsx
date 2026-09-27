@@ -8,6 +8,7 @@ import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
 import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { OtpField } from '@/components/auth/otp-field';
+import { isSendLimited, isTooManyAttempts } from '@/lib/auth-errors';
 import { isEmail } from '@/lib/validation';
 
 export default function OtpSignInPage() {
@@ -33,8 +34,17 @@ export default function OtpSignInPage() {
     try {
       await signIn('otp-signin', { email });
       setStep('code');
-    } catch {
-      setError(t('errorGeneric'));
+    } catch (err) {
+      if (isSendLimited(err)) {
+        setError(t('errorSendLimit'));
+      } else {
+        // ANTI-ÉNUMÉRATION. Une adresse inconnue faisait lever le serveur
+        // (`NO_SELF_SIGNUP`) et l'écran répondait « une erreur est survenue »
+        // là où une adresse connue passait à l'étape du code : l'écran disait
+        // donc qui a un compte (mesuré le 27/09). On passe à l'étape du code
+        // dans les deux cas ; le sous-titre dit « si un compte existe ».
+        setStep('code');
+      }
     } finally {
       setPending(false);
     }
@@ -50,8 +60,10 @@ export default function OtpSignInPage() {
     try {
       await signIn('otp-signin', { email, code: values.code });
       redirectAfterAuth();
-    } catch {
-      setError(t('errorCode'));
+    } catch (err) {
+      setError(
+        isTooManyAttempts(err) ? t('errorTooManyAttempts') : t('errorCode'),
+      );
       setPending(false);
     }
   }

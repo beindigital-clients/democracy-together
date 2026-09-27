@@ -116,7 +116,7 @@ export default function AdminYouth() {
                   </span>
                 ))}
               </div>
-              <p className="mt-2 text-[14px] leading-relaxed text-ink">
+              <p className="mt-2 break-words text-[14px] leading-relaxed text-ink">
                 {a.motivation}
               </p>
 

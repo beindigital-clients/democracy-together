@@ -77,7 +77,9 @@ function ApplicationRow({ app }: { app: Application }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-lg">{app.organizationName}</h2>
+            <h2 className="break-words font-display text-lg">
+              {app.organizationName}
+            </h2>
             <Badge>{vocabulary(t, 'appType_', app.type)}</Badge>
           </div>
           <p className="mt-1 text-sm text-ink-soft">
@@ -122,7 +124,7 @@ function ApplicationRow({ app }: { app: Application }) {
       </div>
 
       {app.message ? (
-        <p className="mt-3 max-w-[70ch] text-sm leading-relaxed text-ink-soft">
+        <p className="mt-3 max-w-[70ch] break-words text-sm leading-relaxed text-ink-soft">
           {app.message}
         </p>
       ) : null}
