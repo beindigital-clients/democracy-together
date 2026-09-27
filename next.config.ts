@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { convexCspOrigins } from './src/lib/convex-origins';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -17,6 +18,12 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // un websocket de rechargement. `'unsafe-eval'` et `ws://localhost` ne sont
 // ajoutés QU'en dev — la CSP de PROD reste stricte (React n'eval jamais en prod).
 const isDev = process.env.NODE_ENV !== 'production';
+// Déploiement Convex hors cloud (auto-hébergé, ou local avec `npx convex dev
+// --local`) : son origine n'est pas couverte par `*.convex.cloud`, et sans elle
+// la CSP coupe le websocket de sync en silence. Vide pour un `*.convex.cloud`.
+const convexOrigins = convexCspOrigins(process.env.NEXT_PUBLIC_CONVEX_URL);
+const extra = (origins: string[]) =>
+  origins.length ? ` ${origins.join(' ')}` : '';
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -30,12 +37,12 @@ const csp = [
   // navigateur refuse CHAQUE image du document traduit — c'est-à-dire ce que la
   // fonctionnalité existe pour préserver — et le lecteur n'obtient que des
   // icônes cassées, qu'il enregistre telles quelles dans son PDF.
-  "img-src 'self' data: blob: https://cdn.sanity.io https://*.convex.cloud",
+  `img-src 'self' data: blob: https://cdn.sanity.io https://*.convex.cloud${extra(convexOrigins.img)}`,
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
   "frame-src 'self' https://www.google.com",
-  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.sanity.io wss://*.sanity.io https://www.google.com${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
+  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.sanity.io wss://*.sanity.io https://www.google.com${extra(convexOrigins.connect)}${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join('; ');
