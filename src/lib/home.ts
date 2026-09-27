@@ -1,14 +1,13 @@
 import { client } from '@dt-sanity/lib/client';
 import { homePageQuery } from '@dt-sanity/lib/queries';
 import { homeFallback, type HomeContent } from '@/lib/home-content';
+import type { Locale } from '@/i18n/routing';
 
 // Page d'accueil (F-10) côté Sanity : un document `homePage` par langue, édité
 // par l'équipe (F-62). Lecture publique cachée (client CDN). Fallback **par
 // section** sur le contenu local : si une section manque côté Sanity (ou si
 // Sanity est indisponible), on rend la version locale — la page ne casse jamais.
-export async function getHomeContent(
-  locale: 'fr' | 'en',
-): Promise<HomeContent> {
+export async function getHomeContent(locale: Locale): Promise<HomeContent> {
   const fb = homeFallback(locale);
   let doc: Partial<HomeContent> | null;
   try {

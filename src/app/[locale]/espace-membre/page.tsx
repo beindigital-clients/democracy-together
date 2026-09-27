@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { isStaff, isMember } from '@/lib/roles';
 import { formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ArrowForward } from '@/components/ui/arrow';
 const STATUS_BADGE: Record<string, string> = {
   published:
     'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
@@ -46,16 +47,16 @@ function MyContributions() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-line">
-                <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted">
+                <th className="px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted">
                   {t('mine.colTitle')}
                 </th>
-                <th className="hidden px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted sm:table-cell">
+                <th className="hidden px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted sm:table-cell">
                   {t('mine.colType')}
                 </th>
-                <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted">
+                <th className="px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted">
                   {t('mine.colStatus')}
                 </th>
-                <th className="hidden px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted md:table-cell">
+                <th className="hidden px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted md:table-cell">
                   {t('mine.colDate')}
                 </th>
                 <th className="px-4 py-3" />
@@ -90,7 +91,7 @@ function MyContributions() {
                   <td className="hidden whitespace-nowrap px-4 py-3 font-mono text-xs text-muted md:table-cell">
                     {formatLongDate(p.submittedAt, locale)}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     {p.status === 'published' ? (
                       <Link
                         href={`/bibliotheque/${p.slug}`}
@@ -157,14 +158,14 @@ function MemberDashboard() {
             href="/admin"
             className="inline-block text-sm font-medium text-accent-text hover:underline"
           >
-            {t('adminLink')} →
+            {t('adminLink')} <ArrowForward />
           </Link>
         ) : null}
         <Link
           href="/espaces"
           className="inline-block text-sm font-medium text-accent-text hover:underline"
         >
-          {t('workspacesLink')} →
+          {t('workspacesLink')} <ArrowForward />
         </Link>
       </div>
 

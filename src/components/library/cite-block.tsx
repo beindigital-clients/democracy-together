@@ -25,7 +25,7 @@ export function CiteBlock({ citations }: { citations: Citations }) {
         <div
           role="group"
           aria-label={t('citeTitle')}
-          className="ml-auto inline-flex overflow-hidden rounded-sm border border-line-strong"
+          className="ms-auto inline-flex overflow-hidden rounded-sm border border-line-strong"
         >
           {(['apa', 'bibtex'] as const).map((f) => (
             <button

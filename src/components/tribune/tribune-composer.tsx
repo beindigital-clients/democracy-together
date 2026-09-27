@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/field';
 import { Link, useRouter } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ArrowForward } from '@/components/ui/arrow';
 
 // Prise de parole (F-44) — îlot client. Visible aux membres ; les autres voient
 // une invitation à adhérer. Après publication, on rafraîchit le fil (server).
@@ -51,7 +52,7 @@ export function TribuneComposer() {
           href="/adhesion"
           className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline"
         >
-          {t('joinCta')} →
+          {t('joinCta')} <ArrowForward />
         </Link>
       </div>
     );

@@ -7,6 +7,7 @@ import { SolidarityEstimator } from '@/components/membership/solidarity-estimato
 import { resolveLocale } from '@/i18n/locale';
 import { getMembershipContent } from '@/lib/membership-content';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -91,7 +92,7 @@ export default async function MembershipPage({
               {(['who1', 'who2', 'who3'] as const).map((k) => (
                 <li key={k} className="flex gap-2.5">
                   <span aria-hidden="true" className="mt-0.5 text-accent-text">
-                    →
+                    <ArrowForward />
                   </span>
                   <span>{t(k)}</span>
                 </li>
@@ -144,8 +145,8 @@ export default async function MembershipPage({
         </Reveal>
         <Reveal className="overflow-hidden rounded-md border border-line">
           <ScrollableRegion label={c.comparison.title}>
-            <table className="w-full border-collapse text-left text-sm">
-              <caption className="bg-surface-2 px-5 py-3 text-left font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+            <table className="w-full border-collapse text-start text-sm">
+              <caption className="bg-surface-2 px-5 py-3 text-start font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                 {c.comparison.caption}
               </caption>
               <thead>
@@ -175,7 +176,7 @@ export default async function MembershipPage({
                   >
                     <th
                       scope="row"
-                      className="px-4 py-3.5 text-left font-medium text-ink"
+                      className="px-4 py-3.5 text-start font-medium text-ink"
                     >
                       {row.advantage}
                       <span className="block text-[12px] font-normal text-muted">

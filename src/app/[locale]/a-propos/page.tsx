@@ -269,7 +269,7 @@ export default async function AboutPage({
             </RevealItem>
           ))}
         </RevealGroup>
-        <Reveal className="mt-6 max-w-[72ch] border-l-2 border-line-strong pl-4 text-sm leading-relaxed text-muted">
+        <Reveal className="mt-6 max-w-[72ch] border-s-2 border-line-strong ps-4 text-sm leading-relaxed text-muted">
           {c.funding.note}
         </Reveal>
       </section>
@@ -315,13 +315,13 @@ export default async function AboutPage({
         </Reveal>
         <RevealGroup
           as="ol"
-          className="mt-8 space-y-6 border-l border-line pl-6"
+          className="mt-8 space-y-6 border-s border-line ps-6"
         >
           {c.timeline.steps.map((s) => (
             <RevealItem key={s.title} as="li" className="relative">
               <span
                 aria-hidden="true"
-                className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-pill border border-accent-edge bg-accent"
+                className="absolute -start-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-pill border border-accent-edge bg-accent"
               />
               <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent-text">
                 {s.date}

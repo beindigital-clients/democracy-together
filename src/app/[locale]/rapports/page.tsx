@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
 import { getReports } from '@/lib/reports-content';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -78,7 +79,7 @@ export default async function ReportsPage({
                 </p>
               </div>
               <span className="shrink-0 text-sm font-semibold text-accent-text group-hover:underline">
-                {t('read')} →
+                {t('read')} <ArrowForward />
               </span>
             </Link>
           </RevealItem>

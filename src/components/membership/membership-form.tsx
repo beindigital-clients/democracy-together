@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,7 @@ import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
+import { resolveLocale } from '@/i18n/locale';
 
 type ApplicantType = 'organisation' | 'individu';
 
@@ -28,6 +29,7 @@ type ApplicantType = 'organisation' | 'individu';
 export function MembershipForm() {
   const t = useTranslations('membership');
   const apply = useAction(api.organizations.submitApplication);
+  const locale = useLocale();
   const executeRecaptcha = useRecaptcha();
   const [type, setType] = useState<ApplicantType>('organisation');
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
@@ -62,6 +64,10 @@ export function MembershipForm() {
         contactEmail: values.contactEmail.trim(),
         country: values.country.trim(),
         message: values.message.trim() || undefined,
+        // La langue du formulaire suit la candidature : c'est elle qui décidera
+        // de la langue du courriel de validation d'adhésion, des mois plus tard.
+        // Même relevé que les formulaires jeunes et mentorat.
+        locale: resolveLocale(locale),
         captchaToken,
       });
       setStatus('success');

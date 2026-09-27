@@ -9,6 +9,8 @@ import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { ptComponents } from '@/components/news/portable-text';
 import { articleJsonLd, jsonLdScript } from '@/lib/seo';
+import { ArrowBack } from '@/components/ui/arrow';
+import { intlLocale } from '@/i18n/locale';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -89,7 +91,7 @@ export default async function ArticlePage({
           href="/actualites"
           className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-ink"
         >
-          <span aria-hidden="true">←</span> {t('back')}
+          <ArrowBack /> {t('back')}
         </Link>
         <DataUnavailable className="mt-8" />
       </div>
@@ -97,7 +99,9 @@ export default async function ArticlePage({
   }
 
   if (!post || post.language !== locale) notFound();
-  const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), {
+    dateStyle: 'long',
+  });
 
   // Fiche `Article` (F-03, P1 n° 4 du plan d'action), posée SEULEMENT ICI :
   // le rendu dégradé ci-dessus n'affiche aucun article et porte déjà un
@@ -125,7 +129,7 @@ export default async function ArticlePage({
         href="/actualites"
         className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-ink"
       >
-        <span aria-hidden="true">←</span> {t('back')}
+        <ArrowBack /> {t('back')}
       </Link>
 
       <header className="mt-6 border-b border-line pb-8">

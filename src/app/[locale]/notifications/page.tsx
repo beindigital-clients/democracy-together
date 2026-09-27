@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
+import { intlLocale } from '@/i18n/locale';
 type Notif = {
   _id: Id<'notifications'>;
   titleKey: string;
@@ -31,7 +32,7 @@ function NotificationsList() {
   const markAllRead = useMutation(api.notifications.markAllRead);
 
   const fmt = (ms: number) =>
-    new Intl.DateTimeFormat(locale, {
+    new Intl.DateTimeFormat(intlLocale(locale), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -76,7 +77,7 @@ function NotificationsList() {
               <button
                 type="button"
                 onClick={() => open(n)}
-                className={`flex w-full items-start gap-3 rounded-md border p-4 text-left transition-colors ${
+                className={`flex w-full items-start gap-3 rounded-md border p-4 text-start transition-colors ${
                   n.read
                     ? 'border-line bg-surface hover:border-line-strong'
                     : 'border-accent-edge bg-accent-tint hover:bg-accent-tint/70'

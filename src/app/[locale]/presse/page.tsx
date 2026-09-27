@@ -5,6 +5,7 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { Button } from '@/components/ui/button';
 import { resolveLocale } from '@/i18n/locale';
 import { getPressKit } from '@/lib/press-content';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -138,7 +139,7 @@ export default async function PressePage({
                   {r.description}
                 </p>
                 <span className="mt-4 text-sm font-semibold text-accent-text group-hover:underline">
-                  {r.external ? '↓' : '→'}
+                  {r.external ? '↓' : <ArrowForward />}
                 </span>
               </>
             );

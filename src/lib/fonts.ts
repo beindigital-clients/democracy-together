@@ -1,4 +1,10 @@
-import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import {
+  Newsreader,
+  IBM_Plex_Sans,
+  IBM_Plex_Mono,
+  IBM_Plex_Sans_Arabic,
+  Noto_Naskh_Arabic,
+} from 'next/font/google';
 
 // Trois rôles typographiques, auto-hébergés via next/font (font-display: swap).
 //
@@ -20,12 +26,7 @@ import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 // Newsreader = voix éditoriale (titres, citations).
 // IBM Plex Sans = interface (boutons, formulaires, métadonnées).
 // IBM Plex Mono = la donnée (scores Baromètre, KPI, méta).
-//
-// `subsets: ['latin']` uniquement : cela couvre le français et l'anglais, les
-// deux seules langues au périmètre. Aucun glyphe arabe n'est donc chargé — une
-// page en arabe retomberait sur une police système, hors charte. Ajouter le
-// sous-ensemble arabe (et IBM Plex Sans Arabic) fait partie du chantier RTL,
-// pas d'un réglage isolé ici : voir l'issue #23.
+
 export const newsreader = Newsreader({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
@@ -49,3 +50,71 @@ export const plexMono = IBM_Plex_Mono({
   display: 'swap',
   preload: false,
 });
+
+// --- Arabe -------------------------------------------------------------------
+//
+// L'audit relevait que `subsets: ['latin']` ne charge AUCUN glyphe arabe, et
+// qu'une page en arabe retomberait donc sur une police système, hors charte
+// (issue #23). Ces deux familles ferment ce point.
+//
+// LE COUPLE EST CHOISI POUR TENIR LE MÊME CONTRASTE que le latin, pas pour
+// « avoir de l'arabe ». L'écriture arabe n'oppose pas serif et sans : elle
+// oppose des STYLES CALLIGRAPHIQUES. Le naskh est la main des livres et de la
+// presse — c'est lui qui porte la voix éditoriale que Newsreader porte en
+// latin. Le second est la déclinaison arabe de la superfamille Plex déjà
+// employée pour l'interface : mêmes proportions, même dessin, aucune rupture
+// quand une page mêle les deux écritures (un nom propre latin dans un titre
+// arabe, un score du Baromètre).
+//   Noto Naskh Arabic  -> voix éditoriale (titres, citations)   ~ Newsreader
+//   IBM Plex Sans Arabic -> interface, corps de texte           ~ IBM Plex Sans
+//
+// AUCUNE DES DEUX N'EST PRÉCHARGÉE, et c'est délibéré. `preload: true` pose
+// l'indice sur TOUTES les pages, y compris les quatre langues latines qui
+// n'afficheront jamais un glyphe arabe — exactement la régression de LCP que
+// l'arbitrage ci-dessus a écartée pour les titres. Les variables CSS ne sont
+// d'ailleurs attachées au `<html>` que sur les pages arabes (voir
+// `src/app/[locale]/layout.tsx`), donc rien ne déclenche le téléchargement
+// ailleurs.
+//
+// PAS DE MONOSPACE ARABE. IBM Plex Mono ne dessine pas l'arabe, et il n'a pas
+// à le faire : ce rôle porte des CHIFFRES (scores, KPI, dates), écrits en
+// chiffres arabes occidentaux dans les cinq langues du site. Le texte arabe
+// qui côtoie ces chiffres retombe sur Plex Sans Arabic, déclaré juste après
+// dans la pile de `--ff-data` (voir `globals.css`).
+//
+// `subsets: ['arabic', 'latin']` — le latin est nécessaire, pas décoratif :
+// un texte arabe cite des sigles, des noms d'organisation et des URL en
+// caractères latins. Sans ce sous-ensemble, chacun de ces fragments basculerait
+// sur une police système au milieu d'une phrase.
+
+export const naskhArabic = Noto_Naskh_Arabic({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-naskh-arabic',
+  display: 'swap',
+  preload: false,
+});
+
+export const plexSansArabic = IBM_Plex_Sans_Arabic({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-plex-sans-arabic',
+  display: 'swap',
+  preload: false,
+});
+
+/**
+ * Les variables de police à poser sur `<html>` pour une locale donnée.
+ *
+ * Les familles arabes ne sont attachées QUE sur les pages arabes. Une variable
+ * CSS non attachée laisse `var(--font-naskh-arabic)` sans valeur, donc la pile
+ * de `globals.css` passe directement au terme suivant : les pages latines ne
+ * voient jamais ces familles, et le navigateur n'a aucune raison de les
+ * chercher.
+ */
+export function fontVariables(locale: string): string {
+  const latin = `${newsreader.variable} ${plexSans.variable} ${plexMono.variable}`;
+  return locale === 'ar'
+    ? `${latin} ${naskhArabic.variable} ${plexSansArabic.variable}`
+    : latin;
+}

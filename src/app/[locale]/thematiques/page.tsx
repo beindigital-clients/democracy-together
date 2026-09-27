@@ -8,6 +8,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getThemeSyntheses } from '@/lib/themes-content';
 import { vocabulary } from '@/i18n/vocabulary';
 import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
+import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -91,7 +92,7 @@ export default async function ThematiquesPage({
                 {s.lead}
               </p>
               <span className="mt-4 text-sm font-semibold text-accent-text group-hover:underline">
-                {t('explore')} →
+                {t('explore')} <ArrowForward />
               </span>
             </Link>
           </RevealItem>

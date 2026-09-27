@@ -40,8 +40,25 @@ describe('Adaptateur e-mail — fail-fast sans fournisseur (audit H3)', () => {
 
   it("l'OTP échoue aussi : mieux vaut une erreur visible qu'un code jamais reçu", async () => {
     await expect(
-      sendOtpEmail('x@example.org', '123456', 'signin'),
+      sendOtpEmail('x@example.org', '123456', 'signin', 'fr'),
     ).rejects.toThrow('EMAIL_PROVIDER_NOT_CONFIGURED');
+  });
+
+  it('la langue du destinataire atteint bien le sujet envoyé', async () => {
+    // Le paramètre est OBLIGATOIRE côté type ; ce test vérifie qu'il est
+    // réellement employé, et pas simplement accepté puis ignoré.
+    process.env.AUTH_RESEND_KEY = 're_test';
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await sendOtpEmail('x@example.org', '123456', 'signin', 'ar');
+    const [, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      { body: string },
+    ];
+    const envoye = JSON.parse(init.body) as { subject: string; html: string };
+    expect(/[\u0600-\u06FF]/.test(envoye.subject)).toBe(true);
+    expect(envoye.html).toContain('dir="rtl"');
   });
 
   it('DEV/TEST (AUTH_DEV_OTP=true) : no-op journalisé, aucune erreur', async () => {

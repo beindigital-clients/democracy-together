@@ -27,7 +27,7 @@ import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { PUB_TYPES } from './lib/publications';
 import {
   isGatewayConfigured,
-  runStructuredAnalysis,
+  runStructured,
   toBase64,
   GATEWAY_ERRORS,
   type GatewayAttachment,
@@ -973,7 +973,7 @@ async function analyse(
   let lastDetail: string | undefined;
 
   for (const model of models) {
-    const result = await runStructuredAnalysis({
+    const result = await runStructured({
       model,
       instructions,
       userText,

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { getEventsLabels } from '@/lib/events-content';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 
@@ -28,7 +28,7 @@ export default function AdminEvents() {
   }, [regs]);
 
   const fmtDate = (ms: number) =>
-    new Intl.DateTimeFormat(loc, {
+    new Intl.DateTimeFormat(intlLocale(loc), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -56,7 +56,7 @@ export default function AdminEvents() {
               </div>
               <div className="mt-3 overflow-hidden rounded-md border border-line">
                 <ScrollableRegion label={labels.titles[slug] ?? slug}>
-                  <table className="w-full border-collapse text-left text-sm">
+                  <table className="w-full border-collapse text-start text-sm">
                     <thead>
                       <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
                         <th scope="col" className="px-4 py-2.5 font-medium">

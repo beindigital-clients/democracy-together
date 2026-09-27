@@ -184,7 +184,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
             data-reveal=""
             key={cred.label}
             variants={credItem}
-            className="border-line py-2 [&:not(:first-child)]:border-t sm:px-6 sm:py-0 sm:first:pl-0 sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
+            className="border-line py-2 [&:not(:first-child)]:border-t sm:px-6 sm:py-0 sm:first:ps-0 sm:[&:not(:first-child)]:border-s sm:[&:not(:first-child)]:border-t-0"
           >
             <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
               {cred.label}

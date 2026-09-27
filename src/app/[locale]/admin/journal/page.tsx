@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { intlLocale } from '@/i18n/locale';
 
 type Row = FunctionReturnType<typeof api.journal.listAuditLog>['page'][number];
 
@@ -159,10 +160,10 @@ export default function AdminJournal() {
         <ScrollableRegion label={t('jrTitle')} className="mt-6">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-line text-left font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                <th className="py-2 pr-4 font-normal">{t('jrDate')}</th>
-                <th className="py-2 pr-4 font-normal">{t('jrAction')}</th>
-                <th className="py-2 pr-4 font-normal">{t('jrActor')}</th>
+              <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                <th className="py-2 pe-4 font-normal">{t('jrDate')}</th>
+                <th className="py-2 pe-4 font-normal">{t('jrAction')}</th>
+                <th className="py-2 pe-4 font-normal">{t('jrActor')}</th>
                 <th className="py-2 font-normal">{t('jrTarget')}</th>
               </tr>
             </thead>
@@ -171,13 +172,13 @@ export default function AdminJournal() {
                 const rowActorId = e.actorId;
                 return (
                   <tr key={i} className="border-b border-line align-top">
-                    <td className="py-3 pr-4 whitespace-nowrap text-ink-soft">
-                      {new Date(e.createdAt).toLocaleString(locale)}
+                    <td className="py-3 pe-4 whitespace-nowrap text-ink-soft">
+                      {new Date(e.createdAt).toLocaleString(intlLocale(locale))}
                     </td>
-                    <td className="py-3 pr-4 font-mono text-[13px]">
+                    <td className="py-3 pe-4 font-mono text-[13px]">
                       {e.action}
                     </td>
-                    <td className="py-3 pr-4">
+                    <td className="py-3 pe-4">
                       {rowActorId ? (
                         <button
                           type="button"
@@ -190,7 +191,7 @@ export default function AdminJournal() {
                           aria-label={t('jrFilterActor', {
                             actor: actorLabel(e),
                           })}
-                          className="text-left text-accent-text hover:underline"
+                          className="text-start text-accent-text hover:underline"
                         >
                           {actorLabel(e)}
                         </button>

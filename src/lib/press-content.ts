@@ -1,3 +1,5 @@
+import type { Locale } from '@/i18n/routing';
+
 // F-16 — Espace presse / kit média. Page publique sans backend Convex : contenu
 // éditorial local bilingue (même approche que `partners-content.ts` /
 // `reports-content.ts`). On y trouve un boilerplate (présentation du réseau en
@@ -161,6 +163,179 @@ const en: PressKit = {
   ],
 };
 
-export function getPressKit(locale: 'fr' | 'en'): PressKit {
-  return locale === 'en' ? en : fr;
+const es: PressKit = {
+  boilerplate:
+    'Democracy Together es una red de centros de estudios, investigadores y socios de África y Europa que comparan honestamente sus experiencias democráticas, sin dar lecciones a nadie. Constituida como asociación de derecho francés (loi 1901, en constitución), la red trabaja en torno a cinco ejes —gobernanza digital, participación ciudadana, lucha contra la corrupción, transiciones democráticas y crisis globales— y publica sus análisis junto a un Barómetro cuyos datos son abiertos y reproducibles.',
+  facts: [
+    {
+      slug: 'statut',
+      label: 'Estatuto',
+      value:
+        'Asociación de derecho francés (loi 1901) en constitución, sin ánimo de lucro e independiente.',
+    },
+    {
+      slug: 'perimetre',
+      label: 'Alcance',
+      value:
+        'Una red bicontinental África-Europa: centros de estudios, investigadores y socios reunidos en torno a una comparación democrática honesta.',
+    },
+    {
+      slug: 'axes',
+      label: 'Cinco ejes de trabajo',
+      value:
+        'Gobernanza digital, participación ciudadana, lucha contra la corrupción, transiciones democráticas y crisis globales.',
+    },
+    {
+      slug: 'barometre',
+      label: 'Barómetro en datos abiertos',
+      value:
+        'Un índice compuesto África-Europa cuyos datos y libro de códigos se publican en acceso abierto con licencia CC-BY, para ser reproducidos y refutados.',
+    },
+  ],
+  resources: [
+    {
+      slug: 'a-propos',
+      label: 'Sobre la red',
+      description:
+        'Misión, gobernanza, fundadores y método: la presentación detallada de Democracy Together.',
+      href: '/a-propos',
+      external: false,
+    },
+    {
+      slug: 'donnees',
+      label: 'Datos del Barómetro (CSV, CC-BY)',
+      description:
+        'El índice compuesto África-Europa en datos abiertos, listos para ser citados y reutilizados.',
+      href: '/fr/barometre/data/composite.csv',
+      external: true,
+    },
+    {
+      slug: 'codebook',
+      label: 'Libro de códigos del Barómetro (TXT)',
+      description:
+        'El diccionario de variables y el método de construcción de cada indicador.',
+      href: '/fr/barometre/data/codebook.txt',
+      external: true,
+    },
+  ],
+};
+
+const pt: PressKit = {
+  boilerplate:
+    'A Democracy Together é uma rede de centros de estudos, investigadores e parceiros de África e da Europa que comparam honestamente as suas experiências democráticas, sem dar lições a ninguém. Constituída como associação de direito francês (loi 1901, em constituição), a rede trabalha em torno de cinco eixos — governação digital, participação cidadã, combate à corrupção, transições democráticas e crises globais — e publica as suas análises a par de um Barómetro cujos dados são abertos e reproduzíveis.',
+  facts: [
+    {
+      slug: 'statut',
+      label: 'Estatuto',
+      value:
+        'Associação de direito francês (loi 1901) em constituição, sem fins lucrativos e independente.',
+    },
+    {
+      slug: 'perimetre',
+      label: 'Âmbito',
+      value:
+        'Uma rede bicontinental África-Europa: centros de estudos, investigadores e parceiros reunidos em torno de uma comparação democrática honesta.',
+    },
+    {
+      slug: 'axes',
+      label: 'Cinco eixos de trabalho',
+      value:
+        'Governação digital, participação cidadã, combate à corrupção, transições democráticas e crises globais.',
+    },
+    {
+      slug: 'barometre',
+      label: 'Barómetro em dados abertos',
+      value:
+        'Um índice compósito África-Europa cujos dados e livro de códigos são publicados em acesso aberto sob licença CC-BY, para serem reproduzidos e contestados.',
+    },
+  ],
+  resources: [
+    {
+      slug: 'a-propos',
+      label: 'Sobre a rede',
+      description:
+        'Missão, governação, fundadores e método: a apresentação detalhada da Democracy Together.',
+      href: '/a-propos',
+      external: false,
+    },
+    {
+      slug: 'donnees',
+      label: 'Dados do Barómetro (CSV, CC-BY)',
+      description:
+        'O índice compósito África-Europa em dados abertos, prontos a ser citados e reutilizados.',
+      href: '/fr/barometre/data/composite.csv',
+      external: true,
+    },
+    {
+      slug: 'codebook',
+      label: 'Livro de códigos do Barómetro (TXT)',
+      description:
+        'O dicionário das variáveis e o método de construção de cada indicador.',
+      href: '/fr/barometre/data/codebook.txt',
+      external: true,
+    },
+  ],
+};
+
+const ar: PressKit = {
+  boilerplate:
+    'Democracy Together شبكة من مراكز الدراسات والباحثين والشركاء من أفريقيا وأوروبا يقارنون تجاربهم الديمقراطية بنزاهة، بعيداً عن منطق إلقاء الدروس. تأسست الشبكة في شكل جمعية خاضعة للقانون الفرنسي (قانون 1901، قيد التأسيس)، وتشتغل حول خمسة محاور — الحوكمة الرقمية، والمشاركة المواطنة، ومكافحة الفساد، والانتقالات الديمقراطية، والأزمات العالمية — وتنشر تحليلاتها إلى جانب مؤشر بياناته مفتوحة وقابلة لإعادة الإنتاج.',
+  facts: [
+    {
+      slug: 'statut',
+      label: 'الوضع القانوني',
+      value:
+        'جمعية خاضعة للقانون الفرنسي (قانون 1901) قيد التأسيس، غير ربحية ومستقلة.',
+    },
+    {
+      slug: 'perimetre',
+      label: 'نطاق العمل',
+      value:
+        'شبكة تمتد على قارتين، أفريقيا وأوروبا: مراكز دراسات وباحثون وشركاء يجمعهم سعي إلى مقارنة ديمقراطية نزيهة.',
+    },
+    {
+      slug: 'axes',
+      label: 'خمسة محاور عمل',
+      value:
+        'الحوكمة الرقمية، والمشاركة المواطنة، ومكافحة الفساد، والانتقالات الديمقراطية، والأزمات العالمية.',
+    },
+    {
+      slug: 'barometre',
+      label: 'مؤشر ببيانات مفتوحة',
+      value:
+        'مؤشر مركّب لأفريقيا وأوروبا تُنشر بياناته ودليل ترميزه في وصول مفتوح برخصة CC-BY، حتى يمكن إعادة إنتاجهما والاعتراض عليهما.',
+    },
+  ],
+  resources: [
+    {
+      slug: 'a-propos',
+      label: 'عن الشبكة',
+      description:
+        'الرسالة والحوكمة والمؤسسون والمنهجية: العرض المفصّل لـ Democracy Together.',
+      href: '/a-propos',
+      external: false,
+    },
+    {
+      slug: 'donnees',
+      label: 'بيانات المؤشر (CSV، CC-BY)',
+      description:
+        'المؤشر المركّب لأفريقيا وأوروبا في صيغة بيانات مفتوحة، جاهزة للاستشهاد وإعادة الاستخدام.',
+      href: '/fr/barometre/data/composite.csv',
+      external: true,
+    },
+    {
+      slug: 'codebook',
+      label: 'دليل ترميز المؤشر (TXT)',
+      description: 'قاموس المتغيرات ومنهجية بناء كل مؤشر فرعي.',
+      href: '/fr/barometre/data/codebook.txt',
+      external: true,
+    },
+  ],
+};
+
+// Table exhaustive par construction (cf. `projects-content.ts`).
+const BY_LOCALE: Record<Locale, PressKit> = { fr, en, es, pt, ar };
+
+export function getPressKit(locale: Locale): PressKit {
+  return BY_LOCALE[locale];
 }

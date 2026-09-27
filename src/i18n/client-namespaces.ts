@@ -50,6 +50,11 @@ export const BASE_CLIENT_NAMESPACES = [
   'projects',
   'reminder',
   'search',
+  // `translation` : le bandeau de traduction est un composant SERVEUR, mais il
+  // monte `TranslateButton` — un bouton qui appelle une action Convex, donc
+  // nécessairement client. C'est le seul morceau de ce dispositif qui traverse
+  // la frontière RSC.
+  'translation',
   'tribune',
   'workspaces',
   'youthApply',

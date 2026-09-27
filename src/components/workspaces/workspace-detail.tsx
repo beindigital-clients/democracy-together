@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { TextareaField } from '@/components/ui/field';
 import { isMember } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ArrowBack } from '@/components/ui/arrow';
+import { intlLocale } from '@/i18n/locale';
 
 type WorkspaceDetail = {
   _id: Id<'workspaces'>;
@@ -94,7 +96,7 @@ export function WorkspaceDetail({
   const [pending, setPending] = useState(false);
 
   const fmtDate = (ms: number) =>
-    new Intl.DateTimeFormat(locale, {
+    new Intl.DateTimeFormat(intlLocale(locale), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -139,7 +141,7 @@ export function WorkspaceDetail({
           href="/espaces"
           className="mt-4 inline-block text-sm font-medium text-accent-text hover:underline"
         >
-          ← {t('back')}
+          <ArrowBack /> {t('back')}
         </Link>
       </div>
     );

@@ -287,7 +287,10 @@
     },
     "langs": {
       "fr": "French",
-      "en": "English"
+      "en": "English",
+      "es": "Spanish",
+      "pt": "Portuguese",
+      "ar": "Arabic"
     },
     "access": {
       "open": "Open access",
@@ -397,6 +400,38 @@
       "lockedSignIn": "Sign in",
       "lockedBadge": "Members only"
     }
+  },
+  "translation": {
+    "badge": "Machine translation",
+    "translatedFrom": "Machine-translated from {language}.",
+    "notReviewed": "This translation has not been reviewed. Where it matters, the original prevails.",
+    "readOriginal": "Read the original in {language}",
+    "readTranslation": "Read the translation in {language}",
+    "originalNotice": "This article is written in {language}.",
+    "offer": "Translate into {language}",
+    "translating": "Translating…",
+    "stale": "The author has edited this text since it was translated: here is the original.",
+    "retranslate": "Update the translation",
+    "retry": "Try again",
+    "failed": "The translation did not go through.",
+    "errNotConfigured": "The translation service is not configured on this deployment.",
+    "errRateLimited": "Too many translations requested. Try again in a moment.",
+    "errTooLong": "This document is too long to be translated automatically.",
+    "errForbidden": "This content is reserved for members of the network.",
+    "errGeneric": "The translation service is momentarily unavailable.",
+    "docTitle": "Download in another language",
+    "docLead": "The document is rebuilt in the language you choose: the text is translated, the layout and the illustrations are kept.",
+    "docPrepare": "Prepare in {language}",
+    "docPreparing": "Preparing the document…",
+    "docOpen": "Open the {language} version",
+    "docOriginalFile": "Download the original PDF",
+    "docReady": "Available in {language}",
+    "docPrint": "Print / Save as PDF",
+    "docNotice": "Document machine-translated from {language}. Illustrations and tables come from the original document.",
+    "docSourceLink": "See the original document",
+    "docFigure": "Figure {n}",
+    "docPageOf": "Page {n}",
+    "docEmpty": "No content could be extracted from this document."
   },
   "nav": {
     "homeLabel": "Democracy Together — home",
@@ -1136,6 +1171,9 @@
     "notFoundBody": "This page does not exist, or no longer does. The content may have been moved or removed.",
     "notFoundHome": "Back to home",
     "notFoundLibrary": "Browse the library",
+    "memberNotFoundTitle": "Member not found",
+    "memberNotFoundBody": "This think tank does not exist, or is no longer listed in the directory.",
+    "memberNotFoundBack": "Back to the directory",
     "errorTitle": "Something went wrong",
     "errorBody": "This page could not be displayed. You can try again; if the problem persists, contact the secretariat.",
     "errorRetry": "Try again",

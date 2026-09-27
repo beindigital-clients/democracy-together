@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import {
   getEventsLabels,
   monthAbbr,
@@ -10,6 +10,8 @@ import {
 } from '@/lib/events-content';
 import { buildMonthGrid, monthShift, parseYm, formatYm } from '@/lib/calendar';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ArrowBack, ArrowForward } from '@/components/ui/arrow';
+import type { Locale } from '@/i18n/routing';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -37,12 +39,22 @@ export async function generateMetadata({
 const WRAP = 'mx-auto w-full max-w-[1240px] px-4 sm:px-6';
 const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
-// Nom du mois localisé (ex. « novembre 2026 » / « November 2026 »).
-function monthTitle(year: number, month: number, loc: 'fr' | 'en'): string {
-  const label = new Intl.DateTimeFormat(loc === 'en' ? 'en-GB' : 'fr-FR', {
+// Nom du mois localisé (ex. « Novembre 2026 », « November 2026 », « نوفمبر 2026 »).
+//
+// LA LOCALE EST CELLE DE LA PAGE, et non plus « anglais ou français ». Le
+// ternaire précédent (`… === 'en' ? 'en-GB' : 'fr-FR'`) servait des mois
+// FRANÇAIS aux pages espagnole, portugaise et arabe : le calendrier arabe
+// affichait « Septembre 2026 » en tête, y compris dans son `aria-label`.
+//
+// `intlLocale` — et non la locale brute — parce que c'est lui qui porte les
+// arbitrages régionaux du dépôt : `ar-MA` sert des chiffres arabes occidentaux,
+// pour ne pas mêler deux systèmes de numération à ceux du Baromètre.
+function monthTitle(year: number, month: number, loc: Locale): string {
+  const label = new Intl.DateTimeFormat(intlLocale(loc), {
     month: 'long',
     year: 'numeric',
   }).format(new Date(year, month - 1, 1));
+  // La capitale initiale est sans effet sur l'arabe, qui n'a pas de casse.
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -149,7 +161,7 @@ export default async function CalendrierPage({
               rel="prev"
               className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
             >
-              <span aria-hidden="true">←</span>
+              <ArrowBack />
               <span className="hidden sm:inline">{t('prevMonth')}</span>
             </Link>
             <Link
@@ -168,7 +180,7 @@ export default async function CalendrierPage({
               className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
             >
               <span className="hidden sm:inline">{t('nextMonth')}</span>
-              <span aria-hidden="true">→</span>
+              <ArrowForward />
             </Link>
           </nav>
         </Reveal>
@@ -198,9 +210,9 @@ export default async function CalendrierPage({
               return (
                 <div
                   key={i}
-                  className={`min-h-[104px] border-b border-r border-line p-1.5 last:border-r-0 sm:min-h-[120px] ${
+                  className={`min-h-[104px] border-b border-e border-line p-1.5 last:border-e-0 sm:min-h-[120px] ${
                     cell.day === null ? 'bg-paper/50' : 'bg-surface'
-                  } ${i % 7 === 6 ? 'border-r-0' : ''}`}
+                  } ${i % 7 === 6 ? 'border-e-0' : ''}`}
                 >
                   {cell.day === null ? null : (
                     <>
@@ -243,9 +255,9 @@ export default async function CalendrierPage({
 // Pastille-lien d'un événement dans une case du calendrier. La couleur de la
 // barre latérale dépend du type (réutilise la palette accent/muted).
 const TYPE_BAR: Record<EventData['type'], string> = {
-  sommet: 'border-l-accent',
-  webinaire: 'border-l-accent-edge',
-  atelier: 'border-l-line-strong',
+  sommet: 'border-s-accent',
+  webinaire: 'border-s-accent-edge',
+  atelier: 'border-s-line-strong',
 };
 
 function CalendarEvent({
@@ -255,13 +267,13 @@ function CalendarEvent({
 }: {
   event: EventData;
   L: ReturnType<typeof getEventsLabels>;
-  loc: 'fr' | 'en';
+  loc: Locale;
 }) {
   return (
     <Link
       href={`/evenements/${event.slug}`}
       title={`${L.titles[event.slug]} — ${L.types[event.type]} · ${L.cities[event.cityKey]}`}
-      className={`block rounded-[3px] border-l-2 bg-accent-tint px-1.5 py-1 text-[11.5px] leading-tight text-ink transition-colors hover:bg-accent-edge/40 ${TYPE_BAR[event.type]}`}
+      className={`block rounded-[3px] border-s-2 bg-accent-tint px-1.5 py-1 text-[11.5px] leading-tight text-ink transition-colors hover:bg-accent-edge/40 ${TYPE_BAR[event.type]}`}
     >
       <span className="block truncate font-medium">{L.titles[event.slug]}</span>
       <span className="block truncate font-mono text-[10px] uppercase tracking-[0.04em] text-muted">

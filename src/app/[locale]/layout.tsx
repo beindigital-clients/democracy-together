@@ -9,7 +9,8 @@ import {
 } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import { isSupportedLocale, resolveLocale } from '@/i18n/locale';
-import { newsreader, plexSans, plexMono } from '@/lib/fonts';
+import { direction } from '@/i18n/direction';
+import { fontVariables } from '@/lib/fonts';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { IntlClientProvider } from '@/components/providers/intl-client-provider';
@@ -126,9 +127,17 @@ export default async function LocaleLayout({
     <ConvexAuthNextjsServerProvider>
       <html
         lang={locale}
+        // SENS D'ÉCRITURE SERVI DANS LE HTML, pas posé en JavaScript après
+        // coup. `dir` gouverne l'algorithme bidirectionnel du navigateur et
+        // la résolution de TOUTES les propriétés logiques de la feuille de
+        // style : le poser côté client ferait peindre la page entière à
+        // l'envers avant l'hydratation, puis la retournerait. C'est le même
+        // raisonnement que le gating serveur du middleware — une frontière
+        // franchie dans le document servi, pas dans un effet.
+        dir={direction(locale)}
         data-universe="institutionnel"
         suppressHydrationWarning
-        className={`${newsreader.variable} ${plexSans.variable} ${plexMono.variable}`}
+        className={fontVariables(locale)}
       >
         <head>
           <script dangerouslySetInnerHTML={{ __html: themeInit }} />

@@ -128,9 +128,17 @@ export const inviteUser = mutation({
 // ne remet pas en cause la création du compte : l'invitation est renvoyable.
 export const sendAccountInvitation = internalAction({
   args: { email: v.string() },
-  handler: async (_ctx, { email }) => {
+  handler: async (ctx, { email }) => {
+    // LA LANGUE D'UN INVITÉ N'EST PAS CONNUE D'AVANCE. Contrairement au candidat
+    // à l'adhésion, qui a rempli un formulaire dans une langue, un compte ouvert
+    // depuis le back-office n'a aucun signal — sinon une préférence déjà posée
+    // si l'adresse avait déjà un compte. On la lit, et le repli reste le
+    // français. Prendre la langue de l'ADMINISTRATEUR qui invite serait pire :
+    // elle ne dit rien de celle du destinataire.
+    const loc = await ctx.runQuery(internal.otp.localeForEmail, { email });
     const { subject, html } = invitationEmail({
       siteUrl: process.env.SITE_URL ?? 'http://localhost:3000',
+      locale: loc ?? 'fr',
     });
     await sendEmail({ to: email, subject, html });
   },

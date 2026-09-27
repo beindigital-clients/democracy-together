@@ -1,3 +1,4 @@
+import type { Locale } from '@/i18n/routing';
 // F-36 — Synthèses thématiques. Contenu éditorial (la position du réseau) pour
 // chacun des cinq axes de travail. Les slugs sont le miroir de `PUB_THEMES`
 // (src/lib/publications.ts) : c'est la clé qui relie une synthèse à ses
@@ -166,16 +167,244 @@ const en: Record<ThemeSlug, ThemeSynthesis> = {
   },
 };
 
-export function getThemeSyntheses(locale: 'fr' | 'en'): ThemeSynthesis[] {
-  const table = locale === 'en' ? en : fr;
+const es: Record<ThemeSlug, ThemeSynthesis> = {
+  'gouvernance-numerique': {
+    slug: 'gouvernance-numerique',
+    dimension: 'D1',
+    lead: 'Cómo regulan las democracias lo digital sin renunciar a las libertades, y cómo lo digital redefine a su vez el espacio público.',
+    stance: [
+      'Hoy son las plataformas las que deciden qué se ve, qué se comparte y qué se cree. Ese poder privado escapa en gran medida al control democrático, tanto en África como en Europa. La red documenta estos mecanismos y compara las respuestas regulatorias, desde las normas europeas hasta las leyes nacionales africanas sobre datos.',
+      'Nuestro ángulo no es la desconfianza hacia la tecnología, sino la exigencia de rendición de cuentas: quién modera, con qué reglas y con qué recurso para la ciudadanía. Seguimos también los cortes de acceso y la vigilancia, que siguen siendo instrumentos de control político.',
+    ],
+    questions: [
+      '¿Qué regulación de las plataformas protege el debate sin abrir la puerta a la censura estatal?',
+      '¿Cómo garantizar la soberanía de los datos sin fragmentar su acceso?',
+      '¿Qué recurso concreto tiene una persona frente a una decisión algorítmica?',
+    ],
+  },
+  participation: {
+    slug: 'participation',
+    dimension: 'D2',
+    lead: 'Más allá del voto: deliberación, compromiso local y confianza en las instituciones.',
+    stance: [
+      'La democracia no se reduce a las elecciones. Entre dos comicios, es la calidad de la participación —presupuestos participativos, consultas, vida asociativa— la que mantiene la confianza. La red estudia estos dispositivos y lo que los hace creíbles en lugar de cosméticos.',
+      'Nos interesa en particular la juventud y las formas de compromiso que no pasan por los partidos. La desconfianza no es apatía: busca otros canales, que las instituciones captan mal.',
+    ],
+    questions: [
+      '¿Qué distingue una consulta real de una consulta de fachada?',
+      '¿Cómo volver a implicar a una juventud que se aleja de las urnas sin alejarse de la política?',
+      '¿Qué papel corresponde a la sociedad civil en la elaboración de las decisiones?',
+    ],
+  },
+  'anti-corruption': {
+    slug: 'anti-corruption',
+    dimension: 'D3',
+    lead: 'Transparencia presupuestaria, integridad pública y rendición de cuentas: las condiciones concretas de la confianza.',
+    stance: [
+      'La corrupción no es solo una cuestión moral: desvía recursos, desacredita al Estado y alimenta el autoritarismo. La red privilegia el ángulo de los mecanismos —contratación pública, declaraciones de patrimonio, control independiente— antes que la indignación general.',
+      'Documentamos lo que funciona: datos presupuestarios abiertos, protección de quienes alertan, tribunales de cuentas independientes. Y lo que falla, porque la lucha anticorrupción se utiliza a veces como arma contra los opositores.',
+    ],
+    questions: [
+      '¿Cómo hacer que el gasto público sea realmente trazable y legible?',
+      '¿Qué protección eficaz existe para quienes alertan?',
+      '¿Cómo evitar que la lucha anticorrupción se convierta en un instrumento político?',
+    ],
+  },
+  transitions: {
+    slug: 'transitions',
+    dimension: 'D4',
+    lead: 'Salida del autoritarismo, alternancias y resiliencia: qué consolida una transición y qué la hace retroceder.',
+    stance: [
+      'Una transición no termina el día de la primera elección libre. Los retrocesos llegan a menudo después: captura de las instituciones, revisiones constitucionales, neutralización de los contrapesos. La red sigue estas trayectorias a largo plazo.',
+      'Es aquí donde la comparación África-Europa resulta más fecunda: ambos continentes han conocido transiciones, consolidaciones y reversiones, a ritmos distintos. Cruzar estas experiencias ilumina más que cualquier caso aislado.',
+    ],
+    questions: [
+      '¿Qué distingue una alternancia real de una simple rotación de élites?',
+      '¿Cómo proteger los contrapesos durante una transición?',
+      '¿Qué señales advierten de un retroceso democrático antes de que se haga visible?',
+    ],
+  },
+  crises: {
+    slug: 'crises',
+    dimension: 'D5',
+    lead: 'Clima, seguridad, migraciones, salud: cómo pesan las conmociones globales sobre la gobernanza democrática.',
+    stance: [
+      'Las crisis se han convertido en la prueba de fuego de las democracias. La urgencia justifica la excepción, la excepción se instala, y las libertades retroceden en nombre de la protección. La red estudia cómo responder a las conmociones sin sacrificar el Estado de derecho.',
+      'Este eje es transversal: cruza los otros cuatro. Una crisis climática pone a prueba a la vez la participación, la transparencia y la resiliencia institucional. Lo tratamos como un revelador, no como un campo aparte.',
+    ],
+    questions: [
+      '¿Cómo preservar el Estado de derecho bajo una urgencia prolongada?',
+      '¿Quién decide, y bajo qué control, cuando la excepción se vuelve la regla?',
+      '¿Qué lugar ocupa la ciudadanía en la respuesta a las crisis?',
+    ],
+  },
+};
+
+const pt: Record<ThemeSlug, ThemeSynthesis> = {
+  'gouvernance-numerique': {
+    slug: 'gouvernance-numerique',
+    dimension: 'D1',
+    lead: 'Como as democracias regulam o digital sem renunciar às liberdades — e como o digital, por sua vez, redefine o espaço público.',
+    stance: [
+      'Hoje são as plataformas que decidem o que é visto, partilhado e acreditado. Esse poder privado escapa em larga medida ao controlo democrático, tanto em África como na Europa. A rede documenta estes mecanismos e compara as respostas regulatórias, das regras europeias às leis nacionais africanas sobre dados.',
+      'O nosso ângulo não é a desconfiança face à tecnologia, mas a exigência de prestação de contas: quem modera, segundo que regras, com que recurso para os cidadãos. Seguimos também os cortes de acesso e a vigilância, que continuam a ser instrumentos de controlo político.',
+    ],
+    questions: [
+      'Que regulação das plataformas protege o debate sem abrir caminho à censura do Estado?',
+      'Como garantir a soberania dos dados sem fragmentar o seu acesso?',
+      'Que recurso concreto tem um cidadão perante uma decisão algorítmica?',
+    ],
+  },
+  participation: {
+    slug: 'participation',
+    dimension: 'D2',
+    lead: 'Para além do voto: deliberação, envolvimento local e confiança nas instituições.',
+    stance: [
+      'A democracia não se resume à eleição. Entre dois atos eleitorais, é a qualidade da participação — orçamentos participativos, consultas, vida associativa — que sustenta a confiança. A rede estuda estes dispositivos e aquilo que os torna credíveis em vez de cosméticos.',
+      'Interessa-nos em particular a juventude e as formas de envolvimento que não passam pelos partidos. A desconfiança não é apatia: procura outros canais, que as instituições captam mal.',
+    ],
+    questions: [
+      'O que distingue uma consulta real de uma consulta de fachada?',
+      'Como voltar a envolver uma juventude que se afasta das urnas sem se afastar da política?',
+      'Que papel cabe à sociedade civil na construção das decisões?',
+    ],
+  },
+  'anti-corruption': {
+    slug: 'anti-corruption',
+    dimension: 'D3',
+    lead: 'Transparência orçamental, integridade pública e prestação de contas: as condições concretas da confiança.',
+    stance: [
+      'A corrupção não é apenas uma questão moral: desvia recursos, descredibiliza o Estado e alimenta o autoritarismo. A rede privilegia o ângulo dos mecanismos — contratação pública, declarações de património, controlo independente — em vez da indignação genérica.',
+      'Documentamos o que funciona: dados orçamentais abertos, proteção de quem denuncia, tribunais de contas independentes. E o que falha, já que o combate à corrupção é por vezes usado como arma contra opositores.',
+    ],
+    questions: [
+      'Como tornar a despesa pública verdadeiramente rastreável e legível?',
+      'Que proteção eficaz existe para quem denuncia?',
+      'Como impedir que o combate à corrupção se torne um instrumento político?',
+    ],
+  },
+  transitions: {
+    slug: 'transitions',
+    dimension: 'D4',
+    lead: 'Saída do autoritarismo, alternâncias e resiliência: o que consolida uma transição e o que a faz recuar.',
+    stance: [
+      'Uma transição não termina no dia da primeira eleição livre. Os recuos surgem muitas vezes depois: captura das instituições, revisões constitucionais, neutralização dos contrapoderes. A rede acompanha estas trajetórias no longo prazo.',
+      'É aqui que a comparação África-Europa é mais fecunda: ambos os continentes conheceram transições, consolidações e reversões, a ritmos diferentes. Cruzar estas experiências esclarece mais do que qualquer caso isolado.',
+    ],
+    questions: [
+      'O que distingue uma alternância real de uma simples rotação de elites?',
+      'Como proteger os contrapoderes durante uma transição?',
+      'Que sinais avisam de um retrocesso democrático antes de ele se tornar visível?',
+    ],
+  },
+  crises: {
+    slug: 'crises',
+    dimension: 'D5',
+    lead: 'Clima, segurança, migrações, saúde: como os choques globais pesam sobre a governação democrática.',
+    stance: [
+      'As crises tornaram-se a prova de fogo das democracias. A urgência justifica a exceção, a exceção instala-se, e as liberdades recuam em nome da proteção. A rede estuda como responder aos choques sem sacrificar o Estado de direito.',
+      'Este eixo é transversal: cruza os outros quatro. Uma crise climática põe à prova, ao mesmo tempo, a participação, a transparência e a resiliência institucional. Tratamo-lo como um revelador, não como um campo à parte.',
+    ],
+    questions: [
+      'Como preservar o Estado de direito sob uma urgência prolongada?',
+      'Quem decide, e sob que controlo, quando a exceção se torna regra?',
+      'Que lugar cabe aos cidadãos na resposta às crises?',
+    ],
+  },
+};
+
+const ar: Record<ThemeSlug, ThemeSynthesis> = {
+  'gouvernance-numerique': {
+    slug: 'gouvernance-numerique',
+    dimension: 'D1',
+    lead: 'كيف تنظّم الديمقراطيات المجال الرقمي دون التخلي عن الحريات، وكيف يعيد الرقمي بدوره تشكيل الفضاء العام.',
+    stance: [
+      'صارت المنصات اليوم هي التي تقرر ما يُرى وما يُتقاسَم وما يُصدَّق. وهذه السلطة الخاصة تفلت إلى حد بعيد من الرقابة الديمقراطية، في أفريقيا كما في أوروبا. توثّق الشبكة هذه الآليات وتقارن الاستجابات التنظيمية، من القواعد الأوروبية إلى القوانين الوطنية الأفريقية المتعلقة بالبيانات.',
+      'زاوية نظرنا ليست الارتياب من التقنية بل المطالبة بالمساءلة: من يراجع المحتوى، ووفق أي قواعد، وبأي سبيل انتصاف للمواطنين. ونتابع كذلك قطع خدمة الإنترنت والمراقبة، وهما أداتان ما زالتا في خدمة السيطرة السياسية.',
+    ],
+    questions: [
+      'أي تنظيم للمنصات يحمي النقاش دون أن يفتح الباب لرقابة الدولة؟',
+      'كيف تُضمن السيادة على البيانات دون تشتيت النفاذ إليها؟',
+      'ما سبيل الانتصاف الملموس المتاح لمواطن أمام قرار خوارزمي؟',
+    ],
+  },
+  participation: {
+    slug: 'participation',
+    dimension: 'D2',
+    lead: 'أبعد من الاقتراع: التداول، والانخراط المحلي، والثقة في المؤسسات.',
+    stance: [
+      'لا تختزل الديمقراطية في الانتخاب. فبين استحقاقين، جودة المشاركة — الميزانيات التشاركية، والاستشارات، والحياة الجمعوية — هي ما يصون الثقة. تدرس الشبكة هذه الآليات وما يجعلها ذات مصداقية بدل أن تكون شكلية.',
+      'ونهتم بوجه خاص بالشباب وبأشكال الانخراط التي لا تمرّ عبر الأحزاب. فالارتياب ليس لامبالاة: إنه يبحث عن قنوات أخرى تلتقطها المؤسسات على نحو رديء.',
+    ],
+    questions: [
+      'ما الذي يميّز استشارة حقيقية عن استشارة صورية؟',
+      'كيف يُعاد إشراك شباب ينصرف عن صناديق الاقتراع دون أن ينصرف عن السياسة؟',
+      'أي دور للمجتمع المدني في صنع القرار؟',
+    ],
+  },
+  'anti-corruption': {
+    slug: 'anti-corruption',
+    dimension: 'D3',
+    lead: 'شفافية الميزانية، ونزاهة المرفق العام، والمساءلة: الشروط الملموسة للثقة.',
+    stance: [
+      'الفساد ليس مسألة أخلاقية فحسب: فهو يحوّل الموارد، وينزع المصداقية عن الدولة، ويغذّي الاستبداد. تفضّل الشبكة زاوية الآليات — الصفقات العمومية، والتصريح بالممتلكات، والرقابة المستقلة — على السخط العام.',
+      'نوثّق ما ينجح: البيانات الميزانياتية المفتوحة، وحماية المبلّغين، ومحاكم الحسابات المستقلة. ونوثّق أيضاً ما يخفق، لأن مكافحة الفساد تُستعمل أحياناً سلاحاً ضد الخصوم.',
+    ],
+    questions: [
+      'كيف يصبح الإنفاق العمومي قابلاً فعلاً للتتبّع وللقراءة؟',
+      'أي حماية فعلية متاحة للمبلّغين؟',
+      'كيف نحول دون أن تتحوّل مكافحة الفساد إلى أداة سياسية؟',
+    ],
+  },
+  transitions: {
+    slug: 'transitions',
+    dimension: 'D4',
+    lead: 'الخروج من الاستبداد، والتناوب، والقدرة على الصمود: ما الذي يرسّخ انتقالاً وما الذي يعيده إلى الوراء.',
+    stance: [
+      'لا ينتهي الانتقال يوم أول انتخاب حر. فالانتكاسات تأتي غالباً بعده: الاستحواذ على المؤسسات، والمراجعات الدستورية، وتحييد السلطات المضادة. تتابع الشبكة هذه المسارات على المدى الطويل.',
+      'وهنا تحديداً تكون المقارنة بين أفريقيا وأوروبا أكثر خصوبة: فقد عرفت القارتان انتقالات وترسيخاً وانتكاسات، بإيقاعات مختلفة. وتقاطع هذه التجارب يضيء أكثر من أي حالة منفردة.',
+    ],
+    questions: [
+      'ما الذي يميّز تناوباً حقيقياً عن مجرد دوران للنخب؟',
+      'كيف تُحمى السلطات المضادة أثناء فترة انتقالية؟',
+      'ما الإشارات التي تنذر بتراجع ديمقراطي قبل أن يصبح مرئياً؟',
+    ],
+  },
+  crises: {
+    slug: 'crises',
+    dimension: 'D5',
+    lead: 'المناخ والأمن والهجرة والصحة: كيف تثقل الصدمات العالمية كاهل الحوكمة الديمقراطية.',
+    stance: [
+      'صارت الأزمات محكّ الديمقراطيات. الاستعجال يبرّر الاستثناء، والاستثناء يستقرّ، وتتراجع الحريات باسم الحماية. تدرس الشبكة كيف يمكن مواجهة الصدمات دون التضحية بدولة القانون.',
+      'هذا المحور عرضاني: يتقاطع مع المحاور الأربعة الأخرى. فالأزمة المناخية تختبر في آن واحد المشاركة والشفافية وقدرة المؤسسات على الصمود. ونتعامل معها بوصفها كاشفاً، لا حقلاً منفصلاً.',
+    ],
+    questions: [
+      'كيف تُصان دولة القانون في ظل استعجال يطول أمده؟',
+      'من يقرّر، وتحت أي رقابة، حين يصير الاستثناء قاعدة؟',
+      'أي موقع للمواطنين في الاستجابة للأزمات؟',
+    ],
+  },
+};
+
+// Table exhaustive par construction (cf. `projects-content.ts`).
+const BY_LOCALE: Record<Locale, Record<ThemeSlug, ThemeSynthesis>> = {
+  fr,
+  en,
+  es,
+  pt,
+  ar,
+};
+
+export function getThemeSyntheses(locale: Locale): ThemeSynthesis[] {
+  const table = BY_LOCALE[locale];
   return THEME_SLUGS.map((s) => table[s]);
 }
 
 export function getThemeSynthesis(
-  locale: 'fr' | 'en',
+  locale: Locale,
   slug: string,
 ): ThemeSynthesis | null {
-  const table = locale === 'en' ? en : fr;
+  const table = BY_LOCALE[locale];
   return (THEME_SLUGS as readonly string[]).includes(slug)
     ? table[slug as ThemeSlug]
     : null;

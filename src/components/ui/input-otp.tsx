@@ -40,7 +40,7 @@ function InputOTPSlot({
     <div
       data-active={slot?.isActive}
       className={cn(
-        'relative flex h-11 w-10 items-center justify-center border-y border-r border-line bg-surface text-base text-ink transition-colors first:rounded-l-sm first:border-l last:rounded-r-sm data-[active=true]:z-10 data-[active=true]:border-accent-text',
+        'relative flex h-11 w-10 items-center justify-center border-y border-e border-line bg-surface text-base text-ink transition-colors first:rounded-s-sm first:border-s last:rounded-e-sm data-[active=true]:z-10 data-[active=true]:border-accent-text',
         className,
       )}
       {...props}

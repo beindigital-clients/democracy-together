@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import {
   EVENTS,
   FEATURED_SLUG,
@@ -15,11 +15,12 @@ import {
 import { eventJsonLd, jsonLdScript } from '@/lib/seo';
 import { EventRegisterForm } from '@/components/events/event-register-form';
 import { ReminderForm } from '@/components/events/reminder-form';
+import type { Locale } from '@/i18n/routing';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-function longDate(e: EventData, loc: 'fr' | 'en'): string {
-  return new Intl.DateTimeFormat(loc, {
+function longDate(e: EventData, loc: Locale): string {
+  return new Intl.DateTimeFormat(intlLocale(loc), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -188,7 +189,7 @@ export default async function EventDetailPage({
             </div>
           </div>
           <div className="relative overflow-hidden rounded-md border border-line">
-            <span className="absolute left-3 top-3 z-10 rounded-pill bg-ink/85 px-2.5 py-1 font-mono text-[11px] text-paper">
+            <span className="absolute start-3 top-3 z-10 rounded-pill bg-ink/85 px-2.5 py-1 font-mono text-[11px] text-paper">
               {d.visualPin}
             </span>
             <div className="relative aspect-[4/3]">
@@ -431,7 +432,7 @@ export default async function EventDetailPage({
                   className={`flex justify-between gap-4 px-5 py-3 text-[13.5px] ${i === 0 ? '' : 'border-t border-line'}`}
                 >
                   <dt className="text-muted">{r.k}</dt>
-                  <dd className="text-right font-medium text-ink">{r.v}</dd>
+                  <dd className="text-end font-medium text-ink">{r.v}</dd>
                 </div>
               ))}
             </dl>

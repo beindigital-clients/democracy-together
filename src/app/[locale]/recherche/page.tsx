@@ -138,7 +138,7 @@ export default async function SearchPage({
                   <li key={p.slug}>
                     <Link href={`/bibliotheque/${p.slug}`} className={ROW}>
                       <span className="font-medium text-ink">{p.title}</span>
-                      <span className="ml-2 text-[13px] text-muted">
+                      <span className="ms-2 text-[13px] text-muted">
                         {vocabulary(tl, 'types.', p.type)}
                       </span>
                     </Link>
@@ -158,7 +158,7 @@ export default async function SearchPage({
                   <li key={o.slug}>
                     <Link href={`/le-reseau/${o.slug}`} className={ROW}>
                       <span className="font-medium text-ink">{o.name}</span>
-                      <span className="ml-2 text-[13px] text-muted">
+                      <span className="ms-2 text-[13px] text-muted">
                         {countryFlag(o.country)}{' '}
                         {countryName(o.country, locale)}
                       </span>

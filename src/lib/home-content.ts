@@ -2,7 +2,7 @@
 // `design/rmdl-accueil.html` (8 sections). Couche de contenu bilingue, prête à
 // basculer vers Sanity (mêmes formes de retour).
 
-type Locale = 'fr' | 'en';
+import type { Locale } from '@/i18n/routing';
 
 export type HomeContent = {
   hero: {
@@ -526,6 +526,698 @@ const en: HomeContent = {
 // Repli LOCAL pur (sans dépendance Sanity) : utilisé quand aucun document
 // `homePage` n'est publié, et comme source de seed. Le fetch Sanity + fallback
 // vit dans `src/lib/home.ts`. Garder ce module pur (les tests l'importent).
+const es: HomeContent = {
+  hero: {
+    eyebrow: 'Democracy Together',
+    title: 'La democracia necesita una red.',
+    lead: 'Democracy Together conecta a los centros de estudios de África y de Europa para producir, compartir y defender el pensamiento democrático.',
+    ctaPrimary: 'Unirme a la red',
+    ctaSecondary: 'Leer los análisis',
+    visualLabel: 'Ciudadanos reunidos en un foro de debate',
+    visualCaption:
+      'Imagen de ilustración. En producción: fotografía documental, digna y diversa.',
+    creds: [
+      { label: 'Estatuto', value: 'Asociación loi 1901, sede en París' },
+      { label: 'Oficinas', value: 'París, Dakar, Bruselas' },
+      {
+        label: 'Fundada por',
+        value: 'Abdou Samb, Philippe Kourilsky, Pierre Vimont',
+      },
+    ],
+  },
+  mission: {
+    title: 'Agregar las ideas, movilizar al relevo, pesar en las decisiones',
+    cta: 'Nuestra misión',
+    cells: [
+      {
+        ix: '01 Agregación',
+        title: 'Reunir la investigación democrática en un solo lugar',
+        body: 'Recoger, sintetizar y difundir los análisis de los centros miembros sobre gobernanza digital, participación ciudadana, lucha contra la corrupción y transiciones democráticas.',
+      },
+      {
+        ix: '02 Promoción',
+        title: 'Llevar las ideas al debate',
+        body: 'Cumbre mundial en París, seminarios web y talleres regionales, alianzas con responsables públicos, ONG e instituciones académicas.',
+      },
+      {
+        ix: '03 Capacidades',
+        title: 'Apoyar al relevo',
+        body: 'Mentoría y formación para los centros de estudios emergentes y los jóvenes contribuidores.',
+      },
+      {
+        ix: '04 Inclusión',
+        title: 'Diversidad real',
+        body: 'Perspectivas multidisciplinares y diversidad geográfica, cultural y de género.',
+      },
+    ],
+    barometer: {
+      label: 'El Barómetro',
+      title: 'Un índice África-Europa para medir la democracia',
+      body: 'Nuestro activo diferencial: datos abiertos y citables que alimentan el informe anual sobre el estado de la democracia.',
+    },
+  },
+  analyses: {
+    title: 'Últimos análisis',
+    cta: 'Toda la biblioteca',
+    featured: {
+      tag: 'Informe anual · 88 páginas · FR / EN',
+      title: 'El estado de la democracia entre África y Europa',
+      body: 'Una lectura cruzada de las trayectorias democráticas de dos continentes cuyos destinos están ligados, basada en las contribuciones de treinta y ocho centros de estudios miembros.',
+      chips: ['Transiciones democráticas', 'Datos abiertos'],
+    },
+    items: [
+      {
+        tag: 'Policy brief · Gobernanza digital',
+        title: 'Regular las plataformas sin debilitar el debate público',
+        body: 'Cuatro recomendaciones para los reguladores europeos y de África Occidental.',
+      },
+      {
+        tag: 'Nota de síntesis · Lucha contra la corrupción',
+        title:
+          'Seguir el dinero: transparencia presupuestaria y confianza cívica',
+        body: 'Lo que la contratación pública abierta cambia en la rendición de cuentas.',
+      },
+      {
+        tag: 'Working paper · Participación ciudadana',
+        title: 'La juventud como fuerza democrática, no como objetivo',
+        body: 'Siete dispositivos de participación puestos a prueba en Dakar y Bruselas.',
+      },
+    ],
+  },
+  barometre: {
+    eyebrow: 'Datos abiertos',
+    title: 'El Barómetro de la democracia',
+    body: 'Un índice compuesto África-Europa, una metodología publicada, conjuntos de datos citables. Datos de ilustración.',
+    countries: [
+      { name: 'Bélgica', score: '0.86' },
+      { name: 'Francia', score: '0.83' },
+      { name: 'Senegal', score: '0.71' },
+      { name: 'Ghana', score: '0.68' },
+      { name: 'Túnez', score: '0.49' },
+    ],
+    legend: [
+      'Libre',
+      'Bastante libre',
+      'Parcialmente',
+      'Poco libre',
+      'No libre',
+    ],
+    note: 'Pase el cursor sobre un país. Datos de ilustración.',
+    mapLabel: 'Mapa interactivo (demostración)',
+    links: ['Explorar las fichas por país', 'Descargar los datos'],
+  },
+  axes: {
+    title: 'Cinco ejes de trabajo',
+    items: [
+      {
+        n: '01',
+        title: 'Gobernanza digital',
+        body: 'Plataformas, desinformación, libertades en línea y regulación democrática de lo digital.',
+      },
+      {
+        n: '02',
+        title: 'Participación ciudadana',
+        body: 'Compromiso, deliberación y confianza en las instituciones democráticas.',
+      },
+      {
+        n: '03',
+        title: 'Lucha contra la corrupción',
+        body: 'Transparencia presupuestaria, integridad pública y rendición de cuentas.',
+      },
+      {
+        n: '04',
+        title: 'Transiciones democráticas',
+        body: 'Salida del autoritarismo, alternancias y resiliencia de las transiciones.',
+      },
+      {
+        n: '05',
+        title: 'Crisis globales y democracia',
+        body: 'Clima, seguridad y migraciones: el impacto de las crisis en la gobernanza.',
+      },
+    ],
+  },
+  events: {
+    title: 'Eventos',
+    cta: 'Toda la agenda',
+    featured: {
+      tag: 'Cumbre inaugural · París',
+      title: 'Conferencia inaugural de Democracy Together',
+      body: 'Una jornada de plenarios y talleres para lanzar la red y sus primeros trabajos conjuntos.',
+      action: 'Inscribirse',
+    },
+    items: [
+      {
+        date: '03 dic',
+        kind: 'Seminario web',
+        title: 'Desinformación electoral: defender la votación',
+        meta: 'En línea · FR / EN',
+      },
+      {
+        date: '22 ene',
+        kind: 'Taller regional · Dakar',
+        title: 'Financiar la sociedad civil en África Occidental',
+        meta: 'Presencial · Francés',
+      },
+      {
+        date: '14 feb',
+        kind: 'Taller regional · Bruselas',
+        title: 'Lo digital al servicio de la deliberación',
+        meta: 'Híbrido · FR / EN',
+      },
+    ],
+  },
+  youth: {
+    eyebrow: 'Hub joven',
+    title: '¿Tienes menos de 35 años e ideas para la democracia?',
+    body: 'Un espacio pensado para ti: un itinerario progresivo para aprender, contribuir y contar con el acompañamiento de mentores de la red.',
+    cta: 'Unirme al hub joven',
+    steps: [
+      {
+        n: '01',
+        title: 'Descubrir',
+        body: 'Entender los retos con formatos breves y accesibles.',
+      },
+      {
+        n: '02',
+        title: 'Aprender',
+        body: 'Caja de herramientas, seminarios web y módulos de refuerzo de capacidades.',
+      },
+      {
+        n: '03',
+        title: 'Contribuir',
+        body: 'Publicar una tribuna, unirte a un grupo de trabajo, solicitar una beca.',
+      },
+      {
+        n: '04',
+        title: 'Mentorizar',
+        body: 'Ser puesto en contacto con un mentor experimentado de la red.',
+      },
+    ],
+  },
+  join: {
+    title: 'Unirse a la red',
+    body: 'Tres formas de formar parte. La cuota es solidaria y se ajusta según el país.',
+    plans: [
+      {
+        label: 'Organización',
+        title: 'Centro de estudios miembro',
+        features: [
+          'Perfil de organización y publicaciones',
+          'Acceso a los proyectos y al fondo colaborativo',
+          'Voz en la gobernanza de la red',
+        ],
+        cta: 'Presentar candidatura',
+      },
+      {
+        label: 'Persona',
+        title: 'Miembro individual',
+        features: [
+          'Perfil de experto en el directorio',
+          'Espacios colaborativos y eventos',
+          'Carta de análisis reservada',
+        ],
+        cta: 'Adherirse',
+      },
+      {
+        label: 'Menores de 35 años',
+        title: 'Joven contribuidor',
+        features: [
+          'Acceso al hub joven',
+          'Mentoría y becas',
+          'Publicación acompañada',
+        ],
+        cta: 'Unirse a nosotros',
+      },
+    ],
+  },
+  newsletter: {
+    title: 'La carta de análisis',
+    body: 'Los trabajos de la red y el debate democrático, dos veces al mes.',
+    cta: 'Suscribirse',
+    placeholder: 'Su correo electrónico',
+  },
+};
+const pt: HomeContent = {
+  hero: {
+    eyebrow: 'Democracy Together',
+    title: 'A democracia precisa de uma rede.',
+    lead: 'A Democracy Together liga os centros de estudos de África e da Europa para produzir, partilhar e defender o pensamento democrático.',
+    ctaPrimary: 'Juntar-me à rede',
+    ctaSecondary: 'Ler as análises',
+    visualLabel: 'Cidadãos reunidos num fórum de debate',
+    visualCaption:
+      'Imagem de ilustração. Em produção: fotografia documental, digna e diversa.',
+    creds: [
+      { label: 'Estatuto', value: 'Associação loi 1901, sede em Paris' },
+      { label: 'Escritórios', value: 'Paris, Dakar, Bruxelas' },
+      {
+        label: 'Fundada por',
+        value: 'Abdou Samb, Philippe Kourilsky, Pierre Vimont',
+      },
+    ],
+  },
+  mission: {
+    title: 'Agregar as ideias, mobilizar a nova geração, pesar nas decisões',
+    cta: 'A nossa missão',
+    cells: [
+      {
+        ix: '01 Agregação',
+        title: 'Reunir a investigação democrática num só lugar',
+        body: 'Recolher, sintetizar e difundir as análises dos centros membros sobre governação digital, participação cidadã, combate à corrupção e transições democráticas.',
+      },
+      {
+        ix: '02 Promoção',
+        title: 'Levar as ideias ao debate',
+        body: 'Cimeira mundial em Paris, seminários online e oficinas regionais, parcerias com decisores, ONG e instituições académicas.',
+      },
+      {
+        ix: '03 Capacidades',
+        title: 'Apoiar a nova geração',
+        body: 'Mentoria e formação para os centros de estudos emergentes e os jovens contribuidores.',
+      },
+      {
+        ix: '04 Inclusão',
+        title: 'Diversidade real',
+        body: 'Perspetivas multidisciplinares e diversidade geográfica, cultural e de género.',
+      },
+    ],
+    barometer: {
+      label: 'O Barómetro',
+      title: 'Um índice África-Europa para medir a democracia',
+      body: 'O nosso ativo diferenciador: dados abertos e citáveis que alimentam o relatório anual sobre o estado da democracia.',
+    },
+  },
+  analyses: {
+    title: 'Últimas análises',
+    cta: 'Toda a biblioteca',
+    featured: {
+      tag: 'Relatório anual · 88 páginas · FR / EN',
+      title: 'O estado da democracia entre África e a Europa',
+      body: 'Uma leitura cruzada das trajetórias democráticas de dois continentes cujos destinos estão ligados, assente nos contributos de trinta e oito centros de estudos membros.',
+      chips: ['Transições democráticas', 'Dados abertos'],
+    },
+    items: [
+      {
+        tag: 'Policy brief · Governação digital',
+        title: 'Regular as plataformas sem enfraquecer o debate público',
+        body: 'Quatro recomendações para os reguladores europeus e da África Ocidental.',
+      },
+      {
+        tag: 'Nota de síntese · Combate à corrupção',
+        title: 'Seguir o dinheiro: transparência orçamental e confiança cívica',
+        body: 'O que a contratação pública aberta muda na prestação de contas.',
+      },
+      {
+        tag: 'Working paper · Participação cidadã',
+        title: 'A juventude como força democrática, não como alvo',
+        body: 'Sete dispositivos de participação testados em Dakar e em Bruxelas.',
+      },
+    ],
+  },
+  barometre: {
+    eyebrow: 'Dados abertos',
+    title: 'O Barómetro da democracia',
+    body: 'Um índice compósito África-Europa, uma metodologia publicada, conjuntos de dados citáveis. Dados de ilustração.',
+    countries: [
+      { name: 'Bélgica', score: '0.86' },
+      { name: 'França', score: '0.83' },
+      { name: 'Senegal', score: '0.71' },
+      { name: 'Gana', score: '0.68' },
+      { name: 'Tunísia', score: '0.49' },
+    ],
+    legend: [
+      'Livre',
+      'Bastante livre',
+      'Parcialmente',
+      'Pouco livre',
+      'Não livre',
+    ],
+    note: 'Passe o cursor sobre um país. Dados de ilustração.',
+    mapLabel: 'Mapa interativo (demonstração)',
+    links: ['Explorar as fichas por país', 'Descarregar os dados'],
+  },
+  axes: {
+    title: 'Cinco eixos de trabalho',
+    items: [
+      {
+        n: '01',
+        title: 'Governação digital',
+        body: 'Plataformas, desinformação, liberdades em linha e regulação democrática do digital.',
+      },
+      {
+        n: '02',
+        title: 'Participação cidadã',
+        body: 'Envolvimento, deliberação e confiança nas instituições democráticas.',
+      },
+      {
+        n: '03',
+        title: 'Combate à corrupção',
+        body: 'Transparência orçamental, integridade pública e prestação de contas.',
+      },
+      {
+        n: '04',
+        title: 'Transições democráticas',
+        body: 'Saída do autoritarismo, alternâncias e resiliência das transições.',
+      },
+      {
+        n: '05',
+        title: 'Crises globais e democracia',
+        body: 'Clima, segurança e migrações: o impacto das crises na governação.',
+      },
+    ],
+  },
+  events: {
+    title: 'Eventos',
+    cta: 'Toda a agenda',
+    featured: {
+      tag: 'Cimeira inaugural · Paris',
+      title: 'Conferência inaugural da Democracy Together',
+      body: 'Um dia de plenários e oficinas para lançar a rede e os seus primeiros trabalhos conjuntos.',
+      action: 'Inscrever-me',
+    },
+    items: [
+      {
+        date: '03 dez',
+        kind: 'Seminário online',
+        title: 'Desinformação eleitoral: defender o ato de voto',
+        meta: 'Em linha · FR / EN',
+      },
+      {
+        date: '22 jan',
+        kind: 'Oficina regional · Dakar',
+        title: 'Financiar a sociedade civil na África Ocidental',
+        meta: 'Presencial · Francês',
+      },
+      {
+        date: '14 fev',
+        kind: 'Oficina regional · Bruxelas',
+        title: 'O digital ao serviço da deliberação',
+        meta: 'Híbrido · FR / EN',
+      },
+    ],
+  },
+  youth: {
+    eyebrow: 'Hub jovem',
+    title: 'Tens menos de 35 anos e ideias para a democracia?',
+    body: 'Um espaço pensado para ti: um percurso progressivo para aprender, contribuir e ser acompanhado por mentores da rede.',
+    cta: 'Juntar-me ao hub jovem',
+    steps: [
+      {
+        n: '01',
+        title: 'Descobrir',
+        body: 'Compreender os desafios com formatos curtos e acessíveis.',
+      },
+      {
+        n: '02',
+        title: 'Aprender',
+        body: 'Caixa de ferramentas, seminários online e módulos de reforço de capacidades.',
+      },
+      {
+        n: '03',
+        title: 'Contribuir',
+        body: 'Publicar uma tribuna, juntar-te a um grupo de trabalho, candidatar-te a uma bolsa.',
+      },
+      {
+        n: '04',
+        title: 'Ser mentor',
+        body: 'Ser posto em contacto com um mentor experiente da rede.',
+      },
+    ],
+  },
+  join: {
+    title: 'Juntar-se à rede',
+    body: 'Três formas de fazer parte. A quota é solidária e ajustada consoante o país.',
+    plans: [
+      {
+        label: 'Organização',
+        title: 'Centro de estudos membro',
+        features: [
+          'Perfil de organização e publicações',
+          'Acesso aos projetos e ao fundo colaborativo',
+          'Voz na governação da rede',
+        ],
+        cta: 'Candidatar-me',
+      },
+      {
+        label: 'Pessoa',
+        title: 'Membro individual',
+        features: [
+          'Perfil de especialista no diretório',
+          'Espaços colaborativos e eventos',
+          'Carta de análises reservada',
+        ],
+        cta: 'Aderir',
+      },
+      {
+        label: 'Menos de 35 anos',
+        title: 'Jovem contribuidor',
+        features: [
+          'Acesso ao hub jovem',
+          'Mentoria e bolsas',
+          'Publicação acompanhada',
+        ],
+        cta: 'Juntar-me a nós',
+      },
+    ],
+  },
+  newsletter: {
+    title: 'A carta de análises',
+    body: 'Os trabalhos da rede e o debate democrático, duas vezes por mês.',
+    cta: 'Subscrever',
+    placeholder: 'O seu e-mail',
+  },
+};
+const ar: HomeContent = {
+  hero: {
+    eyebrow: 'Democracy Together',
+    title: 'الديمقراطية في حاجة إلى شبكة.',
+    lead: 'تربط Democracy Together بين مراكز الدراسات في أفريقيا وأوروبا لإنتاج الفكر الديمقراطي وتقاسمه والدفاع عنه.',
+    ctaPrimary: 'الانضمام إلى الشبكة',
+    ctaSecondary: 'قراءة التحليلات',
+    visualLabel: 'مواطنون مجتمعون في منتدى للنقاش',
+    visualCaption:
+      'صورة توضيحية. وفي النسخة النهائية: تصوير وثائقي يحفظ الكرامة ويعكس التنوع.',
+    creds: [
+      {
+        label: 'الوضع القانوني',
+        value: 'جمعية خاضعة لقانون 1901، مقرها بباريس',
+      },
+      { label: 'المكاتب', value: 'باريس، داكار، بروكسل' },
+      {
+        label: 'من تأسيس',
+        value: 'عبدو سامب، فيليب كوريلسكي، بيير فيمون',
+      },
+    ],
+  },
+  mission: {
+    title: 'تجميع الأفكار، وتعبئة الجيل الصاعد، والتأثير في القرارات',
+    cta: 'رسالتنا',
+    cells: [
+      {
+        ix: '01 التجميع',
+        title: 'جمع البحث الديمقراطي في مكان واحد',
+        body: 'جمع تحليلات مراكز الدراسات الأعضاء وتلخيصها ونشرها في مجالات الحوكمة الرقمية والمشاركة المواطنة ومكافحة الفساد والانتقالات الديمقراطية.',
+      },
+      {
+        ix: '02 الترويج',
+        title: 'حمل الأفكار إلى قلب النقاش',
+        body: 'قمة عالمية بباريس، وندوات عبر الإنترنت وورشات جهوية، وشراكات مع صانعي القرار والمنظمات غير الحكومية والمؤسسات الأكاديمية.',
+      },
+      {
+        ix: '03 القدرات',
+        title: 'دعم الجيل الصاعد',
+        body: 'توجيه وتكوين لفائدة مراكز الدراسات الناشئة والمساهمين الشباب.',
+      },
+      {
+        ix: '04 الإدماج',
+        title: 'تنوع حقيقي',
+        body: 'مقاربات متعددة التخصصات وتنوع جغرافي وثقافي ونوعي.',
+      },
+    ],
+    barometer: {
+      label: 'المؤشر',
+      title: 'مؤشر لأفريقيا وأوروبا لقياس الديمقراطية',
+      body: 'ما يميّزنا: بيانات مفتوحة قابلة للاستشهاد تغذّي التقرير السنوي حول حالة الديمقراطية.',
+    },
+  },
+  analyses: {
+    title: 'أحدث التحليلات',
+    cta: 'المكتبة كاملة',
+    featured: {
+      tag: 'تقرير سنوي · 88 صفحة · FR / EN',
+      title: 'حالة الديمقراطية بين أفريقيا وأوروبا',
+      body: 'قراءة متقاطعة للمسارات الديمقراطية لقارتين تتشابك مصائرهما، تستند إلى مساهمات ثمانية وثلاثين مركز دراسات عضواً.',
+      chips: ['الانتقالات الديمقراطية', 'البيانات المفتوحة'],
+    },
+    items: [
+      {
+        tag: 'موجز سياسات · الحوكمة الرقمية',
+        title: 'تنظيم المنصات دون إضعاف النقاش العمومي',
+        body: 'أربع توصيات موجَّهة إلى الجهات المنظِّمة في أوروبا وغرب أفريقيا.',
+      },
+      {
+        tag: 'مذكرة تركيبية · مكافحة الفساد',
+        title: 'تتبّع المال: شفافية الميزانية والثقة المدنية',
+        body: 'ما الذي تغيّره الصفقات العمومية المفتوحة في مجال المساءلة.',
+      },
+      {
+        tag: 'ورقة عمل · المشاركة المواطنة',
+        title: 'الشباب قوة ديمقراطية، لا فئة مستهدَفة',
+        body: 'سبع آليات للانخراط جُرِّبت في داكار وبروكسل.',
+      },
+    ],
+  },
+  barometre: {
+    eyebrow: 'بيانات مفتوحة',
+    title: 'مؤشر الديمقراطية',
+    body: 'مؤشر مركّب لأفريقيا وأوروبا، ومنهجية منشورة، ومجموعات بيانات قابلة للاستشهاد. بيانات توضيحية.',
+    countries: [
+      { name: 'بلجيكا', score: '0.86' },
+      { name: 'فرنسا', score: '0.83' },
+      { name: 'السنغال', score: '0.71' },
+      { name: 'غانا', score: '0.68' },
+      { name: 'تونس', score: '0.49' },
+    ],
+    legend: ['حرّ', 'حرّ إلى حد كبير', 'حرّ جزئياً', 'قليل الحرية', 'غير حرّ'],
+    note: 'مرّروا المؤشر فوق بلد. بيانات توضيحية.',
+    mapLabel: 'خريطة تفاعلية (عرض تجريبي)',
+    links: ['استكشاف بطاقات البلدان', 'تنزيل البيانات'],
+  },
+  axes: {
+    title: 'خمسة محاور عمل',
+    items: [
+      {
+        n: '01',
+        title: 'الحوكمة الرقمية',
+        body: 'المنصات، والتضليل، والحريات على الإنترنت، والتنظيم الديمقراطي للمجال الرقمي.',
+      },
+      {
+        n: '02',
+        title: 'المشاركة المواطنة',
+        body: 'الانخراط، والتداول، والثقة في المؤسسات الديمقراطية.',
+      },
+      {
+        n: '03',
+        title: 'مكافحة الفساد',
+        body: 'شفافية الميزانية، ونزاهة المرفق العام، والمساءلة.',
+      },
+      {
+        n: '04',
+        title: 'الانتقالات الديمقراطية',
+        body: 'الخروج من الاستبداد، والتناوب، وقدرة الانتقالات على الصمود.',
+      },
+      {
+        n: '05',
+        title: 'الأزمات العالمية والديمقراطية',
+        body: 'المناخ والأمن والهجرة: أثر الأزمات على الحوكمة.',
+      },
+    ],
+  },
+  events: {
+    title: 'الفعاليات',
+    cta: 'الأجندة كاملة',
+    featured: {
+      tag: 'القمة التأسيسية · باريس',
+      title: 'المؤتمر التأسيسي لـ Democracy Together',
+      body: 'يوم من الجلسات العامة والورشات لإطلاق الشبكة وأولى أعمالها المشتركة.',
+      action: 'التسجيل',
+    },
+    items: [
+      {
+        date: '03 دجنبر',
+        kind: 'ندوة عبر الإنترنت',
+        title: 'التضليل الانتخابي: الدفاع عن العملية الاقتراعية',
+        meta: 'عن بُعد · FR / EN',
+      },
+      {
+        date: '22 يناير',
+        kind: 'ورشة جهوية · داكار',
+        title: 'تمويل المجتمع المدني في غرب أفريقيا',
+        meta: 'حضورياً · بالفرنسية',
+      },
+      {
+        date: '14 فبراير',
+        kind: 'ورشة جهوية · بروكسل',
+        title: 'الرقمي في خدمة التداول',
+        meta: 'مختلط · FR / EN',
+      },
+    ],
+  },
+  youth: {
+    eyebrow: 'فضاء الشباب',
+    title: 'عمرك دون 35 سنة ولديك أفكار من أجل الديمقراطية؟',
+    body: 'فضاء صُمِّم من أجلك: مسار تدريجي للتعلّم والمساهمة والاستفادة من مرافقة موجّهين من الشبكة.',
+    cta: 'الانضمام إلى فضاء الشباب',
+    steps: [
+      {
+        n: '01',
+        title: 'الاكتشاف',
+        body: 'فهم الرهانات عبر صيغ قصيرة وميسّرة.',
+      },
+      {
+        n: '02',
+        title: 'التعلّم',
+        body: 'حقيبة أدوات، وندوات عبر الإنترنت، ووحدات لتعزيز القدرات.',
+      },
+      {
+        n: '03',
+        title: 'المساهمة',
+        body: 'نشر مقال رأي، أو الانضمام إلى مجموعة عمل، أو الترشح لمنحة.',
+      },
+      {
+        n: '04',
+        title: 'التوجيه',
+        body: 'أن تُربَط بموجّه ذي خبرة من الشبكة.',
+      },
+    ],
+  },
+  join: {
+    title: 'الانضمام إلى الشبكة',
+    body: 'ثلاث طرق لتكون جزءاً منها. الاشتراك تضامني ويُعدَّل حسب البلد.',
+    plans: [
+      {
+        label: 'منظمة',
+        title: 'مركز دراسات عضو',
+        features: [
+          'ملف المنظمة ومنشوراتها',
+          'النفاذ إلى المشاريع وإلى الصندوق التعاوني',
+          'صوت في حوكمة الشبكة',
+        ],
+        cta: 'تقديم ترشيح',
+      },
+      {
+        label: 'فرد',
+        title: 'عضو فردي',
+        features: [
+          'ملف خبير في الدليل',
+          'فضاءات عمل مشترك وفعاليات',
+          'نشرة تحليلات محجوزة للأعضاء',
+        ],
+        cta: 'الانضمام',
+      },
+      {
+        label: 'دون 35 سنة',
+        title: 'مساهم شاب',
+        features: [
+          'النفاذ إلى فضاء الشباب',
+          'التوجيه والمنح',
+          'نشر مصحوب بمرافقة',
+        ],
+        cta: 'انضم إلينا',
+      },
+    ],
+  },
+  newsletter: {
+    title: 'نشرة التحليلات',
+    body: 'أعمال الشبكة والنقاش الديمقراطي، مرتين في الشهر.',
+    cta: 'الاشتراك',
+    placeholder: 'بريدكم الإلكتروني',
+  },
+};
+
+// Table exhaustive par construction (cf. `projects-content.ts`).
+const BY_LOCALE: Record<Locale, HomeContent> = { fr, en, es, pt, ar };
+
 export function homeFallback(locale: Locale): HomeContent {
-  return locale === 'en' ? en : fr;
+  return BY_LOCALE[locale];
 }

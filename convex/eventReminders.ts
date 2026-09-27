@@ -14,6 +14,7 @@ import {
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { sendEmail } from './email';
+import { eventReminderEmail } from './lib/emailContent';
 import { locale } from './schema';
 
 // Rappels d'événements par e-mail (F-55). Un visiteur — sans compte — demande à
@@ -39,34 +40,6 @@ const MAX_PENDING_REMINDERS_PER_EMAIL = 5;
 // c'est un choix d'architecture, pas une ligne à écrire, et il est posé au
 // rapport d'audit plutôt que tranché en passant. `events.ts` a exactement la
 // même limite sur `register`.
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-// Corps de rappel — simple, en français (comme l'OTP / la newsletter).
-function reminderHtml(
-  eventSlug: string,
-  eventDate: number,
-  loc: string,
-): string {
-  const site = process.env.SITE_URL ?? 'https://democracy-together.vercel.app';
-  const url = `${site}/${loc}/evenements/${encodeURIComponent(eventSlug)}`;
-  const when = new Intl.DateTimeFormat('fr', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(eventDate);
-  return `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:auto;color:#16191f">
-    <h2 style="font-family:Georgia,serif;color:#1f3d6e">Democracy Together</h2>
-    <p>Vous aviez demandé un rappel pour un événement à venir.</p>
-    <p>Il a lieu le <strong>${escapeHtml(when)}</strong>. Retrouvez les informations pratiques et confirmez votre présence&nbsp;:</p>
-    <p><a href="${url}">${escapeHtml(url)}</a></p>
-    <hr style="border:none;border-top:1px solid #d9d6cd;margin:24px 0"/>
-    <p style="color:#646771;font-size:12px">Vous recevez cet e-mail car vous avez demandé un rappel sur le site de Democracy Together.</p>
-  </div>`;
-}
 
 // --- Demande publique de rappel (F-55) --------------------------------------
 // Sans compte (comme l'inscription F-53). Valide l'e-mail, borne le slug,
@@ -218,13 +191,20 @@ export const sendDueReminders = internalAction({
       now: Date.now(),
     });
     for (const r of due) {
+      // La ligne portait DÉJÀ la langue du demandeur ; elle ne servait qu'à
+      // construire l'URL. Le sujet, le corps et le format de date restaient
+      // français — y compris pour quelqu'un qui avait demandé son rappel depuis
+      // la version arabe du site.
       const loc = r.locale ?? 'fr';
       try {
-        await sendEmail({
-          to: r.email,
-          subject: 'Rappel — un événement Democracy Together approche',
-          html: reminderHtml(r.eventSlug, r.eventDate, loc),
+        const { subject, html } = eventReminderEmail({
+          eventSlug: r.eventSlug,
+          eventDate: r.eventDate,
+          siteUrl:
+            process.env.SITE_URL ?? 'https://democracy-together.vercel.app',
+          locale: loc,
         });
+        await sendEmail({ to: r.email, subject, html });
       } catch {
         // L'envoi a échoué (fournisseur indisponible) : on NE marque PAS sent,
         // le prochain passage du cron retentera.

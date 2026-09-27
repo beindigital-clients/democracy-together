@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import type { PublicPublication } from '@convex/lib/publications';
 import { formatMonthYear } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
+import { intlLocale } from '@/i18n/locale';
 
 // La carte ne reçoit que ce que les queries publiques servent — pas le
 // document complet (issue #30).
@@ -121,7 +122,7 @@ export async function PublicationCard({
             className="inline-flex items-center gap-1 font-mono text-[11px] text-muted"
             title={t('downloads')}
           >
-            ↓ {pub.downloads.toLocaleString(locale)}
+            ↓ {pub.downloads.toLocaleString(intlLocale(locale))}
           </span>
           <span
             className="inline-flex items-center gap-1 font-mono text-[11px] text-muted"
@@ -129,7 +130,7 @@ export async function PublicationCard({
           >
             ❝ {pub.citations}
           </span>
-          <span className="ml-auto truncate font-mono text-[10.5px] text-muted">
+          <span className="ms-auto truncate font-mono text-[10.5px] text-muted">
             {pub.doi}
           </span>
         </div>

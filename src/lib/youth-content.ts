@@ -1,3 +1,5 @@
+import type { Locale } from '@/i18n/routing';
+
 // Hub jeunes (F-40) — contenu porté 1:1 depuis la maquette agence
 // `design/rmdl-jeunes.html`. Univers visuel "jeunes" (safran) appliqué via
 // data-universe sur la page. Données d'illustration (profil, stats, témoignage
@@ -66,7 +68,11 @@ const fr: YouthContent = {
     lead: 'Un espace pour les moins de 35 ans : apprendre, contribuer, publier, et être accompagné par des mentors du réseau. En Afrique comme en Europe.',
     ctaJoin: 'Rejoindre le hub',
     ctaPrograms: 'Voir les programmes',
-    badges: ['Gratuit pour les jeunes', 'Mobile d’abord', 'FR / EN'],
+    badges: [
+      'Gratuit pour les jeunes',
+      'Mobile d’abord',
+      'FR / EN / ES / PT / AR',
+    ],
   },
   parcours: {
     eyebrow: 'Ton parcours',
@@ -205,7 +211,7 @@ const en: YouthContent = {
     lead: 'A space for under-35s: learn, contribute, publish, and be supported by mentors from the network. In Africa as in Europe.',
     ctaJoin: 'Join the hub',
     ctaPrograms: 'See the programmes',
-    badges: ['Free for young people', 'Mobile first', 'FR / EN'],
+    badges: ['Free for young people', 'Mobile first', 'FR / EN / ES / PT / AR'],
   },
   parcours: {
     eyebrow: 'Your path',
@@ -335,6 +341,434 @@ const en: YouthContent = {
   },
 };
 
-export function getYouthContent(locale: 'fr' | 'en'): YouthContent {
-  return locale === 'en' ? en : fr;
+const es: YouthContent = {
+  hero: {
+    chip: 'Hub joven',
+    titlePre: 'Tienes ideas para la democracia. Te damos los medios para ',
+    titleEm: 'actuar',
+    titlePost: '.',
+    lead: 'Un espacio para menores de 35 años: aprender, contribuir, publicar y contar con el acompañamiento de mentores de la red. En África como en Europa.',
+    ctaJoin: 'Unirme al hub',
+    ctaPrograms: 'Ver los programas',
+    badges: [
+      'Gratuito para jóvenes',
+      'Primero el móvil',
+      'FR / EN / ES / PT / AR',
+    ],
+  },
+  parcours: {
+    eyebrow: 'Tu itinerario',
+    title: 'Cuatro etapas, a tu ritmo',
+    lead: 'Avanzas cuando quieres. Cada etapa desbloquea la siguiente y hace crecer tu perfil dentro de la red.',
+    steps: [
+      {
+        n: '1',
+        title: 'Descubrir',
+        body: 'Entender los retos con formatos breves y accesibles.',
+      },
+      {
+        n: '2',
+        title: 'Aprender',
+        body: 'Caja de herramientas, seminarios web y módulos de refuerzo de capacidades.',
+      },
+      {
+        n: '3',
+        title: 'Contribuir',
+        body: 'Publicar una tribuna, unirte a un grupo de trabajo, solicitar una beca.',
+      },
+      {
+        n: '4',
+        title: 'Mentorizar',
+        body: 'Transmitir a tu vez y acompañar a alguien de la red.',
+      },
+    ],
+    gam: {
+      title: 'Tu progresión cuenta',
+      body: 'Cada contribución te hace ganar insignias y visibilidad ante los centros de estudios miembros. Un reconocimiento concreto, no un adorno.',
+      badges: [
+        { letter: 'D', label: 'Descubridor', locked: false },
+        { letter: 'C', label: 'Contribuidor', locked: false },
+        { letter: 'M', label: 'Mentor', locked: true },
+        { letter: 'A', label: 'Embajador', locked: true },
+      ],
+      levelLabel: 'Tu nivel',
+      level: 'Nivel 2 · Contribuidor',
+      points: '620 / 1000 puntos',
+      remaining: 'Solo 2 contribuciones más',
+      chips: ['3 publicaciones', '1 seminario web', 'Perfil verificado'],
+      note: 'Perfil de ejemplo',
+      pct: 62,
+    },
+  },
+  programmes: {
+    title: 'Los programas',
+    lead: 'Dispositivos concretos para pasar de la idea a la acción.',
+    featured: {
+      kicker: 'Destacado',
+      title: 'Mentoría',
+      body: 'Te emparejamos con un mentor experimentado de la red, según tu lengua, tu región y tus temas. Seis meses de acompañamiento, objetivos claros y un seguimiento real.',
+      cta: 'Solicitar un mentor',
+    },
+    funding: {
+      kicker: 'Financiación',
+      title: 'Becas específicas',
+      body: 'Becas para jóvenes investigadores y centros de estudios emergentes, con prioridad en las regiones frágiles.',
+      cta: 'Ver las becas',
+    },
+    items: [
+      {
+        kicker: 'Aprender',
+        title: 'Caja de herramientas',
+        body: 'Guías, plantillas y módulos breves para ganar competencias, con certificación.',
+        cta: 'Abrir la caja',
+      },
+      {
+        kicker: 'Publicar',
+        title: 'Tribunas',
+        body: 'Envía una contribución breve, acompañada de un apoyo editorial de la red.',
+        cta: 'Proponer una tribuna',
+      },
+      {
+        kicker: 'Actuar',
+        title: 'Campañas',
+        body: 'Súmate a campañas de sensibilización y a eventos jóvenes en Dakar y Bruselas.',
+        cta: 'Ver las campañas',
+      },
+    ],
+  },
+  mentor: {
+    eyebrow: 'Mentoría',
+    title: 'Una pareja de trabajo, no un formulario',
+    body: 'El emparejamiento se hace según tus temas, tu lengua y tu región. Fijas los objetivos con tu mentor; la red asegura el seguimiento y la regularidad de las sesiones.',
+    cta: 'Encontrar mi mentor',
+    mentors: [
+      {
+        initials: 'AW',
+        name: 'Aminata Wade',
+        field: 'Gobernanza local · Dakar',
+        role: 'Mentora',
+      },
+      {
+        initials: 'PV',
+        name: 'Pieter Vandenberghe',
+        field: 'Democracia digital · Bruselas',
+        role: 'Mentor',
+      },
+      {
+        initials: 'LK',
+        name: 'Linda Kouassi',
+        field: 'Lucha contra la corrupción · Abiyán',
+        role: 'Mentora',
+      },
+    ],
+  },
+  testimonial: {
+    quote:
+      'Publiqué mi primera tribuna a los 23 años gracias al hub. Seis meses después, mi centro de estudios me contrató. La red me abrió puertas que creía cerradas.',
+    attrName: 'Fatou N., 24 años',
+    attrPlace: 'Dakar',
+    attrNote: '(testimonio de ilustración)',
+    stats: [
+      { n: '1 200', u: '+', label: 'Jóvenes comprometidos' },
+      { n: '180', label: 'Parejas de mentoría' },
+      { n: '45', label: 'Becas concedidas' },
+      { n: '22', label: 'Países representados' },
+    ],
+    note: 'Datos de ilustración',
+  },
+  cta: {
+    title: '¿Listo para unirte al hub?',
+    body: 'La inscripción lleva tres minutos. Gratuita para menores de 35 años, en toda la red.',
+    primary: 'Crear mi perfil',
+    secondary: 'Descubrir Democracy Together',
+  },
+};
+
+const pt: YouthContent = {
+  hero: {
+    chip: 'Hub jovem',
+    titlePre: 'Tens ideias para a democracia. Damos-te os meios para ',
+    titleEm: 'agir',
+    titlePost: '.',
+    lead: 'Um espaço para menores de 35 anos: aprender, contribuir, publicar e ser acompanhado por mentores da rede. Em África como na Europa.',
+    ctaJoin: 'Juntar-me ao hub',
+    ctaPrograms: 'Ver os programas',
+    badges: [
+      'Gratuito para jovens',
+      'Primeiro o telemóvel',
+      'FR / EN / ES / PT / AR',
+    ],
+  },
+  parcours: {
+    eyebrow: 'O teu percurso',
+    title: 'Quatro etapas, ao teu ritmo',
+    lead: 'Avanças quando quiseres. Cada etapa desbloqueia a seguinte e faz crescer o teu perfil na rede.',
+    steps: [
+      {
+        n: '1',
+        title: 'Descobrir',
+        body: 'Compreender os desafios com formatos curtos e acessíveis.',
+      },
+      {
+        n: '2',
+        title: 'Aprender',
+        body: 'Caixa de ferramentas, seminários online e módulos de reforço de capacidades.',
+      },
+      {
+        n: '3',
+        title: 'Contribuir',
+        body: 'Publicar uma tribuna, juntar-te a um grupo de trabalho, candidatar-te a uma bolsa.',
+      },
+      {
+        n: '4',
+        title: 'Ser mentor',
+        body: 'Transmitir por tua vez e acompanhar alguém da rede.',
+      },
+    ],
+    gam: {
+      title: 'A tua progressão conta',
+      body: 'Cada contribuição dá-te distintivos e visibilidade junto dos centros de estudos membros. Um reconhecimento concreto, não um adorno.',
+      badges: [
+        { letter: 'D', label: 'Descobridor', locked: false },
+        { letter: 'C', label: 'Contribuidor', locked: false },
+        { letter: 'M', label: 'Mentor', locked: true },
+        { letter: 'A', label: 'Embaixador', locked: true },
+      ],
+      levelLabel: 'O teu nível',
+      level: 'Nível 2 · Contribuidor',
+      points: '620 / 1000 pontos',
+      remaining: 'Faltam apenas 2 contribuições',
+      chips: ['3 publicações', '1 seminário online', 'Perfil verificado'],
+      note: 'Perfil de exemplo',
+      pct: 62,
+    },
+  },
+  programmes: {
+    title: 'Os programas',
+    lead: 'Dispositivos concretos para passar da ideia à ação.',
+    featured: {
+      kicker: 'Destaque',
+      title: 'Mentoria',
+      body: 'Associamos-te a um mentor experiente da rede, consoante a tua língua, a tua região e os teus temas. Seis meses de acompanhamento, objetivos claros e um seguimento a sério.',
+      cta: 'Pedir um mentor',
+    },
+    funding: {
+      kicker: 'Financiamento',
+      title: 'Bolsas dirigidas',
+      body: 'Bolsas para jovens investigadores e centros de estudos emergentes, com prioridade nas regiões frágeis.',
+      cta: 'Ver as bolsas',
+    },
+    items: [
+      {
+        kicker: 'Aprender',
+        title: 'Caixa de ferramentas',
+        body: 'Guias, modelos e módulos curtos para ganhar competências, com certificação.',
+        cta: 'Abrir a caixa',
+      },
+      {
+        kicker: 'Publicar',
+        title: 'Tribunas',
+        body: 'Envia uma contribuição curta, acompanhada de um apoio editorial da rede.',
+        cta: 'Propor uma tribuna',
+      },
+      {
+        kicker: 'Agir',
+        title: 'Campanhas',
+        body: 'Junta-te a campanhas de sensibilização e a eventos jovens em Dakar e Bruxelas.',
+        cta: 'Ver as campanhas',
+      },
+    ],
+  },
+  mentor: {
+    eyebrow: 'Mentoria',
+    title: 'Uma dupla, não um formulário',
+    body: 'O emparelhamento faz-se pelos teus temas, pela tua língua e pela tua região. Defines os objetivos com o teu mentor; a rede garante o seguimento e a regularidade das sessões.',
+    cta: 'Encontrar o meu mentor',
+    mentors: [
+      {
+        initials: 'AW',
+        name: 'Aminata Wade',
+        field: 'Governação local · Dakar',
+        role: 'Mentora',
+      },
+      {
+        initials: 'PV',
+        name: 'Pieter Vandenberghe',
+        field: 'Democracia digital · Bruxelas',
+        role: 'Mentor',
+      },
+      {
+        initials: 'LK',
+        name: 'Linda Kouassi',
+        field: 'Combate à corrupção · Abidjan',
+        role: 'Mentora',
+      },
+    ],
+  },
+  testimonial: {
+    quote:
+      'Publiquei a minha primeira tribuna aos 23 anos graças ao hub. Seis meses depois, o meu centro de estudos contratou-me. A rede abriu-me portas que julgava fechadas.',
+    attrName: 'Fatou N., 24 anos',
+    attrPlace: 'Dakar',
+    attrNote: '(testemunho de ilustração)',
+    stats: [
+      { n: '1 200', u: '+', label: 'Jovens envolvidos' },
+      { n: '180', label: 'Duplas de mentoria' },
+      { n: '45', label: 'Bolsas atribuídas' },
+      { n: '22', label: 'Países representados' },
+    ],
+    note: 'Dados de ilustração',
+  },
+  cta: {
+    title: 'Pronto para te juntares ao hub?',
+    body: 'A inscrição demora três minutos. Gratuita para menores de 35 anos, em toda a rede.',
+    primary: 'Criar o meu perfil',
+    secondary: 'Descobrir a Democracy Together',
+  },
+};
+
+const ar: YouthContent = {
+  hero: {
+    chip: 'فضاء الشباب',
+    titlePre: 'لديك أفكار من أجل الديمقراطية. ونحن نمنحك وسائل ',
+    titleEm: 'الفعل',
+    titlePost: '.',
+    lead: 'فضاء لمن هم دون الخامسة والثلاثين: للتعلّم والمساهمة والنشر، بمرافقة موجّهين من الشبكة. في أفريقيا كما في أوروبا.',
+    ctaJoin: 'الانضمام إلى الفضاء',
+    ctaPrograms: 'اطّلع على البرامج',
+    badges: ['مجاني للشباب', 'الهاتف أولاً', 'FR / EN / ES / PT / AR'],
+  },
+  parcours: {
+    eyebrow: 'مسارك',
+    title: 'أربع مراحل، بإيقاعك أنت',
+    lead: 'تتقدّم متى شئت. كل مرحلة تفتح التي تليها وتنمّي حضورك داخل الشبكة.',
+    steps: [
+      {
+        n: '1',
+        title: 'الاكتشاف',
+        body: 'فهم الرهانات عبر صيغ قصيرة وميسّرة.',
+      },
+      {
+        n: '2',
+        title: 'التعلّم',
+        body: 'حقيبة أدوات، وندوات عبر الإنترنت، ووحدات لتعزيز القدرات.',
+      },
+      {
+        n: '3',
+        title: 'المساهمة',
+        body: 'نشر مقال رأي، أو الانضمام إلى مجموعة عمل، أو الترشح لمنحة.',
+      },
+      {
+        n: '4',
+        title: 'التوجيه',
+        body: 'أن تنقل بدورك ما تعلّمته، وأن ترافق شخصاً من الشبكة.',
+      },
+    ],
+    gam: {
+      title: 'تقدّمك له وزن',
+      body: 'كل مساهمة تكسبك شارات وحضوراً لدى مراكز الدراسات الأعضاء. اعتراف ملموس، لا مجرد زينة.',
+      badges: [
+        { letter: 'D', label: 'مكتشِف', locked: false },
+        { letter: 'C', label: 'مساهِم', locked: false },
+        { letter: 'M', label: 'موجِّه', locked: true },
+        { letter: 'A', label: 'سفير', locked: true },
+      ],
+      levelLabel: 'مستواك',
+      level: 'المستوى 2 · مساهِم',
+      points: '620 / 1000 نقطة',
+      remaining: 'لم يتبقَّ سوى مساهمتين',
+      chips: ['3 منشورات', 'ندوة واحدة', 'ملف موثَّق'],
+      note: 'ملف تعريفي نموذجي',
+      pct: 62,
+    },
+  },
+  programmes: {
+    title: 'البرامج',
+    lead: 'آليات ملموسة للانتقال من الفكرة إلى الفعل.',
+    featured: {
+      kicker: 'البرنامج الرئيسي',
+      title: 'التوجيه',
+      body: 'نقرنك بموجّه ذي خبرة من الشبكة، وفق لغتك ومنطقتك ومواضيع اهتمامك. ستة أشهر من المرافقة، وأهداف واضحة، ومتابعة حقيقية.',
+      cta: 'اطلب موجّهاً',
+    },
+    funding: {
+      kicker: 'التمويل',
+      title: 'منح موجّهة',
+      body: 'منح للباحثين الشباب ولمراكز الدراسات الناشئة، بالأولوية في المناطق الهشّة.',
+      cta: 'اطّلع على المنح',
+    },
+    items: [
+      {
+        kicker: 'التعلّم',
+        title: 'حقيبة الأدوات',
+        body: 'أدلة ونماذج ووحدات قصيرة لتطوير الكفاءات، مع شهادة.',
+        cta: 'افتح الحقيبة',
+      },
+      {
+        kicker: 'النشر',
+        title: 'مقالات الرأي',
+        body: 'أرسل مساهمة قصيرة، مصحوبة بدعم تحريري من الشبكة.',
+        cta: 'اقترح مقال رأي',
+      },
+      {
+        kicker: 'الفعل',
+        title: 'الحملات',
+        body: 'انضم إلى حملات التوعية وإلى فعاليات الشباب في داكار وبروكسل.',
+        cta: 'اطّلع على الحملات',
+      },
+    ],
+  },
+  mentor: {
+    eyebrow: 'التوجيه',
+    title: 'ثنائي عمل، لا استمارة',
+    body: 'يتم الإقران وفق مواضيعك ولغتك ومنطقتك. أنت تحدّد الأهداف مع موجّهك، والشبكة تتكفّل بالمتابعة وبانتظام الجلسات.',
+    cta: 'ابحث عن موجّهي',
+    mentors: [
+      {
+        initials: 'أ.و',
+        name: 'أميناتا واد',
+        field: 'الحوكمة المحلية · داكار',
+        role: 'موجِّهة',
+      },
+      {
+        initials: 'ب.ف',
+        name: 'بيتر فاندنبرغ',
+        field: 'الديمقراطية الرقمية · بروكسل',
+        role: 'موجِّه',
+      },
+      {
+        initials: 'ل.ك',
+        name: 'ليندا كواسي',
+        field: 'مكافحة الفساد · أبيدجان',
+        role: 'موجِّهة',
+      },
+    ],
+  },
+  testimonial: {
+    quote:
+      'نشرتُ أول مقال رأي لي في الثالثة والعشرين بفضل هذا الفضاء. وبعد ستة أشهر، وظّفني مركز الدراسات الذي أعمل به. فتحت لي الشبكة أبواباً كنت أحسبها موصدة.',
+    attrName: 'فاطو ن.، 24 سنة',
+    attrPlace: 'داكار',
+    attrNote: '(شهادة توضيحية)',
+    stats: [
+      { n: '1 200', u: '+', label: 'شاب منخرط' },
+      { n: '180', label: 'ثنائي توجيه' },
+      { n: '45', label: 'منحة مُسندة' },
+      { n: '22', label: 'بلداً ممثَّلاً' },
+    ],
+    note: 'بيانات توضيحية',
+  },
+  cta: {
+    title: 'هل أنت مستعد للانضمام؟',
+    body: 'لا يستغرق التسجيل سوى ثلاث دقائق. مجاني لمن هم دون الخامسة والثلاثين، في كل أنحاء الشبكة.',
+    primary: 'أنشئ ملفي',
+    secondary: 'اكتشف Democracy Together',
+  },
+};
+
+// Table exhaustive par construction (cf. `projects-content.ts`).
+const BY_LOCALE: Record<Locale, YouthContent> = { fr, en, es, pt, ar };
+
+export function getYouthContent(locale: Locale): YouthContent {
+  return BY_LOCALE[locale];
 }

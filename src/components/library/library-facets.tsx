@@ -106,7 +106,7 @@ export async function LibraryFacets({
                     <span className={active ? 'text-ink' : undefined}>
                       {vocabulary(t, `${g.ns}.`, opt.value)}
                     </span>
-                    <span className="ml-auto font-mono text-[11px] text-muted">
+                    <span className="ms-auto font-mono text-[11px] text-muted">
                       {opt.count}
                     </span>
                   </Link>

@@ -4,7 +4,7 @@ import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { PUB_THEMES } from '@/lib/publications';
 import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
@@ -66,7 +66,7 @@ export default async function TribunePage({
   );
 
   const fmtDate = (ms: number) =>
-    new Intl.DateTimeFormat(loc, {
+    new Intl.DateTimeFormat(intlLocale(loc), {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

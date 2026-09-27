@@ -1,3 +1,5 @@
+import type { Locale } from '@/i18n/routing';
+
 // F-60 — Appels à projets collaboratifs. Présentation HONNÊTE du dispositif :
 // le principe des projets menés en commun entre think tanks et contributeurs du
 // réseau. Aucun appel daté ni financement chiffré n'est inventé ici — on décrit
@@ -106,6 +108,143 @@ const en: ProjectsIntro = {
     'This page sets out the principle of collaborative projects and how to propose one. It announces neither a dated call nor a funding amount: each proposal is reviewed case by case by the network.',
 };
 
-export function getProjectsIntro(locale: 'fr' | 'en'): ProjectsIntro {
-  return locale === 'en' ? en : fr;
+const es: ProjectsIntro = {
+  principle: [
+    'Un proyecto colaborativo reúne a varios miembros de la red —centros de estudios, investigadores, colaboradores— en torno a una pregunta democrática común, tanto en África como en Europa. No se trata de financiar a un actor aislado, sino de hacer trabajar juntos a equipos que, por separado, nunca se habrían encontrado.',
+    'Cada propuesta parte de una necesidad concreta: una investigación de campo, una herramienta compartida, un estudio comparado, una campaña de sensibilización. La red ayuda a poner en contacto a quienes la impulsan, a estructurar el planteamiento y a difundir los resultados más allá de las fronteras nacionales.',
+  ],
+  scopeLead:
+    'Una propuesta debe inscribirse en uno de los cinco ejes de trabajo de la red. Ese marco es lo que garantiza la coherencia colectiva y la conexión con los equipos que ya trabajan sobre el mismo terreno.',
+  criteria: [
+    {
+      title: 'Una pregunta clara',
+      body: 'El proyecto responde a una pregunta democrática precisa y verificable, no a una intención vaga. Debe entenderse qué se va a producir y por qué importa.',
+    },
+    {
+      title: 'Una dimensión colaborativa',
+      body: 'Se comprometen al menos dos colaboradores u organizaciones, preferiblemente repartidos entre varios países o lenguas. La cooperación es el núcleo del dispositivo, no un añadido.',
+    },
+    {
+      title: 'Un resultado compartible',
+      body: 'El proyecto desemboca en una producción abierta —estudio, datos, método, herramienta— reutilizable por otros miembros y accesible al público cuando sea posible.',
+    },
+    {
+      title: 'Un anclaje sobre el terreno',
+      body: 'La propuesta se apoya en un conocimiento real del contexto local, en particular en las regiones donde las instituciones democráticas son frágiles.',
+    },
+  ],
+  support: [
+    {
+      title: 'Puesta en contacto',
+      body: 'La red identifica a los miembros cuyos trabajos se cruzan con el proyecto y facilita los primeros intercambios entre quienes lo impulsan.',
+    },
+    {
+      title: 'Apoyo metodológico',
+      body: 'Revisión del planteamiento, métodos contrastados compartidos y acceso a los recursos comunes de la red (barómetro, biblioteca, contactos).',
+    },
+    {
+      title: 'Difusión',
+      body: 'Una vez concluidos, los resultados se difunden por los canales de la red —biblioteca, eventos, boletín— para llegar más allá del círculo de quienes los impulsan.',
+    },
+  ],
+  disclaimer:
+    'Esta página presenta el principio de los proyectos colaborativos y la manera de proponer uno. No anuncia ninguna convocatoria con fecha ni importe de financiación: cada propuesta se estudia caso por caso por la red.',
+};
+
+const pt: ProjectsIntro = {
+  principle: [
+    'Um projeto colaborativo reúne vários membros da rede — centros de estudos, investigadores, colaboradores — em torno de uma questão democrática comum, tanto em África como na Europa. Não se trata de financiar um ator isolado, mas de fazer trabalhar em conjunto equipas que, separadamente, nunca se teriam encontrado.',
+    'Cada proposta parte de uma necessidade concreta: uma investigação no terreno, uma ferramenta partilhada, um estudo comparado, uma campanha de sensibilização. A rede ajuda a ligar quem a promove, a estruturar a abordagem e a difundir os resultados para além das fronteiras nacionais.',
+  ],
+  scopeLead:
+    'Uma proposta deve inscrever-se num dos cinco eixos de trabalho da rede. É esse enquadramento que garante a coerência coletiva e a ligação às equipas já ativas no mesmo terreno.',
+  criteria: [
+    {
+      title: 'Uma questão clara',
+      body: 'O projeto responde a uma questão democrática precisa e verificável, e não a uma intenção vaga. Tem de ser claro o que será produzido e porque é que isso importa.',
+    },
+    {
+      title: 'Uma dimensão colaborativa',
+      body: 'Comprometem-se pelo menos dois colaboradores ou organizações, de preferência repartidos por vários países ou línguas. A cooperação é o cerne do dispositivo, não um acrescento.',
+    },
+    {
+      title: 'Um resultado partilhável',
+      body: 'O projeto desemboca numa produção aberta — estudo, dados, método, ferramenta — reutilizável por outros membros e acessível ao público sempre que possível.',
+    },
+    {
+      title: 'Uma ancoragem no terreno',
+      body: 'A proposta assenta num conhecimento real do contexto local, em particular nas regiões onde as instituições democráticas são frágeis.',
+    },
+  ],
+  support: [
+    {
+      title: 'Ligação entre membros',
+      body: 'A rede identifica os membros cujos trabalhos se cruzam com o projeto e facilita as primeiras trocas entre quem o promove.',
+    },
+    {
+      title: 'Apoio metodológico',
+      body: 'Revisão do enquadramento, partilha de métodos comprovados e acesso aos recursos comuns da rede (barómetro, biblioteca, contactos).',
+    },
+    {
+      title: 'Difusão',
+      body: 'Uma vez concluídos, os resultados são divulgados pelos canais da rede — biblioteca, eventos, boletim — para chegar para além do círculo de quem os promoveu.',
+    },
+  ],
+  disclaimer:
+    'Esta página apresenta o princípio dos projetos colaborativos e a forma de propor um. Não anuncia qualquer convite com data nem montante de financiamento: cada proposta é estudada caso a caso pela rede.',
+};
+
+const ar: ProjectsIntro = {
+  principle: [
+    'يجمع المشروع التعاوني عدداً من أعضاء الشبكة — مراكز دراسات وباحثين ومساهمين — حول سؤال ديمقراطي مشترك، في أفريقيا كما في أوروبا. الغاية ليست تمويل فاعل منفرد، بل جعل فرق ما كانت لتلتقي لولا ذلك تعمل معاً.',
+    'ينطلق كل مقترح من حاجة ملموسة: بحث ميداني، أداة مشتركة، دراسة مقارنة، حملة توعية. تساعد الشبكة على الربط بين أصحاب المشروع، وعلى بناء المنهجية، وعلى نشر النتائج خارج الحدود الوطنية.',
+  ],
+  scopeLead:
+    'يجب أن يندرج المقترح ضمن أحد محاور عمل الشبكة الخمسة. هذا الإطار هو ما يضمن الانسجام الجماعي والربط بالفرق العاملة أصلاً في الميدان نفسه.',
+  criteria: [
+    {
+      title: 'سؤال واضح',
+      body: 'يجيب المشروع عن سؤال ديمقراطي دقيق وقابل للتحقق، لا عن نية غامضة. ينبغي أن يكون مفهوماً ما الذي سيُنتَج ولماذا يهمّ.',
+    },
+    {
+      title: 'بعد تعاوني',
+      body: 'يلتزم مساهمان أو منظمتان على الأقل، ويُفضَّل أن يمتدّ ذلك على عدة بلدان أو لغات. التعاون هو جوهر هذا الإطار لا إضافة إليه.',
+    },
+    {
+      title: 'نتيجة قابلة للمشاركة',
+      body: 'يفضي المشروع إلى إنتاج مفتوح — دراسة أو بيانات أو منهجية أو أداة — قابل لإعادة الاستخدام من قبل أعضاء آخرين ومتاح للعموم كلما أمكن.',
+    },
+    {
+      title: 'تجذّر ميداني',
+      body: 'يستند المقترح إلى معرفة حقيقية بالسياق المحلي، ولا سيما في المناطق التي تكون فيها المؤسسات الديمقراطية هشّة.',
+    },
+  ],
+  support: [
+    {
+      title: 'الربط بين الأعضاء',
+      body: 'تحدّد الشبكة الأعضاء الذين تتقاطع أعمالهم مع المشروع وتيسّر التبادلات الأولى بين أصحابه.',
+    },
+    {
+      title: 'دعم منهجي',
+      body: 'مراجعة الإطار العام، وتقاسم مناهج مجرَّبة، والنفاذ إلى الموارد المشتركة للشبكة (المؤشر، المكتبة، جهات الاتصال).',
+    },
+    {
+      title: 'النشر',
+      body: 'بعد اكتمالها، تُنشَر النتائج عبر قنوات الشبكة — المكتبة والفعاليات والنشرة البريدية — لتصل إلى ما هو أبعد من دائرة أصحاب المشروع.',
+    },
+  ],
+  disclaimer:
+    'تعرض هذه الصفحة مبدأ المشاريع التعاونية وكيفية اقتراح مشروع. وهي لا تعلن عن دعوة محدَّدة التاريخ ولا عن مبلغ تمويل: تدرس الشبكة كل مقترح على حدة.',
+};
+
+// La table est EXHAUSTIVE PAR CONSTRUCTION : `Record<Locale, …>` fait échouer
+// la compilation si une langue est ajoutée à `routing.locales` sans son bloc de
+// contenu. Le ternaire qu'elle remplace (`locale === 'en' ? en : fr`) aurait,
+// lui, servi silencieusement du français aux trois langues ajoutées — un défaut
+// qu'aucune relecture ne rattrape et qu'aucun test ne voit. Même motif que
+// `ATTENDANCE_MODE` dans `src/lib/seo.ts`.
+const BY_LOCALE: Record<Locale, ProjectsIntro> = { fr, en, es, pt, ar };
+
+export function getProjectsIntro(locale: Locale): ProjectsIntro {
+  return BY_LOCALE[locale];
 }

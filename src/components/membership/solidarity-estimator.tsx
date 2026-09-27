@@ -7,6 +7,8 @@ import {
   type MemberType,
   type MembershipContent,
 } from '@/lib/membership-content';
+import { intlLocale } from '@/i18n/locale';
+import type { Locale } from '@/i18n/routing';
 
 type EstimatorContent = MembershipContent['estimator'];
 
@@ -18,13 +20,13 @@ export function SolidarityEstimator({
   locale,
 }: {
   content: EstimatorContent;
-  locale: 'fr' | 'en';
+  locale: Locale;
 }) {
   const [income, setIncome] = useState<IncomeLevel>('high');
   const [type, setType] = useState<MemberType>('org');
 
   const amount = estimate(type, income);
-  const formatted = amount.toLocaleString(locale);
+  const formatted = amount.toLocaleString(intlLocale(locale));
   const typeLabel = content.types.find((t) => t.value === type)!.label;
   const incomeLabel = content.incomes
     .find((i) => i.value === income)!
@@ -99,7 +101,7 @@ function RadioGroup({
       <legend className="mb-2 text-sm font-medium text-ink">
         {legend}
         {hint ? (
-          <span className="ml-1 font-normal text-muted">{hint}</span>
+          <span className="ms-1 font-normal text-muted">{hint}</span>
         ) : null}
       </legend>
       <div

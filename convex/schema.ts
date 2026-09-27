@@ -1,6 +1,12 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { authTables } from '@convex-dev/auth/server';
+import { documentBlock, documentStatus, extractedImage } from './lib/documents';
+import {
+  translatableFields,
+  translationSourceType,
+  translationStatus,
+} from './lib/translation';
 import {
   aiModerationMode,
   aiModerationSeverity,
@@ -17,7 +23,11 @@ export const networkRole = v.union(
   v.literal('admin'),
 );
 
-export const locale = v.union(v.literal('fr'), v.literal('en'));
+// Le validateur de langue vit dans `./lib/locales` (cycle d'imports : la table
+// `contentTranslations` tire `./lib/translation`, qui en a besoin aussi). Il
+// reste ré-exporté ici : une dizaine de modules l'importent de `./schema`.
+import { locale } from './lib/locales';
+export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
 
 export default defineSchema({
   // Tables de Convex Auth (users, authSessions, authAccounts, ...).
@@ -245,6 +255,13 @@ export default defineSchema({
     contactEmail: v.string(),
     country: v.string(),
     message: v.optional(v.string()),
+    // LANGUE DU CANDIDAT, relevée au dépôt du formulaire. Les cinq autres
+    // formulaires publics (newsletter, inscription à un événement, rappel,
+    // candidature jeunes, mentorat) la stockaient déjà ; celui-ci était le seul
+    // à ne pas le faire — et c'est le seul dont l'approbation déclenche un
+    // courriel. Sans elle, un candidat arabophone recevait sa validation
+    // d'adhésion en français, avec un lien vers une page française.
+    locale: v.optional(locale),
     status: v.union(
       v.literal('pending'),
       v.literal('approved'),
@@ -628,6 +645,112 @@ export default defineSchema({
   // candidature). `titleKey` = clé i18n (namespace `notifications`), `params`
   // interpolés côté client ; `link` = chemin interne facultatif. Index composite
   // (user, read) : sert la liste par utilisateur ET le décompte des non-lues.
+  // TRADUCTIONS DES CONTENUS DÉPOSÉS PAR LES MEMBRES (billets de Tribune,
+  // publications). Une ligne par couple (contenu, langue de lecture).
+  //
+  // POURQUOI UNE TABLE À PART et pas des champs sur `tribunePosts` /
+  // `publications`. Cinq langues, deux familles de contenus : porter les
+  // traductions sur le document source le ferait grossir de cinq fois son
+  // texte, alors qu'une page n'en lit JAMAIS qu'une. Or ces documents sont lus
+  // partout — listes, facettes, fiches liées, file de modération — et Convex
+  // facture, comme il invalide, au document entier. C'est le raisonnement de
+  // `publicationViews` (issue #8), appliqué à un texte au lieu d'un compteur.
+  //
+  // `sourceId` est une CHAÎNE et non un `v.id` : la table couvre deux tables
+  // sources, et `sourceType` porte laquelle. Le même motif que
+  // `tribuneReports.targetId`.
+  //
+  // `sourceHash` est l'empreinte du texte AU MOMENT DE LA TRADUCTION
+  // (`sourceFingerprint`, convex/lib/translation.ts). Elle est relue à
+  // l'affichage : si l'auteur a corrigé son texte depuis, la traduction décrit
+  // une version qui n'existe plus, et la page sert l'original plutôt qu'un
+  // contenu périmé sans le dire.
+  //
+  // `status: 'failed'` EST CONSERVÉ, et ce n'est pas un oubli de nettoyage :
+  // sans ligne, l'interface ne saurait pas distinguer « jamais demandé » de
+  // « demandé, et la passerelle n'a pas répondu ». Le premier propose un
+  // bouton, le second explique et propose de réessayer.
+  contentTranslations: defineTable({
+    sourceType: translationSourceType,
+    sourceId: v.string(),
+    sourceLocale: locale,
+    targetLocale: locale,
+    sourceHash: v.string(),
+    status: translationStatus,
+    // Absent tant que `status` n'est pas 'ready'.
+    fields: v.optional(translatableFields),
+    model: v.optional(v.string()),
+    // Code d'échec de la passerelle (GATEWAY_ERRORS), affiché traduit.
+    error: v.optional(v.string()),
+    requestedBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    // Lecture d'une page : un contenu, une langue. C'est l'accès unique.
+    .index('by_source_and_target', ['sourceType', 'sourceId', 'targetLocale'])
+    // Purge des traductions d'un contenu supprimé (devAdmin), et affichage des
+    // langues déjà disponibles sous un article.
+    .index('by_source', ['sourceType', 'sourceId']),
+
+  // DOCUMENT EXTRAIT D'UN PDF — une ligne par publication.
+  //
+  // L'extraction est faite UNE FOIS et sert les cinq langues : elle relit le
+  // PDF, ce qui est l'opération coûteuse (le fichier entier part au modèle).
+  // Les traductions, elles, partent de ces blocs — du JSON, quelques dizaines
+  // de kilo-octets — et n'ont plus jamais besoin du fichier.
+  //
+  // `fileId` est celui du PDF au moment de l'extraction. Un membre qui
+  // remplace son document change de `fileId` : la comparaison suffit à savoir
+  // que l'extraction décrit un fichier qui n'est plus joint, sans empreinte à
+  // calculer sur plusieurs mégaoctets.
+  //
+  // `images` porte les illustrations RECOPIÉES du PDF dans le stockage Convex
+  // (convex/lib/pdfImages.ts). Elles ne sont extraites qu'une fois, et les
+  // cinq langues pointent les mêmes fichiers : une figure n'est ni
+  // recompressée ni dupliquée par langue.
+  documentExtractions: defineTable({
+    publicationId: v.id('publications'),
+    fileId: v.id('_storage'),
+    status: documentStatus,
+    sourceLocale: locale,
+    title: v.optional(v.string()),
+    blocks: v.optional(v.array(documentBlock)),
+    images: v.optional(v.array(extractedImage)),
+    /** Images repérées dans un codage que l'extracteur ne sait pas lire. */
+    skippedImages: v.optional(v.number()),
+    pageCount: v.optional(v.number()),
+    model: v.optional(v.string()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_publication', ['publicationId']),
+
+  // VERSION TRADUITE D'UN DOCUMENT — une ligne par (publication, langue).
+  //
+  // Séparée de l'extraction pour la même raison que `contentTranslations` est
+  // séparée des contenus : la vue document n'en lit JAMAIS qu'une, et les
+  // porter toutes sur la ligne d'extraction la ferait relire en entier à
+  // chaque langue. `extractionId` lie la traduction à la version du document
+  // dont elle est issue — si le PDF est remplacé, une nouvelle extraction naît
+  // et les anciennes traductions cessent d'être servies.
+  documentRenditions: defineTable({
+    publicationId: v.id('publications'),
+    extractionId: v.id('documentExtractions'),
+    sourceLocale: locale,
+    targetLocale: locale,
+    status: documentStatus,
+    title: v.optional(v.string()),
+    blocks: v.optional(v.array(documentBlock)),
+    model: v.optional(v.string()),
+    error: v.optional(v.string()),
+    requestedBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_publication_and_locale', ['publicationId', 'targetLocale'])
+    // Purge des versions rattachées à une extraction remplacée.
+    .index('by_extraction', ['extractionId']),
+
   notifications: defineTable({
     userId: v.id('users'),
     type: v.string(),

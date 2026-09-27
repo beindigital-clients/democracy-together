@@ -1,3 +1,4 @@
+import { intlLocale } from '@/i18n/locale';
 // Bibliothèque (F-32/F-34) — helpers d'affichage côté Next : libellés via i18n
 // (namespace `library`), formatage de date, parsing des filtres depuis l'URL et
 // construction des citations (APA / BibTeX / RIS). Le vocabulaire de slugs
@@ -17,7 +18,9 @@ export const PUB_TYPES = [
 // que fait le formulaire d'annuaire du back-office.
 export { NETWORK_THEMES as PUB_THEMES } from '@convex/lib/themes';
 export const PUB_REGIONS = ['afrique', 'europe', 'mondial'] as const;
-export const PUB_LANGS = ['fr', 'en'] as const;
+// Même motif que PUB_THEMES juste au-dessus : la liste des langues n'est plus
+// recopiée ici, elle vient de sa déclaration unique côté Convex (issue #30).
+export { PUB_LANGS } from '@convex/lib/publications';
 export const PUB_ACCESS = ['open', 'members'] as const;
 export const PUB_SORTS = ['recent', 'cited', 'az'] as const;
 
@@ -127,7 +130,7 @@ export function hasActiveFilters(f: LibraryFilters): boolean {
 
 // Mois + année dans la langue courante ("Mai 2026" / "May 2026").
 export function formatMonthYear(ts: number, locale: string): string {
-  const s = new Intl.DateTimeFormat(locale, {
+  const s = new Intl.DateTimeFormat(intlLocale(locale), {
     month: 'short',
     year: 'numeric',
     timeZone: 'UTC',
@@ -137,7 +140,7 @@ export function formatMonthYear(ts: number, locale: string): string {
 
 // Date longue ("15 mai 2026" / "May 15, 2026").
 export function formatLongDate(ts: number, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -154,7 +157,10 @@ export function formatLongDate(ts: number, locale: string): string {
 // pour toutes, y compris celles que le site n'a pas encore.
 
 function authorListFormat(locale: string): Intl.ListFormat {
-  return new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' });
+  return new Intl.ListFormat(intlLocale(locale), {
+    style: 'long',
+    type: 'conjunction',
+  });
 }
 
 // Liste d'auteurs en une seule chaîne — pour les citations.

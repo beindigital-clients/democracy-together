@@ -3,7 +3,7 @@
 // COUCHE DE CONTENU : aujourd'hui statique/local, signature pensée pour basculer
 // vers Sanity plus tard (getAboutContent garde la même forme de retour).
 
-type Locale = 'fr' | 'en';
+import type { Locale } from '@/i18n/routing';
 
 export type Founder = {
   name: string;
@@ -474,8 +474,630 @@ const en: AboutContent = {
 // Repli LOCAL pur (sans dépendance Sanity) : utilisé quand aucun document
 // `aboutPage` n'est publié, et comme source de seed. Le fetch Sanity + fallback
 // vit dans `src/lib/about.ts`. Garder ce module pur (les tests l'importent).
+const es: AboutContent = {
+  hero: {
+    eyebrow: 'Sobre nosotros',
+    title: 'Conectar a los centros de estudios que defienden la democracia',
+    lead: 'Democracy Together es una red internacional de centros de estudios, de África y de Europa, unida para agregar análisis, defender una voz común y reforzar capacidades al servicio de la democracia.',
+  },
+  vision: {
+    eyebrow: 'Nuestra visión',
+    statement:
+      'Convertirnos en la plataforma de referencia mundial para el avance del pensamiento democrático, impulsando un ecosistema inclusivo en el que las ideas circulen entre los continentes.',
+    attribution: 'Democracy Together · Declaración de visión',
+  },
+  mission: {
+    eyebrow: 'Nuestra misión, en cuatro ejes',
+    axes: [
+      {
+        n: '01',
+        title: 'Agregar las reflexiones',
+        body: 'Reunir los análisis producidos por los centros miembros en un corpus común, comparable y citable.',
+      },
+      {
+        n: '02',
+        title: 'Promover las ideas',
+        body: 'Hacer circular las ideas mediante eventos, informes y alianzas institucionales.',
+      },
+      {
+        n: '03',
+        title: 'Reforzar capacidades',
+        body: 'Acompañar a los centros emergentes y a los jóvenes investigadores hacia la autonomía y el rigor metodológico.',
+      },
+      {
+        n: '04',
+        title: 'Innovar e incluir',
+        body: 'Cruzar perspectivas multidisciplinares y la diversidad geográfica, cultural y de género.',
+      },
+    ],
+  },
+  founders: {
+    eyebrow: 'Fundadores',
+    title: 'Quienes sostienen la red',
+    intro:
+      'Un colectivo de científicos, diplomáticos y emprendedores reunido en torno a una convicción común. Algunos perfiles se completarán a medida que la red se estructure.',
+    people: [
+      {
+        name: 'Abdou Samb',
+        role: 'Ingeniero y matemático',
+        bio: 'Presidente de A2S International en París y asesor de la Comisión Europea en materia de transformación digital. Nombrado «Africano del año 2025» en los Mission Africa Awards, fundó la Abdou Samb Foundation, dedicada al panafricanismo y a la regeneración de África.',
+      },
+      {
+        name: 'Philippe Kourilsky',
+        role: 'Biólogo, catedrático emérito',
+        bio: 'Catedrático emérito del Collège de France y miembro de la Academia de Ciencias. Antiguo director del Instituto Pasteur y de su Red Internacional, antiguo presidente de la Singapore Immunology Network, autor de más de 350 publicaciones científicas.',
+      },
+      {
+        name: 'Pierre Vimont',
+        role: 'Diplomático',
+        bio: 'Antiguo secretario general ejecutivo del Servicio Europeo de Acción Exterior (SEAE) de 2010 a 2015 y antiguo embajador de Francia en Estados Unidos. Hoy es senior fellow del Carnegie Endowment for International Peace.',
+      },
+      {
+        name: 'Armelle Chapalain',
+        role: 'Relaciones públicas',
+        bio: 'Especialista en relaciones públicas y directora de la ESPTA. Galardonada con el Premio del Bien Común 2025.',
+      },
+      {
+        name: 'Michèle Boccoz',
+        role: 'Fundadora',
+        bio: 'Perfil pendiente de completar.',
+      },
+      {
+        name: 'Marie-Laure Salles',
+        role: 'Fundadora',
+        bio: 'Perfil pendiente de completar.',
+      },
+    ],
+  },
+  governance: {
+    eyebrow: 'Gobernanza y estructura',
+    title: 'Una organización que se despliega por etapas',
+    intro:
+      'Democracy Together es una asociación francesa de tipo loi 1901 con sede en París. Su anclaje regional se establece progresivamente en torno a tres oficinas, cada una vinculada a un área de trabajo prioritaria.',
+    hubs: [
+      {
+        city: 'París',
+        scope: 'Sede',
+        body: 'Coordinación general, alianzas institucionales europeas y organización de la conferencia inaugural.',
+      },
+      {
+        city: 'Dakar',
+        scope: 'África',
+        body: 'Punto de anclaje continental, dedicado a los centros de estudios africanos y al refuerzo de capacidades locales.',
+      },
+      {
+        city: 'Bruselas',
+        scope: 'Europa',
+        body: 'Interfaz con las instituciones de la Unión Europea y difusión de los trabajos de la red entre quienes deciden.',
+      },
+    ],
+    framework: {
+      title: 'Marco asociativo',
+      body: 'Constituida como asociación de tipo loi 1901 (en proceso de creación), la estructura se apoya en unos estatutos abiertos a la adhesión de centros de estudios, investigadores y socios que comparten sus valores. La gobernanza distingue la orientación estratégica de la coordinación operativa.',
+    },
+    committees: {
+      title: 'Comités',
+      items: [
+        {
+          n: '01',
+          name: 'Consejo científico',
+          body: 'Garante del rigor y de la independencia de las publicaciones.',
+        },
+        {
+          n: '02',
+          name: 'Comité de alianzas',
+          body: 'Eventos, informes conjuntos y relaciones institucionales.',
+        },
+        {
+          n: '03',
+          name: 'Unidad de jóvenes talentos',
+          body: 'Mentoría, formación y acceso a los trabajos de la red.',
+        },
+      ],
+    },
+  },
+  funding: {
+    eyebrow: 'Financiación y transparencia',
+    title: 'De dónde vienen nuestros medios',
+    intro:
+      'El modelo económico de la red combina varias fuentes, elegidas para preservar su independencia editorial. Ninguna debe poder influir en la orientación de los trabajos.',
+    sources: [
+      {
+        name: 'Cuotas',
+        body: 'Aportaciones anuales de los miembros y de los centros de estudios afiliados a la red.',
+      },
+      {
+        name: 'Donaciones filantrópicas',
+        body: 'Apoyos de fundaciones y mecenas comprometidos con la democracia.',
+      },
+      {
+        name: 'Subvenciones',
+        body: 'Apoyos de instituciones públicas, entre ellas la Unión Europea, sobre proyectos concretos.',
+      },
+      {
+        name: 'Alianzas de RSC',
+        body: 'Compromisos de empresas en el marco de su responsabilidad social corporativa.',
+      },
+      {
+        name: 'Fondo específico',
+        body: 'Partida reservada a los proyectos colaborativos impulsados por varios miembros.',
+      },
+    ],
+    note: 'Democracy Together publicará sus cuentas y el reparto de sus recursos desde el primer ejercicio cerrado. Los porcentajes presentados en nuestros materiales son, en esta fase, datos de ilustración y se actualizarán cuando la asociación se constituya efectivamente.',
+  },
+  lineage: {
+    eyebrow: 'En la estela de',
+    title: 'Referencias que iluminan nuestro enfoque',
+    intro:
+      'Democracy Together se inscribe en una tradición de instituciones independientes situadas en el cruce de la investigación, la democracia y la tecnología. Sin afiliación: estas organizaciones inspiran nuestra exigencia.',
+    refs: [
+      {
+        name: 'International IDEA',
+        body: 'Apoyo a las instituciones y a los procesos democráticos a escala mundial.',
+      },
+      {
+        name: 'Carnegie Endowment',
+        body: 'Investigación sobre la paz internacional y las grandes transiciones geopolíticas.',
+      },
+      {
+        name: 'Center for Democracy & Technology',
+        body: 'Defensa de los derechos y las libertades en la era digital.',
+      },
+    ],
+  },
+  timeline: {
+    eyebrow: 'Próximas etapas',
+    title: 'Hitos del despliegue',
+    intro:
+      'El calendario siguiente fija los grandes hitos de la red para los próximos meses. Las fechas precisas se confirmarán a medida que avance la estructuración.',
+    steps: [
+      {
+        date: '2025',
+        title: 'Constitución del colectivo fundador',
+        body: 'Reunión de los fundadores, redacción de los estatutos y definición de los cuatro ejes de misión.',
+      },
+      {
+        date: 'Principios de 2026',
+        title: 'Creación de la asociación',
+        body: 'Depósito de los estatutos conforme a la loi 1901, apertura de la sede parisina y de las primeras adhesiones.',
+      },
+      {
+        date: '2026',
+        title: 'Lanzamiento oficial y conferencia inaugural en París',
+        body: 'Presentación pública de la red, de los primeros trabajos y de la hoja de ruta África-Europa.',
+      },
+      {
+        date: 'Por confirmar',
+        title: 'Apertura progresiva de las oficinas regionales',
+        body: 'Puesta en marcha de las delegaciones de Dakar y Bruselas, y primeros proyectos colaborativos financiados.',
+      },
+    ],
+  },
+  cta: {
+    title: 'Únase a una red que se está construyendo',
+    body: 'Centro de estudios, investigador, estudiante o socio: hay un lugar para usted en Democracy Together antes de su lanzamiento oficial.',
+    primary: 'Unirme a la red',
+    secondary: 'Contactar con nosotros',
+  },
+};
+const pt: AboutContent = {
+  hero: {
+    eyebrow: 'Sobre nós',
+    title: 'Ligar os centros de estudos que defendem a democracia',
+    lead: 'A Democracy Together é uma rede internacional de centros de estudos, de África e da Europa, reunida para agregar análises, defender uma voz comum e reforçar capacidades ao serviço da democracia.',
+  },
+  vision: {
+    eyebrow: 'A nossa visão',
+    statement:
+      'Tornar-nos a plataforma de referência mundial para o avanço do pensamento democrático, promovendo um ecossistema inclusivo onde as ideias circulem entre os continentes.',
+    attribution: 'Democracy Together · Declaração de visão',
+  },
+  mission: {
+    eyebrow: 'A nossa missão, em quatro eixos',
+    axes: [
+      {
+        n: '01',
+        title: 'Agregar as reflexões',
+        body: 'Reunir as análises produzidas pelos centros membros num corpus comum, comparável e citável.',
+      },
+      {
+        n: '02',
+        title: 'Promover as ideias',
+        body: 'Fazer circular as ideias através de eventos, relatórios e parcerias institucionais.',
+      },
+      {
+        n: '03',
+        title: 'Reforçar capacidades',
+        body: 'Acompanhar os centros emergentes e os jovens investigadores rumo à autonomia e ao rigor metodológico.',
+      },
+      {
+        n: '04',
+        title: 'Inovar e incluir',
+        body: 'Cruzar perspetivas multidisciplinares e a diversidade geográfica, cultural e de género.',
+      },
+    ],
+  },
+  founders: {
+    eyebrow: 'Fundadores',
+    title: 'Quem sustenta a rede',
+    intro:
+      'Um coletivo de cientistas, diplomatas e empreendedores reunido em torno de uma convicção comum. Alguns perfis serão completados à medida que a rede se estruturar.',
+    people: [
+      {
+        name: 'Abdou Samb',
+        role: 'Engenheiro e matemático',
+        bio: 'Presidente da A2S International em Paris e consultor da Comissão Europeia em matéria de transformação digital. Nomeado «Africano do ano 2025» nos Mission Africa Awards, fundou a Abdou Samb Foundation, dedicada ao pan-africanismo e à regeneração de África.',
+      },
+      {
+        name: 'Philippe Kourilsky',
+        role: 'Biólogo, professor emérito',
+        bio: 'Professor emérito do Collège de France e membro da Academia das Ciências. Antigo diretor do Instituto Pasteur e da sua Rede Internacional, antigo presidente da Singapore Immunology Network, autor de mais de 350 publicações científicas.',
+      },
+      {
+        name: 'Pierre Vimont',
+        role: 'Diplomata',
+        bio: 'Antigo secretário-geral executivo do Serviço Europeu para a Ação Externa (SEAE) de 2010 a 2015 e antigo embaixador de França nos Estados Unidos. É hoje senior fellow do Carnegie Endowment for International Peace.',
+      },
+      {
+        name: 'Armelle Chapalain',
+        role: 'Relações públicas',
+        bio: 'Especialista em relações públicas e diretora da ESPTA. Distinguida com o Prémio do Bem Comum 2025.',
+      },
+      {
+        name: 'Michèle Boccoz',
+        role: 'Fundadora',
+        bio: 'Perfil a completar.',
+      },
+      {
+        name: 'Marie-Laure Salles',
+        role: 'Fundadora',
+        bio: 'Perfil a completar.',
+      },
+    ],
+  },
+  governance: {
+    eyebrow: 'Governação e estrutura',
+    title: 'Uma organização que se desenvolve por etapas',
+    intro:
+      'A Democracy Together é uma associação francesa do tipo loi 1901 com sede em Paris. A sua ancoragem regional estabelece-se progressivamente em torno de três escritórios, cada um ligado a uma área de trabalho prioritária.',
+    hubs: [
+      {
+        city: 'Paris',
+        scope: 'Sede',
+        body: 'Coordenação geral, parcerias institucionais europeias e organização da conferência inaugural.',
+      },
+      {
+        city: 'Dakar',
+        scope: 'África',
+        body: 'Ponto de ancoragem continental, dedicado aos centros de estudos africanos e ao reforço de capacidades locais.',
+      },
+      {
+        city: 'Bruxelas',
+        scope: 'Europa',
+        body: 'Interface com as instituições da União Europeia e difusão dos trabalhos da rede junto de quem decide.',
+      },
+    ],
+    framework: {
+      title: 'Quadro associativo',
+      body: 'Constituída como associação do tipo loi 1901 (em processo de criação), a estrutura assenta em estatutos abertos à adesão de centros de estudos, investigadores e parceiros que partilham os seus valores. A governação distingue a orientação estratégica da coordenação operacional.',
+    },
+    committees: {
+      title: 'Comités',
+      items: [
+        {
+          n: '01',
+          name: 'Conselho científico',
+          body: 'Garante do rigor e da independência das publicações.',
+        },
+        {
+          n: '02',
+          name: 'Comité de parcerias',
+          body: 'Eventos, relatórios conjuntos e relações institucionais.',
+        },
+        {
+          n: '03',
+          name: 'Núcleo de jovens talentos',
+          body: 'Mentoria, formação e acesso aos trabalhos da rede.',
+        },
+      ],
+    },
+  },
+  funding: {
+    eyebrow: 'Financiamento e transparência',
+    title: 'De onde vêm os nossos meios',
+    intro:
+      'O modelo económico da rede combina várias fontes, escolhidas para preservar a sua independência editorial. Nenhuma delas deve poder pesar na orientação dos trabalhos.',
+    sources: [
+      {
+        name: 'Quotas',
+        body: 'Contribuições anuais dos membros e dos centros de estudos filiados na rede.',
+      },
+      {
+        name: 'Donativos filantrópicos',
+        body: 'Apoios de fundações e mecenas empenhados na democracia.',
+      },
+      {
+        name: 'Subvenções',
+        body: 'Apoios de instituições públicas, entre as quais a União Europeia, em projetos específicos.',
+      },
+      {
+        name: 'Parcerias de RSE',
+        body: 'Compromissos de empresas no âmbito da sua responsabilidade social.',
+      },
+      {
+        name: 'Fundo dedicado',
+        body: 'Verba reservada aos projetos colaborativos promovidos por vários membros.',
+      },
+    ],
+    note: 'A Democracy Together publicará as suas contas e a repartição dos seus recursos logo a partir do primeiro exercício encerrado. As percentagens apresentadas nos nossos materiais são, nesta fase, dados de ilustração e serão atualizadas aquando da criação efetiva da associação.',
+  },
+  lineage: {
+    eyebrow: 'Na linhagem de',
+    title: 'Referências que iluminam a nossa abordagem',
+    intro:
+      'A Democracy Together inscreve-se numa tradição de instituições independentes no cruzamento da investigação, da democracia e da tecnologia. Sem filiação: estas organizações inspiram a nossa exigência.',
+    refs: [
+      {
+        name: 'International IDEA',
+        body: 'Apoio às instituições e aos processos democráticos à escala mundial.',
+      },
+      {
+        name: 'Carnegie Endowment',
+        body: 'Investigação sobre a paz internacional e as grandes transições geopolíticas.',
+      },
+      {
+        name: 'Center for Democracy & Technology',
+        body: 'Defesa dos direitos e das liberdades na era digital.',
+      },
+    ],
+  },
+  timeline: {
+    eyebrow: 'Próximas etapas',
+    title: 'Marcos do desenvolvimento',
+    intro:
+      'O calendário seguinte fixa os grandes marcos da rede para os próximos meses. As datas precisas serão confirmadas à medida que a estruturação avançar.',
+    steps: [
+      {
+        date: '2025',
+        title: 'Constituição do coletivo fundador',
+        body: 'Reunião dos fundadores, redação dos estatutos e definição dos quatro eixos de missão.',
+      },
+      {
+        date: 'Início de 2026',
+        title: 'Criação da associação',
+        body: 'Depósito dos estatutos ao abrigo da loi 1901, abertura da sede parisiense e das primeiras adesões.',
+      },
+      {
+        date: '2026',
+        title: 'Lançamento oficial e conferência inaugural em Paris',
+        body: 'Apresentação pública da rede, dos primeiros trabalhos e do roteiro África-Europa.',
+      },
+      {
+        date: 'A confirmar',
+        title: 'Abertura progressiva dos escritórios regionais',
+        body: 'Instalação das delegações de Dakar e de Bruxelas, e primeiros projetos colaborativos financiados.',
+      },
+    ],
+  },
+  cta: {
+    title: 'Junte-se a uma rede que está a construir-se',
+    body: 'Centro de estudos, investigador, estudante ou parceiro: há um lugar para si na Democracy Together antes do seu lançamento oficial.',
+    primary: 'Juntar-me à rede',
+    secondary: 'Contactar-nos',
+  },
+};
+const ar: AboutContent = {
+  hero: {
+    eyebrow: 'من نحن',
+    title: 'الربط بين مراكز الدراسات المدافعة عن الديمقراطية',
+    lead: 'Democracy Together شبكة دولية من مراكز الدراسات، من أفريقيا وأوروبا، اجتمعت لتجميع التحليلات، وحمل صوت مشترك، وتعزيز القدرات في خدمة الديمقراطية.',
+  },
+  vision: {
+    eyebrow: 'رؤيتنا',
+    statement:
+      'أن نصير المنصة المرجعية عالمياً للنهوض بالفكر الديمقراطي، عبر إرساء منظومة دامجة تنتقل فيها الأفكار بين القارات.',
+    attribution: 'Democracy Together · بيان الرؤية',
+  },
+  mission: {
+    eyebrow: 'رسالتنا في أربعة محاور',
+    axes: [
+      {
+        n: '01',
+        title: 'تجميع الأعمال الفكرية',
+        body: 'جمع التحليلات التي تنتجها مراكز الدراسات الأعضاء في متن مشترك قابل للمقارنة وللاستشهاد.',
+      },
+      {
+        n: '02',
+        title: 'نشر الأفكار',
+        body: 'تعميم الأفكار عبر الفعاليات والتقارير والشراكات المؤسسية.',
+      },
+      {
+        n: '03',
+        title: 'تعزيز القدرات',
+        body: 'مرافقة مراكز الدراسات الناشئة والباحثين الشباب نحو الاستقلالية والدقة المنهجية.',
+      },
+      {
+        n: '04',
+        title: 'الابتكار والإدماج',
+        body: 'تقاطع المقاربات المتعددة التخصصات مع التنوع الجغرافي والثقافي والنوعي.',
+      },
+    ],
+  },
+  founders: {
+    eyebrow: 'المؤسسون',
+    title: 'من يحملون الشبكة',
+    intro:
+      'مجموعة من العلماء والدبلوماسيين ورواد الأعمال تجمعهم قناعة مشتركة. وستُستكمل بعض الملفات التعريفية مع تقدّم بناء الشبكة.',
+    people: [
+      {
+        name: 'عبدو سامب',
+        role: 'مهندس ورياضياتي',
+        bio: 'رئيس A2S International بباريس ومستشار لدى المفوضية الأوروبية في مجال التحول الرقمي. اختير «الأفريقي لسنة 2025» في جوائز Mission Africa، وأسّس مؤسسة عبدو سامب المكرَّسة للفكر الوحدوي الأفريقي ولنهضة أفريقيا.',
+      },
+      {
+        name: 'فيليب كوريلسكي',
+        role: 'عالم أحياء وأستاذ فخري',
+        bio: 'أستاذ فخري في الكوليج دو فرانس وعضو أكاديمية العلوم. مدير سابق لمعهد باستور ولشبكته الدولية، ورئيس سابق لشبكة سنغافورة للمناعة، ومؤلف أكثر من 350 منشوراً علمياً.',
+      },
+      {
+        name: 'بيير فيمون',
+        role: 'دبلوماسي',
+        bio: 'أمين عام تنفيذي سابق للدائرة الأوروبية للشؤون الخارجية (SEAE) بين 2010 و2015، وسفير سابق لفرنسا بالولايات المتحدة. وهو اليوم زميل أول في مؤسسة كارنيغي للسلام الدولي.',
+      },
+      {
+        name: 'أرمِل شابالان',
+        role: 'العلاقات العامة',
+        bio: 'مختصة في العلاقات العامة ومديرة ESPTA. حائزة جائزة الصالح العام لسنة 2025.',
+      },
+      {
+        name: 'ميشيل بوكوز',
+        role: 'مؤسِّسة',
+        bio: 'ملف تعريفي قيد الاستكمال.',
+      },
+      {
+        name: 'ماري-لور سال',
+        role: 'مؤسِّسة',
+        bio: 'ملف تعريفي قيد الاستكمال.',
+      },
+    ],
+  },
+  governance: {
+    eyebrow: 'الحوكمة والهيكلة',
+    title: 'تنظيم ينتشر على مراحل',
+    intro:
+      'Democracy Together جمعية خاضعة للقانون الفرنسي لسنة 1901 ومقرها بباريس. ويترسّخ حضورها الجهوي تدريجياً حول ثلاثة مكاتب، يرتبط كل منها بمجال عمل ذي أولوية.',
+    hubs: [
+      {
+        city: 'باريس',
+        scope: 'المقر',
+        body: 'التنسيق العام، والشراكات المؤسسية الأوروبية، وتنظيم المؤتمر التأسيسي.',
+      },
+      {
+        city: 'داكار',
+        scope: 'أفريقيا',
+        body: 'نقطة الارتكاز القارية، المخصصة لمراكز الدراسات الأفريقية ولتعزيز القدرات المحلية.',
+      },
+      {
+        city: 'بروكسل',
+        scope: 'أوروبا',
+        body: 'واجهة التواصل مع مؤسسات الاتحاد الأوروبي وقناة إيصال أعمال الشبكة إلى صانعي القرار.',
+      },
+    ],
+    framework: {
+      title: 'الإطار الجمعوي',
+      body: 'تأسست في شكل جمعية خاضعة لقانون 1901 (قيد الإحداث)، ويقوم الهيكل على نظام أساسي مفتوح لانضمام مراكز الدراسات والباحثين والشركاء الذين يتقاسمون قيمه. وتفصل الحوكمة بين التوجيه الاستراتيجي والتنسيق التنفيذي.',
+    },
+    committees: {
+      title: 'اللجان',
+      items: [
+        {
+          n: '01',
+          name: 'المجلس العلمي',
+          body: 'ضامن دقة المنشورات واستقلاليتها.',
+        },
+        {
+          n: '02',
+          name: 'لجنة الشراكات',
+          body: 'الفعاليات والتقارير المشتركة والعلاقات المؤسسية.',
+        },
+        {
+          n: '03',
+          name: 'خلية المواهب الشابة',
+          body: 'التوجيه والتكوين والنفاذ إلى أعمال الشبكة.',
+        },
+      ],
+    },
+  },
+  funding: {
+    eyebrow: 'التمويل والشفافية',
+    title: 'من أين تأتي مواردنا',
+    intro:
+      'يجمع النموذج الاقتصادي للشبكة بين عدة مصادر اختيرت للحفاظ على استقلالها التحريري. ولا ينبغي لأي منها أن تؤثر في توجيه الأعمال.',
+    sources: [
+      {
+        name: 'الاشتراكات',
+        body: 'المساهمات السنوية للأعضاء ولمراكز الدراسات المنتسبة إلى الشبكة.',
+      },
+      {
+        name: 'التبرعات الخيرية',
+        body: 'دعم مؤسسات مانحة وداعمين منخرطين في قضية الديمقراطية.',
+      },
+      {
+        name: 'المنح العمومية',
+        body: 'دعم مؤسسات عمومية، من بينها الاتحاد الأوروبي، لمشاريع محددة.',
+      },
+      {
+        name: 'شراكات المسؤولية المجتمعية',
+        body: 'التزامات مقاولات في إطار مسؤوليتها المجتمعية.',
+      },
+      {
+        name: 'صندوق مخصص',
+        body: 'اعتماد مالي مرصود للمشاريع التعاونية التي يحملها عدة أعضاء.',
+      },
+    ],
+    note: 'ستنشر Democracy Together حساباتها وتوزيع مواردها ابتداءً من أول سنة محاسبية مختتمة. أما النسب المئوية الواردة في موادنا فهي في هذه المرحلة بيانات توضيحية، وستُحدَّث عند الإحداث الفعلي للجمعية.',
+  },
+  lineage: {
+    eyebrow: 'على خطى',
+    title: 'مرجعيات تنير مقاربتنا',
+    intro:
+      'تندرج Democracy Together في تقليد مؤسسات مستقلة تقف عند تقاطع البحث والديمقراطية والتكنولوجيا. ودون أي انتساب إليها: هذه المنظمات تُلهم مستوى المتطلبات الذي نلتزم به.',
+    refs: [
+      {
+        name: 'International IDEA',
+        body: 'دعم المؤسسات والمسارات الديمقراطية على الصعيد العالمي.',
+      },
+      {
+        name: 'Carnegie Endowment',
+        body: 'البحث في السلم الدولي وفي التحولات الجيوسياسية الكبرى.',
+      },
+      {
+        name: 'Center for Democracy & Technology',
+        body: 'الدفاع عن الحقوق والحريات في العصر الرقمي.',
+      },
+    ],
+  },
+  timeline: {
+    eyebrow: 'المراحل المقبلة',
+    title: 'معالم الانتشار',
+    intro:
+      'يحدّد الجدول الزمني التالي المحطات الكبرى للشبكة في الأشهر المقبلة. وستُؤكَّد التواريخ الدقيقة تباعاً مع تقدّم الهيكلة.',
+    steps: [
+      {
+        date: '2025',
+        title: 'تشكيل المجموعة المؤسِّسة',
+        body: 'اجتماع المؤسسين، وصياغة النظام الأساسي، وتحديد محاور الرسالة الأربعة.',
+      },
+      {
+        date: 'مطلع 2026',
+        title: 'إحداث الجمعية',
+        body: 'إيداع النظام الأساسي وفق قانون 1901، وفتح المقر بباريس وأولى العضويات.',
+      },
+      {
+        date: '2026',
+        title: 'الإطلاق الرسمي والمؤتمر التأسيسي بباريس',
+        body: 'التقديم العلني للشبكة ولأولى أعمالها ولخارطة الطريق بين أفريقيا وأوروبا.',
+      },
+      {
+        date: 'لاحقاً',
+        title: 'الفتح التدريجي للمكاتب الجهوية',
+        body: 'إرساء فرعَي داكار وبروكسل، وانطلاق أولى المشاريع التعاونية الممولة.',
+      },
+    ],
+  },
+  cta: {
+    title: 'انضموا إلى شبكة قيد البناء',
+    body: 'مركز دراسات أو باحث أو طالب أو شريك: لكم مكان في Democracy Together قبل إطلاقها الرسمي.',
+    primary: 'الانضمام إلى الشبكة',
+    secondary: 'اتصلوا بنا',
+  },
+};
+
+// Table exhaustive par construction (cf. `projects-content.ts`).
+const BY_LOCALE: Record<Locale, AboutContent> = { fr, en, es, pt, ar };
+
 export function aboutFallback(locale: Locale): AboutContent {
-  return locale === 'en' ? en : fr;
+  return BY_LOCALE[locale];
 }
 
 // Initiales pour les pastilles fondateurs (2 lettres).

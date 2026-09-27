@@ -1,5 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { ArrowForward } from '@/components/ui/arrow';
+import { intlLocale } from '@/i18n/locale';
 
 export type PostCardData = {
   _id: string;
@@ -23,7 +25,9 @@ export function PostCard({
 }) {
   const t = useTranslations('news');
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
-  const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), {
+    dateStyle: 'long',
+  });
 
   return (
     <Link
@@ -45,7 +49,7 @@ export function PostCard({
         </p>
       ) : null}
       <span className="mt-auto pt-4 font-mono text-[11px] uppercase tracking-[0.1em] text-accent-text">
-        {t('readMore')} →
+        {t('readMore')} <ArrowForward />
       </span>
     </Link>
   );

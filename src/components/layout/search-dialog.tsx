@@ -260,7 +260,7 @@ export function SearchDialog() {
                                 <span className="truncate font-medium text-ink">
                                   {p.title}
                                 </span>
-                                <span className="ml-auto shrink-0 text-[12px] text-muted">
+                                <span className="ms-auto shrink-0 text-[12px] text-muted">
                                   {vocabulary(tl, 'types.', p.type)}
                                 </span>
                               </Link>
@@ -302,7 +302,7 @@ export function SearchDialog() {
                                 <span className="truncate font-medium text-ink">
                                   {o.name}
                                 </span>
-                                <span className="ml-auto shrink-0 text-[12px] text-muted">
+                                <span className="ms-auto shrink-0 text-[12px] text-muted">
                                   {countryFlag(o.country)}{' '}
                                   {countryName(o.country, locale)}
                                 </span>

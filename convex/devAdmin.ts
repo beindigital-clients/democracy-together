@@ -150,6 +150,44 @@ export const deleteTestPublications = internalMutation({
         .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
         .unique();
       if (views) await ctx.db.delete(views._id);
+
+      // Traductions de la fiche (convex/translation.ts) — une par langue de
+      // lecture. Elles portent le texte intégral : les laisser derrière une
+      // publication supprimée, c'est garder le contenu qu'on vient d'effacer.
+      const translations = await ctx.db
+        .query('contentTranslations')
+        .withIndex('by_source', (q) =>
+          q.eq('sourceType', 'publication').eq('sourceId', p._id),
+        )
+        .take(8);
+      for (const tr of translations) await ctx.db.delete(tr._id);
+
+      // Document extrait du PDF (convex/documents.ts) et ses versions
+      // traduites. LES IMAGES SONT DES FICHIERS : les oublier laisserait dans
+      // le stockage des illustrations que plus aucune ligne ne référence —
+      // une fuite lente, du genre qu'on ne remarque qu'à la facture.
+      const extraction = await ctx.db
+        .query('documentExtractions')
+        .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
+        .unique();
+      if (extraction) {
+        for (const img of extraction.images ?? []) {
+          try {
+            await ctx.storage.delete(img.storageId);
+          } catch {
+            /* fichier déjà absent : on poursuit */
+          }
+        }
+        const renditions = await ctx.db
+          .query('documentRenditions')
+          .withIndex('by_extraction', (q) =>
+            q.eq('extractionId', extraction._id),
+          )
+          .take(16);
+        for (const r of renditions) await ctx.db.delete(r._id);
+        await ctx.db.delete(extraction._id);
+      }
+
       await trackPublicationStatus(ctx, p.status, null);
       await ctx.db.delete(p._id);
       deleted++;

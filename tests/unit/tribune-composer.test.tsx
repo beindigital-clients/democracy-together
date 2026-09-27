@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
+import { routing } from '@/i18n/routing';
 
 // Issue #35 — un billet de Tribune est rédigé dans UNE langue et n'est jamais
 // traduit : c'est cette langue, déclarée ici, qui fixera le canonical de la
@@ -71,7 +72,12 @@ describe('Composer de la Tribune — langue du billet (#35)', () => {
   });
 
   it('propose exactement les langues servies par le site', () => {
+    // Dérivé de `routing.locales` plutôt que recopié : c'est ce que le titre
+    // du test affirme, et une sixième langue ne doit pas faire échouer ce
+    // fichier — elle doit apparaître dans le sélecteur.
     const select = openComposer('fr');
-    expect([...select.options].map((o) => o.value)).toEqual(['fr', 'en']);
+    expect([...select.options].map((o) => o.value)).toEqual([
+      ...routing.locales,
+    ]);
   });
 });
