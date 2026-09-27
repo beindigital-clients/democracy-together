@@ -23,6 +23,7 @@ import {
 import { communauteTables } from './lib/tables/communaute';
 import { contenusTables } from './lib/tables/contenus';
 import { comptesTables } from './lib/tables/comptes';
+import { programmesTables } from './lib/tables/programmes';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -1023,4 +1024,5 @@ export default defineSchema({
   ...communauteTables,
   ...contenusTables,
   ...comptesTables,
+  ...programmesTables,
 });

@@ -67,7 +67,15 @@ export type SessionKey =
   | 'contenusEvenements'
   | 'contenusMembre'
   | 'contenusMedias'
-  | 'comptes';
+  | 'comptes'
+  | 'progAppelsAdmin'
+  | 'progAppelsMembre'
+  | 'progAppelsEvaluateur'
+  | 'progMentoratCoordination'
+  | 'progMentor'
+  | 'progMentore'
+  | 'progParcoursEditeur'
+  | 'progParcoursMembre';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -240,5 +248,52 @@ export const SESSIONS: Record<
     email: 'e2e_session_comptes@democracytogether.test',
     state: 'tests/e2e/.auth/comptes.json',
     role: 'admin',
+  },
+  // Chantier « programmes » (F-56 à F-60). Chaque fichier `programmes-*`
+  // enchaîne PLUSIEURS personnes sur un même parcours (qui publie, qui
+  // candidate, qui évalue ; qui coordonne, qui mentore, qui est mentoré) et
+  // tient chacune de bout en bout : une session par personne ET par fichier,
+  // selon la règle ci-dessus. Les rangs sont les rangs MINIMAUX exercés —
+  // modérateur pour publier un appel et coordonner (gardes `moderateur`),
+  // éditeur pour la boîte à outils, membre pour candidater, évaluer, mentorer.
+  progAppelsAdmin: {
+    email: 'e2e_session_prog_appels_admin@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-appels-admin.json',
+    role: 'moderateur',
+  },
+  progAppelsMembre: {
+    email: 'e2e_session_prog_appels_membre@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-appels-membre.json',
+    role: 'membre',
+  },
+  progAppelsEvaluateur: {
+    email: 'e2e_session_prog_appels_evaluateur@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-appels-evaluateur.json',
+    role: 'membre',
+  },
+  progMentoratCoordination: {
+    email: 'e2e_session_prog_mentorat_coord@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-mentorat-coord.json',
+    role: 'moderateur',
+  },
+  progMentor: {
+    email: 'e2e_session_prog_mentor@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-mentor.json',
+    role: 'membre',
+  },
+  progMentore: {
+    email: 'e2e_session_prog_mentore@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-mentore.json',
+    role: 'membre',
+  },
+  progParcoursEditeur: {
+    email: 'e2e_session_prog_parcours_editeur@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-parcours-editeur.json',
+    role: 'editeur',
+  },
+  progParcoursMembre: {
+    email: 'e2e_session_prog_parcours_membre@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-parcours-membre.json',
+    role: 'membre',
   },
 };

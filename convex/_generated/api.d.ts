@@ -84,6 +84,7 @@ import type * as lib_payments_stripe from "../lib/payments/stripe.js";
 import type * as lib_payments_types from "../lib/payments/types.js";
 import type * as lib_payments_validators from "../lib/payments/validators.js";
 import type * as lib_pdfImages from "../lib/pdfImages.js";
+import type * as lib_programmes from "../lib/programmes.js";
 import type * as lib_publications from "../lib/publications.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_rbac from "../lib/rbac.js";
@@ -104,11 +105,13 @@ import type * as lib_tables_comptes from "../lib/tables/comptes.js";
 import type * as lib_tables_contenus from "../lib/tables/contenus.js";
 import type * as lib_tables_diffusion from "../lib/tables/diffusion.js";
 import type * as lib_tables_paiements from "../lib/tables/paiements.js";
+import type * as lib_tables_programmes from "../lib/tables/programmes.js";
 import type * as lib_tables_social from "../lib/tables/social.js";
 import type * as lib_themes from "../lib/themes.js";
 import type * as lib_totp from "../lib/totp.js";
 import type * as lib_translation from "../lib/translation.js";
 import type * as lib_validation from "../lib/validation.js";
+import type * as mentoring from "../mentoring.js";
 import type * as mentorship from "../mentorship.js";
 import type * as newsletter from "../newsletter.js";
 import type * as newsletterHttp from "../newsletterHttp.js";
@@ -125,6 +128,8 @@ import type * as payments_receipts from "../payments/receipts.js";
 import type * as payments_recurring from "../payments/recurring.js";
 import type * as payments_webhooks from "../payments/webhooks.js";
 import type * as peerReview from "../peerReview.js";
+import type * as programmes from "../programmes.js";
+import type * as projectCalls from "../projectCalls.js";
 import type * as projects from "../projects.js";
 import type * as publications from "../publications.js";
 import type * as search from "../search.js";
@@ -135,6 +140,7 @@ import type * as social_account from "../social/account.js";
 import type * as social_follows from "../social/follows.js";
 import type * as social_messages from "../social/messages.js";
 import type * as social_profiles from "../social/profiles.js";
+import type * as toolbox from "../toolbox.js";
 import type * as translation from "../translation.js";
 import type * as tribune from "../tribune.js";
 import type * as twoFactor from "../twoFactor.js";
@@ -142,6 +148,7 @@ import type * as users from "../users.js";
 import type * as workspaceFiles from "../workspaceFiles.js";
 import type * as workspaces from "../workspaces.js";
 import type * as youth from "../youth.js";
+import type * as youthProfiles from "../youthProfiles.js";
 
 import type {
   ApiFromModules,
@@ -226,6 +233,7 @@ declare const fullApi: ApiFromModules<{
   "lib/payments/types": typeof lib_payments_types;
   "lib/payments/validators": typeof lib_payments_validators;
   "lib/pdfImages": typeof lib_pdfImages;
+  "lib/programmes": typeof lib_programmes;
   "lib/publications": typeof lib_publications;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/rbac": typeof lib_rbac;
@@ -246,11 +254,13 @@ declare const fullApi: ApiFromModules<{
   "lib/tables/contenus": typeof lib_tables_contenus;
   "lib/tables/diffusion": typeof lib_tables_diffusion;
   "lib/tables/paiements": typeof lib_tables_paiements;
+  "lib/tables/programmes": typeof lib_tables_programmes;
   "lib/tables/social": typeof lib_tables_social;
   "lib/themes": typeof lib_themes;
   "lib/totp": typeof lib_totp;
   "lib/translation": typeof lib_translation;
   "lib/validation": typeof lib_validation;
+  mentoring: typeof mentoring;
   mentorship: typeof mentorship;
   newsletter: typeof newsletter;
   newsletterHttp: typeof newsletterHttp;
@@ -267,6 +277,8 @@ declare const fullApi: ApiFromModules<{
   "payments/recurring": typeof payments_recurring;
   "payments/webhooks": typeof payments_webhooks;
   peerReview: typeof peerReview;
+  programmes: typeof programmes;
+  projectCalls: typeof projectCalls;
   projects: typeof projects;
   publications: typeof publications;
   search: typeof search;
@@ -277,6 +289,7 @@ declare const fullApi: ApiFromModules<{
   "social/follows": typeof social_follows;
   "social/messages": typeof social_messages;
   "social/profiles": typeof social_profiles;
+  toolbox: typeof toolbox;
   translation: typeof translation;
   tribune: typeof tribune;
   twoFactor: typeof twoFactor;
@@ -284,6 +297,7 @@ declare const fullApi: ApiFromModules<{
   workspaceFiles: typeof workspaceFiles;
   workspaces: typeof workspaces;
   youth: typeof youth;
+  youthProfiles: typeof youthProfiles;
 }>;
 
 /**

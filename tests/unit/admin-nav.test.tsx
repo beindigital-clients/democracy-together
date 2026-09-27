@@ -66,7 +66,12 @@ const STAFF_ITEMS = [
   'Événements',
 ];
 // « Contenus » (chantier « contenus », F-62) : rang éditeur.
-const EDITOR_ITEMS = ['Comité de lecture', 'Newsletter', 'Contenus'];
+const EDITOR_ITEMS = [
+  'Comité de lecture',
+  'Newsletter',
+  'Contenus',
+  'Boîte à outils',
+];
 // « Modération IA » rejoint les entrées réservées à l'administrateur : ce
 // qu'elle règle n'est pas une modération, c'est la décision de s'en passer
 // (cf. le groupe `automatisation` de admin-nav.tsx).

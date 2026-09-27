@@ -44,5 +44,15 @@ crons.interval(
 );
 // Rétention bornée des agrégats (AUDIENCE_RETENTION_DAYS, 13 mois par défaut).
 crons.cron('audience-purge', '43 3 * * *', internal.audience.purge, {});
+// F-59 — Mentorat : chaque jour à 06:30 UTC, alerte le coordinateur des
+// binômes actifs sans séance journalisée depuis quatre semaines
+// (INACTIVITY_WEEKS, convex/lib/programmes.ts). Une alerte par période
+// d'inactivité, pas une par nuit.
+crons.cron(
+  'mentoring-inactivity',
+  '30 6 * * *',
+  internal.mentoring.checkInactivity,
+  {},
+);
 
 export default crons;

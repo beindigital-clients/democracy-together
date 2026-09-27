@@ -109,6 +109,16 @@ export const AUDIT = {
   ORG_MEMBER_ROLE_CHANGED: 'organization.member_role_changed',
   ORG_REVISION_SUBMITTED: 'organization.revision_submitted',
   ORG_REVISION_REVIEWED: 'organization.revision_reviewed',
+  // Chantier « programmes » (F-56 à F-60) : chaque décision de coordination,
+  // de sélection ou d'édition laisse sa ligne, sous une action qui la nomme.
+  YOUTH_PROGRAM_REVIEWED: 'youth.program_reviewed',
+  MENTORING_PAIR_PROPOSED: 'mentoring.pair_proposed',
+  MENTORING_PAIR_STATUS: 'mentoring.pair_status',
+  PROJECT_CALL_SAVED: 'projectCall.saved',
+  PROJECT_CALL_EVALUATORS: 'projectCall.evaluators',
+  PROJECT_CALL_DECIDED: 'projectCall.decided',
+  TOOLBOX_RESOURCE_SAVED: 'toolbox.resource_saved',
+  TOOLBOX_PATH_SAVED: 'toolbox.path_saved',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

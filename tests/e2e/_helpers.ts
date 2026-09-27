@@ -460,3 +460,16 @@ export async function chercherUtilisateur(
     `compte introuvable après recherche : ${email}`,
   ).toHaveCount(1);
 }
+
+// Chantier « programmes » (F-56 à F-60) : remet à zéro les données des comptes
+// de test (profils, binômes, candidatures, progression) et supprime les
+// appels, parcours et ressources dont le titre porte `marker`. Les sessions
+// partagées portant des adresses STABLES, un binôme laissé par l'exécution
+// précédente empêcherait de réapparier les mêmes comptes. Garde AUTH_DEV_OTP
+// côté serveur, et seules les adresses `@democracytogether.test` sont touchées.
+export async function resetProgrammes(
+  emails: string[],
+  marker?: string,
+): Promise<void> {
+  convexRun('programmes:devResetProgrammes', { emails, marker });
+}

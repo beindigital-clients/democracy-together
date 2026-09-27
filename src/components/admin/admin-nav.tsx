@@ -119,6 +119,9 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       // `requireEditor` de convex/lib/contenus/access.ts. Les INSCRIPTIONS aux
       // événements restent sous « Programmes », au rang modérateur.
       { href: '/admin/contenus', key: 'contents' },
+      // Boîte à outils et parcours (F-56, F-57) : contenu éditorial, donc
+      // rang éditeur — celui de `toolbox.saveResource` et `savePath`.
+      { href: '/admin/boite-a-outils', key: 'toolbox' },
     ],
   },
   // L'automatisation est un groupe à part, et réservé à l'administrateur.
