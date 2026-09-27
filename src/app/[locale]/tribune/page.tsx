@@ -161,6 +161,11 @@ export default async function TribunePage({
                   <span className="font-mono uppercase tracking-[0.06em] text-muted">
                     {vocabulary(t, 'format_', p.format)}
                   </span>
+                  {p.isDeepening ? (
+                    <span className="font-mono uppercase tracking-[0.06em] text-muted">
+                      · {t('deepeningBadge')}
+                    </span>
+                  ) : null}
                 </div>
                 <h2 className="mt-2 font-display text-xl leading-snug">
                   {p.title}

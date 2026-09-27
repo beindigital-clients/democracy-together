@@ -4,6 +4,7 @@ import {
   elevateRole,
   applyYouth,
   E2E_PASSWORD,
+  approveTribunePosts,
 } from './_helpers';
 import { SESSIONS } from './_sessions';
 
@@ -139,10 +140,21 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
     .fill(
       'Un court billet de test E2E sur la participation citoyenne et ses limites.',
     );
-  await composer.getByRole('button', { name: 'Publier' }).click();
+  // Modération A PRIORI (F-45) : soumis, le billet attend sa validation —
+  // donnée ici — avant d'apparaître dans le fil public.
+  await composer
+    .getByRole('button', { name: 'Soumettre à la modération' })
+    .click();
+  await expect(page.getByText(/soumise à la modération/)).toBeVisible();
+  await approveTribunePosts(postTitle);
 
   // 2. ...puis signale le contenu depuis la fiche (tout compte authentifié peut).
-  await page.getByRole('link').filter({ hasText: postTitle }).first().click();
+  await page.goto('/fr/tribune');
+  await page
+    .locator('a[href*="/tribune/"]')
+    .filter({ hasText: postTitle })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/fr\/tribune\/[a-z0-9]+$/);
   await page.getByRole('button', { name: 'Signaler' }).first().click();
   await expect(page.getByText('Signalé')).toBeVisible();

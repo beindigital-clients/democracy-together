@@ -13,6 +13,12 @@ import {
   aiModerationVerdict,
   aiModerationApplied,
 } from './lib/aiModeration';
+import {
+  contentStatusValidator,
+  storedWorkspaceRoleValidator,
+  workspaceVisibilityValidator,
+} from './lib/communaute';
+import { communauteTables } from './lib/tables/communaute';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -428,8 +434,8 @@ export default defineSchema({
     .index('by_email', ['email']),
 
   // Tribune démocratique (F-44/F-47/F-50) — espace d'expression modéré. Lecture
-  // publique, écriture réservée aux membres ; modération a posteriori via
-  // signalement. `theme` = un des 5 axes (slugs PUB_THEMES). `authorName` est un
+  // publique, écriture réservée aux membres ; modération A PRIORI par défaut
+  // (F-45), a posteriori sur réglage de l'administrateur, et signalement. `theme` = un des 5 axes (slugs PUB_THEMES). `authorName` est un
   // instantané dénormalisé (évite un join à la lecture du fil).
   tribunePosts: defineTable({
     authorUserId: v.id('users'),
@@ -447,22 +453,72 @@ export default defineSchema({
     // pas, et que le repli de `resolveLocale` (fr) est la bonne réponse pour
     // eux.
     lang: v.optional(locale),
-    status: v.union(v.literal('published'), v.literal('removed')),
+    // `pending` / `rejected` : modération A PRIORI (F-45, chantier
+    // communauté). Un billet `pending` n'est servi qu'à son auteur et aux
+    // modérateurs ; `rejected` porte le motif montré à l'auteur.
+    status: contentStatusValidator,
     commentCount: v.number(),
     createdAt: v.number(),
+    // Dernière modification par l'auteur (billet en attente ou rejeté).
+    updatedAt: v.optional(v.number()),
+    // Décision humaine la plus récente (l'historique complet vit dans
+    // `moderationEvents`) ; `moderatedBy` absent + `autoPublished` = mise en
+    // ligne par l'IA, sans relecture.
+    moderatedBy: v.optional(v.id('users')),
+    moderatedAt: v.optional(v.number()),
+    rejectionReason: v.optional(v.string()),
+    autoPublished: v.optional(v.boolean()),
+    // Résumé du dernier avis de l'IA, pour un badge dans la file.
+    aiReview: v.optional(
+      v.object({
+        verdict: aiModerationVerdict,
+        applied: aiModerationApplied,
+        reason: v.string(),
+        confidence: v.number(),
+        blocking: v.number(),
+        warnings: v.number(),
+        at: v.number(),
+      }),
+    ),
+    // APPROFONDISSEMENT (F-48) : cette contribution de fond prolonge un
+    // billet court.
+    parentPostId: v.optional(v.id('tribunePosts')),
+    // Proposée à la bibliothèque : la publication (en file) qui en est née.
+    libraryPublicationId: v.optional(v.id('publications')),
   })
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
-    .index('by_author', ['authorUserId']),
+    .index('by_author', ['authorUserId'])
+    .index('by_parent_and_status', ['parentPostId', 'status']),
 
   tribuneComments: defineTable({
     postId: v.id('tribunePosts'),
     authorUserId: v.id('users'),
     authorName: v.string(),
     body: v.string(),
-    status: v.union(v.literal('published'), v.literal('removed')),
+    status: contentStatusValidator,
     createdAt: v.number(),
-  }).index('by_post', ['postId']),
+    moderatedBy: v.optional(v.id('users')),
+    moderatedAt: v.optional(v.number()),
+    rejectionReason: v.optional(v.string()),
+    autoPublished: v.optional(v.boolean()),
+    aiReview: v.optional(
+      v.object({
+        verdict: aiModerationVerdict,
+        applied: aiModerationApplied,
+        reason: v.string(),
+        confidence: v.number(),
+        blocking: v.number(),
+        warnings: v.number(),
+        at: v.number(),
+      }),
+    ),
+  })
+    .index('by_post', ['postId'])
+    // File de modération (commentaires en attente, F-49) et « mes
+    // commentaires » / suppression de compte.
+    .index('by_status', ['status'])
+    .index('by_author', ['authorUserId']),
 
   // Réactions de la Tribune — un seul type, « soutien » (comme un like). Une
   // réaction par membre et par post : unicité via l'index composite
@@ -471,7 +527,10 @@ export default defineSchema({
     postId: v.id('tribunePosts'),
     userId: v.id('users'),
     createdAt: v.number(),
-  }).index('by_post_and_user', ['postId', 'userId']),
+  })
+    .index('by_post_and_user', ['postId', 'userId'])
+    // Suppression / export des données d'un compte.
+    .index('by_user', ['userId']),
 
   // Signalements (F-50) — file de modération a posteriori. `targetId` = id d'un
   // post ou d'un commentaire (stocké en chaîne, type porté par `targetType`).
@@ -482,7 +541,11 @@ export default defineSchema({
     reporterUserId: v.id('users'),
     resolved: v.boolean(),
     createdAt: v.number(),
-  }).index('by_resolved', ['resolved']),
+  })
+    .index('by_resolved', ['resolved'])
+    // Historique d'un contenu (F-49) : ses signalements, sans parcourir la file.
+    .index('by_target', ['targetId'])
+    .index('by_reporter', ['reporterUserId']),
 
   // Appels à projets collaboratifs (F-60) — propositions de projets menés en
   // commun entre membres. La page publique présente le DISPOSITIF (aucun appel
@@ -522,6 +585,12 @@ export default defineSchema({
     ownerName: v.string(),
     memberCount: v.number(),
     createdAt: v.number(),
+    // Ouvert (défaut, incrément 1) ou privé sur invitation.
+    visibility: v.optional(workspaceVisibilityValidator),
+    // Occupation du stockage par les fichiers partagés (toutes versions), et
+    // nombre de fichiers — tenus à l'écriture, lus pour le quota.
+    storageBytes: v.optional(v.number()),
+    fileCount: v.optional(v.number()),
   }).index('by_owner', ['ownerUserId']),
 
   // Appartenance à un espace (F-24). Unicité (espace, utilisateur) via l'index
@@ -530,7 +599,9 @@ export default defineSchema({
     workspaceId: v.id('workspaces'),
     userId: v.id('users'),
     userName: v.string(),
-    role: v.union(v.literal('owner'), v.literal('member')),
+    // animateur / contributeur / lecteur ; `owner` et `member` sont les
+    // valeurs héritées (cf. effectiveWorkspaceRole, convex/lib/communaute.ts).
+    role: storedWorkspaceRoleValidator,
     joinedAt: v.number(),
   })
     .index('by_workspace', ['workspaceId'])
@@ -548,7 +619,9 @@ export default defineSchema({
     authorName: v.string(),
     body: v.string(),
     createdAt: v.number(),
-  }).index('by_workspace', ['workspaceId']),
+  })
+    .index('by_workspace', ['workspaceId'])
+    .index('by_author', ['authorUserId']),
 
   // --- Modération éditoriale assistée par IA (auto-acceptation) -------------
   //
@@ -835,4 +908,6 @@ export default defineSchema({
     purpose: v.string(),
     createdAt: v.number(),
   }).index('by_email', ['email']),
+
+  ...communauteTables,
 });

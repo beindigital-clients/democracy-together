@@ -14,6 +14,28 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
+// notifications, signalements) : le mode A POSTERIORI y est réglé
+// explicitement, comme le ferait l'administrateur. La modération a priori —
+// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// (convex/communaute-moderation.test.ts).
+async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+  return t;
+}
+
 // Déni de service de la file de modération (audit M1 / pentest H-2).
 // `reportContent` acceptait un `targetId` chaîne ARBITRAIRE. `listReports` fait
 // ensuite un ctx.db.get(targetId) : un identifiant malformé faisait échouer la
@@ -31,7 +53,7 @@ async function userWith(
 }
 
 async function setup() {
-  const t = convexTest(schema, modules);
+  const t = await aPosteriori(convexTest(schema, modules));
   const membre = await userWith(t, 'membre', 'm@test.org');
   const mod = await userWith(t, 'moderateur', 'mod@test.org');
   const postId = await membre.as.mutation(api.tribune.createPost, {

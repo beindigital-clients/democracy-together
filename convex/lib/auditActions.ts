@@ -35,6 +35,23 @@ export const AUDIT = {
   // Réglages du dispositif : qui a ouvert l'auto-publication, et quand.
   AI_MODERATION_CONFIGURED: 'aiModeration.configured',
   AI_MODERATION_RULE_CHANGED: 'aiModeration.rule_changed',
+  // Modération a priori de la Tribune (chantier communauté, F-45/F-49). Une
+  // action par DÉCISION : « validé », « rejeté », « retiré » ne disent pas la
+  // même chose de la plateforme, et le journal doit pouvoir les compter à part.
+  TRIBUNE_APPROVED: 'tribune.approved',
+  TRIBUNE_REJECTED: 'tribune.rejected',
+  TRIBUNE_REMOVED: 'tribune.removed',
+  TRIBUNE_REPORTS_DISMISSED: 'tribune.reports_dismissed',
+  // Mêmes raisons que pour la bibliothèque : l'analyse est routinière, la
+  // mise en ligne sans relecture humaine ne l'est pas.
+  TRIBUNE_AI_REVIEWED: 'tribune.ai_reviewed',
+  TRIBUNE_AI_PUBLISHED: 'tribune.ai_published',
+  COMMUNITY_MODERATION_CONFIGURED: 'tribune.moderation_configured',
+  // Espaces collaboratifs : les actions d'un animateur SUR AUTRUI (retrait
+  // d'un membre, suppression du fichier d'un autre). Ce qu'un membre fait de
+  // ses propres contenus n'est pas une action de modération.
+  WORKSPACE_MEMBER_REMOVED: 'workspace.member_removed',
+  WORKSPACE_FILE_DELETED: 'workspace.file_deleted',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

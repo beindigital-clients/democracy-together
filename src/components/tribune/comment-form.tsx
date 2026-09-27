@@ -22,6 +22,9 @@ export function CommentForm({ postId }: { postId: string }) {
   const [body, setBody] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Commentaire retenu pour validation (mode a priori des commentaires) :
+  // l'auteur doit savoir qu'il n'a pas disparu.
+  const [held, setHeld] = useState(false);
 
   if (me === undefined) return null;
   if (!isMember(me?.role)) {
@@ -56,9 +59,14 @@ export function CommentForm({ postId }: { postId: string }) {
       return;
     }
     setPending(true);
+    setHeld(false);
     try {
-      await add({ postId: postId as Id<'tribunePosts'>, body: text });
+      const res = await add({
+        postId: postId as Id<'tribunePosts'>,
+        body: text,
+      });
       setBody('');
+      setHeld(res.status === 'pending');
       router.refresh();
     } catch (err) {
       const code =
@@ -100,9 +108,14 @@ export function CommentForm({ postId }: { postId: string }) {
         error={error}
         placeholder={t('commentPlaceholder')}
       />
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" className="min-h-11" disabled={pending}>
         {t('commentSubmit')}
       </Button>
+      {held ? (
+        <p role="status" className="text-sm text-ink">
+          {t('commentPending')}
+        </p>
+      ) : null}
     </form>
   );
 }

@@ -69,7 +69,9 @@ export const BASE_CLIENT_NAMESPACES = [
  * racine. Vérifié : tous les composants client qui le demandent vivent sous
  * `app/[locale]/admin/` ou `components/admin/`.
  */
-export const ADMIN_NAMESPACES = ['admin'] as const;
+// `moderationQueue` : la file de modération de la tribune (chantier
+// communauté), écran du back-office seulement.
+export const ADMIN_NAMESPACES = ['admin', 'moderationQueue'] as const;
 
 /** Tous les espaces demandés par un composant client, où qu'il soit. */
 export const CLIENT_NAMESPACES = [

@@ -25,6 +25,7 @@ import {
 } from './lib/counters';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { PUB_TYPES } from './lib/publications';
+import { TRIBUNE_AI_SCOPE } from './lib/communaute';
 import {
   isGatewayConfigured,
   runStructured,
@@ -120,7 +121,7 @@ export async function loadSettings(
 }
 
 // Barème de l'administrateur, règles actives seulement, dans son ordre.
-async function loadEnabledRules(ctx: QueryCtx): Promise<AiRule[]> {
+export async function loadEnabledRules(ctx: QueryCtx): Promise<AiRule[]> {
   const rows = await ctx.db
     .query('aiModerationRules')
     .withIndex('by_order')
@@ -139,14 +140,14 @@ async function loadEnabledRules(ctx: QueryCtx): Promise<AiRule[]> {
 
 // --- Validateurs de retour ---------------------------------------------------
 
-const ruleValidator = v.object({
+export const ruleValidator = v.object({
   key: v.string(),
   label: v.string(),
   description: v.string(),
   severity: aiModerationSeverity,
 });
 
-const findingValidator = v.object({
+export const findingValidator = v.object({
   ruleKey: v.string(),
   ruleLabel: v.string(),
   severity: aiModerationSeverity,
@@ -155,7 +156,7 @@ const findingValidator = v.object({
   quote: v.optional(v.string()),
 });
 
-const settingsValidator = v.object({
+export const settingsValidator = v.object({
   mode: aiModerationMode,
   model: v.string(),
   fallbackModel: v.union(v.string(), v.null()),
@@ -213,7 +214,7 @@ function projectReview(doc: Doc<'aiModerationReviews'>) {
 // `fromWire` la reconvertit en réglages applicatifs — sans quoi un
 // `fallbackModel` absent voyagerait en `null` et cesserait d'être un
 // « pas de repli » pour devenir un modèle nommé « null ».
-type WireSettings = {
+export type WireSettings = {
   mode: AiMode;
   model: string;
   fallbackModel: string | null;
@@ -226,7 +227,7 @@ type WireSettings = {
   version: number;
 };
 
-function fromWire(s: WireSettings): AiModerationSettings {
+export function fromWire(s: WireSettings): AiModerationSettings {
   return {
     mode: s.mode,
     model: s.model,
@@ -241,7 +242,7 @@ function fromWire(s: WireSettings): AiModerationSettings {
   };
 }
 
-function settingsOut(s: AiModerationSettings): WireSettings {
+export function settingsOut(s: AiModerationSettings): WireSettings {
   return {
     mode: s.mode,
     model: s.model,
@@ -312,7 +313,10 @@ export const getSettings = query({
       })),
       baseline: BASELINE_RULES.map((r) => ({ ...r })),
       configured: isGatewayConfigured(),
-      availableTypes: [...PUB_TYPES],
+      // `tribune` s'ajoute aux types de la bibliothèque : cocher cette case est
+      // le SEUL moyen d'ouvrir l'auto-acceptation aux billets de la Tribune
+      // (convex/communityModeration.ts). Décochée, l'IA n'y fait que proposer.
+      availableTypes: [...PUB_TYPES, TRIBUNE_AI_SCOPE],
       stats: {
         analyzed: counts[COUNTER.AI_REVIEWS],
         published: counts[COUNTER.AI_REVIEWS_PUBLISHED],
@@ -362,8 +366,10 @@ export const updateSettings = mutation({
     // panneau ne montre pas.
     const eligibleTypes = [
       ...new Set(
-        args.eligibleTypes.filter((t) =>
-          (PUB_TYPES as readonly string[]).includes(t),
+        args.eligibleTypes.filter(
+          (t) =>
+            (PUB_TYPES as readonly string[]).includes(t) ||
+            t === TRIBUNE_AI_SCOPE,
         ),
       ),
     ];
@@ -935,7 +941,7 @@ async function alertStaff(
 // dissertation.
 const MAX_OUTPUT_TOKENS = 4000;
 
-type AnalysisOutcome = {
+export type AnalysisOutcome = {
   verdict: 'approve' | 'flag' | 'reject' | 'error';
   confidence: number;
   summary: string;
@@ -951,7 +957,7 @@ type AnalysisOutcome = {
 //
 // Ne lève jamais. Tout échec devient un avis `error` — journalisable, et qui
 // laisse le dépôt en file par construction (cf. `decideApplication`).
-async function analyse(
+export async function analyse(
   document: AiDocument,
   settings: AiModerationSettings,
   adminRules: readonly AiRule[],

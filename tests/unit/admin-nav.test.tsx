@@ -42,7 +42,8 @@ function renderNav(role: NetworkRole, pathname = '/admin') {
 // Les quatorze entrées de l'issue, par le libellé qu'elles portent à l'écran,
 // plus la quinzième arrivée depuis (« Modération IA », réservée à
 // l'administrateur) et la seizième (« Mes relectures », la vue du relecteur
-// de rang modérateur — campagne du 27/09, A-02). Le total est réaffirmé
+// de rang modérateur — campagne du 27/09, A-02), puis la dix-septième (« File
+// de modération » de la tribune, chantier communauté). Le total est réaffirmé
 // ci-dessous : une entrée ajoutée sans passer par ici fait échouer le test,
 // ce qui est l'objet du fichier.
 const STAFF_ITEMS = [
@@ -51,6 +52,7 @@ const STAFF_ITEMS = [
   'Candidatures',
   'Publications',
   'Mes relectures',
+  'File de modération',
   'Signalements',
   'Messages',
   'Jeunes',
@@ -71,7 +73,7 @@ function linkNames(nav: HTMLElement): string[] {
 }
 
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
-  it('un modérateur voit les 11 entrées communes, et aucune entrée réservée', () => {
+  it('un modérateur voit les 12 entrées communes, et aucune entrée réservée', () => {
     const nav = renderNav('moderateur');
     expect(linkNames(nav).sort()).toEqual([...STAFF_ITEMS].sort());
     for (const reserved of [...EDITOR_ITEMS, ...ADMIN_ITEMS]) {
@@ -89,10 +91,10 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
   });
 
-  it('un administrateur voit les 16 entrées attendues', () => {
+  it('un administrateur voit les 17 entrées attendues', () => {
     const nav = renderNav('admin');
     const expected = [...STAFF_ITEMS, ...EDITOR_ITEMS, ...ADMIN_ITEMS];
-    expect(expected).toHaveLength(16);
+    expect(expected).toHaveLength(17);
     expect(linkNames(nav).sort()).toEqual([...expected].sort());
   });
 
@@ -122,9 +124,9 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       // est donc annoncé, sans introduire un `<h2>` avant le `<h1>` de l'écran.
       expect(within(nav).getByRole('list', { name: label })).toBeTruthy();
     }
-    // Aucune entrée hors groupe : la somme des listes rend bien les 16 liens.
+    // Aucune entrée hors groupe : la somme des listes rend bien les 17 liens.
     const grouped = lists.flatMap((l) => within(l).getAllByRole('link'));
-    expect(grouped).toHaveLength(16);
+    expect(grouped).toHaveLength(17);
   });
 
   it('ne défile plus horizontalement : aucun conteneur en overflow-x', () => {
@@ -204,9 +206,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
 
   it('aucun chemin ni aucune clé de libellé en double', () => {
     const items = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-    expect(items).toHaveLength(16);
-    expect(new Set(items.map((i) => i.href)).size).toBe(16);
-    expect(new Set(items.map((i) => i.key)).size).toBe(16);
+    expect(items).toHaveLength(17);
+    expect(new Set(items.map((i) => i.href)).size).toBe(17);
+    expect(new Set(items.map((i) => i.key)).size).toBe(17);
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
