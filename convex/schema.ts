@@ -30,6 +30,7 @@ export const networkRole = v.union(
 // reste ré-exporté ici : une dizaine de modules l'importent de `./schema`.
 import { locale } from './lib/locales';
 export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
+import { diffusionTables } from './lib/tables/diffusion';
 
 export default defineSchema({
   // Tables de Convex Auth (users, authSessions, authAccounts, ...).
@@ -81,10 +82,22 @@ export default defineSchema({
       v.literal('suspended'),
     ),
     createdAt: v.number(),
+    // Meule de recherche PLIÉE (F-06, chantier diffusion) — nom, description,
+    // pays en toutes lettres, sans accents. Tenue à l'écriture
+    // (`organizationSearchText`), remplie pour l'existant par
+    // `searchIndexing.backfill`. Optionnelle : un document qui ne la porte pas
+    // n'est simplement pas trouvé par la recherche globale.
+    searchText: v.optional(v.string()),
   })
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
-    .index('by_region', ['region']),
+    .index('by_region', ['region'])
+    // Recherche globale : `status` en filtre pour que seules les fiches
+    // actives sortent, DANS la lecture d'index (pas après).
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['status', 'region'],
+    }),
 
   // Rattachement utilisateur <-> organisation (délégation, F-21).
   organizationMemberships: defineTable({
@@ -186,6 +199,12 @@ export default defineSchema({
     fileId: v.optional(v.id('_storage')),
     fileName: v.optional(v.string()),
     createdAt: v.number(),
+    // Recherche plein texte (F-06/F-34, chantier diffusion) : meule PLIÉE
+    // (titre, auteurs, résumé, points clés) et langue principale — un tableau
+    // (`languages`) ne peut pas servir de filtre d'égalité dans un index de
+    // recherche. Tenues à l'écriture, remplies par `searchIndexing.backfill`.
+    searchText: v.optional(v.string()),
+    searchLang: v.optional(locale),
   })
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
@@ -204,6 +223,13 @@ export default defineSchema({
     .searchIndex('search_title', {
       searchField: 'title',
       filterFields: ['status'],
+    })
+    // Recherche PUBLIQUE (palette, /recherche). `status` y est TOUJOURS fixé à
+    // 'published' par la requête : un brouillon ne peut pas sortir, quel que
+    // soit le terme. Les autres filtres sont ceux de la page de résultats.
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['status', 'type', 'theme', 'region', 'searchLang', 'year'],
     }),
 
   // Consultations par publication (F-37) — compteur ISOLÉ du document.
@@ -309,17 +335,51 @@ export default defineSchema({
   // Inscriptions à la newsletter (F-18). Newsletter maison : envoi orchestré par
   // Convex via l'adaptateur e-mail (Resend, puis AWS SES). `unsubToken` = lien
   // de désinscription dans chaque envoi.
+  //
+  // DOUBLE OPT-IN (chantier diffusion) : une inscription naît `pending` et ne
+  // reçoit RIEN tant que le lien de confirmation n'a pas été suivi. Le jeton
+  // de confirmation n'est stocké que HACHÉ (SHA-256) : une fuite de la table ne
+  // permet de confirmer personne. `status` absent = abonné HÉRITÉ, antérieur au
+  // double opt-in — il ne reçoit pas les campagnes tant que
+  // `newsletter.migrateLegacySubscribers` ne lui a pas demandé confirmation
+  // (cf. docs/backlog/diffusion.md).
   newsletterSubscriptions: defineTable({
     email: v.string(),
     locale: v.optional(locale),
     unsubToken: v.optional(v.string()),
     createdAt: v.number(),
+    status: v.optional(v.union(v.literal('pending'), v.literal('confirmed'))),
+    confirmTokenHash: v.optional(v.string()),
+    confirmExpiresAt: v.optional(v.number()),
+    // Nombre d'e-mails de confirmation envoyés — le renvoi est BORNÉ.
+    confirmSends: v.optional(v.number()),
+    confirmLastSentAt: v.optional(v.number()),
+    confirmedAt: v.optional(v.number()),
+    // PREUVE DU CONSENTEMENT (RGPD art. 7.1) : quand, depuis quel formulaire,
+    // dans quelle langue, et sous quelle version du texte d'information.
+    consent: v.optional(
+      v.object({
+        at: v.number(),
+        source: v.string(),
+        locale: v.optional(locale),
+        textVersion: v.string(),
+      }),
+    ),
   })
     .index('by_email', ['email'])
-    .index('by_token', ['unsubToken']),
+    .index('by_token', ['unsubToken'])
+    .index('by_confirm_hash', ['confirmTokenHash'])
+    // Destinataires d'une campagne (`confirmed`), purge des attentes expirées
+    // (`pending` + échéance) et migration des héritées (`undefined`).
+    .index('by_status_and_expiry', ['status', 'confirmExpiresAt']),
 
   // Campagnes newsletter (F-65) — composées au back-office, envoyées à tous les
   // abonnés via l'adaptateur e-mail.
+  //
+  // ENVOI EN VOLUME (chantier diffusion) : la campagne est découpée en lots
+  // planifiés, un statut par destinataire dans `newsletterDeliveries`. Les
+  // compteurs ci-dessous sont la PROGRESSION affichée en direct au back-office
+  // (`recipientCount` = envoyés, nom historique conservé).
   newsletterCampaigns: defineTable({
     subject: v.string(),
     body: v.string(),
@@ -334,6 +394,19 @@ export default defineSchema({
     sentAt: v.optional(v.number()),
     recipientCount: v.optional(v.number()),
     failedCount: v.optional(v.number()),
+    // Langue de la version de référence (repli des abonnés sans version dans
+    // leur langue). Absente = français, comme avant le chantier.
+    locale: v.optional(locale),
+    // Versions traduites — cinq langues au plus, donc un tableau borné.
+    variants: v.optional(
+      v.array(v.object({ locale, subject: v.string(), body: v.string() })),
+    ),
+    // Destinataires mis en file (croît pendant la mise en file).
+    totalCount: v.optional(v.number()),
+    skippedCount: v.optional(v.number()),
+    enqueueDone: v.optional(v.boolean()),
+    startedAt: v.optional(v.number()),
+    lastTestAt: v.optional(v.number()),
   }).index('by_status', ['status']),
 
   // Formulaire de contact (F-17).
@@ -452,10 +525,19 @@ export default defineSchema({
     status: v.union(v.literal('published'), v.literal('removed')),
     commentCount: v.number(),
     createdAt: v.number(),
+    // Recherche globale (chantier diffusion) : meule PLIÉE (titre, auteur,
+    // corps) et année de publication pour le filtre « date ».
+    searchText: v.optional(v.string()),
+    searchYear: v.optional(v.number()),
   })
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
-    .index('by_author', ['authorUserId']),
+    .index('by_author', ['authorUserId'])
+    // Seuls les billets `published` sortent : filtre posé par la requête.
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['status', 'theme', 'lang', 'searchYear'],
+    }),
 
   tribuneComments: defineTable({
     postId: v.id('tribunePosts'),
@@ -840,4 +922,5 @@ export default defineSchema({
 
   ...socialTables,
   ...paiementsTables,
+  ...diffusionTables,
 });

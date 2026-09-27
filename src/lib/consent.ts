@@ -1,8 +1,10 @@
-// Consentement cookies (F-09). Aujourd'hui le site ne dépose que des cookies
-// strictement nécessaires (langue, thème, session d'authentification), exemptés
-// de consentement. Cette préférence est conservée pour GATER une éventuelle
-// mesure d'audience future : tout outil de mesure ajouté plus tard DEVRA
-// vérifier `hasAnalyticsConsent()` avant de se charger.
+// Consentement cookies (F-09). Le site ne dépose que des cookies strictement
+// nécessaires (langue, thème, session d'authentification), exemptés de
+// consentement. La mesure d'audience first-party (F-66, src/lib/audience.ts)
+// est elle aussi exemptée — sans cookie ni identifiant — mais le choix
+// « Essentiels uniquement » vaut OPPOSITION et la désactive. Un outil de
+// mesure TIERS, s'il en était ajouté, devrait vérifier `hasAnalyticsConsent()`
+// avant de se charger.
 export const CONSENT_KEY = 'dt-cookie-consent';
 export type ConsentValue = 'all' | 'essential';
 

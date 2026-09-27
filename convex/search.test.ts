@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -71,6 +71,13 @@ describe('Recherche globale (F-06)', () => {
         createdAt: 0,
       });
     });
+
+    // Documents posés EN DIRECT (`t.run`) : aucune mutation n'a calculé leur
+    // meule de recherche. La migration la remplit — exactement ce qu'elle
+    // fait pour un déploiement antérieur aux index `search_text`.
+    for (const table of ['publications', 'organizations'] as const) {
+      await t.mutation(internal.searchIndexing.backfill, { table });
+    }
 
     const res = await t.query(api.search.globalSearch, { q: 'Plateforme' });
     expect(res.publications.map((p) => p.slug)).toEqual(['gp']); // pending exclu

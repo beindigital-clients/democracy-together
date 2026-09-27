@@ -6,14 +6,16 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Search } from 'lucide-react';
 import { api } from '@convex/_generated/api';
 import { Link, useRouter } from '@/i18n/navigation';
-import { countryFlag, countryName } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { hitMeta } from '@/lib/search';
 
 // Recherche en modal (command palette) — évite le saut de page : on ouvre par
 // ⌘K / Ctrl+K ou clic, on cherche en direct (query Convex réactive) et on
 // affiche les résultats dans le panneau. Les contenus couverts en live sont
-// ceux de Convex (publications + membres) ; « Voir tous les résultats » renvoie
-// vers /recherche, qui ajoute les actualités (Sanity) et l'exhaustif.
+// ceux du REGISTRE de recherche Convex (publications, membres, Tribune,
+// experts… — convex/lib/searchSources.ts), rendus section par section sans
+// rien savoir des tables ; « Voir tous les résultats » renvoie vers
+// /recherche, qui ajoute les actualités (Sanity), les filtres et la suite.
 //
 // A11y calquée sur mobile-nav : role=dialog/aria-modal, Échap, clic hors zone,
 // piège à focus, verrou du scroll, focus rendu au déclencheur à la fermeture.
@@ -82,15 +84,14 @@ export function SearchDialog() {
   const pending = enabled && results === undefined;
   const unavailable = useStalled(pending, UNAVAILABLE_AFTER_MS) && pending;
 
-  // Liste plate (publications puis membres), dans l'ordre d'affichage, pour la
-  // navigation clavier et la résolution de la cible à « Entrée ».
-  const pubs = results?.publications ?? [];
-  const orgs = results?.organizations ?? [];
-  const hrefs = [
-    ...pubs.map((p) => `/bibliotheque/${p.slug}`),
-    ...orgs.map((o) => `/le-reseau/${o.slug}`),
-  ];
+  // Liste plate (sections dans l'ordre du registre), dans l'ordre d'affichage,
+  // pour la navigation clavier et la résolution de la cible à « Entrée ».
+  const sections = results?.sections ?? [];
+  const hrefs = sections.flatMap((s) => s.hits.map((h) => h.path));
   const total = hrefs.length;
+  const offsets = sections.map((_, i) =>
+    sections.slice(0, i).reduce((n, s) => n + s.hits.length, 0),
+  );
 
   // Réinitialise l'option active à chaque nouvelle recherche.
   useEffect(() => {
@@ -256,25 +257,24 @@ export function SearchDialog() {
                 </p>
               ) : (
                 <div className="flex flex-col gap-4 py-1">
-                  {pubs.length ? (
-                    <section>
+                  {sections.map((section, k) => (
+                    <section key={section.source}>
                       <h2 className="px-2 pb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                        {t('sectionPublications')}
+                        {vocabulary(t, 'section_', section.source)}
                       </h2>
                       <ul className="flex flex-col gap-0.5">
-                        {pubs.map((p, j) => {
-                          const i = j;
+                        {section.hits.map((hit, j) => {
+                          const i = offsets[k] + j;
                           const on = i === active;
-                          const href = `/bibliotheque/${p.slug}`;
                           return (
                             <li
-                              key={p.slug}
+                              key={hit.id}
                               id={optionId(i)}
                               role="option"
                               aria-selected={on}
                             >
                               <Link
-                                href={href}
+                                href={hit.path}
                                 tabIndex={-1}
                                 onMouseMove={() => setActive(i)}
                                 onClick={reset}
@@ -285,10 +285,14 @@ export function SearchDialog() {
                                 }`}
                               >
                                 <span className="truncate font-medium text-ink">
-                                  {p.title}
+                                  {hit.title}
                                 </span>
                                 <span className="ms-auto shrink-0 text-[12px] text-muted">
-                                  {vocabulary(tl, 'types.', p.type)}
+                                  {hitMeta(hit, {
+                                    library: tl,
+                                    search: t,
+                                    locale,
+                                  })}
                                 </span>
                               </Link>
                             </li>
@@ -296,50 +300,7 @@ export function SearchDialog() {
                         })}
                       </ul>
                     </section>
-                  ) : null}
-
-                  {orgs.length ? (
-                    <section>
-                      <h2 className="px-2 pb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                        {t('sectionMembers')}
-                      </h2>
-                      <ul className="flex flex-col gap-0.5">
-                        {orgs.map((o, j) => {
-                          const i = pubs.length + j;
-                          const on = i === active;
-                          const href = `/le-reseau/${o.slug}`;
-                          return (
-                            <li
-                              key={o.slug}
-                              id={optionId(i)}
-                              role="option"
-                              aria-selected={on}
-                            >
-                              <Link
-                                href={href}
-                                tabIndex={-1}
-                                onMouseMove={() => setActive(i)}
-                                onClick={reset}
-                                className={`${ROW} ${
-                                  on
-                                    ? 'border-line-strong bg-accent-tint/50'
-                                    : 'border-transparent'
-                                }`}
-                              >
-                                <span className="truncate font-medium text-ink">
-                                  {o.name}
-                                </span>
-                                <span className="ms-auto shrink-0 text-[12px] text-muted">
-                                  {countryFlag(o.country)}{' '}
-                                  {countryName(o.country, locale)}
-                                </span>
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </section>
-                  ) : null}
+                  ))}
                 </div>
               )}
             </div>

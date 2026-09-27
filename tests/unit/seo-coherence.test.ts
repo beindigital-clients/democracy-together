@@ -120,7 +120,12 @@ describe('Une page en noindex ne déclare pas de hreflang (issue #35)', () => {
   // `tests/e2e/seo.spec.ts` : sur une page en `noindex`, un moteur ignore le
   // hreflang — l'ajouter ne serait que du bruit. Ce test étend la règle à
   // toute page qui se déclarerait `noindex` plus tard.
-  const ROUTES = ['recherche', 'newsletter/desinscription'];
+  const ROUTES = [
+    'recherche',
+    'newsletter/desinscription',
+    // Chantier diffusion : même arbitrage pour le lien du double opt-in.
+    'newsletter/confirmation',
+  ];
 
   it.each(ROUTES)('%s : noindex, et aucun hreflang', (route) => {
     const src = metadataSources(route);

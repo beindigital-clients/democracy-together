@@ -3,6 +3,7 @@ import { httpAction } from './_generated/server';
 import { auth } from './auth';
 import { processWebhook } from './payments/webhooks';
 import type { ProviderId } from './lib/payments/validators';
+import { unsubscribeOneClick, unsubscribeRedirect } from './newsletterHttp';
 
 const http = httpRouter();
 
@@ -34,5 +35,17 @@ for (const provider of ['stripe', 'paydunya', 'fake'] as const) {
     handler: webhookRoute(provider),
   });
 }
+// Newsletter — désinscription en un clic (RFC 8058), cible de l'en-tête
+// `List-Unsubscribe` des campagnes (convex/newsletterHttp.ts).
+http.route({
+  path: '/newsletter/unsubscribe',
+  method: 'POST',
+  handler: unsubscribeOneClick,
+});
+http.route({
+  path: '/newsletter/unsubscribe',
+  method: 'GET',
+  handler: unsubscribeRedirect,
+});
 
 export default http;

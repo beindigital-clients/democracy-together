@@ -10,6 +10,7 @@ import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { isNetworkTheme, networkThemeValidator } from './lib/themes';
 import { locale } from './schema';
+import { tribuneSearchText, yearOf } from './lib/searchText';
 import {
   trackTribunePostStatus,
   trackTribuneCommentStatus,
@@ -95,9 +96,11 @@ export const createPost = mutation({
       ...RATE_LIMITS.tribunePost,
     });
 
+    const now = Date.now();
+    const name = authorName(user);
     const postId = await ctx.db.insert('tribunePosts', {
       authorUserId: user._id,
-      authorName: authorName(user),
+      authorName: name,
       theme,
       format: args.format,
       title,
@@ -105,7 +108,10 @@ export const createPost = mutation({
       lang: args.lang,
       status: 'published',
       commentCount: 0,
-      createdAt: Date.now(),
+      createdAt: now,
+      // Recherche globale (chantier diffusion) : meule tenue à l'écriture.
+      searchText: tribuneSearchText({ title, body, authorName: name }),
+      searchYear: yearOf(now),
     });
     await trackTribunePostStatus(ctx, null, 'published');
     return postId;

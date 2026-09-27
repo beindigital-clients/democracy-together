@@ -30,6 +30,7 @@ import {
   directoryFacetsValidator,
   projectOrganization,
   publicOrganizationValidator,
+  countryTerms,
 } from './lib/directory';
 import { isEmail, FIELD_MAX } from './lib/validation';
 import {
@@ -38,6 +39,7 @@ import {
   RATE_LIMITS,
 } from './lib/rateLimit';
 import { slugify } from './lib/slug';
+import { organizationSearchText } from './lib/searchText';
 import { sendEmail } from './email';
 import {
   normalizeEmail,
@@ -364,6 +366,15 @@ export const reviewApplication = mutation({
         ...(d?.websiteUrl ? { websiteUrl: d.websiteUrl } : {}),
         status: d ? 'active' : 'pending',
         createdAt: now,
+        // Recherche globale (chantier diffusion) : meule tenue à l'écriture.
+        searchText: organizationSearchText(
+          {
+            name: application.organizationName,
+            description: d?.description,
+            country: d?.countryCode ?? application.country,
+          },
+          countryTerms,
+        ),
       });
       await trackOrganizationStatus(ctx, null, d ? 'active' : 'pending');
       await ctx.db.insert('organizationMemberships', {

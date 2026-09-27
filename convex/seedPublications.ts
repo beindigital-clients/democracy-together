@@ -1,5 +1,6 @@
 import { internalMutation } from './_generated/server';
 import { trackPublicationStatus } from './lib/counters';
+import { publicationSearchText } from './lib/searchText';
 
 // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple la bibliothèque (F-32/F-34)
 // avec les publications de démonstration de la maquette. Idempotent (ignore un
@@ -436,6 +437,13 @@ export const seedPublications = internalMutation({
       const { month, ...rest } = p;
       await ctx.db.insert('publications', {
         ...rest,
+        searchText: publicationSearchText({
+          title: p.title,
+          authors: [...p.authors],
+          abstract: p.abstract,
+          keypoints: [...p.keypoints],
+        }),
+        searchLang: p.languages[0],
         languages: [...p.languages],
         authors: p.authors.map((a) => ({ ...a })),
         keypoints: [...p.keypoints],

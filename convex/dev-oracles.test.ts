@@ -23,6 +23,11 @@ const ORACLES: Array<[file: string, name: string]> = [
   ['youth.ts', 'isYouthApplicant'],
   ['mentorship.ts', 'isMentorshipRequested'],
   ['eventReminders.ts', 'isReminderSet'],
+  // Chantier diffusion : état du double opt-in et lien de confirmation lu
+  // par l'E2E (comme `otp.latestDevCode`).
+  ['newsletter.ts', 'devUnsubToken'],
+  ['newsletter.ts', 'devSubscriptionStatus'],
+  ['newsletter.ts', 'devLatestConfirmationLink'],
 ];
 
 const here = fileURLToPath(new URL('.', import.meta.url));

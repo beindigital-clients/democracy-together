@@ -37,6 +37,12 @@ export const SERVER_ERROR_CODES = [
   'INVALID_CAMPAIGN',
   'ALREADY_SENT',
   'EMAIL_PROVIDER_NOT_CONFIGURED',
+  // Newsletter (chantier diffusion) : version traduite dans la langue de
+  // référence, envoi de test sans adresse de compte, relance d'une campagne
+  // encore en cours.
+  'VARIANT_IS_REFERENCE',
+  'NO_EDITOR_EMAIL',
+  'NOT_RETRYABLE',
   // Refus de rôle et de session : `requireNetworkRole` lève en français
   // (« Accès refusé : rôle « editeur » requis. », « Non authentifié. ») — ils
   // sont reconnus par leur texte et ramenés à un code, comme les autres.

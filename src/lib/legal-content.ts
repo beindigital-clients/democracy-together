@@ -404,7 +404,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies et traceurs',
           body: [
             'Le site utilise uniquement des cookies et stockages strictement nécessaires : préférence de langue, préférence de thème et session d’authentification. Ils sont exemptés de consentement car indispensables au service.',
-            'Aucun traceur publicitaire ni outil de mesure d’audience tiers n’est actuellement déposé. Si une mesure d’audience est ajoutée à l’avenir, votre consentement préalable sera recueilli.',
+            'Aucun traceur publicitaire ni outil de mesure d’audience tiers n’est déposé. La fréquentation du site est mesurée par nos soins, sans cookie ni identifiant, dans les conditions d’exemption de consentement de la CNIL : voir la section « Mesure d’audience » ci-dessous, qui décrit aussi comment vous y opposer.',
           ],
         },
         {
@@ -478,7 +478,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies and trackers',
           body: [
             'The site uses only strictly necessary cookies and storage: language preference, theme preference and authentication session. These are exempt from consent as they are essential to the service.',
-            'No advertising trackers or third-party analytics are currently set. If audience measurement is added in the future, your prior consent will be collected.',
+            'No advertising trackers or third-party analytics are set. Site traffic is measured by us, without cookies or identifiers, under the CNIL’s conditions for exemption from consent: see the “Audience measurement” section below, which also explains how to object.',
           ],
         },
         {
@@ -552,7 +552,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies y rastreadores',
           body: [
             'El sitio utiliza únicamente cookies y almacenamientos estrictamente necesarios: preferencia de lengua, preferencia de tema y sesión de autenticación. Están exentos de consentimiento por ser indispensables para el servicio.',
-            'Actualmente no se instala ningún rastreador publicitario ni herramienta de medición de audiencia de terceros. Si en el futuro se añade una medición de audiencia, se recabará su consentimiento previo.',
+            'No se instala ningún rastreador publicitario ni herramienta de medición de audiencia de terceros. La audiencia del sitio la medimos nosotros mismos, sin cookies ni identificadores, en las condiciones de exención de consentimiento de la CNIL: véase la sección «Medición de audiencia» más abajo, que también explica cómo oponerse.',
           ],
         },
         {
@@ -632,7 +632,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies e rastreadores',
           body: [
             'O sítio utiliza unicamente cookies e armazenamentos estritamente necessários: preferência de língua, preferência de tema e sessão de autenticação. Estão isentos de consentimento por serem indispensáveis ao serviço.',
-            'Não é atualmente colocado qualquer rastreador publicitário nem ferramenta de medição de audiência de terceiros. Se no futuro for acrescentada uma medição de audiência, o seu consentimento prévio será recolhido.',
+            'Não é colocado qualquer rastreador publicitário nem ferramenta de medição de audiência de terceiros. A audiência do sítio é medida por nós, sem cookies nem identificadores, nas condições de isenção de consentimento da CNIL: ver a secção «Medição de audiência» abaixo, que explica também como se opor.',
           ],
         },
         {
@@ -712,7 +712,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'ملفات تعريف الارتباط وأدوات التتبّع',
           body: [
             'لا يستعمل الموقع سوى ملفات تعريف ارتباط ووسائل تخزين ضرورية حصراً: تفضيل اللغة، وتفضيل السمة، وجلسة المصادقة. وهي معفاة من الموافقة لكونها لا غنى عنها للخدمة.',
-            'لا يُوضَع حالياً أي متتبّع إعلاني ولا أي أداة لقياس الجمهور تابعة لطرف ثالث. وإذا أُضيف قياس للجمهور مستقبلاً، فستُطلب موافقتكم المسبقة.',
+            'لا يُوضَع أي متتبّع إعلاني ولا أي أداة لقياس الجمهور تابعة لطرف ثالث. ونقيس زيارات الموقع بأنفسنا، من دون ملفات تعريف ارتباط ولا معرِّفات، وفق شروط الإعفاء من الموافقة التي حدّدتها CNIL: انظروا قسم «قياس الجمهور» أدناه، الذي يوضّح أيضاً كيفية الاعتراض.',
           ],
         },
         {

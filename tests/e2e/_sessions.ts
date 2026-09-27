@@ -62,7 +62,8 @@ export type SessionKey =
   | 'adminContact'
   | 'adminModeration'
   | 'adminModerationIa'
-  | 'paiements';
+  | 'paiements'
+  | 'diffusion';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -195,5 +196,14 @@ export const SESSIONS: Record<
     email: 'e2e_session_paiements@democracytogether.test',
     state: 'tests/e2e/.auth/paiements.json',
     role: 'admin',
+  },
+  // Session dédiée à `diffusion-newsletter.spec.ts` (chantier diffusion) :
+  // inscription publique, confirmation par le lien du courriel, PUIS
+  // vérification au back-office — la session est tenue d'un bout à l'autre.
+  // Rang ÉDITEUR, celui qu'exige `newsletter.listSubscribers`.
+  diffusion: {
+    email: 'e2e_session_diffusion@democracytogether.test',
+    state: 'tests/e2e/.auth/diffusion.json',
+    role: 'editeur',
   },
 };
