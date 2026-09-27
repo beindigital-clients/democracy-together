@@ -77,7 +77,7 @@ function ApplicationRow({ app }: { app: Application }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="break-words font-display text-lg">
+            <h2 className="min-w-0 wrap-anywhere font-display text-lg">
               {app.organizationName}
             </h2>
             <Badge>{vocabulary(t, 'appType_', app.type)}</Badge>

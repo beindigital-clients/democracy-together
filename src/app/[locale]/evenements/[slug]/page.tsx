@@ -161,12 +161,17 @@ export default async function EventDetailPage({
               </div>
             </dl>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                href={isFeatured ? '#billetterie' : '#inscription'}
-                className="inline-flex items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-              >
-                {d.register}
-              </a>
+              {/* Un événement PASSÉ n'a plus de formulaire : le bouton du hero
+                  pointait vers une ancre qui n'existe plus (contre-vérification
+                  du 27/09). */}
+              {event.upcoming || isFeatured ? (
+                <a
+                  href={isFeatured ? '#billetterie' : '#inscription'}
+                  className="inline-flex items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
+                  {d.register}
+                </a>
+              ) : null}
               {isFeatured ? (
                 <a
                   href="#programme"

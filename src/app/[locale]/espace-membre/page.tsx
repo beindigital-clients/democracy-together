@@ -137,7 +137,7 @@ function MemberDashboard() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <h1 className="font-display text-3xl">{t('memberTitle')}</h1>
-      <p className="mt-2 text-ink-soft">
+      <p className="mt-2 wrap-anywhere text-ink-soft">
         {t('memberWelcome', { name: me?.name ?? me?.email ?? '' })}
       </p>
 
