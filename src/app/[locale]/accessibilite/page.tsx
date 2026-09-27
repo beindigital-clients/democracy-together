@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { setRequestLocale } from 'next-intl/server';
 import { getLegalContent } from '@/lib/legal-content';
 import { LegalDocument } from '@/components/legal/legal-document';
@@ -18,11 +19,7 @@ export async function generateMetadata({
     description: doc.intro,
     alternates: {
       canonical: `${SITE}/${locale}/${PATH}`,
-      languages: {
-        fr: `${SITE}/fr/${PATH}`,
-        en: `${SITE}/en/${PATH}`,
-        'x-default': `${SITE}/fr/${PATH}`,
-      },
+      languages: hreflangFor(PATH),
     },
   };
 }

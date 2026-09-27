@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -37,11 +38,7 @@ export async function generateMetadata({
     description: L.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}/evenements`,
-      languages: {
-        fr: `${SITE}/fr/evenements`,
-        en: `${SITE}/en/evenements`,
-        'x-default': `${SITE}/fr/evenements`,
-      },
+      languages: hreflangFor(`evenements`),
     },
   };
 }
@@ -141,7 +138,7 @@ export default async function EventsPage({
                 defaultValue={filters.q ?? ''}
                 placeholder={L.hero.searchPlaceholder}
                 aria-label={L.hero.searchPlaceholder}
-                className="flex-1 rounded-sm border border-line-strong bg-surface px-4 py-2.5 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-2.5 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               />
               <button
                 type="submit"
@@ -208,7 +205,7 @@ export default async function EventsPage({
       </section>
 
       {/* Liste filtrable */}
-      <main
+      <div
         className={`${WRAP} grid gap-8 pb-16 lg:grid-cols-[260px_1fr] lg:gap-12`}
       >
         <aside
@@ -357,7 +354,7 @@ export default async function EventsPage({
             </RevealGroup>
           )}
         </section>
-      </main>
+      </div>
 
       {/* Rediffusions */}
       <section className="border-t border-line bg-surface">

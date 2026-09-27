@@ -76,6 +76,9 @@ if (process.env.DEMO_NOINDEX) {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // `X-Powered-By: Next.js` n'apprend rien à l'utilisateur et quelque chose à
+  // l'attaquant (relevé le 27/09, en-têtes de sécurité).
+  poweredByHeader: false,
   // Images: documentary photos (Sanity CDN) + placeholders.
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'cdn.sanity.io' }],

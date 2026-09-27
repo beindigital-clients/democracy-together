@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -23,11 +24,7 @@ export async function generateMetadata({
     description: report.intro,
     alternates: {
       canonical: `${SITE}/${locale}/rapports/${report.year}`,
-      languages: {
-        fr: `${SITE}/fr/rapports/${report.year}`,
-        en: `${SITE}/en/rapports/${report.year}`,
-        'x-default': `${SITE}/fr/rapports/${report.year}`,
-      },
+      languages: hreflangFor(`rapports/${report.year}`),
     },
   };
 }

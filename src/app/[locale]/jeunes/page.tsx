@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import Image from 'next/image';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -23,11 +24,7 @@ export async function generateMetadata({
     description: c.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}/jeunes`,
-      languages: {
-        fr: `${SITE}/fr/jeunes`,
-        en: `${SITE}/en/jeunes`,
-        'x-default': `${SITE}/fr/jeunes`,
-      },
+      languages: hreflangFor(`jeunes`),
     },
   };
 }

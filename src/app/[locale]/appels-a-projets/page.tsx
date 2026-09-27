@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
@@ -21,11 +22,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/appels-a-projets`,
-      languages: {
-        fr: `${SITE}/fr/appels-a-projets`,
-        en: `${SITE}/en/appels-a-projets`,
-        'x-default': `${SITE}/fr/appels-a-projets`,
-      },
+      languages: hreflangFor(`appels-a-projets`),
     },
   };
 }

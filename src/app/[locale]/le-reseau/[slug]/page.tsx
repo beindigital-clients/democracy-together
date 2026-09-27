@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
@@ -34,11 +35,7 @@ export async function generateMetadata({
     description: org.description,
     alternates: {
       canonical: `${SITE}/${locale}/le-reseau/${slug}`,
-      languages: {
-        fr: `${SITE}/fr/le-reseau/${slug}`,
-        en: `${SITE}/en/le-reseau/${slug}`,
-        'x-default': `${SITE}/fr/le-reseau/${slug}`,
-      },
+      languages: hreflangFor(`le-reseau/${slug}`),
     },
   };
 }
@@ -101,7 +98,7 @@ export default async function OrgProfilePage({
       </header>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_300px]">
-        <main>
+        <div>
           <h2 className="font-display text-2xl">{t('about')}</h2>
           <p className="mt-3 max-w-[68ch] leading-relaxed text-ink-soft">
             {org.description ?? '—'}
@@ -111,7 +108,7 @@ export default async function OrgProfilePage({
           <div className="mt-3 rounded-md border border-dashed border-line-strong bg-surface px-5 py-8 text-sm text-ink-soft">
             {t('publicationsSoon')}
           </div>
-        </main>
+        </div>
 
         <aside className="space-y-6">
           <div className="rounded-md border border-line bg-surface p-5">

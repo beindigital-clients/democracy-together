@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
@@ -29,11 +30,7 @@ export async function generateMetadata({
     description: s.lead,
     alternates: {
       canonical: `${SITE}/${locale}/thematiques/${slug}`,
-      languages: {
-        fr: `${SITE}/fr/thematiques/${slug}`,
-        en: `${SITE}/en/thematiques/${slug}`,
-        'x-default': `${SITE}/fr/thematiques/${slug}`,
-      },
+      languages: hreflangFor(`thematiques/${slug}`),
     },
   };
 }

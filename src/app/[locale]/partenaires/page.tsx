@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -20,11 +21,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/partenaires`,
-      languages: {
-        fr: `${SITE}/fr/partenaires`,
-        en: `${SITE}/en/partenaires`,
-        'x-default': `${SITE}/fr/partenaires`,
-      },
+      languages: hreflangFor(`partenaires`),
     },
   };
 }

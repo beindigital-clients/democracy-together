@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -21,11 +22,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/presse`,
-      languages: {
-        fr: `${SITE}/fr/presse`,
-        en: `${SITE}/en/presse`,
-        'x-default': `${SITE}/fr/presse`,
-      },
+      languages: hreflangFor(`presse`),
     },
   };
 }

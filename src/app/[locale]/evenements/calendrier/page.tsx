@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
@@ -27,11 +28,7 @@ export async function generateMetadata({
     description: t('lead'),
     alternates: {
       canonical: `${SITE}/${locale}/evenements/calendrier`,
-      languages: {
-        fr: `${SITE}/fr/evenements/calendrier`,
-        en: `${SITE}/en/evenements/calendrier`,
-        'x-default': `${SITE}/fr/evenements/calendrier`,
-      },
+      languages: hreflangFor(`evenements/calendrier`),
     },
   };
 }
@@ -140,7 +137,7 @@ export default async function CalendrierPage({
         </div>
       </header>
 
-      <main className={`${WRAP} py-10`}>
+      <div className={`${WRAP} py-10`}>
         {/* Barre de navigation mensuelle */}
         <Reveal className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-baseline gap-3">
@@ -247,7 +244,7 @@ export default async function CalendrierPage({
             {t('noEventsThisMonth')}
           </p>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }

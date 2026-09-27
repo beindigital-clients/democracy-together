@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
@@ -22,11 +23,7 @@ export async function generateMetadata({
     description: c.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}/a-propos`,
-      languages: {
-        fr: `${SITE}/fr/a-propos`,
-        en: `${SITE}/en/a-propos`,
-        'x-default': `${SITE}/fr/a-propos`,
-      },
+      languages: hreflangFor(`a-propos`),
     },
   };
 }

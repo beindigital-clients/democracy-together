@@ -1188,6 +1188,7 @@
     "unavailableBody": "Ces données n'ont pas pu être chargées. Le reste du site reste accessible ; réessayez dans quelques instants."
   },
   "site": {
+    "skipToContent": "Aller au contenu",
     "description": "Réseau international de think tanks pour la démocratie · Afrique–Europe.",
     "regions": "Afrique · Europe"
   }

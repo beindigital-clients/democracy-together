@@ -105,6 +105,10 @@
      tient 4,9:1 sur la plus claire des surfaces (`--surface-2`), et le texte
      `--paper` posé dessus par le bouton destructif reste à 5,9:1. */
   --bar-5: #d97a66;
+  /* Même raison pour le bleu des badges de type (bibliothèque) et de la
+     catégorie « libre » (baromètre) : 2,66:1 sur `--surface-2` en sombre,
+     5,4:1 avec celui-ci. Les trois autres teintes tiennent déjà (≥ 5:1). */
+  --bar-1: #5fa3c4;
 
   --accent: #3a63a6;
   --accent-strong: #4b74b8;

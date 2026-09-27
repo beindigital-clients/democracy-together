@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { client } from '@dt-sanity/lib/client';
 import { postsQuery } from '@dt-sanity/lib/queries';
@@ -19,11 +20,7 @@ export async function generateMetadata({
     description: t('subtitle'),
     alternates: {
       canonical: `${SITE}/${locale}/actualites`,
-      languages: {
-        fr: `${SITE}/fr/actualites`,
-        en: `${SITE}/en/actualites`,
-        'x-default': `${SITE}/fr/actualites`,
-      },
+      languages: hreflangFor(`actualites`),
     },
   };
 }

@@ -1188,6 +1188,7 @@
     "unavailableBody": "This data could not be loaded. The rest of the site remains available; please try again in a moment."
   },
   "site": {
+    "skipToContent": "Skip to content",
     "description": "International network of think tanks for democracy · Africa–Europe.",
     "regions": "Africa · Europe"
   }

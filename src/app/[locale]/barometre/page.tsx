@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -39,11 +40,7 @@ export async function generateMetadata({
     description: c.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}/barometre`,
-      languages: {
-        fr: `${SITE}/fr/barometre`,
-        en: `${SITE}/en/barometre`,
-        'x-default': `${SITE}/fr/barometre`,
-      },
+      languages: hreflangFor(`barometre`),
     },
   };
 }

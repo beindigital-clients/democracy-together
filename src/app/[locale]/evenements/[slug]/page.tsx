@@ -12,7 +12,7 @@ import {
   monthAbbr,
   type EventData,
 } from '@/lib/events-content';
-import { eventJsonLd, jsonLdScript } from '@/lib/seo';
+import { eventJsonLd, jsonLdScript, hreflangFor } from '@/lib/seo';
 import { EventRegisterForm } from '@/components/events/event-register-form';
 import { ReminderForm } from '@/components/events/reminder-form';
 import type { Locale } from '@/i18n/routing';
@@ -42,11 +42,7 @@ export async function generateMetadata({
     description: L.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}/evenements/${slug}`,
-      languages: {
-        fr: `${SITE}/fr/evenements/${slug}`,
-        en: `${SITE}/en/evenements/${slug}`,
-        'x-default': `${SITE}/fr/evenements/${slug}`,
-      },
+      languages: hreflangFor(`evenements/${slug}`),
     },
   };
 }
@@ -209,7 +205,7 @@ export default async function EventDetailPage({
       </header>
 
       {/* Corps */}
-      <main className={`${WRAP} grid gap-12 pb-16 lg:grid-cols-[1fr_330px]`}>
+      <div className={`${WRAP} grid gap-12 pb-16 lg:grid-cols-[1fr_330px]`}>
         <div>
           {/* La journée */}
           <Reveal as="section" id="presentation">
@@ -460,7 +456,7 @@ export default async function EventDetailPage({
             </div>
           ) : null}
         </aside>
-      </main>
+      </div>
 
       {/* Ressources (conférence) */}
       {isFeatured ? (

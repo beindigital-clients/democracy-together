@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
 import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
@@ -27,11 +28,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/bibliotheque`,
-      languages: {
-        fr: `${SITE}/fr/bibliotheque`,
-        en: `${SITE}/en/bibliotheque`,
-        'x-default': `${SITE}/fr/bibliotheque`,
-      },
+      languages: hreflangFor(`bibliotheque`),
     },
   };
 }
@@ -141,7 +138,7 @@ export default async function LibraryPage({
                 defaultValue={filters.q ?? ''}
                 placeholder={t('searchPlaceholder')}
                 aria-label={t('searchPlaceholder')}
-                className="flex-1 rounded-sm border border-line-strong bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               />
               <button
                 type="submit"

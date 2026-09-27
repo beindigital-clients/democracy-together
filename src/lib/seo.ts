@@ -61,15 +61,27 @@ export function alternateOpenGraphLocales(locale: string): string[] {
  * hreflang, et le dépôt a tranché (issue #35) que l'ajouter ne serait que du
  * bruit. `/recherche` et les billets de Tribune en sont les cas testés.
  */
-export function alternatesFor(locale: string, path: string) {
+// Le hreflang de TOUTES les langues du site, pour un chemin sans préfixe.
+//
+// Mesuré le 27/09 : 26 pages déclaraient `fr`, `en` et `x-default` en dur,
+// alors que le site est servi en cinq langues et que le sitemap, lui, en
+// déclare six alternates. Une page en es/pt/ar qui ne se déclare pas comme
+// alternate passe pour un doublon. Le catalogue des langues est celui du
+// routage : une sixième langue s'ajoute ici sans toucher aux pages.
+export function hreflangFor(path: string): Record<string, string> {
   const suffix = path ? `/${path}` : '';
   const languages: Record<string, string> = {
     'x-default': `${SITE_URL}/fr${suffix}`,
   };
   for (const l of routing.locales) languages[l] = `${SITE_URL}/${l}${suffix}`;
+  return languages;
+}
+
+export function alternatesFor(locale: string, path: string) {
+  const suffix = path ? `/${path}` : '';
   return {
     canonical: `${SITE_URL}/${locale}${suffix}`,
-    languages,
+    languages: hreflangFor(path),
   };
 }
 

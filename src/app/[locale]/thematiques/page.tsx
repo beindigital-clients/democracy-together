@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
@@ -24,11 +25,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/thematiques`,
-      languages: {
-        fr: `${SITE}/fr/thematiques`,
-        en: `${SITE}/en/thematiques`,
-        'x-default': `${SITE}/fr/thematiques`,
-      },
+      languages: hreflangFor(`thematiques`),
     },
   };
 }

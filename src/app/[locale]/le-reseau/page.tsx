@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
@@ -27,11 +28,7 @@ export async function generateMetadata({
     description: t('subtitle'),
     alternates: {
       canonical: `${SITE}/${locale}/le-reseau`,
-      languages: {
-        fr: `${SITE}/fr/le-reseau`,
-        en: `${SITE}/en/le-reseau`,
-        'x-default': `${SITE}/fr/le-reseau`,
-      },
+      languages: hreflangFor(`le-reseau`),
     },
   };
 }

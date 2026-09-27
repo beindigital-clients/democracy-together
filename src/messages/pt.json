@@ -1188,6 +1188,7 @@
     "unavailableBody": "Não foi possível carregar estes dados. O resto do sítio continua acessível; tente de novo dentro de instantes."
   },
   "site": {
+    "skipToContent": "Ir para o conteúdo",
     "description": "Rede internacional de centros de estudos pela democracia · África–Europa.",
     "regions": "África · Europa"
   }
