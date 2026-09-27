@@ -238,7 +238,7 @@ export default async function PublicationPage({
       </header>
 
       {/* Corps */}
-      <main
+      <div
         className={`${WRAP} grid gap-12 pb-24 pt-12 lg:grid-cols-[1fr_340px]`}
       >
         {/* Article */}
@@ -474,7 +474,7 @@ export default async function PublicationPage({
             </div>
           </div>
         </aside>
-      </main>
+      </div>
 
       {/* Liées */}
       {related.length ? (

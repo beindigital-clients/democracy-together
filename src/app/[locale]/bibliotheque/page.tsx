@@ -155,7 +155,7 @@ export default async function LibraryPage({
       </header>
 
       {/* Liste */}
-      <main
+      <div
         className={`${WRAP} grid gap-8 pb-24 pt-10 lg:grid-cols-[264px_1fr] lg:gap-12`}
       >
         <FacetsCollapse filters={filters}>
@@ -234,7 +234,7 @@ export default async function LibraryPage({
             </nav>
           ) : null}
         </section>
-      </main>
+      </div>
     </div>
   );
 }

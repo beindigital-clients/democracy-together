@@ -144,7 +144,7 @@ function MemberDashboard() {
       <dl className="mt-8 divide-y divide-line rounded-md border border-line bg-surface">
         <div className="flex items-center justify-between px-4 py-3">
           <dt className="text-sm text-ink-soft">{t('memberEmail')}</dt>
-          <dd className="font-mono text-sm">{me?.email}</dd>
+          <dd className="break-all font-mono text-sm">{me?.email}</dd>
         </div>
         <div className="flex items-center justify-between px-4 py-3">
           <dt className="text-sm text-ink-soft">{t('memberRole')}</dt>
