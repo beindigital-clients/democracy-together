@@ -1,21 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { getReports, getReport, REPORT_YEARS } from './reports-content';
+import {
+  getReports,
+  getReport,
+  REPORT_YEARS,
+  mergeReportList,
+  publicReportYears,
+  reportPdfFileName,
+} from './reports-content';
 
 describe('Rapports annuels (F-41)', () => {
   it('liste les rapports par année décroissante, contenu complet', () => {
-    for (const loc of ['fr', 'en'] as const) {
+    for (const loc of ['fr', 'en', 'es', 'pt', 'ar'] as const) {
       const reports = getReports(loc);
       expect(reports).toHaveLength(REPORT_YEARS.length);
-      // ordre décroissant
       const years = reports.map((r) => r.year);
       expect(years).toEqual([...years].sort((a, b) => b - a));
       for (const r of reports) {
         expect(r.title.length).toBeGreaterThan(5);
         expect(r.intro.length).toBeGreaterThan(30);
-        expect(r.sections.length).toBeGreaterThanOrEqual(3);
-        expect(r.sections.every((s) => s.heading && s.body.length >= 1)).toBe(
+        expect(r.chapters.length).toBeGreaterThanOrEqual(3);
+        expect(r.chapters.every((s) => s.heading && s.body.length >= 1)).toBe(
           true,
         );
+        // AUCUNE métrique inventée : les chiffres clés codés sont vides.
+        expect(r.keyFigures).toEqual([]);
       }
     }
   });
@@ -36,10 +44,42 @@ describe('Rapports annuels (F-41)', () => {
       .flatMap((r) => [
         r.title,
         r.intro,
-        ...r.sections.flatMap((s) => [s.heading, ...s.body]),
+        ...r.chapters.flatMap((s) => [s.heading, ...s.body]),
       ])
       .join('\n')
       .toLowerCase();
     expect(all).not.toContain('démocratie libérale');
+  });
+});
+
+describe('Rapports : base et repli codé (F-41)', () => {
+  const dbReport = {
+    year: 2027,
+    inaugural: false,
+    title: 'Rapport 2027',
+    intro: 'Deuxième année.',
+  };
+
+  it('ajoute les éditions codées que la base ne connaît pas', () => {
+    const list = mergeReportList('fr', {
+      reports: [dbReport],
+      knownYears: [2027],
+    });
+    expect(list.map((r) => r.year)).toEqual([2027, 2026]);
+  });
+
+  it('une année connue de la base (même en brouillon) n’est plus servie par le code', () => {
+    const list = mergeReportList('fr', { reports: [], knownYears: [2026] });
+    expect(list).toEqual([]);
+    expect(publicReportYears({ reports: [], knownYears: [2026] })).toEqual([]);
+    expect(
+      publicReportYears({ reports: [dbReport], knownYears: [2027] }),
+    ).toEqual([2027, 2026]);
+  });
+
+  it('nom de fichier PDF ASCII et stable', () => {
+    expect(reportPdfFileName(2026, 'ar')).toBe(
+      'democracy-together-rapport-2026-ar.pdf',
+    );
   });
 });

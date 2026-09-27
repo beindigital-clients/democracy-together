@@ -68,6 +68,9 @@ export const BASE_CLIENT_NAMESPACES = [
   // politique de confidentialité (F-66, chantier diffusion).
   'privacy',
   'orgAdmin',
+  // `peerReview` : le suivi de l'auteur (espace membre, F-43) est un
+  // composant client ; le back-office réutilise le même espace.
+  'peerReview',
   'projects',
   'reminder',
   'search',
@@ -101,6 +104,7 @@ export const ADMIN_NAMESPACES = [
   'analytics',
   'moderationQueue',
   'contentAdmin',
+  'reports',
 ] as const;
 
 /** Tous les espaces demandés par un composant client, où qu'il soit. */

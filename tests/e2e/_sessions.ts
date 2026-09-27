@@ -75,7 +75,12 @@ export type SessionKey =
   | 'progMentor'
   | 'progMentore'
   | 'progParcoursEditeur'
-  | 'progParcoursMembre';
+  | 'progParcoursMembre'
+  | 'editorialRapports'
+  | 'editorialAuteur'
+  | 'editorialEditeur'
+  | 'editorialRelecteur1'
+  | 'editorialRelecteur2';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -295,5 +300,37 @@ export const SESSIONS: Record<
     email: 'e2e_session_prog_parcours_membre@democracytogether.test',
     state: 'tests/e2e/.auth/prog-parcours-membre.json',
     role: 'membre',
+  },
+  // Chantier editorial (F-41 / F-43). `editorial-rapports.spec.ts` migre
+  // l'édition codée depuis l'administration puis télécharge ses PDF : rang
+  // ÉDITEUR, celui qu'exige `annualReports.*`.
+  editorialRapports: {
+    email: 'e2e_session_editorial_rapports@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-rapports.json',
+    role: 'editeur',
+  },
+  // `editorial-revue.spec.ts` fait jouer QUATRE personnes en double aveugle :
+  // l'autrice (membre), l'éditeur, et deux relecteurs de rang modérateur —
+  // le rang minimal que la revue exige d'un relecteur. Chacun tient sa
+  // session d'un bout à l'autre du parcours, dans son propre contexte.
+  editorialAuteur: {
+    email: 'e2e_session_editorial_auteur@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-auteur.json',
+    role: 'membre',
+  },
+  editorialEditeur: {
+    email: 'e2e_session_editorial_editeur@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-editeur.json',
+    role: 'editeur',
+  },
+  editorialRelecteur1: {
+    email: 'e2e_session_editorial_relecteur1@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-relecteur1.json',
+    role: 'moderateur',
+  },
+  editorialRelecteur2: {
+    email: 'e2e_session_editorial_relecteur2@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-relecteur2.json',
+    role: 'moderateur',
   },
 };

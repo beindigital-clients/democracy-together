@@ -79,6 +79,28 @@ export const SERVER_ERROR_CODES = [
   'TWO_FACTOR_ENROLLMENT_REQUIRED',
   'INVALID_NAME',
   'INVALID_DESCRIPTION',
+  // Revue à comité de lecture (F-43) et rapports annuels (F-41).
+  'REVIEWER_IS_AUTHOR',
+  'CONFLICT_DECLARED',
+  'CONFLICT_NOT_DECLARED',
+  'CONFLICT_ALREADY_DECLARED',
+  'NOT_ASSIGNED',
+  'NO_REVIEWS',
+  'INVALID_REASON',
+  'INVALID_DUE_DATE',
+  'INVALID_DETAILS',
+  'REPORT_EXISTS',
+  'REPORT_INCOMPLETE',
+  'CODED_REPORT_UNKNOWN',
+  'INVALID_YEAR',
+  'INVALID_TITLE',
+  'INVALID_INTRO',
+  'INVALID_CHAPTERS',
+  'INVALID_HEADING',
+  'INVALID_PARAGRAPHS',
+  'INVALID_PARAGRAPH',
+  'INVALID_KEY_FIGURES',
+  'INVALID_KEY_FIGURE',
   // Refus de rôle et de session : `requireNetworkRole` lève en français
   // (« Accès refusé : rôle « editeur » requis. », « Non authentifié. ») — ils
   // sont reconnus par leur texte et ramenés à un code, comme les autres.

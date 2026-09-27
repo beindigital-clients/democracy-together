@@ -1,213 +1,72 @@
 import { v } from 'convex/values';
 import { paginationOptsValidator } from 'convex/server';
-import { mutation, query } from './_generated/server';
-import type { Doc } from './_generated/dataModel';
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from './_generated/server';
+import { internal } from './_generated/api';
+import type { Doc, Id } from './_generated/dataModel';
 import { requireNetworkRole, rank } from './lib/rbac';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
+import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
+import { trackPublicationStatus } from './lib/counters';
 import {
-  assertTransition,
-  reviewStateError,
-  type ReviewMachine,
-} from './lib/reviewState';
+  assertLength,
+  blindStatus,
+  DECIDED_STAGES,
+  DECISION_EVENT,
+  manuscriptDecision,
+  manuscriptStage,
+  MANUSCRIPT_BOUNDS,
+  metadataDiff,
+  nextStage,
+  normalizeKeywords,
+  REMINDER,
+  resolveDueAt,
+  stageAfterAssignment,
+  type StageOrNone,
+} from './lib/manuscripts';
 
-// Revue à comité de lecture (F-43) — RÉSERVÉE AU STAFF. Couche AU-DESSUS de la
-// modération (convex/publications.ts). Les relecteurs (moderateur+) déposent un
-// avis ; la décision (revision / reviewed) revient à l'éditeur+. Cette couche
-// ne touche jamais `status` (draft/pending/published) : elle pilote uniquement
-// `reviewStage` et la table `peerReviews`.
+// REVUE À COMITÉ DE LECTURE (F-43).
+//
+// Couche AU-DESSUS de la modération (convex/publications.ts) : elle pilote
+// l'étape du manuscrit (`publications.reviewStage`), ses versions
+// (`manuscriptVersions`), ses relecteurs (`peerReviewAssignments`), leurs avis
+// (`peerReviews`) et les décisions motivées (`manuscriptDecisions`). Elle ne
+// touche `status` (draft / pending / published) qu'au moment de la DÉCISION :
+// un manuscrit accepté est publié dans la bibliothèque, un manuscrit rejeté
+// sort de la file de modération.
+//
+// LA MACHINE À ÉTATS vit dans convex/lib/manuscripts.ts — une seule table de
+// transitions, testée paire par paire. Aucune mutation de ce module n'écrit
+// `reviewStage` sans passer par `nextStage` (ou `stageAfterAssignment`, qui
+// la compose).
+//
+// DOUBLE AVEUGLE. Trois règles, tenues ICI et non dans l'interface :
+//  1. aucune réponse destinée à un relecteur ne porte l'identité de l'auteur
+//     — ni `authors`, ni l'adresse, ni le nom du fichier d'origine (souvent
+//     « Dupont_article.pdf »), ni le fichier lui-même : le relecteur reçoit la
+//     COPIE ANONYMISÉE (métadonnées retirées, convex/peerReviewFiles.ts) ;
+//  2. aucune réponse destinée à l'auteur ne porte l'identité d'un relecteur :
+//     les avis lui sont rendus numérotés, sans nom ni identifiant ;
+//  3. l'éditeur voit tout.
+// `convex/peerReview.test.ts` appelle chaque requête accessible à un relecteur
+// et vérifie que ni le nom ni l'adresse de l'auteur n'apparaissent dans la
+// réponse sérialisée.
 
-// Recommandations possibles d'un relecteur (vocabulaire académique neutre).
 const recommendationValidator = v.union(
   v.literal('accept'),
   v.literal('minor'),
   v.literal('major'),
   v.literal('reject'),
 );
-
-function reviewerName(user: Doc<'users'>): string {
-  return user.name?.trim() || user.email?.trim() || 'Relecteur';
-}
-
-// --- Machine à états de la revue par les pairs (audit M6 · issue #9) --------
-//
-// L'axe est `reviewStage`, indépendant de `status` (modération). `none` = le
-// champ est absent : la publication n'est jamais entrée en revue.
-//
-//   none | revision | reviewed ──assignReviewer──► in_review
-//   in_review ──assignReviewer──► in_review        (2e relecteur : la revue
-//                                                   reste ouverte)
-//   in_review ──decideReview('revision')──► revision
-//   in_review ──decideReview('reviewed')──► reviewed
-//
-// `assignReviewer` est la SEULE porte d'ouverture — et donc de RÉOUVERTURE
-// d'une revue close. Elle est explicite, notifiée et auditée : rouvrir une
-// revue demande de désigner qui la reprend, pas un second clic sur un bouton
-// de décision. C'est pourquoi elle n'a pas de garde ici, quand tout le reste
-// passe par `assertTransition`.
-//
-// `decideReview` n'accepte donc qu'une revue OUVERTE : arbitrer une revue
-// jamais assignée (`none`) n'a pas d'objet, et repasser de `reviewed` à
-// `revision` inverserait un arbitrage rendu.
-type PeerStage = NonNullable<Doc<'publications'>['reviewStage']> | 'none';
-
-const PEER_REVIEW: ReviewMachine<PeerStage> = {
-  transitions: {
-    none: ['in_review'],
-    in_review: ['in_review', 'revision', 'reviewed'],
-    revision: ['in_review'],
-    reviewed: ['in_review'],
-  },
-  decided: ['revision', 'reviewed'],
-};
-
-function peerStage(pub: Doc<'publications'>): PeerStage {
-  return pub.reviewStage ?? 'none';
-}
-
-// Le lien de la notification d'assignation. C'était `/admin/revue` — la file
-// complète, réservée à l'éditeur : un relecteur de rang modérateur qui suivait
-// sa notification tombait sur un refus (campagne du 27/09, A-02). « Mes
-// relectures » est ouverte au rang modérateur et ne rend que SES assignations.
-const MY_REVIEWS_LINK = '/admin/mes-relectures';
-
-// Assigne un relecteur à une publication (éditeur+). Place la publication en
-// revue ('in_review'), retient l'assignation et notifie le relecteur. N'altère
-// pas `status`.
-//
-// C'est la transition d'OUVERTURE, et la seule de RÉOUVERTURE (issue #9) :
-// désigner un relecteur sur une revue arbitrée la rouvre explicitement, sous
-// une notification et une entrée d'audit nominatives.
-//
-// Deux refus nommés (campagne du 27/09, R-08) — l'écran les traduit, là où un
-// `throw` générique se lisait « vérifiez vos droits » :
-//  - REVIEWER_NOT_STAFF : le compte désigné n'a pas le rang pour déposer un
-//    avis (`submitReview` exige modérateur) — l'assigner créerait une revue
-//    que personne ne peut faire avancer ;
-//  - ALREADY_ASSIGNED : ce relecteur est déjà désigné sur cette revue OUVERTE.
-//    Le renotifier ne l'aiderait pas, et un double clic n'est pas un second
-//    relecteur. Sur une revue close, la même personne peut être redésignée :
-//    c'est la réouverture, et elle s'audite.
-export const assignReviewer = mutation({
-  args: {
-    publicationId: v.id('publications'),
-    reviewerUserId: v.id('users'),
-  },
-  handler: async (ctx, { publicationId, reviewerUserId }) => {
-    const editor = await requireNetworkRole(ctx, 'editeur');
-    const pub = await ctx.db.get(publicationId);
-    if (!pub) throw new Error('NOT_FOUND');
-    const reviewer = await ctx.db.get(reviewerUserId);
-    if (!reviewer) throw new Error('REVIEWER_NOT_FOUND');
-    if (rank(reviewer.role) < rank('moderateur')) {
-      throw new Error('REVIEWER_NOT_STAFF');
-    }
-
-    const existing = await ctx.db
-      .query('peerReviewAssignments')
-      .withIndex('by_publication_and_reviewer', (q) =>
-        q
-          .eq('publicationId', publicationId)
-          .eq('reviewerUserId', reviewerUserId),
-      )
-      .unique();
-    if (existing && peerStage(pub) === 'in_review') {
-      throw new Error('ALREADY_ASSIGNED');
-    }
-    const now = Date.now();
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        assignedBy: editor._id,
-        assignedAt: now,
-      });
-    } else {
-      await ctx.db.insert('peerReviewAssignments', {
-        publicationId,
-        reviewerUserId,
-        assignedBy: editor._id,
-        assignedAt: now,
-      });
-    }
-
-    await ctx.db.patch(publicationId, { reviewStage: 'in_review' });
-
-    await notify(ctx, {
-      userId: reviewerUserId,
-      type: 'peer_review_assigned',
-      titleKey: 'peerReviewAssigned',
-      params: { title: pub.title },
-      link: MY_REVIEWS_LINK,
-    });
-
-    await recordAudit(ctx, {
-      actorId: editor._id,
-      action: AUDIT.PEER_REVIEW,
-      targetId: publicationId,
-      metadata: { kind: 'assign', reviewerUserId },
-    });
-    return { ok: true };
-  },
-});
-
-// Dépôt d'un avis par un relecteur (moderateur+). Valide commentaire >= 10
-// caractères. `reviewerName` = instantané du relecteur courant.
-//
-// Deux gardes (issue #9), parce qu'un avis est lui aussi une décision :
-//  - la revue doit être OUVERTE. Déposer un avis sur une revue déjà arbitrée
-//    glisserait une pièce dans un dossier clos, après la décision qu'elle
-//    aurait dû éclairer ;
-//  - UN avis par relecteur. Sans cela, le même relecteur pèse deux fois dans
-//    la recommandation agrégée (`getReviewQueue` retient la plus sévère), et
-//    l'écran d'arbitrage affiche deux avis d'une seule personne.
-export const submitReview = mutation({
-  args: {
-    publicationId: v.id('publications'),
-    recommendation: recommendationValidator,
-    comment: v.string(),
-  },
-  handler: async (ctx, { publicationId, recommendation, comment }) => {
-    const reviewer = await requireNetworkRole(ctx, 'moderateur');
-    const pub = await ctx.db.get(publicationId);
-    if (!pub) throw new Error('NOT_FOUND');
-
-    const stage = peerStage(pub);
-    if (stage !== 'in_review') throw reviewStateError(stage, PEER_REVIEW);
-
-    const already = await ctx.db
-      .query('peerReviews')
-      .withIndex('by_publication_and_reviewer', (q) =>
-        q.eq('publicationId', publicationId).eq('reviewerUserId', reviewer._id),
-      )
-      .first();
-    if (already) throw new Error('ALREADY_REVIEWED');
-
-    const text = comment.trim();
-    if (text.length < 10) throw new Error('INVALID_COMMENT');
-
-    await ctx.db.insert('peerReviews', {
-      publicationId,
-      reviewerUserId: reviewer._id,
-      reviewerName: reviewerName(reviewer),
-      recommendation,
-      comment: text,
-      createdAt: Date.now(),
-    });
-
-    await recordAudit(ctx, {
-      actorId: reviewer._id,
-      action: AUDIT.PEER_REVIEW,
-      targetId: publicationId,
-      metadata: { kind: 'review', recommendation },
-    });
-    return { ok: true };
-  },
-});
-
-// File de revue (éditeur+) — publications avec `reviewStage` défini, chacune
-// accompagnée de ses avis et d'une recommandation agrégée (la plus sévère
-// l'emporte : reject > major > minor > accept). Sert l'écran d'arbitrage.
 type Recommendation = Doc<'peerReviews'>['recommendation'];
 
 const SEVERITY: Record<Recommendation, number> = {
@@ -217,88 +76,542 @@ const SEVERITY: Record<Recommendation, number> = {
   reject: 3,
 };
 
-const reviewStageValidator = v.union(
-  v.literal('in_review'),
-  v.literal('revision'),
-  v.literal('reviewed'),
+const pubTypeValidator = v.union(
+  v.literal('rapport'),
+  v.literal('policy-brief'),
+  v.literal('working-paper'),
+  v.literal('note'),
+  v.literal('dataset'),
 );
+const pubStatusValidator = v.union(
+  v.literal('draft'),
+  v.literal('pending'),
+  v.literal('published'),
+);
+
+// Le lien de la notification d'assignation : « Mes relectures », ouverte au
+// rang modérateur et qui ne rend que SES assignations (campagne du 27/09,
+// A-02) — la file complète est réservée à l'éditeur.
+const MY_REVIEWS_LINK = '/admin/mes-relectures';
+const EDITOR_QUEUE_LINK = '/admin/revue';
+const AUTHOR_LINK = '/espace-membre/manuscrits';
+
+const ASSIGNMENTS_MAX = 50;
+const VERSIONS_MAX = 50;
+const REVIEWS_MAX = 200;
+
+function reviewerName(user: Doc<'users'>): string {
+  return user.name?.trim() || user.email?.trim() || 'Relecteur';
+}
+
+function stageOf(pub: Doc<'publications'>): StageOrNone {
+  return pub.reviewStage ?? 'none';
+}
+
+// Les avis et assignations antérieurs aux versions portent sur la version 1.
+const versionOfReview = (r: Doc<'peerReviews'>) => r.version ?? 1;
+const versionOfAssignment = (a: Doc<'peerReviewAssignments'>) => a.version ?? 1;
+
+async function versionsOf(
+  ctx: QueryCtx,
+  publicationId: Id<'publications'>,
+): Promise<Doc<'manuscriptVersions'>[]> {
+  return await ctx.db
+    .query('manuscriptVersions')
+    .withIndex('by_publication_and_version', (q) =>
+      q.eq('publicationId', publicationId),
+    )
+    .take(VERSIONS_MAX);
+}
+
+async function latestVersion(
+  ctx: QueryCtx,
+  publicationId: Id<'publications'>,
+): Promise<Doc<'manuscriptVersions'> | null> {
+  return await ctx.db
+    .query('manuscriptVersions')
+    .withIndex('by_publication_and_version', (q) =>
+      q.eq('publicationId', publicationId),
+    )
+    .order('desc')
+    .first();
+}
+
+async function assignmentsOf(
+  ctx: QueryCtx,
+  publicationId: Id<'publications'>,
+): Promise<Doc<'peerReviewAssignments'>[]> {
+  return await ctx.db
+    .query('peerReviewAssignments')
+    .withIndex('by_publication', (q) => q.eq('publicationId', publicationId))
+    .take(ASSIGNMENTS_MAX);
+}
+
+async function reviewsOf(
+  ctx: QueryCtx,
+  publicationId: Id<'publications'>,
+): Promise<Doc<'peerReviews'>[]> {
+  return await ctx.db
+    .query('peerReviews')
+    .withIndex('by_publication', (q) => q.eq('publicationId', publicationId))
+    .take(REVIEWS_MAX);
+}
+
+async function assignmentFor(
+  ctx: QueryCtx,
+  publicationId: Id<'publications'>,
+  reviewerUserId: Id<'users'>,
+): Promise<Doc<'peerReviewAssignments'> | null> {
+  return await ctx.db
+    .query('peerReviewAssignments')
+    .withIndex('by_publication_and_reviewer', (q) =>
+      q.eq('publicationId', publicationId).eq('reviewerUserId', reviewerUserId),
+    )
+    .unique();
+}
+
+// Planifie la copie anonymisée du fichier d'une version.
+async function scheduleBlindCopy(
+  ctx: MutationCtx,
+  versionId: Id<'manuscriptVersions'>,
+) {
+  await ctx.scheduler.runAfter(0, internal.peerReviewFiles.anonymizeVersion, {
+    versionId,
+  });
+}
+
+/**
+ * Version 1 d'un manuscrit, créée à partir de la publication si elle n'existe
+ * pas encore (ouverture depuis la file de modération, ou revue ouverte avant
+ * l'existence des versions). Renvoie la DERNIÈRE version.
+ */
+async function ensureVersion(
+  ctx: MutationCtx,
+  pub: Doc<'publications'>,
+  fallbackSubmitter: Id<'users'>,
+): Promise<Doc<'manuscriptVersions'>> {
+  const latest = await latestVersion(ctx, pub._id);
+  if (latest) return latest;
+  const id = await ctx.db.insert('manuscriptVersions', {
+    publicationId: pub._id,
+    version: 1,
+    title: pub.title,
+    abstract: pub.abstract,
+    keywords: normalizeKeywords(pub.keypoints),
+    ...(pub.fileId ? { fileId: pub.fileId } : {}),
+    ...(pub.fileName ? { fileName: pub.fileName } : {}),
+    blindStatus: pub.fileId ? 'pending' : 'none',
+    submittedBy: pub.authorUserId ?? fallbackSubmitter,
+    createdAt: Date.now(),
+  });
+  if (pub.fileId) await scheduleBlindCopy(ctx, id);
+  return (await ctx.db.get(id)) as Doc<'manuscriptVersions'>;
+}
+
+// Le relecteur ne reçoit le fichier que si sa copie est anonymisée — ou que
+// l'éditeur a vérifié et libéré l'original d'un PDF illisible.
+function blindFileFor(
+  version: Doc<'manuscriptVersions'>,
+): Id<'_storage'> | null {
+  if (version.blindStatus === 'released') return version.fileId ?? null;
+  if (version.blindStatus === 'clean' || version.blindStatus === 'stripped') {
+    return version.blindFileId ?? null;
+  }
+  return null;
+}
+
+// État de la déclaration de conflit d'intérêts d'une assignation.
+type ConflictState = 'undeclared' | 'clear' | 'conflict';
+const conflictStateValidator = v.union(
+  v.literal('undeclared'),
+  v.literal('clear'),
+  v.literal('conflict'),
+);
+function conflictState(a: Doc<'peerReviewAssignments'>): ConflictState {
+  if (!a.conflict) return 'undeclared';
+  return a.conflict.hasConflict ? 'conflict' : 'clear';
+}
+
+async function notifyEditors(
+  ctx: MutationCtx,
+  entry: { titleKey: string; type: string; title: string },
+) {
+  // Le comité éditorial : éditeurs et administrateurs. Borné — un réseau en
+  // compte quelques-uns ; au-delà, la file de l'éditeur reste la référence.
+  for (const role of ['editeur', 'admin'] as const) {
+    const staff = await ctx.db
+      .query('users')
+      .withIndex('by_role', (q) => q.eq('role', role))
+      .take(25);
+    for (const u of staff) {
+      await notify(ctx, {
+        userId: u._id,
+        type: entry.type,
+        titleKey: entry.titleKey,
+        params: { title: entry.title },
+        link: EDITOR_QUEUE_LINK,
+      });
+    }
+  }
+}
+
+// === Éditeur ===================================================================
+
+/**
+ * Désigne un relecteur (éditeur+), avec une échéance.
+ *
+ * Sur une publication jamais entrée en revue, c'est l'OUVERTURE (soumission
+ * puis évaluation — la porte historique depuis la file de modération) ; sur
+ * un manuscrit soumis ou re-soumis, c'est le début d'un tour d'évaluation de
+ * la DERNIÈRE version ; sur une revue en évaluation, un relecteur de plus.
+ * Ailleurs (révision attendue de l'auteur, décision rendue), refus : la
+ * machine à états le dit.
+ *
+ * Refus nommés : REVIEWER_NOT_STAFF (le compte ne pourrait pas déposer
+ * d'avis), REVIEWER_IS_AUTHOR (double aveugle), ALREADY_ASSIGNED (déjà
+ * désigné pour cette version), CONFLICT_DECLARED (il s'est récusé),
+ * INVALID_DUE_DATE.
+ */
+export const assignReviewer = mutation({
+  args: {
+    publicationId: v.id('publications'),
+    reviewerUserId: v.id('users'),
+    dueAt: v.optional(v.number()),
+  },
+  returns: v.object({ ok: v.boolean() }),
+  handler: async (ctx, { publicationId, reviewerUserId, dueAt }) => {
+    const editor = await requireNetworkRole(ctx, 'editeur');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub) throw new Error('NOT_FOUND');
+    const reviewer = await ctx.db.get(reviewerUserId);
+    if (!reviewer) throw new Error('REVIEWER_NOT_FOUND');
+    if (rank(reviewer.role) < rank('moderateur')) {
+      throw new Error('REVIEWER_NOT_STAFF');
+    }
+    if (pub.authorUserId === reviewerUserId) {
+      throw new Error('REVIEWER_IS_AUTHOR');
+    }
+    const from = stageOf(pub);
+    const to = stageAfterAssignment(from);
+    const now = Date.now();
+    const due = resolveDueAt(now, dueAt);
+
+    const version = await ensureVersion(ctx, pub, editor._id);
+    const existing = await assignmentFor(ctx, publicationId, reviewerUserId);
+    if (existing) {
+      if (existing.conflict?.hasConflict) throw new Error('CONFLICT_DECLARED');
+      if (
+        from === 'in_review' &&
+        versionOfAssignment(existing) === version.version
+      ) {
+        throw new Error('ALREADY_ASSIGNED');
+      }
+      // Nouveau tour pour le même relecteur : la déclaration d'absence de
+      // conflit vaut toujours, les relances repartent de zéro.
+      await ctx.db.patch(existing._id, {
+        assignedBy: editor._id,
+        assignedAt: now,
+        version: version.version,
+        dueAt: due,
+        remindersSent: 0,
+        lastReminderAt: undefined,
+        overdueNotifiedAt: undefined,
+      });
+    } else {
+      await ctx.db.insert('peerReviewAssignments', {
+        publicationId,
+        reviewerUserId,
+        assignedBy: editor._id,
+        assignedAt: now,
+        version: version.version,
+        dueAt: due,
+        remindersSent: 0,
+      });
+    }
+
+    await ctx.db.patch(publicationId, { reviewStage: to });
+
+    await notify(ctx, {
+      userId: reviewerUserId,
+      type: 'peer_review_assigned',
+      titleKey: 'peerReviewAssigned',
+      params: { title: version.title },
+      link: MY_REVIEWS_LINK,
+    });
+    await recordAudit(ctx, {
+      actorId: editor._id,
+      action: AUDIT.PEER_REVIEW,
+      targetId: publicationId,
+      metadata: {
+        kind: 'assign',
+        reviewerUserId,
+        from,
+        to,
+        version: version.version,
+        dueAt: due,
+      },
+    });
+    return { ok: true };
+  },
+});
+
+/**
+ * Décision éditoriale MOTIVÉE (éditeur+) : révision demandée, acceptation ou
+ * rejet. Le motif (20 caractères au moins) est notifié à l'auteur et reste
+ * dans l'historique du manuscrit.
+ *
+ * Demander une révision ou accepter à l'issue d'une évaluation exige au moins
+ * un avis sur la version évaluée (NO_REVIEWS) — trancher sans avis n'est pas
+ * une revue par les pairs. Le rejet sans évaluation reste possible depuis
+ * `submitted` (refus éditorial d'un texte hors champ).
+ *
+ * À l'ACCEPTATION, la publication entre dans la bibliothèque : statut
+ * `published`, date et DOI interne attribués comme par la modération, et
+ * titre / résumé / mots-clés / fichier de la version acceptée. Au REJET, le
+ * dépôt sort de la file de modération (brouillon refusé, motif en note).
+ */
+export const decideManuscript = mutation({
+  args: {
+    publicationId: v.id('publications'),
+    decision: manuscriptDecision,
+    reason: v.string(),
+  },
+  returns: v.object({ ok: v.boolean(), published: v.boolean() }),
+  handler: async (ctx, { publicationId, decision, reason }) => {
+    const editor = await requireNetworkRole(ctx, 'editeur');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub) throw new Error('NOT_FOUND');
+    const from = stageOf(pub);
+    const to = nextStage(from, DECISION_EVENT[decision]);
+    const motive = assertLength(
+      reason,
+      MANUSCRIPT_BOUNDS.reason,
+      'INVALID_REASON',
+    );
+    const version = await ensureVersion(ctx, pub, editor._id);
+
+    if (from === 'in_review' && decision !== 'rejected') {
+      const reviews = await reviewsOf(ctx, publicationId);
+      if (!reviews.some((r) => versionOfReview(r) === version.version)) {
+        throw new Error('NO_REVIEWS');
+      }
+    }
+
+    const now = Date.now();
+    await ctx.db.insert('manuscriptDecisions', {
+      publicationId,
+      version: version.version,
+      decision,
+      reason: motive,
+      decidedBy: editor._id,
+      createdAt: now,
+    });
+
+    // Le tour est clos : plus aucune relecture n'est attendue, donc plus de
+    // relance.
+    for (const a of await assignmentsOf(ctx, publicationId)) {
+      if (a.dueAt !== undefined)
+        await ctx.db.patch(a._id, { dueAt: undefined });
+    }
+
+    let published = false;
+    if (decision === 'accepted' && pub.status !== 'published') {
+      await ctx.db.patch(publicationId, {
+        reviewStage: to,
+        status: 'published',
+        publishedAt: pub.publishedAt || now,
+        doi: pub.doi || `10.59000/dt.${pub.slug}`,
+        reviewedBy: editor._id,
+        reviewedAt: now,
+        title: version.title,
+        abstract: version.abstract,
+        keypoints: version.keywords,
+        ...(version.fileId
+          ? { fileId: version.fileId, fileName: version.fileName }
+          : {}),
+      });
+      await trackPublicationStatus(ctx, pub.status, 'published');
+      published = true;
+    } else if (decision === 'rejected' && pub.status === 'pending') {
+      await ctx.db.patch(publicationId, {
+        reviewStage: to,
+        status: 'draft',
+        reviewedBy: editor._id,
+        reviewedAt: now,
+        reviewNotes: motive,
+      });
+      await trackPublicationStatus(ctx, 'pending', 'draft');
+    } else {
+      await ctx.db.patch(publicationId, { reviewStage: to });
+    }
+
+    if (pub.authorUserId) {
+      await notify(ctx, {
+        userId: pub.authorUserId,
+        type: 'peer_review_decided',
+        titleKey:
+          decision === 'revision'
+            ? 'peerReviewRevisionRequested'
+            : decision === 'accepted'
+              ? 'peerReviewAccepted'
+              : 'peerReviewRejected',
+        params: { title: version.title },
+        link: AUTHOR_LINK,
+      });
+    }
+    await recordAudit(ctx, {
+      actorId: editor._id,
+      action: AUDIT.MANUSCRIPT_DECIDED,
+      targetId: publicationId,
+      metadata: { from, to, decision, version: version.version, published },
+    });
+    return { ok: true, published };
+  },
+});
+
+/**
+ * Libère le fichier ORIGINAL d'une version que l'anonymisation n'a pas pu
+ * relire (PDF chiffré, corrompu). L'éditeur atteste l'avoir vérifié : c'est
+ * lui qui engage le double aveugle, et l'audit le retient.
+ */
+export const releaseVersionFile = mutation({
+  args: { publicationId: v.id('publications'), version: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { publicationId, version }) => {
+    const editor = await requireNetworkRole(ctx, 'editeur');
+    const row = await ctx.db
+      .query('manuscriptVersions')
+      .withIndex('by_publication_and_version', (q) =>
+        q.eq('publicationId', publicationId).eq('version', version),
+      )
+      .unique();
+    if (!row) throw new Error('NOT_FOUND');
+    if (row.blindStatus !== 'unreadable') throw new Error('INVALID_TRANSITION');
+    await ctx.db.patch(row._id, { blindStatus: 'released' });
+    await recordAudit(ctx, {
+      actorId: editor._id,
+      action: AUDIT.MANUSCRIPT_FILE_RELEASED,
+      targetId: publicationId,
+      metadata: { version },
+    });
+    return null;
+  },
+});
+
+// --- File de l'éditeur ---------------------------------------------------------
+
+const assignmentView = v.object({
+  reviewerUserId: v.id('users'),
+  reviewerName: v.string(),
+  version: v.number(),
+  assignedAt: v.number(),
+  dueAt: v.union(v.number(), v.null()),
+  remindersSent: v.number(),
+  conflict: conflictStateValidator,
+  conflictDetails: v.union(v.string(), v.null()),
+  reviewed: v.boolean(),
+});
+
+const editorReviewView = v.object({
+  _id: v.id('peerReviews'),
+  reviewerName: v.string(),
+  version: v.number(),
+  recommendation: recommendationValidator,
+  comment: v.string(),
+  commentToEditor: v.union(v.string(), v.null()),
+  createdAt: v.number(),
+});
 
 const queueItemValidator = v.object({
   _id: v.id('publications'),
   title: v.string(),
   slug: v.string(),
-  type: v.union(
-    v.literal('rapport'),
-    v.literal('policy-brief'),
-    v.literal('working-paper'),
-    v.literal('note'),
-    v.literal('dataset'),
-  ),
+  type: pubTypeValidator,
   theme: v.string(),
-  status: v.union(
-    v.literal('draft'),
-    v.literal('pending'),
-    v.literal('published'),
-  ),
-  reviewStage: reviewStageValidator,
+  status: pubStatusValidator,
+  reviewStage: manuscriptStage,
+  // L'éditeur voit l'auteur (règle 3 du double aveugle).
   hasAuthor: v.boolean(),
+  authorName: v.union(v.string(), v.null()),
+  authorEmail: v.union(v.string(), v.null()),
+  version: v.number(),
+  blindStatus: v.union(blindStatus, v.null()),
   aggregate: v.union(recommendationValidator, v.null()),
-  reviews: v.array(
-    v.object({
-      _id: v.id('peerReviews'),
-      reviewerName: v.string(),
-      recommendation: recommendationValidator,
-      comment: v.string(),
-      createdAt: v.number(),
-    }),
-  ),
+  assignments: v.array(assignmentView),
+  // Avis de la version COURANTE (les précédents sont dans le détail).
+  reviews: v.array(editorReviewView),
 });
 
-// La file chargeait la table `publications` ENTIÈRE, puis écartait en mémoire
-// tout ce qui n'était pas en revue — c'est-à-dire la quasi-totalité de la
-// bibliothèque, pour afficher une poignée de lignes (issue #8).
-//
-// L'index `by_reviewStage` ne contient que ce qui compte. Une publication sans
-// étape de revue y est rangée sous `undefined`, qui PRÉCÈDE toute valeur dans
-// l'ordre Convex : la plage `> undefined` est donc exactement « les
-// publications engagées dans une revue », en une lecture indexée contiguë, sans
-// énumérer les étapes une à une (une nouvelle étape au schéma n'aurait pas à
-// être ajoutée ici).
-//
-// ORDRE. Il vient maintenant de l'index — (étape, ancienneté) décroissant — et
-// non d'un tri en mémoire : c'est ce qui rend la pagination possible. En
-// pratique l'écran d'arbitrage y gagne, les étapes qui attendent une décision
-// de l'éditeur ('revision', 'reviewed') passant avant celles qui attendent les
-// relecteurs ('in_review').
+async function assignmentViews(
+  ctx: QueryCtx,
+  assignments: Doc<'peerReviewAssignments'>[],
+  reviews: Doc<'peerReviews'>[],
+) {
+  return await Promise.all(
+    assignments.map(async (a) => {
+      const user = await ctx.db.get(a.reviewerUserId);
+      const version = versionOfAssignment(a);
+      return {
+        reviewerUserId: a.reviewerUserId,
+        reviewerName: user ? reviewerName(user) : 'Relecteur',
+        version,
+        assignedAt: a.assignedAt,
+        dueAt: a.dueAt ?? null,
+        remindersSent: a.remindersSent ?? 0,
+        conflict: conflictState(a),
+        conflictDetails: a.conflict?.details ?? null,
+        reviewed: reviews.some(
+          (r) =>
+            r.reviewerUserId === a.reviewerUserId &&
+            versionOfReview(r) === version,
+        ),
+      };
+    }),
+  );
+}
+
+function editorReview(r: Doc<'peerReviews'>) {
+  return {
+    _id: r._id,
+    reviewerName: r.reviewerName,
+    version: versionOfReview(r),
+    recommendation: r.recommendation,
+    comment: r.comment,
+    commentToEditor: r.commentToEditor ?? null,
+    createdAt: r.createdAt,
+  };
+}
+
+// File de revue (éditeur+), paginée par l'index `by_reviewStage` : la plage
+// `> undefined` est exactement « les publications engagées dans une revue »
+// (issue #8). Les étapes qui attendent une décision de l'éditeur passent
+// avant celles qui attendent les relecteurs, par l'ordre de l'index.
 export const getReviewQueue = query({
   args: {
     paginationOpts: paginationOptsValidator,
-    stage: v.optional(reviewStageValidator),
+    stage: v.optional(manuscriptStage),
   },
   returns: paginatedValidator(queueItemValidator),
   handler: async (ctx, { paginationOpts, stage }) => {
     await requireNetworkRole(ctx, 'editeur');
-    const opts = clampPageSize(paginationOpts);
     const result = await ctx.db
       .query('publications')
       .withIndex('by_reviewStage', (q) =>
         stage ? q.eq('reviewStage', stage) : q.gt('reviewStage', undefined),
       )
       .order('desc')
-      .paginate(opts);
+      .paginate(clampPageSize(paginationOpts));
 
     return {
       ...result,
       page: await Promise.all(
         result.page.map(async (p) => {
-          // Un aller-retour par ligne AFFICHÉE (les avis d'une publication ne
-          // se lisent pas autrement) — borné par la taille de page, plus par
-          // la taille de la bibliothèque.
-          const reviews = await ctx.db
-            .query('peerReviews')
-            .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
-            .collect();
-          // Recommandation agrégée = la plus sévère parmi les avis (ou null).
+          const latest = await latestVersion(ctx, p._id);
+          const current = latest?.version ?? 1;
+          const allReviews = await reviewsOf(ctx, p._id);
+          const reviews = allReviews
+            .filter((r) => versionOfReview(r) === current)
+            .sort((a, b) => a.createdAt - b.createdAt);
           let aggregate: Recommendation | null = null;
           for (const r of reviews) {
             if (
@@ -308,27 +621,30 @@ export const getReviewQueue = query({
               aggregate = r.recommendation;
             }
           }
+          const author = p.authorUserId
+            ? await ctx.db.get(p.authorUserId)
+            : null;
           return {
             _id: p._id,
-            title: p.title,
+            title: latest?.title ?? p.title,
             slug: p.slug,
             type: p.type,
             theme: p.theme,
             status: p.status,
-            // La plage d'index garantit que l'étape est définie ; le
-            // validateur de retour l'exige, ce repli ne sert qu'au typage.
             reviewStage: p.reviewStage ?? 'in_review',
             hasAuthor: p.authorUserId !== undefined,
+            authorName:
+              author?.name ?? (p.authors.map((a) => a.name).join(', ') || null),
+            authorEmail: author?.email ?? null,
+            version: current,
+            blindStatus: latest?.blindStatus ?? null,
             aggregate,
-            reviews: reviews
-              .sort((a, b) => a.createdAt - b.createdAt)
-              .map((r) => ({
-                _id: r._id,
-                reviewerName: r.reviewerName,
-                recommendation: r.recommendation,
-                comment: r.comment,
-                createdAt: r.createdAt,
-              })),
+            assignments: await assignmentViews(
+              ctx,
+              await assignmentsOf(ctx, p._id),
+              allReviews,
+            ),
+            reviews: reviews.map(editorReview),
           };
         }),
       ),
@@ -336,50 +652,99 @@ export const getReviewQueue = query({
   },
 });
 
-// Décision de l'éditeur (éditeur+) : renvoyer pour modifications ('revision')
-// ou clore la revue ('reviewed'). Patch `reviewStage`, audite, et notifie
-// l'auteur si la publication en a un. N'accepte qu'une revue OUVERTE
-// (cf. la machine ci-dessus) : rouvrir passe par `assignReviewer`.
-export const decideReview = mutation({
-  args: {
-    publicationId: v.id('publications'),
-    decision: v.union(v.literal('revision'), v.literal('reviewed')),
-  },
-  handler: async (ctx, { publicationId, decision }) => {
-    const editor = await requireNetworkRole(ctx, 'editeur');
+const versionEditorView = v.object({
+  version: v.number(),
+  title: v.string(),
+  abstract: v.string(),
+  keywords: v.array(v.string()),
+  fileName: v.union(v.string(), v.null()),
+  fileUrl: v.union(v.string(), v.null()),
+  blindFileUrl: v.union(v.string(), v.null()),
+  blindStatus,
+  strippedFields: v.array(v.string()),
+  responseLetter: v.union(v.string(), v.null()),
+  createdAt: v.number(),
+});
+
+const decisionView = v.object({
+  version: v.number(),
+  decision: manuscriptDecision,
+  reason: v.string(),
+  createdAt: v.number(),
+});
+
+/** Dossier complet d'un manuscrit (éditeur+) : versions, avis, décisions. */
+export const getManuscriptForEditor = query({
+  args: { publicationId: v.id('publications') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      publicationId: v.id('publications'),
+      reviewStage: v.union(manuscriptStage, v.null()),
+      authorName: v.union(v.string(), v.null()),
+      authorEmail: v.union(v.string(), v.null()),
+      versions: v.array(versionEditorView),
+      reviews: v.array(editorReviewView),
+      decisions: v.array(decisionView),
+      assignments: v.array(assignmentView),
+    }),
+  ),
+  handler: async (ctx, { publicationId }) => {
+    await requireNetworkRole(ctx, 'editeur');
     const pub = await ctx.db.get(publicationId);
-    if (!pub) throw new Error('NOT_FOUND');
-    assertTransition(peerStage(pub), decision, PEER_REVIEW);
-
-    await ctx.db.patch(publicationId, { reviewStage: decision });
-
-    if (pub.authorUserId) {
-      await notify(ctx, {
-        userId: pub.authorUserId,
-        type: 'peer_review_decided',
-        titleKey: 'peerReviewDecided',
-        params: { title: pub.title },
-        link: '/espace-membre',
-      });
-    }
-
-    await recordAudit(ctx, {
-      actorId: editor._id,
-      action: AUDIT.PEER_REVIEW,
-      targetId: publicationId,
-      metadata: { kind: 'decide', decision },
-    });
-    return { ok: true };
+    if (!pub) return null;
+    const versions = await versionsOf(ctx, publicationId);
+    const reviews = await reviewsOf(ctx, publicationId);
+    const decisions = await ctx.db
+      .query('manuscriptDecisions')
+      .withIndex('by_publication', (q) => q.eq('publicationId', publicationId))
+      .take(VERSIONS_MAX * 2);
+    const author = pub.authorUserId ? await ctx.db.get(pub.authorUserId) : null;
+    return {
+      publicationId,
+      reviewStage: pub.reviewStage ?? null,
+      authorName:
+        author?.name ?? (pub.authors.map((a) => a.name).join(', ') || null),
+      authorEmail: author?.email ?? null,
+      versions: await Promise.all(
+        versions.map(async (ver) => ({
+          version: ver.version,
+          title: ver.title,
+          abstract: ver.abstract,
+          keywords: ver.keywords,
+          fileName: ver.fileName ?? null,
+          fileUrl: ver.fileId ? await ctx.storage.getUrl(ver.fileId) : null,
+          blindFileUrl: ver.blindFileId
+            ? await ctx.storage.getUrl(ver.blindFileId)
+            : null,
+          blindStatus: ver.blindStatus,
+          strippedFields: ver.strippedFields ?? [],
+          responseLetter: ver.responseLetter ?? null,
+          createdAt: ver.createdAt,
+        })),
+      ),
+      reviews: reviews
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .map(editorReview),
+      decisions: decisions
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .map((d) => ({
+          version: d.version,
+          decision: d.decision,
+          reason: d.reason,
+          createdAt: d.createdAt,
+        })),
+      assignments: await assignmentViews(
+        ctx,
+        await assignmentsOf(ctx, publicationId),
+        reviews,
+      ),
+    };
   },
 });
 
-// Liste des relecteurs potentiels (éditeur+) — utilisateurs moderateur et
-// au-dessus, pour le sélecteur d'assignation.
-// Le sélecteur d'assignation chargeait la table `users` ENTIÈRE pour n'en garder
-// que le staff — quelques comptes sur un annuaire appelé à grandir (issue #8).
-// L'index `by_role` va chercher directement les trois rôles concernés : on ne
-// lit plus que des relecteurs possibles. Chaque rôle est borné, le staff d'un
-// réseau se compte en dizaines, et un sélecteur n'est pas une liste paginée.
+// Liste des relecteurs potentiels (éditeur+) — le staff, par l'index
+// `by_role` (issue #8) : on ne lit que des relecteurs possibles.
 const STAFF_ROLES = ['moderateur', 'editeur', 'admin'] as const;
 const STAFF_PER_ROLE_MAX = 200;
 
@@ -414,27 +779,8 @@ export const listStaffUsers = query({
   },
 });
 
-// --- Porte d'entrée et vue du relecteur (campagne du 27/09, R-01 / A-02) ---
-//
-// Mesuré le 27/09 : la revue n'avait AUCUNE porte d'entrée. `getReviewQueue`
-// ne liste que ce qui est DÉJÀ en revue, et le sélecteur d'assignation ne
-// vivait que dans ces cartes — le circuit était fermé sur lui-même, seule une
-// écriture hors interface amorçait une revue. Et le relecteur de rang
-// modérateur, notifié, n'avait aucun écran qui lui rende ses assignations.
-//
-// Trois lectures répondent, chacune bornée :
-//  - `listOpenable` (éditeur+) : ce qu'un éditeur PEUT envoyer en revue — les
-//    dépôts en attente de modération, jamais entrés en revue ;
-//  - `myAssignments` (modérateur+) : les assignations DU COMPTE CONNECTÉ, et
-//    rien d'autre — l'identité vient de la session, jamais d'un argument ;
-//  - `reviewStagesFor` (modérateur+) : l'étape de revue d'une poignée de
-//    publications, pour que la file de modération montre où en est chaque
-//    ligne sans une requête par ligne.
-
-// Ce que la file de modération peut envoyer en revue. Les dépôts en attente se
-// comptent en dizaines : `by_status` puis un filtre sur l'étape (le seul
-// prédicat que cet index ne porte pas) restent une lecture bornée par
-// `OPENABLE_MAX`, et non par la taille de la bibliothèque.
+// Ce que la file de modération peut envoyer en revue : les dépôts en attente,
+// jamais entrés en revue (campagne du 27/09, R-01).
 const OPENABLE_MAX = 100;
 
 export const listOpenable = query({
@@ -443,7 +789,7 @@ export const listOpenable = query({
     v.object({
       _id: v.id('publications'),
       title: v.string(),
-      type: queueItemValidator.fields.type,
+      type: pubTypeValidator,
       submittedAt: v.union(v.number(), v.null()),
     }),
   ),
@@ -465,33 +811,68 @@ export const listOpenable = query({
   },
 });
 
-// Les assignations du compte connecté. Plafond large : un relecteur n'en porte
-// pas cinquante, et une revue arbitrée reste listée (close) pour qu'il voie
-// que son avis a servi — jusqu'à ce que la liste se renouvelle.
-const MY_ASSIGNMENTS_MAX = 50;
+// Étape de revue d'un lot de publications (file de modération, modérateur+).
+// Ne rend QUE l'étape et un compte : rien qui nomme l'auteur ou un relecteur.
+const STAGES_FOR_MAX = 100;
 
+export const reviewStagesFor = query({
+  args: { publicationIds: v.array(v.id('publications')) },
+  returns: v.array(
+    v.object({
+      publicationId: v.id('publications'),
+      reviewStage: v.union(manuscriptStage, v.null()),
+      reviewerCount: v.number(),
+    }),
+  ),
+  handler: async (ctx, { publicationIds }) => {
+    await requireNetworkRole(ctx, 'moderateur');
+    if (publicationIds.length > STAGES_FOR_MAX) throw new Error('TOO_MANY_IDS');
+    return await Promise.all(
+      publicationIds.map(async (publicationId) => {
+        const pub = await ctx.db.get(publicationId);
+        const assignments = pub?.reviewStage
+          ? await assignmentsOf(ctx, publicationId)
+          : [];
+        return {
+          publicationId,
+          reviewStage: pub?.reviewStage ?? null,
+          reviewerCount: assignments.length,
+        };
+      }),
+    );
+  },
+});
+
+// === Relecteur ================================================================
+
+const myReviewView = v.object({
+  version: v.number(),
+  recommendation: recommendationValidator,
+  comment: v.string(),
+  createdAt: v.number(),
+});
+
+/**
+ * Les assignations du compte connecté (modérateur+), et rien d'autre —
+ * l'identité vient de la session. Aucune donnée d'auteur : ni `authors`, ni
+ * adresse, ni nom de fichier d'origine.
+ */
 export const myAssignments = query({
   args: {},
   returns: v.array(
     v.object({
       _id: v.id('publications'),
       title: v.string(),
-      slug: v.string(),
-      type: queueItemValidator.fields.type,
+      type: pubTypeValidator,
       theme: v.string(),
-      status: queueItemValidator.fields.status,
-      reviewStage: reviewStageValidator,
+      reviewStage: manuscriptStage,
+      version: v.number(),
       assignedAt: v.number(),
-      // L'avis DU relecteur, s'il l'a déjà déposé. Les avis des autres ne sont
-      // pas rendus ici : la vue sert à relire, pas à arbitrer.
-      myReview: v.union(
-        v.null(),
-        v.object({
-          recommendation: recommendationValidator,
-          comment: v.string(),
-          createdAt: v.number(),
-        }),
-      ),
+      dueAt: v.union(v.number(), v.null()),
+      conflict: conflictStateValidator,
+      // Un avis est-il attendu de moi, maintenant ?
+      open: v.boolean(),
+      myReview: v.union(myReviewView, v.null()),
     }),
   ),
   handler: async (ctx) => {
@@ -500,30 +881,47 @@ export const myAssignments = query({
       .query('peerReviewAssignments')
       .withIndex('by_reviewer', (q) => q.eq('reviewerUserId', me._id))
       .order('desc')
-      .take(MY_ASSIGNMENTS_MAX);
+      .take(ASSIGNMENTS_MAX);
 
     const items = await Promise.all(
       assignments.map(async (a) => {
         const pub = await ctx.db.get(a.publicationId);
-        // Publication supprimée, ou étape effacée : rien à relire.
         if (!pub || pub.reviewStage === undefined) return null;
-        const mine = await ctx.db
-          .query('peerReviews')
-          .withIndex('by_publication_and_reviewer', (q) =>
-            q.eq('publicationId', pub._id).eq('reviewerUserId', me._id),
+        const version = versionOfAssignment(a);
+        const ver = await ctx.db
+          .query('manuscriptVersions')
+          .withIndex('by_publication_and_version', (q) =>
+            q.eq('publicationId', pub._id).eq('version', version),
           )
-          .first();
+          .unique();
+        const latest = await latestVersion(ctx, pub._id);
+        const mine = (
+          await ctx.db
+            .query('peerReviews')
+            .withIndex('by_publication_and_reviewer', (q) =>
+              q.eq('publicationId', pub._id).eq('reviewerUserId', me._id),
+            )
+            .take(VERSIONS_MAX)
+        ).find((r) => versionOfReview(r) === version);
+        const conflict = conflictState(a);
         return {
           _id: pub._id,
-          title: pub.title,
-          slug: pub.slug,
+          title: ver?.title ?? pub.title,
           type: pub.type,
           theme: pub.theme,
-          status: pub.status,
           reviewStage: pub.reviewStage,
+          version,
           assignedAt: a.assignedAt,
+          dueAt: a.dueAt ?? null,
+          conflict,
+          open:
+            pub.reviewStage === 'in_review' &&
+            version === (latest?.version ?? 1) &&
+            conflict !== 'conflict' &&
+            !mine,
           myReview: mine
             ? {
+                version,
                 recommendation: mine.recommendation,
                 comment: mine.comment,
                 createdAt: mine.createdAt,
@@ -536,40 +934,715 @@ export const myAssignments = query({
   },
 });
 
-// Étape de revue d'un lot de publications — celles qu'une page de la file de
-// modération affiche. Borné à la taille d'une page ; au-delà, l'écran a mal
-// découpé, et le validateur le dit plutôt que de lire sans limite.
-const STAGES_FOR_MAX = 100;
-
-export const reviewStagesFor = query({
-  args: { publicationIds: v.array(v.id('publications')) },
-  returns: v.array(
+/**
+ * Le manuscrit tel que le voit SON relecteur : la version qu'il évalue, le
+ * différentiel de métadonnées avec la précédente, la lettre de réponse de
+ * l'auteur, et le fichier ANONYMISÉ — seulement une fois le conflit
+ * d'intérêts déclaré absent. Aucun champ d'identité de l'auteur.
+ */
+export const getAssignment = query({
+  args: { publicationId: v.id('publications') },
+  returns: v.union(
+    v.null(),
     v.object({
       publicationId: v.id('publications'),
-      reviewStage: v.union(reviewStageValidator, v.null()),
-      reviewerCount: v.number(),
+      type: pubTypeValidator,
+      theme: v.string(),
+      reviewStage: manuscriptStage,
+      version: v.number(),
+      title: v.string(),
+      abstract: v.string(),
+      keywords: v.array(v.string()),
+      responseLetter: v.union(v.string(), v.null()),
+      diff: v.union(
+        v.null(),
+        v.object({
+          fromVersion: v.number(),
+          title: v.union(
+            v.null(),
+            v.object({ from: v.string(), to: v.string() }),
+          ),
+          abstract: v.union(
+            v.null(),
+            v.object({ from: v.string(), to: v.string() }),
+          ),
+          keywordsAdded: v.array(v.string()),
+          keywordsRemoved: v.array(v.string()),
+          fileReplaced: v.boolean(),
+        }),
+      ),
+      dueAt: v.union(v.number(), v.null()),
+      conflict: conflictStateValidator,
+      file: v.object({
+        // Nom NEUTRE (« manuscrit-v2.pdf ») : le nom d'origine nomme souvent
+        // l'auteur.
+        name: v.union(v.string(), v.null()),
+        url: v.union(v.string(), v.null()),
+        blindStatus: v.union(blindStatus, v.null()),
+      }),
+      open: v.boolean(),
+      myReviews: v.array(myReviewView),
     }),
   ),
-  handler: async (ctx, { publicationIds }) => {
-    await requireNetworkRole(ctx, 'moderateur');
-    if (publicationIds.length > STAGES_FOR_MAX) throw new Error('TOO_MANY_IDS');
-    return await Promise.all(
-      publicationIds.map(async (publicationId) => {
-        const pub = await ctx.db.get(publicationId);
-        const assignments = pub?.reviewStage
-          ? await ctx.db
-              .query('peerReviewAssignments')
-              .withIndex('by_publication', (q) =>
-                q.eq('publicationId', publicationId),
-              )
-              .take(STAFF_PER_ROLE_MAX)
-          : [];
-        return {
-          publicationId,
-          reviewStage: pub?.reviewStage ?? null,
-          reviewerCount: assignments.length,
-        };
-      }),
+  handler: async (ctx, { publicationId }) => {
+    const me = await requireNetworkRole(ctx, 'moderateur');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub || pub.reviewStage === undefined) return null;
+    const assignment = await assignmentFor(ctx, publicationId, me._id);
+    if (!assignment) return null;
+    const version = versionOfAssignment(assignment);
+    const versions = await versionsOf(ctx, publicationId);
+    const ver = versions.find((x) => x.version === version) ?? null;
+    const prev = versions.find((x) => x.version === version - 1) ?? null;
+    const latest = versions[versions.length - 1] ?? null;
+    const mine = (
+      await ctx.db
+        .query('peerReviews')
+        .withIndex('by_publication_and_reviewer', (q) =>
+          q.eq('publicationId', publicationId).eq('reviewerUserId', me._id),
+        )
+        .take(VERSIONS_MAX)
+    ).map((r) => ({
+      version: versionOfReview(r),
+      recommendation: r.recommendation,
+      comment: r.comment,
+      createdAt: r.createdAt,
+    }));
+    const conflict = conflictState(assignment);
+    const blindId = ver && conflict === 'clear' ? blindFileFor(ver) : null;
+    const title = ver?.title ?? pub.title;
+    return {
+      publicationId,
+      type: pub.type,
+      theme: pub.theme,
+      reviewStage: pub.reviewStage,
+      version,
+      title,
+      abstract: ver?.abstract ?? pub.abstract,
+      keywords: ver?.keywords ?? normalizeKeywords(pub.keypoints),
+      responseLetter: ver?.responseLetter ?? null,
+      diff:
+        ver && prev
+          ? {
+              fromVersion: prev.version,
+              ...metadataDiff(
+                {
+                  title: prev.title,
+                  abstract: prev.abstract,
+                  keywords: prev.keywords,
+                  hasFile: prev.fileId !== undefined,
+                },
+                {
+                  title: ver.title,
+                  abstract: ver.abstract,
+                  keywords: ver.keywords,
+                  hasFile: ver.fileId !== undefined,
+                },
+              ),
+            }
+          : null,
+      dueAt: assignment.dueAt ?? null,
+      conflict,
+      file: {
+        name: ver?.fileId ? `manuscrit-v${version}.pdf` : null,
+        url: blindId ? await ctx.storage.getUrl(blindId) : null,
+        blindStatus: ver?.blindStatus ?? null,
+      },
+      open:
+        pub.reviewStage === 'in_review' &&
+        version === (latest?.version ?? 1) &&
+        conflict === 'clear' &&
+        !mine.some((r) => r.version === version),
+      myReviews: mine,
+    };
+  },
+});
+
+/**
+ * Déclaration de conflit d'intérêts (relecteur assigné), PRÉALABLE à l'accès
+ * au fichier et au dépôt d'un avis. Une déclaration de conflit récuse le
+ * relecteur : son échéance tombe, et l'éditeur qui l'a désigné est prévenu
+ * pour en désigner un autre. Elle ne se modifie pas (CONFLICT_ALREADY_DECLARED).
+ */
+export const declareConflict = mutation({
+  args: {
+    publicationId: v.id('publications'),
+    hasConflict: v.boolean(),
+    details: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { publicationId, hasConflict, details }) => {
+    const me = await requireNetworkRole(ctx, 'moderateur');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub) throw new Error('NOT_FOUND');
+    if (stageOf(pub) !== 'in_review') {
+      throw new Error(
+        DECIDED_STAGES.includes(stageOf(pub))
+          ? 'ALREADY_REVIEWED'
+          : 'INVALID_TRANSITION',
+      );
+    }
+    const assignment = await assignmentFor(ctx, publicationId, me._id);
+    if (!assignment) throw new Error('NOT_ASSIGNED');
+    if (assignment.conflict) throw new Error('CONFLICT_ALREADY_DECLARED');
+    const text = details?.trim() || undefined;
+    if (text && text.length > MANUSCRIPT_BOUNDS.conflictDetails.max) {
+      throw new Error('INVALID_DETAILS');
+    }
+    await ctx.db.patch(assignment._id, {
+      conflict: { hasConflict, details: text, declaredAt: Date.now() },
+      ...(hasConflict ? { dueAt: undefined } : {}),
+    });
+    if (hasConflict) {
+      const ver = await latestVersion(ctx, publicationId);
+      await notify(ctx, {
+        userId: assignment.assignedBy,
+        type: 'peer_review_conflict',
+        titleKey: 'peerReviewConflict',
+        params: { title: ver?.title ?? pub.title },
+        link: EDITOR_QUEUE_LINK,
+      });
+    }
+    await recordAudit(ctx, {
+      actorId: me._id,
+      action: AUDIT.PEER_REVIEW_CONFLICT,
+      targetId: publicationId,
+      metadata: { hasConflict },
+    });
+    return null;
+  },
+});
+
+/**
+ * Dépôt d'un avis par le relecteur ASSIGNÉ à la version courante, après sa
+ * déclaration d'absence de conflit. Un avis par version (ALREADY_REVIEWED) :
+ * sans cela un même relecteur pèserait deux fois dans la recommandation
+ * agrégée. Le commentaire à l'éditeur reste confidentiel.
+ */
+export const submitReview = mutation({
+  args: {
+    publicationId: v.id('publications'),
+    recommendation: recommendationValidator,
+    comment: v.string(),
+    commentToEditor: v.optional(v.string()),
+  },
+  returns: v.object({ ok: v.boolean() }),
+  handler: async (
+    ctx,
+    { publicationId, recommendation, comment, commentToEditor },
+  ) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub) throw new Error('NOT_FOUND');
+    const stage = stageOf(pub);
+    if (stage !== 'in_review') {
+      throw new Error(
+        DECIDED_STAGES.includes(stage)
+          ? 'ALREADY_REVIEWED'
+          : 'INVALID_TRANSITION',
+      );
+    }
+    const assignment = await assignmentFor(ctx, publicationId, reviewer._id);
+    const latest = await latestVersion(ctx, publicationId);
+    const current = latest?.version ?? 1;
+    if (!assignment || versionOfAssignment(assignment) !== current) {
+      throw new Error('NOT_ASSIGNED');
+    }
+    const conflict = conflictState(assignment);
+    if (conflict === 'undeclared') throw new Error('CONFLICT_NOT_DECLARED');
+    if (conflict === 'conflict') throw new Error('CONFLICT_DECLARED');
+
+    const already = (
+      await ctx.db
+        .query('peerReviews')
+        .withIndex('by_publication_and_reviewer', (q) =>
+          q
+            .eq('publicationId', publicationId)
+            .eq('reviewerUserId', reviewer._id),
+        )
+        .take(VERSIONS_MAX)
+    ).some((r) => versionOfReview(r) === current);
+    if (already) throw new Error('ALREADY_REVIEWED');
+
+    const text = assertLength(
+      comment,
+      MANUSCRIPT_BOUNDS.comment,
+      'INVALID_COMMENT',
     );
+    const toEditor = commentToEditor?.trim() || undefined;
+    if (toEditor && toEditor.length > MANUSCRIPT_BOUNDS.commentToEditor.max) {
+      throw new Error('INVALID_COMMENT');
+    }
+
+    await ctx.db.insert('peerReviews', {
+      publicationId,
+      reviewerUserId: reviewer._id,
+      reviewerName: reviewerName(reviewer),
+      recommendation,
+      comment: text,
+      version: current,
+      ...(toEditor ? { commentToEditor: toEditor } : {}),
+      createdAt: Date.now(),
+    });
+    await ctx.db.patch(assignment._id, { dueAt: undefined });
+
+    await notify(ctx, {
+      userId: assignment.assignedBy,
+      type: 'peer_review_submitted',
+      titleKey: 'peerReviewSubmitted',
+      params: { title: latest?.title ?? pub.title },
+      link: EDITOR_QUEUE_LINK,
+    });
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.PEER_REVIEW,
+      targetId: publicationId,
+      metadata: { kind: 'review', recommendation, version: current },
+    });
+    return { ok: true };
+  },
+});
+
+// === Auteur ===================================================================
+
+// Bornes du fichier d'une révision : celles du dépôt (convex/publications.ts).
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = ['application/pdf'];
+
+async function assertOwnedPublication(
+  ctx: QueryCtx,
+  publicationId: Id<'publications'>,
+  userId: Id<'users'>,
+): Promise<Doc<'publications'>> {
+  const pub = await ctx.db.get(publicationId);
+  // Le dépôt d'un autre se lit comme un dépôt inexistant : rien à apprendre.
+  if (!pub || pub.authorUserId !== userId) throw new Error('NOT_FOUND');
+  return pub;
+}
+
+/**
+ * L'auteur soumet SON dépôt en attente au comité de lecture (membre+).
+ * Transition `submit` : la version 1 est figée à partir du dépôt, sa copie
+ * anonymisée est planifiée, le comité éditorial est prévenu.
+ */
+export const submitManuscript = mutation({
+  args: {
+    publicationId: v.id('publications'),
+    keywords: v.optional(v.array(v.string())),
+  },
+  returns: v.object({ ok: v.boolean(), version: v.number() }),
+  handler: async (ctx, { publicationId, keywords }) => {
+    const me = await requireNetworkRole(ctx, 'membre');
+    const pub = await assertOwnedPublication(ctx, publicationId, me._id);
+    // Seul un dépôt EN ATTENTE entre en revue : un texte publié ou refusé
+    // n'est plus un manuscrit.
+    if (pub.status !== 'pending') throw new Error('INVALID_TRANSITION');
+    const to = nextStage(stageOf(pub), 'submit');
+    await enforceRateLimit(ctx, {
+      key: `manuscript:${me._id}`,
+      ...RATE_LIMITS.publicationSubmit,
+    });
+    const id = await ctx.db.insert('manuscriptVersions', {
+      publicationId,
+      version: 1,
+      title: pub.title,
+      abstract: pub.abstract,
+      keywords: normalizeKeywords(keywords ?? pub.keypoints),
+      ...(pub.fileId ? { fileId: pub.fileId } : {}),
+      ...(pub.fileName ? { fileName: pub.fileName } : {}),
+      blindStatus: pub.fileId ? 'pending' : 'none',
+      submittedBy: me._id,
+      createdAt: Date.now(),
+    });
+    if (pub.fileId) await scheduleBlindCopy(ctx, id);
+    await ctx.db.patch(publicationId, { reviewStage: to });
+    await notifyEditors(ctx, {
+      type: 'manuscript_submitted',
+      titleKey: 'manuscriptSubmitted',
+      title: pub.title,
+    });
+    await recordAudit(ctx, {
+      actorId: me._id,
+      action: AUDIT.MANUSCRIPT_SUBMITTED,
+      targetId: publicationId,
+      metadata: { version: 1 },
+    });
+    return { ok: true, version: 1 };
+  },
+});
+
+/**
+ * Révision (auteur, sur une révision DEMANDÉE) : une NOUVELLE version —
+ * nouveau fichier, métadonnées éventuellement corrigées — et une lettre de
+ * réponse aux relecteurs, obligatoire. Rien n'est réécrit dans les versions
+ * précédentes. L'éditeur qui a demandé la révision est prévenu ; c'est lui
+ * qui ouvre le tour suivant (ou accepte directement une révision mineure).
+ */
+export const submitRevision = mutation({
+  args: {
+    publicationId: v.id('publications'),
+    title: v.string(),
+    abstract: v.string(),
+    keywords: v.array(v.string()),
+    fileId: v.id('_storage'),
+    fileName: v.string(),
+    responseLetter: v.string(),
+  },
+  returns: v.object({ ok: v.boolean(), version: v.number() }),
+  handler: async (ctx, args) => {
+    const me = await requireNetworkRole(ctx, 'membre');
+    const pub = await assertOwnedPublication(ctx, args.publicationId, me._id);
+    const to = nextStage(stageOf(pub), 'resubmit');
+    const B = MANUSCRIPT_BOUNDS;
+    const title = assertLength(args.title, B.title, 'INVALID_TITLE');
+    const abstract = assertLength(
+      args.abstract,
+      B.abstract,
+      'INVALID_ABSTRACT',
+    );
+    const responseLetter = assertLength(
+      args.responseLetter,
+      B.responseLetter,
+      'INVALID_RESPONSE_LETTER',
+    );
+    // Le blob se juge sur ses métadonnées RÉELLES, jamais sur ce qu'annonce
+    // le client (même défiance que le dépôt).
+    const meta = await ctx.db.system.get(args.fileId);
+    if (
+      !meta ||
+      meta.size === 0 ||
+      meta.size > MAX_FILE_BYTES ||
+      (meta.contentType && !ALLOWED_FILE_TYPES.includes(meta.contentType))
+    ) {
+      throw new Error('INVALID_FILE');
+    }
+    await enforceRateLimit(ctx, {
+      key: `manuscript:${me._id}`,
+      ...RATE_LIMITS.publicationSubmit,
+    });
+
+    const latest = await ensureVersion(ctx, pub, me._id);
+    const version = latest.version + 1;
+    const id = await ctx.db.insert('manuscriptVersions', {
+      publicationId: args.publicationId,
+      version,
+      title,
+      abstract,
+      keywords: normalizeKeywords(args.keywords),
+      fileId: args.fileId,
+      fileName: args.fileName.trim().slice(0, 200) || `v${version}.pdf`,
+      blindStatus: 'pending',
+      responseLetter,
+      submittedBy: me._id,
+      createdAt: Date.now(),
+    });
+    await scheduleBlindCopy(ctx, id);
+    await ctx.db.patch(args.publicationId, { reviewStage: to });
+
+    const decisions = await ctx.db
+      .query('manuscriptDecisions')
+      .withIndex('by_publication', (q) =>
+        q.eq('publicationId', args.publicationId),
+      )
+      .order('desc')
+      .first();
+    if (decisions) {
+      await notify(ctx, {
+        userId: decisions.decidedBy,
+        type: 'manuscript_resubmitted',
+        titleKey: 'manuscriptResubmitted',
+        params: { title },
+        link: EDITOR_QUEUE_LINK,
+      });
+    } else {
+      await notifyEditors(ctx, {
+        type: 'manuscript_resubmitted',
+        titleKey: 'manuscriptResubmitted',
+        title,
+      });
+    }
+    await recordAudit(ctx, {
+      actorId: me._id,
+      action: AUDIT.MANUSCRIPT_REVISED,
+      targetId: args.publicationId,
+      metadata: { version },
+    });
+    return { ok: true, version };
+  },
+});
+
+/**
+ * Suivi de l'auteur (espace membre) : ses manuscrits, leurs versions, les
+ * décisions motivées et les avis — NUMÉROTÉS, sans nom ni identifiant de
+ * relecteur, et seulement pour une version déjà tranchée (un avis n'est pas
+ * montré à l'auteur avant que l'éditeur l'ait pesé). Et les dépôts qu'il peut
+ * encore soumettre au comité.
+ */
+export const myManuscripts = query({
+  args: {},
+  returns: v.object({
+    manuscripts: v.array(
+      v.object({
+        publicationId: v.id('publications'),
+        title: v.string(),
+        reviewStage: manuscriptStage,
+        status: pubStatusValidator,
+        slug: v.string(),
+        currentVersion: v.number(),
+        canRevise: v.boolean(),
+        versions: v.array(
+          v.object({
+            version: v.number(),
+            title: v.string(),
+            fileName: v.union(v.string(), v.null()),
+            hasResponseLetter: v.boolean(),
+            createdAt: v.number(),
+          }),
+        ),
+        decisions: v.array(decisionView),
+        reviews: v.array(
+          v.object({
+            version: v.number(),
+            // « Relecteur 1 », « Relecteur 2 » — un rang, pas une identité.
+            index: v.number(),
+            recommendation: recommendationValidator,
+            comment: v.string(),
+          }),
+        ),
+      }),
+    ),
+    eligible: v.array(
+      v.object({
+        publicationId: v.id('publications'),
+        title: v.string(),
+        submittedAt: v.number(),
+      }),
+    ),
+  }),
+  handler: async (ctx) => {
+    const me = await requireNetworkRole(ctx, 'membre');
+    const mine = await ctx.db
+      .query('publications')
+      .withIndex('by_author', (q) => q.eq('authorUserId', me._id))
+      .order('desc')
+      .take(100);
+    const manuscripts = [];
+    for (const pub of mine.filter((p) => p.reviewStage !== undefined)) {
+      const versions = await versionsOf(ctx, pub._id);
+      const decisions = (
+        await ctx.db
+          .query('manuscriptDecisions')
+          .withIndex('by_publication', (q) => q.eq('publicationId', pub._id))
+          .take(VERSIONS_MAX * 2)
+      ).sort((a, b) => a.createdAt - b.createdAt);
+      const decided = new Set(decisions.map((d) => d.version));
+      const reviews = (await reviewsOf(ctx, pub._id))
+        .filter((r) => decided.has(versionOfReview(r)))
+        .sort((a, b) => a.createdAt - b.createdAt);
+      // Rang du relecteur dans le manuscrit : stable d'une version à l'autre
+      // (le « Relecteur 1 » de la v1 est celui de la v2), sans rien révéler.
+      const order: Id<'users'>[] = [];
+      for (const r of reviews) {
+        if (!order.includes(r.reviewerUserId)) order.push(r.reviewerUserId);
+      }
+      const latest = versions[versions.length - 1];
+      manuscripts.push({
+        publicationId: pub._id,
+        title: latest?.title ?? pub.title,
+        reviewStage: pub.reviewStage as NonNullable<typeof pub.reviewStage>,
+        status: pub.status,
+        slug: pub.slug,
+        currentVersion: latest?.version ?? 1,
+        canRevise: pub.reviewStage === 'revision',
+        versions: versions.map((ver) => ({
+          version: ver.version,
+          title: ver.title,
+          fileName: ver.fileName ?? null,
+          hasResponseLetter: ver.responseLetter !== undefined,
+          createdAt: ver.createdAt,
+        })),
+        decisions: decisions.map((d) => ({
+          version: d.version,
+          decision: d.decision,
+          reason: d.reason,
+          createdAt: d.createdAt,
+        })),
+        reviews: reviews.map((r) => ({
+          version: versionOfReview(r),
+          index: order.indexOf(r.reviewerUserId) + 1,
+          recommendation: r.recommendation,
+          comment: r.comment,
+        })),
+      });
+    }
+    return {
+      manuscripts,
+      eligible: mine
+        .filter((p) => p.reviewStage === undefined && p.status === 'pending')
+        .map((p) => ({
+          publicationId: p._id,
+          title: p.title,
+          submittedAt: p.submittedAt ?? p.createdAt,
+        })),
+    };
+  },
+});
+
+/** Le dossier d'une version pour préparer la révision (auteur). */
+export const myRevisionContext = query({
+  args: { publicationId: v.id('publications') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      title: v.string(),
+      abstract: v.string(),
+      keywords: v.array(v.string()),
+      version: v.number(),
+    }),
+  ),
+  handler: async (ctx, { publicationId }) => {
+    const me = await requireNetworkRole(ctx, 'membre');
+    const pub = await ctx.db.get(publicationId);
+    if (!pub || pub.authorUserId !== me._id) return null;
+    const latest = await latestVersion(ctx, publicationId);
+    return {
+      title: latest?.title ?? pub.title,
+      abstract: latest?.abstract ?? pub.abstract,
+      keywords: latest?.keywords ?? normalizeKeywords(pub.keypoints),
+      version: latest?.version ?? 1,
+    };
+  },
+});
+
+// === Relances (tâche planifiée) ===============================================
+
+/**
+ * Relance les relecteurs en retard — appelée chaque jour par convex/crons.ts.
+ *
+ * L'index `by_dueAt` ne contient que les relectures ATTENDUES (l'échéance est
+ * effacée dès que l'avis est rendu, le relecteur récusé ou le tour clos) : la
+ * plage « échue » se lit sans parcourir les assignations closes. Chaque ligne
+ * est revérifiée ici — une échéance restée posée sur un tour dépassé est
+ * effacée plutôt que relancée.
+ */
+export const sendDueReminders = internalMutation({
+  args: {},
+  returns: v.object({
+    reminded: v.number(),
+    escalated: v.number(),
+    closed: v.number(),
+  }),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const due = await ctx.db
+      .query('peerReviewAssignments')
+      .withIndex('by_dueAt', (q) => q.gt('dueAt', undefined).lte('dueAt', now))
+      .take(REMINDER.batch);
+    let reminded = 0;
+    let escalated = 0;
+    let closed = 0;
+    for (const a of due) {
+      const pub = await ctx.db.get(a.publicationId);
+      const latest = pub ? await latestVersion(ctx, pub._id) : null;
+      const version = versionOfAssignment(a);
+      const reviewed = pub
+        ? (
+            await ctx.db
+              .query('peerReviews')
+              .withIndex('by_publication_and_reviewer', (q) =>
+                q
+                  .eq('publicationId', pub._id)
+                  .eq('reviewerUserId', a.reviewerUserId),
+              )
+              .take(VERSIONS_MAX)
+          ).some((r) => versionOfReview(r) === version)
+        : false;
+      if (
+        !pub ||
+        pub.reviewStage !== 'in_review' ||
+        version !== (latest?.version ?? 1) ||
+        reviewed ||
+        a.conflict?.hasConflict
+      ) {
+        await ctx.db.patch(a._id, { dueAt: undefined });
+        closed++;
+        continue;
+      }
+      if (a.lastReminderAt && now - a.lastReminderAt < REMINDER.intervalMs) {
+        continue;
+      }
+      const title = latest?.title ?? pub.title;
+      const sent = a.remindersSent ?? 0;
+      if (sent < REMINDER.max) {
+        await notify(ctx, {
+          userId: a.reviewerUserId,
+          type: 'peer_review_reminder',
+          titleKey: 'peerReviewReminder',
+          params: { title },
+          link: MY_REVIEWS_LINK,
+        });
+        await ctx.db.patch(a._id, {
+          remindersSent: sent + 1,
+          lastReminderAt: now,
+        });
+        reminded++;
+      } else if (!a.overdueNotifiedAt) {
+        await notify(ctx, {
+          userId: a.assignedBy,
+          type: 'peer_review_overdue',
+          titleKey: 'peerReviewOverdue',
+          params: { title },
+          link: EDITOR_QUEUE_LINK,
+        });
+        await ctx.db.patch(a._id, { overdueNotifiedAt: now });
+        escalated++;
+      }
+    }
+    return { reminded, escalated, closed };
+  },
+});
+
+// === Fichiers anonymisés (appelé par convex/peerReviewFiles.ts) ================
+
+export const versionForBlindCopy = internalQuery({
+  args: { versionId: v.id('manuscriptVersions') },
+  returns: v.union(
+    v.null(),
+    v.object({ fileId: v.id('_storage'), title: v.string() }),
+  ),
+  handler: async (ctx, { versionId }) => {
+    const ver = await ctx.db.get(versionId);
+    if (!ver || !ver.fileId || ver.blindStatus !== 'pending') return null;
+    return { fileId: ver.fileId, title: ver.title };
+  },
+});
+
+export const saveBlindCopy = internalMutation({
+  args: {
+    versionId: v.id('manuscriptVersions'),
+    blindFileId: v.optional(v.id('_storage')),
+    status: v.union(
+      v.literal('clean'),
+      v.literal('stripped'),
+      v.literal('unreadable'),
+    ),
+    stripped: v.array(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { versionId, blindFileId, status, stripped }) => {
+    const ver = await ctx.db.get(versionId);
+    if (!ver) {
+      if (blindFileId) await ctx.storage.delete(blindFileId);
+      return null;
+    }
+    if (ver.blindFileId && ver.blindFileId !== blindFileId) {
+      await ctx.storage.delete(ver.blindFileId);
+    }
+    await ctx.db.patch(versionId, {
+      blindStatus: status,
+      blindFileId,
+      strippedFields: stripped,
+    });
+    return null;
   },
 });

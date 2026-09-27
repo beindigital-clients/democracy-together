@@ -68,6 +68,7 @@ const STAFF_ITEMS = [
 // « Contenus » (chantier « contenus », F-62) : rang éditeur.
 const EDITOR_ITEMS = [
   'Comité de lecture',
+  'Rapports annuels',
   'Newsletter',
   'Contenus',
   'Boîte à outils',

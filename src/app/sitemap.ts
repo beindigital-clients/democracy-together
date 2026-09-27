@@ -4,7 +4,7 @@ import { api } from '@convex/_generated/api';
 import { client } from '@dt-sanity/lib/client';
 import { routing } from '@/i18n/routing';
 import { loadAgenda, loadThemes } from '@/lib/contenus/load';
-import { REPORT_YEARS } from '@/lib/reports-content';
+import { publicReportYears, REPORT_YEARS } from '@/lib/reports-content';
 
 // Sitemap bilingue (F-07). Chaque page logique est listée une fois par locale
 // (localePrefix 'always' -> /fr et /en), avec les alternates hreflang
@@ -83,8 +83,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push(...localized(`thematiques/${th.slug}`));
   }
 
-  // Rapports annuels (F-41) — une URL par année, partagée fr/en.
-  for (const year of REPORT_YEARS) {
+  // Rapports annuels (F-41) — une URL par année publiée, partagée entre les
+  // langues : éditions administrées (Convex) et éditions codées que la base
+  // ne connaît pas. Base injoignable : les années codées.
+  let reportYears: number[] = [...REPORT_YEARS];
+  try {
+    reportYears = publicReportYears(
+      await fetchQuery(api.annualReports.listPublic, { locale: 'fr' }),
+    );
+  } catch {
+    /* Convex injoignable : on garde les années codées. */
+  }
+  for (const year of reportYears) {
     entries.push(...localized(`rapports/${year}`, undefined, 'yearly'));
   }
 
