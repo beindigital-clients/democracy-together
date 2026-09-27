@@ -38,6 +38,13 @@ export const AUDIT = {
   // Messagerie privée (chantier « social ») : décision sur un message signalé.
   // Les métadonnées ne portent que la décision, jamais le contenu du message.
   MESSAGE_REPORT_RESOLVED: 'message.report_resolved',
+  // Paiements (F-27 à F-31). Préfixe commun `payment.` : l'écran Finances
+  // filtre le journal sur ce mot par l'index plein texte.
+  PAYMENT_PLAN_CHANGED: 'payment.plan_changed',
+  PAYMENT_PLANS_SEEDED: 'payment.plans_seeded',
+  PAYMENT_REFUNDED: 'payment.refunded',
+  PAYMENT_SUBSCRIPTION_CANCELLED: 'payment.subscription_cancelled',
+  PAYMENT_EXPORTED: 'payment.exported',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

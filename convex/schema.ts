@@ -14,6 +14,7 @@ import {
   aiModerationApplied,
 } from './lib/aiModeration';
 import { socialTables } from './lib/tables/social';
+import { paiementsTables } from './lib/tables/paiements';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -838,4 +839,5 @@ export default defineSchema({
   }).index('by_email', ['email']),
 
   ...socialTables,
+  ...paiementsTables,
 });

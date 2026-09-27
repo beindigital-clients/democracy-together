@@ -1,0 +1,185 @@
+import { ConvexError, v } from 'convex/values';
+import { mutation, query } from '../_generated/server';
+import { requireNetworkRole } from '../lib/rbac';
+import { recordAudit } from '../lib/audit';
+import { AUDIT } from '../lib/auditActions';
+import {
+  defaultPlanAmounts,
+  isPlanAmountValid,
+  PLAN_CATEGORIES,
+  PLAN_ZONES,
+  toMinor,
+} from '../lib/payments/amounts';
+import {
+  planCategoryValidator,
+  planZoneValidator,
+} from '../lib/payments/validators';
+
+// BARÈME DES FORMULES D'ADHÉSION (F-27) — catégorie × zone de revenu, un
+// montant par devise. Il remplace l'estimation indicative de /adhesion dès
+// qu'il existe en base ; l'espace membre facture exactement ce barème.
+
+// Neuf combinaisons au plus : les lectures ci-dessous sont bornées par
+// construction (catégories × zones).
+const PLAN_MAX = PLAN_CATEGORIES.length * PLAN_ZONES.length;
+
+const publicPlanValidator = v.object({
+  category: planCategoryValidator,
+  zone: planZoneValidator,
+  amountEur: v.union(v.number(), v.null()),
+  amountXof: v.union(v.number(), v.null()),
+});
+
+export const publicPlans = query({
+  args: {},
+  returns: v.array(publicPlanValidator),
+  handler: async (ctx) => {
+    const rows = await ctx.db.query('paymentPlans').take(PLAN_MAX);
+    return rows
+      .filter((p) => p.active)
+      .map((p) => ({
+        category: p.category,
+        zone: p.zone,
+        amountEur: p.amountEur ?? null,
+        amountXof: p.amountXof ?? null,
+      }));
+  },
+});
+
+export const adminPlans = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id('paymentPlans'),
+      category: planCategoryValidator,
+      zone: planZoneValidator,
+      amountEur: v.union(v.number(), v.null()),
+      amountXof: v.union(v.number(), v.null()),
+      active: v.boolean(),
+      updatedAt: v.number(),
+    }),
+  ),
+  handler: async (ctx) => {
+    await requireNetworkRole(ctx, 'admin');
+    const rows = await ctx.db.query('paymentPlans').take(PLAN_MAX);
+    return rows.map((p) => ({
+      _id: p._id,
+      category: p.category,
+      zone: p.zone,
+      amountEur: p.amountEur ?? null,
+      amountXof: p.amountXof ?? null,
+      active: p.active,
+      updatedAt: p.updatedAt,
+    }));
+  },
+});
+
+// Enregistre une formule. Montants en unités MAJEURES (saisie de l'écran),
+// `null` = formule non proposée dans cette devise. Audité : le barème fixe ce
+// que paient les membres.
+export const upsertPlan = mutation({
+  args: {
+    category: planCategoryValidator,
+    zone: planZoneValidator,
+    amountEur: v.union(v.number(), v.null()),
+    amountXof: v.union(v.number(), v.null()),
+    active: v.boolean(),
+  },
+  returns: v.id('paymentPlans'),
+  handler: async (ctx, args) => {
+    const admin = await requireNetworkRole(ctx, 'admin');
+    const eur = args.amountEur === null ? null : toMinor(args.amountEur, 'EUR');
+    const xof = args.amountXof === null ? null : toMinor(args.amountXof, 'XOF');
+    if (
+      (args.amountEur !== null &&
+        (eur === null || !isPlanAmountValid(eur, 'EUR'))) ||
+      (args.amountXof !== null &&
+        (xof === null || !isPlanAmountValid(xof, 'XOF')))
+    ) {
+      throw new ConvexError('AMOUNT_OUT_OF_BOUNDS');
+    }
+    if (eur === null && xof === null && args.active) {
+      // Une formule active sans aucun montant serait un bouton mort.
+      throw new ConvexError('PLAN_WITHOUT_AMOUNT');
+    }
+    const existing = await ctx.db
+      .query('paymentPlans')
+      .withIndex('by_category_and_zone', (q) =>
+        q.eq('category', args.category).eq('zone', args.zone),
+      )
+      .first();
+    const fields = {
+      category: args.category,
+      zone: args.zone,
+      ...(eur !== null ? { amountEur: eur } : {}),
+      ...(xof !== null ? { amountXof: xof } : {}),
+      active: args.active,
+      updatedAt: Date.now(),
+      updatedBy: admin._id,
+    };
+    let id;
+    if (existing) {
+      await ctx.db.replace(existing._id, fields);
+      id = existing._id;
+    } else {
+      id = await ctx.db.insert('paymentPlans', fields);
+    }
+    await recordAudit(ctx, {
+      actorId: admin._id,
+      action: AUDIT.PAYMENT_PLAN_CHANGED,
+      targetId: id,
+      metadata: {
+        category: args.category,
+        zone: args.zone,
+        before: existing
+          ? {
+              amountEur: existing.amountEur ?? null,
+              amountXof: existing.amountXof ?? null,
+              active: existing.active,
+            }
+          : null,
+        after: { amountEur: eur, amountXof: xof, active: args.active },
+      },
+    });
+    return id;
+  },
+});
+
+// Initialise les combinaisons manquantes avec le barème par défaut (celui de
+// l'estimateur public, converti au taux fixe EUR/XOF). N'écrase rien.
+export const seedDefaultPlans = mutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const admin = await requireNetworkRole(ctx, 'admin');
+    let created = 0;
+    for (const category of PLAN_CATEGORIES) {
+      for (const zone of PLAN_ZONES) {
+        const existing = await ctx.db
+          .query('paymentPlans')
+          .withIndex('by_category_and_zone', (q) =>
+            q.eq('category', category).eq('zone', zone),
+          )
+          .first();
+        if (existing) continue;
+        await ctx.db.insert('paymentPlans', {
+          category,
+          zone,
+          ...defaultPlanAmounts(category, zone),
+          active: true,
+          updatedAt: Date.now(),
+          updatedBy: admin._id,
+        });
+        created++;
+      }
+    }
+    if (created > 0) {
+      await recordAudit(ctx, {
+        actorId: admin._id,
+        action: AUDIT.PAYMENT_PLANS_SEEDED,
+        metadata: { created },
+      });
+    }
+    return created;
+  },
+});

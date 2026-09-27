@@ -54,6 +54,9 @@ export const BASE_CLIENT_NAMESPACES = [
   // boutons d'une page de profil publique, espace membre).
   'people',
   'profile',
+  // `payments` : formulaire de don, retour de paiement, espace membre
+  // (cotisations, reçus) — et l'écran Finances, qui le partage.
+  'payments',
   'projects',
   'reminder',
   'search',

@@ -1,6 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from 'convex/react';
+import { useTranslations } from 'next-intl';
+import { api } from '@convex/_generated/api';
+import { Link } from '@/i18n/navigation';
+import { formatMoney } from '@/components/payments/format';
 import {
   estimate,
   type IncomeLevel,
@@ -14,7 +19,12 @@ type EstimatorContent = MembershipContent['estimator'];
 
 // Estimateur de cotisation solidaire (F-20) — îlot client : le montant se
 // recalcule en direct selon le niveau de revenu du pays et le type d'adhésion.
-// Paiement en euro (EUR) uniquement. Montants indicatifs (cf. lib/membership-content).
+//
+// BARÈME RÉEL (F-27) : dès que l'administrateur a publié le barème
+// (/admin/finances/formules), c'est LUI qui s'affiche — en euro et en franc
+// CFA — avec le lien pour régler la cotisation dans l'espace membre. Tant
+// qu'il n'existe pas, l'estimation indicative d'origine reste affichée, et
+// dite indicative (cf. lib/membership-content).
 export function SolidarityEstimator({
   content,
   locale,
@@ -25,6 +35,9 @@ export function SolidarityEstimator({
   const [income, setIncome] = useState<IncomeLevel>('high');
   const [type, setType] = useState<MemberType>('org');
 
+  const tp = useTranslations('payments');
+  const plans = useQuery(api.payments.plans.publicPlans, {});
+  const plan = plans?.find((p) => p.category === type && p.zone === income);
   const amount = estimate(type, income);
   const formatted = amount.toLocaleString(intlLocale(locale));
   const typeLabel = content.types.find((t) => t.value === type)!.label;
@@ -62,14 +75,48 @@ export function SolidarityEstimator({
         <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
           {content.outLabel}
         </div>
-        <div className="mt-2 flex items-baseline gap-2">
-          <b className="font-mono text-[40px] font-semibold leading-none tracking-[-0.02em] text-ink">
-            {formatted}
-          </b>
-          <span className="font-mono text-sm text-ink-soft">EUR</span>
-        </div>
-        <span className="mt-1 text-[12px] text-muted">{content.perYear}</span>
-        <p className="mt-4 text-[13px] text-ink-soft">{ctx}</p>
+        {plan && (plan.amountEur !== null || plan.amountXof !== null) ? (
+          <>
+            <div
+              className="mt-2 flex flex-col gap-1"
+              data-testid="plan-amounts"
+            >
+              {plan.amountEur !== null ? (
+                <b className="font-mono text-[34px] font-semibold leading-none tracking-[-0.02em] text-ink">
+                  {formatMoney(plan.amountEur, 'EUR', locale)}
+                </b>
+              ) : null}
+              {plan.amountXof !== null ? (
+                <b className="font-mono text-[22px] font-semibold leading-tight text-ink-soft">
+                  {formatMoney(plan.amountXof, 'XOF', locale)}
+                </b>
+              ) : null}
+            </div>
+            <span className="mt-1 text-[12px] text-muted">
+              {content.perYear} · {tp('planOfficial')}
+            </span>
+            <p className="mt-4 text-[13px] text-ink-soft">{ctx}</p>
+            <Link
+              href="/espace-membre/cotisations"
+              className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-accent-text hover:underline"
+            >
+              {tp('payDuesCta')}
+            </Link>
+          </>
+        ) : (
+          <>
+            <div className="mt-2 flex items-baseline gap-2">
+              <b className="font-mono text-[40px] font-semibold leading-none tracking-[-0.02em] text-ink">
+                {formatted}
+              </b>
+              <span className="font-mono text-sm text-ink-soft">EUR</span>
+            </div>
+            <span className="mt-1 text-[12px] text-muted">
+              {content.perYear} · {tp('planIndicative')}
+            </span>
+            <p className="mt-4 text-[13px] text-ink-soft">{ctx}</p>
+          </>
+        )}
         <div className="mt-auto flex gap-2.5 rounded-sm border border-accent-edge bg-accent-tint p-3 text-[12.5px] leading-relaxed text-accent-text">
           <span aria-hidden="true">♥</span>
           <span>{content.solidarity}</span>

@@ -184,6 +184,13 @@ function MemberDashboard() {
         >
           {t('passwordLink')} <ArrowForward />
         </Link>
+        {/* Cotisation, dons et reçus (F-30). */}
+        <Link
+          href="/espace-membre/cotisations"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {t('paymentsLink')} <ArrowForward />
+        </Link>
       </div>
 
       <MemberSocialLinks />
