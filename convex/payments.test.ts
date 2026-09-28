@@ -4,7 +4,7 @@ import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { hmacSha256Hex, sha512Hex } from './lib/payments/crypto';
+import { hmacSha256Hex } from './lib/payments/crypto';
 import { FAKE_SIGNATURE_HEADER, signFakePayload } from './lib/payments/fake';
 import { fakeProviderState } from './lib/payments/config';
 import { verifyStripeSignature } from './lib/payments/stripe';
@@ -26,17 +26,12 @@ const modules = import.meta.glob([
 ]);
 
 const STRIPE_SECRET = 'whsec_test_secret';
-const PAYDUNYA_MASTER = 'pd-master-key-test';
 
 // État de départ : un déploiement SANS aucune configuration de paiement.
 // Chaque test pose ce dont il a besoin.
 const PAYMENT_ENV = [
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
-  'PAYDUNYA_MASTER_KEY',
-  'PAYDUNYA_PRIVATE_KEY',
-  'PAYDUNYA_TOKEN',
-  'PAYDUNYA_MODE',
   'PAYMENTS_FAKE_PROVIDER',
   'PAYMENTS_FAKE_WEBHOOK_SECRET',
   'AUTH_DEV_OTP',
@@ -59,11 +54,6 @@ function enableStripe() {
   vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_x');
   vi.stubEnv('STRIPE_WEBHOOK_SECRET', STRIPE_SECRET);
 }
-function enablePaydunya() {
-  vi.stubEnv('PAYDUNYA_MASTER_KEY', PAYDUNYA_MASTER);
-  vi.stubEnv('PAYDUNYA_PRIVATE_KEY', 'pd-private');
-  vi.stubEnv('PAYDUNYA_TOKEN', 'pd-token');
-}
 function enableFake() {
   vi.stubEnv('PAYMENTS_FAKE_PROVIDER', '1');
   vi.stubEnv('AUTH_DEV_OTP', 'true');
@@ -75,8 +65,8 @@ async function insertCheckout(
   t: T,
   over: Partial<{
     ref: string;
-    provider: 'stripe' | 'paydunya' | 'fake';
-    currency: 'EUR' | 'XOF';
+    provider: 'stripe' | 'fake';
+    currency: 'EUR' | 'USD';
     amountMinor: number;
     recurring: boolean;
     userId: Id<'users'>;
@@ -126,7 +116,7 @@ function sessionCompleted(ref: string, over: Record<string, unknown> = {}) {
         payment_status: 'paid',
         client_reference_id: ref,
         amount_total: over.amount ?? 5000,
-        currency: 'eur',
+        currency: over.currency ?? 'eur',
         payment_intent: 'pi_1',
       },
     },
@@ -394,89 +384,85 @@ describe('Webhook — idempotence', () => {
   });
 });
 
-describe('IPN PayDunya — hash puis confirmation serveur à serveur', () => {
-  function ipnBody(hash: string, token: string) {
-    return new URLSearchParams({
-      'data[hash]': hash,
-      'data[invoice][token]': token,
-      // Le corps prétend « completed » : il ne fait PAS foi.
-      'data[status]': 'completed',
-    }).toString();
-  }
-
-  function mockConfirm(response: Record<string, unknown>) {
-    const fetchMock = vi.fn(async (url: string) => {
-      expect(url).toContain('/checkout-invoice/confirm/');
-      return new Response(JSON.stringify(response), { status: 200 });
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    return fetchMock;
-  }
-
-  it('refuse un hash faux sans même interroger PayDunya', async () => {
-    enablePaydunya();
-    const fetchMock = mockConfirm({});
+describe('Stripe — euro et dollar sur le même compte', () => {
+  it('propose les deux devises par Stripe dès que la clé est posée', async () => {
+    enableStripe();
     const t = convexTest(schema, modules);
-    const res = await t.action(internal.payments.webhooks.handleWebhook, {
-      provider: 'paydunya',
-      rawBody: ipnBody(await sha512Hex('pas-la-cle'), 'tok_1'),
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    });
-    expect(res.status).toBe(400);
-    expect(fetchMock).not.toHaveBeenCalled();
+    const options = await t.query(api.payments.checkout.paymentOptions, {});
+    expect(options.currencies).toEqual([
+      { currency: 'EUR', provider: 'stripe', recurringMode: 'native' },
+      { currency: 'USD', provider: 'stripe', recurringMode: 'native' },
+    ]);
+    expect(options.simulated).toBe(false);
   });
 
-  it('inscrit le paiement confirmé, une seule fois, et ignore un montant différent', async () => {
-    enablePaydunya();
+  it('ouvre la session Checkout dans la devise choisie', async () => {
+    enableStripe();
+    const sent: URLSearchParams[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        sent.push(new URLSearchParams(init.body as string));
+        return new Response(
+          JSON.stringify({
+            id: 'cs_usd',
+            url: 'https://checkout.stripe.com/x',
+          }),
+          { status: 200 },
+        );
+      }),
+    );
+    vi.stubEnv('RECAPTCHA_DISABLED', 'true');
+    vi.stubEnv('AUTH_DEV_OTP', 'true');
+    const t = convexTest(schema, modules);
+    const out = await t.action(api.payments.checkout.startDonation, {
+      currency: 'USD',
+      amount: 50,
+      recurring: false,
+      email: 'donor@example.org',
+      anonymous: false,
+      locale: 'en',
+    });
+    expect(out.redirectUrl).toBe('https://checkout.stripe.com/x');
+    expect(sent).toHaveLength(1);
+    expect(sent[0].get('line_items[0][price_data][currency]')).toBe('usd');
+    expect(sent[0].get('line_items[0][price_data][unit_amount]')).toBe('5000');
+  });
+
+  it('inscrit un paiement en dollars ; une devise étrangère au site est ignorée', async () => {
+    enableStripe();
     vi.useFakeTimers();
     const t = convexTest(schema, modules);
-    const ref = await insertCheckout(t, {
-      provider: 'paydunya',
-      currency: 'XOF',
-      amountMinor: 10000,
+    const ref = await insertCheckout(t, { currency: 'USD' });
+    const body = sessionCompleted(ref, { currency: 'usd' });
+    const res = await t.action(internal.payments.webhooks.handleWebhook, {
+      provider: 'stripe',
+      rawBody: body,
+      headers: { 'stripe-signature': await stripeHeader(body) },
     });
-    mockConfirm({
-      response_code: '00',
-      status: 'completed',
-      invoice: { total_amount: '10000' },
-      custom_data: { checkoutRef: ref },
-      receipt_identifier: 'RCPT-1',
-    });
-    const hash = await sha512Hex(PAYDUNYA_MASTER);
-    for (let i = 0; i < 2; i++) {
-      const res = await t.action(internal.payments.webhooks.handleWebhook, {
-        provider: 'paydunya',
-        rawBody: ipnBody(hash, 'tok_1'),
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      });
-      expect(res.status).toBe(200);
-    }
+    expect(res.status).toBe(200);
     const txs = await t.run((ctx) =>
       ctx.db.query('paymentTransactions').collect(),
     );
     expect(txs).toHaveLength(1);
     expect(txs[0]).toMatchObject({
-      provider: 'paydunya',
-      currency: 'XOF',
-      amountMinor: 10000,
+      provider: 'stripe',
+      currency: 'USD',
+      amountMinor: 5000,
     });
 
-    // Autre facture, mais PayDunya confirme un montant qui n'est pas celui demandé.
-    const ref2 = await insertCheckout(t, {
-      provider: 'paydunya',
-      currency: 'XOF',
-      amountMinor: 10000,
-    });
-    mockConfirm({
-      response_code: '00',
-      status: 'completed',
-      invoice: { total_amount: 100 },
-      custom_data: { checkoutRef: ref2 },
+    // Session réglée en livres sterling (compte mal réglé) : rien n'est
+    // inscrit, le grand livre ne sait pas totaliser cette devise.
+    const ref2 = await insertCheckout(t);
+    const gbp = sessionCompleted(ref2, {
+      currency: 'gbp',
+      eventId: 'evt_gbp',
+      sessionId: 'cs_gbp',
     });
     await t.action(internal.payments.webhooks.handleWebhook, {
-      provider: 'paydunya',
-      rawBody: ipnBody(hash, 'tok_2'),
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      provider: 'stripe',
+      rawBody: gbp,
+      headers: { 'stripe-signature': await stripeHeader(gbp) },
     });
     expect(await count(t, 'paymentTransactions')).toBe(1);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -534,8 +520,7 @@ describe('Prestataire factice — garde (modèle AUTH_DEV_OTP)', () => {
     enableFake();
     vi.stubEnv('STRIPE_SECRET_KEY', 'sk_live_abc');
     expect(fakeProviderState()).toBe('refused');
-    vi.stubEnv('STRIPE_SECRET_KEY', '');
-    vi.stubEnv('PAYDUNYA_MODE', 'live');
+    vi.stubEnv('STRIPE_SECRET_KEY', 'rk_live_abc');
     expect(fakeProviderState()).toBe('refused');
     errors.mockRestore();
   });
@@ -600,9 +585,9 @@ describe('Formulaire de don — bornes et prestataire', () => {
       ['EUR', -20],
       ['EUR', 20.001],
       ['EUR', Number.NaN],
-      ['XOF', 999],
-      ['XOF', 5_000_001],
-      ['XOF', 1500.5],
+      ['USD', 4.99],
+      ['USD', 10_000.01],
+      ['USD', 20.001],
     ] as const) {
       await expect(
         t.mutation(internal.payments.checkout.createDonationCheckout, {
@@ -617,8 +602,8 @@ describe('Formulaire de don — bornes et prestataire', () => {
       ['EUR', 5, 500],
       ['EUR', 10_000, 1_000_000],
       ['EUR', 19.99, 1999],
-      ['XOF', 1000, 1000],
-      ['XOF', 5_000_000, 5_000_000],
+      ['USD', 5, 500],
+      ['USD', 10_000, 1_000_000],
     ] as const) {
       const c = await t.mutation(
         internal.payments.checkout.createDonationCheckout,

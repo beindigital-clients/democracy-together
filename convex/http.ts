@@ -28,7 +28,7 @@ function webhookRoute(provider: ProviderId) {
   });
 }
 
-for (const provider of ['stripe', 'paydunya', 'fake'] as const) {
+for (const provider of ['stripe', 'fake'] as const) {
   http.route({
     path: `/payments/webhook/${provider}`,
     method: 'POST',

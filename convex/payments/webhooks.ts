@@ -50,8 +50,8 @@ export async function processWebhook(
   try {
     parsed = await getAdapter(provider).parseWebhook(rawBody, header);
   } catch (err) {
-    // Échec de la confirmation serveur à serveur (PayDunya injoignable) :
-    // 500, pour que l'IPN soit renvoyé plus tard.
+    // Vérification impossible pour une raison passagère (prestataire
+    // injoignable) : 500, pour que le webhook soit renvoyé plus tard.
     console.error(
       `[payments] webhook ${provider} : vérification impossible`,
       err,

@@ -7,7 +7,7 @@ import type {
   PaymentAdapter,
   WebhookParseResult,
 } from './types';
-import { isCurrency } from './amounts';
+import { CURRENCIES, isCurrency } from './amounts';
 
 // PRESTATAIRE FACTICE — développement et E2E UNIQUEMENT (garde : `fakeProvider
 // State()` dans ./config.ts).
@@ -37,9 +37,10 @@ export async function signFakePayload(rawBody: string): Promise<string> {
 
 export const fakeAdapter: PaymentAdapter = {
   id: 'fake',
-  currencies: ['EUR', 'XOF'],
+  currencies: CURRENCIES,
   // Pas de prélèvement automatique : le don mensuel factice suit le chemin des
-  // relances, le seul que le prestataire XOF réel emprunte aussi.
+  // relances, celui que prendrait un prestataire sans abonnements (mobile
+  // money) ; Stripe, lui, prélève (tests de `stripe.ts`).
   nativeSubscriptions: false,
 
   async createCheckout(req: CheckoutRequest) {

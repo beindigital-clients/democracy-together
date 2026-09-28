@@ -7,15 +7,18 @@
 // donateur ne verrait qu'une erreur générique après la redirection.
 //
 // UNITÉ MINEURE PARTOUT EN BASE. Un montant stocké est un ENTIER dans l'unité
-// mineure de sa devise (ISO 4217) : le centime pour l'euro, le franc lui-même
-// pour le franc CFA (exposant 0). C'est ce qu'attendent Stripe (`unit_amount`)
-// et PayDunya (`total_amount`), et c'est ce qui évite les flottants dans les
-// totaux comptables.
+// mineure de sa devise (ISO 4217) : le centime d'euro, le cent de dollar.
+// C'est ce qu'attend Stripe (`unit_amount`), et c'est ce qui évite les
+// flottants dans les totaux comptables.
+//
+// Deux devises, toutes deux réglées par Stripe : l'euro (Europe) et le dollar
+// des États-Unis. L'exposant reste explicite par devise : une devise sans
+// décimales (franc CFA, exposant 0) pourra s'ajouter sans toucher aux calculs.
 
-export const CURRENCIES = ['EUR', 'XOF'] as const;
+export const CURRENCIES = ['EUR', 'USD'] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
-export const CURRENCY_EXPONENT: Record<Currency, number> = { EUR: 2, XOF: 0 };
+export const CURRENCY_EXPONENT: Record<Currency, number> = { EUR: 2, USD: 2 };
 
 export function isCurrency(value: unknown): value is Currency {
   return (
@@ -30,13 +33,13 @@ export function isCurrency(value: unknown): value is Currency {
 // petite structure : au-delà, un grand don passe par le secrétariat.
 export const DONATION_BOUNDS: Record<Currency, { min: number; max: number }> = {
   EUR: { min: 5, max: 10_000 },
-  XOF: { min: 1_000, max: 5_000_000 },
+  USD: { min: 5, max: 10_000 },
 };
 
 // Montants proposés en un clic sur /don, en unités majeures.
 export const SUGGESTED_DONATIONS: Record<Currency, readonly number[]> = {
   EUR: [20, 50, 100, 250],
-  XOF: [5_000, 10_000, 25_000, 50_000],
+  USD: [20, 50, 100, 250],
 };
 
 // Bornes d'un montant du BARÈME (édité par l'administrateur), en unités
@@ -44,7 +47,7 @@ export const SUGGESTED_DONATIONS: Record<Currency, readonly number[]> = {
 // tarif (une formule gratuite se désactive, elle ne se facture pas à 0).
 export const PLAN_BOUNDS: Record<Currency, { min: number; max: number }> = {
   EUR: { min: 1, max: 100_000 },
-  XOF: { min: 100, max: 60_000_000 },
+  USD: { min: 1, max: 100_000 },
 };
 
 // Une cotisation couvre douze mois à compter de son règlement (ou de la fin de
@@ -104,16 +107,12 @@ const DEFAULT_ZONE_FACTOR: Record<PlanZone, number> = {
   low: 0.25,
 };
 
-// Parité fixe EUR/XOF (franc CFA arrimé à l'euro depuis 1999) : c'est un
-// taux légal, pas un cours de marché — il ne dérive pas.
-export const EUR_TO_XOF = 655.957;
-
 /** Barème proposé à l'initialisation, en unités MINEURES. L'administrateur
  *  l'ajuste ensuite dans l'écran « Formules » ; rien ne le relit après. */
 export function defaultPlanAmounts(
   category: PlanCategory,
   zone: PlanZone,
-): { amountEur: number; amountXof: number } {
+): { amountEur: number; amountUsd: number } {
   // Même arrondi aux 5 € que l'estimateur, plancher 5 € (un tarif à 0 € n'en
   // est pas un).
   const eur = Math.max(
@@ -121,9 +120,10 @@ export function defaultPlanAmounts(
     Math.round((DEFAULT_BASE_EUR[category] * DEFAULT_ZONE_FACTOR[zone]) / 5) *
       5,
   );
-  // Arrondi au millier de francs : un tarif en XOF se lit en milliers.
-  const xof = Math.max(1000, Math.round((eur * EUR_TO_XOF) / 1000) * 1000);
-  return { amountEur: eur * 100, amountXof: xof };
+  // Même chiffre rond en dollars : l'euro et le dollar flottent l'un contre
+  // l'autre, un taux figé dans le code serait faux dans six mois. C'est un
+  // point de départ, que l'administrateur fixe dans l'écran « Formules ».
+  return { amountEur: eur * 100, amountUsd: eur * 100 };
 }
 
 // --- Dates -------------------------------------------------------------------
@@ -162,7 +162,7 @@ export function monthKey(ts: number): string {
 // Formatage SANS `Intl`, pour le reçu PDF : les polices standard du PDF ne
 // connaissent que l'encodage WinAnsi, et `Intl` en français sépare les milliers
 // par une espace fine insécable (U+202F) qu'elles ne savent pas dessiner. Le
-// reçu est un document comptable français : « 1 234,56 € », « 25 000 FCFA ».
+// reçu est un document comptable français : « 1 234,56 € », « 1 234,56 $ US ».
 export function formatAmountFr(minor: number, currency: Currency): string {
   const exp = CURRENCY_EXPONENT[currency];
   const negative = minor < 0;
@@ -172,6 +172,8 @@ export function formatAmountFr(minor: number, currency: Currency): string {
   const grouped = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   const number =
     exp > 0 ? `${grouped},${String(frac).padStart(exp, '0')}` : grouped;
-  const symbol = currency === 'EUR' ? '€' : 'FCFA';
+  // « $ US » et non « $ » seul : le dollar canadien, australien… s'écrivent
+  // aussi « $ ».
+  const symbol = currency === 'EUR' ? '€' : '$ US';
   return `${negative ? '-' : ''}${number} ${symbol}`;
 }

@@ -37,7 +37,26 @@ export async function revealAll(page: Page): Promise<void> {
     }
     window.scrollTo(0, 0);
   });
-  await page.waitForTimeout(900);
+  // Une liste révélée en cascade (`staggerChildren` 0,1 s) finit d'autant plus
+  // tard qu'elle est longue : 24 billets de Tribune → ~3 s. Une attente fixe
+  // laissait axe mesurer les derniers encore à demi transparents (vu le 28/09
+  // sur une base locale chargée). On attend donc que chaque élément révélé
+  // ET affiché soit opaque, dans une limite.
+  await page
+    .waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll('[data-reveal]')).every((el) => {
+          const box = el.getBoundingClientRect();
+          if (box.width === 0 && box.height === 0) return true;
+          return getComputedStyle(el).opacity === '1';
+        }),
+      undefined,
+      { timeout: 8_000, polling: 100 },
+    )
+    .catch(() => {
+      // Un élément resté masqué exprès n'est pas une raison d'échouer ici :
+      // l'analyse axe tranchera.
+    });
 }
 
 export function scan(page: Page) {

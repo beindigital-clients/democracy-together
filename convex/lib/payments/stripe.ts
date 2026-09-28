@@ -9,8 +9,9 @@ import {
   type WebhookParseResult,
 } from './types';
 import type { SiteLocale } from '../locales';
+import { CURRENCIES, isCurrency, type Currency } from './amounts';
 
-// ADAPTATEUR STRIPE — euro uniquement (Stripe ne règle pas le franc CFA).
+// ADAPTATEUR STRIPE — euro et dollar des États-Unis, avec le même compte.
 //
 // API REST par `fetch`, sans SDK : le SDK Node imposerait `"use node"` (donc un
 // fichier d'actions à part et un runtime plus lent à démarrer) pour trois
@@ -104,9 +105,11 @@ function num(o: unknown, ...path: string[]): number | undefined {
   return typeof cur === 'number' ? cur : undefined;
 }
 
-function currencyOf(o: Obj): 'EUR' | 'XOF' | null {
+// Une devise inconnue du site (compte Stripe réglé dans une autre devise par
+// erreur) n'est pas enregistrée : le grand livre ne sait pas la totaliser.
+function currencyOf(o: Obj): Currency | null {
   const c = str(o, 'currency')?.toUpperCase();
-  return c === 'EUR' || c === 'XOF' ? c : null;
+  return isCurrency(c) ? c : null;
 }
 
 /** Session Checkout payée en mode paiement → paiement réussi. */
@@ -273,7 +276,7 @@ export async function verifyStripeSignature(
 
 export const stripeAdapter: PaymentAdapter = {
   id: 'stripe',
-  currencies: ['EUR'],
+  currencies: CURRENCIES,
   nativeSubscriptions: true,
 
   async createCheckout(req: CheckoutRequest) {

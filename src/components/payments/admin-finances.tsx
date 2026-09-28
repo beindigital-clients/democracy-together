@@ -10,7 +10,11 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import type { FunctionReturnType } from 'convex/server';
 import { api } from '@convex/_generated/api';
-import { monthKey, type Currency } from '@convex/lib/payments/amounts';
+import {
+  CURRENCIES,
+  monthKey,
+  type Currency,
+} from '@convex/lib/payments/amounts';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -161,11 +165,6 @@ function Dashboard({ now }: { now: number }) {
             ? t('providerStripeOn')
             : t('providerStripeOff')}
         </li>
-        <li className="rounded-pill border border-line bg-surface-2 px-3 py-1 text-ink-soft">
-          {data.providers.paydunya
-            ? t('providerPaydunyaOn')
-            : t('providerPaydunyaOff')}
-        </li>
         {data.providers.fake !== 'off' ? (
           <li className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-accent-text">
             {data.providers.fake === 'active'
@@ -256,7 +255,7 @@ type Filters = {
   kind: '' | 'donation' | 'dues';
   currency: '' | Currency;
   status: '' | 'succeeded' | 'refunded';
-  provider: '' | 'stripe' | 'paydunya' | 'fake';
+  provider: '' | 'stripe' | 'fake';
 };
 
 function Transactions() {
@@ -330,8 +329,11 @@ function Transactions() {
           }
         >
           <option value="">{t('filterAll')}</option>
-          <option value="EUR">EUR</option>
-          <option value="XOF">XOF</option>
+          {CURRENCIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </SelectField>
         <SelectField
           label={t('colStatus')}
@@ -351,7 +353,6 @@ function Transactions() {
         >
           <option value="">{t('filterAll')}</option>
           <option value="stripe">{t('provider_stripe')}</option>
-          <option value="paydunya">{t('provider_paydunya')}</option>
           <option value="fake">{t('provider_fake')}</option>
         </SelectField>
       </div>

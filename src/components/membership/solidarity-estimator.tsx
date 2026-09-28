@@ -76,7 +76,7 @@ export function SolidarityEstimator({
         <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
           {content.outLabel}
         </div>
-        {plan && (plan.amountEur !== null || plan.amountXof !== null) ? (
+        {plan && (plan.amountEur !== null || plan.amountUsd !== null) ? (
           <>
             <div
               className="mt-2 flex flex-col gap-1"
@@ -87,9 +87,9 @@ export function SolidarityEstimator({
                   {formatMoney(plan.amountEur, 'EUR', locale)}
                 </b>
               ) : null}
-              {plan.amountXof !== null ? (
+              {plan.amountUsd !== null ? (
                 <b className="font-mono text-[22px] font-semibold leading-tight text-ink-soft">
-                  {formatMoney(plan.amountXof, 'XOF', locale)}
+                  {formatMoney(plan.amountUsd, 'USD', locale)}
                 </b>
               ) : null}
             </div>

@@ -5,11 +5,10 @@ import { v, type Infer } from 'convex/values';
 // entre le schéma et les modules qui l'importent (même raison que
 // convex/lib/locales.ts).
 
-export const currencyValidator = v.union(v.literal('EUR'), v.literal('XOF'));
+export const currencyValidator = v.union(v.literal('EUR'), v.literal('USD'));
 
 export const providerIdValidator = v.union(
   v.literal('stripe'),
-  v.literal('paydunya'),
   v.literal('fake'),
 );
 export type ProviderId = Infer<typeof providerIdValidator>;
@@ -51,7 +50,7 @@ export const subscriptionModeValidator = v.union(
   // le prestataire prélève lui-même chaque mois (Stripe Billing)
   v.literal('native'),
   // le prestataire ne sait pas prélever : un lien de paiement est envoyé à
-  // chaque échéance (PayDunya, prestataire factice)
+  // chaque échéance (prestataire factice aujourd'hui)
   v.literal('reminder'),
 );
 
@@ -70,7 +69,7 @@ export const normalizedEventValidator = v.union(
   v.object({
     kind: v.literal('payment_succeeded'),
     // Clé d'idempotence : identifiant du PAIEMENT chez le prestataire (session
-    // Stripe, facture Stripe d'un abonnement, jeton de facture PayDunya). Deux
+    // Stripe, facture Stripe d'un abonnement, paiement factice). Deux
     // événements qui portent la même clé sont le même paiement.
     providerPaymentId: v.string(),
     checkoutRef: v.optional(v.string()),

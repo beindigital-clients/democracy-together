@@ -27,10 +27,6 @@ export async function hmacSha256Hex(
   return toHex(await crypto.subtle.sign('HMAC', key, encoder.encode(payload)));
 }
 
-export async function sha512Hex(value: string): Promise<string> {
-  return toHex(await crypto.subtle.digest('SHA-512', encoder.encode(value)));
-}
-
 /**
  * Comparaison à temps constant de deux chaînes.
  *

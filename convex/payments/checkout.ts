@@ -359,7 +359,7 @@ export const createDuesCheckout = internalMutation({
       )
       .first();
     const amountMinor =
-      args.currency === 'EUR' ? plan?.amountEur : plan?.amountXof;
+      args.currency === 'EUR' ? plan?.amountEur : plan?.amountUsd;
     if (!plan || !plan.active || amountMinor === undefined) {
       throw new ConvexError('PLAN_UNAVAILABLE');
     }

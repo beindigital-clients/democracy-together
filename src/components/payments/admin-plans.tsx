@@ -27,7 +27,7 @@ type Row = {
   category: PlanCategory;
   zone: PlanZone;
   amountEur: number | null;
-  amountXof: number | null;
+  amountUsd: number | null;
   active: boolean;
   updatedAt: number | null;
 };
@@ -48,7 +48,7 @@ export function AdminPlans() {
         category,
         zone,
         amountEur: p?.amountEur ?? null,
-        amountXof: p?.amountXof ?? null,
+        amountUsd: p?.amountUsd ?? null,
         active: p?.active ?? false,
         updatedAt: p?.updatedAt ?? null,
       };
@@ -98,7 +98,7 @@ export function AdminPlans() {
                 {t('planZone')}
               </th>
               <th className="py-2 pe-4 text-start font-normal">EUR</th>
-              <th className="py-2 pe-4 text-start font-normal">XOF</th>
+              <th className="py-2 pe-4 text-start font-normal">USD</th>
               <th className="py-2 pe-4 text-start font-normal">
                 {t('planActive')}
               </th>
@@ -129,8 +129,8 @@ function PlanRow({ row }: { row: Row }) {
   const [eur, setEur] = useState(
     row.amountEur === null ? '' : String(fromMinor(row.amountEur, 'EUR')),
   );
-  const [xof, setXof] = useState(
-    row.amountXof === null ? '' : String(row.amountXof),
+  const [usd, setUsd] = useState(
+    row.amountUsd === null ? '' : String(fromMinor(row.amountUsd, 'USD')),
   );
   const [active, setActive] = useState(row.active || row.updatedAt === null);
   const [pending, setPending] = useState(false);
@@ -170,13 +170,13 @@ function PlanRow({ row }: { row: Row }) {
       <td className="py-2.5 pe-4">
         <Input
           type="number"
-          inputMode="numeric"
-          min={100}
-          step={1}
-          value={xof}
-          onChange={(e) => setXof(e.target.value)}
-          aria-label={t('planAmountLabel', { plan: label, currency: 'XOF' })}
-          className="w-36"
+          inputMode="decimal"
+          min={1}
+          step={0.01}
+          value={usd}
+          onChange={(e) => setUsd(e.target.value)}
+          aria-label={t('planAmountLabel', { plan: label, currency: 'USD' })}
+          className="w-32"
         />
       </td>
       <td className="py-2.5 pe-4">
@@ -200,7 +200,7 @@ function PlanRow({ row }: { row: Row }) {
                 category: row.category,
                 zone: row.zone,
                 amountEur: parse(eur),
-                amountXof: parse(xof),
+                amountUsd: parse(usd),
                 active,
               });
               notify(t('planSaved', { plan: label }));

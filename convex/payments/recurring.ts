@@ -10,11 +10,16 @@ import { sendEmail } from '../email';
 import { providerForCurrency, siteUrl } from '../lib/payments/config';
 import { randomToken } from '../lib/payments/crypto';
 import { recurringReminderEmail } from '../lib/payments/emails';
+import {
+  currencyValidator,
+  providerIdValidator,
+} from '../lib/payments/validators';
 import { openCheckout, type CreatedCheckout } from './checkout';
 
 // DON MENSUEL PAR RELANCE (F-28) — pour les prestataires qui ne prélèvent pas
-// (PayDunya : le mobile money n'autorise pas de débit récurrent sans action du
-// payeur ; prestataire factice).
+// eux-mêmes. Stripe prélève (abonnement natif) ; ce chemin sert aujourd'hui au
+// prestataire factice, et servirait à un prestataire de mobile money, qui
+// n'autorise pas de débit récurrent sans action du payeur.
 //
 // Chaque jour, pour chaque engagement actif dont l'échéance est passée : une
 // nouvelle demande de paiement est ouverte chez le prestataire et son lien est
@@ -60,11 +65,7 @@ export const prepareReminder = internalMutation({
     v.object({
       checkoutId: v.id('paymentCheckouts'),
       ref: v.string(),
-      provider: v.union(
-        v.literal('stripe'),
-        v.literal('paydunya'),
-        v.literal('fake'),
-      ),
+      provider: providerIdValidator,
     }),
   ),
   handler: async (ctx, { subscriptionId, now }) => {
@@ -125,7 +126,7 @@ export const reminderTarget = internalQuery({
         v.literal('pt'),
         v.literal('ar'),
       ),
-      currency: v.union(v.literal('EUR'), v.literal('XOF')),
+      currency: currencyValidator,
       amountMinor: v.number(),
     }),
   ),

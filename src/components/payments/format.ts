@@ -1,11 +1,15 @@
 import { ConvexError } from 'convex/values';
-import { fromMinor, type Currency } from '@convex/lib/payments/amounts';
+import {
+  CURRENCY_EXPONENT,
+  fromMinor,
+  type Currency,
+} from '@convex/lib/payments/amounts';
 import { intlLocale } from '@/i18n/locale';
 
 // Formatage des montants à l'écran : TOUJOURS dans la langue de la page, à
-// partir de l'unité mineure stockée (centimes, francs CFA). Le code ISO
-// (`EUR`, `XOF`) plutôt que le symbole : « F CFA » s'écrit de trois façons
-// selon les pays de l'UEMOA, le code n'est jamais ambigu.
+// partir de l'unité mineure stockée (centimes). Le code ISO (`EUR`, `USD`)
+// plutôt que le symbole : « $ » désigne aussi le dollar canadien ou
+// australien, le code n'est jamais ambigu.
 export function formatMoney(
   minor: number,
   currency: Currency,
@@ -27,7 +31,7 @@ export function formatMajor(
     style: 'currency',
     currency,
     currencyDisplay: 'code',
-    maximumFractionDigits: currency === 'XOF' ? 0 : 2,
+    maximumFractionDigits: CURRENCY_EXPONENT[currency],
   }).format(major);
 }
 

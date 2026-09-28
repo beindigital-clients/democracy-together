@@ -15,8 +15,8 @@ crons.cron(
   {},
 );
 
-// F-28 — Dons mensuels sans prélèvement automatique (PayDunya, XOF) : chaque
-// jour à 08:10 UTC (09:10 à Paris l'hiver, 08:10 à Dakar), envoi du lien de
+// F-28 — Dons mensuels sans prélèvement automatique (prestataire sans
+// abonnements ; Stripe prélève lui-même) : chaque jour à 08:10 UTC, envoi du lien de
 // paiement des échéances arrivées. Minute décalée : les tâches à l'heure pile
 // se bousculent chez l'hébergeur.
 crons.cron(

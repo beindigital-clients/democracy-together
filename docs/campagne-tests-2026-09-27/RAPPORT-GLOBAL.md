@@ -453,17 +453,18 @@ rejoués ensemble. Chaque chantier a sa fiche d'exploitation dans
 
 ### 11.2 Ce qui reste hors de portée du code
 
-- **Clés et comptes réels** : Stripe, PayDunya, fournisseur d'e-mail,
+- **Clés et comptes réels** : Stripe, fournisseur d'e-mail,
   reCAPTCHA, Sanity, clé de chiffrement 2FA — la plateforme refuse proprement
   sans elles (§ 10.1 inchangé).
-- **PayDunya** : l'adaptateur n'a pas pu être confronté à la documentation
-  officielle (hôte bloqué par le proxy de sortie) ; les points à valider avec
-  des clés sandbox sont listés dans `paiements.md` § 6.
+- **PayDunya** : retiré le 28/09 avec le franc CFA (§ 12) ; il n'avait pas
+  pu être confronté à sa documentation officielle (hôte bloqué par le proxy
+  de sortie).
 - **Accessibilité** : aucune restitution vocale réelle (pas de lecteur
   d'écran dans l'environnement) ; le protocole est prêt à être déroulé par une
   personne, et la déclaration n'affiche que le taux mesuré.
 - **Éligibilité au mécénat** : le reçu ne cite les articles 200 et 238 bis du
-  CGI qu'une fois le rescrit obtenu (`ASSOCIATION_TAX_RECEIPT_ELIGIBLE`).
+  CGI qu'une fois le rescrit obtenu (`ASSOCIATION_TAX_RECEIPT_ELIGIBLE`), et
+  seulement pour un paiement en euros (§ 12).
 
 ### 11.3 Vérification
 
@@ -501,3 +502,31 @@ Deux alertes CodeQL ouvertes sur la PR pendant la fusion ont été corrigées :
 tirage biaisé des codes de secours 2FA (rejet des octets au-delà du plus grand
 multiple de l'alphabet) et aperçu du logo d'organisation lu depuis le fichier
 local (désormais l'URL signée du stockage).
+
+## 12. Paiements recentrés sur l'Europe et les États-Unis (28/09)
+
+Décision du client : le lancement vise l'Europe et les États-Unis ; les
+paiements en Afrique ne sont pas traités pour le moment. Un seul
+prestataire, **Stripe**, en **euro** et en **dollar des États-Unis**.
+
+| Avant (27/09) | Après (28/09) |
+|---|---|
+| EUR par Stripe, XOF par PayDunya | EUR **et USD** par Stripe, même compte |
+| barème : un montant EUR et un montant XOF par formule | un montant EUR et un montant USD ; initialisation au même chiffre rond (120 € → 120 $), à fixer par l'administrateur |
+| reçu en FCFA possible | reçu en « $ US » ; un paiement en dollars n'est **jamais** présenté comme reçu fiscal (un reçu fiscal français chiffre le don en euros) |
+| adaptateur PayDunya, route `/payments/webhook/paydunya`, variables `PAYDUNYA_*` | retirés ; le chemin de rebranchement est décrit dans `docs/backlog/paiements.md` § 8 |
+
+Le don mensuel par relance reste en place (prestataire factice, futur
+prestataire de mobile money) ; Stripe prélève lui-même dans les deux devises.
+
+Vérification : `pnpm test` **151 fichiers / 1 688 tests verts** (tests
+PayDunya remplacés par des tests Stripe en dollars : deux devises proposées,
+session Checkout ouverte en `usd`, paiement inscrit en USD, devise étrangère
+au site ignorée, bornes, reçu « $ US » non fiscal) ; typage, lint, format
+verts ; parcours navigateur « don en dollars » ajouté à
+`paiements-don.spec.ts`. Suite E2E complète sur le build reconstruit :
+457 verts et 1 échec, `a11y : /fr/tribune`, sans lien avec les paiements :
+le harnais attendait 0,9 s après le défilement alors qu'une liste révélée
+en cascade de 24 billets (base locale chargée par les exécutions
+précédentes) met environ 3 s à devenir opaque. `revealAll` attend désormais
+que chaque élément révélé soit opaque ; `a11y.spec.ts` rejoué : 64 / 64.

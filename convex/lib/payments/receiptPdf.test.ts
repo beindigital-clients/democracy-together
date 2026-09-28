@@ -141,7 +141,7 @@ describe(
         receipt({
           kind: 'donation',
           recurring: true,
-          currency: 'XOF',
+          currency: 'EUR',
           payerName: null,
           provider: 'fake',
           period: null,
@@ -152,12 +152,33 @@ describe(
       );
       expect(text).toContain('Reçu de don (don mensuel)');
       expect(text).toContain('Reçu de jl.dupre@exemple.org Montant');
-      expect(text).toContain('1 234 567 FCFA');
-      expect(text).toContain('Franc CFA BCEAO (XOF)');
+      expect(text).toContain('12 345,67 €');
+      expect(text).toContain('Euro (EUR)');
       expect(text).toContain(
         'Ce reçu est délivré au titre des articles 200 et 238 bis du Code général des impôts.',
       );
       expect(text).toContain('DOCUMENT DE TEST — AUCUN PAIEMENT RÉEL.');
+      expect(text).not.toContain('?');
+    });
+
+    it('reçu en dollars : montant en « $ US », jamais présenté comme reçu fiscal', async () => {
+      const { text } = await render(
+        receipt({
+          kind: 'donation',
+          currency: 'USD',
+          period: null,
+          planLabel: null,
+          // Même éligible au mécénat : un reçu fiscal chiffre le don en euros.
+          association: { ...ASSOCIATION, taxReceiptEligible: true },
+        }),
+        'recu-dollars.pdf',
+      );
+      expect(text).toContain('Montant 12 345,67 $ US');
+      expect(text).toContain('Devise Dollar des États-Unis (USD)');
+      expect(text).toContain(
+        'Ce document atteste un paiement en devise étrangère.',
+      );
+      expect(text).not.toContain('Ce reçu est délivré au titre');
       expect(text).not.toContain('?');
     });
 

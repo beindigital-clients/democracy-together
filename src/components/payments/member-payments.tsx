@@ -240,12 +240,12 @@ function DuesPayForm() {
 
   const priced = options.currencies
     .map((c) => c.currency)
-    .filter((c) => (c === 'EUR' ? plan?.amountEur : plan?.amountXof) != null);
+    .filter((c) => (c === 'EUR' ? plan?.amountEur : plan?.amountUsd) != null);
   const currency = chosen && priced.includes(chosen) ? chosen : priced[0];
   const amountMinor = currency
     ? currency === 'EUR'
       ? plan?.amountEur
-      : plan?.amountXof
+      : plan?.amountUsd
     : null;
 
   async function pay() {

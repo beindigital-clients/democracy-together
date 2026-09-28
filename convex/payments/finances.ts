@@ -14,11 +14,7 @@ import { AUDIT } from '../lib/auditActions';
 import { clampPageSize, paginatedValidator } from '../lib/pagination';
 import { applyRefund } from '../lib/payments/ledger';
 import { getAdapter } from '../lib/payments/registry';
-import {
-  fakeProviderState,
-  paydunyaConfigured,
-  stripeConfigured,
-} from '../lib/payments/config';
+import { fakeProviderState, stripeConfigured } from '../lib/payments/config';
 import { FIELD_MAX } from '../lib/validation';
 import {
   currencyValidator,
@@ -44,7 +40,6 @@ export const dashboard = query({
   returns: v.object({
     providers: v.object({
       stripe: v.boolean(),
-      paydunya: v.boolean(),
       fake: v.union(
         v.literal('off'),
         v.literal('active'),
@@ -79,7 +74,6 @@ export const dashboard = query({
     return {
       providers: {
         stripe: stripeConfigured(),
-        paydunya: paydunyaConfigured(),
         fake: fakeProviderState(),
       },
       months: months.map((m) => ({

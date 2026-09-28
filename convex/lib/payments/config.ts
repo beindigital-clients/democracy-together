@@ -1,4 +1,4 @@
-import type { Currency } from './amounts';
+import { CURRENCIES, type Currency } from './amounts';
 import type { ProviderId } from './validators';
 import type { SiteLocale } from '../locales';
 
@@ -22,7 +22,7 @@ import type { SiteLocale } from '../locales';
 //  2. `AUTH_DEV_OTP` vaut `true` — le marqueur de dev/préversion du dépôt, que
 //     la doc de déploiement interdit en production ;
 //  3. aucun INDICATEUR DE PRODUCTION n'est présent : une clé Stripe live
-//     (`sk_live_…`/`rk_live_…`) ou PayDunya en mode `live`. Un déploiement qui
+//     (`sk_live_…`/`rk_live_…`). Un déploiement qui
 //     encaisse de l'argent réel ne simule pas de paiement, même si les deux
 //     premiers drapeaux y ont fui.
 //
@@ -35,9 +35,6 @@ export function productionIndicators(): string[] {
   const stripeKey = process.env.STRIPE_SECRET_KEY ?? '';
   if (stripeKey.startsWith('sk_live_') || stripeKey.startsWith('rk_live_')) {
     found.push('STRIPE_SECRET_KEY (live)');
-  }
-  if ((process.env.PAYDUNYA_MODE ?? '').toLowerCase() === 'live') {
-    found.push('PAYDUNYA_MODE=live');
   }
   return found;
 }
@@ -75,32 +72,23 @@ export function stripeConfigured(): boolean {
   return !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET;
 }
 
-export function paydunyaConfigured(): boolean {
-  return (
-    !!process.env.PAYDUNYA_MASTER_KEY &&
-    !!process.env.PAYDUNYA_PRIVATE_KEY &&
-    !!process.env.PAYDUNYA_TOKEN
-  );
-}
-
 export function isProviderEnabled(provider: ProviderId): boolean {
   switch (provider) {
     case 'stripe':
       return stripeConfigured();
-    case 'paydunya':
-      return paydunyaConfigured();
     case 'fake':
       return fakeProviderState() === 'active';
   }
 }
 
-// Prestataire retenu pour une devise. Stripe ne couvre pas le franc CFA :
-// l'euro va à Stripe, le XOF à PayDunya (Sénégal, mobile money et cartes
-// UEMOA). Un prestataire réel configuré l'emporte sur le factice, pour qu'un
-// développeur qui teste ses clés sandbox ne passe pas par la simulation.
+// Prestataire retenu pour une devise. Stripe règle TOUTES les devises du site
+// (euro et dollar) avec le même compte. Un prestataire réel configuré
+// l'emporte sur le factice, pour qu'un développeur qui teste ses clés de test
+// Stripe ne passe pas par la simulation. Une devise que Stripe ne couvrirait
+// pas (franc CFA réglé par un prestataire africain, plus tard) se brancherait
+// ici, avec son adaptateur (convex/lib/payments/registry.ts).
 export function providerForCurrency(currency: Currency): ProviderId | null {
-  if (currency === 'EUR' && stripeConfigured()) return 'stripe';
-  if (currency === 'XOF' && paydunyaConfigured()) return 'paydunya';
+  if (CURRENCIES.includes(currency) && stripeConfigured()) return 'stripe';
   if (fakeProviderState() === 'active') return 'fake';
   return null;
 }

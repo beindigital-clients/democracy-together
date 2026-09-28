@@ -10,8 +10,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { formatMoney, knownPaymentError } from './format';
 
 // Simulateur du prestataire factice : tient le rôle de la page hébergée de
-// Stripe ou de PayDunya. « Payer » déclenche un webhook signé côté serveur,
-// puis renvoie vers la même page de retour qu'un vrai paiement.
+// Stripe. « Payer » déclenche un webhook signé côté serveur, puis renvoie vers la même page de retour qu'un vrai paiement.
 export function PaymentSimulator({ paymentRef }: { paymentRef: string }) {
   const t = useTranslations('payments');
   const locale = useLocale();

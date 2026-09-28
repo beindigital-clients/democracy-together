@@ -5,6 +5,7 @@ import { useAction, useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import {
+  CURRENCY_EXPONENT,
   DONATION_BOUNDS,
   SUGGESTED_DONATIONS,
   type Currency,
@@ -24,7 +25,7 @@ import { PaymentsUnavailable } from './payments-unavailable';
 import { formatMajor, knownPaymentError } from './format';
 
 // FORMULAIRE DE DON (F-28) — ponctuel ou mensuel, montant suggéré ou libre,
-// en euro ou en franc CFA selon les prestataires configurés.
+// en euro ou en dollar des États-Unis selon les prestataires configurés.
 //
 // Les bornes et les montants suggérés sont LUS du module partagé avec le
 // serveur (`@convex/lib/payments/amounts`) : le champ refuse ce que le serveur
@@ -271,7 +272,7 @@ export function DonationForm() {
             inputMode="decimal"
             min={bounds.min}
             max={bounds.max}
-            step={currency === 'XOF' ? 1 : 0.01}
+            step={10 ** -CURRENCY_EXPONENT[currency]}
             required
             {...field('other')}
           />

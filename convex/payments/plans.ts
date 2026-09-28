@@ -27,7 +27,7 @@ const publicPlanValidator = v.object({
   category: planCategoryValidator,
   zone: planZoneValidator,
   amountEur: v.union(v.number(), v.null()),
-  amountXof: v.union(v.number(), v.null()),
+  amountUsd: v.union(v.number(), v.null()),
 });
 
 export const publicPlans = query({
@@ -41,7 +41,7 @@ export const publicPlans = query({
         category: p.category,
         zone: p.zone,
         amountEur: p.amountEur ?? null,
-        amountXof: p.amountXof ?? null,
+        amountUsd: p.amountUsd ?? null,
       }));
   },
 });
@@ -54,7 +54,7 @@ export const adminPlans = query({
       category: planCategoryValidator,
       zone: planZoneValidator,
       amountEur: v.union(v.number(), v.null()),
-      amountXof: v.union(v.number(), v.null()),
+      amountUsd: v.union(v.number(), v.null()),
       active: v.boolean(),
       updatedAt: v.number(),
     }),
@@ -67,7 +67,7 @@ export const adminPlans = query({
       category: p.category,
       zone: p.zone,
       amountEur: p.amountEur ?? null,
-      amountXof: p.amountXof ?? null,
+      amountUsd: p.amountUsd ?? null,
       active: p.active,
       updatedAt: p.updatedAt,
     }));
@@ -82,23 +82,23 @@ export const upsertPlan = mutation({
     category: planCategoryValidator,
     zone: planZoneValidator,
     amountEur: v.union(v.number(), v.null()),
-    amountXof: v.union(v.number(), v.null()),
+    amountUsd: v.union(v.number(), v.null()),
     active: v.boolean(),
   },
   returns: v.id('paymentPlans'),
   handler: async (ctx, args) => {
     const admin = await requireNetworkRole(ctx, 'admin');
     const eur = args.amountEur === null ? null : toMinor(args.amountEur, 'EUR');
-    const xof = args.amountXof === null ? null : toMinor(args.amountXof, 'XOF');
+    const usd = args.amountUsd === null ? null : toMinor(args.amountUsd, 'USD');
     if (
       (args.amountEur !== null &&
         (eur === null || !isPlanAmountValid(eur, 'EUR'))) ||
-      (args.amountXof !== null &&
-        (xof === null || !isPlanAmountValid(xof, 'XOF')))
+      (args.amountUsd !== null &&
+        (usd === null || !isPlanAmountValid(usd, 'USD')))
     ) {
       throw new ConvexError('AMOUNT_OUT_OF_BOUNDS');
     }
-    if (eur === null && xof === null && args.active) {
+    if (eur === null && usd === null && args.active) {
       // Une formule active sans aucun montant serait un bouton mort.
       throw new ConvexError('PLAN_WITHOUT_AMOUNT');
     }
@@ -112,7 +112,7 @@ export const upsertPlan = mutation({
       category: args.category,
       zone: args.zone,
       ...(eur !== null ? { amountEur: eur } : {}),
-      ...(xof !== null ? { amountXof: xof } : {}),
+      ...(usd !== null ? { amountUsd: usd } : {}),
       active: args.active,
       updatedAt: Date.now(),
       updatedBy: admin._id,
@@ -134,11 +134,11 @@ export const upsertPlan = mutation({
         before: existing
           ? {
               amountEur: existing.amountEur ?? null,
-              amountXof: existing.amountXof ?? null,
+              amountUsd: existing.amountUsd ?? null,
               active: existing.active,
             }
           : null,
-        after: { amountEur: eur, amountXof: xof, active: args.active },
+        after: { amountEur: eur, amountUsd: usd, active: args.active },
       },
     });
     return id;
@@ -146,7 +146,7 @@ export const upsertPlan = mutation({
 });
 
 // Initialise les combinaisons manquantes avec le barème par défaut (celui de
-// l'estimateur public, converti au taux fixe EUR/XOF). N'écrase rien.
+// l'estimateur public, même chiffre rond en dollars). N'écrase rien.
 export const seedDefaultPlans = mutation({
   args: {},
   returns: v.number(),

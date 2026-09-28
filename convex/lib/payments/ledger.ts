@@ -7,6 +7,7 @@ import {
   fromMinor,
   MEMBERSHIP_PERIOD_MONTHS,
   monthKey,
+  type Currency,
 } from './amounts';
 import { randomToken } from './crypto';
 import { getAdapter } from './registry';
@@ -14,7 +15,7 @@ import type { NormalizedEvent, PaymentPurpose, ProviderId } from './validators';
 
 // LE GRAND LIVRE — seul endroit qui écrit un paiement.
 //
-// Tous les chemins y mènent : webhook Stripe, IPN PayDunya, webhook factice,
+// Tous les chemins y mènent : webhook Stripe, webhook factice,
 // relecture au retour de paiement. Chaque fonction s'exécute DANS la
 // transaction de la mutation appelante : le paiement, le don ou la cotisation,
 // les totaux mensuels et le numéro de reçu sont écrits ensemble ou pas du tout.
@@ -37,7 +38,7 @@ export type ApplyResult =
 
 export async function bumpMonthlyTotals(
   ctx: MutationCtx,
-  key: { month: string; currency: 'EUR' | 'XOF'; kind: PaymentPurpose },
+  key: { month: string; currency: Currency; kind: PaymentPurpose },
   delta: { gross?: number; refunded?: number; count?: number },
 ): Promise<void> {
   const row = await ctx.db

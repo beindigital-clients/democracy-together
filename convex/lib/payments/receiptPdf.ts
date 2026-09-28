@@ -71,8 +71,12 @@ function dateFr(ts: number): string {
 
 const PROVIDER_LABEL: Record<string, string> = {
   stripe: 'Paiement en ligne par carte (Stripe)',
-  paydunya: 'Paiement en ligne (PayDunya : mobile money ou carte)',
   fake: 'Paiement simulé (environnement de test : sans valeur comptable)',
+};
+
+const CURRENCY_NAME_FR: Record<Currency, string> = {
+  EUR: 'Euro (EUR)',
+  USD: 'Dollar des États-Unis (USD)',
 };
 
 // Jetons du site (src/app/globals.css, thème clair), ceux du PDF des rapports.
@@ -366,10 +370,7 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
     data.payerName ? `${data.payerName} (${data.payerEmail})` : data.payerEmail,
   );
   row('Montant', formatAmountFr(data.amountMinor, data.currency));
-  row(
-    'Devise',
-    data.currency === 'EUR' ? 'Euro (EUR)' : 'Franc CFA BCEAO (XOF)',
-  );
+  row('Devise', CURRENCY_NAME_FR[data.currency]);
   row('Date du paiement', dateFr(data.paidAt));
   row(
     'Objet',
@@ -396,11 +397,16 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
     { gap: 8 },
   );
   // Le reçu FISCAL suppose l'éligibilité au régime du mécénat (rescrit), non
-  // acquise à ce jour : on ne le laisse pas croire.
+  // acquise à ce jour : on ne le laisse pas croire. Et même éligible, un reçu
+  // fiscal français chiffre le don EN EUROS : un paiement en dollars n'en
+  // tient pas lieu (la contre-valeur au jour du paiement est établie par le
+  // secrétariat, pas par ce document).
   text(
-    a.taxReceiptEligible
-      ? 'Ce reçu est délivré au titre des articles 200 et 238 bis du Code général des impôts.'
-      : 'Ce document atteste un paiement. Il ne constitue pas un reçu fiscal ouvrant droit à réduction d’impôt (articles 200 et 238 bis du Code général des impôts).',
+    !a.taxReceiptEligible
+      ? 'Ce document atteste un paiement. Il ne constitue pas un reçu fiscal ouvrant droit à réduction d’impôt (articles 200 et 238 bis du Code général des impôts).'
+      : data.currency === 'EUR'
+        ? 'Ce reçu est délivré au titre des articles 200 et 238 bis du Code général des impôts.'
+        : 'Ce document atteste un paiement en devise étrangère. Il ne tient pas lieu de reçu fiscal (articles 200 et 238 bis du Code général des impôts), dont le montant s’exprime en euros : le secrétariat l’établit sur demande.',
     { size: 9.5, color: COLOR.muted, gap: 8 },
   );
   if (data.provider === 'fake') {

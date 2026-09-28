@@ -29,7 +29,7 @@ export const paiementsTables = {
     zone: planZoneValidator,
     // Unités mineures ; absent = formule non proposée dans cette devise.
     amountEur: v.optional(v.number()),
-    amountXof: v.optional(v.number()),
+    amountUsd: v.optional(v.number()),
     active: v.boolean(),
     updatedAt: v.number(),
     updatedBy: v.optional(v.id('users')),

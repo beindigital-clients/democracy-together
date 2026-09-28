@@ -23,10 +23,6 @@ const modules = import.meta.glob([
 const PAYMENT_ENV = [
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
-  'PAYDUNYA_MASTER_KEY',
-  'PAYDUNYA_PRIVATE_KEY',
-  'PAYDUNYA_TOKEN',
-  'PAYDUNYA_MODE',
   'PAYMENTS_FAKE_WEBHOOK_SECRET',
   'AUTH_RESEND_KEY',
   'AUTH_EMAIL_PROVIDER',
@@ -62,7 +58,7 @@ async function donate(
   over: Partial<{
     amount: number;
     recurring: boolean;
-    currency: 'EUR' | 'XOF';
+    currency: 'EUR' | 'USD';
     email: string;
   }> = {},
 ) {
@@ -287,7 +283,7 @@ describe('Cotisations (F-27) — barème et période', () => {
       category: 'ind',
       zone: 'low',
       amountEur: 30,
-      amountXof: 20000,
+      amountUsd: 35,
       active: true,
     });
     await expect(
@@ -295,7 +291,7 @@ describe('Cotisations (F-27) — barème et période', () => {
         category: 'ind',
         zone: 'low',
         amountEur: 0.5,
-        amountXof: null,
+        amountUsd: null,
         active: true,
       }),
     ).rejects.toThrow(/AMOUNT_OUT_OF_BOUNDS/);
@@ -310,14 +306,14 @@ describe('Cotisations (F-27) — barème et période', () => {
       plans.find((p) => p.category === 'ind' && p.zone === 'low'),
     ).toMatchObject({
       amountEur: 3000,
-      amountXof: 20000,
+      amountUsd: 3500,
     });
 
     await expect(
       visiteur.as.mutation(internal.payments.checkout.createDuesCheckout, {
         category: 'ind',
         zone: 'low',
-        currency: 'XOF',
+        currency: 'USD',
         locale: 'fr',
       }),
     ).rejects.toThrow();
@@ -328,11 +324,11 @@ describe('Cotisations (F-27) — barème et période', () => {
         {
           category: 'ind',
           zone: 'low',
-          currency: 'XOF',
+          currency: 'USD',
           locale: 'fr',
         },
       );
-      expect(c.amountMinor).toBe(20000);
+      expect(c.amountMinor).toBe(3500);
       await t.action(api.payments.fake.simulate, {
         ref: c.ref,
         outcome: 'paid',
@@ -344,8 +340,8 @@ describe('Cotisations (F-27) — barème et période', () => {
     });
     expect(first.dues).toMatchObject({
       upToDate: true,
-      currency: 'XOF',
-      amountMinor: 20000,
+      currency: 'USD',
+      amountMinor: 3500,
     });
     const firstEnd = first.dues!.periodEnd;
 
@@ -384,7 +380,7 @@ describe('Cotisations (F-27) — barème et période', () => {
       category: 'org',
       zone: 'high',
       amountEur: 1200,
-      amountXof: null,
+      amountUsd: null,
       active: false,
     });
     await expect(
@@ -510,15 +506,15 @@ describe('Back-office (F-31) — remboursement, export, journal', () => {
   });
 });
 
-describe('Dons mensuels par relance (F-28, XOF / factice)', () => {
+describe('Dons mensuels par relance (F-28, prestataire factice)', () => {
   it('échéance → lien envoyé → paiement → échéance suivante ; suspendu après trois relances sans suite', async () => {
     vi.useFakeTimers();
     const t = convexTest(schema, modules);
     const donor = await user(t, 'membre', 'mensuel@exemple.org');
     await donate(donor.as, {
       recurring: true,
-      currency: 'XOF',
-      amount: 5000,
+      currency: 'USD',
+      amount: 50,
       email: 'mensuel@exemple.org',
     });
     const [sub] = await t.run((ctx) =>

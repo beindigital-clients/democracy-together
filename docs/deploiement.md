@@ -460,8 +460,7 @@ section en donne l'ordre de mise en service, pour qu'aucune étape ne manque.
 
 | Variable | Chantier | Sans elle |
 |---|---|---|
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | paiements (EUR) | Stripe désactivé ; l'interface propose virement ou contact |
-| `PAYDUNYA_MASTER_KEY`, `PAYDUNYA_PRIVATE_KEY`, `PAYDUNYA_TOKEN`, `PAYDUNYA_MODE` | paiements (XOF) | PayDunya désactivé |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | paiements (EUR et USD) | paiement en ligne fermé ; l'interface propose virement ou contact |
 | `PAYMENTS_BANK_*`, `ASSOCIATION_*`, `ASSOCIATION_TAX_RECEIPT_ELIGIBLE` | paiements (reçus, virement) | reçus marqués « à compléter », pas de coordonnées de virement |
 | `TWO_FACTOR_ENCRYPTION_KEY` (32 octets base64) | comptes (2FA) | inscription à la double authentification refusée |
 | `NEWSLETTER_BATCH_SIZE`, `NEWSLETTER_RATE_PER_MINUTE`, `NEWSLETTER_UNSUBSCRIBE_MAILTO` | diffusion | valeurs par défaut prudentes |
@@ -481,7 +480,6 @@ npx convex env list --prod | grep -E '^(AUTH_DEV_OTP|RECAPTCHA_DISABLED|PAYMENTS
 | Prestataire | URL | Fiche |
 |---|---|---|
 | Stripe | `POST <CONVEX_SITE_URL>/payments/webhook/stripe` | `docs/backlog/paiements.md` § 3 |
-| PayDunya | transmise à chaque facture (`<CONVEX_SITE_URL>/payments/webhook/paydunya`) | idem |
 | Désinscription en un clic | `POST <CONVEX_SITE_URL>/newsletter/unsubscribe` (rien à déclarer : en-tête `List-Unsubscribe`) | `docs/backlog/diffusion.md` |
 
 ### 10.3 Commandes à lancer une fois, après le déploiement, dans cet ordre

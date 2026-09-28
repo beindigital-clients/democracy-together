@@ -82,7 +82,6 @@ import type * as lib_payments_crypto from "../lib/payments/crypto.js";
 import type * as lib_payments_emails from "../lib/payments/emails.js";
 import type * as lib_payments_fake from "../lib/payments/fake.js";
 import type * as lib_payments_ledger from "../lib/payments/ledger.js";
-import type * as lib_payments_paydunya from "../lib/payments/paydunya.js";
 import type * as lib_payments_receiptPdf from "../lib/payments/receiptPdf.js";
 import type * as lib_payments_registry from "../lib/payments/registry.js";
 import type * as lib_payments_stripe from "../lib/payments/stripe.js";
@@ -250,7 +249,6 @@ declare const fullApi: ApiFromModules<{
   "lib/payments/emails": typeof lib_payments_emails;
   "lib/payments/fake": typeof lib_payments_fake;
   "lib/payments/ledger": typeof lib_payments_ledger;
-  "lib/payments/paydunya": typeof lib_payments_paydunya;
   "lib/payments/receiptPdf": typeof lib_payments_receiptPdf;
   "lib/payments/registry": typeof lib_payments_registry;
   "lib/payments/stripe": typeof lib_payments_stripe;

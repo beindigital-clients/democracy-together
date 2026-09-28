@@ -9,6 +9,7 @@ import { PaymentsUnavailable } from '@/components/payments/payments-unavailable'
 import { formatMoney, knownPaymentError } from '@/components/payments/format';
 import { ConvexError } from 'convex/values';
 import {
+  CURRENCIES,
   addMonthsUtc,
   defaultPlanAmounts,
   DONATION_BOUNDS,
@@ -32,13 +33,13 @@ describe('Montants — unité mineure', () => {
     expect(toMinor(19.99, 'EUR')).toBe(1999);
     expect(toMinor(0.1 + 0.2, 'EUR')).toBe(30);
     expect(toMinor(20.001, 'EUR')).toBeNull();
-    expect(toMinor(1500, 'XOF')).toBe(1500);
-    expect(toMinor(1500.5, 'XOF')).toBeNull();
+    expect(toMinor(1500, 'USD')).toBe(150000);
+    expect(toMinor(19.999, 'USD')).toBeNull();
     expect(toMinor(Number.NaN, 'EUR')).toBeNull();
   });
 
   it('les montants suggérés respectent les bornes de leur devise', () => {
-    for (const currency of ['EUR', 'XOF'] as const) {
+    for (const currency of CURRENCIES) {
       for (const major of SUGGESTED_DONATIONS[currency]) {
         expect(isDonationAmountValid(toMinor(major, currency)!, currency)).toBe(
           true,
@@ -54,19 +55,20 @@ describe('Montants — unité mineure', () => {
     }
   });
 
-  it('barème par défaut : neuf formules, décroissant avec le revenu, XOF au taux fixe arrondi au millier', () => {
+  it('barème par défaut : neuf formules, décroissant avec le revenu, même chiffre rond en dollars', () => {
     for (const c of PLAN_CATEGORIES) {
       const [high, mid, low] = PLAN_ZONES.map((z) => defaultPlanAmounts(c, z));
       expect(high.amountEur).toBeGreaterThanOrEqual(mid.amountEur);
       expect(mid.amountEur).toBeGreaterThanOrEqual(low.amountEur);
       for (const p of [high, mid, low]) {
         expect(p.amountEur).toBeGreaterThanOrEqual(500);
-        expect(p.amountXof % 1000).toBe(0);
+        expect(p.amountUsd).toBe(p.amountEur);
+        expect(p.amountEur % 500).toBe(0);
       }
     }
     expect(defaultPlanAmounts('org', 'high')).toEqual({
       amountEur: 120000,
-      amountXof: 787000,
+      amountUsd: 120000,
     });
   });
 });
@@ -89,7 +91,7 @@ describe('Dates des échéances', () => {
 describe('Reçu PDF — texte', () => {
   it('formate en français sans espace fine (police standard du PDF)', () => {
     expect(formatAmountFr(123456, 'EUR')).toBe('1 234,56 €');
-    expect(formatAmountFr(25000, 'XOF')).toBe('25 000 FCFA');
+    expect(formatAmountFr(2500000, 'USD')).toBe('25 000,00 $ US');
     expect(formatAmountFr(500, 'EUR')).toBe('5,00 €');
   });
   // Les noms hors Latin-1 (arabe, vietnamien…) : convex/lib/payments/
@@ -99,7 +101,10 @@ describe('Reçu PDF — texte', () => {
 describe('Montants à l’écran', () => {
   it('suit la langue de la page, chiffres occidentaux en arabe', () => {
     expect(formatMoney(5000, 'EUR', 'en')).toMatch(/EUR\s?50\.00/);
-    expect(formatMoney(25000, 'XOF', 'ar')).toMatch(/25[.,\s\u202F\u00A0]?000/);
+    expect(formatMoney(2500000, 'USD', 'ar')).toMatch(/USD/);
+    expect(formatMoney(2500000, 'USD', 'ar')).toMatch(
+      /25[.,\s\u202F\u00A0]?000/,
+    );
   });
 
   it('un code de refus inconnu retombe sur le message générique', () => {

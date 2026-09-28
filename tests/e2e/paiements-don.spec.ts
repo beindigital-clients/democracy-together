@@ -34,7 +34,11 @@ async function paymentOptions() {
   );
 }
 
-async function donnerEnEuros(page: Page, montant: number) {
+async function donner(
+  page: Page,
+  montant: number,
+  devise: 'EUR' | 'USD' = 'EUR',
+) {
   await page.goto('/fr/don');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Faire un don' }),
@@ -42,6 +46,16 @@ async function donnerEnEuros(page: Page, montant: number) {
   // Portée : le formulaire de don (le pied de page porte son propre champ
   // « E-mail », celui de la newsletter).
   const form = page.getByRole('form', { name: 'Formulaire de don' });
+  if (devise === 'USD') {
+    await form
+      .getByText('Dollar des États-Unis (USD)', { exact: true })
+      .click();
+    await expect(
+      form.getByRole('radio', {
+        name: 'Dollar des États-Unis (USD)',
+      }),
+    ).toBeChecked();
+  }
   await form.getByText('Autre montant', { exact: true }).click();
   await form.getByLabel(/Montant libre/).fill(String(montant));
   // L'adresse du compte connecté pré-remplit le champ : le don est rattaché
@@ -91,7 +105,7 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
 
   // Montant distinct à chaque exécution : c'est lui qui retrouve la ligne.
   const montant = 6 + (Date.now() % 90);
-  await donnerEnEuros(page, montant);
+  await donner(page, montant);
 
   // Page du « prestataire » : le montant demandé, puis le paiement.
   await expect(page.getByTestId('sim-amount')).toContainText(String(montant));
@@ -158,11 +172,40 @@ test('paiement annulé chez le prestataire : rien n’est encaissé, l’écran 
     'prestataire factice absent sur ce déploiement',
   );
 
-  await donnerEnEuros(page, 7);
+  await donner(page, 7);
   await page.getByRole('button', { name: 'Annuler' }).click();
   await page.waitForURL(/\/fr\/paiement\/retour\?ref=.*statut=annule/);
   await expect(
     page.getByRole('heading', { name: 'Paiement annulé' }),
   ).toBeVisible();
   await expect(page.getByRole('link', { name: 'Réessayer' })).toBeVisible();
+});
+
+test('don en dollars : même parcours, la ligne et le montant restent en USD', async ({
+  page,
+}) => {
+  const options = await paymentOptions();
+  const dollar = options.currencies.find((c) => c.currency === 'USD');
+  test.skip(
+    dollar?.provider !== 'fake',
+    'prestataire factice absent sur ce déploiement',
+  );
+
+  const montant = 6 + (Date.now() % 90);
+  await donner(page, montant, 'USD');
+  await expect(page.getByTestId('sim-amount')).toContainText('USD');
+  await page.getByRole('button', { name: 'Payer (simulation)' }).click();
+  await page.waitForURL(/\/fr\/paiement\/retour\?ref=.*statut=succes/);
+  await expect(
+    page.getByRole('heading', { name: 'Merci pour votre don !' }),
+  ).toBeVisible();
+
+  await page.getByRole('link', { name: 'Voir mes reçus' }).click();
+  await page.waitForURL(/\/fr\/espace-membre\/cotisations/);
+  await expect(
+    page
+      .getByRole('row')
+      .filter({ hasText: new RegExp(`${montant},00\\s?USD`) })
+      .first(),
+  ).toBeVisible();
 });

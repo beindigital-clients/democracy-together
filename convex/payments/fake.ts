@@ -9,6 +9,7 @@ import {
   type FakeWebhookPayload,
 } from '../lib/payments/fake';
 import { locale, type SiteLocale } from '../lib/locales';
+import type { Currency } from '../lib/payments/amounts';
 import {
   checkoutStatusValidator,
   currencyValidator,
@@ -104,7 +105,7 @@ export const simulate = action({
     const checkout: {
       ref: string;
       status: string;
-      currency: 'EUR' | 'XOF';
+      currency: Currency;
       amountMinor: number;
       locale: SiteLocale;
     } | null = await ctx.runQuery(
