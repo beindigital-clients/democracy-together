@@ -1,20 +1,20 @@
 // @vitest-environment edge-runtime
 //
-// Issue #30 — les validateurs de RETOUR comme barrière structurelle.
+// Issue #30 — RETURN validators as a structural barrier.
 //
-// La faille H1 (publications réservées servies à tout le monde) tenait à un
-// `return { ...pub }` : le document entier sortait. La PR #4 a corrigé le
-// GATING, mais le spread est resté — une publication ouverte servait encore
+// Flaw H1 (restricted publications served to everyone) came down to a
+// `return { ...pub }`: the whole document went out. PR #4 fixed the
+// GATING, but the spread stayed — an open publication still served
 // `reviewNotes`, `authorUserId`, `reviewedBy`, `fileId`…
 //
-// Ces tests vérifient les deux moitiés de la correction :
-//  1. la projection ne laisse pas sortir un champ privé ;
-//  2. le validateur de retour ne le DÉCLARE pas, donc Convex ferait échouer la
-//     query si une projection future le remettait — la fuite deviendrait une
-//     panne, jamais une donnée servie en silence.
+// These tests check both halves of the fix:
+//  1. the projection does not let a private field out;
+//  2. the return validator does not DECLARE it, so Convex would fail the
+//     query if a future projection put it back — the leak would become a
+//     failure, never data served silently.
 //
-// Chaque test est écrit pour ne pas être creux : on prouve d'abord que le champ
-// privé est BIEN en base, puis qu'il ne ressort pas.
+// Each test is written so as not to be vacuous: we first prove that the private
+// field IS in the database, then that it does not come out.
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
@@ -32,8 +32,8 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Champs de modération / d'usage interne : aucun n'a à sortir d'une query
-// publique. `reviewNotes` est le pire du lot — c'est la note d'un modérateur.
+// Moderation / internal-use fields: none has any business leaving a public
+// query. `reviewNotes` is the worst of the lot — it is a moderator's note.
 const PRIVATE_PUBLICATION_FIELDS = [
   'authorUserId',
   'submittedAt',
@@ -76,7 +76,7 @@ async function seedPublication(t: ReturnType<typeof convexTest>) {
       views: 7,
       status: 'published',
       createdAt: 1_699_000_000_000,
-      // --- tout ce qui suit ne doit JAMAIS sortir -----------------------------
+      // --- everything below must NEVER go out -----------------------------------
       authorUserId: authorId,
       submittedAt: 1_698_000_000_000,
       reviewedBy: moderatorId,
@@ -112,11 +112,11 @@ describe('Validateurs de retour — publications (issue #30)', () => {
     for (const field of PRIVATE_PUBLICATION_FIELDS) {
       expect(Object.keys(pub!)).not.toContain(field);
     }
-    // et en particulier, la note de modération
+    // and in particular, the moderation note
     expect(JSON.stringify(pub)).not.toContain('NOTE INTERNE');
 
-    // Le contenu légitime, lui, est bien servi : la projection n'est pas
-    // simplement « tout jeter ».
+    // The legitimate content, however, is indeed served: the projection is not
+    // simply "throw everything away".
     expect(pub!.title).toBe('Participation citoyenne en Afrique de l’Ouest');
     expect(pub!.body).toEqual(['Corps du rapport.']);
     expect(pub!.views).toBe(7);
@@ -130,14 +130,14 @@ describe('Validateurs de retour — publications (issue #30)', () => {
       slug: 'participation-afrique-ouest',
     });
 
-    // `image`, `license` et `pages` sont optionnels et absents de ce document :
-    // la sortie est donc un SOUS-ENSEMBLE des champs déclarés, jamais plus.
+    // `image`, `license` and `pages` are optional and absent from this document:
+    // the output is therefore a SUBSET of the declared fields, never more.
     const declared = Object.keys(publicPublicationValidator.fields);
     for (const key of Object.keys(pub!)) {
       expect(declared).toContain(key);
     }
-    // Et le validateur lui-même ne déclare aucun champ privé : même une
-    // projection future qui les remettrait ferait échouer la query.
+    // And the validator itself declares no private field: even a
+    // future projection that put them back would make the query fail.
     for (const field of PRIVATE_PUBLICATION_FIELDS) {
       expect(declared).not.toContain(field);
     }
@@ -184,7 +184,7 @@ describe('Validateurs de retour — annuaire (issue #30)', () => {
     const t = convexTest(schema, modules);
     const orgId = await seedOrg(t);
 
-    // non creux : le document en base porte bien un statut.
+    // not vacuous: the document in the database does carry a status.
     expect((await t.run((ctx) => ctx.db.get(orgId)))?.status).toBe('active');
 
     const declared = Object.keys(publicOrganizationValidator.fields);
@@ -224,7 +224,7 @@ describe('Validateurs de retour — Tribune (issue #30)', () => {
         createdAt: 1_700_000_000_000,
       }),
     );
-    // non creux : le billet en base porte bien un auteur interne.
+    // not vacuous: the post in the database does carry an internal author.
     expect((await t.run((ctx) => ctx.db.get(postId)))?.authorUserId).toBe(
       authorId,
     );
@@ -234,7 +234,7 @@ describe('Validateurs de retour — Tribune (issue #30)', () => {
     for (const field of ['authorUserId', 'status', 'body', '_creationTime']) {
       expect(Object.keys(posts[0])).not.toContain(field);
     }
-    // l'extrait est borné : le corps intégral ne transite pas par la liste
+    // the excerpt is bounded: the full body does not travel through the list
     expect(posts[0].excerpt.endsWith('…')).toBe(true);
     expect(posts[0].excerpt).not.toContain('FIN');
 
@@ -243,7 +243,7 @@ describe('Validateurs de retour — Tribune (issue #30)', () => {
     for (const field of ['authorUserId', 'status', '_creationTime']) {
       expect(Object.keys(post!)).not.toContain(field);
     }
-    // le détail, lui, sert bien le corps complet
+    // the detail, however, does serve the full body
     expect(post!.body).toBe(longBody);
   });
 });

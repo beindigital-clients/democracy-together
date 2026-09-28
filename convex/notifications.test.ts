@@ -181,23 +181,23 @@ describe('Notifications — lecture & portée (F-25/F-51)', () => {
     const asA = t.withIdentity({ subject: `${aId}|s` });
     const asB = t.withIdentity({ subject: `${bId}|s` });
 
-    // portée stricte
+    // strict scope
     expect(
       (await asA.query(api.notifications.myNotifications, {})).length,
     ).toBe(2);
     expect((await asA.query(api.notifications.unreadCount, {})).count).toBe(2);
     expect((await asB.query(api.notifications.unreadCount, {})).count).toBe(1);
 
-    // tri décroissant (T2 avant T1)
+    // descending sort (T2 before T1)
     const list = await asA.query(api.notifications.myNotifications, {});
     expect(list[0].titleKey).toBe('pubRejected');
 
-    // B ne peut PAS marquer une notif de A
+    // B can NOT mark a notification of A
     await expect(
       asB.mutation(api.notifications.markRead, { notificationId: n1 }),
     ).rejects.toThrow();
 
-    // A marque n1 lue -> 1 non-lue restante
+    // A marks n1 read -> 1 unread remaining
     await asA.mutation(api.notifications.markRead, { notificationId: n1 });
     expect((await asA.query(api.notifications.unreadCount, {})).count).toBe(1);
 

@@ -26,12 +26,12 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Revue à comité de lecture (F-43, chantier editorial).
+// Peer review (F-43, editorial workstream).
 //
-// Horloge SIMULÉE : les copies anonymisées sont planifiées à chaque version
-// (`scheduler.runAfter(0, …)`) ; avec des minuteurs simulés elles ne partent
-// pas d'elles-mêmes, et les tests qui en ont besoin lancent l'action à la
-// main. L'horloge sert aussi aux échéances et aux relances.
+// SIMULATED clock: the anonymized copies are scheduled on each version
+// (`scheduler.runAfter(0, …)`); with simulated timers they do not run
+// on their own, and the tests that need them launch the action by
+// hand. The clock also serves for deadlines and reminders.
 const NOW = Date.UTC(2026, 8, 27, 10, 0, 0);
 const DAY = 86_400_000;
 
@@ -45,7 +45,7 @@ afterEach(() => {
 
 const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
 
-// L'identité de l'auteur, sous toutes les formes qu'une fuite prendrait.
+// The author's identity, in every form a leak would take.
 const AUTHOR_NAME = 'Jeanne Autrice';
 const AUTHOR_EMAIL = 'jeanne.autrice@test.org';
 const AUTHOR_FILE = 'Autrice_manuscrit_final.pdf';
@@ -85,7 +85,7 @@ async function userWithRole(t: T, role: Role, email: string, name?: string) {
   return { id, as: t.withIdentity({ subject: `${id}|s` }) };
 }
 
-// Un manuscrit PDF qui nomme son auteur dans ses métadonnées — le cas réel.
+// A PDF manuscript that names its author in its metadata — the real case.
 async function pdfWithAuthor(title = 'v1'): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.addPage([300, 300]).drawText(`Texte anonyme ${title}`, { x: 20, y: 200 });
@@ -152,7 +152,7 @@ async function latestVersionId(t: T, pubId: Id<'publications'>) {
   return rows[0]._id;
 }
 
-// Lance l'anonymisation de la dernière version (planifiée en production).
+// Runs the anonymization of the latest version (scheduled in production).
 async function anonymizeLatest(t: T, pubId: Id<'publications'>) {
   await t.action(internal.peerReviewFiles.anonymizeVersion, {
     versionId: await latestVersionId(t, pubId),
@@ -161,7 +161,7 @@ async function anonymizeLatest(t: T, pubId: Id<'publications'>) {
 
 type Setup = Awaited<ReturnType<typeof setup>>;
 
-// Soumission par l'auteur, deux relecteurs désignés, sans conflit.
+// Submission by the author, two reviewers assigned, no conflict.
 async function openWithTwoReviewers(t: T, s: Setup) {
   await s.author.as.mutation(api.peerReview.submitManuscript, {
     publicationId: s.pubId,
@@ -188,7 +188,7 @@ describe('Soumission par l’auteur (F-43)', () => {
     const s = await setup(t);
     const intruder = await userWithRole(t, 'membre', 'x@test.org', 'Intrus');
 
-    // Le dépôt d'un autre se lit comme inexistant.
+    // Someone else's submission reads as non-existent.
     await expect(
       intruder.as.mutation(api.peerReview.submitManuscript, {
         publicationId: s.pubId,
@@ -215,7 +215,7 @@ describe('Soumission par l’auteur (F-43)', () => {
       submittedBy: s.author.id,
     });
 
-    // L'éditeur est prévenu, pas les relecteurs.
+    // The editor is notified, not the reviewers.
     const notes = await s.editor.as.query(
       api.notifications.myNotifications,
       {},
@@ -225,7 +225,7 @@ describe('Soumission par l’auteur (F-43)', () => {
       await s.rev1.as.query(api.notifications.myNotifications, {}),
     ).toHaveLength(0);
 
-    // Une deuxième soumission n'est pas une transition.
+    // A second submission is not a transition.
     await expect(
       s.author.as.mutation(api.peerReview.submitManuscript, {
         publicationId: s.pubId,
@@ -274,7 +274,7 @@ describe('Désignation des relecteurs (F-43)', () => {
     );
     expect(a).toMatchObject({ version: 1, dueAt: NOW + 21 * DAY });
 
-    // Deuxième relecteur, échéance choisie : la revue reste en évaluation.
+    // Second reviewer, chosen deadline: the review stays under evaluation.
     await s.editor.as.mutation(api.peerReview.assignReviewer, {
       publicationId: s.pubId,
       reviewerUserId: s.rev2.id,
@@ -362,7 +362,7 @@ describe('Conflit d’intérêts (F-43)', () => {
       }),
     ).rejects.toThrow('NOT_ASSIGNED');
 
-    // Avant la déclaration : pas de fichier.
+    // Before the declaration: no file.
     const before = await s.rev1.as.query(api.peerReview.getAssignment, {
       publicationId: s.pubId,
     });
@@ -378,7 +378,7 @@ describe('Conflit d’intérêts (F-43)', () => {
     });
     expect(after?.conflict).toBe('clear');
     expect(after?.file.url).toEqual(expect.any(String));
-    // Nom NEUTRE, jamais celui du dépôt.
+    // NEUTRAL name, never that of the submission.
     expect(after?.file.name).toBe('manuscrit-v1.pdf');
     await expect(
       s.rev1.as.mutation(api.peerReview.declareConflict, {
@@ -387,7 +387,7 @@ describe('Conflit d’intérêts (F-43)', () => {
       }),
     ).rejects.toThrow('CONFLICT_ALREADY_DECLARED');
 
-    // Rita se récuse.
+    // Rita recuses herself.
     await s.rev2.as.mutation(api.peerReview.declareConflict, {
       publicationId: s.pubId,
       hasConflict: true,
@@ -411,7 +411,7 @@ describe('Conflit d’intérêts (F-43)', () => {
       {},
     );
     expect(editorNotes.map((n) => n.titleKey)).toContain('peerReviewConflict');
-    // Un relecteur récusé ne se redésigne pas.
+    // A recused reviewer is not reassigned.
     await expect(
       s.editor.as.mutation(api.peerReview.assignReviewer, {
         publicationId: s.pubId,
@@ -419,7 +419,7 @@ describe('Conflit d’intérêts (F-43)', () => {
       }),
     ).rejects.toThrow('CONFLICT_DECLARED');
 
-    // La file de l'éditeur le montre.
+    // The editor's queue shows it.
     const { page } = await s.editor.as.query(
       api.peerReview.getReviewQueue,
       PAGE,
@@ -454,7 +454,7 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
       }),
     ).rejects.toThrow('ALREADY_REVIEWED');
 
-    // Décision motivée : un motif trop court est refusé.
+    // Reasoned decision: a reason that is too short is refused.
     await expect(
       s.editor.as.mutation(api.peerReview.decideManuscript, {
         publicationId: s.pubId,
@@ -470,14 +470,14 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
     expect((await t.run((ctx) => ctx.db.get(s.pubId)))?.reviewStage).toBe(
       'revision',
     );
-    // Le tour est clos : plus aucune échéance posée.
+    // The round is closed: no deadline set anymore.
     const open = await t.run((ctx) =>
       ctx.db.query('peerReviewAssignments').collect(),
     );
     expect(open.every((a) => a.dueAt === undefined)).toBe(true);
 
-    // L'auteur voit la décision motivée et les avis NUMÉROTÉS, jamais le
-    // commentaire confidentiel à l'éditeur.
+    // The author sees the reasoned decision and the NUMBERED reviews, never the
+    // confidential comment to the editor.
     const mine = await s.author.as.query(api.peerReview.myManuscripts, {});
     expect(mine.manuscripts).toHaveLength(1);
     const m = mine.manuscripts[0];
@@ -504,7 +504,7 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
       link: '/espace-membre/manuscrits',
     });
 
-    // Révision : nouvelle version, lettre de réponse obligatoire.
+    // Revision: new version, response letter mandatory.
     const v2File = await storePdf(t, 'v2');
     const revision = {
       publicationId: s.pubId,
@@ -533,13 +533,13 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
     expect((await t.run((ctx) => ctx.db.get(s.pubId)))?.reviewStage).toBe(
       'resubmitted',
     );
-    // Une révision non demandée n'est pas une transition.
+    // An unrequested revision is not a transition.
     await expect(
       s.author.as.mutation(api.peerReview.submitRevision, revision),
     ).rejects.toThrow('INVALID_TRANSITION');
     await anonymizeLatest(t, s.pubId);
 
-    // Versions ORDONNÉES, rien de réécrit dans la v1.
+    // ORDERED versions, nothing rewritten in v1.
     const dossier = await s.editor.as.query(
       api.peerReview.getManuscriptForEditor,
       { publicationId: s.pubId },
@@ -551,12 +551,12 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
       'Merci aux relecteurs',
     );
     expect(dossier?.reviews.map((r) => r.version)).toEqual([1, 1]);
-    // L'éditeur voit tout : l'autrice, et le commentaire confidentiel.
+    // The editor sees everything: the author, and the confidential comment.
     expect(dossier?.authorEmail).toBe(AUTHOR_EMAIL);
     expect(dossier?.reviews[0].commentToEditor).toContain('débutant');
 
-    // Nouveau tour : Rémi évalue la v2 — sa déclaration de conflit vaut
-    // toujours.
+    // New round: Rémi evaluates v2 — his conflict declaration still
+    // stands.
     await s.editor.as.mutation(api.peerReview.assignReviewer, {
       publicationId: s.pubId,
       reviewerUserId: s.rev1.id,
@@ -579,7 +579,7 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
     });
     expect(view?.file.name).toBe('manuscrit-v2.pdf');
     expect(view?.myReviews.map((r) => r.version)).toEqual([1]);
-    // Rita n'est pas de ce tour : son assignation porte encore la v1.
+    // Rita is not part of this round: her assignment still refers to v1.
     await expect(
       s.rev2.as.mutation(api.peerReview.submitReview, {
         publicationId: s.pubId,
@@ -588,7 +588,7 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
       }),
     ).rejects.toThrow('NOT_ASSIGNED');
 
-    // Acceptation sans avis sur la v2 : refusée.
+    // Acceptance without a review on v2: refused.
     await expect(
       s.editor.as.mutation(api.peerReview.decideManuscript, {
         publicationId: s.pubId,
@@ -611,7 +611,7 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
     );
     expect(decided).toEqual({ ok: true, published: true });
 
-    // Publication AUTOMATIQUE dans la bibliothèque, avec la version acceptée.
+    // AUTOMATIC publication in the library, with the accepted version.
     const pub = await t.run((ctx) => ctx.db.get(s.pubId));
     expect(pub).toMatchObject({
       reviewStage: 'accepted',
@@ -627,7 +627,7 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
     const last = await s.author.as.query(api.notifications.myNotifications, {});
     expect(last.map((n) => n.titleKey)).toContain('peerReviewAccepted');
 
-    // Une décision rendue ne se rejoue pas.
+    // A decision once made is not replayed.
     await expect(
       s.editor.as.mutation(api.peerReview.decideManuscript, {
         publicationId: s.pubId,
@@ -643,7 +643,7 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
     await s.author.as.mutation(api.peerReview.submitManuscript, {
       publicationId: s.pubId,
     });
-    // Refus éditorial SANS relecture, depuis `submitted`.
+    // Editorial rejection WITHOUT review, from `submitted`.
     await s.editor.as.mutation(api.peerReview.decideManuscript, {
       publicationId: s.pubId,
       decision: 'rejected',
@@ -663,9 +663,9 @@ describe('Parcours complet : soumis → deux relecteurs → révision → v2 →
   });
 });
 
-// TOUTES les transitions : chaque opération tentée depuis chaque étape. Ce qui
-// n'est pas dans la table est refusé avec l'erreur de la machine, et n'écrit
-// rien (ni étape, ni décision, ni version).
+// ALL transitions: each operation attempted from each stage. What
+// is not in the table is refused with the machine's error, and writes
+// nothing (no stage, no decision, no version).
 describe('Machine à états : toute transition hors table est refusée (F-43)', () => {
   type Op = {
     name: string;
@@ -718,8 +718,8 @@ describe('Machine à états : toute transition hors table est refusée (F-43)', 
           submittedBy: author.id,
           createdAt: 0,
         });
-        // Un avis sur la version courante : `NO_REVIEWS` ne doit pas masquer
-        // ce que la machine décide.
+        // A review on the current version: `NO_REVIEWS` must not mask
+        // what the machine decides.
         await ctx.db.insert('peerReviews', {
           publicationId: id,
           reviewerUserId: reviewer.id,
@@ -808,7 +808,7 @@ describe('Double aveugle — le relecteur ne voit JAMAIS l’auteur (F-43)', () 
     const s = await setup(t);
     await openWithTwoReviewers(t, s);
 
-    // Le fichier transmis : copie anonymisée, sans le nom dans ses octets.
+    // The transmitted file: anonymized copy, without the name in its bytes.
     const [ver] = await t.run((ctx) =>
       ctx.db.query('manuscriptVersions').collect(),
     );
@@ -830,9 +830,9 @@ describe('Double aveugle — le relecteur ne voit JAMAIS l’auteur (F-43)', () 
       comment: 'Avis déposé avant la collecte des réponses.',
     });
 
-    // TOUTES les requêtes qu'un relecteur (modérateur) peut appeler sur ce
-    // manuscrit — y compris la file de modération, où un modérateur voit
-    // d'ordinaire l'auteur de chaque dépôt.
+    // ALL the queries a reviewer (moderator) can call on this
+    // manuscript — including the moderation queue, where a moderator
+    // normally sees the author of each submission.
     const responses: Record<string, unknown> = {
       myAssignments: await s.rev1.as.query(api.peerReview.myAssignments, {}),
       getAssignment: await s.rev1.as.query(api.peerReview.getAssignment, {
@@ -857,7 +857,7 @@ describe('Double aveugle — le relecteur ne voit JAMAIS l’auteur (F-43)', () 
         publicationId: s.pubId,
       }),
     };
-    // La file de modération rend bien la ligne — sans l'autrice.
+    // The moderation queue does return the row — without the author.
     expect(
       (responses.listForReviewPending as { page: { _id: string }[] }).page.map(
         (p) => p._id,
@@ -869,7 +869,7 @@ describe('Double aveugle — le relecteur ne voit JAMAIS l’auteur (F-43)', () 
         expect(json, `${name} contient « ${marker} »`).not.toContain(marker);
       }
     }
-    // Les vues de l'éditeur, elles, lui sont refusées.
+    // The editor's views, however, are refused to them.
     await expect(
       s.rev1.as.query(api.peerReview.getReviewQueue, PAGE),
     ).rejects.toThrow();
@@ -879,7 +879,7 @@ describe('Double aveugle — le relecteur ne voit JAMAIS l’auteur (F-43)', () 
       }),
     ).rejects.toThrow();
 
-    // Témoin : l'éditeur, lui, voit l'autrice (règle 3).
+    // Control: the editor, however, does see the author (rule 3).
     const editorView = await s.editor.as.query(api.publications.listForReview, {
       status: 'pending',
       ...PAGE,
@@ -920,7 +920,7 @@ describe('Double aveugle — le relecteur ne voit JAMAIS l’auteur (F-43)', () 
       publicationId: s.pubId,
     });
     expect(released?.file.url).toEqual(expect.any(String));
-    // Une libération ne se rejoue pas.
+    // A release is not replayed.
     await expect(
       s.editor.as.mutation(api.peerReview.releaseVersionFile, {
         publicationId: s.pubId,
@@ -942,7 +942,7 @@ describe('Double aveugle — l’auteur ne voit JAMAIS ses relecteurs (F-43)', (
         comment: 'Des précisions sont attendues sur le corpus.',
       });
     }
-    // Avant la décision : l'auteur ne voit pas encore les avis.
+    // Before the decision: the author does not see the reviews yet.
     const early = await s.author.as.query(api.peerReview.myManuscripts, {});
     expect(early.manuscripts[0].reviews).toEqual([]);
 
@@ -980,7 +980,7 @@ describe('Double aveugle — l’auteur ne voit JAMAIS ses relecteurs (F-43)', (
         expect(json, `${name} contient « ${marker} »`).not.toContain(marker);
       }
     }
-    // Et l'auteur n'a accès à aucune vue de relecteur ou d'éditeur.
+    // And the author has access to no reviewer or editor view.
     await expect(
       s.author.as.query(api.peerReview.myAssignments, {}),
     ).rejects.toThrow();
@@ -1014,14 +1014,14 @@ describe('Relances à l’échéance (F-43)', () => {
         (n) => n.titleKey === key,
       ).length;
 
-    // Avant l'échéance : rien.
+    // Before the deadline: nothing.
     expect(await t.mutation(internal.peerReview.sendDueReminders, {})).toEqual({
       reminded: 0,
       escalated: 0,
       closed: 0,
     });
 
-    // Échéance passée : première relance — pour Rémi seulement.
+    // Deadline passed: first reminder — for Rémi only.
     vi.setSystemTime(NOW + 2 * DAY + 3_600_000);
     expect(
       (await t.mutation(internal.peerReview.sendDueReminders, {})).reminded,
@@ -1034,12 +1034,12 @@ describe('Relances à l’échéance (F-43)', () => {
     expect(note).toMatchObject({ link: '/admin/mes-relectures' });
     expect(note.params.title).toBe('Gouvernance numérique comparée');
 
-    // Le lendemain : pas de doublon (intervalle de trois jours).
+    // The next day: no duplicate (three-day interval).
     vi.setSystemTime(NOW + 3 * DAY + 3_600_000);
     await t.mutation(internal.peerReview.sendDueReminders, {});
     expect(await reminders(s.rev1, 'peerReviewReminder')).toBe(1);
 
-    // Deuxième et troisième relances, puis l'éditeur est prévenu, une fois.
+    // Second and third reminders, then the editor is notified, once.
     vi.setSystemTime(NOW + 6 * DAY);
     await t.mutation(internal.peerReview.sendDueReminders, {});
     vi.setSystemTime(NOW + 9 * DAY + 3_600_000);
@@ -1055,7 +1055,7 @@ describe('Relances à l’échéance (F-43)', () => {
     expect(await reminders(s.editor, 'peerReviewOverdue')).toBe(1);
     expect(await reminders(s.rev1, 'peerReviewReminder')).toBe(3);
 
-    // L'avis rendu éteint la relance.
+    // The submitted review turns off the reminder.
     await s.rev1.as.mutation(api.peerReview.declareConflict, {
       publicationId: s.pubId,
       hasConflict: false,
@@ -1075,7 +1075,7 @@ describe('Relances à l’échéance (F-43)', () => {
     );
     expect(a1.dueAt).toBeUndefined();
 
-    // Une échéance restée posée sur un tour clos est effacée, pas relancée.
+    // A deadline left set on a closed round is cleared, not reminded.
     await s.editor.as.mutation(api.peerReview.decideManuscript, {
       publicationId: s.pubId,
       decision: 'revision',
@@ -1225,13 +1225,13 @@ describe('Données personnelles (suppression / export de compte)', () => {
       assignments: await ctx.db.query('peerReviewAssignments').collect(),
     }));
     expect(after.versions).toHaveLength(0);
-    // Manuscrit non publié : son dossier de revue part avec lui.
+    // Unpublished manuscript: its review file goes with it.
     expect(after.assignments).toHaveLength(0);
   });
 });
 
-// Convention projet : le terme « démocratie libérale » / « liberal democracy »
-// est BANNI des chaînes que la feature introduit.
+// Project convention: the term "démocratie libérale" / "liberal democracy"
+// is BANNED from the strings the feature introduces.
 describe('Peer review — contenu (terme banni)', () => {
   it('aucune chaîne F-43 ne contient « démocratie libérale » / « liberal democracy »', () => {
     const haystack = JSON.stringify([

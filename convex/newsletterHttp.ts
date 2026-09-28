@@ -3,23 +3,23 @@ import { internal } from './_generated/api';
 import { SITE_LOCALES, type SiteLocale } from './lib/locales';
 import { siteUrl } from './lib/newsletterContent';
 
-// DÉSINSCRIPTION « EN UN CLIC » (RFC 8058) — cible de l'en-tête
-// `List-Unsubscribe` de chaque campagne (chantier diffusion, F-65).
+// "ONE-CLICK" UNSUBSCRIBE (RFC 8058) — target of the
+// `List-Unsubscribe` header of each campaign (diffusion workstream, F-65).
 //
-// Deux usages, une adresse :
-//  - POST `List-Unsubscribe=One-Click` : le bouton « Se désabonner » que
-//    Gmail, Yahoo ou Apple Mail affichent au-dessus du message. Il DOIT
-//    désinscrire sans autre étape ni page à visiter ; il ne suit pas de
-//    redirection et n'affiche rien.
-//  - GET : un client qui ouvre le lien dans le navigateur. On ne désinscrit
-//    PAS sur un GET — les antivirus de messagerie pré-chargent les liens, et
-//    un simple aperçu désinscrirait l'abonné —, on redirige vers la page de
-//    désinscription, dans la langue de l'abonné, qui fait la même opération
-//    au vu de l'utilisateur.
+// Two uses, one address:
+//  - POST `List-Unsubscribe=One-Click`: the "Unsubscribe" button that
+//    Gmail, Yahoo or Apple Mail display above the message. It MUST
+//    unsubscribe with no further step or page to visit; it does not follow
+//    redirects and displays nothing.
+//  - GET: a client opening the link in the browser. We do NOT unsubscribe
+//    on a GET — email antivirus software prefetches links, and
+//    a mere preview would unsubscribe the subscriber —, we redirect to the
+//    unsubscribe page, in the subscriber's language, which performs the same operation
+//    in view of the user.
 //
-// Module séparé de `http.ts` (qui monte aussi Convex Auth et n'est pas chargé
-// par les tests) : la décision vit dans `newsletter.unsubscribeByToken`,
-// testée directement.
+// Module separate from `http.ts` (which also mounts Convex Auth and is not loaded
+// by the tests): the decision lives in `newsletter.unsubscribeByToken`,
+// tested directly.
 
 function langOf(raw: string | null): SiteLocale {
   return (SITE_LOCALES as readonly string[]).includes(raw ?? '')
@@ -29,8 +29,8 @@ function langOf(raw: string | null): SiteLocale {
 
 function tokenOf(url: URL): string {
   const token = url.searchParams.get('token') ?? '';
-  // Jeton de désinscription : 32 caractères hexadécimaux. Tout le reste est
-  // refusé avant la moindre lecture en base.
+  // Unsubscribe token: 32 hexadecimal characters. Everything else is
+  // refused before any database read.
   return /^[0-9a-f]{32}$/.test(token) ? token : '';
 }
 
@@ -40,9 +40,9 @@ export const unsubscribeOneClick = httpAction(async (ctx, req) => {
   const result = await ctx.runMutation(internal.newsletter.unsubscribeByToken, {
     token,
   });
-  // 200 même pour un jeton inconnu (déjà désinscrit) : le client de
-  // messagerie n'a rien d'autre à faire, et la réponse ne distingue pas un
-  // abonné d'un autre.
+  // 200 even for an unknown token (already unsubscribed): the email
+  // client has nothing else to do, and the response does not distinguish one
+  // subscriber from another.
   return new Response(result.ok ? 'OK' : 'Bad Request', {
     status: result.ok ? 200 : 400,
   });

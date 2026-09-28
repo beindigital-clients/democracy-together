@@ -17,14 +17,14 @@ import {
 } from '../lib/payments/validators';
 import { processWebhook } from './webhooks';
 
-// SIMULATEUR DE PAIEMENT — DÉVELOPPEMENT ET E2E UNIQUEMENT.
+// PAYMENT SIMULATOR — DEVELOPMENT AND E2E ONLY.
 //
-// La page /paiement/simulateur joue le rôle de la page hébergée d'un
-// prestataire. « Payer » fabrique un webhook SIGNÉ et le passe à
-// `processWebhook`, exactement comme la route HTTP : vérification de
-// signature, filet d'événement, grand livre, reçu. Hors garde (production),
-// les deux fonctions refusent — la query répond `enabled: false`, l'action
-// lève — et la route HTTP factice répond 404.
+// The /paiement/simulateur page plays the role of a provider's hosted
+// page. "Payer" builds a SIGNED webhook and passes it to
+// `processWebhook`, exactly like the HTTP route: signature
+// verification, event net, ledger, receipt. Outside the guard (production),
+// both functions refuse — the query answers `enabled: false`, the action
+// throws — and the fake HTTP route answers 404.
 
 export const simulatorInfo = query({
   args: { ref: v.string() },

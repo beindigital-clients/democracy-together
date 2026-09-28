@@ -3,10 +3,10 @@ import { internalMutation } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 
-// Chantier « programmes » (F-56 à F-60) : données personnelles d'un compte —
-// export (droit d'accès) et suppression (droit à l'effacement). Fonctions
-// INTERNES, sans `ctx.auth` : c'est la suppression de compte qui les appelle,
-// après avoir elle-même établi qui supprime quoi.
+// "Programmes" workstream (F-56 to F-60): an account's personal data —
+// export (right of access) and deletion (right to erasure). INTERNAL
+// functions, without `ctx.auth`: account deletion calls them,
+// after establishing itself who deletes what.
 
 async function pairsOf(ctx: QueryCtx, userId: Id<'users'>) {
   const asMentor = await ctx.db
@@ -159,17 +159,17 @@ export async function exportUserDataProgrammes(
   };
 }
 
-// Suppression. Choix assumés :
-//  - un BINÔME est supprimé avec ses séances et jalons, même si l'autre
-//    membre reste : les notes de séance parlent des deux personnes, et le
-//    binôme n'a plus d'objet sans l'une d'elles. Le profil de l'autre membre
-//    est conservé, il peut être réapparié ;
-//  - une CANDIDATURE à un appel est supprimée avec ses pièces (stockage
-//    compris) ; ses évaluations aussi ;
-//  - les ÉVALUATIONS rendues par le compte sont supprimées : le classement se
-//    recalcule sans elles, comme pour un évaluateur retiré ;
-//  - l'AUTEUR de contenus éditoriaux (ressources, parcours, appels) et le
-//    coordinateur d'un binôme sont effacés de la fiche, le contenu reste.
+// Deletion. Deliberate choices:
+//  - a PAIR is deleted with its sessions and milestones, even if the other
+//    member remains: the session notes talk about both people, and the
+//    pair has no purpose without one of them. The other member's profile
+//    is kept, they can be matched again;
+//  - an APPLICATION to a call is deleted with its attachments (storage
+//    included); its evaluations too;
+//  - EVALUATIONS given by the account are deleted: the ranking is
+//    recomputed without them, as for a removed evaluator;
+//  - the AUTHOR of editorial content (resources, pathways, calls) and the
+//    coordinator of a pair are erased from the record, the content remains.
 export async function deleteUserDataProgrammes(
   ctx: MutationCtx,
   userId: Id<'users'>,
@@ -242,8 +242,8 @@ export async function deleteUserDataProgrammes(
     await ctx.db.delete(e._id);
   }
 
-  // Auteur / coordinateur effacés, contenu conservé. Ces tables sont
-  // éditoriales et de petite taille (quelques centaines de lignes au plus).
+  // Author / coordinator erased, content kept. These tables are
+  // editorial and small (a few hundred rows at most).
   for (const table of [
     'toolboxResources',
     'learningPaths',
@@ -260,11 +260,11 @@ export async function deleteUserDataProgrammes(
   }
 }
 
-// --- DEV/TEST (garde AUTH_DEV_OTP) ------------------------------------------
-// Remet à zéro les données « programmes » des comptes de test E2E : les
-// sessions partagées portent des adresses STABLES, et un binôme laissé par
-// l'exécution précédente empêcherait la suivante de réapparier les mêmes
-// comptes. Ne touche qu'aux adresses en `@democracytogether.test`.
+// --- DEV/TEST (AUTH_DEV_OTP guard) -------------------------------------------
+// Resets the "programmes" data of E2E test accounts: the
+// shared sessions carry STABLE addresses, and a pair left by the
+// previous run would prevent the next one from re-matching the same
+// accounts. Only touches addresses in `@democracytogether.test`.
 export const devResetProgrammes = internalMutation({
   args: { emails: v.array(v.string()), marker: v.optional(v.string()) },
   returns: v.union(v.null(), v.number()),
@@ -282,8 +282,8 @@ export const devResetProgrammes = internalMutation({
       await deleteUserDataProgrammes(ctx, user._id);
       n++;
     }
-    // Contenus de test marqués : appels, parcours et ressources dont le titre
-    // porte le marqueur de l'exécution.
+    // Marked test content: calls, pathways and resources whose title
+    // carries the run's marker.
     if (marker && marker.length >= 6) {
       for (const call of await ctx.db.query('projectCalls').collect()) {
         if (!call.title.includes(marker)) continue;

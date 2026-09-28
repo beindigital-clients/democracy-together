@@ -15,12 +15,12 @@ import {
   planZoneValidator,
 } from '../lib/payments/validators';
 
-// BARÈME DES FORMULES D'ADHÉSION (F-27) — catégorie × zone de revenu, un
-// montant par devise. Il remplace l'estimation indicative de /adhesion dès
-// qu'il existe en base ; l'espace membre facture exactement ce barème.
+// MEMBERSHIP PLAN SCHEDULE (F-27) — category × income zone, one
+// amount per currency. It replaces the indicative estimate on /adhesion as soon as
+// it exists in the database; the member area bills exactly this schedule.
 
-// Neuf combinaisons au plus : les lectures ci-dessous sont bornées par
-// construction (catégories × zones).
+// Nine combinations at most: the reads below are bounded by
+// construction (categories × zones).
 const PLAN_MAX = PLAN_CATEGORIES.length * PLAN_ZONES.length;
 
 const publicPlanValidator = v.object({
@@ -74,9 +74,9 @@ export const adminPlans = query({
   },
 });
 
-// Enregistre une formule. Montants en unités MAJEURES (saisie de l'écran),
-// `null` = formule non proposée dans cette devise. Audité : le barème fixe ce
-// que paient les membres.
+// Records a plan. Amounts in MAJOR units (entered on screen),
+// `null` = plan not offered in this currency. Audited: the schedule sets what
+// members pay.
 export const upsertPlan = mutation({
   args: {
     category: planCategoryValidator,
@@ -99,7 +99,7 @@ export const upsertPlan = mutation({
       throw new ConvexError('AMOUNT_OUT_OF_BOUNDS');
     }
     if (eur === null && usd === null && args.active) {
-      // Une formule active sans aucun montant serait un bouton mort.
+      // An active plan without any amount would be a dead button.
       throw new ConvexError('PLAN_WITHOUT_AMOUNT');
     }
     const existing = await ctx.db
@@ -145,8 +145,8 @@ export const upsertPlan = mutation({
   },
 });
 
-// Initialise les combinaisons manquantes avec le barème par défaut (celui de
-// l'estimateur public, même chiffre rond en dollars). N'écrase rien.
+// Initializes the missing combinations with the default schedule (the one from
+// the public estimator, same round figure in dollars). Overwrites nothing.
 export const seedDefaultPlans = mutation({
   args: {},
   returns: v.number(),

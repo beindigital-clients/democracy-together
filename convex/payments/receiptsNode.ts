@@ -8,16 +8,16 @@ import { associationInfo, receiptLinkUrl } from '../lib/payments/config';
 import { buildReceiptPdf } from '../lib/payments/receiptPdf';
 import { paymentConfirmationEmail } from '../lib/payments/emails';
 
-// REÇUS (F-29) — composition du PDF et courriel de confirmation, runtime Node.
+// RECEIPTS (F-29) — PDF composition and confirmation email, Node runtime.
 //
-// Pourquoi Node : le reçu imprime le nom du payeur dans son écriture (arabe
-// lié, vietnamien…), ce qui demande des polices embarquées et la mise en
-// forme OpenType de pdfkit + fontkit, qui s'appuient sur les flux et zlib de
-// Node (convex/lib/payments/receiptPdf.ts). Seule la COMPOSITION est ici :
-// le numéro du reçu est attribué dans la transaction du paiement
-// (convex/lib/payments/ledger.ts), qui planifie cette action ; la lecture des
-// données et l'enregistrement du fichier restent des fonctions du runtime par
-// défaut (./receipts.ts). Rejouable : un reçu déjà produit n'est pas refait.
+// Why Node: the receipt prints the payer's name in its script (joined
+// Arabic, Vietnamese…), which requires embedded fonts and the OpenType
+// shaping of pdfkit + fontkit, which rely on Node's streams and zlib
+// (convex/lib/payments/receiptPdf.ts). Only the COMPOSITION is here:
+// the receipt number is assigned in the payment transaction
+// (convex/lib/payments/ledger.ts), which schedules this action; reading the
+// data and recording the file remain functions of the default
+// runtime (./receipts.ts). Replayable: a receipt already produced is not redone.
 
 export const generate = internalAction({
   args: { receiptId: v.id('paymentReceipts') },
@@ -56,9 +56,9 @@ export const generate = internalAction({
     );
     if (!saved) return null;
 
-    // Courriel de confirmation : un échec (pas de fournisseur e-mail) ne défait
-    // rien — le paiement et le reçu existent, le reçu reste dans l'espace
-    // membre et au back-office.
+    // Confirmation email: a failure (no email provider) undoes
+    // nothing — the payment and the receipt exist, the receipt stays in the member
+    // area and in the back-office.
     try {
       const { subject, html } = paymentConfirmationEmail({
         kind: data.kind,

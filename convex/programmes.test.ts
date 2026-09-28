@@ -11,9 +11,9 @@ import {
 } from './programmes';
 import { WEEK_MS } from './lib/programmes';
 
-// Chantier « programmes » (F-56 à F-60) : les règles tenues par le serveur,
-// REFUS compris — mauvais rôle, mauvais propriétaire, données d'un autre,
-// hors fenêtre, conflit d'intérêts.
+// "Programmes" workstream (F-56 to F-60): the rules enforced by the server,
+// REFUSALS included — wrong role, wrong owner, someone else's data,
+// outside the window, conflict of interest.
 
 beforeEach(() => {
   process.env.AUTH_EMAIL_PROVIDER = 'none';
@@ -88,7 +88,7 @@ describe('Jeunes — profil et candidatures (F-58)', () => {
       _id: appId,
       status: 'pending',
     });
-    // Un seul profil par compte, même après deux enregistrements.
+    // A single profile per account, even after two saves.
     const profiles = await t.run((ctx) =>
       ctx.db.query('youthProfiles').collect(),
     );
@@ -116,7 +116,7 @@ describe('Jeunes — profil et candidatures (F-58)', () => {
     await expect(
       jeune.as.mutation(api.youthProfiles.applyToYouthProgramme, motivation),
     ).rejects.toMatchObject({ data: 'ALREADY_APPLIED' });
-    // Après un retrait, on peut recandidater.
+    // After a withdrawal, one can apply again.
     await jeune.as.mutation(api.youthProfiles.withdrawYouthApplication, {
       applicationId: first,
     });
@@ -154,7 +154,7 @@ describe('Jeunes — profil et candidatures (F-58)', () => {
       applicationId: appId,
       decision: 'approved',
     });
-    // Une décision ne se rejoue pas d'un second clic.
+    // A decision is not replayed by a second click.
     await expect(
       mod.as.mutation(api.youthProfiles.reviewYouthProgramApplication, {
         applicationId: appId,
@@ -168,7 +168,7 @@ describe('Jeunes — profil et candidatures (F-58)', () => {
         .collect(),
     );
     expect(notes.map((n) => n.titleKey)).toEqual(['youthProgrammeApproved']);
-    // L'autre jeune ne voit pas la candidature de Lina.
+    // The other young person does not see Lina's application.
     const autre = await user(t, 'visiteur', 'Autre');
     expect(
       (await autre.as.query(api.youthProfiles.myYouthSpace, {}))?.applications,
@@ -244,7 +244,7 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
     });
     expect(second).toEqual(first);
     expect(first.map((s) => s.mentorProfileId)).toEqual([profileA, profileB]);
-    // Aminata : 2 thèmes (30) + français (25) + même région (15) + libre (15).
+    // Aminata: 2 themes (30) + French (25) + same region (15) + available (15).
     expect(first[0].score).toBe(85);
     expect(first[0].reasons).toEqual([
       {
@@ -256,7 +256,7 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
       { kind: 'region', points: 15, values: ['afrique-ouest'] },
       { kind: 'load', points: 15, active: 0, capacity: 2 },
     ]);
-    // Pieter : 1 thème (15) + français (25) + 1 h d'écart (10) + libre (15).
+    // Pieter: 1 theme (15) + French (25) + 1 h apart (10) + available (15).
     expect(first[1].score).toBe(65);
     expect(first[1].reasons[2]).toEqual({
       kind: 'timezone',
@@ -307,21 +307,21 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
       menteeProfileId: menteeProfile,
       mentorProfileId: profileA,
     });
-    // Un mentoré n'a qu'un binôme en cours.
+    // A mentee has only one ongoing pair.
     await expect(
       coord.as.mutation(api.mentoring.proposePair, {
         menteeProfileId: menteeProfile,
         mentorProfileId: profileB,
       }),
     ).rejects.toMatchObject({ data: 'ALREADY_PAIRED' });
-    // Un tiers ne peut pas répondre à la place d'un membre du binôme.
+    // A third party cannot answer on behalf of a member of the pair.
     await expect(
       mentorB.as.mutation(api.mentoring.respondToPair, {
         pairId,
         accept: true,
       }),
     ).rejects.toMatchObject({ data: 'NOT_FOUND' });
-    // Pas de séance avant l'acceptation.
+    // No session before acceptance.
     await expect(
       mentee.as.mutation(api.mentoring.logSession, {
         pairId,
@@ -352,7 +352,7 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
     expect(pair.sessions[0].notes).toBe(
       'Notes privées : doutes sur le terrain.',
     );
-    // L'acceptation vaut consentement : l'adresse de l'autre est donnée.
+    // Acceptance counts as consent: the other person's address is given.
     expect(pair.counterpartEmail).toBe('awa@test.org');
   });
 
@@ -388,7 +388,7 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
     expect(seenByCoord.sessions[0].notes).toBeNull();
     expect(seenByCoord.counterpartEmail).toBeNull();
 
-    // Un autre membre (même mentor du réseau) : refus, comme un id inconnu.
+    // Another member (same network mentor): refused, like an unknown id.
     await expect(
       mentorB.as.query(api.mentoring.getPair, { pairId }),
     ).rejects.toMatchObject({ data: 'NOT_FOUND' });
@@ -396,7 +396,7 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
     await expect(
       anonyme.query(api.mentoring.getPair, { pairId }),
     ).rejects.toThrow();
-    // Le coordinateur suit, il n'écrit pas dans le journal du binôme.
+    // The coordinator follows, they do not write in the pair's log.
     await expect(
       coord.as.mutation(api.mentoring.logSession, {
         pairId,
@@ -472,7 +472,7 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
       api.mentoring.saveMentorProfile,
       MENTEE,
     );
-    // Pieter (capacité 1) reçoit un premier binôme…
+    // Pieter (capacity 1) gets a first pair…
     await coord.as.mutation(api.mentoring.proposePair, {
       menteeProfileId: otherProfile,
       mentorProfileId: profileB,
@@ -505,10 +505,10 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
       accept: true,
     });
 
-    // Binôme récent : pas d'alerte.
+    // Recent pair: no alert.
     expect(await t.mutation(internal.mentoring.checkInactivity, {})).toBe(0);
 
-    // Dernière séance il y a cinq semaines.
+    // Last session five weeks ago.
     await t.run((ctx) =>
       ctx.db.patch(pairId as Id<'mentorPairs'>, {
         startedAt: Date.now() - 6 * WEEK_MS,
@@ -524,14 +524,14 @@ describe('Mentorat — appariement et binômes (F-59)', () => {
     );
     expect(alerts.map((n) => n.titleKey)).toEqual(['mentoringInactive']);
     expect(alerts[0].params).toEqual({ name: 'Awa' });
-    // La nuit suivante : déjà alerté pour cette période.
+    // The following night: already alerted for this period.
     expect(await t.mutation(internal.mentoring.checkInactivity, {})).toBe(0);
-    // L'écran de coordination signale le binôme inactif.
+    // The coordination screen flags the inactive pair.
     const overview = await coord.as.query(api.mentoring.coordinationOverview, {
       now: Date.now(),
     });
     expect(overview.pairs.find((p) => p._id === pairId)?.inactive).toBe(true);
-    // Une séance journalisée remet le compteur à zéro.
+    // A logged session resets the counter to zero.
     await mentee.as.mutation(api.mentoring.logSession, {
       pairId,
       date: Date.now() - 1000,
@@ -623,7 +623,7 @@ describe('Appels à projets (F-60)', () => {
       fundCurrency: 'EUR',
       timeZone: 'Africa/Dakar',
     });
-    // Aucune donnée interne ne sort de la query publique.
+    // No internal data leaves the public query.
     expect(Object.keys(pub)).not.toContain('createdBy');
   });
 
@@ -657,7 +657,7 @@ describe('Appels à projets (F-60)', () => {
       }),
     ).rejects.toMatchObject({ data: 'CALL_CLOSED' });
 
-    // Un brouillon ouvert pendant la fenêtre ne se dépose plus après.
+    // A draft opened during the window can no longer be submitted after it.
     const open = await publishedCall(t, admin, {
       opensAt: Date.now() - DAY,
       closesAt: Date.now() + DAY,
@@ -672,7 +672,7 @@ describe('Appels à projets (F-60)', () => {
         applicationId: appId,
       }),
     ).rejects.toMatchObject({ data: 'CALL_CLOSED' });
-    // Un visiteur (non membre) ne candidate pas.
+    // A visitor (non-member) does not apply.
     const visiteur = await user(t, 'visiteur', 'Vis');
     await t.run((ctx) => ctx.db.patch(open, { closesAt: Date.now() + DAY }));
     await expect(
@@ -707,7 +707,7 @@ describe('Appels à projets (F-60)', () => {
       }),
     ).rejects.toMatchObject({ data: 'MISSING_DOCUMENTS' });
 
-    // Un exécutable renommé en .pdf : refusé, et retiré du stockage.
+    // An executable renamed to .pdf: refused, and removed from storage.
     const exe = await store(t, EXE);
     await expect(
       membre.as.action(api.projectCalls.attachDocument, {
@@ -719,7 +719,7 @@ describe('Appels à projets (F-60)', () => {
     ).rejects.toMatchObject({ data: 'INVALID_FILE' });
     expect(await t.run((ctx) => ctx.storage.get(exe))).toBeNull();
 
-    // Le dossier d'un autre : refusé.
+    // Someone else's file: refused.
     const pdfForOther = await store(t, PDF);
     await expect(
       autre.as.action(api.projectCalls.attachDocument, {
@@ -748,7 +748,7 @@ describe('Appels à projets (F-60)', () => {
     expect(mine.attachments).toMatchObject([
       { docKey: 'budget', contentType: 'application/pdf' },
     ]);
-    // Déposé = figé.
+    // Submitted = frozen.
     await expect(
       membre.as.mutation(api.projectCalls.saveCallApplication, {
         callId,
@@ -807,7 +807,7 @@ describe('Appels à projets (F-60)', () => {
       { criterionKey: 'pertinence', score: p },
       { criterionKey: 'faisabilite', score: f },
     ];
-    // Un non-évaluateur ne note pas.
+    // A non-evaluator does not score.
     await expect(
       intrus.as.mutation(api.projectCalls.submitEvaluation, {
         applicationId: appA,
@@ -815,7 +815,7 @@ describe('Appels à projets (F-60)', () => {
         scores: full(5, 5),
       }),
     ).rejects.toMatchObject({ data: 'NOT_FOUND' });
-    // Une grille incomplète est refusée.
+    // An incomplete grid is refused.
     await expect(
       evalY.as.mutation(api.projectCalls.submitEvaluation, {
         applicationId: appA,
@@ -824,7 +824,7 @@ describe('Appels à projets (F-60)', () => {
       }),
     ).rejects.toMatchObject({ data: 'INVALID_SCORES' });
 
-    // X déclare un conflit sur A (qu'il aurait noté 5/5), note B.
+    // X declares a conflict on A (which they would have scored 5/5), scores B.
     await evalX.as.mutation(api.projectCalls.submitEvaluation, {
       applicationId: appA,
       conflict: true,
@@ -853,7 +853,7 @@ describe('Appels à projets (F-60)', () => {
       scores: full(3, 3), // 60
     });
 
-    // X ne lit plus le contenu de A, ni ses pièces.
+    // X no longer reads A's content, nor its attachments.
     const [assignment] = await evalX.as.query(
       api.projectCalls.myEvaluationAssignments,
       {},
@@ -890,7 +890,7 @@ describe('Appels à projets (F-60)', () => {
     const ranking = await admin.as.query(api.projectCalls.callRanking, {
       callId,
     });
-    // B : moyenne de X (80) et Y (60) = 70 ; A : Y seul (60), X exclu.
+    // B: average of X (80) and Y (60) = 70; A: Y alone (60), X excluded.
     expect(
       ranking.map((r) => [r.title, r.average, r.evaluations, r.excluded]),
     ).toEqual([
@@ -910,7 +910,7 @@ describe('Appels à projets (F-60)', () => {
       applicationId: appA,
       decision: 'waitlisted',
     });
-    // La liste d'attente peut encore basculer ; une sélection, non.
+    // The waiting list can still switch; a selection cannot.
     await expect(
       admin.as.mutation(api.projectCalls.decideCallApplication, {
         applicationId: appB,
@@ -1084,7 +1084,7 @@ describe('Boîte à outils et parcours (F-56, F-57)', () => {
       done: true,
     });
 
-    // Bob, inscrit ou non, ne voit que SA progression.
+    // Bob, enrolled or not, only sees HIS progress.
     expect(
       await bob.as.query(api.toolbox.myPathProgress, { pathId }),
     ).toBeNull();
@@ -1112,12 +1112,12 @@ describe('Boîte à outils et parcours (F-56, F-57)', () => {
       steps: 2,
     });
     expect(cert.code).toMatch(/^DT-[0-9A-F]{4}-[0-9A-F]{4}$/);
-    // L'attestation d'Alice n'est pas lisible par Bob.
+    // Alice's certificate is not readable by Bob.
     await expect(
       bob.as.query(api.toolbox.getCertificate, { enrollmentId }),
     ).rejects.toMatchObject({ data: 'NOT_FOUND' });
 
-    // Décocher une étape retire l'attestation.
+    // Unticking a step removes the certificate.
     await alice.as.mutation(api.toolbox.setStepDone, {
       stepId: s2,
       done: false,
@@ -1183,10 +1183,10 @@ describe('Suppression et export des données (programmes)', () => {
     }));
     expect(left.youth).toEqual([]);
     expect(left.pair).toBeNull();
-    // Le profil de Bob reste : il pourra être réapparié.
+    // Bob's profile remains: he can be matched again.
     expect(left.profiles.map((p) => p.userId)).toEqual([bob.id]);
 
-    // Le coordinateur supprimé est effacé du binôme, le binôme reste.
+    // The deleted coordinator is erased from the pair, the pair remains.
     const carol = await user(t, 'visiteur', 'Carol');
     const m2 = await carol.as.mutation(api.mentoring.saveMentorProfile, {
       ...base,

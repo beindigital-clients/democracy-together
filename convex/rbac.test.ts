@@ -6,9 +6,9 @@ import { api, internal } from './_generated/api';
 import { rank, effectiveRole, DEFAULT_ROLE } from './lib/rbac';
 import { effectiveRole as sharedEffectiveRole } from './lib/roles';
 
-// Modules chargés par convex-test. On inclut _generated (requis pour situer la
-// racine) et les .js générés ; on exclut seulement les tests, les .d.ts et le
-// câblage auth (auth.config.ts lit process.env, indispo en edge-runtime).
+// Modules loaded by convex-test. We include _generated (required to locate the
+// root) and the generated .js files; we only exclude tests, .d.ts files and the
+// auth wiring (auth.config.ts reads process.env, unavailable in edge-runtime).
 const modules = import.meta.glob([
   './**/*.ts',
   './**/*.js',
@@ -25,23 +25,23 @@ describe('RBAC — hiérarchie des rôles (F-02)', () => {
     expect(rank('membre')).toBeLessThan(rank('moderateur'));
     expect(rank('moderateur')).toBeLessThan(rank('editeur'));
     expect(rank('editeur')).toBeLessThan(rank('admin'));
-    // Auto-inscription sans rôle explicite -> visiteur (pas membre).
+    // Self-signup without an explicit role -> visitor (not member).
     expect(rank(undefined)).toBe(rank('visiteur'));
   });
 
-  // La valeur par défaut n'est écrite qu'une fois dans le dépôt
-  // (convex/lib/roles.ts). `lib/rbac` la RÉEXPORTE — il ne la recopie pas —
-  // et `src/lib/roles.ts` importe le même module côté interface : c'est ce qui
-  // empêche le back-office de réintroduire « membre » (issue #27).
+  // The default value is written only once in the repo
+  // (convex/lib/roles.ts). `lib/rbac` RE-EXPORTS it — it does not copy it —
+  // and `src/lib/roles.ts` imports the same module on the interface side: this is what
+  // prevents the back-office from reintroducing "membre" (issue #27).
   it('dérive le rôle effectif depuis une source unique', () => {
     expect(effectiveRole).toBe(sharedEffectiveRole);
     expect(DEFAULT_ROLE).toBe('visiteur');
     expect(effectiveRole(undefined)).toBe(DEFAULT_ROLE);
     expect(effectiveRole(null)).toBe(DEFAULT_ROLE);
-    // Valeur hors hiérarchie (donnée héritée) : le MOINS privilégié, jamais
-    // un rôle supérieur.
+    // Value outside the hierarchy (legacy data): the LEAST privileged, never
+    // a higher role.
     expect(effectiveRole('super-admin')).toBe(DEFAULT_ROLE);
-    // Un rôle explicite n'est jamais réécrit.
+    // An explicit role is never rewritten.
     for (const role of ['visiteur', 'membre', 'moderateur', 'editeur', 'admin'])
       expect(effectiveRole(role)).toBe(role);
   });
@@ -66,7 +66,7 @@ describe('Adhésion — candidature + validation (F-22 / F-26)', () => {
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
 
-    // un membre ne peut pas valider
+    // a member cannot validate
     await expect(
       t
         .withIdentity({ subject: `${memberId}|s` })
@@ -76,7 +76,7 @@ describe('Adhésion — candidature + validation (F-22 / F-26)', () => {
         }),
     ).rejects.toThrow();
 
-    // un modérateur le peut
+    // a moderator can
     await t
       .withIdentity({ subject: `${modId}|s` })
       .mutation(api.organizations.reviewApplication, {
@@ -139,7 +139,7 @@ describe('RBAC — héritage des rôles & rejet anonyme (F-02)', () => {
       ctx.db.insert('users', { role: 'visiteur', email: 'vi@test.org' }),
     );
 
-    // appelant anonyme refusé (branche requireUser « Non authentifié »)
+    // anonymous caller refused (requireUser "Non authentifié" branch)
     await expect(
       t.mutation(api.organizations.reviewApplication, {
         applicationId: appId,
@@ -147,7 +147,7 @@ describe('RBAC — héritage des rôles & rejet anonyme (F-02)', () => {
       }),
     ).rejects.toThrow();
 
-    // visiteur refusé (rang < modérateur)
+    // visitor refused (rank < moderator)
     await expect(
       t
         .withIdentity({ subject: `${visitorId}|s` })
@@ -157,7 +157,7 @@ describe('RBAC — héritage des rôles & rejet anonyme (F-02)', () => {
         }),
     ).rejects.toThrow();
 
-    // éditeur accepté (rang > modérateur -> héritage)
+    // editor accepted (rank > moderator -> inheritance)
     await t
       .withIdentity({ subject: `${editorId}|s` })
       .mutation(api.organizations.reviewApplication, {
@@ -174,7 +174,7 @@ describe('Adhésion — approbation accorde le rôle membre (modèle B)', () => 
     const visitorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'cand@test.org' }),
     );
-    // candidature déposée par le visiteur connecté -> applicantUserId lié
+    // application submitted by the signed-in visitor -> applicantUserId linked
     const appId = await t
       .withIdentity({ subject: `${visitorId}|s` })
       .mutation(internal.organizations.storeApplication, {

@@ -14,28 +14,28 @@ import {
   type SearchHit,
 } from './lib/searchSources';
 
-// RECHERCHE GLOBALE (F-06) ET PLEIN TEXTE (F-34) — sur les INDEX DE RECHERCHE
-// Convex, plus sur des lectures complètes filtrées en mémoire.
+// GLOBAL SEARCH (F-06) AND FULL TEXT (F-34) — on Convex SEARCH
+// INDEXES, no longer on full reads filtered in memory.
 //
-// Avant (mesuré au rapport de campagne, § 10.2) : chaque frappe dans la palette
-// chargeait toutes les publications publiées et tous les membres actifs, puis
-// cherchait une sous-chaîne. Correct à vingt documents, linéaire ensuite — et
-// la palette interroge à chaque frappe. Désormais chaque source lit SON index
-// (`search_text`), sur une meule repliée tenue à l'écriture
-// (`lib/searchText.ts`) : « democratie » trouve « démocratie » comme avant,
-// mais en une lecture d'index bornée.
+// Before (measured in the campaign report, § 10.2): each keystroke in the palette
+// loaded all published publications and all active members, then
+// searched for a substring. Fine at twenty documents, linear after that — and
+// the palette queries on every keystroke. Now each source reads ITS index
+// (`search_text`), on a folded haystack maintained on write
+// (`lib/searchText.ts`): "democratie" finds "démocratie" as before,
+// but in a bounded index read.
 //
-// Les sources et leurs règles de visibilité vivent dans le REGISTRE
-// (`lib/searchSources.ts`). Ce module ne connaît aucune table. Les actualités
-// (Sanity) restent cherchées à part par la page /recherche.
+// The sources and their visibility rules live in the REGISTRY
+// (`lib/searchSources.ts`). This module knows no table. News
+// (Sanity) is still searched separately by the /recherche page.
 
-// Résultats par source dans la palette : de quoi choisir, pas un inventaire.
+// Results per source in the palette: enough to choose, not an inventory.
 const LIMIT = 8;
 
-// `lang` : langue de RÉDACTION de la publication (celle du hit du registre,
-// `searchLang ?? languages[0]`, la même règle que la fiche). Les listes de
-// résultats en ont besoin pour poser `lang` sur un titre qui n'est pas dans la
-// langue de la page (RGAA 8.7) — la forme historique la porte donc aussi.
+// `lang`: WRITING language of the publication (that of the registry hit,
+// `searchLang ?? languages[0]`, the same rule as the record page). Result
+// lists need it to set `lang` on a title that is not in the
+// page's language (RGAA 8.7) — so the historical shape carries it too.
 const legacyPublication = v.object({
   slug: v.string(),
   title: v.string(),
@@ -55,8 +55,8 @@ function lastSegment(path: string): string {
 export const globalSearch = query({
   args: { q: v.string(), filters: v.optional(searchFiltersValidator) },
   returns: v.object({
-    // Sections GÉNÉRIQUES, dans l'ordre du registre : une source ajoutée au
-    // registre apparaît ici sans toucher à cette fonction ni à son contrat.
+    // GENERIC sections, in registry order: a source added to the
+    // registry appears here without touching this function or its contract.
     sections: v.array(
       v.object({
         source: searchSourceValidator,
@@ -64,8 +64,8 @@ export const globalSearch = query({
         more: v.boolean(),
       }),
     ),
-    // Forme historique (palette et page d'avant le registre), conservée pour
-    // les appelants existants.
+    // Historical shape (palette and page from before the registry), kept for
+    // existing callers.
     publications: v.array(legacyPublication),
     organizations: v.array(legacyOrganization),
   }),
@@ -79,8 +79,8 @@ export const globalSearch = query({
         const r = await searchSource(ctx, source, needle, f, {
           numItems: LIMIT,
           cursor: null,
-          // Plusieurs sources dans la même query : lecture par `take`, pas de
-          // pagination (cf. `pageOf` dans convex/lib/searchSources.ts).
+          // Several sources in the same query: read via `take`, no
+          // pagination (see `pageOf` in convex/lib/searchSources.ts).
           firstPageOnly: true,
         });
         return { source, hits: r.page.slice(0, LIMIT), more: !r.isDone };
@@ -106,7 +106,7 @@ export const globalSearch = query({
   },
 });
 
-// Résultats PAGINÉS d'une source — « voir plus » de la page /recherche.
+// PAGINATED results of one source — "voir plus" on the /recherche page.
 export const searchBySource = query({
   args: {
     source: searchSourceValidator,
@@ -118,7 +118,7 @@ export const searchBySource = query({
   handler: async (ctx, { source, q, filters, paginationOpts }) => {
     const needle = searchQuery(q);
     if (!needle) return { page: [], isDone: true, continueCursor: '' };
-    // Taille de page bornée côté serveur : le client ne fixe pas la borne.
+    // Page size bounded server-side: the client does not set the bound.
     const opts = {
       ...paginationOpts,
       numItems: Math.max(1, Math.min(50, paginationOpts.numItems)),

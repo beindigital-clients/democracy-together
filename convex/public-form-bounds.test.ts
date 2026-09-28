@@ -7,20 +7,20 @@ import { internal } from './_generated/api';
 import { EMAIL_MAX_LENGTH, FIELD_MAX, isEmail } from './lib/validation';
 import { insertTestEvent } from './lib/contenus/fixtures';
 
-// BORNES DES FORMULAIRES PUBLICS — pentest M-2 (« remplissage ») et M-5.
+// PUBLIC FORM BOUNDS — pentest M-2 ("stuffing") and M-5.
 //
-// Ce que le pentest relevait : « aucune longueur max sur contact,
-// storeApplication […] jusqu'à ~1 Mo par soumission », et, pour les rappels
-// d'événements, une file rechargeable vers l'adresse d'un tiers.
+// What the pentest noted: "no max length on contact,
+// storeApplication […] up to ~1 MB per submission", and, for event
+// reminders, a reloadable queue towards a third party's address.
 //
-// CE FICHIER TESTE LES DEUX CÔTÉS DE CHAQUE BORNE. Un test qui ne vérifierait
-// que le refus passerait encore le jour où la validation refuserait TOUT —
-// c'est la panne symétrique, et elle est silencieuse pour qui ne regarde que
-// le rouge. Chaque cas limite est donc joué à la borne (accepté) et à la borne
-// + 1 (refusé).
+// THIS FILE TESTS BOTH SIDES OF EACH BOUND. A test that only checked
+// the refusal would still pass the day validation refused EVERYTHING —
+// that is the symmetric failure, and it is silent for anyone who only looks at
+// red. Each edge case is therefore played at the bound (accepted) and at the bound
+// + 1 (refused).
 //
-// On vise les `internalMutation` plutôt que les actions-portail : la porte
-// reCAPTCHA a ses propres tests, et ce qui est en cause ici est la validation.
+// We target the `internalMutation`s rather than the gate actions: the reCAPTCHA
+// gate has its own tests, and what is at stake here is validation.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -156,7 +156,7 @@ describe('adhésion — bornes hautes des champs libres (pentest M-2)', () => {
 });
 
 describe('adresse e-mail — borne RFC partagée par les sept formulaires', () => {
-  // `isEmail` est le point de passage commun : la borne y est posée une fois.
+  // `isEmail` is the common chokepoint: the bound is set there once.
   const adresse = (longueurLocale: number) =>
     `${'a'.repeat(longueurLocale)}@exemple.test`;
 
@@ -201,10 +201,10 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
 
   it('plafonne les rappels EN ATTENTE d’une adresse, et ne se recharge pas avec le temps', async () => {
     const t = convexTest(schema, modules);
-    // Depuis le chantier « contenus », le slug est validé contre la table :
-    // varier le slug ne rend plus un créneau neuf que s'il désigne un VRAI
-    // événement ouvert. Le plafond reste l'objet du test, on crée donc ces
-    // événements (à 30 jours : l'horloge avancée ci-dessous ne les rattrape pas).
+    // Since the "contenus" workstream, the slug is validated against the table:
+    // varying the slug only yields a fresh slot if it designates a REAL
+    // open event. The cap remains the subject of the test, so we create these
+    // events (30 days out: the clock advanced below does not catch up with them).
     await t.run(async (ctx) => {
       for (const slug of [
         'evenement-0',
@@ -222,12 +222,12 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
       }
     });
 
-    // L'HORLOGE EST AVANCÉE ENTRE CHAQUE DEMANDE, et c'est le cœur du test.
-    // Le plafond HORAIRE par adresse (5/h) mordrait sinon en premier — or
-    // c'est précisément lui que le pentest décrivait comme insuffisant : il se
-    // reconstitue, donc cinq de plus l'heure suivante, cent vingt par jour.
-    // En neutralisant le compteur horaire, on isole le plafond ABSOLU, celui
-    // qui compte les rappels non envoyés.
+    // THE CLOCK IS ADVANCED BETWEEN EACH REQUEST, and that is the heart of the test.
+    // The per-address HOURLY cap (5/h) would otherwise bite first — yet
+    // it is precisely the one the pentest described as insufficient: it
+    // replenishes, so five more the next hour, a hundred and twenty per day.
+    // By neutralizing the hourly counter, we isolate the ABSOLUTE cap, the one
+    // that counts unsent reminders.
     vi.useFakeTimers();
     try {
       for (let i = 0; i < 5; i++) {
@@ -241,8 +241,8 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
         'HARCÈLEMENT : la file d’une adresse tierce se recharge avec le temps',
       ).rejects.toThrow('TOO_MANY_PENDING_REMINDERS');
 
-      // La place se libère quand un rappel part — c'est un plafond de file
-      // d'attente, pas un bannissement.
+      // The slot frees up when a reminder goes out — it is a queue cap,
+      // not a ban.
       await t.run(async (ctx) => {
         const premier = await ctx.db.query('eventReminders').first();
         if (premier) await ctx.db.patch(premier._id, { sent: true });
@@ -264,9 +264,9 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
     expect(enAttente).toHaveLength(5);
   });
 
-  // La date n'est plus fournie par l'appelant mais lue dans la table : la
-  // borne « ni passée, ni à plus d'un an » a cédé la place au refus d'un
-  // événement commencé ou inconnu (`EVENT_CLOSED`).
+  // The date is no longer supplied by the caller but read from the table: the
+  // "neither past, nor more than a year ahead" bound has given way to refusing an
+  // event that has started or is unknown (`EVENT_CLOSED`).
   it('la date fournie est ignorée : un événement passé est refusé, un événement ouvert accepté', async () => {
     const t = convexTest(schema, modules);
     const passe = Date.now() - 86_400_000;
@@ -283,7 +283,7 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
       demander(t, 'evenement-passe', CIBLE, Date.now() + 86_400_000),
     ).rejects.toMatchObject({ data: 'EVENT_CLOSED' });
 
-    // Non-vacuité : un événement ouvert passe, quelle que soit la date fournie.
+    // Non-vacuity: an open event passes, whatever the supplied date.
     await demander(t, 'evenement-normal', CIBLE, Date.now() + 400 * 86_400_000);
     expect(
       await t.run((ctx) => ctx.db.query('eventReminders').collect()),

@@ -37,12 +37,12 @@ describe('Appels à projets — proposition (F-60)', () => {
   it('réserve la proposition aux membres et valide les champs', async () => {
     const t = convexTest(schema, modules);
 
-    // anonyme refusé
+    // anonymous refused
     await expect(
       t.mutation(api.projects.submitProject, PROPOSAL),
     ).rejects.toThrow();
 
-    // visiteur (compte sans rôle membre) refusé
+    // visitor (account without member role) refused
     const vId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
@@ -53,18 +53,18 @@ describe('Appels à projets — proposition (F-60)', () => {
     ).rejects.toThrow();
 
     const { as } = await member(t, 'm@test.org', 'Awa Diop');
-    // axe invalide
+    // invalid axis
     await expect(
       as.mutation(api.projects.submitProject, {
         ...PROPOSAL,
         theme: 'inconnu',
       }),
     ).rejects.toThrow();
-    // titre trop court (< 4)
+    // title too short (< 4)
     await expect(
       as.mutation(api.projects.submitProject, { ...PROPOSAL, title: 'ab' }),
     ).rejects.toThrow();
-    // résumé trop court (< 20)
+    // abstract too short (< 20)
     await expect(
       as.mutation(api.projects.submitProject, {
         ...PROPOSAL,
@@ -72,7 +72,7 @@ describe('Appels à projets — proposition (F-60)', () => {
       }),
     ).rejects.toThrow();
 
-    // succès -> en attente, nom d'auteur instantané dénormalisé
+    // success -> pending, author name snapshot denormalized
     const res = await as.mutation(api.projects.submitProject, PROPOSAL);
     expect(res.ok).toBe(true);
     const rows = await t.run((ctx) =>
@@ -90,7 +90,7 @@ describe('Appels à projets — back-office (F-60)', () => {
     const author = await member(t, 'author@test.org', 'Auteur');
     await author.as.mutation(api.projects.submitProject, PROPOSAL);
 
-    // la file est réservée aux modérateurs
+    // the queue is reserved for moderators
     await expect(
       t.query(api.projects.listProjectProposals, {}),
     ).rejects.toThrow();
@@ -103,7 +103,7 @@ describe('Appels à projets — back-office (F-60)', () => {
     );
     const asMod = t.withIdentity({ subject: `${modId}|s` });
 
-    // filtre 'pending' renvoie la proposition
+    // 'pending' filter returns the proposal
     const pending = await asMod.query(api.projects.listProjectProposals, {
       status: 'pending',
     });
@@ -111,7 +111,7 @@ describe('Appels à projets — back-office (F-60)', () => {
     expect(pending[0].title).toBe('Observatoire des transitions');
     const proposalId = pending[0]._id;
 
-    // un membre ne peut pas accepter
+    // a member cannot accept
     await expect(
       author.as.mutation(api.projects.reviewProjectProposal, {
         proposalId,
@@ -119,14 +119,14 @@ describe('Appels à projets — back-office (F-60)', () => {
       }),
     ).rejects.toThrow();
 
-    // le modérateur accepte avec une note
+    // the moderator accepts with a note
     await asMod.mutation(api.projects.reviewProjectProposal, {
       proposalId,
       decision: 'accepted',
       notes: 'Beau projet.',
     });
 
-    // plus rien en attente ; la proposition est acceptée
+    // nothing pending anymore; the proposal is accepted
     expect(
       (
         await asMod.query(api.projects.listProjectProposals, {
@@ -140,7 +140,7 @@ describe('Appels à projets — back-office (F-60)', () => {
     expect(accepted).toHaveLength(1);
     expect(accepted[0].reviewNotes).toBe('Beau projet.');
 
-    // une entrée d'audit a été écrite
+    // an audit entry was written
     const audits = await t.run((ctx) =>
       ctx.db
         .query('auditLog')
@@ -197,8 +197,8 @@ describe('Appels à projets — machine à états de la revue (issue #9)', () =>
       ).rejects.toThrow('ALREADY_REVIEWED');
     }
 
-    // Rien n'a bougé, ni la proposition ni le journal : le throw annule la
-    // transaction avant l'écriture d'audit.
+    // Nothing moved, neither the proposal nor the log: the throw rolls back the
+    // transaction before the audit write.
     const doc = await t.run((ctx) => ctx.db.get(proposalId));
     expect(doc?.status).toBe('accepted');
     expect(doc?.reviewNotes).toBe('Beau projet.');
@@ -212,7 +212,7 @@ describe('Appels à projets — machine à états de la revue (issue #9)', () =>
       decision: 'rejected',
     });
 
-    // l'auteur de la proposition ne rouvre pas sa propre revue
+    // the author of the proposal does not reopen their own review
     await expect(
       author.as.mutation(api.projects.reopenProjectProposal, { proposalId }),
     ).rejects.toThrow();
@@ -227,12 +227,12 @@ describe('Appels à projets — machine à états de la revue (issue #9)', () =>
     expect(reopened[0].actorId).toBe(modId);
     expect(reopened[0].metadata).toMatchObject({ from: 'rejected' });
 
-    // rouvrir une proposition déjà en attente n'a pas d'objet
+    // reopening a proposal that is already pending is pointless
     await expect(
       asMod.mutation(api.projects.reopenProjectProposal, { proposalId }),
     ).rejects.toThrow('INVALID_TRANSITION');
 
-    // de retour dans la file, elle se tranche à nouveau — une fois.
+    // back in the queue, it is decided again — once.
     await asMod.mutation(api.projects.reviewProjectProposal, {
       proposalId,
       decision: 'accepted',
@@ -243,9 +243,9 @@ describe('Appels à projets — machine à états de la revue (issue #9)', () =>
   });
 });
 
-// A-04 : un résumé de 4 001 caractères était refusé sous « Envoi impossible »
-// — le code ne traversait pas. Il traverse (`data`), et la borne est celle
-// que le formulaire affiche (`FIELD_MAX.body`).
+// A-04: a 4,001-character abstract was refused under "Envoi impossible"
+// — the code did not get through. It gets through (`data`), and the bound is the one
+// the form displays (`FIELD_MAX.body`).
 describe('Appels à projets — refus de longueur lisible (A-04)', () => {
   it('INVALID_SUMMARY porte son code dans `data`, la borne exacte passe', async () => {
     const t = convexTest(schema, modules);

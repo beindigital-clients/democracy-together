@@ -9,7 +9,7 @@ import enMessages from '../src/messages/en.json';
 const frMentorship = (frMessages as Record<string, unknown>).mentorship;
 const enMentorship = (enMessages as Record<string, unknown>).mentorship;
 
-// Déterminisme : pas de fournisseur e-mail pendant les tests.
+// Determinism: no email provider during tests.
 beforeEach(() => {
   process.env.AUTH_EMAIL_PROVIDER = 'none';
 });
@@ -47,7 +47,7 @@ describe('Mentorat — demande (F-59)', () => {
     expect(all[0].status).toBe('pending');
     expect(all[0].role).toBe('mentore');
 
-    // 2e demande pending, même e-mail + même rôle = dédoublonnée
+    // 2nd pending request, same email + same role = deduplicated
     const r2 = await t.mutation(internal.mentorship.storeRequest, {
       ...REQ,
       email: 'awa@example.org',
@@ -58,7 +58,7 @@ describe('Mentorat — demande (F-59)', () => {
         .length,
     ).toBe(1);
 
-    // même e-mail mais AUTRE rôle (mentor) = autorisé (pas un doublon)
+    // same email but ANOTHER role (mentor) = allowed (not a duplicate)
     const r3 = await t.mutation(internal.mentorship.storeRequest, {
       ...REQ,
       email: 'awa@example.org',
@@ -70,7 +70,7 @@ describe('Mentorat — demande (F-59)', () => {
         .length,
     ).toBe(2);
 
-    // invalides
+    // invalid
     await expect(
       t.mutation(internal.mentorship.storeRequest, {
         ...REQ,
@@ -102,7 +102,7 @@ describe('Mentorat — back-office (F-59)', () => {
       email: 'a@test.org',
     });
 
-    // anonyme + visiteur refusés
+    // anonymous + visitor refused
     await expect(
       t.query(api.mentorship.listMentorshipRequests, {}),
     ).rejects.toThrow();
@@ -115,7 +115,7 @@ describe('Mentorat — back-office (F-59)', () => {
         .query(api.mentorship.listMentorshipRequests, {}),
     ).rejects.toThrow();
 
-    // modérateur : liste + revue (matched)
+    // moderator: list + review (matched)
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
@@ -139,7 +139,7 @@ describe('Mentorat — back-office (F-59)', () => {
     });
     expect(matched).toHaveLength(1);
 
-    // trace d'audit écrite
+    // audit trail written
     const audit = await t.run((ctx) =>
       ctx.db
         .query('auditLog')
@@ -160,7 +160,7 @@ describe('Mentorat — back-office (F-59)', () => {
       email: 'z@test.org',
     });
     expect(req.already).toBe(false);
-    // un id valide mais d'une autre table -> NOT_FOUND attendu via id inexistant
+    // a valid id but from another table -> NOT_FOUND expected via non-existent id
     const fakeId = await t.run(async (ctx) => {
       const id = await ctx.db.insert('mentorshipRequests', {
         name: 'tmp',
@@ -221,8 +221,8 @@ describe('Mentorat — machine à états de la revue (issue #9)', () => {
       status: 'closed',
     });
 
-    // rejeu (double clic) puis inversion : une demande classée sans suite ne
-    // redevient pas « appariée » d'un clic — il faut la rouvrir.
+    // replay (double click) then reversal: a request closed without follow-up
+    // does not become "matched" again in one click — it must be reopened.
     for (const status of ['closed', 'matched'] as const) {
       await expect(
         asMod.mutation(api.mentorship.reviewMentorshipRequest, {
@@ -244,8 +244,8 @@ describe('Mentorat — machine à états de la revue (issue #9)', () => {
       requestId,
       status: 'matched',
     });
-    // La mise en relation a eu lieu, puis l'accompagnement se termine : c'est
-    // une transition légitime, et elle laisse sa trace.
+    // The match took place, then the mentoring ends: this is
+    // a legitimate transition, and it leaves a trace.
     await asMod.mutation(api.mentorship.reviewMentorshipRequest, {
       requestId,
       status: 'closed',
@@ -255,7 +255,7 @@ describe('Mentorat — machine à états de la revue (issue #9)', () => {
     });
     expect(await auditOf(t, 'mentorship.reviewed')).toHaveLength(2);
 
-    // mais on ne revient pas en arrière : re-clore, ou ré-apparier, est refusé
+    // but there is no going back: re-closing, or re-matching, is refused
     await expect(
       asMod.mutation(api.mentorship.reviewMentorshipRequest, {
         requestId,
@@ -271,7 +271,7 @@ describe('Mentorat — machine à états de la revue (issue #9)', () => {
       status: 'matched',
     });
 
-    // réservée au staff
+    // staff only
     await expect(
       t.mutation(api.mentorship.reopenMentorshipRequest, { requestId }),
     ).rejects.toThrow();
@@ -289,12 +289,12 @@ describe('Mentorat — machine à états de la revue (issue #9)', () => {
       role: 'mentore',
     });
 
-    // rouvrir une demande déjà en attente n'a pas d'objet
+    // reopening a request that is already pending is pointless
     await expect(
       asMod.mutation(api.mentorship.reopenMentorshipRequest, { requestId }),
     ).rejects.toThrow('INVALID_TRANSITION');
 
-    // et la demande se tranche à nouveau
+    // and the request is decided again
     await asMod.mutation(api.mentorship.reviewMentorshipRequest, {
       requestId,
       status: 'closed',
@@ -313,8 +313,8 @@ describe('Mentorat — contenu éditorial (terme banni)', () => {
   });
 });
 
-// A-13 : aucun parcours membre. Premier pas — un compte connecté voit SES
-// demandes (retrouvées par l'adresse de son compte) et leur statut.
+// A-13: no member journey. First step — a signed-in account sees ITS
+// requests (found by its account address) and their status.
 describe('Mentorat — ma demande, vue par le membre connecté (A-13)', () => {
   it('rend les demandes de l’adresse du compte, avec leur statut', async () => {
     const t = convexTest(schema, modules);
@@ -332,8 +332,8 @@ describe('Mentorat — ma demande, vue par le membre connecté (A-13)', () => {
       email: 'autre@example.org',
     });
 
-    // Le compte porte l'adresse avec une casse différente : la recherche se
-    // fait sur la forme normalisée, comme à l'écriture.
+    // The account holds the address with different casing: the lookup
+    // uses the normalized form, as on write.
     const awaId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'AWA@example.org' }),
     );
@@ -344,7 +344,7 @@ describe('Mentorat — ma demande, vue par le membre connecté (A-13)', () => {
       ['mentore', 'pending'],
     ]);
 
-    // Le statut suit la décision du back-office.
+    // The status follows the back-office decision.
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );

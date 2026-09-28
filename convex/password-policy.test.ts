@@ -10,11 +10,11 @@ import {
   PASSWORD_MIN_LENGTH,
 } from './lib/passwordPolicy';
 
-// Contrairement aux autres suites Convex, celle-ci CHARGE `auth.ts` : ce qui est
-// vérifié ici n'est pas une fonction isolée mais le CÂBLAGE — une politique
-// écrite quelque part mais jamais passée au provider ne protège rien, et c'est
-// exactement la panne que ce fichier doit attraper. Restent dehors les deux
-// modules que `convexTest` ne monte pas (`auth.config.ts`, `http.ts`).
+// Unlike the other Convex suites, this one LOADS `auth.ts`: what is
+// checked here is not an isolated function but the WIRING — a policy
+// written somewhere but never passed to the provider protects nothing, and that is
+// exactly the failure this file must catch. Left out are the two
+// modules `convexTest` does not mount (`auth.config.ts`, `http.ts`).
 const modules = import.meta.glob([
   './**/*.ts',
   './**/*.js',
@@ -24,9 +24,9 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// La pose d'un mot de passe s'achève par l'envoi du code de vérification, qui
-// construit une URL absolue : sans SITE_URL le compte est bien créé mais
-// l'action lève, et l'on testerait la panne d'environnement, pas la politique.
+// Setting a password ends with sending the verification code, which
+// builds an absolute URL: without SITE_URL the account is indeed created but
+// the action throws, and we would be testing the environment failure, not the policy.
 beforeAll(() => {
   vi.stubEnv('SITE_URL', 'https://exemple.test');
 });
@@ -37,9 +37,9 @@ afterAll(() => {
 const EMAIL = 'secretariat@exemple.test';
 const VALID_PASSWORD = 'phrase-de-passe-du-secretariat';
 
-// Pas d'auto-inscription : l'utilisateur existe DÉJÀ (adhésion validée ou
-// invitation) quand un mot de passe est posé. Sans cette ligne, le refus
-// observé serait NO_SELF_SIGNUP — le mauvais refus.
+// No self-signup: the user ALREADY exists (validated membership or
+// invitation) when a password is set. Without this line, the observed
+// refusal would be NO_SELF_SIGNUP — the wrong refusal.
 async function withMember(): Promise<TestConvex<typeof schema>> {
   const t = convexTest(schema, modules);
   await t.run((ctx) =>
@@ -65,9 +65,9 @@ const accounts = (t: TestConvex<typeof schema>) =>
 
 describe('Politique de mot de passe (sécurité — constat M4)', () => {
   it('reste celle que les commentaires annoncent', () => {
-    // Les deux nombres sont écrits en toutes lettres dans `convex/auth.ts` et
-    // dans `convex/lib/passwordPolicy.ts` : les déplacer sans rouvrir ces
-    // commentaires redonnerait une politique subie, ce que M4 reprochait.
+    // Both numbers are spelled out in `convex/auth.ts` and
+    // in `convex/lib/passwordPolicy.ts`: moving them without revisiting those
+    // comments would bring back an unexamined policy, which is what M4 criticized.
     expect(PASSWORD_MIN_LENGTH).toBe(12);
     expect(MAX_FAILED_SIGN_IN_ATTEMPTS_PER_HOUR).toBe(5);
   });
@@ -79,19 +79,19 @@ describe('Politique de mot de passe (sécurité — constat M4)', () => {
     await expect(setPassword(t, tooShort)).rejects.toMatchObject({
       data: 'PASSWORD_TOO_SHORT',
     });
-    // Le refus vaut AVANT la création : un compte à moitié posé serait pire
-    // qu'un refus franc.
+    // The refusal applies BEFORE creation: a half-set-up account would be worse
+    // than a clear refusal.
     expect(await accounts(t)).toHaveLength(0);
   });
 
   it('refuse les mots de passe les plus courants, même assez longs', async () => {
     const t = await withMember();
 
-    // 13 caractères : la seule longueur ne l'aurait pas arrêté.
+    // 13 characters: length alone would not have stopped it.
     await expect(setPassword(t, 'MotDePasse123')).rejects.toMatchObject({
       data: 'PASSWORD_TOO_COMMON',
     });
-    // Un caractère répété — l'échappatoire immédiate à une règle de longueur.
+    // A repeated character — the obvious loophole in a length rule.
     await expect(setPassword(t, 'aaaaaaaaaaaaaa')).rejects.toMatchObject({
       data: 'PASSWORD_TOO_COMMON',
     });
@@ -112,11 +112,11 @@ describe('Politique de mot de passe (sécurité — constat M4)', () => {
     const t = await withMember();
     await setPassword(t, VALID_PASSWORD);
 
-    // Le parcours « mot de passe oublié » est, faute d'auto-inscription, la
-    // voie par laquelle un membre change réellement de mot de passe : la
-    // politique doit y valoir aussi. Le code est faux, et c'est le mot de
-    // passe qui est refusé d'abord — la validation précède la vérification du
-    // code, donc aucun code valide n'ouvre la porte à un mot de passe court.
+    // The "forgot password" flow is, given there is no self-signup, the
+    // way a member actually changes their password: the
+    // policy must apply there too. The code is wrong, and it is the
+    // password that is refused first — validation precedes checking the
+    // code, so no valid code opens the door to a short password.
     await expect(
       t.action(api.auth.signIn, {
         provider: 'password',
@@ -136,18 +136,18 @@ describe('Plafond de tentatives de connexion (sécurité — constat M4)', () =>
     const t = await withMember();
     await setPassword(t, VALID_PASSWORD);
 
-    // Les N premiers échecs sont de simples erreurs de mot de passe...
+    // The first N failures are plain wrong-password errors...
     for (let i = 0; i < MAX_FAILED_SIGN_IN_ATTEMPTS_PER_HOUR; i++) {
       await expect(attemptSignIn(t, 'mauvais-mot-de-passe')).rejects.toThrow(
         'InvalidSecret',
       );
     }
-    // ...le suivant ne teste même plus le mot de passe.
+    // ...the next one does not even test the password anymore.
     await expect(attemptSignIn(t, 'mauvais-mot-de-passe')).rejects.toThrow(
       'TooManyFailedAttempts',
     );
-    // Et le plafond tient face au BON mot de passe : sans cela, un attaquant
-    // qui tombe juste au dernier essai passerait quand même.
+    // And the cap holds against the RIGHT password: without this, an attacker
+    // who guesses right on the last attempt would get in anyway.
     await expect(attemptSignIn(t, VALID_PASSWORD)).rejects.toThrow(
       'TooManyFailedAttempts',
     );
@@ -164,8 +164,8 @@ describe('Plafond de tentatives de connexion (sécurité — constat M4)', () =>
     }
     await attemptSignIn(t, VALID_PASSWORD);
 
-    // Le crédit repart entier : quelqu'un qui se trompe souvent mais finit par
-    // se connecter ne traîne pas un compte à moitié bloqué.
+    // The credit resets in full: someone who often gets it wrong but eventually
+    // signs in does not drag around a half-locked account.
     expect(
       await t.run((ctx) => ctx.db.query('authRateLimits').collect()),
     ).toEqual([]);

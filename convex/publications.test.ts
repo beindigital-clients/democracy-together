@@ -21,9 +21,9 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Pagination : les listes du back-office prennent désormais `paginationOpts`
-// (issue #8). Une page large suffit à ces tests — ce qu'ils vérifient n'est pas
-// le découpage mais le contenu.
+// Pagination: back-office lists now take `paginationOpts`
+// (issue #8). One large page is enough for these tests — what they check is not
+// the slicing but the content.
 const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
 
 // --- Helpers ---
@@ -67,7 +67,7 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
   });
 
   it('matchesPublication cherche aussi le résumé et les points clés', () => {
-    // Mesuré le 27/09 : « institutions » (présent dans les résumés) -> 0.
+    // Measured on 27/09: "institutions" (present in the abstracts) -> 0.
     const p = pub({
       title: 'Titre neutre',
       abstract: 'Le rôle des institutions dans la transition.',
@@ -77,17 +77,17 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
     expect(matchesPublication(p, { q: 'société civile' })).toBe(true);
     expect(matchesPublication(p, { q: 'societe civile' })).toBe(true);
     expect(matchesPublication(p, { q: 'absent' })).toBe(false);
-    // Fixture sans résumé ni points clés : ne jette pas, ne trouve pas.
+    // Fixture without abstract or key points: does not throw, does not match.
     expect(matchesPublication(pub(), { q: 'institutions' })).toBe(false);
   });
 
   it('matchesPublication ne cherche pas les guillemets littéralement', () => {
-    // Mesuré le 27/09 : `"démocratie"` -> 0 résultat.
+    // Measured on 27/09: `"démocratie"` -> 0 results.
     const p = pub({ title: 'L’état de la démocratie' });
     expect(matchesPublication(p, { q: '"démocratie"' })).toBe(true);
     expect(matchesPublication(p, { q: '« démocratie »' })).toBe(true);
     expect(matchesPublication(p, { q: '“democratie”' })).toBe(true);
-    // Des guillemets seuls = pas de recherche.
+    // Quotes alone = no search.
     expect(matchesPublication(p, { q: '""' })).toBe(true);
   });
 
@@ -101,27 +101,27 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
       title: 'Réguler les plateformes',
       authors: [{ name: 'K. Mensah' }],
     });
-    // sans filtre -> match
+    // no filter -> match
     expect(matchesPublication(p, {})).toBe(true);
-    // OU intra-facette (un thème sur deux correspond)
+    // OR within a facet (one theme out of two matches)
     expect(
       matchesPublication(p, { themes: ['gouvernance-numerique', 'crises'] }),
     ).toBe(true);
-    // ET inter-facette (thème OK mais type KO -> rejet)
+    // AND across facets (theme OK but type KO -> rejected)
     expect(
       matchesPublication(p, {
         themes: ['gouvernance-numerique'],
         types: ['rapport'],
       }),
     ).toBe(false);
-    // langue : OU sur l'intersection
+    // language: OR over the intersection
     expect(matchesPublication(p, { langs: ['en'] })).toBe(true);
     expect(
       matchesPublication(pub({ languages: ['fr'] }), { langs: ['en'] }),
     ).toBe(false);
-    // accès
+    // access
     expect(matchesPublication(p, { access: ['members'] })).toBe(false);
-    // recherche plein texte (titre + auteurs, insensible à la casse)
+    // full-text search (title + authors, case-insensitive)
     expect(matchesPublication(p, { q: 'mensah' })).toBe(true);
     expect(matchesPublication(p, { q: 'PLATEFORMES' })).toBe(true);
     expect(matchesPublication(p, { q: 'climat' })).toBe(false);
@@ -166,20 +166,20 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
         crises: 1,
       },
     );
-    // fr apparaît 2x, en 2x -> ordre alpha (en avant fr)
+    // fr appears 2x, en 2x -> alphabetical order (en before fr)
     expect(f.languages.map((x) => x.value)).toEqual(['en', 'fr']);
   });
 
   it('computePublicationFacets ignore une valeur cochée inconnue du corpus', () => {
-    // Mesuré le 27/09 : `?theme=zzz` rendait une option « Zzz 0 » cochée.
+    // Measured on 27/09: `?theme=zzz` rendered a checked "Zzz 0" option.
     const items = [pub({ theme: 'transitions' }), pub({ theme: 'crises' })];
     const facets = computePublicationFacets(items, { themes: ['zzz'] });
     expect(facets.themes.map((f) => f.value)).toEqual([
       'crises',
       'transitions',
     ]);
-    // Une valeur connue mais absente du sous-ensemble filtré reste listée à 0
-    // (décochable) : ce comportement-là est conservé.
+    // A known value absent from the filtered subset stays listed at 0
+    // (uncheckable): that behavior is kept.
     const contextual = computePublicationFacets(items, {
       themes: ['crises'],
       types: ['note'],
@@ -193,7 +193,7 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
       pub({ theme: 'gouvernance-numerique', type: 'note' }),
       pub({ theme: 'crises', type: 'rapport' }),
     ];
-    // sans filtre : totaux par type
+    // no filter: totals per type
     const f0 = computePublicationFacets(items);
     expect(Object.fromEntries(f0.types.map((x) => [x.value, x.count]))).toEqual(
       {
@@ -201,8 +201,8 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
         note: 1,
       },
     );
-    // filtre theme=gouvernance : la facette TYPE ne compte QUE ces publications
-    // -> le compteur reflète ce qu'on obtient vraiment en cochant.
+    // theme=gouvernance filter: the TYPE facet counts ONLY these publications
+    // -> the counter reflects what you really get by ticking.
     const f1 = computePublicationFacets(items, {
       themes: ['gouvernance-numerique'],
     });
@@ -212,7 +212,7 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
         note: 1,
       },
     );
-    // la facette THEME ignore sa propre sélection (compteurs d'ajout « OU »)
+    // the THEME facet ignores its own selection ("OR" add counters)
     expect(
       Object.fromEntries(f1.themes.map((x) => [x.value, x.count])),
     ).toEqual({ 'gouvernance-numerique': 2, crises: 1 });
@@ -254,16 +254,16 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
     });
 
     const all = await t.query(api.publications.listPublished, {});
-    expect(all.total).toBe(2); // brouillon exclu
+    expect(all.total).toBe(2); // draft excluded
     expect(all.items.map((p) => p.slug).sort()).toEqual(['pub-a', 'pub-b']);
-    // facette thème ne compte pas le brouillon
+    // theme facet does not count the draft
     const themes = Object.fromEntries(
       all.facets.themes.map((x) => [x.value, x.count]),
     );
     expect(themes['transitions']).toBe(1);
     expect(themes['crises']).toBe(1);
 
-    // filtre thème
+    // theme filter
     const crises = await t.query(api.publications.listPublished, {
       themes: ['crises'],
     });
@@ -359,7 +359,7 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
   });
 });
 
-// --- Dépôt documentaire (F-32) -----------------------------------------------
+// --- Document submission (F-32) ----------------------------------------------
 
 describe('slugify (F-32)', () => {
   it('normalise accents, casse et séparateurs ; borne la longueur', () => {
@@ -367,7 +367,7 @@ describe('slugify (F-32)', () => {
       'elections-democratie-locale',
     );
     expect(slugify('  Trop   d’espaces  ')).toBe('trop-d-espaces');
-    expect(slugify('!!!')).toBe('publication'); // garde-fou si vide
+    expect(slugify('!!!')).toBe('publication'); // safeguard if empty
     expect(slugify('a'.repeat(120)).length).toBeLessThanOrEqual(72);
   });
 });
@@ -388,7 +388,7 @@ describe('Dépôt de publication (F-32) — soumission membre', () => {
   it('refuse un anonyme, crée une soumission en attente liée à l’auteur', async () => {
     const t = convexTest(schema, modules);
 
-    // anonyme refusé (requireUser)
+    // anonymous refused (requireUser)
     await expect(
       t.mutation(api.publications.submitPublication, SUBMIT),
     ).rejects.toThrow();
@@ -412,7 +412,7 @@ describe('Dépôt de publication (F-32) — soumission membre', () => {
     expect(doc?.status).toBe('pending');
     expect(doc?.authorUserId).toBe(memberId);
 
-    // jamais exposée publiquement tant qu’en attente
+    // never exposed publicly while pending
     const pub = await t.query(api.publications.listPublished, {});
     expect(pub.items.some((p) => p.slug === slug)).toBe(false);
   });
@@ -490,13 +490,13 @@ describe('Dépôt de publication (F-32) — soumission membre', () => {
       .query(api.publications.listMine, {});
     expect(others.length).toBe(0);
 
-    // anonyme -> liste vide (pas d’erreur)
+    // anonymous -> empty list (no error)
     expect((await t.query(api.publications.listMine, {})).length).toBe(0);
   });
 
   it('refuse le dépôt à un visiteur (modèle B)', async () => {
     const t = convexTest(schema, modules);
-    // rôle visiteur explicite
+    // explicit visitor role
     const visitorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
@@ -506,7 +506,7 @@ describe('Dépôt de publication (F-32) — soumission membre', () => {
         .mutation(api.publications.submitPublication, SUBMIT),
     ).rejects.toThrow();
 
-    // compte sans rôle explicite (= visiteur par défaut) -> refusé aussi
+    // account without an explicit role (= visitor by default) -> refused too
     const noRoleId = await t.run((ctx) =>
       ctx.db.insert('users', { email: 'nr@test.org' }),
     );
@@ -536,7 +536,7 @@ describe('Modération de publication (F-32 / F-26)', () => {
   it('refuse un membre, accepte un modérateur : publie + DOI + audit', async () => {
     const { t, memberId, modId, id } = await setup();
 
-    // un membre ne peut pas modérer
+    // a member cannot moderate
     await expect(
       t
         .withIdentity({ subject: `${memberId}|s` })
@@ -546,7 +546,7 @@ describe('Modération de publication (F-32 / F-26)', () => {
         }),
     ).rejects.toThrow();
 
-    // file de modération réservée au staff
+    // moderation queue reserved for staff
     await expect(
       t
         .withIdentity({ subject: `${memberId}|s` })
@@ -559,7 +559,7 @@ describe('Modération de publication (F-32 / F-26)', () => {
     expect(queue.some((p) => p._id === id)).toBe(true);
     expect(queue[0].authorEmail).toBe('membre@test.org');
 
-    // un modérateur publie
+    // a moderator publishes
     await t
       .withIdentity({ subject: `${modId}|s` })
       .mutation(api.publications.reviewPublication, {
@@ -573,7 +573,7 @@ describe('Modération de publication (F-32 / F-26)', () => {
     expect(doc?.doi).toContain('10.59000/dt.');
     expect(doc?.reviewedBy).toBe(modId);
 
-    // désormais publique
+    // now public
     const pub = await t.query(api.publications.listPublished, {});
     expect(pub.items.some((p) => p._id === id)).toBe(true);
 
@@ -594,15 +594,15 @@ describe('Modération de publication (F-32 / F-26)', () => {
     const doc = await t.run((ctx) => ctx.db.get(id));
     expect(doc?.status).toBe('draft');
     expect(doc?.reviewNotes).toBe('Préciser la méthodologie.');
-    // pas publiée
+    // not published
     const pub = await t.query(api.publications.listPublished, {});
     expect(pub.items.some((p) => p._id === id)).toBe(false);
   });
 });
 
 describe('Modération de publication — machine à états (issue #9)', () => {
-  // Même mise en place que la file de modération : un dépôt membre réel, donc
-  // une publication en 'pending' avec un auteur.
+  // Same setup as the moderation queue: a real member submission, hence
+  // a 'pending' publication with an author.
   async function setup() {
     const t = convexTest(schema, modules);
     const memberId = await t.run((ctx) =>
@@ -632,9 +632,9 @@ describe('Modération de publication — machine à états (issue #9)', () => {
       decision: 'approved',
     });
 
-    // Rejeu (double clic sur « Approuver ») : sans garde, la date de
-    // publication et le DOI seraient réécrits et le journal montrerait deux
-    // décisions.
+    // Replay (double click on "Approuver"): without a guard, the publication
+    // date and the DOI would be rewritten and the log would show two
+    // decisions.
     await expect(
       asMod.mutation(api.publications.reviewPublication, {
         publicationId: id,
@@ -642,8 +642,8 @@ describe('Modération de publication — machine à états (issue #9)', () => {
       }),
     ).rejects.toThrow('ALREADY_REVIEWED');
 
-    // Inversion : « Rejeter » après « Approuver » dépublierait en silence un
-    // document déjà en ligne. Le retrait est une autre décision (issue #32).
+    // Reversal: "Rejeter" after "Approuver" would silently unpublish a
+    // document already online. Withdrawal is a different decision (issue #32).
     await expect(
       asMod.mutation(api.publications.reviewPublication, {
         publicationId: id,
@@ -652,8 +652,8 @@ describe('Modération de publication — machine à états (issue #9)', () => {
       }),
     ).rejects.toThrow('ALREADY_REVIEWED');
 
-    // La publication est intacte, et le journal ne porte qu'UNE décision : le
-    // throw annule la transaction, donc aussi la ligne d'audit.
+    // The publication is intact, and the log holds only ONE decision: the
+    // throw rolls back the transaction, hence the audit row too.
     const doc = await t.run((ctx) => ctx.db.get(id));
     expect(doc?.status).toBe('published');
     expect(doc?.reviewNotes).toBeUndefined();
@@ -681,7 +681,7 @@ describe('Modération de publication — machine à états (issue #9)', () => {
     expect(doc?.status).toBe('draft');
     expect(doc?.reviewNotes).toBe('Préciser la méthodologie.');
     expect(await reviewedAudit(t)).toHaveLength(1);
-    // et elle n'est pas passée en ligne au second tour
+    // and it did not go online on the second pass
     const published = await t.query(api.publications.listPublished, {});
     expect(published.items.some((p) => p._id === id)).toBe(false);
   });
@@ -692,7 +692,7 @@ describe('Modération de publication — machine à états (issue #9)', () => {
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
     const asMod = t.withIdentity({ subject: `${modId}|s` });
-    // Un brouillon : jamais soumis, donc jamais relu (pas de `reviewedAt`).
+    // A draft: never submitted, hence never reviewed (no `reviewedAt`).
     const draftId = await t.run((ctx) =>
       ctx.db.insert('publications', {
         title: 'Notes de travail',
@@ -722,7 +722,7 @@ describe('Modération de publication — machine à états (issue #9)', () => {
         decision: 'approved',
       }),
     ).rejects.toThrow('INVALID_TRANSITION');
-    // et on ne la remet pas non plus dans la file par la porte de derrière
+    // and it is not put back into the queue through the back door either
     await expect(
       asMod.mutation(api.publications.reopenPublicationReview, {
         publicationId: draftId,
@@ -742,7 +742,7 @@ describe('Modération de publication — machine à états (issue #9)', () => {
       notes: 'Refus prononcé par erreur.',
     });
 
-    // Réservé au staff : l'auteur ne rouvre pas son propre refus.
+    // Staff only: the author does not reopen their own rejection.
     const memberId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'autre@test.org' }),
     );
@@ -760,9 +760,9 @@ describe('Modération de publication — machine à états (issue #9)', () => {
 
     const reopened = await t.run((ctx) => ctx.db.get(id));
     expect(reopened?.status).toBe('pending');
-    // la note du refus reste : elle dit pourquoi la décision avait été prise
+    // the rejection note remains: it says why the decision was made
     expect(reopened?.reviewNotes).toBe('Refus prononcé par erreur.');
-    // et le retour en arrière porte son propre nom dans le journal
+    // and the rollback carries its own name in the log
     const reopenAudit = await t.run((ctx) =>
       ctx.db
         .query('auditLog')
@@ -772,15 +772,15 @@ describe('Modération de publication — machine à états (issue #9)', () => {
     expect(reopenAudit).toHaveLength(1);
     expect(reopenAudit[0].metadata).toMatchObject({ from: 'rejected' });
 
-    // de retour dans la file, la publication se décide à nouveau — une fois.
+    // back in the queue, the publication is decided again — once.
     const { page: queue } = await asMod.query(api.publications.listForReview, {
       ...PAGE,
       status: 'pending',
     });
     expect(queue).toHaveLength(1);
-    // et le compteur du tableau de bord la recompte (issue #8) : une file qui
-    // affiche « 0 en attente » alors qu'elle en contient une est un écran qui
-    // ment.
+    // and the dashboard counter counts it again (issue #8): a queue that
+    // shows "0 pending" while it contains one is a screen that
+    // lies.
     const pending = await t.run((ctx) =>
       ctx.db
         .query('counters')
@@ -873,8 +873,8 @@ describe('Dépôt de publication (F-32) — validation serveur du fichier', () =
         fileName: 'rapport.pdf',
       }),
     ).rejects.toThrow('INVALID_FILE');
-    // Aucune publication creee. Le blob rejete reste orphelin : le throw annule
-    // la transaction (rollback), donc une suppression serait sans effet.
+    // No publication created. The rejected blob stays orphaned: the throw rolls back
+    // the transaction, so a deletion would have no effect.
     const all = await t.run((ctx) => ctx.db.query('publications').collect());
     expect(all).toHaveLength(0);
   });

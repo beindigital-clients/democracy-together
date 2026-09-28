@@ -8,21 +8,21 @@ import { locale, type SiteLocale } from './lib/locales';
 import type { ReportContent } from './lib/annualReports';
 import { renderReportPdf } from './lib/reportPdf/render';
 
-// COMPOSITION DES PDF DES RAPPORTS ANNUELS (F-41) — runtime Node.
+// ANNUAL REPORT PDF COMPOSITION (F-41) — Node runtime.
 //
-// Pourquoi une action Convex, et pas le site : la production du site tourne
-// sur Vercel, sans Chromium, et la génération doit suivre chaque correction
-// du texte sans intervention humaine. pdfkit + fontkit sont du JavaScript
-// pur ; Convex les exécute dans son runtime Node, et le PDF va directement
-// dans le stockage Convex, d'où la route du site le sert.
+// Why a Convex action, and not the site: the site's production runs
+// on Vercel, without Chromium, and generation must follow every correction
+// to the text without human intervention. pdfkit + fontkit are pure
+// JavaScript; Convex runs them in its Node runtime, and the PDF goes directly
+// into Convex storage, from where the site's route serves it.
 //
-// Planifiée par convex/annualReports.ts à chaque écriture du texte. La
-// commande de (re)génération complète, pour l'exploitation :
+// Scheduled by convex/annualReports.ts on every write of the text. The
+// full (re)generation command, for operations:
 //   npx convex run reportPdfNode:generateAll
 // (docs/backlog/editorial.md § Régénérer les PDF).
 
-// Forme rendue par `annualReports.pdfSource`, écrite à la main : l'inférence
-// traverserait `internal`, qui dépend de ce fichier.
+// Shape returned by `annualReports.pdfSource`, written by hand: inference
+// would go through `internal`, which depends on this file.
 type PdfSource =
   | (ReportContent & { year: number; inaugural: boolean; contentHash: string })
   | null;
@@ -72,8 +72,8 @@ export const generate = internalAction({
   },
 });
 
-// Régénère tout : une action planifiée par (édition, langue), pour qu'un
-// échec n'emporte pas les autres et que chacune tienne dans ses limites.
+// Regenerates everything: one scheduled action per (edition, language), so that one
+// failure does not take the others down and each one stays within its limits.
 export const generateAll = internalAction({
   args: {},
   returns: v.number(),

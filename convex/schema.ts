@@ -25,7 +25,7 @@ import { contenusTables } from './lib/tables/contenus';
 import { comptesTables } from './lib/tables/comptes';
 import { programmesTables } from './lib/tables/programmes';
 
-// Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
+// Network roles (F-02) — ascending hierarchy, see convex/lib/rbac.ts.
 export const networkRole = v.union(
   v.literal('visiteur'),
   v.literal('membre'),
@@ -34,9 +34,9 @@ export const networkRole = v.union(
   v.literal('admin'),
 );
 
-// Le validateur de langue vit dans `./lib/locales` (cycle d'imports : la table
-// `contentTranslations` tire `./lib/translation`, qui en a besoin aussi). Il
-// reste ré-exporté ici : une dizaine de modules l'importent de `./schema`.
+// The language validator lives in `./lib/locales` (import cycle: the
+// `contentTranslations` table pulls in `./lib/translation`, which needs it too). It
+// stays re-exported here: a dozen modules import it from `./schema`.
 import { locale } from './lib/locales';
 import { manuscriptStage } from './lib/manuscripts';
 import { editorialTables } from './lib/tables/editorial';
@@ -44,10 +44,10 @@ export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
 import { diffusionTables } from './lib/tables/diffusion';
 
 export default defineSchema({
-  // Tables de Convex Auth (users, authSessions, authAccounts, ...).
+  // Convex Auth tables (users, authSessions, authAccounts, ...).
   ...authTables,
 
-  // Convex Auth possède `users` ; on la redéfinit pour ajouter rôle + langue.
+  // Convex Auth owns `users`; we redefine it to add role + language.
   users: defineTable({
     name: v.optional(v.string()),
     image: v.optional(v.string()),
@@ -59,32 +59,32 @@ export default defineSchema({
     // --- Democracy Together ---
     role: v.optional(networkRole),
     preferredLocale: v.optional(locale),
-    // Suspension (chantier comptes, F-63). Posée sur le compte lui-même et non
-    // dans une table à part : TOUTES les gardes de convex/lib/rbac.ts la
-    // lisent, et elles lisent déjà ce document — la vérifier ne coûte aucune
-    // lecture de plus. Le motif est obligatoire à la suspension.
+    // Suspension (accounts workstream, F-63). Set on the account itself and not
+    // in a separate table: ALL the guards in convex/lib/rbac.ts
+    // read it, and they already read this document — checking it costs no
+    // extra read. The reason is mandatory on suspension.
     suspendedAt: v.optional(v.number()),
     suspensionReason: v.optional(v.string()),
     suspendedBy: v.optional(v.id('users')),
   })
     .index('email', ['email'])
-    // `by_role` sert la garde « zéro admin » de l'amorçage (convex/bootstrap.ts) :
-    // elle doit répondre par un seul document lu, sans parcourir la table.
+    // `by_role` serves the bootstrap's "zero admin" guard (convex/bootstrap.ts):
+    // it must answer with a single document read, without scanning the table.
     .index('by_role', ['role'])
-    // Recherche du back-office (issue #49) — INDEX PLEIN TEXTE, pas un filtre
-    // en mémoire. La table `users` est l'écran qui grossira le plus vite, et
-    // #8 vient d'en retirer le `.collect()` : chercher en rechargeant la liste
-    // entière pour la filtrer côté client le remettrait aussitôt. L'adresse
-    // est la clé d'identification du back-office (le nom est optionnel, et
-    // souvent absent d'un compte invité). `filterFields` porte le filtre par
-    // rôle DANS la même lecture d'index — sans lui, filtrer une recherche
-    // obligerait à relire puis trier hors index.
+    // Back-office search (issue #49) — FULL-TEXT INDEX, not an in-memory
+    // filter. The `users` table is the screen that will grow fastest, and
+    // #8 just removed its `.collect()`: searching by reloading the whole
+    // list to filter it client-side would bring it right back. The address
+    // is the back-office's identification key (the name is optional, and
+    // often missing from an invited account). `filterFields` carries the role
+    // filter IN the same index read — without it, filtering a search
+    // would require re-reading then sorting outside the index.
     .searchIndex('search_email', {
       searchField: 'email',
       filterFields: ['role'],
     }),
 
-  // Think tanks membres (F-19 annuaire, F-21 fiche membre).
+  // Member think tanks (F-19 directory, F-21 member profile).
   organizations: defineTable({
     name: v.string(),
     slug: v.string(),
@@ -100,15 +100,15 @@ export default defineSchema({
       v.literal('suspended'),
     ),
     createdAt: v.number(),
-    // Meule de recherche PLIÉE (F-06, chantier diffusion) — nom, description,
-    // pays en toutes lettres, sans accents. Tenue à l'écriture
-    // (`organizationSearchText`), remplie pour l'existant par
-    // `searchIndexing.backfill`. Optionnelle : un document qui ne la porte pas
-    // n'est simplement pas trouvé par la recherche globale.
+    // FOLDED search haystack (F-06, diffusion workstream) — name, description,
+    // country spelled out, without accents. Maintained on write
+    // (`organizationSearchText`), filled for existing data by
+    // `searchIndexing.backfill`. Optional: a document that does not carry it
+    // is simply not found by the global search.
     searchText: v.optional(v.string()),
-    // Fiche membre (F-21, chantier comptes) : logo dans le stockage Convex
-    // (contenu vérifié avant d'être accepté) et choix de l'organisation de
-    // montrer, ou non, ses membres sur sa page publique.
+    // Member profile (F-21, accounts workstream): logo in Convex storage
+    // (content verified before being accepted) and the organization's choice to
+    // show, or not, its members on its public page.
     logoFileId: v.optional(v.id('_storage')),
     showMembers: v.optional(v.boolean()),
     updatedAt: v.optional(v.number()),
@@ -116,14 +116,14 @@ export default defineSchema({
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
     .index('by_region', ['region'])
-    // Recherche globale : `status` en filtre pour que seules les fiches
-    // actives sortent, DANS la lecture d'index (pas après).
+    // Global search: `status` as a filter so that only active profiles
+    // come out, IN the index read (not after).
     .searchIndex('search_text', {
       searchField: 'searchText',
       filterFields: ['status', 'region'],
     }),
 
-  // Rattachement utilisateur <-> organisation (délégation, F-21).
+  // User <-> organization link (delegation, F-21).
   organizationMemberships: defineTable({
     userId: v.id('users'),
     orgId: v.id('organizations'),
@@ -138,10 +138,10 @@ export default defineSchema({
     .index('by_org', ['orgId'])
     .index('by_org_user', ['orgId', 'userId']),
 
-  // Bibliothèque (F-32/F-33/F-34) — publications du réseau. UGC modéré : un
-  // membre soumet (status 'pending'), un modérateur publie (status 'published').
-  // Les requêtes publiques ne renvoient QUE les publications publiées. Le
-  // vocabulaire (type/thème/région) est en slugs neutres (cf. lib/publications).
+  // Library (F-32/F-33/F-34) — network publications. Moderated UGC: a
+  // member submits (status 'pending'), a moderator publishes (status 'published').
+  // Public queries return ONLY published publications. The
+  // vocabulary (type/theme/region) uses neutral slugs (see lib/publications).
   publications: defineTable({
     title: v.string(),
     slug: v.string(),
@@ -171,8 +171,8 @@ export default defineSchema({
     pages: v.optional(v.number()),
     license: v.optional(v.string()),
     doi: v.string(),
-    // Vignette de couverture — chemin public (seed) ; optionnelle pour les
-    // dépôts membres (F-32), qui téléversent un document, pas une image.
+    // Cover thumbnail — public path (seed); optional for
+    // member submissions (F-32), which upload a document, not an image.
     image: v.optional(v.string()),
     downloads: v.number(),
     citations: v.number(),
@@ -182,22 +182,22 @@ export default defineSchema({
       v.literal('pending'),
       v.literal('published'),
     ),
-    // Modération (workflow membre -> modérateur, comme F-22/F-26).
+    // Moderation (member -> moderator workflow, like F-22/F-26).
     authorUserId: v.optional(v.id('users')),
     submittedAt: v.optional(v.number()),
     reviewedBy: v.optional(v.id('users')),
     reviewedAt: v.optional(v.number()),
     reviewNotes: v.optional(v.string()),
-    // Revue à comité de lecture (F-43) — couche AU-DESSUS de la modération.
-    // Étape de la machine à états du manuscrit (convex/lib/manuscripts.ts) :
+    // Peer review (F-43) — layer ON TOP of moderation.
+    // Stage of the manuscript state machine (convex/lib/manuscripts.ts):
     // submitted → in_review → revision → resubmitted → accepted / rejected.
-    // `reviewed` est l'étape héritée de la première version (« avis rendu »).
+    // `reviewed` is the legacy stage from the first version ("avis rendu").
     reviewStage: v.optional(manuscriptStage),
-    // Modération assistée par IA — RÉSUMÉ DÉNORMALISÉ du dernier avis rendu
-    // (convex/aiModeration.ts). L'avis complet — signaux, extraits cités,
-    // modèle, jetons — vit dans `aiModerationReviews` : la file de modération
-    // affiche un badge par ligne sans relire cent avis, et ne charge le détail
-    // que sur la ligne qu'un modérateur ouvre.
+    // AI-assisted moderation — DENORMALIZED SUMMARY of the latest review
+    // (convex/aiModeration.ts). The full review — signals, quoted excerpts,
+    // model, tokens — lives in `aiModerationReviews`: the moderation queue
+    // shows a badge per row without re-reading a hundred reviews, and only loads the detail
+    // for the row a moderator opens.
     aiReview: v.optional(
       v.object({
         verdict: aiModerationVerdict,
@@ -209,23 +209,23 @@ export default defineSchema({
         at: v.number(),
       }),
     ),
-    // Publiée SANS relecture humaine. Le drapeau n'est pas cosmétique : il est
-    // la condition d'existence de `revertAutoPublication` — la seule sortie
-    // arrière de `published`, et elle ne doit s'ouvrir que sur ce qu'un humain
-    // n'a jamais validé.
+    // Published WITHOUT human review. The flag is not cosmetic: it is
+    // the condition for `revertAutoPublication` to exist — the only way
+    // back out of `published`, and it must only open on what a human
+    // has never validated.
     autoPublished: v.optional(v.boolean()),
-    // Document téléversé (F-32) : fichier dans le stockage Convex + nom d'origine.
+    // Uploaded document (F-32): file in Convex storage + original name.
     fileId: v.optional(v.id('_storage')),
     fileName: v.optional(v.string()),
-    // Organisation du déposant (F-21, chantier comptes) : posée au dépôt quand
-    // le compte est rattaché à une organisation. C'est ce qui permet à la
-    // fiche publique de lister SES publications.
+    // Submitter's organization (F-21, accounts workstream): set on submission when
+    // the account is linked to an organization. This is what lets the
+    // public profile list ITS publications.
     organizationId: v.optional(v.id('organizations')),
     createdAt: v.number(),
-    // Recherche plein texte (F-06/F-34, chantier diffusion) : meule PLIÉE
-    // (titre, auteurs, résumé, points clés) et langue principale — un tableau
-    // (`languages`) ne peut pas servir de filtre d'égalité dans un index de
-    // recherche. Tenues à l'écriture, remplies par `searchIndexing.backfill`.
+    // Full-text search (F-06/F-34, diffusion workstream): FOLDED haystack
+    // (title, authors, abstract, key points) and main language — an array
+    // (`languages`) cannot serve as an equality filter in a search
+    // index. Maintained on write, filled by `searchIndexing.backfill`.
     searchText: v.optional(v.string()),
     searchLang: v.optional(locale),
   })
@@ -234,51 +234,51 @@ export default defineSchema({
     .index('by_status_and_theme', ['status', 'theme'])
     .index('by_author', ['authorUserId'])
     .index('by_organization_and_status', ['organizationId', 'status'])
-    // File de revue (F-43, convex/peerReview.ts) : `reviewStage` n'est posé que
-    // sur les publications ENGAGÉES dans une revue — une infime minorité de la
-    // table. L'index les isole sans lire les autres. Les documents où le champ
-    // est absent sont indexés sous `undefined`, qui précède toute valeur : la
-    // file entière s'obtient donc par la plage `> undefined`, en une lecture
-    // contiguë (cf. getReviewQueue).
+    // Review queue (F-43, convex/peerReview.ts): `reviewStage` is only set
+    // on publications ENGAGED in a review — a tiny minority of the
+    // table. The index isolates them without reading the others. Documents where the field
+    // is missing are indexed under `undefined`, which precedes any value: the
+    // whole queue is therefore obtained by the `> undefined` range, in one
+    // contiguous read (see getReviewQueue).
     .index('by_reviewStage', ['reviewStage'])
-    // Recherche de la file de modération (issue #49) : le titre. `status` en
-    // `filterFields` pour que « en attente » et la recherche tiennent dans une
-    // seule lecture, comme le fait déjà `by_status` sans recherche.
+    // Moderation queue search (issue #49): the title. `status` in
+    // `filterFields` so that "pending" and the search fit in a
+    // single read, as `by_status` already does without search.
     .searchIndex('search_title', {
       searchField: 'title',
       filterFields: ['status'],
     })
-    // Recherche PUBLIQUE (palette, /recherche). `status` y est TOUJOURS fixé à
-    // 'published' par la requête : un brouillon ne peut pas sortir, quel que
-    // soit le terme. Les autres filtres sont ceux de la page de résultats.
+    // PUBLIC search (palette, /recherche). `status` there is ALWAYS pinned to
+    // 'published' by the query: a draft cannot come out, whatever the
+    // term. The other filters are those of the results page.
     .searchIndex('search_text', {
       searchField: 'searchText',
       filterFields: ['status', 'type', 'theme', 'region', 'searchLang', 'year'],
     }),
 
-  // Consultations par publication (F-37) — compteur ISOLÉ du document.
+  // Views per publication (F-37) — counter ISOLATED from the document.
   //
-  // Le décompte était patché sur la publication elle-même : chaque visite
-  // réécrivait un document lu par la bibliothèque entière (liste, détail,
-  // « même thématique »), donc invalidait tous ces abonnements et mettait la
-  // page la plus consultée en concurrence d'écriture avec elle-même (OCC).
-  // Une ligne dédiée, minuscule et lue nulle part ailleurs, encaisse le trafic
-  // sans toucher au document.
+  // The count used to be patched onto the publication itself: each visit
+  // rewrote a document read by the entire library (list, detail,
+  // "même thématique"), hence invalidated all those subscriptions and put the
+  // most viewed page in write contention with itself (OCC).
+  // A dedicated row, tiny and read nowhere else, absorbs the traffic
+  // without touching the document.
   //
-  // MIGRATION : `publications.views` garde les vues comptées AVANT ce
-  // découpage (et les valeurs de démonstration posées par devAdmin). Le total
-  // affiché est la SOMME des deux — les sources sont disjointes, plus rien
-  // n'écrit `publications.views` en production.
+  // MIGRATION: `publications.views` keeps the views counted BEFORE this
+  // split (and the demo values set by devAdmin). The displayed total
+  // is the SUM of both — the sources are disjoint, nothing
+  // writes `publications.views` in production anymore.
   publicationViews: defineTable({
     publicationId: v.id('publications'),
     count: v.number(),
   }).index('by_publication', ['publicationId']),
 
-  // Revue à comité de lecture (F-43) — avis des relecteurs (moderateur+) sur une
-  // publication. Couche au-dessus de la modération : un éditeur assigne un
-  // relecteur (reviewStage='in_review'), les relecteurs déposent un avis, puis
-  // l'éditeur décide (revision / reviewed). `reviewerName` = instantané
-  // dénormalisé (évite un join à la lecture de la file).
+  // Peer review (F-43) — reviewers' reviews (moderator+) on a
+  // publication. Layer on top of moderation: an editor assigns a
+  // reviewer (reviewStage='in_review'), the reviewers submit a review, then
+  // the editor decides (revision / reviewed). `reviewerName` = denormalized
+  // snapshot (avoids a join when reading the queue).
   peerReviews: defineTable({
     publicationId: v.id('publications'),
     reviewerUserId: v.id('users'),
@@ -290,46 +290,46 @@ export default defineSchema({
       v.literal('reject'),
     ),
     comment: v.string(),
-    // Version du manuscrit évaluée (F-43, chantier editorial). Absente sur les
-    // avis antérieurs aux versions : ils portent sur la version 1.
+    // Evaluated manuscript version (F-43, editorial workstream). Missing on
+    // reviews predating versions: they refer to version 1.
     version: v.optional(v.number()),
-    // Commentaire CONFIDENTIEL à l'éditeur — jamais montré à l'auteur.
+    // CONFIDENTIAL comment to the editor — never shown to the author.
     commentToEditor: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index('by_publication', ['publicationId'])
     .index('by_reviewer', ['reviewerUserId'])
-    // Unicité applicative de l'avis (issue #9) : UN avis par relecteur et par
-    // publication. L'index rend la garde de `peerReview.submitReview` exacte
-    // sans relire toute la liste des avis.
+    // Application-level uniqueness of the review (issue #9): ONE review per reviewer and per
+    // publication. The index makes the `peerReview.submitReview` guard exact
+    // without re-reading the whole list of reviews.
     .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId']),
 
-  // Assignations de relecture (campagne du 27/09, R-01 / A-02). `assignReviewer`
-  // ne faisait que NOTIFIER : rien ne retenait qui avait été désigné sur quoi.
-  // Or la file complète (`getReviewQueue`) est réservée à l'éditeur, alors que
-  // le relecteur est souvent un modérateur : notifié, il n'avait aucun écran
-  // qui lui rende « ce qu'on lui a confié ». Cette table est ce que lit la vue
-  // « Mes relectures » — par l'index `by_reviewer`, sans parcourir les
-  // publications. Une ligne par (publication, relecteur) ; réassigner sur une
-  // revue rouverte met la ligne à jour au lieu d'en créer une seconde.
+  // Review assignments (27/09 campaign, R-01 / A-02). `assignReviewer`
+  // only NOTIFIED: nothing recorded who had been assigned to what.
+  // Yet the full queue (`getReviewQueue`) is reserved for the editor, whereas
+  // the reviewer is often a moderator: once notified, they had no screen
+  // showing them "what they were entrusted with". This table is what the
+  // "Mes relectures" view reads — via the `by_reviewer` index, without scanning
+  // publications. One row per (publication, reviewer); reassigning on a
+  // reopened review updates the row instead of creating a second one.
   peerReviewAssignments: defineTable({
     publicationId: v.id('publications'),
     reviewerUserId: v.id('users'),
     assignedBy: v.id('users'),
     assignedAt: v.number(),
-    // --- Chantier editorial (F-43) : tours, échéances, conflits d'intérêts ---
-    // Version que ce relecteur évalue dans le tour en cours.
+    // --- Editorial workstream (F-43): rounds, deadlines, conflicts of interest ---
+    // Version this reviewer evaluates in the current round.
     version: v.optional(v.number()),
-    // Échéance de l'avis. Posée tant que l'avis est ATTENDU, effacée quand il
-    // est rendu, que le relecteur se récuse ou que la revue se clôt : l'index
-    // `by_dueAt` ne contient donc que les relectures en souffrance, et la
-    // tâche de relance les lit sans parcourir les assignations closes.
+    // Review deadline. Set while the review is EXPECTED, cleared when it
+    // is submitted, when the reviewer recuses themselves or when the review closes: the
+    // `by_dueAt` index therefore only contains overdue reviews, and the
+    // reminder task reads them without scanning closed assignments.
     dueAt: v.optional(v.number()),
     remindersSent: v.optional(v.number()),
     lastReminderAt: v.optional(v.number()),
-    // L'éditeur a été prévenu du retard après la dernière relance.
+    // The editor was notified of the delay after the last reminder.
     overdueNotifiedAt: v.optional(v.number()),
-    // Déclaration de conflit d'intérêts, préalable à l'accès au manuscrit.
+    // Conflict-of-interest declaration, prerequisite to accessing the manuscript.
     conflict: v.optional(
       v.object({
         hasConflict: v.boolean(),
@@ -343,7 +343,7 @@ export default defineSchema({
     .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId'])
     .index('by_dueAt', ['dueAt']),
 
-  // Candidatures d'adhésion (F-22) — workflow de validation par un modérateur.
+  // Membership applications (F-22) — validation workflow by a moderator.
   membershipApplications: defineTable({
     type: v.union(v.literal('organisation'), v.literal('individu')),
     applicantUserId: v.optional(v.id('users')),
@@ -351,12 +351,12 @@ export default defineSchema({
     contactEmail: v.string(),
     country: v.string(),
     message: v.optional(v.string()),
-    // LANGUE DU CANDIDAT, relevée au dépôt du formulaire. Les cinq autres
-    // formulaires publics (newsletter, inscription à un événement, rappel,
-    // candidature jeunes, mentorat) la stockaient déjà ; celui-ci était le seul
-    // à ne pas le faire — et c'est le seul dont l'approbation déclenche un
-    // courriel. Sans elle, un candidat arabophone recevait sa validation
-    // d'adhésion en français, avec un lien vers une page française.
+    // APPLICANT'S LANGUAGE, recorded when the form is submitted. The five other
+    // public forms (newsletter, event registration, reminder,
+    // youth application, mentoring) already stored it; this one was the only
+    // one not to — and it is the only one whose approval triggers an
+    // email. Without it, an Arabic-speaking applicant received their membership
+    // approval in French, with a link to a French page.
     locale: v.optional(locale),
     status: v.union(
       v.literal('pending'),
@@ -367,32 +367,32 @@ export default defineSchema({
     reviewNotes: v.optional(v.string()),
     submittedAt: v.number(),
     reviewedAt: v.optional(v.number()),
-    // Onboarding (F-01/F-22) : horodatage de l'e-mail d'invitation envoyé au
-    // candidat approuvé, et organisation créée à l'approbation. Permet de
-    // renvoyer l'invitation sans dupliquer le compte ni la fiche annuaire.
+    // Onboarding (F-01/F-22): timestamp of the invitation email sent to the
+    // approved applicant, and organization created on approval. Allows
+    // resending the invitation without duplicating the account or the directory profile.
     invitedAt: v.optional(v.number()),
     createdOrgId: v.optional(v.id('organizations')),
   })
     .index('by_status', ['status'])
     .index('by_applicant', ['applicantUserId'])
-    // Recherche de la file des candidatures (issue #49) : le nom de
-    // l'organisation — c'est par lui qu'une candidature se retrouve.
+    // Applications queue search (issue #49): the
+    // organization's name — that is how an application is found.
     .searchIndex('search_organizationName', {
       searchField: 'organizationName',
       filterFields: ['status'],
     }),
 
-  // Inscriptions à la newsletter (F-18). Newsletter maison : envoi orchestré par
-  // Convex via l'adaptateur e-mail (Resend, puis AWS SES). `unsubToken` = lien
-  // de désinscription dans chaque envoi.
+  // Newsletter subscriptions (F-18). In-house newsletter: sending orchestrated by
+  // Convex via the email adapter (Resend, then AWS SES). `unsubToken` = unsubscribe
+  // link in each send.
   //
-  // DOUBLE OPT-IN (chantier diffusion) : une inscription naît `pending` et ne
-  // reçoit RIEN tant que le lien de confirmation n'a pas été suivi. Le jeton
-  // de confirmation n'est stocké que HACHÉ (SHA-256) : une fuite de la table ne
-  // permet de confirmer personne. `status` absent = abonné HÉRITÉ, antérieur au
-  // double opt-in — il ne reçoit pas les campagnes tant que
-  // `newsletter.migrateLegacySubscribers` ne lui a pas demandé confirmation
-  // (cf. docs/backlog/diffusion.md).
+  // DOUBLE OPT-IN (diffusion workstream): a subscription is born `pending` and
+  // receives NOTHING until the confirmation link has been followed. The confirmation
+  // token is only stored HASHED (SHA-256): a leak of the table does not
+  // allow confirming anyone. Missing `status` = LEGACY subscriber, predating
+  // double opt-in — they do not receive campaigns until
+  // `newsletter.migrateLegacySubscribers` has asked them for confirmation
+  // (see docs/backlog/diffusion.md).
   newsletterSubscriptions: defineTable({
     email: v.string(),
     locale: v.optional(locale),
@@ -401,12 +401,12 @@ export default defineSchema({
     status: v.optional(v.union(v.literal('pending'), v.literal('confirmed'))),
     confirmTokenHash: v.optional(v.string()),
     confirmExpiresAt: v.optional(v.number()),
-    // Nombre d'e-mails de confirmation envoyés — le renvoi est BORNÉ.
+    // Number of confirmation emails sent — resending is BOUNDED.
     confirmSends: v.optional(v.number()),
     confirmLastSentAt: v.optional(v.number()),
     confirmedAt: v.optional(v.number()),
-    // PREUVE DU CONSENTEMENT (RGPD art. 7.1) : quand, depuis quel formulaire,
-    // dans quelle langue, et sous quelle version du texte d'information.
+    // PROOF OF CONSENT (GDPR art. 7.1): when, from which form,
+    // in which language, and under which version of the information notice.
     consent: v.optional(
       v.object({
         at: v.number(),
@@ -419,17 +419,17 @@ export default defineSchema({
     .index('by_email', ['email'])
     .index('by_token', ['unsubToken'])
     .index('by_confirm_hash', ['confirmTokenHash'])
-    // Destinataires d'une campagne (`confirmed`), purge des attentes expirées
-    // (`pending` + échéance) et migration des héritées (`undefined`).
+    // Campaign recipients (`confirmed`), purge of expired pending entries
+    // (`pending` + deadline) and migration of legacy ones (`undefined`).
     .index('by_status_and_expiry', ['status', 'confirmExpiresAt']),
 
-  // Campagnes newsletter (F-65) — composées au back-office, envoyées à tous les
-  // abonnés via l'adaptateur e-mail.
+  // Newsletter campaigns (F-65) — composed in the back-office, sent to all
+  // subscribers via the email adapter.
   //
-  // ENVOI EN VOLUME (chantier diffusion) : la campagne est découpée en lots
-  // planifiés, un statut par destinataire dans `newsletterDeliveries`. Les
-  // compteurs ci-dessous sont la PROGRESSION affichée en direct au back-office
-  // (`recipientCount` = envoyés, nom historique conservé).
+  // BULK SENDING (diffusion workstream): the campaign is split into scheduled
+  // batches, one status per recipient in `newsletterDeliveries`. The
+  // counters below are the PROGRESS displayed live in the back-office
+  // (`recipientCount` = sent, historical name kept).
   newsletterCampaigns: defineTable({
     subject: v.string(),
     body: v.string(),
@@ -444,14 +444,14 @@ export default defineSchema({
     sentAt: v.optional(v.number()),
     recipientCount: v.optional(v.number()),
     failedCount: v.optional(v.number()),
-    // Langue de la version de référence (repli des abonnés sans version dans
-    // leur langue). Absente = français, comme avant le chantier.
+    // Language of the reference version (fallback for subscribers without a version in
+    // their language). Missing = French, as before the workstream.
     locale: v.optional(locale),
-    // Versions traduites — cinq langues au plus, donc un tableau borné.
+    // Translated versions — five languages at most, hence a bounded array.
     variants: v.optional(
       v.array(v.object({ locale, subject: v.string(), body: v.string() })),
     ),
-    // Destinataires mis en file (croît pendant la mise en file).
+    // Recipients enqueued (grows during enqueueing).
     totalCount: v.optional(v.number()),
     skippedCount: v.optional(v.number()),
     enqueueDone: v.optional(v.boolean()),
@@ -459,7 +459,7 @@ export default defineSchema({
     lastTestAt: v.optional(v.number()),
   }).index('by_status', ['status']),
 
-  // Formulaire de contact (F-17).
+  // Contact form (F-17).
   contactMessages: defineTable({
     name: v.string(),
     email: v.string(),
@@ -469,10 +469,10 @@ export default defineSchema({
     createdAt: v.number(),
   }).index('by_handled', ['handled']),
 
-  // Inscriptions aux événements (F-53) — RSVP en ligne. `eventSlug` = slug de
-  // l'événement dans `contentEvents` (chantier « contenus ») : le serveur le
-  // valide contre la table avant d'écrire. Index composite (event, email) :
-  // sert le dédoublonnage ET le décompte par event.
+  // Event registrations (F-53) — online RSVP. `eventSlug` = slug of the
+  // event in `contentEvents` ("contenus" workstream): the server
+  // validates it against the table before writing. Composite index (event, email):
+  // serves deduplication AND the per-event count.
   eventRegistrations: defineTable({
     eventSlug: v.string(),
     name: v.string(),
@@ -480,17 +480,17 @@ export default defineSchema({
     organization: v.optional(v.string()),
     locale: v.optional(locale),
     createdAt: v.number(),
-    // Envoi du lien de visioconférence (chantier « contenus ») : posé quand le
-    // courriel est parti, pour ne jamais l'envoyer deux fois.
+    // Sending of the video-conference link ("contenus" workstream): set when the
+    // email has gone out, so it is never sent twice.
     visioSentAt: v.optional(v.number()),
   }).index('by_event_and_email', ['eventSlug', 'email']),
 
-  // Rappels d'événements par e-mail (F-55) — un visiteur (sans compte) demande
-  // à être prévenu avant un événement à venir. `eventSlug` = slug d'un
-  // événement publié de `contentEvents` ; `eventDate` = son début (`startsAt`),
-  // CALCULÉ CÔTÉ SERVEUR depuis la table. Un cron quotidien envoie les rappels
-  // dont la date approche (sendEmail NO-OP sans clé fournisseur). Index by_sent
-  // = file des rappels à traiter ; index composite (event, email) = dédoublonnage.
+  // Event reminders by email (F-55) — a visitor (without an account) asks
+  // to be notified before an upcoming event. `eventSlug` = slug of a
+  // published event in `contentEvents`; `eventDate` = its start (`startsAt`),
+  // COMPUTED SERVER-SIDE from the table. A daily cron sends the reminders
+  // whose date is approaching (sendEmail NO-OP without a provider key). by_sent index
+  // = queue of reminders to process; composite index (event, email) = deduplication.
   eventReminders: defineTable({
     eventSlug: v.string(),
     email: v.string(),
@@ -501,14 +501,14 @@ export default defineSchema({
   })
     .index('by_sent', ['sent'])
     .index('by_event_and_email', ['eventSlug', 'email'])
-    // Rappels NON ENVOYÉS d'une adresse (pentest M-5) : le dédoublonnage porte
-    // sur (slug, email), donc varier le slug rendait un créneau neuf et une
-    // adresse tierce pouvait être visée en série. Le plafond a besoin de
-    // compter, et compter a besoin de cet index.
+    // UNSENT reminders for an address (pentest M-5): deduplication applies
+    // to (slug, email), so varying the slug yielded a fresh slot and a
+    // third-party address could be targeted repeatedly. The cap needs to
+    // count, and counting needs this index.
     .index('by_email_and_sent', ['email', 'sent']),
 
-  // Candidatures Jeunes (F-58) — le hub Jeunes devient fonctionnel. Candidature
-  // sans compte (comme l'adhésion F-22, par e-mail). Revue par le staff.
+  // Youth applications (F-58) — the Youth hub becomes functional. Application
+  // without an account (like the F-22 membership, by email). Reviewed by staff.
   youthApplications: defineTable({
     name: v.string(),
     email: v.string(),
@@ -529,10 +529,10 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_email', ['email']),
 
-  // Mentorat (F-59) — mise en relation jeunes <-> mentors du réseau. Demande
-  // sans compte (par e-mail, comme F-58) : on s'inscrit comme « mentoré »
-  // (cherche un mentor) ou « mentor » (propose son accompagnement). `themes` =
-  // axes d'intérêt (slugs PUB_THEMES). Revue par le staff (matched / closed).
+  // Mentoring (F-59) — matching young people <-> network mentors. Request
+  // without an account (by email, like F-58): one signs up as "mentoré"
+  // (looking for a mentor) or "mentor" (offering their support). `themes` =
+  // areas of interest (PUB_THEMES slugs). Reviewed by staff (matched / closed).
   mentorshipRequests: defineTable({
     name: v.string(),
     email: v.string(),
@@ -548,18 +548,18 @@ export default defineSchema({
     ),
     reviewedBy: v.optional(v.id('users')),
     reviewedAt: v.optional(v.number()),
-    // Note de décision (campagne du 27/09, A-08) : elle n'existait que dans
-    // les métadonnées d'audit, donc jamais à l'écran de mentorat.
+    // Decision note (27/09 campaign, A-08): it only existed in
+    // the audit metadata, hence never on the mentoring screen.
     reviewNotes: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index('by_status', ['status'])
     .index('by_email', ['email']),
 
-  // Tribune démocratique (F-44/F-47/F-50) — espace d'expression modéré. Lecture
-  // publique, écriture réservée aux membres ; modération A PRIORI par défaut
-  // (F-45), a posteriori sur réglage de l'administrateur, et signalement. `theme` = un des 5 axes (slugs PUB_THEMES). `authorName` est un
-  // instantané dénormalisé (évite un join à la lecture du fil).
+  // Democratic Tribune (F-44/F-47/F-50) — moderated space for expression. Public
+  // reading, writing reserved for members; PRE-moderation by default
+  // (F-45), post-moderation if the administrator configures it, and reporting. `theme` = one of the 5 axes (PUB_THEMES slugs). `authorName` is a
+  // denormalized snapshot (avoids a join when reading the feed).
   tribunePosts: defineTable({
     authorUserId: v.id('users'),
     authorName: v.string(),
@@ -567,35 +567,35 @@ export default defineSchema({
     format: v.union(v.literal('court'), v.literal('fond')),
     title: v.string(),
     body: v.string(),
-    // Langue de RÉDACTION du billet (issue #35). Un billet de Tribune est
-    // écrit dans UNE seule langue et n'est jamais traduit : les deux préfixes
-    // d'URL servent le même texte. Sans ce champ, `tribune/[id]` ne pouvait
-    // poser qu'un canonical par locale — deux pages canoniques pour un seul
-    // contenu, soit du duplicate content. Renseignée par l'auteur à la
-    // publication ; OPTIONNELLE parce que les billets antérieurs n'en portent
-    // pas, et que le repli de `resolveLocale` (fr) est la bonne réponse pour
-    // eux.
+    // WRITING language of the post (issue #35). A Tribune post is
+    // written in ONE language only and is never translated: both URL
+    // prefixes serve the same text. Without this field, `tribune/[id]` could only
+    // set one canonical per locale — two canonical pages for a single
+    // piece of content, i.e. duplicate content. Filled in by the author on
+    // publication; OPTIONAL because earlier posts do not carry it,
+    // and the `resolveLocale` fallback (fr) is the right answer for
+    // them.
     lang: v.optional(locale),
-    // `pending` / `rejected` : modération A PRIORI (F-45, chantier
-    // communauté). Un billet `pending` n'est servi qu'à son auteur et aux
-    // modérateurs ; `rejected` porte le motif montré à l'auteur.
+    // `pending` / `rejected`: PRE-moderation (F-45, community
+    // workstream). A `pending` post is only served to its author and to
+    // moderators; `rejected` carries the reason shown to the author.
     status: contentStatusValidator,
     commentCount: v.number(),
     createdAt: v.number(),
-    // Recherche globale (chantier diffusion) : meule PLIÉE (titre, auteur,
-    // corps) et année de publication pour le filtre « date ».
+    // Global search (diffusion workstream): FOLDED haystack (title, author,
+    // body) and publication year for the "date" filter.
     searchText: v.optional(v.string()),
     searchYear: v.optional(v.number()),
-    // Dernière modification par l'auteur (billet en attente ou rejeté).
+    // Last modification by the author (pending or rejected post).
     updatedAt: v.optional(v.number()),
-    // Décision humaine la plus récente (l'historique complet vit dans
-    // `moderationEvents`) ; `moderatedBy` absent + `autoPublished` = mise en
-    // ligne par l'IA, sans relecture.
+    // Most recent human decision (the full history lives in
+    // `moderationEvents`); `moderatedBy` missing + `autoPublished` = put
+    // online by the AI, without review.
     moderatedBy: v.optional(v.id('users')),
     moderatedAt: v.optional(v.number()),
     rejectionReason: v.optional(v.string()),
     autoPublished: v.optional(v.boolean()),
-    // Résumé du dernier avis de l'IA, pour un badge dans la file.
+    // Summary of the AI's latest review, for a badge in the queue.
     aiReview: v.optional(
       v.object({
         verdict: aiModerationVerdict,
@@ -607,16 +607,16 @@ export default defineSchema({
         at: v.number(),
       }),
     ),
-    // APPROFONDISSEMENT (F-48) : cette contribution de fond prolonge un
-    // billet court.
+    // IN-DEPTH PIECE (F-48): this long-form contribution extends a
+    // short post.
     parentPostId: v.optional(v.id('tribunePosts')),
-    // Proposée à la bibliothèque : la publication (en file) qui en est née.
+    // Proposed to the library: the publication (in the queue) that came out of it.
     libraryPublicationId: v.optional(v.id('publications')),
   })
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
     .index('by_author', ['authorUserId'])
-    // Seuls les billets `published` sortent : filtre posé par la requête.
+    // Only `published` posts come out: filter set by the query.
     .searchIndex('search_text', {
       searchField: 'searchText',
       filterFields: ['status', 'theme', 'lang', 'searchYear'],
@@ -647,25 +647,25 @@ export default defineSchema({
     ),
   })
     .index('by_post', ['postId'])
-    // File de modération (commentaires en attente, F-49) et « mes
-    // commentaires » / suppression de compte.
+    // Moderation queue (pending comments, F-49) and "mes
+    // commentaires" / account deletion.
     .index('by_status', ['status'])
     .index('by_author', ['authorUserId']),
 
-  // Réactions de la Tribune — un seul type, « soutien » (comme un like). Une
-  // réaction par membre et par post : unicité via l'index composite
-  // (postId, userId). Le décompte se fait à la lecture (pas de dénormalisation).
+  // Tribune reactions — a single type, "soutien" (like a like). One
+  // reaction per member and per post: uniqueness via the composite index
+  // (postId, userId). Counting happens at read time (no denormalization).
   tribuneReactions: defineTable({
     postId: v.id('tribunePosts'),
     userId: v.id('users'),
     createdAt: v.number(),
   })
     .index('by_post_and_user', ['postId', 'userId'])
-    // Suppression / export des données d'un compte.
+    // Deletion / export of an account's data.
     .index('by_user', ['userId']),
 
-  // Signalements (F-50) — file de modération a posteriori. `targetId` = id d'un
-  // post ou d'un commentaire (stocké en chaîne, type porté par `targetType`).
+  // Reports (F-50) — post-moderation queue. `targetId` = id of a
+  // post or a comment (stored as a string, type carried by `targetType`).
   tribuneReports: defineTable({
     targetType: v.union(v.literal('post'), v.literal('comment')),
     targetId: v.string(),
@@ -675,15 +675,15 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index('by_resolved', ['resolved'])
-    // Historique d'un contenu (F-49) : ses signalements, sans parcourir la file.
+    // History of a piece of content (F-49): its reports, without scanning the queue.
     .index('by_target', ['targetId'])
     .index('by_reporter', ['reporterUserId']),
 
-  // Appels à projets collaboratifs (F-60) — propositions de projets menés en
-  // commun entre membres. La page publique présente le DISPOSITIF (aucun appel
-  // daté ni financement chiffré) ; un membre propose un projet (status
-  // 'pending'), revu par le staff (accepted / rejected). `theme` = un des 5 axes
-  // (slugs PUB_THEMES). `authorName` = instantané dénormalisé (évite un join).
+  // Collaborative calls for projects (F-60) — proposals for projects carried out
+  // jointly between members. The public page presents the SCHEME (no dated
+  // call nor quantified funding); a member proposes a project (status
+  // 'pending'), reviewed by staff (accepted / rejected). `theme` = one of the 5 axes
+  // (PUB_THEMES slugs). `authorName` = denormalized snapshot (avoids a join).
   projectProposals: defineTable({
     authorUserId: v.id('users'),
     authorName: v.string(),
@@ -703,12 +703,12 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_author', ['authorUserId']),
 
-  // Espaces de travail collaboratifs (F-24) — un membre du réseau ouvre un
-  // espace autour d'un thème ; d'autres membres le rejoignent et y déposent des
-  // notes. Lecture réservée aux membres réseau (membre+) ; l'écriture de notes
-  // est réservée aux MEMBRES DE L'ESPACE (workspaceMembers). `theme` = un des 5
-  // axes (slugs PUB_THEMES). `ownerName`/`memberCount` = instantanés dénormalisés
-  // (évitent un join à la lecture de la liste).
+  // Collaborative workspaces (F-24) — a network member opens a
+  // space around a theme; other members join it and post
+  // notes in it. Reading reserved for network members (member+); writing notes
+  // is reserved for SPACE MEMBERS (workspaceMembers). `theme` = one of the 5
+  // axes (PUB_THEMES slugs). `ownerName`/`memberCount` = denormalized snapshots
+  // (avoid a join when reading the list).
   workspaces: defineTable({
     title: v.string(),
     theme: v.string(),
@@ -717,34 +717,34 @@ export default defineSchema({
     ownerName: v.string(),
     memberCount: v.number(),
     createdAt: v.number(),
-    // Ouvert (défaut, incrément 1) ou privé sur invitation.
+    // Open (default, increment 1) or private by invitation.
     visibility: v.optional(workspaceVisibilityValidator),
-    // Occupation du stockage par les fichiers partagés (toutes versions), et
-    // nombre de fichiers — tenus à l'écriture, lus pour le quota.
+    // Storage used by shared files (all versions), and
+    // number of files — maintained on write, read for the quota.
     storageBytes: v.optional(v.number()),
     fileCount: v.optional(v.number()),
   }).index('by_owner', ['ownerUserId']),
 
-  // Appartenance à un espace (F-24). Unicité (espace, utilisateur) via l'index
-  // composite by_workspace_and_user. `userName` = instantané dénormalisé.
+  // Membership of a space (F-24). Uniqueness (space, user) via the composite
+  // index by_workspace_and_user. `userName` = denormalized snapshot.
   workspaceMembers: defineTable({
     workspaceId: v.id('workspaces'),
     userId: v.id('users'),
     userName: v.string(),
-    // animateur / contributeur / lecteur ; `owner` et `member` sont les
-    // valeurs héritées (cf. effectiveWorkspaceRole, convex/lib/communaute.ts).
+    // facilitator / contributor / reader; `owner` and `member` are the
+    // legacy values (see effectiveWorkspaceRole, convex/lib/communaute.ts).
     role: storedWorkspaceRoleValidator,
     joinedAt: v.number(),
   })
     .index('by_workspace', ['workspaceId'])
     .index('by_workspace_and_user', ['workspaceId', 'userId'])
-    // « Mes espaces » : l'appartenance d'un utilisateur se lit en UNE requête
-    // indexée. Sans lui, `listWorkspaces` résolvait l'appartenance espace par
-    // espace — un aller-retour par ligne affichée (N+1).
+    // "Mes espaces": a user's memberships are read in ONE indexed
+    // query. Without it, `listWorkspaces` resolved membership space by
+    // space — one round-trip per displayed row (N+1).
     .index('by_user', ['userId']),
 
-  // Notes d'un espace (F-24) — fil collaboratif, écriture réservée aux membres
-  // de l'espace. `authorName` = instantané dénormalisé.
+  // Notes of a space (F-24) — collaborative feed, writing reserved for members
+  // of the space. `authorName` = denormalized snapshot.
   workspaceNotes: defineTable({
     workspaceId: v.id('workspaces'),
     authorUserId: v.id('users'),
@@ -755,55 +755,55 @@ export default defineSchema({
     .index('by_workspace', ['workspaceId'])
     .index('by_author', ['authorUserId']),
 
-  // --- Modération éditoriale assistée par IA (auto-acceptation) -------------
+  // --- AI-assisted editorial moderation (auto-acceptance) -------------------
   //
-  // Couche AU-DESSUS de la modération humaine (convex/publications.ts), jamais
-  // à sa place : le modèle rend un AVIS, le serveur décide. Voir le module
-  // convex/lib/aiModeration.ts pour la logique de décision, et
-  // docs/moderation-ia.md pour le cadrage.
+  // Layer ON TOP of human moderation (convex/publications.ts), never
+  // in its place: the model gives an OPINION, the server decides. See the
+  // convex/lib/aiModeration.ts module for the decision logic, and
+  // docs/moderation-ia.md for the framing.
 
-  // Réglages — SINGLETON (`key` vaut toujours 'default'). Un document unique
-  // plutôt qu'une ligne par réglage : ces valeurs se lisent TOUJOURS ensemble
-  // (une décision les consulte toutes), et se modifient ensemble depuis un même
-  // écran. `version` s'incrémente à chaque écriture — réglages ET règles — et
-  // chaque avis rendu l'enregistre : un avis passé reste lisible à la lumière
-  // du barème qui l'a produit, et non du barème d'aujourd'hui.
+  // Settings — SINGLETON (`key` is always 'default'). A single document
+  // rather than one row per setting: these values are ALWAYS read together
+  // (a decision consults them all), and are edited together from the same
+  // screen. `version` increments on every write — settings AND rules — and
+  // each review records it: a past review stays readable in light
+  // of the rubric that produced it, and not of today's rubric.
   aiModerationConfig: defineTable({
     key: v.literal('default'),
     mode: aiModerationMode,
     model: v.string(),
-    // Modèle de repli, essayé UNE fois si le premier échoue (panne fournisseur,
-    // modèle retiré du catalogue). Absent = pas de repli.
+    // Fallback model, tried ONCE if the first one fails (provider outage,
+    // model removed from the catalog). Missing = no fallback.
     fallbackModel: v.optional(v.string()),
-    // Confiance minimale (0..100) exigée pour une publication automatique.
+    // Minimum confidence (0..100) required for an automatic publication.
     autoPublishMinConfidence: v.number(),
-    // Consignes éditoriales libres, en tête du barème. C'est là que
-    // l'administrateur écrit la ligne de la maison ; les critères vérifiables
-    // un par un vivent dans `aiModerationRules`.
+    // Free-form editorial guidelines, at the top of the rubric. This is where
+    // the administrator writes the house line; the criteria verifiable
+    // one by one live in `aiModerationRules`.
     instructions: v.string(),
-    // Types de publication éligibles à l'AUTO-PUBLICATION (slugs PUB_TYPES).
-    // Liste VIDE = aucun type éligible : un mode `auto` activé sans avoir
-    // choisi de périmètre n'ouvre rien tant que l'administrateur n'a pas dit
-    // sur quoi. L'analyse, elle, porte sur tous les dépôts.
+    // Publication types eligible for AUTO-PUBLICATION (PUB_TYPES slugs).
+    // EMPTY list = no eligible type: an `auto` mode enabled without having
+    // chosen a scope opens nothing until the administrator has said
+    // on what. The analysis, however, covers all submissions.
     eligibleTypes: v.array(v.string()),
-    // Pièces jointes : le dépôt F-32 est un PDF. Sans lecture du PDF, l'avis ne
-    // porte que sur les métadonnées — et un dépôt non lu n'est JAMAIS
-    // auto-publié (cf. decideApplication).
+    // Attachments: the F-32 submission is a PDF. Without reading the PDF, the review only
+    // covers the metadata — and an unread submission is NEVER
+    // auto-published (see decideApplication).
     analyzeAttachments: v.boolean(),
     maxAttachmentMb: v.number(),
-    // Plafond d'appels par 24 h (maîtrise du coût). Dépassé -> le dépôt part en
-    // file humaine, il n'est pas publié en aveugle.
+    // Cap on calls per 24 h (cost control). Exceeded -> the submission goes to the
+    // human queue, it is not published blindly.
     dailyCallCap: v.number(),
     version: v.number(),
     updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
   }).index('by_key', ['key']),
 
-  // Critères d'acceptation rédigés par l'administrateur. Table séparée, et non
-  // un tableau dans le document de réglages : la liste est ouverte (un réseau
-  // qui s'étoffe ajoute des critères), et activer un critère ne doit pas
-  // réécrire tout le barème. Le SOCLE de sécurité, lui, n'est pas ici : il est
-  // écrit en dur (BASELINE_RULES) pour qu'aucun écran ne puisse le retirer.
+  // Acceptance criteria written by the administrator. Separate table, and not
+  // an array in the settings document: the list is open (a growing
+  // network adds criteria), and enabling a criterion must not
+  // rewrite the whole rubric. The security BASELINE, however, is not here: it is
+  // hard-coded (BASELINE_RULES) so that no screen can remove it.
   aiModerationRules: defineTable({
     label: v.string(),
     description: v.string(),
@@ -815,28 +815,28 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index('by_order', ['order']),
 
-  // Avis rendus — un par analyse, y compris les analyses qui n'ont RIEN
-  // appliqué (mode observation, échec d'appel, décision humaine arrivée
-  // avant). C'est la pièce de traçabilité : sans elle, « pourquoi cet article
-  // est-il en ligne sans relecture humaine ? » n'a pas de réponse.
+  // Reviews given — one per analysis, including analyses that applied
+  // NOTHING (observation mode, call failure, human decision that arrived
+  // first). This is the traceability record: without it, "why is this article
+  // online without human review?" has no answer.
   aiModerationReviews: defineTable({
     publicationId: v.id('publications'),
-    // Ce que le MODÈLE conclut.
+    // What the MODEL concludes.
     verdict: aiModerationVerdict,
-    // Ce que le SERVEUR en a fait. Les deux diffèrent dès que le mode, le
-    // périmètre, le seuil ou l'état courant s'y opposent — et c'est le second
-    // qui dit ce qui s'est passé.
+    // What the SERVER did with it. The two differ as soon as the mode, the
+    // scope, the threshold or the current state stand in the way — and it is the second
+    // that says what happened.
     applied: aiModerationApplied,
-    // Motif de la décision d'application, en code stable (cf. APPLY_REASONS) :
-    // affiché traduit, et lisible dans le journal sans relire le barème.
+    // Reason for the application decision, as a stable code (see APPLY_REASONS):
+    // displayed translated, and readable in the log without re-reading the rubric.
     reason: v.string(),
     confidence: v.number(),
     summary: v.string(),
     findings: v.array(
       v.object({
-        // Clé du critère : identifiant de règle, ou `socle:<clé>` pour le
-        // plancher de sécurité. Une CHAÎNE et non un v.id : une règle
-        // supprimée ne doit pas rendre illisible l'avis qu'elle a produit.
+        // Criterion key: rule id, or `socle:<clé>` for the
+        // security floor. A STRING and not a v.id: a deleted rule
+        // must not make the review it produced unreadable.
         ruleKey: v.string(),
         ruleLabel: v.string(),
         severity: aiModerationSeverity,
@@ -846,19 +846,19 @@ export default defineSchema({
           v.literal('unsure'),
         ),
         explanation: v.string(),
-        // Extrait cité du document. C'est ce qui rend un signal vérifiable en
-        // un coup d'œil, au lieu d'obliger à relire le dépôt entier.
+        // Excerpt quoted from the document. This is what makes a signal verifiable at
+        // a glance, instead of having to re-read the whole submission.
         quote: v.optional(v.string()),
       }),
     ),
-    // Traçabilité de l'appel.
+    // Call traceability.
     model: v.string(),
     configVersion: v.number(),
     attachmentAnalyzed: v.boolean(),
     promptTokens: v.optional(v.number()),
     completionTokens: v.optional(v.number()),
     latencyMs: v.optional(v.number()),
-    // Code d'échec (AI_GATEWAY_NOT_CONFIGURED, DAILY_CAP, BAD_RESPONSE…).
+    // Failure code (AI_GATEWAY_NOT_CONFIGURED, DAILY_CAP, BAD_RESPONSE…).
     error: v.optional(v.string()),
     triggeredBy: v.optional(v.id('users')),
     createdAt: v.number(),
@@ -866,36 +866,36 @@ export default defineSchema({
     .index('by_publication', ['publicationId'])
     .index('by_applied', ['applied']),
 
-  // Notifications par utilisateur (F-25/F-51) — réactif (Convex temps réel).
-  // Déclenchées par les moments existants (modération de publication, revue de
-  // candidature). `titleKey` = clé i18n (namespace `notifications`), `params`
-  // interpolés côté client ; `link` = chemin interne facultatif. Index composite
-  // (user, read) : sert la liste par utilisateur ET le décompte des non-lues.
-  // TRADUCTIONS DES CONTENUS DÉPOSÉS PAR LES MEMBRES (billets de Tribune,
-  // publications). Une ligne par couple (contenu, langue de lecture).
+  // Per-user notifications (F-25/F-51) — reactive (Convex real time).
+  // Triggered by existing moments (publication moderation, application
+  // review). `titleKey` = i18n key (`notifications` namespace), `params`
+  // interpolated client-side; `link` = optional internal path. Composite index
+  // (user, read): serves the per-user list AND the unread count.
+  // TRANSLATIONS OF CONTENT SUBMITTED BY MEMBERS (Tribune posts,
+  // publications). One row per (content, reading language) pair.
   //
-  // POURQUOI UNE TABLE À PART et pas des champs sur `tribunePosts` /
-  // `publications`. Cinq langues, deux familles de contenus : porter les
-  // traductions sur le document source le ferait grossir de cinq fois son
-  // texte, alors qu'une page n'en lit JAMAIS qu'une. Or ces documents sont lus
-  // partout — listes, facettes, fiches liées, file de modération — et Convex
-  // facture, comme il invalide, au document entier. C'est le raisonnement de
-  // `publicationViews` (issue #8), appliqué à un texte au lieu d'un compteur.
+  // WHY A SEPARATE TABLE and not fields on `tribunePosts` /
+  // `publications`. Five languages, two families of content: carrying the
+  // translations on the source document would make it grow by five times its
+  // text, whereas a page only EVER reads one. Yet these documents are read
+  // everywhere — lists, facets, related records, moderation queue — and Convex
+  // bills, as it invalidates, per whole document. This is the reasoning of
+  // `publicationViews` (issue #8), applied to a text instead of a counter.
   //
-  // `sourceId` est une CHAÎNE et non un `v.id` : la table couvre deux tables
-  // sources, et `sourceType` porte laquelle. Le même motif que
+  // `sourceId` is a STRING and not a `v.id`: the table covers two source
+  // tables, and `sourceType` says which. The same pattern as
   // `tribuneReports.targetId`.
   //
-  // `sourceHash` est l'empreinte du texte AU MOMENT DE LA TRADUCTION
-  // (`sourceFingerprint`, convex/lib/translation.ts). Elle est relue à
-  // l'affichage : si l'auteur a corrigé son texte depuis, la traduction décrit
-  // une version qui n'existe plus, et la page sert l'original plutôt qu'un
-  // contenu périmé sans le dire.
+  // `sourceHash` is the fingerprint of the text AT TRANSLATION TIME
+  // (`sourceFingerprint`, convex/lib/translation.ts). It is re-read at
+  // display time: if the author has corrected their text since, the translation describes
+  // a version that no longer exists, and the page serves the original rather than
+  // stale content without saying so.
   //
-  // `status: 'failed'` EST CONSERVÉ, et ce n'est pas un oubli de nettoyage :
-  // sans ligne, l'interface ne saurait pas distinguer « jamais demandé » de
-  // « demandé, et la passerelle n'a pas répondu ». Le premier propose un
-  // bouton, le second explique et propose de réessayer.
+  // `status: 'failed'` IS KEPT, and this is not a cleanup oversight:
+  // without a row, the interface could not distinguish "never requested" from
+  // "requested, and the gateway did not respond". The first offers a
+  // button, the second explains and offers to retry.
   contentTranslations: defineTable({
     sourceType: translationSourceType,
     sourceId: v.string(),
@@ -903,37 +903,37 @@ export default defineSchema({
     targetLocale: locale,
     sourceHash: v.string(),
     status: translationStatus,
-    // Absent tant que `status` n'est pas 'ready'.
+    // Missing as long as `status` is not 'ready'.
     fields: v.optional(translatableFields),
     model: v.optional(v.string()),
-    // Code d'échec de la passerelle (GATEWAY_ERRORS), affiché traduit.
+    // Gateway failure code (GATEWAY_ERRORS), displayed translated.
     error: v.optional(v.string()),
     requestedBy: v.optional(v.id('users')),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    // Lecture d'une page : un contenu, une langue. C'est l'accès unique.
+    // Reading a page: one piece of content, one language. This is the only access path.
     .index('by_source_and_target', ['sourceType', 'sourceId', 'targetLocale'])
-    // Purge des traductions d'un contenu supprimé (devAdmin), et affichage des
-    // langues déjà disponibles sous un article.
+    // Purge of a deleted content's translations (devAdmin), and display of the
+    // languages already available under an article.
     .index('by_source', ['sourceType', 'sourceId']),
 
-  // DOCUMENT EXTRAIT D'UN PDF — une ligne par publication.
+  // DOCUMENT EXTRACTED FROM A PDF — one row per publication.
   //
-  // L'extraction est faite UNE FOIS et sert les cinq langues : elle relit le
-  // PDF, ce qui est l'opération coûteuse (le fichier entier part au modèle).
-  // Les traductions, elles, partent de ces blocs — du JSON, quelques dizaines
-  // de kilo-octets — et n'ont plus jamais besoin du fichier.
+  // Extraction is done ONCE and serves all five languages: it re-reads the
+  // PDF, which is the costly operation (the whole file goes to the model).
+  // The translations, for their part, start from these blocks — JSON, a few tens
+  // of kilobytes — and never need the file again.
   //
-  // `fileId` est celui du PDF au moment de l'extraction. Un membre qui
-  // remplace son document change de `fileId` : la comparaison suffit à savoir
-  // que l'extraction décrit un fichier qui n'est plus joint, sans empreinte à
-  // calculer sur plusieurs mégaoctets.
+  // `fileId` is that of the PDF at extraction time. A member who
+  // replaces their document changes `fileId`: the comparison is enough to know
+  // that the extraction describes a file that is no longer attached, without a fingerprint to
+  // compute over several megabytes.
   //
-  // `images` porte les illustrations RECOPIÉES du PDF dans le stockage Convex
-  // (convex/lib/pdfImages.ts). Elles ne sont extraites qu'une fois, et les
-  // cinq langues pointent les mêmes fichiers : une figure n'est ni
-  // recompressée ni dupliquée par langue.
+  // `images` holds the illustrations COPIED from the PDF into Convex storage
+  // (convex/lib/pdfImages.ts). They are extracted only once, and the
+  // five languages point to the same files: a figure is neither
+  // recompressed nor duplicated per language.
   documentExtractions: defineTable({
     publicationId: v.id('publications'),
     fileId: v.id('_storage'),
@@ -942,7 +942,7 @@ export default defineSchema({
     title: v.optional(v.string()),
     blocks: v.optional(v.array(documentBlock)),
     images: v.optional(v.array(extractedImage)),
-    /** Images repérées dans un codage que l'extracteur ne sait pas lire. */
+    /** Images found in an encoding the extractor cannot read. */
     skippedImages: v.optional(v.number()),
     pageCount: v.optional(v.number()),
     model: v.optional(v.string()),
@@ -951,14 +951,14 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index('by_publication', ['publicationId']),
 
-  // VERSION TRADUITE D'UN DOCUMENT — une ligne par (publication, langue).
+  // TRANSLATED VERSION OF A DOCUMENT — one row per (publication, language).
   //
-  // Séparée de l'extraction pour la même raison que `contentTranslations` est
-  // séparée des contenus : la vue document n'en lit JAMAIS qu'une, et les
-  // porter toutes sur la ligne d'extraction la ferait relire en entier à
-  // chaque langue. `extractionId` lie la traduction à la version du document
-  // dont elle est issue — si le PDF est remplacé, une nouvelle extraction naît
-  // et les anciennes traductions cessent d'être servies.
+  // Separate from the extraction for the same reason `contentTranslations` is
+  // separate from the content: the document view only EVER reads one, and
+  // carrying them all on the extraction row would make it be re-read in full for
+  // each language. `extractionId` ties the translation to the version of the document
+  // it comes from — if the PDF is replaced, a new extraction is born
+  // and the old translations stop being served.
   documentRenditions: defineTable({
     publicationId: v.id('publications'),
     extractionId: v.id('documentExtractions'),
@@ -974,7 +974,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_publication_and_locale', ['publicationId', 'targetLocale'])
-    // Purge des versions rattachées à une extraction remplacée.
+    // Purge of versions attached to a replaced extraction.
     .index('by_extraction', ['extractionId']),
 
   notifications: defineTable({
@@ -987,7 +987,7 @@ export default defineSchema({
     createdAt: v.number(),
   }).index('by_user_and_read', ['userId', 'read']),
 
-  // Journal d'audit des actions sensibles (F-67 ; défense en profondeur).
+  // Audit log of sensitive actions (F-67; defense in depth).
   auditLog: defineTable({
     actorId: v.optional(v.id('users')),
     action: v.string(),
@@ -997,43 +997,43 @@ export default defineSchema({
   })
     .index('by_action', ['action'])
     .index('by_actor', ['actorId'])
-    // Recherche du journal (issue #49) : l'action. L'index plein texte découpe
-    // le slug pointé (`publication.reviewed` -> `publication`, `reviewed`), donc
-    // « publication » remonte toute la famille et « reviewed » toutes les
-    // décisions — ce qu'une plage de préfixe sur `by_action` ne sait pas faire.
-    // `actorId` en `filterFields` : « tout ce que cette personne a fait »
-    // reste une seule lecture d'index, recherche comprise.
+    // Log search (issue #49): the action. The full-text index splits
+    // the dotted slug (`publication.reviewed` -> `publication`, `reviewed`), so
+    // "publication" brings up the whole family and "reviewed" all the
+    // decisions — which a prefix range on `by_action` cannot do.
+    // `actorId` in `filterFields`: "everything this person has done"
+    // remains a single index read, search included.
     .searchIndex('search_action', {
       searchField: 'action',
       filterFields: ['actorId'],
     }),
 
-  // Compteurs dénormalisés du back-office (F-61/F-66) — tenus À L'ÉCRITURE.
+  // Denormalized back-office counters (F-61/F-66) — maintained ON WRITE.
   //
-  // Les tableaux de bord comptaient en chargeant les tables (`collect().length`) :
-  // le coût de l'écran d'administration croissait avec le succès du réseau, et
-  // Convex facture à la donnée lue. Une ligne par compteur, lue en O(1) par
-  // l'index `by_key`, et incrémentée dans la transaction qui écrit la donnée
-  // comptée — donc annulée avec elle si elle échoue.
+  // The dashboards counted by loading the tables (`collect().length`):
+  // the cost of the administration screen grew with the network's success, and
+  // Convex bills per data read. One row per counter, read in O(1) via
+  // the `by_key` index, and incremented in the transaction that writes the counted
+  // data — hence rolled back with it if it fails.
   //
-  // Le registre des clés vit dans convex/lib/counters.ts ; `counters.recompute`
-  // (internalMutation) les recalcule depuis les tables — amorçage d'un
-  // déploiement existant, et réconciliation après une écriture directe.
+  // The key registry lives in convex/lib/counters.ts; `counters.recompute`
+  // (internalMutation) recomputes them from the tables — bootstrapping an
+  // existing deployment, and reconciliation after a direct write.
   counters: defineTable({
     key: v.string(),
     value: v.number(),
   }).index('by_key', ['key']),
 
-  // Limiteur de débit (sécurité, défense en profondeur) — compteur par clé sur
-  // fenêtre fixe. Voir convex/lib/rateLimit.ts.
+  // Rate limiter (security, defense in depth) — per-key counter over a
+  // fixed window. See convex/lib/rateLimit.ts.
   rateLimits: defineTable({
     key: v.string(),
     count: v.number(),
     windowStart: v.number(),
   }).index('by_key', ['key']),
 
-  // DEV/TEST uniquement : codes OTP en clair (les e-mails ne sont pas envoyés
-  // sans clé). Jamais alimenté en prod (clé e-mail présente -> envoi réel).
+  // DEV/TEST only: plaintext OTP codes (emails are not sent
+  // without a key). Never populated in prod (email key present -> real send).
   devOtpCodes: defineTable({
     email: v.string(),
     code: v.string(),

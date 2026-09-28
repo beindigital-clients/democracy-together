@@ -1,12 +1,12 @@
 import { v } from 'convex/values';
-// Le compte courant passe par la garde commune : un compte suspendu, ou une
-// session qui n'a pas présenté son second facteur, n'a pas de notifications.
+// The current account goes through the common guard: a suspended account, or a
+// session that has not presented its second factor, has no notifications.
 import { getActiveUserId } from './lib/rbac';
 import { mutation, query } from './_generated/server';
 
-// Notifications de l'utilisateur courant (F-25/F-51), les plus récentes d'abord.
-// Réactif : la cloche d'en-tête et cette liste se mettent à jour en direct quand
-// un modérateur valide une publication / une candidature.
+// Notifications of the current user (F-25/F-51), most recent first.
+// Reactive: the header bell and this list update live when
+// a moderator approves a publication / an application.
 export const myNotifications = query({
   args: {},
   handler: async (ctx) => {
@@ -31,17 +31,17 @@ export const myNotifications = query({
   },
 });
 
-// Pastille de la cloche d'en-tête (F-25/F-51).
+// Header bell badge (F-25/F-51).
 //
-// Le décompte chargeait TOUTES les notifications non lues de l'utilisateur pour
-// en lire la longueur. La lecture est indexée par (utilisateur, lu), donc
-// jamais un parcours de table — mais elle reste non bornée : un compte laissé
-// sans consulter ses notifications pendant des mois les relit toutes, à chaque
-// rendu de l'en-tête, sur chaque page.
+// The count used to load ALL of the user's unread notifications to
+// read the length. The read is indexed by (user, read), so
+// never a table scan — but it remains unbounded: an account left
+// without checking its notifications for months re-reads them all, on every
+// header render, on every page.
 //
-// La pastille n'affiche déjà pas un nombre exact au-delà de neuf (« 9+ ») : on
-// lit donc une ligne de plus que ce seuil et on renvoie `capped`. Le coût est
-// constant, et l'affichage est exactement celui d'avant.
+// The badge already does not show an exact number beyond nine ("9+"): so we
+// read one row more than that threshold and return `capped`. The cost is
+// constant, and the display is exactly the same as before.
 export const UNREAD_BADGE_CAP = 9;
 
 export const unreadCount = query({
@@ -69,17 +69,17 @@ export const markRead = mutation({
     const userId = await getActiveUserId(ctx);
     if (!userId) throw new Error('UNAUTHENTICATED');
     const n = await ctx.db.get(notificationId);
-    // On ne peut marquer que SES propres notifications.
+    // One can only mark ONE'S OWN notifications.
     if (!n || n.userId !== userId) throw new Error('NOT_FOUND');
     if (!n.read) await ctx.db.patch(notificationId, { read: true });
     return { ok: true };
   },
 });
 
-// « Tout marquer comme lu ». Une mutation Convex est une transaction bornée en
-// documents écrits : marquer sans limite, c'est une panne garantie sur un
-// compte qui a beaucoup de notifications en retard. On traite un lot, et on dit
-// s'il en reste — un second appel poursuit.
+// "Mark all as read". A Convex mutation is a transaction bounded in
+// documents written: marking without limit is a guaranteed failure on an
+// account with many overdue notifications. We process one batch, and say
+// whether any remain — a second call continues.
 const MARK_ALL_BATCH = 200;
 
 export const markAllRead = mutation({

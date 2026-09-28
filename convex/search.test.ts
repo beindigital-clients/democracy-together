@@ -72,18 +72,18 @@ describe('Recherche globale (F-06)', () => {
       });
     });
 
-    // Documents posés EN DIRECT (`t.run`) : aucune mutation n'a calculé leur
-    // meule de recherche. La migration la remplit — exactement ce qu'elle
-    // fait pour un déploiement antérieur aux index `search_text`.
+    // Documents inserted DIRECTLY (`t.run`): no mutation computed their
+    // search haystack. The migration fills it — exactly what it
+    // does for a deployment predating the `search_text` indexes.
     for (const table of ['publications', 'organizations'] as const) {
       await t.mutation(internal.searchIndexing.backfill, { table });
     }
 
     const res = await t.query(api.search.globalSearch, { q: 'Plateforme' });
-    expect(res.publications.map((p) => p.slug)).toEqual(['gp']); // pending exclu
-    expect(res.organizations.map((o) => o.slug)).toEqual(['ip']); // suspendu exclu
+    expect(res.publications.map((p) => p.slug)).toEqual(['gp']); // pending excluded
+    expect(res.organizations.map((o) => o.slug)).toEqual(['ip']); // suspended excluded
 
-    // moins de 2 caractères -> rien
+    // fewer than 2 characters -> nothing
     const short = await t.query(api.search.globalSearch, { q: 'p' });
     expect(short.publications).toEqual([]);
     expect(short.organizations).toEqual([]);
@@ -103,18 +103,18 @@ describe('Recherche globale — langue des résultats (audit RGAA, 8.7)', () => 
         }),
       );
     });
-    // Document posé en direct : la migration calcule sa meule (voir plus haut).
+    // Document inserted directly: the migration computes its haystack (see above).
     await t.mutation(internal.searchIndexing.backfill, {
       table: 'publications',
     });
     const res = await t.query(api.search.globalSearch, { q: 'Plateformes' });
-    // Le résultat GÉNÉRIQUE du registre, que rendent la palette et la page
-    // /recherche : c'est lui qui porte la langue du titre.
+    // The registry's GENERIC result, returned by the palette and the
+    // /recherche page: it is what carries the title's language.
     const hits = res.sections.flatMap((s) => s.hits);
     expect(hits.map((h) => [h.source, h.title, h.lang])).toEqual([
       ['publications', 'Plateformes et démocratie', 'en'],
     ]);
-    // Et la forme historique, pour les appelants qui la lisent encore.
+    // And the historical shape, for callers that still read it.
     expect(res.publications).toEqual([
       {
         slug: 'pd',

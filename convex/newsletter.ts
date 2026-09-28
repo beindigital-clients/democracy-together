@@ -59,7 +59,7 @@ import {
   idempotencyKey,
 } from './lib/newsletterDelivery';
 
-// Jeton aléatoire (lien de désinscription).
+// Random token (unsubscribe link).
 function newToken(): string {
   const a = new Uint8Array(16);
   crypto.getRandomValues(a);
@@ -74,45 +74,45 @@ const campaignStatus = v.union(
 );
 
 // =============================================================================
-// ABONNEMENT PUBLIC — DOUBLE OPT-IN (F-18)
+// PUBLIC SUBSCRIPTION — DOUBLE OPT-IN (F-18)
 // =============================================================================
 //
-// Portail anti-spam : l'action vérifie reCAPTCHA v3 (seules les actions ont
-// `fetch`) puis délègue à `recordSubscription` (internalMutation -> non
-// appelable directement, donc la porte captcha ne se contourne pas).
+// Anti-spam gate: the action checks reCAPTCHA v3 (only actions have
+// `fetch`) then delegates to `recordSubscription` (internalMutation -> not
+// callable directly, so the captcha gate cannot be bypassed).
 //
-// L'inscription ne fait plus d'abonné : elle crée une ATTENTE et envoie un
-// lien de confirmation. Seul le clic sur ce lien — la preuve que la personne
-// qui a saisi l'adresse la lit — ouvre les envois (cadrage § 2.15, « double
-// opt-in »).
+// Signing up no longer creates a subscriber: it creates a PENDING entry and sends a
+// confirmation link. Only clicking that link — proof that the person
+// who entered the address reads it — enables sending (framing § 2.15, "double
+// opt-in").
 export const subscribe = action({
   args: {
     email: v.string(),
     locale: v.optional(locale),
-    // Formulaire d'origine (accueil, pied de page, page dédiée) — conservé
-    // avec la preuve du consentement.
+    // Originating form (home, footer, dedicated page) — kept
+    // with the proof of consent.
     source: subscriptionSourceValidator,
     captchaToken: v.optional(v.string()),
   },
   returns: v.object({ ok: v.boolean() }),
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'newsletter');
-    // FAIL-CLOSED, comme les campagnes : sans fournisseur, le lien de
-    // confirmation ne partirait pas, et le formulaire dirait « vérifiez votre
-    // boîte » pour un courriel qui n'arrivera jamais. Le refus est le même
-    // pour TOUTES les adresses : il ne renseigne sur aucune.
+    // FAIL-CLOSED, like campaigns: without a provider, the confirmation
+    // link would not go out, and the form would say "check your
+    // inbox" for an email that will never arrive. The refusal is the same
+    // for ALL addresses: it reveals nothing about any of them.
     if (emailProviderStatus().mode === 'none') {
       throw new ConvexError('EMAIL_PROVIDER_NOT_CONFIGURED');
     }
-    // ORACLE D'EXISTENCE REFERMÉ (pentest M-8, audit F-09).
+    // EXISTENCE ORACLE CLOSED (pentest M-8, audit F-09).
     //
-    // La mutation interne distingue toujours « déjà connu » de « nouveau » —
-    // elle en a besoin pour ne pas dupliquer ni recompter. Mais cette
-    // distinction ne FRANCHIT PAS la frontière publique : la réponse est
-    // IDENTIQUE dans tous les cas (nouvelle adresse, attente, abonné
-    // confirmé). Le courriel de confirmation est lui-même envoyé par une
-    // fonction PLANIFIÉE : l'action répond avant, et son temps de réponse ne
-    // dépend pas de l'envoi.
+    // The internal mutation still distinguishes "already known" from "new" —
+    // it needs to, so as not to duplicate or double-count. But this
+    // distinction does NOT CROSS the public boundary: the response is
+    // IDENTICAL in all cases (new address, pending, confirmed
+    // subscriber). The confirmation email itself is sent by a
+    // SCHEDULED function: the action responds first, and its response time
+    // does not depend on the sending.
     await ctx.runMutation(internal.newsletter.recordSubscription, input);
     return { ok: true };
   },
@@ -129,8 +129,8 @@ export const recordSubscription = internalMutation({
     const email = args.email.trim().toLowerCase();
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
 
-    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
-    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    // UNFORGEABLE caps (audit M2) — per IP and global per form:
+    // changing address no longer yields a fresh quota. See lib/rateLimit.ts.
     await enforcePublicFormLimit(ctx, 'newsletter');
 
     await enforceRateLimit(ctx, {
@@ -155,10 +155,10 @@ export const recordSubscription = internalMutation({
       if (existing.status === 'confirmed') return { ok: true, already: true };
 
       if (existing.status === undefined) {
-        // Abonné HÉRITÉ (avant le double opt-in) qui se réinscrit : c'est un
-        // consentement NOUVEAU, exprimé maintenant — on le traite comme tel,
-        // attente et lien compris. Le compteur ne le comptait pas (il ne
-        // compte que les confirmés) : il le comptera à la confirmation.
+        // LEGACY subscriber (from before double opt-in) re-subscribing: this is a
+        // NEW consent, expressed now — we treat it as such,
+        // pending entry and link included. The counter did not count it (it only
+        // counts confirmed ones): it will count it on confirmation.
         await ctx.db.patch(existing._id, {
           status: 'pending',
           locale: args.locale ?? existing.locale,
@@ -174,14 +174,14 @@ export const recordSubscription = internalMutation({
         return { ok: true, already: true };
       }
 
-      // En attente : RENVOI BORNÉ du lien (cf. lib/newsletterOptIn.ts). Hors
-      // bornes, rien ne part — et la réponse publique est la même.
+      // Pending: BOUNDED resend of the link (see lib/newsletterOptIn.ts). Outside
+      // the bounds, nothing goes out — and the public response is the same.
       if (canResendConfirmation(existing, now)) {
         await ctx.db.patch(existing._id, {
           locale: args.locale ?? existing.locale,
           confirmSends: (existing.confirmSends ?? 0) + 1,
           confirmLastSentAt: now,
-          // Le délai repart : l'abonné vient de redemander le lien.
+          // The delay restarts: the subscriber just asked for the link again.
           confirmExpiresAt: now + CONFIRM_TTL_MS,
         });
         await ctx.scheduler.runAfter(0, internal.newsletter.sendConfirmation, {
@@ -203,8 +203,8 @@ export const recordSubscription = internalMutation({
       confirmLastSentAt: now,
       confirmExpiresAt: now + CONFIRM_TTL_MS,
     });
-    // PAS d'incrément du compteur d'abonnés : il compte les CONFIRMÉS, ceux
-    // qui reçoivent les campagnes.
+    // NO increment of the subscriber counter: it counts CONFIRMED ones, those
+    // who receive campaigns.
     await ctx.scheduler.runAfter(0, internal.newsletter.sendConfirmation, {
       subscriptionId,
       legacy: false,
@@ -213,10 +213,10 @@ export const recordSubscription = internalMutation({
   },
 });
 
-// Envoi du lien de confirmation. Le jeton est tiré ICI, dans l'action, et
-// n'existe en clair qu'en mémoire et dans le courriel : il ne transite ni par
-// les arguments d'une fonction planifiée (stockés par le planificateur) ni par
-// la base, qui n'en reçoit que l'empreinte.
+// Sending the confirmation link. The token is drawn HERE, in the action, and
+// exists in plaintext only in memory and in the email: it goes neither through
+// the arguments of a scheduled function (stored by the scheduler) nor through
+// the database, which only receives its hash.
 export const sendConfirmation = internalAction({
   args: {
     subscriptionId: v.id('newsletterSubscriptions'),
@@ -230,7 +230,7 @@ export const sendConfirmation = internalAction({
       tokenHash: await hashToken(token),
       ttlMs: legacy ? LEGACY_CONFIRM_TTL_MS : CONFIRM_TTL_MS,
     });
-    if (!target) return null; // désinscrit ou déjà confirmé entre-temps
+    if (!target) return null; // unsubscribed or already confirmed in the meantime
     const loc: SiteLocale = target.locale ?? 'fr';
     const mail = confirmationEmail(token, loc, legacy);
     try {
@@ -240,15 +240,15 @@ export const sendConfirmation = internalAction({
         html: mail.html,
       });
     } catch (err) {
-      // L'attente reste en place et expirera ; l'abonné peut redemander le
-      // lien. On journalise sans l'adresse.
+      // The pending entry stays in place and will expire; the subscriber can ask for the
+      // link again. We log without the address.
       console.error(
         `[newsletter] confirmation non envoyée : ${err instanceof Error ? err.message : String(err)}`,
       );
       return null;
     }
-    // DEV/TEST seulement : boîte d'envoi lisible par l'E2E, comme les codes
-    // OTP (`devOtpCodes`). La garde est dans la mutation.
+    // DEV/TEST only: outbox readable by the E2E, like the OTP
+    // codes (`devOtpCodes`). The guard is in the mutation.
     if (process.env.AUTH_DEV_OTP === 'true') {
       await ctx.runMutation(internal.newsletter._devRecordOutbox, {
         to: target.email,
@@ -274,8 +274,8 @@ export const _armConfirmation = internalMutation({
   handler: async (ctx, { subscriptionId, tokenHash, ttlMs }) => {
     const sub = await ctx.db.get(subscriptionId);
     if (!sub || sub.status !== 'pending') return null;
-    // Un nouveau lien REMPLACE le précédent : seul le dernier courriel reçu
-    // confirme. Un vieux lien retrouvé plus tard ne vaut plus rien.
+    // A new link REPLACES the previous one: only the last email received
+    // confirms. An old link found later is worthless.
     await ctx.db.patch(subscriptionId, {
       confirmTokenHash: tokenHash,
       confirmExpiresAt: Date.now() + ttlMs,
@@ -293,20 +293,20 @@ export const _devRecordOutbox = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Ceinture et bretelles : même appelée par erreur, cette mutation n'écrit
-    // rien hors du mode développement.
+    // Belt and braces: even if called by mistake, this mutation writes
+    // nothing outside development mode.
     if (process.env.AUTH_DEV_OTP !== 'true') return null;
     await ctx.db.insert('devOutbox', { ...args, createdAt: Date.now() });
     return null;
   },
 });
 
-// Confirmation par jeton (lien du courriel). Publique : le jeton EST
-// l'autorisation. Usage unique — l'empreinte est effacée à la confirmation —
-// et expirant. La réponse dit l'issue (et la langue de l'abonné, pour que la
-// page parle la sienne) ; ce n'est pas un oracle d'existence, pour la même
-// raison que `unsubscribe` : un jeton de 256 bits n'identifie aucune adresse
-// qu'un tiers pourrait choisir.
+// Confirmation by token (email link). Public: the token IS
+// the authorization. Single use — the hash is erased on confirmation —
+// and expiring. The response states the outcome (and the subscriber's language, so the
+// page speaks theirs); it is not an existence oracle, for the same
+// reason as `unsubscribe`: a 256-bit token identifies no address
+// a third party could choose.
 export const confirm = mutation({
   args: { token: v.string() },
   returns: v.object({
@@ -344,16 +344,16 @@ export const confirm = mutation({
   },
 });
 
-// Désinscription par jeton (lien dans l'e-mail) — idempotente.
+// Unsubscribe by token (link in the email) — idempotent.
 //
-// `found` dit si le jeton correspondait à un abonnement. Sans lui, la page
-// confirmait « vous êtes désinscrit » à un jeton inventé (mesuré le 27/09,
-// vitrine O2 / R-09) : un abonné dont le lien est tronqué ou expiré croyait
-// avoir réussi, et restait abonné. CE N'EST PAS UN ORACLE D'EXISTENCE : le
-// jeton est un secret aléatoire de 128 bits, il n'identifie aucune adresse —
-// contrairement à l'oracle refermé sur `subscribe` (F-09), qui répondait à une
-// adresse choisie. Un lien cliqué deux fois répond `found: false` la seconde
-// fois : l'abonné est parti, la page le dit comme « lien expiré ».
+// `found` says whether the token matched a subscription. Without it, the page
+// confirmed "you are unsubscribed" for a made-up token (measured on 27/09,
+// showcase O2 / R-09): a subscriber whose link was truncated or expired believed
+// they had succeeded, and stayed subscribed. THIS IS NOT AN EXISTENCE ORACLE: the
+// token is a 128-bit random secret, it identifies no address —
+// unlike the oracle closed on `subscribe` (F-09), which answered for a
+// chosen address. A link clicked twice answers `found: false` the second
+// time: the subscriber has left, the page says so as "link expired".
 async function unsubscribeByTokenImpl(
   ctx: MutationCtx,
   token: string,
@@ -365,8 +365,8 @@ async function unsubscribeByTokenImpl(
     .unique();
   if (!sub) return { ok: true, found: false };
   await ctx.db.delete(sub._id);
-  // Seuls les CONFIRMÉS sont comptés : une attente (ou un héritier non
-  // migré) qui se désinscrit ne décompte rien.
+  // Only CONFIRMED ones are counted: a pending entry (or an unmigrated legacy
+  // one) that unsubscribes decrements nothing.
   if (sub.status === 'confirmed') {
     await bumpCounter(ctx, COUNTER.NEWSLETTER_SUBSCRIBERS, -1);
   }
@@ -379,17 +379,17 @@ export const unsubscribe = mutation({
   handler: (ctx, { token }) => unsubscribeByTokenImpl(ctx, token),
 });
 
-// Désinscription « en un clic » (RFC 8058) — appelée par le point d'entrée
-// HTTP `POST /newsletter/unsubscribe` (convex/newsletterHttp.ts).
+// "One-click" unsubscribe (RFC 8058) — called by the
+// HTTP entry point `POST /newsletter/unsubscribe` (convex/newsletterHttp.ts).
 export const unsubscribeByToken = internalMutation({
   args: { token: v.string() },
   returns: v.object({ ok: v.boolean(), found: v.boolean() }),
   handler: (ctx, { token }) => unsubscribeByTokenImpl(ctx, token),
 });
 
-// Purge planifiée (cron horaire) des attentes EXPIRÉES : une adresse saisie
-// par un tiers et jamais confirmée ne reste pas en base au-delà de son délai
-// (minimisation, RGPD art. 5.1.c). Et la boîte d'envoi de développement.
+// Scheduled purge (hourly cron) of EXPIRED pending entries: an address entered
+// by a third party and never confirmed does not stay in the database beyond its deadline
+// (minimization, GDPR art. 5.1.c). And the development outbox.
 const PURGE_BATCH = 200;
 export const purgeExpiredPending = internalMutation({
   args: {},
@@ -421,26 +421,26 @@ export const purgeExpiredPending = internalMutation({
   },
 });
 
-// MIGRATION DES ABONNÉS HÉRITÉS (antérieurs au double opt-in).
+// MIGRATION OF LEGACY SUBSCRIBERS (predating double opt-in).
 //
-// DÉCISION (docs/backlog/diffusion.md § Migration) : ils ne sont PAS réputés
-// confirmés. L'ancien formulaire acceptait n'importe quelle adresse sans
-// vérification — c'est précisément ce que le double opt-in corrige —, et
-// l'association ne peut donc pas démontrer (RGPD art. 7.1) que la personne
-// derrière chaque adresse a consenti. Chacun reçoit UNE demande de
-// confirmation (délai de 30 jours) ; sans réponse, l'adresse est purgée.
+// DECISION (docs/backlog/diffusion.md § Migration): they are NOT deemed
+// confirmed. The old form accepted any address without
+// verification — which is precisely what double opt-in fixes —, and
+// the association therefore cannot demonstrate (GDPR art. 7.1) that the person
+// behind each address consented. Each one receives ONE confirmation
+// request (30-day deadline); without a response, the address is purged.
 //
-// À lancer une fois, par la CLI (contexte de confiance), APRÈS avoir posé la
-// clé du fournisseur : `npx convex run newsletter:migrateLegacySubscribers`.
-// Par lots de 100, étalés au débit configuré ; se replanifie jusqu'au bout.
+// To be run once, via the CLI (trusted context), AFTER setting the
+// provider key: `npx convex run newsletter:migrateLegacySubscribers`.
+// In batches of 100, spread at the configured rate; reschedules itself until done.
 const MIGRATION_BATCH = 100;
 export const migrateLegacySubscribers = internalMutation({
   args: {},
   returns: v.object({ migrated: v.number(), done: v.boolean() }),
   handler: async (ctx) => {
     if (emailProviderStatus().mode === 'none') {
-      // Relancer sans pouvoir écrire ferait expirer — donc supprimer — des
-      // abonnés qu'on n'aurait jamais prévenus.
+      // Re-running without being able to write would expire — hence delete —
+      // subscribers we would never have notified.
       throw new ConvexError('EMAIL_PROVIDER_NOT_CONFIGURED');
     }
     const legacy = await ctx.db
@@ -454,8 +454,8 @@ export const migrateLegacySubscribers = internalMutation({
       await ctx.db.patch(s._id, {
         status: 'pending',
         consent: {
-          // La seule date connue est celle de l'inscription d'origine ; la
-          // source dit qu'elle n'a pas été confirmée à l'époque.
+          // The only known date is the original sign-up date; the
+          // source says it was not confirmed at the time.
           at: s.createdAt,
           source: 'legacy',
           locale: s.locale,
@@ -489,8 +489,8 @@ export const migrateLegacySubscribers = internalMutation({
   },
 });
 
-// Données newsletter d'un compte supprimé : l'abonnement est lié à l'adresse,
-// pas au compte. À brancher dans la suppression de compte (orchestrateur).
+// Newsletter data of a deleted account: the subscription is tied to the address,
+// not to the account. To be wired into account deletion (orchestrator).
 export async function deleteUserDataDiffusion(
   ctx: MutationCtx,
   userId: Id<'users'>,
@@ -509,13 +509,13 @@ export async function deleteUserDataDiffusion(
   }
 }
 
-// --- Oracles DEV/TEST (garde AUTH_DEV_OTP) -----------------------------------
+// --- DEV/TEST oracles (AUTH_DEV_OTP guard) -----------------------------------
 //
-// DEV/TEST seulement : rend le jeton de désinscription d'une adresse, pour que
-// l'E2E puisse suivre le lien de l'e-mail comme le ferait un abonné (audit
-// F-12). CE N'EST PAS UNE RÉOUVERTURE DE L'ORACLE REFERMÉ EN F-09 : c'est une
-// `internalQuery` — hors API publique, appelable par aucun client — doublée de
-// la garde AUTH_DEV_OTP, invoquée par la CLI Convex en contexte de confiance.
+// DEV/TEST only: returns an address's unsubscribe token, so that
+// the E2E can follow the email link as a subscriber would (audit
+// F-12). THIS IS NOT A REOPENING OF THE ORACLE CLOSED IN F-09: it is an
+// `internalQuery` — outside the public API, callable by no client — backed by
+// the AUTH_DEV_OTP guard, invoked by the Convex CLI in a trusted context.
 export const devUnsubToken = internalQuery({
   args: { email: v.string() },
   returns: v.union(v.string(), v.null()),
@@ -529,8 +529,8 @@ export const devUnsubToken = internalQuery({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : l'adresse est-elle en base
-// (attente OU confirmée) ?
+// DEV/TEST only (AUTH_DEV_OTP guard): is the address in the database
+// (pending OR confirmed)?
 export const isSubscribed = internalQuery({
   args: { email: v.string() },
   returns: v.union(v.boolean(), v.null()),
@@ -544,7 +544,7 @@ export const isSubscribed = internalQuery({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : état du double opt-in.
+// DEV/TEST only (AUTH_DEV_OTP guard): double opt-in state.
 export const devSubscriptionStatus = internalQuery({
   args: { email: v.string() },
   returns: v.union(
@@ -564,8 +564,8 @@ export const devSubscriptionStatus = internalQuery({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : dernier lien de confirmation
-// « envoyé » à une adresse — ce que l'E2E suit, comme `otp.latestDevCode`.
+// DEV/TEST only (AUTH_DEV_OTP guard): last confirmation link
+// "sent" to an address — what the E2E follows, like `otp.latestDevCode`.
 export const devLatestConfirmationLink = internalQuery({
   args: { email: v.string() },
   returns: v.union(v.string(), v.null()),
@@ -581,11 +581,11 @@ export const devLatestConfirmationLink = internalQuery({
 });
 
 // =============================================================================
-// BACK-OFFICE — abonnés et campagnes (éditeur et au-dessus)
+// BACK-OFFICE — subscribers and campaigns (editor and above)
 // =============================================================================
 
-// Nombre d'abonnés CONFIRMÉS — ceux qu'une campagne atteindra. Compteur
-// dénormalisé (convex/counters.ts) : une lecture d'une ligne (issue #8).
+// Number of CONFIRMED subscribers — those a campaign will reach. Denormalized
+// counter (convex/counters.ts): a single-row read (issue #8).
 export const subscriberCount = query({
   args: {},
   returns: v.number(),
@@ -595,8 +595,8 @@ export const subscriberCount = query({
   },
 });
 
-// Attentes en cours et héritées non migrées — bornées : au-delà de 1 000, un
-// « 1000+ » suffit à l'écran, et le compter exactement coûterait la table.
+// Pending entries and unmigrated legacy ones — bounded: beyond 1,000, a
+// "1000+" is enough on screen, and counting it exactly would cost the whole table.
 const COUNT_CAP = 1000;
 export const subscriberBreakdown = query({
   args: {},
@@ -655,9 +655,9 @@ function projectSubscriber(s: Doc<'newsletterSubscriptions'>) {
   };
 }
 
-// Liste des abonnés, paginée, avec la preuve du consentement. `email` exact
-// = recherche d'UNE adresse (demande d'accès, désinscription par
-// l'administration). Jamais de jeton dans la réponse.
+// Subscriber list, paginated, with the proof of consent. Exact `email`
+// = lookup of ONE address (access request, unsubscribe by the
+// administration). Never any token in the response.
 export const listSubscribers = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -696,9 +696,9 @@ export const listSubscribers = query({
   },
 });
 
-// État du fournisseur d'e-mail, annoncé en tête de l'écran (campagne du
-// 27/09, R-07). Lu au moment de la requête : poser la clé sur le déploiement
-// suffit, sans redéploiement du code.
+// Email provider status, announced at the top of the screen (27/09
+// campaign, R-07). Read at query time: setting the key on the deployment
+// is enough, without redeploying the code.
 export const emailStatus = query({
   args: {},
   returns: v.object({
@@ -724,9 +724,9 @@ const variantValidator = v.object({
   body: v.string(),
 });
 
-// Liste bornée aux 50 campagnes les plus récentes : l'écran n'en montre pas
-// davantage, et la table ne doit pas être relue entière à chaque progrès
-// d'envoi (la liste est réactive).
+// List bounded to the 50 most recent campaigns: the screen does not show
+// more, and the table must not be re-read in full on every sending
+// progress update (the list is reactive).
 export const listCampaigns = query({
   args: {},
   returns: v.array(
@@ -756,7 +756,7 @@ export const listCampaigns = query({
     return recent.map((c) => ({
       _id: c._id,
       subject: c.subject,
-      // Le corps sert l'aperçu AVANT envoi (campagne du 27/09, R-07).
+      // The body feeds the preview BEFORE sending (27/09 campaign, R-07).
       body: c.body,
       locale: c.locale ?? 'fr',
       variants: c.variants ?? [],
@@ -819,8 +819,8 @@ async function requireDraft(
   return campaign;
 }
 
-// Version traduite d'un brouillon : une par langue, remplacée si elle existe.
-// La langue de référence n'a pas de « variante » — on édite la campagne.
+// Translated version of a draft: one per language, replaced if it exists.
+// The reference language has no "variant" — one edits the campaign.
 export const upsertCampaignVariant = mutation({
   args: {
     campaignId: v.id('newsletterCampaigns'),
@@ -858,9 +858,9 @@ export const removeCampaignVariant = mutation({
   },
 });
 
-// ENVOI DE TEST À SOI-MÊME : toutes les versions (référence + traductions)
-// partent vers l'adresse du compte de l'éditeur, objet préfixé « [TEST] ».
-// Rien n'est mis en file, le brouillon reste un brouillon.
+// TEST SEND TO ONESELF: all versions (reference + translations)
+// go to the editor's account address, subject prefixed with "[TEST]".
+// Nothing is enqueued, the draft stays a draft.
 export const sendTestCampaign = mutation({
   args: { campaignId: v.id('newsletterCampaigns') },
   returns: v.object({ ok: v.boolean(), to: v.string(), versions: v.number() }),
@@ -911,8 +911,8 @@ export const _deliverTest = internalAction({
         await sendEmail({
           to,
           subject: testSubject(version.subject, version.locale),
-          // Jeton factice : le lien de désinscription d'un test ne doit
-          // désinscrire personne.
+          // Dummy token: a test's unsubscribe link must not
+          // unsubscribe anyone.
           html: campaignHtml(version.body, 'test', version.locale),
           headers: listUnsubscribeHeaders('test', version.locale),
         });
@@ -949,9 +949,9 @@ export const _campaignContent = internalQuery({
   },
 });
 
-// Lance l'envoi : passe en 'sending', puis la MISE EN FILE (une ligne
-// `newsletterDeliveries` par abonné confirmé, par pages de 500) et la
-// LIVRAISON par lots sont planifiées. L'écran suit la progression en direct.
+// Starts sending: switches to 'sending', then the ENQUEUEING (one
+// `newsletterDeliveries` row per confirmed subscriber, in pages of 500) and the
+// DELIVERY in batches are scheduled. The screen follows progress live.
 export const sendCampaign = mutation({
   args: { campaignId: v.id('newsletterCampaigns') },
   returns: v.object({ ok: v.boolean() }),
@@ -960,10 +960,10 @@ export const sendCampaign = mutation({
     const campaign = await ctx.db.get(campaignId);
     if (!campaign) throw new Error('NOT_FOUND');
     if (campaign.status !== 'draft') throw new Error('ALREADY_SENT');
-    // Sans fournisseur, la livraison échouerait abonné par abonné et la
-    // campagne finirait « Erreur » sans un mot : on refuse AVANT, et l'écran
-    // traduit le code (campagne du 27/09, R-07). En dev/test explicite
-    // (AUTH_DEV_OTP=true) l'envoi simulé reste possible.
+    // Without a provider, delivery would fail subscriber by subscriber and the
+    // campaign would end as "Error" without a word: we refuse BEFOREHAND, and the screen
+    // translates the code (27/09 campaign, R-07). In explicit dev/test
+    // (AUTH_DEV_OTP=true) simulated sending remains possible.
     if (emailProviderStatus().mode === 'none') {
       throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
     }
@@ -989,9 +989,9 @@ export const sendCampaign = mutation({
   },
 });
 
-// MISE EN FILE, par pages. IDEMPOTENTE : une page rejouée (reprise après
-// erreur) ne crée pas de seconde ligne pour un abonné déjà en file — donc pas
-// de second envoi.
+// ENQUEUEING, by pages. IDEMPOTENT: a replayed page (resumption after
+// an error) does not create a second row for a subscriber already queued — hence no
+// second send.
 const ENQUEUE_PAGE = 500;
 export const _enqueue = internalMutation({
   args: {
@@ -1034,8 +1034,8 @@ export const _enqueue = internalMutation({
         cursor: page.continueCursor,
       });
     }
-    // La livraison démarre dès la première page : une grande liste n'attend
-    // pas d'être entièrement en file pour que les premiers lots partent.
+    // Delivery starts from the first page: a large list does not wait
+    // to be fully queued before the first batches go out.
     if (cursor === null) {
       await ctx.scheduler.runAfter(0, internal.newsletter._processBatch, {
         campaignId,
@@ -1059,17 +1059,17 @@ const claimResult = v.union(
     attempt: v.number(),
     recipients: v.array(recipientValidator),
   }),
-  // `retryInMs` : quand revenir. Un lot en vol se reprend à l'échéance de
-  // son bail, pas avant ; une mise en file en cours, au prochain intervalle.
+  // `retryInMs`: when to come back. An in-flight batch is resumed when
+  // its lease expires, not before; an ongoing enqueueing, at the next interval.
   v.object({ kind: v.literal('wait'), retryInMs: v.optional(v.number()) }),
   v.object({ kind: v.literal('done') }),
 );
 
-// Prend un LOT en charge. Trois cas, dans cet ordre :
-//  1. un lot resté « en cours » au-delà du bail (action coupée) est REPRIS tel
-//     quel, avec son `claimId` — donc la même clé d'idempotence ;
-//  2. sinon, les `batchSize` lignes suivantes en file forment un nouveau lot ;
-//  3. sinon, la campagne est terminée (si la mise en file l'est aussi).
+// Claims a BATCH. Three cases, in this order:
+//  1. a batch left "in progress" beyond its lease (action cut off) is RESUMED as
+//     is, with its `claimId` — hence the same idempotency key;
+//  2. otherwise, the next `batchSize` queued rows form a new batch;
+//  3. otherwise, the campaign is finished (if enqueueing is too).
 export const _claimBatch = internalMutation({
   args: { campaignId: v.id('newsletterCampaigns'), batchSize: v.number() },
   returns: claimResult,
@@ -1100,9 +1100,9 @@ export const _claimBatch = internalMutation({
         .query('newsletterDeliveries')
         .withIndex('by_claim', (q) => q.eq('claimId', stale.claimId))
         .collect();
-      // Le lot est rejoué À L'IDENTIQUE — mêmes destinataires, même clé :
-      // c'est la condition pour que le fournisseur reconnaisse la requête et
-      // n'envoie pas une seconde fois ce qui serait déjà parti.
+      // The batch is replayed IDENTICALLY — same recipients, same key:
+      // that is the condition for the provider to recognize the request and
+      // not send a second time what may already have gone out.
       const recipients = [];
       let attempt = 1;
       for (const row of rows) {
@@ -1150,8 +1150,8 @@ export const _claimBatch = internalMutation({
     let skipped = 0;
     for (const row of queued) {
       const sub = await ctx.db.get(row.subscriptionId);
-      // Parti entre la mise en file et l'envoi (désinscrit) : on ne lui écrit
-      // pas. Le statut le dit, le compteur aussi.
+      // Left between enqueueing and sending (unsubscribed): we do not write
+      // to them. The status says so, and so does the counter.
       if (!sub || sub.status !== 'confirmed' || !sub.unsubToken) {
         await ctx.db.patch(row._id, { status: 'skipped' });
         skipped++;
@@ -1201,8 +1201,8 @@ export const _recordResults = internalMutation({
     const now = Date.now();
     for (const r of results) {
       const row = await ctx.db.get(r.deliveryId);
-      // Déjà tranchée (résultat rejoué après une reprise) : on ne compte pas
-      // deux fois.
+      // Already decided (result replayed after a resumption): we do not count
+      // twice.
       if (!row || row.status !== 'sending') continue;
       if (r.ok) {
         await ctx.db.patch(r.deliveryId, {
@@ -1228,10 +1228,10 @@ export const _recordResults = internalMutation({
   },
 });
 
-// Échec transitoire : le lot reste « en cours » mais son bail est échu tout de
-// suite — il sera REPRIS au prochain passage, même `claimId`, donc même clé
-// d'idempotence. Au-delà de MAX_TRANSIENT_ATTEMPTS, les lignes passent en
-// échec (relançables depuis l'écran).
+// Transient failure: the batch stays "in progress" but its lease expires
+// immediately — it will be RESUMED on the next pass, same `claimId`, hence the same
+// idempotency key. Beyond MAX_TRANSIENT_ATTEMPTS, the rows are marked as
+// failed (retryable from the screen).
 export const _releaseClaim = internalMutation({
   args: {
     campaignId: v.id('newsletterCampaigns'),
@@ -1266,8 +1266,8 @@ export const _releaseClaim = internalMutation({
   },
 });
 
-// Boucle de livraison : un lot, puis le suivant après la pause dérivée du
-// débit configuré. Une seule chaîne par campagne.
+// Delivery loop: one batch, then the next after the pause derived from the
+// configured rate. A single chain per campaign.
 export const _processBatch = internalAction({
   args: { campaignId: v.id('newsletterCampaigns') },
   returns: v.null(),
@@ -1347,9 +1347,9 @@ export const _processBatch = internalAction({
   },
 });
 
-// REPRISE APRÈS ÉCHEC : les destinataires en échec repassent en file et la
-// livraison repart. Aucun destinataire déjà servi n'est touché (`sent` n'est
-// jamais remis en file) — c'est ce qui garantit l'absence de doublon.
+// RETRY AFTER FAILURE: failed recipients go back into the queue and
+// delivery restarts. No recipient already served is touched (`sent` is
+// never re-queued) — this is what guarantees there are no duplicates.
 export const retryFailedDeliveries = mutation({
   args: { campaignId: v.id('newsletterCampaigns') },
   returns: v.object({ ok: v.boolean() }),
@@ -1412,8 +1412,8 @@ export const _requeueFailed = internalMutation({
   },
 });
 
-// Motifs des échecs d'une campagne (échantillon) — pour que l'éditeur sache
-// quoi corriger avant de relancer (clé refusée, domaine non vérifié…).
+// Failure reasons for a campaign (sample) — so the editor knows
+// what to fix before retrying (key refused, domain not verified…).
 export const campaignFailures = query({
   args: { campaignId: v.id('newsletterCampaigns') },
   returns: v.array(v.object({ error: v.string(), count: v.number() })),
