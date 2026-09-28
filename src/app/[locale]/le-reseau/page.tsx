@@ -5,6 +5,10 @@ import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { DirectoryFilters } from '@/components/directory/directory-filters';
+import {
+  DirectoryNavigation,
+  DirectoryResults,
+} from '@/components/directory/directory-navigation';
 import { OrgCard } from '@/components/directory/org-card';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import type { RegionMapItem } from '@/components/map/types';
@@ -80,7 +84,7 @@ export default async function NetworkPage({
 
   const t = await getTranslations('directory');
   // Backend unreachable -> empty directory and map without countries, not a 500 (F-02).
-  const { items, facets } = await fetchOrFallback(
+  const { items, facets, total } = await fetchOrFallback(
     'le-reseau',
     () => fetchQuery(api.organizations.listDirectory, filters),
     EMPTY_DIRECTORY_LIST,
@@ -136,47 +140,58 @@ export default async function NetworkPage({
         </section>
       ) : null}
 
-      <div className="mt-10">
-        <DirectoryFilters facets={facets} filters={filters} />
-      </div>
-
-      <div className="mt-7 flex items-center justify-between gap-4">
-        <p className="font-mono text-xs uppercase tracking-[0.12em] text-muted">
-          {t('count', { count: items.length })}
-        </p>
-        {hasFilters ? (
-          <Link
-            href="/le-reseau"
-            className="shrink-0 text-sm text-accent-text hover:underline"
-          >
-            {t('reset')}
-          </Link>
-        ) : null}
-      </div>
-
-      {items.length === 0 ? (
-        <div className="mt-8 rounded-md border border-dashed border-line-strong bg-surface px-6 py-16 text-center">
-          <p className="text-ink-soft">{t('empty')}</p>
-          <Link
-            href="/le-reseau"
-            className="mt-4 inline-block text-sm font-medium text-accent-text hover:underline"
-          >
-            {t('emptyReset')}
-          </Link>
+      <DirectoryNavigation>
+        <div className="mt-10">
+          <DirectoryFilters facets={facets} filters={filters} total={total} />
         </div>
-      ) : (
-        <RevealGroup
-          as="ul"
-          aria-label={t('listLabel')}
-          className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {items.map((org) => (
-            <RevealItem as="li" key={org._id}>
-              <OrgCard org={org} locale={locale} />
-            </RevealItem>
-          ))}
-        </RevealGroup>
-      )}
+
+        <DirectoryResults>
+          <div className="mt-7 flex items-center justify-between gap-4">
+            {/* Live region: after a filter, the new total is announced
+                without focus leaving the button of the closed menu. */}
+            <p
+              role="status"
+              className="font-mono text-xs uppercase tracking-[0.12em] text-muted"
+            >
+              {t('count', { count: items.length })}
+            </p>
+            {hasFilters ? (
+              <Link
+                href="/le-reseau"
+                scroll={false}
+                className="shrink-0 text-sm text-accent-text hover:underline"
+              >
+                {t('reset')}
+              </Link>
+            ) : null}
+          </div>
+
+          {items.length === 0 ? (
+            <div className="mt-8 rounded-md border border-dashed border-line-strong bg-surface px-6 py-16 text-center">
+              <p className="text-ink-soft">{t('empty')}</p>
+              <Link
+                href="/le-reseau"
+                scroll={false}
+                className="mt-4 inline-block text-sm font-medium text-accent-text hover:underline"
+              >
+                {t('emptyReset')}
+              </Link>
+            </div>
+          ) : (
+            <RevealGroup
+              as="ul"
+              aria-label={t('listLabel')}
+              className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {items.map((org) => (
+                <RevealItem as="li" key={org._id}>
+                  <OrgCard org={org} locale={locale} />
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          )}
+        </DirectoryResults>
+      </DirectoryNavigation>
     </div>
   );
 }

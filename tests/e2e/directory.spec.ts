@@ -23,12 +23,15 @@ test('annuaire : liste + filtre par région (F-19)', async ({ page }) => {
   ).toBeVisible();
   expect(await cards(page).count()).toBeGreaterThanOrEqual(8);
 
-  // filter on Western Europe
-  await page
-    .getByRole('link', { name: /Europe de l.Ouest/ })
-    .first()
-    .click();
+  // filter on Western Europe: each facet is a dropdown menu, no longer a row
+  // of always-expanded chips.
+  await page.getByRole('button', { name: 'Région', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: /Europe de l.Ouest/ }).click();
   await expect(page).toHaveURL(/region=europe-ouest/);
+  // the button shows the active filter without opening the menu
+  await expect(
+    page.getByRole('button', { name: /^Région.*Europe de l.Ouest/ }),
+  ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Institut Européen pour la Démocratie' }),
   ).toBeVisible();
@@ -81,10 +84,29 @@ test('fiche : slug inconnu renvoie 404 (F-21)', async ({ page }) => {
 
 test('annuaire en anglais (F-03)', async ({ page }) => {
   await page.goto('/en/le-reseau');
+  await page.getByRole('button', { name: 'Region', exact: true }).click();
   await expect(
-    page.getByRole('link', { name: /Western Europe/ }).first(),
+    page.getByRole('menuitemradio', { name: /Western Europe/ }),
   ).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(
     page.getByRole('heading', { name: 'Institut Sahel pour la Gouvernance' }),
   ).toBeVisible();
+});
+
+// Without JavaScript the menus cannot open: they are hidden and a form of
+// native selects (served in a <noscript>) takes over.
+test.describe('directory without JavaScript (F-19)', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('the facets stay usable', async ({ page }) => {
+    await page.goto('/fr/le-reseau');
+    await expect(
+      page.getByRole('button', { name: 'Région', exact: true }),
+    ).toBeHidden();
+    await page.locator('select[name="region"]').selectOption('europe-ouest');
+    await page.getByRole('button', { name: 'Filtrer' }).click();
+    await expect(page).toHaveURL(/region=europe-ouest/);
+    await expect(cards(page)).toHaveCount(3);
+  });
 });

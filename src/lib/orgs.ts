@@ -20,6 +20,26 @@ export type DirectoryFilters = {
   q?: string;
 };
 
+export type DirectoryFacetParam = 'region' | 'theme' | 'country' | 'language';
+
+// Directory URL with one filter changed, the others preserved (undefined =
+// remove the filter). Shared by the directory's client islands (facet menus,
+// search): a single way to write the URL. next-intl adds the locale prefix.
+export function directoryHref(
+  filters: DirectoryFilters,
+  patch: Partial<DirectoryFilters> = {},
+): string {
+  const next = { ...filters, ...patch };
+  const sp = new URLSearchParams();
+  if (next.region) sp.set('region', next.region);
+  if (next.theme) sp.set('theme', next.theme);
+  if (next.country) sp.set('country', next.country);
+  if (next.language) sp.set('language', next.language);
+  if (next.q) sp.set('q', next.q);
+  const qs = sp.toString();
+  return qs ? `/le-reseau?${qs}` : '/le-reseau';
+}
+
 export function countryName(code: string, locale: string): string {
   try {
     return (
