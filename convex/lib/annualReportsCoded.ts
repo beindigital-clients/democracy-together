@@ -1,24 +1,24 @@
 import type { SiteLocale } from './locales';
 import type { ReportContent } from './annualReports';
 
-// ÉDITIONS CODÉES des rapports annuels (F-41) — le contenu historique, écrit
-// dans le dépôt avant que les rapports aient un modèle de données.
+// CODED EDITIONS of the annual reports (F-41) — the historical content, written
+// in the repository before the reports had a data model.
 //
-// Il vit ici, côté Convex, et non plus dans `src/lib/reports-content.ts` :
-// c'est la SOURCE de la migration (`annualReports.importCodedReport` le
-// recopie en base, champ pour champ) ET le REPLI des pages publiques tant
-// qu'une année n'a pas été importée. Une seule copie, lue par les deux
-// côtés — Convex ne peut pas importer `src/`, l'inverse passe par l'alias
-// `@convex`.
+// It lives here, on the Convex side, and no longer in `src/lib/reports-content.ts`:
+// it is the SOURCE of the migration (`annualReports.importCodedReport` copies
+// it into the database, field by field) AND the FALLBACK for public pages as long
+// as a year has not been imported. A single copy, read by both
+// sides — Convex cannot import `src/`, the reverse goes through the `@convex`
+// alias.
 //
-// Pour une association qui se constitue (loi 1901 en cours), le rapport
-// inaugural couvre la fondation, la gouvernance, les premiers chantiers et
-// les perspectives — faits établis, AUCUNE métrique inventée : d'où des
-// chiffres clés VIDES. Vérifié sans terme banni.
+// For an association being set up (loi 1901 in progress), the inaugural
+// report covers the founding, governance, the first workstreams and
+// the outlook — established facts, NO invented metrics: hence EMPTY
+// key figures. Checked free of banned terms.
 
 export type CodedReport = ReportContent & { year: number; inaugural: boolean };
 
-// Années codées (descendant). Une seule édition.
+// Coded years (descending). A single edition.
 export const CODED_REPORT_YEARS = [2026] as const;
 
 const fr: Record<number, CodedReport> = {
@@ -256,8 +256,8 @@ const ar: Record<number, CodedReport> = {
   },
 };
 
-// Table exhaustive par construction : une langue du site manquante ne
-// compile pas.
+// Exhaustive table by construction: a missing site language does not
+// compile.
 export const CODED_REPORTS: Record<SiteLocale, Record<number, CodedReport>> = {
   fr,
   en,

@@ -1,10 +1,10 @@
 import { isHttpUrl } from '../validation';
 
-// Règles de saisie des contenus éditoriaux — pures, donc testables sans base.
+// Input rules for editorial content — pure, hence testable without a database.
 
-// Un slug de contenu est une adresse publique (`/evenements/<slug>`) : il est
-// STABLE (non modifiable après création, pour ne jamais casser un lien déjà
-// partagé) et restreint à ce qu'une URL porte sans encodage.
+// A content slug is a public address (`/evenements/<slug>`): it is
+// STABLE (not editable after creation, so as never to break an already
+// shared link) and restricted to what a URL carries without encoding.
 export const CONTENT_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CONTENT_SLUG_MAX = 100;
 
@@ -12,7 +12,7 @@ export function isContentSlug(value: string): boolean {
   return value.length <= CONTENT_SLUG_MAX && CONTENT_SLUG_RE.test(value);
 }
 
-// Bornes des textes saisis par un éditeur.
+// Bounds on texts entered by an editor.
 export const CONTENT_MAX = {
   title: 200,
   short: 400,
@@ -21,7 +21,7 @@ export const CONTENT_MAX = {
   url: 2000,
 } as const;
 
-/** URL http(s) absolue et bornée, ou erreur `INVALID_URL`. */
+/** Absolute, bounded http(s) URL, or an `INVALID_URL` error. */
 export function requireHttpUrl(value: string): string {
   const v = value.trim();
   if (v.length > CONTENT_MAX.url || !isHttpUrl(v))
@@ -42,10 +42,10 @@ const VIMEO_HOSTS = new Set(['vimeo.com', 'www.vimeo.com', 'player.vimeo.com']);
 const VIDEO_FILE_RE = /\.(mp4|webm|ogv|ogg|mov|m4v)$/i;
 
 /**
- * Lien vidéo d'un replay, validé CONTRE SA NATURE : une vidéo « YouTube » qui
- * pointe ailleurs est refusée, et un « fichier » doit être en https et finir
- * par une extension vidéo. Le lecteur public ne sert donc jamais une adresse
- * arbitraire sous une étiquette rassurante.
+ * Video link of a replay, validated AGAINST ITS KIND: a "YouTube" video that
+ * points elsewhere is refused, and a "file" must be https and end
+ * with a video extension. The public player thus never serves an arbitrary
+ * address under a reassuring label.
  */
 export function validateVideoUrl(kind: VideoKind, value: string): string {
   const url = requireHttpUrl(value);
@@ -62,8 +62,8 @@ export function validateVideoUrl(kind: VideoKind, value: string): string {
 }
 
 /**
- * Adresse d'intégration (iframe) d'une vidéo YouTube ou Vimeo, ou `null`.
- * Le domaine « nocookie » de YouTube est retenu : pas de traceur avant lecture.
+ * Embed address (iframe) of a YouTube or Vimeo video, or `null`.
+ * YouTube's "nocookie" domain is used: no tracker before playback.
  */
 export function videoEmbedUrl(kind: VideoKind, value: string): string | null {
   let parsed: URL;

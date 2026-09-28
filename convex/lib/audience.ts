@@ -1,30 +1,30 @@
 import { SITE_LOCALES } from './locales';
 
-// MESURE D'AUDIENCE FIRST-PARTY (F-66) — règles pures de normalisation.
+// FIRST-PARTY AUDIENCE MEASUREMENT (F-66) — pure normalization rules.
 //
-// Le cadre est celui de l'EXEMPTION DE CONSENTEMENT de la CNIL pour la mesure
-// d'audience (lignes directrices « cookies et autres traceurs », art. 5 ;
-// délibération 2020-091) : finalité strictement statistique, données
-// agrégées, pas de recoupement, pas de suivi entre sites ni d'une visite à
-// l'autre. Chaque fonction ci-dessous RÉDUIT une donnée avant qu'elle n'entre
-// en base : ce qui n'est jamais collecté n'a pas à être protégé.
+// The framework is the CNIL's CONSENT EXEMPTION for audience
+// measurement (guidelines "cookies et autres traceurs", art. 5;
+// deliberation 2020-091): strictly statistical purpose, aggregated
+// data, no cross-referencing, no tracking across sites or from one visit to
+// the next. Each function below REDUCES a piece of data before it enters
+// the database: what is never collected does not need protecting.
 //
-//  - le chemin perd sa requête et son ancre (un jeton, une recherche saisie,
-//    une adresse dans `?email=` ne sont jamais enregistrés) et son préfixe de
-//    langue (la langue est une dimension à part) ;
-//  - le référent est réduit à son NOM DE DOMAINE ;
-//  - la taille d'écran est réduite à trois CLASSES ;
-//  - aucun identifiant, aucune adresse IP, aucun agent utilisateur.
+//  - the path loses its query and its anchor (a token, a typed search,
+//    an address in `?email=` are never recorded) and its language
+//    prefix (the language is a separate dimension);
+//  - the referrer is reduced to its DOMAIN NAME;
+//  - the screen size is reduced to three CLASSES;
+//  - no identifier, no IP address, no user agent.
 
 export const AUDIENCE_PATH_MAX = 120;
 const REF_MAX = 100;
 
-/** Jour UTC d'un horodatage, `AAAA-MM-JJ` — la granularité de l'agrégation. */
+/** UTC day of a timestamp, `YYYY-MM-DD` — the aggregation granularity. */
 export function dayKey(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-/** Jour UTC situé `n` jours avant `day`. */
+/** UTC day located `n` days before `day`. */
 export function shiftDay(day: string, n: number): string {
   const t = Date.parse(`${day}T00:00:00Z`);
   return dayKey(t - n * 86_400_000);
@@ -34,17 +34,17 @@ export function isDayKey(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 }
 
-// Espaces jamais mesurés : le back-office n'est pas de l'audience, et la
-// mesure n'a rien à apprendre des écrans d'authentification.
+// Areas never measured: the back office is not audience, and the
+// measurement has nothing to learn from authentication screens.
 const EXCLUDED_PREFIXES = ['/admin', '/connexion', '/mot-de-passe-oublie'];
 
 const LOCALE_PREFIX = new RegExp(`^/(${SITE_LOCALES.join('|')})(?=/|$)`);
 
 /**
- * Chemin normalisé, ou `null` s'il ne doit pas être compté. Un chemin hors
- * gabarit (caractères inattendus, trop long, trop profond) est REFUSÉ plutôt
- * que tronqué : c'est la borne de cardinalité la plus simple — un script qui
- * inventerait des chemins ne crée pas de lignes.
+ * Normalized path, or `null` if it must not be counted. A path outside the
+ * template (unexpected characters, too long, too deep) is REJECTED rather
+ * than truncated: it is the simplest cardinality bound — a script that
+ * invented paths creates no rows.
  */
 export function normalizePath(raw: string): string | null {
   if (typeof raw !== 'string' || !raw.startsWith('/')) return null;
@@ -63,7 +63,7 @@ export function normalizePath(raw: string): string | null {
   return path;
 }
 
-/** Langue de la page, si c'est une langue du site. */
+/** Language of the page, if it is a site language. */
 export function normalizeLang(raw: string | undefined): string | undefined {
   return raw && (SITE_LOCALES as readonly string[]).includes(raw)
     ? raw
@@ -71,8 +71,8 @@ export function normalizeLang(raw: string | undefined): string | undefined {
 }
 
 /**
- * Référent réduit au NOM DE DOMAINE (sans `www.`). `null` pour une
- * navigation interne, une URL invalide ou un schéma autre que http(s).
+ * Referrer reduced to the DOMAIN NAME (without `www.`). `null` for
+ * internal navigation, an invalid URL or a scheme other than http(s).
  */
 export function referrerDomain(
   raw: string | undefined,
@@ -96,7 +96,7 @@ export function referrerDomain(
 
 export const SCREEN_CLASSES = ['mobile', 'tablet', 'desktop'] as const;
 
-/** Largeur de fenêtre -> classe. Trois classes : pas une empreinte. */
+/** Window width -> class. Three classes: not a fingerprint. */
 export function screenClass(width: number | undefined): string | undefined {
   if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) {
     return undefined;
@@ -106,8 +106,8 @@ export function screenClass(width: number | undefined): string | undefined {
   return 'desktop';
 }
 
-// Contenus éditoriaux : ce que « contenus les plus consultés » retient parmi
-// les pages vues (les fiches, pas les listes ni les pages institutionnelles).
+// Editorial content: what "contenus les plus consultés" keeps among
+// page views (the records, not the lists or the institutional pages).
 const CONTENT_PREFIXES = [
   '/bibliotheque/',
   '/actualites/',
@@ -126,28 +126,28 @@ export function isContentPath(path: string): boolean {
   );
 }
 
-// Clé de repli quand la cardinalité d'un jour est atteinte.
+// Fallback key when a day's cardinality is reached.
 export const OTHER_KEY = '(other)';
-// Clés distinctes au plus, par jour : pages et référents. Au-delà, le compte
-// va dans « (autres) » — le tableau de bord reste lisible, et une rafale de
-// chemins inventés ne peut pas remplir la table.
+// Maximum distinct keys per day: pages and referrers. Beyond that, the count
+// goes into "(autres)" — the dashboard stays readable, and a burst of
+// invented paths cannot fill the table.
 export const KEYS_PER_DAY = { page: 100, referrer: 50 } as const;
 
-/** Rétention des agrégats, en jours (13 mois par défaut). */
+/** Retention of aggregates, in days (13 months by default). */
 export function retentionDays(): number {
   const raw = Number(process.env.AUDIENCE_RETENTION_DAYS);
-  // Plancher 30 j, plafond 25 mois : la durée maximale que la CNIL retient
-  // pour les données de mesure d'audience exemptée.
+  // Floor 30 d, ceiling 25 months: the maximum duration the CNIL allows
+  // for exempted audience measurement data.
   return Number.isFinite(raw) && raw > 0
     ? Math.min(760, Math.max(30, Math.round(raw)))
     : 395;
 }
 
-/** Plafonds anti-abus du point d'entrée public (par minute). */
+/** Anti-abuse caps for the public entry point (per minute). */
 export function throttleLimits(): { perVisitor: number; global: number } {
   const g = Number(process.env.AUDIENCE_MAX_HITS_PER_MINUTE);
   return {
-    // Une personne qui navigue vite charge une page toutes les 2 à 3 s.
+    // A person browsing fast loads a page every 2 to 3 s.
     perVisitor: 60,
     global: Number.isFinite(g) && g > 0 ? Math.round(g) : 3000,
   };

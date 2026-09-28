@@ -1,17 +1,17 @@
 import { looksLikePdf } from '../pdfImages';
 
-// MÉDIATHÈQUE (F-64) — ce qu'un fichier EST, lu dans ses octets.
+// MEDIA LIBRARY (F-64) — what a file IS, read from its bytes.
 //
-// Même règle que la bibliothèque (`convex/documents.ts`, `looksLikePdf`) : on
-// ne croit ni l'extension, ni le type annoncé par le navigateur au
-// téléversement — les deux se forgent d'un `curl`. Le type retenu est celui
-// que révèlent les premiers octets ; un fichier qu'on ne reconnaît pas est
-// refusé et supprimé du stockage.
+// Same rule as the library (`convex/documents.ts`, `looksLikePdf`): we
+// trust neither the extension nor the type announced by the browser at
+// upload — both can be forged with a `curl`. The type retained is the one
+// revealed by the first bytes; a file we do not recognize is
+// refused and deleted from storage.
 //
-// SVG VOLONTAIREMENT EXCLU. Un SVG est un document XML qui peut porter du
-// script : servi depuis le stockage Convex et ouvert directement, il
-// s'exécuterait dans l'origine du stockage. Les logos se téléversent en PNG,
-// WebP ou JPEG — et le texte alternatif, lui, reste obligatoire.
+// SVG DELIBERATELY EXCLUDED. An SVG is an XML document that can carry
+// script: served from Convex storage and opened directly, it
+// would run in the storage origin. Logos are uploaded as PNG,
+// WebP or JPEG — and the alternative text remains mandatory.
 
 export type MediaKind = 'image' | 'pdf';
 
@@ -23,16 +23,16 @@ export type SniffedMedia = {
   height?: number;
 };
 
-// Bornes de taille par nature de fichier. Une image de page web n'a aucune
-// raison de dépasser 5 Mo ; un PDF (programme, dossier de presse) suit la
-// borne de la bibliothèque, 20 Mo.
+// Size bounds per kind of file. A web page image has no
+// reason to exceed 5 MB; a PDF (program, press kit) follows the
+// library's bound, 20 MB.
 export const MEDIA_MAX_BYTES: Record<MediaKind, number> = {
   image: 5 * 1024 * 1024,
   pdf: 20 * 1024 * 1024,
 };
 
-// Dimensions plafonnées : au-delà, l'image est probablement une erreur
-// (scan brut) et coûterait cher à chaque affichage.
+// Capped dimensions: beyond them, the image is probably a mistake
+// (raw scan) and would be expensive on every display.
 export const MEDIA_MAX_DIMENSION = 12000;
 
 function u16be(b: Uint8Array, i: number): number {
@@ -52,7 +52,7 @@ function ascii(b: Uint8Array, i: number, n: number): string {
 }
 
 function pngSize(b: Uint8Array) {
-  // Signature 8 octets puis bloc IHDR : largeur et hauteur en u32 big-endian.
+  // 8-byte signature then IHDR chunk: width and height as big-endian u32.
   if (b.length < 24 || ascii(b, 12, 4) !== 'IHDR') return null;
   return { width: u32be(b, 16), height: u32be(b, 20) };
 }
@@ -63,7 +63,7 @@ function gifSize(b: Uint8Array) {
 }
 
 function jpegSize(b: Uint8Array) {
-  // Parcours des segments jusqu'au premier SOFn, qui porte les dimensions.
+  // Walk the segments up to the first SOFn, which carries the dimensions.
   let i = 2;
   while (i + 9 < b.length) {
     if (b[i] !== 0xff) return null;
@@ -107,8 +107,8 @@ function webpSize(b: Uint8Array) {
 }
 
 /**
- * Nature réelle d'un fichier d'après ses premiers octets, avec les dimensions
- * pour une image. `null` : type non accepté (ou fichier illisible).
+ * Actual kind of a file based on its first bytes, with the dimensions
+ * for an image. `null`: type not accepted (or unreadable file).
  */
 export function sniffMedia(bytes: Uint8Array): SniffedMedia | null {
   const b = bytes;
@@ -143,8 +143,8 @@ export function sniffMedia(bytes: Uint8Array): SniffedMedia | null {
     size = gifSize(b);
   }
   if (!contentType) return null;
-  // Une image dont on ne sait pas lire les dimensions n'est pas une image
-  // valide — c'est souvent un fichier tronqué qui s'afficherait cassé.
+  // An image whose dimensions we cannot read is not a valid
+  // image — it is often a truncated file that would display broken.
   if (
     !size ||
     size.width < 1 ||
@@ -157,10 +157,10 @@ export function sniffMedia(bytes: Uint8Array): SniffedMedia | null {
   return { kind: 'image', contentType, width: size.width, height: size.height };
 }
 
-/** Nom de fichier assaini pour l'affichage (pas de chemin, borné). */
+/** File name sanitized for display (no path, bounded). */
 export function cleanFilename(name: string): string {
   const base = name.split(/[\\/]/).pop() ?? '';
-  // Caractères de contrôle retirés : le nom est affiché et exporté tel quel.
+  // Control characters removed: the name is displayed and exported as is.
   // eslint-disable-next-line no-control-regex
   const cleaned = base.replace(/[\u0000-\u001f\u007f]/g, '').trim();
   return (cleaned || 'fichier').slice(0, 160);

@@ -1,17 +1,17 @@
 import type { MutationCtx } from '../../_generated/server';
 import type { Id } from '../../_generated/dataModel';
 
-// SUPPRESSION DE COMPTE — ce que les contenus éditoriaux gardent d'un compte.
+// ACCOUNT DELETION — what editorial content keeps of an account.
 //
-// Les contenus n'appartiennent pas à leur auteur : un événement publié par un
-// éditeur reste au réseau quand l'éditeur part. Ils ne portent de lui qu'une
-// TRACE (`updatedBy`, `uploadedBy`), que cette fonction efface. Le journal
-// d'audit, lui, garde l'identifiant — c'est sa raison d'être, et il relève de
-// la politique de conservation du journal, pas de ce chantier.
+// Content does not belong to its author: an event published by an
+// editor stays with the network when the editor leaves. It only carries a
+// TRACE of them (`updatedBy`, `uploadedBy`), which this function erases. The audit
+// log, for its part, keeps the identifier — that is its raison d'être, and it falls under
+// the log's retention policy, not this workstream.
 //
-// Interne, sans `ctx.auth` : c'est la suppression de compte qui l'appelle,
-// après ses propres contrôles. Tables petites (quelques centaines de lignes au
-// plus) : la lecture bornée suffit.
+// Internal, no `ctx.auth`: account deletion calls it,
+// after its own checks. Small tables (a few hundred rows at
+// most): the bounded read is enough.
 const SCAN_MAX = 2000;
 
 export async function deleteUserDataContenus(

@@ -38,32 +38,32 @@ import {
 import { countPages, extractJpegImages, looksLikePdf } from './lib/pdfImages';
 import { translationModel } from './lib/translation';
 
-// TRADUCTION DU DOCUMENT JOINT À UNE PUBLICATION — orchestration.
+// TRANSLATION OF THE DOCUMENT ATTACHED TO A PUBLICATION — orchestration.
 //
-// DEUX TEMPS, ET C'EST TOUT L'ENJEU DU DÉCOUPAGE.
+// TWO STAGES, AND THAT IS THE WHOLE POINT OF THE SPLIT.
 //
-//  1. EXTRAIRE, une fois. Le PDF part au modèle, qui en rend la structure
-//     (convex/lib/documents.ts) ; en parallèle, ses images JPEG sont recopiées
-//     dans le stockage (convex/lib/pdfImages.ts). C'est l'opération coûteuse —
-//     plusieurs mégaoctets à l'aller — et elle ne dépend d'aucune langue.
-//  2. TRADUIRE, une fois par langue demandée, à partir des blocs extraits.
-//     Quelques dizaines de kilo-octets de JSON, et le fichier n'est plus jamais
-//     relu. Les cinq versions décrivent donc RIGOUREUSEMENT le même document,
-//     ce qu'une extraction refaite à chaque langue ne garantirait pas.
+//  1. EXTRACT, once. The PDF goes to the model, which returns its structure
+//     (convex/lib/documents.ts); in parallel, its JPEG images are copied
+//     into storage (convex/lib/pdfImages.ts). This is the expensive operation —
+//     several megabytes on the way out — and it depends on no language.
+//  2. TRANSLATE, once per requested language, from the extracted blocks.
+//     A few dozen kilobytes of JSON, and the file is never read
+//     again. The five versions therefore describe EXACTLY the same document,
+//     which an extraction redone for each language would not guarantee.
 //
-// L'IMAGE N'EST JAMAIS RETRADUITE NI RECOMPRESSÉE. Un bloc `figure` porte un
-// index ; l'index traverse la traduction intact (`parseDocumentTranslation` le
-// réimpose depuis la source). Les cinq langues servent donc les mêmes fichiers,
-// aux mêmes endroits.
+// THE IMAGE IS NEVER RETRANSLATED OR RECOMPRESSED. A `figure` block carries an
+// index; the index passes through translation intact (`parseDocumentTranslation`
+// re-imposes it from the source). The five languages thus serve the same files,
+// in the same places.
 //
-// CE QUI EST PRODUIT N'EST PAS UN PDF, et ce n'est pas un pis-aller. Aucune
-// bibliothèque PDF de l'écosystème JavaScript ne sait composer l'arabe — ni la
-// forme contextuelle des lettres, ni l'algorithme bidirectionnel. Un moteur de
-// navigateur le fait, lui, et sans erreur. La vue document
-// (`/[locale]/bibliotheque/[slug]/document`) est donc une page mise en forme
-// pour l'impression, que le lecteur enregistre en PDF depuis son navigateur.
+// WHAT IS PRODUCED IS NOT A PDF, and it is not a stopgap. No PDF library
+// in the JavaScript ecosystem can typeset Arabic — neither the contextual
+// letter forms nor the bidirectional algorithm. A browser engine does it,
+// and without error. The document view
+// (`/[locale]/bibliotheque/[slug]/document`) is therefore a page formatted
+// for printing, which the reader saves as PDF from their browser.
 
-// --- Forme publique ---------------------------------------------------------
+// --- Public shape -----------------------------------------------------------
 
 const documentViewValidator = v.object({
   status: documentStatus,
@@ -71,12 +71,12 @@ const documentViewValidator = v.object({
   targetLocale: locale,
   title: v.optional(v.string()),
   blocks: v.optional(v.array(documentBlock)),
-  /** URL signée par image, indexée comme `imageIndex`. */
+  /** Signed URL per image, indexed like `imageIndex`. */
   imageUrls: v.array(v.union(v.string(), v.null())),
   skippedImages: v.number(),
   pageCount: v.optional(v.number()),
   error: v.optional(v.string()),
-  /** Le PDF d'origine, quand le lecteur y a droit. */
+  /** The original PDF, when the reader is entitled to it. */
   originalUrl: v.union(v.string(), v.null()),
   updatedAt: v.number(),
 });
@@ -87,16 +87,16 @@ async function viewerIsMember(ctx: QueryCtx): Promise<boolean> {
 }
 
 /**
- * Le document d'une publication, dans une langue.
+ * A publication's document, in one language.
  *
- * Renvoie `null` quand la publication n'existe pas, n'a pas de document joint,
- * ou que le lecteur n'a pas le droit de le lire. La distinction entre « pas
- * encore préparé » et « préparé » se lit dans `status`, parce que l'interface
- * en tire deux écrans différents.
+ * Returns `null` when the publication does not exist, has no attached document,
+ * or the reader is not allowed to read it. The distinction between "not
+ * prepared yet" and "prepared" is read from `status`, because the interface
+ * derives two different screens from it.
  *
- * LE CONTRÔLE D'ACCÈS EST ICI, et il est le même que celui de la bibliothèque :
- * la vue document rend le TEXTE INTÉGRAL d'un rapport. Une publication
- * réservée aux membres ne doit pas sortir par cette porte-là.
+ * ACCESS CONTROL LIVES HERE, and it is the same as the library's:
+ * the document view renders the FULL TEXT of a report. A members-only
+ * publication must not leak through this door.
  */
 export const getDocument = query({
   args: { slug: v.string(), targetLocale: locale },
@@ -117,8 +117,8 @@ export const getDocument = query({
     const sourceLocale = extraction?.sourceLocale ?? pub.languages[0] ?? 'fr';
     const originalUrl = await ctx.storage.getUrl(pub.fileId);
 
-    // Pas encore d'extraction, ou une extraction qui décrit un AUTRE fichier :
-    // rien à servir. Le second cas arrive quand un membre remplace son PDF.
+    // No extraction yet, or an extraction describing ANOTHER file:
+    // nothing to serve. The second case happens when a member replaces their PDF.
     if (!extraction || extraction.fileId !== pub.fileId) {
       return {
         status: 'pending' as const,
@@ -144,9 +144,9 @@ export const getDocument = query({
       };
     }
 
-    // Les URL d'image sont signées à la lecture : le tableau est INDEXÉ comme
-    // `imageIndex`, avec des trous à `null` plutôt qu'un tableau compacté —
-    // compacter décalerait toutes les figures suivantes.
+    // Image URLs are signed at read time: the array is INDEXED like
+    // `imageIndex`, with `null` holes rather than a compacted array —
+    // compacting would shift all the following figures.
     const images = extraction.images ?? [];
     const imageUrls: (string | null)[] = [];
     for (let i = 0; i < images.length; i++) {
@@ -154,8 +154,8 @@ export const getDocument = query({
       imageUrls.push(img ? await ctx.storage.getUrl(img.storageId) : null);
     }
 
-    // La langue source se sert telle quelle : le document extrait EST déjà
-    // dans cette langue, la traduire vers elle-même n'aurait pas de sens.
+    // The source language is served as is: the extracted document IS already
+    // in that language, translating it into itself would make no sense.
     if (args.targetLocale === sourceLocale) {
       return {
         status: 'ready' as const,
@@ -178,7 +178,7 @@ export const getDocument = query({
       )
       .unique();
 
-    // Une version rattachée à une extraction remplacée décrit l'ancien PDF.
+    // A version attached to a replaced extraction describes the old PDF.
     const usable = rendition && rendition.extractionId === extraction._id;
     return {
       status: usable ? rendition.status : ('pending' as const),
@@ -196,7 +196,7 @@ export const getDocument = query({
   },
 });
 
-/** Les langues dans lesquelles le document est déjà prêt. */
+/** The languages in which the document is already ready. */
 export const listDocumentLocales = query({
   args: { slug: v.string() },
   returns: v.array(locale),
@@ -239,7 +239,7 @@ export const listDocumentLocales = query({
   },
 });
 
-// --- Temps 1 : contexte -----------------------------------------------------
+// --- Stage 1: context -------------------------------------------------------
 
 export const loadDocumentContext = internalQuery({
   args: {
@@ -258,7 +258,7 @@ export const loadDocumentContext = internalQuery({
       blocks: v.optional(v.array(documentBlock)),
       title: v.optional(v.string()),
       imageCount: v.number(),
-      /** La version demandée existe déjà et décrit le fichier courant. */
+      /** The requested version already exists and describes the current file. */
       renditionFresh: v.boolean(),
     }),
     v.object({ ok: v.literal(false), reason: v.string() }),
@@ -290,9 +290,9 @@ export const loadDocumentContext = internalQuery({
       extraction.fileId === pub.fileId &&
       extraction.status === 'ready';
 
-    // La version demandée est-elle déjà prête ET rattachée à CETTE extraction ?
-    // C'est ce qui permet à `prepareDocument` de tenir la promesse de son
-    // commentaire et de ne rien dépenser deux fois.
+    // Is the requested version already ready AND attached to THIS extraction?
+    // This is what lets `prepareDocument` keep the promise of its
+    // comment and never spend anything twice.
     const rendition = fresh
       ? await ctx.db
           .query('documentRenditions')
@@ -323,7 +323,7 @@ export const loadDocumentContext = internalQuery({
   },
 });
 
-// --- Écritures --------------------------------------------------------------
+// --- Writes -----------------------------------------------------------------
 
 export const saveExtraction = internalMutation({
   args: {
@@ -349,10 +349,10 @@ export const saveExtraction = internalMutation({
       )
       .unique();
 
-    // Le PDF a changé : les images de l'ancienne extraction ne décrivent plus
-    // rien et les versions traduites non plus. On les supprime explicitement —
-    // laisser des fichiers orphelins dans le stockage est une fuite lente,
-    // exactement le genre que personne ne remarque avant la facture.
+    // The PDF changed: the old extraction's images no longer describe
+    // anything, nor do the translated versions. We delete them explicitly —
+    // leaving orphaned files in storage is a slow leak,
+    // exactly the kind nobody notices before the bill.
     if (existing && existing.fileId !== args.fileId) {
       for (const img of existing.images ?? []) {
         await ctx.storage.delete(img.storageId);
@@ -430,8 +430,8 @@ export const saveRendition = internalMutation({
       updatedAt: now,
     };
 
-    // `replace` : une version qui réussit après un échec doit perdre son
-    // `error`, et l'inverse doit perdre ses `blocks`.
+    // `replace`: a version that succeeds after a failure must lose its
+    // `error`, and the reverse must lose its `blocks`.
     if (existing) await ctx.db.replace(existing._id, row);
     else await ctx.db.insert('documentRenditions', row);
     return null;
@@ -443,9 +443,9 @@ export const consumeDocumentQuota = internalMutation({
   returns: v.null(),
   handler: async (ctx, { key }) => {
     await enforceRateLimit(ctx, {
-      // Préparer un document coûte beaucoup plus qu'un article : le fichier
-      // entier part au modèle. Trois par heure et par acteur, et le cache sert
-      // ensuite tous les lecteurs de cette langue.
+      // Preparing a document costs much more than an article: the whole file
+      // goes to the model. Three per hour per actor, and the cache then serves
+      // all readers of that language.
       key,
       max: 3,
       windowMs: 60 * 60 * 1000,
@@ -454,7 +454,7 @@ export const consumeDocumentQuota = internalMutation({
   },
 });
 
-// --- Temps 2a : extraire ----------------------------------------------------
+// --- Stage 2a: extract ------------------------------------------------------
 
 type ExtractionOutcome = { ok: boolean; code?: string; extractionId?: string };
 
@@ -490,9 +490,9 @@ export const extractDocument = internalAction({
     const bytes = new Uint8Array(await blob.arrayBuffer());
     if (!looksLikePdf(bytes)) return fail('NOT_A_PDF');
 
-    // LES IMAGES D'ABORD. Leur nombre entre dans la consigne d'extraction :
-    // le modèle doit savoir combien d'illustrations il peut référencer, sans
-    // quoi il invente des index qui ne désignent rien.
+    // IMAGES FIRST. Their count goes into the extraction instructions:
+    // the model must know how many illustrations it can reference, otherwise
+    // it invents indexes that point to nothing.
     const { images, skipped } = extractJpegImages(bytes, MAX_IMAGES);
     const stored: {
       index: number;
@@ -527,14 +527,14 @@ export const extractDocument = internalAction({
       },
       schemaName: 'document_extraction',
       schema: buildExtractionSchema(),
-      // L'extraction rend du JSON plus verbeux que le texte du PDF : la marge
-      // est large, une sortie tronquée coûte l'appel entier.
+      // Extraction returns JSON more verbose than the PDF's text: the margin
+      // is wide, a truncated output costs the whole call.
       maxOutputTokens: 64_000,
     });
 
     if (!result.ok) {
-      // Les images déjà stockées sont conservées : la prochaine tentative
-      // portera sur le même fichier et les réécrirait à l'identique.
+      // Images already stored are kept: the next attempt
+      // will be on the same file and would rewrite them identically.
       return fail(result.code);
     }
 
@@ -560,13 +560,13 @@ export const extractDocument = internalAction({
   },
 });
 
-// --- Temps 2b : traduire ----------------------------------------------------
+// --- Stage 2b: translate ----------------------------------------------------
 
 /**
- * Prépare le document d'une publication dans une langue.
+ * Prepares a publication's document in one language.
  *
- * Extrait d'abord si nécessaire, puis traduit. Idempotente : si la version
- * demandée existe déjà et décrit le fichier courant, l'appel ne consomme rien.
+ * Extracts first if needed, then translates. Idempotent: if the requested
+ * version already exists and describes the current file, the call consumes nothing.
  */
 export const prepareDocument = action({
   args: { slug: v.string(), targetLocale: locale },
@@ -580,14 +580,14 @@ export const prepareDocument = action({
     });
     if (!context.ok) return { ok: false, code: context.reason };
 
-    // IDEMPOTENCE, que le commentaire ci-dessus promettait sans que rien ne la
-    // tienne. Deux lecteurs qui ouvrent la même page et cliquent la même langue
-    // déclenchaient deux extractions du PDF entier et deux traductions
-    // complètes, la seconde écrasant la première. Pire : si la passerelle
-    // échouait sur ce second appel inutile, `saveRendition` remplaçait une
-    // version PRÊTE par une ligne `failed`, et une traduction déjà payée était
-    // perdue pour tous les lecteurs. On relit donc avant de dépenser, comme
-    // `requestTranslation` le fait déjà avec `peekCached`.
+    // IDEMPOTENCY, which the comment above promised without anything
+    // enforcing it. Two readers opening the same page and clicking the same
+    // language triggered two extractions of the whole PDF and two full
+    // translations, the second overwriting the first. Worse: if the gateway
+    // failed on that useless second call, `saveRendition` replaced a
+    // READY version with a `failed` row, and an already paid-for translation
+    // was lost for all readers. So we re-read before spending, as
+    // `requestTranslation` already does with `peekCached`.
     if (context.renditionFresh) return { ok: true };
 
     try {
@@ -600,7 +600,7 @@ export const prepareDocument = action({
       throw error;
     }
 
-    // 1. Extraction, si elle manque ou décrit un autre fichier.
+    // 1. Extraction, if it is missing or describes another file.
     let extractionId = context.extractionId;
     let blocks = context.blocks;
     let title = context.title;
@@ -614,8 +614,8 @@ export const prepareDocument = action({
         },
       );
       if (!extracted.ok) return { ok: false, code: extracted.code };
-      // Relire plutôt que se fier au retour : l'extraction vient d'écrire, et
-      // c'est la base qui fait foi sur ce qui a effectivement été enregistré.
+      // Re-read rather than trust the return value: extraction just wrote, and
+      // the database is the source of truth for what was actually saved.
       const after = await ctx.runQuery(internal.documents.loadDocumentContext, {
         slug: args.slug,
         userId,
@@ -629,7 +629,7 @@ export const prepareDocument = action({
       title = after.title;
     }
 
-    // 2. La langue source est servie par l'extraction elle-même.
+    // 2. The source language is served by the extraction itself.
     if (args.targetLocale === context.sourceLocale) return { ok: true };
     if (!extractionId || !blocks || blocks.length === 0) {
       return { ok: false, code: 'EMPTY_DOCUMENT' };
@@ -680,7 +680,7 @@ export const prepareDocument = action({
   },
 });
 
-// Ré-exports utiles aux tests et aux appelants, pour que le type du bloc ne
-// soit pas réimporté depuis deux endroits différents.
+// Re-exports useful to tests and callers, so that the block type is not
+// re-imported from two different places.
 export type { DocumentBlock };
 export type { ActionCtx, SiteLocale };

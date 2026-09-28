@@ -10,13 +10,13 @@ import {
   type DocumentBlock,
 } from './lib/documents';
 
-// Le point le plus fragile de la traduction d'un document n'est pas le texte :
-// c'est l'APPARIEMENT DES FIGURES À LEURS IMAGES, qui se fait par position. Un
-// bloc perdu, ajouté ou changé de type, et les illustrations du document
-// traduit se retrouvent aux mauvais endroits — sans que rien ne plante, et
-// sans que personne ne s'en aperçoive avant de lire le document.
+// The most fragile part of translating a document is not the text:
+// it is MATCHING FIGURES TO THEIR IMAGES, which is done by position. One
+// block lost, added or changed in type, and the illustrations of the
+// translated document end up in the wrong places — without anything crashing,
+// and without anyone noticing before reading the document.
 //
-// Ces tests tiennent cet invariant, et les cas dégénérés qui l'attaquent.
+// These tests hold that invariant, and the degenerate cases that attack it.
 
 const SOURCE: DocumentBlock[] = [
   { type: 'heading', level: 1, text: 'Introduction' },
@@ -99,10 +99,10 @@ function translated(over: Partial<Record<number, unknown>> = {}) {
 
 describe('Normalisation d’un bloc — le mode strict rend des null partout', () => {
   it('convertit les null en champs absents', () => {
-    // La passerelle exige que TOUS les champs déclarés soient présents, d'où
-    // des `null` pour ceux qui ne s'appliquent pas. Convex, lui, refuse `null`
-    // là où le validateur attend un champ optionnel : sans cette conversion,
-    // l'écriture échouerait en production et nulle part ailleurs.
+    // The gateway requires ALL declared fields to be present, hence
+    // `null` for those that don't apply. Convex, for its part, rejects `null`
+    // where the validator expects an optional field: without this conversion,
+    // the write would fail in production and nowhere else.
     const b = normalizeBlock({
       type: 'paragraph',
       text: 'Texte',
@@ -127,7 +127,7 @@ describe('Normalisation d’un bloc — le mode strict rend des null partout', (
     ).toMatchObject({
       level: 1,
     });
-    // Sans niveau, un intertitre vaut 2 : le `h1` est celui de la page.
+    // Without a level, a heading defaults to 2: the `h1` is the page's.
     expect(normalizeBlock({ type: 'heading', text: 'T' })).toMatchObject({
       level: 2,
     });
@@ -138,13 +138,13 @@ describe('Normalisation d’un bloc — le mode strict rend des null partout', (
     expect(normalizeBlock({ type: 'list', items: [] })).toBeNull();
     expect(normalizeBlock({ type: 'table', rows: [] })).toBeNull();
     expect(normalizeBlock({ type: 'heading', text: '' })).toBeNull();
-    // Une figure sans image NI légende n'a rien à montrer.
+    // A figure with neither image NOR caption has nothing to show.
     expect(normalizeBlock({ type: 'figure' })).toBeNull();
   });
 
   it('garde une figure qui n’a qu’une légende', () => {
-    // Cas réel : un graphique vectoriel, que `lib/pdfImages.ts` ne sait pas
-    // extraire. La légende reste, et la vue affiche un renvoi vers l'original.
+    // Real case: a vector chart, which `lib/pdfImages.ts` cannot
+    // extract. The caption stays, and the view shows a link to the original.
     expect(normalizeBlock({ type: 'figure', caption: 'Graphique 3' })).toEqual({
       type: 'figure',
       caption: 'Graphique 3',
@@ -168,8 +168,8 @@ describe('Extraction — les index d’image ne désignent que des images réell
   });
 
   it('retire un index qui dépasse le nombre d’images extraites', () => {
-    // Le modèle peut compter des illustrations que l'extracteur n'a pas pu
-    // lire. L'index désignerait alors une image absente, donc une figure vide.
+    // The model may count illustrations the extractor could not
+    // read. The index would then point to a missing image, hence an empty figure.
     const parsed = parseExtraction(
       { title: 'T', blocks: [{ type: 'figure', imageIndex: 5, caption: 'F' }] },
       2,
@@ -192,8 +192,8 @@ describe('Extraction — les index d’image ne désignent que des images réell
   });
 
   it('refuse un document dont aucun bloc n’est exploitable', () => {
-    // Mieux vaut un échec explicite — qui affiche « aucun contenu extrait » et
-    // renvoie vers le PDF — qu'une page vide qui paraît réussie.
+    // An explicit failure — which shows "aucun contenu extrait" and
+    // links to the PDF — is better than an empty page that looks successful.
     expect(
       parseExtraction({ title: 'T', blocks: [{ type: 'x' }] }, 0),
     ).toBeNull();
@@ -229,13 +229,13 @@ describe('Traduction d’un document — la structure est celle de la source', (
   });
 
   it('REFUSE un tableau qui a maigri', () => {
-    // LE DÉFAUT LE PLUS COÛTEUX ET LE PLUS DISCRET du dispositif. Compter les
-    // blocs ne suffit pas : un tableau de N lignes rendu avec trois lignes
-    // reste UN bloc, de type `table`. La page l'affichait parfaitement mis en
-    // forme, sous la mention « traduit automatiquement » — et le lecteur
-    // l'enregistrait en PDF puis le citait, amputé, sans que rien ne l'ait
-    // signalé. Le schéma de la passerelle ne peut pas l'empêcher : il est
-    // partagé avec l'extraction, où le nombre de lignes n'est pas connu.
+    // THE COSTLIEST AND MOST DISCREET DEFECT of the system. Counting
+    // blocks is not enough: an N-row table rendered with three rows
+    // is still ONE block, of type `table`. The page displayed it perfectly
+    // formatted, under the "traduit automatiquement" label — and the reader
+    // saved it as PDF then quoted it, truncated, without anything having
+    // flagged it. The gateway schema cannot prevent it: it is
+    // shared with extraction, where the number of rows is not known.
     const source = SOURCE[4];
     expect(source.type).toBe('table');
     expect(source.rows?.length).toBeGreaterThan(1);
@@ -271,8 +271,8 @@ describe('Traduction d’un document — la structure est celle de la source', (
   });
 
   it('REFUSE un bloc dont le type a changé', () => {
-    // Un paragraphe rendu à la place d'un tableau décalerait toutes les
-    // figures suivantes : c'est le défaut que cette garde existe pour attraper.
+    // A paragraph rendered in place of a table would shift all the
+    // following figures: that is the defect this guard exists to catch.
     const t = translated({
       4: { type: 'paragraph', text: 'Le tableau, en prose.' },
     });
@@ -280,8 +280,8 @@ describe('Traduction d’un document — la structure est celle de la source', (
   });
 
   it('IMPOSE l’index d’image de la source, quoi que rende le modèle', () => {
-    // Même si le modèle renvoie un autre index — ou aucun — la figure reste
-    // liée à l'illustration du document d'origine.
+    // Even if the model returns another index — or none — the figure stays
+    // linked to the illustration of the original document.
     const t = translated({
       2: {
         type: 'figure',
@@ -358,14 +358,14 @@ describe('Schémas et consignes', () => {
   });
 
   it('la consigne d’extraction annonce le nombre d’images référençables', () => {
-    // Sans ce nombre, le modèle invente des index qui ne désignent rien.
+    // Without this number, the model invents indexes that point to nothing.
     expect(buildExtractionInstructions(3)).toContain('0 to 2');
     expect(buildExtractionInstructions(0)).toContain('No extractable images');
   });
 
   it('la consigne d’extraction interdit de traduire', () => {
-    // L'extraction est faite UNE fois pour cinq langues : si elle traduisait,
-    // les cinq versions ne décriraient pas le même document.
+    // Extraction is done ONCE for five languages: if it translated,
+    // the five versions would not describe the same document.
     expect(buildExtractionInstructions(1)).toMatch(/Do NOT translate/);
   });
 

@@ -1,23 +1,23 @@
-// CONTENU CODÉ DES ÉVÉNEMENTS — source UNIQUE, partagée par le site et Convex.
+// CODED EVENT CONTENT — SINGLE source, shared by the site and Convex.
 //
-// Ces données vivaient dans `src/lib/events-content.ts` (côté Next), hors de
-// portée du backend : Convex est déployé séparément et n'a pas l'alias `@/`.
-// Elles sont descendues ici, dans un module PUR (aucun import serveur), pour
-// deux usages qui doivent lire EXACTEMENT les mêmes octets :
+// This data lived in `src/lib/events-content.ts` (Next side), out of
+// the backend's reach: Convex is deployed separately and has no `@/` alias.
+// It was moved down here, into a PURE module (no server import), for
+// two uses that must read EXACTLY the same bytes:
 //
-//  - l'import interne `contenus/migration:importCodedContent`, qui recopie ce
-//    catalogue dans la table `contentEvents` (mêmes slugs, mêmes titres dans
-//    les cinq langues) ;
-//  - le REPLI des pages publiques (`src/lib/contenus/`), servi tant que la
-//    table est vide ou le backend injoignable.
+//  - the internal import `contenus/migration:importCodedContent`, which copies this
+//    catalog into the `contentEvents` table (same slugs, same titles in
+//    the five languages);
+//  - the FALLBACK for public pages (`src/lib/contenus/`), served as long as the
+//    table is empty or the backend unreachable.
 //
-// Une seule copie, donc aucune dérive possible entre le repli et ce que la
-// migration a écrit. Le site les lit par l'alias `@convex/*`, comme il le fait
-// déjà pour les rôles et le vocabulaire de l'annuaire.
+// A single copy, so no possible drift between the fallback and what the
+// migration wrote. The site reads them through the `@convex/*` alias, as it
+// already does for roles and the directory vocabulary.
 //
-// `upcoming` est l'indicateur HISTORIQUE du catalogue : il ne décide plus de
-// rien à l'affichage (c'est la date qui le fait), mais il dit quels événements
-// étaient des rediffusions — la migration en tire les replays.
+// `upcoming` is the catalog's HISTORICAL flag: it no longer decides
+// anything for display (the date does), but it says which events
+// were replays — the migration derives the replays from it.
 
 import type { SiteLocale } from '../../locales';
 
@@ -37,8 +37,8 @@ export type EventData = {
   type: EventType;
   region: EventRegion;
   format: EventFormat;
-  // Langues de l'événement. Le catalogue codé n'en porte que deux (fr, en) ;
-  // la table accepte les cinq langues du site.
+  // Event languages. The coded catalog only carries two (fr, en);
+  // the table accepts the site's five languages.
   langs: SiteLocale[];
   theme: ThemeKey;
   cityKey: string;
@@ -46,16 +46,16 @@ export type EventData = {
   mo: number; // 1-12
   d: number;
   upcoming: boolean;
-  durationMin?: number; // pour les rediffusions (événements passés)
-  // Lien OPTIONNEL de rediffusion d'un événement passé (A-10, campagne du
-  // 27/09). Absent du catalogue codé ; avec la table, il vient du replay
-  // publié rattaché à l'événement. Le lien de VISIOCONFÉRENCE, lui, n'est
-  // plus porté par cette forme publique : il est réservé aux inscrits
-  // (`contenus/events:myVisioAccess`) et ne sort jamais d'une requête ouverte.
+  durationMin?: number; // for replays (past events)
+  // OPTIONAL replay link for a past event (A-10, campaign of
+  // 27/09). Absent from the coded catalog; with the table, it comes from the
+  // published replay attached to the event. The VIDEOCONFERENCE link, for its part,
+  // is no longer carried by this public shape: it is reserved for registrants
+  // (`contenus/events:myVisioAccess`) and never leaves an open query.
   replayUrl?: string;
 };
 
-// Liste neutre (la plus proche en haut). `when` dérivé pour le tri.
+// Neutral list (nearest at the top). `when` derived for sorting.
 export const CODED_EVENTS: EventData[] = [
   {
     slug: 'conference-inaugurale',
@@ -187,7 +187,7 @@ export const CODED_EVENTS: EventData[] = [
     d: 16,
     upcoming: true,
   },
-  // passés (rediffusions)
+  // past (replays)
   {
     slug: 'ia-generative-integrite-information',
     type: 'webinaire',
@@ -246,7 +246,7 @@ export const CODED_EVENTS: EventData[] = [
   },
 ];
 
-// Titres des événements, par langue (anciennement `labels.titles`).
+// Event titles, per language (formerly `labels.titles`).
 export const CODED_EVENT_TITLES: Record<SiteLocale, Record<string, string>> = {
   fr: {
     'conference-inaugurale': 'Conférence inaugurale de Democracy Together',
@@ -390,7 +390,7 @@ export const CODED_EVENT_TITLES: Record<SiteLocale, Record<string, string>> = {
   },
 };
 
-// Lieux (villes) par clé neutre et par langue (anciennement `labels.cities`).
+// Venues (cities) by neutral key and per language (formerly `labels.cities`).
 export const CODED_EVENT_CITIES: Record<SiteLocale, Record<string, string>> = {
   fr: {
     paris: 'Paris',
@@ -429,11 +429,11 @@ export const CODED_EVENT_CITIES: Record<SiteLocale, Record<string, string>> = {
   },
 };
 
-// Fuseau horaire de chaque lieu du catalogue. Le catalogue ne portait que des
-// JOURS (y/mo/d), lus implicitement à l'heure de Paris ; la table exige un
-// fuseau pour situer la fin d'un événement (clôture des inscriptions) et
-// formater ses dates. Le fuseau retenu est celui du lieu ; « en ligne » suit
-// le siège du réseau, à Paris.
+// Time zone of each venue in the catalog. The catalog only carried
+// DAYS (y/mo/d), implicitly read in Paris time; the table requires a
+// time zone to place the end of an event (registration closing) and
+// format its dates. The time zone chosen is the venue's; "en ligne" follows
+// the network's headquarters, in Paris.
 export const CODED_CITY_TIMEZONES: Record<string, string> = {
   paris: 'Europe/Paris',
   dakar: 'Africa/Dakar',
@@ -442,6 +442,6 @@ export const CODED_CITY_TIMEZONES: Record<string, string> = {
   'dakar-online': 'Africa/Dakar',
 };
 
-// Événement mis en avant sur l'agenda (la conférence inaugurale), dont la
-// fiche porte le contenu riche codé (programme, intervenants, billetterie).
+// Event featured on the agenda (the inaugural conference), whose
+// record carries the coded rich content (program, speakers, ticketing).
 export const CODED_FEATURED_SLUG = 'conference-inaugurale';

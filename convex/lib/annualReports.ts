@@ -1,11 +1,11 @@
 import { v } from 'convex/values';
 
-// RAPPORTS ANNUELS (F-41) — vocabulaire, bornes et empreinte du contenu,
-// partagés par le backend (convex/annualReports.ts), l'action qui compose le
-// PDF et l'écran d'administration (qui lit les MÊMES bornes pour ses
-// compteurs, par l'alias `@convex/lib/annualReports`).
+// ANNUAL REPORTS (F-41) — vocabulary, bounds and content fingerprint,
+// shared by the backend (convex/annualReports.ts), the action that composes the
+// PDF and the admin screen (which reads the SAME bounds for its
+// counters, through the `@convex/lib/annualReports` alias).
 //
-// Module pur : il ne tire que `convex/values`.
+// Pure module: it only pulls in `convex/values`.
 
 export const REPORT_BOUNDS = {
   yearMin: 2000,
@@ -55,11 +55,11 @@ const within = (s: string, b: { min: number; max: number }) =>
   s.length >= b.min && s.length <= b.max;
 
 /**
- * Nettoie un contenu saisi et le valide contre les bornes. Lève une erreur
- * NOMMÉE (l'écran la traduit) au premier champ fautif.
+ * Cleans up entered content and validates it against the bounds. Throws a
+ * NAMED error (the screen translates it) at the first faulty field.
  *
- * Les paragraphes vides sont retirés AVANT le décompte : une ligne blanche
- * laissée en fin de chapitre n'est pas une faute de saisie.
+ * Empty paragraphs are removed BEFORE counting: a blank line
+ * left at the end of a chapter is not an input error.
  */
 export function normalizeReportContent(input: ReportContent): ReportContent {
   const B = REPORT_BOUNDS;
@@ -93,15 +93,15 @@ export function normalizeReportContent(input: ReportContent): ReportContent {
 }
 
 /**
- * Empreinte du contenu d'une langue (FNV-1a sur 53 bits, en base 36).
+ * Fingerprint of one language's content (FNV-1a on 53 bits, in base 36).
  *
- * Elle lie un PDF au texte dont il est issu : le PDF n'est servi QUE si son
- * empreinte est celle du contenu courant. Un rapport corrigé après la
- * génération ne propose donc jamais un PDF qui le contredit — le bouton
- * disparaît le temps que la régénération (planifiée à l'écriture) aboutisse.
- * Pas de primitive cryptographique : il s'agit de détecter un changement, pas
- * de résister à un adversaire, et le runtime Convex des mutations n'a pas
- * `crypto.subtle` en synchrone.
+ * It ties a PDF to the text it came from: the PDF is served ONLY if its
+ * fingerprint is that of the current content. A report corrected after
+ * generation therefore never offers a PDF that contradicts it — the button
+ * disappears until the regeneration (scheduled on write) completes.
+ * No cryptographic primitive: the point is to detect a change, not
+ * to resist an adversary, and the Convex mutation runtime does not have
+ * `crypto.subtle` synchronously.
  */
 export function reportContentHash(
   year: number,

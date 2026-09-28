@@ -1,20 +1,20 @@
 import { v } from 'convex/values';
 
-// CHANTIER « COMMUNAUTÉ » — règles PURES partagées par les modules Convex
+// "COMMUNAUTÉ" WORKSTREAM — PURE rules shared by the Convex modules
 // (convex/workspaces.ts, convex/workspaceFiles.ts, convex/tribune.ts,
-// convex/communityModeration.ts), par le schéma et par les tests unitaires.
-// Aucune lecture de base ici : ce qui se décide sans `ctx` se teste sans
-// `convex-test`, et ne peut pas diverger entre deux modules.
+// convex/communityModeration.ts), by the schema and by the unit tests.
+// No database reads here: what is decided without `ctx` is tested without
+// `convex-test`, and cannot diverge between two modules.
 
-// --- Espaces collaboratifs (F-24) -------------------------------------------
+// --- Collaborative workspaces (F-24) ----------------------------------------
 
-// Rôles DANS un espace. Trois rangs, du plus large au plus restreint :
-//   animateur    gère l'espace (invitations, rôles, retrait, fichiers de tous) ;
-//   contributeur écrit (notes, fichiers) ;
-//   lecteur      lit (notes, fichiers), n'écrit rien.
-// `owner` et `member` sont les deux valeurs de l'incrément 1, encore présentes
-// en base : elles valent respectivement animateur et contributeur. On ne les
-// réécrit pas (aucune migration à jouer) ; `effectiveWorkspaceRole` les lit.
+// Roles WITHIN a workspace. Three ranks, from broadest to most restricted:
+//   animateur    manages the workspace (invitations, roles, removal, everyone's files);
+//   contributeur writes (notes, files);
+//   lecteur      reads (notes, files), writes nothing.
+// `owner` and `member` are the two values from increment 1, still present
+// in the database: they are equivalent to animateur and contributeur respectively.
+// We don't rewrite them (no migration to run); `effectiveWorkspaceRole` reads them.
 export const WORKSPACE_ROLES = [
   'animateur',
   'contributeur',
@@ -28,7 +28,7 @@ export const workspaceRoleValidator = v.union(
   v.literal('lecteur'),
 );
 
-// Valeurs STOCKÉES (héritées comprises) — ce que le schéma accepte.
+// STORED values (legacy included) — what the schema accepts.
 export const storedWorkspaceRoleValidator = v.union(
   v.literal('owner'),
   v.literal('member'),
@@ -60,10 +60,10 @@ export function workspaceRoleAtLeast(
   return role !== null && WORKSPACE_RANK[role] >= WORKSPACE_RANK[min];
 }
 
-// Espace OUVERT : tout membre du réseau le voit et peut le rejoindre.
-// Espace PRIVÉ : invisible hors de ses membres (et de ses invités), on n'y
-// entre que sur invitation. Un espace de l'incrément 1 n'a pas le champ : il
-// était ouvert, il le reste.
+// OPEN workspace: every network member sees it and can join it.
+// PRIVATE workspace: invisible outside its members (and its invitees), it can
+// only be entered by invitation. A workspace from increment 1 lacks the field: it
+// was open, it stays open.
 export const workspaceVisibilityValidator = v.union(
   v.literal('open'),
   v.literal('private'),
@@ -76,9 +76,9 @@ export function effectiveVisibility(
   return stored ?? 'open';
 }
 
-// Invitations : durée de validité. Deux semaines — assez pour qu'un membre
-// peu connecté la voie passer, assez court pour qu'une invitation oubliée ne
-// reste pas une porte ouverte indéfiniment.
+// Invitations: validity period. Two weeks — long enough for a rarely
+// connected member to see it, short enough that a forgotten invitation does not
+// remain an open door indefinitely.
 export const INVITATION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 export const invitationStatusValidator = v.union(
@@ -88,15 +88,15 @@ export const invitationStatusValidator = v.union(
   v.literal('revoked'),
 );
 
-// Une invitation `pending` dont l'échéance est passée est EXPIRÉE. Le statut
-// n'est pas réécrit (une query ne lit pas l'horloge, une mutation qui lève ne
-// peut rien écrire) : l'expiration se calcule, au moment où l'on s'en sert.
+// A `pending` invitation whose deadline has passed is EXPIRED. The status
+// is not rewritten (a query does not read the clock, a mutation that throws
+// cannot write anything): expiration is computed, at the time it is used.
 export function isInvitationExpired(expiresAt: number, now: number): boolean {
   return now >= expiresAt;
 }
 
-// Fichiers partagés : bornes. Le quota est PAR ESPACE et compte toutes les
-// versions conservées — une version remplacée occupe toujours le stockage.
+// Shared files: bounds. The quota is PER WORKSPACE and counts all the
+// kept versions — a replaced version still occupies storage.
 export const WORKSPACE_FILE_LIMITS = {
   maxFileBytes: 20 * 1024 * 1024,
   quotaBytes: 200 * 1024 * 1024,
@@ -105,23 +105,23 @@ export const WORKSPACE_FILE_LIMITS = {
   nameMaxLength: 160,
 } as const;
 
-// --- Tribune : modération (F-45, F-49) --------------------------------------
+// --- Tribune: moderation (F-45, F-49) ---------------------------------------
 
-// Mode de modération. A PRIORI : un contenu soumis attend la décision d'un
-// modérateur, invisible du public. A POSTERIORI : il paraît aussitôt, et la
-// modération agit sur signalement (comportement antérieur au chantier).
+// Moderation mode. A PRIORI: submitted content awaits a moderator's
+// decision, invisible to the public. A POSTERIORI: it appears immediately, and
+// moderation acts on reports (behavior prior to the workstream).
 export const moderationModeValidator = v.union(
   v.literal('a_priori'),
   v.literal('a_posteriori'),
 );
 export type ModerationMode = 'a_priori' | 'a_posteriori';
 
-// Réglages par défaut, quand l'administrateur n'a jamais ouvert le panneau.
-// Billets : A PRIORI, c'est ce que demande le backlog (F-45 : « validation par
-// un groupe de modérateurs avant publication »). Commentaires : A POSTERIORI —
-// F-45 parle de publication, F-47 de réactions et de débat ; retenir chaque
-// réponse en file tuerait la conversation. L'administrateur peut basculer
-// l'un et l'autre.
+// Default settings, when the administrator has never opened the panel.
+// Posts: A PRIORI, which is what the backlog asks for (F-45: "validation par
+// un groupe de modérateurs avant publication"). Comments: A POSTERIORI —
+// F-45 talks about publication, F-47 about reactions and debate; holding every
+// reply in a queue would kill the conversation. The administrator can switch
+// either one.
 export const DEFAULT_COMMUNITY_MODERATION = {
   postMode: 'a_priori' as ModerationMode,
   commentMode: 'a_posteriori' as ModerationMode,
@@ -137,14 +137,14 @@ export type ContentStatus = 'pending' | 'published' | 'rejected' | 'removed';
 
 export type ModerationDecision = 'approve' | 'reject' | 'remove';
 
-// Machine à états d'un contenu de la Tribune. Toute décision humaine passe
-// par ici ; un refus de transition est une erreur (`INVALID_TRANSITION`),
-// jamais un no-op silencieux.
-//   approve : pending -> published ; ou RÉVISION d'une décision négative
-//             (rejected/removed -> published) — un modérateur peut revenir sur
-//             un rejet, et l'historique le montre.
-//   reject  : pending -> rejected (avec motif).
-//   remove  : published -> removed (avec motif) — retrait après parution.
+// State machine of a Tribune item. Every human decision goes
+// through here; a refused transition is an error (`INVALID_TRANSITION`),
+// never a silent no-op.
+//   approve : pending -> published; or REVISION of a negative decision
+//             (rejected/removed -> published) — a moderator can go back on
+//             a rejection, and the history shows it.
+//   reject  : pending -> rejected (with reason).
+//   remove  : published -> removed (with reason) — removal after publication.
 export function nextStatus(
   from: ContentStatus,
   decision: ModerationDecision,
@@ -159,19 +159,19 @@ export function nextStatus(
   }
 }
 
-// Motif d'une décision négative : il est montré à l'auteur, il doit donc
-// exister et rester lisible.
+// Reason for a negative decision: it is shown to the author, so it must
+// exist and remain readable.
 export const MODERATION_REASON = { min: 3, max: 1000 } as const;
 
-// Portée de l'auto-acceptation par l'IA. Le panneau /admin/moderation-ia règle
-// un périmètre de TYPES éligibles à la mise en ligne automatique ; la Tribune y
-// entre comme un type de plus, `tribune`, que l'administrateur doit cocher
-// EXPLICITEMENT. Sans cette case, l'IA ne fait que proposer : la décision
-// reste humaine (F-45).
+// Scope of AI auto-acceptance. The /admin/moderation-ia panel sets
+// a scope of TYPES eligible for automatic publication; the Tribune
+// enters it as one more type, `tribune`, which the administrator must tick
+// EXPLICITLY. Without that box, the AI only proposes: the decision
+// stays human (F-45).
 export const TRIBUNE_AI_SCOPE = 'tribune';
 
-// Événements de l'historique d'un contenu (F-49). Une ligne par fait, jamais
-// réécrite : c'est ce qui permet de répondre à « qui a fait quoi, quand ».
+// Events in an item's history (F-49). One row per fact, never
+// rewritten: that is what makes it possible to answer "who did what, when".
 export const moderationEventKindValidator = v.union(
   v.literal('submitted'),
   v.literal('edited'),
@@ -200,7 +200,7 @@ export const moderationTargetValidator = v.union(
 );
 export type ModerationTarget = 'post' | 'comment';
 
-// Extrait d'un texte pour une liste : borné, et coupé sur un caractère.
+// Excerpt of a text for a list: bounded, and cut on a character boundary.
 export function excerpt(text: string, max = 180): string {
   const t = text.trim();
   return t.length > max ? `${t.slice(0, max)}…` : t;

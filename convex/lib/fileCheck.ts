@@ -1,23 +1,23 @@
-// VÉRIFICATION DU CONTENU d'un fichier partagé (espaces collaboratifs, F-24).
+// CONTENT VERIFICATION of a shared file (collaborative workspaces, F-24).
 //
-// Trois sources d'information sur un fichier, et une seule est fiable :
-//   - le NOM (et son extension) : choisi par le déposant ;
-//   - le TYPE annoncé à l'envoi (`contentType` du blob) : choisi par le
-//     navigateur du déposant, donc par lui ;
-//   - les OCTETS : ce que le fichier est réellement.
-// Un exécutable renommé `rapport.pdf` et envoyé avec `application/pdf` passe
-// les deux premiers contrôles. D'où la règle : on n'accepte un fichier que si
-// ses premiers octets portent la SIGNATURE du format que son extension
-// annonce. Le contrôle est pur (des octets en entrée, un verdict en sortie) :
-// il se teste sans stockage, et l'action qui l'appelle n'a rien à décider.
+// Three sources of information about a file, and only one is reliable:
+//   - the NAME (and its extension): chosen by the uploader;
+//   - the TYPE announced on upload (the blob's `contentType`): chosen by the
+//     uploader's browser, hence by them;
+//   - the BYTES: what the file actually is.
+// An executable renamed `rapport.pdf` and sent with `application/pdf` passes
+// the first two checks. Hence the rule: a file is accepted only if
+// its first bytes carry the SIGNATURE of the format its extension
+// announces. The check is pure (bytes in, a verdict out):
+// it is tested without storage, and the action calling it has nothing to decide.
 
 export type FileKind = {
-  // Extensions acceptées pour ce format (minuscules, sans point).
+  // Extensions accepted for this format (lowercase, without the dot).
   extensions: readonly string[];
-  // Type servi au téléchargement — celui du FORMAT reconnu, jamais celui
-  // annoncé par le déposant.
+  // Type served on download — that of the recognized FORMAT, never the one
+  // announced by the uploader.
   contentType: string;
-  // Vérification des octets.
+  // Byte verification.
   check: (bytes: Uint8Array) => boolean;
 };
 
@@ -36,9 +36,9 @@ const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const JPEG = [0xff, 0xd8, 0xff];
 const RIFF = ascii('RIFF');
 const WEBP = ascii('WEBP');
-// Conteneur ZIP : les formats bureautiques ouverts (OOXML, OpenDocument) en
-// sont. La signature ne distingue pas un .docx d'un .zip quelconque ; on
-// cherche en plus, dans l'en-tête, le nom d'entrée propre au format.
+// ZIP container: open office formats (OOXML, OpenDocument) are
+// ZIPs. The signature does not distinguish a .docx from any .zip; we
+// additionally look, in the header, for the entry name specific to the format.
 const ZIP = [0x50, 0x4b, 0x03, 0x04];
 
 function containsAscii(bytes: Uint8Array, needle: string, limit = 4096) {
@@ -50,12 +50,12 @@ function containsAscii(bytes: Uint8Array, needle: string, limit = 4096) {
   return false;
 }
 
-// Texte : UTF-8 VALIDE et sans octet nul. Un binaire quelconque échoue sur
-// l'un ou l'autre presque toujours ; un texte légitime passe toujours.
+// Text: VALID UTF-8 and no null byte. An arbitrary binary fails on
+// one or the other almost always; legitimate text always passes.
 //
-// Validation écrite à la main plutôt que `TextDecoder({ fatal: true })` : le
-// runtime Convex n'est pas un navigateur, et une option ignorée en silence
-// ferait passer n'importe quel binaire pour du texte.
+// Validation written by hand rather than `TextDecoder({ fatal: true })`: the
+// Convex runtime is not a browser, and a silently ignored option
+// would let any binary pass for text.
 function isUtf8Text(bytes: Uint8Array): boolean {
   let i = 0;
   while (i < bytes.length) {
@@ -67,7 +67,7 @@ function isUtf8Text(bytes: Uint8Array): boolean {
     else if (b >= 0xe0 && b <= 0xef) extra = 2;
     else if (b >= 0xf0 && b <= 0xf4) extra = 3;
     else return false;
-    // Séquence tronquée en fin de fichier : `c` vaut undefined, refusée.
+    // Truncated sequence at end of file: `c` is undefined, rejected.
     for (let k = 1; k <= extra; k++) {
       const c = bytes[i + k];
       if (c === undefined || (c & 0xc0) !== 0x80) return false;
@@ -79,8 +79,8 @@ function isUtf8Text(bytes: Uint8Array): boolean {
 
 const OOXML = (bytes: Uint8Array) =>
   startsWith(bytes, ZIP) && containsAscii(bytes, '[Content_Types].xml');
-// Un OpenDocument commence par l'entrée `mimetype`, non compressée, qui porte
-// le type : c'est la convention du format, et elle rend le contrôle exact.
+// An OpenDocument starts with the uncompressed `mimetype` entry, which carries
+// the type: it is the format's convention, and it makes the check exact.
 const odf = (mime: string) => (bytes: Uint8Array) =>
   startsWith(bytes, ZIP) && containsAscii(bytes, `mimetype${mime}`, 256);
 
@@ -150,8 +150,8 @@ export const FILE_KINDS: readonly FileKind[] = [
   },
 ];
 
-// Liste affichée dans le formulaire (attribut `accept`) — dérivée, jamais
-// recopiée.
+// List displayed in the form (`accept` attribute) — derived, never
+// copied.
 export const ACCEPTED_EXTENSIONS: readonly string[] = FILE_KINDS.flatMap(
   (k) => k.extensions,
 );
@@ -161,9 +161,9 @@ export function extensionOf(name: string): string {
   return dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
 }
 
-// Nom de fichier affiché : sans chemin, sans caractères de contrôle, borné.
-// Le nom est une donnée utilisateur rendue dans l'interface et proposée au
-// téléchargement : un « ../ » ou un retour chariot n'y ont rien à faire.
+// Displayed file name: no path, no control characters, bounded.
+// The name is user data rendered in the interface and offered for
+// download: a "../" or a carriage return has no business there.
 export function sanitizeFileName(name: string, maxLength: number): string {
   const base = name.split(/[\\/]/).pop() ?? '';
   // eslint-disable-next-line no-control-regex
@@ -178,9 +178,9 @@ export type FileCheckResult =
   | { ok: true; contentType: string }
   | { ok: false; code: 'FILE_TYPE_NOT_ALLOWED' | 'FILE_CONTENT_MISMATCH' };
 
-// Verdict sur un fichier : l'extension doit appartenir à la liste, ET les
-// octets doivent porter la signature de ce format. Le type annoncé à l'envoi
-// n'entre pas dans la décision.
+// Verdict on a file: the extension must belong to the list, AND the
+// bytes must carry that format's signature. The type announced on upload
+// plays no part in the decision.
 export function checkFileContent(
   name: string,
   bytes: Uint8Array,

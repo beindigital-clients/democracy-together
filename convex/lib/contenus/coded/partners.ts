@@ -1,26 +1,26 @@
-// CONTENU CODÉ DES PARTENAIRES (F-14) — source UNIQUE, partagée par le site
-// (repli de /partenaires) et par l'import interne qui le recopie dans la table
-// `contentPartners`. Descendu de `src/lib/partners-content.ts` pour que Convex,
-// qui n'a pas l'alias `@/`, puisse le lire (cf. `./events.ts`).
+// CODED PARTNER CONTENT (F-14) — SINGLE source, shared by the site
+// (fallback for /partenaires) and by the internal import that copies it into the
+// `contentPartners` table. Moved down from `src/lib/partners-content.ts` so that
+// Convex, which has no `@/` alias, can read it (cf. `./events.ts`).
 import type { SiteLocale } from '../../locales';
 
-// F-14 — Partenaires & soutiens. Page publique sans backend Convex : contenu
-// éditorial local bilingue (même approche que `reports-content.ts` /
-// `themes-content.ts`). On décrit des CATÉGORIES / niveaux de partenariat — ce
-// que chaque type de partenaire APPORTE au réseau et ce qu'il en REÇOIT —
-// SANS jamais nommer d'organisation ni inventer de logo. Positions et rôles,
-// pas de chiffres ni de noms. Vérifié sans terme banni.
+// F-14 — Partners & supporters. Public page without a Convex backend: local
+// bilingual editorial content (same approach as `reports-content.ts` /
+// `themes-content.ts`). We describe CATEGORIES / levels of partnership — what
+// each type of partner BRINGS to the network and what it GETS from it —
+// WITHOUT ever naming an organization or inventing a logo. Positions and roles,
+// no figures or names. Checked free of banned terms.
 
 export type PartnerCategory = {
   slug: string;
-  kicker: string; // intitulé court (ex. « Institutions »)
+  kicker: string; // short title (e.g. "Institutions")
   title: string;
   summary: string;
-  gives: string; // ce que ce partenaire apporte au réseau
+  gives: string; // what this partner brings to the network
   gets: string; // ce que le réseau lui apporte en retour
 };
 
-// Slugs neutres (partagés fr/en), ordre d'affichage.
+// Neutral slugs (shared fr/en), display order.
 export const PARTNER_SLUGS = [
   'institutions',
   'fondations',
@@ -296,7 +296,7 @@ const ar: Record<PartnerSlug, PartnerCategory> = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (cf. `projects-content.ts`).
 export const CODED_PARTNERS: Record<
   SiteLocale,
   Record<PartnerSlug, PartnerCategory>

@@ -1,38 +1,38 @@
 import { v } from 'convex/values';
 
-// DOUBLE OPT-IN DE LA NEWSLETTER (F-18) — règles pures, partagées par
-// convex/newsletter.ts et ses tests.
+// NEWSLETTER DOUBLE OPT-IN (F-18) — pure rules, shared by
+// convex/newsletter.ts and its tests.
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-// Durée de validité d'un lien de confirmation. 48 h couvrent un week-end et
-// une boîte consultée tous les deux jours ; au-delà, l'attente est purgée et
-// l'adresse peut se réinscrire.
+// Validity period of a confirmation link. 48 h covers a weekend and
+// a mailbox checked every other day; beyond that, the pending entry is purged and
+// the address can sign up again.
 export const CONFIRM_TTL_MS = 48 * HOUR;
 
-// Abonnés HÉRITÉS relancés par la migration : ils n'ont pas demandé ce
-// courriel à l'instant, on leur laisse un mois pour y répondre.
+// LEGACY subscribers re-contacted by the migration: they did not just ask for this
+// e-mail, so we give them a month to respond.
 export const LEGACY_CONFIRM_TTL_MS = 30 * DAY;
 
-// RENVOI BORNÉ. Se réinscrire avec une adresse en attente renvoie le lien —
-// c'est le geste naturel de qui ne trouve pas le courriel — mais pas plus de
-// trois fois par attente, et pas plus d'une fois toutes les dix minutes.
-// Sans ces deux bornes, le formulaire public deviendrait un moyen d'inonder
-// une boîte tierce (le plafond par IP ne suffit pas : il est par formulaire,
-// pas par destinataire).
+// BOUNDED RESEND. Signing up again with a pending address resends the link —
+// it is the natural move for someone who cannot find the e-mail — but no more than
+// three times per pending entry, and no more than once every ten minutes.
+// Without these two bounds, the public form would become a way to flood
+// a third-party mailbox (the per-IP cap is not enough: it is per form,
+// not per recipient).
 export const CONFIRM_MAX_SENDS = 3;
 export const CONFIRM_RESEND_MIN_INTERVAL_MS = 10 * MINUTE;
 
-// Version du texte d'information affiché sous le formulaire au moment du
-// consentement. Elle est enregistrée avec la preuve : si le texte change, on
-// sait sous quelle rédaction chaque abonné a consenti.
+// Version of the information text displayed under the form at the time of
+// consent. It is recorded with the proof: if the text changes, we
+// know under which wording each subscriber consented.
 export const CONSENT_TEXT_VERSION = '2026-09-27';
 
-// Formulaires d'inscription — la SOURCE du consentement. Domaine fermé côté
-// client ; le serveur ramène toute autre valeur à 'other' plutôt que de
-// refuser (un formulaire ajouté demain ne doit pas casser l'inscription).
+// Sign-up forms — the SOURCE of consent. Closed domain on the client
+// side; the server maps any other value to 'other' rather than
+// refusing (a form added tomorrow must not break sign-up).
 export const SUBSCRIPTION_SOURCES = [
   'home',
   'footer',
@@ -44,15 +44,15 @@ export type SubscriptionSource = (typeof SUBSCRIPTION_SOURCES)[number];
 export const subscriptionSourceValidator = v.optional(v.string());
 
 export function normalizeSource(raw: string | undefined): SubscriptionSource {
-  // `legacy` est réservé à la migration : un client ne peut pas se déclarer
-  // « abonné d'avant le double opt-in ».
+  // `legacy` is reserved for the migration: a client cannot declare itself
+  // "a subscriber from before the double opt-in".
   if (!raw || raw === 'legacy') return 'other';
   return (SUBSCRIPTION_SOURCES as readonly string[]).includes(raw)
     ? (raw as SubscriptionSource)
     : 'other';
 }
 
-/** Jeton aléatoire de 256 bits, en hexadécimal. */
+/** 256-bit random token, in hexadecimal. */
 export function newConfirmToken(): string {
   const a = new Uint8Array(32);
   crypto.getRandomValues(a);
@@ -60,9 +60,9 @@ export function newConfirmToken(): string {
 }
 
 /**
- * Empreinte SHA-256 (hexadécimal) — seule forme sous laquelle le jeton de
- * confirmation est stocké. Le jeton ayant 256 bits d'entropie, un hachage
- * rapide suffit : il n'y a pas de dictionnaire à ralentir.
+ * SHA-256 hash (hexadecimal) — the only form in which the confirmation
+ * token is stored. Since the token has 256 bits of entropy, a fast hash
+ * is enough: there is no dictionary to slow down.
  */
 export async function hashToken(token: string): Promise<string> {
   const digest = await crypto.subtle.digest(
@@ -74,14 +74,14 @@ export async function hashToken(token: string): Promise<string> {
   ).join('');
 }
 
-/** Un jeton reçu d'un lien a-t-il la forme d'un jeton émis ? */
+/** Does a token received from a link have the shape of an issued token? */
 export function isTokenShaped(token: string): boolean {
   return /^[0-9a-f]{64}$/.test(token);
 }
 
 /**
- * Peut-on (r)envoyer un lien de confirmation à cette attente ?
- * Pure : la décision se teste sans base.
+ * Can we (re)send a confirmation link for this pending entry?
+ * Pure: the decision is tested without a database.
  */
 export function canResendConfirmation(
   sub: { confirmSends?: number; confirmLastSentAt?: number },

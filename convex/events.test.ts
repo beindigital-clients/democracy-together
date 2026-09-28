@@ -39,7 +39,7 @@ describe('Inscriptions événements — register (F-53)', () => {
     expect(all[0].name).toBe('Awa Diop');
     expect(all[0].organization).toBe('Institut X');
 
-    // ré-inscription au MÊME event = idempotente
+    // re-registering for the SAME event = idempotent
     const r2 = await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'conference-inaugurale',
       name: 'Awa Diop',
@@ -51,7 +51,7 @@ describe('Inscriptions événements — register (F-53)', () => {
         .length,
     ).toBe(1);
 
-    // même adresse, AUTRE event = inscription distincte
+    // same address, OTHER event = distinct registration
     await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'webinaire-jeunes-releve',
       name: 'Awa Diop',
@@ -62,7 +62,7 @@ describe('Inscriptions événements — register (F-53)', () => {
         .length,
     ).toBe(2);
 
-    // e-mail invalide / nom trop court rejetés
+    // invalid e-mail / name too short rejected
     await expect(
       t.mutation(internal.events.storeRegistration, {
         eventSlug: 'conference-inaugurale',
@@ -95,12 +95,12 @@ describe('Inscriptions événements — back-office (F-53)', () => {
       email: 'awa@example.org',
     });
 
-    // anonyme refusé
+    // anonymous refused
     await expect(
       t.query(api.events.listEventRegistrations, {}),
     ).rejects.toThrow();
 
-    // visiteur refusé
+    // visitor refused
     const visitorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
@@ -110,7 +110,7 @@ describe('Inscriptions événements — back-office (F-53)', () => {
         .query(api.events.listEventRegistrations, {}),
     ).rejects.toThrow();
 
-    // modérateur : accès à la liste
+    // moderator: access to the list
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
@@ -119,15 +119,15 @@ describe('Inscriptions événements — back-office (F-53)', () => {
       .query(api.events.listEventRegistrations, {});
     expect(list).toHaveLength(1);
     expect(list[0].eventSlug).toBe('conference-inaugurale');
-    // Le titre vient de la table, plus d'un catalogue codé côté écran.
+    // The title comes from the table, no longer from a catalog coded on the screen side.
     expect(list[0].eventTitle).toBe('Conférence inaugurale');
     expect(list[0].email).toBe('awa@example.org');
   });
 });
 
-// A-03 (campagne du 27/09) puis M-5 (pentest) : l'inscription à un événement
-// PASSÉ était acceptée et stockée, et le slug n'était confronté qu'à une liste
-// recopiée. Il l'est désormais à la table `contentEvents`.
+// A-03 (campaign of 27/09) then M-5 (pentest): registration for a PAST
+// event was accepted and stored, and the slug was only checked against a
+// copied list. It is now checked against the `contentEvents` table.
 describe('Inscriptions événements — validées contre la table (A-03, M-5)', () => {
   it('refuse un événement inconnu, brouillon, annulé ou passé avec EVENT_CLOSED, sans rien stocker', async () => {
     const t = convexTest(schema, modules);

@@ -5,10 +5,10 @@ import schema from './schema';
 import { api, internal } from './_generated/api';
 import { publicationSearchText } from './lib/searchText';
 
-// La Tribune est modérée A PRIORI par défaut (chantier communauté, F-45) : un
-// billet créé attend une validation. Ces tests portent sur ce qui se passe
-// APRÈS publication ; ils posent donc le mode a posteriori, comme le réglage
-// que l'administrateur peut choisir.
+// The Tribune is moderated A PRIORI by default (community workstream, F-45): a
+// newly created post awaits approval. These tests cover what happens
+// AFTER publication; they therefore set a posteriori mode, like the setting
+// the administrator can choose.
 async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
@@ -25,11 +25,11 @@ async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
   });
 }
 
-// RECHERCHE SUR INDEX (F-06 / F-34, chantier diffusion).
+// INDEX-BASED SEARCH (F-06 / F-34, diffusion workstream).
 //
-// Les contenus sont écrits par les VRAIES mutations quand elles existent
-// (dépôt de publication, billet de Tribune) : c'est la tenue de la meule à
-// l'écriture qui est vérifiée, pas seulement la requête.
+// Content is written by the REAL mutations when they exist
+// (publication submission, Tribune post): what is verified is that the
+// haystack is maintained on write, not just the query.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -102,7 +102,7 @@ describe('Recherche — insensible aux accents, via l’index', () => {
         q,
       ).toEqual(['dp']);
     }
-    // Section générique : même résultat, chemin prêt à lier.
+    // Generic section: same result, path ready to link.
     const res = await search(t, 'democratie');
     expect(res.sections[0]).toMatchObject({
       source: 'publications',
@@ -127,16 +127,16 @@ describe('Recherche — insensible aux accents, via l’index', () => {
     const [p] = await t.run((ctx) => ctx.db.query('publications').collect());
     expect(p.status).toBe('pending');
     expect(p.searchText).toContain('ecologie electorale');
-    // Brouillon / en attente : invisible, quel que soit le terme.
+    // Draft / pending: invisible, whatever the term.
     for (const q of ['ecologie', 'démocratie', 'ndiaye']) {
       expect((await search(t, q)).sections).toEqual([]);
     }
     await t.run((ctx) => ctx.db.patch(p._id, { status: 'draft' }));
     expect((await search(t, 'ecologie')).sections).toEqual([]);
-    // Publiée : trouvée.
+    // Published: found.
     await t.run((ctx) => ctx.db.patch(p._id, { status: 'published' }));
     expect((await search(t, 'ecologie')).publications).toHaveLength(1);
-    // Et l'auteur est trouvé comme EXPERT (source dérivée).
+    // And the author is found as an EXPERT (derived source).
     const experts = (await search(t, 'ndiaye')).sections.find(
       (s) => s.source === 'experts',
     );
@@ -243,8 +243,8 @@ describe('Recherche — filtres et pagination', () => {
     expect(await slugs({ lang: 'en' })).toEqual(['b']);
     expect(await slugs({ region: 'afrique' })).toEqual(['b']);
     expect(await slugs({ year: 2024 })).toEqual(['a']);
-    // Un filtre qu'une source ne sait pas honorer l'EXCLUT : « type » n'a
-    // pas de sens pour un membre du réseau.
+    // A filter a source cannot honor EXCLUDES it: "type" has
+    // no meaning for a network member.
     const res = await search(t, 'gouvernance', { type: 'note' });
     expect(res.organizations).toEqual([]);
     expect((await search(t, 'gouvernance')).organizations).toHaveLength(1);

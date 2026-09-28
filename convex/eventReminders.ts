@@ -19,61 +19,61 @@ import { locale } from './schema';
 import { findEventBySlug, requireOpenEvent } from './lib/contenus/events';
 import { pickText } from './lib/contenus/i18n';
 
-// Rappels d'événements par e-mail (F-55). Un visiteur — sans compte — demande à
-// être prévenu avant un événement à venir. La demande est stockée (sent:false) ;
-// un cron quotidien (convex/crons.ts) déclenche `sendDueReminders`, qui envoie
-// les rappels dont la date approche puis les marque `sent:true`. L'envoi réel
-// passe par l'adaptateur générique `sendEmail` (convex/email.ts) : sans clé
-// fournisseur (dev/test) c'est un NO-OP — aucun e-mail réel n'est émis. Voulu.
+// E-mail event reminders (F-55). A visitor — without an account — asks to
+// be notified before an upcoming event. The request is stored (sent:false);
+// a daily cron (convex/crons.ts) triggers `sendDueReminders`, which sends
+// the reminders whose date is approaching then marks them `sent:true`. Actual
+// sending goes through the generic `sendEmail` adapter (convex/email.ts): without
+// a provider key (dev/test) it is a NO-OP — no real e-mail is sent. Intended.
 
-// Fenêtre d'envoi : on prévient au plus 2 jours avant l'événement.
+// Sending window: we notify at most 2 days before the event.
 const REMINDER_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
-// Rappels EN ATTENTE tolérés pour une même adresse (pentest M-5). Détail du
-// raisonnement et de la mesure dans `storeReminder`.
+// PENDING reminders tolerated for a single address (pentest M-5). Details of
+// the reasoning and the measurement in `storeReminder`.
 const MAX_PENDING_REMINDERS_PER_EMAIL = 5;
 
-// VALIDATION CONTRE LA TABLE (pentest M-5, refermé par le chantier
-// « contenus »). Le pentest demandait de « valider eventSlug contre la liste
-// réelle et calculer eventDate côté serveur » ; le backend ne connaissait pas
-// les événements, qui vivaient dans le dépôt Next. Ils sont désormais dans
-// `contentEvents` : le slug est confronté à la table (inconnu, brouillon,
-// annulé ou passé -> `EVENT_CLOSED`) et la date du rappel est le `startsAt`
-// de l'événement. L'argument `eventDate` reste ACCEPTÉ pour ne pas casser un
-// client en cache, mais il est IGNORÉ.
+// VALIDATION AGAINST THE TABLE (pentest M-5, closed by the "contenus"
+// workstream). The pentest asked to "validate eventSlug against the real
+// list and compute eventDate server-side"; the backend did not know about
+// events, which lived in the Next repository. They are now in
+// `contentEvents`: the slug is checked against the table (unknown, draft,
+// cancelled or past -> `EVENT_CLOSED`) and the reminder date is the event's
+// `startsAt`. The `eventDate` argument is still ACCEPTED so as not to break a
+// cached client, but it is IGNORED.
 
-// --- Demande publique de rappel (F-55) --------------------------------------
-// Sans compte (comme l'inscription F-53). Valide l'e-mail, borne le slug,
-// rate-limite par adresse (réutilise RATE_LIMITS.apply), dédoublonne par
-// (eventSlug, email) : redemander = succès idempotent, pas de doublon.
-// Portail anti-spam : l'action vérifie reCAPTCHA v3 (le rappel part en e-mail
-// vers une adresse fournie par l'appelant -> vecteur d'abus) puis délègue à
-// `storeReminder` (internalMutation -> non contournable).
+// --- Public reminder request (F-55) -----------------------------------------
+// No account needed (like the F-53 registration). Validates the e-mail, bounds
+// the slug, rate-limits per address (reuses RATE_LIMITS.apply), deduplicates on
+// (eventSlug, email): asking again = idempotent success, no duplicate.
+// Anti-spam gate: the action verifies reCAPTCHA v3 (the reminder goes out by
+// e-mail to an address supplied by the caller -> abuse vector) then delegates to
+// `storeReminder` (internalMutation -> cannot be bypassed).
 export const requestReminder = action({
   args: {
     eventSlug: v.string(),
     email: v.string(),
-    // Ignoré : la date vient de la table (cf. en-tête).
+    // Ignored: the date comes from the table (cf. header).
     eventDate: v.optional(v.number()),
     locale: v.optional(locale),
     captchaToken: v.optional(v.string()),
   },
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'event_reminder');
-    // ORACLE D'EXISTENCE REFERMÉ (pentest M-8, audit F-09).
+    // EXISTENCE ORACLE CLOSED (pentest M-8, audit F-09).
     //
-    // La mutation interne distingue toujours « déjà connu » de « nouveau » —
-    // elle en a besoin pour ne pas dupliquer ni recompter. Mais cette
-    // distinction ne FRANCHIT PLUS la frontière publique : cette action est
-    // ouverte, non authentifiée, et rendait `already: true/false`. Une seule
-    // requête suffisait donc pour savoir si une adresse donnée figure dans nos
-    // listes — appartenance à un réseau militant, inscription à un événement.
-    // Les plafonds par IP et par formulaire ralentissent l'énumération ; ils
-    // ne changent rien à une vérification ciblée, qui ne coûte qu'un appel.
+    // The internal mutation still distinguishes "already known" from "new" —
+    // it needs to, so as not to duplicate or double-count. But this
+    // distinction NO LONGER CROSSES the public boundary: this action is
+    // open, unauthenticated, and returned `already: true/false`. A single
+    // request was thus enough to know whether a given address is in our
+    // lists — membership of an activist network, registration to an event.
+    // The per-IP and per-form caps slow down enumeration; they
+    // change nothing for a targeted check, which costs a single call.
     //
-    // La réponse est désormais IDENTIQUE dans les deux cas. Rien n'est perdu
-    // côté produit : aucun formulaire ne lisait `already` — tous affichent le
-    // même message de succès (vérifié sur les cinq).
+    // The response is now IDENTICAL in both cases. Nothing is lost
+    // product-wise: no form read `already` — all display the
+    // same success message (checked on all five).
     await ctx.runMutation(internal.eventReminders.storeReminder, input);
     return { ok: true };
   },
@@ -92,20 +92,20 @@ export const storeReminder = internalMutation({
     if (!eventSlug || eventSlug.length > 100) throw new Error('INVALID_EVENT');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
 
-    // PLAFOND DE RAPPELS NON ENVOYÉS PAR ADRESSE (pentest M-5).
+    // CAP ON UNSENT REMINDERS PER ADDRESS (pentest M-5).
     //
-    // Ce que la mesure a montré, PoC à l'appui : le dédoublonnage porte sur
-    // (eventSlug, email), et le slug n'est pas validé contre les événements
-    // réels — seulement borné à 100 caractères. Varier le slug rendait donc un
-    // créneau neuf à chaque fois, et cinq rappels vers une adresse TIERCE
-    // étaient enregistrés avant que le plafond horaire ne morde. Ce plafond-là
-    // se reconstitue : cinq de plus l'heure suivante, cent vingt par jour, tous
-    // partant du domaine du site à 07:00 UTC.
+    // What the measurement showed, with a PoC: deduplication is on
+    // (eventSlug, email), and the slug is not validated against real
+    // events — only bounded to 100 characters. Varying the slug thus gave a
+    // fresh slot every time, and five reminders to a THIRD-PARTY address
+    // were recorded before the hourly cap kicked in. That cap
+    // replenishes: five more the next hour, a hundred and twenty a day, all
+    // going out from the site's domain at 07:00 UTC.
     //
-    // Le plafond ci-dessous ne se reconstitue pas tout seul : il compte les
-    // rappels EN ATTENTE. Une fois la file pleine pour une adresse, plus rien
-    // n'y entre tant qu'ils n'ont pas été envoyés. Cinq est large pour un
-    // usage humain — il y a moins d'événements à venir que cela.
+    // The cap below does not replenish on its own: it counts
+    // PENDING reminders. Once the queue is full for an address, nothing more
+    // gets in until they have been sent. Five is generous for
+    // human use — there are fewer upcoming events than that.
     const enAttente = await ctx.db
       .query('eventReminders')
       .withIndex('by_email_and_sent', (q) =>
@@ -116,15 +116,15 @@ export const storeReminder = internalMutation({
       throw new Error('TOO_MANY_PENDING_REMINDERS');
     }
 
-    // L'événement doit exister, être publié et À VENIR — un rappel pour un
-    // événement commencé ne partirait jamais. La date du rappel est la sienne.
+    // The event must exist, be published and UPCOMING — a reminder for an
+    // event that has started would never go out. The reminder date is the event's.
     const maintenant = Date.now();
     const event = await requireOpenEvent(ctx, eventSlug, maintenant);
     if (event.startsAt < maintenant) throw new ConvexError('EVENT_CLOSED');
     const eventDate = event.startsAt;
 
-    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
-    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    // NON-FORGEABLE caps (audit M2) — per IP and global per form:
+    // changing address no longer yields a fresh quota. Cf. lib/rateLimit.ts.
     await enforcePublicFormLimit(ctx, 'eventReminder');
 
     await enforceRateLimit(ctx, {
@@ -152,15 +152,16 @@ export const storeReminder = internalMutation({
   },
 });
 
-// --- Interne : envoi des rappels dont la date approche ----------------------
-// Récupère les rappels non envoyés dont `eventDate` tombe dans [maintenant,
-// maintenant + 2 jours]. Le filtrage de fenêtre se fait en mémoire (la table
-// reste petite) ; l'index by_sent borne la lecture aux rappels en attente.
+// --- Internal: sending reminders whose date is approaching ------------------
+// Fetches unsent reminders whose `eventDate` falls within [now,
+// now + 2 days]. Window filtering is done in memory (the table
+// stays small); the by_sent index bounds the read to pending reminders.
 //
-// L'événement est relu dans la table : un rappel dont l'événement a été
-// ANNULÉ ou dépublié entre-temps ne part pas (il est écarté, pas marqué — si
-// l'événement est republié, il repartira), et le courriel porte le fuseau du
-// lieu, sans lequel une journée à Paris s'annonçait la veille en UTC.
+// The event is re-read from the table: a reminder whose event was
+// CANCELLED or unpublished in the meantime does not go out (it is skipped, not
+// marked — if the event is republished, it will go out), and the e-mail carries
+// the venue's time zone, without which a day in Paris was announced as the
+// day before in UTC.
 export const _dueReminders = internalQuery({
   args: { now: v.number() },
   handler: async (ctx, { now }) => {
@@ -187,11 +188,11 @@ export const _markSent = internalMutation({
   },
 });
 
-// --- Interne : lien de visioconférence aux inscrits (F-54) ------------------
-// Le lien d'une salle virtuelle n'est jamais public. Un inscrit connecté le
-// lit sur la fiche (`contenus/events:myVisioAccess`) ; tout inscrit — avec ou
-// sans compte — le reçoit par courriel dans les deux jours qui précèdent
-// l'événement. `visioSentAt` garantit un envoi unique par inscription.
+// --- Internal: videoconference link for registrants (F-54) ------------------
+// A virtual room's link is never public. A signed-in registrant
+// reads it on the record (`contenus/events:myVisioAccess`); every registrant —
+// with or without an account — receives it by e-mail during the two days
+// before the event. `visioSentAt` guarantees a single send per registration.
 export const _dueVisioLinks = internalQuery({
   args: { now: v.number() },
   handler: async (ctx, { now }) => {
@@ -238,15 +239,15 @@ export const _markVisioSent = internalMutation({
   },
 });
 
-// Action planifiée (cron quotidien). Les appels e-mail externes vivent dans une
-// action, jamais dans une mutation. Pour chaque rappel dû : sendEmail (NO-OP
-// sans clé), puis marquage sent:true via une mutation interne. Même passage
-// pour les liens de visioconférence des inscrits.
+// Scheduled action (daily cron). External e-mail calls live in an
+// action, never in a mutation. For each due reminder: sendEmail (NO-OP
+// without a key), then marking sent:true via an internal mutation. Same pass
+// for the registrants' videoconference links.
 export const sendDueReminders = internalAction({
   args: {},
-  // Type de retour annoté explicitement : `handler` référence
-  // `internal.eventReminders.*`, dont les types dépendent de l'API générée de
-  // ce fichier — sans annotation, TS boucle (inférence circulaire).
+  // Return type annotated explicitly: `handler` references
+  // `internal.eventReminders.*`, whose types depend on this file's generated
+  // API — without an annotation, TS loops (circular inference).
   handler: async (ctx): Promise<{ processed: number; visio: number }> => {
     const now = Date.now();
     const siteUrl =
@@ -255,10 +256,10 @@ export const sendDueReminders = internalAction({
       now,
     });
     for (const r of due) {
-      // La ligne portait DÉJÀ la langue du demandeur ; elle ne servait qu'à
-      // construire l'URL. Le sujet, le corps et le format de date restaient
-      // français — y compris pour quelqu'un qui avait demandé son rappel depuis
-      // la version arabe du site.
+      // The row ALREADY carried the requester's language; it was only used to
+      // build the URL. The subject, the body and the date format stayed
+      // French — including for someone who had requested their reminder from
+      // the Arabic version of the site.
       const loc = r.locale ?? 'fr';
       try {
         const { subject, html } = eventReminderEmail({
@@ -270,8 +271,8 @@ export const sendDueReminders = internalAction({
         });
         await sendEmail({ to: r.email, subject, html });
       } catch {
-        // L'envoi a échoué (fournisseur indisponible) : on NE marque PAS sent,
-        // le prochain passage du cron retentera.
+        // Sending failed (provider unavailable): we do NOT mark sent,
+        // the next cron pass will retry.
         continue;
       }
       await ctx.runMutation(internal.eventReminders._markSent, { id: r._id });
@@ -303,7 +304,7 @@ export const sendDueReminders = internalAction({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
+// DEV/TEST only (AUTH_DEV_OTP guard): checks the actual storage in E2E.
 export const isReminderSet = internalQuery({
   args: { eventSlug: v.string(), email: v.string() },
   handler: async (ctx, { eventSlug, email }) => {

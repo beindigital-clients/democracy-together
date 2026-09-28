@@ -1,23 +1,23 @@
 import { v } from 'convex/values';
 
-// LES LANGUES SERVIES PAR LE SITE — déclaration unique côté Convex.
+// THE LANGUAGES SERVED BY THE SITE — single declaration on the Convex side.
 //
-// Ce module ne contient QUE cela, et c'est la raison de son existence : le
-// validateur vivait dans `convex/schema.ts`, ce qui a suffi tant que rien
-// d'autre n'en avait besoin. `convex/lib/translation.ts` en a besoin ET est
-// importé par le schéma (pour la table `contentTranslations`) : les deux
-// fichiers se seraient importés l'un l'autre, et le validateur aurait été
-// `undefined` au moment où le schéma s'évalue. Un cycle d'imports ne casse pas
-// à la compilation — il casse au démarrage, avec un message qui ne nomme pas
-// la cause.
+// This module contains ONLY that, and that is its reason to exist: the
+// validator lived in `convex/schema.ts`, which was fine as long as nothing
+// else needed it. `convex/lib/translation.ts` needs it AND is
+// imported by the schema (for the `contentTranslations` table): the two
+// files would have imported each other, and the validator would have been
+// `undefined` when the schema is evaluated. An import cycle does not break
+// at compile time — it breaks at startup, with a message that does not name
+// the cause.
 //
-// MIROIR de `routing.locales` (src/i18n/routing.ts) : Convex est déployé
-// séparément et n'a pas l'alias `@/`, la recopie est donc imposée par
-// l'architecture. `tests/unit/i18n-locales.test.ts` compare les deux listes
-// pour qu'elles ne puissent pas diverger en silence.
+// MIRROR of `routing.locales` (src/i18n/routing.ts): Convex is deployed
+// separately and has no `@/` alias, so the copy is imposed by the
+// architecture. `tests/unit/i18n-locales.test.ts` compares the two lists
+// so that they cannot silently diverge.
 //
-// Élargir cette union est rétrocompatible : les documents déjà écrits ne
-// portent que les valeurs d'avant.
+// Widening this union is backward compatible: documents already written
+// only carry the previous values.
 export const SITE_LOCALES = ['fr', 'en', 'es', 'pt', 'ar'] as const;
 
 export type SiteLocale = (typeof SITE_LOCALES)[number];
@@ -30,20 +30,20 @@ export const locale = v.union(
   v.literal('ar'),
 );
 
-// ÉTIQUETTE `Intl` PAR LANGUE — miroir de `INTL_TAGS` (src/i18n/locale.ts).
+// `Intl` TAG PER LANGUAGE — mirror of `INTL_TAGS` (src/i18n/locale.ts).
 //
-// Même contrainte que ci-dessus : Convex n'a pas l'alias `@/`, donc la recopie
-// est imposée. Elle sert aux e-mails transactionnels, qui formatent des dates
-// côté serveur et ne peuvent pas emprunter le formateur du site.
+// Same constraint as above: Convex has no `@/` alias, so the copy
+// is imposed. It is used by transactional e-mails, which format dates
+// server-side and cannot borrow the site's formatter.
 //
-// Les arbitrages régionaux sont ceux du site, et il FAUT qu'ils le restent :
-// `ar-MA` sert des chiffres arabes occidentaux, pour ne pas qu'un rappel
-// d'événement annonce « ٢٠٢٦ » quand la page de l'événement dit « 2026 ». Et
-// `fr`/`en` restent sans région — `en-GB` supprimerait la virgule d'Oxford
-// qu'`Intl.ListFormat` produit ailleurs dans le site.
+// The regional choices are the site's, and they MUST stay so:
+// `ar-MA` serves Western Arabic numerals, so that an event reminder
+// does not announce "٢٠٢٦" when the event page says "2026". And
+// `fr`/`en` stay without a region — `en-GB` would remove the Oxford comma
+// that `Intl.ListFormat` produces elsewhere on the site.
 //
-// `tests/unit/i18n-locales.test.ts` compare les deux tables, comme il compare
-// déjà les deux listes de langues.
+// `tests/unit/i18n-locales.test.ts` compares the two tables, as it already
+// compares the two language lists.
 const INTL_TAGS: Record<SiteLocale, string> = {
   fr: 'fr',
   en: 'en',
@@ -52,12 +52,12 @@ const INTL_TAGS: Record<SiteLocale, string> = {
   ar: 'ar-MA',
 };
 
-/** L'étiquette `Intl` correspondant à une langue du site. */
+/** The `Intl` tag corresponding to a site language. */
 export function intlTag(loc: SiteLocale): string {
   return INTL_TAGS[loc];
 }
 
-/** La langue s'écrit-elle de droite à gauche ? */
+/** Is the language written right to left? */
 export function isRtlLocale(loc: SiteLocale): boolean {
   return loc === 'ar';
 }

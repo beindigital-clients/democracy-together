@@ -1,16 +1,16 @@
-// DATES D'ÉVÉNEMENT AVEC FUSEAU — logique pure, partagée par Convex et le site.
+// EVENT DATES WITH TIME ZONE — pure logic, shared by Convex and the site.
 //
-// Un événement se saisit comme on l'annonce : un JOUR (`2026-11-14`), une heure
-// facultative (`09:30`) et le fuseau du lieu (`Europe/Paris`). La base garde
-// cette saisie telle quelle — c'est elle qu'on réaffiche et qu'on réédite — et
-// en DÉRIVE deux instants UTC, `startsAt` et `endsAt`, qui servent à trier, à
-// indexer et à décider (un événement dont `endsAt` est passé est clos).
+// An event is entered the way it is announced: a DAY (`2026-11-14`), an optional
+// time (`09:30`) and the venue's time zone (`Europe/Paris`). The database keeps
+// this input as is — it is what gets redisplayed and re-edited — and
+// DERIVES two UTC instants from it, `startsAt` and `endsAt`, used for sorting,
+// indexing and deciding (an event whose `endsAt` has passed is closed).
 //
-// Pourquoi pas un simple horodatage saisi : « 14 novembre à 9 h 30 à Dakar »
-// n'est pas le même instant que « à Paris », et l'heure d'été déplace l'écart
-// selon la date. `Intl.DateTimeFormat` porte la base des fuseaux (IANA) dans
-// le runtime Convex comme dans le navigateur : on l'interroge plutôt que de
-// recopier des décalages qui changent.
+// Why not a plain entered timestamp: "14 November at 9:30 in Dakar"
+// is not the same instant as "in Paris", and daylight saving time shifts the
+// offset depending on the date. `Intl.DateTimeFormat` carries the time zone
+// database (IANA) in the Convex runtime as in the browser: we query it rather
+// than copying offsets that change.
 
 export const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 export const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -20,7 +20,7 @@ export function isValidDate(value: string): boolean {
   if (!m) return false;
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
   if (mo < 1 || mo > 12 || d < 1) return false;
-  // Le « jour 0 » du mois suivant est le dernier jour du mois.
+  // "Day 0" of the following month is the last day of the month.
   return d <= new Date(Date.UTC(y, mo, 0)).getUTCDate();
 }
 
@@ -38,8 +38,8 @@ export function isValidTimeZone(tz: string): boolean {
   }
 }
 
-// Décalage (ms) du fuseau `tz` à l'instant `utcMs` : heure murale lue comme si
-// elle était UTC, moins l'instant réel.
+// Offset (ms) of time zone `tz` at instant `utcMs`: wall-clock time read as if
+// it were UTC, minus the real instant.
 function offsetAt(utcMs: number, tz: string): number {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
@@ -65,12 +65,12 @@ function offsetAt(utcMs: number, tz: string): number {
 }
 
 /**
- * Instant UTC d'une heure murale (`date` + `time`) dans le fuseau `tz`.
+ * UTC instant of a wall-clock time (`date` + `time`) in time zone `tz`.
  *
- * Deux passes : le décalage dépend de l'instant cherché (heure d'été), donc on
- * l'estime sur une première approximation puis on le recalcule sur le
- * résultat. Une heure qui n'existe pas (saut de printemps) tombe sur l'instant
- * juste après le saut — la convention des agendas.
+ * Two passes: the offset depends on the instant sought (daylight saving), so we
+ * estimate it on a first approximation then recompute it on the
+ * result. A time that does not exist (spring-forward gap) lands on the instant
+ * just after the gap — the calendar convention.
  */
 export function zonedTimeToUtc(date: string, time: string, tz: string): number {
   const dm = DATE_RE.exec(date);
@@ -98,9 +98,9 @@ export type EventSchedule = {
 };
 
 /**
- * Les deux instants dérivés d'une saisie. Sans heure, l'événement couvre la
- * journée entière dans son fuseau : il commence à 00:00 et se termine à la
- * dernière milliseconde de son dernier jour.
+ * The two instants derived from an input. Without a time, the event covers the
+ * whole day in its time zone: it starts at 00:00 and ends at the
+ * last millisecond of its last day.
  */
 export function scheduleInstants(s: EventSchedule): {
   startsAt: number;
@@ -118,7 +118,7 @@ export function scheduleInstants(s: EventSchedule): {
   return { startsAt, endsAt };
 }
 
-/** Le lendemain d'une date `YYYY-MM-DD`. */
+/** The day after a `YYYY-MM-DD` date. */
 export function nextDay(date: string): string {
   const m = DATE_RE.exec(date);
   if (!m) throw new Error('INVALID_DATE');
@@ -128,12 +128,12 @@ export function nextDay(date: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** `YYYY-MM-DD` à partir d'une date du catalogue codé (y, mo 1-12, d). */
+/** `YYYY-MM-DD` from a coded catalog date (y, mo 1-12, d). */
 export function isoDate(y: number, mo: number, d: number): string {
   return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
-/** Les composantes (y, mo, d) d'une date `YYYY-MM-DD`. */
+/** The components (y, mo, d) of a `YYYY-MM-DD` date. */
 export function dateParts(date: string): { y: number; mo: number; d: number } {
   const m = DATE_RE.exec(date);
   if (!m) throw new Error('INVALID_DATE');

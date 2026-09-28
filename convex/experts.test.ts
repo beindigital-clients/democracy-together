@@ -14,9 +14,9 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Publication minimale valable (cf. convex/notifications.test.ts) — surchargée
-// par test. Par défaut « published » : F-23 ne dérive l'annuaire QUE des
-// publications publiées.
+// Minimal valid publication (cf. convex/notifications.test.ts) — overridden
+// per test. "published" by default: F-23 derives the directory ONLY from
+// published publications.
 function pubDoc(over: Record<string, unknown> = {}) {
   return {
     title: 'Titre',
@@ -45,9 +45,9 @@ describe("Annuaire d'experts (F-23)", () => {
   it('agrège les auteurs des publications publiées (count, thèmes distincts, exclusion du non-publié)', async () => {
     const t = convexTest(schema, modules);
 
-    // 3 publications PUBLIÉES, dont 2 partageant un auteur (« A. Auteur »).
+    // 3 PUBLISHED publications, 2 of which share an author ("A. Auteur").
     await t.run(async (ctx) => {
-      // Pub1 : 2 auteurs, axe « transitions », 2024.
+      // Pub1: 2 authors, theme "transitions", 2024.
       await ctx.db.insert(
         'publications',
         pubDoc({
@@ -57,7 +57,7 @@ describe("Annuaire d'experts (F-23)", () => {
           authors: [{ name: 'A. Auteur' }, { name: 'B. Coauteur' }],
         }),
       );
-      // Pub2 : « A. Auteur » à nouveau, autre axe « crises », 2025.
+      // Pub2: "A. Auteur" again, other theme "crises", 2025.
       await ctx.db.insert(
         'publications',
         pubDoc({
@@ -67,7 +67,7 @@ describe("Annuaire d'experts (F-23)", () => {
           authors: [{ name: 'A. Auteur' }],
         }),
       );
-      // Pub3 : auteur distinct « C. Solo », axe « participation », 2023.
+      // Pub3: distinct author "C. Solo", theme "participation", 2023.
       await ctx.db.insert(
         'publications',
         pubDoc({
@@ -77,8 +77,8 @@ describe("Annuaire d'experts (F-23)", () => {
           authors: [{ name: 'C. Solo' }],
         }),
       );
-      // Pub4 : NON publiée (pending) — doit être EXCLUE de l'agrégation, et
-      // ne doit PAS gonfler le compte ni les axes de « A. Auteur ».
+      // Pub4: NOT published (pending) — must be EXCLUDED from the aggregation, and
+      // must NOT inflate "A. Auteur"'s count or themes.
       await ctx.db.insert(
         'publications',
         pubDoc({
@@ -93,7 +93,7 @@ describe("Annuaire d'experts (F-23)", () => {
 
     const experts = await t.query(api.experts.listExperts, {});
 
-    // 3 experts distincts (le pending n'ajoute aucun expert).
+    // 3 distinct experts (the pending one adds no expert).
     expect(experts).toHaveLength(3);
     expect(experts.map((e) => e.name)).toEqual([
       'A. Auteur',
@@ -101,28 +101,28 @@ describe("Annuaire d'experts (F-23)", () => {
       'C. Solo',
     ]);
 
-    // « A. Auteur » : 2 publications publiées (p1 + p2, PAS p4), 2 axes
-    // distincts, année la plus récente 2025.
+    // "A. Auteur": 2 published publications (p1 + p2, NOT p4), 2 distinct
+    // themes, most recent year 2025.
     const a = experts[0];
     expect(a.name).toBe('A. Auteur');
     expect(a.count).toBe(2);
-    expect(a.themes).toEqual(['crises', 'transitions']); // distinct + trié
+    expect(a.themes).toEqual(['crises', 'transitions']); // distinct + sorted
     expect(a.latestYear).toBe(2025);
 
-    // L'axe du pending (« anti-corruption ») n'apparaît nulle part.
+    // The pending one's theme ("anti-corruption") appears nowhere.
     expect(a.themes).not.toContain('anti-corruption');
     expect(experts.some((e) => e.themes.includes('anti-corruption'))).toBe(
       false,
     );
 
-    // Coauteur : 1 publication, axe « transitions », 2024.
+    // Co-author: 1 publication, theme "transitions", 2024.
     const b = experts[1];
     expect(b.name).toBe('B. Coauteur');
     expect(b.count).toBe(1);
     expect(b.themes).toEqual(['transitions']);
     expect(b.latestYear).toBe(2024);
 
-    // C. Solo : 1 publication, axe « participation », 2023.
+    // C. Solo: 1 publication, theme "participation", 2023.
     expect(experts[2]).toMatchObject({
       name: 'C. Solo',
       count: 1,
@@ -134,8 +134,8 @@ describe("Annuaire d'experts (F-23)", () => {
   it('tri par nombre de publications décroissant puis nom croissant', async () => {
     const t = convexTest(schema, modules);
     await t.run(async (ctx) => {
-      // « Zoe » signe 2 publications -> doit passer DEVANT « Alice » (1 pub),
-      // malgré l'ordre alphabétique inverse.
+      // "Zoe" signs 2 publications -> must come BEFORE "Alice" (1 pub),
+      // despite the reverse alphabetical order.
       await ctx.db.insert(
         'publications',
         pubDoc({ slug: 'z1', authors: [{ name: 'Zoe' }] }),
@@ -148,7 +148,7 @@ describe("Annuaire d'experts (F-23)", () => {
         'publications',
         pubDoc({ slug: 'a1', authors: [{ name: 'Alice' }] }),
       );
-      // « Bob » : 1 pub aussi -> à count égal, tri alpha (Alice avant Bob).
+      // "Bob": 1 pub as well -> at equal count, alphabetical sort (Alice before Bob).
       await ctx.db.insert(
         'publications',
         pubDoc({ slug: 'b1', authors: [{ name: 'Bob' }] }),

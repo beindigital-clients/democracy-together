@@ -1,33 +1,33 @@
 import { v } from 'convex/values';
 import { languageName } from './translation';
 
-// DOCUMENTS TRADUISIBLES — modèle de blocs, consignes et schémas.
+// TRANSLATABLE DOCUMENTS — block model, instructions and schemas.
 //
-// LE PROBLÈME. Une publication porte souvent un PDF. Le lecteur qui ne lit pas
-// la langue du document n'a rien : le résumé traduit de la fiche ne remplace
-// pas le rapport. Il faut donc pouvoir lui rendre le DOCUMENT dans sa langue —
-// avec ses illustrations, ses listes, ses tableaux et ses intertitres.
+// THE PROBLEM. A publication often carries a PDF. A reader who does not read
+// the document's language gets nothing: the record's translated summary does not
+// replace the report. So we need to be able to give them the DOCUMENT in their language —
+// with its illustrations, lists, tables and headings.
 //
-// LA FORME CHOISIE : UNE SUITE DE BLOCS, pas un flux de texte.
+// THE CHOSEN SHAPE: A SEQUENCE OF BLOCKS, not a text stream.
 //
-// Un rapport n'est pas une longue chaîne. En le ramenant à une suite de blocs
-// typés — titre, paragraphe, liste, citation, tableau, figure — on obtient
-// trois choses qu'un texte plat ne donne pas :
+// A report is not a long string. By reducing it to a sequence of typed
+// blocks — heading, paragraph, list, quote, table, figure — we get
+// three things flat text does not give:
 //
-//   1. LA TRADUCTION NE PEUT PAS DÉFORMER LA STRUCTURE. Le schéma de sortie
-//      fige le nombre de blocs et leur type ; seul leur TEXTE change. Un
-//      modèle ne peut ni fusionner deux sections, ni transformer un tableau en
-//      paragraphe, ni perdre une figure.
-//   2. LES IMAGES RESTENT À LEUR PLACE. Un bloc `figure` ne porte pas d'image
-//      mais un INDEX vers celle qu'on a extraite du PDF (lib/pdfImages.ts).
-//      L'index ne se traduit pas : l'illustration reste au même endroit dans
-//      les cinq langues, et n'a été ni recompressée ni déplacée.
-//   3. LE RENDU EST DU HTML, donc il se compose correctement en arabe. C'est la
-//      raison de fond du choix : aucune bibliothèque PDF de l'écosystème
-//      JavaScript ne sait faire la mise en forme contextuelle des lettres
-//      arabes ni l'algorithme bidirectionnel. Un moteur de navigateur, si. La
-//      vue document est donc une PAGE, mise en forme pour l'impression, que le
-//      lecteur enregistre en PDF par la fonction de son navigateur.
+//   1. TRANSLATION CANNOT DISTORT THE STRUCTURE. The output schema
+//      freezes the number of blocks and their type; only their TEXT changes. A
+//      model can neither merge two sections, nor turn a table into a
+//      paragraph, nor lose a figure.
+//   2. IMAGES STAY IN PLACE. A `figure` block does not carry an image
+//      but an INDEX to the one extracted from the PDF (lib/pdfImages.ts).
+//      The index is not translated: the illustration stays in the same place in
+//      all five languages, and has been neither recompressed nor moved.
+//   3. THE RENDERING IS HTML, so it typesets correctly in Arabic. That is the
+//      fundamental reason for the choice: no PDF library in the JavaScript
+//      ecosystem can do the contextual shaping of Arabic letters
+//      nor the bidirectional algorithm. A browser engine can. The
+//      document view is therefore a PAGE, formatted for printing, which the
+//      reader saves as PDF through their browser's feature.
 
 export const documentBlockType = v.union(
   v.literal('heading'),
@@ -40,17 +40,17 @@ export const documentBlockType = v.union(
 
 export const documentBlock = v.object({
   type: documentBlockType,
-  /** 1 à 4, pour `heading` seulement. */
+  /** 1 to 4, for `heading` only. */
   level: v.optional(v.number()),
   /** `heading`, `paragraph`, `quote`. */
   text: v.optional(v.string()),
   /** `list`. */
   items: v.optional(v.array(v.string())),
-  /** `table` : la première ligne est l'en-tête. */
+  /** `table`: the first row is the header. */
   rows: v.optional(v.array(v.array(v.string()))),
-  /** `figure` : rang de l'image extraite, ou absent si aucune n'a pu l'être. */
+  /** `figure`: rank of the extracted image, or absent if none could be extracted. */
   imageIndex: v.optional(v.number()),
-  /** `figure` et `table`. */
+  /** `figure` and `table`. */
   caption: v.optional(v.string()),
 });
 
@@ -78,17 +78,17 @@ export const extractedImage = v.object({
   height: v.optional(v.number()),
 });
 
-// --- Bornes -----------------------------------------------------------------
+// --- Bounds -----------------------------------------------------------------
 //
-// Un rapport annuel fait 80 pages. Le découper en blocs en produit quelques
-// centaines ; au-delà, on n'est plus dans un document éditorial mais dans un
-// jeu de données exporté en PDF, que la vue document ne rendrait pas mieux que
-// le fichier d'origine.
+// An annual report is 80 pages. Splitting it into blocks yields a few
+// hundred; beyond that, we are no longer dealing with an editorial document but with a
+// dataset exported as PDF, which the document view would not render better than
+// the original file.
 export const MAX_BLOCKS = 600;
 export const MAX_PDF_BYTES = 25 * 1024 * 1024;
 export const MAX_IMAGES = 40;
 
-/** Nombre de caractères portés par un bloc — sert au budget de jetons. */
+/** Number of characters carried by a block — used for the token budget. */
 export function blockLength(b: DocumentBlock): number {
   return (
     (b.text?.length ?? 0) +
@@ -108,13 +108,13 @@ export function blocksLength(blocks: DocumentBlock[]): number {
 // --- Extraction -------------------------------------------------------------
 
 /**
- * Consigne d'extraction.
+ * Extraction instructions.
  *
- * Le modèle reçoit le PDF en pièce jointe et rend sa structure. Il ne traduit
- * RIEN à cette étape : l'extraction est faite une fois, la traduction autant
- * de fois qu'il y a de langues demandées. Les mélanger obligerait à relire le
- * PDF — donc à le renvoyer au modèle — pour chaque langue, et rien ne
- * garantirait que les cinq versions décrivent le même document.
+ * The model receives the PDF as an attachment and returns its structure. It translates
+ * NOTHING at this stage: extraction is done once, translation as many
+ * times as there are requested languages. Mixing them would require re-reading the
+ * PDF — hence sending it back to the model — for each language, and nothing would
+ * guarantee that the five versions describe the same document.
  */
 export function buildExtractionInstructions(imageCount: number): string {
   return [
@@ -156,10 +156,10 @@ const BLOCK_SCHEMA = {
     imageIndex: { type: ['integer', 'null'], minimum: 0 },
     caption: { type: ['string', 'null'] },
   },
-  // Mode strict de la passerelle : toutes les propriétés déclarées sont
-  // requises, et les champs sans objet pour un type donné sont rendus `null`.
-  // D'où les types union avec `null` ci-dessus — c'est la forme que le mode
-  // strict impose pour un champ optionnel.
+  // Gateway strict mode: all declared properties are
+  // required, and fields irrelevant to a given type are returned as `null`.
+  // Hence the union types with `null` above — that is the shape strict
+  // mode imposes for an optional field.
   required: ['type', 'level', 'text', 'items', 'rows', 'imageIndex', 'caption'],
   additionalProperties: false,
 } as const;
@@ -176,13 +176,13 @@ export function buildExtractionSchema(): unknown {
   };
 }
 
-// --- Traduction des blocs ---------------------------------------------------
+// --- Block translation ------------------------------------------------------
 
 /**
- * Consigne de traduction d'un document déjà extrait.
+ * Translation instructions for an already extracted document.
  *
- * Le modèle reçoit les blocs en JSON et doit rendre LES MÊMES, dans le même
- * ordre et du même type, avec seulement leur texte traduit.
+ * The model receives the blocks as JSON and must return THE SAME ones, in the same
+ * order and of the same type, with only their text translated.
  */
 export function buildDocumentTranslationInstructions(
   sourceLocale: string,
@@ -209,11 +209,11 @@ export function buildDocumentTranslationInstructions(
 }
 
 /**
- * Schéma de sortie de la traduction, construit sur la structure SOURCE.
+ * Translation output schema, built on the SOURCE structure.
  *
- * `minItems`/`maxItems` figent le nombre de blocs : une traduction ne peut pas
- * en perdre ni en inventer. C'est la même contrainte que pour les paragraphes
- * d'un article (convex/lib/translation.ts), appliquée un cran plus haut.
+ * `minItems`/`maxItems` freeze the number of blocks: a translation can neither
+ * lose nor invent any. It is the same constraint as for an article's
+ * paragraphs (convex/lib/translation.ts), applied one level up.
  */
 export function buildDocumentTranslationSchema(
   blocks: DocumentBlock[],
@@ -246,13 +246,13 @@ const TYPES = new Set([
 ]);
 
 /**
- * Nettoie un bloc rendu par le modèle.
+ * Cleans up a block returned by the model.
  *
- * Le mode strict de la passerelle impose de déclarer TOUS les champs et de
- * rendre `null` ceux qui ne s'appliquent pas. Convex, lui, n'accepte pas
- * `null` là où le validateur attend `v.optional(...)`. Cette fonction fait la
- * conversion, et écarte au passage ce qui n'a pas de sens — une liste vide, un
- * tableau sans cellule, un paragraphe sans texte.
+ * The gateway's strict mode requires declaring ALL fields and
+ * returning `null` for those that don't apply. Convex, for its part, does not accept
+ * `null` where the validator expects `v.optional(...)`. This function does the
+ * conversion, and discards along the way what makes no sense — an empty list, a
+ * table without cells, a paragraph without text.
  */
 export function normalizeBlock(raw: unknown): DocumentBlock | null {
   if (typeof raw !== 'object' || raw === null) return null;
@@ -294,8 +294,8 @@ export function normalizeBlock(raw: unknown): DocumentBlock | null {
     block.rows = rows;
     if (caption) block.caption = caption;
   } else {
-    // figure : elle vaut par son image OU par sa légende. Sans ni l'une ni
-    // l'autre, c'est un bloc vide qui ferait un trou dans la page.
+    // figure: it is worth something through its image OR its caption. With neither
+    // one, it is an empty block that would leave a hole in the page.
     const idx =
       typeof r.imageIndex === 'number' ? Math.round(r.imageIndex) : undefined;
     if (idx === undefined && !caption) return null;
@@ -320,9 +320,9 @@ export function parseExtraction(
   for (const raw of d.blocks.slice(0, MAX_BLOCKS)) {
     const block = normalizeBlock(raw);
     if (!block) continue;
-    // Un index d'image hors des images réellement extraites désignerait une
-    // illustration qui n'existe pas : la figure garde sa légende et perd son
-    // index, ce que la vue rend comme un renvoi vers le document d'origine.
+    // An image index outside the actually extracted images would point to an
+    // illustration that does not exist: the figure keeps its caption and loses its
+    // index, which the view renders as a link to the original document.
     if (block.imageIndex !== undefined && block.imageIndex >= imageCount) {
       delete block.imageIndex;
       if (!block.caption) continue;
@@ -334,20 +334,20 @@ export function parseExtraction(
 }
 
 /**
- * Valide une traduction de document contre sa SOURCE.
+ * Validates a document translation against its SOURCE.
  *
- * Les deux contrôles qui comptent : le même nombre de blocs, et le même type
- * bloc par bloc. Une traduction qui change l'un ou l'autre ne décrit plus le
- * document — et l'appariement des figures à leurs images, qui se fait par
- * position, deviendrait faux sans que rien ne le signale.
+ * The two checks that matter: the same number of blocks, and the same type
+ * block by block. A translation that changes either no longer describes the
+ * document — and matching figures to their images, which is done by
+ * position, would become wrong without anything flagging it.
  */
 /**
- * La traduction d'un bloc décrit-elle la MÊME structure que sa source ?
+ * Does a block's translation describe the SAME structure as its source?
  *
- * Les listes et les tableaux sont les deux seuls blocs dont la forme peut
- * maigrir sans changer de type. Le schéma envoyé à la passerelle ne porte pas
- * de `minItems` sur eux — il est partagé avec l'extraction, où le nombre n'est
- * pas connu d'avance —, donc la contrainte n'existe qu'ici.
+ * Lists and tables are the only two blocks whose shape can
+ * shrink without changing type. The schema sent to the gateway carries no
+ * `minItems` on them — it is shared with extraction, where the count is
+ * not known in advance —, so the constraint exists only here.
  */
 function sameShape(source: DocumentBlock, out: DocumentBlock): boolean {
   if (source.items !== undefined || out.items !== undefined) {
@@ -379,20 +379,20 @@ export function parseDocumentTranslation(
   for (let i = 0; i < source.length; i++) {
     const block = normalizeBlock(d.blocks[i]);
     if (!block || block.type !== source[i].type) return null;
-    // LA FORME INTERNE DU BLOC EST VÉRIFIÉE AUSSI, pas seulement son type.
+    // THE BLOCK'S INTERNAL SHAPE IS CHECKED TOO, not just its type.
     //
-    // Compter les blocs ne suffit pas : un tableau de 25 lignes rendu avec
-    // l'en-tête et trois lignes reste UN bloc, de type `table`, et passait donc
-    // la garde. La page imprimable l'affichait parfaitement mis en forme, sous
-    // la mention « traduit automatiquement » — et le lecteur l'enregistrait en
-    // PDF puis le citait, amputé, sans que rien ne l'ait signalé. Même chose
-    // pour une liste de douze puces rendue en trois.
+    // Counting blocks is not enough: a 25-row table rendered with
+    // the header and three rows is still ONE block, of type `table`, and so passed
+    // the guard. The printable page displayed it perfectly formatted, under
+    // the "traduit automatiquement" label — and the reader saved it as
+    // PDF then quoted it, truncated, without anything having flagged it. Same thing
+    // for a twelve-bullet list rendered as three.
     //
-    // C'est la même discipline que le nombre de blocs, appliquée d'un cran plus
-    // bas : la traduction change les mots, jamais la structure.
+    // It is the same discipline as the number of blocks, applied one level
+    // down: translation changes the words, never the structure.
     if (!sameShape(source[i], block)) return null;
-    // L'index d'image vient de la SOURCE, jamais de la traduction : c'est la
-    // seule façon d'être certain qu'aucune illustration n'a changé de place.
+    // The image index comes from the SOURCE, never from the translation: it is the
+    // only way to be certain that no illustration has moved.
     if (source[i].imageIndex !== undefined)
       block.imageIndex = source[i].imageIndex;
     else delete block.imageIndex;
@@ -402,10 +402,10 @@ export function parseDocumentTranslation(
   return { title: d.title, blocks };
 }
 
-/** Budget de jetons de sortie, même raisonnement que pour un article. */
+/** Output token budget, same reasoning as for an article. */
 export function documentTokenBudget(blocks: DocumentBlock[]): number {
   const approx = blocksLength(blocks) / 3;
-  // Le JSON de sortie porte aussi ses clés et ses accolades : la marge est plus
-  // large que pour un article, dont la sortie est presque entièrement du texte.
+  // The output JSON also carries its keys and braces: the margin is
+  // wider than for an article, whose output is almost entirely text.
   return Math.min(64_000, Math.max(4_000, Math.ceil(approx * 4)));
 }

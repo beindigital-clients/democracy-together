@@ -1,14 +1,14 @@
-// Annuaire des think tanks (F-19) — logique pure, partagée par la query Convex
-// et les tests unitaires. Le vocabulaire (régions, thématiques) est stocké en
-// *slugs* neutres dans Convex ; les libellés sont traduits côté Next
-// (messages `directory.regions` / `directory.themes`) et les noms de pays /
-// langues rendus via Intl.DisplayNames. Garder ces listes synchrones avec
+// Think tank directory (F-19) — pure logic, shared by the Convex query
+// and the unit tests. The vocabulary (regions, themes) is stored as neutral
+// *slugs* in Convex; the labels are translated on the Next side
+// (`directory.regions` / `directory.themes` messages) and country /
+// language names rendered via Intl.DisplayNames. Keep these lists in sync with
 // src/messages/*.json.
 //
-// NB : ces thématiques (domaines d'expertise d'un think tank) ne sont PAS les
-// axes du réseau de convex/lib/themes.ts, qui classent publications, billets
-// et projets. Deux vocabulaires, deux listes — d'où le nom explicite, le temps
-// qu'un `THEMES` nu a coûté en confusion (issue #30).
+// NB: these themes (a think tank's areas of expertise) are NOT the
+// network's themes from convex/lib/themes.ts, which classify publications, posts
+// and projects. Two vocabularies, two lists — hence the explicit name, given the
+// confusion a bare `THEMES` caused (issue #30).
 
 import { v, type Infer } from 'convex/values';
 
@@ -38,7 +38,7 @@ export const DIRECTORY_THEMES = [
 export type DirectoryRegion = (typeof REGIONS)[number];
 export type DirectoryTheme = (typeof DIRECTORY_THEMES)[number];
 
-// Validateurs d'arguments — le vocabulaire de l'annuaire est un domaine FERMÉ.
+// Argument validators — the directory vocabulary is a CLOSED domain.
 export const directoryRegionValidator = v.union(
   ...REGIONS.map((r) => v.literal(r)),
 );
@@ -46,8 +46,8 @@ export const directoryThemeValidator = v.union(
   ...DIRECTORY_THEMES.map((t) => v.literal(t)),
 );
 
-// Gardes de type — mêmes usages que `isNetworkTheme` : assainir un paramètre
-// d'URL avant de le passer à une query dont l'argument est un domaine fermé.
+// Type guards — same uses as `isNetworkTheme`: sanitize a URL parameter
+// before passing it to a query whose argument is a closed domain.
 export function isDirectoryRegion(value: string): value is DirectoryRegion {
   return (REGIONS as readonly string[]).includes(value);
 }
@@ -59,19 +59,19 @@ export function isDirectoryTheme(value: string): value is DirectoryTheme {
 export type DirectoryFilters = {
   region?: string;
   theme?: string;
-  // Pays (ISO 3166-1 alpha-2) et langue de travail (ISO 639-1) : les deux
-  // filtres que F-19 demandait et que l'interface n'exposait pas (mesuré le
-  // 27/09 : région + thématique seulement). Domaine OUVERT côté query — les
-  // codes viennent des fiches elles-mêmes, pas d'une liste tenue ici — donc
-  // assainis en amont (`isCountryCode` / `isLanguageCode`).
+  // Country (ISO 3166-1 alpha-2) and working language (ISO 639-1): the two
+  // filters F-19 asked for and the interface did not expose (measured on
+  // 27/09: region + theme only). OPEN domain on the query side — the
+  // codes come from the profiles themselves, not from a list maintained here — hence
+  // sanitized upstream (`isCountryCode` / `isLanguageCode`).
   country?: string;
   language?: string;
   q?: string;
 };
 
-// Un code pays / langue plausible : deux ou trois lettres. Sert à ne passer à
-// la query qu'une valeur d'URL qui a la forme attendue — le reste vaut « pas
-// de filtre », même règle que `region` / `theme`.
+// A plausible country / language code: two or three letters. Used to pass to
+// the query only a URL value that has the expected shape — anything else means "no
+// filter", same rule as `region` / `theme`.
 const CODE = /^[a-z]{2,3}$/i;
 export function isCountryCode(value: string): boolean {
   return CODE.test(value);
@@ -80,13 +80,13 @@ export function isLanguageCode(value: string): boolean {
   return CODE.test(value);
 }
 
-// Langues dans lesquelles le site est servi (miroir de `routing.locales`,
-// comme `PUB_LANGS`) : celles dans lesquelles un visiteur peut taper un nom
-// de pays.
+// Languages in which the site is served (mirror of `routing.locales`,
+// like `PUB_LANGS`): those in which a visitor may type a country
+// name.
 const SITE_LOCALES = ['fr', 'en', 'es', 'pt', 'ar'] as const;
 
-// Minuscules SANS diacritiques : « senegal » doit trouver « Sénégal », « cote
-// d'ivoire » « Côte d'Ivoire » — même règle que la bibliothèque.
+// Lowercase WITHOUT diacritics: "senegal" must find "Sénégal", "cote
+// d'ivoire" "Côte d'Ivoire" — same rule as the library.
 export function fold(s: string): string {
   return (
     s
@@ -100,13 +100,13 @@ export function fold(s: string): string {
   );
 }
 
-// Termes sous lesquels un pays peut être cherché : son code ISO ET son nom
-// dans chacune des langues du site. Mesuré le 27/09 : « Kenya » ne trouvait
-// aucun membre, la meule ne contenant que le nom et la description de la
-// fiche (le pays n'y est stocké qu'en code, `KE`). `Intl.DisplayNames` sert
-// de table de noms — côté client, `src/lib/orgs.ts#countryName` fait de même
-// — et un runtime sans données ICU retombe sur le seul code, jamais sur un
-// jet : la recherche dégrade, elle ne casse pas.
+// Terms under which a country can be searched: its ISO code AND its name
+// in each of the site's languages. Measured on 27/09: "Kenya" found
+// no member, the haystack only containing the profile's name and description
+// (the country is only stored there as a code, `KE`). `Intl.DisplayNames` serves
+// as the name table — on the client side, `src/lib/orgs.ts#countryName` does the same
+// — and a runtime without ICU data falls back to the code alone, never to a
+// throw: search degrades, it does not break.
 const countryTermsCache = new Map<string, string>();
 export function countryTerms(code: string): string {
   const cc = code.toUpperCase();
@@ -129,10 +129,10 @@ export function countryTerms(code: string): string {
   return terms;
 }
 
-// Meule de recherche d'une fiche : nom + description + pays (code et noms
-// localisés), repliée (`fold`). Partagée avec la recherche globale
-// (convex/search.ts) pour que « Kenya » trouve le même membre dans la palette
-// et dans l'annuaire.
+// Search haystack of a profile: name + description + country (code and localized
+// names), folded (`fold`). Shared with global search
+// (convex/search.ts) so that "Kenya" finds the same member in the palette
+// and in the directory.
 export function organizationHaystack(org: {
   name: string;
   country: string;
@@ -143,7 +143,7 @@ export function organizationHaystack(org: {
   );
 }
 
-// Forme minimale lue par les filtres / facettes (compatible avec Doc<'organizations'>).
+// Minimal shape read by the filters / facets (compatible with Doc<'organizations'>).
 type OrgLike = {
   name: string;
   country: string;
@@ -153,11 +153,11 @@ type OrgLike = {
   description?: string;
 };
 
-// Un think tank correspond aux filtres fournis (combinés en ET). La recherche
-// plein texte porte sur le nom, la description et le pays (code ISO et nom
-// dans les langues du site), sans tenir compte de la casse ni des accents.
-// Pays et langue se comparent en codes, insensibles à la casse : l'URL peut
-// porter `?country=ke` comme `?country=KE`.
+// A think tank matches the given filters (combined with AND). Full-text
+// search covers the name, the description and the country (ISO code and name
+// in the site's languages), ignoring case and accents.
+// Country and language are compared as codes, case-insensitively: the URL may
+// carry `?country=ke` as well as `?country=KE`.
 export function matchesFilters(org: OrgLike, f: DirectoryFilters): boolean {
   if (f.region && org.region !== f.region) return false;
   if (f.theme && !org.themes.includes(f.theme)) return false;
@@ -175,10 +175,10 @@ export function matchesFilters(org: OrgLike, f: DirectoryFilters): boolean {
   return true;
 }
 
-// Forme PUBLIQUE d'un think tank — liste blanche, même motif que les
-// publications (issue #30). `status` n'en fait pas partie : les queries
-// publiques ne servent que des fiches actives, donc le champ n'apprend rien au
-// client et n'a pas à sortir. `createdAt` et `_creationTime` non plus.
+// PUBLIC shape of a think tank — allowlist, same pattern as
+// publications (issue #30). `status` is not part of it: public queries
+// only serve active profiles, so the field teaches the client nothing
+// and need not go out. Nor `createdAt` and `_creationTime`.
 export const publicOrganizationValidator = v.object({
   _id: v.id('organizations'),
   name: v.string(),
@@ -193,8 +193,8 @@ export const publicOrganizationValidator = v.object({
 
 export type PublicOrganization = Infer<typeof publicOrganizationValidator>;
 
-// Projection explicite (jamais `{ ...org }`) : un champ ajouté au schéma
-// demain ne sort pas tout seul.
+// Explicit projection (never `{ ...org }`): a field added to the schema
+// tomorrow does not leak out on its own.
 export function projectOrganization(org: {
   _id: PublicOrganization['_id'];
   name: string;
@@ -232,9 +232,9 @@ export const directoryFacetsValidator = v.object({
   languages: facetValidator,
 });
 
-// Facettes = valeurs présentes dans l'ensemble fourni, avec leur nombre
-// d'occurrences, triées par fréquence décroissante puis alphabétiquement.
-// Sert à n'afficher que des filtres qui donnent des résultats.
+// Facets = values present in the given set, with their number of
+// occurrences, sorted by decreasing frequency then alphabetically.
+// Used to display only filters that yield results.
 export function computeFacets(orgs: OrgLike[]) {
   const tally = (pick: (o: OrgLike) => string[]): Facet[] => {
     const counts = new Map<string, number>();

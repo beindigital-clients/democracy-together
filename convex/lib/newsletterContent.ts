@@ -1,12 +1,12 @@
 import { escapeHtml, shell } from './emailContent';
 import type { SiteLocale } from './locales';
 
-// COURRIELS DE LA NEWSLETTER, DANS LES CINQ LANGUES (F-18 / F-65).
+// NEWSLETTER E-MAILS, IN THE FIVE LANGUAGES (F-18 / F-65).
 //
-// Même discipline que `emailContent.ts` : chaque phrase est un
-// `Record<SiteLocale, string>`, une langue ajoutée sans ses libellés ne compile
-// pas. Le texte vit côté Convex parce qu'un courriel est composé au moment de
-// l'envoi, sur le serveur, et part figé.
+// Same discipline as `emailContent.ts`: each sentence is a
+// `Record<SiteLocale, string>`, a language added without its labels does not
+// compile. The text lives on the Convex side because an e-mail is composed at
+// send time, on the server, and goes out frozen.
 
 type Phrase = Record<SiteLocale, string>;
 
@@ -16,7 +16,7 @@ export function siteUrl(): string {
   return process.env.SITE_URL ?? 'https://democracy-together.vercel.app';
 }
 
-// --- Confirmation d'inscription (double opt-in) ------------------------------
+// --- Sign-up confirmation (double opt-in) ------------------------------------
 
 const CONFIRM_SUBJECT: Phrase = {
   fr: 'Confirmez votre inscription à la lettre',
@@ -50,7 +50,7 @@ const CONFIRM_EXPIRY: Phrase = {
   ar: 'تنتهي صلاحية هذا الرابط خلال 48 ساعة. إذا لم تطلبوا ذلك، فتجاهلوا هذه الرسالة: من دون تأكيد، سيُحذف عنوانكم ولن تتلقّوا أي شيء.',
 };
 
-// Abonnés hérités (migration) : le message dit POURQUOI on leur écrit.
+// Legacy subscribers (migration): the message says WHY we are writing to them.
 const CONFIRM_LEGACY_INTRO: Phrase = {
   fr: 'Vous êtes inscrit à la lettre de Democracy Together. Nous renforçons la protection de vos données : pour continuer à la recevoir, confirmez votre inscription.',
   en: 'You are subscribed to the Democracy Together newsletter. We are strengthening the protection of your data: to keep receiving it, please confirm your subscription.',
@@ -88,7 +88,7 @@ export function confirmationEmail(
   };
 }
 
-// --- Campagne ----------------------------------------------------------------
+// --- Campaign ----------------------------------------------------------------
 
 const FOOTER: Phrase = {
   fr: 'Vous recevez cet e-mail car vous êtes inscrit à la lettre de Democracy Together.',
@@ -114,24 +114,24 @@ const TEST_PREFIX: Phrase = {
   ar: '[اختبار]',
 };
 
-/** Lien de désinscription de la PAGE (pied du courriel). */
+/** Unsubscribe link of the PAGE (e-mail footer). */
 export function unsubscribePageUrl(token: string, loc: SiteLocale): string {
   return `${siteUrl()}/${loc}/newsletter/desinscription?token=${token}`;
 }
 
 /**
- * En-têtes RFC 2369 / RFC 8058 de chaque envoi de campagne.
+ * RFC 2369 / RFC 8058 headers for each campaign send.
  *
- * `List-Unsubscribe` pointe le point d'entrée HTTP Convex
- * (`/newsletter/unsubscribe`), qui sait répondre aux DEUX usages : un GET
- * (clic dans le client de messagerie) redirige vers la page de désinscription
- * dans la langue de l'abonné, un POST `List-Unsubscribe=One-Click` (bouton
- * « Se désabonner » de Gmail, Yahoo…) désinscrit sans autre étape — c'est ce
- * que les grands fournisseurs exigent des envois en volume depuis 2024.
+ * `List-Unsubscribe` points to the Convex HTTP entry point
+ * (`/newsletter/unsubscribe`), which handles BOTH uses: a GET
+ * (click in the e-mail client) redirects to the unsubscribe page
+ * in the subscriber's language, a POST `List-Unsubscribe=One-Click` (Gmail's,
+ * Yahoo's… "Se désabonner" button) unsubscribes with no further step — this is
+ * what the major providers have required of bulk senders since 2024.
  *
- * Sans `CONVEX_SITE_URL` (tests), le lien de la page reste annoncé, mais sans
- * `List-Unsubscribe-Post` : une page Next ne sait pas recevoir le POST, et
- * promettre le « un clic » sans le tenir serait pire que de ne rien dire.
+ * Without `CONVEX_SITE_URL` (tests), the page link is still announced, but without
+ * `List-Unsubscribe-Post`: a Next page cannot receive the POST, and
+ * promising "one click" without delivering it would be worse than saying nothing.
  */
 export function listUnsubscribeHeaders(
   token: string,
@@ -157,7 +157,7 @@ export function listUnsubscribeHeaders(
   return headers;
 }
 
-/** Corps HTML d'une campagne pour un destinataire. */
+/** HTML body of a campaign for one recipient. */
 export function campaignHtml(
   body: string,
   token: string,
@@ -180,7 +180,7 @@ export function testSubject(subject: string, loc: SiteLocale): string {
   return `${TEST_PREFIX[loc]} ${subject}`;
 }
 
-// --- Version par langue, avec repli -----------------------------------------
+// --- Per-language version, with fallback ------------------------------------
 
 export type CampaignContent = {
   subject: string;
@@ -190,9 +190,9 @@ export type CampaignContent = {
 };
 
 /**
- * Version d'une campagne pour la langue d'un abonné : la traduction si elle
- * existe, sinon la version de référence. Le pied du courriel suit la langue de
- * la VERSION servie — un texte français sous un pied arabe se lirait mal.
+ * Version of a campaign for a subscriber's language: the translation if it
+ * exists, otherwise the reference version. The e-mail footer follows the language of
+ * the SERVED version — French text under an Arabic footer would read badly.
  */
 export function pickVariant(
   c: CampaignContent,

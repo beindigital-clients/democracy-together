@@ -2,22 +2,22 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { deleteUserDataReports, exportUserDataReports } from './annualReports';
 
-// DONNÉES PERSONNELLES du chantier « editorial » — appelées par la
-// suppression et l'export de compte (branchement par l'orchestrateur). Pas de
-// `ctx.auth` ici : l'appelant a déjà établi qui supprime quoi.
+// PERSONAL DATA of the "editorial" workstream — called by account
+// deletion and export (wired by the orchestrator). No `ctx.auth`
+// here: the caller has already established who deletes what.
 //
-// Ce que ces tables portent d'une personne :
-//  - rapports annuels : l'attribution de la dernière écriture (retirée) ;
-//  - manuscrits (auteur) : ses versions — textes, fichiers, lettres de
-//    réponse. Pour un manuscrit NON publié, tout son dossier de revue part
-//    avec lui (versions, décisions, avis et assignations : ils ne portent que
-//    sur son texte). Pour un manuscrit PUBLIÉ, la publication reste (elle
-//    relève de la bibliothèque) et avec elle ses avis et décisions ; seules
-//    ses versions — donc ses lettres de réponse — sont supprimées ;
-//  - relectures (relecteur) : ses assignations et ses avis, supprimés.
+// What these tables hold about a person:
+//  - annual reports: attribution of the last write (removed);
+//  - manuscripts (author): their versions — texts, files, response
+//    letters. For an UNPUBLISHED manuscript, its whole review file goes
+//    with it (versions, decisions, reviews and assignments: they only concern
+//    its text). For a PUBLISHED manuscript, the publication stays (it
+//    belongs to the library) and with it its reviews and decisions; only
+//    its versions — hence its response letters — are deleted;
+//  - reviews (reviewer): their assignments and reviews, deleted.
 //
-// Chaque lecture est bornée ; un compte qui dépasserait ces bornes (plus de
-// 200 versions ou avis) serait traité en plusieurs appels.
+// Each read is bounded; an account exceeding these bounds (more than
+// 200 versions or reviews) would be processed in several calls.
 
 const BATCH = 200;
 
@@ -27,7 +27,7 @@ export async function deleteUserDataEditorial(
 ): Promise<void> {
   await deleteUserDataReports(ctx, userId);
 
-  // --- Auteur --------------------------------------------------------------
+  // --- Author --------------------------------------------------------------
   const versions = await ctx.db
     .query('manuscriptVersions')
     .withIndex('by_submitter', (q) => q.eq('submittedBy', userId))
@@ -37,8 +37,8 @@ export async function deleteUserDataEditorial(
     publications.add(ver.publicationId);
     const pub = await ctx.db.get(ver.publicationId);
     if (ver.blindFileId) await ctx.storage.delete(ver.blindFileId);
-    // Le fichier servi par la publication n'appartient plus au dossier de
-    // revue : il n'est pas supprimé ici.
+    // The file served by the publication no longer belongs to the review
+    // file: it is not deleted here.
     if (ver.fileId && ver.fileId !== pub?.fileId) {
       await ctx.storage.delete(ver.fileId);
     }
@@ -62,7 +62,7 @@ export async function deleteUserDataEditorial(
     }
   }
 
-  // --- Relecteur -----------------------------------------------------------
+  // --- Reviewer ------------------------------------------------------------
   const assignments = await ctx.db
     .query('peerReviewAssignments')
     .withIndex('by_reviewer', (q) => q.eq('reviewerUserId', userId))

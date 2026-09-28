@@ -1,11 +1,11 @@
-// CONTENU CODÉ DES SYNTHÈSES THÉMATIQUES (F-36) — source UNIQUE, partagée par
-// le site (repli de /thematiques) et par l'import interne qui le recopie dans
-// la table `contentThemes`. Descendu de `src/lib/themes-content.ts` pour que
-// Convex, qui n'a pas l'alias `@/`, puisse le lire (cf. `./events.ts`).
+// CODED THEMATIC SYNTHESES CONTENT (F-36) — SINGLE source, shared by
+// the site (fallback for /thematiques) and by the internal import that copies it into
+// the `contentThemes` table. Moved down from `src/lib/themes-content.ts` so that
+// Convex, which has no `@/` alias, can read it (cf. `./events.ts`).
 //
-// Les slugs sont les axes du réseau (`NETWORK_THEMES`) : c'est la clé qui relie
-// une synthèse à ses publications, à sa sous-dimension du baromètre et aux
-// filtres de la bibliothèque. Ils sont STABLES — la table les reprend tels quels.
+// The slugs are the network's themes (`NETWORK_THEMES`): it is the key that links
+// a synthesis to its publications, to its barometer sub-dimension and to the
+// library filters. They are STABLE — the table takes them over as is.
 import type { SiteLocale } from '../../locales';
 import { NETWORK_THEMES, type NetworkTheme } from '../../themes';
 
@@ -14,7 +14,7 @@ export const THEME_SLUGS: readonly ThemeSlug[] = NETWORK_THEMES;
 
 export type ThemeSynthesis = {
   slug: ThemeSlug;
-  dimension: string; // sous-dimension du baromètre (D1…D5)
+  dimension: string; // barometer sub-dimension (D1…D5)
   lead: string;
   stance: string[];
   questions: string[];
@@ -385,16 +385,16 @@ const ar: Record<ThemeSlug, ThemeSynthesis> = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (cf. `projects-content.ts`).
 export const CODED_THEMES: Record<
   SiteLocale,
   Record<ThemeSlug, ThemeSynthesis>
 > = { fr, en, es, pt, ar };
 
-// Intitulés des axes, par langue — RECOPIE de `library.themes.*`
-// (src/messages/*.json), que Convex ne peut pas lire. La migration en fait le
-// titre traduit de chaque thématique ; `tests/unit/contenus-coded.test.ts`
-// compare les deux sources pour qu'elles ne divergent pas en silence.
+// Theme labels, per language — COPY of `library.themes.*`
+// (src/messages/*.json), which Convex cannot read. The migration makes them the
+// translated title of each theme; `tests/unit/contenus-coded.test.ts`
+// compares the two sources so that they do not silently diverge.
 export const CODED_THEME_TITLES: Record<
   SiteLocale,
   Record<ThemeSlug, string>

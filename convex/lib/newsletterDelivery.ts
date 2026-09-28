@@ -1,4 +1,4 @@
-// ENVOI EN VOLUME D'UNE CAMPAGNE (F-65) — réglages et règles pures.
+// BULK SENDING OF A CAMPAIGN (F-65) — settings and pure rules.
 
 import { RESEND_BATCH_MAX } from '../email';
 
@@ -12,24 +12,24 @@ function envNumber(name: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-// Taille d'un lot : 50 par défaut, jamais plus que ce que l'API batch accepte.
+// Batch size: 50 by default, never more than what the batch API accepts.
 export const DEFAULT_BATCH_SIZE = 50;
-// Débit par défaut : 600 courriels/minute, soit un lot de 50 toutes les 5 s —
-// bien sous la limite de requêtes de Resend (2/s), et assez lent pour qu'une
-// réputation d'expéditeur neuve ne soit pas grillée par un pic.
+// Default rate: 600 e-mails/minute, i.e. one batch of 50 every 5 s —
+// well under Resend's request limit (2/s), and slow enough that a
+// new sender reputation is not burned by a spike.
 export const DEFAULT_RATE_PER_MINUTE = 600;
 
 export type DeliveryConfig = {
   batchSize: number;
   ratePerMinute: number;
-  /** Pause entre deux lots, dérivée du débit. */
+  /** Pause between two batches, derived from the rate. */
   intervalMs: number;
 };
 
 /**
- * Réglages lus sur le déploiement — `NEWSLETTER_BATCH_SIZE` et
- * `NEWSLETTER_RATE_PER_MINUTE`. Lus à chaque lot : modifier la variable
- * ralentit une campagne EN COURS, sans redéploiement.
+ * Settings read from the deployment — `NEWSLETTER_BATCH_SIZE` and
+ * `NEWSLETTER_RATE_PER_MINUTE`. Read on every batch: changing the variable
+ * slows down an ONGOING campaign, without redeploying.
  */
 export function deliveryConfig(): DeliveryConfig {
   const batchSize = Math.round(
@@ -51,26 +51,26 @@ export function deliveryConfig(): DeliveryConfig {
   return { batchSize, ratePerMinute, intervalMs };
 }
 
-// Un lot pris en charge et resté « en cours » plus longtemps que ce bail est
-// considéré interrompu (action coupée, déploiement) : il est REPRIS, avec la
-// même clé d'idempotence.
+// A batch claimed and left "in progress" longer than this lease is
+// considered interrupted (action cut off, deployment): it is RESUMED, with the
+// same idempotency key.
 export const CLAIM_LEASE_MS = 5 * 60 * 1000;
 
-// Au-delà de trois échecs TRANSITOIRES d'affilée sur le même lot, les lignes
-// passent en échec : l'éditeur les relancera quand le fournisseur répondra.
-// LIMITE ASSUMÉE : la relance forme de nouveaux lots, donc de nouvelles clés
-// d'idempotence. Si l'un des trois appels ambigus (réseau coupé après envoi)
-// avait en réalité abouti, ce destinataire peut recevoir un doublon. Le cas
-// exige trois coupures consécutives sur le même lot ; il est préféré à une
-// campagne bloquée sans fin sur un lot qu'on ne saurait pas trancher.
+// Beyond three consecutive TRANSIENT failures on the same batch, the rows
+// are marked failed: the editor will retry them when the provider responds.
+// ACCEPTED LIMITATION: the retry forms new batches, hence new idempotency
+// keys. If one of the three ambiguous calls (network cut after sending)
+// had actually succeeded, that recipient may receive a duplicate. The case
+// requires three consecutive outages on the same batch; it is preferred over a
+// campaign blocked forever on a batch we could not settle.
 export const MAX_TRANSIENT_ATTEMPTS = 3;
 
-/** Clé d'idempotence transmise au fournisseur pour un lot. */
+/** Idempotency key passed to the provider for a batch. */
 export function idempotencyKey(claimId: string): string {
   return `dt-newsletter:${claimId}`;
 }
 
-/** Recul exponentiel après un échec transitoire (borné à 10 min). */
+/** Exponential backoff after a transient failure (capped at 10 min). */
 export function backoffMs(attempt: number, intervalMs: number): number {
   return Math.min(10 * 60 * 1000, intervalMs * 2 ** Math.max(1, attempt));
 }

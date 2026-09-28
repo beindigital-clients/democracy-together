@@ -2,14 +2,14 @@ import { ConvexError } from 'convex/values';
 import type { MutationCtx, QueryCtx } from '../../_generated/server';
 import type { Doc } from '../../_generated/dataModel';
 
-// RÈGLES D'OUVERTURE D'UN ÉVÉNEMENT — lues dans la table, jamais dans l'appel.
+// RULES FOR AN EVENT BEING OPEN — read from the table, never from the call.
 //
-// C'était le point M-5 du pentest et la limite A-03 de la campagne : le backend
-// ne connaissait pas les événements, il confrontait le slug à une liste
-// recopiée (`UPCOMING_EVENT_SLUGS`) et prenait la date de rappel telle que
-// l'appelant la donnait. La table `contentEvents` rend les deux décisions
-// possibles côté serveur : l'événement existe-t-il, est-il publié, est-il
-// terminé, reste-t-il des places ?
+// This was pentest item M-5 and limitation A-03 of the campaign: the backend
+// did not know about events, it checked the slug against a copied
+// list (`UPCOMING_EVENT_SLUGS`) and took the reminder date as the
+// caller gave it. The `contentEvents` table makes both decisions
+// possible server-side: does the event exist, is it published, is it
+// over, are there places left?
 
 export async function findEventBySlug(
   ctx: QueryCtx | MutationCtx,
@@ -22,19 +22,19 @@ export async function findEventBySlug(
 }
 
 /**
- * Un événement accepte des inscriptions tant qu'il est PUBLIÉ et qu'il n'est
- * pas terminé. Brouillon (inconnu du public), annulé ou passé : fermé.
+ * An event accepts registrations as long as it is PUBLISHED and not
+ * over. Draft (unknown to the public), cancelled or past: closed.
  */
 export function isEventOpen(event: Doc<'contentEvents'>, now: number): boolean {
   return event.status === 'published' && event.endsAt > now;
 }
 
 /**
- * L'événement ouvert portant ce slug, ou le refus `EVENT_CLOSED`.
+ * The open event with this slug, or the `EVENT_CLOSED` refusal.
  *
- * UN SEUL CODE pour « inconnu », « brouillon », « annulé » et « passé » : la
- * réponse d'une action publique ne doit pas servir à sonder l'existence d'un
- * brouillon. Le formulaire dit « inscriptions closes » dans tous les cas.
+ * A SINGLE CODE for "unknown", "draft", "cancelled" and "past": the
+ * response of a public action must not be usable to probe for the existence of a
+ * draft. The form says "inscriptions closes" in every case.
  */
 export async function requireOpenEvent(
   ctx: QueryCtx | MutationCtx,
@@ -46,14 +46,14 @@ export async function requireOpenEvent(
   return event;
 }
 
-/** Plus aucune place : `capacity` inscriptions déjà enregistrées. */
+/** No places left: `capacity` registrations already recorded. */
 export async function isEventFull(
   ctx: QueryCtx | MutationCtx,
   event: Doc<'contentEvents'>,
 ): Promise<boolean> {
   if (event.capacity === undefined) return false;
-  // Lecture bornée par la capacité elle-même : on s'arrête dès qu'elle est
-  // atteinte, sans relire toute la liste des inscrits.
+  // Read bounded by the capacity itself: we stop as soon as it is
+  // reached, without re-reading the whole list of registrants.
   const regs = await ctx.db
     .query('eventRegistrations')
     .withIndex('by_event_and_email', (q) => q.eq('eventSlug', event.slug))

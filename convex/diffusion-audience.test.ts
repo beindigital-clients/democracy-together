@@ -5,12 +5,12 @@ import schema from './schema';
 import { api, internal } from './_generated/api';
 import { KEYS_PER_DAY, OTHER_KEY, dayKey } from './lib/audience';
 
-// MESURE D'AUDIENCE FIRST-PARTY (F-66, chantier diffusion).
+// FIRST-PARTY AUDIENCE MEASUREMENT (F-66, diffusion workstream).
 //
-// Ce qui est tenu : ce qui entre est réduit (chemin sans requête, référent
-// réduit au domaine, écran en classe), borné (taille, gabarit, cardinalité,
-// débit), agrégé par jour, et les événements bruts disparaissent à
-// l'agrégation. La lecture est réservée au staff.
+// What is guaranteed: incoming data is reduced (path without query, referrer
+// reduced to the domain, screen as a class), bounded (size, shape, cardinality,
+// rate), aggregated per day, and raw events disappear on
+// aggregation. Reading is restricted to staff.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -61,7 +61,7 @@ describe('Audience — collecte réduite et agrégation par jour', () => {
     await t.mutation(api.audience.hit, {
       path: '/en/bibliotheque/rapport-2026',
       lang: 'en',
-      referrer: 'https://democracy-together.org/fr', // navigation interne
+      referrer: 'https://democracy-together.org/fr', // internal navigation
       width: 1440,
     });
     await t.mutation(api.audience.hit, {
@@ -70,15 +70,15 @@ describe('Audience — collecte réduite et agrégation par jour', () => {
       width: 800,
     });
 
-    // Rien d'identifiant dans le tampon : ni requête, ni IP, ni agent.
+    // Nothing identifying in the buffer: no query, no IP, no user agent.
     const events = await t.run((ctx) =>
       ctx.db.query('audienceEvents').collect(),
     );
     expect(events).toHaveLength(3);
     expect(JSON.stringify(events)).not.toContain('secret');
     expect(JSON.stringify(events)).not.toContain('mon+nom');
-    // Liste BLANCHE des champs : un champ ajouté demain (IP, agent,
-    // identifiant) ferait échouer ce test.
+    // ALLOWLIST of fields: a field added tomorrow (IP, agent,
+    // identifier) would make this test fail.
     const permis = [
       '_creationTime',
       '_id',
@@ -96,14 +96,14 @@ describe('Audience — collecte réduite et agrégation par jour', () => {
     expect(await t.mutation(internal.audience.aggregate, {})).toEqual({
       processed: 3,
     });
-    // Tampon VIDE après l'agrégation.
+    // EMPTY buffer after aggregation.
     expect(
       await t.run((ctx) => ctx.db.query('audienceEvents').collect()),
     ).toEqual([]);
 
     const rows = await daily(t);
     expect(count(rows, 'total', '')).toBe(3);
-    // Le préfixe de langue est retiré : une page, deux langues.
+    // The language prefix is stripped: one page, two languages.
     expect(count(rows, 'page', '/bibliotheque/rapport-2026')).toBe(2);
     expect(count(rows, 'page', '/')).toBe(1);
     expect(count(rows, 'lang', 'fr')).toBe(1);
@@ -114,7 +114,7 @@ describe('Audience — collecte réduite et agrégation par jour', () => {
     expect(count(rows, 'screen', 'tablet')).toBe(1);
     expect(count(rows, 'screen', 'desktop')).toBe(1);
 
-    // Une seconde agrégation ajoute aux compteurs existants.
+    // A second aggregation adds to the existing counters.
     await t.mutation(api.audience.hit, { path: '/fr' });
     await t.mutation(internal.audience.aggregate, {});
     expect(count(await daily(t), 'total', '')).toBe(4);
@@ -143,7 +143,7 @@ describe('Audience — collecte réduite et agrégation par jour', () => {
     const events = await t.run((ctx) =>
       ctx.db.query('audienceEvents').collect(),
     );
-    // Seul l'appel à la langue inconnue passe — sans langue.
+    // Only the call with the unknown language goes through — without a language.
     expect(events).toHaveLength(1);
     expect(events[0].lang).toBeUndefined();
   });
@@ -162,7 +162,7 @@ describe('Audience — collecte réduite et agrégation par jour', () => {
   });
 
   it('DÉBIT : le plafond global par minute est tenu', async () => {
-    vi.stubEnv('AUDIENCE_MAX_HITS_PER_MINUTE', '16'); // 1 par tranche
+    vi.stubEnv('AUDIENCE_MAX_HITS_PER_MINUTE', '16'); // 1 per bucket
     const t = convexTest(schema, modules);
     for (let i = 0; i < 80; i++) {
       await t.mutation(api.audience.hit, { path: '/fr' });
@@ -251,8 +251,8 @@ describe('Audience — tableau de bord (admin/impact)', () => {
       dimension: 'page',
     });
     expect(pages.items[0]).toEqual({ key: '/bibliotheque/a', count: 2 });
-    // « Contenus les plus consultés » : les fiches, pas les pages
-    // institutionnelles.
+    // "Contenus les plus consultés": the records, not the institutional
+    // pages.
     expect(pages.content).toEqual([{ key: '/bibliotheque/a', count: 2 }]);
     const refs = await mod.query(api.audience.top, {
       until: today,

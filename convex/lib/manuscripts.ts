@@ -1,32 +1,32 @@
 import { v } from 'convex/values';
 
-// REVUE À COMITÉ DE LECTURE (F-43) — la MACHINE À ÉTATS du manuscrit, ses
-// bornes et le calcul du différentiel de métadonnées entre deux versions.
+// PEER REVIEW (F-43) — the manuscript's STATE MACHINE, its
+// bounds and the computation of the metadata diff between two versions.
 //
-// Module PUR (il ne tire que `convex/values`) : la table des transitions est
-// écrite UNE fois, ici, et toute mutation qui change l'étape d'un manuscrit
-// passe par `nextStage`. `convex/lib/manuscripts.test.ts` parcourt TOUTES les
-// paires (étape, événement) et vérifie que seules celles de la table passent.
+// PURE module (it only pulls in `convex/values`): the transition table is
+// written ONCE, here, and every mutation that changes a manuscript's stage
+// goes through `nextStage`. `convex/lib/manuscripts.test.ts` walks ALL
+// (stage, event) pairs and checks that only those in the table pass.
 //
-// L'étape vit dans `publications.reviewStage` — le champ indexé que la file de
-// l'éditeur lisait déjà. Absent = la publication n'est jamais entrée en revue.
+// The stage lives in `publications.reviewStage` — the indexed field the
+// editor's queue already read. Absent = the publication never entered review.
 //
-//   (aucune) ─submit─► submitted ─startReview─► in_review
-//   submitted ─reject─► rejected                       (refus sans relecture)
+//   (none) ─submit─► submitted ─startReview─► in_review
+//   submitted ─reject─► rejected                       (refusal without review)
 //   in_review ─requestRevision─► revision ─resubmit─► resubmitted
 //   in_review ─accept─► accepted      in_review ─reject─► rejected
-//   resubmitted ─startReview─► in_review   (nouveau tour, nouvelle version)
-//   resubmitted ─accept─► accepted         (révision mineure, sans nouveau tour)
+//   resubmitted ─startReview─► in_review   (new round, new version)
+//   resubmitted ─accept─► accepted         (minor revision, no new round)
 //   resubmitted ─reject─► rejected
-//   accepted, rejected : décisions DÉFINITIVES — rien n'en sort.
+//   accepted, rejected: FINAL decisions — nothing leaves them.
 //
-// `reviewed` est l'étape HÉRITÉE de la première version du module (« avis
-// rendu », sans décision d'acceptation) : les revues déjà closes ainsi
-// peuvent être tranchées (accept / reject) ou repartir en évaluation, rien
-// d'autre.
+// `reviewed` is the LEGACY stage from the module's first version ("review
+// submitted", without an acceptance decision): reviews already closed that way
+// can be decided (accept / reject) or go back to review, nothing
+// else.
 //
-// Ajouter un relecteur à une revue DÉJÀ en évaluation n'est pas une
-// transition : l'étape ne change pas (`canAddReviewer`).
+// Adding a reviewer to a review ALREADY under way is not a
+// transition: the stage does not change (`canAddReviewer`).
 
 export const MANUSCRIPT_STAGES = [
   'submitted',
@@ -88,15 +88,15 @@ export const MANUSCRIPT_MACHINE: Readonly<
   rejected: {},
 };
 
-/** Étapes tranchées : en repartir serait rejouer ou inverser une décision. */
+/** Decided stages: leaving them would replay or reverse a decision. */
 export const DECIDED_STAGES: readonly StageOrNone[] = ['accepted', 'rejected'];
 
 /**
- * L'étape d'arrivée, ou une erreur NOMMÉE :
- *  - ALREADY_REVIEWED   : le manuscrit est déjà accepté ou rejeté ;
- *  - INVALID_TRANSITION : l'étape de départ n'admet pas cet événement.
- * Le `throw` annule la transaction : une transition refusée n'écrit rien,
- * ni le document, ni l'audit, ni la notification.
+ * The target stage, or a NAMED error:
+ *  - ALREADY_REVIEWED   : the manuscript is already accepted or rejected;
+ *  - INVALID_TRANSITION : the source stage does not accept this event.
+ * The `throw` rolls back the transaction: a refused transition writes nothing,
+ * neither the document, nor the audit, nor the notification.
  */
 export function nextStage(
   from: StageOrNone,
@@ -117,11 +117,11 @@ export function canTransition(
 }
 
 /**
- * Désigner un relecteur : sur une revue en évaluation, c'est un ajout (pas de
- * transition) ; sur une revue qui ATTEND un tour d'évaluation, c'est
- * `startReview` ; sur une publication jamais entrée en revue, `submit` puis
- * `startReview` (la porte historique : ouvrir une revue depuis la file de
- * modération). Ailleurs, refus.
+ * Assigning a reviewer: on a review under way, it is an addition (no
+ * transition); on a review that is AWAITING a review round, it is
+ * `startReview`; on a publication that never entered review, `submit` then
+ * `startReview` (the historical door: opening a review from the moderation
+ * queue). Elsewhere, refused.
  */
 export function stageAfterAssignment(from: StageOrNone): ManuscriptStage {
   if (from === 'in_review') return 'in_review';
@@ -130,7 +130,7 @@ export function stageAfterAssignment(from: StageOrNone): ManuscriptStage {
   return nextStage(from, 'startReview');
 }
 
-// Décisions éditoriales (motivées) et leur événement.
+// Editorial decisions (with reasons) and their event.
 export const manuscriptDecision = v.union(
   v.literal('revision'),
   v.literal('accepted'),
@@ -143,15 +143,15 @@ export const DECISION_EVENT: Record<ManuscriptDecision, ManuscriptEvent> = {
   rejected: 'reject',
 };
 
-// Copie anonymisée du fichier d'une version :
-//  - pending    : l'anonymisation est planifiée ;
-//  - clean      : le fichier ne portait aucune métadonnée d'auteur ;
-//  - stripped   : des métadonnées ont été retirées (cf. `strippedFields`) ;
-//  - unreadable : le PDF n'a pas pu être relu (chiffré, corrompu) — AUCUN
-//                 fichier n'est transmis aux relecteurs tant que l'éditeur ne
-//                 l'a pas vérifié et libéré ;
-//  - released   : l'éditeur a vérifié le fichier original et le libère ;
-//  - none       : la version n'a pas de fichier.
+// Anonymized copy of a version's file:
+//  - pending    : anonymization is scheduled;
+//  - clean      : the file carried no author metadata;
+//  - stripped   : metadata was removed (cf. `strippedFields`);
+//  - unreadable : the PDF could not be re-read (encrypted, corrupted) — NO
+//                 file is passed to reviewers until the editor has
+//                 checked and released it;
+//  - released   : the editor has checked the original file and releases it;
+//  - none       : the version has no file.
 export const blindStatus = v.union(
   v.literal('pending'),
   v.literal('clean'),
@@ -172,8 +172,8 @@ export const MANUSCRIPT_BOUNDS = {
   comment: { min: 10, max: 8000 },
   commentToEditor: { max: 4000 },
   conflictDetails: { max: 1000 },
-  // Échéance d'une relecture : trois semaines par défaut, entre un jour et
-  // quatre mois quand l'éditeur la fixe.
+  // Review deadline: three weeks by default, between one day and
+  // four months when the editor sets it.
   dueDefaultDays: 21,
   dueMinDays: 1,
   dueMaxDays: 120,
@@ -181,7 +181,7 @@ export const MANUSCRIPT_BOUNDS = {
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Échéance bornée : défaut si absente, refus si hors bornes. */
+/** Bounded deadline: default if absent, refused if out of bounds. */
 export function resolveDueAt(now: number, dueAt: number | undefined): number {
   const B = MANUSCRIPT_BOUNDS;
   if (dueAt === undefined) return now + B.dueDefaultDays * DAY;
@@ -195,8 +195,8 @@ export function resolveDueAt(now: number, dueAt: number | undefined): number {
   return dueAt;
 }
 
-// Relances : à l'échéance, puis tous les trois jours, trois fois au plus ;
-// ensuite l'éditeur qui a désigné le relecteur est prévenu (une fois).
+// Reminders: at the deadline, then every three days, three times at most;
+// then the editor who assigned the reviewer is notified (once).
 export const REMINDER = {
   intervalMs: 3 * DAY,
   max: 3,
@@ -219,7 +219,7 @@ export type MetadataDiff = {
   fileReplaced: boolean;
 };
 
-/** Ce qui a changé entre deux versions — ce que le relecteur voit d'abord. */
+/** What changed between two versions — what the reviewer sees first. */
 export function metadataDiff(
   prev: ManuscriptMeta,
   next: ManuscriptMeta,
@@ -240,7 +240,7 @@ export function metadataDiff(
   };
 }
 
-/** Mots-clés nettoyés : sans doublon, bornés en nombre et en longueur. */
+/** Cleaned-up keywords: no duplicates, bounded in number and length. */
 export function normalizeKeywords(keywords: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
