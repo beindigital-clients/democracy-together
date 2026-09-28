@@ -3,16 +3,16 @@ import { isYouthApplicant } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-// F-58 — Candidature jeune : formulaire (#rejoindre sur /jeunes) -> succès +
-// stockage Convex réel.
+// F-58 — Youth application: form (#rejoindre on /jeunes) -> success +
+// real Convex storage.
 test('jeunes : candidature valide -> succès + stockage (F-58)', async ({
   page,
 }) => {
   const email = `e2e_youth_${Date.now()}@democracytogether.test`;
   await page.goto('/fr/jeunes');
 
-  // La page porte aussi le formulaire de mentorat (F-59) : on cible la section
-  // de candidature pour lever l'ambiguïté des libellés partagés (nom/e-mail/pays).
+  // The page also carries the mentoring form (F-59): we target the
+  // application section to disambiguate shared labels (name/email/country).
   const form = page.locator('#rejoindre');
   await form.getByLabel('Nom complet').fill('Awa Diop');
   await form.getByLabel('Adresse e-mail').fill(email);

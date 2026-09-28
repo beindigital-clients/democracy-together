@@ -3,15 +3,15 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
-// Pas de setupFiles global dans ce projet : le nettoyage automatique de
-// @testing-library/react n'est pas branché (cf. directory-fields.test.tsx).
+// No global setupFiles in this project: @testing-library/react's automatic
+// cleanup is not wired up (see directory-fields.test.tsx).
 afterEach(cleanup);
 
-// Boîte de confirmation des actions irréversibles du back-office (issue #38).
-// Ce qui est vérifié ici n'est pas l'apparence mais les QUATRE propriétés qui
-// font d'elle un garde-fou : elle nomme sa cible, elle n'agit que sur une
-// validation explicite, elle est pilotable au clavier, et elle est annoncée
-// comme un dialogue modal.
+// Confirmation box for irreversible back-office actions (issue #38).
+// What is checked here is not the appearance but the FOUR properties that
+// make it a safeguard: it names its target, it only acts on an
+// explicit confirmation, it is keyboard-operable, and it is announced
+// as a modal dialog.
 
 function setup(overrides: Partial<Parameters<typeof ConfirmDialog>[0]> = {}) {
   const onConfirm = vi.fn();
@@ -36,21 +36,21 @@ describe('ConfirmDialog — rendu par PORTAIL (audit F-13)', () => {
     const { container } = setup();
     const dialogue = screen.getByRole('dialog');
 
-    // La propriété qui compte n'est pas « createPortal est appelé » : c'est que
-    // le dialogue ne vit PLUS sous le conteneur de son appelant. Un `fixed`
-    // rendu en place s'ancre au premier ancêtre portant `transform`, `filter`
-    // ou `perspective` — trois propriétés qu'un composant voisin peut gagner
-    // à tout moment, sans rapport visible avec cette boîte. Le jour où cela
-    // arrive, elle est mal placée pour les UTILISATEURS.
+    // The property that matters is not "createPortal is called": it is that
+    // the dialog NO LONGER lives under its caller's container. A `fixed`
+    // rendered in place anchors to the first ancestor carrying `transform`, `filter`
+    // or `perspective` — three properties a neighboring component can acquire
+    // at any time, with no visible connection to this box. The day that
+    // happens, it is misplaced for USERS.
     expect(container.contains(dialogue)).toBe(false);
     expect(document.body.contains(dialogue)).toBe(true);
   });
 
   it('le focus va toujours sur « Annuler » malgré le rendu différé', () => {
-    // Le portail impose d'attendre le montage (`document` n'existe pas au rendu
-    // serveur), donc le premier rendu ne produit rien. L'effet de focus doit
-    // se rejouer ensuite — sans quoi une touche Entrée retombe sur l'action
-    // destructrice, ce que cette boîte existe pour empêcher.
+    // The portal requires waiting for mount (`document` does not exist during server
+    // render), so the first render produces nothing. The focus effect must
+    // replay afterwards — otherwise an Enter keypress falls back on the
+    // destructive action, which this box exists to prevent.
     setup();
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: 'Annuler' }),
@@ -70,7 +70,7 @@ describe('ConfirmDialog (issue #38)', () => {
       name: 'Rejeter la candidature de Institut Démo Sahel ?',
     });
     expect(dialog.getAttribute('aria-modal')).toBe('true');
-    // La description est rattachée, pas seulement affichée à côté.
+    // The description is attached, not merely displayed alongside.
     const describedBy = dialog.getAttribute('aria-describedby');
     expect(describedBy).toBeTruthy();
     expect(document.getElementById(describedBy!)?.textContent).toBe(
@@ -92,9 +92,9 @@ describe('ConfirmDialog (issue #38)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
     fireEvent.keyDown(document, { key: 'Escape' });
-    // L'arrière-plan est un bouton masqué aux technologies d'assistance : on
-    // le prend par son rôle DOM, puisqu'il n'en a volontairement aucun pour
-    // les lecteurs d'écran.
+    // The backdrop is a button hidden from assistive technologies: we
+    // grab it by its DOM role, since it deliberately has none for
+    // screen readers.
     const overlay = document.querySelector('button[aria-hidden="true"]');
     fireEvent.click(overlay!);
 

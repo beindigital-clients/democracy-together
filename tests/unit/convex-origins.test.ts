@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexCspOrigins } from '@/lib/convex-origins';
 
-// CSP et déploiement Convex hors cloud (auto-hébergé / local). Voir le module.
+// CSP and non-cloud Convex deployment (self-hosted / local). See the module.
 describe('convexCspOrigins', () => {
   it("n'ajoute rien pour un déploiement du cloud Convex (CSP de prod inchangée)", () => {
     expect(convexCspOrigins('https://happy-animal-123.convex.cloud')).toEqual({

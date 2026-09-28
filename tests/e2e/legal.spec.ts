@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.use({ locale: 'fr-FR' });
 
-// F-09 — Pages légales : contenu réel (plus de placeholder « Bientôt »).
+// F-09 — Legal pages: real content (no more "Bientôt" placeholder).
 test('pages légales : contenu réel FR + EN (F-09)', async ({ page }) => {
   await page.goto('/fr/mentions-legales');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
@@ -21,7 +21,7 @@ test('pages légales : contenu réel FR + EN (F-09)', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Cookies et traceurs' }),
   ).toBeVisible();
-  // Plusieurs mentions depuis la mesure d'audience (exemption CNIL) : une suffit.
+  // Several mentions since audience measurement (CNIL exemption): one is enough.
   await expect(page.getByText(/CNIL/).first()).toBeVisible();
 
   await page.goto('/fr/accessibilite');
@@ -29,7 +29,7 @@ test('pages légales : contenu réel FR + EN (F-09)', async ({ page }) => {
     'accessibilité',
   );
 
-  // Version EN
+  // EN version
   await page.goto('/en/confidentialite');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Privacy policy',
@@ -39,9 +39,9 @@ test('pages légales : contenu réel FR + EN (F-09)', async ({ page }) => {
   ).toBeVisible();
 });
 
-// F-09 — Bandeau de consentement. Repart d'un état vierge (le storageState
-// global pré-consent les autres specs pour éviter que le bandeau fixed
-// n'intercepte leurs clics).
+// F-09 — Consent banner. Starts from a clean state (the global storageState
+// pre-consents the other specs so that the fixed banner does not
+// intercept their clicks).
 test.describe('bandeau de consentement cookies (F-09)', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -58,7 +58,7 @@ test.describe('bandeau de consentement cookies (F-09)', () => {
     await banner.getByRole('button', { name: 'Essentiels uniquement' }).click();
     await expect(banner).toBeHidden();
 
-    // Persistance : plus de bandeau après rechargement.
+    // Persistence: no more banner after reload.
     await page.reload();
     await expect(
       page.getByRole('region', { name: 'Gestion des cookies' }),

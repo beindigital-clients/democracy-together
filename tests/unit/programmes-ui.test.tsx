@@ -11,9 +11,9 @@ import { scoreMatch } from '@convex/lib/programmes';
 
 afterEach(cleanup);
 
-// Composants purs du chantier « programmes » : le score d'appariement doit se
-// LIRE (une ligne par raison, avec ses points), dans chaque langue ; le groupe
-// de cases doit être un vrai groupe nommé.
+// Pure components of the "programmes" workstream: the matching score must be
+// READABLE (one line per reason, with its points), in each language; the checkbox
+// group must be a real named group.
 
 const reasons = scoreMatch(
   {

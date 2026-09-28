@@ -2,17 +2,17 @@ import { test, expect, type Browser } from '@playwright/test';
 import { resetProgrammes } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
 
-// F-60 — Appels à projets, de bout en bout : un modérateur publie un appel
-// daté et désigne un évaluateur ; un membre candidate avec une pièce jointe ;
-// l'évaluateur note ; le modérateur sélectionne ; le porteur est notifié.
+// F-60 — Calls for projects, end to end: a moderator publishes a dated
+// call and assigns a reviewer; a member applies with an attachment;
+// the reviewer scores; the moderator selects; the applicant is notified.
 //
-// Trois personnes, trois sessions DÉDIÉES à ce fichier (cf. _sessions.ts) :
-// chacune est tenue de bout en bout, et son état est réécrit à la fin de son
-// passage — le jeton de rafraîchissement tourne à chaque ouverture.
+// Three people, three sessions DEDICATED to this file (see _sessions.ts):
+// each is held from start to finish, and its state is rewritten at the end of its
+// pass — the refresh token rotates on each opening.
 test.use({ locale: 'fr-FR' });
 
-// Marqueur STABLE : `resetProgrammes` supprime les appels des exécutions
-// précédentes (leur titre le porte), et l'écran ne se remplit pas d'essais.
+// STABLE marker: `resetProgrammes` deletes the calls from previous
+// runs (their title carries it), and the screen does not fill up with test runs.
 const MARKER = '[E2E-prog-appels]';
 
 async function as(browser: Browser, key: SessionKey) {
@@ -30,8 +30,8 @@ async function as(browser: Browser, key: SessionKey) {
   };
 }
 
-// `datetime-local` attend l'heure MURALE du fuseau choisi ; l'appel est saisi
-// en UTC, donc l'ISO tronqué convient.
+// `datetime-local` expects the WALL-CLOCK time of the chosen time zone; the call is entered
+// in UTC, so the truncated ISO string works.
 const wall = (ms: number) => new Date(ms).toISOString().slice(0, 16);
 
 test.describe
@@ -49,7 +49,7 @@ test.describe
     const callTitle = `${MARKER} Fonds participation ${stamp}`;
     const projectTitle = `Observatoire citoyen ${stamp}`;
 
-    // 1. Le modérateur rédige, publie, désigne l'évaluateur.
+    // 1. The moderator drafts, publishes, assigns the reviewer.
     const admin = await as(browser, 'progAppelsAdmin');
     await admin.page.goto('/fr/admin/projets/appels');
     await admin.page.getByRole('button', { name: 'Nouvel appel' }).click();
@@ -84,7 +84,7 @@ test.describe
     ).toBeVisible();
     await admin.done();
 
-    // 2. Le membre trouve l'appel ouvert et dépose un dossier complet.
+    // 2. The member finds the open call and submits a complete application.
     const membre = await as(browser, 'progAppelsMembre');
     await membre.page.goto('/fr/appels-a-projets');
     await membre.page.getByRole('link', { name: callTitle }).click();
@@ -114,7 +114,7 @@ test.describe
     ).toBeVisible();
     await membre.done();
 
-    // 3. L'évaluateur désigné note le dossier depuis son espace membre.
+    // 3. The assigned reviewer scores the application from their member area.
     const evaluateur = await as(browser, 'progAppelsEvaluateur');
     await evaluateur.page.goto('/fr/espace-membre/evaluations');
     const dossier = evaluateur.page
@@ -128,7 +128,7 @@ test.describe
     await expect(dossier.getByText('Note enregistrée.')).toBeVisible();
     await evaluateur.done();
 
-    // 4. Le modérateur lit le classement et sélectionne.
+    // 4. The moderator reads the ranking and selects.
     const admin2 = await as(browser, 'progAppelsAdmin');
     await admin2.page.goto('/fr/admin/projets/appels');
     const row2 = admin2.page
@@ -148,7 +148,7 @@ test.describe
     ).toBeVisible();
     await admin2.done();
 
-    // 5. Le porteur est notifié et voit la décision dans son espace.
+    // 5. The applicant is notified and sees the decision in their area.
     const membre2 = await as(browser, 'progAppelsMembre');
     await membre2.page.goto('/fr/notifications');
     await expect(

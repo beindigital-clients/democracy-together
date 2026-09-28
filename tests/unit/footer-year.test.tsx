@@ -6,28 +6,28 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CopyrightYear } from '@/components/layout/copyright-year';
 
-// Issue #36 — l'année du pied de page était la constante `2026`, donc fausse
-// dès le 1er janvier 2027 sur les 61 routes du site.
+// Issue #36 — the footer year was the constant `2026`, hence wrong
+// from 1 January 2027 on all 61 routes of the site.
 //
-// Le correctif tient en trois propriétés, vérifiées ici :
-//   1. l'année vient du RENDU SERVEUR (calcul, pas constante) ;
-//   2. le premier rendu client reprend cette valeur -> aucun écart
-//      d'hydratation, même la nuit du 31 décembre ou depuis un fuseau décalé ;
-//   3. le navigateur la rectifie APRÈS montage, pour que la correction tienne
-//      le jour où ces pages seraient servies depuis un HTML figé au build
-//      (issue #13, rendu statique).
+// The fix comes down to three properties, checked here:
+//   1. the year comes from the SERVER RENDER (computed, not a constant);
+//   2. the first client render reuses that value -> no hydration
+//      mismatch, even on the night of 31 December or from an offset time zone;
+//   3. the browser corrects it AFTER mount, so that the fix holds
+//      the day these pages are served from HTML frozen at build time
+//      (issue #13, static rendering).
 //
-// Les tests de comportement n'ont pas besoin d'horloge simulée : ils comparent
-// une valeur de serveur volontairement fausse (1999) à l'année réelle du
-// processus, ce qui reste vrai quel que soit le jour où la suite tourne.
+// The behavior tests do not need a mocked clock: they compare
+// a deliberately wrong server value (1999) with the process's real year,
+// which stays true whatever day the suite runs.
 
 const REAL_YEAR = new Date().getFullYear();
 
 describe("CopyrightYear — l'année servie, puis l'année du navigateur", () => {
   it("rend l'année du serveur, sans jamais lire l'horloge au rendu", () => {
-    // `renderToString` = le HTML servi, et ce que voit un visiteur sans
-    // JavaScript. Une valeur invraisemblable rend l'échec sans ambiguïté : si
-    // le composant lisait l'horloge pendant le rendu, on lirait REAL_YEAR.
+    // `renderToString` = the served HTML, and what a visitor without
+    // JavaScript sees. An implausible value makes the failure unambiguous: if
+    // the component read the clock during render, we would read REAL_YEAR.
     expect(renderToString(<CopyrightYear serverYear={1999} />)).toBe('1999');
   });
 
@@ -42,9 +42,9 @@ describe("CopyrightYear — l'année servie, puis l'année du navigateur", () =>
   });
 });
 
-// Garde anti-régression sur la source : ni le typecheck ni les tests de rendu
-// ci-dessus n'attraperaient un retour en arrière — remettre une constante,
-// passer le pied de page en composant client, ou lire l'horloge au rendu.
+// Anti-regression guard on the source: neither the typecheck nor the render tests
+// above would catch a step backwards — putting a constant back,
+// making the footer a client component, or reading the clock during render.
 const LAYOUT = join(process.cwd(), 'src', 'components', 'layout');
 const footer = readFileSync(join(LAYOUT, 'site-footer.tsx'), 'utf8');
 const copyright = readFileSync(join(LAYOUT, 'copyright-year.tsx'), 'utf8');
@@ -62,10 +62,10 @@ describe('Contrat de source du pied de page', () => {
 
   it("la rectification est cliente et n'a lieu qu'après montage", () => {
     expect(copyright).toMatch(/^\s*['"]use client['"]/m);
-    // Semer l'état avec la valeur du serveur est CE qui évite l'écart
-    // d'hydratation : sans cela, il faudrait un `suppressHydrationWarning`.
+    // Seeding the state with the server value is WHAT avoids the hydration
+    // mismatch: without it, a `suppressHydrationWarning` would be needed.
     expect(copyright).toContain('useState(serverYear)');
-    // L'horloge ne doit être lue que dans l'effet, jamais au fil du rendu.
+    // The clock must only be read in the effect, never during render.
     const avantEffet = copyright.slice(0, copyright.indexOf('useEffect('));
     expect(avantEffet).not.toContain('new Date(');
   });

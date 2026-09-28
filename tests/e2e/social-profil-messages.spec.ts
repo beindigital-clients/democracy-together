@@ -1,17 +1,17 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { provisionUser, signInWithCode } from './_helpers';
 
-// RÉSEAU SOCIAL — parcours principal à deux membres (chantier « social ») :
+// SOCIAL NETWORK — main two-member flow ("social" workstream):
 //
-//   A remplit son profil en PUBLIC ; la page `/membres/<handle>` répond à un
-//   visiteur anonyme, indexable ; B trouve A dans l'annuaire des personnes, le
-//   suit, lui écrit ; A voit la pastille « non lu » dans l'en-tête, ouvre la
-//   conversation et répond ; B reçoit la réponse EN TEMPS RÉEL, sans recharger.
-//   Puis A passe son profil en PRIVÉ : la même adresse répond 404.
+//   A fills in their profile as PUBLIC; the `/membres/<handle>` page responds to an
+//   anonymous visitor, indexable; B finds A in the people directory,
+//   follows them, writes to them; A sees the "unread" badge in the header, opens the
+//   conversation and replies; B receives the reply IN REAL TIME, without reloading.
+//   Then A switches their profile to PRIVATE: the same address responds 404.
 //
-// Deux comptes NEUFS par exécution (adresses horodatées) : le fichier tient
-// ses deux sessions d'un bout à l'autre, et aucune session partagée de
-// `_sessions.ts` n'est mise en jeu (règle « un fichier, sa session »).
+// Two FRESH accounts per run (timestamped addresses): the file holds
+// its two sessions from start to finish, and no shared session from
+// `_sessions.ts` is involved ("one file, its own session" rule).
 
 const STAMP = Date.now();
 const EMAIL_A = `e2e_social_a_${STAMP}@democracytogether.test`;
@@ -22,8 +22,8 @@ const HANDLE_A = `awa-social-${STAMP}`;
 
 test.describe.configure({ mode: 'serial' });
 
-// Contexte neuf AVEC le consentement cookies du projet : sans lui, le bandeau
-// F-09 intercepterait les clics.
+// Fresh context WITH the project's cookie consent: without it, the F-09
+// banner would intercept clicks.
 async function membre(browser: Browser, email: string): Promise<Page> {
   const context = await browser.newContext({
     locale: 'fr-FR',
@@ -59,11 +59,11 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await provisionUser(EMAIL_A, 'membre');
   await provisionUser(EMAIL_B, 'membre');
 
-  // --- A : profil public -------------------------------------------------------
+  // --- A: public profile -------------------------------------------------------
   const pageA = await membre(browser, EMAIL_A);
   await creerProfil(pageA, NOM_A, /^Public/);
 
-  // --- Un visiteur ANONYME voit la page, indexable ------------------------------
+  // --- An ANONYMOUS visitor sees the page, indexable ----------------------------
   const anonyme = await browser.newContext({
     locale: 'fr-FR',
     storageState: test.info().project.use.storageState,
@@ -81,10 +81,10 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await expect(
     visiteur.locator('link[rel="alternate"][hreflang="ar"]'),
   ).toHaveAttribute('href', new RegExp(`/ar/membres/${HANDLE_A}$`));
-  // Aucun bouton d'action pour un anonyme.
+  // No action button for an anonymous visitor.
   await expect(visiteur.getByRole('button', { name: 'Suivre' })).toHaveCount(0);
 
-  // --- B : profil (réservé aux membres), recherche, suivi, message ---------------
+  // --- B: profile (members only), search, follow, message -----------------------
   const pageB = await membre(browser, EMAIL_B);
   await creerProfil(pageB, NOM_B, /^Membres du réseau/);
   await pageB.goto('/fr/membres');
@@ -108,7 +108,7 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
     pageB.getByText('Bonjour Awa, ravi de vous lire.', { exact: true }),
   ).toBeVisible();
 
-  // --- A : pastille non lue dans l'en-tête, lecture, réponse ---------------------
+  // --- A: unread badge in the header, reading, reply -----------------------------
   await pageA.goto('/fr/espace-membre');
   const pastille = pageA.getByRole('link', {
     name: /Messages, 1 conversation non lue/,
@@ -122,7 +122,7 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await expect(
     pageA.getByText('Bonjour Awa, ravi de vous lire.', { exact: true }),
   ).toBeVisible();
-  // Ouvrir le fil vaut lecture : la pastille retombe.
+  // Opening the thread counts as reading: the badge goes away.
   await expect(
     pageA.getByRole('link', { name: 'Messages', exact: true }).first(),
   ).toBeVisible({ timeout: 20_000 });
@@ -130,7 +130,7 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await pageA.getByLabel('Votre message').fill('Merci Bob, avec plaisir.');
   await pageA.getByRole('button', { name: 'Envoyer' }).click();
 
-  // --- B reçoit la réponse sans recharger (temps réel) --------------------------
+  // --- B receives the reply without reloading (real time) -----------------------
   await expect(
     pageB.getByText('Merci Bob, avec plaisir.', { exact: true }).last(),
   ).toBeVisible({

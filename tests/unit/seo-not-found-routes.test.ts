@@ -7,9 +7,9 @@ import {
   notFoundRewriteFor,
 } from '@/lib/not-found-routes';
 
-// La liste des premiers segments connus par le middleware (R-04) doit refléter
-// les dossiers RÉELS de `src/app/[locale]/` : un dossier ajouté sans son entrée
-// répondrait 404 en production.
+// The list of first segments known to the middleware (R-04) must reflect
+// the ACTUAL folders of `src/app/[locale]/`: a folder added without its entry
+// would respond 404 in production.
 const LOCALE_DIR = join(process.cwd(), 'src', 'app', '[locale]');
 const realSegments = readdirSync(LOCALE_DIR)
   .filter((entry) => statSync(join(LOCALE_DIR, entry)).isDirectory())
@@ -35,7 +35,7 @@ describe('404 par réécriture — notFoundRewriteFor (R-04)', () => {
     expect(notFoundRewriteFor('/ar/xyz')).toBe('/ar/introuvable');
     expect(notFoundRewriteFor('/en/library')).toBe('/en/introuvable');
     expect(notFoundRewriteFor('/pt/xyz/abc')).toBe('/pt/introuvable');
-    // Visite directe de la page « introuvable » : 404 aussi.
+    // Direct visit to the "not found" page: 404 too.
     expect(notFoundRewriteFor('/es/introuvable')).toBe('/es/introuvable');
   });
 
@@ -45,7 +45,7 @@ describe('404 par réécriture — notFoundRewriteFor (R-04)', () => {
     expect(notFoundRewriteFor('/fr/bibliotheque')).toBeNull();
     expect(notFoundRewriteFor('/ar/le-reseau/institut-sahel')).toBeNull();
     expect(notFoundRewriteFor('/fr/admin/contact')).toBeNull();
-    // Sans préfixe de langue : c'est next-intl qui redirige d'abord.
+    // Without a language prefix: next-intl redirects first.
     expect(notFoundRewriteFor('/xx')).toBeNull();
     expect(notFoundRewriteFor('/de')).toBeNull();
     expect(notFoundRewriteFor('/')).toBeNull();
@@ -64,7 +64,7 @@ describe('404 par réécriture — notFoundRewriteFor (R-04)', () => {
     expect(notFoundRewriteFor('/fr/le-reseau/%E0%A4%A')).toBe(
       '/fr/introuvable',
     );
-    // Un slug ordinaire, même encodé, reste une fiche.
+    // An ordinary slug, even encoded, is still a detail page.
     expect(notFoundRewriteFor('/fr/le-reseau/%00a')).toBe('/fr/introuvable');
     expect(notFoundRewriteFor('/fr/le-reseau/caf%C3%A9')).toBeNull();
   });

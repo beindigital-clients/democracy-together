@@ -17,9 +17,9 @@ import {
 
 afterEach(cleanup);
 
-// SAISIE DES TRADUCTIONS DU BACK-OFFICE (chantier « contenus », F-62) : une
-// langue à la fois, l'indicateur de langue manquante, et le même repli que
-// le serveur pour l'aperçu.
+// BACK-OFFICE TRANSLATION INPUT ("contenus" workstream, F-62): one
+// language at a time, the missing-language indicator, and the same fallback as
+// the server for the preview.
 
 function Harness({ initial }: { initial: LText }) {
   const [value, setValue] = useState<LText>(initial);
@@ -66,10 +66,10 @@ describe('Contenus — saisie traduisible', () => {
     expect(input.value).toBe('');
     expect(input.getAttribute('dir')).toBe('rtl');
     expect(input.getAttribute('lang')).toBe('ar');
-    // Une langue remplie suffit : le champ n'est plus exigé du navigateur.
+    // One filled-in language is enough: the field is no longer required by the browser.
     expect(input.required).toBe(false);
     fireEvent.change(input, { target: { value: 'مرحباً' } });
-    // L'arabe est maintenant traduit : son indicateur disparaît.
+    // Arabic is now translated: its indicator disappears.
     expect(screen.getByRole('button', { name: 'Arabe' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Français' }));
     expect(screen.getByLabelText('Titre').value).toBe('Bonjour');

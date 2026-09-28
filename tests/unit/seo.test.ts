@@ -14,32 +14,32 @@ import {
 import { eventToIcs } from '@/lib/ics';
 import { routing } from '@/i18n/routing';
 
-// F-03 — métadonnées de partage et données structurées.
+// F-03 — sharing metadata and structured data.
 //
-// Mesuré avant correctif : zéro balise Open Graph, zéro Twitter Card, zéro
-// JSON-LD sur les 48 pages publiques. Ce module porte ce que les pages n'ont
-// pas à réécrire ; ce fichier tient ce qu'il promet.
+// Measured before the fix: zero Open Graph tags, zero Twitter Cards, zero
+// JSON-LD on the 48 public pages. This module carries what pages do not have
+// to rewrite; this file holds it to its promises.
 
 describe('Étiquettes de langue Open Graph', () => {
   it('rend une étiquette TERRITORIALISÉE, pas un code court', () => {
-    // `fr` n'est pas une valeur Open Graph valide : la spécification attend
-    // langue_TERRITOIRE. Servir `fr` revient à ne rien servir.
+    // `fr` is not a valid Open Graph value: the specification expects
+    // language_TERRITORY. Serving `fr` amounts to serving nothing.
     expect(openGraphLocale('fr')).toBe('fr_FR');
     expect(openGraphLocale('en')).toBe('en_US');
   });
 
   it('rend `undefined` pour une locale inconnue plutôt qu’une valeur inventée', () => {
-    // On ne devine pas le territoire d'une langue qu'on ne sert pas : `de`
-    // pourrait être de_DE, de_AT ou de_CH. L'exemple était `pt` avant que le
-    // portugais ne devienne une langue du site — il porte maintenant une
-    // étiquette DÉCLARÉE (pt_PT), ce que le test suivant vérifie.
+    // We do not guess the territory of a language we do not serve: `de`
+    // could be de_DE, de_AT or de_CH. The example was `pt` before
+    // Portuguese became a site language — it now carries a
+    // DECLARED tag (pt_PT), which the next test checks.
     expect(openGraphLocale('de')).toBeUndefined();
     expect(openGraphLocale('')).toBeUndefined();
   });
 
   it('couvre TOUTES les locales servies par le site', () => {
-    // Garde d'évolution : ajouter une locale à `routing` sans l'ajouter ici
-    // la priverait silencieusement d'og:locale. Le test le dit.
+    // Evolution guard: adding a locale to `routing` without adding it here
+    // would silently deprive it of og:locale. The test says so.
     for (const l of routing.locales) {
       expect(
         openGraphLocale(l),
@@ -57,9 +57,9 @@ describe('Locales alternées', () => {
       'pt_PT',
       'ar_EG',
     ]);
-    // La sienne en est absente, quelle que soit la langue interrogée : c'est
-    // la propriété qui compte, et elle se vérifie sur les cinq d'un coup
-    // plutôt que sur un couple choisi à la main.
+    // Its own is absent from it, whatever language is queried: that is
+    // the property that matters, and it is checked on all five at once
+    // rather than on a hand-picked pair.
     for (const l of routing.locales) {
       expect(alternateOpenGraphLocales(l)).not.toContain(openGraphLocale(l));
     }
@@ -72,8 +72,8 @@ describe('Locales alternées', () => {
   });
 
   it('écarte silencieusement une locale sans étiquette connue', () => {
-    // Une locale inconnue ne doit pas produire un `undefined` dans le tableau,
-    // ce qui donnerait `<meta property="og:locale:alternate" content="">`.
+    // An unknown locale must not produce an `undefined` in the array,
+    // which would give `<meta property="og:locale:alternate" content="">`.
     for (const v of alternateOpenGraphLocales('fr')) {
       expect(typeof v).toBe('string');
       expect(v).not.toBe('');
@@ -100,15 +100,15 @@ describe('Données structurées — fiche Organization', () => {
   });
 
   it('pointe un logo en URL ABSOLUE', () => {
-    // Un chemin relatif dans du JSON-LD n'est résolu par aucun moteur.
+    // A relative path in JSON-LD is resolved by no search engine.
     expect(fiche.logo.startsWith('http')).toBe(true);
     expect(fiche.logo).toContain('/brand/');
   });
 
   it('ne déclare RIEN de plus que ce que le dépôt possède', () => {
-    // Une adresse postale ou un profil social inventés seraient une donnée
-    // fausse servie aux moteurs — pire que leur absence. La liste des clés
-    // est donc close, et ce test est ce qui la tient fermée.
+    // A made-up postal address or social profile would be false
+    // data served to search engines — worse than their absence. The list of keys
+    // is therefore closed, and this test is what keeps it closed.
     expect(Object.keys(fiche).sort()).toEqual([
       '@context',
       '@id',
@@ -126,21 +126,21 @@ describe('Données structurées — fiche Organization', () => {
   });
 });
 
-// --- P1 n° 4 du plan d'action : les fiches de PAGE ------------------------
+// --- P1 no. 4 of the action plan: PAGE entries -----------------------------
 //
-// `Organization` répondait « qui publie » ; il restait à décrire CE QUI est
-// publié. Deux constructeurs, et une règle unique qui les gouverne : une fiche
-// ne déclare que ce que la page montre.
+// `Organization` answered "who publishes"; what remained was to describe WHAT is
+// published. Two builders, and a single rule governing them: an entry
+// only declares what the page shows.
 
 describe('Sérialisation d’un bloc JSON-LD', () => {
-  // Un titre d'actualité est saisi dans le CMS : c'est du texte qu'on ne
-  // contrôle pas. Celui-ci ferme la balise et ouvre une image piégée.
+  // A news title is entered in the CMS: it is text we do not
+  // control. This one closes the tag and opens a booby-trapped image.
   const TITRE_PIEGE = `Fin</script><img src=x onerror=alert(1)>`;
   const fiche = { '@type': 'Article', headline: TITRE_PIEGE };
 
   it('JSON.stringify SEUL laisse sortir du bloc — le témoin', () => {
-    // Sans ce test, rien ne dit que la protection sert à quelque chose.
-    // Il échoue le jour où la menace disparaît ; en attendant, il la montre.
+    // Without this test, nothing says the protection serves any purpose.
+    // It fails the day the threat disappears; until then, it shows it.
     expect(JSON.stringify(fiche)).toContain('</scr' + 'ipt');
   });
 
@@ -150,7 +150,7 @@ describe('Sérialisation d’un bloc JSON-LD', () => {
   });
 
   it('reste du JSON valide — le moteur reçoit la donnée intacte', () => {
-    // `\u003c` est un échappement légal : l'aller-retour doit rendre le `<`.
+    // `<` is a legal escape: the round trip must give back the `<`.
     expect(JSON.parse(jsonLdScript(fiche))).toEqual(fiche);
     expect(JSON.parse(jsonLdScript(fiche)).headline).toBe(TITRE_PIEGE);
   });
@@ -195,9 +195,9 @@ describe('Données structurées — fiche Event', () => {
   });
 
   it('ne recopie PAS la fin de l’iCalendar, qui désigne le lendemain', () => {
-    // Le piège est réel : les deux formats décrivent le même jour entier avec
-    // des conventions opposées. Ce test tient les deux côtés à la fois, pour
-    // qu’aligner l’un sur l’autre fasse rougir plutôt que dériver en silence.
+    // The trap is real: the two formats describe the same whole day with
+    // opposite conventions. This test holds both sides at once, so that
+    // aligning one with the other turns red rather than drifting silently.
     const ics = eventToIcs({
       uid: 'x@democracy-together.org',
       start: base.start,
@@ -227,8 +227,8 @@ describe('Données structurées — fiche Event', () => {
       address: { '@type': 'PostalAddress', addressLocality: 'Paris' },
     });
 
-    // Un webinaire a `cityKey: 'online'` : son libellé (« En ligne ») n’est pas
-    // une ville, et le servir comme `Place` serait une adresse inventée.
+    // A webinar has `cityKey: 'online'`: its label ("En ligne") is not
+    // a city, and serving it as a `Place` would be a made-up address.
     const enLigne = eventJsonLd({
       ...base,
       format: 'en-ligne',
@@ -248,7 +248,7 @@ describe('Données structurées — fiche Event', () => {
 
   it('RÉFÉRENCE l’organisation du layout au lieu de la recopier', () => {
     expect(fiche.organizer).toEqual({ '@id': ORGANIZATION_ID });
-    // Le renvoi ne vaut que si la fiche visée porte bien cet identifiant.
+    // The reference only holds if the targeted entry does carry this identifier.
     expect(organizationJsonLd('peu importe')['@id']).toBe(ORGANIZATION_ID);
   });
 
@@ -260,9 +260,9 @@ describe('Données structurées — fiche Event', () => {
   });
 
   it('ne déclare NI image, NI tarif, NI intervenant', () => {
-    // La page sert la même photo de Paris pour Dakar, ses tarifs sont fictifs
-    // et ses intervenants relèvent du même jeu d’illustration. La liste est
-    // close, et ce test est ce qui la tient fermée.
+    // The page serves the same photo of Paris for Dakar, its prices are fictitious
+    // and its speakers belong to the same illustration set. The list is
+    // closed, and this test is what keeps it closed.
     expect(Object.keys(fiche).sort()).toEqual([
       '@context',
       '@type',
@@ -314,7 +314,7 @@ describe('Données structurées — fiche Article', () => {
   });
 
   it('omet le chapô absent plutôt que d’émettre une description vide', () => {
-    // `excerpt` est facultatif dans le schéma Sanity.
+    // `excerpt` is optional in the Sanity schema.
     const sansChapo = articleJsonLd({
       headline: 'T',
       slug: 's',
@@ -325,9 +325,9 @@ describe('Données structurées — fiche Article', () => {
   });
 
   it('ne déclare NI auteur, NI image', () => {
-    // Le schéma Sanity n’a pas de champ auteur : en inventer un serait une
-    // donnée fausse. `coverUrl` est bien projeté par la requête, mais la page
-    // ne le rend pas — une fiche décrit la page, pas la requête.
+    // The Sanity schema has no author field: inventing one would be
+    // false data. `coverUrl` is indeed projected by the query, but the page
+    // does not render it — an entry describes the page, not the query.
     expect(Object.keys(fiche).sort()).toEqual([
       '@context',
       '@type',

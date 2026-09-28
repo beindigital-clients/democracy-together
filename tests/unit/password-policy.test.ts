@@ -4,33 +4,33 @@ import {
   passwordRefusal,
 } from '@convex/lib/passwordPolicy';
 
-// `passwordRefusal` est la forme de la politique que l'INTERFACE consomme : le
-// formulaire de réinitialisation s'en sert pour dire laquelle des deux règles
-// casse, le refus serveur ne traversant pas la route /api/auth avec son code
-// (cf. le commentaire du module). Ce que le serveur applique est testé à part,
-// par convex/password-policy.test.ts, qui charge le câblage réel.
+// `passwordRefusal` is the form of the policy that the INTERFACE consumes: the
+// reset form uses it to say which of the two rules
+// fails, since the server refusal does not cross the /api/auth route with its code
+// (see the module's comment). What the server enforces is tested separately,
+// by convex/password-policy.test.ts, which loads the real wiring.
 
 describe('Politique de mot de passe — forme lue par l’interface', () => {
   it('nomme la règle qui casse', () => {
     expect(
       passwordRefusal('mot-de-passe'.slice(0, PASSWORD_MIN_LENGTH - 1)),
     ).toBe('PASSWORD_TOO_SHORT');
-    // 13 caractères : la longueur seule ne l'aurait pas arrêté.
+    // 13 characters: length alone would not have stopped it.
     expect(passwordRefusal('MotDePasse123')).toBe('PASSWORD_TOO_COMMON');
-    // L'échappatoire immédiate à une règle qui ne parle que de longueur.
+    // The immediate loophole in a rule that only talks about length.
     expect(passwordRefusal('aaaaaaaaaaaaaa')).toBe('PASSWORD_TOO_COMMON');
   });
 
   it('laisse passer un mot de passe conforme', () => {
     expect(passwordRefusal('phrase-de-passe-du-secretariat')).toBeNull();
-    // Contient « motdepasse », mais n'est pas « motdepasse » : la comparaison
-    // est exacte, sinon la règle serait hostile à un mot de passe solide.
+    // Contains "motdepasse", but is not "motdepasse": the comparison
+    // is exact, otherwise the rule would be hostile to a strong password.
     expect(passwordRefusal('motdepasse-de-mon-chat-2019')).toBeNull();
   });
 
   it('juge la longueur AVANT la banalité', () => {
-    // « azerty » est dans la liste ET trop court. L'ordre décide du message
-    // affiché : on demande d'allonger, ce qui est la correction utile.
+    // "azerty" is in the list AND too short. The order decides which message
+    // is displayed: we ask to make it longer, which is the useful fix.
     expect(passwordRefusal('azerty')).toBe('PASSWORD_TOO_SHORT');
   });
 

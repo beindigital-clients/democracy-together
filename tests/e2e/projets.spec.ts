@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// F-60 — Appels à projets collaboratifs : page publique qui présente le
-// dispositif et invite les membres à proposer un projet. (Test léger : la page
-// répond et affiche le bon h1. Le gating membre est couvert par les tests Convex.)
+// F-60 — Collaborative calls for projects: public page presenting the
+// scheme and inviting members to propose a project. (Lightweight test: the page
+// responds and shows the right h1. Member gating is covered by the Convex tests.)
 
 test('appels à projets : la page publique répond (FR)', async ({ page }) => {
   const res = await page.goto('/fr/appels-a-projets');
@@ -14,7 +14,7 @@ test('appels à projets : la page publique répond (FR)', async ({ page }) => {
     }),
   ).toBeVisible();
 
-  // Un visiteur (non connecté) est invité à adhérer, pas de formulaire ouvert.
+  // A (signed-out) visitor is invited to join, no form is open.
   await expect(
     page.getByRole('link', { name: 'Adhérer' }).first(),
   ).toBeVisible();

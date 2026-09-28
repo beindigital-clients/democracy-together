@@ -41,7 +41,7 @@ describe('Contenu légal (F-09)', () => {
   });
 
   it('marque explicitement les éléments à compléter (aucune fabrication)', () => {
-    // Mentions légales : éditeur / directeur / RNA non confirmés -> à compléter.
+    // Legal notice: publisher / director / RNA not confirmed -> to be completed.
     const blob = JSON.stringify(
       getLegalContent('mentions', 'fr'),
     ).toLowerCase();

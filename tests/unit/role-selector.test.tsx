@@ -13,12 +13,12 @@ import { RoleSelector } from '@/components/admin/role-selector';
 
 afterEach(cleanup);
 
-// Sélecteur de rôle du back-office (issue #38).
+// Back-office role selector (issue #38).
 //
-// Le `onChange` du `<Select>` déclenchait la mutation : un mouvement de molette
-// au-dessus de la liste déroulante rétrogradait un modérateur. Le cœur de ce
-// fichier est donc le premier test — CHOISIR N'EST PAS APPLIQUER — puis le
-// second garde-fou, la confirmation qui nomme le compte visé.
+// The `<Select>`'s `onChange` fired the mutation: a mouse-wheel movement
+// over the dropdown demoted a moderator. The heart of this
+// file is therefore the first test — CHOOSING IS NOT APPLYING — then the
+// second safeguard, the confirmation that names the targeted account.
 
 function setup(
   overrides: Partial<Parameters<typeof RoleSelector>[0]> = {},
@@ -61,7 +61,7 @@ describe('RoleSelector — choisir n’est pas appliquer (issue #38)', () => {
     choose('membre');
     expect(screen.getByRole('button', { name: /Appliquer/ })).toBeTruthy();
 
-    choose('moderateur'); // retour à la valeur réelle
+    choose('moderateur'); // back to the actual value
     expect(screen.queryByRole('button', { name: /Appliquer/ })).toBeNull();
   });
 
@@ -87,7 +87,7 @@ describe('RoleSelector — choisir n’est pas appliquer (issue #38)', () => {
 
     expect(onApply).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).toBeNull();
-    // Le brouillon survit à l'annulation : on rouvre sans re-choisir.
+    // The draft survives cancellation: we reopen without choosing again.
     expect(screen.getByRole('button', { name: /Appliquer/ })).toBeTruthy();
   });
 

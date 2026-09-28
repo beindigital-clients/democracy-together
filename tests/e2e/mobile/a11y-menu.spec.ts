@@ -5,18 +5,18 @@ import {
   ciblesTropPetites,
 } from '../_a11y';
 
-// L'ÉCRAN QUE PERSONNE NE SCANNAIT (angle mort 2 de l'audit).
+// THE SCREEN NOBODY SCANNED (blind spot 2 of the audit).
 //
-// Le panneau de navigation mobile n'était vu par aucune garde :
-//   — `a11y.spec.ts` tourne sur le projet `chromium`, donc sur un viewport de
-//     bureau, où `MobileNav` est masqué par `min-[1120px]:hidden` ;
-//   — le projet `mobile-chromium` existait, mais ses deux specs exercent des
-//     PARCOURS (navigation, tactile, débordement) et n'analysent rien.
+// The mobile navigation panel was seen by no guard:
+//   — `a11y.spec.ts` runs on the `chromium` project, hence on a desktop
+//     viewport, where `MobileNav` is hidden by `min-[1120px]:hidden`;
+//   — the `mobile-chromium` project existed, but its two specs exercise
+//     FLOWS (navigation, touch, overflow) and analyze nothing.
 //
-// Résultat : sous 1120 px le menu est le SEUL chemin de navigation du site, sur
-// la plateforme que le cadrage annonce comme premier usage, et son
-// accessibilité n'avait jamais été mesurée. Elle l'est depuis, et elle est
-// propre — ce fichier est là pour qu'elle le reste.
+// Result: below 1120 px the menu is the site's ONLY navigation path, on
+// the platform the scoping document names as the primary use, and its
+// accessibility had never been measured. It has been since, and it is
+// clean — this file is there so that it stays that way.
 test.use({ locale: 'fr-FR' });
 
 const TOGGLE = 'button[aria-controls="mobile-nav"]';
@@ -33,7 +33,7 @@ test('a11y : le panneau de navigation mobile OUVERT', async ({ page }) => {
   await revealAll(page);
   const panneau = await ouvrirLeMenu(page);
 
-  // NON-VACUITÉ : un panneau vide passerait toutes les analyses du monde.
+  // NON-VACUITY: an empty panel would pass every analysis in the world.
   const liens = await panneau.getByRole('link').count();
   expect(liens, 'panneau vide : le scan ne mesurerait rien').toBeGreaterThan(5);
   await expect(panneau).toHaveAttribute('aria-modal', 'true');
@@ -42,18 +42,18 @@ test('a11y : le panneau de navigation mobile OUVERT', async ({ page }) => {
 });
 
 test('a11y : le menu mobile en anglais aussi', async ({ page }) => {
-  // La bascule de langue vit DANS le panneau : si son libellé ou son rôle
-  // dérive côté `en`, aucune autre garde ne le verrait.
+  // The language toggle lives INSIDE the panel: if its label or role
+  // drifts on the `en` side, no other guard would see it.
   await page.goto('/en');
   await revealAll(page);
   await ouvrirLeMenu(page);
   await attendreAucuneViolationGrave(page, 'menu mobile ouvert (en)');
 });
 
-// WCAG 2.2 — 2.5.8 « Taille de cible (minimum) », niveau AA. Le critère ne
-// s'évalue pas sur la seule taille : une cible sous-dimensionnée reste conforme
-// si elle est assez ESPACÉE de ses voisines. `ciblesTropPetites` applique la
-// règle entière ; le témoin ci-dessous garantit qu'elle peut encore échouer.
+// WCAG 2.2 — 2.5.8 "Target Size (Minimum)", level AA. The criterion is not
+// evaluated on size alone: an undersized target is still compliant
+// if it is SPACED far enough from its neighbors. `ciblesTropPetites` applies the
+// full rule; the control below guarantees it can still fail.
 test.describe('cibles tactiles (WCAG 2.5.8)', () => {
   test('le détecteur sait échouer — sinon son zéro ne vaut rien', async ({
     page,
@@ -83,10 +83,10 @@ test.describe('cibles tactiles (WCAG 2.5.8)', () => {
   });
 
   test('l’accueil et la connexion sont conformes', async ({ page }) => {
-    // Deux pages choisies pour ce qu'elles portent : l'accueil pour sa densité
-    // de liens (en-tête, sections, pied de page), la connexion parce que son
-    // lien « Mot de passe oublié ? » longe un champ de saisie — l'adjacence la
-    // plus serrée mesurée sur le site (29 px pour 12 exigés).
+    // Two pages chosen for what they carry: the home page for its link
+    // density (header, sections, footer), sign-in because its
+    // "Mot de passe oublié ?" link runs alongside an input field — the tightest
+    // adjacency measured on the site (29 px for 12 required).
     for (const route of ['/fr', '/fr/connexion']) {
       await page.goto(route);
       await revealAll(page);

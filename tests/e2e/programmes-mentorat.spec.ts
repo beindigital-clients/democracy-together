@@ -2,10 +2,10 @@ import { test, expect, type Browser, type Page } from '@playwright/test';
 import { resetProgrammes } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
 
-// F-59 — Mentorat, de bout en bout : un mentor et une mentorée tiennent leur
-// profil ; la coordinatrice lit les suggestions (score expliqué) et propose le
-// binôme ; les deux l'acceptent ; une séance est journalisée ; la
-// coordinatrice suit le binôme sans lire les notes privées.
+// F-59 — Mentoring, end to end: a mentor and a mentee maintain their
+// profile; the coordinator reads the suggestions (explained score) and proposes the
+// pair; both accept it; a session is logged; the
+// coordinator follows the pair without reading the private notes.
 test.use({ locale: 'fr-FR' });
 
 async function as(browser: Browser, key: SessionKey) {
@@ -62,7 +62,7 @@ test.describe
     const mentorName = `Mentor E2E ${stamp}`;
     const menteeName = `Mentorée E2E ${stamp}`;
 
-    // 1. Le mentor et la mentorée tiennent leur profil.
+    // 1. The mentor and the mentee maintain their profile.
     const mentor = await as(browser, 'progMentor');
     await mentor.page.goto('/fr/espace-membre/mentorat');
     const mentorForm = await fillProfile(
@@ -104,7 +104,7 @@ test.describe
     ).toBeVisible();
     await mentee.done();
 
-    // 2. La coordinatrice lit la suggestion expliquée et propose le binôme.
+    // 2. The coordinator reads the explained suggestion and proposes the pair.
     const coord = await as(browser, 'progMentoratCoordination');
     await coord.page.goto('/fr/admin/mentorat/coordination');
     const menteeRow = coord.page
@@ -117,7 +117,7 @@ test.describe
     const suggestion = menteeRow
       .getByRole('listitem')
       .filter({ hasText: mentorName });
-    // Profils identiques, mentor libre : le score est plein, et il se lit.
+    // Identical profiles, mentor available: the score is full, and it is readable.
     await expect(
       suggestion.getByText('Score d’appariement : 100 / 100'),
     ).toBeVisible();
@@ -138,7 +138,7 @@ test.describe
     ).toBeVisible();
     await coord.done();
 
-    // 3. Les deux parties acceptent depuis leur espace.
+    // 3. Both parties accept from their area.
     for (const [key, other] of [
       ['progMentor', menteeName],
       ['progMentore', mentorName],
@@ -153,7 +153,7 @@ test.describe
       await party.done();
     }
 
-    // 4. La mentorée journalise une séance, notes comprises.
+    // 4. The mentee logs a session, notes included.
     const mentee2 = await as(browser, 'progMentore');
     await mentee2.page.goto('/fr/espace-membre/mentorat');
     const pair = mentee2.page
@@ -176,7 +176,7 @@ test.describe
     const pairUrl = mentee2.page.url();
     await mentee2.done();
 
-    // 5. La coordinatrice suit le binôme : la séance, pas ses notes.
+    // 5. The coordinator follows the pair: the session, not its notes.
     const coord2 = await as(browser, 'progMentoratCoordination');
     await coord2.page.goto(pairUrl);
     await expect(coord2.page.getByText('Vue du coordinateur')).toBeVisible();

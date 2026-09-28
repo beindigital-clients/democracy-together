@@ -5,17 +5,17 @@ import {
   PROTECTED_SEGMENTS,
 } from '@/lib/protected-routes';
 
-// Gating serveur des zones privées (audit § 5.1).
+// Server-side gating of private areas (audit § 5.1).
 //
-// Jusqu'ici, /admin/*, /espace-membre, /espaces et /notifications renvoyaient
-// un HTML 200 avec « Chargement… » pendant 1,2 seconde, puis redirigeaient en
-// JavaScript. Conséquences : pas de 401/403, page blanche sans JS, et un
-// clignotement visible. Les DONNÉES restaient protégées (le RBAC serveur de
-// Convex tient), mais la frontière public/privé n'existait pas côté HTTP.
+// Until now, /admin/*, /espace-membre, /espaces and /notifications returned
+// an HTML 200 with "Chargement…" for 1.2 seconds, then redirected in
+// JavaScript. Consequences: no 401/403, a blank page without JS, and a
+// visible flicker. The DATA stayed protected (Convex's server-side RBAC
+// holds), but the public/private boundary did not exist at the HTTP level.
 //
-// Ces fonctions décident du gating. Elles sont pures, donc testables sans
-// démarrer Next — et c'est là que vivent les pièges : un préfixe partiel ne
-// doit JAMAIS matcher.
+// These functions decide the gating. They are pure, hence testable without
+// starting Next — and that is where the traps live: a partial prefix must
+// NEVER match.
 
 describe('isProtectedPath — zones privées', () => {
   it('protège les quatre segments, avec préfixe de langue', () => {
@@ -33,8 +33,8 @@ describe('isProtectedPath — zones privées', () => {
   });
 
   it('protège aussi le chemin SANS préfixe de langue', () => {
-    // Le middleware s'exécute AVANT la redirection de langue de next-intl :
-    // une requête sur /admin doit déjà être gardée.
+    // The middleware runs BEFORE next-intl's language redirect:
+    // a request on /admin must already be guarded.
     expect(isProtectedPath('/admin')).toBe(true);
     expect(isProtectedPath('/admin/utilisateurs')).toBe(true);
     expect(isProtectedPath('/notifications')).toBe(true);
@@ -46,8 +46,8 @@ describe('isProtectedPath — zones privées', () => {
   });
 
   it('ne protège PAS un segment qui commence pareil', () => {
-    // Le piège : une correspondance par simple préfixe de chaîne verrouillerait
-    // des pages publiques qui n'ont rien à voir.
+    // The trap: matching by simple string prefix would lock
+    // unrelated public pages.
     expect(isProtectedPath('/fr/administration')).toBe(false);
     expect(isProtectedPath('/fr/espaces-verts')).toBe(false);
     expect(isProtectedPath('/fr/notifications-publiques')).toBe(false);
@@ -91,8 +91,8 @@ describe('signInPathFor — la redirection garde la langue', () => {
   });
 
   it('ignore un préfixe qui n’est pas une langue connue', () => {
-    // `/de/...` n'est pas une langue du projet : on ne fabrique pas une URL
-    // dans une langue qui n'existe pas.
+    // `/de/...` is not one of the project's languages: we do not build a URL
+    // in a language that does not exist.
     expect(signInPathFor('/de/admin')).toBe('/fr/connexion');
   });
 });

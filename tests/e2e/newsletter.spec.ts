@@ -3,7 +3,7 @@ import { isNewsletterSubscribed } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-// F-18 — Newsletter : inscription -> succès + stockage Convex réel.
+// F-18 — Newsletter: signup -> success + real Convex storage.
 test('newsletter : inscription valide -> succès + stockage (F-18)', async ({
   page,
 }) => {
@@ -17,7 +17,7 @@ test('newsletter : inscription valide -> succès + stockage (F-18)', async ({
     page.getByText(/Un e-mail de confirmation vient de vous être envoyé/),
   ).toBeVisible();
 
-  // vérifie le stockage réel (lecture dev, garde AUTH_DEV_OTP)
+  // checks the real storage (dev read, AUTH_DEV_OTP guard)
   expect(isNewsletterSubscribed(email)).toBe(true);
 });
 

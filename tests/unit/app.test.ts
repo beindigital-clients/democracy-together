@@ -11,10 +11,10 @@ describe('i18n — routing (F-03)', () => {
   });
 
   it('chaque locale servie déclare son sens d’écriture', () => {
-    // `direction()` est typée `Record<Locale, Direction>`, donc exhaustive à la
-    // compilation. Ce test tient l'autre moitié : que la VALEUR déclarée soit
-    // l'une des deux admises — une faute de frappe (`'rlt'`) passerait le
-    // compilateur si la table venait un jour à être élargie.
+    // `direction()` is typed `Record<Locale, Direction>`, hence exhaustive at
+    // compile time. This test holds the other half: that the declared VALUE is
+    // one of the two allowed — a typo (`'rlt'`) would get past the
+    // compiler if the table were ever widened.
     for (const l of routing.locales) {
       expect(['ltr', 'rtl'], `sens inconnu pour « ${l} »`).toContain(
         direction(l),

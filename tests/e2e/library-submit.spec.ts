@@ -10,16 +10,16 @@ import { expectFieldError, expectNoFieldError } from './_fields';
 
 test.use({ locale: 'fr-FR' });
 
-// Marqueur présent dans le titre des publications créées ici -> nettoyage ciblé
-// du dataset partagé après coup (le test publie une vraie publication).
+// Marker present in the title of publications created here -> targeted cleanup
+// of the shared dataset afterwards (the test publishes a real publication).
 const TEST_MARKER = 'Confiance institutionnelle E2E';
 
 test.afterAll(async () => {
   await deleteTestPublications(TEST_MARKER);
 });
 
-// F-32 — Dépôt documentaire : un membre dépose une publication (avec fichier),
-// elle part en modération, un modérateur la publie, elle devient publique.
+// F-32 — Document submission: a member submits a publication (with a file),
+// it goes to moderation, a moderator publishes it, it becomes public.
 test('un membre dépose une publication, un modérateur la publie (F-32)', async ({
   page,
 }) => {
@@ -27,20 +27,20 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
   const email = `e2e_pub_${stamp}@democracytogether.test`;
   const title = `Confiance institutionnelle E2E ${stamp}`;
 
-  await signUpAndVerify(page, email, E2E_PASSWORD); // auto-inscription -> rôle « visiteur »
+  await signUpAndVerify(page, email, E2E_PASSWORD); // self-signup -> "visiteur" role
 
-  // Modèle d'adhésion B : seuls les membres validés déposent. On élève le
-  // compte au rôle « membre » (équivaut à une candidature d'adhésion validée).
+  // Membership model B: only validated members can submit. We elevate the
+  // account to the "membre" role (equivalent to a validated membership application).
   await elevateRole(email, 'membre');
   await page.goto('/fr/espace-membre');
 
-  // Depuis l'espace membre -> formulaire de dépôt
+  // From the member area -> submission form
   await page
     .getByRole('link', { name: 'Soumettre une publication', exact: true })
     .click();
   await expect(page).toHaveURL(/\/espace-membre\/deposer$/);
 
-  // Renseigne le formulaire (type/thème/région/langue : valeurs par défaut)
+  // Fill in the form (type/theme/region/language: default values)
   await page.getByLabel('Titre', { exact: true }).fill(title);
   await page.getByLabel('Auteur·rice·s').fill('A. Membre E2E');
   await page
@@ -59,24 +59,24 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
     page.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();
 
-  // Retour à l'espace membre : la contribution apparaît « En revue »
+  // Back to the member area: the contribution shows as "En revue"
   await page.getByRole('link', { name: 'Retour à mon espace' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
   const row = page.getByRole('row').filter({ hasText: title });
   await expect(row).toBeVisible();
   await expect(row.getByText('En revue')).toBeVisible();
 
-  // Élévation en admin -> file de modération des publications
+  // Elevation to admin -> publication moderation queue
   await elevateRole(email, 'admin');
   await page.goto('/fr/admin/publications');
 
   const modRow = page.getByRole('listitem').filter({ hasText: title });
   await expect(modRow).toBeVisible();
   await modRow.getByRole('button', { name: 'Approuver' }).click();
-  // quitte la file « En attente »
+  // leaves the "En attente" queue
   await expect(modRow).toHaveCount(0);
 
-  // Publiée : visible dans « Mes contributions » + ouvrable sur sa fiche
+  // Published: visible in "Mes contributions" + openable on its page
   await page.goto('/fr/espace-membre');
   const pubRow = page.getByRole('row').filter({ hasText: title });
   await expect(pubRow.getByText('Publié')).toBeVisible();
@@ -84,7 +84,7 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
   await expect(page.getByRole('heading', { level: 1 })).toContainText(title);
 });
 
-// La page de dépôt est protégée : sans session, redirection vers /connexion.
+// The submission page is protected: without a session, redirect to /connexion.
 test('dépôt protégé : redirige vers connexion si non authentifié (F-32/F-01)', async ({
   page,
 }) => {
@@ -92,8 +92,8 @@ test('dépôt protégé : redirige vers connexion si non authentifié (F-32/F-01
   await expect(page).toHaveURL(/\/connexion$/);
 });
 
-// Dépôt : ce qui manquait au formulaire (issue #37). Une session de membre
-// suffit — le sujet n'est pas la connexion.
+// Submission: what the form was missing (issue #37). A member session
+// is enough — sign-in is not the subject here.
 test.describe('dépôt : validation et progression (#37)', () => {
   test.use({ storageState: SESSIONS.membre.state });
 
@@ -113,7 +113,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
 
     const title = page.getByLabel('Titre', { exact: true });
     await expectFieldError(page, title, /au moins 4 caractères/);
-    // Le résumé est valide : il n'est pas mis en cause, et il est intact.
+    // The abstract is valid: it is not flagged, and it is intact.
     await expectNoFieldError(page.getByLabel('Résumé', { exact: true }));
     await expect(page.getByLabel('Résumé', { exact: true })).toHaveValue(
       abstract,
@@ -127,10 +127,10 @@ test.describe('dépôt : validation et progression (#37)', () => {
   test('le téléversement affiche sa progression (F-32)', async ({ page }) => {
     const title = `${TEST_MARKER} progression ${Date.now()}`;
 
-    // Le fichier de test pèse quelques octets : son envoi serait terminé avant
-    // d'être observable. On relaie la vraie requête de stockage — le document
-    // est réellement téléversé — puis on retarde sa RÉPONSE, ce qui laisse
-    // l'état « téléversement » à l'écran le temps de le constater.
+    // The test file weighs a few bytes: its upload would be finished before
+    // it could be observed. We pass the real storage request through — the document
+    // is actually uploaded — then delay its RESPONSE, which leaves the
+    // "téléversement" state on screen long enough to observe it.
     await page.route('**/api/storage/upload*', async (route) => {
       const response = await route.fetch();
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -157,7 +157,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
     });
     await expect(bar).toBeVisible();
 
-    // Elle ne survit pas à l'envoi : la progression est un état, pas un décor.
+    // It does not survive the submission: the progress is a state, not decoration.
     await expect(
       page.getByRole('heading', { name: 'Soumission reçue' }),
     ).toBeVisible();

@@ -41,11 +41,11 @@ describe('Annuaire — matchesFilters (F-19)', () => {
       }),
     ).toBe(true);
     expect(matchesFilters(org(), { q: 'introuvable' })).toBe(false);
-    expect(matchesFilters(org(), { q: '   ' })).toBe(true); // recherche vide = neutre
+    expect(matchesFilters(org(), { q: '   ' })).toBe(true); // empty search = neutral
   });
 
   it('filtre par pays et par langue (codes ISO, casse indifférente)', () => {
-    // F-19 demande quatre filtres ; pays et langue manquaient (27/09).
+    // F-19 calls for four filters; country and language were missing (27/09).
     const o = org({ country: 'KE', languages: ['en', 'sw'] });
     expect(matchesFilters(o, { country: 'ke' })).toBe(true);
     expect(matchesFilters(o, { country: 'KE' })).toBe(true);
@@ -57,8 +57,8 @@ describe('Annuaire — matchesFilters (F-19)', () => {
   });
 
   it('la recherche texte trouve un membre par nom de pays, dans les langues du site', () => {
-    // Mesuré le 27/09 : « Kenya » -> 0 (la meule ne portait que nom +
-    // description ; le pays n'est stocké qu'en code).
+    // Measured on 27/09: "Kenya" -> 0 (the haystack only carried name +
+    // description; the country is only stored as a code).
     const o = org({ name: 'Institute for Policy', country: 'KE' });
     expect(matchesFilters(o, { q: 'Kenya' })).toBe(true);
     expect(matchesFilters(o, { q: 'ke' })).toBe(true);
@@ -71,7 +71,7 @@ describe('Annuaire — matchesFilters (F-19)', () => {
   it('countryTerms : le code ISO est toujours présent, un code inconnu ne jette pas', () => {
     expect(countryTerms('SN').split(' ')).toContain('sn');
     expect(countryTerms('SN')).toContain('senegal');
-    // `QM` (plage réservée à l'usage privé) : ICU n'a pas de nom, le code reste.
+    // `QM` (range reserved for private use): ICU has no name, the code stays.
     expect(countryTerms('QM')).toBe('qm');
     expect(() => countryTerms('!!')).not.toThrow();
     expect(countryTerms('!!')).toBe('!!');

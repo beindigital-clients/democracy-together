@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { SESSIONS } from './_sessions';
 import { approveTribunePosts } from './_helpers';
 
-// F-07 — SEO : sitemap.xml et robots.txt servis à la racine (non interceptés
-// par le proxy next-intl, qui ignore les chemins avec extension).
+// F-07 — SEO: sitemap.xml and robots.txt served at the root (not intercepted
+// by the next-intl proxy, which ignores paths with an extension).
 test('sitemap.xml : pages clés bilingues + alternates hreflang (F-07)', async ({
   request,
 }) => {
@@ -12,14 +12,14 @@ test('sitemap.xml : pages clés bilingues + alternates hreflang (F-07)', async (
   expect(res.headers()['content-type']).toContain('xml');
 
   const body = await res.text();
-  // pages publiques, dans les deux langues
+  // public pages, in both languages
   expect(body).toContain('/fr/bibliotheque');
   expect(body).toContain('/en/a-propos');
   expect(body).toContain('/fr/le-reseau');
-  // alternates hreflang
+  // hreflang alternates
   expect(body).toContain('hreflang="x-default"');
   expect(body).toContain('hreflang="en"');
-  // jamais de zone privée dans le sitemap
+  // never a private area in the sitemap
   expect(body).not.toContain('/admin');
   expect(body).not.toContain('/espace-membre');
 });
@@ -37,7 +37,7 @@ test('robots.txt : sitemap déclaré + zones privées interdites (F-07)', async 
   expect(body).toContain('Disallow: /studio');
 });
 
-// --- Issue #35 : ce que la tête de page déclare aux moteurs -----------------
+// --- Issue #35: what the page head declares to search engines --------------
 
 test('/recherche : noindex — une page de résultats n’entre pas dans l’index (#35)', async ({
   page,
@@ -47,14 +47,14 @@ test('/recherche : noindex — une page de résultats n’entre pas dans l’ind
     'content',
     /noindex/,
   );
-  // Aucun hreflang : sur une page en noindex, un moteur l'ignore. Le noindex
-  // EST la déclaration — l'alternate ne serait que du bruit.
+  // No hreflang: on a noindex page, a search engine ignores it. The noindex
+  // IS the declaration — the alternate would just be noise.
   await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(0);
 });
 
 test.describe('Tribune — un billet n’existe que dans une langue (#35)', () => {
-  // Publier exige un membre : on part de la session partagée plutôt que de
-  // rejouer une connexion (cf. tests/e2e/_sessions.ts).
+  // Publishing requires a member: we start from the shared session rather than
+  // replaying a sign-in (see tests/e2e/_sessions.ts).
   test.use({ storageState: SESSIONS.membre.state });
 
   test('canonical vers la langue du billet, identique sous les deux préfixes', async ({
@@ -62,8 +62,8 @@ test.describe('Tribune — un billet n’existe que dans une langue (#35)', () =
   }) => {
     const title = `Canonical E2E ${Date.now()}`;
 
-    // Un billet rédigé en ANGLAIS depuis l'interface FRANÇAISE : c'est le cas
-    // que la langue de l'interface, seule, aurait mal deviné.
+    // A post written in ENGLISH from the FRENCH interface: this is the case
+    // that the interface language alone would have guessed wrong.
     await page.goto('/fr/tribune');
     await page.getByRole('button', { name: 'Prendre la parole' }).click();
     const composer = page
@@ -76,8 +76,8 @@ test.describe('Tribune — un billet n’existe que dans une langue (#35)', () =
       .fill(
         'A short English contribution on citizen participation, written from the French interface.',
       );
-    // Modération A PRIORI (F-45) : le billet n'a de page publique qu'une fois
-    // validé.
+    // PRE-moderation (F-45): the post only has a public page once
+    // approved.
     await composer
       .getByRole('button', { name: 'Soumettre à la modération' })
       .click();
@@ -94,7 +94,7 @@ test.describe('Tribune — un billet n’existe que dans une langue (#35)', () =
     const id = new URL(page.url()).pathname.split('/').pop();
 
     const canonical = new RegExp(`/en/tribune/${id}$`);
-    // Servi sous /fr, le billet anglais canonicalise vers /en...
+    // Served under /fr, the English post canonicalizes to /en...
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       'href',
       canonical,
@@ -102,11 +102,11 @@ test.describe('Tribune — un billet n’existe que dans une langue (#35)', () =
     await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(
       0,
     );
-    // ...et le dit aussi à l'assistance technique, qui sans cela lirait un
-    // texte anglais avec la voix française.
+    // ...and also says so to assistive technology, which otherwise would read
+    // English text with the French voice.
     await expect(page.locator('h1')).toHaveAttribute('lang', 'en');
 
-    // Sous /en, LE MÊME canonical : un seul texte, une seule page de référence.
+    // Under /en, THE SAME canonical: a single text, a single reference page.
     await page.goto(`/en/tribune/${id}`);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       'href',
@@ -115,7 +115,7 @@ test.describe('Tribune — un billet n’existe que dans une langue (#35)', () =
     await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(
       0,
     );
-    // Même langue de part et d'autre : plus rien à signaler sur le titre.
+    // Same language on both sides: nothing left to flag on the title.
     await expect(page.locator('h1')).not.toHaveAttribute('lang', 'en');
   });
 });

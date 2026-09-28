@@ -5,9 +5,9 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 
 afterEach(cleanup);
 
-// BARRE DE PROGRESSION (issue #37). Ce qui compte ici n'est pas le pixel, c'est
-// le contrat ARIA : une progression qui ne s'annonce pas ne vaut pas mieux que
-// pas de progression du tout pour qui n'a pas l'écran sous les yeux.
+// PROGRESS BAR (issue #37). What matters here is not the pixel, it is
+// the ARIA contract: a progress indicator that does not announce itself is no better than
+// no progress indicator at all for someone who does not have the screen in front of them.
 
 describe('Barre de progression', () => {
   it('s’annonce comme une progression nommée et chiffrée', () => {
@@ -36,8 +36,8 @@ describe('Barre de progression', () => {
       />,
     );
     const bar = screen.getByRole('progressbar');
-    // L'absence de `aria-valuenow` EST le signal d'indétermination : un 0 %
-    // ferait croire à un envoi arrêté au départ.
+    // The absence of `aria-valuenow` IS the indeterminate signal: a 0 %
+    // would suggest an upload stuck at the start.
     expect(bar.getAttribute('aria-valuenow')).toBeNull();
     expect(bar.getAttribute('aria-valuetext')).toBe('Préparation du fichier…');
   });

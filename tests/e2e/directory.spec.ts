@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { seedDirectory } from './_helpers';
 
-// Navigateur FR : rend la détection Accept-Language déterministe.
+// FR browser: makes Accept-Language detection deterministic.
 test.use({ locale: 'fr-FR' });
 
 test.beforeAll(async () => {
@@ -23,7 +23,7 @@ test('annuaire : liste + filtre par région (F-19)', async ({ page }) => {
   ).toBeVisible();
   expect(await cards(page).count()).toBeGreaterThanOrEqual(8);
 
-  // filtrer sur l'Europe de l'Ouest
+  // filter on Western Europe
   await page
     .getByRole('link', { name: /Europe de l.Ouest/ })
     .first()
@@ -37,7 +37,7 @@ test('annuaire : liste + filtre par région (F-19)', async ({ page }) => {
   ).toHaveCount(0);
   await expect(cards(page)).toHaveCount(3);
 
-  // réinitialiser
+  // reset
   await page.getByRole('link', { name: 'Réinitialiser les filtres' }).click();
   await expect(page).toHaveURL(/\/fr\/le-reseau$/);
 });
@@ -50,7 +50,7 @@ test('annuaire : recherche puis fiche membre (F-21)', async ({ page }) => {
   await expect(page).toHaveURL(/q=Nairobi/);
   await expect(cards(page)).toHaveCount(1);
 
-  // ouvrir la fiche
+  // open the profile
   await page.getByRole('link', { name: /Nairobi Institute/ }).click();
   await expect(page).toHaveURL(/\/fr\/le-reseau\/nairobi-democratic-futures$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
@@ -61,7 +61,7 @@ test('annuaire : recherche puis fiche membre (F-21)', async ({ page }) => {
     page.getByRole('link', { name: /Visiter le site/ }),
   ).toBeVisible();
 
-  // retour à l'annuaire
+  // back to the directory
   await page.getByRole('link', { name: /Retour à l.annuaire/ }).click();
   await expect(page).toHaveURL(/\/fr\/le-reseau$/);
 });

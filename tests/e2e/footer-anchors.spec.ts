@@ -1,40 +1,40 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Issue #46 — sous « Le réseau », le pied de page proposait trois entrées —
-// « Mission & vision », « Gouvernance », « Fondateurs » — qui pointaient toutes
-// les trois vers `/a-propos` NU. Trois libellés, une seule destination, en haut
-// d'une page longue : au visiteur de retrouver la section lui-même.
+// Issue #46 — under "Le réseau", the footer offered three entries —
+// "Mission & vision", "Gouvernance", "Fondateurs" — which all three pointed
+// to BARE `/a-propos`. Three labels, a single destination, at the top
+// of a long page: up to the visitor to find the section themselves.
 //
-// Ce que cette spec voit et que les tests unitaires ne voient pas :
+// What this spec sees that the unit tests do not:
 //
-//  1. le saut d'ancre tel qu'il se produit vraiment, c'est-à-dire par une
-//     navigation CLIENTE de l'App Router — et non par le fragment natif du
-//     navigateur. C'est toute la difficulté : depuis Next 16, le gestionnaire
-//     de défilement défile vers l'ancre mais « laisse le focus intact » ;
-//  2. le FOCUS qui en résulte, la seule mesure qui dise si le lien sert à
-//     quelque chose au clavier et au lecteur d'écran ;
-//  3. la position réelle de la section une fois posée, sous un en-tête collant.
+//  1. the anchor jump as it really happens, i.e. through a
+//     CLIENT navigation of the App Router — not through the browser's native
+//     fragment. That is the whole difficulty: since Next 16, the scroll
+//     handler scrolls to the anchor but "leaves focus untouched";
+//  2. the resulting FOCUS, the only measure that tells whether the link is
+//     any use with a keyboard and a screen reader;
+//  3. the section's actual position once settled, under a sticky header.
 
-// En-tête collant : `h-16` (64 px). Les sections ciblées portent `scroll-mt-20`
-// (80 px), donc le haut de la section doit se poser à ~80 px du haut de la
-// fenêtre — sous l'en-tête, jamais dessous. La tolérance absorbe l'arrondi du
-// défilement.
+// Sticky header: `h-16` (64 px). The targeted sections carry `scroll-mt-20`
+// (80 px), so the top of the section must settle ~80 px from the top of the
+// viewport — below the header, never underneath it. The tolerance absorbs
+// scroll rounding.
 const HAUT_ATTENDU = 80;
 const TOLERANCE = 8;
 
-// TRACER LE PREMIER ESSAI, PAS LA REPRISE. La configuration du dépôt capture
-// la trace `on-first-retry` : sur un test INSTABLE — qui échoue puis passe —
-// l'artefact publié est donc celui de l'exécution RÉUSSIE, et l'échec ne
-// laisse rien. C'est ce qui s'est produit le 26/09 : le rapport contenait le
-// déroulé complet d'un parcours vert, et pas une image de la panne.
+// TRACE THE FIRST ATTEMPT, NOT THE RETRY. The repo configuration captures
+// the `on-first-retry` trace: on a FLAKY test — one that fails then passes —
+// the published artifact is therefore that of the SUCCESSFUL run, and the failure
+// leaves nothing. That is what happened on 26/09: the report contained the
+// full walkthrough of a green run, and not a single image of the failure.
 //
-// `retain-on-failure` enregistre chaque essai et ne garde que ceux qui
-// échouent. Posé sur CE fichier seulement : le coût est celui de ses sept
-// parcours, pas celui de la suite entière.
+// `retain-on-failure` records every attempt and keeps only those that
+// fail. Set on THIS file only: the cost is that of its seven
+// flows, not that of the whole suite.
 test.use({ trace: 'retain-on-failure' });
 
-// Les `id` sont ceux du composant de page, communs aux deux langues ; seuls les
-// libellés du pied de page sont traduits.
+// The `id`s are those of the page component, shared by both languages; only the
+// footer labels are translated.
 const ANCRES = {
   fr: [
     { libelle: 'Mission & vision', id: 'vision' },
@@ -54,15 +54,15 @@ function lienDuPiedDePage(page: Page, libelle: string) {
     .getByRole('link', { name: libelle, exact: true });
 }
 
-// Qui détient le focus, dit en clair. `toBeFocused()` ne sait répondre que
-// « inactive » : la section n'a pas le focus, sans dire où il est allé. Or
-// c'est exactement ce que la panne du 26/09 n'a pas permis de trancher — focus
-// JAMAIS POSÉ (l'écouteur d'`AnchorFocus` manquait au moment du clic) ou POSÉ
-// PUIS PERDU (le routeur l'a déplacé après coup). Les deux se corrigent à des
-// endroits différents.
+// Who holds focus, spelled out. `toBeFocused()` can only answer
+// "inactive": the section does not have focus, without saying where it went. Yet
+// that is exactly what the 26/09 failure did not allow us to settle — focus
+// NEVER SET (the `AnchorFocus` listener was missing at click time) or SET
+// THEN LOST (the router moved it afterwards). The two are fixed in
+// different places.
 //
-// L'assertion ne s'affaiblit pas : `activeElement` doit ÊTRE la section, comme
-// avant. Elle nomme seulement le coupable quand ce n'est pas le cas.
+// The assertion is not weakened: `activeElement` must BE the section, as
+// before. It merely names the culprit when that is not the case.
 async function focusCourant(page: Page): Promise<string> {
   return page.evaluate(() => {
     const a = document.activeElement;
@@ -73,9 +73,9 @@ async function focusCourant(page: Page): Promise<string> {
   });
 }
 
-// Le focus est posé par le composant client, le défilement par le routeur : sur
-// un clic visant la page courante, le premier précède le second. On attend donc
-// les deux, plutôt que de supposer qu'ils arrivent ensemble.
+// Focus is set by the client component, scrolling by the router: on
+// a click targeting the current page, the former precedes the latter. So we wait
+// for both, rather than assuming they arrive together.
 async function attendLeSautDAncre(page: Page, id: string): Promise<void> {
   const section = page.locator(`#${id}`);
 
@@ -108,9 +108,9 @@ for (const locale of ['fr', 'en'] as const) {
       });
     }
 
-    // Le pied de page est rendu sur TOUTES les pages, `/a-propos` comprise. Ce
-    // cas-là ne remonte pas l'arbre React et n'émet aucun `hashchange` (Next
-    // passe par `history.pushState`) : rien ne se rejoue tout seul.
+    // The footer is rendered on EVERY page, `/a-propos` included. This
+    // case does not remount the React tree and emits no `hashchange` (Next
+    // goes through `history.pushState`): nothing replays by itself.
     test('les trois liens fonctionnent aussi depuis /a-propos', async ({
       page,
     }) => {
@@ -130,8 +130,8 @@ for (const locale of ['fr', 'en'] as const) {
 }
 
 test.describe('prefers-reduced-motion : l’ancre ne contourne pas la préférence', () => {
-  // `reducedMotion` n'est pas une option de `test.use` dans la version épinglée
-  // de Playwright (cf. TESTING.md) : elle est posée à la création du contexte.
+  // `reducedMotion` is not a `test.use` option in the pinned version
+  // of Playwright (see TESTING.md): it is set when the context is created.
   test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
   test('le défilement reste instantané, et le saut fonctionne', async ({
@@ -139,10 +139,10 @@ test.describe('prefers-reduced-motion : l’ancre ne contourne pas la préféren
   }) => {
     await page.goto('/fr/a-propos');
 
-    // On réclame explicitement un défilement animé. La règle globale de
-    // `globals.css` (`scroll-behavior: auto !important` sous la préférence) doit
-    // l'emporter : c'est elle qui gouverne le saut d'ancre, puisque celui-ci est
-    // opéré par le NAVIGATEUR et non par un `scrollIntoView` animé maison.
+    // We explicitly request animated scrolling. The global rule in
+    // `globals.css` (`scroll-behavior: auto !important` under the preference) must
+    // win: it is what governs the anchor jump, since that jump is
+    // performed by the BROWSER and not by a home-made animated `scrollIntoView`.
     await page.addStyleTag({ content: 'html { scroll-behavior: smooth; }' });
     await expect
       .poll(() =>
@@ -157,9 +157,9 @@ test.describe('prefers-reduced-motion : l’ancre ne contourne pas la préféren
   });
 });
 
-// Témoin du test précédent : sans la préférence, la même feuille prend effet.
-// Sans lui, l'assertion `auto` passerait tout aussi bien si `addStyleTag`
-// n'avait rien fait — elle ne prouverait alors plus rien.
+// Control for the previous test: without the preference, the same stylesheet takes effect.
+// Without it, the `auto` assertion would pass just as well if `addStyleTag`
+// had done nothing — it would then prove nothing.
 test('témoin : sans la préférence, une feuille « smooth » prend effet', async ({
   page,
 }) => {
@@ -174,18 +174,18 @@ test('témoin : sans la préférence, une feuille « smooth » prend effet', asy
     .toBe('smooth');
 });
 
-// Garde-fou demandé par l'issue (§ « Vérification plus large ») : plusieurs
-// libellés qui mènent au même endroit, c'est la forme exacte du défaut corrigé
-// ici. Le pied de page est présent sur toutes les pages — il ne coûte rien de
-// vérifier qu'aucune autre de ses entrées ne promet une destination qu'elle ne
-// tient pas.
+// Safeguard requested by the issue (§ "Vérification plus large"): several
+// labels leading to the same place is the exact shape of the defect fixed
+// here. The footer is present on every page — it costs nothing to
+// check that none of its other entries promises a destination it does
+// not deliver.
 //
-// Portée : le PIED DE PAGE. L'en-tête a été contrôlé au navigateur et est sain,
-// mais son bouton « Rejoindre » vise `/adhesion` comme l'entrée « Adhérer » du
-// pied de page : un appel à l'action et une entrée de navigation ont le droit de
-// partager une destination. L'y soumettre ferait échouer la garde sur un cas
-// légitime — et le rendu de ce bouton dépend de l'état d'authentification, donc
-// de Convex.
+// Scope: the FOOTER. The header was checked in the browser and is sound,
+// but its "Rejoindre" button targets `/adhesion` like the footer's "Adhérer"
+// entry: a call to action and a navigation entry are allowed to
+// share a destination. Subjecting it to the check would make the guard fail on a
+// legitimate case — and that button's rendering depends on the auth state, hence
+// on Convex.
 for (const locale of ['fr', 'en'] as const) {
   test(`pied de page : pas deux libellés pour une même destination (${locale})`, async ({
     page,
@@ -199,9 +199,9 @@ for (const locale of ['fr', 'en'] as const) {
           (el.textContent ?? '').trim() || el.getAttribute('aria-label') || '',
       })),
     );
-    // Le pied de page rend 22 liens ; le seuil dit seulement qu'on a bien
-    // regardé quelque chose, pour qu'un sélecteur devenu muet ne passe pas pour
-    // un pied de page sain.
+    // The footer renders 22 links; the threshold only says we did
+    // look at something, so that a selector gone silent does not pass for
+    // a healthy footer.
     expect(liens.length).toBeGreaterThan(15);
 
     const parDestination = new Map<string, Set<string>>();

@@ -12,23 +12,23 @@ import {
 } from '@/components/admin/admin-nav';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
 
-// Pas de setupFiles global dans ce projet : sans ce cleanup, les rendus
-// s'accumulent d'un test à l'autre et les libellés deviennent ambigus.
+// No global setupFiles in this project: without this cleanup, renders
+// accumulate from one test to the next and labels become ambiguous.
 afterEach(cleanup);
 
-// NAVIGATION DU BACK-OFFICE (issue #49).
+// BACK-OFFICE NAVIGATION (issue #49).
 //
-// Deux choses à tenir, et elles ne se recouvrent pas :
+// Two things to uphold, and they do not overlap:
 //
-//  — la FORME a changé (quatorze entrées en défilement horizontal -> groupes
-//    par domaine en colonne). C'est le sujet de l'issue ;
-//  — le CÂBLAGE ne doit PAS changer : `aria-label` sur le `<nav>`,
-//    `aria-current="page"` sur l'entrée courante, et le tableau de bord traité
-//    à part pour ne pas s'allumer sur ses sous-routes. L'issue le porte au
-//    crédit de l'existant ; ce fichier est ce qui l'empêche de disparaître avec
-//    la refonte.
+//  — the SHAPE changed (fourteen entries in horizontal scrolling -> groups
+//    by domain in a column). That is the subject of the issue;
+//  — the WIRING must NOT change: `aria-label` on the `<nav>`,
+//    `aria-current="page"` on the current entry, and the dashboard handled
+//    separately so that it does not light up on its sub-routes. The issue credits
+//    this to the existing code; this file is what keeps it from disappearing with
+//    the redesign.
 //
-// D'où des tests sur les deux : la structure rendue, et les invariants ARIA.
+// Hence tests on both: the rendered structure, and the ARIA invariants.
 
 function renderNav(role: NetworkRole, pathname = '/admin') {
   render(
@@ -39,24 +39,24 @@ function renderNav(role: NetworkRole, pathname = '/admin') {
   return screen.getByRole('navigation', { name: 'Administration' });
 }
 
-// Les quatorze entrées de l'issue, par le libellé qu'elles portent à l'écran,
-// plus la quinzième arrivée depuis (« Modération IA », réservée à
-// l'administrateur) et la seizième (« Mes relectures », la vue du relecteur
-// de rang modérateur — campagne du 27/09, A-02), puis « Organisations » (la
-// relecture des fiches proposées par les responsables d'organisation, F-21,
-// chantier comptes — une modération). Le total est réaffirmé
-// ci-dessous : une entrée ajoutée sans passer par ici fait échouer le test,
-// ce qui est l'objet du fichier.
+// The issue's fourteen entries, by the label they carry on screen,
+// plus the fifteenth added since ("Modération IA", reserved for the
+// administrator) and the sixteenth ("Mes relectures", the view for the
+// moderator-rank reviewer — 27/09 campaign, A-02), then "Organisations" (the
+// review of profiles proposed by organization managers, F-21,
+// accounts workstream — a moderation task). The total is reasserted
+// below: an entry added without going through here makes the test fail,
+// which is the point of this file.
 const STAFF_ITEMS = [
   'Tableau de bord',
   'Impact',
   'Candidatures',
   'Publications',
   'Mes relectures',
-  // File de modération de la tribune (chantier communauté), rang modérateur.
+  // Tribune moderation queue (community workstream), moderator rank.
   'File de modération',
   'Signalements',
-  // Messages privés signalés (chantier « social »), rang modérateur.
+  // Reported private messages ("social" workstream), moderator rank.
   'Messages signalés',
   'Messages',
   'Organisations',
@@ -65,7 +65,7 @@ const STAFF_ITEMS = [
   'Projets',
   'Événements',
 ];
-// « Contenus » (chantier « contenus », F-62) : rang éditeur.
+// "Contenus" ("contenus" workstream, F-62): editor rank.
 const EDITOR_ITEMS = [
   'Comité de lecture',
   'Rapports annuels',
@@ -73,24 +73,24 @@ const EDITOR_ITEMS = [
   'Contenus',
   'Boîte à outils',
 ];
-// « Modération IA » rejoint les entrées réservées à l'administrateur : ce
-// qu'elle règle n'est pas une modération, c'est la décision de s'en passer
-// (cf. le groupe `automatisation` de admin-nav.tsx).
+// "Modération IA" joins the administrator-only entries: what
+// it controls is not moderation, it is the decision to do without it
+// (see the `automatisation` group in admin-nav.tsx).
 const ADMIN_ITEMS = ['Modération IA', 'Finances', 'Utilisateurs', 'Journal'];
 
-// Le NOM accessible des entrées précise l'espace (RGAA 6.1, cf. admin-nav.tsx) :
-// « Publications (Administration) ». Le texte VISIBLE, lui, reste le libellé
-// seul — c'est ce que compare `linkNames`.
+// The entries' accessible NAME specifies the area (RGAA 6.1, see admin-nav.tsx):
+// "Publications (Administration)". The VISIBLE text remains the bare
+// label — that is what `linkNames` compares.
 function linkNames(nav: HTMLElement): string[] {
   return within(nav)
     .getAllByRole('link')
     .map((a) => a.textContent ?? '');
 }
 
-// Nombre total d'entrées : dérivé des trois listes nommées ci-dessus, pour
-// qu'ajouter un écran oblige à le nommer dans SA liste (rang), sans avoir à
-// retoucher un compteur à chaque chantier — les listes, elles, restent la
-// spécification.
+// Total number of entries: derived from the three named lists above, so
+// that adding a screen forces naming it in ITS list (rank), without having to
+// touch a counter at every workstream — the lists themselves remain the
+// specification.
 const ALL_COUNT = STAFF_ITEMS.length + EDITOR_ITEMS.length + ADMIN_ITEMS.length;
 
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
@@ -128,8 +128,8 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
   });
 
   it("un rôle en dessous de modérateur n'obtient aucune entrée", () => {
-    // Le `<nav>` lui-même ne se monte pas pour ces rôles (la coquille refuse
-    // avant), mais la règle de visibilité ne doit pas en dépendre.
+    // The `<nav>` itself is not mounted for these roles (the shell refuses
+    // earlier), but the visibility rule must not depend on that.
     for (const role of ['visiteur', 'membre'] as const) {
       expect(visibleAdminNavGroups(role)).toEqual([]);
     }
@@ -150,26 +150,26 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       'Comptes et audit',
     ];
     for (const label of labels) {
-      // Le titre du groupe est relié à sa liste par `aria-labelledby` : le nom
-      // est donc annoncé, sans introduire un `<h2>` avant le `<h1>` de l'écran.
+      // The group heading is linked to its list via `aria-labelledby`: the name
+      // is therefore announced, without introducing an `<h2>` before the screen's `<h1>`.
       expect(within(nav).getByRole('list', { name: label })).toBeTruthy();
     }
-    // Aucune entrée hors groupe : la somme des listes rend bien tous les liens.
+    // No entry outside a group: the sum of the lists does yield all the links.
     const grouped = lists.flatMap((l) => within(l).getAllByRole('link'));
     expect(grouped).toHaveLength(ALL_COUNT);
   });
 
   it('ne défile plus horizontalement : aucun conteneur en overflow-x', () => {
-    // C'est LE défaut que l'issue décrit — la majorité des entrées hors écran
-    // sans indice qu'il faut faire défiler. Le test porte sur la classe parce
-    // que c'est elle qui produisait le comportement, et que happy-dom ne met
-    // pas en page.
+    // This is THE defect the issue describes — most entries off screen
+    // with no hint that scrolling is needed. The test targets the class because
+    // it is what produced the behavior, and happy-dom does not do
+    // layout.
     const nav = renderNav('admin');
     expect(nav.className).not.toMatch(/overflow-x/);
     for (const el of nav.querySelectorAll('*')) {
       expect(el.className.toString()).not.toMatch(/overflow-x/);
     }
-    // Et les entrées reviennent à la ligne au lieu de s'aligner sans fin.
+    // And the entries wrap instead of lining up endlessly.
     for (const list of within(nav).getAllByRole('list')) {
       expect(list.className).toMatch(/flex-wrap/);
     }
@@ -195,9 +195,9 @@ describe('Navigation du back-office — entrée courante (issue #49)', () => {
   });
 
   it("le tableau de bord ne s'allume PAS sur les sous-routes", () => {
-    // Son chemin est le préfixe de tous les autres : un `startsWith` le
-    // rendrait courant partout dans le back-office. L'issue porte ce traitement
-    // au crédit de l'existant — il survit à la refonte.
+    // Its path is the prefix of all the others: a `startsWith` would make it
+    // current everywhere in the back office. The issue credits this handling
+    // to the existing code — it survives the redesign.
     expect(isAdminNavItemActive('/admin', '/admin')).toBe(true);
     expect(isAdminNavItemActive('/admin', '/admin/journal')).toBe(false);
     expect(isAdminNavItemActive('/admin/journal', '/admin/journal')).toBe(true);
@@ -224,8 +224,8 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
   it('chaque groupe exige un rôle du vocabulaire partagé, et pointe vers /admin', () => {
     for (const group of ADMIN_NAV_GROUPS) {
       expect(ROLE_ORDER).toContain(group.minRole);
-      // La clé du titre est écrite en entier (garde de l'issue #33), et elle
-      // dérive bien du groupe : pas de recopie qui pourrait diverger.
+      // The heading key is written out in full (issue #33 guard), and it does
+      // derive from the group: no copy that could diverge.
       expect(group.labelKey).toBe(`navGroup_${group.key}`);
       expect(group.items.length).toBeGreaterThan(0);
       for (const item of group.items) {
@@ -242,9 +242,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
-    // Un libellé manquant ferait rendre la clé brute plutôt que de lever : la
-    // vérification se fait donc sur les messages eux-mêmes, dans les deux
-    // langues — c'est un écran de travail quotidien, pas une page vitrine.
+    // A missing label would render the raw key rather than throw: the
+    // check is therefore done on the messages themselves, in both
+    // languages — it is an everyday working screen, not a showcase page.
     const en = (await import('@/messages/en.json')).default;
     for (const dict of [messages.admin, en.admin] as Record<string, string>[]) {
       for (const group of ADMIN_NAV_GROUPS) {
@@ -255,16 +255,16 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
   });
 });
 
-// Rang minimal d'un ÉCRAN, lu par la coquille avant de monter la page. Un
-// modérateur qui tapait /admin/revue ou /admin/newsletter tombait sur la page
-// d'erreur (requête « éditeur » levée avant tout garde) — mesuré le 27/09.
+// Minimum rank of a SCREEN, read by the shell before mounting the page. A
+// moderator who typed /admin/revue or /admin/newsletter landed on the error
+// page ("éditeur" query thrown before any guard) — measured on 27/09.
 describe('adminMinRoleForPath', () => {
   it('reprend le rang du groupe de navigation qui porte le chemin', () => {
     expect(adminMinRoleForPath('/admin')).toBe('moderateur');
     expect(adminMinRoleForPath('/admin/candidatures')).toBe('moderateur');
-    // La vue du relecteur est ouverte au rang modérateur (27/09, A-02) — la
-    // file complète, elle, reste à l'éditeur. Les deux chemins ne se
-    // préfixent pas l'un l'autre.
+    // The reviewer view is open to moderator rank (27/09, A-02) — the
+    // full queue stays with the editor. The two paths are not
+    // prefixes of each other.
     expect(adminMinRoleForPath('/admin/mes-relectures')).toBe('moderateur');
     expect(adminMinRoleForPath('/admin/revue')).toBe('editeur');
     expect(adminMinRoleForPath('/admin/newsletter')).toBe('editeur');
@@ -272,7 +272,7 @@ describe('adminMinRoleForPath', () => {
     expect(adminMinRoleForPath('/admin/journal')).toBe('admin');
     expect(adminMinRoleForPath('/admin/moderation-ia')).toBe('admin');
     expect(adminMinRoleForPath('/admin/finances')).toBe('admin');
-    // Le barème hérite du rang de l'écran Finances.
+    // The rate scale inherits the Finances screen's rank.
     expect(adminMinRoleForPath('/admin/finances/formules')).toBe('admin');
   });
 

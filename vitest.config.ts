@@ -5,15 +5,15 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    // Mêmes alias que tsconfig.json : `@convex` sert aux imports de VALEURS
-    // partagées entre le backend et l'UI (vocabulaire de l'annuaire, facettes),
-    // pas seulement aux imports de types — ceux-ci sont effacés à la
-    // compilation et n'ont donc jamais eu besoin d'être résolus ici.
+    // Same aliases as tsconfig.json: `@convex` is used for imports of VALUES
+    // shared between the backend and the UI (directory vocabulary, facets),
+    // not only for type imports — those are erased at
+    // compile time and therefore never needed to be resolved here.
     //
-    // `@dt-sanity` manquait : tout module qui en dépend — `sitemap.ts`, la
-    // fiche d'actualité — échouait à l'IMPORT, donc avant la moindre
-    // assertion. C'est ce qui obligeait `seo-coherence.test.ts` à analyser le
-    // texte source au lieu d'importer le module (F-10).
+    // `@dt-sanity` was missing: any module depending on it — `sitemap.ts`, the
+    // news article page — failed at IMPORT, hence before any
+    // assertion. That is what forced `seo-coherence.test.ts` to parse the
+    // source text instead of importing the module (F-10).
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@convex': fileURLToPath(new URL('./convex', import.meta.url)),
@@ -21,12 +21,12 @@ export default defineConfig({
     },
   },
   test: {
-    // `next-intl` est TRANSFORMÉ plutôt que chargé tel quel. Sa navigation
-    // localisée (`createNavigation`) importe `next/navigation` sans extension :
-    // laissé externe, Vite ne sait pas le résoudre depuis les node_modules
-    // imbriqués de pnpm et le test échoue à l'import, avant tout assertion.
-    // C'est ce qui empêchait de tester un composant portant un `<Link>` du
-    // dépôt — la navigation du back-office, par exemple (issue #49).
+    // `next-intl` is TRANSFORMED rather than loaded as is. Its localized
+    // navigation (`createNavigation`) imports `next/navigation` without an extension:
+    // left external, Vite cannot resolve it from pnpm's nested
+    // node_modules and the test fails at import, before any assertion.
+    // That is what prevented testing a component carrying one of the repo's
+    // `<Link>`s — the back-office navigation, for example (issue #49).
     server: { deps: { inline: [/next-intl/] } },
     include: [
       'convex/**/*.test.ts',

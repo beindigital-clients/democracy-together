@@ -14,8 +14,8 @@ import {
   zonedInputToUtc,
 } from '@convex/lib/programmes';
 
-// Règles pures du chantier « programmes » (convex/lib/programmes.ts), sans
-// Convex : ce que les mutations appliquent et ce que l'interface affiche.
+// Pure rules of the "programmes" workstream (convex/lib/programmes.ts), without
+// Convex: what the mutations enforce and what the interface displays.
 
 describe('Score d’appariement (F-59)', () => {
   const mentee = {
@@ -39,7 +39,7 @@ describe('Score d’appariement (F-59)', () => {
         activePairs: 0,
       },
     );
-    // Quatre thèmes communs plafonnent à 45.
+    // Four shared themes cap at 45.
     expect(s.reasons[0].points).toBe(45);
     expect(s.score).toBe(100);
     expect(s.eligible).toBe(true);
@@ -198,11 +198,11 @@ describe('Parcours (F-57)', () => {
 
 describe('Heure d’un fuseau (saisie des appels)', () => {
   it('convertit l’heure murale d’un fuseau en UTC et retour', () => {
-    // Dakar = UTC toute l'année.
+    // Dakar = UTC all year round.
     expect(zonedInputToUtc('2026-11-30T18:00', 'Africa/Dakar')).toBe(
       Date.UTC(2026, 10, 30, 18, 0),
     );
-    // Bruxelles en hiver (UTC+1) et en été (UTC+2).
+    // Brussels in winter (UTC+1) and in summer (UTC+2).
     expect(zonedInputToUtc('2026-01-15T09:30', 'Europe/Brussels')).toBe(
       Date.UTC(2026, 0, 15, 8, 30),
     );

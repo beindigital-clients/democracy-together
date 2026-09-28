@@ -21,12 +21,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-// PLUSIEURS RETOURS À LA FOIS (campagne du 27/09, C-5). Un seul message était
-// retenu : « rejetée » puis « Rouvrir » laissait le premier seul à l'écran,
-// à lire à l'envers. Ce fichier tient les trois règles de l'empilement :
-// les succès s'additionnent, un échec évince les succès, et chaque message
-// se ferme pour lui-même. `tests/unit/action-feedback.test.tsx` garde, lui,
-// le contrat des régions live — il n'a pas bougé.
+// SEVERAL FEEDBACK MESSAGES AT ONCE (27/09 campaign, C-5). Only one message was
+// kept: "rejetée" then "Rouvrir" left the first one alone on screen,
+// to be read backwards. This file holds the three stacking rules:
+// successes add up, a failure evicts the successes, and each message
+// closes on its own. `tests/unit/action-feedback.test.tsx`, for its part, guards
+// the live-region contract — it has not changed.
 
 function Harness() {
   const notify = useActionFeedback();

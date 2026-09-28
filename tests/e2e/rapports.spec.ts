@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// F-41 — Rapports annuels : index + rapport d'activité (lecture web + bouton
-// « Enregistrer en PDF » via la boîte d'impression). On n'actionne pas le bouton
-// (il ouvrirait la boîte d'impression du navigateur).
+// F-41 — Annual reports: index + activity report (web reading + "Enregistrer
+// en PDF" button via the print dialog). We do not press the button
+// (it would open the browser's print dialog).
 
 test('rapports : index + accès au rapport inaugural (F-41)', async ({
   page,
@@ -26,17 +26,17 @@ test('rapports : rapport 2026 (sections + bouton PDF) (F-41)', async ({
   await expect(
     page.getByRole('heading', { level: 1, name: "Rapport d'activité 2026" }),
   ).toBeVisible();
-  // quelques sections institutionnelles
+  // a few institutional sections
   await expect(
     page.getByRole('heading', { name: 'Gouvernance' }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Perspectives 2026-2027' }),
   ).toBeVisible();
-  // Un moyen d'obtenir le PDF : le PDF composé une fois l'édition migrée en
-  // base (editorial-rapports.spec.ts), l'impression du navigateur tant que
-  // l'édition est servie depuis le contenu codé. Les deux fichiers tournent
-  // sur le même déploiement, dans un ordre quelconque.
+  // A way to get the PDF: the composed PDF once the edition has been migrated to the
+  // database (editorial-rapports.spec.ts), the browser print version as long as
+  // the edition is served from the coded content. Both files run
+  // on the same deployment, in any order.
   await expect(
     page
       .getByRole('link', { name: 'Télécharger le PDF' })

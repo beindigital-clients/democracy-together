@@ -11,20 +11,20 @@ import {
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
 
-// Ce qui part dans le NAVIGATEUR, recalculé depuis les sources (audit F-05).
+// What goes out to the BROWSER, recomputed from the sources (audit F-05).
 //
-// `src/i18n/client-namespaces.ts` restreint le catalogue transmis au
-// fournisseur client. Une liste écrite à la main dérive : un composant client
-// gagne un `useTranslations('press')`, personne ne met la liste à jour, et
-// l'espace manquant ne casse RIEN à l'écran — `getMessageFallback` rend le
-// dernier segment de la clé. Le défaut serait donc invisible en page, et
-// seule la console le dirait.
+// `src/i18n/client-namespaces.ts` restricts the catalog passed to the
+// client provider. A hand-written list drifts: a client component
+// gains a `useTranslations('press')`, nobody updates the list, and
+// the missing namespace breaks NOTHING on screen — `getMessageFallback` renders the
+// last segment of the key. The defect would therefore be invisible on the page, and
+// only the console would say so.
 //
-// Ce test refait le calcul : il relit tous les fichiers `'use client'` de
-// `src/`, relève les espaces qu'ils demandent, et exige que les listes soient
-// exactement cet ensemble. Analyse par le compilateur TypeScript et non par
-// une expression régulière, comme `i18n-keys.test.ts` : un appel dans un
-// commentaire ou une chaîne fausserait un balayage de texte.
+// This test redoes the computation: it re-reads every `'use client'` file in
+// `src/`, collects the namespaces they request, and requires the lists to be
+// exactly that set. Analysis via the TypeScript compiler and not via
+// a regular expression, like `i18n-keys.test.ts`: a call inside a
+// comment or a string would skew a text scan.
 
 const RACINE = join(process.cwd(), 'src');
 
@@ -52,7 +52,7 @@ for (const chemin of fichiers(RACINE)) {
   );
 }
 
-/** `'use client'` comme PREMIÈRE instruction du fichier. */
+/** `'use client'` as the FIRST statement of the file. */
 function porteLaDirective(source: ts.SourceFile): boolean {
   const premiere = source.statements[0];
   return (
@@ -63,12 +63,12 @@ function porteLaDirective(source: ts.SourceFile): boolean {
   );
 }
 
-/** Résout un spécificateur d'import vers un fichier de `src/`, ou `null`. */
+/** Resolves an import specifier to a file under `src/`, or `null`. */
 function resoudre(depuis: string, spec: string): string | null {
   let base: string;
   if (spec.startsWith('@/')) base = join(RACINE, spec.slice(2));
   else if (spec.startsWith('.')) base = resolve(dirname(depuis), spec);
-  else return null; // paquet npm : hors du périmètre
+  else return null; // npm package: out of scope
   for (const suffixe of ['.tsx', '.ts', '/index.tsx', '/index.ts', '']) {
     const essai = base + suffixe;
     if (SOURCES.has(essai)) return essai;
@@ -77,14 +77,14 @@ function resoudre(depuis: string, spec: string): string | null {
 }
 
 /**
- * Fichiers qui s'exécutent dans le NAVIGATEUR.
+ * Files that run in the BROWSER.
  *
- * Pas seulement ceux qui portent `'use client'` : tout module importé depuis
- * une frontière client en fait partie, directive ou non. C'est le trou que ce
- * test avait d'abord — `site-footer.tsx` n'a pas de directive et appelle
- * pourtant `useTranslations`, ce qui aurait pu se lire « espace inutile côté
- * client » alors que la réponse dépend de QUI l'importe. On ferme donc la
- * transitivité plutôt que de se fier à la directive seule.
+ * Not only those carrying `'use client'`: any module imported from
+ * a client boundary is one of them, directive or not. That is the gap this
+ * test had at first — `site-footer.tsx` has no directive and yet
+ * calls `useTranslations`, which could have been read as "namespace unneeded on the
+ * client" whereas the answer depends on WHO imports it. So we close the
+ * transitivity rather than relying on the directive alone.
  */
 function fermetureClient(): Set<string> {
   const vus = new Set<string>();
@@ -114,7 +114,7 @@ function fermetureClient(): Set<string> {
 
 type Appel = { fichier: string; espace: string | null };
 
-/** Espaces demandés par `useTranslations(...)` dans le code qui part au client. */
+/** Namespaces requested by `useTranslations(...)` in code shipped to the client. */
 function appelsClient(): Appel[] {
   const appels: Appel[] = [];
   for (const chemin of fermetureClient()) {
@@ -145,14 +145,14 @@ const APPELS = appelsClient();
 
 describe('Espaces de messages transmis au navigateur', () => {
   it('trouve bien des appels — sinon tout le reste passerait à vide', () => {
-    // Témoin de l'instrument : un analyseur qui ne voit rien rendrait tous
-    // les tests ci-dessous verts en n'ayant rien vérifié.
+    // Control for the instrument: an analyzer that sees nothing would make all
+    // the tests below green while having checked nothing.
     expect(APPELS.length).toBeGreaterThan(20);
   });
 
   it('n’accepte QUE des espaces écrits en toutes lettres', () => {
-    // Toute la liste se dérive statiquement : un `useTranslations(variable)`
-    // la rendrait incalculable, et le manque ne se verrait pas à l'écran.
+    // The whole list is derived statically: a `useTranslations(variable)`
+    // would make it uncomputable, and the gap would not show on screen.
     const dynamiques = APPELS.filter((a) => a.espace === null);
     expect(dynamiques.map((a) => a.fichier)).toEqual([]);
   });
@@ -170,9 +170,9 @@ describe('Espaces de messages transmis au navigateur', () => {
   });
 
   it('ne garde dans le back-office que ce qu’AUCUNE page publique ne demande', () => {
-    // Si un composant client hors `admin/` demandait un espace réservé au
-    // back-office, la page publique afficherait le dernier segment de la clé
-    // sans rien dire. C'est la condition qui rend le retrait sûr.
+    // If a client component outside `admin/` requested a namespace reserved for the
+    // back office, the public page would display the last segment of the key
+    // without saying anything. This is the condition that makes the removal safe.
     const fautifs = APPELS.filter(
       (a) =>
         a.espace !== null &&
@@ -183,7 +183,7 @@ describe('Espaces de messages transmis au navigateur', () => {
   });
 
   it('ne nomme aucun espace absent des deux catalogues', () => {
-    // Une faute de frappe dans la liste ne transmettrait rien, en silence.
+    // A typo in the list would transmit nothing, silently.
     for (const ns of CLIENT_NAMESPACES) {
       expect(Object.keys(fr), `${ns} absent de fr.json`).toContain(ns);
       expect(Object.keys(en), `${ns} absent de en.json`).toContain(ns);
@@ -198,8 +198,8 @@ describe('Restriction du catalogue', () => {
   });
 
   it('IGNORE un espace inconnu au lieu de poser une valeur nulle', () => {
-    // `{ presse: undefined }` serait lu par next-intl comme un espace vide et
-    // masquerait la faute ; son absence, elle, fait parler le repli.
+    // `{ presse: undefined }` would be read by next-intl as an empty namespace and
+    // would hide the mistake; its absence, on the other hand, makes the fallback speak up.
     const choisi = pickNamespaces(fr, ['nav', 'espace-qui-nexiste-pas']);
     expect(Object.keys(choisi)).toEqual(['nav']);
     expect('espace-qui-nexiste-pas' in choisi).toBe(false);
@@ -210,7 +210,7 @@ describe('Restriction du catalogue', () => {
     const publiques = JSON.stringify(
       pickNamespaces(fr, BASE_CLIENT_NAMESPACES),
     ).length;
-    // Mesuré au moment du correctif : 45 320 -> 24 929 octets.
+    // Measured at the time of the fix: 45,320 -> 24,929 bytes.
     expect(publiques).toBeLessThan(entier * 0.7);
   });
 });

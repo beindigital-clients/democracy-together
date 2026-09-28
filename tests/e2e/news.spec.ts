@@ -3,18 +3,18 @@ import { projectId } from '../../sanity/env';
 
 test.use({ locale: 'fr-FR' });
 
-// Sanity n'est pas toujours configuré. En CI aucun secret de projet n'est posé,
-// et `sanity/env.ts` retombe sur l'identifiant « placeholder » : la requête part
-// quand même et revient en 404 « Dataset not found ». La page encaisse — elle
-// affiche sa liste vide au lieu de tomber — et c'est un comportement qui mérite
-// d'être vérifié POUR LUI-MÊME : c'est ce que verront les visiteurs le jour où
-// le CMS répondra mal, et rien ne le couvrait jusqu'ici.
+// Sanity is not always configured. In CI no project secret is set,
+// and `sanity/env.ts` falls back to the "placeholder" identifier: the request still
+// goes out and comes back as a 404 "Dataset not found". The page absorbs it — it
+// shows its empty list instead of crashing — and that behavior deserves
+// to be tested IN ITS OWN RIGHT: it is what visitors will see the day
+// the CMS misbehaves, and nothing covered it until now.
 //
-// Les deux chemins sont donc testés, et c'est la configuration réelle qui
-// décide lequel s'exécute. Aucun test n'est neutralisé, aucun n'est déclaré
-// « ignoré » : sans projet Sanity on vérifie la dégradation, avec on vérifie le
-// contenu. La règle est importée du module de l'application, et non recopiée —
-// une divergence ferait silencieusement prendre la mauvaise branche.
+// Both paths are therefore tested, and the actual configuration
+// decides which one runs. No test is disabled, none is declared
+// "skipped": without a Sanity project we check the degradation, with one we check the
+// content. The rule is imported from the application module, not copied —
+// a divergence would silently take the wrong branch.
 const sanityConfigured = projectId !== 'placeholder';
 
 function cards(page: import('@playwright/test').Page) {
@@ -36,17 +36,17 @@ test('actualités : liste depuis Sanity + article (F-15)', async ({ page }) => {
   noteSanity();
   const response = await page.goto('/fr/actualites');
 
-  // Vaut dans les deux cas, et c'est le cœur du sujet quand le CMS est absent :
-  // une source indisponible ne doit pas emporter la page.
+  // Holds in both cases, and it is the heart of the matter when the CMS is absent:
+  // an unavailable source must not take the page down with it.
   expect(response?.status()).toBe(200);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Actualités du réseau',
   );
 
   if (!sanityConfigured) {
-    // CMS absent = PANNE, pas liste vide : la page le dit (doctrine F-02,
-    // comme le détail d'article). « Aucune actualité » est réservé à un CMS
-    // qui répond et n'a rien.
+    // CMS absent = OUTAGE, not an empty list: the page says so (doctrine F-02,
+    // like the article detail). "Aucune actualité" is reserved for a CMS
+    // that responds and has nothing.
     await expect(
       page.getByText('Contenu momentanément indisponible'),
     ).toBeVisible();
@@ -62,7 +62,7 @@ test('actualités : liste depuis Sanity + article (F-15)', async ({ page }) => {
   ).toBeVisible();
   expect(await cards(page).count()).toBeGreaterThanOrEqual(3);
 
-  // ouvrir un article -> rendu PortableText
+  // open an article -> PortableText rendering
   await page.getByRole('link', { name: /collectif fondateur/i }).click();
   await expect(page).toHaveURL(/\/fr\/actualites\/collectif-fondateur$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
@@ -79,8 +79,8 @@ test('actualités : accessible depuis la nav, version EN (F-03/F-15)', async ({
   await page.getByRole('link', { name: 'Actualités', exact: true }).click();
   await expect(page).toHaveURL(/\/fr\/actualites$/);
 
-  // La navigation et le rendu de la page EN ne dépendent pas du CMS : ce sont
-  // eux que cette spec vérifie (F-03), le contenu n'en est que la preuve.
+  // The EN page's navigation and rendering do not depend on the CMS: they are
+  // what this spec checks (F-03), the content is merely the proof.
   const response = await page.goto('/en/actualites');
   expect(response?.status()).toBe(200);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
@@ -88,8 +88,8 @@ test('actualités : accessible depuis la nav, version EN (F-03/F-15)', async ({
   );
 
   if (!sanityConfigured) {
-    // Même doctrine qu'en français : CMS absent = panne annoncée, pas liste
-    // vide (lot 3 du 27/09).
+    // Same doctrine as in French: CMS absent = announced outage, not an empty
+    // list (batch 3 of 27/09).
     await expect(
       page.getByText('Content temporarily unavailable'),
     ).toBeVisible();

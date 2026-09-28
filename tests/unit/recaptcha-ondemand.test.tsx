@@ -5,26 +5,26 @@ import { render, cleanup } from '@testing-library/react';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-// CHARGEMENT À LA DEMANDE DU SCRIPT reCAPTCHA (issue #39).
+// ON-DEMAND LOADING OF THE reCAPTCHA SCRIPT (issue #39).
 //
-// Le script de Google était posé par le layout racine, donc sur TOUTES les
-// pages — y compris `/fr/mentions-legales`, du texte statique sans le moindre
-// formulaire. Deux requêtes tierces payées pour rien à chaque page, sur des
-// connexions mobiles à faible débit que le cadrage donne comme exigence
-// structurante.
+// Google's script was placed by the root layout, hence on EVERY
+// page — including `/fr/mentions-legales`, static text without a single
+// form. Two third-party requests paid for nothing on every page, over
+// low-bandwidth mobile connections that the scoping document names as a structuring
+// requirement.
 //
-// Le contrat tenu ici : le script n'est injecté qu'au PREMIER RENDU d'un
-// formulaire protégé, une seule fois par page, et `execute()` l'ATTEND au lieu
-// de renvoyer un jeton vide — sans quoi le serveur, fail-closed
-// (convex/lib/recaptcha.ts), rejetterait la soumission.
+// The contract held here: the script is only injected on the FIRST RENDER of a
+// protected form, only once per page, and `execute()` WAITS for it instead
+// of returning an empty token — otherwise the server, being fail-closed
+// (convex/lib/recaptcha.ts), would reject the submission.
 
 const SITE_KEY = 'cle-de-site-de-test';
 const SCRIPT = 'script#recaptcha-v3';
 
 type Recaptcha = typeof import('@/lib/recaptcha');
 
-// La clé de site est lue à l'import du module : il faut donc la poser AVANT,
-// et réimporter à neuf pour chaque cas (`pending` est un état de module).
+// The site key is read when the module is imported: it must therefore be set BEFORE,
+// and the module re-imported fresh for each case (`pending` is module state).
 async function loadModule(siteKey: string): Promise<Recaptcha> {
   vi.resetModules();
   vi.stubEnv('NEXT_PUBLIC_RECAPTCHA_SITE_KEY', siteKey);
@@ -39,17 +39,17 @@ afterEach(() => {
   cleanup();
   vi.unstubAllEnvs();
   for (const el of scripts()) {
-    // `error` avant retrait : c'est le chemin par lequel le module abandonne
-    // son attente et annule son minuteur de 10 s. Sans ça le minuteur survit au
-    // test et peut se déclencher après la fermeture de l'environnement.
+    // `error` before removal: it is the path by which the module abandons
+    // its wait and cancels its 10 s timer. Without it the timer outlives the
+    // test and may fire after the environment is torn down.
     el.dispatchEvent(new Event('error'));
     el.remove();
   }
   delete window.grecaptcha;
 });
 
-// Simule l'arrivée du script : Google pose `window.grecaptcha`, puis la balise
-// émet `load`. C'est exactement la séquence que le module écoute.
+// Simulates the script's arrival: Google sets `window.grecaptcha`, then the tag
+// emits `load`. That is exactly the sequence the module listens for.
 function simulateGoogleScriptArrival(token: string) {
   window.grecaptcha = {
     ready: (cb: () => void) => cb(),
@@ -77,13 +77,13 @@ describe('reCAPTCHA — le script n’est chargé qu’à la demande', () => {
     const script = document.querySelector<HTMLScriptElement>(SCRIPT);
     expect(script).not.toBeNull();
     expect(script?.src).toContain(`render=${SITE_KEY}`);
-    // `async` : le script ne doit pas bloquer l’analyse du document.
+    // `async`: the script must not block document parsing.
     expect(script?.async).toBe(true);
   });
 
   it('deux formulaires sur la même page partagent un seul script', async () => {
     const { useRecaptcha } = await loadModule(SITE_KEY);
-    // C’est le cas de /jeunes : candidature + mentorat.
+    // This is the case of /jeunes: application + mentoring.
     const Formulaire = () => {
       useRecaptcha();
       return <form />;
@@ -112,9 +112,9 @@ describe('reCAPTCHA — le script n’est chargé qu’à la demande', () => {
   });
 
   it('execute() ATTEND le script au lieu de renvoyer un jeton vide', async () => {
-    // Régression guettée : le serveur est fail-closed (issue #24). Une
-    // soumission partie sans jeton parce que le script n’était pas encore
-    // arrivé serait REJETÉE — l’utilisateur verrait « échec du captcha ».
+    // Regression under watch: the server is fail-closed (issue #24). A
+    // submission sent without a token because the script had not yet
+    // arrived would be REJECTED — the user would see "échec du captcha".
     const { useRecaptcha } = await loadModule(SITE_KEY);
     let execute: ((action: string) => Promise<string>) | null = null;
     const Formulaire = () => {
@@ -125,17 +125,17 @@ describe('reCAPTCHA — le script n’est chargé qu’à la demande', () => {
 
     const run = execute as unknown as (a: string) => Promise<string>;
     const enCours = run('contact');
-    // À cet instant précis le script n’est pas chargé : l’implémentation
-    // précédente rendait '' sur-le-champ.
+    // At this exact moment the script is not loaded: the previous
+    // implementation returned '' immediately.
     simulateGoogleScriptArrival('jeton-google');
     await expect(enCours).resolves.toBe('jeton-google');
   });
 });
 
 // ---------------------------------------------------------------------------
-// Gardes statiques : le chargement global ne doit pas revenir par une autre
-// porte (un provider dans le layout, un <Script> ailleurs, une seconde
-// implémentation). Ni le typecheck ni les tests de rendu ne l’attraperaient.
+// Static guards: global loading must not come back through another
+// door (a provider in the layout, a <Script> elsewhere, a second
+// implementation). Neither the typecheck nor the render tests would catch it.
 // ---------------------------------------------------------------------------
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -168,8 +168,8 @@ describe('reCAPTCHA — garde contre un retour du chargement global', () => {
 
   it('le script est injecté depuis un effet, jamais rendu par un composant', () => {
     const src = readFileSync(LOADER, 'utf8');
-    // Un <Script> de next/script remonterait dans l’arbre React : il faudrait
-    // de nouveau un composant parent commun, donc le layout.
+    // A <Script> from next/script would move up the React tree: a common
+    // parent component would be needed again, hence the layout.
     expect(src).not.toContain('next/script');
     expect(src).toContain('useEffect');
   });

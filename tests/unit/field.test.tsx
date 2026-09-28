@@ -13,14 +13,14 @@ import {
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
 
-// Pas de setupFiles global dans ce projet : sans ce cleanup, les rendus
-// s'accumulent d'un test à l'autre et les libellés deviennent ambigus.
+// No global setupFiles in this project: without this cleanup, renders
+// accumulate from one test to the next and labels become ambiguous.
 afterEach(cleanup);
 
-// SYSTÈME DE CHAMPS (issue #41). L'enjeu n'est pas l'apparence : c'est que le
-// libellé, l'aide et l'erreur soient RATTACHÉS au contrôle — une seule fois,
-// pour tous les formulaires du site. Ces tests tiennent ce contrat, y compris
-// pour les emplacements que #12 (accessibilité) et #37 (UX) rempliront.
+// FIELD SYSTEM (issue #41). The stakes are not the appearance: it is that the
+// label, the help text and the error are ATTACHED to the control — once,
+// for every form on the site. These tests hold that contract, including
+// for the slots that #12 (accessibility) and #37 (UX) will fill.
 
 function intl(ui: React.ReactNode) {
   return (
@@ -47,7 +47,7 @@ describe('Champ — libellé et rattachement ARIA', () => {
     render(<TextField label="Nom complet" labelHidden placeholder="Nom" />);
     const input = screen.getByLabelText('Nom complet');
     expect(input.getAttribute('placeholder')).toBe('Nom');
-    // Masqué à l'œil, présent pour les technologies d'assistance.
+    // Hidden to the eye, present for assistive technologies.
     expect(screen.getByText('Nom complet').className).toContain('sr-only');
   });
 
@@ -163,23 +163,23 @@ describe('Champ — contrôles particuliers', () => {
     expect(input.type).toBe('text');
   });
 
-  // Minuteries FEINTES pour ce test seulement (audit F-01, second défaut).
+  // FAKE timers for this test only (audit F-01, second defect).
   //
-  // `input-otp` programme un `setTimeout` qu'il n'annule pas au démontage.
-  // `cleanup()` démonte bien le composant, mais la minuterie survit au FICHIER :
-  // elle se déclenche plus tard, appelle `setState`, et trouve un environnement
-  // happy-dom déjà détruit — « ReferenceError: window is not defined », signalée
-  // par Vitest comme exception non capturée, et le run entier passe en échec
-  // alors que les 771 tests sont verts.
+  // `input-otp` schedules a `setTimeout` that it does not cancel on unmount.
+  // `cleanup()` does unmount the component, but the timer outlives the FILE:
+  // it fires later, calls `setState`, and finds a happy-dom environment
+  // already torn down — "ReferenceError: window is not defined", reported
+  // by Vitest as an uncaught exception, and the whole run fails
+  // even though all 771 tests are green.
   //
-  // Mesuré avant correctif, en ordre mélangé : seed 11 échouait 3 fois sur 3,
-  // seed 6 une fois sur 3. Rien à voir avec ce que ce test vérifie — c'est
-  // exactement le genre de rouge qui apprend aux relecteurs à ignorer le rouge,
-  // et il aurait rendu inutile le job CI en ordre mélangé ajouté par ailleurs.
+  // Measured before the fix, in shuffled order: seed 11 failed 3 times out of 3,
+  // seed 6 once out of 3. Nothing to do with what this test checks — it is
+  // exactly the kind of red that teaches reviewers to ignore red,
+  // and it would have made the shuffled-order CI job added elsewhere useless.
   //
-  // Les minuteries feintes rendent la fuite inoffensive : ce qui est programmé
-  // pendant le test est jeté avec elles, sans rien changer aux assertions —
-  // celles-ci sont synchrones.
+  // Fake timers make the leak harmless: whatever is scheduled
+  // during the test is thrown away with them, without changing the assertions —
+  // those are synchronous.
   it('code à usage unique : le libellé désigne bien la saisie', () => {
     vi.useFakeTimers();
     try {

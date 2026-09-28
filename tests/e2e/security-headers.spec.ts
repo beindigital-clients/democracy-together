@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// Sécurité — en-têtes HTTP (défense en profondeur). Vérifie leur présence sur
-// les pages publiques, et l'exclusion de la CSP sur le Studio Sanity.
+// Security — HTTP headers (defense in depth). Checks that they are present on
+// public pages, and that the CSP is excluded on the Sanity Studio.
 test('en-têtes de sécurité sur les pages publiques', async ({ request }) => {
   const res = await request.get('/fr');
   const h = res.headers();
@@ -17,11 +17,11 @@ test('en-têtes de sécurité sur les pages publiques', async ({ request }) => {
   expect(csp).toContain("default-src 'self'");
   expect(csp).toContain("frame-ancestors 'self'");
   expect(csp).toContain("object-src 'none'");
-  // PAR DIRECTIVE, et non sur la chaîne entière : `toContain('*.convex.cloud')`
-  // passait grâce à `connect-src` pendant qu'`img-src` OMETTAIT cette origine —
-  // le test était vert, et le navigateur refusait toutes les illustrations des
-  // PDF traduits, servies depuis le stockage Convex. Un contrôle qui ne
-  // distingue pas les directives ne garde pas ce qu'il prétend garder.
+  // PER DIRECTIVE, not on the whole string: `toContain('*.convex.cloud')`
+  // passed thanks to `connect-src` while `img-src` OMITTED that origin —
+  // the test was green, and the browser refused every illustration in the
+  // translated PDFs, served from Convex storage. A check that does not
+  // distinguish directives does not guard what it claims to guard.
   const directive = (nom: string) =>
     csp
       .split(';')

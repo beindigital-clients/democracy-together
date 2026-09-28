@@ -4,23 +4,23 @@ import { join, relative } from 'node:path';
 import fr from '../../src/messages/fr.json';
 import en from '../../src/messages/en.json';
 
-// Garde anti-régression : texte français codé en dur, y compris pour un
-// lecteur anglophone (audit § 5.3, issue #34).
+// Anti-regression guard: hard-coded French text, including for an
+// English-speaking reader (audit § 5.3, issue #34).
 //
-// Le dépôt revendiquait une parité i18n parfaite — un comptage de clés FR/EN.
-// Ce comptage ne dit rien des chaînes qui n'entrent JAMAIS dans le fichier de
-// messages : dix ternaires `locale === 'en' ? … : …` posaient le libellé
-// directement dans le JSX, et deux `aria-label` étaient écrits en français
-// quelle que soit la langue. Ni traduisibles par l'équipe, ni comptés dans la
-// parité, ni disponibles pour une troisième langue.
+// The repo claimed perfect i18n parity — an FR/EN key count.
+// That count says nothing about strings that NEVER enter the messages
+// file: ten `locale === 'en' ? … : …` ternaries put the label
+// directly in the JSX, and two `aria-label`s were written in French
+// whatever the language. Neither translatable by the team, nor counted in
+// parity, nor available for a third language.
 //
-// Le cas le plus sérieux était l'`aria-label` du lien vers l'accueil, présent
-// sur TOUTES les pages : une synthèse vocale anglaise y annonçait « accueil ».
-// Un défaut invisible à l'œil — c'est précisément ce qu'un test attrape.
+// The most serious case was the `aria-label` of the home link, present
+// on EVERY page: an English speech synthesizer announced "accueil" there.
+// A defect invisible to the eye — precisely what a test catches.
 //
-// Ce fichier tient quatre contrats. Les trois premiers lisent les SOURCES :
-// aucun typecheck ni test de rendu ne les vérifierait. Le quatrième compare
-// les deux fichiers de messages.
+// This file holds four contracts. The first three read the SOURCES:
+// no typecheck or render test would verify them. The fourth compares
+// the two messages files.
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -37,26 +37,26 @@ const COMPONENTS = walk(SRC).map((file) => ({
   src: readFileSync(file, 'utf8'),
 }));
 
-// Une étiquette de langue BCP-47 (`en`, `fr-FR`, `en-GB`) n'est pas du texte :
-// c'est un paramètre passé à `Intl`. Un ternaire de locale a le droit d'en
-// choisir une ; il n'a pas le droit de choisir une phrase.
+// A BCP-47 language tag (`en`, `fr-FR`, `en-GB`) is not text:
+// it is a parameter passed to `Intl`. A locale ternary is allowed to
+// pick one; it is not allowed to pick a sentence.
 const LANGUAGE_TAG = /^[a-z]{2,3}(-[A-Za-z]{2,4})*$/;
 
-// `aria-label` suivi d'un littéral : `"…"`, `'…'`, ou `{'…'}` / `{`…`}`. Un
-// `{t('x')}` ou un gabarit qui interpole (`{`${a} — ${b}`}`) ne correspond pas
-// — le premier parce qu'il n'ouvre pas sur un guillemet, le second parce qu'on
-// écarte ensuite tout ce qui contient `${`.
+// `aria-label` followed by a literal: `"…"`, `'…'`, or `{'…'}` / `{`…`}`. A
+// `{t('x')}` or an interpolating template (`{`${a} — ${b}`}`) does not match
+// — the former because it does not open on a quote, the latter because we
+// then exclude anything containing `${`.
 const LITERAL_ARIA_LABEL =
   /aria-label\s*=\s*("[^"]*"|'[^']*'|\{\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*\})/g;
 
-// Comparaison d'une locale à une langue servie, suivie d'un ternaire dont LES
-// DEUX branches sont des littéraux. Un ternaire qui choisit entre deux tables
-// de contenu (`locale === 'en' ? en : fr`) ne correspond pas : ses branches
-// sont des identifiants, et c'est le mécanisme i18n légitime du dépôt.
+// Comparison of a locale with a served language, followed by a ternary whose
+// BOTH branches are literals. A ternary choosing between two content
+// tables (`locale === 'en' ? en : fr`) does not match: its branches
+// are identifiers, and that is the repo's legitimate i18n mechanism.
 const LOCALE_TERNARY =
   /\w*(?:locale|loc)\s*===\s*'(?:en|fr)'\s*\?\s*('[^']*'|"[^"]*"|`[^`]*`)\s*:\s*('[^']*'|"[^"]*"|`[^`]*`)/gi;
 
-// L'équivalent exact du `grep` de l'issue #34, appliqué aux mêmes fichiers.
+// The exact equivalent of the `grep` from issue #34, applied to the same files.
 const LOCALE_TERNARY_ISSUE_34 = /\blocale\s*===\s*'en'/;
 
 function unquote(literal: string): string {
@@ -68,7 +68,7 @@ describe('i18n — aucun texte annoncé codé en dur (issue #34)', () => {
     const offenders: string[] = [];
     for (const { path, src } of COMPONENTS) {
       for (const [, value] of src.matchAll(LITERAL_ARIA_LABEL)) {
-        // Un gabarit interpolé assemble des valeurs traduites : il est bon.
+        // An interpolated template assembles translated values: it is fine.
         if (value.includes('${')) continue;
         offenders.push(`${path} -> aria-label=${value}`);
       }
@@ -123,9 +123,9 @@ describe('i18n — la description racine dépend de la langue (issue #34)', () =
   it('`site.description` existe des deux côtés et diffère', () => {
     expect(fr.site.description.trim()).not.toBe('');
     expect(en.site.description.trim()).not.toBe('');
-    // Deux descriptions identiques signeraient une traduction oubliée : c'est
-    // celle-là que les moteurs de recherche affichent pour toute page /en
-    // dépourvue de `generateMetadata` propre.
+    // Two identical descriptions would betray a forgotten translation: it is
+    // that one that search engines display for any /en page
+    // lacking its own `generateMetadata`.
     expect(en.site.description).not.toBe(fr.site.description);
   });
 
@@ -135,18 +135,18 @@ describe('i18n — la description racine dépend de la langue (issue #34)', () =
       'utf8',
     );
     expect(layout).toContain('export async function generateMetadata');
-    // Un `export const metadata` est STATIQUE : servi à l'identique sur /fr et
-    // sur /en, c'est exactement le défaut corrigé ici.
+    // An `export const metadata` is STATIC: served identically on /fr and
+    // on /en, it is exactly the defect fixed here.
     expect(layout).not.toMatch(/export const metadata/);
   });
 });
 
-// À NE PAS CONFONDRE avec `i18n-keys.test.ts` (issue #33), qui part du CODE :
-// il vérifie que chaque clé demandée par un `t('…')` existe des deux côtés.
-// Celle-ci part des FICHIERS et compare les deux jeux de clés. Une clé ajoutée
-// au français et oubliée en anglais échappe à la première tant que rien ne la
-// demande encore — c'est l'ordre habituel des choses quand on traduit avant
-// d'écrire l'écran. Les deux se complètent ; aucune ne remplace l'autre.
+// NOT TO BE CONFUSED with `i18n-keys.test.ts` (issue #33), which starts from the CODE:
+// it checks that every key requested by a `t('…')` exists on both sides.
+// This one starts from the FILES and compares the two key sets. A key added
+// to French and forgotten in English escapes the former as long as nothing
+// requests it yet — the usual order of things when translating before
+// writing the screen. The two complement each other; neither replaces the other.
 describe('i18n — parité FR/EN du fichier de messages', () => {
   it('les deux fichiers portent exactement les mêmes clés', () => {
     const paths = (value: unknown, prefix = ''): string[] =>

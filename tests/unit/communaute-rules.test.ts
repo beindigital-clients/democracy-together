@@ -13,9 +13,9 @@ import {
   workspaceRoleAtLeast,
 } from '@convex/lib/communaute';
 
-// Règles PURES du chantier communauté : vérification du contenu d'un fichier
-// partagé, rôles d'espace, machine à états de la modération. Elles se testent
-// sans base — c'est pour cela qu'elles vivent hors des modules Convex.
+// PURE rules of the community workstream: content check of a shared
+// file, space roles, moderation state machine. They can be tested
+// without a database — that is why they live outside the Convex modules.
 
 const enc = (s: string) => new TextEncoder().encode(s);
 const PDF = enc('%PDF-1.4\n...');
@@ -56,13 +56,13 @@ describe('Fichiers partagés — le contenu, pas l’étiquette', () => {
       ok: false,
       code: 'FILE_CONTENT_MISMATCH',
     });
-    // Un ZIP quelconque n'est pas un .docx.
+    // An arbitrary ZIP is not a .docx.
     expect(checkFileContent('a.docx', enc('PK\u0003\u0004 rien')).ok).toBe(
       false,
     );
-    // Un .odt qui n'annonce pas le bon type OpenDocument.
+    // An .odt that does not declare the right OpenDocument type.
     expect(checkFileContent('a.ods', ODT).ok).toBe(false);
-    // Un binaire (octet nul, UTF-8 invalide) n'est pas du texte.
+    // A binary (null byte, invalid UTF-8) is not text.
     expect(checkFileContent('a.txt', new Uint8Array([0x41, 0, 0x42])).ok).toBe(
       false,
     );
@@ -70,7 +70,7 @@ describe('Fichiers partagés — le contenu, pas l’étiquette', () => {
     expect(checkFileContent('a.txt', new Uint8Array([0xff, 0xfe])).ok).toBe(
       false,
     );
-    // Fichier vide.
+    // Empty file.
     expect(checkFileContent('a.pdf', new Uint8Array()).ok).toBe(false);
   });
 

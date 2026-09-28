@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.use({ locale: 'fr-FR' });
 
-// Indicateur de page active dans la nav (aria-current="page").
+// Active page indicator in the nav (aria-current="page").
 test('nav : la page courante est marquée active', async ({ page }) => {
   const banner = page.getByRole('banner');
 
@@ -10,12 +10,12 @@ test('nav : la page courante est marquée active', async ({ page }) => {
   await expect(
     banner.getByRole('link', { name: 'Analyses', exact: true }),
   ).toHaveAttribute('aria-current', 'page');
-  // une autre entrée n'est pas marquée active
+  // another entry is not marked active
   await expect(
     banner.getByRole('link', { name: 'À propos', exact: true }),
   ).not.toHaveAttribute('aria-current', 'page');
 
-  // sous-page : /bibliotheque/<slug> garde « Analyses » active
+  // subpage: /bibliotheque/<slug> keeps "Analyses" active
   await page.goto('/fr/bibliotheque/etat-democratie-afrique-europe');
   await expect(
     banner.getByRole('link', { name: 'Analyses', exact: true }),

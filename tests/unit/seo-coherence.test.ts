@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Les deux listes sont LUES dans le source plutôt qu'importées : `sitemap.ts`
-// tire le client Sanity et l'API Convex, que ce test n'a aucune raison de
-// monter. Le prix à payer est une analyse textuelle — d'où l'assertion de
-// garde ci-dessous, sans laquelle une expression régulière qui cesserait de
-// correspondre rendrait ce fichier silencieusement vide, donc inutile.
+// Both lists are READ from the source rather than imported: `sitemap.ts`
+// pulls in the Sanity client and the Convex API, which this test has no reason to
+// mount. The price to pay is a textual analysis — hence the guard
+// assertion below, without which a regular expression that stopped
+// matching would make this file silently empty, hence useless.
 function arrayLiteral(file: string, name: string): string[] {
   const src = readFileSync(join(process.cwd(), 'src', 'app', file), 'utf8');
   const m = new RegExp(`const ${name} = \\[([^\\]]*)\\]`).exec(src);
@@ -17,44 +17,44 @@ function arrayLiteral(file: string, name: string): string[] {
 const STATIC_PATHS = arrayLiteral('sitemap.ts', 'STATIC_PATHS');
 const PRIVATE = arrayLiteral('robots.ts', 'PRIVATE');
 
-// F-04 — la cohérence entre ce que le SITE déclare et ce que chaque PAGE
-// déclare.
+// F-04 — consistency between what the SITE declares and what each PAGE
+// declares.
 //
-// Trois écritures parlent des mêmes adresses : `sitemap.ts` (ce qu'on propose
-// à l'indexation), `robots.ts` (ce qu'on interdit au crawl) et le
-// `generateMetadata` de chaque page (canonical, hreflang, robots). L'en-tête
-// du sitemap affirme d'ailleurs que ses alternates sont « cohérents avec les
-// canonicals posés par les generateMetadata ».
+// Three writings talk about the same addresses: `sitemap.ts` (what we offer
+// for indexing), `robots.ts` (what we forbid from crawling) and each page's
+// `generateMetadata` (canonical, hreflang, robots). The sitemap header
+// even claims its alternates are "consistent with the
+// canonicals set by the generateMetadata functions".
 //
-// Ils ne l'étaient pas : `/contact` et `/don` figuraient dans le sitemap, avec
-// leurs alternates, alors que les pages n'annonçaient NI canonical NI
-// hreflang — parce que toutes deux sont servies par un composant client, qui
-// ne peut pas exporter `generateMetadata`. Une conséquence, pas un oubli, et
-// donc exactement le genre de chose qu'aucune relecture ne rattrape.
+// They were not: `/contact` and `/don` were in the sitemap, with
+// their alternates, while the pages announced NEITHER canonical NOR
+// hreflang — because both are served by a client component, which
+// cannot export `generateMetadata`. A consequence, not an oversight, and
+// therefore exactly the kind of thing no review catches.
 //
-// Ce test lit le code source, comme `i18n-keys.test.ts` et `reveal-nojs.test.ts`.
+// This test reads the source code, like `i18n-keys.test.ts` and `reveal-nojs.test.ts`.
 
 const APP = join(process.cwd(), 'src', 'app', '[locale]');
 
 describe('Les listes lues dans le source ne sont pas vides', () => {
-  // Sans cette garde, une régression de lecture désarmerait tous les tests
-  // ci-dessous sans faire rougir quoi que ce soit.
+  // Without this guard, a parsing regression would disarm all the tests
+  // below without turning anything red.
   it('le sitemap déclare un nombre plausible de pages statiques', () => {
     expect(STATIC_PATHS.length).toBeGreaterThan(15);
   });
   it('robots.txt déclare des zones privées', () => {
-    // Un seuil numérique se serait tu le jour où la liste rétrécit pour une
-    // bonne raison — c'est arrivé le 23/09, quand les trois tunnels
-    // d'authentification en sont sortis. On vérifie donc ce qui doit y être.
+    // A numeric threshold would have stayed silent the day the list shrank for a
+    // good reason — it happened on 23/09, when the three authentication
+    // flows were removed from it. So we check what must be in it.
     expect(PRIVATE).toContain('admin');
     expect(PRIVATE).toContain('espace-membre');
   });
 });
 
 /**
- * Routes (relatives à `[locale]`) dont les métadonnées annoncent `index: false`.
- * Parcourt deux niveaux : `connexion`, `newsletter/desinscription`… — ce qui
- * couvre toutes les routes du dépôt qui portent un `generateMetadata`.
+ * Routes (relative to `[locale]`) whose metadata announce `index: false`.
+ * Walks two levels: `connexion`, `newsletter/desinscription`… — which
+ * covers every route in the repo carrying a `generateMetadata`.
  */
 function routesDeclarantNoindex(): string[] {
   const trouvees: string[] = [];
@@ -73,7 +73,7 @@ function routesDeclarantNoindex(): string[] {
   return trouvees.sort();
 }
 
-/** Le texte des fichiers qui peuvent porter les métadonnées d'une route. */
+/** The text of the files that may carry a route's metadata. */
 function metadataSources(path: string): string {
   const dir = path ? join(APP, ...path.split('/')) : APP;
   return ['page.tsx', 'layout.tsx']
@@ -96,9 +96,9 @@ describe('Sitemap et robots.txt ne se contredisent pas', () => {
 });
 
 describe('Toute page du sitemap annonce son adresse canonique', () => {
-  // Le sitemap déclare des alternates pour chaque page qu'il liste. Une page
-  // qui n'annonce pas de canonical laisse le moteur arbitrer seul entre /fr et
-  // /en — c'est précisément ce que les alternates servent à éviter.
+  // The sitemap declares alternates for each page it lists. A page
+  // that announces no canonical leaves the search engine to arbitrate alone between /fr and
+  // /en — which is precisely what alternates are meant to avoid.
   const manquantes = STATIC_PATHS.filter(
     (p) => !/alternates\s*:/.test(metadataSources(p)),
   );
@@ -116,14 +116,14 @@ describe('Toute page du sitemap annonce son adresse canonique', () => {
 });
 
 describe('Une page en noindex ne déclare pas de hreflang (issue #35)', () => {
-  // L'arbitrage du dépôt, documenté dans `recherche/page.tsx` et tenu par
-  // `tests/e2e/seo.spec.ts` : sur une page en `noindex`, un moteur ignore le
-  // hreflang — l'ajouter ne serait que du bruit. Ce test étend la règle à
-  // toute page qui se déclarerait `noindex` plus tard.
+  // The repo's decision, documented in `recherche/page.tsx` and upheld by
+  // `tests/e2e/seo.spec.ts`: on a `noindex` page, a search engine ignores
+  // hreflang — adding it would just be noise. This test extends the rule to
+  // any page that declares itself `noindex` later.
   const ROUTES = [
     'recherche',
     'newsletter/desinscription',
-    // Chantier diffusion : même arbitrage pour le lien du double opt-in.
+    // Diffusion workstream: same decision for the double opt-in link.
     'newsletter/confirmation',
   ];
 
@@ -139,16 +139,16 @@ describe('Une page en noindex ne déclare pas de hreflang (issue #35)', () => {
 });
 
 describe('« Interdit au crawl » et « noindex » ne se cumulent pas', () => {
-  // ARBITRAGE DU 23/09, et la raison pour laquelle il fallait le trancher :
-  // les deux mesures se neutralisent. Un moteur qui respecte le `Disallow` de
-  // `robots.txt` ne vient JAMAIS lire le `noindex` de la page — la seconde
-  // ceinture ne protège donc rien, elle documente une intention. Les trois
-  // tunnels d'authentification portaient les deux ; ils ne gardent que le
-  // `noindex`, qui est la mesure effective.
+  // DECISION OF 23/09, and the reason it had to be settled:
+  // the two measures cancel each other out. A search engine that respects `robots.txt`'s
+  // `Disallow` NEVER comes to read the page's `noindex` — the second
+  // belt therefore protects nothing, it documents an intention. The three
+  // authentication flows carried both; they keep only the
+  // `noindex`, which is the effective measure.
   //
-  // Ce test interdit de les recombiner, dans un sens comme dans l'autre :
-  // une route qui annonce `index: false` ne doit pas être interdite au crawl,
-  // sans quoi son annonce ne sera lue par personne.
+  // This test forbids recombining them, in either direction:
+  // a route that announces `index: false` must not be disallowed from crawling,
+  // otherwise its announcement will be read by nobody.
   const routesNoindex = routesDeclarantNoindex();
 
   it('au moins une route se déclare noindex (sinon ce test est vide)', () => {

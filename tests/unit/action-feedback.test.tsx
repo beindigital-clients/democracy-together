@@ -10,11 +10,11 @@ import {
 
 afterEach(cleanup);
 
-// Retour visible après une action de back-office (issue #38) : les écrans de
-// modération n'affichaient rien, ni au succès ni au refus serveur. Ce qui est
-// vérifié ici, c'est que le message atterrit dans la BONNE région live — un
-// succès annoncé poliment, un échec annoncé tout de suite — parce que c'est ce
-// qui décide s'il est annoncé à un lecteur d'écran, pas seulement peint.
+// Visible feedback after a back-office action (issue #38): the moderation
+// screens displayed nothing, neither on success nor on server refusal. What is
+// checked here is that the message lands in the RIGHT live region — a
+// success announced politely, a failure announced immediately — because that is what
+// decides whether it is announced to a screen reader, not merely painted.
 
 function Harness() {
   const notify = useActionFeedback();
@@ -46,8 +46,8 @@ function setup() {
 describe('Retour d’action du back-office (issue #38)', () => {
   it('les deux régions live existent AVANT tout message', () => {
     setup();
-    // Une région ajoutée au DOM en même temps que son texte n'est pas annoncée
-    // de façon fiable : elles sont donc montées vides.
+    // A region added to the DOM at the same time as its text is not announced
+    // reliably: they are therefore mounted empty.
     expect(screen.getByRole('status').textContent).toBe('');
     expect(screen.getByRole('alert').textContent).toBe('');
   });

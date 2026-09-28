@@ -2,30 +2,30 @@ import { test, expect, type BrowserContext } from '@playwright/test';
 import { SESSIONS } from './_sessions';
 import { declencheurLangue } from './_langue';
 
-// F-13 — L'EN-TÊTE NE DOIT PAS SE DÉCALER QUAND L'AUTHENTIFICATION SE RÉSOUT.
+// F-13 — THE HEADER MUST NOT SHIFT WHEN AUTHENTICATION RESOLVES.
 //
-// Cause racine du constat : `JoinButton` rendait `null` le temps que Convex
-// réponde, puis insérait 94 px dans une grappe ancrée à droite
-// (`ml-auto`, site-header.tsx:41). Tout ce qui la précède — bascule de langue,
-// bouton de recherche — sautait de 104 px VERS LA GAUCHE, après le premier
-// rendu. Un appui visant « EN » partait vers une position que le bouton venait
-// de quitter : il tombait sur le conteneur, sans le moindre retour. Mesuré, la
-// cible réelle du clic était un `div`, jamais le bouton.
+// Root cause of the finding: `JoinButton` rendered `null` while Convex
+// responded, then inserted 94 px into a right-anchored cluster
+// (`ml-auto`, site-header.tsx:41). Everything before it — language toggle,
+// search button — jumped 104 px TO THE LEFT, after the first
+// render. A tap aimed at "EN" went to a position the button had just
+// left: it landed on the container, with no feedback at all. Measured, the
+// actual click target was a `div`, never the button.
 //
-// POURQUOI CETTE FORME DE TEST. Comparer « avant » et « après » sur une même
-// page ferait la course avec l'hydratation : sur une machine rapide l'état est
-// déjà résolu quand `goto` rend la main, et le test passerait à vide sans rien
-// vérifier. On compare donc deux états DÉTERMINISTES — la mise en page servie
-// par le serveur (JavaScript désactivé) et la mise en page établie — ce qui est
-// exactement l'invariant qui compte, et ne dépend ni de la vitesse de la
-// machine ni de la charge.
+// WHY THIS TEST SHAPE. Comparing "before" and "after" on the same
+// page would race with hydration: on a fast machine the state is
+// already resolved when `goto` returns, and the test would pass vacuously without
+// checking anything. So we compare two DETERMINISTIC states — the layout served
+// by the server (JavaScript disabled) and the settled layout — which is
+// exactly the invariant that matters, and depends neither on the machine's
+// speed nor on load.
 //
-// LE POINT DE MESURE EST LE DÉCLENCHEUR DU SÉLECTEUR DE LANGUE, depuis qu'il
-// est un menu : les langues elles-mêmes ne sont plus dans le document tant
-// qu'il est fermé, et ce test mesure justement un document JAMAIS ouvert —
-// dont l'un des deux rendus a JavaScript désactivé. Le déclencheur, lui, est
-// servi par le serveur, et il occupe la même place dans la grappe ancrée à
-// droite : c'est le même invariant qui est tenu.
+// THE MEASUREMENT POINT IS THE LANGUAGE SELECTOR TRIGGER, since it
+// became a menu: the languages themselves are no longer in the document while
+// it is closed, and this test precisely measures a document NEVER opened —
+// one of whose two renders has JavaScript disabled. The trigger, for its part, is
+// served by the server, and it occupies the same place in the right-anchored
+// cluster: the same invariant is upheld.
 async function abscisseBascule(ctx: BrowserContext, url: string) {
   const page = await ctx.newPage();
   await page.goto(url);
@@ -49,8 +49,8 @@ test("l'en-tête ne se décale pas entre le rendu serveur et l'état établi (F-
     storageState: './tests/e2e/cookie-consent-state.json',
   });
   const etabli = await abscisseBascule(avecJs, url);
-  // « Connexion » n'apparaît qu'une fois l'état d'authentification résolu :
-  // c'est précisément l'instant où l'en-tête prenait ses 104 px.
+  // "Connexion" only appears once the auth state is resolved:
+  // precisely the moment the header used to take its 104 px.
   await expect(
     etabli.page
       .getByRole('banner')
@@ -65,9 +65,9 @@ test("l'en-tête ne se décale pas entre le rendu serveur et l'état établi (F-
   ).not.toBeUndefined();
 
   const ecart = Math.abs((xEtabli as number) - (servi.x as number));
-  // Le résiduel mesuré est de 2 px — le gabarit de `AuthButton` (64 px) contre
-  // le lien « Connexion » (66 px). Le défaut, lui, valait 104 px : la marge
-  // distingue les deux sans ambiguïté.
+  // The measured residual is 2 px — the `AuthButton` placeholder (64 px) versus
+  // the "Connexion" link (66 px). The defect was 104 px: the margin
+  // tells the two apart unambiguously.
   expect(
     ecart,
     `la bascule de langue s'est déplacée de ${ecart} px entre le rendu servi et l'état établi`,
@@ -77,20 +77,20 @@ test("l'en-tête ne se décale pas entre le rendu serveur et l'état établi (F-
   await avecJs.close();
 });
 
-// LE CAS CONNECTÉ, la seconde moitié du décalage. Chez un visiteur connecté,
-// `NotificationBell` apparaissait après coup (36 px) et `AuthButton` passait
-// d'un gabarit de 64 px à « Espace membre · Déconnexion », bien plus large :
-// l'en-tête se réorganisait comme pour un visiteur anonyme, mais davantage.
-// Depuis que `site-header.tsx` lit l'état d'authentification au rendu SERVEUR,
-// le HTML servi porte déjà la variante finale.
+// THE SIGNED-IN CASE, the second half of the shift. For a signed-in visitor,
+// `NotificationBell` appeared afterwards (36 px) and `AuthButton` went
+// from a 64 px placeholder to "Espace membre · Déconnexion", much wider:
+// the header rearranged itself as for an anonymous visitor, but more so.
+// Since `site-header.tsx` reads the auth state during the SERVER render,
+// the served HTML already carries the final variant.
 //
-// Ce cas n'est mesurable qu'ICI : l'environnement d'audit n'a aucun
-// déploiement Convex, donc aucune session. La CI, elle, en a une par fichier.
+// This case is only measurable HERE: the audit environment has no
+// Convex deployment, hence no session. CI, for its part, has one per file.
 //
-// LA NON-VACANCE EST ASSERTÉE. Si la session était perdue, ce test comparerait
-// deux fois la mise en page ANONYME et passerait sans rien vérifier — le défaut
-// exact que cet audit reproche ailleurs. On exige donc que le HTML servi porte
-// le marqueur de l'état connecté AVANT de comparer quoi que ce soit.
+// NON-VACUITY IS ASSERTED. If the session were lost, this test would compare
+// the ANONYMOUS layout twice and pass without checking anything — the exact
+// defect this audit criticizes elsewhere. So we require the served HTML to carry
+// the signed-in state marker BEFORE comparing anything.
 test("l'en-tête ne se décale pas non plus pour un visiteur connecté (F-13)", async ({
   browser,
   baseURL,
@@ -103,8 +103,8 @@ test("l'en-tête ne se décale pas non plus pour un visiteur connecté (F-13)", 
     storageState: etat,
   });
   const servi = await abscisseBascule(sansJs, url);
-  // Sans JavaScript, seul le rendu SERVEUR s'exprime : « Déconnexion » n'y
-  // figure que si le serveur a bien reconnu la session.
+  // Without JavaScript, only the SERVER render speaks: "Déconnexion" only
+  // appears there if the server did recognize the session.
   await expect(
     servi.page
       .getByRole('banner')

@@ -1,18 +1,18 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Parcours complet sur téléphone TACTILE (projet `mobile-chromium` : viewport
-// 412x839, `hasTouch`). Le mobile est le premier usage attendu du cadrage —
-// jusqu'ici aucun parcours ne s'y déroulait, et les correctifs mobiles de la
-// PR #4 avaient dû être vérifiés à la main en émulation.
+// Full flow on a TOUCH phone (`mobile-chromium` project: viewport
+// 412x839, `hasTouch`). Mobile is the primary expected use per the scoping document —
+// until now no flow ran there, and the mobile fixes of
+// PR #4 had to be verified by hand in emulation.
 //
-// Tous les gestes passent par `tap()` (et non `click()`) : c'est la seule
-// manière d'exercer les chemins `pointerType: 'touch'`, ceux qui régressent.
+// Every gesture goes through `tap()` (not `click()`): it is the only
+// way to exercise the `pointerType: 'touch'` paths, the ones that regress.
 test.use({ locale: 'fr-FR' });
 
 const MENU_TOGGLE = 'button[aria-controls="mobile-nav"]';
 
-// Un débordement horizontal est LE défaut mobile classique (et invisible en
-// desktop) : la page défile latéralement, le contenu sort de l'écran.
+// Horizontal overflow is THE classic mobile defect (and invisible on
+// desktop): the page scrolls sideways, the content goes off screen.
 async function noHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(() => {
     const d = document.documentElement;
@@ -21,7 +21,7 @@ async function noHorizontalOverflow(page: Page) {
   expect(
     overflow.scroll,
     `débordement horizontal : ${overflow.scroll}px pour ${overflow.client}px de large`,
-  ).toBeLessThanOrEqual(overflow.client + 1); // +1 : arrondi sous-pixel
+  ).toBeLessThanOrEqual(overflow.client + 1); // +1: sub-pixel rounding
 }
 
 test('mobile : accueil -> menu -> bibliothèque -> facettes repliées -> détail', async ({
@@ -33,7 +33,7 @@ test('mobile : accueil -> menu -> bibliothèque -> facettes repliées -> détail
   );
   await noHorizontalOverflow(page);
 
-  // 1. La nav desktop est masquée : seul le menu tactile donne accès aux liens.
+  // 1. The desktop nav is hidden: only the touch menu gives access to the links.
   const toggle = page.locator(MENU_TOGGLE);
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await toggle.tap();
@@ -44,14 +44,14 @@ test('mobile : accueil -> menu -> bibliothèque -> facettes repliées -> détail
     .getByRole('link', { name: 'Analyses', exact: true })
     .tap();
   await expect(page).toHaveURL(/\/fr\/bibliotheque$/);
-  // le panneau se referme après navigation
+  // the panel closes after navigation
   await expect(page.locator(MENU_TOGGLE)).toHaveAttribute(
     'aria-expanded',
     'false',
   );
 
-  // 2. Bibliothèque : sous `lg`, les facettes sont repliées derrière « Filtrer »
-  // (sans ce repli, la liste passait sous la pliure sur téléphone).
+  // 2. Library: below `lg`, the facets are collapsed behind "Filtrer"
+  // (without this collapse, the list fell below the fold on a phone).
   const cards = page
     .getByRole('list', { name: 'Liste des publications' })
     .getByRole('listitem');
@@ -61,28 +61,28 @@ test('mobile : accueil -> menu -> bibliothèque -> facettes repliées -> détail
   const filters = page.locator('button[aria-controls="library-facets"]');
   await expect(filters).toBeVisible();
   await expect(filters).toHaveAttribute('aria-expanded', 'false');
-  // Portée limitée au panneau de facettes. Sans elle, `.first()` tombait sur
-  // la CARTE de publication : le badge de thématique fait partie de son nom
-  // accessible, et elle précède les facettes dans le DOM. Le test échouait donc
-  // sur un élément visible, alors qu'il vérifie que les facettes sont repliées.
+  // Scope limited to the facet panel. Without it, `.first()` landed on
+  // the publication CARD: the theme badge is part of its accessible
+  // name, and it precedes the facets in the DOM. The test therefore failed
+  // on a visible element, whereas it checks that the facets are collapsed.
   const themeFacet = page
     .locator('#library-facets')
     .getByRole('link', { name: /Transitions démocratiques/ });
-  await expect(themeFacet).toBeHidden(); // replié : pas juste hors écran
+  await expect(themeFacet).toBeHidden(); // collapsed: not just off screen
 
   await filters.tap();
   await expect(filters).toHaveAttribute('aria-expanded', 'true');
   await expect(themeFacet).toBeVisible();
 
-  // 3. Filtrage par thématique (lien GET rendu côté serveur)
+  // 3. Filtering by theme (server-rendered GET link)
   await themeFacet.tap();
   await expect(page).toHaveURL(/[?&]theme=transitions/);
   await expect(page.getByText(/\d+ publications?/).first()).toBeVisible();
-  // une facette active -> compteur sur le bouton replié + lien de remise à zéro
+  // an active facet -> counter on the collapsed button + reset link
   await expect(filters).toContainText('1');
   await expect(page.getByRole('link', { name: 'Réinitialiser' })).toBeVisible();
 
-  // 4. Ouverture d'une fiche au doigt
+  // 4. Opening a publication page by finger
   const first = cards.first().getByRole('link').first();
   const title = (await first.textContent())?.trim() ?? '';
   expect(title.length).toBeGreaterThan(0);
@@ -108,7 +108,7 @@ test('mobile : le CTA d’adhésion du menu mène au formulaire, utilisable au d
   ).toBeVisible();
   await noHorizontalOverflow(page);
 
-  // Les champs du formulaire tiennent dans l'écran et se remplissent au doigt.
+  // The form fields fit on screen and can be filled in by finger.
   const name = page.getByLabel('Nom du think tank');
   await name.tap();
   await name.fill('Institut Mobile E2E');

@@ -3,30 +3,30 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { routing } from '@/i18n/routing';
 
-// PARITÉ ET VALIDITÉ DES CINQ CATALOGUES DE MESSAGES.
+// PARITY AND VALIDITY OF THE FIVE MESSAGE CATALOGS.
 //
-// `tests/unit/i18n-keys.test.ts` rapproche le CODE des catalogues : il attrape
-// une clé demandée et définie nulle part. Il ne dit rien du CONTENU des
-// valeurs, et c'est là que vivent les défauts propres à la traduction :
+// `tests/unit/i18n-keys.test.ts` matches the CODE against the catalogs: it catches
+// a key requested and defined nowhere. It says nothing about the CONTENT of the
+// values, and that is where translation-specific defects live:
 //
-//  1. une clé traduite dans une langue et oubliée dans une autre ;
-//  2. un `{title}` devenu `{titulo}` en passant en espagnol — le message
-//     s'affiche alors avec l'accolade brute, et `next-intl` lève ;
-//  3. un pluriel arabe écrit avec les catégories du français. L'arabe en a
-//     SIX (zero, one, two, few, many, other) là où le français en a trois :
-//     un `{count, plural, one {…} other {…}}` recopié tel quel rend « 3 منشور »
-//     au lieu de « 3 منشورات ». Rien ne plante ; la phrase est simplement
-//     fausse, et personne qui ne lit pas l'arabe ne le verra.
+//  1. a key translated in one language and forgotten in another;
+//  2. a `{title}` turned into `{titulo}` on the way into Spanish — the message
+//     then displays with the raw brace, and `next-intl` throws;
+//  3. an Arabic plural written with French categories. Arabic has
+//     SIX (zero, one, two, few, many, other) where French has three:
+//     a `{count, plural, one {…} other {…}}` copied as is renders "3 منشور"
+//     instead of "3 منشورات". Nothing crashes; the sentence is simply
+//     wrong, and nobody who does not read Arabic will see it.
 //
-// POURQUOI UN ANALYSEUR ÉCRIT ICI et pas `@formatjs/icu-messageformat-parser` :
-// ce paquet n'est qu'une dépendance TRANSITIVE de next-intl. L'ajouter aux
-// devDependencies pour un test, ou le charger par son chemin dans le magasin
-// pnpm (versionné), sont deux façons de rendre ce fichier fragile. Le balayage
-// ci-dessous ne prétend pas parser l'ICU en entier : il compte les accolades et
-// relève les noms d'arguments et de catégories, ce qui suffit exactement aux
-// trois défauts listés. Les vérifications de la dernière section tiennent
-// l'analyseur lui-même — sans elles, un balayage qui cesserait de trouver quoi
-// que ce soit passerait au vert en comparant deux ensembles vides.
+// WHY A PARSER WRITTEN HERE and not `@formatjs/icu-messageformat-parser`:
+// that package is only a TRANSITIVE dependency of next-intl. Adding it to
+// devDependencies for a test, or loading it by its path in the (versioned)
+// pnpm store, are two ways of making this file fragile. The scan
+// below does not claim to parse ICU in full: it counts braces and
+// collects argument and category names, which is exactly enough for the
+// three listed defects. The checks in the last section hold
+// the parser itself — without them, a scan that stopped finding anything
+// would turn green comparing two empty sets.
 
 const MESSAGES = join(process.cwd(), 'src', 'messages');
 
@@ -51,7 +51,7 @@ function catalogue(locale: string): Flat {
   );
 }
 
-/** Les accolades d'un message sont-elles équilibrées ? */
+/** Are a message's braces balanced? */
 function balanced(msg: string): boolean {
   let depth = 0;
   for (const ch of msg) {
@@ -61,7 +61,7 @@ function balanced(msg: string): boolean {
   return depth === 0;
 }
 
-/** Index de l'accolade fermante appariée à celle ouverte en `open`. */
+/** Index of the closing brace matching the one opened at `open`. */
 function matchingBrace(msg: string, open: number): number {
   let depth = 0;
   for (let i = open; i < msg.length; i++) {
@@ -74,21 +74,21 @@ function matchingBrace(msg: string, open: number): number {
 type Scan = { args: Set<string>; plurals: string[][] };
 
 /**
- * Relève les arguments et les catégories de pluriel d'un message ICU.
+ * Collects the arguments and plural categories of an ICU message.
  *
- * LE BALAYAGE EST RÉCURSIF, et il doit l'être. Une accolade ICU ouvre DEUX
- * choses selon l'endroit où elle se trouve : un argument (`{count}`), ou le
- * corps d'une catégorie de pluriel (`one {…}`). Une expression régulière ne
- * distingue pas les deux, et la première version de cette garde l'a appris à
- * ses dépens : en français, `{count, plural, one {Notifications, # non lue} …}`
- * lui faisait lire « Notifications » comme un NOM D'ARGUMENT, parce que le
- * corps de la catégorie commence par un mot suivi d'une virgule. La garde
- * signalait alors une divergence entre le français et l'arabe là où c'était
- * elle qui se trompait.
+ * THE SCAN IS RECURSIVE, and it has to be. An ICU brace opens TWO
+ * things depending on where it sits: an argument (`{count}`), or the
+ * body of a plural category (`one {…}`). A regular expression cannot
+ * tell the two apart, and the first version of this guard learned that the
+ * hard way: in French, `{count, plural, one {Notifications, # non lue} …}`
+ * made it read "Notifications" as an ARGUMENT NAME, because the
+ * category body starts with a word followed by a comma. The guard
+ * then reported a divergence between French and Arabic where it was
+ * the guard itself that was wrong.
  *
- * Ici, chaque `{` rencontré dans du TEXTE ouvre un argument : on lit son nom,
- * son type, puis — si c'est un pluriel ou un `select` — on découpe son corps en
- * couples « catégorie + accolade », et on redescend dans chaque accolade.
+ * Here, every `{` met in TEXT opens an argument: we read its name,
+ * its type, then — if it is a plural or a `select` — we split its body into
+ * "category + brace" pairs, and recurse into each brace.
  */
 function scan(
   msg: string,
@@ -101,7 +101,7 @@ function scan(
       continue;
     }
     const close = matchingBrace(msg, i);
-    if (close < 0) return into; // message déséquilibré : `balanced` le signale
+    if (close < 0) return into; // unbalanced message: `balanced` reports it
     const inner = msg.slice(i + 1, close);
     const firstComma = inner.indexOf(',');
     const name = (firstComma < 0 ? inner : inner.slice(0, firstComma)).trim();
@@ -126,7 +126,7 @@ function scan(
             if (catClose < 0) break;
             if (word.trim()) cats.push(word.trim());
             word = '';
-            scan(body.slice(j + 1, catClose), into); // arguments imbriqués
+            scan(body.slice(j + 1, catClose), into); // nested arguments
             j = catClose + 1;
             continue;
           }
@@ -212,12 +212,12 @@ describe('Catalogues de messages — syntaxe ICU', () => {
   it.each(routing.locales)(
     '%s : les catégories de pluriel existent dans cette langue',
     (locale) => {
-      // `Intl.PluralRules` est la source de vérité CLDR : l'arabe y déclare
-      // zero/one/two/few/many/other, le français one/many/other.
-      // `Set<string>` et non `Set<LDMLPluralRule>` : les catégories relevées
-      // dans les messages sont des chaînes quelconques — c'est justement ce
-      // qu'on vérifie. Comparer deux ensembles typés reviendrait à supposer
-      // valide ce que le test doit établir.
+      // `Intl.PluralRules` is the CLDR source of truth: Arabic declares
+      // zero/one/two/few/many/other there, French one/many/other.
+      // `Set<string>` and not `Set<LDMLPluralRule>`: the categories collected
+      // from the messages are arbitrary strings — that is exactly what
+      // we are checking. Comparing two typed sets would amount to assuming
+      // valid what the test must establish.
       const admises: ReadonlySet<string> = new Set<string>(
         new Intl.PluralRules(locale).resolvedOptions().pluralCategories,
       );
@@ -228,7 +228,7 @@ describe('Catalogues de messages — syntaxe ICU', () => {
             fautives.push(`${key} — pluriel sans « other » (repli impossible)`);
           }
           for (const c of cats) {
-            // `=0`, `=1`… sont des correspondances exactes, valides partout.
+            // `=0`, `=1`… are exact matches, valid everywhere.
             if (c.startsWith('=')) continue;
             if (!admises.has(c)) {
               fautives.push(
@@ -243,21 +243,21 @@ describe('Catalogues de messages — syntaxe ICU', () => {
   );
 
   it('l’arabe couvre ses catégories propres dans TOUS ses messages à pluriel', () => {
-    // Vérification de FOND, pas de forme : que les pluriels arabes aient été
-    // écrits avec les règles de l'arabe, et non recopiés du français.
+    // A check of SUBSTANCE, not form: that Arabic plurals were
+    // written with Arabic rules, and not copied from French.
     //
-    // CE TEST NE PORTAIT QUE SUR `library.count`, « le cas type ». Les quinze
-    // autres messages à pluriel n'étaient couverts que par la vérification de
-    // validité ci-dessus — laquelle accepte `one`/`other`, puisque ces deux
-    // catégories EXISTENT en arabe. Autrement dit : une régression ramenant
-    // `experts.count` aux trois catégories du français serait passée en CI, et
-    // la page aurait affiché « 3 منشور » au lieu de « 3 منشورات ». C'était la
-    // qualité du traducteur qui tenait ces quinze clés, pas la garde.
+    // THIS TEST ONLY COVERED `library.count`, "the typical case". The fifteen
+    // other plural messages were only covered by the validity check
+    // above — which accepts `one`/`other`, since those two
+    // categories EXIST in Arabic. In other words: a regression bringing
+    // `experts.count` back to French's three categories would have passed CI, and
+    // the page would have displayed "3 منشور" instead of "3 منشورات". It was the
+    // translator's quality that held those fifteen keys, not the guard.
     //
-    // L'arabe est la seule langue où l'exigence vaut pour tous les messages :
-    // ses six catégories changent réellement le mot (duel, pluriel de petit
-    // nombre, accusatif de 11–99), alors que le `many` français ou espagnol ne
-    // sert qu'à la notation compacte et manque légitimement presque partout.
+    // Arabic is the only language where the requirement applies to every message:
+    // its six categories really change the word (dual, small-number
+    // plural, accusative for 11–99), whereas the French or Spanish `many` only
+    // serves compact notation and is legitimately missing almost everywhere.
     const REQUISES = ['one', 'two', 'few', 'many', 'other'];
     const incomplets: string[] = [];
     let pluriels = 0;
@@ -272,8 +272,8 @@ describe('Catalogues de messages — syntaxe ICU', () => {
       }
     }
 
-    // Une garde qui ne trouve aucun message à pluriel ne garde rien : si le
-    // relevé se casse, ce test doit tomber ici plutôt que réussir à vide.
+    // A guard that finds no plural message guards nothing: if the
+    // collection breaks, this test must fail here rather than pass vacuously.
     expect(
       pluriels,
       'aucun message à pluriel relevé dans le catalogue arabe',
@@ -302,14 +302,14 @@ describe('Catalogues de messages — la garde voit vraiment les messages', () =>
     expect([
       ...argumentsOf('{count, plural, one {# vu} other {# vus}}'),
     ]).toEqual(['count']);
-    // LE CAS QUI A FAIT ÉCHOUER LA PREMIÈRE VERSION : le corps d'une catégorie
-    // commence par un mot suivi d'une virgule, et ressemble donc à un argument.
+    // THE CASE THAT BROKE THE FIRST VERSION: a category body
+    // starts with a word followed by a comma, and therefore looks like an argument.
     expect([
       ...argumentsOf(
         '{count, plural, one {Notifications, # non lue} other {Notifications, # non lues}}',
       ),
     ]).toEqual(['count']);
-    // Un vrai argument imbriqué dans une catégorie, lui, doit être vu.
+    // A real argument nested in a category, however, must be seen.
     expect([
       ...argumentsOf(
         '{n, plural, one {{name} a répondu} other {{name} ont répondu}}',
@@ -320,7 +320,7 @@ describe('Catalogues de messages — la garde voit vraiment les messages', () =>
     expect(
       pluralCategories('{c, plural, =0 {rien} one {# x} other {# y}}'),
     ).toEqual([['=0', 'one', 'other']]);
-    // Un pluriel imbriqué dans une autre valeur reste vu comme un bloc.
+    // A plural nested in another value is still seen as a block.
     expect(
       pluralCategories(
         'Envoyer à {c, plural, one {# abonné} other {# abonnés}}',

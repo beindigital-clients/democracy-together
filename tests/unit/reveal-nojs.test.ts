@@ -2,28 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Garde anti-régression : contenu invisible sans JavaScript (audit § 5.6).
+// Anti-regression guard: content invisible without JavaScript (audit § 5.6).
 //
-// framer-motion rend `initial={{ opacity: 0 }}` en style INLINE côté serveur.
-// Sans script pour lancer l'animation, le contenu reste invisible — mesuré
-// avant correctif : page des mentions légales entièrement blanche, accueil
-// réduit à son en-tête. C'est rédhibitoire pour l'objectif « mobile et faible
-// débit » (F-05), et invisible en développement, où JavaScript marche toujours.
+// framer-motion renders `initial={{ opacity: 0 }}` as an INLINE style on the server.
+// Without a script to start the animation, the content stays invisible — measured
+// before the fix: the legal notice page entirely blank, the home page
+// reduced to its header. That is a deal-breaker for the "mobile and low
+// bandwidth" goal (F-05), and invisible in development, where JavaScript always works.
 //
-// Le correctif repose sur un contrat en deux parties :
-//   1. tout élément animé porte `data-reveal` ;
-//   2. le layout sert, sous <noscript>, une règle qui les rend visibles.
-// Ce test vérifie les deux. Il échouera le jour où quelqu'un ajoutera un
-// `<motion.*>` sans le marqueur — cas que ni le typecheck ni les tests de
-// rendu ne rattraperaient.
+// The fix rests on a two-part contract:
+//   1. every animated element carries `data-reveal`;
+//   2. the layout serves, under <noscript>, a rule that makes them visible.
+// This test checks both. It will fail the day someone adds a
+// `<motion.*>` without the marker — a case that neither the typecheck nor the render
+// tests would catch.
 //
-// MISE À JOUR (audit F-05) : le HTML servi ne porte plus `opacity:0` du tout —
-// `reveal.tsx` ne pose le voile qu'APRÈS le montage, parce qu'un élément
-// invisible n'est pas candidat au LCP et repoussait celui de /fr/barometre à
-// 12,8 s en 3G lente. Les deux parties du contrat gardent néanmoins leur
-// raison d'être : `data-reveal` reste le marqueur par lequel on retrouve les
-// éléments animés, et la règle <noscript> reste le filet si le voile venait à
-// repasser côté serveur. Ce test tient donc toujours, en défense de fond.
+// UPDATE (audit F-05): the served HTML no longer carries `opacity:0` at all —
+// `reveal.tsx` only applies the veil AFTER mount, because an invisible
+// element is not an LCP candidate and was pushing /fr/barometre's LCP to
+// 12.8 s on slow 3G. Both parts of the contract nevertheless keep their
+// purpose: `data-reveal` remains the marker by which the animated elements
+// are found, and the <noscript> rule remains the safety net should the veil ever
+// move back to the server side. This test therefore still holds, as defense in depth.
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -69,7 +69,7 @@ describe('Rendu sans JavaScript — contrat des éléments animés', () => {
       join(SRC, 'components', 'motion', 'reveal.tsx'),
       'utf8',
     );
-    // Reveal, RevealGroup et RevealItem : trois composants exportés.
+    // Reveal, RevealGroup and RevealItem: three exported components.
     const exported = reveal.match(/export function (Reveal\w*)/g) ?? [];
     expect(exported).toHaveLength(3);
     expect((reveal.match(/data-reveal/g) ?? []).length).toBeGreaterThanOrEqual(

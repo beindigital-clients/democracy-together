@@ -1,26 +1,26 @@
 import { describe, it, expect, vi } from 'vitest';
 import { isTransport, retrySync, retryAsync } from '../e2e/_retry';
 
-// La reprise des helpers E2E est elle-même testée : une logique de reprise dont
-// rien ne prouve qu'elle reprend est un commentaire, pas un correctif. Le point
-// SENSIBLE est la seconde moitié — ne PAS rejouer une erreur applicative. Sans
-// elle, un validateur Convex qui refuse un argument deviendrait trois secondes
-// d'attente suivies du même échec, et le message utile serait noyé.
+// The E2E helpers' retry is itself tested: retry logic with nothing
+// proving that it retries is a comment, not a fix. The SENSITIVE
+// point is the second half — NOT replaying an application error. Without
+// it, a Convex validator rejecting an argument would become three seconds
+// of waiting followed by the same failure, and the useful message would be drowned.
 
-// Reproduit ce que Node donne réellement : execFileSync lève une Error dont le
-// `message` porte la sortie d'erreur de la commande.
+// Reproduces what Node actually produces: execFileSync throws an Error whose
+// `message` carries the command's error output.
 function cliError(stderr: string) {
   const err = new Error(`Command failed: npx convex run foo\n${stderr}`);
-  // `stderr` est un Uint8Array, PAS une chaîne — vérifié sur une vraie erreur
-  // d'execFileSync. Le fabriquer en chaîne ici rendrait le test complaisant :
-  // il passerait avec une implémentation incapable de lire un Buffer.
+  // `stderr` is a Uint8Array, NOT a string — verified on a real
+  // execFileSync error. Building it as a string here would make the test lenient:
+  // it would pass with an implementation incapable of reading a Buffer.
   (err as Error & { stderr: Uint8Array }).stderr = Buffer.from(stderr, 'utf8');
   return err;
 }
 
 describe('isTransport', () => {
   it('reconnaît les pannes de transport observées en CI', () => {
-    // Les deux formes exactes relevées dans le premier run réel de la suite.
+    // The two exact forms recorded in the suite's first real run.
     expect(
       isTransport(
         cliError(
@@ -34,8 +34,8 @@ describe('isTransport', () => {
   });
 
   it('lit le Buffer `stderr` quand le message seul ne suffit pas', () => {
-    // Cas où la panne n'apparaît QUE dans stderr : c'est ce qui distingue une
-    // lecture réelle du champ d'un simple test du `message`.
+    // Case where the failure appears ONLY in stderr: this is what distinguishes an
+    // actual read of the field from a mere test of `message`.
     const err = new Error('Command failed: npx convex run foo');
     (err as Error & { stderr: Uint8Array }).stderr = Buffer.from(
       'TypeError: fetch failed',
@@ -78,7 +78,7 @@ describe('retrySync', () => {
         throw cliError('ArgumentValidationError: champ requis manquant');
       }),
     ).toThrow(/ArgumentValidationError/);
-    expect(calls).toBe(1); // le cœur du test : UNE seule tentative
+    expect(calls).toBe(1); // the heart of the test: a SINGLE attempt
   });
 
   it('abandonne après 4 tentatives et cite la dernière erreur', () => {

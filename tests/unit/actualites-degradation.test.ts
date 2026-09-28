@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// F-10 — une panne Sanity ne doit pas se confondre avec un article absent.
+// F-10 — a Sanity outage must not be mistaken for a missing article.
 //
-// C'est la même distinction que F-02, et elle se joue ici sur un sentinelle :
-// `undefined` = la requête a échoué, `null` = l'article n'existe pas. Les
-// confondre a deux conséquences opposées et toutes deux fausses — rendre
-// « indisponible » pour un article réellement supprimé (qui mérite un 404),
-// ou rendre un 404 pendant une panne (qui coûterait le référencement d'un
-// article bien vivant).
+// It is the same distinction as F-02, and here it plays out on a sentinel:
+// `undefined` = the request failed, `null` = the article does not exist. Confusing
+// them has two opposite consequences, both wrong — rendering
+// "indisponible" for an article that was really deleted (which deserves a 404),
+// or rendering a 404 during an outage (which would cost the search ranking of a
+// very much alive article).
 //
-// `generateMetadata` est testable SANS contexte de requête : elle ne dépend
-// que de `params`, de la requête Sanity et de l'URL du site. C'est elle qui
-// porte la décision d'indexation, donc la partie du correctif qu'une relecture
-// ne peut pas vérifier à l'œil.
+// `generateMetadata` is testable WITHOUT a request context: it depends only
+// on `params`, the Sanity query and the site URL. It is what
+// carries the indexing decision, hence the part of the fix that a review
+// cannot verify by eye.
 
 const fetchSanity = vi.fn();
 vi.mock('@dt-sanity/lib/client', () => ({
@@ -32,10 +32,10 @@ describe('F-10 — ce que la fiche déclare aux moteurs', () => {
   it('Sanity muet : le rendu dégradé est en noindex', async () => {
     fetchSanity.mockRejectedValue(new Error('sanity injoignable'));
     const m = await generateMetadata({ params });
-    // Sans cela, un moteur qui passe pendant la panne remplacerait l'article
-    // par le panneau « indisponible » dans son index.
+    // Without this, a search engine crawling during the outage would replace the article
+    // with the "indisponible" panel in its index.
     expect(m.robots).toEqual({ index: false, follow: true });
-    // `follow` reste vrai : les liens de la page gardent leur valeur.
+    // `follow` stays true: the page's links keep their value.
     expect(m.title).toBeUndefined();
   });
 

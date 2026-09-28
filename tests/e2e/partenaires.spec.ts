@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// F-14 — Partenaires & soutiens : page publique sans backend (contenu local
-// bilingue), grille de catégories de partenariat + bande CTA « Devenir
-// partenaire » vers /contact.
+// F-14 — Partners & supporters: public page without a backend (local
+// bilingual content), grid of partnership categories + "Devenir
+// partenaire" CTA strip to /contact.
 
 test('partenaires : la page répond et affiche le h1 (F-14)', async ({
   page,
@@ -12,11 +12,11 @@ test('partenaires : la page répond et affiche le h1 (F-14)', async ({
     page.getByRole('heading', { level: 1, name: 'Partenaires & soutiens' }),
   ).toBeVisible();
 
-  // Au moins 4 cartes de catégories.
+  // At least 4 category cards.
   const cards = page.locator('article');
   expect(await cards.count()).toBeGreaterThanOrEqual(4);
 
-  // Bande CTA vers /contact.
+  // CTA strip to /contact.
   await expect(page.locator('a[href$="/contact"]').last()).toBeVisible();
 });
 

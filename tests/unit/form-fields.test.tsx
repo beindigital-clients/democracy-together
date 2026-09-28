@@ -9,18 +9,18 @@ import {
   useFormFields,
 } from '@/components/ui/field';
 
-// Pas de setupFiles global dans ce projet : sans ce cleanup, les rendus
-// s'accumulent d'un test à l'autre et les libellés deviennent ambigus.
+// No global setupFiles in this project: without this cleanup, renders
+// accumulate from one test to the next and labels become ambiguous.
 afterEach(cleanup);
 
-// VALIDATION PAR CHAMP ET CONSERVATION DES SAISIES (issue #37).
+// PER-FIELD VALIDATION AND INPUT PRESERVATION (issue #37).
 //
-// Ce que ces tests tiennent, c'est ce que l'issue demande : chaque champ fautif
-// porte SON message (et non un message unique en bas de formulaire pour trois
-// causes), et un refus serveur ne vide aucun champ.
+// What these tests hold is what the issue asks for: each invalid field
+// carries ITS message (not a single message at the bottom of the form for three
+// causes), and a server refusal clears no field.
 
-// Formulaire témoin : les mêmes pièces que les formulaires du site (coquille de
-// champ, règles par champ, erreur de formulaire), sans Convex ni i18n.
+// Control form: the same pieces as the site's forms (field
+// shell, per-field rules, form error), without Convex or i18n.
 function TestForm({
   onSend = async () => {},
 }: {
@@ -126,8 +126,8 @@ describe('Validation par champ', () => {
     fill('Message', 'court');
     send();
 
-    // Au clavier comme au lecteur d'écran, c'est ce qui fait entendre le
-    // message : il décrit le contrôle qui vient de prendre le focus.
+    // For keyboard users as for screen readers, this is what makes the
+    // message heard: it describes the control that has just taken focus.
     expect(document.activeElement).toBe(screen.getByLabelText('E-mail'));
   });
 
@@ -140,7 +140,7 @@ describe('Validation par champ', () => {
     fill('E-mail', 'awa@example.org');
     expect(email.getAttribute('aria-invalid')).toBeNull();
     expect(screen.queryByText('Adresse e-mail invalide.')).toBeNull();
-    // Les autres champs gardent le leur : corriger l'un n'absout pas les autres.
+    // The other fields keep theirs: fixing one does not absolve the others.
     expect(screen.getByText('Indiquez votre nom.')).toBeTruthy();
   });
 
@@ -173,8 +173,8 @@ describe('Conservation des saisies', () => {
     send();
     await screen.findByRole('alert');
 
-    // Le refus affiche un message de formulaire — et ne coûte pas une ligne de
-    // ce qui a été écrit.
+    // The refusal displays a form message — and does not cost a single line of
+    // what was written.
     expect(screen.getByRole('alert').textContent).toBe('Envoi impossible.');
     expect(screen.getByLabelText('Nom').value).toBe(valid.name);
     expect(screen.getByLabelText('E-mail').value).toBe(valid.email);

@@ -24,9 +24,9 @@ import {
 
 afterEach(cleanup);
 
-// Règles PURES des paiements (montants, dates, texte du reçu) et l'écran
-// « aucun prestataire » — celui qui doit proposer une alternative au lieu
-// d'un bouton mort.
+// PURE payment rules (amounts, dates, receipt text) and the
+// "aucun prestataire" screen — the one that must offer an alternative instead
+// of a dead button.
 
 describe('Montants — unité mineure', () => {
   it('convertit sans flottant parasite et refuse les décimales impossibles', () => {
