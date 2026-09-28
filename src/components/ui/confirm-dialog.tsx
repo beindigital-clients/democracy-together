@@ -4,23 +4,23 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 
-// GARDE-FOU des actions irréversibles du back-office (issue #38) : rejeter une
-// candidature, rejeter une publication, retirer un contenu de la tribune,
-// changer un rôle. Toutes s'exécutaient au premier clic ; depuis la machine à
-// états (#9), une décision de candidature ne se rejoue même plus.
+// SAFEGUARD for irreversible back-office actions (issue #38): rejecting an
+// application, rejecting a publication, removing content from the tribune,
+// changing a role. All of them ran on the first click; since the state
+// machine (#9), an application decision cannot even be replayed.
 //
-// L'ACCESSIBILITÉ N'EST PAS RÉINVENTÉE : c'est le motif déjà employé par
-// `search-dialog` et `mobile-nav` — `role="dialog"` + `aria-modal`, fermeture à
-// Échap et au clic hors zone, piège à focus, verrou du scroll du corps, focus
-// rendu au déclencheur à la fermeture. Seul le contenu change.
+// ACCESSIBILITY IS NOT REINVENTED: it is the pattern already used by
+// `search-dialog` and `mobile-nav` — `role="dialog"` + `aria-modal`, closing on
+// Escape and on outside click, focus trap, body scroll lock, focus
+// returned to the trigger on close. Only the content changes.
 //
-// Le titre est fourni par l'appelant et NOMME la cible (« Rejeter la
-// candidature de Institut Démo Sahel ? ») : un « Confirmer ? » générique ne
-// demanderait qu'un second clic, sans dire lequel des quinze éléments de la
-// file est visé — c'est précisément l'erreur qu'on cherche à rattraper.
+// The title is supplied by the caller and NAMES the target ("Rejeter la
+// candidature de Institut Démo Sahel ?"): a generic "Confirmer ?" would only
+// ask for a second click, without saying which of the fifteen items in the
+// queue is targeted — which is precisely the mistake we're trying to catch.
 //
-// Le focus va au bouton d'ANNULATION : sur une boîte qui protège d'un geste
-// accidentel, une validation à la touche Entrée serait ce geste.
+// Focus goes to the CANCEL button: on a dialog that guards against an
+// accidental gesture, confirming with the Enter key would be that gesture.
 export function ConfirmDialog({
   open,
   title,
@@ -38,24 +38,24 @@ export function ConfirmDialog({
   confirmLabel: string;
   cancelLabel: string;
   destructive?: boolean;
-  // Action en cours : les deux issues sont neutralisées, Échap et le clic hors
-  // zone aussi — fermer pendant l'appel laisserait l'écran muet sur son issue.
+  // Action in progress: both outcomes are disabled, Escape and outside
+  // click too — closing during the call would leave the screen silent about its outcome.
   pending?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  // `createPortal` a besoin de `document` : il n'existe pas au rendu serveur.
-  // Ce composant rend déjà `null` tant qu'il est fermé, mais on ne se repose
-  // pas là-dessus — un appelant peut le monter ouvert.
+  // `createPortal` needs `document`: it does not exist during server render.
+  // This component already renders `null` while closed, but we don't rely
+  // on that — a caller may mount it open.
   const [monte, setMonte] = useState(false);
   useEffect(() => setMonte(true), []);
 
   const titleId = useId();
   const descId = useId();
 
-  // Ouverture / fermeture : verrou du scroll, focus envoyé dans le panneau,
-  // puis rendu à l'élément qui a ouvert la boîte (le bouton de la ligne).
+  // Open / close: scroll lock, focus sent into the panel,
+  // then returned to the element that opened the dialog (the row's button).
   useEffect(() => {
     if (!open) return;
     const trigger = document.activeElement as HTMLElement | null;
@@ -65,19 +65,19 @@ export function ConfirmDialog({
       document.body.style.overflow = '';
       trigger?.focus?.();
     };
-    // `monte` FAIT PARTIE DES DÉPENDANCES, et ce n'est pas décoratif : avec le
-    // portail, le premier rendu ne produit rien (`document` n'existe pas encore
-    // côté serveur, donc on attend le montage). `panelRef.current` est alors
-    // `null` et ce focus ne trouve personne. Sans cette dépendance, l'effet ne
-    // se rejoue jamais : le focus n'atterrit plus sur « Annuler », et une
-    // touche Entrée retombe sur l'action destructrice — exactement ce que ce
-    // composant existe pour empêcher. Attrapé par les tests unitaires déjà en
-    // place, pas par relecture.
+    // `monte` IS PART OF THE DEPENDENCIES, and it is not decorative: with the
+    // portal, the first render produces nothing (`document` does not exist yet
+    // on the server, so we wait for mount). `panelRef.current` is then
+    // `null` and this focus finds nobody. Without this dependency, the effect never
+    // re-runs: focus no longer lands on "Annuler", and an
+    // Enter key press falls on the destructive action — exactly what this
+    // component exists to prevent. Caught by the existing unit tests,
+    // not by review.
   }, [open, monte]);
 
-  // Échap + piège à focus. Effet distinct : il dépend de `onCancel`, dont
-  // l'identité change à chaque rendu du parent — le refondre avec le précédent
-  // renverrait le focus au déclencheur à chaque rendu.
+  // Escape + focus trap. A separate effect: it depends on `onCancel`, whose
+  // identity changes on every parent render — merging it with the previous one
+  // would send focus back to the trigger on every render.
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -108,19 +108,19 @@ export function ConfirmDialog({
 
   if (!open || !monte) return null;
 
-  // PORTAIL vers `document.body` (audit F-13, piste 2 du rapport).
+  // PORTAL to `document.body` (audit F-13, option 2 of the report).
   //
-  // Ce conteneur est `fixed`, donc positionné par rapport à la fenêtre — mais
-  // seulement tant qu'AUCUN ancêtre ne porte `transform`, `filter` ou
-  // `perspective` : l'un de ces trois crée un bloc conteneur, et le `fixed` s'y
-  // ancre à la place. Le back-office n'en porte aucun aujourd'hui (vérifié),
-  // mais c'est une propriété qu'un futur composant peut introduire à distance,
-  // sans rapport visible avec cette boîte de dialogue. Le jour où cela arrive,
-  // le dialogue est mal placé POUR LES UTILISATEURS, pas seulement pour un test.
+  // This container is `fixed`, so positioned relative to the viewport — but
+  // only as long as NO ancestor has `transform`, `filter` or
+  // `perspective`: any of those three creates a containing block, and the `fixed` element
+  // anchors to it instead. The back-office has none of them today (verified),
+  // but it is a property that a future component can introduce from afar,
+  // with no visible connection to this dialog. The day that happens,
+  // the dialog is misplaced FOR USERS, not just for a test.
   //
-  // Le rendre depuis `body` retire cette dépendance à l'arbre d'appel. C'est
-  // aussi ce qui rend son empilement (`z-[60]`) fiable, pour la même raison :
-  // un contexte d'empilement créé par un ancêtre le plafonnerait.
+  // Rendering it from `body` removes this dependency on the calling tree. It is
+  // also what makes its stacking (`z-[60]`) reliable, for the same reason:
+  // a stacking context created by an ancestor would cap it.
   return createPortal(
     <div className="fixed inset-0 z-[60]">
       <button
@@ -140,11 +140,11 @@ export function ConfirmDialog({
         aria-describedby={description ? descId : undefined}
         className="absolute inset-x-4 top-[18vh] z-10 mx-auto max-w-md rounded-lg border border-line bg-paper p-5 shadow-pop sm:inset-x-0"
       >
-        {/* `text-balance` : le titre porte le nom de la cible, donc sa longueur
-            n'est pas maîtrisée — sans équilibrage, un nom un peu long laisse le
-            « ? » seul sur la dernière ligne. */}
-        {/* `wrap-anywhere` : le nom de la cible peut être une adresse e-mail
-            sans espace — mesuré le 27/09 sur mobile, elle sortait du panneau. */}
+        {/* `text-balance`: the title carries the target's name, so its length
+            is not under control — without balancing, a slightly long name leaves the
+            "?" alone on the last line. */}
+        {/* `wrap-anywhere`: the target's name may be an email address
+            without spaces — measured on 27/09 on mobile, it overflowed the panel. */}
         <h2
           id={titleId}
           className="wrap-anywhere text-balance font-display text-lg text-ink"

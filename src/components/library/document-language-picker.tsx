@@ -10,25 +10,25 @@ import { LOCALE_ENDONYMS, direction } from '@/i18n/direction';
 import { translationErrorSuffix } from '@/lib/article-translation';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// CHOISIR LA LANGUE DU DOCUMENT.
+// CHOOSING THE DOCUMENT LANGUAGE.
 //
-// Le lecteur voit les cinq langues. Celles qui sont PRÊTES mènent directement à
-// la version correspondante ; les autres portent un bouton qui la prépare, puis
-// y mène. La distinction est visible avant le clic — sans quoi tous les boutons
-// se ressembleraient et l'un d'eux prendrait trente secondes sans prévenir.
+// The reader sees all five languages. Those that are READY lead straight to
+// the corresponding version; the others carry a button that prepares it, then
+// leads there. The distinction is visible before the click — otherwise all buttons
+// would look alike and one of them would take thirty seconds without warning.
 //
-// LA LANGUE PAR DÉFAUT EST CELLE DE L'APPLICATION. La page ouvre sur
-// `?lang=<locale de la page>` ; ce composant ne sert qu'à en sortir. C'est ce
-// que demande le cas d'usage : un lecteur arabophone qui télécharge un rapport
-// veut sa version arabe, pas un choix à faire.
+// THE DEFAULT LANGUAGE IS THE APPLICATION'S. The page opens on
+// `?lang=<page locale>`; this component only serves to leave it. That is
+// what the use case calls for: an Arabic-speaking reader downloading a report
+// wants its Arabic version, not a choice to make.
 //
-// LES LIBELLÉS SONT DES ENDONYMES, comme dans le sélecteur de langue du site
-// (src/i18n/direction.ts) : « Português », pas « Portugais ».
+// THE LABELS ARE ENDONYMS, as in the site's language picker
+// (src/i18n/direction.ts): "Português", not "Portugais".
 
 export function DocumentLanguagePicker({
   slug,
   current,
-  /** Langues déjà prêtes — les autres demandent une préparation. */
+  /** Languages already ready — the others require preparation. */
   ready,
 }: {
   slug: string;
@@ -79,14 +79,14 @@ export function DocumentLanguagePicker({
           const isReady = ready.includes(l);
           const busy = preparing === l || (pending && preparing === l);
           const label = LOCALE_ENDONYMS[l];
-          // LA LANGUE COURANTE N'EST INERTE QUE SI ELLE EST PRÊTE.
+          // THE CURRENT LANGUAGE IS ONLY INERT IF IT IS READY.
           //
-          // Elle était rendue en `<span>` dans tous les cas, et c'était une
-          // impasse : la page ouvre par défaut sur la langue de l'application
-          // (c'est la demande), donc le premier visiteur d'un document jamais
-          // préparé arrivait sur SA langue, lisait « aucun contenu » et n'avait
-          // aucun bouton pour le préparer. Le seul chemin était de préparer une
-          // AUTRE langue — un appel complet payé pour rien — puis de revenir.
+          // It used to be rendered as a `<span>` in every case, and that was a
+          // dead end: the page opens by default on the application's language
+          // (that is the requirement), so the first visitor to a never-prepared
+          // document landed on THEIR language, read "no content" and had
+          // no button to prepare it. The only path was to prepare ANOTHER
+          // language — a full call paid for nothing — and then come back.
           const inerte = isCurrent && isReady;
           return (
             <li key={l}>
@@ -116,9 +116,9 @@ export function DocumentLanguagePicker({
                 >
                   {label}
                   {isReady ? (
-                    // Une pastille, pas un mot : la liste reste lisible d'un
-                    // coup d'œil, et l'information passe aussi à l'assistance
-                    // technique par le `title` du SVG voisin.
+                    // A dot, not a word: the list stays readable at a
+                    // glance, and the information also reaches assistive
+                    // technology through the neighbouring SVG's `title`.
                     <span
                       aria-hidden="true"
                       className="h-1.5 w-1.5 rounded-full bg-accent"

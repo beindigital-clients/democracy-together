@@ -7,8 +7,8 @@ import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { StatusMessage } from '@/components/a11y/status-message';
 
-// Signalement (F-50) — tout compte authentifié peut signaler un post/commentaire.
-// Déconnecté : lien vers la connexion.
+// Reporting (F-50) — any authenticated account can report a post/comment.
+// Signed out: link to sign in.
 export function ReportButton({
   targetType,
   targetId,
@@ -22,8 +22,8 @@ export function ReportButton({
   const [done, setDone] = useState(false);
   const [pending, setPending] = useState(false);
 
-  // Le bouton cède la place au constat : sans reprise du focus, celui-ci
-  // tombait sur `<body>` et rien n'était annoncé (RGAA 7.5).
+  // The button gives way to the confirmation: without moving focus, it
+  // fell onto `<body>` and nothing was announced (RGAA 7.5).
   if (done) {
     return (
       <StatusMessage as="span" className="text-[12px] text-muted">
@@ -48,7 +48,7 @@ export function ReportButton({
       await report({ targetType, targetId });
       setDone(true);
     } catch {
-      /* rate-limit éventuel : silencieux */
+      /* possible rate-limit: silent */
     } finally {
       setPending(false);
     }

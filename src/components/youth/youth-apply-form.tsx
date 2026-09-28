@@ -22,8 +22,8 @@ import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
 import { StatusMessage } from '@/components/a11y/status-message';
 
-// Candidature au hub Jeunes (F-58) — îlot client sur /jeunes (#rejoindre). Sans
-// compte. Axe d'intérêt facultatif (relie aux 5 axes du réseau).
+// Application to the Youth hub (F-58) — client island on /jeunes (#rejoindre). No
+// account needed. Optional theme of interest (linked to the network's 5 themes).
 export function YouthApplyForm() {
   const t = useTranslations('youthApply');
   const tl = useTranslations('library');
@@ -40,16 +40,16 @@ export function YouthApplyForm() {
     motivation: '',
   });
 
-  // Bornes ALIGNÉES sur le serveur (`convex/youth.ts` via `FIELD_MAX`) : une
-  // motivation de 5 000 caractères était refusée sous « L'envoi a échoué »
-  // sans que la limite (4 000) soit dite nulle part (mesuré le 27/09, A-04).
+  // Limits ALIGNED with the server (`convex/youth.ts` via `FIELD_MAX`): a
+  // 5,000-character motivation was rejected under "L'envoi a échoué"
+  // without the limit (4,000) being stated anywhere (measured on 27/09, A-04).
   const motivationMax = FIELD_MAX.body;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    // Les messages existaient déjà, un par cause — mais tous affichés au même
-    // endroit, en bas. Ils vont maintenant à leur champ.
+    // The messages already existed, one per cause — but all shown in the same
+    // place, at the bottom. They now go to their field.
     if (
       !validate({
         name: (v) => (v.trim().length < 2 ? t('errName') : null),
@@ -81,8 +81,8 @@ export function YouthApplyForm() {
       });
       setStatus('success');
     } catch (err) {
-      // Le refus serveur de longueur porte son code (`ConvexError`) : il est
-      // dit tel quel, au lieu d'être rabattu sur le message générique.
+      // The server's length rejection carries its code (`ConvexError`): it is
+      // stated as is, instead of being folded into the generic message.
       const code =
         err instanceof ConvexError && typeof err.data === 'string'
           ? err.data
@@ -104,10 +104,10 @@ export function YouthApplyForm() {
     return (
       <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-5">
         <p className="font-medium text-ink">{t('success')}</p>
-        {/* Dédoublonnage doux (une candidature en attente par adresse) : la
-            réponse du serveur ne distingue pas les deux cas — c'est voulu, un
-            formulaire public ne doit pas révéler qu'une adresse est connue
-            (pentest M-8). On le DIT donc dans tous les cas, sans le trahir. */}
+        {/* Soft deduplication (one pending application per address): the
+            server's response does not distinguish the two cases — that is intended, a
+            public form must not reveal that an address is known
+            (pentest M-8). So we SAY it in every case, without giving it away. */}
         <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
           {t('successDedupe')}
         </p>
@@ -140,7 +140,7 @@ export function YouthApplyForm() {
       <TextField
         label={t('country')}
         id="y-country"
-        // Finalité déclarée pour le remplissage automatique (RGAA 11.13).
+        // Declared purpose for autofill (RGAA 11.13).
         autoComplete="country-name"
         required
         maxLength={FIELD_MAX.country}

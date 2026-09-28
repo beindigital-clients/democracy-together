@@ -26,8 +26,8 @@ const SCORES = Array.from(
   (_, i) => i,
 );
 
-// Évaluation par un évaluateur désigné (F-60) : grille par critère, ou
-// déclaration de conflit d'intérêts — définitive, elle l'exclut du dossier.
+// Evaluation by a designated evaluator (F-60): per-criterion grid, or
+// conflict-of-interest declaration — final, it excludes them from the application.
 export function EvaluationsBoard() {
   const t = useTranslations('projects');
   const assignments = useQuery(api.projectCalls.myEvaluationAssignments);

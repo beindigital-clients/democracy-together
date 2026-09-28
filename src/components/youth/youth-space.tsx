@@ -34,7 +34,7 @@ import {
   useProgrammeError,
 } from '@/components/programmes/shared';
 
-// Espace du jeune (F-58) : profil persistant, candidatures rattachées, statut.
+// Youth space (F-58): persistent profile, linked applications, status.
 export function YouthSpace() {
   const t = useTranslations('youth');
   const data = useQuery(api.youthProfiles.myYouthSpace);
@@ -43,8 +43,8 @@ export function YouthSpace() {
   if (data === null) return null;
   return (
     <div className="mt-8 space-y-10">
-      {/* Le formulaire lit le profil À SON MONTAGE : il n'est rendu qu'une
-          fois la requête arrivée, donc déjà pré-rempli. */}
+      {/* The form reads the profile ON MOUNT: it is only rendered once
+          the query has arrived, so already pre-filled. */}
       <ProfileForm profile={data.profile} />
       {data.profile ? (
         <>

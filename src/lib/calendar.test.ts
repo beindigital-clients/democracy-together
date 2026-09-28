@@ -8,7 +8,7 @@ import {
 } from './calendar';
 import { EVENTS, getEventsLabels, type EventData } from './events-content';
 
-// Helpers de test
+// Test helpers
 function allCells(grid: ReturnType<typeof buildMonthGrid>) {
   return grid.weeks.flat();
 }
@@ -35,7 +35,7 @@ describe('buildMonthGrid — comptage des jours', () => {
   it('février 2026 (non bissextile) compte 28 jours', () => {
     const grid = buildMonthGrid(2026, 2);
     expect(dayCells(grid)).toHaveLength(28);
-    // Les numéros vont de 1 à 28, sans trou.
+    // Day numbers run from 1 to 28, with no gap.
     expect(dayCells(grid).map((c) => c.day)).toEqual(
       Array.from({ length: 28 }, (_, i) => i + 1),
     );
@@ -48,16 +48,16 @@ describe('buildMonthGrid — comptage des jours', () => {
 
   it('compte correctement les mois de 30 et 31 jours', () => {
     expect(dayCells(buildMonthGrid(2026, 4))).toHaveLength(30); // avril
-    expect(dayCells(buildMonthGrid(2026, 12))).toHaveLength(31); // décembre
+    expect(dayCells(buildMonthGrid(2026, 12))).toHaveLength(31); // December
   });
 });
 
 describe('buildMonthGrid — offset du 1er jour (lundi=0)', () => {
   it('positionne le 1er février 2026 (un dimanche) en dernière colonne de la 1re semaine', () => {
-    // 1 févr. 2026 = dimanche -> index lundi-first = 6
+    // 1 Feb 2026 = Sunday -> Monday-first index = 6
     const grid = buildMonthGrid(2026, 2);
     const firstWeek = grid.weeks[0];
-    // Les 6 premières cases sont vides (null), la 7e porte le jour 1.
+    // The first 6 cells are empty (null), the 7th holds day 1.
     for (let i = 0; i < 6; i++) expect(firstWeek[i].day).toBeNull();
     expect(firstWeek[6].day).toBe(1);
   });
@@ -71,10 +71,10 @@ describe('buildMonthGrid — offset du 1er jour (lundi=0)', () => {
   it('place les cases vides AVANT le 1er et APRÈS le dernier jour', () => {
     const grid = buildMonthGrid(2026, 2); // 28 jours, offset 6
     const cells = allCells(grid);
-    // 6 cases vides en tête + 28 jours + reste vide = 42
+    // 6 leading empty cells + 28 days + empty remainder = 42
     const nullCount = cells.filter((c) => c.day === null).length;
     expect(nullCount).toBe(42 - 28);
-    // La toute dernière case du mois (28) suivie de cases nulles.
+    // The very last cell of the month (28) followed by null cells.
     const idx28 = cells.findIndex((c) => c.day === 28);
     expect(cells.slice(idx28 + 1).every((c) => c.day === null)).toBe(true);
   });
@@ -101,7 +101,7 @@ describe('buildMonthGrid — placement des événements', () => {
     const grid = buildMonthGrid(2026, 11);
     const placed = dayCells(grid).flatMap((c) => c.events);
     expect(placed.every((e) => e.y === 2026 && e.mo === 11)).toBe(true);
-    // Au moins l'événement de novembre 2026 doit être présent.
+    // At least the November 2026 event must be present.
     expect(placed.some((e) => e.slug === 'conference-inaugurale')).toBe(true);
   });
 
@@ -119,7 +119,7 @@ describe('buildMonthGrid — placement des événements', () => {
   });
 
   it("utilise EVENTS par défaut quand aucun tableau n'est fourni", () => {
-    const sep = buildMonthGrid(2026, 9); // septembre a des événements seedés
+    const sep = buildMonthGrid(2026, 9); // September has seeded events
     const placed = dayCells(sep).flatMap((c) => c.events);
     expect(placed.length).toBeGreaterThan(0);
   });

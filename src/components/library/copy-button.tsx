@@ -2,9 +2,9 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 
-// Bouton « copier dans le presse-papier » avec retour visuel inline (le libellé
-// devient « Copié » ~1,4 s). aria-live pour annoncer le succès aux lecteurs
-// d'écran. Dégrade proprement si le presse-papier est indisponible.
+// "Copy to clipboard" button with inline visual feedback (the label
+// becomes "Copié" for ~1.4 s). aria-live announces success to screen
+// readers. Degrades gracefully if the clipboard is unavailable.
 export function CopyButton({
   text,
   children,
@@ -26,7 +26,7 @@ export function CopyButton({
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1400);
     } catch {
-      // presse-papier non disponible : on ne casse rien.
+      // clipboard unavailable: break nothing.
     }
   }
 

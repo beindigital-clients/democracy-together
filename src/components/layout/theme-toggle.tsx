@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
-// Le thème (clair/sombre) est une préférence purement visuelle, sans enjeu SEO :
-// localStorage est ici légitime. Il est appliqué avant peinture par le script
-// inline du layout (anti-flash). Ce module ne fait que le lire et le changer.
+// The theme (light/dark) is a purely visual preference with no SEO stakes:
+// localStorage is legitimate here. It is applied before paint by the layout's
+// inline script (anti-flash). This module only reads and changes it.
 export type Theme = 'light' | 'dark';
 
-/** Thème courant et moyen de le changer. Partagé par la bascule (menu mobile,
- *  pied de page) et par le menu « Langue et affichage » de l'en-tête. */
+/** Current theme and a way to change it. Shared by the toggle (mobile menu,
+ *  footer) and by the header's "Langue et affichage" menu. */
 export function useTheme(): [Theme, (next: Theme) => void] {
   const [theme, setThemeState] = useState<Theme>('light');
 
@@ -26,7 +26,7 @@ export function useTheme(): [Theme, (next: Theme) => void] {
     try {
       localStorage.setItem('dt-theme', next);
     } catch {
-      /* stockage indisponible : on ignore */
+      /* storage unavailable: ignore */
     }
     setThemeState(next);
   }

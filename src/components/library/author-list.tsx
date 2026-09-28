@@ -1,18 +1,18 @@
 import { Fragment } from 'react';
 import { formatAuthorParts } from '@/lib/publications';
 
-// Liste d'auteurs de la fiche publication : « A, B et C » / « A, B, and C ».
+// Author list for the publication page: "A, B et C" / "A, B, and C".
 //
-// Les NOMS sont en gras, les séparateurs en texte courant — et ces séparateurs
-// sont une règle de LANGUE, pas une règle à écrire ici. La fiche les assemblait
-// à la main, en choisissant la conjonction par un ternaire sur la locale
-// (issue #34) : le libellé « Par »/« By » n'entrait alors dans aucun fichier de
-// messages, et la règle inventée oubliait la virgule anglaise avant « and ».
+// NAMES are bold, separators in regular text — and those separators
+// are a LANGUAGE rule, not a rule to write here. The page used to assemble them
+// by hand, picking the conjunction with a ternary on the locale
+// (issue #34): the "Par"/"By" label was then in no message
+// file, and the invented rule forgot the English comma before "and".
 //
-// `formatAuthorParts` (Intl.ListFormat) rend la liste DÉCOUPÉE : les segments
-// `element` sont les noms, les segments `literal` les séparateurs. C'est ce
-// découpage qui permet de mettre les noms en gras sans toucher à la ponctuation
-// — et de ne rien avoir à réécrire le jour où une troisième langue arrive.
+// `formatAuthorParts` (Intl.ListFormat) returns the list SPLIT: `element`
+// segments are the names, `literal` segments the separators. That
+// split is what lets the names be bolded without touching punctuation
+// — and with nothing to rewrite the day a third language arrives.
 export function AuthorList({
   names,
   locale,

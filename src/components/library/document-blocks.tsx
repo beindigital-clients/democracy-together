@@ -2,23 +2,23 @@ import Image from 'next/image';
 import type { Locale } from '@/i18n/routing';
 import { direction } from '@/i18n/direction';
 
-// RENDU D'UN DOCUMENT EXTRAIT — blocs typés vers HTML imprimable.
+// RENDERING AN EXTRACTED DOCUMENT — typed blocks to printable HTML.
 //
-// Chaque type de bloc a une forme et une RÈGLE DE COUPURE. C'est ce second
-// point qui distingue une page imprimable d'une page qu'on imprime : sans
-// `break-inside`, un tableau se coupe au milieu d'une ligne, une figure se
-// sépare de sa légende, et un intertitre reste seul en bas de page.
+// Each block type has a shape and a BREAK RULE. That second point is what
+// distinguishes a printable page from a page that happens to be printed:
+// without `break-inside`, a table splits mid-row, a figure gets
+// separated from its caption, and a subheading is left alone at the bottom of a page.
 //
-// Les règles posées ici sont les quatre qui comptent vraiment :
-//   - un intertitre ne finit jamais une page (`break-after: avoid`) ;
-//   - une figure, un tableau et une citation ne se coupent pas ;
-//   - un paragraphe ne laisse ni ligne seule en bas ni ligne seule en haut
-//     (`orphans` / `widows`, que les navigateurs appliquent à l'impression) ;
-//   - le titre du document ouvre sa page.
+// The rules set here are the four that really matter:
+//   - a subheading never ends a page (`break-after: avoid`);
+//   - a figure, a table and a quote are never split;
+//   - a paragraph leaves no single line at the bottom or at the top
+//     (`orphans` / `widows`, which browsers apply when printing);
+//   - the document title opens its page.
 //
-// Elles vivent dans `globals.css` sous `.dt-doc`, et non en classes utilitaires,
-// parce que `orphans` et `widows` n'ont pas d'utilitaire Tailwind et qu'un
-// document se lit mieux avec une feuille de style qui se relit d'un bloc.
+// They live in `globals.css` under `.dt-doc`, not as utility classes,
+// because `orphans` and `widows` have no Tailwind utility and a
+// document reads better with a stylesheet that can be reviewed in one piece.
 
 export type DocBlock = {
   type: 'heading' | 'paragraph' | 'list' | 'quote' | 'table' | 'figure';
@@ -40,18 +40,18 @@ function Figure({
   fallbackLabel: string;
 }) {
   return (
-    // Image légendée (RGAA 1.9) : `role` et `aria-label` relient la légende à
-    // l'image, comme dans `home-hero.tsx`.
+    // Captioned image (RGAA 1.9): `role` and `aria-label` link the caption to
+    // the image, as in `home-hero.tsx`.
     <figure
       role={block.caption ? 'figure' : undefined}
       aria-label={block.caption ?? undefined}
       className="dt-doc-figure my-7"
     >
       {url ? (
-        // L'image vient du PDF d'origine, recopiée sans ré-encodage. `alt` porte
-        // la légende quand il y en a une ; à défaut il reste VIDE plutôt que de
-        // décrire « image » — une alternative qui n'apporte rien vaut moins que
-        // pas d'alternative, qu'un lecteur d'écran saute.
+        // The image comes from the original PDF, copied without re-encoding. `alt` carries
+        // the caption when there is one; otherwise it stays EMPTY rather than
+        // describing "image" — an alternative that adds nothing is worth less than
+        // no alternative, which a screen reader skips.
         <span className="relative block overflow-hidden rounded-sm border border-line bg-surface-2">
           <Image
             src={url}
@@ -63,9 +63,9 @@ function Figure({
           />
         </span>
       ) : (
-        // Illustration non extractible (graphique vectoriel, codage non lu par
-        // `lib/pdfImages.ts`). On ne fait pas semblant : l'emplacement est
-        // marqué, et le renvoi vers l'original est juste au-dessus de la page.
+        // Non-extractable illustration (vector graphic, encoding not read by
+        // `lib/pdfImages.ts`). We don't pretend: the spot is
+        // marked, and the link to the original is just above the page.
         <span className="flex min-h-[90px] items-center justify-center rounded-sm border border-dashed border-line-strong bg-surface-2 px-4 py-6 text-center text-[13px] text-muted">
           {fallbackLabel}
         </span>
@@ -126,10 +126,10 @@ function Table({ block }: { block: DocBlock }) {
 }
 
 function Heading({ block }: { block: DocBlock }) {
-  // Le titre du DOCUMENT est un `h1` posé par la page ; les intertitres
-  // commencent donc à `h2`, et un `level: 1` extrait du PDF devient `h2`.
-  // Sans ce décalage, la page porterait deux `h1` — ce qui casse le plan de
-  // navigation d'un lecteur d'écran, qui s'appuie sur la hiérarchie.
+  // The DOCUMENT title is an `h1` set by the page; subheadings
+  // therefore start at `h2`, and a `level: 1` extracted from the PDF becomes `h2`.
+  // Without this shift, the page would carry two `h1`s — which breaks a screen
+  // reader's navigation outline, which relies on the hierarchy.
   const level = Math.min(4, Math.max(1, block.level ?? 2));
   const sizes = [
     'text-[22px] mt-10',
@@ -150,17 +150,17 @@ export function DocumentBlocks({
   figureFallback,
 }: {
   blocks: DocBlock[];
-  /** Indexé comme `imageIndex` ; `null` = image non extractible. */
+  /** Indexed like `imageIndex`; `null` = non-extractable image. */
   imageUrls: (string | null)[];
   contentLocale: Locale;
   pageLocale: Locale;
-  /** Libellé affiché à la place d'une illustration non extraite. */
+  /** Label shown in place of a non-extracted illustration. */
   figureFallback: string;
 }) {
-  // Le corps du document porte SA langue et SON sens d'écriture, qui ne sont
-  // pas forcément ceux de l'interface : un lecteur francophone peut ouvrir la
-  // version arabe d'un rapport. Sans `dir`, tout le document se composerait de
-  // gauche à droite, ponctuation comprise.
+  // The document body carries ITS OWN language and writing direction, which are
+  // not necessarily the interface's: a French-speaking reader may open the
+  // Arabic version of a report. Without `dir`, the whole document would be laid out
+  // left to right, punctuation included.
   const attrs =
     contentLocale === pageLocale
       ? {}

@@ -16,8 +16,8 @@ export type PersonCardData = {
   followerCount: number;
 };
 
-// Carte de personne (annuaire, abonnés, abonnements). La carte entière est un
-// lien — une seule cible tactile, pleine largeur — vers `/membres/<handle>`.
+// Person card (directory, followers, following). The whole card is a
+// link — a single full-width touch target — to `/membres/<handle>`.
 export function PersonCard({
   person,
   themeLabels,

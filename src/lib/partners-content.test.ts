@@ -36,7 +36,7 @@ describe('Partenaires & soutiens (F-14)', () => {
     const fr = Object.keys(frMessages.partners).sort();
     const en = Object.keys(enMessages.partners).sort();
     expect(fr).toEqual(en);
-    // clés chrome attendues présentes
+    // expected chrome keys present
     for (const k of [
       'metaTitle',
       'metaDescription',

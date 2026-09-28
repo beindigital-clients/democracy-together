@@ -23,11 +23,11 @@ import { isMember } from '@/lib/roles';
 import { PaymentsUnavailable } from './payments-unavailable';
 import { formatDay, formatMoney, knownPaymentError } from './format';
 
-// ESPACE MEMBRE / DONATEUR (F-30) : cotisation en cours et règlement,
-// dons mensuels (arrêt), historique des paiements et reçus.
+// MEMBER / DONOR AREA (F-30): current membership fee and payment,
+// monthly donations (stopping), payment history and receipts.
 
-// L'heure passée aux queries est arrondie à l'heure : une valeur qui change à
-// chaque rendu relancerait la souscription en boucle.
+// The time passed to the queries is rounded to the hour: a value that changes on
+// every render would restart the subscription in a loop.
 function currentHour(): number {
   return Math.floor(Date.now() / 3_600_000) * 3_600_000;
 }
@@ -156,8 +156,8 @@ export function MemberPayments() {
   );
 }
 
-// Téléchargement : l'URL signée est demandée AU CLIC (la query vérifie que le
-// reçu appartient au compte), pas précalculée pour toute la liste.
+// Download: the signed URL is requested ON CLICK (the query checks that the
+// receipt belongs to the account), not precomputed for the whole list.
 export function ReceiptButton({
   receiptId,
   number,

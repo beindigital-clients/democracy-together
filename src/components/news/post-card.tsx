@@ -11,9 +11,9 @@ export type PostCardData = {
   publishedAt: string;
 };
 
-// Carte d'actualité réutilisée par la liste /actualites et la section accueil.
-// headingLevel s'adapte à la hiérarchie du contexte (h2 sur la liste, h3 sous
-// une section d'accueil).
+// News card reused by the /actualites list and the home page section.
+// headingLevel adapts to the context's hierarchy (h2 on the list, h3 under
+// a home page section).
 export function PostCard({
   post,
   locale,

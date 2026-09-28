@@ -1,10 +1,10 @@
 'use client';
 
-// F-41 — « Imprimer / Enregistrer en PDF » par la boîte d'impression du
-// navigateur. Depuis le chantier editorial, c'est le REPLI : chaque édition
-// administrée a son PDF composé (convex/reportPdfNode.ts), et ce bouton ne
-// s'affiche que tant qu'il n'existe pas pour la langue de la page. Masqué à
-// l'impression (print:hidden) pour ne pas figurer dans le document final.
+// F-41 — "Imprimer / Enregistrer en PDF" via the browser's print
+// dialog. Since the editorial workstream, this is the FALLBACK: each administered
+// edition has its composed PDF (convex/reportPdfNode.ts), and this button
+// is only shown as long as none exists for the page's language. Hidden when
+// printing (print:hidden) so it does not appear in the final document.
 export function PrintButton({ label }: { label: string }) {
   return (
     <button

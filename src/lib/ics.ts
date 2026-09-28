@@ -1,9 +1,9 @@
-// F-52 Agenda — générateur iCalendar (RFC 5545) PUR et testable.
-// Produit un VCALENDAR à un seul VEVENT pour un événement « journée entière »
-// (DTSTART/DTEND en VALUE=DATE). Aucune dépendance Next/Convex : la logique
-// d'échappement et de formatage est isolée ici pour pouvoir être testée
-// unitairement. Le route handler `evenements/[slug]/agenda.ics` consomme cette
-// fonction avec les libellés localisés selon le segment de locale.
+// F-52 Agenda — PURE, testable iCalendar (RFC 5545) generator.
+// Produces a VCALENDAR with a single VEVENT for an "all-day" event
+// (DTSTART/DTEND as VALUE=DATE). No Next/Convex dependency: the escaping and
+// formatting logic is isolated here so it can be unit
+// tested. The `evenements/[slug]/agenda.ics` route handler consumes this
+// function with labels localized according to the locale segment.
 
 export type IcsDate = { y: number; mo: number; d: number }; // mo: 1-12
 
@@ -16,9 +16,9 @@ export type IcsEvent = {
   url?: string;
 };
 
-// Échappement des valeurs texte iCalendar (RFC 5545 §3.3.11) :
-// backslash, virgule et point-virgule sont préfixés ; les sauts de ligne
-// deviennent la séquence littérale « \n ». On traite \r\n et \r comme \n.
+// Escaping of iCalendar text values (RFC 5545 §3.3.11):
+// backslash, comma and semicolon are prefixed; line breaks
+// become the literal sequence "\n". \r\n and \r are treated as \n.
 function escapeText(value: string): string {
   return value
     .replace(/\\/g, '\\\\')
@@ -27,7 +27,7 @@ function escapeText(value: string): string {
     .replace(/\r\n|\r|\n/g, '\\n');
 }
 
-// Formate une date « jour entier » en YYYYMMDD (zéro-paddé).
+// Formats an "all-day" date as YYYYMMDD (zero-padded).
 function formatDate({ y, mo, d }: IcsDate): string {
   const yyyy = String(y).padStart(4, '0');
   const mm = String(mo).padStart(2, '0');
@@ -35,15 +35,15 @@ function formatDate({ y, mo, d }: IcsDate): string {
   return `${yyyy}${mm}${dd}`;
 }
 
-// DTEND d'un événement journée entière est exclusif : le lendemain de DTSTART.
-// On passe par un Date UTC pour gérer proprement les fins de mois / années
-// bissextiles, sans décalage de fuseau.
+// DTEND of an all-day event is exclusive: the day after DTSTART.
+// We go through a UTC Date to cleanly handle month ends / leap
+// years, without a time-zone shift.
 function nextDay({ y, mo, d }: IcsDate): IcsDate {
   const t = new Date(Date.UTC(y, mo - 1, d + 1));
   return { y: t.getUTCFullYear(), mo: t.getUTCMonth() + 1, d: t.getUTCDate() };
 }
 
-// Horodatage DTSTAMP au format UTC compact YYYYMMDDTHHMMSSZ.
+// DTSTAMP timestamp in compact UTC format YYYYMMDDTHHMMSSZ.
 function formatStamp(now: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return (
@@ -53,9 +53,9 @@ function formatStamp(now: Date): string {
 }
 
 /**
- * Construit une chaîne VCALENDAR valide (un seul VEVENT) pour un événement
- * « journée entière ». Les lignes sont jointes par CRLF, comme l'exige la
- * spécification. `now` est injectable pour des tests déterministes.
+ * Builds a valid VCALENDAR string (a single VEVENT) for an "all-day"
+ * event. Lines are joined with CRLF, as the
+ * specification requires. `now` is injectable for deterministic tests.
  */
 export function eventToIcs(event: IcsEvent, now: Date = new Date()): string {
   const lines: string[] = [

@@ -9,8 +9,8 @@ import {
 import { codedAgenda } from './contenus/agenda';
 
 const L = getEventsLabels('fr');
-// L'agenda est lu à une date FIXE (1er sept. 2026) : les assertions ne
-// dépendent pas du jour où la suite tourne.
+// The agenda is read at a FIXED date (1 Sept 2026): the assertions don't
+// depend on the day the suite runs.
 const NOW = Date.UTC(2026, 8, 1);
 const events = codedAgenda('fr', NOW);
 const base: EventFilters = {
@@ -33,15 +33,15 @@ describe('Événements — facettes contextuelles', () => {
 
   it('un filtre actif restreint les AUTRES facettes (pas de cul-de-sac)', () => {
     const f = computeEventFacets({ ...base, regions: ['afrique'] }, L, events);
-    // Toute option proposée dans les autres facettes correspond à >=1 événement
-    // réel -> en cochant, on ne tombe jamais sur « aucun résultat ».
+    // Every option offered in the other facets matches >=1 real
+    // event -> ticking one never lands on "aucun résultat".
     for (const opt of [...f.types, ...f.formats, ...f.langs]) {
       expect(opt.count).toBeGreaterThan(0);
     }
-    // La facette REGION ignore sa propre sélection : afrique reste cochable/
-    // décochable, et on voit toujours les autres régions (compteurs « OU »).
+    // The REGION facet ignores its own selection: afrique stays checkable/
+    // uncheckable, and the other regions are always visible ("OR" counts).
     expect(f.regions.some((x) => x.value === 'afrique')).toBe(true);
-    // Le contexte ne peut que réduire (ou laisser égal) le nombre d'options.
+    // The context can only reduce (or leave equal) the number of options.
     const all = computeEventFacets(base, L, events);
     expect(f.types.length).toBeLessThanOrEqual(all.types.length);
   });
@@ -64,7 +64,7 @@ describe('Événements — filtre par mois (F-52)', () => {
     expect(nov.every((e) => e.y === 2026 && e.mo === 11)).toBe(true);
     const f = computeEventFacets(base, L, events);
     expect(f.months.map((m) => m.value)).toContain('2026-11');
-    // Ordre du calendrier, pas de fréquence.
+    // Calendar order, not frequency.
     const values = f.months.map((m) => m.value);
     expect(values).toEqual([...values].sort());
   });

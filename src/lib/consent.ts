@@ -1,10 +1,10 @@
-// Consentement cookies (F-09). Le site ne dépose que des cookies strictement
-// nécessaires (langue, thème, session d'authentification), exemptés de
-// consentement. La mesure d'audience first-party (F-66, src/lib/audience.ts)
-// est elle aussi exemptée — sans cookie ni identifiant — mais le choix
-// « Essentiels uniquement » vaut OPPOSITION et la désactive. Un outil de
-// mesure TIERS, s'il en était ajouté, devrait vérifier `hasAnalyticsConsent()`
-// avant de se charger.
+// Cookie consent (F-09). The site only sets strictly necessary cookies
+// (language, theme, authentication session), which are exempt from
+// consent. First-party audience measurement (F-66, src/lib/audience.ts)
+// is exempt too — no cookie or identifier — but the "Essentiels uniquement"
+// choice counts as an OBJECTION and disables it. A THIRD-PARTY measurement
+// tool, if one were ever added, would have to check `hasAnalyticsConsent()`
+// before loading.
 export const CONSENT_KEY = 'dt-cookie-consent';
 export type ConsentValue = 'all' | 'essential';
 
@@ -23,7 +23,7 @@ export function writeConsent(value: ConsentValue): void {
   try {
     window.localStorage.setItem(CONSENT_KEY, value);
   } catch {
-    /* stockage indisponible : on n'insiste pas */
+    /* storage unavailable: don't insist */
   }
 }
 

@@ -1,6 +1,6 @@
-// Helpers d'affichage de l'annuaire (F-19/F-21). Les pays et langues sont
-// stockés en codes (ISO 3166-1 alpha-2 / ISO 639) côté Convex et rendus dans la
-// langue courante via Intl.DisplayNames — aucune table de traduction à tenir.
+// Display helpers for the directory (F-19/F-21). Countries and languages are
+// stored as codes (ISO 3166-1 alpha-2 / ISO 639) in Convex and rendered in the
+// current language via Intl.DisplayNames — no translation table to maintain.
 
 export type Facet = { value: string; count: number };
 
@@ -14,7 +14,7 @@ export type Facets = {
 export type DirectoryFilters = {
   region?: string;
   theme?: string;
-  // Codes ISO (pays alpha-2, langue 639-1), en minuscules dans l'URL.
+  // ISO codes (alpha-2 country, 639-1 language), lowercase in the URL.
   country?: string;
   language?: string;
   q?: string;
@@ -42,8 +42,8 @@ export function languageName(code: string, locale: string): string {
   }
 }
 
-// Drapeau emoji depuis un code pays ISO alpha-2 (indicateurs régionaux) —
-// léger, pas d'image à charger (cohérent avec l'objectif faible débit, F-05).
+// Emoji flag from an ISO alpha-2 country code (regional indicators) —
+// lightweight, no image to load (consistent with the low-bandwidth goal, F-05).
 export function countryFlag(code: string): string {
   const cc = code.toUpperCase();
   if (!/^[A-Z]{2}$/.test(cc)) return '';

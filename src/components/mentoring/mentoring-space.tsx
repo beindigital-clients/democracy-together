@@ -40,7 +40,7 @@ type Profile = Space['profiles'][number];
 
 const OFFSETS = Array.from({ length: 27 }, (_, i) => i - 12);
 
-// Espace « mon mentorat » (F-59) : mes profils (mentoré, mentor), mes binômes.
+// "My mentoring" space (F-59): my profiles (mentee, mentor), my pairs.
 export function MentoringSpace() {
   const t = useTranslations('mentorship');
   const data = useQuery(api.mentoring.myMentoring);

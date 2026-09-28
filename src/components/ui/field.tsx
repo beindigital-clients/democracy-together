@@ -14,33 +14,33 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-// SYSTÈME DE CHAMPS DE FORMULAIRE — un seul, pour tout le site (issue #41).
+// FORM FIELD SYSTEM — a single one, for the whole site (issue #41).
 //
-// Deux familles coexistaient : les composants `Field`/`PasswordField`/`OtpField`
-// de `components/auth/`, et l'assemblage manuel `<label htmlFor>` + `<Input>`
-// recopié dans une quinzaine de formulaires. Ce n'était pas qu'une question
-// d'apparence : un champ correct porte QUATRE choses — le libellé, l'aide,
-// l'erreur, et le rattachement ARIA qui relie les trois au contrôle. Avec deux
-// familles, chacune de ces quatre choses doit être corrigée deux fois.
+// Two families coexisted: the `Field`/`PasswordField`/`OtpField` components
+// in `components/auth/`, and the manual `<label htmlFor>` + `<Input>` assembly
+// copied into some fifteen forms. It wasn't just a matter of
+// appearance: a correct field carries FOUR things — the label, the help text,
+// the error, and the ARIA wiring that links all three to the control. With two
+// families, each of these four things has to be fixed twice.
 //
-// `Field` est la coquille : elle génère l'identifiant, associe le libellé
-// (`htmlFor`/`id`), et décrit le contrôle par l'aide et l'erreur
-// (`aria-describedby`), en le marquant invalide (`aria-invalid`) dès qu'une
-// erreur est passée. Les champs courants (`TextField`, `TextareaField`,
-// `SelectField`) sont de simples habillages ; les contrôles particuliers (mot
-// de passe, code à usage unique, fichier) passent par la coquille elle-même,
-// qui leur remet ce rattachement.
+// `Field` is the shell: it generates the identifier, associates the label
+// (`htmlFor`/`id`), and describes the control with the help text and the error
+// (`aria-describedby`), marking it invalid (`aria-invalid`) as soon as an
+// error is passed. The common fields (`TextField`, `TextareaField`,
+// `SelectField`) are simple wrappers; special controls (password,
+// one-time code, file) go through the shell itself,
+// which hands them this wiring.
 //
-// Les emplacements d'ARIA et de valeur contrôlée prévus ici sont désormais
-// remplis, en un seul endroit, par `useFormFields` (bas de fichier) : erreurs
-// par champ (#12, #37) et saisies conservées après un refus serveur (#37).
+// The ARIA and controlled-value slots provided here are now
+// filled, in a single place, by `useFormFields` (bottom of the file): per-field
+// errors (#12, #37) and input kept after a server rejection (#37).
 //
-// Les props des champs sont celles de leur balise (`ComponentProps<'input'>` et
-// consorts) plutôt que les seuls attributs HTML : c'est ce qui laisse passer
-// `ref`, dont `useFormFields` a besoin pour porter le focus sur le premier
-// champ fautif.
+// The fields' props are those of their tag (`ComponentProps<'input'>` and
+// the like) rather than just the HTML attributes: that is what lets
+// `ref` through, which `useFormFields` needs to move focus to the first
+// faulty field.
 
-// Ce que la coquille remet au contrôle : de quoi être nommé et décrit.
+// What the shell hands to the control: what it needs to be named and described.
 export type FieldControlProps = {
   id: string;
   'aria-invalid'?: true;
@@ -49,13 +49,13 @@ export type FieldControlProps = {
 
 export type FieldShellProps = {
   label: ReactNode;
-  // Libellé réservé aux technologies d'assistance (champ dont le rôle est
-  // évident visuellement : zone de commentaire, rappel par e-mail…). Le
-  // libellé existe toujours — il n'est pas remplacé par un `placeholder`.
+  // Label reserved for assistive technologies (a field whose role is
+  // visually obvious: comment box, email reminder…). The
+  // label always exists — it is not replaced by a `placeholder`.
   labelHidden?: boolean;
   hint?: ReactNode;
   error?: ReactNode;
-  // Mise en page du bloc (ex. `sm:col-span-2`) ; le contrôle, lui, reçoit
+  // Block layout (e.g. `sm:col-span-2`); the control itself receives
   // `controlClassName`.
   className?: string;
   controlClassName?: string;
@@ -72,8 +72,8 @@ function useFieldWiring(
   const errorId = error ? `${controlId}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
 
-  // Les clés absentes le restent : un `aria-invalid: undefined` écraserait
-  // celui que l'appelant aurait posé lui-même (l'étalement est fait après).
+  // Absent keys stay absent: an `aria-invalid: undefined` would overwrite
+  // one the caller may have set itself (the spread comes after).
   const control: FieldControlProps = { id: controlId };
   if (error) control['aria-invalid'] = true;
   if (describedBy) control['aria-describedby'] = describedBy;
@@ -81,8 +81,8 @@ function useFieldWiring(
   return { controlId, hintId, errorId, control };
 }
 
-// Coquille de champ : libellé, aide, erreur et rattachement ARIA. Le contrôle
-// est rendu par l'appelant, qui reçoit en argument ce à quoi il doit répondre.
+// Field shell: label, help text, error and ARIA wiring. The control
+// is rendered by the caller, which receives as an argument what it must respond to.
 export function Field({
   label,
   labelHidden,
@@ -200,8 +200,8 @@ export function SelectField({
       id={props.id}
     >
       {(control) => (
-        // `py-2.5` : même hauteur que `Input`, pour que les champs d'une même
-        // grille s'alignent.
+        // `py-2.5`: same height as `Input`, so that the fields of a single
+        // grid line up.
         <Select
           {...props}
           {...control}
@@ -214,9 +214,9 @@ export function SelectField({
   );
 }
 
-// Erreur portant sur le FORMULAIRE entier (échec d'envoi, validation globale),
-// par opposition à la prop `error` d'un champ. `role="alert"` : le message est
-// annoncé dès son apparition, sans déplacer le focus.
+// Error concerning the entire FORM (send failure, global validation),
+// as opposed to a field's `error` prop. `role="alert"`: the message is
+// announced as soon as it appears, without moving focus.
 export function FormError({
   children,
   className,
@@ -233,22 +233,22 @@ export function FormError({
 }
 
 // ---------------------------------------------------------------------------
-// ÉTAT DE SAISIE — valeurs conservées, erreurs par champ (issue #37)
+// INPUT STATE — preserved values, per-field errors (issue #37)
 //
-// Deux manques allaient ensemble. Un envoi invalide affichait UN message en bas
-// de formulaire pour trois causes possibles : à la personne de deviner lequel
-// des six champs pose problème. Et les valeurs, lues par `FormData` au moment
-// de l'envoi, n'étaient rattachées à rien : rien ne garantissait leur survie à
-// un refus serveur — or perdre un texte de motivation après un rate-limit, sur
-// une connexion instable, c'est perdre plusieurs minutes de rédaction.
+// Two gaps went together. An invalid submission showed ONE message at the bottom
+// of the form for three possible causes: up to the person to guess which
+// of the six fields is the problem. And the values, read via `FormData` at
+// send time, were attached to nothing: nothing guaranteed they would survive
+// a server rejection — and losing a motivation statement after a rate limit, on
+// an unstable connection, means losing several minutes of writing.
 //
-// `useFormFields` tient les deux : les valeurs vivent dans l'état (elles ne
-// dépendent donc plus du DOM), et chaque message va au champ qui l'a causé, via
-// la prop `error` de la coquille — donc avec `aria-invalid` et
-// `aria-describedby` (#12), sans que ce câblage soit réécrit nulle part.
+// `useFormFields` handles both: the values live in state (so they no longer
+// depend on the DOM), and each message goes to the field that caused it, via
+// the shell's `error` prop — hence with `aria-invalid` and
+// `aria-describedby` (#12), without this wiring being rewritten anywhere.
 
-// Règle de validation d'un champ : le message à afficher, ou `null` si la
-// valeur convient.
+// Validation rule for a field: the message to display, or `null` if the
+// value is fine.
 export type FieldRule = (value: string) => string | null;
 
 type ControlChangeEvent = ChangeEvent<
@@ -258,19 +258,19 @@ type ControlChangeEvent = ChangeEvent<
 export function useFormFields<K extends string>(initial: Record<K, string>) {
   const [values, setValues] = useState<Record<K, string>>(initial);
   const [errors, setErrors] = useState<Partial<Record<K, string>>>({});
-  // Les valeurs de départ, figées au premier rendu : `reset` y revient sans
-  // obliger l'appelant à les mémoïser.
+  // The initial values, frozen on first render: `reset` returns to them without
+  // forcing the caller to memoize them.
   const initialValues = useRef(initial);
-  // Les contrôles rendus, pour porter le focus sur le premier champ fautif.
+  // The rendered controls, to move focus to the first faulty field.
   const controls = useRef(new Map<K, HTMLElement>());
 
-  // Identité stable (les deux setters d'état le sont) : un effet qui
-  // pré-remplit un champ peut en dépendre sans se relancer à chaque rendu.
+  // Stable identity (both state setters are): an effect that
+  // pre-fills a field can depend on it without re-running on every render.
   const setValue = useCallback((name: K, value: string) => {
     setValues((current) => ({ ...current, [name]: value }));
-    // Le message s'efface dès que le champ est retouché : le maintenir pendant
-    // la correction, c'est accuser une saisie déjà réparée. La validation
-    // complète, elle, est rejouée à l'envoi — pas à chaque frappe.
+    // The message clears as soon as the field is edited again: keeping it during
+    // correction means blaming input that has already been fixed. Full
+    // validation is replayed on submit — not on every keystroke.
     setErrors((current) => {
       if (current[name] === undefined) return current;
       const next = { ...current };
@@ -279,10 +279,10 @@ export function useFormFields<K extends string>(initial: Record<K, string>) {
     });
   }, []);
 
-  // Ce qu'un champ reçoit : sa valeur, son message, et de quoi les tenir à jour.
-  // `onChange` accepte l'événement des contrôles natifs comme la valeur nue que
-  // rendent les contrôles composés (le code à usage unique) : un seul `field`
-  // sert les deux, donc un seul endroit où les valeurs et les messages vivent.
+  // What a field receives: its value, its message, and what it needs to keep them up to date.
+  // `onChange` accepts the event from native controls as well as the bare value
+  // returned by composite controls (the one-time code): a single `field`
+  // serves both, hence a single place where values and messages live.
   function field(name: K) {
     return {
       name,
@@ -297,10 +297,10 @@ export function useFormFields<K extends string>(initial: Record<K, string>) {
     };
   }
 
-  // Applique les règles et garde les messages. Les règles sont parcourues dans
-  // leur ordre de déclaration — celui des champs à l'écran : le premier champ
-  // fautif reçoit le FOCUS, ce qui fait lire son libellé, son état invalide et
-  // son message (qui le décrit) sans que personne ait à chercher.
+  // Applies the rules and keeps the messages. The rules are walked in
+  // their declaration order — that of the fields on screen: the first faulty
+  // field receives FOCUS, which reads out its label, its invalid state and
+  // its message (which describes it) without anyone having to search.
   function validate(rules: Partial<Record<K, FieldRule>>): boolean {
     const found: Partial<Record<K, string>> = {};
     let first: K | undefined;
@@ -321,8 +321,8 @@ export function useFormFields<K extends string>(initial: Record<K, string>) {
     setErrors({});
   }, []);
 
-  // `errors` n'est pas rendu : le message d'un champ se lit par `field(nom)`,
-  // qui le passe déjà à la coquille. Deux chemins vers la même donnée, c'est
-  // l'occasion qu'ils divergent.
+  // `errors` is not returned: a field's message is read via `field(name)`,
+  // which already passes it to the shell. Two paths to the same data is
+  // an opportunity for them to diverge.
   return { values, field, setValue, validate, reset };
 }

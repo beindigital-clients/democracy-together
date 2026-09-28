@@ -1,24 +1,24 @@
 import type { Locale } from '@/i18n/routing';
 
-// F-60 — Appels à projets collaboratifs. Présentation HONNÊTE du dispositif :
-// le principe des projets menés en commun entre think tanks et contributeurs du
-// réseau. Aucun appel daté ni financement chiffré n'est inventé ici — on décrit
-// le cadre (axes éligibles, critères qualitatifs, accompagnement) et la voie de
-// proposition ouverte aux membres. Les axes éligibles sont le miroir des cinq
-// axes du réseau (PUB_THEMES) ; les libellés viennent de l'i18n
-// (`library.themes.*`). Module local bilingue (même approche que
-// `themes-content.ts`). Vérifié sans terme banni.
+// F-60 — Collaborative calls for projects. HONEST presentation of the scheme:
+// the principle of projects carried out jointly between think tanks and network
+// contributors. No dated call or quantified funding is invented here — we describe
+// the framework (eligible themes, qualitative criteria, support) and the
+// proposal route open to members. The eligible themes mirror the network's five
+// themes (PUB_THEMES); the labels come from i18n
+// (`library.themes.*`). Local bilingual module (same approach as
+// `themes-content.ts`). Checked for banned terms.
 
 export type ProjectsIntro = {
-  // Principe du dispositif : ce qu'est un projet collaboratif dans le réseau.
+  // Principle of the scheme: what a collaborative project is within the network.
   principle: string[];
-  // Axes éligibles (cadre, pas une liste d'appels) — chapeau + slugs des 5 axes.
+  // Eligible themes (framework, not a list of calls) — standfirst + slugs of the 5 themes.
   scopeLead: string;
-  // Critères qualitatifs de sélection (pas de barème chiffré inventé).
+  // Qualitative selection criteria (no invented numeric scoring scale).
   criteria: { title: string; body: string }[];
-  // Ce que le réseau apporte concrètement à un projet retenu.
+  // What the network concretely brings to a selected project.
   support: { title: string; body: string }[];
-  // Précision honnête : pas d'appel en cours / pas de montant annoncé ici.
+  // Honest clarification: no ongoing call / no amount announced here.
   disclaimer: string;
 };
 
@@ -237,12 +237,12 @@ const ar: ProjectsIntro = {
     'تعرض هذه الصفحة مبدأ المشاريع التعاونية وكيفية اقتراح مشروع. وهي لا تعلن عن دعوة محدَّدة التاريخ ولا عن مبلغ تمويل: تدرس الشبكة كل مقترح على حدة.',
 };
 
-// La table est EXHAUSTIVE PAR CONSTRUCTION : `Record<Locale, …>` fait échouer
-// la compilation si une langue est ajoutée à `routing.locales` sans son bloc de
-// contenu. Le ternaire qu'elle remplace (`locale === 'en' ? en : fr`) aurait,
-// lui, servi silencieusement du français aux trois langues ajoutées — un défaut
-// qu'aucune relecture ne rattrape et qu'aucun test ne voit. Même motif que
-// `ATTENDANCE_MODE` dans `src/lib/seo.ts`.
+// The table is EXHAUSTIVE BY CONSTRUCTION: `Record<Locale, …>` makes
+// compilation fail if a language is added to `routing.locales` without its content
+// block. The ternary it replaces (`locale === 'en' ? en : fr`) would
+// have silently served French to the three added languages — a defect
+// no review catches and no test sees. Same pattern as
+// `ATTENDANCE_MODE` in `src/lib/seo.ts`.
 const BY_LOCALE: Record<Locale, ProjectsIntro> = { fr, en, es, pt, ar };
 
 export function getProjectsIntro(locale: Locale): ProjectsIntro {

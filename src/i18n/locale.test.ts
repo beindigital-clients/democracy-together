@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { isSupportedLocale, resolveLocale } from '@/i18n/locale';
 import { routing } from '@/i18n/routing';
 
-// La normalisation d'une locale était réécrite dans vingt fichiers (issue #41).
-// Elle n'existe plus qu'ici : ces tests sont donc le seul filet de tout le site
-// sur ce comportement — segment d'URL inconnu, absent, ou casse inattendue.
+// Locale normalization was rewritten in twenty files (issue #41).
+// It now exists only here: these tests are therefore the whole site's only safety net
+// for this behaviour — unknown URL segment, missing one, or unexpected casing.
 
 describe('resolveLocale — segment d’URL vers locale du site', () => {
   it('laisse passer les langues servies', () => {

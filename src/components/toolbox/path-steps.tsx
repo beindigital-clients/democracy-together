@@ -17,10 +17,10 @@ import { useProgrammeError } from '@/components/programmes/shared';
 
 type Path = NonNullable<FunctionReturnType<typeof api.toolbox.getPath>>;
 
-// Étapes d'un parcours (F-57), avec la progression de l'APPELANT : un
-// visiteur voit les étapes, un compte connecté s'inscrit puis coche. La
-// progression d'un autre membre n'est jamais demandée — la query ne prend
-// aucun identifiant de personne.
+// Steps of a learning path (F-57), with the CALLER's progress: a
+// visitor sees the steps, a signed-in account enrols then ticks them off. Another
+// member's progress is never requested — the query takes
+// no person identifier.
 export function PathSteps({ path }: { path: Path }) {
   const t = useTranslations('toolbox');
   const me = useQuery(api.users.current);
@@ -34,10 +34,10 @@ export function PathSteps({ path }: { path: Path }) {
   const [error, setError] = useState<string | null>(null);
   const enrolled = !!progress;
   const done = new Set(progress?.doneStepIds ?? []);
-  // Case cochée AVANT la réponse du serveur (optimiste) : sans cela la case
-  // ne bougeait qu'au retour de la mutation, et un clic semblait sans effet
-  // (mesuré au rejeu E2E du 27/09). La valeur serveur reprend la main dès
-  // qu'elle arrive ; un refus rétablit l'état et affiche l'erreur.
+  // Checkbox ticked BEFORE the server responds (optimistic): without this the checkbox
+  // only moved when the mutation returned, and a click seemed to have no effect
+  // (measured in the 27/09 E2E replay). The server value takes over as soon as
+  // it arrives; a rejection restores the state and shows the error.
   const [pendingSteps, setPendingSteps] = useState<Record<string, boolean>>({});
   const isDone = (id: Id<'learningPathSteps'>) =>
     pendingSteps[id] ?? done.has(id);
@@ -122,8 +122,8 @@ export function PathSteps({ path }: { path: Path }) {
                 )}
                 <div className="min-w-0 flex-1">
                   {enrolled ? (
-                    // La case est DANS son libellé : toute la ligne est une
-                    // cible de 44 px, et le titre de l'étape nomme la case.
+                    // The checkbox is INSIDE its label: the whole row is a
+                    // 44 px target, and the step title names the checkbox.
                     <label className="flex min-h-11 cursor-pointer items-start gap-3 wrap-anywhere font-medium text-ink">
                       <input
                         type="checkbox"

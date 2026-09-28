@@ -1,13 +1,13 @@
-// EXPORT CSV DU BACK-OFFICE — échappement RFC 4180 ET neutralisation des
-// formules.
+// BACK-OFFICE CSV EXPORT — RFC 4180 escaping AND formula
+// neutralization.
 //
-// Les inscrits à un événement saisissent eux-mêmes leur nom et leur
-// organisation, sans compte. Un tableur qui ouvre le fichier EXÉCUTE une
-// cellule commençant par `=`, `+`, `-` ou `@` (injection de formule, CWE-1236) :
-// `=HYPERLINK("https://…";"cliquez")` dans un nom deviendrait un lien actif
-// dans le fichier d'un modérateur. Une apostrophe en tête fait lire la cellule
-// comme du texte — c'est la parade recommandée par l'OWASP, et elle ne
-// modifie rien de visible pour une valeur légitime.
+// Event registrants enter their own name and
+// organization, without an account. A spreadsheet opening the file EXECUTES a
+// cell starting with `=`, `+`, `-` or `@` (formula injection, CWE-1236):
+// `=HYPERLINK("https://…";"cliquez")` in a name would become an active link
+// in a moderator's file. A leading apostrophe makes the cell read
+// as text — it is the countermeasure recommended by OWASP, and it
+// changes nothing visible for a legitimate value.
 
 const FORMULA_START = /^[=+\-@\t\r]/;
 
@@ -22,7 +22,7 @@ export function toCsv(headers: string[], rows: string[][]): string {
     .join('\r\n');
 }
 
-/** Téléchargement côté navigateur, BOM UTF-8 compris (accents dans Excel). */
+/** Browser-side download, UTF-8 BOM included (accents in Excel). */
 export function downloadCsv(filename: string, csv: string): void {
   const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);

@@ -1,33 +1,33 @@
-// Traduction du VOCABULAIRE : les libellés dont la clé est construite à partir
-// d'une valeur venue de la base — slug de thème (`library.themes.*`), de région
-// (`directory.regions.*`), statut d'une candidature, étape de revue…
+// VOCABULARY translation: labels whose key is built from
+// a value coming from the database — theme slug (`library.themes.*`), region slug
+// (`directory.regions.*`), application status, review stage…
 //
-// Ces clés forment la seule famille qui MÉRITE un repli (issue #33). Le
-// vocabulaire est dupliqué entre le backend, les seeds et les messages
-// (`THEMES` vit dans quatre fichiers, issue #30) : il peut donc diverger, et un
-// slug inattendu ne doit pas emporter la page. Les libellés d'interface, eux,
-// sont écrits en dur dans le code : une clé absente y est toujours un bug, et
-// `src/i18n/message-errors.ts` la traite comme tel.
+// These keys form the only family that DESERVES a fallback (issue #33). The
+// vocabulary is duplicated between the backend, the seeds and the messages
+// (`THEMES` lives in four files, issue #30): it can therefore diverge, and an
+// unexpected slug must not take down the page. Interface labels, on the other hand,
+// are hard-coded: a missing key there is always a bug, and
+// `src/i18n/message-errors.ts` treats it as such.
 //
-// La séparation tient à une seule règle, vérifiée par
-// `tests/unit/i18n-keys.test.ts` :
+// The separation comes down to a single rule, checked by
+// `tests/unit/i18n-keys.test.ts`:
 //
-//   clé littérale, écrite en entier   -> `t('detail.notFoundTitle')`
-//   clé construite à l'exécution      -> `vocabulary(t, 'themes.', slug)`
+//   literal key, written in full   -> `t('detail.notFoundTitle')`
+//   key built at runtime           -> `vocabulary(t, 'themes.', slug)`
 //
-// `vocabulary()` demande d'abord `t.has(key)`, qui répond sans lever ni
-// journaliser quoi que ce soit. Une clé de vocabulaire absente n'atteint donc
-// jamais `getMessageFallback` : le repli strict reste entier pour le reste.
+// `vocabulary()` first asks `t.has(key)`, which answers without throwing or
+// logging anything. A missing vocabulary key therefore never reaches
+// `getMessageFallback`: the strict fallback stays intact for everything else.
 
 export type VocabularyTranslator = {
   (key: string): string;
   has(key: string): boolean;
 };
 
-// Repli par défaut : le terme rendu lisible, plutôt que le slug brut.
-// « gouvernance-numerique » -> « Gouvernance numerique ». Sans accents ni
-// formulation soignée, mais présentable — et sans jamais laisser croire qu'il
-// s'agit du libellé traduit.
+// Default fallback: the term made readable, rather than the raw slug.
+// "gouvernance-numerique" -> "Gouvernance numerique". Without accents or
+// polished wording, but presentable — and without ever suggesting it
+// is the translated label.
 export function humanizeTerm(term: string): string {
   const words = term.replace(/[-_]+/g, ' ').trim();
   if (!words) return term;
@@ -35,12 +35,12 @@ export function humanizeTerm(term: string): string {
 }
 
 /**
- * Libellé d'un terme de vocabulaire, avec repli explicite.
+ * Label for a vocabulary term, with an explicit fallback.
  *
- * @param t        traducteur de l'espace de noms (`useTranslations` ou `getTranslations`)
- * @param prefix   début de la clé, séparateur compris : `'themes.'`, `'revStage_'`
- * @param term     la valeur venue de la base, qui complète la clé
- * @param fallback libellé de repli ; par défaut `humanizeTerm(term)`
+ * @param t        namespace translator (`useTranslations` or `getTranslations`)
+ * @param prefix   start of the key, separator included: `'themes.'`, `'revStage_'`
+ * @param term     the value coming from the database, which completes the key
+ * @param fallback fallback label; defaults to `humanizeTerm(term)`
  */
 export function vocabulary(
   t: VocabularyTranslator,
@@ -51,9 +51,9 @@ export function vocabulary(
   const key = `${prefix}${term}`;
   if (t.has(key)) return t(key);
 
-  // Pas une erreur : le repli est le comportement attendu. Mais en
-  // développement, un terme hors dictionnaire signale presque toujours un
-  // vocabulaire qui a divergé entre la base et les messages — autant le dire.
+  // Not an error: the fallback is the expected behaviour. But in
+  // development, a term missing from the dictionary almost always signals
+  // vocabulary that has diverged between the database and the messages — might as well say so.
   if (process.env.NODE_ENV !== 'production') {
     console.warn(`[i18n] vocabulaire hors dictionnaire : ${key}`);
   }

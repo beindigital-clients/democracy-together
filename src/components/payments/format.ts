@@ -6,10 +6,10 @@ import {
 } from '@convex/lib/payments/amounts';
 import { intlLocale } from '@/i18n/locale';
 
-// Formatage des montants à l'écran : TOUJOURS dans la langue de la page, à
-// partir de l'unité mineure stockée (centimes). Le code ISO (`EUR`, `USD`)
-// plutôt que le symbole : « $ » désigne aussi le dollar canadien ou
-// australien, le code n'est jamais ambigu.
+// On-screen amount formatting: ALWAYS in the page's language, from
+// the stored minor unit (cents). The ISO code (`EUR`, `USD`)
+// rather than the symbol: "$" also denotes the Canadian or
+// Australian dollar, the code is never ambiguous.
 export function formatMoney(
   minor: number,
   currency: Currency,
@@ -43,16 +43,16 @@ export function formatDay(ts: number, locale: string): string {
   }).format(ts);
 }
 
-// Code de refus porté par une `ConvexError` (`data` traverse jusqu'au client,
-// contrairement au message d'un Error nu, masqué en production).
+// Rejection code carried by a `ConvexError` (`data` travels through to the client,
+// unlike a bare Error's message, which is masked in production).
 export function paymentErrorCode(err: unknown): string | null {
   return err instanceof ConvexError && typeof err.data === 'string'
     ? err.data
     : null;
 }
 
-// Codes connus des écrans de paiement : un code hors liste retombe sur le
-// message générique, jamais sur une clé brute.
+// Codes known to the payment screens: an unlisted code falls back to the
+// generic message, never to a raw key.
 export const PAYMENT_ERROR_CODES = [
   'CAPTCHA_FAILED',
   'RATE_LIMITED',

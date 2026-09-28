@@ -12,10 +12,10 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,
-    // Politique commune au rendu serveur et aux composants client : une clé
-    // d'interface absente crie en développement et se journalise en
-    // production. Le vocabulaire venu de la base garde son repli, mais il
-    // passe par `vocabulary()` et n'arrive donc pas jusqu'ici. Voir
+    // Policy shared by server rendering and client components: a missing
+    // interface key fails loudly in development and is logged in
+    // production. Vocabulary coming from the database keeps its fallback, but it
+    // goes through `vocabulary()` and so never reaches here. See
     // `src/i18n/message-errors.ts`.
     getMessageFallback,
     onError: onMessageError,

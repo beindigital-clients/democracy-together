@@ -4,15 +4,15 @@ import type { ReactNode } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 
-// Lien de téléchargement / consultation d'une publication (F-34).
+// Download / view link for a publication (F-34).
 //
-// Un simple `<a>` : le document (ou la notice DOI) s'ouvre dans un nouvel
-// onglet, avec ou sans JavaScript. Le clic enregistre EN PLUS un
-// téléchargement (mutation publique, sous quota — cf. convex/publications.ts
-// `recordPublicationDownload`) : mesuré le 27/09 (membre A-8), le compteur
-// « Télécharg. » n'était jamais incrémenté, aucune mutation ne l'écrivait.
-// L'enregistrement est lancé sans être attendu : la navigation part tout de
-// suite, et un échec (quota, backend muet) n'empêche jamais d'ouvrir le lien.
+// A plain `<a>`: the document (or the DOI record) opens in a new
+// tab, with or without JavaScript. The click ALSO records a
+// download (public mutation, under quota — see convex/publications.ts
+// `recordPublicationDownload`): measured on 27/09 (member A-8), the
+// "Télécharg." counter was never incremented, no mutation wrote it.
+// The recording is fired without being awaited: navigation starts right
+// away, and a failure (quota, silent backend) never prevents opening the link.
 export function DownloadLink({
   slug,
   href,
@@ -33,7 +33,7 @@ export function DownloadLink({
       className={className}
       onClick={() => {
         void record({ slug }).catch(() => {
-          // Un téléchargement non compté ne doit jamais perturber la page.
+          // An uncounted download must never disrupt the page.
         });
       }}
     >

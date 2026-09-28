@@ -14,8 +14,8 @@ import {
   type PublicCall,
 } from '@/components/projects/calls-list';
 
-// Îlot de la fiche d'un appel : état de la fenêtre à l'heure du visiteur, et
-// l'accès au dépôt — réservé aux membres, et seulement pendant la fenêtre.
+// Island on a call's page: window status in the visitor's time, and
+// access to submission — reserved for members, and only during the window.
 export function CallActions({ call }: { call: PublicCall }) {
   const t = useTranslations('projects');
   const me = useQuery(api.users.current);

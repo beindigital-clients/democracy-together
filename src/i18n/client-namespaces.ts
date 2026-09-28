@@ -1,42 +1,42 @@
 import type { AbstractIntlMessages } from 'next-intl';
 
-// Ce que le catalogue de messages envoie au NAVIGATEUR (audit F-05).
+// What the message catalogue sends to the BROWSER (audit F-05).
 //
-// Avant : le layout passait `getMessages()` ENTIER au fournisseur client, soit
-// les 32 espaces de noms du catalogue sérialisés dans le HTML de CHAQUE page.
-// Mesuré sur `/fr/a-propos` : 39 valeurs longues sur 39 appartenant à des
-// écrans que la page ne rend pas — rappels d'événement, back-office, tunnel
-// d'adhésion — présentes dans le document servi. Sur 142 Ko de HTML, le
-// catalogue en pesait 44.
+// Before: the layout passed the ENTIRE `getMessages()` to the client provider, i.e.
+// the catalogue's 32 namespaces serialized into the HTML of EVERY page.
+// Measured on `/fr/a-propos`: 39 long values out of 39 belonging to
+// screens the page does not render — event reminders, back-office, membership
+// funnel — present in the served document. Out of 142 KB of HTML, the
+// catalogue weighed 44.
 //
-// Un composant SERVEUR lit ses messages par `getTranslations`, qui n'envoie
-// rien au navigateur. Seuls les composants marqués `'use client'` ont besoin
-// d'un catalogue de ce côté-là. Les deux listes ci-dessous sont donc
-// exactement l'ensemble des espaces qu'ils demandent — ni plus, ni moins — et
-// `tests/unit/i18n-client-namespaces.test.ts` les RECALCULE depuis les
-// sources à chaque exécution, pour qu'elles ne puissent pas dériver en
-// silence.
+// A SERVER component reads its messages via `getTranslations`, which sends
+// nothing to the browser. Only components marked `'use client'` need
+// a catalogue on that side. The two lists below are therefore
+// exactly the set of namespaces they request — no more, no less — and
+// `tests/unit/i18n-client-namespaces.test.ts` RECOMPUTES them from the
+// sources on each run, so that they cannot drift
+// silently.
 //
-// Pourquoi une liste et pas un filtrage page par page : un composant client
-// peut n'être monté qu'à l'interaction (palette de recherche, bandeau de
-// cookies, dialogues). Un filtre calculé au chargement de la page les
-// manquerait, et une clé absente ne casse rien à l'écran — elle rend le
-// dernier segment. Le défaut serait donc invisible. La liste, elle, se dérive
-// statiquement de TOUS les composants client, quel que soit le moment où ils
-// arrivent.
+// Why a list and not page-by-page filtering: a client component
+// may only be mounted on interaction (search palette, cookie
+// banner, dialogs). A filter computed at page load would miss them,
+// and a missing key breaks nothing on screen — it renders the
+// last segment. The defect would therefore be invisible. The list, however, is derived
+// statically from ALL client components, whenever they
+// arrive.
 
 /**
- * Espaces demandés par des composants client rendus hors du back-office.
+ * Namespaces requested by client components rendered outside the back-office.
  *
- * C'est ce que porte le HTML de toutes les pages publiques.
+ * This is what the HTML of every public page carries.
  */
 export const BASE_CLIENT_NAMESPACES = [
-  // Chantier comptes : écrans de l'espace membre (données, sécurité,
-  // organisation), saisie du second facteur après connexion, message de
-  // compte suspendu sur la page de connexion. Le back-office s'en sert aussi
-  // (cycle de vie des comptes, réglage 2FA, fiches d'organisation), mais ils
-  // ne peuvent pas être réservés à `admin/layout.tsx` : des pages publiques
-  // les demandent.
+  // Accounts workstream: member-area screens (data, security,
+  // organization), second-factor entry after sign-in, suspended-account
+  // message on the sign-in page. The back-office uses them too
+  // (account lifecycle, 2FA setting, organization records), but they
+  // cannot be reserved for `admin/layout.tsx`: public pages
+  // request them.
   'accounts',
   'accessibility',
   'auth',
@@ -44,44 +44,44 @@ export const BASE_CLIENT_NAMESPACES = [
   'cookies',
   'errors',
   'eventRegister',
-  // `footer` N'Y EST PAS, et c'est le test qui l'a dit : `site-footer.tsx`
-  // appelle bien `useTranslations('footer')`, mais sans directive `'use
-  // client'` et sans être importé depuis une frontière client. C'est donc un
-  // composant serveur, qui lit ses messages sans rien envoyer au navigateur.
-  // Ma liste écrite à la main l'avait inclus.
+  // `footer` IS NOT IN IT, and it was the test that said so: `site-footer.tsx`
+  // does call `useTranslations('footer')`, but without a `'use
+  // client'` directive and without being imported from a client boundary. It is therefore a
+  // server component, which reads its messages without sending anything to the browser.
+  // My hand-written list had included it.
   'library',
   'membership',
   'mentorship',
-  // `messages` : la pastille de la messagerie est dans l'en-tête de TOUTES
-  // les pages (chantier « social »).
+  // `messages`: the messaging badge is in the header of EVERY
+  // page ("social" workstream).
   'messages',
   'nav',
   'newsletter',
   'notifications',
-  // `people` et `profile` : écrans du réseau social (annuaire des personnes,
-  // boutons d'une page de profil publique, espace membre).
+  // `people` and `profile`: social network screens (people directory,
+  // buttons on a public profile page, member area).
   'people',
   'profile',
-  // `payments` : formulaire de don, retour de paiement, espace membre
-  // (cotisations, reçus) — et l'écran Finances, qui le partage.
+  // `payments`: donation form, payment return, member area
+  // (membership fees, receipts) — and the Finances screen, which shares it.
   'payments',
-  // `privacy` : le réglage d'opposition à la mesure d'audience, posé dans la
-  // politique de confidentialité (F-66, chantier diffusion).
+  // `privacy`: the audience-measurement opt-out control, placed in the
+  // privacy policy (F-66, diffusion workstream).
   'privacy',
   'orgAdmin',
-  // `peerReview` : le suivi de l'auteur (espace membre, F-43) est un
-  // composant client ; le back-office réutilise le même espace.
+  // `peerReview`: the author's follow-up (member area, F-43) is a
+  // client component; the back-office reuses the same namespace.
   'peerReview',
   'projects',
   'reminder',
   'search',
-  // Chantier « programmes » (F-56 à F-60) : boîte à outils et parcours, profil
-  // Jeunes — îlots client des pages publiques et de l'espace membre.
+  // "Programmes" workstream (F-56 to F-60): toolbox and learning paths, Youth
+  // profile — client islands on public pages and in the member area.
   'toolbox',
-  // `translation` : le bandeau de traduction est un composant SERVEUR, mais il
-  // monte `TranslateButton` — un bouton qui appelle une action Convex, donc
-  // nécessairement client. C'est le seul morceau de ce dispositif qui traverse
-  // la frontière RSC.
+  // `translation`: the translation banner is a SERVER component, but it
+  // mounts `TranslateButton` — a button that calls a Convex action, hence
+  // necessarily client-side. It is the only piece of this mechanism that crosses
+  // the RSC boundary.
   'translation',
   'tribune',
   'twoFactor',
@@ -91,15 +91,15 @@ export const BASE_CLIENT_NAMESPACES = [
 ] as const;
 
 /**
- * Espaces que SEUL le back-office demande.
+ * Namespaces that ONLY the back-office requests.
  *
- * `admin` pèse 10 Ko à lui seul — 22 % du catalogue — pour des écrans
- * derrière authentification, interdits au crawl, et qu'aucun visiteur public
- * n'atteint. Il est donc posé par `admin/layout.tsx` et non par le layout
- * racine. Vérifié : tous les composants client qui le demandent vivent sous
- * `app/[locale]/admin/` ou `components/admin/`.
+ * `admin` weighs 10 KB on its own — 22% of the catalogue — for screens
+ * behind authentication, disallowed for crawling, and that no public visitor
+ * reaches. It is therefore set by `admin/layout.tsx` and not by the root
+ * layout. Verified: all client components that request it live under
+ * `app/[locale]/admin/` or `components/admin/`.
  */
-// Espaces de noms du back-office : chaque chantier y ajoute les siens.
+// Back-office namespaces: each workstream adds its own here.
 export const ADMIN_NAMESPACES = [
   'admin',
   'analytics',
@@ -108,18 +108,18 @@ export const ADMIN_NAMESPACES = [
   'reports',
 ] as const;
 
-/** Tous les espaces demandés par un composant client, où qu'il soit. */
+/** All namespaces requested by a client component, wherever it is. */
 export const CLIENT_NAMESPACES = [
   ...BASE_CLIENT_NAMESPACES,
   ...ADMIN_NAMESPACES,
 ] as const;
 
 /**
- * Restreint un catalogue aux espaces nommés.
+ * Restricts a catalogue to the named namespaces.
  *
- * Un espace absent du catalogue est ignoré plutôt que rendu `undefined` :
- * `next-intl` traiterait la valeur nulle comme un espace vide et masquerait
- * l'erreur. Son absence, elle, fait parler `getMessageFallback`.
+ * A namespace missing from the catalogue is skipped rather than set to `undefined`:
+ * `next-intl` would treat the null value as an empty namespace and hide
+ * the error. Its absence, on the other hand, triggers `getMessageFallback`.
  */
 export function pickNamespaces(
   messages: AbstractIntlMessages,

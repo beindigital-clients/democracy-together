@@ -1,34 +1,34 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-// Une zone qui DÉFILE horizontalement, atteignable autrement qu'à la souris.
+// An area that SCROLLS horizontally, reachable other than with the mouse.
 //
-// Un `<div class="overflow-x-auto">` nu est un piège à l'envers : la souris
-// fait défiler, le clavier non. Ce qui dépasse de l'écran devient alors
-// littéralement inatteignable pour qui n'utilise pas de souris — et sur un
-// tableau, ce sont des colonnes entières de données (axe
-// `scrollable-region-focusable`, WCAG 2.1.1). Mesuré sur /fr/barometre et
-// /fr/adhesion en mobile, où les tableaux débordent ; en desktop ils tiennent,
-// et c'est pourquoi le défaut ne se voyait qu'en petit écran.
+// A bare `<div class="overflow-x-auto">` is a reverse trap: the mouse
+// scrolls, the keyboard doesn't. What overflows the screen then becomes
+// literally unreachable for anyone not using a mouse — and on a
+// table, that means entire columns of data (axe
+// `scrollable-region-focusable`, WCAG 2.1.1). Measured on /fr/barometre and
+// /fr/adhesion on mobile, where the tables overflow; on desktop they fit,
+// which is why the defect only showed on small screens.
 //
-// `tabIndex` rend la zone focalisable, donc défilable aux flèches. Et puisque
-// cela crée un arrêt de tabulation, il lui faut un NOM : arriver sur une boîte
-// anonyme n'est guère mieux que de ne pas pouvoir y entrer du tout. Le libellé
-// est donc OBLIGATOIRE, et on y passe le titre que la section porte déjà —
-// aucune chaîne en dur, aucune clé de traduction nouvelle.
+// `tabIndex` makes the area focusable, hence scrollable with the arrow keys. And since
+// this creates a tab stop, it needs a NAME: landing on an anonymous
+// box is hardly better than not being able to enter it at all. The label
+// is therefore REQUIRED, and we pass it the title the section already carries —
+// no hard-coded string, no new translation key.
 //
-// Rendu côté serveur, sans JavaScript : le défaut corrigé ici est précisément
-// celui d'un contenu qu'on ne peut pas atteindre.
+// Rendered server-side, without JavaScript: the defect fixed here is precisely
+// that of content one cannot reach.
 //
-// L'anneau de focus vient de la règle globale `:focus-visible` de
-// globals.css — inutile de le répéter ici.
+// The focus ring comes from the global `:focus-visible` rule in
+// globals.css — no need to repeat it here.
 
 export function ScrollableRegion({
   label,
   className,
   children,
 }: {
-  /** Nom annoncé à l'entrée dans la zone. Généralement le titre du tableau. */
+  /** Name announced on entering the area. Usually the table's title. */
   label: string;
   className?: string;
   children: ReactNode;
@@ -38,12 +38,12 @@ export function ScrollableRegion({
       role="region"
       aria-label={label}
       tabIndex={0}
-      // `relative` : un descendant en position absolue (un `sr-only`, par
-      // exemple) se place par rapport au PREMIER ancêtre positionné, et un
-      // ancêtre `overflow-x-auto` non positionné ne le clippe pas. Mesuré le
-      // 27/09 sur /barometre en mobile : le tableau « Télécharger et citer »
-      // élargissait tout le document (585 px pour 412) par un tel élément,
-      // et la page entière défilait en largeur.
+      // `relative`: an absolutely positioned descendant (an `sr-only`, for
+      // example) is placed relative to the FIRST positioned ancestor, and an
+      // unpositioned `overflow-x-auto` ancestor does not clip it. Measured on
+      // 27/09 on /barometre on mobile: the "Télécharger et citer" table
+      // widened the whole document (585 px for 412) through such an element,
+      // and the entire page scrolled horizontally.
       className={cn('relative overflow-x-auto', className)}
     >
       {children}

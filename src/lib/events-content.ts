@@ -1,16 +1,16 @@
 import type { Locale } from '@/i18n/routing';
 
-// Événements (F-23) — contenu porté 1:1 depuis les maquettes agence
-// `design/rmdl-evenements.html` (liste) + `rmdl-evenement.html` (détail).
-// Données d'illustration (dates/tarifs fictifs, c'est explicite dans la
-// maquette). Liste d'événements en **données neutres** (clés de filtre stables
-// pour l'URL) + dictionnaires de libellés bilingues (évite de dupliquer la
-// liste). Pensé pour basculer plus tard sur une table Convex `events` (avec
-// inscription/RSVP). Vérifié sans terme banni.
+// Events (F-23) — content ported 1:1 from the agency mock-ups
+// `design/rmdl-evenements.html` (list) + `rmdl-evenement.html` (detail).
+// Illustrative data (fictitious dates/prices, explicitly so in the
+// mock-up). Event list as **neutral data** (stable filter keys
+// for the URL) + bilingual label dictionaries (avoids duplicating the
+// list). Designed to switch later to a Convex `events` table (with
+// registration/RSVP). Checked for banned terms.
 
-// Le catalogue (types, données neutres, titres et lieux par langue) vit dans
-// `convex/lib/contenus/coded/events.ts` : c'est la source que la migration
-// recopie en base et que les pages servent en repli (chantier « contenus »).
+// The catalogue (types, neutral data, titles and venues per language) lives in
+// `convex/lib/contenus/coded/events.ts`: it is the source the migration
+// copies into the database and that the pages serve as fallback ("contenus" workstream).
 import {
   CODED_EVENTS,
   CODED_EVENT_TITLES,
@@ -24,15 +24,15 @@ import {
 } from '@convex/lib/contenus/coded/events';
 export type { EventData, EventType, EventRegion, EventFormat, ThemeKey };
 
-// Catalogue codé, conservé sous son nom historique pour ses lecteurs (repli,
-// grille du calendrier, tests).
+// Hard-coded catalogue, kept under its historical name for its readers (fallback,
+// calendar grid, tests).
 export const EVENTS: EventData[] = CODED_EVENTS;
 
 export function whenOf(e: EventData): number {
   return e.y * 10000 + e.mo * 100 + e.d;
 }
 
-// Événement dont la fiche porte le contenu riche codé (programme, billetterie).
+// Event whose page carries the hard-coded rich content (programme, ticketing).
 export const FEATURED_SLUG = CODED_FEATURED_SLUG;
 
 export type EventFilters = {
@@ -48,7 +48,7 @@ export type EventFilters = {
 
 export const EVENT_SORTS = ['date-asc', 'date-desc', 'az'] as const;
 
-// --- Dictionnaires de libellés (bilingues) ---
+// --- Label dictionaries (bilingual) ---
 export type EventsLabels = Labels;
 type Labels = {
   hero: {
@@ -79,8 +79,8 @@ type Labels = {
     lang: string;
   };
   results: {
-    // Nom accessible de la section de résultats (`aria-label`) — annoncé par
-    // les lecteurs d'écran, donc traduit comme tout le reste (issue #34).
+    // Accessible name of the results section (`aria-label`) — announced by
+    // screen readers, hence translated like everything else (issue #34).
     title: string;
     countUpcomingOne: string;
     countUpcomingMany: string;
@@ -105,11 +105,11 @@ type Labels = {
   formats: Record<EventFormat, string>;
   themes: Record<ThemeKey, string>;
   cities: Record<string, string>;
-  // Noms des langues du catalogue codé (fr, en). Les autres langues d'un
-  // événement créé au back-office passent par `langLabel`.
+  // Language names of the hard-coded catalogue (fr, en). The other languages of an
+  // event created in the back-office go through `langLabel`.
   langName: Record<'fr' | 'en', string>;
   titles: Record<string, string>;
-  // détail
+  // detail
   detail: DetailLabels;
 };
 
@@ -126,12 +126,12 @@ type DetailLabels = {
   visualPin: string;
   visualCap: string;
   sections: { day: string; programme: string; speakers: string; infos: string };
-  // Badge d'un intervenant fondateur du réseau — texte visible, donc traduit
-  // ici plutôt que choisi par un ternaire de locale dans le JSX (issue #34).
+  // Badge for a speaker who is a founder of the network — visible text, hence translated
+  // here rather than picked by a locale ternary in the JSX (issue #34).
   founderBadge: string;
   related: string;
   resources: string;
-  // Bloc rediffusion / visioconférence de la fiche (A-10).
+  // Replay / video-conference block on the event page (A-10).
   replay: {
     title: string;
     available: string;
@@ -141,7 +141,7 @@ type DetailLabels = {
     visioLink: string;
     visioSent: string;
   };
-  // contenu riche de la conférence (featured)
+  // rich content of the conference (featured)
   conf: {
     lead: string;
     dayIntro: string[];
@@ -175,18 +175,18 @@ type DetailLabels = {
   };
 };
 
-// Abréviations de mois du badge de date, une par langue.
+// Month abbreviations for the date badge, one per language.
 //
-// POURQUOI UNE TABLE ÉCRITE À LA MAIN plutôt que `Intl.DateTimeFormat`. Le
-// badge attend une forme COURTE ET CAPITALISÉE (« JANV », pas « janv. ») que
-// l'ICU ne produit dans aucune langue : il faudrait la retoucher après coup,
-// et la retouche diffère d'une langue à l'autre — l'arabe n'a pas de
-// capitales, et le point abréviatif du français n'existe pas en portugais.
-// La table dit exactement ce qui s'affiche.
+// WHY A HAND-WRITTEN TABLE rather than `Intl.DateTimeFormat`. The
+// badge expects a SHORT, CAPITALIZED form ("JANV", not "janv.") that
+// ICU produces in no language: it would have to be touched up afterwards,
+// and the touch-up differs from one language to another — Arabic has no
+// capitals, and the French abbreviation dot does not exist in Portuguese.
+// The table says exactly what is displayed.
 //
-// L'ARABE N'ABRÈGE PAS ses noms de mois : la forme pleine y est la forme
-// courte. Les noms retenus sont ceux en usage au Maghreb, zone visée par
-// cette langue.
+// ARABIC DOES NOT ABBREVIATE its month names: the full form is the short
+// form there. The names chosen are those in use in the Maghreb, the area targeted by
+// this language.
 const MONTH_ABBR: Record<Locale, readonly string[]> = {
   fr: [
     'JANV',
@@ -1862,13 +1862,13 @@ const ar: Labels = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, Labels> = { fr, en, es, pt, ar };
 
 /**
- * Nom d'une langue d'événement dans la langue de la page : le dictionnaire du
- * catalogue pour fr/en, `Intl.DisplayNames` pour les autres (un événement du
- * back-office peut se tenir en arabe ou en portugais).
+ * Name of an event language in the page's language: the catalogue's
+ * dictionary for fr/en, `Intl.DisplayNames` for the others (a back-office
+ * event may be held in Arabic or Portuguese).
  */
 export function langLabel(L: Labels, lang: string, locale: Locale): string {
   if (lang === 'fr' || lang === 'en') return L.langName[lang];
@@ -1884,17 +1884,17 @@ export function getEventsLabels(locale: Locale): Labels {
   return BY_LOCALE[locale];
 }
 
-// --- Filtres liste (URL-driven, comme la bibliothèque) ---
+// --- List filters (URL-driven, like the library) ---
 //
-// Les filtres portent sur la liste que la page leur DONNE (`events`) : la
-// table `contentEvents` quand elle répond, le catalogue codé en repli
-// (`src/lib/contenus/agenda.ts`). Titre et lieu arrivent déjà traduits dans
-// chaque événement — la recherche ne passe plus par les dictionnaires codés,
-// qu'un événement créé depuis le back-office n'a pas.
+// The filters apply to the list the page GIVES them (`events`): the
+// `contentEvents` table when it responds, the hard-coded catalogue as fallback
+// (`src/lib/contenus/agenda.ts`). Title and venue arrive already translated in
+// each event — search no longer goes through the hard-coded dictionaries,
+// which an event created from the back-office doesn't have.
 //
-// FILTRE PAR DATE (F-52) : la facette « mois » (`?mois=2026-11`) complète la
-// période (à venir / passés) et la vue calendrier. Ses valeurs sont les mois
-// qui portent au moins un événement de la période : jamais de cul-de-sac.
+// FILTER BY DATE (F-52): the "mois" facet (`?mois=2026-11`) complements the
+// period (upcoming / past) and the calendar view. Its values are the months
+// that hold at least one event in the period: never a dead end.
 export const EVENT_FACETS = [
   'types',
   'regions',
@@ -1911,11 +1911,11 @@ const EVENT_FACET_PARAM: Record<EventFacetKey, string> = {
   months: 'mois',
 };
 
-// Ce que les filtres lisent d'un événement : la forme neutre, plus le titre et
-// le lieu DANS LA LANGUE de la page.
+// What the filters read from an event: the neutral shape, plus the title and
+// the venue IN THE LANGUAGE of the page.
 export type SearchableEvent = EventData & { title: string; place: string };
 
-/** Mois d'un événement, clé de la facette « mois » : `YYYY-MM`. */
+/** Month of an event, key of the "mois" facet: `YYYY-MM`. */
 export function eventMonth(e: Pick<EventData, 'y' | 'mo'>): string {
   return `${e.y}-${String(e.mo).padStart(2, '0')}`;
 }
@@ -1948,7 +1948,7 @@ export function parseEventFilters(
     regions: csv(sp.region),
     formats: csv(sp.format),
     langs: csv(sp.lang),
-    // Un mois mal formé est ignoré plutôt que de vider la liste.
+    // A malformed month is ignored rather than emptying the list.
     months: csv(sp.mois).filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m)),
     q: q || undefined,
     sort,
@@ -2005,8 +2005,8 @@ function matchesQuery(
   return hay.includes(q.toLowerCase());
 }
 
-// Filtre + trie la liste pour une locale donnée (la recherche porte sur le titre
-// + la ville + le thème traduits).
+// Filters + sorts the list for a given locale (search covers the translated title
+// + city + theme).
 export function filterAndSortEvents<E extends SearchableEvent>(
   filters: EventFilters,
   labels: Labels,
@@ -2034,9 +2034,9 @@ export function filterAndSortEvents<E extends SearchableEvent>(
   return out;
 }
 
-// Correspondance à tous les filtres SAUF une facette (et hors recherche `q`,
-// qui s'applique toujours) — pour compter les options d'une facette dans le
-// contexte des AUTRES filtres actifs + la période courante.
+// Match against all filters EXCEPT one facet (and excluding the `q` search,
+// which always applies) — to count a facet's options in the
+// context of the OTHER active filters + the current period.
 function matchesEventExcept(
   e: SearchableEvent,
   f: EventFilters,
@@ -2058,10 +2058,10 @@ function matchesEventExcept(
   return matchesQuery(e, f.q, labels);
 }
 
-// Facettes « contextuelles » des événements (même principe que la bibliothèque) :
-// chaque option est comptée sur les événements correspondant aux AUTRES filtres
-// actifs (+ période). Les options sans événement disparaissent -> tout filtre
-// cliquable donne >=1 résultat ; les valeurs cochées restent listées (à 0).
+// "Contextual" event facets (same principle as the library):
+// each option is counted over the events matching the OTHER active
+// filters (+ period). Options with no event disappear -> every clickable
+// filter yields >=1 result; checked values stay listed (at 0).
 export function computeEventFacets(
   f: EventFilters,
   labels: Labels,
@@ -2088,7 +2088,7 @@ export function computeEventFacets(
     regions: tally(sub('regions'), (e) => [e.region], f.regions),
     formats: tally(sub('formats'), (e) => [e.format], f.formats),
     langs: tally(sub('langs'), (e) => e.langs, f.langs),
-    // Les mois se lisent dans l'ordre du calendrier, pas par fréquence.
+    // Months read in calendar order, not by frequency.
     months: tally(sub('months'), (e) => [eventMonth(e)], f.months).sort(
       (a, b) => a.value.localeCompare(b.value),
     ),

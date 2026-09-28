@@ -33,10 +33,10 @@ function resolveFill(fill: string): string {
   return cssVar(m[1]) || cssVar(m[1].replace('--color-', '--')) || fill;
 }
 
-// Globe 3D interactif (projection orthographique, rendu canvas). Réutilisable
-// pour le baromètre (choroplèthe des pays notés) et l'annuaire (membres). Le
-// canvas est aria-hidden (enrichissement visuel) — la donnée reste accessible
-// dans le tableau/la liste de la page et dans le panneau de détail (aria-live).
+// Interactive 3D globe (orthographic projection, canvas rendering). Reusable
+// for the barometer (choropleth of rated countries) and the directory (members). The
+// canvas is aria-hidden (visual enhancement) — the data stays accessible
+// in the page's table/list and in the detail panel (aria-live).
 export function RegionGlobe({
   items,
   hint,
@@ -55,14 +55,14 @@ export function RegionGlobe({
   const [region, setRegion] = useState<Region>('all');
   const [selected, setSelected] = useState<RegionMapItem | null>(null);
 
-  // ROTATION AUTOMATIQUE CONTRÔLABLE (RGAA 13.8, WCAG 2.2.2). Le globe tourne
-  // seul, sans fin : un contenu en mouvement de plus de cinq secondes, démarré
-  // sans action de l'utilisateur, doit pouvoir être arrêté ET relancé. Honorer
-  // `prefers-reduced-motion` ne suffit pas — c'est un réglage du système que
-  // la plupart des personnes gênées par le mouvement ne connaissent pas, et
-  // que l'audit du 27/09 a mesuré comme SEUL moyen d'arrêter le globe. Le
-  // bouton ci-dessous est ce moyen ; la préférence système décide seulement
-  // de l'état de départ (arrêté quand elle demande moins de mouvement).
+  // CONTROLLABLE AUTO-ROTATION (RGAA 13.8, WCAG 2.2.2). The globe spins
+  // on its own, endlessly: moving content lasting more than five seconds, started
+  // without user action, must be stoppable AND restartable. Honouring
+  // `prefers-reduced-motion` is not enough — it is a system setting that
+  // most people bothered by motion don't know about, and
+  // that the 27/09 audit measured as the ONLY way to stop the globe. The
+  // button below is that way; the system preference only decides
+  // the initial state (stopped when it asks for less motion).
   const [rotating, setRotating] = useState(false);
   const rotatingRef = useRef(false);
   useEffect(() => {
@@ -75,9 +75,9 @@ export function RegionGlobe({
   const t = useTranslations('accessibility');
 
   const regionRef = useRef<Region>('all');
-  // Écrire un ref PENDANT le rendu casse le rendu concurrent. `regionRef` n'est
-  // relu que dans la boucle de dessin du canevas, qui tourne après la
-  // validation : le mettre à jour dans un effet est donc équivalent ici.
+  // Writing a ref DURING render breaks concurrent rendering. `regionRef` is only
+  // read back in the canvas drawing loop, which runs after
+  // commit: updating it in an effect is therefore equivalent here.
   useEffect(() => {
     regionRef.current = region;
   }, [region]);
@@ -106,7 +106,7 @@ export function RegionGlobe({
     let stroke = cssVar('--paper') || '#faf8f3';
     let ink = cssVar('--ink') || '#16191f';
 
-    const rotation: [number, number] = [-12, -16]; // centré Afrique-Europe
+    const rotation: [number, number] = [-12, -16]; // centred on Africa-Europe
     let W = 0,
       H = 0,
       R = 0;
@@ -122,23 +122,23 @@ export function RegionGlobe({
     let hoverName: string | null = null;
 
     function resize() {
-      // La taille d'AFFICHAGE est 100 % pilotée par le CSS : `wrap` est
-      // `w-full max-w-[…] aspect-square` et le canvas le remplit en absolu
-      // (inset-0). On ne fixe JAMAIS de largeur en pixels sur le canvas -> il
-      // ne peut pas déborder son conteneur ni la page, quelle que soit la
-      // mesure (plus de course à l'hydratation). Ici on ne règle que la
-      // résolution du tampon de rendu.
+      // The DISPLAY size is 100% driven by CSS: `wrap` is
+      // `w-full max-w-[…] aspect-square` and the canvas fills it absolutely
+      // (inset-0). We NEVER set a pixel width on the canvas -> it
+      // cannot overflow its container or the page, whatever the
+      // measurement (no more hydration race). Here we only set the
+      // render buffer's resolution.
       const rect = wrap!.getBoundingClientRect();
       const size = rect.width;
-      if (size < 40) return; // pas encore mis en page (mesure à 0)
+      if (size < 40) return; // not laid out yet (measured at 0)
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = size;
-      H = size; // wrap carré (aspect-square)
+      H = size; // square wrap (aspect-square)
       canvas!.width = Math.round(W * dpr);
       canvas!.height = Math.round(H * dpr);
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // Marge pour que le halo atmosphérique tienne entièrement dans le canvas
-      // carré (sinon le cercle de halo est rogné par les bords -> forme coupée).
+      // Margin so the atmospheric halo fits entirely within the square
+      // canvas (otherwise the halo circle is clipped by the edges -> cut-off shape).
       const pad = Math.max(12, Math.round(size * 0.06));
       R = size / 2 - pad;
       projection.scale(R).translate([W / 2, H / 2]);
@@ -154,10 +154,10 @@ export function RegionGlobe({
       const cx = W / 2,
         cy = H / 2;
 
-      // atmosphère : halo circulaire doux, entièrement contenu dans le canvas
-      // (rayon = plus grand cercle inscrit dans le carré). Lumière de limbe la
-      // plus vive au ras de la sphère, fondu jusqu'à transparent avant le bord
-      // -> cercle net, jamais rogné par les côtés.
+      // atmosphere: soft circular halo, entirely contained in the canvas
+      // (radius = largest circle inscribed in the square). Limb light
+      // brightest right at the sphere, fading to transparent before the edge
+      // -> clean circle, never clipped by the sides.
       const haloR = Math.min(cx, cy) - 1;
       const glow = ctx!.createRadialGradient(cx, cy, R, cx, cy, haloR);
       glow.addColorStop(0, hexA('#5b8fd6', 0.32));
@@ -168,7 +168,7 @@ export function RegionGlobe({
       ctx!.arc(cx, cy, haloR, 0, Math.PI * 2);
       ctx!.fill();
 
-      // sphère (océan marine, dégradé radial -> effet 3D)
+      // sphere (navy ocean, radial gradient -> 3D effect)
       const sea = ctx!.createRadialGradient(
         cx - R * 0.35,
         cy - R * 0.4,
@@ -209,7 +209,7 @@ export function RegionGlobe({
         ctx!.stroke();
       }
 
-      // pays survolé
+      // hovered country
       if (hoverName) {
         const f = LAND.find((g) => g.properties?.name === hoverName);
         if (f) {
@@ -230,8 +230,8 @@ export function RegionGlobe({
       const rect = canvas!.getBoundingClientRect();
       return [e.clientX - rect.left, e.clientY - rect.top];
     }
-    // Pays *avec donnée* sous un point (coords canvas), ou null (océan / pays
-    // non noté / hors sphère).
+    // Country *with data* under a point (canvas coords), or null (ocean / unrated
+    // country / outside the sphere).
     function hitTest(p: [number, number]) {
       const none = {
         name: null as string | null,
@@ -255,9 +255,9 @@ export function RegionGlobe({
       }
     }
 
-    // Seuil (px) sous lequel un geste est un *appui* (sélection) plutôt qu'un
-    // *glissé* (rotation). Indispensable au tactile, qui n'a pas de survol :
-    // sans ça, un tap ouvre puis ferme le drag et ne sélectionne jamais rien.
+    // Threshold (px) below which a gesture is a *press* (selection) rather than a
+    // *drag* (rotation). Essential for touch, which has no hover:
+    // without it, a tap opens then closes the drag and never selects anything.
     const TAP_SLOP = 10;
     let moved = 0;
     function onDown(e: PointerEvent) {
@@ -275,17 +275,17 @@ export function RegionGlobe({
         rotation[1] = Math.max(-90, Math.min(90, rotation[1] - dy * 0.32));
         lastX = e.clientX;
         lastY = e.clientY;
-        // au-delà du seuil c'est un vrai glissé : on lève la sélection
+        // beyond the threshold it's a real drag: clear the selection
         if (moved > TAP_SLOP && hoverName) applySelection(null, null);
         return;
       }
-      // souris : survol en direct
+      // mouse: live hover
       const { name, it } = hitTest(pointFromEvent(e));
       applySelection(name, it);
     }
     function onUp(e: PointerEvent) {
-      // appui sans (quasi) déplacement -> sélection au point touché. C'est ce
-      // qui rend la carte interactive au tactile : un tap affiche le score.
+      // press with (almost) no movement -> select at the touched point. This is what
+      // makes the map interactive on touch: a tap shows the score.
       if (dragging && moved <= TAP_SLOP) {
         const { name, it } = hitTest(pointFromEvent(e));
         applySelection(name, it);
@@ -293,14 +293,14 @@ export function RegionGlobe({
       dragging = false;
     }
     function onCancel() {
-      // le navigateur a repris le geste (défilement vertical de la page) :
-      // on annule le glissé sans rien sélectionner.
+      // the browser took over the gesture (vertical page scroll):
+      // cancel the drag without selecting anything.
       dragging = false;
     }
     function onLeave(e: PointerEvent) {
       dragging = false;
-      // souris : quitter le canvas efface le survol. Au tactile, la sélection
-      // issue d'un appui doit persister (rien à « dé-survoler »).
+      // mouse: leaving the canvas clears the hover. On touch, the selection
+      // from a press must persist (nothing to "un-hover").
       if (e.pointerType === 'mouse') applySelection(null, null);
     }
     canvas.addEventListener('pointerdown', onDown);
@@ -344,9 +344,9 @@ export function RegionGlobe({
         aria-hidden="true"
         className="absolute inset-0 block h-full w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
       />
-      {/* Le libellé DIT l'action (« mettre en pause » / « lancer ») plutôt
-          qu'un `aria-pressed` sur un nom fixe : c'est ce qu'annonce un lecteur
-          d'écran, et ce qu'un utilisateur de commande vocale doit prononcer. */}
+      {/* The label STATES the action ("mettre en pause" / "lancer") rather
+          than an `aria-pressed` on a fixed name: that is what a screen reader
+          announces, and what a voice-control user must say. */}
       <button
         type="button"
         onClick={() => setRotating((v) => !v)}

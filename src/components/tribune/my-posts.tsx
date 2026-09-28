@@ -9,8 +9,8 @@ import { Link } from '@/i18n/navigation';
 import { isMember } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// Pastille d'état — jetons de `globals.css` uniquement (contrastes ≥ 4,5:1 en
-// clair et en sombre) : `bar-5` (refus), `bar-4` (attente), accent (en ligne).
+// Status badge — `globals.css` tokens only (contrast ≥ 4.5:1 in
+// light and dark mode): `bar-5` (rejected), `bar-4` (pending), accent (online).
 export const STATUS_PILL: Record<ContentStatus, string> = {
   published: 'border-accent-edge bg-accent-tint text-accent-text',
   pending: 'border-bar-4 text-bar-4',
@@ -18,10 +18,10 @@ export const STATUS_PILL: Record<ContentStatus, string> = {
   removed: 'border-bar-5 text-bar-5',
 };
 
-// « Mes billets » (A-11, F-45) — îlot client sur /tribune, visible du seul
-// auteur. Le fil public ne montre que les billets publiés : chaque billet
-// porte ici son état — en attente de validation, publié, rejeté (avec le
-// motif), retiré — et renvoie, hors ligne, à son aperçu dans l'espace membre.
+// "Mes billets" (A-11, F-45) — client island on /tribune, visible to the
+// author only. The public feed only shows published posts: each post
+// carries its status here — pending approval, published, rejected (with the
+// reason), withdrawn — and links, when not live, to its preview in the member area.
 export function MyPosts() {
   const t = useTranslations('tribune');
   const tl = useTranslations('library');

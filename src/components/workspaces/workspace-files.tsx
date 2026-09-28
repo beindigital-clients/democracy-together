@@ -16,13 +16,13 @@ import { formatBytes, useWorkspaceError } from './workspace-errors';
 
 const ACCEPT = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(',');
 
-// FICHIERS PARTAGÉS d'un espace (F-24). Monté pour les seuls membres de
-// l'espace : le serveur refuse la liste à tout autre compte, et c'est lui qui
-// décide — ce composant ne fait que ne pas demander ce qu'on lui refuserait.
+// SHARED FILES of a workspace (F-24). Mounted for workspace members
+// only: the server refuses the list to any other account, and it is the server that
+// decides — this component merely doesn't ask for what it would be refused.
 //
-// Le téléchargement ne passe pas par un lien posé dans la page : l'URL d'une
-// version est demandée AU CLIC (`fileVersionUrl`), ce qui revérifie
-// l'appartenance à ce moment-là.
+// Downloading does not go through a link placed in the page: a
+// version's URL is requested ON CLICK (`fileVersionUrl`), which re-checks
+// membership at that moment.
 export function WorkspaceFiles({
   workspaceId,
   canUpload,
@@ -44,7 +44,7 @@ export function WorkspaceFiles({
   const errorMessage = useWorkspaceError();
 
   const input = useRef<HTMLInputElement>(null);
-  // Fichier dont on dépose une NOUVELLE VERSION ; null = nouveau fichier.
+  // File for which a NEW VERSION is being uploaded; null = new file.
   const [versionOf, setVersionOf] = useState<Id<'workspaceFiles'> | null>(null);
   const [progress, setProgress] = useState<number | null | undefined>(
     undefined,
@@ -79,7 +79,7 @@ export function WorkspaceFiles({
     if (!file) return;
     setError(null);
     setStatus(null);
-    // Contrôle de confort : le serveur refera le sien, sur les octets.
+    // Convenience check: the server will run its own, on the bytes.
     if (file.size > WORKSPACE_FILE_LIMITS.maxFileBytes) {
       setError(
         t('errFileTooLarge', {

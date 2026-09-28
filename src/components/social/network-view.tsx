@@ -7,9 +7,9 @@ import { Link } from '@/i18n/navigation';
 import { intlLocale } from '@/i18n/locale';
 import { PersonCard, type PersonCardData } from './person-card';
 
-// « Mon réseau » : fil d'activité des personnes suivies, abonnements, abonnés,
-// organisations suivies. Le fil ne contient que des contenus PUBLIÉS : le
-// filtre est côté Convex (`social.follows.activityFeed`), pas ici.
+// "Mon réseau": activity feed of followed people, following, followers,
+// followed organizations. The feed only contains PUBLISHED content: the
+// filter is in Convex (`social.follows.activityFeed`), not here.
 
 const H2 = 'font-display text-2xl text-ink';
 

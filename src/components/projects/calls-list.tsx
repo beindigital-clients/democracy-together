@@ -30,8 +30,8 @@ export function useFundFormat() {
   };
 }
 
-// Ligne « ouverture / clôture » dans le fuseau de l'appel, qui est l'heure
-// qui fait foi (un appel lancé depuis Dakar clôt à 18 h heure de Dakar).
+// "Opening / closing" line in the call's time zone, which is the
+// authoritative time (a call launched from Dakar closes at 6 pm Dakar time).
 export function CallWindowLine({
   call,
   now,
@@ -74,14 +74,14 @@ export function CallStatePill({
   );
 }
 
-// Appels datés (F-60) sur /appels-a-projets : ouverts, à venir, archivés.
+// Dated calls (F-60) on /appels-a-projets: open, upcoming, archived.
 export function CallsList() {
   const t = useTranslations('projects');
   const tl = useTranslations('library');
   const calls = useQuery(api.projectCalls.listPublicCalls);
   const fund = useFundFormat();
-  // L'heure du visiteur, figée au montage : le classement ne bouge pas sous
-  // ses yeux pendant la lecture.
+  // The visitor's time, frozen on mount: the ordering doesn't shift before
+  // their eyes while reading.
   const [now] = useState(() => Date.now());
   if (calls === undefined)
     return <p className="text-ink-soft">{t('loading')}</p>;

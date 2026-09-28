@@ -3,15 +3,15 @@
 import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
-// Barre de progression (issue #37). Le dépôt de publication accepte des PDF
-// jusqu'à 20 Mo : sur une connexion à faible débit, l'envoi dure des minutes et,
-// sans retour visuel, rien ne distingue « ça avance » de « c'est bloqué ».
+// Progress bar (issue #37). Publication submission accepts PDFs
+// up to 20 MB: on a low-bandwidth connection, the upload takes minutes and,
+// without visual feedback, nothing distinguishes "it's progressing" from "it's stuck".
 //
-// `percent` à `null` : progression INDÉTERMINÉE (taille totale inconnue). La
-// barre reste alors vide et `aria-valuenow` est absent — c'est ce qui signale
-// l'indétermination aux technologies d'assistance, plutôt qu'un pourcentage
-// inventé. Pas de `role="status"` : le pourcentage change en continu, et le
-// faire annoncer à chaque pas couvrirait tout le reste.
+// `percent` set to `null`: INDETERMINATE progress (total size unknown). The
+// bar then stays empty and `aria-valuenow` is absent — that is what signals
+// indeterminacy to assistive technologies, rather than an invented
+// percentage. No `role="status"`: the percentage changes continuously, and
+// announcing it at every step would drown out everything else.
 export function ProgressBar({
   label,
   percent,
@@ -20,8 +20,8 @@ export function ProgressBar({
 }: {
   label: string;
   percent: number | null;
-  // Ce que la barre vaut, en toutes lettres (« 42 % », « Préparation… ») : lu
-  // à l'écran comme au lecteur d'écran.
+  // What the bar is worth, spelled out ("42 %", "Préparation…"): read
+  // on screen as well as by the screen reader.
   text: string;
   className?: string;
 }) {

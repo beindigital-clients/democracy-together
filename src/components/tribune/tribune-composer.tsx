@@ -24,12 +24,12 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowForward } from '@/components/ui/arrow';
 
-// Format proposé à l'ouverture du composer — et celui auquel « Annuler »
-// ramène (A-09).
+// Format offered when the composer opens — and the one "Annuler"
+// returns to (A-09).
 const DEFAULT_FORMAT: TribuneFormat = 'court';
 
-// Au-delà de cette longueur, « Annuler » demande confirmation avant d'effacer
-// le brouillon : en deçà, il n'y a rien à regretter (A-09).
+// Beyond this length, "Annuler" asks for confirmation before clearing
+// the draft: below it, there is nothing to regret (A-09).
 const DRAFT_CONFIRM_THRESHOLD = 50;
 
 function errorCode(error: unknown): string | null {
@@ -38,11 +38,11 @@ function errorCode(error: unknown): string | null {
     : null;
 }
 
-// Prise de parole (F-44) — îlot client. Visible aux membres ; les autres voient
-// une invitation à adhérer. Après envoi, on rafraîchit le fil (server).
+// Posting (F-44) — client island. Visible to members; others see
+// an invitation to join. After sending, the feed is refreshed (server).
 //
-// Avec `parent`, le composer ouvre une CONTRIBUTION DE FOND qui prolonge un
-// billet court (F-48) : format « Analyse » imposé, axe hérité du billet.
+// With `parent`, the composer opens an IN-DEPTH CONTRIBUTION that extends a
+// short post (F-48): "Analyse" format enforced, theme inherited from the post.
 export function TribuneComposer({
   parent,
 }: {
@@ -52,8 +52,8 @@ export function TribuneComposer({
   const tl = useTranslations('library');
   const uiLocale = resolveLocale(useLocale());
   const me = useQuery(api.users.current);
-  // Règle du lieu, lue AVANT l'envoi : l'écran dit « soumis à validation »
-  // ou « publié », selon le mode réglé par l'administrateur (F-45).
+  // The venue's rule, read BEFORE sending: the screen says "soumis à validation"
+  // or "publié", depending on the mode set by the administrator (F-45).
   const policy = useQuery(api.tribune.moderationPolicy);
   const create = useMutation(api.tribune.createPost);
   const router = useRouter();
@@ -62,22 +62,22 @@ export function TribuneComposer({
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<string>(parent?.theme ?? PUB_THEMES[0]);
   const [format, setFormat] = useState<TribuneFormat>(initialFormat);
-  // Langue du billet (issue #35) : PRÉ-REMPLIE avec la langue de l'interface,
-  // pas déduite d'elle. Un membre qui navigue en français peut écrire en
-  // anglais, et lui seul le sait. C'est cette valeur qui décide plus tard du
-  // canonical de la fiche — un billet n'existe que dans une langue.
+  // Post language (issue #35): PRE-FILLED with the interface language,
+  // not derived from it. A member browsing in French may write in
+  // English, and only they know it. It is this value that later decides the
+  // page's canonical — a post exists in only one language.
   const [lang, setLang] = useState<Locale>(uiLocale);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  // Ce qu'il advient du billet, DIT à l'auteur (A-11) : en modération a
-  // priori (défaut, F-45), il attend la validation d'un modérateur ; en a
-  // posteriori, il est en ligne. Le message reste affiché après envoi.
+  // What happens to the post, TOLD to the author (A-11): under
+  // pre-moderation (default, F-45), it awaits a moderator's approval; under
+  // post-moderation, it is online. The message stays displayed after sending.
   const [sent, setSent] = useState<'pending' | 'published' | null>(null);
-  // Mode a posteriori seulement si le serveur le dit : en attendant la
-  // réponse, l'écran annonce la règle la plus prudente.
+  // Post-moderation mode only if the server says so: while waiting for the
+  // response, the screen announces the most cautious rule.
   const aPosteriori = policy?.postMode === 'a_posteriori';
 
   if (me === undefined) return null;
@@ -96,11 +96,11 @@ export function TribuneComposer({
     );
   }
 
-  // « Annuler » refermait le composer SANS rien effacer : à la réouverture,
-  // le titre, le corps, le format « Analyse » et même l'erreur précédente
-  // réapparaissaient sans le dire, et une « Brève » saisie ensuite était
-  // refusée « trop courte » pour un format que l'auteur n'avait pas vu
-  // (mesuré le 27/09, A-09). Le formulaire revient à son état initial.
+  // "Annuler" closed the composer WITHOUT clearing anything: on reopening,
+  // the title, the body, the "Analyse" format and even the previous error
+  // reappeared without saying so, and a "Brève" typed afterwards was
+  // rejected as "too short" for a format the author had not seen
+  // (measured on 27/09, A-09). The form returns to its initial state.
   function reset() {
     setTitle('');
     setBody('');
@@ -169,8 +169,8 @@ export function TribuneComposer({
       setError(t('errBody'));
       return;
     }
-    // Le `maxLength` ne suffit pas : passer d'« Analyse » à « Brève » avec
-    // 12 000 caractères déjà saisis ne tronque rien (F-46, A-05).
+    // `maxLength` is not enough: switching from "Analyse" to "Brève" with
+    // 12,000 characters already typed truncates nothing (F-46, A-05).
     if (text.length > bounds.max) {
       setError(t('errBodyTooLong', { max: bounds.max }));
       return;
@@ -210,10 +210,10 @@ export function TribuneComposer({
   return (
     <form
       onSubmit={onSubmit}
-      // `noValidate` : la validation native bloquait l'envoi d'un texte plus
-      // long que le `maxLength` du format courant SANS nos messages — c'est
-      // exactement le cas d'un brouillon « Analyse » rebasculé en « Brève ».
-      // Les contrôles vivent dans `onSubmit`, avec un message par cause.
+      // `noValidate`: native validation blocked sending a text
+      // longer than the current format's `maxLength` WITHOUT our messages — which is
+      // exactly the case of an "Analyse" draft switched back to "Brève".
+      // The checks live in `onSubmit`, with one message per cause.
       noValidate
       className="space-y-4 rounded-md border border-line bg-surface p-5"
     >
@@ -284,14 +284,14 @@ export function TribuneComposer({
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={format === 'fond' ? 10 : 5}
-        // Même borne que `convex/tribune.ts#createPost`, PAR FORMAT : au-delà,
-        // le dépôt échouait sans dire pourquoi (mesuré le 27/09 avec 21 000
-        // caractères), et 12 000 passaient en « Brève » sans un mot (A-05).
+        // Same limit as `convex/tribune.ts#createPost`, PER FORMAT: beyond it,
+        // submission failed without saying why (measured on 27/09 with 21,000
+        // characters), and 12,000 went through as "Brève" without a word (A-05).
         maxLength={bounds.max}
-        // Compteur « n / max » sous le corps, rattaché au champ
-        // (`aria-describedby`) ; à la limite, il dit pourquoi la saisie
-        // s'arrête. `wrap-anywhere` : le compteur d'un nombre à cinq
-        // chiffres ne doit pas déborder sur mobile.
+        // "n / max" counter below the body, attached to the field
+        // (`aria-describedby`); at the limit, it says why input
+        // stops. `wrap-anywhere`: the counter for a five-digit
+        // number must not overflow on mobile.
         hint={
           <span className="wrap-anywhere" data-testid="tr-body-count">
             {limitReached

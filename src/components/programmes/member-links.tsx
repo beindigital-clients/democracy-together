@@ -4,9 +4,9 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ArrowForward } from '@/components/ui/arrow';
 
-// Accès aux programmes depuis l'espace membre (F-56 à F-60). Les appels à
-// projets et les évaluations sont réservés aux membres validés (le serveur le
-// tient) : l'entrée n'est proposée qu'à eux.
+// Access to the programmes from the member area (F-56 to F-60). Calls for
+// projects and evaluations are reserved for approved members (the server
+// enforces it): the entry is only offered to them.
 export function ProgrammeMemberLinks({ member }: { member: boolean }) {
   const ty = useTranslations('youth');
   const tm = useTranslations('mentorship');

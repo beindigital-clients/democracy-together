@@ -5,12 +5,12 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { AbstractIntlMessages } from 'next-intl';
 import { getMessageFallback, onMessageError } from '@/i18n/message-errors';
 
-// `getMessageFallback` et `onError` sont des FONCTIONS : elles ne franchissent
-// pas la frontière RSC et ne peuvent donc pas être posées sur le fournisseur
-// depuis le layout, qui est un composant serveur. Sans ce passage par un
-// composant client, la moitié client du site garderait les réglages par
-// défaut de next-intl — et les deux moitiés ne réagiraient pas pareil à une
-// clé absente (issue #33).
+// `getMessageFallback` and `onError` are FUNCTIONS: they do not cross
+// the RSC boundary and therefore cannot be set on the provider
+// from the layout, which is a server component. Without going through a
+// client component, the client half of the site would keep next-intl's default
+// settings — and the two halves would not react the same way to a
+// missing key (issue #33).
 export function IntlClientProvider({
   locale,
   messages,

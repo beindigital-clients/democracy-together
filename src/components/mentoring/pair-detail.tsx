@@ -23,9 +23,9 @@ import {
 
 type Pair = FunctionReturnType<typeof api.mentoring.getPair>;
 
-// Suivi d'un binôme (F-59) : objectifs, séances, jalons, statut, bilan. Ses
-// deux membres écrivent ; le coordinateur lit (sans les notes de séance) et
-// peut mettre en pause ou clore.
+// Follow-up of a pair (F-59): goals, sessions, milestones, status, review. Its
+// two members write; the coordinator reads (without the session notes) and
+// can pause or close it.
 export function PairDetail({ pairId }: { pairId: Id<'mentorPairs'> }) {
   const t = useTranslations('mentorship');
   const pair = useQuery(api.mentoring.getPair, { pairId });
@@ -205,8 +205,8 @@ function Sessions({ pair, canLog }: { pair: Pair; canLog: boolean }) {
     e.preventDefault();
     setError(null);
     setDone(false);
-    // Midi UTC du jour choisi : la date affichée reste la même quel que soit
-    // le fuseau de celui qui la relit.
+    // Noon UTC on the chosen day: the displayed date stays the same whatever
+    // the time zone of whoever reads it back.
     const ms = Date.parse(`${date}T12:00:00Z`);
     if (!Number.isFinite(ms)) return setError(t('errDate'));
     try {

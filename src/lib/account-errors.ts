@@ -1,11 +1,11 @@
 import { ConvexError } from 'convex/values';
 
-// Codes de refus du chantier « comptes », lus côté écran.
+// Rejection codes from the "comptes" workstream, read on the screen side.
 //
-// Convex fait traverser jusqu'au client la DONNÉE d'une `ConvexError` (même en
-// production, contrairement au message d'une `Error` nue) ; la connexion, elle,
-// passe par `/api/auth`, qui ne relaie que le MESSAGE. On lit donc les deux :
-// la donnée d'abord, puis le message, où le code apparaît délimité.
+// Convex passes a `ConvexError`'s DATA through to the client (even in
+// production, unlike a bare `Error`'s message); sign-in, however,
+// goes through `/api/auth`, which only relays the MESSAGE. So we read both:
+// the data first, then the message, where the code appears delimited.
 
 function messageOf(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -13,7 +13,7 @@ function messageOf(err: unknown): string {
   return '';
 }
 
-/** Le premier code de `known` porté par l'erreur, ou `null`. */
+/** The first code from `known` carried by the error, or `null`. */
 export function errorCode<C extends string>(
   err: unknown,
   known: readonly C[],
@@ -30,7 +30,7 @@ export function errorCode<C extends string>(
   return null;
 }
 
-/** Connexion refusée parce que le compte est suspendu (convex/lib/signIn.ts). */
+/** Sign-in refused because the account is suspended (convex/lib/signIn.ts). */
 export function isAccountSuspended(err: unknown): boolean {
   return errorCode(err, ['ACCOUNT_SUSPENDED'] as const) !== null;
 }

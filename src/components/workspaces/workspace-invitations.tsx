@@ -12,13 +12,13 @@ import { intlLocale } from '@/i18n/locale';
 import { useWorkspaceError } from './workspace-errors';
 import { useRoleLabel } from './workspace-manage';
 
-// INVITATIONS REÇUES (F-24). L'échéance est calculée ICI, à l'affichage : le
-// serveur ne réécrit pas le statut d'une invitation échue (une query ne lit
-// pas l'horloge), il REFUSE de l'accepter. L'écran le dit avant le clic.
+// RECEIVED INVITATIONS (F-24). Expiry is computed HERE, at display time: the
+// server does not rewrite the status of an expired invitation (a query does not read
+// the clock), it REFUSES to accept it. The screen says so before the click.
 export function MyInvitations({
   workspaceId,
 }: {
-  // Restreint aux invitations d'un espace (fiche d'un espace privé).
+  // Restricted to one workspace's invitations (private workspace page).
   workspaceId?: Id<'workspaces'>;
 }) {
   const t = useTranslations('workspaces');

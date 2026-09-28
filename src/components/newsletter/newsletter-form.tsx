@@ -16,14 +16,14 @@ import {
 } from '@/lib/errors';
 import { StatusMessage } from '@/components/a11y/status-message';
 
-// Formulaire d'inscription newsletter (F-18) — îlot client réutilisable (accueil
-// + page /newsletter). Les libellés `placeholder`/`cta` sont passés en props ;
-// les messages d'état viennent du namespace i18n `newsletter`. Idempotent côté
-// serveur (une adresse déjà inscrite renvoie un succès sans doublon).
+// Newsletter sign-up form (F-18) — reusable client island (home page
+// + /newsletter page). The `placeholder`/`cta` labels are passed as props;
+// status messages come from the `newsletter` i18n namespace. Idempotent on the
+// server (an already-subscribed address returns success without a duplicate).
 //
-// DOUBLE OPT-IN (chantier diffusion) : le succès annonce un courriel de
-// confirmation, pas un abonnement. `source` dit de quel formulaire vient le
-// consentement — il est conservé avec la preuve (RGPD art. 7.1).
+// DOUBLE OPT-IN (diffusion workstream): success announces a confirmation
+// email, not a subscription. `source` says which form the
+// consent came from — it is kept with the proof (GDPR art. 7.1).
 export type NewsletterSource = 'home' | 'footer' | 'newsletter-page';
 
 export function NewsletterForm({
@@ -48,8 +48,8 @@ export function NewsletterForm({
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    // Un seul champ, donc un seul message — mais rattaché au champ, pas posé à
-    // côté : c'est lui qui porte `aria-invalid` et que le message décrit.
+    // A single field, hence a single message — but attached to the field, not placed
+    // beside it: the field carries `aria-invalid` and is what the message describes.
     if (!validate({ email: (v) => (isEmail(v) ? null : t('errorInvalid')) })) {
       return;
     }
@@ -94,8 +94,8 @@ export function NewsletterForm({
       noValidate
       className={`w-full ${className ?? ''}`}
     >
-      {/* `items-start` : le message d'erreur s'écrit sous le champ ; sans
-          cela, le bouton s'étirerait à la hauteur du bloc. */}
+      {/* `items-start`: the error message is written below the field; without
+          it, the button would stretch to the block's height. */}
       <div className="flex items-start gap-2">
         <TextField
           label={placeholder}

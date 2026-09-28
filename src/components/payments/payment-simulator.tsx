@@ -9,8 +9,8 @@ import { FormError } from '@/components/ui/field';
 import { vocabulary } from '@/i18n/vocabulary';
 import { formatMoney, knownPaymentError } from './format';
 
-// Simulateur du prestataire factice : tient le rôle de la page hébergée de
-// Stripe. « Payer » déclenche un webhook signé côté serveur, puis renvoie vers la même page de retour qu'un vrai paiement.
+// Simulator for the fake provider: plays the role of Stripe's hosted
+// page. "Payer" triggers a server-signed webhook, then redirects to the same return page as a real payment.
 export function PaymentSimulator({ paymentRef }: { paymentRef: string }) {
   const t = useTranslations('payments');
   const locale = useLocale();

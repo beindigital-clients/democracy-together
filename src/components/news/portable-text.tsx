@@ -1,24 +1,24 @@
 import type { ReactNode } from 'react';
 import { safeHref } from '@/lib/safe-href';
 
-// Rendu du texte riche Sanity (actualités). EXTRAIT de la page : le filtre de
-// liens ci-dessous est une défense, et une défense doit pouvoir être testée
-// sur l'objet réellement passé à `<PortableText>` — pas sur une copie écrite
-// dans le test, qui ne prouverait que sa propre cohérence.
-// Cf. tests/unit/portable-text-liens.test.tsx.
+// Renders Sanity rich text (news). EXTRACTED from the page: the link filter
+// below is a defence, and a defence must be testable
+// on the object actually passed to `<PortableText>` — not on a copy written
+// in the test, which would only prove its own consistency.
+// See tests/unit/portable-text-liens.test.tsx.
 
-// LIENS DU CMS (pentest M-9). `@portabletext/react` fournit un composant `link`
-// par défaut qui rend `<a href={value.href}>` sans regarder le schéma — et,
-// comme aucun `marks` n'était déclaré ici, c'est lui qui s'appliquait. Le
-// schéma est désormais filtré (src/lib/safe-href.ts) :
+// CMS LINKS (pentest M-9). `@portabletext/react` provides a default `link`
+// component that renders `<a href={value.href}>` without looking at the scheme — and,
+// since no `marks` were declared here, that is the one that applied. The
+// scheme is now filtered (src/lib/safe-href.ts):
 //
-//   schéma autorisé -> <a> avec `rel="noopener noreferrer"` ;
-//   schéma refusé   -> <span> : le TEXTE de l'auteur reste lu, seule la
-//                      navigation disparaît. Un `<a>` sans `href` serait un
-//                      lien mort, cliquable et silencieux.
+//   allowed scheme  -> <a> with `rel="noopener noreferrer"`;
+//   rejected scheme -> <span>: the author's TEXT is still read, only the
+//                      navigation disappears. An `<a>` without `href` would be a
+//                      dead link, clickable and silent.
 //
-// `rel` n'est pas un détail de forme : ces liens sortent vers des domaines que
-// le réseau ne contrôle pas, et `noopener` coupe l'accès à `window.opener`.
+// `rel` is not a cosmetic detail: these links go out to domains that
+// the network does not control, and `noopener` cuts access to `window.opener`.
 export const ptComponents = {
   block: {
     normal: ({ children }: { children?: ReactNode }) => (

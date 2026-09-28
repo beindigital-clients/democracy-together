@@ -18,15 +18,15 @@ import { FormError, TextareaField } from '@/components/ui/field';
 import { ArrowBack } from '@/components/ui/arrow';
 import { PersonAvatar } from './person-avatar';
 
-// MESSAGERIE PRIVÉE — liste des conversations + fil + rédaction.
+// PRIVATE MESSAGING — conversation list + thread + compose.
 //
-// Temps réel par construction : chaque morceau est une query Convex, donc un
-// message reçu apparaît dans le fil, la liste et la pastille d'en-tête sans
-// rechargement. Le fil ouvert est marqué lu à chaque nouveau message reçu.
+// Real-time by construction: each piece is a Convex query, so a
+// received message appears in the thread, the list and the header badge without
+// reloading. The open thread is marked read on each new received message.
 //
-// L'adresse porte l'état (`?c=<conversation>` ou `?to=<handle>`) : un lien de
-// notification ouvre directement la bonne conversation, et le bouton
-// « retour » du navigateur ramène à la liste sur mobile.
+// The URL carries the state (`?c=<conversation>` or `?to=<handle>`): a
+// notification link opens the right conversation directly, and the browser's
+// "back" button returns to the list on mobile.
 
 const BASE = '/espace-membre/messages';
 
@@ -180,7 +180,7 @@ function Thread({ conversationId }: { conversationId: Id<'conversations'> }) {
   const end = useRef<HTMLLIElement>(null);
 
   const unread = thread?.unreadCount ?? 0;
-  // Ouvrir le fil vaut lecture — et chaque message reçu fil ouvert aussi.
+  // Opening the thread counts as reading — and so does each message received while the thread is open.
   useEffect(() => {
     if (unread > 0) void markRead({ conversationId }).catch(() => undefined);
   }, [unread, conversationId, markRead]);
@@ -466,8 +466,8 @@ function Composer({
         error={error ?? undefined}
         onChange={(e) => setBody(e.target.value)}
         onKeyDown={(e) => {
-          // Ctrl/Cmd + Entrée envoie ; Entrée seule garde le retour à la ligne
-          // (un message privé se rédige parfois en paragraphes).
+          // Ctrl/Cmd + Enter sends; Enter alone keeps the line break
+          // (a private message is sometimes written in paragraphs).
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) void submit();
         }}
         controlClassName="wrap-anywhere"
@@ -496,7 +496,7 @@ function NewConversation({
   const rel = useQuery(api.social.profiles.relationship, { handle });
   const start = useMutation(api.social.messages.startConversation);
 
-  // Une conversation existe déjà avec cette personne : on l'ouvre.
+  // A conversation already exists with this person: open it.
   const existing = rel?.conversationId ?? null;
   useEffect(() => {
     if (existing) router.replace(`${BASE}?c=${existing}`);

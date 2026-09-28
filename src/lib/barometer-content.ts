@@ -1,17 +1,17 @@
 import type { Locale } from '@/i18n/routing';
 
-// Baromètre de la démocratie (F-30) — contenu porté 1:1 depuis la maquette
-// agence `design/rmdl-barometre.html`. TOUTES les valeurs sont des **données
-// d'illustration** (scores/classements fictifs, c'est explicite dans la
-// maquette) : aucune affirmation sur des pays réels. Module bilingue pensé pour
-// basculer plus tard sur une table Convex `barometer` ou sur Sanity (la donnée
-// pays est éditoriale, gérée par le secrétariat). Vérifié sans terme banni.
+// Democracy Barometer (F-30) — content ported 1:1 from the agency mock-up
+// `design/rmdl-barometre.html`. ALL values are **illustrative
+// data** (fictitious scores/rankings, explicitly so in the
+// mock-up): no claims about real countries. Bilingual module designed to
+// switch later to a Convex `barometer` table or to Sanity (the country
+// data is editorial, managed by the secretariat). Checked for banned terms.
 
 export type Trend = { dir: 'up' | 'down' | 'flat'; value: string };
 export type RankRow = {
   pos: string;
   country: string;
-  region: string; // libellé court (EUR/AFR)
+  region: string; // short label (EUR/AFR)
   index: string;
   cat: 1 | 2 | 3 | 4 | 5;
   trend: Trend;
@@ -33,7 +33,7 @@ export type Dimension = {
 
 export type BarometerContent = {
   hero: {
-    crumbHome: string; // fil d'Ariane — même clé que sur les événements
+    crumbHome: string; // breadcrumb — same key as on the events
     eyebrow: string;
     title: string;
     lead: string;
@@ -52,10 +52,10 @@ export type BarometerContent = {
     indexLabel: string;
     categoryLabel: string;
   };
-  // Titre de la légende, affiché par le teaser d'accueil. Il vit ici, avec
-  // la légende qu'il nomme : une seule source, deux pages (issue #34).
+  // Legend title, displayed by the home page teaser. It lives here, with
+  // the legend it names: a single source, two pages (issue #34).
   legendLabel: string;
-  legend: { label: string; range: string }[]; // 5 niveaux, du plus libre au moins
+  legend: { label: string; range: string }[]; // 5 levels, from most free to least
   ranking: {
     eyebrow: string;
     title: string;
@@ -96,7 +96,7 @@ export type BarometerContent = {
       formats: string;
       doi: string;
       codebook: string;
-      /** Colonne de téléchargement : en-tête réservé aux lecteurs d'écran. */
+      /** Download column: header reserved for screen readers. */
       action: string;
     };
     codebookLabel: string;
@@ -1847,14 +1847,14 @@ const ar: BarometerContent = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, BarometerContent> = { fr, en, es, pt, ar };
 
 export function getBarometerContent(locale: Locale): BarometerContent {
   return BY_LOCALE[locale];
 }
 
-// Couleur Tailwind de la catégorie (1 = plus libre … 5 = non libre).
+// Tailwind colour of the category (1 = most free … 5 = not free).
 export const CAT_BG = [
   'bg-bar-1',
   'bg-bar-2',
@@ -1870,19 +1870,19 @@ export const CAT_TEXT = [
   'text-bar-5',
 ] as const;
 
-// Données de la carte (F-30) — INDÉPENDANTES de la locale d'affichage. `name`
-// correspond au libellé anglais de world-atlas (countries-110m) pour colorer le
-// bon pays ; `fr`/`en` servent l'affichage. Données d'illustration (cf. en-tête).
+// Map data (F-30) — INDEPENDENT of the display locale. `name`
+// matches the world-atlas English label (countries-110m) to colour the
+// right country; `fr`/`en` serve display. Illustrative data (see header).
 export type MapDatum = {
   name: string;
   /**
-   * Libellé affiché, PAR LANGUE.
+   * Displayed label, PER LANGUAGE.
    *
-   * C'était `fr` et `en`, lus par un ternaire `loc === 'en' ? d.en : d.fr` sur
-   * la page Baromètre ET sur l'accueil : les trois langues ajoutées retombaient
-   * donc sur le français, et la carte annonçait « Afrique du Sud » à un lecteur
-   * arabophone. Une table indexée par la locale rend le cas impossible — il ne
-   * compile plus si une langue manque.
+   * It used to be `fr` and `en`, read through a ternary `loc === 'en' ? d.en : d.fr` on
+   * the Barometer page AND on the home page: the three added languages therefore fell
+   * back to French, and the map announced "Afrique du Sud" to an Arabic-speaking
+   * reader. A table indexed by locale makes that case impossible — it no longer
+   * compiles if a language is missing.
    */
   label: Record<Locale, string>;
   region: 'afrique' | 'europe';

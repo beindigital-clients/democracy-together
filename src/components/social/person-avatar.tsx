@@ -1,16 +1,16 @@
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-// Pastille de personne : la photo si elle existe, sinon les initiales.
+// Person badge: the photo if there is one, otherwise the initials.
 //
-// Composant PUR (ni hook, ni traduction) : il sert aux pages serveur comme aux
-// écrans client. L'image est DÉCORATIVE (`alt=""`) parce que le nom est
-// toujours écrit à côté — un lecteur d'écran l'entendrait deux fois sinon. Un
-// appelant qui l'affiche seule passe `alt`.
+// PURE component (no hook, no translation): it serves server pages as well as
+// client screens. The image is DECORATIVE (`alt=""`) because the name is
+// always written beside it — a screen reader would hear it twice otherwise. A
+// caller that displays it alone passes `alt`.
 //
-// `unoptimized` : la photo vient du stockage Convex (URL signée) ; l'optimiseur
-// de Next devrait la retélécharger, et `images.remotePatterns` ne l'autorise
-// pas — même choix que les illustrations de documents.
+// `unoptimized`: the photo comes from Convex storage (signed URL); Next's
+// optimizer would have to re-download it, and `images.remotePatterns` doesn't allow
+// it — same choice as for document illustrations.
 
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);

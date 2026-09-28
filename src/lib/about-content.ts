@@ -1,7 +1,7 @@
-// Contenu de la page À propos (F-11 vision/mission, F-12 fondateurs &
-// gouvernance), porté 1:1 depuis la maquette agence `design/rmdl-a-propos.html`.
-// COUCHE DE CONTENU : aujourd'hui statique/local, signature pensée pour basculer
-// vers Sanity plus tard (getAboutContent garde la même forme de retour).
+// Content of the About page (F-11 vision/mission, F-12 founders &
+// governance), ported 1:1 from the agency mock-up `design/rmdl-a-propos.html`.
+// CONTENT LAYER: static/local today, signature designed to switch
+// to Sanity later (getAboutContent keeps the same return shape).
 
 import type { Locale } from '@/i18n/routing';
 
@@ -471,9 +471,9 @@ const en: AboutContent = {
   },
 };
 
-// Repli LOCAL pur (sans dépendance Sanity) : utilisé quand aucun document
-// `aboutPage` n'est publié, et comme source de seed. Le fetch Sanity + fallback
-// vit dans `src/lib/about.ts`. Garder ce module pur (les tests l'importent).
+// Pure LOCAL fallback (no Sanity dependency): used when no `aboutPage`
+// document is published, and as a seed source. The Sanity fetch + fallback
+// lives in `src/lib/about.ts`. Keep this module pure (the tests import it).
 const es: AboutContent = {
   hero: {
     eyebrow: 'Sobre nosotros',
@@ -1093,14 +1093,14 @@ const ar: AboutContent = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, AboutContent> = { fr, en, es, pt, ar };
 
 export function aboutFallback(locale: Locale): AboutContent {
   return BY_LOCALE[locale];
 }
 
-// Initiales pour les pastilles fondateurs (2 lettres).
+// Initials for the founder badges (2 letters).
 export function initials(name: string): string {
   return name
     .split(/\s+/)

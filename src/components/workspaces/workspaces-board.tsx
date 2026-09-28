@@ -19,8 +19,8 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 import { MyInvitations } from './workspace-invitations';
 
-// Formulaire de création d'espace (membre réseau). Réplique le motif du
-// composer de la Tribune (champs Input/Textarea, select natif de thème).
+// Workspace creation form (network member). Replicates the pattern of the
+// Tribune composer (Input/Textarea fields, native theme select).
 function CreateForm() {
   const t = useTranslations('workspaces');
   const tl = useTranslations('library');
@@ -30,8 +30,8 @@ function CreateForm() {
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState<string>(PUB_THEMES[0]);
   const [description, setDescription] = useState('');
-  // Ouvert par défaut (comportement de l'incrément 1) ; privé = sur
-  // invitation seulement.
+  // Open by default (increment 1 behaviour); private = by
+  // invitation only.
   const [visibility, setVisibility] = useState<'open' | 'private'>('open');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +40,10 @@ function CreateForm() {
     return <Button onClick={() => setOpen(true)}>{t('createCta')}</Button>;
   }
 
-  // « Annuler » VIDE le brouillon. Le composant reste monté quand le
-  // formulaire est replié (il rend le bouton d'ouverture) : ses états
-  // survivaient, et la saisie abandonnée réapparaissait à l'ouverture
-  // suivante — le même défaut que le composer de la tribune (R-13).
+  // "Annuler" CLEARS the draft. The component stays mounted when the
+  // form is collapsed (it renders the open button): its state
+  // survived, and the abandoned input reappeared on the next
+  // opening — the same defect as the tribune composer (R-13).
   function cancel() {
     setTitle('');
     setTheme(PUB_THEMES[0]);
@@ -86,9 +86,9 @@ function CreateForm() {
     <form
       id="workspace-create"
       onSubmit={onSubmit}
-      // Les règles vivent dans `onSubmit`, traduites ; la bulle native du
-      // navigateur (« Please fill out this field ») parlait anglais sur un
-      // écran français (mesuré le 27/09).
+      // The rules live in `onSubmit`, translated; the browser's native
+      // bubble ("Please fill out this field") spoke English on a
+      // French screen (measured on 27/09).
       noValidate
       className="space-y-4 rounded-md border border-line bg-surface p-5"
     >
@@ -154,20 +154,20 @@ function CreateForm() {
   );
 }
 
-// Tableau de bord des espaces (liste + création). Monté uniquement pour un
-// membre réseau connecté (gating amont dans la page). Si le compte n'a pas le
-// rôle « membre », on affiche un message dédié plutôt que la liste.
+// Workspaces dashboard (list + creation). Mounted only for a signed-in
+// network member (gating upstream in the page). If the account does not have the
+// "membre" role, a dedicated message is shown rather than the list.
 export function WorkspacesBoard() {
   const t = useTranslations('workspaces');
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  // `listWorkspaces` REFUSE un compte sans rôle « membre » (garde serveur).
-  // Appelée avant de connaître le rôle, la requête levait côté client et la
-  // page entière tombait sur « Une erreur est survenue » — pour un visiteur
-  // qui n'avait rien à voir d'autre que le message d'adhésion ci-dessous.
-  // Mesuré (exploration du 27/09). On attend donc le rôle, et on ne demande
-  // la liste qu'à qui peut la lire.
+  // `listWorkspaces` REFUSES an account without the "membre" role (server guard).
+  // Called before the role was known, the query threw on the client and the
+  // whole page fell on "Une erreur est survenue" — for a visitor
+  // who had nothing else to see but the membership message below.
+  // Measured (exploration of 27/09). So we wait for the role, and only request
+  // the list for those who can read it.
   const items = useQuery(
     api.workspaces.listWorkspaces,
     me !== undefined && isMember(me?.role) ? {} : 'skip',
@@ -213,8 +213,8 @@ export function WorkspacesBoard() {
         </section>
       ) : (
         <>
-          {/* Invitations reçues : c'est ici qu'on entre dans un espace
-              privé (F-24). */}
+          {/* Received invitations: this is where one enters a private
+              workspace (F-24). */}
           <div className="mt-8">
             <MyInvitations />
           </div>

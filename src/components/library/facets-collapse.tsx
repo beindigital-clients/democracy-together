@@ -5,11 +5,11 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { hasActiveFilters, type LibraryFilters } from '@/lib/publications';
 
-// Enveloppe responsive des facettes (F-32). En dessous de `lg`, le panneau de
-// filtres (long) repliait tout le contenu sous la pliure -> on le replie
-// derrière un bouton « Filtrer (N) ». À partir de `lg`, il redevient la barre
-// latérale collante toujours visible (le bouton disparaît). Les facettes
-// elles-mêmes restent rendues côté serveur (liens GET) et passent en `children`.
+// Responsive wrapper for the facets (F-32). Below `lg`, the (long) filter
+// panel pushed all content below the fold -> we collapse it
+// behind a "Filtrer (N)" button. From `lg` up, it becomes the always-visible
+// sticky sidebar again (the button disappears). The facets
+// themselves stay server-rendered (GET links) and are passed as `children`.
 export function FacetsCollapse({
   filters,
   children,

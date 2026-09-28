@@ -8,20 +8,20 @@ import { fromConvexReplays, getReplays, type Replay } from '@/lib/replays';
 import { getPartners } from '@/lib/partners-content';
 import { getThemeSyntheses } from '@/lib/themes-content';
 
-// CHARGEMENT DES CONTENUS ÉDITORIAUX CÔTÉ SERVEUR — Convex d'abord, dépôt en
-// repli (chantier « contenus »).
+// SERVER-SIDE LOADING OF EDITORIAL CONTENT — Convex first, repository as
+// fallback ("contenus" workstream).
 //
-// La règle est celle de `convex-fallback.ts` et des actualités Sanity : une
-// source indisponible ne doit pas emporter la page. Elle est ÉTENDUE ici d'un
-// cas : une table VIDE (déploiement où l'import du contenu codé n'a pas encore
-// été lancé) sert aussi le contenu codé — sans quoi la mise en production du
-// back-office viderait l'agenda le temps d'une commande. Dès qu'une table
-// porte au moins un contenu publié, c'est elle qui fait foi, entièrement : on
-// ne MÉLANGE jamais les deux sources, sans quoi un événement supprimé au
-// back-office réapparaîtrait depuis le dépôt.
+// The rule is that of `convex-fallback.ts` and of the Sanity news: an
+// unavailable source must not take down the page. It is EXTENDED here with one
+// case: an EMPTY table (a deployment where the import of hard-coded content has not yet
+// been run) also serves the hard-coded content — otherwise putting the
+// back-office into production would empty the agenda for the duration of a command. As soon as a table
+// holds at least one published item, it is authoritative, entirely: we
+// NEVER MIX the two sources, otherwise an event deleted in the
+// back-office would reappear from the repository.
 //
-// `source` est rendu avec les données pour que la page (et ses tests) sachent
-// ce qu'elles affichent — utile au diagnostic, jamais montré au visiteur.
+// `source` is returned with the data so that the page (and its tests) know
+// what they are displaying — useful for diagnostics, never shown to the visitor.
 
 export type Loaded<T> = { items: T; source: 'convex' | 'code' };
 
@@ -47,7 +47,7 @@ export type EventDetail = {
   source: 'convex' | 'code';
 };
 
-/** Une fiche d'événement, avec l'agenda pour « autres rendez-vous ». */
+/** An event page, with the agenda for "other events". */
 export async function loadEvent(
   slug: string,
   locale: Locale,
@@ -126,13 +126,13 @@ export async function loadPartners(
   };
 }
 
-// --- Revue de presse -------------------------------------------------------------
+// --- Press review ----------------------------------------------------------------
 
 export type PressItem = FunctionReturnType<
   typeof api.contenus.press.listPublic
 >[number];
 
-/** La revue de presse : aucune source codée, donc une liste vide en repli. */
+/** The press review: no hard-coded source, hence an empty list as fallback. */
 export async function loadPress(locale: Locale): Promise<PressItem[]> {
   return await fetchOrFallback(
     'contenus/presse',
@@ -141,11 +141,11 @@ export async function loadPress(locale: Locale): Promise<PressItem[]> {
   );
 }
 
-// --- Thématiques ------------------------------------------------------------------
+// --- Themes -----------------------------------------------------------------------
 
 export type ThemeView = {
   slug: string;
-  // `null` : titre à lire dans le vocabulaire `library.themes.*` (repli codé).
+  // `null`: title to be read from the `library.themes.*` vocabulary (hard-coded fallback).
   title: string | null;
   lead: string;
   stance: string[];

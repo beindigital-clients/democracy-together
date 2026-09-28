@@ -1,18 +1,18 @@
 import type { Locale } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
 
-// Contenu légal (F-09 RGPD) — mentions légales, politique de confidentialité,
-// déclaration d'accessibilité. Bilingue FR/EN. Rédigé à partir des faits connus
-// (association loi 1901, agence Be in Digital, sous-traitants techniques) ; les
-// éléments juridiques non confirmés sont explicitement marqués « [à compléter :
-// … ] » (jamais inventés) — à renseigner avant mise en ligne / passage juridique.
+// Legal content (F-09 GDPR) — legal notice, privacy policy,
+// accessibility statement. Bilingual FR/EN. Written from the known facts
+// (loi 1901 association, Be in Digital agency, technical subcontractors); the
+// unconfirmed legal details are explicitly marked "[à compléter :
+// … ]" (never invented) — to be filled in before going live / legal review.
 //
-// IMPORTANT : ne contient aucune fabrication d'identifiants (SIRET/RNA), de noms
-// de responsables ou d'adresses ; ces champs portent un marqueur à compléter.
+// IMPORTANT: contains no fabricated identifiers (SIRET/RNA), names
+// of officers or addresses; these fields carry a to-be-completed marker.
 
-// `items` : énumération rendue en LISTE (`<ul>`), et non en paragraphes
-// successifs — la déclaration d'accessibilité en porte plusieurs (non-
-// conformités, voies de recours), et une liste annonce son nombre d'éléments
+// `items`: an enumeration rendered as a LIST (`<ul>`), not as successive
+// paragraphs — the accessibility statement has several of them (non-
+// conformities, means of redress), and a list announces its number of items
 // (RGAA 9.3).
 export type LegalSection = {
   heading: string;
@@ -741,13 +741,13 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
     },
   },
 
-  // DÉCLARATION D'ACCESSIBILITÉ au format RGAA (F-08), établie à partir de
-  // l'audit du 27/09/2026 (`docs/rgaa/audit-2026-09.md`). Elle affiche le taux
-  // MESURÉ (72,6 %), pas le taux projeté après correctifs : ceux-ci sont
-  // intégrés mais pas encore re-mesurés sur la version en ligne, et la
-  // restitution par lecteur d'écran n'a pas été testée. Une déclaration ne
-  // doit pas promettre plus que ce qui a été vérifié. À mettre à jour après le
-  // contre-audit (taux, date, liste des non-conformités).
+  // ACCESSIBILITY STATEMENT in RGAA format (F-08), drawn up from
+  // the 27/09/2026 audit (`docs/rgaa/audit-2026-09.md`). It shows the MEASURED
+  // rate (72.6%), not the rate projected after fixes: those are
+  // merged but not yet re-measured on the live version, and
+  // screen-reader output has not been tested. A statement must
+  // not promise more than what has been verified. To be updated after the
+  // counter-audit (rate, date, list of non-conformities).
   accessibilite: {
     fr: {
       eyebrow: 'Accessibilité',
@@ -1326,16 +1326,16 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
   },
 };
 
-// Les trois documents existent dans les cinq langues. Les versions traduites
-// portent une section « Langue de référence » qui dit que le FRANÇAIS PRÉVAUT :
-// ce sont des textes de droit français (loi 1901, loi 2004-575, RGAA, RGPD) et
-// une traduction ne peut pas en déplacer le sens sans devenir un autre
-// engagement. C'est la clause d'usage des pages légales multilingues ; elle est
-// écrite dans le contenu plutôt que laissée à l'implicite.
+// The three documents exist in all five languages. The translated versions
+// carry a "Langue de référence" section stating that FRENCH PREVAILS:
+// these are French legal texts (loi 1901, loi 2004-575, RGAA, GDPR) and
+// a translation cannot shift their meaning without becoming a different
+// commitment. It is the customary clause for multilingual legal pages; it is
+// written into the content rather than left implicit.
 //
-// `resolveLocale` plutôt qu'un test d'égalité : cette fonction reçoit un
-// `string` (segment d'URL) et doit ramener toute valeur inconnue à la langue
-// par défaut, exactement comme avant — mais pour les cinq langues.
+// `resolveLocale` rather than an equality check: this function receives a
+// `string` (URL segment) and must map any unknown value to the default
+// language, exactly as before — but for all five languages.
 export function getLegalContent(kind: LegalKind, locale: string): LegalDoc {
   return CONTENT[kind][resolveLocale(locale)];
 }

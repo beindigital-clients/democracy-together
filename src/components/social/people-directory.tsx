@@ -11,12 +11,12 @@ import { Button } from '@/components/ui/button';
 import { SelectField, TextField } from '@/components/ui/field';
 import { PersonCard } from './person-card';
 
-// ANNUAIRE DES PERSONNES — réservé aux membres du réseau.
+// PEOPLE DIRECTORY — reserved for network members.
 //
-// Ce que l'écran NE fait PAS, et pourquoi : il ne filtre rien lui-même. La
-// query `social.profiles.search` écarte les profils privés dans l'index, et
-// relit la visibilité réelle de chaque ligne (rôle du propriétaire, blocage).
-// Un filtre côté navigateur aurait déjà laissé passer la donnée.
+// What the screen does NOT do, and why: it filters nothing itself. The
+// `social.profiles.search` query excludes private profiles in the index, and
+// re-reads the actual visibility of each row (owner's role, blocking).
+// A browser-side filter would already have let the data through.
 
 export function PeopleDirectory({
   themeLabels,
@@ -32,8 +32,8 @@ export function PeopleDirectory({
   const [language, setLanguage] = useState('');
   const [country, setCountry] = useState('');
 
-  // La recherche part 300 ms après la dernière frappe : chaque caractère ne
-  // relance pas une lecture d'index sur une connexion lente.
+  // The search fires 300 ms after the last keystroke: each character does not
+  // restart an index read on a slow connection.
   useEffect(() => {
     const id = setTimeout(() => setDebounced(q.trim()), 300);
     return () => clearTimeout(id);

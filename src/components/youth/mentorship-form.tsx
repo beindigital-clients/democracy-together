@@ -24,15 +24,15 @@ import { StatusMessage } from '@/components/a11y/status-message';
 
 const ROLES = ['mentore', 'mentor'] as const;
 
-// `validate` rend un booléen, pas un type : c'est cette garde qui rétrécit la
-// valeur du select au vocabulaire attendu par l'action Convex.
+// `validate` returns a boolean, not a type: it is this guard that narrows the
+// select's value to the vocabulary expected by the Convex action.
 function isRole(value: string): value is (typeof ROLES)[number] {
   return (ROLES as readonly string[]).includes(value);
 }
 
-// Mentorat — mise en relation (F-59). Îlot client sur /jeunes (#mentorat). Sans
-// compte. On choisit son rôle (mentoré : cherche un mentor / mentor : propose
-// son accompagnement). Axe d'intérêt facultatif (relie aux 5 axes du réseau).
+// Mentoring — matchmaking (F-59). Client island on /jeunes (#mentorat). No
+// account needed. One chooses a role (mentee: looking for a mentor / mentor: offering
+// support). Optional theme of interest (linked to the network's 5 themes).
 export function MentorshipForm() {
   const t = useTranslations('mentorship');
   const tl = useTranslations('library');
@@ -50,8 +50,8 @@ export function MentorshipForm() {
     message: '',
   });
 
-  // Borne ALIGNÉE sur le serveur (`convex/mentorship.ts` via `FIELD_MAX`),
-  // même traitement que la candidature jeune (A-04).
+  // Limit ALIGNED with the server (`convex/mentorship.ts` via `FIELD_MAX`),
+  // same handling as the youth application (A-04).
   const messageMax = FIELD_MAX.body;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -144,7 +144,7 @@ export function MentorshipForm() {
         <TextField
           label={t('country')}
           id="m-country"
-          // Finalité déclarée pour le remplissage automatique (RGAA 11.13).
+          // Declared purpose for autofill (RGAA 11.13).
           autoComplete="country-name"
           required
           maxLength={FIELD_MAX.country}
@@ -195,12 +195,12 @@ export function MentorshipForm() {
   );
 }
 
-// Ma demande de mentorat (A-13) — visible du seul membre connecté, retrouvée
-// par l'adresse de son compte. Le mentorat n'avait AUCUN parcours membre : la
-// demande partait d'un formulaire public, l'appariement se faisait dans le
-// back-office, et le demandeur n'apprenait jamais où en était sa demande.
-// Premier pas : voir SES demandes (une par rôle) et leur statut. Le choix du
-// mentor et le suivi du binôme restent une fonctionnalité à part.
+// My mentoring request (A-13) — visible only to the signed-in member, found
+// via their account address. Mentoring had NO member journey: the
+// request came from a public form, matching happened in the
+// back-office, and the requester never learned the status of their request.
+// First step: see THEIR requests (one per role) and their status. Choosing the
+// mentor and following up the pair remain a separate feature.
 function MyMentorshipRequest() {
   const t = useTranslations('mentorship');
   const loc = resolveLocale(useLocale());

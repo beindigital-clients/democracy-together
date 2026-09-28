@@ -8,10 +8,10 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
-// Pictogramme « pouce levé » inline (pas de dépendance icône supplémentaire).
-// Déclaré HORS du composant : une fonction créée à chaque rendu est un type de
-// composant neuf à chaque fois, ce qui force React à démonter puis remonter le
-// sous-arbre au lieu de le mettre à jour.
+// Inline "thumbs up" pictogram (no extra icon dependency).
+// Declared OUTSIDE the component: a function created on each render is a new
+// component type every time, which forces React to unmount then remount the
+// subtree instead of updating it.
 function Thumb() {
   return (
     <svg
@@ -25,10 +25,10 @@ function Thumb() {
   );
 }
 
-// Réaction « soutien » (comme un like) sur une prise de parole. Îlot client :
-// décompte réactif via useQuery(reactionState). Déconnecté -> lien vers la
-// connexion. Connecté -> bouton qui bascule (toggleReaction) ; l'état `mine`
-// pilote le libellé (Soutenir / Soutenu) et le style actif.
+// "Support" reaction (like a like) on a post. Client island:
+// reactive count via useQuery(reactionState). Signed out -> link to
+// sign in. Signed in -> toggle button (toggleReaction); the `mine` state
+// drives the label (Soutenir / Soutenu) and the active style.
 export function ReactionButton({ postId }: { postId: string }) {
   const t = useTranslations('tribune');
   const { isAuthenticated } = useConvexAuth();
@@ -41,7 +41,7 @@ export function ReactionButton({ postId }: { postId: string }) {
   const count = state?.count ?? 0;
   const mine = state?.mine ?? false;
 
-  // Déconnecté : lien vers la connexion (libellé + décompte), comme report-button.
+  // Signed out: link to sign in (label + count), like report-button.
   if (!isAuthenticated) {
     return (
       <Link
@@ -65,7 +65,7 @@ export function ReactionButton({ postId }: { postId: string }) {
     try {
       await toggle({ postId: postId as Id<'tribunePosts'> });
     } catch {
-      /* refusé (rôle/rate-limit) : on n'insiste pas */
+      /* rejected (role/rate-limit): don't insist */
     } finally {
       setPending(false);
     }

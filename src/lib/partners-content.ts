@@ -1,9 +1,9 @@
 import type { Locale } from '@/i18n/routing';
 
-// F-14 — Partenaires & soutiens. Le contenu codé (catégories de partenariat
-// dans les cinq langues) vit dans `convex/lib/contenus/coded/partners.ts` :
-// c'est ce que l'import interne recopie dans `contentPartners` et ce que la
-// page sert en REPLI tant que la table est vide ou le backend injoignable.
+// F-14 — Partners & supporters. The hard-coded content (partnership categories
+// in all five languages) lives in `convex/lib/contenus/coded/partners.ts`:
+// it is what the internal import copies into `contentPartners` and what the
+// page serves as a FALLBACK as long as the table is empty or the backend unreachable.
 import {
   CODED_PARTNERS,
   PARTNER_SLUGS,
@@ -13,7 +13,7 @@ import {
 export { PARTNER_SLUGS };
 export type { PartnerCategory, PartnerSlug };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<
   Locale,
   Record<PartnerSlug, PartnerCategory>

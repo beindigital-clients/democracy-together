@@ -21,9 +21,9 @@ export type Resource = FunctionReturnType<
   typeof api.toolbox.listResources
 >[number];
 
-// Lien d'une ressource : le fichier s'il y en a un, sinon l'adresse. Une
-// adresse interne (`/replays/…`) reste dans le site ; une adresse externe
-// s'ouvre à part, sans transmettre l'origine.
+// Link for a resource: the file if there is one, otherwise the URL. An
+// internal URL (`/replays/…`) stays within the site; an external URL
+// opens separately, without passing on the referrer.
 export function ResourceLink({ resource }: { resource: Resource }) {
   const t = useTranslations('toolbox');
   const cls =
@@ -85,7 +85,7 @@ export function ResourceCard({ resource }: { resource: Resource }) {
   );
 }
 
-// Catalogue filtrable de la boîte à outils (F-56).
+// Filterable toolbox catalogue (F-56).
 export function ToolboxCatalog() {
   const t = useTranslations('toolbox');
   const tl = useTranslations('library');
@@ -181,7 +181,7 @@ export function ToolboxCatalog() {
   );
 }
 
-// Liste des parcours publiés (F-57).
+// List of published learning paths (F-57).
 export function PathList() {
   const t = useTranslations('toolbox');
   const tl = useTranslations('library');

@@ -1,20 +1,20 @@
-// Contrat de données des visualisations régionales (carte SVG et globe).
+// Data contract for the regional visualizations (SVG map and globe).
 //
-// Le type vivait dans `region-map.tsx`, dont le composant n'est monté nulle
-// part — l'audit § 5.9 en concluait que le fichier était mort, alors que le
-// TYPE, lui, est bien vivant : il est produit par les pages (accueil,
-// baromètre, annuaire) et consommé par `region-globe.tsx`. Le sortir d'ici
-// découple ce contrat du sort du composant `RegionMap`, tranché avec #13
+// The type lived in `region-map.tsx`, whose component is mounted
+// nowhere — audit § 5.9 concluded the file was dead, whereas the
+// TYPE is very much alive: it is produced by the pages (home,
+// barometer, directory) and consumed by `region-globe.tsx`. Moving it out of here
+// decouples this contract from the fate of the `RegionMap` component, decided with #13
 // (issue #40).
 //
-// Ce module ne doit garder AUCUNE dépendance d'exécution : il est importé par
-// des composants client, tandis que la géométrie (`@/lib/region-geo`) embarque
-// d3-geo et la topologie mondiale et reste calculée côté serveur.
+// This module must keep NO runtime dependency: it is imported by
+// client components, whereas the geometry (`@/lib/region-geo`) bundles
+// d3-geo and the world topology and stays computed server-side.
 
 export type RegionMapItem = {
-  name: string; // libellé world-atlas (clé de correspondance)
-  region?: 'afrique' | 'europe'; // pour le filtre par chips (optionnel)
-  fill: string; // couleur de remplissage du pays
-  title: string; // titre du panneau de détail (localisé)
+  name: string; // world-atlas label (matching key)
+  region?: 'afrique' | 'europe'; // for the chip filter (optional)
+  fill: string; // country fill colour
+  title: string; // detail panel title (localized)
   rows: { label: string; value: string; valueClassName?: string }[];
 };

@@ -27,8 +27,8 @@ import { intlLocale } from '@/i18n/locale';
 import { formatDay, formatMoney, knownPaymentError } from './format';
 import { ReceiptButton } from './member-payments';
 
-// SUIVI FINANCIER (F-31) — écran des administrateurs. Chaque bloc lit sa
-// propre query : un bloc qui échoue (droits, réseau) n'emporte pas les autres.
+// FINANCIAL TRACKING (F-31) — administrators' screen. Each block reads its
+// own query: a block that fails (permissions, network) does not take the others down.
 
 type TxRow = FunctionReturnType<
   typeof api.payments.finances.listTransactions
@@ -42,7 +42,7 @@ function hourNow(): number {
   return Math.floor(Date.now() / 3_600_000) * 3_600_000;
 }
 
-// Premier mois du tableau : onze mois avant le mois courant.
+// First month of the table: eleven months before the current month.
 function firstMonth(now: number): string {
   const d = new Date(now);
   return monthKey(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 11, 1));
@@ -56,7 +56,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   const csv = [headers, ...rows]
     .map((r) => r.map(csvField).join(','))
     .join('\r\n');
-  // BOM UTF-8 : Excel lit alors correctement les accents.
+  // UTF-8 BOM: Excel then reads accented characters correctly.
   const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -98,7 +98,7 @@ function Dashboard({ now }: { now: number }) {
 
   const rows = useMemo(() => {
     if (!data) return [];
-    // Une ligne par (mois, devise) ; colonnes : dons, cotisations, remboursé.
+    // One row per (month, currency); columns: donations, membership fees, refunded.
     const map = new Map<
       string,
       {
@@ -517,7 +517,7 @@ function ExportBlock({ now }: { now: number }) {
     setPending(true);
     try {
       const fromMs = Date.parse(`${from}T00:00:00Z`);
-      // Borne haute EXCLUE : on ajoute un jour pour inclure la date de fin.
+      // Upper bound EXCLUDED: add one day to include the end date.
       const toMs = Date.parse(`${to}T00:00:00Z`) + 86_400_000;
       if (
         !Number.isFinite(fromMs) ||
@@ -549,8 +549,8 @@ function ExportBlock({ now }: { now: number }) {
           new Date(r.paidAt).toISOString(),
           r.kind,
           r.recurring ? 'oui' : 'non',
-          // Montant en unités majeures, point décimal : lisible par un tableur
-          // comme par un logiciel comptable.
+          // Amount in major units, decimal point: readable by a spreadsheet
+          // as well as by accounting software.
           (r.amountMinor / (r.currency === 'EUR' ? 100 : 1)).toFixed(
             r.currency === 'EUR' ? 2 : 0,
           ),
