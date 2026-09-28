@@ -349,8 +349,14 @@ Playwright montrant l'échange de jeton répondre `tokens: null`).
 
 ## 10. Ce qui manque pour un réseau social 100 % fonctionnel et déployable
 
-Les correctifs ci-dessus ferment toutes les anomalies relevées par la
-campagne. Ce qui suit n'est pas une anomalie mais une **fonctionnalité
+Les correctifs ci-dessus ferment toutes les anomalies de code relevées par
+la campagne. Une seule reste ouverte, et elle ne relève pas du code : les
+titres et auteurs des publications de démonstration s'affichent en français
+sur les pages en, es, pt et ar (`transversal` C-5, liste cosmétique du § 5).
+C'est le contenu de la base, pas l'interface. Il disparaîtra avec l'import
+des vraies publications (§ 10.1, point 2), chacune dans sa langue d'origine.
+
+Ce qui suit n'est pas une anomalie mais une **fonctionnalité
 absente** ou une **condition de mise en service**, établi à partir du backlog
 canonique (`Democracy-Together-fonctionnalites.md`), de l'audit du 18/09
 (`docs/audit-plateforme-2026-09.md`), de la feuille de route
