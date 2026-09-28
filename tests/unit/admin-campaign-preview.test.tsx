@@ -10,10 +10,10 @@ import {
 
 afterEach(cleanup);
 
-// APERÇU D'UNE CAMPAGNE (campagne du 27/09, R-07) : l'éditeur envoyait sans
-// voir. L'aperçu doit découper le texte comme `campaignHtml`
-// (convex/newsletter.ts) — un paragraphe par ligne vide — et ne jamais
-// interpréter le corps comme du HTML.
+// CAMPAIGN PREVIEW (27/09 campaign, R-07): the editor was sending blind.
+// The preview must split the text like `campaignHtml`
+// (convex/newsletter.ts) — one paragraph per blank line — and never
+// interpret the body as HTML.
 
 function setup(subject: string, body: string) {
   render(

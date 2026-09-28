@@ -18,12 +18,12 @@ import {
 import { CONTENT_MAX, isContentSlug } from '../lib/contenus/validate';
 import { publishStatus } from '../lib/tables/contenus';
 
-// THÉMATIQUES (F-36) — slug STABLE, titres et synthèses traduits, ordre.
+// THEMES (F-36) — STABLE slug, translated titles and summaries, order.
 //
-// Le slug d'une thématique est une clé de jointure autant qu'une adresse : les
-// publications, la Tribune et les appels à projets sont rangés par axe
-// (`NETWORK_THEMES`), et le baromètre y rattache ses sous-dimensions. Il n'est
-// donc JAMAIS modifiable ; seuls les textes, l'ordre et la publication le sont.
+// A theme's slug is a join key as much as an address:
+// publications, the Tribune and calls for projects are filed by axis
+// (`NETWORK_THEMES`), and the barometer attaches its sub-dimensions to it. It is
+// therefore NEVER modifiable; only the texts, the order and publication are.
 
 const THEMES_MAX = 50;
 
@@ -111,7 +111,7 @@ export const adminList = query({
         title: pickText(t.title, locale) || t.slug,
         status: t.status,
         order: t.order,
-        // Une langue « manque » dès que le titre OU la synthèse y manque.
+        // A language is "missing" as soon as the title OR the summary is missing in it.
         missing: [
           ...new Set([...missingLocales(t.title), ...missingLocales(t.lead)]),
         ],

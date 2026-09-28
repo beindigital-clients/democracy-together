@@ -11,12 +11,12 @@ describe('Espace presse / kit média (F-16)', () => {
   it('expose un boilerplate, des faits clés et des ressources (FR + EN)', () => {
     for (const loc of ['fr', 'en'] as const) {
       const kit = getPressKit(loc);
-      // Boilerplate : un paragraphe substantiel, présentant le réseau.
+      // Boilerplate: a substantial paragraph presenting the network.
       expect(kit.boilerplate.length).toBeGreaterThan(120);
       expect(kit.boilerplate).toContain('Democracy Together');
-      // Faits clés : mêmes slugs, même ordre que la constante.
+      // Key facts: same slugs, same order as the constant.
       expect(kit.facts.map((f) => f.slug)).toEqual([...PRESS_FACT_SLUGS]);
-      // Ressources : mêmes slugs, même ordre.
+      // Resources: same slugs, same order.
       expect(kit.resources.map((r) => r.slug)).toEqual([
         ...PRESS_RESOURCE_SLUGS,
       ]);
@@ -37,7 +37,7 @@ describe('Espace presse / kit média (F-16)', () => {
     const factsFr = new Map(fr.facts.map((f) => [f.slug, f.value]));
     expect(factsFr.get('statut')?.toLowerCase()).toContain('loi 1901');
     expect(factsFr.get('barometre')).toContain('CC-BY');
-    // Les cinq axes établis sont nommés dans le fait « axes ».
+    // The five established themes are named in the "axes" fact.
     const axesFr = factsFr.get('axes') ?? '';
     for (const axe of [
       'numérique',
@@ -61,7 +61,7 @@ describe('Espace presse / kit média (F-16)', () => {
         .facts.map((f) => f.value)
         .join('\n')
         .toLowerCase();
-      // Pas de motif « <nombre> membres / members / pays / countries / partenaires ».
+      // No "<number> membres / members / pays / countries / partenaires" pattern.
       expect(text).not.toMatch(
         /\d+\s*(membres?|members?|pays|countries|partenaires?|partners?|organisations?|organizations?)/,
       );

@@ -21,15 +21,15 @@ import { PUB_THEMES } from '@/lib/publications';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// FILE DE MODÉRATION UNIFIÉE DE LA TRIBUNE (F-45, F-49) — modérateur et
-// au-dessus (garde Convex : `requireNetworkRole(ctx, 'moderateur')`).
+// UNIFIED TRIBUNE MODERATION QUEUE (F-45, F-49) — moderator and
+// above (Convex guard: `requireNetworkRole(ctx, 'moderateur')`).
 //
-// Onglets : en attente, validés, rejetés, retirés, signalés. Filtres : type
-// de contenu, axe, format. Pour chaque contenu, l'HISTORIQUE COMPLET —
-// soumission, avis de l'IA, décisions, signalements, modifications — avec
-// l'auteur et l'heure de chaque fait. Les décisions négatives exigent un
-// motif (montré à l'auteur) et passent par une confirmation qui nomme la
-// cible (issue #38).
+// Tabs: pending, approved, rejected, withdrawn, reported. Filters: content
+// type, axis, format. For each piece of content, the FULL HISTORY —
+// submission, AI opinion, decisions, reports, edits — with
+// the author and time of each event. Negative decisions require a
+// reason (shown to the author) and go through a confirmation that names the
+// target (issue #38).
 
 type Tab = 'pending' | 'published' | 'rejected' | 'removed' | 'reported';
 const TABS: readonly Tab[] = [
@@ -54,7 +54,7 @@ function useDate() {
     }).format(ms);
 }
 
-// Réglage du mode : lu par tout le staff, modifiable par l'administrateur.
+// Mode setting: read by all staff, editable by the administrator.
 function ModeSettings({ isAdmin }: { isAdmin: boolean }) {
   const t = useTranslations('moderationQueue');
   const settings = useQuery(api.communityModeration.getSettings);
@@ -318,7 +318,7 @@ function ItemDetail({ selected }: { selected: Selected }) {
         </p>
       ) : null}
 
-      {/* Décisions */}
+      {/* Decisions */}
       <div className="mt-5 space-y-3 rounded-md border border-line bg-surface p-4">
         {item.status === 'pending' || item.status === 'published' ? (
           <TextareaField
@@ -379,7 +379,7 @@ function ItemDetail({ selected }: { selected: Selected }) {
         </div>
       </div>
 
-      {/* Historique complet */}
+      {/* Full history */}
       <section aria-labelledby="mq-history" className="mt-6">
         <h3 id="mq-history" className="font-display text-lg">
           {t('historyTitle')}
@@ -493,7 +493,7 @@ function ModerationQueue() {
   const fmt = useDate();
   const params = useSearchParams();
   const me = useQuery(api.users.current);
-  // Lien profond (notification « l'IA signale… ») : ?type=post&id=…
+  // Deep link (notification "l'IA signale…"): ?type=post&id=…
   const deepType = params?.get('type');
   const deepId = params?.get('id');
   const [selected, setSelected] = useState<Selected | null>(
@@ -711,8 +711,8 @@ function ModerationQueue() {
   );
 }
 
-// `useSearchParams` (lien profond depuis une notification) exige une
-// frontière Suspense pour le rendu statique de la coquille.
+// `useSearchParams` (deep link from a notification) requires a
+// Suspense boundary for the shell's static rendering.
 export default function ModerationQueuePage() {
   return (
     <Suspense fallback={null}>

@@ -4,29 +4,29 @@ import dynamic from 'next/dynamic';
 import type { ComponentProps, ReactNode } from 'react';
 import type { RegionGlobe as RegionGlobeType } from './region-globe';
 
-// Chargement différé du globe (audit § 5.6).
+// Deferred loading of the globe (audit § 5.6).
 //
-// `region-globe` embarque d3-geo, topojson-client et la topologie mondiale de
-// world-atlas — un chunk de 136 Ko à lui seul. Importé statiquement, il entrait
-// dans le chemin critique de TROIS pages (/, /barometre, /le-reseau) et
-// retardait l'hydratation de tout le reste, alors que le commentaire de
-// `region-geo.ts` promettait l'inverse.
+// `region-globe` bundles d3-geo, topojson-client and the world-atlas world
+// topology — a 136 KB chunk on its own. Imported statically, it sat
+// on the critical path of THREE pages (/, /barometre, /le-reseau) and
+// delayed hydration of everything else, whereas the comment in
+// `region-geo.ts` promised the opposite.
 //
-// `ssr: false` est volontaire et sans perte : le globe est dessiné dans un
-// <canvas> à partir de mesures du DOM, il ne produit donc AUCUN contenu au
-// rendu serveur. L'information reste accessible ailleurs sur chaque page
-// (annuaire en liste, tableaux du baromètre) — le globe est un enrichissement
-// visuel, pas le seul chemin vers la donnée.
+// `ssr: false` is deliberate and lossless: the globe is drawn in a
+// <canvas> from DOM measurements, so it produces NO content at
+// server render. The information stays accessible elsewhere on each page
+// (directory as a list, barometer tables) — the globe is a visual
+// enhancement, not the only path to the data.
 //
-// Ce fichier est un composant CLIENT : `ssr: false` n'est pas autorisé depuis
-// un composant serveur dans l'App Router, d'où ce mince emballage.
+// This file is a CLIENT component: `ssr: false` is not allowed from
+// a server component in the App Router, hence this thin wrapper.
 
 const Globe = dynamic(
   () => import('./region-globe').then((m) => m.RegionGlobe),
   {
     ssr: false,
-    // Réserve la place exacte du globe : sans cela, son arrivée décalerait la
-    // mise en page (CLS) une fois le chunk chargé.
+    // Reserves the globe's exact space: without it, its arrival would shift the
+    // layout (CLS) once the chunk has loaded.
     loading: () => (
       <div
         aria-hidden="true"
@@ -36,11 +36,11 @@ const Globe = dynamic(
   },
 );
 
-// `fallback` : légende affichée SANS JavaScript, par-dessus le disque de
-// réservation. Mesuré le 27/09 (transversal C-3) : /barometre et /le-reseau
-// montraient un grand disque gris nu, sans un mot. Le `<noscript>` n'existe
-// que dans le HTML servi à un navigateur sans script ; avec script, le globe
-// prend la place et rien ne se superpose.
+// `fallback`: caption shown WITHOUT JavaScript, on top of the placeholder
+// disc. Measured on 27/09 (cross-cutting C-3): /barometre and /le-reseau
+// showed a large bare grey disc, without a word. The `<noscript>` only exists
+// in the HTML served to a browser without script; with script, the globe
+// takes its place and nothing overlaps.
 export function RegionGlobeLazy({
   fallback,
   ...props

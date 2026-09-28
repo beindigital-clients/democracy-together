@@ -12,15 +12,15 @@ import {
   type Direction,
 } from './layout';
 
-// COMPOSITION DU PDF D'UN RAPPORT ANNUEL (F-41) — pdfkit + fontkit, en
-// JavaScript pur, exécuté dans une action Convex (runtime Node).
+// COMPOSING AN ANNUAL REPORT PDF (F-41) — pdfkit + fontkit, in pure
+// JavaScript, run in a Convex action (Node runtime).
 //
-// Le choix de la technique est MESURÉ (docs/backlog/editorial.md § Mesure) :
-// fontkit applique les tables OpenType de la police, donc les formes
-// contextuelles et les ligatures arabes ; le placement bidirectionnel des mots
-// est fait par `./layout` ; pdfkit fournit le PDF balisé (arbre de structure,
-// `/Lang`, `/ActualText`), les métadonnées et les signets. Aucun Chromium :
-// la production tourne sur Vercel, qui n'en a pas, et Convex non plus.
+// The choice of technique is MEASURED (docs/backlog/editorial.md § Mesure):
+// fontkit applies the font's OpenType tables, hence Arabic contextual forms
+// and ligatures; bidirectional word placement is done by `./layout`; pdfkit
+// provides the tagged PDF (structure tree, `/Lang`, `/ActualText`), the
+// metadata and the bookmarks. No Chromium: production runs on Vercel, which
+// does not have it, and neither does Convex.
 
 export type ReportPdfInput = {
   locale: SiteLocale;
@@ -34,7 +34,7 @@ export type ReportPdfInput = {
 
 export type ReportPdf = { bytes: Uint8Array<ArrayBuffer>; pages: number };
 
-// Jetons du site (src/app/globals.css, thème clair) : un PDF s'imprime.
+// Site tokens (src/app/globals.css, light theme): a PDF gets printed.
 const COLOR = {
   ink: '#16191f',
   inkSoft: '#454953',
@@ -43,7 +43,7 @@ const COLOR = {
   line: '#d9d6cd',
 };
 
-const PAGE = { width: 595.28, height: 841.89 }; // A4, en points
+const PAGE = { width: 595.28, height: 841.89 }; // A4, in points
 const MARGIN = { top: 64, bottom: 72, side: 62 };
 const CONTENT_WIDTH = PAGE.width - 2 * MARGIN.side;
 const BOTTOM = PAGE.height - MARGIN.bottom;
@@ -51,14 +51,14 @@ const BOTTOM = PAGE.height - MARGIN.bottom;
 type TextStyle = {
   font: FontKey;
   size: number;
-  /** Interligne, en multiple de la taille. */
+  /** Line height, as a multiple of the size. */
   leading: number;
   color: string;
 };
 
-// L'arabe est composé un cran plus grand et plus aéré : à corps égal, son
-// œil est plus petit que celui du latin, et ses hampes et jambages demandent
-// l'interligne que le latin n'utilise pas.
+// Arabic is set one step larger and more airily: at equal point size, its
+// x-height is smaller than Latin's, and its ascenders and descenders need the
+// line spacing that Latin does not use.
 function styles(rtl: boolean) {
   const body: FontKey = rtl ? 'arabic' : 'body';
   const bold: FontKey = rtl ? 'arabicBold' : 'bodyBold';
@@ -105,16 +105,16 @@ function styles(rtl: boolean) {
   } satisfies Record<string, TextStyle>;
 }
 
-// Exportés (avec `featuresFor` et `visualOrderLigatures`) pour le reçu de
-// paiement (convex/lib/payments/receiptPdf.ts), qui compose les noms arabes
-// avec les mêmes corrections mesurées.
+// Exported (along with `featuresFor` and `visualOrderLigatures`) for the
+// payment receipt (convex/lib/payments/receiptPdf.ts), which sets Arabic
+// names with the same measured fixes.
 export const RTL_TEXT = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/u;
 
-// Crénage COUPÉ dans les mots arabes, et seulement là. Mesuré : Plex Sans
-// Arabic écarte de 90/1000 d'em la lettre qui suit un ر (« تقرير »), et les
-// extracteurs de texte (pdf.js, celui de Firefox) lisent cet écart comme une
-// espace — « تقر ير ». Sans crénage, l'écart visuel perdu est d'un demi-point ;
-// l'extraction, elle, rend le mot entier. Le latin garde son crénage.
+// Kerning DISABLED in Arabic words, and only there. Measured: Plex Sans
+// Arabic moves the letter following a ر ("تقرير") by 90/1000 em, and text
+// extractors (pdf.js, Firefox's) read that gap as a space — "تقر ير".
+// Without kerning, the lost visual gap is half a point; extraction, however,
+// returns the whole word. Latin keeps its kerning.
 type Features = PDFKit.Mixins.TextOptions['features'];
 export function featuresFor(text: string): Features {
   return RTL_TEXT.test(text)
@@ -122,21 +122,21 @@ export function featuresFor(text: string): Features {
     : undefined;
 }
 
-// ToUnicode des LIGATURES arabes, écrit dans l'ordre VISUEL.
+// ToUnicode of Arabic LIGATURES, written in VISUAL order.
 //
-// Le flux de contenu dessine un mot arabe dans l'ordre visuel (de gauche à
-// droite, donc à rebours de la lecture) — c'est ce que produit fontkit, et ce
-// que font aussi les PDF de Chromium. Les extracteurs remettent ce flux dans
-// l'ordre logique en le RETOURNANT caractère par caractère. Une ligature (لا,
-// لإ, تر, ين…) est un seul glyphe qui vaut deux lettres : pdfkit l'associe à
-// ses lettres dans l'ordre logique, le retournement les inverse, et « الإصدار »
-// se relisait « اإلصدار » (mesuré avec pdf.js). Écrire la correspondance dans
-// l'ordre visuel rend le flux COHÉRENT : retourné d'un bloc, il redonne le
-// texte juste. Les lecteurs qui honorent `/ActualText` (Acrobat, Poppler,
-// lecteurs d'écran) lisent de toute façon le texte logique de la ligne.
+// The content stream draws an Arabic word in visual order (left to right,
+// hence against the reading direction) — that is what fontkit produces, and
+// what Chromium's PDFs do as well. Extractors put this stream back into
+// logical order by REVERSING it character by character. A ligature (لا, لإ,
+// تر, ين…) is a single glyph worth two letters: pdfkit maps it to its letters
+// in logical order, the reversal swaps them, and "الإصدار" read back as
+// "اإلصدار" (measured with pdf.js). Writing the mapping in visual order makes
+// the stream CONSISTENT: reversed as a block, it gives back the right text.
+// Readers that honour `/ActualText` (Acrobat, Poppler, screen readers) read
+// the line's logical text anyway.
 //
-// Accès à un champ interne de pdfkit (`_fontFamilies`, `unicode`) : le test
-// « الإصدار » de render.test.ts échoue si une version de pdfkit le déplace.
+// Access to an internal pdfkit field (`_fontFamilies`, `unicode`): the
+// "الإصدار" test in render.test.ts fails if a pdfkit version moves it.
 export function visualOrderLigatures(doc: PDFKit.PDFDocument) {
   const families = (
     doc as unknown as {
@@ -145,8 +145,8 @@ export function visualOrderLigatures(doc: PDFKit.PDFDocument) {
   )._fontFamilies;
   const seen = new Set<unknown>();
   for (const font of Object.values(families ?? {})) {
-    // Une police est rangée sous deux clés (nom d'enregistrement et nom
-    // PostScript) : la retourner deux fois l'annulerait.
+    // A font is stored under two keys (registration name and PostScript name):
+    // reversing it twice would cancel it out.
     if (seen.has(font)) continue;
     seen.add(font);
     for (const cps of font.unicode ?? []) {
@@ -178,14 +178,14 @@ export async function renderReportPdf(
       right: MARGIN.side,
     },
     pdfVersion: '1.7',
-    // Accessibilité : PDF balisé (arbre de structure + /MarkInfo), langue du
-    // document dans le catalogue, titre affiché à la place du nom de fichier.
+    // Accessibility: tagged PDF (structure tree + /MarkInfo), document language
+    // in the catalogue, title shown instead of the file name.
     tagged: true,
     lang: input.locale,
     displayTitle: true,
     bufferPages: true,
-    // Police par défaut = une police EMBARQUÉE : sans cela pdfkit charge
-    // Helvetica depuis ses fichiers AFM, absents d'un bundle d'action.
+    // Default font = an EMBEDDED font: otherwise pdfkit loads Helvetica from its
+    // AFM files, which are absent from an action bundle.
     font: fonts.body as unknown as string,
     info: {
       Title: input.title,
@@ -204,8 +204,8 @@ export async function renderReportPdf(
     doc.on('error', reject);
   });
 
-  // Une police latine n'a pas les glyphes arabes : un nom arabe dans un
-  // rapport français bascule sur Plex Sans Arabic, qui porte aussi le latin.
+  // A Latin font does not have Arabic glyphs: an Arabic name in a French report
+  // switches to Plex Sans Arabic, which also carries Latin.
   const fontFor = (style: TextStyle, text: string): FontKey => {
     if (rtl || !RTL_TEXT.test(text)) return style.font;
     return style.font === 'body' ? 'arabic' : 'arabicBold';
@@ -228,11 +228,10 @@ export async function renderReportPdf(
     if (y + height > BOTTOM) newPage();
   };
 
-  // Un bloc de texte : mots résolus, lignes coupées, chaque ligne posée dans
-  // l'ordre visuel, et reliée à son élément de structure. La ligne d'un texte
-  // de droite à gauche porte son texte LOGIQUE en `/ActualText` : c'est ce
-  // qu'un lecteur d'écran et un copier-coller doivent restituer, quel que soit
-  // l'ordre dans lequel les mots sont dessinés.
+  // A text block: resolved words, broken lines, each line placed in visual
+  // order and linked to its structure element. The line of a right-to-left text
+  // carries its LOGICAL text in `/ActualText`: that is what a screen reader and
+  // a copy-paste must return, whatever the order in which the words are drawn.
   const block = (
     element: PDFKit.PDFStructureElement,
     text: string,
@@ -273,14 +272,14 @@ export async function renderReportPdf(
     }
   };
 
-  // Décor : jamais lu par un lecteur d'écran (artefact de mise en page).
+  // Decoration: never read by a screen reader (layout artifact).
   const artifact = (draw: () => void) => {
     doc.markContent('Artifact', { type: 'Layout' });
     draw();
     doc.endMarkedContent();
   };
 
-  // --- Page de garde -------------------------------------------------------
+  // --- Cover page ----------------------------------------------------------
   artifact(() => {
     doc.rect(0, 0, PAGE.width, 10).fill(COLOR.accent);
   });
@@ -316,7 +315,7 @@ export async function renderReportPdf(
   });
   y += 22;
 
-  // --- Chiffres clés : une grille de trois, lue dans le sens de la langue ---
+  // --- Key figures: a grid of three, read in the language's direction -------
   if (input.keyFigures.length > 0) {
     const sect = doc.struct('Sect');
     root.add(sect);
@@ -358,13 +357,13 @@ export async function renderReportPdf(
     y += 10;
   }
 
-  // --- Chapitres -----------------------------------------------------------
+  // --- Chapters ------------------------------------------------------------
   for (const chapter of input.chapters) {
     const sect = doc.struct('Sect');
     root.add(sect);
     y += 8;
-    // Un titre ne reste jamais seul en bas de page : il emporte deux lignes
-    // du paragraphe qui le suit.
+    // A heading is never left alone at the bottom of a page: it takes two lines
+    // of the following paragraph with it.
     ensure(S.h2.size * S.h2.leading + 2 * S.p.size * S.p.leading);
     doc.outline.addItem(chapter.heading);
     const h = doc.struct('H2');
@@ -384,7 +383,7 @@ export async function renderReportPdf(
 
   root.end();
 
-  // --- Pied de page, posé une fois le nombre de pages connu -----------------
+  // --- Footer, placed once the page count is known -------------------------
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(range.start + i);
@@ -402,9 +401,9 @@ export async function renderReportPdf(
       : pageLabel(labels, i + 1, range.count);
     const footerFont = rtl ? 'arabic' : 'body';
     doc.fillColor(S.footer.color).font(footerFont).fontSize(S.footer.size);
-    // La pagination arabe (« الصفحة 1 من 3 ») passe par le même placement
-    // bidirectionnel que le corps : posée d'un bloc, fontkit retournerait
-    // aussi ses chiffres.
+    // Arabic pagination ("الصفحة 1 من 3") goes through the same bidirectional
+    // placement as the body: placed as a block, fontkit would reverse its digits
+    // too.
     const drawAt = (text: string, align: 'left' | 'right') => {
       const measure = measureWith({ ...S.footer, font: footerFont });
       const spaceWidth = measure(' ');

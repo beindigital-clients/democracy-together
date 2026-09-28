@@ -9,16 +9,16 @@ import { AUDIT } from './lib/auditActions';
 import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import { isNetworkTheme } from './lib/themes';
 
-// Appels à projets collaboratifs (F-60). La page publique présente le
-// dispositif ; un membre propose un projet (status 'pending'), le staff le revoit
-// (accepted / rejected). `theme` = un des 5 axes du réseau (miroir de PUB_THEMES,
-// src/lib/publications.ts — garder synchrone).
+// Collaborative calls for projects (F-60). The public page presents the
+// scheme; a member proposes a project (status 'pending'), the staff reviews it
+// (accepted / rejected). `theme` = one of the network's 5 axes (mirrors PUB_THEMES,
+// src/lib/publications.ts — keep in sync).
 
 function authorName(user: Doc<'users'>): string {
   return user.name?.trim() || 'Membre';
 }
 
-// --- Proposition (membre et au-dessus) --------------------------------------
+// --- Proposal (member and above) --------------------------------------------
 export const submitProject = mutation({
   args: {
     theme: v.string(),
@@ -33,8 +33,8 @@ export const submitProject = mutation({
     if (!isNetworkTheme(theme)) throw new Error('INVALID_THEME');
     if (title.length < 4 || title.length > 160)
       throw new Error('INVALID_TITLE');
-    // Borne partagée avec le formulaire ; `ConvexError` pour qu'un résumé de
-    // 4 001 caractères reçoive « 4 000 maximum » et non « Envoi impossible »
+    // Bound shared with the form; `ConvexError` so that a 4,001-character
+    // abstract gets "4 000 maximum" and not "Envoi impossible"
     // (A-04).
     if (summary.length < 20 || summary.length > FIELD_MAX.body) {
       throw new ConvexError('INVALID_SUMMARY');
@@ -58,10 +58,10 @@ export const submitProject = mutation({
   },
 });
 
-// --- Back-office (modérateur et au-dessus) ----------------------------------
+// --- Back-office (moderator and above) --------------------------------------
 export const listProjectProposals = query({
-  // Domaine FERMÉ (miroir du schéma) : le back-office ne propose que ces
-  // valeurs, le validateur les impose. Sans filtre -> toute la file.
+  // CLOSED domain (mirrors the schema): the back-office only offers these
+  // values, the validator enforces them. No filter -> the whole queue.
   args: {
     status: v.optional(
       v.union(
@@ -94,18 +94,18 @@ export const listProjectProposals = query({
   },
 });
 
-// --- Machine à états de la revue des propositions (issue #9) ---------------
+// --- State machine for reviewing proposals (issue #9) ----------------------
 //
 //   pending ──accepted/rejected──► accepted | rejected
 //   accepted | rejected ──reopenProjectProposal──► pending
 //
-// Effet de bord de la décision : AUCUN aujourd'hui (accepter n'ouvre pas
-// d'espace de travail et n'accorde aucun droit ; la suite se traite hors de
-// l'outil). Si une acceptation en vient à créer quelque chose, l'inversion
-// devra le défaire — raison de plus pour qu'elle ne puisse pas arriver par un
-// second clic. En attendant, la garde protège le journal d'audit : une
-// proposition ne peut pas y apparaître acceptée puis rejetée sans qu'on sache
-// laquelle des deux lignes fait foi.
+// Side effect of the decision: NONE today (accepting opens no
+// workspace and grants no right; the follow-up happens outside
+// the tool). If an acceptance ever creates something, the reversal
+// will have to undo it — all the more reason why it must not happen through a
+// second click. Meanwhile, the guard protects the audit log: a
+// proposal cannot appear there accepted then rejected without knowing
+// which of the two rows is authoritative.
 const PROJECT_REVIEW: ReviewMachine<Doc<'projectProposals'>['status']> = {
   transitions: {
     pending: ['accepted', 'rejected'],
@@ -143,11 +143,11 @@ export const reviewProjectProposal = mutation({
   },
 });
 
-// Réouverture d'une proposition tranchée (issue #9) — modérateur et au-dessus,
-// audité sous sa propre action (`project.reopened`). Une décision prise par
-// erreur se corrige ainsi : la proposition retourne dans la file, et le retour
-// en arrière se lit dans le journal au lieu de s'y confondre avec une seconde
-// revue.
+// Reopening a decided proposal (issue #9) — moderator and above,
+// audited under its own action (`project.reopened`). A decision made by
+// mistake is corrected this way: the proposal goes back into the queue, and the
+// rollback shows in the log instead of being confused there with a second
+// review.
 export const reopenProjectProposal = mutation({
   args: { proposalId: v.id('projectProposals') },
   handler: async (ctx, { proposalId }) => {

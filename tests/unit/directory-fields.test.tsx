@@ -5,15 +5,15 @@ import { NextIntlClientProvider } from 'next-intl';
 import messages from '@/messages/fr.json';
 import { DirectoryFields } from '@/components/admin/directory-fields';
 
-// Pas de setupFiles global dans ce projet : le nettoyage automatique de
-// @testing-library/react n'est pas branché. Sans ce cleanup, les rendus
-// s'accumulent d'un test à l'autre et les libellés deviennent ambigus.
+// No global setupFiles in this project: @testing-library/react's automatic
+// cleanup is not wired up. Without this cleanup, renders
+// accumulate from one test to the next and labels become ambiguous.
 afterEach(cleanup);
 
-// Saisie des champs d'annuaire à l'approbation d'une candidature (F-19/F-22).
-// L'enjeu : l'approbation crée désormais la fiche annuaire, et la candidature
-// ne collecte qu'un pays en texte libre. Le formulaire doit donc empêcher une
-// publication incomplète — sinon on publie une fiche avec une région vide.
+// Directory field input when approving an application (F-19/F-22).
+// The stakes: approval now creates the directory profile, and the application
+// only collects a country as free text. The form must therefore prevent an
+// incomplete publication — otherwise we publish a profile with an empty region.
 
 function setup(overrides: Partial<Parameters<typeof DirectoryFields>[0]> = {}) {
   const onConfirm = vi.fn();
@@ -114,7 +114,7 @@ describe("Fiche annuaire à l'approbation", () => {
     const { onConfirm } = setup();
     fillValidForm();
     fireEvent.click(screen.getByLabelText('elections'));
-    fireEvent.click(screen.getByLabelText('gouvernance')); // décoche
+    fireEvent.click(screen.getByLabelText('gouvernance')); // unchecks
     fireEvent.click(
       screen.getByRole('button', { name: 'Approuver et publier la fiche' }),
     );

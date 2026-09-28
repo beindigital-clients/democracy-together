@@ -2,29 +2,29 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 
-// MESSAGE DE CONFIRMATION QUI REMPLACE UN FORMULAIRE (RGAA 7.5 et 12.8).
+// CONFIRMATION MESSAGE THAT REPLACES A FORM (RGAA 7.5 and 12.8).
 //
-// Motif mesuré à l'audit RGAA du 27/09 sur dix formulaires (contact, adhésion,
-// lettre d'information, inscription et rappel d'événement, hub jeunes,
-// mentorat, appel à projets, dépôt de publication, mot de passe) : à l'envoi
-// réussi, le formulaire est remplacé par un `role="status"` créé EN MÊME
-// TEMPS que son texte. Deux défauts en découlent :
+// Pattern measured in the 27/09 RGAA audit on ten forms (contact, membership,
+// newsletter, event registration and reminder, youth hub, mentoring,
+// call for projects, publication submission, password): on successful
+// submission, the form is replaced by a `role="status"` created AT THE SAME
+// TIME as its text. Two defects follow:
 //
-//  1. le bouton d'envoi, qui avait le focus, disparaît du DOM — le focus
-//     retombe sur `<body>`, et la tabulation suivante repart du haut de la
-//     page ;
-//  2. une région live insérée avec son contenu n'est pas annoncée de façon
-//     fiable (NVDA et JAWS l'annoncent souvent sous Chrome, VoiceOver
-//     rarement) : la personne ne sait pas si l'envoi a réussi.
+//  1. the submit button, which had focus, disappears from the DOM — focus
+//     falls back to `<body>`, and the next tab press restarts from the top of
+//     the page;
+//  2. a live region inserted together with its content is not announced
+//     reliably (NVDA and JAWS often announce it in Chrome, VoiceOver
+//     rarely): the person does not know whether the submission succeeded.
 //
-// Porter le FOCUS sur le message règle les deux d'un coup : il est lu parce
-// qu'il est focalisé, quel que soit le lecteur d'écran, et la navigation
-// reprend là où était le formulaire. `tabIndex={-1}` : focalisable par script,
-// hors de la séquence de tabulation. `role="status"` est conservé pour les
-// aides techniques qui suivent les régions live sans suivre le focus.
+// Moving FOCUS to the message fixes both at once: it is read because it is
+// focused, whatever the screen reader, and navigation resumes where the form
+// was. `tabIndex={-1}`: focusable by script, outside the tab sequence.
+// `role="status"` is kept for assistive technologies that follow live
+// regions without following focus.
 //
-// Monté UNIQUEMENT à la réussite (c'est l'appelant qui décide de le rendre) :
-// l'effet ne s'exécute qu'à l'apparition, jamais au chargement de la page.
+// Mounted ONLY on success (the caller decides to render it): the effect
+// only runs when it appears, never on page load.
 export function StatusMessage({
   as: Tag = 'div',
   className,

@@ -17,10 +17,10 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// ESPACES COLLABORATIFS — fichiers, invitations, rôles (F-24, chantier
-// communauté). Chaque règle est vérifiée par son REFUS autant que par son
-// succès : un non-membre n'obtient ni liste, ni URL ; un lecteur ne dépose
-// rien ; une invitation échue ne s'accepte pas.
+// COLLABORATIVE SPACES — files, invitations, roles (F-24, community
+// workstream). Each rule is checked by its REFUSAL as much as by its
+// success: a non-member gets neither the list nor a URL; a reader uploads
+// nothing; an expired invitation cannot be accepted.
 
 type T = ReturnType<typeof convexTest>;
 
@@ -70,7 +70,7 @@ async function setup() {
   const reader = await member(t, 'lecteur@test.org', 'Lectrice');
   const outsider = await member(t, 'dehors@test.org', 'Extérieur');
   const wsId = await anim.as.mutation(api.workspaces.createWorkspace, WS);
-  // contributeur : il rejoint l'espace ouvert ; lectrice : invitée en lecteur.
+  // contributor: joins the open space; reader: invited as a reader.
   await contrib.as.mutation(api.workspaces.joinWorkspace, {
     workspaceId: wsId,
   });
@@ -121,12 +121,12 @@ describe('Espaces — rôles dans l’espace', () => {
       workspaceId: wsId,
       body: 'Note du contributeur.',
     });
-    // Le lecteur lit le fil…
+    // The reader reads the thread…
     const vue = await reader.as.query(api.workspaces.getWorkspace, {
       workspaceId: wsId,
     });
     expect(vue?.notes.map((n) => n.body)).toEqual(['Note du contributeur.']);
-    // …mais n'y écrit pas.
+    // …but does not write in it.
     await expectCode(
       reader.as.mutation(api.workspaces.addNote, {
         workspaceId: wsId,
@@ -145,8 +145,8 @@ describe('Espaces — rôles dans l’espace', () => {
       'READ_ONLY',
     );
     await expectCode(upload(reader.as, t, wsId), 'READ_ONLY');
-    // Le blob d'un appelant non autorisé n'est même pas effacé : un refus de
-    // droits ne déclenche rien.
+    // An unauthorized caller's blob is not even erased: a permission refusal
+    // triggers nothing.
     expect(
       await t.run((ctx) => ctx.db.system.query('_storage').collect()),
     ).toHaveLength(1);
@@ -179,7 +179,7 @@ describe('Espaces — rôles dans l’espace', () => {
       }),
       'NOT_ANIMATOR',
     );
-    // L'animatrice promeut la lectrice contributrice : elle peut écrire.
+    // The facilitator promotes the reader to contributor: she can write.
     await anim.as.mutation(api.workspaces.setMemberRole, {
       memberId: readerRow._id,
       role: 'contributeur',
@@ -212,7 +212,7 @@ describe('Espaces — rôles dans l’espace', () => {
     expect(notifs.map((n) => n.titleKey)).toContain('workspaceRemoved');
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
     expect(audit.map((a) => a.action)).toContain('workspace.member_removed');
-    // Retiré, il ne lit plus les notes.
+    // Removed, he no longer reads the notes.
     const vue = await contrib.as.query(api.workspaces.getWorkspace, {
       workspaceId: wsId,
     });
@@ -249,7 +249,7 @@ describe('Espaces — rôles dans l’espace', () => {
     const vue = await contrib.as.query(api.workspaces.getWorkspace, {
       workspaceId: wsId,
     });
-    // La fiche passe au nouvel animateur.
+    // The record passes to the new facilitator.
     expect(vue?.ownerName).toBe('Contributeur');
     expect(vue?.isOwner).toBe(true);
   });
@@ -276,7 +276,7 @@ describe('Espaces — privés et invitations', () => {
       other.as.mutation(api.workspaces.joinWorkspace, { workspaceId: wsId }),
       'INVITATION_REQUIRED',
     );
-    // Ses membres, eux, le voient.
+    // Its members, however, do see it.
     const mine = await anim.as.query(api.workspaces.listWorkspaces, {});
     expect(mine.find((w) => w._id === wsId)?.visibility).toBe('private');
   });
@@ -293,7 +293,7 @@ describe('Espaces — privés et invitations', () => {
       workspaceId: wsId,
       body: 'Note interne.',
     });
-    // Adresse saisie avec une autre casse : normalisée.
+    // Address typed with a different case: normalized.
     await anim.as.mutation(api.workspaces.inviteMember, {
       workspaceId: wsId,
       email: ' invitee@TEST.org ',
@@ -319,7 +319,7 @@ describe('Espaces — privés et invitations', () => {
     });
     expect(dedans?.myRole).toBe('contributeur');
     expect(dedans?.notes.map((n) => n.body)).toEqual(['Note interne.']);
-    // L'invitation est close ; l'animatrice est prévenue.
+    // The invitation is closed; the facilitator is notified.
     expect(await invitee.as.query(api.workspaces.myInvitations, {})).toEqual(
       [],
     );
@@ -430,7 +430,7 @@ describe('Espaces — fichiers partagés', () => {
       workspaceId: wsId,
     });
     expect(files).toHaveLength(1);
-    // Le NOM est celui du fichier logique ; les versions gardent leur auteur.
+    // The NAME is that of the logical file; versions keep their author.
     expect(files[0].name).toBe('releves.pdf');
     expect(files[0].currentVersion).toBe(2);
     expect(files[0].versions.map((v) => [v.version, v.authorName])).toEqual([
@@ -439,7 +439,7 @@ describe('Espaces — fichiers partagés', () => {
     ]);
     expect(files[0].versions[0].contentType).toBe('application/pdf');
     expect(files[0].canDelete).toBe(false);
-    // Aucune URL ni identifiant de stockage dans la liste.
+    // No URL or storage identifier in the list.
     expect(JSON.stringify(files)).not.toMatch(/storage|https?:/i);
 
     const url = await reader.as.query(api.workspaceFiles.fileVersionUrl, {
@@ -474,13 +474,13 @@ describe('Espaces — fichiers partagés', () => {
       }),
       'NOT_A_MEMBER',
     );
-    // Anonyme : refusé aussi.
+    // Anonymous: refused too.
     await expect(
       t.query(api.workspaceFiles.fileVersionUrl, {
         versionId: files[0].versions[0]._id,
       }),
     ).rejects.toThrow();
-    // Et un non-membre ne lit pas non plus les notes (R-11, inchangé).
+    // And a non-member does not read the notes either (R-11, unchanged).
     const vue = await outsider.as.query(api.workspaces.getWorkspace, {
       workspaceId: wsId,
     });
@@ -493,16 +493,16 @@ describe('Espaces — fichiers partagés', () => {
       upload(contrib.as, t, wsId, 'outil.exe', PDF_BYTES),
       'FILE_TYPE_NOT_ALLOWED',
     );
-    // Une image PNG renommée en .pdf : la signature ne correspond pas.
+    // A PNG image renamed to .pdf: the signature does not match.
     await expectCode(
       upload(contrib.as, t, wsId, 'faux.pdf', PNG_BYTES),
       'FILE_CONTENT_MISMATCH',
     );
-    // Les blobs refusés ne restent pas dans le stockage.
+    // Refused blobs do not remain in storage.
     expect(
       await t.run((ctx) => ctx.db.system.query('_storage').collect()),
     ).toHaveLength(0);
-    // Le vrai PNG passe, sous son extension.
+    // The real PNG goes through, under its extension.
     const ok = await upload(contrib.as, t, wsId, 'carte.png', PNG_BYTES);
     expect(ok.version).toBe(1);
   });
@@ -537,7 +537,7 @@ describe('Espaces — fichiers partagés', () => {
       }),
       'INVALID_FILE',
     );
-    // Le blob du premier espace est intact.
+    // The first space's blob is intact.
     expect(
       await t.run(async (ctx) => (await ctx.storage.get(storageId)) !== null),
     ).toBe(true);
@@ -562,11 +562,11 @@ describe('Espaces — fichiers partagés', () => {
     expect(
       await t.run((ctx) => ctx.db.system.query('_storage').collect()),
     ).toHaveLength(0);
-    // Supprimer le fichier d'autrui est un acte journalisé.
+    // Deleting someone else's file is a logged act.
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
     expect(audit.map((a) => a.action)).toContain('workspace.file_deleted');
 
-    // Son auteur supprime le sien sans passer par l'audit.
+    // Its author deletes their own without going through the audit.
     const mine = await upload(contrib.as, t, wsId, 'mien.pdf');
     await contrib.as.mutation(api.workspaceFiles.deleteFile, {
       fileId: mine.fileId,

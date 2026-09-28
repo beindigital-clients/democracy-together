@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { parseConvexRunOutput } from '../e2e/_convex-output';
 
-// La sortie réelle de `npx convex run` pour une requête qui renvoie un objet.
-// C'est le cas que l'ancienne lecture (dernière ligne) ne savait pas traiter.
+// The actual output of `npx convex run` for a query returning an object.
+// This is the case the old parsing (last line) could not handle.
 const OBJET = `{
   "handled": false,
   "name": "Awa Diop",
@@ -31,7 +31,7 @@ describe('parseConvexRunOutput', () => {
     ).toBe('Awa Diop');
   });
 
-  // Ce sont les formes qui fonctionnaient déjà : elles ne doivent pas régresser.
+  // These are the shapes that already worked: they must not regress.
   it('lit un scalaire (code OTP)', () => {
     expect(parseConvexRunOutput('"749983"')).toBe('749983');
   });

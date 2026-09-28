@@ -1,24 +1,25 @@
 import type { MetadataRoute } from 'next';
 import { routing } from '@/i18n/routing';
 
-// robots.txt (F-07) : indexation des pages publiques, exclusion des zones
-// privées (back-office, espace membre, tunnels d'auth), du Studio Sanity et de
-// l'API. Pointe le sitemap.
+// robots.txt (F-07): indexing of public pages, exclusion of private zones
+// (back office, member area, auth funnels), the Sanity Studio and the
+// API. Points to the sitemap.
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-// Segments réellement PRIVÉS, déclinés par locale (localePrefix 'always').
+// Truly PRIVATE segments, one per locale (localePrefix 'always').
 //
-// « Privé » et « non indexable » ne sont plus confondus (arbitrage client du
-// 23/09). Les trois tunnels d'authentification — connexion, connexion-otp,
-// mot-de-passe-oublie — portaient les DEUX protections, qui se neutralisaient :
-// un moteur qui respecte le `Disallow` ne vient jamais lire le `noindex` posé
-// dans la page, si bien que la seconde ceinture ne servait qu'à documenter une
-// intention. Le `Disallow` est retiré, le `noindex` reste : le moteur passe, lit
-// la consigne et l'applique. C'est la configuration la plus fiable des deux, et
-// `tests/unit/seo-coherence.test.ts` interdit désormais de les recombiner.
+// "Private" and "not indexable" are no longer conflated (client decision of
+// 23/09). The three authentication funnels — connexion, connexion-otp,
+// mot-de-passe-oublie — carried BOTH protections, which cancelled each other
+// out: a crawler that honours the `Disallow` never comes to read the
+// `noindex` set in the page, so the second safeguard only served to document
+// an intention. The `Disallow` is removed, the `noindex` stays: the crawler
+// comes by, reads the directive and applies it. It is the more reliable of
+// the two configurations, and `tests/unit/seo-coherence.test.ts` now forbids
+// recombining them.
 //
-// `inscription` reste ici : la page ne fait que rediriger vers /adhesion, elle
-// ne porte aucune métadonnée et n'a rien à faire dans un index.
+// `inscription` stays here: the page only redirects to /adhesion, it
+// carries no metadata and has no business in an index.
 const PRIVATE = ['admin', 'espace-membre', 'espaces', 'inscription'];
 
 export default function robots(): MetadataRoute.Robots {

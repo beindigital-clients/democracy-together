@@ -1,20 +1,20 @@
-// Termes de recherche des listes du back-office (issue #49).
+// Search terms for back-office lists (issue #49).
 //
-// Le terme vient du CLIENT, comme `paginationOpts.numItems` : il est normalisé
-// ICI, une fois, pour les quatre listes — plutôt que quatre fois avec quatre
-// nuances. Trois décisions, toutes prises côté serveur :
+// The term comes from the CLIENT, like `paginationOpts.numItems`: it is
+// normalised HERE, once, for all four lists — rather than four times with
+// four nuances. Three decisions, all made server-side:
 //
-//  1. PLANCHER. Une recherche d'un seul caractère remonte quasiment toute la
-//     table : c'est la lecture que #8 vient de supprimer, rhabillée en
-//     recherche. Le plancher de 2 est celui de `globalSearch` (F-06) — même
-//     produit, même seuil.
-//  2. PLAFOND. Un terme de 100 000 caractères se découpe en autant de termes à
-//     apparier. Comme pour la taille de page, le client ne fixe pas la borne.
-//  3. VIDE = ABSENT. Une chaîne blanche ne déclenche PAS de recherche : la
-//     liste retombe sur son index habituel (celui qui porte son tri), au lieu
-//     de passer par l'index plein texte pour n'y rien filtrer. C'est ce qui
-//     rend `undefined` et `''` strictement équivalents pour l'appelant, donc
-//     l'UI n'a pas à effacer l'argument pour revenir à la liste complète.
+//  1. FLOOR. A single-character search returns almost the whole table: it is
+//     the read #8 just removed, dressed up as a search. The floor of 2 is the
+//     one of `globalSearch` (F-06) — same product, same threshold.
+//  2. CEILING. A 100,000-character term splits into as many terms to match.
+//     As with the page size, the client does not set the bound.
+//  3. EMPTY = ABSENT. A blank string does NOT trigger a search: the list
+//     falls back on its usual index (the one carrying its sort order),
+//     instead of going through the full-text index to filter nothing. That
+//     is what makes `undefined` and `''` strictly equivalent for the caller,
+//     so the UI does not have to clear the argument to return to the full
+//     list.
 export const SEARCH_MIN_LENGTH = 2;
 export const SEARCH_MAX_LENGTH = 100;
 

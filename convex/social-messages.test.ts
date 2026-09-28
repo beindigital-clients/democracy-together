@@ -4,10 +4,10 @@ import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 
-// La Tribune est modérée A PRIORI par défaut (chantier communauté, F-45) : un
-// billet créé attend une validation. Ces tests portent sur ce qui se passe
-// APRÈS publication ; ils posent donc le mode a posteriori, comme le réglage
-// que l'administrateur peut choisir.
+// The Tribune is PRE-moderated by default (community workstream, F-45): a
+// newly created post awaits approval. These tests cover what happens
+// AFTER publication; they therefore set post-moderation mode, like the setting
+// the administrator can choose.
 async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
@@ -34,8 +34,8 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Messagerie privée, suivi, fil d'activité, suppression et export
-// (chantier « social »).
+// Private messaging, follows, activity feed, deletion and export
+// ("social" workstream).
 
 type T = ReturnType<typeof convexTest>;
 type Policy = 'nobody' | 'followed' | 'members';
@@ -55,7 +55,7 @@ async function person(
     ctx.db.insert('users', {
       email: `${name.toLowerCase()}@test.org`,
       name,
-      // Rôle explicite de chaque compte de test (membre, sauf mention).
+      // Explicit role of each test account (member, unless stated otherwise).
       role: (opts.role === undefined ? 'membre' : opts.role) as never,
     }),
   );
@@ -126,7 +126,7 @@ describe('Messagerie — envoi, non-lus, lecture', () => {
       capped: false,
     });
 
-    // Réponse de B : non-lu côté A, et une seule conversation par couple.
+    // B's reply: unread on A's side, and only one conversation per pair.
     await b.as.mutation(api.social.messages.sendMessage, {
       conversationId,
       body: 'Oui !',
@@ -180,7 +180,7 @@ describe('Messagerie — envoi, non-lus, lecture', () => {
         .collect(),
     );
     expect(notifs).toHaveLength(0);
-    // …mais le non-lu de la messagerie, lui, existe toujours.
+    // …but the messaging unread count still exists.
     expect(
       (await b.as.query(api.social.messages.unreadSummary, {})).count,
     ).toBe(1);
@@ -250,7 +250,7 @@ describe('Messagerie — « qui peut m’écrire »', () => {
         body: 'Bonjour',
       }),
     ).rejects.toThrow(/POLICY/);
-    // A suit B : ça ne suffit pas (c'est B qui ouvre sa porte).
+    // A follows B: that is not enough (it is B who opens their door).
     await a.as.mutation(api.social.follows.follow, { userId: b.id });
     await expect(
       a.as.mutation(api.social.messages.startConversation, {
@@ -476,7 +476,7 @@ describe('Messagerie — suppression de sa copie', () => {
       conversationId,
     });
     expect(thread?.messages.map((m) => m.body)).toEqual(['Nouveau']);
-    // Chez A, rien n'a bougé.
+    // On A's side, nothing has changed.
     expect(
       (
         await a.as.query(api.social.messages.getConversation, {
@@ -506,7 +506,7 @@ describe('Messagerie — signalement et modération', () => {
     });
     const messageId = thread!.messages[0]._id;
 
-    // On ne signale pas son propre message.
+    // You cannot report your own message.
     await expect(
       a.as.mutation(api.social.messages.reportMessage, { messageId }),
     ).rejects.toThrow(/OWN_MESSAGE/);
@@ -517,7 +517,7 @@ describe('Messagerie — signalement et modération', () => {
     // Idempotent.
     await b.as.mutation(api.social.messages.reportMessage, { messageId });
 
-    // Un membre n'accède pas à la file.
+    // A member cannot access the queue.
     await expect(
       b.as.query(api.social.messages.listReports, {}),
     ).rejects.toThrow();
@@ -548,7 +548,7 @@ describe('Messagerie — signalement et modération', () => {
     );
     expect(audit).toHaveLength(1);
     expect(JSON.stringify(audit)).not.toContain('injurieux');
-    // Minimisation : la transmission est effacée une fois tranchée.
+    // Minimization: the forwarded copy is erased once the report is decided.
     const report = await t.run((ctx) => ctx.db.get(queue[0]._id));
     expect(report?.bodySnapshot).toBeUndefined();
   });
@@ -632,7 +632,7 @@ describe('Suivi — compteurs, visibilité, fil d’activité', () => {
     expect(feed.map((i) => i.title)).toEqual(['Billet publié']);
     expect(feed[0].href).toBe(`/tribune/${published}`);
 
-    // B devient privé : son activité sort du fil.
+    // B goes private: their activity leaves the feed.
     await b.as.mutation(api.social.profiles.saveProfile, {
       displayName: 'Bob',
       handle: '',
@@ -778,7 +778,7 @@ describe('Compte — suppression et export', () => {
         ],
       },
     ]);
-    // Même chose par l'écran, pour soi seulement.
+    // Same thing via the screen, for oneself only.
     const mine = await a.as.query(api.social.profiles.exportMine, {});
     expect(mine?.conversations).toHaveLength(1);
     expect(await t.query(api.social.profiles.exportMine, {})).toBeNull();

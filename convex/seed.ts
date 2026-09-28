@@ -3,11 +3,11 @@ import { trackOrganizationStatus } from './lib/counters';
 import { organizationSearchText } from './lib/searchText';
 import { countryTerms } from './lib/directory';
 
-// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple l'annuaire (F-19) avec un
-// jeu de think tanks de démonstration, réparti sur les régions Afrique–Europe
-// et les thématiques du réseau. Idempotent (ignore un slug déjà présent), donc
-// rejouable. Données illustratives : noms/sites fictifs, aucune affirmation sur
-// des organisations réelles.
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): populates the directory (F-19) with a
+// set of demo think tanks, spread across the Africa–Europe regions
+// and the network's themes. Idempotent (skips a slug already present), so
+// re-runnable. Illustrative data: fictitious names/sites, no claims about
+// real organizations.
 const ORGS = [
   {
     name: 'Institut Sahel pour la Gouvernance',
@@ -121,11 +121,11 @@ const ORGS = [
   },
 ] as const;
 
-// internalMutation : NON joignable depuis un client (défense en profondeur —
-// même si AUTH_DEV_OTP fuyait en prod, cette écriture resterait inaccessible de
-// l'extérieur). Invoquée en E2E via `npx convex run seed:seedDirectory` (CLI,
-// contexte de confiance) comme les fonctions devAdmin. La garde env reste en
-// seconde ligne.
+// internalMutation: NOT reachable from a client (defense in depth —
+// even if AUTH_DEV_OTP leaked into prod, this write would remain inaccessible from
+// the outside). Invoked in E2E via `npx convex run seed:seedDirectory` (CLI,
+// trusted context) like the devAdmin functions. The env guard remains the
+// second line.
 export const seedDirectory = internalMutation({
   args: {},
   handler: async (ctx) => {

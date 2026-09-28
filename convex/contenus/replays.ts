@@ -26,13 +26,13 @@ import { isValidDate } from '../lib/contenus/time';
 import { eventType, publishStatus, videoKind } from '../lib/tables/contenus';
 import { NETWORK_THEMES } from '../lib/themes';
 
-// REPLAYS (F-54) — rediffusions YouTube, Vimeo ou fichier vidéo.
+// REPLAYS (F-54) — YouTube, Vimeo or video file rebroadcasts.
 //
-// Un replay existe sans vidéo : c'est l'état honnête « enregistrement bientôt
-// disponible » que le catalogue codé affichait pour chaque rediffusion. La
-// vidéo s'ajoute ensuite, et son lien est validé CONTRE SA NATURE
-// (`validateVideoUrl`) : la page publique n'intègre jamais une adresse
-// arbitraire sous l'étiquette « YouTube ».
+// A replay exists without a video: this is the honest "recording coming
+// soon" state the hard-coded catalog displayed for each rebroadcast. The
+// video is added later, and its link is validated AGAINST ITS TYPE
+// (`validateVideoUrl`): the public page never embeds an arbitrary
+// address under the "YouTube" label.
 
 const REPLAYS_MAX = 500;
 const REPLAY_THEMES: readonly string[] = ['vie-reseau', ...NETWORK_THEMES];
@@ -45,8 +45,8 @@ const publicReplayValidator = v.object({
   eventType: v.union(eventType, v.null()),
   videoKind: v.union(videoKind, v.null()),
   videoUrl: v.union(v.string(), v.null()),
-  // Adresse d'intégration (lecteur YouTube « nocookie » ou Vimeo), calculée
-  // côté serveur depuis un lien déjà validé.
+  // Embed address (YouTube "nocookie" or Vimeo player), computed
+  // server-side from an already validated link.
   embedUrl: v.union(v.string(), v.null()),
   themes: v.array(v.string()),
   langs: v.array(localeValidator),
@@ -87,7 +87,7 @@ export const listPublic = query({
   },
 });
 
-// --- Édition (rang éditeur) ------------------------------------------------------
+// --- Editing (editor rank) -------------------------------------------------------
 
 const editableFields = {
   title: localizedText,
@@ -197,7 +197,7 @@ export const save = mutation({
       throw new Error('INVALID_THEMES');
     const langs = [...new Set(input.langs)];
     if (langs.length === 0) throw new Error('INVALID_LANGUAGES');
-    // Vidéo : la nature ET le lien, ou ni l'un ni l'autre.
+    // Video: the type AND the link, or neither.
     const rawUrl = input.videoUrl?.trim();
     let videoUrl: string | undefined;
     if (rawUrl) {

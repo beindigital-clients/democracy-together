@@ -1,16 +1,16 @@
 import { escapeHtml } from './emailContent';
 import { type SiteLocale, isRtlLocale } from './locales';
 
-// COURRIEL « NOUVEAU MESSAGE DE X » (messagerie privée).
+// "NEW MESSAGE FROM X" E-MAIL (private messaging).
 //
-// Il ne porte QUE le nom de l'expéditeur et un lien vers la messagerie :
-// jamais le contenu du message. Un courriel quitte la plateforme (serveurs de
-// messagerie, aperçus sur l'écran verrouillé, transferts) ; le contenu d'un
-// échange privé n'a pas à le suivre.
+// It carries ONLY the sender's name and a link to the inbox: never the
+// message content. An e-mail leaves the platform (mail servers, lock-screen
+// previews, forwards); the content of a private exchange has no business
+// following it.
 //
-// Même discipline que `emailContent.ts` : chaque phrase est un
-// `Record<SiteLocale, string>`, donc une langue ajoutée sans ses libellés ne
-// compile plus.
+// Same discipline as `emailContent.ts`: each sentence is a
+// `Record<SiteLocale, string>`, so a language added without its labels no
+// longer compiles.
 
 type Phrase = Record<SiteLocale, string>;
 
@@ -62,8 +62,8 @@ export function newMessageEmail(args: {
     <hr style="border:none;border-top:1px solid #d9d6cd;margin:24px 0"/>
     <p style="color:#646771;font-size:12px">${FOOTER[loc]}</p>
   </div>`;
-  // Le sujet est du texte brut : pas d'échappement HTML, mais pas de retour
-  // à la ligne non plus (injection d'en-têtes).
+  // The subject is plain text: no HTML escaping, but no line break either
+  // (header injection).
   const subjectName = args.senderName.replace(/[\r\n]+/g, ' ');
   return {
     subject: `${SUBJECT[loc].replace('{name}', subjectName)} · Democracy Together`,

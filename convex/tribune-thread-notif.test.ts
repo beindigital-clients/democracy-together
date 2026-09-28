@@ -16,10 +16,10 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
-// notifications, signalements) : le mode A POSTERIORI y est réglé
-// explicitement, comme le ferait l'administrateur. La modération a priori —
-// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// These tests cover the PUBLISHED feed and its effects (comments, counters,
+// notifications, reports): POST-moderation mode is set
+// explicitly, as the administrator would. Pre-moderation —
+// the default since the community workstream (F-45) — has its own tests
 // (convex/communaute-moderation.test.ts).
 async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
   await t.run(async (ctx) => {
@@ -52,8 +52,8 @@ async function member(
 const POST = {
   theme: 'transitions',
   format: 'court' as const,
-  // Langue de rédaction, déclarée par l'auteur (issue #35) : argument requis,
-  // pas de repli implicite — c'est elle qui fixe le canonical de la fiche.
+  // Writing language, declared by the author (issue #35): required argument,
+  // no implicit fallback — it is what sets the entry's canonical.
   lang: 'fr' as const,
   title: 'Sur les transitions',
   body: 'Une contribution courte mais valable.',
@@ -73,7 +73,7 @@ describe('Tribune — notifications de fil (F-25/F-51)', () => {
     // A poste.
     const postId = await a.as.mutation(api.tribune.createPost, POST);
 
-    // B commente -> A reçoit un 'tribuneComment'. B (commentateur) n'a rien.
+    // B comments -> A receives a 'tribuneComment'. B (commenter) gets nothing.
     await b.as.mutation(api.tribune.addComment, {
       postId,
       body: 'Premier commentaire de B.',
@@ -85,16 +85,16 @@ describe('Tribune — notifications de fil (F-25/F-51)', () => {
     expect(countOf(bNotifs, 'tribuneComment')).toBe(0);
     expect(countOf(bNotifs, 'tribuneThreadReply')).toBe(0);
 
-    // C commente -> A reçoit un 2e 'tribuneComment' ; B (participant) reçoit
-    // un 'tribuneThreadReply' ; C ne se notifie pas.
+    // C comments -> A receives a 2nd 'tribuneComment'; B (participant) receives
+    // a 'tribuneThreadReply'; C does not notify themselves.
     await c.as.mutation(api.tribune.addComment, {
       postId,
       body: 'Réponse de C dans le fil.',
     });
     aNotifs = await a.as.query(api.notifications.myNotifications, {});
     expect(countOf(aNotifs, 'tribuneComment')).toBe(2);
-    // L'auteur du post n'est jamais notifié via le canal « thread » (pas de
-    // doublon avec 'tribuneComment').
+    // The post author is never notified via the "thread" channel (no
+    // duplicate with 'tribuneComment').
     expect(countOf(aNotifs, 'tribuneThreadReply')).toBe(0);
 
     bNotifs = await b.as.query(api.notifications.myNotifications, {});
@@ -104,7 +104,7 @@ describe('Tribune — notifications de fil (F-25/F-51)', () => {
     const cNotifs = await c.as.query(api.notifications.myNotifications, {});
     expect(cNotifs).toHaveLength(0);
 
-    // Le lien et le titre interpolé sont présents sur la notif de fil de B.
+    // The link and the interpolated title are present on B's thread notification.
     const threadNotif = bNotifs.find(
       (n) => n.titleKey === 'tribuneThreadReply',
     );
@@ -122,20 +122,20 @@ describe('Tribune — notifications de fil (F-25/F-51)', () => {
     await b.as.mutation(api.tribune.addComment, { postId, body: 'B parle.' });
     await c.as.mutation(api.tribune.addComment, { postId, body: 'C parle.' });
 
-    // B recommente : B est l'auteur du nouveau commentaire, donc B ne se
-    // notifie pas. C (autre participant) reçoit en revanche un fil.
+    // B comments again: B is the author of the new comment, so B does not
+    // notify themselves. C (other participant), however, receives a thread notification.
     await b.as.mutation(api.tribune.addComment, {
       postId,
       body: 'B revient sur le sujet.',
     });
 
     const bNotifs = await b.as.query(api.notifications.myNotifications, {});
-    // B n'a toujours qu'une seule notif de fil (celle déclenchée par C plus
-    // haut), aucune en double depuis son propre nouveau commentaire.
+    // B still has only one thread notification (the one triggered by C
+    // above), no duplicate from their own new comment.
     expect(countOf(bNotifs, 'tribuneThreadReply')).toBe(1);
 
     const cNotifs = await c.as.query(api.notifications.myNotifications, {});
-    // C a été notifié par le 3e commentaire de B (C est participant distinct).
+    // C was notified by B's 3rd comment (C is a distinct participant).
     expect(countOf(cNotifs, 'tribuneThreadReply')).toBe(1);
   });
 });

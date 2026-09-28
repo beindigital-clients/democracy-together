@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// PoC d'audit : quel geste restaure RÉELLEMENT l'instance localStorage ?
+// Audit PoC: which gesture ACTUALLY restores the localStorage instance?
 import { describe, it, expect, afterEach, vi } from 'vitest';
 
 const leve = () => {

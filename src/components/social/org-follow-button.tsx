@@ -7,9 +7,9 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 
-// « Suivre cette organisation » sur la fiche d'annuaire. Rien pour un
-// visiteur anonyme ni pour un compte qui n'est pas membre du réseau : la fiche
-// reste une page publique, le bouton n'y apparaît que s'il peut servir.
+// "Suivre cette organisation" on the directory page. Nothing for an
+// anonymous visitor or for an account that is not a network member: the page
+// stays public, the button only appears there if it can be of use.
 export function OrgFollowButton({ orgId }: { orgId: Id<'organizations'> }) {
   const t = useTranslations('people');
   const { isAuthenticated } = useConvexAuth();

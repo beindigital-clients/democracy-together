@@ -1,11 +1,11 @@
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import type { Id } from '../_generated/dataModel';
 
-// Rattachement compte ↔ organisation (F-21, chantier comptes) — lecture
-// partagée par le dépôt de publication (convex/publications.ts) et la gestion
-// des organisations (convex/orgAdmin.ts).
+// Account ↔ organization affiliation (F-21, accounts workstream) — read
+// shared by publication submission (convex/publications.ts) and
+// organization management (convex/orgAdmin.ts).
 
-/** Organisation au nom de laquelle un compte dépose (la première rattachée). */
+/** Organization on whose behalf an account submits (the first one affiliated). */
 export async function organizationOfAuthor(
   ctx: QueryCtx | MutationCtx,
   userId: Id<'users'>,
@@ -14,8 +14,8 @@ export async function organizationOfAuthor(
     .query('organizationMemberships')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .take(10);
-  // Une organisation dont on est RESPONSABLE passe avant une simple
-  // appartenance : c'est d'ordinaire la sienne.
+  // An organization one is RESPONSIBLE for comes before a mere
+  // membership: it is usually one's own.
   const owner = memberships.find((m) => m.orgRole === 'owner');
   return (owner ?? memberships[0])?.orgId ?? null;
 }

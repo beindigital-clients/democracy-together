@@ -4,17 +4,17 @@ import { SESSIONS } from './_sessions';
 
 test.use({ locale: 'fr-FR' });
 
-// DOUBLE OPT-IN DE LA NEWSLETTER (F-18, chantier diffusion) — le parcours
-// complet, tel qu'un abonné le vit :
-//   formulaire public -> « vérifiez votre boîte » -> courriel de confirmation
-//   (lu dans la boîte d'envoi de DÉVELOPPEMENT, comme `getOtp` lit les codes)
-//   -> page de confirmation -> abonné CONFIRMÉ, visible au back-office.
+// NEWSLETTER DOUBLE OPT-IN (F-18, "diffusion" workstream) — the full
+// journey, as a subscriber experiences it:
+//   public form -> "check your inbox" -> confirmation email
+//   (read from the DEVELOPMENT outbox, as `getOtp` reads the codes)
+//   -> confirmation page -> CONFIRMED subscriber, visible in the back office.
 //
-// Prérequis : un déploiement où AUTH_DEV_OTP=true (mode d'envoi simulé) et
-// RECAPTCHA_DISABLED=true, comme pour les autres formulaires publics.
+// Prerequisite: a deployment where AUTH_DEV_OTP=true (simulated send mode) and
+// RECAPTCHA_DISABLED=true, as for the other public forms.
 //
-// Une session DÉDIÉE (`diffusion`, rang éditeur) : ce fichier la tient du
-// début à la fin (cf. _sessions.ts).
+// A DEDICATED session (`diffusion`, editor rank): this file holds it from
+// start to finish (see _sessions.ts).
 test.use({ storageState: SESSIONS.diffusion.state });
 
 test('inscription -> lien de confirmation -> abonné confirmé visible en admin (F-18)', async ({
@@ -29,13 +29,13 @@ test('inscription -> lien de confirmation -> abonné confirmé visible en admin 
     page.getByText(/Un e-mail de confirmation vient de vous être envoyé/),
   ).toBeVisible();
 
-  // L'inscription ne fait PAS d'abonné : une attente.
+  // Subscribing does NOT create a subscriber: a pending one.
   await expect
     .poll(() => newsletterStatus(email), { timeout: 10_000 })
     .toBe('pending');
 
-  // Le lien du courriel : on le suit comme l'abonné, sur NOTRE serveur (le
-  // lien porte SITE_URL, qui peut désigner un autre hôte).
+  // The email's link: we follow it like the subscriber, on OUR server (the
+  // link carries SITE_URL, which may point to another host).
   const link = new URL(await getNewsletterConfirmationLink(email));
   expect(link.pathname).toBe('/fr/newsletter/confirmation');
   await page.goto(`${link.pathname}${link.search}`);
@@ -49,18 +49,18 @@ test('inscription -> lien de confirmation -> abonné confirmé visible en admin 
     page.getByText(/C'est confirmé ! Vous recevrez désormais la lettre/),
   ).toBeVisible();
 
-  // LE FAIT, pas l'affichage.
+  // THE FACT, not the display.
   await expect
     .poll(() => newsletterStatus(email), { timeout: 10_000 })
     .toBe('confirmed');
 
-  // Usage unique : le même lien, suivi une seconde fois, ne vaut plus.
+  // Single use: the same link, followed a second time, is no longer valid.
   await page.goto(`${link.pathname}${link.search}`);
   await expect(
     page.getByText('Lien de confirmation invalide ou déjà utilisé.'),
   ).toBeVisible();
 
-  // Back-office : l'abonné est là, confirmé, avec la preuve du consentement.
+  // Back office: the subscriber is there, confirmed, with the proof of consent.
   await page.goto('/fr/admin/newsletter');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Newsletter' }),

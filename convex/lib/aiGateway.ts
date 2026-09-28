@@ -1,50 +1,50 @@
-// Passerelle IA (Vercel AI Gateway) — ADAPTATEUR ISOLÉ.
+// AI gateway (Vercel AI Gateway) — ISOLATED ADAPTER.
 //
-// C'est le SEUL point du dépôt qui parle à un fournisseur de modèles, comme
-// `convex/email.ts` est le seul à parler à un fournisseur d'e-mails et
-// `convex/lib/recaptcha.ts` le seul à parler à Google. Changer de passerelle,
-// d'endpoint ou de format de réponse se fait ici, dans un fichier, sans
-// toucher à la logique de modération.
+// It is the ONLY place in the repository that talks to a model provider, just as
+// `convex/email.ts` is the only one talking to an e-mail provider and
+// `convex/lib/recaptcha.ts` the only one talking to Google. Changing gateway,
+// endpoint or response format is done here, in one file, without
+// touching the moderation logic.
 //
-// POURQUOI `fetch` DIRECT ET PAS LE SDK. L'appel tient en une requête JSON ;
-// le SDK (`ai` + `@ai-sdk/gateway`) apporterait deux dépendances, leur chaîne
-// transitive et leur cadence de mise à jour pour cela. Le runtime par défaut
-// de Convex fournit `fetch` : aucun `"use node"` n'est nécessaire, et le
-// fichier reste lisible d'un bout à l'autre. Le dépôt a déjà tranché ainsi
-// deux fois (Resend, reCAPTCHA) ; on ne tranche pas autrement ici.
+// WHY DIRECT `fetch` AND NOT THE SDK. The call fits in one JSON request;
+// the SDK (`ai` + `@ai-sdk/gateway`) would bring two dependencies, their
+// transitive chain and their update cadence for that. Convex's default
+// runtime provides `fetch`: no `"use node"` is needed, and the
+// file stays readable end to end. The repository already decided this way
+// twice (Resend, reCAPTCHA); we don't decide otherwise here.
 //
-// POURQUOI L'ENDPOINT `/v1/responses`. C'est le seul des trois formats de la
-// passerelle qui documente À LA FOIS la sortie contrainte par schéma JSON
-// (`text.format`) et la pièce jointe PDF (`input_file`). Les deux nous sont
-// nécessaires, et un seul chemin vaut mieux que deux formats à maintenir.
+// WHY THE `/v1/responses` ENDPOINT. It is the only one of the gateway's three
+// formats that documents BOTH JSON-schema-constrained output
+// (`text.format`) and PDF attachments (`input_file`). We need both,
+// and one path is better than two formats to maintain.
 //
-// CONFIG : `AI_GATEWAY_API_KEY` posée sur le déploiement Convex
+// CONFIG: `AI_GATEWAY_API_KEY` set on the Convex deployment
 //   npx convex env set AI_GATEWAY_API_KEY vck_xxx
-// La clé ne transite JAMAIS par le navigateur : tout appel part d'une action
-// Convex. Sans clé, l'appel ÉCHOUE (fail-closed) — cf. `email.ts` et
-// `recaptcha.ts` : une clé oubliée doit être une panne visible, pas une
-// fonctionnalité silencieusement absente. Ici, « échouer » veut dire que le
-// dépôt part en file humaine ; jamais qu'il est publié sans avis.
+// The key NEVER passes through the browser: every call originates from a Convex
+// action. Without a key, the call FAILS (fail-closed) — cf. `email.ts` and
+// `recaptcha.ts`: a forgotten key must be a visible outage, not a
+// silently missing feature. Here, "failing" means the
+// submission goes to the human queue; never that it is published without review.
 
 const GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1/responses';
 
-// Un arbitrage éditorial sur un PDF prend du temps ; une action Convex n'est
-// pas éternelle. 120 s couvre largement un dépôt long et coupe une passerelle
-// qui ne répond plus.
+// An editorial assessment of a PDF takes time; a Convex action does not
+// run forever. 120 s comfortably covers a long submission and cuts off a
+// gateway that stopped responding.
 const TIMEOUT_MS = 120_000;
 
 export type GatewayAttachment = {
   filename: string;
-  // Contenu encodé en base64, SANS le préfixe `data:` (ajouté ici).
+  // Base64-encoded content, WITHOUT the `data:` prefix (added here).
   base64: string;
   contentType: string;
 };
 
 export type GatewayRequest = {
   model: string;
-  // Consigne système : rôle, barème, discipline de réponse.
+  // System instructions: role, rubric, response discipline.
   instructions: string;
-  // Contenu à examiner — donnée, jamais consigne.
+  // Content to examine — data, never instructions.
   userText: string;
   attachment?: GatewayAttachment;
   schemaName: string;
@@ -61,7 +61,7 @@ export type GatewayResult =
   | { ok: true; data: unknown; usage: GatewayUsage; model: string }
   | { ok: false; code: string; detail?: string };
 
-// Codes d'échec — stables, journalisés, affichés traduits.
+// Failure codes — stable, logged, displayed translated.
 export const GATEWAY_ERRORS = {
   NOT_CONFIGURED: 'AI_GATEWAY_NOT_CONFIGURED',
   HTTP: 'AI_GATEWAY_HTTP_ERROR',
@@ -78,11 +78,11 @@ export function isGatewayConfigured(): boolean {
 type ResponseContentPart = { type?: string; text?: string };
 type ResponseOutputItem = { type?: string; content?: ResponseContentPart[] };
 
-// Extrait le texte de la réponse. Deux chemins, dans cet ordre :
-// `output_text` (raccourci fourni par la passerelle) puis le parcours de
-// `output[]`. Le second existe parce que le raccourci est une commodité, pas
-// une garantie du format — et qu'une réponse correcte perdue faute de savoir
-// la lire renverrait le dépôt en file humaine sans raison.
+// Extracts the response text. Two paths, in this order:
+// `output_text` (shortcut provided by the gateway) then walking
+// `output[]`. The second exists because the shortcut is a convenience, not
+// a guarantee of the format — and a correct response lost for lack of knowing
+// how to read it would send the submission to the human queue for no reason.
 function extractText(body: unknown): string | null {
   if (typeof body !== 'object' || body === null) return null;
   const root = body as Record<string, unknown>;
@@ -115,17 +115,17 @@ function extractUsage(body: unknown): GatewayUsage {
   };
 }
 
-// Appel unique, sortie contrainte par schéma JSON.
+// Single call, output constrained by a JSON schema.
 //
-// LE NOM DIT CE QUE FAIT LA FONCTION, pas ce que fait l'appelant. Elle
-// s'appelait `runStructuredAnalysis` quand la modération éditoriale en était
-// le seul usage ; la traduction des contenus (convex/translation.ts) s'en sert
-// pour tout autre chose, avec le même contrat — une requête, un schéma, une
-// réponse ou un code d'échec.
+// THE NAME SAYS WHAT THE FUNCTION DOES, not what the caller does. It
+// was called `runStructuredAnalysis` when editorial moderation was
+// its only use; content translation (convex/translation.ts) uses it
+// for something else entirely, with the same contract — one request, one schema,
+// one response or a failure code.
 //
-// Ne lève jamais : tout échec sort en `{ ok: false, code }`. L'appelant est
-// une action qui doit, dans TOUS les cas, aller écrire une trace — une
-// exception qui remonterait la ferait perdre.
+// Never throws: every failure comes out as `{ ok: false, code }`. The caller is
+// an action that must, in ALL cases, go and write a trace — an
+// exception bubbling up would make it lose that.
 export async function runStructured(
   req: GatewayRequest,
 ): Promise<GatewayResult> {
@@ -180,9 +180,9 @@ export async function runStructured(
   }
 
   if (!response.ok) {
-    // Le corps d'erreur de la passerelle nomme la cause (modèle inconnu, quota,
-    // clé révoquée) : on le garde BORNÉ pour le journal, il fait gagner l'appel
-    // de diagnostic suivant.
+    // The gateway's error body names the cause (unknown model, quota,
+    // revoked key): we keep it BOUNDED for the log, it saves the next
+    // diagnostic call.
     const detail = await response.text().catch(() => '');
     return {
       ok: false,
@@ -217,11 +217,11 @@ export async function runStructured(
   }
 }
 
-// Encodage base64 d'un binaire, par tranches.
+// Base64 encoding of a binary, in chunks.
 //
-// `String.fromCharCode(...octets)` sur un PDF de plusieurs mégaoctets dépasse
-// la taille d'argument admise et lève — un plantage qui n'apparaîtrait que sur
-// les gros dépôts, c'est-à-dire en production et pas en test.
+// `String.fromCharCode(...bytes)` on a multi-megabyte PDF exceeds
+// the allowed argument size and throws — a crash that would only show up on
+// large submissions, i.e. in production and not in tests.
 export function toBase64(bytes: Uint8Array): string {
   const CHUNK = 0x8000;
   let binary = '';

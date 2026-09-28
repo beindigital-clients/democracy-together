@@ -11,8 +11,8 @@ import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { CallActions } from '@/components/projects/call-actions';
 
-// Fiche publique d'un appel à projets (F-60) : fonds, fenêtre dans le fuseau
-// de l'appel, critères pondérés, pièces demandées, langues acceptées.
+// Public page of a call for projects (F-60): funds, window in the call's
+// time zone, weighted criteria, required documents, accepted languages.
 
 export async function generateMetadata({
   params,
@@ -40,7 +40,7 @@ export default async function CallPage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  // `undefined` = panne ; `null` = appel inexistant ou non publié.
+  // `undefined` = outage; `null` = call nonexistent or unpublished.
   const call = await fetchOrFallback(
     'appels-a-projets/[slug]',
     () => fetchQuery(api.projectCalls.getPublicCall, { slug }),
@@ -64,7 +64,7 @@ export default async function CallPage({
       maximumFractionDigits: 0,
     }).format(call.fundAmount);
   } catch {
-    /* devise inconnue d'Intl : la forme brute reste lisible */
+    /* currency unknown to Intl: the raw form remains readable */
   }
   const totalWeight = call.criteria.reduce((s, c) => s + c.weight, 0) || 1;
 

@@ -57,22 +57,22 @@ import {
 } from './aiModeration';
 import { onCommentPublished, onPostPublished } from './tribune';
 
-// FILE DE MODÉRATION UNIFIÉE DE LA TRIBUNE (F-45, F-49) — chantier communauté.
+// UNIFIED TRIBUNE MODERATION QUEUE (F-45, F-49) — community workstream.
 //
-// Trois responsabilités, un seul module :
-//   1. le RÉGLAGE du mode (a priori / a posteriori), par l'administrateur ;
-//   2. la FILE et les DÉCISIONS (valider, rejeter, retirer, classer les
-//      signalements), par les modérateurs — chaque décision est journalisée
-//      deux fois : dans l'historique du contenu (`moderationEvents`, lu par
-//      l'écran) et dans le journal d'audit (convex/journal.ts, lu par
-//      l'administrateur) ;
-//   3. le PRÉ-TRI par l'IA, qui réutilise le dispositif de la bibliothèque
-//      (convex/aiModeration.ts : mêmes réglages, même barème, même plafond,
-//      même passerelle) sans le contourner. L'IA PROPOSE ; la décision reste
-//      humaine, sauf si l'administrateur a coché « tribune » dans le périmètre
-//      d'auto-acceptation du mode `auto` — réglage explicite, existant.
+// Three responsibilities, a single module:
+//   1. the mode SETTING (pre-moderation / post-moderation), by the administrator;
+//   2. the QUEUE and the DECISIONS (approve, reject, take down, dismiss
+//      reports), by moderators — each decision is logged
+//      twice: in the content's history (`moderationEvents`, read by
+//      the screen) and in the audit log (convex/journal.ts, read by
+//      the administrator);
+//   3. AI PRE-SCREENING, which reuses the library's system
+//      (convex/aiModeration.ts: same settings, same scale, same cap,
+//      same gateway) without bypassing it. The AI PROPOSES; the decision stays
+//      human, unless the administrator has checked "tribune" in the
+//      auto-acceptance scope of `auto` mode — an explicit, existing setting.
 
-// --- Réglages ----------------------------------------------------------------
+// --- Settings ----------------------------------------------------------------
 
 export const getSettings = query({
   args: {},
@@ -110,8 +110,8 @@ export const updateSettings = mutation({
         key: 'default',
         ...next,
       });
-    // Passer en a posteriori, c'est décider que des textes paraîtront sans
-    // regard humain préalable : l'audit le nomme.
+    // Switching to post-moderation means deciding that texts will appear without
+    // prior human review: the audit names it.
     await recordAudit(ctx, {
       actorId: admin._id,
       action: AUDIT.COMMUNITY_MODERATION_CONFIGURED,
@@ -121,7 +121,7 @@ export const updateSettings = mutation({
   },
 });
 
-// --- Lecture de la file ------------------------------------------------------
+// --- Reading the queue -------------------------------------------------------
 
 const aiSummaryValidator = v.union(
   v.object({
@@ -223,9 +223,9 @@ function commentItem(
   };
 }
 
-// File par onglet. `reported` rassemble les contenus visés par au moins un
-// signalement OUVERT, quel que soit leur état ; les autres onglets suivent le
-// statut. Filtres : type de contenu, axe, format.
+// Queue per tab. `reported` gathers the items targeted by at least one
+// OPEN report, whatever their state; the other tabs follow the
+// status. Filters: content type, axis, format.
 export const listQueue = query({
   args: {
     tab: v.union(
@@ -296,8 +296,8 @@ export const listQueue = query({
       .filter((i) => !args.theme || i.theme === args.theme)
       .filter((i) => !args.format || i.format === args.format)
       .sort((a, b) =>
-        // La file d'attente se traite dans l'ordre d'arrivée ; les autres
-        // onglets se lisent du plus récent au plus ancien.
+        // The pending queue is processed in order of arrival; the other
+        // tabs read from newest to oldest.
         args.tab === 'pending'
           ? a.createdAt - b.createdAt
           : b.createdAt - a.createdAt,
@@ -306,7 +306,7 @@ export const listQueue = query({
   },
 });
 
-// Compteurs des onglets (badges). Bornés : au-delà, l'écran affiche « 100+ ».
+// Tab counters (badges). Bounded: beyond that, the screen shows "100+".
 export const queueCounts = query({
   args: {},
   returns: v.object({ pending: v.number(), reported: v.number() }),
@@ -331,12 +331,12 @@ export const queueCounts = query({
   },
 });
 
-// --- Détail d'un contenu et son HISTORIQUE COMPLET (F-49) --------------------
+// --- Detail of an item and its COMPLETE HISTORY (F-49) -----------------------
 
 const historyEventValidator = v.object({
   _id: v.string(),
   kind: moderationEventKindValidator,
-  // Nom de l'auteur de l'action ; null pour l'IA ou un compte supprimé.
+  // Name of the action's author; null for the AI or a deleted account.
   actorName: v.union(v.string(), v.null()),
   statusFrom: v.union(contentStatusValidator, v.null()),
   statusTo: v.union(contentStatusValidator, v.null()),
@@ -423,10 +423,10 @@ export const getItem = query({
         q.eq('targetType', targetType).eq('targetId', id),
       )
       .take(500);
-    // L'avis en mode OBSERVATION n'atteint pas les modérateurs — c'est la
-    // définition de ce mode (docs/moderation-ia.md § 2) : un avis montré
-    // orienterait la décision qu'on veut mesurer. L'administrateur, qui règle
-    // le barème, le voit.
+    // A verdict in OBSERVATION mode does not reach moderators — that is the
+    // definition of this mode (docs/moderation-ia.md § 2): a verdict shown
+    // would steer the decision we want to measure. The administrator, who tunes
+    // the scale, sees it.
     const isAdmin = staff.role === 'admin';
     const visible = events.filter(
       (e) => isAdmin || e.kind !== 'ai_review' || e.ai?.applied !== 'shadow',
@@ -481,9 +481,9 @@ export const getItem = query({
         : null,
       createdAt: e.createdAt,
     }));
-    // Un contenu antérieur à l'historique n'a pas d'événement de soumission :
-    // on le restitue depuis sa date de création, pour que l'historique
-    // commence toujours par l'entrée du contenu dans la plateforme.
+    // An item older than the history has no submission event:
+    // we reconstruct it from its creation date, so that the history
+    // always starts with the item's entry into the platform.
     if (!history.some((h) => h.kind === 'submitted')) {
       history.unshift({
         _id: `legacy:${id}`,
@@ -496,8 +496,8 @@ export const getItem = query({
         createdAt: target.doc.createdAt,
       });
     }
-    // Ordre CHRONOLOGIQUE, à égalité de date dans l'ordre d'écriture (l'index
-    // se termine par `_creationTime`, et le tri de JavaScript est stable).
+    // CHRONOLOGICAL order, with equal dates in write order (the index
+    // ends with `_creationTime`, and JavaScript's sort is stable).
     history.sort((a, b) => a.createdAt - b.createdAt);
 
     const openReports = (
@@ -532,7 +532,7 @@ export const getItem = query({
   },
 });
 
-// --- Décisions (modérateur et au-dessus) --------------------------------------
+// --- Decisions (moderator and above) ------------------------------------------
 
 async function resolveOpenReports(
   ctx: MutationCtx,
@@ -548,8 +548,8 @@ async function resolveOpenReports(
   return open.length;
 }
 
-// Valider, rejeter ou retirer. SEUL un modérateur (ou plus) décide ; un
-// rejet et un retrait exigent un motif, montré à l'auteur.
+// Approve, reject or take down. ONLY a moderator (or higher) decides; a
+// rejection and a takedown require a reason, shown to the author.
 export const decide = mutation({
   args: {
     targetType: moderationTargetValidator,
@@ -585,8 +585,8 @@ export const decide = mutation({
       status: to,
       moderatedBy: mod._id,
       moderatedAt: now,
-      // Le motif d'une décision négative reste sur le contenu (l'auteur le
-      // lit) ; une validation l'efface.
+      // The reason for a negative decision stays on the item (the author
+      // reads it); an approval clears it.
       rejectionReason: negative ? reason : undefined,
       autoPublished: undefined,
     };
@@ -611,8 +611,8 @@ export const decide = mutation({
       }
     }
 
-    // Un retrait (ou une validation) tranche aussi les signalements ouverts
-    // sur ce contenu : ils ont reçu leur réponse.
+    // A takedown (or an approval) also settles the open reports
+    // on this item: they have received their answer.
     if (args.decision !== 'reject') await resolveOpenReports(ctx, id);
 
     await logModerationEvent(ctx, {
@@ -642,7 +642,7 @@ export const decide = mutation({
       metadata: { targetType: args.targetType, from, to },
     });
 
-    // L'auteur apprend la décision — et, si elle est négative, pourquoi.
+    // The author learns of the decision — and, if it is negative, why.
     const title = target.post.title;
     const link =
       to === 'published'
@@ -669,7 +669,7 @@ export const decide = mutation({
   },
 });
 
-// Classer les signalements d'un contenu sans y toucher.
+// Dismiss an item's reports without touching it.
 export const dismissReports = mutation({
   args: { targetType: moderationTargetValidator, targetId: v.string() },
   returns: v.object({ dismissed: v.number() }),
@@ -698,7 +698,7 @@ export const dismissReports = mutation({
   },
 });
 
-// --- Pré-tri par l'IA -----------------------------------------------------------
+// --- AI pre-screening ------------------------------------------------------------
 
 type TribuneReviewContext = {
   document: AiDocument;
@@ -732,7 +732,7 @@ export const tribuneReviewContext = internalQuery({
   handler: async (ctx, { targetType, targetId }) => {
     const target = await loadTarget(ctx, targetType, targetId);
     if (!target) return null;
-    // Rien à analyser pour ce qui est déjà tranché NÉGATIVEMENT.
+    // Nothing to analyze for what has already been decided NEGATIVELY.
     if (target.doc.status === 'rejected' || target.doc.status === 'removed')
       return null;
     const settings = await loadAiSettings(ctx);
@@ -769,7 +769,7 @@ export const runTribuneReview = internalAction({
     );
     if (!context) return null;
     const settings = fromWire(context.settings);
-    // Même plafond quotidien que la bibliothèque : un seul budget d'appels.
+    // Same daily cap as the library: a single call budget.
     const allowed: boolean = await ctx.runMutation(
       internal.aiModeration.reserveCall,
       {},
@@ -799,8 +799,8 @@ export const runTribuneReview = internalAction({
   },
 });
 
-// Le modèle propose, le serveur décide — en relisant tout, DANS la
-// transaction qui écrit (même invariant que `aiModeration.applyVerdict`).
+// The model proposes, the server decides — re-reading everything, IN the
+// transaction that writes (same invariant as `aiModeration.applyVerdict`).
 export const applyTribuneVerdict = internalMutation({
   args: {
     targetType: moderationTargetValidator,
@@ -834,8 +834,8 @@ export const applyTribuneVerdict = internalMutation({
       hasAttachment: false,
       attachmentAnalyzed: false,
     });
-    // Un humain a tranché, ou le contenu est déjà en ligne (a posteriori) :
-    // l'avis est gardé pour l'historique, il n'est pas appliqué.
+    // A human has decided, or the item is already online (post-moderation):
+    // the verdict is kept for the history, it is not applied.
     const superseded = target.doc.status !== 'pending';
     const applied = superseded ? ('superseded' as const) : decision.applied;
     const reason = superseded ? APPLY_REASONS.ALREADY_DECIDED : decision.reason;
@@ -875,8 +875,8 @@ export const applyTribuneVerdict = internalMutation({
     });
 
     if (applied === 'published') {
-      // Mise en ligne SANS relecture humaine : seul cas, et seulement si
-      // l'administrateur a coché « tribune » dans le périmètre du mode auto.
+      // Publication WITHOUT human review: the only case, and only if
+      // the administrator has checked "tribune" in the auto mode's scope.
       await ctx.db.patch(target.doc._id, {
         status: 'published',
         moderatedAt: now,
@@ -917,8 +917,8 @@ export const applyTribuneVerdict = internalMutation({
       },
     });
 
-    // Un signal BLOQUANT va chercher le staff — y compris sur un contenu déjà
-    // en ligne (mode a posteriori), où c'est le seul regard avant signalement.
+    // A BLOCKING signal fetches staff — including on an item already
+    // online (post-moderation mode), where it is the only review before a report.
     const blockingOnline =
       superseded &&
       target.doc.status === 'published' &&
@@ -959,14 +959,14 @@ async function alertStaff(
   }
 }
 
-// --- DEV/TEST UNIQUEMENT --------------------------------------------------------
+// --- DEV/TEST ONLY --------------------------------------------------------------
 //
-// Valide les billets en attente dont le titre contient `marker`, comme le
-// ferait un modérateur. Sert aux specs E2E qui publient sur la tribune pour
-// tester AUTRE CHOSE (signalement, canonical…) : elles passent par la
-// validation, sans rejouer l'écran de modération à chaque fois — ce parcours-là
-// a sa propre spec (tests/e2e/communaute-tribune.spec.ts). internalMutation
-// (hors API publique) ET garde AUTH_DEV_OTP, comme convex/devAdmin.ts.
+// Approves the pending posts whose title contains `marker`, as a
+// moderator would. Used by E2E specs that publish on the tribune to
+// test SOMETHING ELSE (reporting, canonical…): they go through
+// approval, without replaying the moderation screen every time — that flow
+// has its own spec (tests/e2e/communaute-tribune.spec.ts). internalMutation
+// (outside the public API) AND the AUTH_DEV_OTP guard, like convex/devAdmin.ts.
 export const devApprovePendingByTitle = internalMutation({
   args: { marker: v.string() },
   returns: v.object({ approved: v.number() }),

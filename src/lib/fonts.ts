@@ -6,26 +6,26 @@ import {
   Noto_Naskh_Arabic,
 } from 'next/font/google';
 
-// Trois rôles typographiques, auto-hébergés via next/font (font-display: swap).
+// Three typographic roles, self-hosted via next/font (font-display: swap).
 //
-// PRÉCHARGEMENT — seule la police de CORPS l'est (audit F-05). Next pose un
-// indice de préchargement pour chaque famille déclarée ; les trois ensemble
-// mettaient 233 Ko sur le chemin critique d'une page qui n'en pèse que 244.
-// Mesuré en 3G lente sur /fr/barometre, dont l'élément LCP est un paragraphe :
-//   les trois préchargées   -> LCP 4 328 ms
-//   corps seul préchargé    -> LCP 2 376 ms
-//   titres re-préchargés    -> LCP 2 660 ms  (essayé pour l'accueil, écarté)
-// Les titres et les données se chargent donc à la demande : `display: swap`
-// les fait paraître en police système d'abord, puis basculer. C'est le bon
-// arbitrage quand le premier usage attendu est à faible débit.
+// PRELOADING — only the BODY font is preloaded (audit F-05). Next adds a
+// preload hint for every declared family; all three together
+// put 233 KB on the critical path of a page that weighs only 244.
+// Measured on slow 3G on /fr/barometre, whose LCP element is a paragraph:
+//   all three preloaded     -> LCP 4,328 ms
+//   body only preloaded     -> LCP 2,376 ms
+//   headings re-preloaded   -> LCP 2,660 ms  (tried for the home page, rejected)
+// Headings and data fonts therefore load on demand: `display: swap`
+// shows them in a system font first, then swaps. It is the right
+// trade-off when the primary expected usage is on low bandwidth.
 //
-// GRAISSES — `font-bold` n'apparaît nulle part dans `src/` (compté : 0) et
-// l'italique n'y sert que trois fois, sur du texte de CORPS. Le 700 de Plex
-// Sans et l'italique de Newsreader ont donc été retirés : 63 Ko de moins, et
-// aucun changement visuel puisque rien ne les employait.
-// Newsreader = voix éditoriale (titres, citations).
-// IBM Plex Sans = interface (boutons, formulaires, métadonnées).
-// IBM Plex Mono = la donnée (scores Baromètre, KPI, méta).
+// WEIGHTS — `font-bold` appears nowhere in `src/` (counted: 0) and
+// italics are only used three times there, on BODY text. Plex
+// Sans's 700 and Newsreader's italic were therefore removed: 63 KB less, and
+// no visual change since nothing used them.
+// Newsreader = editorial voice (headings, quotes).
+// IBM Plex Sans = interface (buttons, forms, metadata).
+// IBM Plex Mono = data (Barometer scores, KPIs, meta).
 
 export const newsreader = Newsreader({
   subsets: ['latin'],
@@ -51,41 +51,41 @@ export const plexMono = IBM_Plex_Mono({
   preload: false,
 });
 
-// --- Arabe -------------------------------------------------------------------
+// --- Arabic ------------------------------------------------------------------
 //
-// L'audit relevait que `subsets: ['latin']` ne charge AUCUN glyphe arabe, et
-// qu'une page en arabe retomberait donc sur une police système, hors charte
-// (issue #23). Ces deux familles ferment ce point.
+// The audit noted that `subsets: ['latin']` loads NO Arabic glyph, and
+// that a page in Arabic would therefore fall back to a system font, off-brand
+// (issue #23). These two families close that point.
 //
-// LE COUPLE EST CHOISI POUR TENIR LE MÊME CONTRASTE que le latin, pas pour
-// « avoir de l'arabe ». L'écriture arabe n'oppose pas serif et sans : elle
-// oppose des STYLES CALLIGRAPHIQUES. Le naskh est la main des livres et de la
-// presse — c'est lui qui porte la voix éditoriale que Newsreader porte en
-// latin. Le second est la déclinaison arabe de la superfamille Plex déjà
-// employée pour l'interface : mêmes proportions, même dessin, aucune rupture
-// quand une page mêle les deux écritures (un nom propre latin dans un titre
-// arabe, un score du Baromètre).
-//   Noto Naskh Arabic  -> voix éditoriale (titres, citations)   ~ Newsreader
-//   IBM Plex Sans Arabic -> interface, corps de texte           ~ IBM Plex Sans
+// THE PAIR IS CHOSEN TO HOLD THE SAME CONTRAST as the Latin one, not just to
+// "have Arabic". Arabic script does not contrast serif and sans: it
+// contrasts CALLIGRAPHIC STYLES. Naskh is the hand of books and of the
+// press — it carries the editorial voice that Newsreader carries in
+// Latin. The second is the Arabic variant of the Plex superfamily already
+// used for the interface: same proportions, same design, no break
+// when a page mixes both scripts (a Latin proper noun in an Arabic
+// heading, a Barometer score).
+//   Noto Naskh Arabic  -> editorial voice (headings, quotes)   ~ Newsreader
+//   IBM Plex Sans Arabic -> interface, body text               ~ IBM Plex Sans
 //
-// AUCUNE DES DEUX N'EST PRÉCHARGÉE, et c'est délibéré. `preload: true` pose
-// l'indice sur TOUTES les pages, y compris les quatre langues latines qui
-// n'afficheront jamais un glyphe arabe — exactement la régression de LCP que
-// l'arbitrage ci-dessus a écartée pour les titres. Les variables CSS ne sont
-// d'ailleurs attachées au `<html>` que sur les pages arabes (voir
-// `src/app/[locale]/layout.tsx`), donc rien ne déclenche le téléchargement
-// ailleurs.
+// NEITHER IS PRELOADED, and that is deliberate. `preload: true` adds
+// the hint on ALL pages, including the four Latin-script languages that
+// will never display an Arabic glyph — exactly the LCP regression that
+// the trade-off above ruled out for headings. The CSS variables are
+// moreover only attached to `<html>` on Arabic pages (see
+// `src/app/[locale]/layout.tsx`), so nothing triggers the download
+// elsewhere.
 //
-// PAS DE MONOSPACE ARABE. IBM Plex Mono ne dessine pas l'arabe, et il n'a pas
-// à le faire : ce rôle porte des CHIFFRES (scores, KPI, dates), écrits en
-// chiffres arabes occidentaux dans les cinq langues du site. Le texte arabe
-// qui côtoie ces chiffres retombe sur Plex Sans Arabic, déclaré juste après
-// dans la pile de `--ff-data` (voir `globals.css`).
+// NO ARABIC MONOSPACE. IBM Plex Mono does not draw Arabic, and it doesn't
+// need to: this role carries DIGITS (scores, KPIs, dates), written in
+// Western Arabic digits in all five site languages. Arabic text
+// next to these digits falls back to Plex Sans Arabic, declared right after
+// in the `--ff-data` stack (see `globals.css`).
 //
-// `subsets: ['arabic', 'latin']` — le latin est nécessaire, pas décoratif :
-// un texte arabe cite des sigles, des noms d'organisation et des URL en
-// caractères latins. Sans ce sous-ensemble, chacun de ces fragments basculerait
-// sur une police système au milieu d'une phrase.
+// `subsets: ['arabic', 'latin']` — Latin is necessary, not decorative:
+// an Arabic text cites acronyms, organization names and URLs in
+// Latin characters. Without this subset, each of these fragments would switch
+// to a system font in the middle of a sentence.
 
 export const naskhArabic = Noto_Naskh_Arabic({
   subsets: ['arabic', 'latin'],
@@ -104,13 +104,13 @@ export const plexSansArabic = IBM_Plex_Sans_Arabic({
 });
 
 /**
- * Les variables de police à poser sur `<html>` pour une locale donnée.
+ * The font variables to set on `<html>` for a given locale.
  *
- * Les familles arabes ne sont attachées QUE sur les pages arabes. Une variable
- * CSS non attachée laisse `var(--font-naskh-arabic)` sans valeur, donc la pile
- * de `globals.css` passe directement au terme suivant : les pages latines ne
- * voient jamais ces familles, et le navigateur n'a aucune raison de les
- * chercher.
+ * The Arabic families are attached ONLY on Arabic pages. An unattached CSS
+ * variable leaves `var(--font-naskh-arabic)` without a value, so the
+ * `globals.css` stack moves straight on to the next term: Latin pages never
+ * see these families, and the browser has no reason to
+ * fetch them.
  */
 export function fontVariables(locale: string): string {
   const latin = `${newsreader.variable} ${plexSans.variable} ${plexMono.variable}`;

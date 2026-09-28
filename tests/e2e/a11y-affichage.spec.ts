@@ -8,18 +8,18 @@ import {
 } from './_a11y';
 import { SESSIONS } from './_sessions';
 
-// F-08 — ADAPTATION DE L'AFFICHAGE (audit RGAA du 27/09, critères 10.4, 10.11
-// et 10.12) sur l'échantillon de l'audit.
+// F-08 — DISPLAY ADAPTATION (RGAA audit of 27/09, criteria 10.4, 10.11
+// and 10.12) on the audit sample.
 //
-//  - 10.11 : à 320 px de large (l'équivalent d'un zoom de 400 % sur un écran
-//    de 1 280 px), la page ne défile PAS horizontalement. Les tableaux de
-//    données sont une exception prévue : ils défilent DANS leur région
-//    (`ScrollableRegion`), la page, elle, reste à la largeur de la fenêtre.
-//  - 10.4 : zoom du TEXTE à 200 % — aucun texte rogné.
-//  - 10.12 : espacements de texte redéfinis (interligne 1,5, lettres
-//    0,12 em, mots 0,16 em, paragraphes 2 em) — aucun texte rogné.
-//  - zoom de PAGE à 200 % : une fenêtre de 1 280 px zoomée deux fois est une
-//    fenêtre de 640 px CSS — pas de défilement horizontal.
+//  - 10.11: at 320 px wide (the equivalent of a 400 % zoom on a
+//    1,280 px screen), the page does NOT scroll horizontally. Data tables
+//    are a planned exception: they scroll WITHIN their region
+//    (`ScrollableRegion`), while the page stays at the window width.
+//  - 10.4: TEXT zoom at 200 % — no clipped text.
+//  - 10.12: text spacing overridden (line height 1.5, letters
+//    0.12 em, words 0.16 em, paragraphs 2 em) — no clipped text.
+//  - PAGE zoom at 200 %: a 1,280 px window zoomed twice is a
+//    640 CSS px window — no horizontal scrolling.
 
 test.use({ locale: 'fr-FR' });
 
@@ -43,8 +43,8 @@ const ECHANTILLON = [
   '/fr/accessibilite',
 ];
 
-// En arabe, le débordement part à GAUCHE : un défaut que l'échantillon
-// français ne peut pas voir.
+// In Arabic, the overflow goes to the LEFT: a defect the French sample
+// cannot see.
 const ECHANTILLON_AR = [
   '/ar',
   '/ar/bibliotheque/etat-democratie-afrique-europe',
@@ -55,8 +55,8 @@ const ECHANTILLON_AR = [
 async function ouvrir(page: Page, chemin: string) {
   await page.goto(chemin);
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
-  // Les révélations au défilement posent un `translateY` : lues en cours
-  // d'animation, elles passeraient pour du texte qui sort de son cadre.
+  // Scroll reveals set a `translateY`: read mid-animation, they
+  // would pass for text escaping its frame.
   await revealAll(page);
 }
 

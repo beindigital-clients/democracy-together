@@ -1,17 +1,17 @@
 import { getTranslations } from 'next-intl/server';
 
-// Ce que rend une page dont les DONNÉES n'ont pas pu être chargées (F-02).
+// What a page renders when its DATA could not be loaded (F-02).
 //
-// À ne pas confondre avec l'état vide d'une page : « aucun résultat » est une
-// information vraie, « indisponible » en est une autre. Les afficher pareil
-// ferait croire au visiteur que le réseau ne compte aucun membre, ou que sa
-// recherche ne trouve rien — alors que c'est le backend qui est muet.
+// Not to be confused with a page's empty state: "no results" is a
+// true piece of information, "unavailable" is another. Displaying them the same
+// would make the visitor believe the network has no members, or that their
+// search finds nothing — when it is the backend that is silent.
 //
-// Le bloc est rendu par le SERVEUR, à l'intérieur de la mise en page : le
-// visiteur garde l'en-tête, la navigation et le pied de page, et il voit ce
-// texte même sans JavaScript. C'est ce qui le distingue d'`error.tsx`, dont la
-// limite est mesurée : la frontière d'erreur rend aujourd'hui zéro caractère
-// dans le HTML servi.
+// The block is rendered by the SERVER, inside the layout: the
+// visitor keeps the header, navigation and footer, and sees this
+// text even without JavaScript. That is what sets it apart from `error.tsx`, whose
+// limit has been measured: the error boundary currently renders zero characters
+// in the served HTML.
 export async function DataUnavailable({ className }: { className?: string }) {
   const t = await getTranslations('errors');
   return (

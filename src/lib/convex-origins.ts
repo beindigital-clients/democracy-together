@@ -1,18 +1,18 @@
-// Origines à ouvrir dans la CSP pour le déploiement Convex CONFIGURÉ.
+// Origins to open in the CSP for the CONFIGURED Convex deployment.
 //
-// POURQUOI. La CSP de `next.config.ts` n'ouvrait que `*.convex.cloud`. C'est
-// juste pour le cloud Convex, et faux pour tout autre déploiement : un backend
-// AUTO-HÉBERGÉ (l'option souveraineté UE que le backlog met sur la table) ou un
-// déploiement LOCAL (`npx convex dev --local` -> http://127.0.0.1:3210). Dans
-// ces deux cas, le navigateur refuse le websocket de synchronisation, et rien
-// ne le dit à l'utilisateur : le bouton « Se connecter » passe en attente et y
-// reste. Mesuré lors de la campagne de tests du 27/09/2026 : la suite E2E
-// entière tombait dès l'ouverture des sessions, sur un backend local.
+// WHY. The CSP in `next.config.ts` only opened `*.convex.cloud`. That is
+// right for Convex cloud, and wrong for any other deployment: a
+// SELF-HOSTED backend (the EU sovereignty option the backlog puts on the table) or a
+// LOCAL deployment (`npx convex dev --local` -> http://127.0.0.1:3210). In
+// both cases, the browser rejects the sync websocket, and nothing
+// tells the user: the "Se connecter" button goes into a pending state and
+// stays there. Measured during the 27/09/2026 test campaign: the entire E2E suite
+// went down as soon as sessions were opened, on a local backend.
 //
-// CE QUE ÇA OUVRE. Seulement l'origine que le déploiement déclare lui-même —
-// `NEXT_PUBLIC_CONVEX_URL` est lue au build, comme le client Convex la lit. Un
-// déploiement `*.convex.cloud` n'ajoute rien : le joker existant le couvre déjà
-// et la CSP de production reste, à l'octet près, celle d'avant.
+// WHAT IT OPENS. Only the origin the deployment itself declares —
+// `NEXT_PUBLIC_CONVEX_URL` is read at build time, as the Convex client reads it. A
+// `*.convex.cloud` deployment adds nothing: the existing wildcard already covers it
+// and the production CSP stays byte-for-byte what it was before.
 export function convexCspOrigins(convexUrl: string | undefined): {
   connect: string[];
   img: string[];
@@ -30,7 +30,7 @@ export function convexCspOrigins(convexUrl: string | undefined): {
   if (url.hostname.endsWith('.convex.cloud')) return { connect: [], img: [] };
   const http = `${url.protocol}//${url.host}`;
   const ws = `${url.protocol === 'https:' ? 'wss:' : 'ws:'}//${url.host}`;
-  // `img-src` aussi : le stockage (`ctx.storage.getUrl()`) sert les
-  // illustrations des PDF depuis la même origine que l'API.
+  // `img-src` too: storage (`ctx.storage.getUrl()`) serves the
+  // PDF illustrations from the same origin as the API.
   return { connect: [http, ws], img: [http] };
 }

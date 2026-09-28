@@ -2,38 +2,38 @@
 
 import { useState } from 'react';
 
-// « PAS ENCORE CONNU » N'EST PAS « PERSONNE ».
+// "NOT YET KNOWN" IS NOT "NOBODY".
 //
-// `useQuery` de Convex rend `undefined` tant qu'une réponse n'est pas arrivée,
-// et la VALEUR — souvent `null` — une fois qu'elle l'est. Les deux se
-// ressemblent sous un `!valeur`, et c'est ce raccourci qui coûte : `undefined`
-// revient à CHAQUE reconnexion du socket et à chaque rotation du jeton d'accès,
-// sur une query déjà résolue une fois.
+// Convex's `useQuery` returns `undefined` until a response has arrived,
+// and the VALUE — often `null` — once it has. The two
+// look alike under a `!valeur`, and that shortcut is costly: `undefined`
+// comes back on EVERY socket reconnection and every access-token rotation,
+// on a query already resolved once.
 //
-// Un écran qui rend « Chargement… » sur cet état DÉMONTE son sous-arbre à
-// chaque clignotement. Pour l'utilisateur, ce n'est pas un scintillement :
-// c'est une boîte de dialogue de confirmation qui disparaît sous le curseur,
-// un brouillon perdu, un geste à refaire — et rien à l'écran pour dire
-// pourquoi. Observé en CI sur `/admin/utilisateurs` : le dialogue « Changer le
-// rôle de … ? » détaché du DOM pendant qu'on cliquait son bouton.
+// A screen that renders "Chargement…" in this state UNMOUNTS its subtree on
+// every flicker. For the user, it's not a flicker:
+// it's a confirmation dialog disappearing under the cursor,
+// a lost draft, a gesture to redo — and nothing on screen to say
+// why. Observed in CI on `/admin/utilisateurs`: the "Changer le
+// rôle de … ?" dialog detached from the DOM while its button was being clicked.
 //
-// Ce crochet retient la dernière valeur CONNUE. Le premier rendu n'en a pas et
-// rend donc `undefined` : l'écran de chargement initial est préservé, c'est
-// seulement le clignotement d'après qui cesse de tout emporter.
+// This hook retains the last KNOWN value. The first render has none and
+// therefore returns `undefined`: the initial loading screen is preserved, it is
+// only the subsequent flicker that stops sweeping everything away.
 //
-// CE QU'IL NE FAIT PAS : retenir un `null`. Une query qui répond « personne »
-// est une réponse, pas une absence de réponse — une déconnexion doit sortir de
-// l'écran, et elle le fait.
+// WHAT IT DOES NOT DO: retain a `null`. A query that answers "nobody"
+// is an answer, not an absence of answer — a sign-out must leave
+// the screen, and it does.
 //
-// Il n'affaiblit aucune autorisation. Le rôle lu ici décide de ce qu'on
-// AFFICHE ; ce qu'on a le droit de FAIRE est refusé par le serveur à chaque
-// mutation, `users.setRole` compris.
+// It weakens no authorization. The role read here decides what is
+// DISPLAYED; what one is allowed to DO is refused by the server on every
+// mutation, `users.setRole` included.
 //
-// MISE EN ŒUVRE : un état ajusté PENDANT le rendu, et non une ref. React
-// documente ce motif, et `react-hooks/refs` interdit l'autre — lire ou écrire
-// `ref.current` au rendu produit des composants qui ne se remettent pas à
-// jour. La comparaison `valeur !== dernier` borne la boucle : sans elle,
-// chaque rendu en redemanderait un.
+// IMPLEMENTATION: state adjusted DURING render, not a ref. React
+// documents this pattern, and `react-hooks/refs` forbids the other — reading or writing
+// `ref.current` during render produces components that don't update
+// properly. The `valeur !== dernier` comparison bounds the loop: without it,
+// each render would request another one.
 export function useConnu<T>(valeur: T | undefined): T | undefined {
   const [dernier, setDernier] = useState<T | undefined>(valeur);
   if (valeur !== undefined && valeur !== dernier) setDernier(valeur);

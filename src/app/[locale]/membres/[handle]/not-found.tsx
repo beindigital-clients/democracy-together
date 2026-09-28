@@ -1,10 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 
-// Profil introuvable — ET profil non visible par ce lecteur. Les trois cas
-// (handle inconnu, profil privé, profil réservé aux membres vu sans session)
-// rendent cette même page : la distinguer dirait qu'il y a quelqu'un derrière
-// l'adresse. D'où un texte qui couvre les trois, et un lien de connexion.
+// Profile not found — AND profile not visible to this reader. All three cases
+// (unknown handle, private profile, members-only profile viewed without a
+// session) render this same page: distinguishing them would reveal that
+// someone is behind the address. Hence a text that covers all three, and a
+// sign-in link.
 export default async function PersonNotFound() {
   const t = await getTranslations('people.profile');
   return (

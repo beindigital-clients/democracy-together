@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Route protégée : sans session, /espace-membre renvoie vers /connexion. (F-01)
+// Protected route: without a session, /espace-membre redirects to /connexion. (F-01)
 test('espace-membre redirige vers connexion si non authentifié', async ({
   page,
 }) => {
@@ -8,7 +8,7 @@ test('espace-membre redirige vers connexion si non authentifié', async ({
   await expect(page).toHaveURL(/\/connexion$/);
 });
 
-// F-25/F-51 — /notifications est protégée ; la cloche n'apparaît pas déconnecté.
+// F-25/F-51 — /notifications is protected; the bell does not appear when signed out.
 test('notifications : redirige vers connexion + cloche masquée déconnecté', async ({
   page,
 }) => {

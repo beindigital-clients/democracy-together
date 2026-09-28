@@ -10,38 +10,37 @@ import {
   type PDFObject,
 } from 'pdf-lib';
 
-// ANONYMISATION DES MÉTADONNÉES D'UN MANUSCRIT (F-43, double aveugle).
+// ANONYMISATION OF A MANUSCRIPT'S METADATA (F-43, double-blind review).
 //
-// Un PDF exporté d'un traitement de texte porte presque toujours le nom de
-// son auteur HORS du texte : `/Author` du dictionnaire d'information, le
-// `dc:creator` de ses métadonnées XMP, l'auteur de chaque commentaire
-// (`/T` des annotations), parfois le nom du poste dans `/Creator`
-// (« Microsoft Word - Jeanne Dupont »). L'auteur a beau anonymiser son texte,
-// le relecteur n'a qu'à ouvrir les propriétés du fichier.
+// A PDF exported from a word processor almost always carries its author's
+// name OUTSIDE the text: `/Author` in the info dictionary, the `dc:creator`
+// of its XMP metadata, the author of each comment (`/T` of annotations),
+// sometimes the machine name in `/Creator`
+// ("Microsoft Word - Jeanne Dupont"). However carefully the author anonymises
+// the text, the reviewer only has to open the file properties.
 //
-// Ce module en produit une COPIE sans ces champs — la seule que reçoit un
-// relecteur. Il ne touche pas au contenu des pages : un nom écrit dans le
-// texte relève de l'auteur, et le formulaire de soumission le lui demande.
+// This module produces a COPY without those fields — the only one a reviewer
+// receives. It does not touch the page content: a name written in the text
+// is the author's responsibility, and the submission form asks them about it.
 //
-// Les RÉVISIONS INCRÉMENTALES sont le piège : un PDF modifié garde souvent,
-// plus haut dans le fichier, l'ancien dictionnaire d'information — nom
-// compris — que plus rien ne référence. pdf-lib réécrirait tout objet chargé,
-// référencé ou non. La copie est donc ÉLAGUÉE : seuls les objets atteignables
-// depuis la racine du document sont écrits.
+// INCREMENTAL REVISIONS are the trap: a modified PDF often keeps, higher up
+// in the file, the old info dictionary — name included — that nothing
+// references any more. pdf-lib would rewrite every loaded object, referenced
+// or not. The copy is therefore PRUNED: only objects reachable from the
+// document root are written.
 //
-// Pur JavaScript (pdf-lib) : s'exécute dans le runtime Convex par défaut, et
-// dans les tests sans rien simuler.
+// Pure JavaScript (pdf-lib): runs in the default Convex runtime, and in tests
+// without mocking anything.
 
 export type AnonymizeResult =
   | { status: 'clean' | 'stripped'; bytes: Uint8Array; stripped: string[] }
   | { status: 'unreadable'; reason: string };
 
-// Champs d'information qui nomment une PERSONNE ou son poste. `Title` est
-// remplacé par le titre du manuscrit (il porte souvent le nom du fichier,
-// « Dupont_article_v3 »).
+// Info fields that name a PERSON or their machine. `Title` is replaced by the
+// manuscript title (it often carries the file name, "Dupont_article_v3").
 const INFO_KEYS = ['Author', 'Creator', 'Producer', 'Subject', 'Keywords'];
 
-// Texte d'une chaîne PDF, littérale `(…)` ou hexadécimale `<…>`.
+// Text of a PDF string, literal `(…)` or hexadecimal `<…>`.
 function textOf(obj: PDFObject | undefined): string {
   if (obj instanceof PDFString || obj instanceof PDFHexString) {
     return obj.decodeText();
@@ -53,7 +52,7 @@ function nonEmpty(obj: PDFObject | undefined): boolean {
   return textOf(obj).replace(/[()<>\s]/g, '').length > 0;
 }
 
-// Objets atteignables depuis la bande-annonce (racine, information).
+// Objects reachable from the trailer (root, info).
 function reachable(doc: PDFDocument): Set<string> {
   const seen = new Set<string>();
   const stack: PDFObject[] = [];
@@ -85,8 +84,8 @@ export async function anonymizePdf(
 ): Promise<AnonymizeResult> {
   let doc: PDFDocument;
   try {
-    // `updateMetadata: false` : sans cela pdf-lib ÉCRIT son propre
-    // `/Producer` et une date de modification — exactement ce qu'on retire.
+    // `updateMetadata: false`: otherwise pdf-lib WRITES its own `/Producer` and a
+    // modification date — exactly what we are removing.
     doc = await PDFDocument.load(bytes, { updateMetadata: false });
   } catch (err) {
     return {
@@ -98,7 +97,7 @@ export async function anonymizePdf(
   const stripped = new Set<string>();
   const { context, catalog } = doc;
 
-  // 1. Dictionnaire d'information.
+  // 1. Info dictionary.
   const info = context.trailerInfo.Info
     ? context.lookupMaybe(context.trailerInfo.Info, PDFDict)
     : undefined;
@@ -113,7 +112,7 @@ export async function anonymizePdf(
   }
   doc.setTitle(opts.title);
 
-  // 2. Métadonnées XMP (dc:creator, xmp:CreatorTool, pdf:Producer…).
+  // 2. XMP metadata (dc:creator, xmp:CreatorTool, pdf:Producer…).
   const metadata = catalog.get(PDFName.of('Metadata'));
   if (metadata) {
     stripped.add('XMP');
@@ -121,13 +120,13 @@ export async function anonymizePdf(
     if (metadata instanceof PDFRef) context.delete(metadata);
   }
 
-  // 3. Données privées d'application (nom d'utilisateur, chemins locaux).
+  // 3. Private application data (user name, local paths).
   if (catalog.get(PDFName.of('PieceInfo'))) {
     stripped.add('PieceInfo');
     catalog.delete(PDFName.of('PieceInfo'));
   }
 
-  // 4. Pages : leurs propres métadonnées, et l'auteur des annotations.
+  // 4. Pages: their own metadata, and the author of annotations.
   for (const page of doc.getPages()) {
     for (const key of ['Metadata', 'PieceInfo']) {
       if (page.node.get(PDFName.of(key))) {
@@ -147,10 +146,10 @@ export async function anonymizePdf(
     }
   }
 
-  // 5. Élagage : les objets orphelins (anciennes révisions) ne sont pas
-  //    réécrits. Rien n'est rapporté ici : la plupart des PDF modernes ont
-  //    des orphelins sans intérêt (flux de références croisées, conteneurs
-  //    d'objets), et ce qui nommait l'auteur a été compté plus haut.
+  // 5. Pruning: orphaned objects (old revisions) are not rewritten. Nothing is
+  //    reported here: most modern PDFs have uninteresting orphans
+  //    (cross-reference streams, object streams), and whatever named the
+  //    author has been counted above.
   const keep = reachable(doc);
   for (const [ref] of context.enumerateIndirectObjects()) {
     if (!keep.has(ref.toString())) context.delete(ref);

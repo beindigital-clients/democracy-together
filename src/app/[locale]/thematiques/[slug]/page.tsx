@@ -43,17 +43,17 @@ export default async function ThemeSynthesisPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
-  // Synthèse : la table `contentThemes`, ou le texte codé en repli (table
-  // vide, backend injoignable) — cf. src/lib/contenus/load.ts.
+  // Overview: the `contentThemes` table, or the hard-coded fallback text
+  // (empty table, backend unreachable) — see src/lib/contenus/load.ts.
   const s = await loadTheme(slug, loc);
   if (!s) notFound();
 
   const t = await getTranslations('thematiques');
   const tl = await getTranslations('library');
   const label = s.title ?? vocabulary(tl, 'themes.', slug);
-  // Backend injoignable -> aucune publication listée, mais la synthèse (servie
-  // par le dépôt) reste affichée. Perdre la page entière pour une liste
-  // d'appoint serait payer cher (F-02).
+  // Backend unreachable -> no publication listed, but the overview (served
+  // from the repo) is still shown. Losing the whole page for a secondary
+  // list would be a high price to pay (F-02).
   const { items } = await fetchOrFallback(
     'thematiques/[slug]',
     async () =>

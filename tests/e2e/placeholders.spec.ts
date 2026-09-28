@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.use({ locale: 'fr-FR' });
 
-// F-04 — les routes liées par la nav, le pied de page et le CTA du hero ne
-// renvoient jamais 404. La dernière route en attente (« Bientôt ») était
-// `/don` : depuis le chantier paiements (27/09), elle sert le vrai
-// formulaire de don. Le test garde la promesse — 200, jamais 404 — et
-// vérifie qu'il ne reste AUCUN écran « Bientôt » sur ce parcours.
+// F-04 — the routes linked from the nav, the footer and the hero CTA never
+// return 404. The last pending route ("Bientôt") was
+// `/don`: since the payments workstream (27/09), it serves the real
+// donation form. The test keeps the promise — 200, never 404 — and
+// checks that NO "Bientôt" screen remains on this flow.
 const ROUTES = ['/fr/don'];
 
 test('routes du parcours principal : 200, et plus aucun « Bientôt » (F-04)', async ({

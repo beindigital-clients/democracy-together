@@ -34,13 +34,13 @@ import { uploadWithProgress, type UploadProgress } from '@/lib/upload';
 import { cropToSquare } from '@/lib/image-crop';
 import { PersonAvatar } from './person-avatar';
 
-// ÉCRAN « MON PROFIL » (espace membre) : identité, photo, confidentialité,
-// préférences, membres bloqués, export de ses données.
+// "MON PROFIL" SCREEN (member area): identity, photo, privacy,
+// preferences, blocked members, export of one's data.
 //
-// Le serveur tranche tout (bornes, vocabulaires, liens https, handle libre) ;
-// l'écran lit LES MÊMES bornes par `@convex/lib/social` pour afficher
-// compteurs et `maxLength`, et rattache chaque refus serveur au champ qui l'a
-// causé.
+// The server decides everything (limits, vocabularies, https links, available handle);
+// the screen reads THE SAME limits via `@convex/lib/social` to display
+// counters and `maxLength`, and attaches each server rejection to the field that
+// caused it.
 
 type Me = NonNullable<
   ReturnType<typeof useQuery<typeof api.social.profiles.getMine>>
@@ -49,7 +49,7 @@ type Me = NonNullable<
 type FieldKey =
   'displayName' | 'handle' | 'jobTitle' | 'country' | 'bio' | 'links' | 'form';
 
-// Refus serveur -> champ fautif. Un code absent d'ici va au formulaire.
+// Server rejection -> faulty field. A code not listed here goes to the form.
 const FIELD_OF: Record<string, FieldKey> = {
   INVALID_NAME: 'displayName',
   INVALID_HANDLE: 'handle',
@@ -94,10 +94,10 @@ export function ProfileEditor({
         </p>
       ) : null}
       {me.exists ? <PhotoSection me={me} /> : null}
-      {/* Le formulaire n'est PAS remonté quand le profil vient d'être créé :
-          la confirmation « Profil enregistré » disparaîtrait avec lui.
-          L'identifiant dérivé par le serveur est repris de la réponse de
-          `saveProfile`. */}
+      {/* The form is NOT remounted when the profile has just been created:
+          the "Profil enregistré" confirmation would disappear with it.
+          The identifier derived by the server is taken from `saveProfile`'s
+          response. */}
       <ProfileForm me={me} themeLabels={themeLabels} />
       <LanguagePreference current={me.preferredLocale} />
       <BlockedList />
@@ -500,8 +500,8 @@ function PhotoSection({ me }: { me: Me }) {
   async function onFile(file: File | undefined) {
     if (!file) return;
     setMessage(null);
-    // Premier filtre côté navigateur, pour ne pas envoyer 20 Mo pour rien.
-    // Le serveur revérifie tout, contenu réel compris.
+    // First browser-side filter, so as not to send 20 MB for nothing.
+    // The server re-checks everything, actual content included.
     if (!(PHOTO_TYPES as readonly string[]).includes(file.type)) {
       setMessage({ kind: 'error', text: t('photoInvalid') });
       return;
@@ -614,10 +614,10 @@ function PhotoSection({ me }: { me: Me }) {
   );
 }
 
-// --- Langue de l'interface ------------------------------------------------------
+// --- Interface language ---------------------------------------------------------
 
-// Réutilise `users.preferredLocale` (déjà lu par les courriels et le
-// sélecteur de langue) : un seul réglage, pas un second qui divergerait.
+// Reuses `users.preferredLocale` (already read by the emails and the
+// language picker): a single setting, not a second one that would diverge.
 function LanguagePreference({ current }: { current: string | null }) {
   const t = useTranslations('profile');
   const active = useLocale() as Locale;
@@ -659,7 +659,7 @@ function LanguagePreference({ current }: { current: string | null }) {
   );
 }
 
-// --- Membres bloqués ---------------------------------------------------------------
+// --- Blocked members ---------------------------------------------------------------
 
 function BlockedList() {
   const t = useTranslations('profile');

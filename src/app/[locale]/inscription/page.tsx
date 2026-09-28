@@ -1,9 +1,10 @@
 import { redirect } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 
-// Inscription directe DÉSACTIVÉE : plus d'auto-création de compte. Tout accès à
-// cette page est redirigé vers la demande d'adhésion — un compte membre n'est
-// créé qu'après validation de la candidature (modèle d'adhésion validée).
+// Direct sign-up DISABLED: no more self-service account creation. Any access
+// to this page is redirected to the membership application — a member
+// account is only created once the application is approved (approved
+// membership model).
 export default async function InscriptionPage({
   params,
 }: {

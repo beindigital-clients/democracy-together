@@ -13,17 +13,17 @@ import {
 } from '@/components/admin/action-feedback';
 import { intlLocale } from '@/i18n/locale';
 
-// F-17 / F-26 — les messages de contact n'avaient AUCUN écran de lecture :
-// ils s'accumulaient en base et `handled` n'était jamais mis à jour (audit
-// § 3.1). Le formulaire public écrivait donc dans un trou noir.
+// F-17 / F-26 — contact messages had NO reading screen:
+// they piled up in the database and `handled` was never updated (audit
+// § 3.1). The public form was therefore writing into a black hole.
 
 function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
   const t = useTranslations('admin');
   const locale = useLocale();
   const setHandled = useMutation(api.contact.setHandled);
   const [pending, setPending] = useState(false);
-  // Retour d'action (27/09, m-2 / m-5) : « traité » et « Rouvrir » ne
-  // disaient rien, et un refus serveur restait muet.
+  // Action feedback (27/09, m-2 / m-5): "traité" and "Rouvrir" said
+  // nothing, and a server refusal stayed silent.
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
 

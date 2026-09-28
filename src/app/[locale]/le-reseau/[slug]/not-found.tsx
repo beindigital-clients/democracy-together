@@ -1,19 +1,20 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 
-// Fiche introuvable (F-21). Rendu quand `notFound()` est levé par la page.
+// Directory entry not found (F-21). Rendered when `notFound()` is thrown by
+// the page.
 //
-// CE FICHIER ÉTAIT ÉCRIT EN FRANÇAIS EN DUR, au motif — porté par son propre
-// commentaire — que « le contexte de locale n'est pas garanti dans une
-// frontière not-found ». C'est faux, et le fichier frère le démontrait déjà :
-// `src/app/[locale]/not-found.tsx` appelle `getTranslations` et fonctionne.
-// Mesuré avant correction : `/ar/le-reseau/inconnu` servait bien
-// `<html lang="ar" dir="rtl">` — donc la locale ÉTAIT résolue — avec
-// « Membre introuvable » et « Retour à l'annuaire » dans le corps.
+// THIS FILE WAS HARD-CODED IN FRENCH, on the grounds — stated in its own
+// comment — that "the locale context is not guaranteed in a not-found
+// boundary". That is false, and the sibling file already proved it:
+// `src/app/[locale]/not-found.tsx` calls `getTranslations` and works.
+// Measured before the fix: `/ar/le-reseau/inconnu` did serve
+// `<html lang="ar" dir="rtl">` — so the locale WAS resolved — with
+// "Membre introuvable" and "Retour à l'annuaire" in the body.
 //
-// Le lien passe par `Link` de `@/i18n/navigation` et non par un `<a>` nu :
-// l'ancien `href="/le-reseau"` sans préfixe faisait retomber le visiteur sur la
-// langue par défaut du middleware. Un arabophone était renvoyé vers /fr.
+// The link goes through `Link` from `@/i18n/navigation` and not a bare `<a>`:
+// the old unprefixed `href="/le-reseau"` sent the visitor back to the
+// middleware's default language. An Arabic speaker was redirected to /fr.
 export default async function OrgNotFound() {
   const t = await getTranslations('errors');
 

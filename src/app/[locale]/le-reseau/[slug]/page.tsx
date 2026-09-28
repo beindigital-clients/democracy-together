@@ -24,8 +24,8 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  // Voir bibliotheque/[slug] : un jet dans `generateMetadata` emporte la page
-  // avant même son rendu (F-02).
+  // See bibliotheque/[slug]: a throw in `generateMetadata` takes down the page
+  // before it even renders (F-02).
   const org = await fetchOrFallback(
     'le-reseau/[slug]:metadata',
     () => fetchQuery(api.organizations.getBySlug, { slug }),
@@ -49,8 +49,8 @@ export default async function OrgProfilePage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  // `undefined` = la requête a échoué ; `null` = aucune fiche. Les confondre
-  // transformerait une panne en 404 (F-02).
+  // `undefined` = the request failed; `null` = no entry. Confusing them
+  // would turn an outage into a 404 (F-02).
   const org = await fetchOrFallback(
     'le-reseau/[slug]',
     () => fetchQuery(api.organizations.getBySlug, { slug }),
@@ -63,8 +63,8 @@ export default async function OrgProfilePage({
       </div>
     );
   }
-  // `getBySlug` ne renvoie QUE des fiches actives (et ne sert plus `status`) :
-  // une fiche pending/suspended est ici indistinguable d'une fiche absente.
+  // `getBySlug` returns ONLY active entries (and no longer serves `status`):
+  // a pending/suspended entry is indistinguishable here from a missing one.
   if (!org) notFound();
 
   const t = await getTranslations('directory.profile');
@@ -72,10 +72,10 @@ export default async function OrgProfilePage({
   const to = await getTranslations('orgAdmin');
   const tl = await getTranslations('library');
   const websiteHref = safeHref(org.websiteUrl);
-  // Complément de fiche (F-21, chantier comptes) : logo, publications de ses
-  // comptes, membres si l'organisation l'a choisi. Une panne de cette
-  // seconde lecture ne doit pas emporter la fiche : elle rend `null`, et la
-  // page se contente de ce qu'elle a.
+  // Entry supplement (F-21, accounts workstream): logo, publications by its
+  // accounts, members if the organization chose so. A failure of this
+  // second read must not take down the entry: it returns `null`, and the
+  // page makes do with what it has.
   const details = await fetchOrFallback(
     'le-reseau/[slug]:details',
     () => fetchQuery(api.orgAdmin.publicDetails, { slug }),
@@ -100,7 +100,7 @@ export default async function OrgProfilePage({
         </div>
         <div className="mt-3 flex items-center gap-4">
           {details?.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL signée du stockage Convex, hors du chargeur d'images de Next
+            // eslint-disable-next-line @next/next/no-img-element -- signed Convex storage URL, outside Next's image loader
             <img
               src={details.logoUrl}
               alt={to('logoAlt', { org: org.name })}
@@ -179,8 +179,8 @@ export default async function OrgProfilePage({
         </div>
 
         <aside className="space-y-6">
-          {/* Suivi de l'organisation (chantier « social ») : îlot client,
-              absent pour un visiteur anonyme ou non membre. */}
+          {/* Following the organization ("social" workstream): client island,
+              absent for an anonymous or non-member visitor. */}
           <OrgFollowButton orgId={org._id} />
           <div className="rounded-md border border-line bg-surface p-5">
             <dl className="space-y-4 text-sm">
@@ -209,14 +209,14 @@ export default async function OrgProfilePage({
                   {org.languages.map((l) => languageName(l, locale)).join(', ')}
                 </dd>
               </div>
-              {/* ADRESSE FOURNIE PAR LA FICHE, donc par un tiers (pentest
-                  M-9) : renseignée à l'adhésion, relue par un modérateur qui
-                  juge une organisation, pas une chaîne de caractères. Le
-                  schéma est désormais refusé à l'écriture
-                  (convex/lib/onboarding.ts) ; ce filtre-ci couvre les fiches
-                  DÉJÀ enregistrées, qu'aucune validation n'a jamais vues. Un
-                  schéma refusé retire le bloc entier : il n'y a rien à
-                  proposer au visiteur, et surtout pas un lien inerte. */}
+              {/* ADDRESS SUPPLIED BY THE ENTRY, hence by a third party (pentest
+                  M-9): filled in at membership, reviewed by a moderator who
+                  judges an organization, not a character string. The
+                  scheme is now refused on write
+                  (convex/lib/onboarding.ts); this filter covers entries
+                  ALREADY stored, which no validation has ever seen. A
+                  refused scheme removes the whole block: there is nothing to
+                  offer the visitor, and certainly not an inert link. */}
               {websiteHref ? (
                 <div>
                   <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">

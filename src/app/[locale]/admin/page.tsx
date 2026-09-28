@@ -22,8 +22,8 @@ export default function AdminDashboard() {
   return (
     <div>
       <h1 className="font-display text-3xl">{t('dashboard')}</h1>
-      {/* Chantier comptes : tant que la 2FA n'est pas obligatoire pour
-          l'encadrement, l'administrateur le voit à chaque visite. */}
+      {/* Accounts workstream: as long as 2FA is not mandatory for
+          staff, the administrator sees it on every visit. */}
       <TwoFactorPolicyWarning />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -50,7 +50,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* `py-1` sur les liens : 20 px de cible au doigt, mesuré le 27/09 (C-3). */}
+      {/* `py-1` on the links: 20 px finger target, measured on 27/09 (C-3). */}
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
         <Link
           href="/admin/candidatures"

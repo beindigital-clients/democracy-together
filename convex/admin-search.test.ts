@@ -16,27 +16,27 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Recherche et filtres des listes du back-office (issue #49).
+// Search and filters of the back-office lists (issue #49).
 //
-// CE QUE CES TESTS VÉRIFIENT VRAIMENT. La contrainte de l'issue n'est pas
-// « la liste se restreint » — un `.filter()` sur le tableau rendu y suffirait —
-// mais « elle se restreint SANS relire la table ». Un test qui compare deux
-// tableaux ne distingue pas les deux. Chaque cas ci-dessous est donc écrit de
-// la même façon : on sème une ligne cherchée ET des lignes qui ne doivent pas
-// sortir, on demande une PAGE PLUS PETITE que la table, et on vérifie que la
-// page ne contient que ce qui correspond. Une recherche filtrée en mémoire
-// après pagination échouerait — la page serait remplie de non-correspondances
-// puis vidée par le filtre.
+// WHAT THESE TESTS REALLY CHECK. The issue's constraint is not
+// "the list narrows" — a `.filter()` on the rendered array would suffice —
+// but "it narrows WITHOUT re-reading the table". A test comparing two
+// arrays cannot tell the two apart. Each case below is therefore written
+// the same way: we seed a searched-for row AND rows that must not
+// come out, we request a PAGE SMALLER than the table, and we check that the
+// page contains only what matches. A search filtered in memory
+// after pagination would fail — the page would be filled with non-matches
+// then emptied by the filter.
 //
-// À SAVOIR SUR L'ENVIRONNEMENT. `convex-test` implémente les index plein texte
-// en appariant des PRÉFIXES de mots découpés sur les espaces, là où Convex
-// découpe aussi sur la ponctuation. Les termes cherchés ici sont donc des
-// préfixes du mot entier ET du sous-mot — ils correspondent sous les deux
-// tokenisations, et le parcours E2E exerce la vraie.
-// Corollaire : la recherche parcourt tous les documents de la table, et
-// `convex-test` lit le champ cherché sans le protéger — un document sans
-// `email` y ferait échouer la recherche sur `users`. Les comptes semés ici en
-// portent donc toujours un, comme les comptes réels.
+// ABOUT THE ENVIRONMENT. `convex-test` implements full-text indexes
+// by matching word PREFIXES split on spaces, whereas Convex
+// also splits on punctuation. The terms searched here are therefore
+// prefixes of the whole word AND of the sub-word — they match under both
+// tokenizations, and the E2E flow exercises the real one.
+// Corollary: the search scans every document in the table, and
+// `convex-test` reads the searched field without guarding it — a document without
+// `email` would make the search on `users` fail there. The accounts seeded here
+// therefore always carry one, like real accounts.
 
 const PAGE = (numItems = 50) => ({
   paginationOpts: { numItems, cursor: null },
@@ -61,9 +61,9 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
         role: 'moderateur',
         email: 'moussa@institut-sahel.org',
       });
-      // Trois adresses partageant un même DÉBUT : c'est ce qui rend le cas
-      // « un fragment, plusieurs comptes » vérifiable sous les deux
-      // tokenisations (cf. l'en-tête du fichier).
+      // Three addresses sharing the same START: that is what makes the
+      // "one fragment, several accounts" case verifiable under both
+      // tokenizations (see the file header).
       await ctx.db.insert('users', {
         role: 'membre',
         email: 'europe.lea@reseau.eu',
@@ -84,9 +84,9 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
     await seedUsers(t);
     const as = await seedAdmin(t);
 
-    // Page de 2 sur 6 comptes : si la restriction se faisait après la lecture,
-    // la page contiendrait deux comptes quelconques, dont zéro ou un seul
-    // correspondant.
+    // Page of 2 out of 6 accounts: if the narrowing happened after the read,
+    // the page would contain any two accounts, of which zero or only one
+    // matching.
     const res = await as.query(api.admin.listUsers, {
       ...PAGE(2),
       search: 'awa',
@@ -139,7 +139,7 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
       'europe.lea@reseau.eu',
       'europe.tom@reseau.eu',
     ]);
-    // Le filtre ne lit que sa plage d'index : l'admin lui-même n'y est pas.
+    // The filter only reads its index range: the admin themselves is not in it.
     expect(membres.page.map((u) => u.role)).toEqual([
       'membre',
       'membre',
@@ -152,7 +152,7 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
     await seedUsers(t);
     const as = await seedAdmin(t);
 
-    // « europe » correspond à trois comptes ; le rôle en garde un.
+    // "europe" matches three accounts; the role keeps one.
     const combined = await as.query(api.admin.listUsers, {
       ...PAGE(),
       search: 'europe',
@@ -160,8 +160,8 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
     });
     expect(combined.page.map((u) => u.email)).toEqual(['europe.jan@reseau.eu']);
 
-    // Un rôle qui ne correspond à aucun des résultats ne remonte rien —
-    // ce n'est pas la recherche seule qui décide.
+    // A role matching none of the results returns nothing —
+    // it is not the search alone that decides.
     const empty = await as.query(api.admin.listUsers, {
       ...PAGE(),
       search: 'europe',
@@ -179,7 +179,7 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
           email: `cherche-${i}@reseau.org`,
         });
       }
-      // Deux comptes hors recherche, qui ne doivent apparaître sur aucune page.
+      // Two accounts outside the search, which must appear on no page.
       await ctx.db.insert('users', {
         role: 'membre',
         email: 'hors-1@ailleurs.org',
@@ -208,11 +208,11 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
   });
 
   it('un compte SANS rôle stocké : cherchable par adresse, absent du filtre « visiteur »', async () => {
-    // Le comportement assumé et documenté de `listUsers` (issue #27 + #49) :
-    // la colonne `role` manque sur les comptes d'avant la PR #4, ils sont donc
-    // indexés sous `undefined` — hors de la plage `role = 'visiteur'`. Ce test
-    // existe pour que ce soit une DÉCISION, pas une surprise : le compte reste
-    // atteignable par la liste complète et par la recherche.
+    // The accepted and documented behavior of `listUsers` (issue #27 + #49):
+    // the `role` column is missing on accounts from before PR #4, so they are
+    // indexed under `undefined` — outside the `role = 'visiteur'` range. This test
+    // exists so that this is a DECISION, not a surprise: the account remains
+    // reachable through the full list and through search.
     const t = convexTest(schema, modules);
     await t.run((ctx) =>
       ctx.db.insert('users', { email: 'ancien-compte@legacy.org' }),
@@ -265,9 +265,9 @@ describe('Termes de recherche — bornes côté serveur (issue #49)', () => {
       ...PAGE(),
       search: short,
     });
-    // 3 comptes : le terme est ignoré, pas appliqué. Sans ce plancher, un seul
-    // caractère remonterait presque toute la table — la lecture que #8 a
-    // supprimée, rhabillée en recherche.
+    // 3 accounts: the term is ignored, not applied. Without this floor, a single
+    // character would return almost the whole table — the read that #8
+    // removed, dressed up as a search.
     expect(res.page).toHaveLength(3);
   });
 
@@ -296,8 +296,8 @@ describe('Termes de recherche — bornes côté serveur (issue #49)', () => {
     );
     const as = await seedAdmin(t);
 
-    // Le terme dépasse le plafond ; tronqué, il reste un préfixe de l'adresse,
-    // donc la recherche aboutit au lieu de lever.
+    // The term exceeds the cap; truncated, it is still a prefix of the address,
+    // so the search succeeds instead of throwing.
     const res = await as.query(api.admin.listUsers, {
       ...PAGE(),
       search: 'x'.repeat(SEARCH_MAX_LENGTH + 40),
@@ -378,9 +378,9 @@ describe('Candidatures — pagination et recherche (issues #8 et #49)', () => {
     await seedApplications(t);
     const as = await seedAdmin(t);
 
-    // « Institut Sahel » est la PLUS ANCIENNE des trois en attente : une page
-    // de 1 sans recherche remonterait « Centre Baltique ». La recherche doit
-    // donc atteindre une ligne que la première page ne contient pas.
+    // "Institut Sahel" is the OLDEST of the three pending: a page
+    // of 1 without search would return "Centre Baltique". The search must
+    // therefore reach a row the first page does not contain.
     const res = await as.query(api.admin.listApplications, {
       ...PAGE(1),
       status: 'pending',
@@ -394,7 +394,7 @@ describe('Candidatures — pagination et recherche (issues #8 et #49)', () => {
     await seedApplications(t);
     const as = await seedAdmin(t);
 
-    // « Sahel » correspond à une candidature en attente et à une approuvée.
+    // "Sahel" matches one pending application and one approved.
     const pending = await as.query(api.admin.listApplications, {
       ...PAGE(),
       status: 'pending',
@@ -431,8 +431,8 @@ describe('Candidatures — pagination et recherche (issues #8 et #49)', () => {
     const as = await seedAdmin(t);
 
     const res = await as.query(api.admin.listApplications, PAGE());
-    // La note de revue est destinée au staff : elle sort. Les champs d'usage
-    // interne du workflow d'onboarding, non.
+    // The review note is meant for staff: it comes out. The workflow's
+    // internal onboarding fields do not.
     expect(res.page[0].reviewNotes).toBe('Note de revue');
     for (const field of [
       'invitedAt',
@@ -565,7 +565,7 @@ describe('Journal — recherche par action et filtre par acteur (issue #49)', ()
     });
     expect(res.page.map((r) => r.targetId)).toEqual(['user-1', 'pub-1']);
     expect(res.page.every((r) => r.actorName === 'Awa Diop')).toBe(true);
-    // L'identifiant ressort : c'est lui que l'écran renvoie pour ce filtre.
+    // The identifier comes out: it is what the screen sends back for this filter.
     expect(res.page.every((r) => r.actorId === awa)).toBe(true);
   });
 
@@ -574,9 +574,9 @@ describe('Journal — recherche par action et filtre par acteur (issue #49)', ()
     const { jan } = await seedJournal(t);
     const as = await seedAdmin(t);
 
-    // Page de 1 sur 4 entrées : la plus récente de TOUTES est celle de Jan,
-    // donc on prend le cas où la borne ne suffit pas à conclure et on
-    // parcourt jusqu'au bout.
+    // Page of 1 out of 4 entries: the most recent of ALL is Jan's,
+    // so we take the case where the bound is not enough to conclude and we
+    // scan to the end.
     const seen: string[] = [];
     let cursor: string | null = null;
     for (let guard = 0; guard < 10; guard++) {

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// Réseau dégradé : le cadrage annonce un premier usage en Afrique, à faible
-// débit. Les chiffres localhost ne disent rien de cette cible.
-// Slow 3G : 400 kbit/s descendants, 400 ms de latence aller-retour.
+// Degraded network: the brief announces first use in Africa, on low
+// bandwidth. Localhost numbers say nothing about this target.
+// Slow 3G: 400 kbit/s downstream, 400 ms round-trip latency.
 const PAGES = ['/fr', '/fr/barometre'];
 
 for (const route of PAGES) {

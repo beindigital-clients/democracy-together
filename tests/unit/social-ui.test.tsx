@@ -11,8 +11,8 @@ import { personJsonLd, profileDescription } from '@/lib/social-seo';
 
 afterEach(cleanup);
 
-// Composants PURS du réseau social, montés avec les vrais catalogues : une
-// clé absente ferait échouer le rendu au lieu de passer en silence.
+// PURE components of the social network, mounted with the real catalogs: a
+// missing key would make the render fail instead of passing silently.
 
 const PERSON = {
   handle: 'awa-diallo',

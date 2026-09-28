@@ -28,8 +28,8 @@ export default function AdminYouth() {
   const reopen = useMutation(api.youth.reopenYouthApplication);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  // Retour d'action (27/09, m-2 / A-08) : la ligne changeait d'état sans un
-  // mot, et un refus serveur (« déjà traitée ailleurs ») restait muet.
+  // Action feedback (27/09, m-2 / A-08): the row changed state without a
+  // word, and a server refusal ("déjà traitée ailleurs") stayed silent.
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
 
@@ -67,9 +67,9 @@ export default function AdminYouth() {
     }
   }
 
-  // Revenir sur une décision demande de ROUVRIR la candidature (issue #9) :
-  // le serveur refuse qu'on la retranche directement, et la réouverture laisse
-  // sa propre trace au journal.
+  // Going back on a decision requires REOPENING the application (issue #9):
+  // the server refuses to have it re-decided directly, and reopening leaves
+  // its own trace in the log.
   async function reopenApplication(id: string, name: string) {
     setBusy(id);
     try {
@@ -146,7 +146,7 @@ export default function AdminYouth() {
               <p className="mt-2 wrap-anywhere text-[14px] leading-relaxed text-ink">
                 {a.motivation}
               </p>
-              {/* La note de décision, enfin rendue (27/09, A-08). */}
+              {/* The decision note, finally rendered (27/09, A-08). */}
               {a.reviewNotes ? (
                 <p className="mt-2 wrap-anywhere text-[13px] text-muted">
                   {t('reviewNoteLabel')} {a.reviewNotes}

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { PUBLIQUES } from './_routes';
 
-// Sur les pages EN, aucun mot exclusivement français ne doit apparaître dans le
-// texte visible. Liste volontairement étroite : des mots sans homographe anglais,
-// pour ne produire aucun faux positif.
+// On EN pages, no exclusively French word may appear in the
+// visible text. Deliberately narrow list: words with no English homograph,
+// so as to produce no false positives.
 const MOTS_FR = [
   'Accueil',
   'Connexion',

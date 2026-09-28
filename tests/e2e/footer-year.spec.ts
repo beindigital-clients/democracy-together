@@ -1,22 +1,22 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Issue #36 — l'année du pied de page était la constante `2026`, donc fausse
-// dès le 1er janvier 2027, sur toutes les pages du site.
+// Issue #36 — the footer year was the constant `2026`, hence wrong
+// from 1 January 2027, on every page of the site.
 //
-// Ce que cette spec voit et que les tests unitaires ne voient pas :
+// What this spec sees that the unit tests do not:
 //
-//  1. l'année RÉELLEMENT servie au bout de la chaîne (composant serveur ->
-//     HTML -> hydratation) ;
-//  2. l'absence d'écart d'hydratation — le piège de l'issue. React ne fait pas
-//     échouer la navigation pour un écart : il le SIGNALE (« Hydration failed
-//     because the server rendered text didn't match the client »), puis rejoue
-//     l'arbre côté client. Sans écoute de la console et des erreurs de page, la
-//     régression serait invisible ici : la spec resterait verte en affichant la
-//     bonne année pour la mauvaise raison.
+//  1. the year ACTUALLY served at the end of the chain (server component ->
+//     HTML -> hydration);
+//  2. the absence of a hydration mismatch — the trap in the issue. React does not
+//     fail navigation over a mismatch: it REPORTS it ("Hydration failed
+//     because the server rendered text didn't match the client"), then replays
+//     the tree client-side. Without listening to the console and page errors, the
+//     regression would be invisible here: the spec would stay green while showing the
+//     right year for the wrong reason.
 //
-// En build de production les messages de React sont minifiés (« Minified React
-// error #418 ») — d'où les deux formes dans le motif. Motif vérifié contre le
-// message réel en remettant la correction naïve : il l'attrape.
+// In a production build React's messages are minified ("Minified React
+// error #418") — hence the two forms in the pattern. Pattern checked against the
+// real message by putting the naive fix back: it catches it.
 const ECART_HYDRATATION =
   /hydrat|did not match|Minified React error #(418|423|425)/i;
 
@@ -25,15 +25,15 @@ function releveLesAlertes(page: Page) {
   page.on('console', (m) => {
     if (m.type() === 'error' || m.type() === 'warning') messages.push(m.text());
   });
-  // L'écart d'hydratation remonte par `pageerror`, pas par `console` : écouter
-  // la seule console ne verrait rien.
+  // The hydration mismatch surfaces through `pageerror`, not `console`: listening
+  // to the console alone would see nothing.
   page.on('pageerror', (e) => messages.push(e.message));
   return () => messages.filter((m) => ECART_HYDRATATION.test(m));
 }
 
-// Barrière d'hydratation : la bascule de thème du pied de page ne modifie
-// `data-theme` qu'une fois React aux commandes. Avant sa réponse, un écart peut
-// encore être signalé — relever les alertes plus tôt ne prouverait rien.
+// Hydration barrier: the footer theme toggle only changes
+// `data-theme` once React is in control. Before its response, a mismatch can
+// still be reported — collecting alerts earlier would prove nothing.
 async function attendLHydratationDuPiedDePage(page: Page) {
   const html = page.locator('html');
   const avant = await html.getAttribute('data-theme');
@@ -60,33 +60,33 @@ for (const locale of ['fr', 'en'] as const) {
   });
 }
 
-// Le cas exact décrit par l'issue : serveur et navigateur ne sont pas dans la
-// même année — fuseaux décalés, ou page servie pendant la nuit du 31 décembre.
-// C'est là que la correction évidente (`new Date().getFullYear()` au rendu d'un
-// composant client) casse l'hydratation. C'est aussi, par le même mécanisme, le
-// cas d'une page STATIQUE dont le HTML aurait été construit l'année précédente
-// (issue #13) : le navigateur rattrape l'année après montage.
+// The exact case described by the issue: server and browser are not in the
+// same year — offset time zones, or a page served during the night of 31 December.
+// That is where the obvious fix (`new Date().getFullYear()` when rendering a
+// client component) breaks hydration. It is also, through the same mechanism, the
+// case of a STATIC page whose HTML was built the previous year
+// (issue #13): the browser catches up on the year after mount.
 test("pied de page : navigateur en avance d'un an sur le serveur", async ({
   page,
 }) => {
   const anneeServeur = new Date().getFullYear();
   const ecarts = releveLesAlertes(page);
 
-  // `setFixedTime` fige `Date` dans le navigateur SANS suspendre les minuteurs :
-  // React continue de fonctionner normalement.
+  // `setFixedTime` freezes `Date` in the browser WITHOUT suspending timers:
+  // React keeps working normally.
   await page.clock.setFixedTime(
     new Date(`${anneeServeur + 1}-01-01T00:00:30Z`),
   );
   await page.goto('/fr');
 
-  // Le HTML servi porte l'année du SERVEUR — c'est ce que voit un visiteur sans
-  // JavaScript, et c'est ce sur quoi React hydrate. Les `<!-- -->` sont les
-  // séparateurs de nœuds texte posés par le rendu serveur de React.
+  // The served HTML carries the SERVER's year — that is what a visitor without
+  // JavaScript sees, and what React hydrates against. The `<!-- -->` are the
+  // text-node separators inserted by React's server render.
   const servi = await (await page.request.get('/fr')).text();
   expect(servi.replace(/<!-- -->/g, '')).toContain(`© ${anneeServeur} `);
 
-  // Après montage, le navigateur impose la sienne (l'assertion réessaie, donc
-  // elle attend la rectification plutôt que de la supposer immédiate).
+  // After mount, the browser imposes its own (the assertion retries, so
+  // it waits for the correction rather than assuming it is immediate).
   const copyright = page.locator('footer p').filter({ hasText: '©' });
   await expect(copyright).toContainText(`© ${anneeServeur + 1}`);
 

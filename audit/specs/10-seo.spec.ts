@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { PUBLIQUES } from './_routes';
 
-// Lecture des métadonnées en UNE évaluation : pas de locator, donc pas
-// d'attente de 45 s quand une balise est absente — l'absence est le résultat.
+// Reads the metadata in ONE evaluation: no locator, so no
+// 45 s wait when a tag is missing — the absence is the result.
 type Meta = {
   lang: string | null;
   title: string;
@@ -53,11 +53,11 @@ for (const locale of ['fr', 'en'] as const) {
       expect(m.lang, `${url} : attribut lang`).toBe(locale);
       expect(m.title.trim().length, `${url} : <title> vide`).toBeGreaterThan(0);
       expect(m.description, `${url} : meta description absente`).toBeTruthy();
-      // Une page en `noindex` est EXCLUE de ces deux exigences, et ce n'est
-      // pas une tolérance : le dépôt a tranché (issue #35, testé dans
-      // tests/e2e/seo.spec.ts) qu'un moteur ignore le hreflang sur une telle
-      // page et que l'y poser ne serait que du bruit. Ma première version de
-      // cette spec l'exigeait partout — elle a signalé `/recherche` à tort.
+      // A `noindex` page is EXCLUDED from these two requirements, and this is
+      // not a tolerance: the repo has decided (issue #35, tested in
+      // tests/e2e/seo.spec.ts) that a search engine ignores hreflang on such a
+      // page and that adding it would just be noise. My first version of
+      // this spec required it everywhere — it wrongly flagged `/recherche`.
       const noindex = /noindex/.test(m.robots ?? '');
       if (!noindex) {
         expect(m.canonical, `${url} : canonical absent`).toBeTruthy();
@@ -69,8 +69,8 @@ for (const locale of ['fr', 'en'] as const) {
           `${url} : hreflang posé sur une page noindex`,
         ).toEqual([]);
       }
-      // Présent NE SUFFIT PAS : un og:title figé au nom du site ferait
-      // apparaître toutes les pages partagées sous le même titre.
+      // Being present is NOT ENOUGH: an og:title frozen to the site name would make
+      // every shared page appear under the same title.
       expect(m.ogTitle, `${url} : og:title absent`).toBeTruthy();
       expect(
         m.ogTitle,
@@ -78,8 +78,8 @@ for (const locale of ['fr', 'en'] as const) {
       ).toBe(m.title);
       expect(m.ogImage, `${url} : og:image absente`).toBeTruthy();
       expect(m.jsonLd, `${url} : aucune donnée structurée`).toBeGreaterThan(0);
-      // og:url épinglé sur une autre page vaut mieux absent : un agrégateur
-      // peut le prendre pour l'adresse canonique.
+      // An og:url pinned to another page is worse than none: an aggregator
+      // may take it as the canonical address.
       if (m.ogUrl) {
         expect(m.ogUrl, `${url} : og:url épinglé ailleurs`).toContain(
           route || '/',

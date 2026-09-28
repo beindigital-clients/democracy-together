@@ -44,7 +44,7 @@ export default async function JeunesPage({
   const tm = await getTranslations('mentorship');
 
   return (
-    // data-universe="jeunes" bascule l'accent vers le safran (cf. globals.css).
+    // data-universe="jeunes" switches the accent to saffron (see globals.css).
     <div data-universe="jeunes">
       {/* Hero */}
       <header className={`${WRAP} py-12 md:py-16`}>
@@ -92,11 +92,11 @@ export default async function JeunesPage({
           </div>
           <div className="relative overflow-hidden rounded-md border border-line">
             <div className="relative aspect-[4/3]">
-              {/* Photo d'ILLUSTRATION (la même pour plusieurs contenus) : elle
-                n'apporte aucune information, elle est donc décorative et
-                ignorée des aides techniques (RGAA 1.2). Son ancienne
-                alternative répétait le titre voisin — lu deux fois de suite
-                (audit RGAA du 27/09). */}
+              {/* ILLUSTRATION photo (the same for several pieces of content): it
+                carries no information, so it is decorative and ignored by
+                assistive technologies (RGAA 1.2). Its former alternative
+                text repeated the neighbouring heading — read twice in a row
+                (RGAA audit of 27/09). */}
               <Image
                 src="/library/youth.jpg"
                 alt=""
@@ -110,7 +110,7 @@ export default async function JeunesPage({
         </Reveal>
       </header>
 
-      {/* Parcours */}
+      {/* Learning paths */}
       <section
         id="parcours"
         className="scroll-mt-20 border-t border-line bg-surface"
@@ -212,8 +212,8 @@ export default async function JeunesPage({
         </Reveal>
         <RevealGroup className="mt-8 grid gap-4 lg:grid-cols-3">
           <RevealItem className="flex flex-col rounded-md bg-accent p-6 text-accent-contrast lg:row-span-2">
-            {/* 80 % et non 70 : à 70 % l'encre fondue dans le safran tombe à 4,1:1
-                (mesuré le 27/09) ; 80 % tient 5,1:1. */}
+            {/* 80% and not 70: at 70% the ink blended into the saffron drops to 4.1:1
+                (measured on 27/09); 80% holds 5.1:1. */}
             <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent-contrast/80">
               {c.programmes.featured.kicker}
             </span>
@@ -270,7 +270,7 @@ export default async function JeunesPage({
         </RevealGroup>
       </section>
 
-      {/* Mentorat */}
+      {/* Mentoring */}
       <section className="border-y border-line bg-surface">
         <div className={`${WRAP} py-16`}>
           <Reveal className="grid gap-10 lg:grid-cols-2 lg:items-center">
@@ -319,9 +319,9 @@ export default async function JeunesPage({
         </div>
       </section>
 
-      {/* Mentorat — mise en relation (F-59). Rend réelle l'intention « Demander
-          un mentor » / « Trouver mon mentor » : on s'inscrit comme mentoré ou
-          mentor, sans compte. */}
+      {/* Mentoring — matchmaking (F-59). Makes the "Demander un mentor" /
+          "Trouver mon mentor" intent real: one signs up as mentee or
+          mentor, without an account. */}
       <section id="mentorat" className="scroll-mt-20 border-b border-line">
         <div className={`${WRAP} py-16`}>
           <Reveal className="mx-auto max-w-[760px]">
@@ -339,7 +339,7 @@ export default async function JeunesPage({
         </div>
       </section>
 
-      {/* Témoignage + stats */}
+      {/* Testimonial + stats */}
       <section className={`${WRAP} py-16`}>
         <Reveal className="mx-auto max-w-[42ch] text-center">
           <p className="font-display text-[clamp(22px,3vw,30px)] leading-[1.4] text-ink">
@@ -371,7 +371,7 @@ export default async function JeunesPage({
       </section>
 
       {/* CTA */}
-      {/* Candidature au hub jeunes (F-58) — rend réelle l'action « Rejoindre ». */}
+      {/* Application to the youth hub (F-58) — makes the "Rejoindre" action real. */}
       <section id="rejoindre" className="scroll-mt-20 border-t border-line">
         <div className={`${WRAP} py-16`}>
           <Reveal className="mx-auto max-w-[760px]">

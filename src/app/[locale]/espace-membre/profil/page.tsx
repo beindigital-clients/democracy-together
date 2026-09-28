@@ -7,14 +7,14 @@ import { AuthGate } from '@/components/auth/auth-gate';
 import { ArrowBack } from '@/components/ui/arrow';
 import { ProfileEditor } from '@/components/social/profile-editor';
 
-// « Mon profil » (chantier « social »). Page SERVEUR autour d'un éditeur
-// client : les libellés des thématiques vivent dans l'espace `directory`, que
-// le navigateur ne reçoit pas (src/i18n/client-namespaces.ts) — ils sont donc
-// résolus ici et passés en props, plutôt que d'envoyer tout l'annuaire à
-// chaque page du site.
+// "Mon profil" ("social" workstream). A SERVER page around a client
+// editor: the theme labels live in the `directory` namespace, which the
+// browser does not receive (src/i18n/client-namespaces.ts) — so they are
+// resolved here and passed as props, rather than sending the whole
+// directory with every page of the site.
 //
-// Pas de `noindex` : la zone `espace-membre` est déjà interdite au crawl par
-// robots.txt, et le dépôt interdit de cumuler les deux (seo-coherence).
+// No `noindex`: the `espace-membre` area is already disallowed for crawling
+// by robots.txt, and the repo forbids combining the two (seo-coherence).
 export async function generateMetadata({
   params,
 }: {

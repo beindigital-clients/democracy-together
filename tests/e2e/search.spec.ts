@@ -4,10 +4,10 @@ import { ouvrirPanneau } from './_panneau';
 
 test.use({ locale: 'fr-FR' });
 
-// Recherche globale (F-06). S'appuie sur les publications seedées (bibliothèque)
-// + l'annuaire seedé. L'entrée du header est désormais une palette de commande
-// (SearchDialog) : recherche live (query Convex réactive) puis « Voir tous les
-// résultats » vers la page exhaustive /recherche (qui ajoute les actualités).
+// Global search (F-06). Relies on the seeded publications (library)
+// + the seeded directory. The header entry is now a command palette
+// (SearchDialog): live search (reactive Convex query) then "Voir tous les
+// résultats" to the exhaustive /recherche page (which adds news).
 test.beforeAll(async () => {
   await seedDirectory();
 });
@@ -17,7 +17,7 @@ test('recherche globale : header -> palette -> page -> résultats', async ({
 }) => {
   await page.goto('/fr');
 
-  // Entrée header : le bouton recherche ouvre la palette (command palette).
+  // Header entry: the search button opens the command palette.
   const dialog = page.getByRole('dialog', { name: 'Rechercher sur le site' });
   await ouvrirPanneau(
     page.getByRole('banner').getByRole('button', { name: 'Recherche' }),
@@ -25,23 +25,23 @@ test('recherche globale : header -> palette -> page -> résultats', async ({
     'palette de recherche',
   );
 
-  // Recherche live dans la palette : la section Publications apparaît (terme
-  // présent dans les publications seedées).
+  // Live search in the palette: the Publications section appears (term
+  // present in the seeded publications).
   await dialog.getByRole('combobox').fill('démocratie');
-  // Un GROUPE d'options nommé, et non plus un titre : le `listbox` ne peut
-  // contenir que des groupes et des options (audit RGAA du 27/09, 7.1).
+  // A named option GROUP, no longer a heading: the `listbox` can only
+  // contain groups and options (RGAA audit of 27/09, 7.1).
   await expect(
     dialog.getByRole('group', { name: 'Publications' }),
   ).toBeVisible();
 
-  // « Voir tous les résultats » -> page exhaustive /recherche.
+  // "Voir tous les résultats" -> exhaustive /recherche page.
   await dialog.getByRole('link', { name: 'Voir tous les résultats' }).click();
   await expect(page).toHaveURL(/\/fr\/recherche\?q=/);
   await expect(
     page.getByRole('heading', { name: 'Publications' }),
   ).toBeVisible();
 
-  // Terme sans résultat via le formulaire de la page.
+  // Term with no results via the page's form.
   await page.getByRole('searchbox').fill('zzzxqkw');
   await page.getByRole('button', { name: 'Rechercher' }).click();
   await expect(page.getByText(/Aucun résultat/)).toBeVisible();

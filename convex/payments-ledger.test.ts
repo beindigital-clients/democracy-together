@@ -7,8 +7,8 @@ import type { NetworkRole } from './lib/roles';
 import { receiptNumber } from './lib/payments/ledger';
 import { MAX_REMINDERS } from './payments/recurring';
 
-// PAIEMENTS — reçus (F-29), espace membre (F-30), back-office (F-31),
-// cotisations (F-27) et relances des dons mensuels (F-28).
+// PAYMENTS — receipts (F-29), member area (F-30), back-office (F-31),
+// membership fees (F-27) and monthly donation reminders (F-28).
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -29,8 +29,8 @@ const PAYMENT_ENV = [
   'RECAPTCHA_DISABLED',
 ];
 
-// Toute la suite tourne avec le prestataire factice ACTIF : c'est lui qui joue
-// le webhook signé, comme en E2E.
+// The whole suite runs with the fake provider ACTIVE: it is what plays
+// the signed webhook, as in E2E.
 beforeEach(() => {
   for (const k of PAYMENT_ENV) vi.stubEnv(k, undefined);
   vi.stubEnv('PAYMENTS_FAKE_PROVIDER', '1');
@@ -91,7 +91,7 @@ describe('Reçus — numérotation continue', () => {
     await donate(t, { email: 'a@exemple.org' });
     await donate(t, { email: 'b@exemple.org' });
 
-    // Paiement REJETÉ (montant incohérent) : il ne consomme aucun numéro.
+    // REJECTED payment (inconsistent amount): it consumes no number.
     const ref = 'rejete';
     await t.run((ctx) =>
       ctx.db.insert('paymentCheckouts', {
@@ -231,7 +231,7 @@ describe('Reçus — PDF et accès', () => {
       )?.number,
     ).toBe(receipt.number);
 
-    // Lien du courriel : le jeton exact ouvre, tout autre non.
+    // Email link: the exact token opens it, any other does not.
     expect(
       (
         await t.query(api.payments.member.receiptByToken, {
@@ -249,7 +249,7 @@ describe('Reçus — PDF et accès', () => {
       await t.query(api.payments.member.receiptByToken, { token: 'x' }),
     ).toBeNull();
 
-    // L'espace membre de l'autre compte ne voit pas ce paiement.
+    // The other account's member area does not see this payment.
     const otherView = await other.as.query(api.payments.member.overview, {
       now: Date.now(),
     });
@@ -345,8 +345,8 @@ describe('Cotisations (F-27) — barème et période', () => {
     });
     const firstEnd = first.dues!.periodEnd;
 
-    // Renouvellement ANTICIPÉ : la période suivante commence à la fin de la
-    // période en cours.
+    // EARLY renewal: the next period starts at the end of the
+    // current period.
     await pay();
     const dues = await t.run((ctx) =>
       ctx.db
@@ -357,7 +357,7 @@ describe('Cotisations (F-27) — barème et période', () => {
     expect(dues).toHaveLength(2);
     expect(dues[1].periodStart).toBe(firstEnd);
 
-    // En retard : vue depuis le back-office quand la dernière période est échue.
+    // Overdue: seen from the back-office when the last period has lapsed.
     const later = dues[1].periodEnd + 1000;
     const late = await admin.as.query(api.payments.finances.lateDues, {
       now: later,
@@ -526,17 +526,17 @@ describe('Dons mensuels par relance (F-28, prestataire factice)', () => {
       reminderCount: 0,
     });
 
-    // Rien n'est dû avant l'échéance.
+    // Nothing is due before the due date.
     expect(
       await t.action(internal.payments.recurring.sendDueReminders, {}),
     ).toBe(0);
 
-    // L'échéance arrive : un lien de paiement part.
+    // The due date arrives: a payment link goes out.
     vi.setSystemTime(sub.nextDueAt + 60_000);
     expect(
       await t.action(internal.payments.recurring.sendDueReminders, {}),
     ).toBe(1);
-    // Relancer le cron le même jour ne relance pas deux fois.
+    // Re-running the cron the same day does not remind twice.
     expect(
       await t.action(internal.payments.recurring.sendDueReminders, {}),
     ).toBe(0);
@@ -561,7 +561,7 @@ describe('Dons mensuels par relance (F-28, prestataire factice)', () => {
     );
     expect(txs).toHaveLength(2);
 
-    // Trois relances sans suite (espacées d'une semaine), puis suspension.
+    // Three unanswered reminders (a week apart), then suspension.
     let now = paid!.nextDueAt + 60_000;
     for (let i = 0; i < MAX_REMINDERS; i++) {
       vi.setSystemTime(now);
@@ -601,7 +601,7 @@ describe('Dons mensuels par relance (F-28, prestataire factice)', () => {
     expect(after?.status).toBe('cancelled');
     const donation = await t.run((ctx) => ctx.db.get(after!.donationId!));
     expect(donation?.status).toBe('cancelled');
-    // Arrêté : plus aucune relance, même échéance passée.
+    // Stopped: no more reminders, even past the due date.
     vi.setSystemTime(sub.nextDueAt + 60_000);
     expect(
       await t.action(internal.payments.recurring.sendDueReminders, {}),

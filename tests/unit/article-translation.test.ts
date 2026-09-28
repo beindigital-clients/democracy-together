@@ -5,11 +5,11 @@ import {
   type CachedTranslation,
 } from '@/lib/article-translation';
 
-// La décision « que montre-t-on au lecteur ? » a cinq issues et une règle qui
-// les gouverne : l'original ne disparaît jamais. Ce fichier tient cette règle
-// sur chacune des cinq, y compris les deux qui ne se voient pas en naviguant
-// (traduction périmée, traduction en échec) — ce sont précisément celles qu'un
-// test manuel ne produit pas.
+// The decision "what do we show the reader?" has five outcomes and one rule
+// governing them: the original never disappears. This file holds that rule
+// on each of the five, including the two that do not show up while browsing
+// (stale translation, failed translation) — precisely the ones a
+// manual test does not produce.
 
 const FIELDS = {
   title: 'Título traducido',
@@ -29,8 +29,8 @@ function cached(over: Partial<NonNullable<CachedTranslation>> = {}) {
 
 describe('Affichage d’un article — la langue du lecteur est celle du texte', () => {
   it('ne signale rien, même si une traduction traîne en cache', () => {
-    // Le bandeau n'a de sens que pour dire au lecteur qu'il lit autre chose que
-    // l'original. Sur un article français lu en français, c'est du bruit.
+    // The banner only makes sense to tell readers they are reading something other than
+    // the original. On a French article read in French, it is noise.
     expect(resolveArticleDisplay('fr', 'fr', null, false)).toEqual({
       kind: 'native',
     });
@@ -64,8 +64,8 @@ describe('Affichage d’un article — traduction disponible', () => {
   });
 
   it('le lecteur qui demande l’original l’obtient, traduction ou pas', () => {
-    // C'est tout l'objet du lien « lire l'original » : il doit gagner contre la
-    // disponibilité d'une traduction, sans quoi il ne mène nulle part.
+    // That is the whole point of the "lire l'original" link: it must win over the
+    // availability of a translation, otherwise it leads nowhere.
     const d = resolveArticleDisplay('fr', 'es', cached(), true);
     expect(d).toMatchObject({ kind: 'original', translationAvailable: true });
   });
@@ -78,9 +78,9 @@ describe('Affichage d’un article — traduction disponible', () => {
 
 describe('Affichage d’un article — traduction inutilisable', () => {
   it('périmée : l’original prime et la mise à jour est proposée', () => {
-    // `fresh: false` veut dire que l'auteur a modifié son texte depuis. Servir
-    // la traduction reviendrait à afficher une version qui n'existe plus, sans
-    // que rien ne le dise.
+    // `fresh: false` means the author has edited their text since. Serving
+    // the translation would mean displaying a version that no longer exists, without
+    // anything saying so.
     const d = resolveArticleDisplay(
       'fr',
       'es',
@@ -123,9 +123,9 @@ describe('Affichage d’un article — traduction inutilisable', () => {
   });
 
   it('« prête » sans contenu ne s’affiche pas comme traduite', () => {
-    // Cas dégénéré qu'aucune écriture ne produit aujourd'hui, mais que le type
-    // autorise : `fields` est optionnel. Servir `kind: 'translated'` ici
-    // rendrait un article vide sous un bandeau affirmant qu'il est traduit.
+    // Degenerate case that no write produces today, but that the type
+    // allows: `fields` is optional. Serving `kind: 'translated'` here
+    // would render an empty article under a banner claiming it is translated.
     const d = resolveArticleDisplay(
       'fr',
       'es',
@@ -157,8 +157,8 @@ describe('Codes d’échec — un libellé pour chacun, un repli pour le reste',
   });
 
   it('retombe sur le message générique pour un code inattendu', () => {
-    // La passerelle peut inventer un code demain : la page doit dire « service
-    // indisponible », pas afficher un identifiant technique ni lever.
+    // The gateway may invent a new code tomorrow: the page must say "service
+    // indisponible", not display a technical identifier or throw.
     expect(translationErrorSuffix('QUELQUE_CHOSE_DE_NOUVEAU')).toBe('Generic');
     expect(translationErrorSuffix(undefined)).toBe('Generic');
     expect(translationErrorSuffix('')).toBe('Generic');

@@ -1,22 +1,22 @@
 import { v, type Infer } from 'convex/values';
 import { SITE_LOCALES, type SiteLocale } from '../locales';
 
-// TEXTES TRADUISIBLES DES CONTENUS ÉDITORIAUX (chantier « contenus »).
+// TRANSLATABLE TEXTS OF EDITORIAL CONTENT ("contenus" workstream).
 //
-// Un champ traduisible est un objet à cinq clés OPTIONNELLES, une par langue
-// du site. Pourquoi cette forme plutôt qu'une table de traductions à part :
-// un contenu éditorial se lit toujours dans UNE langue, avec repli — le lire
-// d'un seul document, sans jointure, garde les écrans publics à une lecture
-// d'index. Et un éditeur qui traduit un événement modifie ce document-là ; la
-// traduction n'a pas de vie propre à suivre.
+// A translatable field is an object with five OPTIONAL keys, one per site
+// language. Why this shape rather than a separate translations table:
+// editorial content is always read in ONE language, with fallback — reading it
+// from a single document, without a join, keeps public screens at one index
+// read. And an editor who translates an event edits that very document; the
+// translation has no life of its own to track.
 //
-// Pourquoi optionnelles : un contenu peut naître en français seulement. La
-// langue manquante n'est pas une erreur, c'est un état — que le back-office
-// signale (`missingLocales`) et que le site comble par le REPLI ci-dessous.
+// Why optional: content may be born in French only. The
+// missing language is not an error, it is a state — which the back office
+// flags (`missingLocales`) and which the site fills with the FALLBACK below.
 
-// Les cinq clés sont écrites en clair (et non dérivées de `SITE_LOCALES`) pour
-// que le type inféré soit exact ; `tests/unit/contenus-i18n.test.ts` vérifie
-// qu'elles couvrent bien les langues du site.
+// The five keys are written out explicitly (and not derived from `SITE_LOCALES`) so
+// that the inferred type is exact; `tests/unit/contenus-i18n.test.ts` checks
+// that they do cover the site's languages.
 export const localizedText = v.object({
   fr: v.optional(v.string()),
   en: v.optional(v.string()),
@@ -26,7 +26,7 @@ export const localizedText = v.object({
 });
 export type LocalizedText = Infer<typeof localizedText>;
 
-// Liste de paragraphes traduisibles (positions d'une thématique, questions).
+// List of translatable paragraphs (a theme's positions, questions).
 export const localizedList = v.object({
   fr: v.optional(v.array(v.string())),
   en: v.optional(v.array(v.string())),
@@ -36,17 +36,17 @@ export const localizedList = v.object({
 });
 export type LocalizedList = Infer<typeof localizedList>;
 
-// ORDRE DU REPLI : la langue demandée, puis le français (langue de rédaction
-// du réseau et langue par défaut du site), puis l'anglais, puis la première
-// langue renseignée. Un visiteur arabophone voit donc un titre français
-// plutôt qu'une carte vide — et le back-office lui dit qu'il manque.
+// FALLBACK ORDER: the requested language, then French (the network's writing
+// language and the site's default language), then English, then the first
+// language filled in. An Arabic-speaking visitor thus sees a French title
+// rather than an empty card — and the back office tells them it is missing.
 const FALLBACK_ORDER: readonly SiteLocale[] = ['fr', 'en', 'es', 'pt', 'ar'];
 
 function filled(s: string | undefined): s is string {
   return typeof s === 'string' && s.trim().length > 0;
 }
 
-/** Le texte dans la langue demandée, ou son repli ; `''` si rien n'est saisi. */
+/** The text in the requested language, or its fallback; `''` if nothing was entered. */
 export function pickText(
   text: LocalizedText | undefined,
   locale: SiteLocale,
@@ -57,7 +57,7 @@ export function pickText(
   return '';
 }
 
-/** La langue EFFECTIVEMENT servie par `pickText` (pour l'attribut `lang`). */
+/** The language ACTUALLY served by `pickText` (for the `lang` attribute). */
 export function pickedLocale(
   text: LocalizedText | undefined,
   locale: SiteLocale,
@@ -81,7 +81,7 @@ export function pickList(
   return [];
 }
 
-/** Langues sans texte — l'indicateur « traduction manquante » du back-office. */
+/** Languages without text — the back office's "traduction manquante" indicator. */
 export function missingLocales(
   text: LocalizedText | LocalizedList | undefined,
 ): SiteLocale[] {
@@ -92,7 +92,7 @@ export function missingLocales(
   });
 }
 
-/** Au moins une langue renseignée. */
+/** At least one language filled in. */
 export function hasAnyLocale(
   text: LocalizedText | LocalizedList | undefined,
 ): boolean {
@@ -100,9 +100,9 @@ export function hasAnyLocale(
 }
 
 /**
- * Nettoie un texte traduisible saisi : espaces de bord retirés, langues vides
- * supprimées, longueur BORNÉE par langue (un éditeur est de confiance, pas un
- * document de 1 Mo collé par erreur — la limite de Convex est par document).
+ * Cleans up an entered translatable text: leading/trailing whitespace removed, empty
+ * languages dropped, length BOUNDED per language (an editor is trusted, but not a
+ * 1 MB document pasted by mistake — Convex's limit is per document).
  */
 export function cleanText(
   text: LocalizedText | undefined,

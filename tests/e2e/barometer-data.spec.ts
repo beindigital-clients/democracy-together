@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-// F-40 — Données ouvertes du Baromètre. Les endpoints /[locale]/barometre/data/*
-// servent des fichiers téléchargeables (CSV/JSON/codebook/géométries). Comme les
-// URLs portent une extension, le proxy next-intl les ignore : la locale vient du
-// chemin. Données d'illustration.
+// F-40 — Barometer open data. The /[locale]/barometre/data/* endpoints
+// serve downloadable files (CSV/JSON/codebook/geometries). Since the
+// URLs carry an extension, the next-intl proxy ignores them: the locale comes from the
+// path. Illustrative data.
 
 test('open-data : CSV composite servi en pièce jointe avec en-tête (F-40)', async ({
   request,
@@ -18,7 +18,7 @@ test('open-data : CSV composite servi en pièce jointe avec en-tête (F-40)', as
   expect(body.split('\r\n')[0]).toBe(
     'rank,name_en,country,region,index,category,category_label,trend_direction,trend_change',
   );
-  // 14 pays + en-tête + ligne finale vide
+  // 14 countries + header + trailing empty line
   expect(body.trimEnd().split('\r\n')).toHaveLength(15);
 });
 
@@ -56,7 +56,7 @@ test('baromètre : la section Jeux de données pointe vers de vrais fichiers (F-
 }) => {
   await page.goto('/fr/barometre');
 
-  // Le bouton « Télécharger » de la première ligne mène à un fichier réel.
+  // The first row's "Télécharger" button leads to a real file.
   const firstDownload = page
     .getByRole('link', { name: /Télécharger —/ })
     .first();
@@ -65,11 +65,11 @@ test('baromètre : la section Jeux de données pointe vers de vrais fichiers (F-
     '/fr/barometre/data/composite.csv',
   );
 
-  // Plus aucun lien mort (#) dans la section datasets.
+  // No more dead links (#) in the datasets section.
   const dead = page.locator('#datasets a[href="#"]');
   await expect(dead).toHaveCount(0);
 
-  // Le lien codebook est réel.
+  // The codebook link is real.
   const codebook = page.getByRole('link', { name: 'Codebook' }).first();
   await expect(codebook).toHaveAttribute(
     'href',

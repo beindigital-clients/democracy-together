@@ -44,12 +44,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  // Volontairement NON authentifié : les métadonnées doivent être identiques
-  // pour tous (SEO, cache CDN). Pour une publication réservée, Convex renvoie
-  // déjà l'amorce de résumé tronquée — rien de réservé ne fuite ici (F-35).
-  // Backend muet -> pas de métadonnées plutôt qu'un jet : `generateMetadata`
-  // s'exécute AVANT le rendu, donc une exception ici emporte la page entière
-  // quoi que fasse le corps de la page (F-02).
+  // Deliberately NOT authenticated: the metadata must be identical
+  // for everyone (SEO, CDN cache). For a restricted publication, Convex already returns
+  // the truncated summary teaser — nothing restricted leaks here (F-35).
+  // Silent backend -> no metadata rather than a throw: `generateMetadata`
+  // runs BEFORE rendering, so an exception here takes down the entire page
+  // whatever the page body does (F-02).
   const pub = await fetchOrFallback(
     'bibliotheque/[slug]:metadata',
     () => fetchQuery(api.publications.getBySlug, { slug }),
@@ -59,11 +59,11 @@ export async function generateMetadata({
   return {
     title: pub.title,
     description: pub.abstract,
-    // `alternatesFor` dérive les hreflang de `routing.locales`. La table était
-    // écrite à la main avec fr et en : les trois langues ajoutées n'y seraient
-    // jamais apparues, et /es/bibliotheque/<slug> serait resté invisible aux
-    // moteurs. Le sitemap déclare déjà ces mêmes alternates par la même
-    // fonction — c'était le contrat annoncé par son en-tête.
+    // `alternatesFor` derives the hreflang from `routing.locales`. The table was
+    // hand-written with fr and en: the three added languages would never have
+    // appeared in it, and /es/bibliotheque/<slug> would have remained invisible to
+    // search engines. The sitemap already declares these same alternates through the same
+    // function — that was the contract announced in its header.
     alternates: alternatesFor(locale, `bibliotheque/${slug}`),
   };
 }
@@ -79,13 +79,13 @@ export default async function PublicationPage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  // Le jeton de session est transmis à Convex : c'est lui qui décide si le
-  // lecteur a les droits « membre » et donc si le contenu réservé est servi
-  // (F-35). Sans jeton, Convex verrouille — le gating n'est jamais côté client.
+  // The session token is passed to Convex: it is what decides whether the
+  // reader has "membre" rights and therefore whether restricted content is served
+  // (F-35). Without a token, Convex locks — gating is never client-side.
   const token = await convexAuthNextjsToken();
-  // `undefined` = la requête a ÉCHOUÉ ; `null` = la publication n'existe pas.
-  // Les confondre transformerait une panne en 404, et dirait aux moteurs que
-  // la page a disparu alors qu'elle existe toujours (F-02).
+  // `undefined` = the request FAILED; `null` = the publication does not exist.
+  // Conflating them would turn an outage into a 404, and would tell search engines that
+  // the page has disappeared when it still exists (F-02).
   const pub = await fetchOrFallback(
     'bibliotheque/[slug]',
     () => fetchQuery(api.publications.getBySlug, { slug }, { token }),
@@ -103,8 +103,8 @@ export default async function PublicationPage({
   const t = await getTranslations('library');
   const td = await getTranslations('library.detail');
   const tTrad = await getTranslations('translation');
-  // Les publications liées sont un complément : leur absence ne justifie pas
-  // de perdre la fiche déjà chargée.
+  // Related publications are a complement: their absence does not justify
+  // losing the already loaded entry.
   const related = await fetchOrFallback(
     'bibliotheque/[slug]:related',
     () =>
@@ -116,10 +116,10 @@ export default async function PublicationPage({
     EMPTY_RELATED_PUBLICATIONS,
   );
 
-  // TRADUCTION À LA LECTURE (cf. convex/translation.ts). La langue de rédaction
-  // est la PREMIÈRE de `languages` ; si le lecteur la partage, aucun bandeau.
-  // La lecture du cache est tolérante à la panne : une traduction manquante ne
-  // doit pas emporter une fiche déjà chargée.
+  // TRANSLATION ON READ (cf. convex/translation.ts). The writing language
+  // is the FIRST of `languages`; if the reader shares it, no banner.
+  // The cache read is outage-tolerant: a missing translation must
+  // not take down an already loaded entry.
   const sp = await searchParams;
   const loc = resolveLocale(locale);
   const pubLang = resolveLocale(pub.languages[0]);
@@ -146,9 +146,9 @@ export default async function PublicationPage({
     cached,
     sp.original === '1',
   );
-  // Le texte affiché et sa langue vont de pair. `keypoints` et `body` gardent
-  // leur découpage : le schéma de sortie de la traduction impose le MÊME
-  // nombre d'éléments, ce qui rend l'appariement sûr.
+  // The displayed text and its language go together. `keypoints` and `body` keep
+  // their segmentation: the translation output schema imposes the SAME
+  // number of items, which makes the pairing safe.
   const shown =
     display.kind === 'translated'
       ? {
@@ -169,11 +169,11 @@ export default async function PublicationPage({
 
   const citations = buildCitations(pub, locale);
   const doiUrl = `https://doi.org/${pub.doi}`;
-  // Document téléversé (F-32) si présent, sinon repli sur le DOI — et le
-  // bouton le DIT : mesuré le 27/09 (membre A-8), les 14 publications de
-  // démonstration sans fichier affichaient « Télécharger le PDF » et
-  // ouvraient une notice DOI. Sans fichier, un seul bouton « Consulter
-  // (DOI) », et une note qui l'explique.
+  // Uploaded document (F-32) if present, otherwise fallback to the DOI — and the
+  // button SAYS so: measured on 27/09 (member A-8), the 14 demo
+  // publications without a file displayed "Télécharger le PDF" and
+  // opened a DOI record. Without a file, a single "Consulter
+  // (DOI)" button, and a note explaining it.
   const fileHref = pub.fileUrl ?? doiUrl;
   const langNames = pub.languages
     .map((l) => vocabulary(t, 'langs.', l))
@@ -189,10 +189,10 @@ export default async function PublicationPage({
 
   return (
     <ViewCounter slug={pub.slug} initial={pub.views}>
-      {/* Compteur de consultations (F-37) : enregistre la vue courante et tient
-          le nombre affiché (cf. view-counter.tsx). */}
+      {/* View counter (F-37): records the current view and holds
+          the displayed number (cf. view-counter.tsx). */}
       <div>
-        {/* Fil d'Ariane */}
+        {/* Breadcrumb */}
         <div className={`${WRAP} pt-8`}>
           <p className="text-[13px] text-muted">
             <Link href="/" className="text-muted hover:text-ink">
@@ -206,7 +206,7 @@ export default async function PublicationPage({
           </p>
         </div>
 
-        {/* En-tête publication */}
+        {/* Publication header */}
         <header className="border-b border-line">
           <div className={`${WRAP} pb-12 pt-6`}>
             <Reveal>
@@ -237,8 +237,8 @@ export default async function PublicationPage({
               <p className="mt-1.5 text-sm text-muted">
                 {subParts.join(' · ')}
               </p>
-              {/* Compteur de consultations (F-37) — `pub.views` au rendu serveur,
-                puis la vue courante en plus une fois comptée. */}
+              {/* View counter (F-37) — `pub.views` at server render,
+                then the current view added once counted. */}
               <p className="mt-1 text-[13px] text-muted">
                 <ViewsCount format="sentence" />
               </p>
@@ -246,12 +246,12 @@ export default async function PublicationPage({
           </div>
         </header>
 
-        {/* Corps */}
-        {/* `minmax(0, 1fr)` et non la piste implicite `auto` (RGAA 10.11) :
-            une piste `auto` s'élargit à la largeur MINIMALE de son contenu,
-            et un mot insécable de l'article (DOI, URL de citation) la portait
-            à 331 px dans une fenêtre de 320 — défilement horizontal mesuré à
-            l'audit du 27/09, en français comme en arabe. */}
+        {/* Body */}
+        {/* `minmax(0, 1fr)` and not the implicit `auto` track (RGAA 10.11):
+            an `auto` track widens to the MINIMUM width of its content,
+            and an unbreakable word in the article (DOI, citation URL) pushed it
+            to 331 px in a 320 window — horizontal scrolling measured in
+            the 27/09 audit, in French as well as Arabic. */}
         <div
           className={`${WRAP} grid grid-cols-[minmax(0,1fr)] gap-12 pb-24 pt-12 lg:grid-cols-[minmax(0,1fr)_340px]`}
         >
@@ -293,7 +293,7 @@ export default async function PublicationPage({
 
             {pub.image ? (
               <Reveal className="my-8 block" as="div">
-                {/* Image légendée (RGAA 1.9) : cf. `home-hero.tsx`. */}
+                {/* Captioned image (RGAA 1.9): cf. `home-hero.tsx`. */}
                 <figure
                   role="figure"
                   aria-label={`${vocabulary(t, 'types.', pub.type)} · ${vocabulary(t, 'themes.', pub.theme)} · Democracy Together`}
@@ -334,7 +334,7 @@ export default async function PublicationPage({
 
             <CiteBlock citations={citations} />
 
-            {/* Auteurs */}
+            {/* Authors */}
             <div className="mt-12 flex flex-wrap gap-6 border-t border-line pt-8">
               {pub.authors.map((a) => (
                 <div key={a.name} className="flex items-center gap-3">
@@ -360,9 +360,9 @@ export default async function PublicationPage({
           {/* Sidebar */}
           <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-sm border border-line bg-surface p-5">
-              {/* Publication réservée aux membres (F-35) : `locked` est décidé par
-                Convex, jamais par le client. Aucune URL de document n'est servie
-                ici — on propose l'adhésion à la place du téléchargement. */}
+              {/* Members-only publication (F-35): `locked` is decided by
+                Convex, never by the client. No document URL is served
+                here — we offer membership instead of the download. */}
               {pub.locked ? (
                 <div className="flex flex-col gap-3">
                   <h2 className="font-display text-lg leading-snug">
@@ -404,10 +404,10 @@ export default async function PublicationPage({
                       {td('noFileNote')}
                     </p>
                   )}
-                  {/* Le document joint, reconstruit dans la langue du lecteur
-                    (images conservées). Proposé UNIQUEMENT quand il y a un
-                    fichier : sans PDF, la vue document n'aurait rien à
-                    montrer et le lien mènerait à une page vide. */}
+                  {/* The attached document, rebuilt in the reader's language
+                    (images preserved). Offered ONLY when there is a
+                    file: without a PDF, the document view would have nothing to
+                    show and the link would lead to an empty page. */}
                   {pub.fileUrl ? (
                     <Link
                       href={`/bibliotheque/${slug}/document`}
@@ -416,9 +416,9 @@ export default async function PublicationPage({
                       {tTrad('docTitle')}
                     </Link>
                   ) : null}
-                  {/* « Lire en ligne » n'a de sens qu'avec un document : sans
-                    fichier, il ouvrirait la même notice DOI que le bouton
-                    principal. */}
+                  {/* "Lire en ligne" only makes sense with a document: without a
+                    file, it would open the same DOI record as the main
+                    button. */}
                   {pub.fileUrl ? (
                     <DownloadLink
                       slug={pub.slug}
@@ -498,7 +498,7 @@ export default async function PublicationPage({
           </aside>
         </div>
 
-        {/* Liées */}
+        {/* Related */}
         {related.length ? (
           <section className="border-t border-line">
             <div className={`${WRAP} py-16`}>

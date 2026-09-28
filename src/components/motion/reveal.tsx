@@ -3,38 +3,38 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, useInView, type Variants } from 'framer-motion';
 
-// Le voile n'est posé QU'APRÈS hydratation (audit F-05).
+// The veil is only applied AFTER hydration (audit F-05).
 //
-// Mesuré en 3G lente sur /fr/barometre : LCP 11 800 ms avec le voile,
-// 584 ms sans. Vingt fois. La raison est mécanique — framer rend
-// `initial={{opacity:0}}` en style INLINE côté serveur, et un élément à
-// opacity 0 n'est pas candidat au « largest contentful paint ». Le texte de la
-// page ne comptait donc qu'au moment où framer-motion avait fini de charger,
-// s'hydrater et animer : onze secondes sur le débit que le cadrage annonce
-// comme premier usage.
+// Measured on slow 3G on /fr/barometre: LCP 11,800 ms with the veil,
+// 584 ms without. Twenty times. The reason is mechanical — framer renders
+// `initial={{opacity:0}}` as an INLINE style on the server, and an element at
+// opacity 0 is not a "largest contentful paint" candidate. The page's text
+// therefore only counted once framer-motion had finished loading,
+// hydrating and animating: eleven seconds on the bandwidth the project brief names
+// as the primary usage.
 //
-// `initial={false}` au premier rendu (serveur ET première passe client, pour
-// ne pas dépareiller l'hydratation) : le HTML servi montre son contenu, donc
-// il peint tout de suite. Le voile n'arrive qu'au montage, et il ne se voit
-// que là où il ne coûte rien — sur ce qui est HORS de l'écran, et qui sera
-// révélé au défilement comme avant.
+// `initial={false}` on the first render (server AND first client pass, so as
+// not to mismatch hydration): the served HTML shows its content, so
+// it paints right away. The veil only arrives on mount, and it is only visible
+// where it costs nothing — on what is OFF screen, and which will be
+// revealed on scroll as before.
 //
-// Ce qui se perd, et c'est assumé : le fondu d'entrée du PREMIER écran. Il ne
-// pouvait pas en être autrement — un fondu depuis l'invisible exige d'attendre
-// le script, et c'est exactement ce qu'on refuse de faire payer ici. Tout le
-// reste de la page s'anime comme avant.
-// Première tentative, et pourquoi elle ne suffisait pas : passer `initial` de
-// `false` à l'état voilé après le montage ne voile RIEN — framer ne lit
-// `initial` qu'au montage. Le contenu apparaissait bien tout de suite, mais
-// l'animation d'entrée avait disparu de tout le site, sans bruit. C'est le
-// test `audit/specs/35-reveal-integrite.spec.ts` qui l'a dit.
+// What is lost, and that is accepted: the fade-in of the FIRST screen. It
+// could not be otherwise — a fade from invisible requires waiting for
+// the script, and that is exactly what we refuse to make people pay for here. All the
+// rest of the page animates as before.
+// First attempt, and why it was not enough: switching `initial` from
+// `false` to the veiled state after mount veils NOTHING — framer only reads
+// `initial` on mount. The content did appear right away, but
+// the entrance animation had silently disappeared from the whole site. It was the
+// `audit/specs/35-reveal-integrite.spec.ts` test that caught it.
 //
-// D'où ce pilotage explicite : `useInView` décide, et `animate` applique.
-//   avant montage        -> 'show', et `initial={false}` : rendu tel quel,
-//                           donc visible dans le HTML servi ;
-//   monté, hors écran    -> 'hidden' : le voile arrive là où il ne se voit
-//                           pas, et il y a de nouveau quelque chose à révéler ;
-//   monté, à l'écran     -> 'show' : ce qui était déjà lu ne clignote pas.
+// Hence this explicit control: `useInView` decides, and `animate` applies.
+//   before mount         -> 'show', and `initial={false}`: rendered as is,
+//                           so visible in the served HTML;
+//   mounted, off screen  -> 'hidden': the veil arrives where it is not
+//                           seen, and there is once again something to reveal;
+//   mounted, on screen   -> 'show': what was already read does not flicker.
 function useEtatReveal(ref: React.RefObject<Element | null>, margin: string) {
   const [monte, setMonte] = useState(false);
   useEffect(() => setMonte(true), []);
@@ -45,34 +45,34 @@ function useEtatReveal(ref: React.RefObject<Element | null>, margin: string) {
   return !monte || vu ? 'show' : 'hidden';
 }
 
-// Primitives d'animation (entrée au scroll). Le respect de
-// prefers-reduced-motion est géré GLOBALEMENT par <MotionProvider>
-// (MotionConfig reducedMotion="user") : pour ces utilisateurs, framer désactive
-// les transforms mais garde l'opacité, donc le contenu APPARAÎT toujours.
-// Important : whileInView/animate est TOUJOURS posé — jamais retiré — sinon le
-// contenu resterait bloqué en opacity:0 (contenu invisible).
+// Animation primitives (entrance on scroll). Respecting
+// prefers-reduced-motion is handled GLOBALLY by <MotionProvider>
+// (MotionConfig reducedMotion="user"): for these users, framer disables
+// transforms but keeps opacity, so the content always APPEARS.
+// Important: whileInView/animate is ALWAYS set — never removed — otherwise the
+// content would stay stuck at opacity:0 (invisible content).
 //
-// Ease = easeOutQuart : décélération douce et progressive, sans à-coup au départ
-// (cohérent avec le hero ; remplace l'ancien easeOutExpo jugé trop sec).
+// Ease = easeOutQuart: gentle, gradual deceleration, with no jolt at the start
+// (consistent with the hero; replaces the former easeOutExpo, deemed too abrupt).
 //
-// SANS JAVASCRIPT : `initial` est rendu en style inline par framer-motion, donc
-// le contenu arrive à opacity:0 et y RESTE si le script ne s'exécute jamais.
-// Mesuré avant correctif : la page des mentions légales était entièrement
-// blanche, 8 éléments bloqués à opacity:0. C'est le défaut relevé au § 5.6 de
-// l'audit, aggravé — il n'est pas seulement « avant hydratation ».
-// L'attribut `data-reveal` permet à une règle <noscript> du layout de rétablir
-// la visibilité, sans rien changer pour les navigateurs avec JavaScript.
+// WITHOUT JAVASCRIPT: `initial` is rendered as an inline style by framer-motion, so
+// the content arrives at opacity:0 and STAYS there if the script never runs.
+// Measured before the fix: the legal notice page was entirely
+// blank, 8 elements stuck at opacity:0. This is the defect noted in § 5.6 of
+// the audit, made worse — it is not only "before hydration".
+// The `data-reveal` attribute lets a <noscript> rule in the layout restore
+// visibility, without changing anything for browsers with JavaScript.
 
 const EASE = [0.165, 0.84, 0.44, 1] as const;
 
-// `aria-label` EST RELAYÉ, et il a fallu le constater pour le savoir.
-// `RevealGroup` le déclarait depuis le début ; `Reveal`, non — et
-// `evenements/calendrier/page.tsx` lui en passait un pour nommer la grille du
-// mois. TypeScript ne dit rien : un attribut JSX À TIRET échappe au contrôle
-// des propriétés en trop, si bien que le nom était écrit dans la page et
-// ABSENT du DOM. Vérifié sur le HTML servi avant correctif : le `<section>`
-// ne portait que `data-reveal`, `class` et `style`. Un `<section>` sans nom
-// accessible n'est pas un repère `region` — c'est une balise neutre.
+// `aria-label` IS FORWARDED, and it took observing it to know it.
+// `RevealGroup` declared it from the start; `Reveal` did not — and
+// `evenements/calendrier/page.tsx` passed it one to name the month
+// grid. TypeScript says nothing: a HYPHENATED JSX attribute escapes the
+// excess-property check, so the name was written in the page and
+// ABSENT from the DOM. Verified on the served HTML before the fix: the `<section>`
+// carried only `data-reveal`, `class` and `style`. A `<section>` without an
+// accessible name is not a `region` landmark — it is a neutral tag.
 export function Reveal({
   children,
   delay = 0,
@@ -88,10 +88,10 @@ export function Reveal({
   id?: string;
   'aria-label'?: string;
 }) {
-  // `motion[as]` est une UNION de composants ; typer la ref contre chacun à la
-  // fois est impossible. Le cast porte sur le TYPE seulement — à l'exécution
-  // c'est bien la balise demandée qui est rendue, et toutes les propriétés
-  // employées ici (className, ref, variants, animate) leur sont communes.
+  // `motion[as]` is a UNION of components; typing the ref against each of them at
+  // once is impossible. The cast is on the TYPE only — at runtime
+  // it is indeed the requested tag that is rendered, and all the props
+  // used here (className, ref, variants, animate) are common to them.
   const Comp = motion[as] as typeof motion.div;
   const ref = useRef<HTMLDivElement>(null);
   const etat = useEtatReveal(ref, '-80px');

@@ -35,8 +35,8 @@ export default async function ExpertsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('experts');
-  const tl = await getTranslations('library'); // libellés des axes themes.*
-  // Backend injoignable -> l'état vide que la page sait déjà rendre (F-02).
+  const tl = await getTranslations('library'); // labels for the themes.* axes
+  // Backend unreachable -> the empty state the page already knows how to render (F-02).
   const experts = await fetchOrFallback(
     'experts',
     () => fetchQuery(api.experts.listExperts, {}),

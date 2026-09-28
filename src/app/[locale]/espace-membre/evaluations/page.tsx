@@ -5,9 +5,9 @@ import { useTranslations } from 'next-intl';
 import { EvaluationsBoard } from '@/components/projects/evaluations-board';
 import { MemberPageHeader, PAGE } from '@/components/programmes/shared';
 
-// Évaluations confiées (F-60). Un évaluateur désigné est un membre du réseau,
-// pas forcément du staff : l'écran vit donc dans l'espace membre, et c'est la
-// désignation (vérifiée par Convex) qui ouvre les dossiers.
+// Assigned evaluations (F-60). An appointed evaluator is a network member,
+// not necessarily staff: the screen therefore lives in the member area, and
+// it is the appointment (checked by Convex) that opens the files.
 function Page() {
   const t = useTranslations('projects');
   return (

@@ -6,10 +6,10 @@ import schema from './schema';
 import { USER_DATA_MODULES, advanceDeletion } from './lib/accountDeletion';
 import { AVAILABILITIES } from './lib/programmes';
 
-// FUSION DES CHANTIERS DU BACKLOG (27/09) : la suppression de compte doit
-// passer par les modules de TOUS les chantiers, pas seulement par le socle
-// écrit avant eux. Ce test fixe le registre et vérifie qu'une suppression
-// menée à terme ne laisse rien des données personnelles d'un chantier.
+// MERGE OF THE BACKLOG WORKSTREAMS (27/09): account deletion must
+// go through the modules of ALL workstreams, not only the core
+// written before them. This test pins the registry and checks that a deletion
+// carried through to completion leaves nothing of a workstream's personal data.
 const modules = import.meta.glob([
   './**/*.ts',
   './**/*.js',
@@ -36,7 +36,7 @@ describe('Suppression de compte — registre des chantiers', () => {
     }
     expect(keys.indexOf('communaute')).toBeLessThan(keys.indexOf('tribune'));
     expect(keys.indexOf('communaute')).toBeLessThan(keys.indexOf('workspaces'));
-    // Les moyens de connexion partent en dernier.
+    // Sign-in methods go last.
     expect(keys[keys.length - 1]).toBe('authAccounts');
   });
 
@@ -93,7 +93,7 @@ describe('Suppression de compte — registre des chantiers', () => {
     await t.run(async (ctx) => {
       expect(await ctx.db.query('youthProfiles').collect()).toHaveLength(0);
       expect(await ctx.db.query('follows').collect()).toHaveLength(0);
-      // Le tiers, lui, est intact.
+      // The third party, for its part, is intact.
       expect(await ctx.db.get(otherId)).not.toBeNull();
     });
   });

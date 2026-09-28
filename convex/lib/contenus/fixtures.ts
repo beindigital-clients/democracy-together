@@ -1,15 +1,15 @@
 import type { MutationCtx } from '../../_generated/server';
 import type { Doc, Id } from '../../_generated/dataModel';
 
-// JEU D'ESSAI DES TESTS — un événement minimal, daté RELATIVEMENT à l'horloge.
+// TEST FIXTURES — a minimal event, dated RELATIVE to the clock.
 //
-// Les tests ne s'appuient pas sur le catalogue codé pour les règles de date :
-// ses événements sont datés en dur (2026), donc un test « à venir » écrit
-// aujourd'hui échouerait tout seul le jour où la date passe. Ici, un
-// événement « dans 3 jours » l'est à chaque exécution.
+// Tests do not rely on the coded catalog for date rules:
+// its events are hard-dated (2026), so an "upcoming" test written
+// today would fail on its own the day the date passes. Here, an
+// event "in 3 days" is so on every run.
 //
-// Module pur (aucune fonction Convex enregistrée) : il vit sous `lib/` pour
-// être importé des tests sans être exposé.
+// Pure module (no registered Convex function): it lives under `lib/` so it can
+// be imported from tests without being exposed.
 export async function insertTestEvent(
   ctx: MutationCtx,
   overrides: Partial<Omit<Doc<'contentEvents'>, '_id' | '_creationTime'>> & {

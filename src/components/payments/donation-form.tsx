@@ -24,14 +24,14 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { PaymentsUnavailable } from './payments-unavailable';
 import { formatMajor, knownPaymentError } from './format';
 
-// FORMULAIRE DE DON (F-28) — ponctuel ou mensuel, montant suggéré ou libre,
-// en euro ou en dollar des États-Unis selon les prestataires configurés.
+// DONATION FORM (F-28) — one-off or monthly, suggested or custom amount,
+// in euros or US dollars depending on the configured providers.
 //
-// Les bornes et les montants suggérés sont LUS du module partagé avec le
-// serveur (`@convex/lib/payments/amounts`) : le champ refuse ce que le serveur
-// refuserait, avant la redirection. Le serveur revérifie tout.
+// The bounds and suggested amounts are READ from the module shared with the
+// server (`@convex/lib/payments/amounts`): the field rejects what the server
+// would reject, before the redirect. The server re-checks everything.
 //
-// Aucun prestataire : pas de formulaire, mais l'alternative (virement, contact).
+// No provider: no form, but the alternative (bank transfer, contact).
 
 const MESSAGE_MAX = 500;
 const PILL =
@@ -61,14 +61,14 @@ export function DonationForm() {
     message: '',
   });
 
-  // Connecté : l'adresse du compte pré-remplit le champ (une fois, sans
-  // écraser une saisie). Le don est alors rattaché au compte — reçu dans
-  // l'espace membre.
+  // Signed in: the account's address pre-fills the field (once, without
+  // overwriting user input). The donation is then linked to the account — receipt in
+  // the member area.
   const accountEmail = me?.email;
   const typedEmail = values.email;
   useEffect(() => {
     if (accountEmail && !typedEmail) setValue('email', accountEmail);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pré-remplissage au chargement du compte seulement
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-fill only when the account loads
   }, [accountEmail, setValue]);
 
   if (options === undefined) {
@@ -91,9 +91,9 @@ export function DonationForm() {
   const mode = options.currencies.find((c) => c.currency === currency)!;
   const bounds = DONATION_BOUNDS[currency];
   const suggested = SUGGESTED_DONATIONS[currency];
-  // Montant présélectionné : le deuxième montant suggéré de la devise
-  // affichée, tant que le donateur n'a rien choisi (ou que son choix
-  // appartenait à l'autre devise).
+  // Preselected amount: the second suggested amount for the displayed
+  // currency, as long as the donor has chosen nothing (or their choice
+  // belonged to the other currency).
   const preset =
     chosenPreset === 'other' ||
     (chosenPreset !== null && suggested.includes(chosenPreset))
@@ -108,7 +108,7 @@ export function DonationForm() {
 
   function switchCurrency(next: Currency) {
     setCurrency(next);
-    // Les montants suggérés d'une devise n'ont pas de sens dans l'autre.
+    // One currency's suggested amounts make no sense in the other.
     setPreset(null);
     setValue('other', '');
   }
@@ -148,7 +148,7 @@ export function DonationForm() {
         locale: resolveLocale(locale),
         captchaToken,
       });
-      // Page hébergée du prestataire (ou simulateur en développement).
+      // Provider's hosted page (or simulator in development).
       window.location.assign(redirectUrl);
     } catch (err) {
       setError(vocabulary(t, 'err_', knownPaymentError(err)));

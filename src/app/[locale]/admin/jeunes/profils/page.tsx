@@ -17,8 +17,8 @@ import {
   useProgrammeError,
 } from '@/components/programmes/shared';
 
-// Revue des profils Jeunes et de leurs candidatures aux programmes (F-58) —
-// rang modérateur, comme la file anonyme de /admin/jeunes.
+// Review of Youth profiles and their programme applications (F-58) —
+// moderator rank, like the anonymous queue at /admin/jeunes.
 export default function AdminYouthProfiles() {
   const t = useTranslations('youth');
   const tl = useTranslations('library');

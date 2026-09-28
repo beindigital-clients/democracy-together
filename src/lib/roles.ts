@@ -1,14 +1,14 @@
-// Rôles réseau côté interface.
+// Network roles, UI side.
 //
-// Le vocabulaire, la valeur par défaut et le calcul du rang viennent de
-// `convex/lib/roles.ts` — module PUR (aucun type serveur Convex), importé ici
-// par l'alias `@convex/*` comme l'UI le fait déjà pour le vocabulaire de
-// l'annuaire. Ce fichier n'en redéclare donc plus rien : l'affichage et
-// l'autorisation serveur ne peuvent plus diverger, et la décision « pas de
-// rôle = visiteur » n'est écrite qu'à un seul endroit du dépôt (issue #27).
+// The vocabulary, the default value and the rank computation come from
+// `convex/lib/roles.ts` — a PURE module (no Convex server types), imported here
+// through the `@convex/*` alias as the UI already does for the directory
+// vocabulary. This file therefore redeclares none of it: display and server
+// authorization can no longer diverge, and the "no role = visitor" decision
+// is written in only one place in the repo (issue #27).
 //
-// L'autorisation réelle reste serveur (requireNetworkRole) ; ce qui suit ne
-// pilote que l'affichage (gate UI, liens staff).
+// Real authorization stays server-side (requireNetworkRole); what follows
+// only drives display (UI gate, staff links).
 import { ROLE_ORDER, roleRank } from '@convex/lib/roles';
 
 export {
@@ -20,8 +20,8 @@ export {
 } from '@convex/lib/roles';
 export type { NetworkRole } from '@convex/lib/roles';
 
-// Membre validé et au-dessus (peut déposer des publications). Voir le modèle
-// d'adhésion B : l'auto-inscription donne « visiteur », pas « membre ».
+// Validated member and above (can submit publications). See membership
+// model B: self-registration grants "visiteur", not "membre".
 export function isMember(role: string | null | undefined): boolean {
   return roleRank(role) >= ROLE_ORDER.indexOf('membre');
 }
@@ -30,7 +30,7 @@ export function isStaff(role: string | null | undefined): boolean {
   return roleRank(role) >= ROLE_ORDER.indexOf('moderateur');
 }
 
-// Éditeur et au-dessus (gère les contenus éditoriaux, ex. campagnes newsletter).
+// Editor and above (manages editorial content, e.g. newsletter campaigns).
 export function isEditor(role: string | null | undefined): boolean {
   return roleRank(role) >= ROLE_ORDER.indexOf('editeur');
 }

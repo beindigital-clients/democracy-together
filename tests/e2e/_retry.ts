@@ -1,23 +1,23 @@
-// Rejoue une opération dont l'échec est un incident de TRANSPORT, jamais une
-// erreur applicative. La suite parle à un déploiement Convex distant, et chaque
-// appel ci-dessous ouvre sa propre connexion : `getOtp` en déclenche jusqu'à 24
-// pour une seule connexion. Sous cette rafale, la première exécution réelle des
-// E2E a rendu 18 `TypeError: fetch failed` et 4 `ECONNRESET` — la préversion
-// répondait pourtant (le seed du workflow venait de passer).
+// Replays an operation whose failure is a TRANSPORT incident, never an
+// application error. The suite talks to a remote Convex deployment, and each
+// call below opens its own connection: `getOtp` triggers up to 24 of them
+// for a single sign-in. Under this burst, the first real run of the
+// E2E tests produced 18 `TypeError: fetch failed` and 4 `ECONNRESET` — yet the preview
+// was responding (the workflow's seed had just passed).
 //
-// Le filtre est volontairement ÉTROIT : on ne rejoue que les pannes de
-// transport nommées ci-dessous. Une fonction Convex qui lève (validateur,
-// autorisation, argument invalide) remonte immédiatement — sinon un défaut
-// applicatif deviendrait une attente de 3 secondes suivie du même échec, en
-// moins lisible.
+// The filter is deliberately NARROW: we only replay the transport failures
+// named below. A Convex function that throws (validator,
+// authorization, invalid argument) surfaces immediately — otherwise an
+// application defect would become a 3-second wait followed by the same failure,
+// only less readable.
 const TRANSPORT =
   /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|network|Connection closed/i;
 
-// Aplatit en texte ce qu'une erreur peut porter. `execFileSync` lève une Error
-// dont `stderr` est un Uint8Array (vérifié, pas supposé) et dont le `message`
-// contient DÉJÀ la sortie d'erreur ; `ConvexHttpClient`, lui, chaîne la panne
-// réseau dans `cause`. On lit les trois, sans jamais laisser un objet tomber
-// dans `[object Object]`.
+// Flattens into text what an error may carry. `execFileSync` throws an Error
+// whose `stderr` is a Uint8Array (verified, not assumed) and whose `message`
+// ALREADY contains the error output; `ConvexHttpClient`, for its part, chains
+// the network failure in `cause`. We read all three, without ever letting an
+// object fall into `[object Object]`.
 function text(value: unknown, depth = 0): string {
   if (value == null || depth > 3) return '';
   if (typeof value === 'string') return value;
@@ -41,9 +41,9 @@ export function retrySync<T>(label: string, run: () => T): T {
     } catch (err) {
       if (!isTransport(err)) throw err;
       last = err;
-      // 300 ms, 600 ms, 1200 ms — attente active assumée : ces helpers sont
-      // synchrones (execFileSync), et les rendre asynchrones changerait la
-      // signature de la moitié des specs pour un gain nul.
+      // 300 ms, 600 ms, 1200 ms — busy wait, on purpose: these helpers are
+      // synchronous (execFileSync), and making them asynchronous would change the
+      // signature of half the specs for zero gain.
       const wait = 300 * 2 ** (attempt - 1);
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
     }

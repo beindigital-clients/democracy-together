@@ -1,23 +1,24 @@
-// RÉSEAU SOCIAL ENTRE PERSONNES — règles PURES (profil, suivi, messagerie).
+// PERSON-TO-PERSON SOCIAL NETWORK — PURE rules (profile, following,
+// messaging).
 //
-// Ce module n'importe aucun type serveur Convex : l'interface le lit par
-// l'alias `@convex/lib/social` (bornes des champs, vocabulaires, décision de
-// visibilité), comme elle lit déjà `@convex/lib/validation`. Le compteur d'un
-// champ, son `maxLength` et le refus serveur lisent donc LE MÊME nombre.
+// This module imports no Convex server type: the interface reads it through
+// the `@convex/lib/social` alias (field bounds, vocabularies, visibility
+// decision), as it already reads `@convex/lib/validation`. A field's counter,
+// its `maxLength` and the server rejection therefore read THE SAME number.
 //
-// Les décisions d'accès (qui voit un profil, qui peut écrire à qui) sont des
-// fonctions pures : c'est ce qui permet de les tester en table de vérité
-// (tests/unit/social-rules.test.ts) indépendamment de la base.
+// Access decisions (who sees a profile, who can write to whom) are pure
+// functions: that is what lets them be tested as a truth table
+// (tests/unit/social-rules.test.ts) independently of the database.
 
 import { v } from 'convex/values';
 import { DIRECTORY_THEMES, fold, countryTerms } from './directory';
 import { PUB_LANGS } from './publications';
 
-// --- Vocabulaires ------------------------------------------------------------
+// --- Vocabularies ------------------------------------------------------------
 
-// Visibilité du profil. `members` = membres VALIDÉS du réseau (rôle ≥ membre),
-// pas « tout compte connecté » : un visiteur auto-inscrit n'appartient pas au
-// réseau, et le réglage s'appelle « membres du réseau ».
+// Profile visibility. `members` = VALIDATED network members (role ≥ member),
+// not "any signed-in account": a self-registered visitor does not belong to
+// the network, and the setting is called "network members".
 export const PROFILE_VISIBILITIES = ['private', 'members', 'public'] as const;
 export type ProfileVisibility = (typeof PROFILE_VISIBILITIES)[number];
 export const profileVisibilityValidator = v.union(
@@ -26,9 +27,9 @@ export const profileVisibilityValidator = v.union(
   v.literal('public'),
 );
 
-// « Qui peut m'écrire ». `followed` = les personnes QUE JE SUIS (c'est moi qui
-// ouvre la porte en suivant quelqu'un), pas celles qui me suivent : suivre est
-// unilatéral, et laisser écrire tout abonné reviendrait à « tout membre ».
+// "Who can write to me". `followed` = the people I FOLLOW (I am the one who
+// opens the door by following someone), not those who follow me: following
+// is one-way, and letting any follower write would amount to "any member".
 export const MESSAGE_POLICIES = ['nobody', 'followed', 'members'] as const;
 export type MessagePolicy = (typeof MESSAGE_POLICIES)[number];
 export const messagePolicyValidator = v.union(
@@ -37,14 +38,14 @@ export const messagePolicyValidator = v.union(
   v.literal('members'),
 );
 
-// Valeurs par défaut d'un profil qui naît. Un profil n'existe que si la
-// personne l'enregistre : ce n'est donc pas un réglage imposé à son insu. On
-// retient le cran INTERMÉDIAIRE (visible des seuls membres, pas du web) —
-// l'indexation publique reste un choix explicite (RGPD, art. 25).
+// Default values for a newly created profile. A profile only exists if the
+// person saves it: so this is not a setting imposed without their knowledge.
+// We pick the INTERMEDIATE level (visible to members only, not to the web) —
+// public indexing remains an explicit choice (GDPR, art. 25).
 export const DEFAULT_VISIBILITY: ProfileVisibility = 'members';
 export const DEFAULT_MESSAGE_POLICY: MessagePolicy = 'members';
 
-// Liens de profil : un type (pour l'icône et le libellé) et une adresse.
+// Profile links: a type (for the icon and label) and an address.
 export const LINK_KINDS = [
   'website',
   'linkedin',
@@ -60,9 +61,9 @@ export const linkKindValidator = v.union(
   ...LINK_KINDS.map((k) => v.literal(k)),
 );
 
-// Thématiques et langues : les vocabulaires DÉJÀ tenus par l'annuaire (10
-// domaines d'expertise) et par la bibliothèque (les langues servies). Une
-// seconde liste divergerait au premier ajout.
+// Themes and languages: the vocabularies ALREADY maintained by the directory
+// (10 areas of expertise) and by the library (the languages served). A second
+// list would diverge at the first addition.
 export const PROFILE_THEMES = DIRECTORY_THEMES;
 export const PROFILE_LANGUAGES = PUB_LANGS;
 
@@ -73,7 +74,7 @@ export function isProfileLanguage(value: string): boolean {
   return (PROFILE_LANGUAGES as readonly string[]).includes(value);
 }
 
-// --- Bornes ------------------------------------------------------------------
+// --- Bounds ------------------------------------------------------------------
 
 export const PROFILE_BOUNDS = {
   displayName: { min: 2, max: 80 },
@@ -86,58 +87,57 @@ export const PROFILE_BOUNDS = {
   handle: { min: 3, max: 30 },
 } as const;
 
-// Message privé : borné comme un commentaire court. Un message n'est pas un
-// billet ; au-delà, c'est un document à partager autrement.
+// Private message: bounded like a short comment. A message is not a post;
+// beyond that, it is a document to share some other way.
 export const MESSAGE_BOUNDS = { min: 1, max: 2000 } as const;
 
-// Motif d'un signalement : court, facultatif.
+// Reason for a report: short, optional.
 export const REPORT_REASON_MAX = 500;
 
-// Photo : 2 Mo, trois formats d'image matricielle. Pas de SVG : c'est un
-// document actif (scripts, liens), servi depuis le stockage il s'exécuterait.
+// Photo: 2 MB, three raster image formats. No SVG: it is an active document
+// (scripts, links); served from storage, it would execute.
 export const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 export const PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
 export type PhotoType = (typeof PHOTO_TYPES)[number];
 
-// --- Limitation de débit -----------------------------------------------------
+// --- Rate limiting -----------------------------------------------------------
 //
-// Déclarée ICI et non dans `RATE_LIMITS` (convex/lib/rateLimit.ts) : le
-// chantier « social » garde ses barèmes ensemble, et les clés portent le
-// préfixe `social:` — aucune collision possible avec les compteurs existants.
+// Declared HERE and not in `RATE_LIMITS` (convex/lib/rateLimit.ts): the
+// "social" workstream keeps its limits together, and the keys carry the
+// `social:` prefix — no possible collision with the existing counters.
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 export const SOCIAL_RATE_LIMITS = {
-  // Un échange soutenu à deux reste loin de 30 messages en 10 minutes ; un
-  // script d'arrosage l'atteint en quelques secondes.
+  // A sustained two-person exchange stays far from 30 messages in 10 minutes; a
+  // spamming script reaches it in a few seconds.
   message: { max: 30, windowMs: 10 * MINUTE },
-  // Ouvrir des conversations avec des inconnus est le geste du spam : plafond
-  // quotidien distinct du débit de messages.
+  // Opening conversations with strangers is the spammer's move: a daily cap
+  // separate from the message rate.
   newConversation: { max: 20, windowMs: 24 * HOUR },
   follow: { max: 60, windowMs: HOUR },
   block: { max: 30, windowMs: HOUR },
   report: { max: 20, windowMs: HOUR },
   profileSave: { max: 30, windowMs: HOUR },
   photo: { max: 20, windowMs: HOUR },
-  // Recherche dans l'annuaire des personnes : une query ne peut pas écrire de
-  // compteur ; le plafond d'énumération est donc la TAILLE de page (voir
-  // `PEOPLE_SEARCH_MAX`), pas un débit.
-  // Courriel « nouveau message » : au plus un par conversation et par demi-heure.
+  // People directory search: a query cannot write a counter; the enumeration
+  // cap is therefore the page SIZE (see `PEOPLE_SEARCH_MAX`), not a rate.
+  // "New message" e-mail: at most one per conversation per half hour.
   messageEmail: { max: 1, windowMs: 30 * MINUTE },
 } as const;
 
-// Taille maximale d'une page d'annuaire des personnes : borne le coût de la
-// query ET ce qu'un membre peut aspirer en une requête.
+// Maximum size of a people directory page: bounds the query's cost AND what
+// a member can scrape in one request.
 export const PEOPLE_SEARCH_MAX = 48;
 
-// --- Identifiant public (« handle ») -----------------------------------------
+// --- Public identifier ("handle") --------------------------------------------
 //
-// Minuscules, chiffres et tirets, 3 à 30 caractères, ni tiret en tête ni en
-// fin. C'est un segment d'URL (`/membres/<handle>`) : rien qui demande un
-// encodage, rien qui ressemble à une route du site.
+// Lowercase letters, digits and hyphens, 3 to 30 characters, no leading or
+// trailing hyphen. It is a URL segment (`/membres/<handle>`): nothing that
+// requires encoding, nothing that looks like a site route.
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{1,28})[a-z0-9]$/;
 
-// Noms qu'une personne ne peut pas prendre : ils se feraient passer pour
-// l'institution ou pour une page du site.
+// Names a person cannot take: they would impersonate the institution or a
+// page of the site.
 export const RESERVED_HANDLES = [
   'admin',
   'administrateur',
@@ -172,9 +172,10 @@ export function isValidHandle(handle: string): boolean {
   );
 }
 
-// Handle DÉRIVÉ du nom affiché quand la personne n'en choisit pas. Stable :
-// il n'est calculé qu'à la création du profil, jamais recalculé quand le nom
-// change (un lien partagé doit continuer de mener au même profil).
+// Handle DERIVED from the display name when the person does not choose one.
+// Stable: it is only computed when the profile is created, never recomputed
+// when the name changes (a shared link must keep leading to the same
+// profile).
 export function deriveHandle(displayName: string): string {
   const base = displayName
     .normalize('NFD')
@@ -191,12 +192,12 @@ export function deriveHandle(displayName: string): string {
   return candidate;
 }
 
-// --- Liens -------------------------------------------------------------------
+// --- Links -------------------------------------------------------------------
 
-// Un lien de profil est ABSOLU, en HTTPS, sans identifiants embarqués
-// (`https://user:pass@…` sert à l'hameçonnage), et d'une longueur bornée. Le
-// schéma `http:` est refusé : une page de profil publique ne renvoie pas ses
-// lecteurs vers un transport en clair.
+// A profile link is ABSOLUTE, over HTTPS, with no embedded credentials
+// (`https://user:pass@…` is used for phishing), and of bounded length. The
+// `http:` scheme is refused: a public profile page does not send its readers
+// to a cleartext transport.
 export function isValidProfileLink(value: string): boolean {
   const s = value.trim();
   if (!s || s.length > PROFILE_BOUNDS.linkUrl.max) return false;
@@ -208,22 +209,22 @@ export function isValidProfileLink(value: string): boolean {
   }
   if (url.protocol !== 'https:') return false;
   if (url.username || url.password) return false;
-  // Un hôte sans point (`https://localhost`, `https://intranet`) n'est pas
-  // une adresse publique.
+  // A host without a dot (`https://localhost`, `https://intranet`) is not a
+  // public address.
   return url.hostname.includes('.');
 }
 
-// --- Décisions d'accès (pures) -----------------------------------------------
+// --- Access decisions (pure) -------------------------------------------------
 
 export type ProfileAccessInput = {
   visibility: ProfileVisibility;
   isSelf: boolean;
-  // Le propriétaire appartient-il au réseau (rôle ≥ membre) ? Un profil de
-  // visiteur, ou d'un compte rétrogradé, n'est visible que de lui-même, quel
-  // que soit le réglage enregistré.
+  // Does the owner belong to the network (role ≥ member)? A visitor's profile,
+  // or a demoted account's, is only visible to themselves, whatever the saved
+  // setting.
   ownerIsMember: boolean;
   viewerIsMember: boolean;
-  // Le propriétaire a bloqué le lecteur : le profil lui est invisible.
+  // The owner has blocked the reader: the profile is invisible to them.
   blockedByOwner: boolean;
 };
 
@@ -241,7 +242,7 @@ export function canViewProfile(input: ProfileAccessInput): boolean {
   }
 }
 
-// Le profil est-il INDEXABLE (page publique, métadonnées, sitemap) ?
+// Is the profile INDEXABLE (public page, metadata, sitemap)?
 export function isIndexable(input: {
   visibility: ProfileVisibility;
   ownerIsMember: boolean;
@@ -252,15 +253,15 @@ export function isIndexable(input: {
 export type MessageAccessInput = {
   senderIsMember: boolean;
   recipientIsMember: boolean;
-  // Blocage dans UN des deux sens : il ferme la conversation dans les deux.
+  // Blocking in EITHER direction: it closes the conversation both ways.
   blockedEitherWay: boolean;
   recipientPolicy: MessagePolicy;
-  // Le destinataire suit-il l'expéditeur ?
+  // Does the recipient follow the sender?
   recipientFollowsSender: boolean;
-  // Le destinataire a-t-il DÉJÀ écrit dans cette conversation ? Celui qui a
-  // ouvert l'échange ne peut pas se voir refuser la réponse de son
-  // interlocuteur : sans cette règle, une personne réglée sur « personne »
-  // pourrait écrire à tout le monde sans que personne ne puisse lui répondre.
+  // Has the recipient ALREADY written in this conversation? Whoever opened the
+  // exchange cannot be refused their counterpart's reply: without this rule, a
+  // person set to "nobody" could write to everyone without anyone being able
+  // to answer them.
   recipientHasWritten: boolean;
   isSelf: boolean;
 };
@@ -284,13 +285,13 @@ export function messageRefusal(
   }
 }
 
-// --- Préférences de notification ---------------------------------------------
+// --- Notification preferences ------------------------------------------------
 //
-// Les types émis par `notify()` (convex/lib/notify.ts) qu'une personne peut
-// couper. La liste est FERMÉE : une préférence enregistrée hors de ce
-// vocabulaire est refusée à l'écriture. Un type émis par un autre module et
-// absent d'ici reste simplement toujours actif (défaut sûr : on ne perd pas
-// une notification faute de l'avoir cataloguée).
+// The types emitted by `notify()` (convex/lib/notify.ts) that a person can
+// turn off. The list is CLOSED: a preference saved outside this vocabulary
+// is refused on write. A type emitted by another module and absent from here
+// simply stays always on (safe default: we do not lose a notification for
+// lack of having catalogued it).
 export const NOTIFICATION_PREF_TYPES = [
   'publication_published',
   'publication_rejected',
@@ -310,18 +311,18 @@ export function isNotificationPrefType(value: string): boolean {
   return (NOTIFICATION_PREF_TYPES as readonly string[]).includes(value);
 }
 
-// Types émis par ce chantier.
+// Types emitted by this workstream.
 export const SOCIAL_NOTIF = {
   FOLLOW: 'social_follow',
   MESSAGE: 'social_message',
 } as const satisfies Record<string, NotificationPrefType>;
 
-// --- Photo : contenu réel -----------------------------------------------------
+// --- Photo: actual content ----------------------------------------------------
 //
-// Le type annoncé au téléversement est une DÉCLARATION du client ; le type
-// relevé par le stockage aussi (il reprend l'en-tête de la requête). Seuls
-// les premiers octets disent ce que le fichier est. Un « portrait.png » qui
-// commence par `<svg` ou `%PDF` est refusé.
+// The type announced on upload is a client DECLARATION; so is the type
+// recorded by storage (it copies the request header). Only the first bytes
+// say what the file is. A "portrait.png" that starts with `<svg` or `%PDF` is
+// refused.
 export function sniffImageType(bytes: Uint8Array): PhotoType | null {
   const b = bytes;
   if (
@@ -356,12 +357,12 @@ export function sniffImageType(bytes: Uint8Array): PhotoType | null {
   return null;
 }
 
-// --- Recherche ---------------------------------------------------------------
+// --- Search ------------------------------------------------------------------
 
-// Meule de recherche d'un profil : nom, handle, fonction, et pays (code et
-// noms dans les langues du site, comme l'annuaire des organisations). La
-// biographie n'y est PAS : chercher dans un texte libre transformerait
-// l'annuaire en moteur de recherche de phrases personnelles.
+// A profile's search haystack: name, handle, job title, and country (code
+// and names in the site's languages, like the organisation directory). The
+// biography is NOT included: searching free text would turn the directory
+// into a search engine for personal sentences.
 export function profileSearchText(p: {
   displayName: string;
   handle: string;
@@ -375,7 +376,7 @@ export function profileSearchText(p: {
   );
 }
 
-// Clé de tri alphabétique d'un nom (sans casse ni accents).
+// Alphabetical sort key for a name (case- and accent-insensitive).
 export function nameSortKey(displayName: string): string {
   return fold(displayName);
 }

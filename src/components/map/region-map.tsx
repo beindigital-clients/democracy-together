@@ -6,19 +6,19 @@ import type { RegionMapItem } from './types';
 
 type Region = 'all' | 'afrique' | 'europe';
 
-// COMPOSANT NON MONTÉ, GARDÉ TEL QUEL — décision reportée (issue #40). C'est un
-// rendu SVG CÔTÉ SERVEUR : exactement le repli qui manque au globe (client,
-// <canvas>, `ssr: false`) pour un visiteur sans JavaScript — sujet de #13. Le
-// supprimer ici jetterait cette brique avant que #13 ait tranché. Le type
-// `RegionMapItem`, lui, est sorti d'ici (`./types`) : il est bien vivant, il
-// n'a pas à dépendre de cette décision.
+// UNMOUNTED COMPONENT, KEPT AS IS — decision deferred (issue #40). It is a
+// SERVER-SIDE SVG render: exactly the fallback the globe (client,
+// <canvas>, `ssr: false`) lacks for a visitor without JavaScript — the subject of #13. Deleting
+// it here would throw away this building block before #13 is settled. The
+// `RegionMapItem` type, however, was moved out of here (`./types`): it is very much alive, it
+// need not depend on this decision.
 //
-// Carte choroplèthe Afrique-Europe réutilisable (F-19 annuaire, F-30 baromètre).
-// Rendue en SSR (tracés calculés côté serveur). La carte est un ENRICHISSEMENT
-// VISUEL (aria-hidden) — la donnée reste accessible ailleurs sur la page (table
-// /liste), et les pays ne sont pas des pièges au clavier. Interactions :
-// survol/tap d'un pays mis en avant -> panneau de détail ; chips de filtre par
-// région (optionnelles, vrais boutons accessibles au clavier).
+// Reusable Africa-Europe choropleth map (F-19 directory, F-30 barometer).
+// Rendered with SSR (paths computed server-side). The map is a VISUAL
+// ENHANCEMENT (aria-hidden) — the data stays accessible elsewhere on the page (table
+// /list), and the countries are not keyboard traps. Interactions:
+// hover/tap on a highlighted country -> detail panel; filter chips by
+// region (optional, real keyboard-accessible buttons).
 export function RegionMap({
   shapes,
   width,
@@ -36,8 +36,8 @@ export function RegionMap({
   hint: string;
   ariaLabel: string;
   chips?: { all: string; afrique: string; europe: string };
-  // 'full' : carte + panneau de détail (+ chips). 'compact' : carte + légende
-  // de survol en une ligne (teaser, ex. accueil) — sans panneau ni chips.
+  // 'full': map + detail panel (+ chips). 'compact': map + one-line hover
+  // caption (teaser, e.g. home page) — without panel or chips.
   variant?: 'full' | 'compact';
 }) {
   const [region, setRegion] = useState<Region>('all');

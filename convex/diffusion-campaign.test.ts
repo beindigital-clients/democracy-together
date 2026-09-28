@@ -6,12 +6,12 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { idempotencyKey } from './lib/newsletterDelivery';
 
-// ENVOI EN VOLUME D'UNE CAMPAGNE (F-65, chantier diffusion).
+// BULK SENDING OF A CAMPAIGN (F-65, diffusion workstream).
 //
-// Le fournisseur (Resend) est simulé par un `fetch` de substitution, qui
-// enregistre chaque requête : destinataires, en-têtes, clé d'idempotence.
-// C'est ce qui permet d'affirmer « chaque abonné confirmé reçoit exactement un
-// courriel », y compris après une coupure.
+// The provider (Resend) is simulated by a substitute `fetch` that
+// records each request: recipients, headers, idempotency key.
+// That is what lets us assert "each confirmed subscriber receives exactly one
+// e-mail", including after an outage.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -38,8 +38,8 @@ type BatchEmail = {
 type Call = { url: string; key: string | null; emails: BatchEmail[] };
 
 /**
- * Resend simulé. `plan` dit, appel par appel, ce que répond le fournisseur :
- * 'ok', 'down' (réseau coupé : échec transitoire) ou un code HTTP.
+ * Simulated Resend. `plan` says, call by call, what the provider answers:
+ * 'ok', 'down' (network down: transient failure) or an HTTP status code.
  */
 function fakeResend(plan: Array<'ok' | 'down' | number> = []) {
   const calls: Call[] = [];
@@ -140,7 +140,7 @@ describe('Campagne — destinataires, lots et en-têtes', () => {
       .mutation(api.newsletter.sendCampaign, { campaignId: id });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-    // API batch, lots de 2 (NEWSLETTER_BATCH_SIZE) : 3 confirmés -> 2 appels.
+    // Batch API, batches of 2 (NEWSLETTER_BATCH_SIZE): 3 confirmed -> 2 calls.
     expect(calls.every((c) => c.url.endsWith('/emails/batch'))).toBe(true);
     expect(calls.map((c) => c.emails.length)).toEqual([2, 1]);
     expect(recipients(calls).sort()).toEqual([
@@ -152,11 +152,11 @@ describe('Campagne — destinataires, lots et en-têtes', () => {
     const byTo = new Map(
       calls.flatMap((c) => c.emails).map((e) => [e.to[0], e]),
     );
-    // Version par langue : l'anglophone lit la traduction ; l'arabophone,
-    // sans version arabe, reçoit la version de référence (repli).
+    // Per-language version: the English speaker reads the translation; the Arabic
+    // speaker, with no Arabic version, gets the reference version (fallback).
     expect(byTo.get('en1@dt.test')?.subject).toBe('September letter');
     expect(byTo.get('ar1@dt.test')?.subject).toBe('Lettre de septembre');
-    // En-têtes de désinscription dans CHAQUE envoi.
+    // Unsubscribe headers in EVERY send.
     for (const e of byTo.values()) {
       expect(e.headers?.['List-Unsubscribe']).toMatch(
         /^<https:\/\/api\.dt\.test\/newsletter\/unsubscribe\?token=[0-9a-z]{32}&l=(fr|en)>$/,
@@ -166,7 +166,7 @@ describe('Campagne — destinataires, lots et en-têtes', () => {
       );
       expect(e.html).toContain('/newsletter/desinscription?token=');
     }
-    // Chaque lot porte sa clé d'idempotence.
+    // Each batch carries its idempotency key.
     expect(calls.every((c) => c.key?.startsWith('dt-newsletter:'))).toBe(true);
 
     const done = await t.run((ctx) => ctx.db.get(id));
@@ -193,7 +193,7 @@ describe('Campagne — destinataires, lots et en-têtes', () => {
       campaignId: id,
       cursor: null,
     });
-    // Désinscription APRÈS la mise en file, AVANT l'envoi.
+    // Unsubscribe AFTER enqueueing, BEFORE sending.
     await t.mutation(api.newsletter.unsubscribe, {
       token: 'en1dttest'.padEnd(32, '0'),
     });
@@ -231,7 +231,7 @@ describe('Campagne — destinataires, lots et en-têtes', () => {
 describe('Campagne — reprise sans double envoi', () => {
   it('coupure réseau : le lot est REJOUÉ avec la même clé d’idempotence, et chacun reçoit une fois', async () => {
     vi.useFakeTimers();
-    // Premier appel : réseau coupé (on ne sait pas si c'est parti). Puis OK.
+    // First call: network down (we don't know whether it went out). Then OK.
     const calls = fakeResend(['down', 'ok', 'ok']);
     const t = convexTest(schema, modules);
     const editor = await seed(t);
@@ -241,12 +241,12 @@ describe('Campagne — reprise sans double envoi', () => {
       .mutation(api.newsletter.sendCampaign, { campaignId: id });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-    // Le lot coupé et sa reprise : mêmes destinataires, MÊME clé.
+    // The interrupted batch and its retry: same recipients, SAME key.
     expect(calls[0].key).toBe(calls[1].key);
     expect(calls[0].emails.map((e) => e.to[0])).toEqual(
       calls[1].emails.map((e) => e.to[0]),
     );
-    // Côté base : chaque destinataire est « envoyé » une et une seule fois.
+    // Database side: each recipient is "sent" once and only once.
     const rows = await t.run((ctx) =>
       ctx.db.query('newsletterDeliveries').collect(),
     );
@@ -266,7 +266,7 @@ describe('Campagne — reprise sans double envoi', () => {
     const editor = await seed(t);
     const id = await draft(t, editor);
     await t.run((ctx) => ctx.db.patch(id, { status: 'sending' }));
-    // Mise en file SANS livraison (on garde la main sur les lots).
+    // Enqueue WITHOUT delivery (we keep control over the batches).
     await t.run(async (ctx) => {
       const subs = await ctx.db
         .query('newsletterSubscriptions')
@@ -283,7 +283,7 @@ describe('Campagne — reprise sans double envoi', () => {
       }
       await ctx.db.patch(id, { totalCount: subs.length, enqueueDone: true });
     });
-    // Un lot est PRIS… puis l'action « meurt » avant tout appel.
+    // A batch is CLAIMED… then the action "dies" before any call.
     const claim = await t.mutation(internal.newsletter._claimBatch, {
       campaignId: id,
       batchSize: 2,
@@ -291,7 +291,7 @@ describe('Campagne — reprise sans double envoi', () => {
     expect(claim.kind).toBe('batch');
     const claimId = claim.kind === 'batch' ? claim.claimId : '';
 
-    // Rejouer la mise en file ne crée aucun doublon (idempotence).
+    // Replaying the enqueue creates no duplicate (idempotency).
     await t.mutation(internal.newsletter._enqueue, {
       campaignId: id,
       cursor: null,
@@ -301,7 +301,7 @@ describe('Campagne — reprise sans double envoi', () => {
     expect(
       await t.run((ctx) => ctx.db.query('newsletterDeliveries').collect()),
     ).toHaveLength(3);
-    // Le lot orphelin est repris avec SA clé.
+    // The orphaned batch is resumed with ITS key.
     expect(calls.map((c) => c.key)).toContain(idempotencyKey(claimId));
     const all = recipients(calls);
     expect(all.sort()).toEqual(['ar1@dt.test', 'en1@dt.test', 'fr1@dt.test']);
@@ -313,7 +313,7 @@ describe('Campagne — reprise sans double envoi', () => {
 
   it('refus définitif puis relance : seuls les échecs repartent, aucun doublon', async () => {
     vi.useFakeTimers();
-    // Premier lot refusé (422), second lot accepté ; puis la relance passe.
+    // First batch rejected (422), second batch accepted; then the retry goes through.
     const calls = fakeResend([422, 'ok', 'ok']);
     const t = convexTest(schema, modules);
     const editor = await seed(t);
@@ -339,7 +339,7 @@ describe('Campagne — reprise sans double envoi', () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const relance = recipients(calls.slice(2));
-    // La relance ne touche PAS le destinataire déjà servi.
+    // The retry does NOT touch the recipient already served.
     for (const r of dejaServi) expect(relance).not.toContain(r);
     expect(relance).toHaveLength(2);
     expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({

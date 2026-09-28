@@ -11,18 +11,18 @@ import {
   isAdmin,
 } from '@/lib/roles';
 
-// Rôle par défaut : UNE seule écriture dans le dépôt (issue #27).
+// Default role: a SINGLE definition in the repo (issue #27).
 //
-// Le back-office dérivait son propre défaut — « membre » — quand le RBAC
-// serveur traite l'absence de rôle comme « visiteur ». /admin/utilisateurs,
-// l'écran où l'on décide qui a accès à quoi, annonçait donc un droit de dépôt
-// que le serveur refuse ; et son <Select> étant contrôlé sur cette valeur,
-// l'administrateur pouvait « confirmer » un rôle que personne n'avait posé.
+// The back office derived its own default — "membre" — while the server-side RBAC
+// treats the absence of a role as "visiteur". /admin/utilisateurs,
+// the screen where you decide who has access to what, thus advertised a submission right
+// that the server refuses; and since its <Select> was controlled on that value,
+// the administrator could "confirm" a role nobody had set.
 //
-// Ce qui empêche la réintroduction n'est pas la correction du littéral, c'est
-// qu'il n'existe plus qu'un seul exemplaire de la dérivation. Ce fichier le
-// vérifie là où c'est vérifiable : l'UI et le backend référencent la MÊME
-// fonction, pas deux copies qu'il faudrait garder synchrones.
+// What prevents reintroduction is not fixing the literal, it is
+// that only one copy of the derivation now exists. This file
+// checks that where it can be checked: the UI and the backend reference the SAME
+// function, not two copies that would have to be kept in sync.
 describe('Rôles — source unique UI/backend', () => {
   it("l'UI réexporte la dérivation du backend, elle n'en écrit pas une seconde", () => {
     expect(effectiveRole).toBe(shared.effectiveRole);
@@ -37,9 +37,9 @@ describe('Rôles — source unique UI/backend', () => {
     expect(roleRank(undefined)).toBe(roleRank('visiteur'));
   });
 
-  // Le fond de l'affaire : sans rôle, le compte n'a AUCUN droit de membre.
-  // Afficher « membre » revenait à promettre l'inverse de ce que fait le
-  // serveur (dépôt de publication, écriture sur la Tribune).
+  // The crux of the matter: without a role, the account has NO member rights.
+  // Displaying "membre" amounted to promising the opposite of what the
+  // server does (publication submission, writing on the Tribune).
   it('sans rôle, les gardes UI refusent comme le serveur', () => {
     expect(isMember(undefined)).toBe(false);
     expect(isStaff(undefined)).toBe(false);
@@ -48,15 +48,15 @@ describe('Rôles — source unique UI/backend', () => {
   });
 });
 
-// Les quatre gardes d'affichage du back-office (issue #42). Ce qui précède
-// vérifie d'où vient la hiérarchie ; ce qui suit vérifie ce que chaque garde en
-// tire. `isEditor` n'était exercée nulle part, et c'est elle qui décide de
-// l'accès aux campagnes de newsletter — l'écran qui ÉCRIT vers l'extérieur.
+// The back office's four display guards (issue #42). The above
+// checks where the hierarchy comes from; what follows checks what each guard
+// derives from it. `isEditor` was exercised nowhere, and it is what decides
+// access to newsletter campaigns — the screen that WRITES to the outside world.
 //
-// La matrice est écrite en entier, rôle par rôle, plutôt qu'en cas choisis :
-// une garde se trompe presque toujours d'UNE case (un `>` au lieu d'un `>=`,
-// un rang voisin), et c'est exactement ce qu'un jeu d'exemples bien choisis
-// laisse passer.
+// The matrix is written out in full, role by role, rather than as chosen cases:
+// a guard is almost always wrong by ONE cell (a `>` instead of a `>=`,
+// a neighboring rank), and that is exactly what a set of well-chosen examples
+// lets through.
 const MATRICE: Array<
   [
     role: string,
@@ -88,17 +88,17 @@ describe('Gardes UI — la matrice complète des quatre rôles', () => {
     },
   );
 
-  // Le piège de cette hiérarchie : elle est LINÉAIRE. « modérateur » et
-  // « éditeur » se lisent comme deux métiers parallèles, mais l'éditeur est
-  // au-dessus — il modère aussi, et le modérateur n'édite pas.
+  // The trap in this hierarchy: it is LINEAR. "modérateur" and
+  // "éditeur" read like two parallel jobs, but the editor is
+  // above — they also moderate, and the moderator does not edit.
   it('la hiérarchie est linéaire : éditeur > modérateur, pas à côté', () => {
     expect(isStaff('editeur')).toBe(true);
     expect(isEditor('moderateur')).toBe(false);
   });
 
-  // Fail-closed : un rôle inconnu ne doit JAMAIS ouvrir un écran. Le validateur
-  // de schéma l'interdit en écriture, mais une donnée héritée, une faute de
-  // casse ou un rôle retiré du vocabulaire arrivent bien jusqu'ici.
+  // Fail-closed: an unknown role must NEVER open a screen. The schema
+  // validator forbids it on write, but legacy data, a casing
+  // mistake or a role removed from the vocabulary do make it this far.
   it.each(['', 'root', 'superadmin', 'Admin', 'ADMIN', 'admin ', 'éditeur'])(
     'refuse tout avec le rôle inconnu %o',
     (role) => {
@@ -109,9 +109,9 @@ describe('Gardes UI — la matrice complète des quatre rôles', () => {
     },
   );
 
-  // Les gardes reçoivent le rôle d'une requête Convex, qui rend `undefined`
-  // pendant le chargement et `null` sur un compte sans rôle : les deux doivent
-  // fermer, et surtout ne pas lever au milieu d'un rendu.
+  // The guards receive the role from a Convex query, which returns `undefined`
+  // while loading and `null` for an account without a role: both must
+  // close, and above all not throw in the middle of a render.
   it.each([null, undefined])('refuse tout avec %o', (role) => {
     expect(isEditor(role)).toBe(false);
     expect(isAdmin(role)).toBe(false);

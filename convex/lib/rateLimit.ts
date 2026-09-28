@@ -1,21 +1,21 @@
 import { ConvexError } from 'convex/values';
 import type { MutationCtx } from '../_generated/server';
 
-// Limiteur de débit (sécurité — défense en profondeur) contre le spam / abus
-// sur les endpoints publics. Profil de menace : pics pendant un sommet,
-// contributeurs en zones sensibles. Fenêtre FIXE : un compteur par clé, remis à
-// zéro quand la fenêtre est dépassée.
+// Rate limiter (security — defence in depth) against spam / abuse on public
+// endpoints. Threat profile: spikes during a summit, contributors in
+// sensitive areas. FIXED window: one counter per key, reset once the window
+// has passed.
 //
-// Clé = identifiant d'acteur : e-mail pour les endpoints anonymes (contact,
-// adhésion), userId pour les endpoints authentifiés (dépôt, upload).
+// Key = actor identifier: e-mail for anonymous endpoints (contact,
+// membership), userId for authenticated endpoints (submission, upload).
 //
-// LIMITES : la clé e-mail est FOURNIE PAR L'APPELANT, donc forgeable — faire
-// varier l'adresse rend un quota neuf (audit M2, issue #24). Elle borne un
-// acteur honnête, pas un script. Les plafonds non forgeables (par IP, et global
-// par formulaire) vivent plus bas dans ce fichier : `enforcePublicFormLimit`.
+// LIMITS: the e-mail key is SUPPLIED BY THE CALLER, hence forgeable — varying
+// the address yields a fresh quota (audit M2, issue #24). It bounds an honest
+// actor, not a script. The non-forgeable caps (per IP, and global per form)
+// live further down in this file: `enforcePublicFormLimit`.
 //
-// Sur dépassement : ConvexError('RATE_LIMITED') — `data` traverse jusqu'au
-// client (contrairement à un Error nu, masqué en prod), pour un message dédié.
+// When exceeded: ConvexError('RATE_LIMITED') — `data` reaches the client
+// (unlike a bare Error, masked in prod), for a dedicated message.
 export type RateLimitRule = { key: string; max: number; windowMs: number };
 
 export async function enforceRateLimit(
@@ -27,11 +27,11 @@ export async function enforceRateLimit(
   }
 }
 
-// Variante NON bloquante : consomme un jeton et dit s'il en restait, au lieu de
-// lever. Pour les appels où dépasser le quota n'est pas une erreur à remonter à
-// l'utilisateur mais une action à ne pas compter (cf. recordPublicationView :
-// une consultation de trop ne doit rien casser dans la page, juste ne pas
-// compter). `enforceRateLimit` est cette fonction + un throw.
+// NON-blocking variant: consumes a token and says whether any were left,
+// instead of throwing. For calls where exceeding the quota is not an error to
+// surface to the user but an action not to count (see recordPublicationView:
+// one view too many must not break anything on the page, just not count).
+// `enforceRateLimit` is this function + a throw.
 export async function consumeRateLimit(
   ctx: MutationCtx,
   { key, max, windowMs }: RateLimitRule,
@@ -47,7 +47,7 @@ export async function consumeRateLimit(
     return true;
   }
   if (now - existing.windowStart >= windowMs) {
-    // Fenêtre expirée -> nouvelle fenêtre.
+    // Expired window -> new window.
     await ctx.db.patch(existing._id, { count: 1, windowStart: now });
     return true;
   }
@@ -60,14 +60,14 @@ export async function consumeRateLimit(
 
 const HOUR = 60 * 60 * 1000;
 
-// Barèmes centralisés (généreux : un usage humain normal ne les atteint pas).
+// Centralised limits (generous: normal human usage does not reach them).
 export const RATE_LIMITS = {
   contact: { max: 5, windowMs: HOUR },
   apply: { max: 5, windowMs: HOUR },
   newsletter: { max: 5, windowMs: HOUR },
-  // Envoi de codes OTP / vérification / reset par e-mail (anti email-bombing :
-  // l'envoi part vers une adresse fournie par l'appelant). Généreux pour un
-  // usage humain (inscription + un renvoi + reset), strict contre l'abus.
+  // Sending OTP / verification / reset codes by e-mail (anti e-mail-bombing:
+  // the message goes to an address supplied by the caller). Generous for human
+  // usage (sign-up + one resend + reset), strict against abuse.
   otpSend: { max: 8, windowMs: HOUR },
   eventRegister: { max: 10, windowMs: HOUR },
   tribunePost: { max: 10, windowMs: HOUR },
@@ -78,59 +78,60 @@ export const RATE_LIMITS = {
   workspaceCreate: { max: 10, windowMs: 24 * HOUR },
   workspaceNote: { max: 60, windowMs: HOUR },
   upload: { max: 30, windowMs: HOUR },
-  // Paiements (F-27/F-28) : une demande ouvre une session chez un prestataire
-  // tiers — le plafond borne aussi ce qu'un script ferait facturer en appels.
+  // Payments (F-27/F-28): a request opens a session at a third-party provider —
+  // the cap also bounds the calls a script could get billed.
   donation: { max: 10, windowMs: HOUR },
   dues: { max: 10, windowMs: HOUR },
   checkoutSync: { max: 30, windowMs: HOUR },
-  // Chantier communauté : invitations (espace, approfondissement) et
-  // téléversements dans un espace. Une invitation notifie quelqu'un d'autre :
-  // c'est le plafond qui empêche d'en faire un canal de harcèlement.
+  // Community workstream: invitations (space, deep-dive) and uploads into a
+  // space. An invitation notifies someone else: this cap is what stops it from
+  // becoming a harassment channel.
   workspaceInvite: { max: 30, windowMs: 24 * HOUR },
   workspaceUpload: { max: 60, windowMs: HOUR },
   deepeningInvite: { max: 20, windowMs: 24 * HOUR },
   tribuneEdit: { max: 30, windowMs: HOUR },
 } as const;
 
-// --- Plafonds NON FORGEABLES (audit M2, issue #24) ---------------------------
+// --- NON-FORGEABLE caps (audit M2, issue #24) --------------------------------
 //
-// Les barèmes ci-dessus sont indexés sur une donnée du formulaire (l'e-mail) :
-// un script qui fait varier l'adresse obtient un quota neuf à chaque requête, et
-// remplit la table à volonté. Deux plafonds supplémentaires, qui ne dépendent
-// d'AUCUNE donnée du corps de la requête, ferment ce trou :
+// The limits above are keyed on a form field (the e-mail): a script that
+// varies the address gets a fresh quota on every request, and fills the table
+// at will. Two additional caps, which depend on NO data from the request
+// body, close this hole:
 //
-//  1. PAR IP — Convex 1.42 expose les métadonnées de la requête HTTP aux
-//     mutations comme aux actions : `ctx.meta.getRequestMetadata()` rend
-//     `{ ip, userAgent, requestId, scheduledFunctionId }`. L'IP est celle vue
-//     par l'infrastructure Convex, pas un champ du payload : l'appelant ne peut
-//     pas la choisir. Point clé pour ce dépôt : une fonction appelée par
-//     `runMutation` HÉRITE des métadonnées de son appelant — l'internalMutation
-//     métier voit donc l'IP du client qui a appelé l'action-portail, sans qu'on
-//     ait à faire transiter l'adresse en argument (ce qui l'aurait rendue…
-//     fournie par l'appelant, et le problème serait resté entier).
+//  1. PER IP — Convex 1.42 exposes the HTTP request metadata to mutations as
+//     well as actions: `ctx.meta.getRequestMetadata()` returns
+//     `{ ip, userAgent, requestId, scheduledFunctionId }`. The IP is the one
+//     seen by the Convex infrastructure, not a payload field: the caller
+//     cannot choose it. Key point for this repo: a function called via
+//     `runMutation` INHERITS its caller's metadata — the business
+//     internalMutation therefore sees the IP of the client that called the
+//     gateway action, without having to pass the address as an argument
+//     (which would have made it… supplied by the caller, and the problem
+//     would have remained untouched).
 //
-//  2. GLOBAL PAR FORMULAIRE — un compteur unique par formulaire, sans clé du
-//     tout. Dernier rempart : il tient même derrière un pool d'adresses
-//     (botnet, proxies, NAT opérateur) et quand l'IP n'est pas disponible.
+//  2. GLOBAL PER FORM — a single counter per form, with no key at all. Last
+//     line of defence: it holds even behind an address pool (botnet, proxies,
+//     carrier NAT) and when the IP is unavailable.
 //
-// COMPROMIS assumé du plafond global : il est atteignable par un attaquant, et
-// bloque alors les soumissions légitimes jusqu'à la fin de la fenêtre. C'est un
-// déni de service borné dans le temps, préféré à un remplissage illimité de la
-// base. Il est donc réglé LARGE — le plafond par IP arrête un attaquant à source
-// unique bien avant —, et le blindage réseau reste l'affaire de la couche edge.
+// Accepted TRADE-OFF of the global cap: an attacker can reach it, and it then
+// blocks legitimate submissions until the end of the window. It is a
+// time-bounded denial of service, preferred over unlimited filling of the
+// database. It is therefore set WIDE — the per-IP cap stops a single-source
+// attacker well before —, and network hardening remains the edge layer's job.
 //
-// Les deux compteurs vivent dans la même table `rateLimits`, dans des espaces de
-// noms distincts (`ip:<formulaire>:<adresse>` et `form:<formulaire>`) : aucune
-// collision possible avec les clés e-mail/userId existantes.
+// Both counters live in the same `rateLimits` table, in distinct namespaces
+// (`ip:<form>:<address>` and `form:<form>`): no possible collision with the
+// existing e-mail/userId keys.
 
 type PublicFormLimit = {
   perIp: { max: number; windowMs: number };
   global: { max: number; windowMs: number };
 };
 
-// Barèmes par formulaire public (les sept tables que l'audit relève comme
-// exposées au remplissage). Généreux à dessein : un usage humain normal, même
-// en pic de sommet et même derrière un NAT partagé, ne les atteint pas.
+// Limits per public form (the seven tables the audit flags as exposed to
+// flooding). Generous on purpose: normal human usage, even at a summit peak
+// and even behind a shared NAT, does not reach them.
 export const PUBLIC_FORM_LIMITS = {
   contact: {
     perIp: { max: 20, windowMs: HOUR },
@@ -160,8 +161,8 @@ export const PUBLIC_FORM_LIMITS = {
     perIp: { max: 20, windowMs: HOUR },
     global: { max: 200, windowMs: HOUR },
   },
-  // Formulaire de don (F-28), ouvert aux visiteurs. Le plafond global est
-  // large : une campagne d'appel aux dons fait des pics légitimes.
+  // Donation form (F-28), open to visitors. The global cap is wide: a
+  // fundraising campaign causes legitimate spikes.
   donation: {
     perIp: { max: 20, windowMs: HOUR },
     global: { max: 500, windowMs: HOUR },
@@ -170,25 +171,25 @@ export const PUBLIC_FORM_LIMITS = {
 
 export type PublicForm = keyof typeof PUBLIC_FORM_LIMITS;
 
-// Regroupe une adresse en « bloc facturable » avant d'en faire une clé.
+// Groups an address into a "billable block" before making it a key.
 //
-// IPv4 : l'adresse entière. IPv6 : le /64 — un opérateur délègue couramment un
-// préfixe entier à un seul abonné, qui peut donc changer d'adresse à volonté à
-// l'intérieur du bloc. Compter par adresse complète rendrait le plafond par IP
-// gratuit à contourner en IPv6. Les formes abrégées (`2001:db8::1`) et les
-// adresses IPv4 encapsulées (`::ffff:203.0.113.7`) sont ramenées à la même
-// forme que leur équivalent direct, pour qu'un même client ne compte pas deux
-// fois selon la façon dont l'infrastructure a écrit son adresse.
+// IPv4: the whole address. IPv6: the /64 — an operator commonly delegates a
+// whole prefix to a single subscriber, who can therefore change address at
+// will within the block. Counting per full address would make the per-IP cap
+// free to bypass over IPv6. Abbreviated forms (`2001:db8::1`) and
+// IPv4-mapped addresses (`::ffff:203.0.113.7`) are reduced to the same form
+// as their direct equivalent, so that the same client does not count twice
+// depending on how the infrastructure wrote its address.
 export function ipBucket(raw: string): string {
   const ip = raw.trim().toLowerCase();
   if (!ip) return '';
   if (!ip.includes(':')) return ip; // IPv4
 
-  // IPv4 encapsulée en IPv6 (::ffff:a.b.c.d) -> on garde l'IPv4.
+  // IPv4 mapped into IPv6 (::ffff:a.b.c.d) -> we keep the IPv4.
   const mapped = /(\d{1,3}(?:\.\d{1,3}){3})$/.exec(ip);
   if (mapped) return mapped[1];
 
-  // Développe l'abréviation `::` en 8 hextets, puis garde les 4 premiers.
+  // Expands the `::` abbreviation into 8 hextets, then keeps the first 4.
   const [head, tail] = ip.split('::');
   const left = head ? head.split(':') : [];
   const right = ip.includes('::') && tail ? tail.split(':') : [];
@@ -207,13 +208,13 @@ export function ipBucket(raw: string): string {
   return `${prefix}::/64`;
 }
 
-// Lit l'IP de l'appelant telle que l'infrastructure Convex l'a vue.
+// Reads the caller's IP as the Convex infrastructure saw it.
 //
-// `ctx.meta` n'existe pas partout : convex-test ne le simule pas, et un
-// déploiement plus ancien ne l'expose pas. On dégrade alors proprement vers le
-// seul plafond global plutôt que de faire échouer toutes les soumissions. `ip`
-// est aussi `null` par contrat quand l'exécution ne vient pas d'une requête
-// HTTP (cron, fonction planifiée).
+// `ctx.meta` does not exist everywhere: convex-test does not mock it, and an
+// older deployment does not expose it. We then degrade cleanly to the global
+// cap alone rather than failing every submission. `ip` is also `null` by
+// contract when execution does not come from an HTTP request (cron,
+// scheduled function).
 export async function callerIpBucket(ctx: MutationCtx): Promise<string | null> {
   try {
     const meta = ctx.meta as MutationCtx['meta'] | undefined;
@@ -227,11 +228,11 @@ export async function callerIpBucket(ctx: MutationCtx): Promise<string | null> {
   }
 }
 
-// Garde à poser dans CHAQUE internalMutation d'un formulaire public, à côté du
-// plafond par e-mail (qui reste utile : il borne un acteur honnête et rend un
-// message clair). Les deux compteurs sont incrémentés dans la transaction de
-// l'écriture : une soumission finalement rejetée — par la validation, par un
-// autre plafond — est intégralement annulée et ne consomme donc aucun quota.
+// Guard to place in EVERY internalMutation of a public form, next to the
+// per-e-mail cap (which remains useful: it bounds an honest actor and gives a
+// clear message). Both counters are incremented in the write's transaction: a
+// submission ultimately rejected — by validation, by another cap — is fully
+// rolled back and therefore consumes no quota.
 export async function enforcePublicFormLimit(
   ctx: MutationCtx,
   form: PublicForm,
@@ -247,29 +248,29 @@ export async function enforcePublicFormLimit(
   await enforceRateLimit(ctx, { key: `form:${form}`, ...limits.global });
 }
 
-// --- Consultations de publication (F-37, issue #8) ---------------------------
+// --- Publication views (F-37, issue #8) --------------------------------------
 //
-// `recordPublicationView` est une mutation PUBLIQUE et NON AUTHENTIFIÉE : sans
-// plafond, le compteur de consultations se gonfle avec une boucle `for`. Il n'y
-// a ici ni e-mail ni userId à prendre pour clé — seule l'IP vue par
-// l'infrastructure est non forgeable.
+// `recordPublicationView` is a PUBLIC, UNAUTHENTICATED mutation: without a
+// cap, the view counter can be inflated with a `for` loop. There is no e-mail
+// or userId here to use as a key — only the IP seen by the infrastructure is
+// non-forgeable.
 //
-// UNE SEULE ligne de quota par appel, et volontairement : la raison d'être du
-// découpage `publicationViews` est de retirer de la contention d'écriture, pas
-// d'en réintroduire sur trois compteurs de débit. La clé retenue est la plus
-// ciblée possible — (bloc d'adresses, publication) : elle rend l'inflation
-// d'UNE publication par UN acteur inopérante, sans qu'un plafond partagé puisse
-// bloquer le comptage des autres publications ou des autres lecteurs.
+// ONE SINGLE quota row per call, on purpose: the whole point of the
+// `publicationViews` split is to remove write contention, not to reintroduce
+// it on three rate counters. The chosen key is as targeted as possible —
+// (address block, publication): it makes inflating ONE publication by ONE
+// actor ineffective, without a shared cap being able to block counting for
+// other publications or other readers.
 //
-// Large à dessein : un lecteur humain enregistre une consultation par
-// publication et par session (dédoublonnage en sessionStorage côté client), et
-// un bloc d'adresses peut légitimement abriter un campus entier.
+// Wide on purpose: a human reader records one view per publication and per
+// session (deduplicated in sessionStorage on the client), and an address
+// block can legitimately host an entire campus.
 //
-// SANS IP (`ctx.meta` absent : convex-test, déploiement antérieur à Convex
-// 1.42, exécution planifiée), on se rabat sur un plafond par publication. Il est
-// atteignable par un attaquant, qui fige alors le compteur de CETTE publication
-// jusqu'à la fin de la fenêtre : un décompte d'affichage qui stagne, préféré à
-// un décompte inventé.
+// WITHOUT AN IP (`ctx.meta` absent: convex-test, deployment older than Convex
+// 1.42, scheduled execution), we fall back on a per-publication cap. An
+// attacker can reach it, and then freezes THAT publication's counter until
+// the end of the window: a display count that stalls, preferred over an
+// invented count.
 export const VIEW_LIMITS = {
   perIpAndPublication: { max: 60, windowMs: HOUR },
   perPublicationWithoutIp: { max: 1000, windowMs: HOUR },

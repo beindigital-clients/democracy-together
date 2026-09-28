@@ -18,11 +18,11 @@ describe('Baromètre — jeu composite (F-40)', () => {
     expect(fr).toHaveLength(14);
     expect(en).toHaveLength(14);
 
-    // rangs 1..14 dans l'ordre
+    // ranks 1..14 in order
     expect(fr.map((r) => r.rank)).toEqual(
       Array.from({ length: 14 }, (_, i) => i + 1),
     );
-    // index dans [0,1], catégorie 1..5
+    // index in [0,1], category 1..5
     for (const r of fr) {
       expect(r.index).toBeGreaterThan(0);
       expect(r.index).toBeLessThanOrEqual(1);
@@ -30,7 +30,7 @@ describe('Baromètre — jeu composite (F-40)', () => {
       expect(r.category).toBeLessThanOrEqual(5);
       expect(['Afrique', 'Europe']).toContain(r.region);
     }
-    // identifiant stable indépendant de la locale d'affichage
+    // stable identifier independent of the display locale
     expect(fr.map((r) => r.name_en)).toEqual(en.map((r) => r.name_en));
     expect(en[0].region).toMatch(/Africa|Europe/);
   });

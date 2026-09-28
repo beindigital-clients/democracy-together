@@ -39,8 +39,8 @@ function useDateFormat() {
   return (ms: number) => fmt.format(ms);
 }
 
-// Refus serveur que l'auteur peut rencontrer ici — liste FERMÉE : un code
-// inconnu retombe sur le message générique, jamais sur une clé brute.
+// Server refusals the author may run into here — a CLOSED list: an unknown
+// code falls back to the generic message, never to a raw key.
 const AUTHOR_ERROR_CODES = [
   'INVALID_FILE',
   'INVALID_TITLE',
@@ -67,9 +67,10 @@ function useErrorMessage() {
   };
 }
 
-// RÉVISION — nouvelle version du manuscrit : fichier, métadonnées corrigées et
-// lettre de réponse aux relecteurs (obligatoire). Le fichier est anonymisé
-// côté serveur avant d'être transmis ; le texte, lui, relève de l'auteur.
+// REVISION — new version of the manuscript: file, corrected metadata and
+// response letter to the reviewers (required). The file is anonymized
+// server-side before being forwarded; the text itself is the author's
+// responsibility.
 function RevisionForm({
   publicationId,
 }: {
@@ -191,8 +192,8 @@ function RevisionForm({
             setEdited((s) => ({ ...s, keywords: e.target.value }))
           }
         />
-        {/* Champ fichier : contrôle particulier, rendu par la coquille du
-            système de champs (libellé, aide et erreur rattachés). */}
+        {/* File field: a special control, rendered by the field system's
+            shell (label, help text and error attached). */}
         <Field
           label={t('fieldFile')}
           hint={
@@ -308,7 +309,7 @@ function ManuscriptCard({ m }: { m: Manuscript }) {
                 <p className="mt-1 whitespace-pre-line wrap-anywhere text-ink">
                   {d.reason}
                 </p>
-                {/* Avis de ce tour, NUMÉROTÉS : jamais le nom d'un relecteur. */}
+                {/* This round's reviews, NUMBERED: never a reviewer's name. */}
                 {m.reviews.filter((r) => r.version === d.version).length > 0 ? (
                   <ul className="mt-3 space-y-2 border-t border-line pt-3">
                     {m.reviews
@@ -455,10 +456,10 @@ function ManuscriptsPage() {
   );
 }
 
-// SUIVI DE L'AUTEUR (F-43) — ses manuscrits en revue à comité de lecture :
-// étape, versions, décisions motivées et avis NUMÉROTÉS (jamais le nom d'un
-// relecteur), révision à déposer quand elle est demandée ; et les dépôts
-// qu'il peut encore soumettre au comité.
+// AUTHOR TRACKING (F-43) — their manuscripts under peer review: stage,
+// versions, reasoned decisions and NUMBERED reviews (never a reviewer's
+// name), revision to submit when one is requested; and the submissions
+// they can still send to the committee.
 export default function ManuscriptsRoute() {
   return (
     <AuthGate className="max-w-md">

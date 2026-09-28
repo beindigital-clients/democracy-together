@@ -3,24 +3,24 @@ import { recaptchaConfigured } from '../../src/lib/recaptcha';
 
 test.use({ locale: 'fr-FR' });
 
-// CHARGEMENT À LA DEMANDE DU SCRIPT reCAPTCHA (issue #39).
+// ON-DEMAND LOADING OF THE reCAPTCHA SCRIPT (issue #39).
 //
-// Le script de Google était monté par le layout racine, donc servi sur les 61
-// routes — y compris `/fr/mentions-legales`, qui est du texte statique sans le
-// moindre formulaire. Sur les connexions mobiles à faible débit que le cadrage
-// prend pour exigence structurante, c'est de la latence, de la batterie et des
-// données consommées pour rien ; et un traqueur tiers posé sans raison sur une
-// page qui n'en a aucun besoin.
+// Google's script was mounted by the root layout, hence served on all 61
+// routes — including `/fr/mentions-legales`, which is static text without a
+// single form. On the low-bandwidth mobile connections that the scoping document
+// treats as a structuring requirement, that is latency, battery and
+// data consumed for nothing; and a third-party tracker placed for no reason on a
+// page that has no need for it.
 //
-// Ces tests tiennent le critère d'acceptation : AUCUN script reCAPTCHA sur une
-// page sans formulaire, et le script bien présent là où un formulaire protégé
-// est rendu.
+// These tests hold the acceptance criterion: NO reCAPTCHA script on a
+// page without a form, and the script present wherever a protected form
+// is rendered.
 //
-// Deux configurations possibles, comme pour Sanity (TESTING.md § « Sources
-// externes ») : sans `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` — le cas de la CI — rien
-// n'est jamais chargé. La règle est IMPORTÉE du module de l'application, jamais
-// recopiée : une divergence ferait silencieusement prendre la mauvaise branche.
-// Le premier test, lui, vaut dans les deux cas : c'est le critère lui-même.
+// Two possible configurations, as for Sanity (TESTING.md § "Sources
+// externes"): without `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` — the CI case — nothing
+// is ever loaded. The rule is IMPORTED from the application module, never
+// copied: a divergence would silently take the wrong branch.
+// The first test holds in both cases: it is the criterion itself.
 
 const RECAPTCHA = /recaptcha/i;
 
@@ -41,11 +41,11 @@ function noterConfiguration() {
   });
 }
 
-// L'absence de requête ne prouve rien tant que la page n'est pas hydratée : le
-// script est injecté depuis un effet, donc APRÈS l'hydratation. On attend donc
-// une preuve qu'elle a bien eu lieu — un contrôle qui ne répond que par React —
-// avant de conclure que rien n'a été chargé. La bascule de thème du pied de
-// page est présente sur toutes les pages.
+// The absence of a request proves nothing until the page is hydrated: the
+// script is injected from an effect, hence AFTER hydration. So we wait for
+// proof that it did happen — a control that only responds through React —
+// before concluding that nothing was loaded. The footer theme toggle
+// is present on every page.
 async function attendreHydratation(page: Page) {
   const html = page.locator('html');
   const avant = (await html.getAttribute('data-theme')) ?? 'light';
@@ -53,9 +53,9 @@ async function attendreHydratation(page: Page) {
     .getByRole('contentinfo')
     .getByRole('button', { name: 'Changer de thème' });
 
-  // Le bouton est dans le HTML servi bien avant d'être branché : un clic parti
-  // trop tôt ne fait rien du tout. On réessaie jusqu'à ce qu'il réponde — c'est
-  // précisément l'instant d'hydratation qu'on cherche à attendre.
+  // The button is in the served HTML well before it is wired up: a click fired
+  // too early does nothing at all. We retry until it responds — that is
+  // precisely the hydration moment we are trying to wait for.
   await expect(async () => {
     await bascule.click();
     await expect(html).not.toHaveAttribute('data-theme', avant, {
@@ -93,16 +93,16 @@ test('page avec formulaire protégé : le script est chargé à la demande', asy
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   if (!recaptchaConfigured) {
-    // No-op gracieux : sans clé, les formulaires fonctionnent et rien de tiers
-    // n'est chargé. C'est ce que voit la CI, et ça mérite d'être vérifié pour
-    // soi-même — c'est aussi la configuration d'un déploiement mal réglé.
+    // Graceful no-op: without a key, the forms work and nothing third-party
+    // is loaded. That is what CI sees, and it deserves to be checked in its
+    // own right — it is also the configuration of a misconfigured deployment.
     await attendreHydratation(page);
     expect(vues).toEqual([]);
     return;
   }
 
-  // Le formulaire de contact est protégé : son montage vaut demande de
-  // chargement, sans attendre la soumission.
+  // The contact form is protected: mounting it counts as a load
+  // request, without waiting for submission.
   await expect(page.locator('script#recaptcha-v3')).toBeAttached();
   await expect
     .poll(() => vues.length, {
@@ -117,12 +117,12 @@ test('navigation client : le script suit le formulaire, pas la page d’accueil'
   noterConfiguration();
   const vues = suivreRecaptcha(page);
 
-  // Départ sur une page éditoriale : rien ne doit partir vers Google.
+  // Start on an editorial page: nothing must go out to Google.
   await page.goto('/fr/mentions-legales');
   await attendreHydratation(page);
   expect(vues).toEqual([]);
 
-  // Puis navigation CLIENT (sans rechargement) vers le formulaire de contact.
+  // Then a CLIENT navigation (no reload) to the contact form.
   await page
     .getByRole('contentinfo')
     .getByRole('link', { name: 'Contact' })

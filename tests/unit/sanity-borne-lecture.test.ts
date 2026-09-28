@@ -8,25 +8,25 @@ import {
   SANITY_READ_TIMEOUT_MS,
 } from '@dt-sanity/lib/client';
 
-// UNE LECTURE SANITY QUI NE REVIENT PAS NE DOIT PAS TENIR LA PAGE.
+// A SANITY READ THAT NEVER COMES BACK MUST NOT HOLD UP THE PAGE.
 //
-// Le défaut que ces gardes couvrent ne se voit NI dans le code NI à l'écran :
-// les sept appels publics (six modules) replient déjà proprement (F-02, `fetchOrFallback`),
-// la page finit par rendre 200 avec son contenu local, et rien n'est journalisé
-// côté `src/lib/home.ts`. Seule la DURÉE trahit la panne — mesuré sur le
-// serveur de production, 13,9 s pour `/fr` quand l'hôte accepte la connexion
-// sans jamais répondre.
+// The defect these guards cover shows up NEITHER in the code NOR on screen:
+// the seven public calls (six modules) already fall back cleanly (F-02, `fetchOrFallback`),
+// the page ends up rendering 200 with its local content, and nothing is logged
+// on the `src/lib/home.ts` side. Only the DURATION betrays the outage — measured on the
+// production server, 13.9 s for `/fr` when the host accepts the connection
+// without ever responding.
 //
-// La leçon que le second test grave : `timeout` seul ne borne rien, parce que
-// le client rejoue la requête. Mesuré, `timeout: 3000` sans couper les réessais
-// rejette après 21,4 s — sept fois la valeur demandée. C'est exactement le
-// genre de correctif qu'on croit posé et qui ne l'est pas.
+// The lesson the second test engraves: `timeout` alone bounds nothing, because
+// the client replays the request. Measured, `timeout: 3000` without cutting retries
+// rejects after 21.4 s — seven times the requested value. It is exactly the
+// kind of fix one believes is in place and is not.
 
-/** Serveur qui ACCEPTE la requête et ne répond jamais. */
+/** Server that ACCEPTS the request and never responds. */
 function serveurMuet() {
   const gardees: http.ServerResponse[] = [];
   const srv = http.createServer((_req, res) => {
-    gardees.push(res); // conservée ouverte, aucune écriture
+    gardees.push(res); // kept open, no write
   });
   return {
     srv,
@@ -69,8 +69,8 @@ describe('Sanity — borne de temps sur les lectures publiques', () => {
     const muet = serveurMuet();
     const port = await muet.ecouter();
     try {
-      // MÊMES options que l'application — seule la destination change. Recopier
-      // une configuration à la main la laisserait diverger en silence.
+      // SAME options as the application — only the destination changes. Copying
+      // a configuration by hand would let it diverge silently.
       const sonde = createClient({
         ...clientOptions,
         useCdn: false,
@@ -82,16 +82,16 @@ describe('Sanity — borne de temps sur les lectures publiques', () => {
       await expect(sonde.fetch('*[_type == "post"][0]')).rejects.toThrow();
       const ecoule = Date.now() - t0;
 
-      // Borne haute : avec les réessais par défaut, la mesure était de l'ordre
-      // de sept fois le délai. Un facteur deux les exclut sans être fragile.
+      // Upper bound: with the default retries, the measurement was around
+      // seven times the timeout. A factor of two excludes them without being fragile.
       expect(
         ecoule,
         `rendu la main en ${ecoule} ms, soit au-delà du double de la borne : les réessais sont revenus`,
       ).toBeLessThan(SANITY_READ_TIMEOUT_MS * 2);
 
-      // Borne basse : si la requête retombait instantanément pour une autre
-      // raison (port fermé, hôte refusé), ce test passerait sans rien prouver
-      // de la borne. On exige donc qu'elle ait bien ATTENDU.
+      // Lower bound: if the request failed instantly for another
+      // reason (closed port, refused host), this test would pass without proving anything
+      // about the bound. So we require that it did WAIT.
       expect(
         ecoule,
         `rendu la main en ${ecoule} ms, trop vite pour avoir attendu la borne : la requête a échoué pour une autre raison`,

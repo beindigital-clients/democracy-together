@@ -8,16 +8,16 @@ import { AuthGate } from '@/components/auth/auth-gate';
 import { TwoFactorSettings } from '@/components/account/two-factor-settings';
 import { ArrowBack } from '@/components/ui/arrow';
 
-// SÉCURITÉ DU COMPTE — double authentification (chantier comptes).
+// ACCOUNT SECURITY — two-factor authentication (accounts workstream).
 //
-// Seul écran ouvert à un compte d'encadrement tenu d'inscrire sa 2FA
-// (`allowEnrollment`) : la garde de tous les autres l'y renvoie.
+// The only screen open to a staff account required to enrol its 2FA
+// (`allowEnrollment`): the guard on every other screen sends it here.
 function SecurityScreen() {
   const t = useTranslations('twoFactor');
   const tAccounts = useTranslations('accounts');
-  // `users.current` est nul tant que l'inscription obligatoire n'est pas
-  // faite : l'adresse ne sert qu'à titrer le fichier de codes, elle peut
-  // manquer sans rien empêcher.
+  // `users.current` is null until the mandatory enrolment is done: the
+  // address is only used to title the codes file, it can be missing
+  // without blocking anything.
   const me = useQuery(api.users.current);
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">

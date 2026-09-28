@@ -35,8 +35,8 @@ import {
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.docx,.xlsx,.pptx,.odt,.odp,.ods';
 
-// Candidature à un appel (F-60) : brouillon, pièces jointes, dépôt. Tout se
-// fait dans la fenêtre de l'appel ; le serveur le revérifie à chaque geste.
+// Application to a call (F-60): draft, attachments, submission. Everything
+// happens within the call's window; the server re-checks it on every action.
 export function CallApplication({ slug }: { slug: string }) {
   const t = useTranslations('projects');
   const call = useQuery(api.projectCalls.getPublicCall, { slug });

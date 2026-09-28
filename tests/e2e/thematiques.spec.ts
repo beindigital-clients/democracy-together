@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// F-36 — Synthèses thématiques : index des 5 axes + page de synthèse par axe
-// (position du réseau + publications liées + liens transverses).
+// F-36 — Thematic syntheses: index of the 5 axes + synthesis page per axis
+// (network position + related publications + cross-links).
 
 test('thématiques : index liste les 5 axes (F-36)', async ({ page }) => {
   await page.goto('/fr/thematiques');
@@ -9,7 +9,7 @@ test('thématiques : index liste les 5 axes (F-36)', async ({ page }) => {
     page.getByRole('heading', { level: 1, name: 'Nos axes de travail' }),
   ).toBeVisible();
 
-  // 5 cartes -> 5 liens vers une synthèse d'axe.
+  // 5 cards -> 5 links to an axis synthesis.
   const cards = page.locator('a[href*="/thematiques/"]');
   await expect(cards).toHaveCount(5);
   await expect(
@@ -25,7 +25,7 @@ test('thématiques : page de synthèse (position + liens) (F-36)', async ({
     page.getByRole('heading', { level: 1, name: 'Transitions démocratiques' }),
   ).toBeVisible();
 
-  // Section « Questions de travail » + « Publications du réseau ».
+  // "Questions de travail" + "Publications du réseau" sections.
   await expect(
     page.getByRole('heading', { name: 'Questions de travail' }),
   ).toBeVisible();
@@ -33,7 +33,7 @@ test('thématiques : page de synthèse (position + liens) (F-36)', async ({
     page.getByRole('heading', { name: 'Publications du réseau' }),
   ).toBeVisible();
 
-  // Lien transverse vers la bibliothèque filtrée sur l'axe.
+  // Cross-link to the library filtered on the axis.
   await expect(
     page.locator('a[href*="/bibliotheque?theme=transitions"]').first(),
   ).toBeVisible();

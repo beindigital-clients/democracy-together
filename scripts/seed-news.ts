@@ -1,9 +1,9 @@
 import { getCliClient } from 'sanity/cli';
 
-// Seed des actualités (F-15) via la session CLI authentifiée :
+// Seed of the news items (F-15) via the authenticated CLI session:
 //   npx sanity exec scripts/seed-news.ts --with-user-token
-// Idempotent (createOrReplace sur des _id déterministes). Contenu de
-// démonstration aligné sur la feuille de route publique du réseau.
+// Idempotent (createOrReplace on deterministic _ids). Demo
+// content aligned with the network's public roadmap.
 const client = getCliClient();
 
 type Draft = {

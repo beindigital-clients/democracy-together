@@ -9,13 +9,13 @@ import {
   hashToken,
 } from './lib/newsletterOptIn';
 
-// DOUBLE OPT-IN DE LA NEWSLETTER (F-18, chantier diffusion).
+// NEWSLETTER DOUBLE OPT-IN (F-18, diffusion workstream).
 //
-// Ce qui est tenu ici : une inscription n'abonne personne tant que le lien
-// n'est pas suivi ; le jeton du lien est à usage unique, expire, et n'est
-// JAMAIS stocké en clair ; le renvoi est borné ; les attentes expirées sont
-// purgées ; la preuve du consentement est conservée ; et les réponses
-// publiques restent indiscernables (oracle d'existence, F-09).
+// What is guaranteed here: a sign-up subscribes no one until the link
+// is followed; the link token is single-use, expires, and is
+// NEVER stored in clear; resending is bounded; expired pending entries are
+// purged; proof of consent is kept; and public responses
+// remain indistinguishable (existence oracle, F-09).
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -36,12 +36,12 @@ afterEach(() => {
 type Sent = { to: string[]; subject: string; html: string };
 
 /**
- * Fournisseur Resend simulé : capture ce qui « part » VERS `recipient`.
+ * Simulated Resend provider: captures what "goes out" TO `recipient`.
  *
- * `fetch` est un stub GLOBAL : l'envoi planifié d'un test précédent, qui finit
- * en retard sur une machine lente, tombe dans le stub du test suivant (vu deux
- * fois en CI le 27/09). Chaque test ne compte donc que les courriels destinés
- * à SON adresse ; les autres sont acceptés sans être comptés.
+ * `fetch` is a GLOBAL stub: a previous test's scheduled send, which finishes
+ * late on a slow machine, lands in the next test's stub (seen twice
+ * in CI on 27/09). Each test therefore counts only the e-mails addressed
+ * to ITS address; the others are accepted without being counted.
  */
 function resendCapture(recipient: string) {
   const sent: Sent[] = [];
@@ -88,7 +88,7 @@ describe('Double opt-in — inscription et confirmation', () => {
     const [sub] = await allSubs(t);
     expect(sub.status).toBe('pending');
     expect(sub.email).toBe('awa@example.org');
-    // Preuve du consentement : date, source, langue, version du texte.
+    // Proof of consent: date, source, language, text version.
     expect(sub.consent).toMatchObject({
       source: 'footer',
       locale: 'pt',
@@ -96,7 +96,7 @@ describe('Double opt-in — inscription et confirmation', () => {
     });
     expect(sub.consent?.at).toBeGreaterThan(0);
 
-    // Un courriel, dans la langue de l'abonné, vers la page de SA langue.
+    // One e-mail, in the subscriber's language, pointing to the page in THEIR language.
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toEqual(['awa@example.org']);
     expect(sent[0].html).toContain(
@@ -104,22 +104,22 @@ describe('Double opt-in — inscription et confirmation', () => {
     );
     const token = tokenFrom(sent[0].html);
 
-    // EN CLAIR, JAMAIS STOCKÉ : ni dans l'abonnement, ni dans la boîte de dev
-    // (vide hors AUTH_DEV_OTP), ni nulle part ailleurs dans la ligne.
+    // IN CLEAR, NEVER STORED: not in the subscription, not in the dev mailbox
+    // (empty outside AUTH_DEV_OTP), nowhere else in the row.
     expect(JSON.stringify(sub)).not.toContain(token);
     expect(sub.confirmTokenHash).toBe(await hashToken(token));
     expect(await t.run((ctx) => ctx.db.query('devOutbox').collect())).toEqual(
       [],
     );
 
-    // Pas encore abonné : le compteur des destinataires reste à zéro.
+    // Not subscribed yet: the recipient counter stays at zero.
     const ed = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'editeur', email: 'ed@dt.test' }),
     );
     const asEd = t.withIdentity({ subject: `${ed}|s` });
     expect(await asEd.query(api.newsletter.subscriberCount, {})).toBe(0);
 
-    // Confirmation : le jeton ouvre l'abonnement, et dit la langue.
+    // Confirmation: the token opens the subscription, and states the language.
     expect(await t.mutation(api.newsletter.confirm, { token })).toEqual({
       status: 'confirmed',
       locale: 'pt',
@@ -130,7 +130,7 @@ describe('Double opt-in — inscription et confirmation', () => {
     expect(after.confirmTokenHash).toBeUndefined();
     expect(await asEd.query(api.newsletter.subscriberCount, {})).toBe(1);
 
-    // USAGE UNIQUE : le même lien, cliqué une seconde fois, ne vaut plus.
+    // SINGLE USE: the same link, clicked a second time, is no longer valid.
     expect(await t.mutation(api.newsletter.confirm, { token })).toEqual({
       status: 'invalid',
       locale: null,
@@ -215,14 +215,14 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
       });
 
     await inscrire();
-    await inscrire(); // trop tôt : rien ne part
+    await inscrire(); // too early: nothing goes out
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(sent).toHaveLength(1);
 
     for (let i = 0; i < 5; i++) {
       vi.setSystemTime(Date.now() + CONFIRM_RESEND_MIN_INTERVAL_MS + 1);
-      // Le plafond par adresse (5/h) est une autre borne : on le laisse de
-      // côté en avançant d'une heure entre deux tentatives.
+      // The per-address cap (5/h) is a separate bound: we set it
+      // aside by advancing one hour between two attempts.
       vi.setSystemTime(Date.now() + 60 * 60 * 1000);
       await inscrire();
       await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -363,7 +363,7 @@ describe('Double opt-in — purge et oracles de développement', () => {
       }),
     ).toBe('confirmed');
 
-    // Garde : hors développement, l'oracle se tait.
+    // Guard: outside development, the oracle stays silent.
     vi.stubEnv('AUTH_DEV_OTP', '');
     expect(
       await t.query(internal.newsletter.devLatestConfirmationLink, {
@@ -401,7 +401,7 @@ describe('Migration des abonnés hérités', () => {
     expect(sub.consent).toMatchObject({ at: 12345, source: 'legacy' });
     expect(sub.confirmExpiresAt! - Date.now()).toBeGreaterThan(29 * 86_400_000);
     expect(sent).toHaveLength(1);
-    // Le courriel dit POURQUOI on écrit, dans la langue de l'abonné.
+    // The e-mail says WHY we are writing, in the subscriber's language.
     expect(sent[0].html).toContain('/es/newsletter/confirmation');
     expect(sent[0].html).toContain('30');
   });

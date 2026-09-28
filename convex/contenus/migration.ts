@@ -19,29 +19,29 @@ import {
   THEME_SLUGS,
 } from '../lib/contenus/coded/themes';
 
-// IMPORT DU CONTENU CODÉ — commande interne, à lancer UNE fois par déploiement :
+// IMPORT OF HARD-CODED CONTENT — internal command, to run ONCE per deployment:
 //
 //   npx convex run contenus/migration:importCodedContent '{}'
 //
-// Elle recopie dans les tables EXACTEMENT ce que le dépôt servait : mêmes
-// slugs, mêmes textes dans les cinq langues, même ordre. Source : les modules
-// PURS `convex/lib/contenus/coded/*` — ceux-là mêmes que les pages publiques
-// servent en repli, donc aucune divergence possible entre l'avant et l'après.
+// It copies into the tables EXACTLY what the repo served: same
+// slugs, same texts in the five languages, same order. Source: the PURE
+// modules `convex/lib/contenus/coded/*` — the very ones the public pages
+// serve as a fallback, so no divergence is possible between before and after.
 //
-// IDEMPOTENTE : un contenu dont le slug existe déjà n'est PAS réécrit. La
-// relancer ne crée aucun doublon — et surtout n'écrase pas ce qu'un éditeur a
-// modifié entre-temps. Pour repartir du contenu codé sur une fiche, on la
-// supprime (brouillon) puis on relance.
+// IDEMPOTENT: content whose slug already exists is NOT rewritten.
+// Rerunning it creates no duplicate — and above all does not overwrite what an editor
+// modified in the meantime. To start again from the hard-coded content for a record, you
+// delete it (draft) then rerun.
 //
-// Ce qui est importé, et dans quel état :
-//  - 14 événements, PUBLIÉS (ils l'étaient), avec le fuseau de leur lieu ;
-//  - 4 replays tirés des événements `upcoming: false` du catalogue (la page
-//    /replays les dérivait ainsi), publiés, SANS vidéo — état honnête
-//    « bientôt disponible » repris tel quel ;
-//  - 5 catégories de partenariat, publiées, dans l'ordre du catalogue ;
-//  - 5 thématiques (les axes du réseau), publiées, avec leur titre (repris de
-//    `library.themes.*`) et leur synthèse.
-// La revue de presse n'avait aucun contenu codé : rien à importer.
+// What is imported, and in what state:
+//  - 14 events, PUBLISHED (they were), with their venue's time zone;
+//  - 4 replays drawn from the catalog's `upcoming: false` events (the
+//    /replays page derived them that way), published, WITHOUT video — the honest
+//    "coming soon" state carried over as-is;
+//  - 5 partnership categories, published, in catalog order;
+//  - 5 themes (the network's axes), published, with their title (taken from
+//    `library.themes.*`) and their summary.
+// The press review had no hard-coded content: nothing to import.
 
 function fromLocales(
   pick: (loc: (typeof SITE_LOCALES)[number]) => string | undefined,
@@ -100,7 +100,7 @@ async function importEvents(ctx: MutationCtx, now: number) {
       });
       created += 1;
     }
-    // Les rediffusions du catalogue : un replay par événement passé.
+    // The catalog's rebroadcasts: one replay per past event.
     if (!e.upcoming) {
       const existing = await ctx.db
         .query('contentReplays')
@@ -189,8 +189,8 @@ export const importCodedContent = internalMutation({
     const partners = await importPartners(ctx, now);
     const themes = await importThemes(ctx, now);
     const result = { events, replays, partners, themes };
-    // Journalisée seulement si elle a écrit quelque chose : une relance à vide
-    // n'a rien changé, elle n'a rien à tracer.
+    // Logged only if it wrote something: a no-op rerun
+    // changed nothing, it has nothing to record.
     if (events + replays + partners + themes > 0) {
       await recordAudit(ctx, {
         action: AUDIT.CONTENT_IMPORTED,

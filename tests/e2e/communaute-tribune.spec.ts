@@ -1,16 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 import { E2E_PASSWORD, approveTribunePosts, signUpAndVerify } from './_helpers';
 
-// TRIBUNE — modération A PRIORI, file unifiée, approfondissement (F-45, F-48,
-// F-49 — chantier communauté), bout en bout et par les écrans réels :
-//   1. un membre soumet un billet : il est EN ATTENTE, absent du fil public,
-//      et son auteur en voit l'état ;
-//   2. un modérateur l'ouvre dans la file, lit son historique, le VALIDE ;
-//   3. le billet est public ;
-//   4. l'auteur ouvre une CONTRIBUTION DE FOND liée, elle-même soumise à la
-//      modération ; validée, les deux textes se renvoient l'un à l'autre.
+// TRIBUNE — PRE-moderation, unified queue, in-depth follow-up (F-45, F-48,
+// F-49 — "communauté" workstream), end to end and through the real screens:
+//   1. a member submits a post: it is PENDING, absent from the public feed,
+//      and its author sees its state;
+//   2. a moderator opens it in the queue, reads its history, APPROVES it;
+//   3. the post is public;
+//   4. the author opens a linked IN-DEPTH CONTRIBUTION, itself subject to
+//      moderation; once approved, the two texts link to each other.
 //
-// Comptes neufs à chaque exécution : le fichier tient ses sessions.
+// New accounts on every run: the file holds its sessions.
 test.use({ locale: 'fr-FR' });
 
 async function signOut(page: Page) {
@@ -28,8 +28,8 @@ async function signIn(page: Page, email: string) {
   });
 }
 
-// Liens du FIL public (vers une fiche /tribune/<id>) : « Mes billets » liste
-// aussi le billet de son auteur, mais vers l'espace membre.
+// Links of the public FEED (to a /tribune/<id> page): "Mes billets" also lists
+// the author's post, but pointing to the member area.
 function feedLink(page: Page, title: string) {
   return page.locator('a[href*="/tribune/"]').filter({ hasText: title });
 }
@@ -43,7 +43,7 @@ test('un billet soumis attend la validation, puis s’approfondit en contributio
   const title = `Billet a priori E2E ${stamp}`;
   const deepTitle = `Approfondissement E2E ${stamp}`;
 
-  // 1. Le membre soumet.
+  // 1. The member submits.
   await signUpAndVerify(page, authorEmail, E2E_PASSWORD, 'membre');
   await page.goto('/fr/tribune');
   await page.getByRole('button', { name: 'Prendre la parole' }).click();
@@ -64,7 +64,7 @@ test('un billet soumis attend la validation, puis s’approfondit en contributio
     .click();
   await expect(page.getByText(/soumise à la modération/)).toBeVisible();
 
-  // En attente : absent du fil, visible de son auteur avec son état.
+  // Pending: absent from the feed, visible to its author with its state.
   await page.goto('/fr/tribune');
   await expect(feedLink(page, title)).toHaveCount(0);
   const mine = page.getByRole('region', { name: 'Mes billets' });
@@ -72,11 +72,11 @@ test('un billet soumis attend la validation, puis s’approfondit en contributio
   await expect(mine).toContainText('En attente de validation');
   await signOut(page);
 
-  // Un visiteur ne le trouve pas davantage.
+  // A visitor cannot find it either.
   await page.goto('/fr/tribune');
   await expect(feedLink(page, title)).toHaveCount(0);
 
-  // 2. Le modérateur valide depuis la file, historique à l'appui.
+  // 2. The moderator approves from the queue, with the history as support.
   await signUpAndVerify(page, modEmail, E2E_PASSWORD, 'moderateur');
   await page.goto('/fr/admin/file-moderation');
   await expect(
@@ -100,7 +100,7 @@ test('un billet soumis attend la validation, puis s’approfondit en contributio
     page.getByRole('heading', { level: 1, name: title }),
   ).toBeVisible();
 
-  // 4. L'auteur approfondit : contribution de fond liée, soumise à son tour.
+  // 4. The author follows up in depth: linked in-depth contribution, submitted in turn.
   await signIn(page, authorEmail);
   await page.goto('/fr/tribune');
   await feedLink(page, title).first().click();
@@ -115,13 +115,13 @@ test('un billet soumis attend la validation, puis s’approfondit en contributio
   await deep.getByRole('button', { name: 'Soumettre à la modération' }).click();
   await expect(page.getByText(/soumise à la modération/)).toBeVisible();
 
-  // Son état, dans l'espace membre.
+  // Its state, in the member area.
   await page.goto('/fr/espace-membre/contributions');
   const row = page.getByRole('listitem').filter({ hasText: deepTitle });
   await expect(row).toContainText('En attente de validation');
   await expect(row).toContainText('Approfondissement');
 
-  // Validée, elle et le billet se renvoient l'un à l'autre, publiquement.
+  // Once approved, it and the post link to each other, publicly.
   await approveTribunePosts(deepTitle);
   await signOut(page);
   await page.goto('/fr/tribune');

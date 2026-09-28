@@ -67,7 +67,7 @@ function eventInput(overrides: Record<string, unknown> = {}) {
   };
 }
 
-// Une image PNG 1×1 réelle (signature + IHDR), pour le contrôle de contenu.
+// A real 1×1 PNG image (signature + IHDR), for the content check.
 const PNG_1x1 = new Uint8Array([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49,
   0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06,
@@ -178,7 +178,7 @@ describe('Contenus — agenda public', () => {
       locale: 'en',
     });
     expect(ev.title).toBe('Test webinar');
-    // Repli : le chapô n'existe qu'en français, la page anglaise le reçoit.
+    // Fallback: the standfirst only exists in French, the English page receives it.
     expect(ev.summary).toBe('Un chapô.');
     expect(ev.status).toBe('published');
 
@@ -205,7 +205,7 @@ describe('Contenus — agenda public', () => {
       }),
     );
     const row = await t.run((ctx) => ctx.db.get(id));
-    // Dakar est à UTC+0 toute l'année.
+    // Dakar is at UTC+0 all year round.
     expect(row?.startsAt).toBe(Date.UTC(2031, 0, 15, 9, 0));
     expect(row?.endsAt).toBe(Date.UTC(2031, 0, 15, 10, 0));
   });
@@ -269,7 +269,7 @@ describe('Contenus — lien de visioconférence réservé aux inscrits', () => {
     expect(JSON.stringify(fiche)).not.toContain('salle-secrete');
     expect(list[0].hasVisio).toBe(true);
 
-    // Anonyme, puis membre NON inscrit : rien.
+    // Anonymous, then a NON-registered member: nothing.
     expect(
       await t.query(api.contenus.events.myVisioAccess, {
         slug: 'webinaire-test',
@@ -282,7 +282,7 @@ describe('Contenus — lien de visioconférence réservé aux inscrits', () => {
       }),
     ).toEqual({ registered: false, visioUrl: null });
 
-    // Le membre s'inscrit (même adresse que son compte) : le lien apparaît.
+    // The member registers (same address as their account): the link appears.
     await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'webinaire-test',
       name: 'Membre Test',
@@ -296,7 +296,7 @@ describe('Contenus — lien de visioconférence réservé aux inscrits', () => {
       registered: true,
       visioUrl: 'https://visio.example.org/salle-secrete',
     });
-    // Un autre compte, lui, ne le voit toujours pas.
+    // Another account, however, still does not see it.
     const other = await withRole(t, 'moderateur');
     expect(
       (
@@ -428,7 +428,7 @@ describe('Contenus — médiathèque (F-64)', () => {
     const t = convexTest(schema, modules);
     const editor = await withRole(t, 'editeur');
 
-    // Faux PNG (texte renommé) : refusé ET supprimé du stockage.
+    // Fake PNG (renamed text file): refused AND deleted from storage.
     const fake = await upload(
       t,
       editor.as,
@@ -440,11 +440,11 @@ describe('Contenus — médiathèque (F-64)', () => {
       await t.run((ctx) => ctx.db.system.get('_storage', fake.storageId)),
     ).toBeNull();
 
-    // Vrai PNG sans texte alternatif : refusé.
+    // Real PNG without alt text: refused.
     const noAlt = await upload(t, editor.as, PNG_1x1, { fr: '   ' });
     await expect(noAlt.run()).rejects.toThrow('ALT_REQUIRED');
 
-    // Vrai PNG avec texte alternatif : accepté, dimensions lues.
+    // Real PNG with alt text: accepted, dimensions read.
     const ok = await upload(t, editor.as, PNG_1x1, {
       fr: 'Logo du partenaire',
       en: 'Partner logo',
@@ -460,7 +460,7 @@ describe('Contenus — médiathèque (F-64)', () => {
     const listed = await editor.as.query(api.contenus.media.list, {
       locale: 'es',
     });
-    // La langue manquante est signalée, le repli servi.
+    // The missing language is flagged, the fallback served.
     expect(listed[0].altText).toBe('Logo du partenaire');
     expect(listed[0].missing).toEqual(['es', 'pt', 'ar']);
   });
@@ -491,7 +491,7 @@ describe('Contenus — médiathèque (F-64)', () => {
       editor.as.mutation(api.contenus.media.remove, { id: mediaId }),
     ).rejects.toThrow('MEDIA_IN_USE');
 
-    // Le logo est servi au public, avec son texte alternatif.
+    // The logo is served to the public, with its alt text.
     await editor.as.mutation(api.contenus.partners.setStatus, {
       id: partnerId,
       status: 'published',
@@ -502,7 +502,7 @@ describe('Contenus — médiathèque (F-64)', () => {
     expect(pub.logo?.alt).toBe('Logo');
     expect(pub.logo?.width).toBe(1);
 
-    // Retiré du partenaire, le média redevient supprimable.
+    // Removed from the partner, the media item becomes deletable again.
     await editor.as.mutation(api.contenus.partners.save, {
       id: partnerId,
       name: { fr: 'Fondation X' },
@@ -630,7 +630,7 @@ describe('Contenus — migration du contenu codé', () => {
       }
     }
 
-    // Public : la page anglaise reçoit le titre anglais du catalogue.
+    // Public: the English page receives the catalog's English title.
     const en = await t.query(api.contenus.events.listPublic, { locale: 'en' });
     expect(en.find((e) => e.slug === 'conference-inaugurale')?.title).toBe(
       CODED_EVENT_TITLES.en['conference-inaugurale'],
@@ -700,7 +700,7 @@ describe('Contenus — migration du contenu codé', () => {
     });
     const kept = await t.run((ctx) => ctx.db.get(first._id));
     expect(kept?.name.fr).toBe('Titre modifié');
-    // Une seule entrée d'import au journal : la relance à vide n'écrit rien.
+    // A single import entry in the log: the no-op rerun writes nothing.
     const imports = await t.run(async (ctx) =>
       (await ctx.db.query('auditLog').collect()).filter(
         (a) => a.action === AUDIT.CONTENT_IMPORTED,

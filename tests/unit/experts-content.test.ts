@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
 
-// F-23 — Annuaire d'experts : garde-fous sur le contenu i18n créé pour la
-// feature (namespace `experts` + clé de pied de page `footer.col2f`).
+// F-23 — Expert directory: safeguards on the i18n content created for the
+// feature (`experts` namespace + footer key `footer.col2f`).
 describe('experts i18n (F-23)', () => {
   it('le namespace `experts` existe avec les mêmes clés FR/EN', () => {
     const keys = (o: Record<string, unknown>) => Object.keys(o).sort();
     expect(fr.experts).toBeDefined();
     expect(en.experts).toBeDefined();
     expect(keys(fr.experts)).toEqual(keys(en.experts));
-    // Les clés attendues par la page serveur.
+    // The keys expected by the server page.
     for (const k of [
       'metaTitle',
       'metaDescription',
@@ -23,7 +23,7 @@ describe('experts i18n (F-23)', () => {
       expect(fr.experts).toHaveProperty(k);
       expect(en.experts).toHaveProperty(k);
     }
-    // Lien de pied de page (colonne « Analyses »).
+    // Footer link ("Analyses" column).
     expect(fr.footer).toHaveProperty('col2f');
     expect(en.footer).toHaveProperty('col2f');
   });

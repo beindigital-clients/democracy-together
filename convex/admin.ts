@@ -7,16 +7,16 @@ import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { normalizeSearchTerm } from './lib/search';
 import { networkRole } from './schema';
 
-// Back-office (F-26 / F-61 / F-63) — toutes les lectures sont role-gated
-// (défense en profondeur ; l'UI masque déjà ce que le rôle n'autorise pas).
+// Back office (F-26 / F-61 / F-63) — all reads are role-gated
+// (defense in depth; the UI already hides what the role does not allow).
 
-// Tableau de bord d'administration (F-61) : compteurs clés.
+// Administration dashboard (F-61): key counters.
 //
-// Ces six nombres étaient obtenus en CHARGEANT les tables correspondantes puis
-// en lisant `.length` — `users` en entier à chaque affichage du tableau de
-// bord. Ils viennent désormais de compteurs dénormalisés (convex/counters.ts),
-// tenus dans la transaction qui écrit la donnée comptée : six lectures
-// indexées d'une ligne chacune, quelle que soit la taille du réseau.
+// These six numbers were obtained by LOADING the corresponding tables then
+// reading `.length` — the whole of `users` on every dashboard
+// display. They now come from denormalized counters (convex/counters.ts),
+// maintained in the transaction that writes the counted data: six indexed
+// reads of one row each, whatever the size of the network.
 export const dashboardStats = query({
   args: {},
   returns: v.object({
@@ -48,14 +48,14 @@ export const dashboardStats = query({
   },
 });
 
-// File de modération des candidatures (F-26 / F-22), la plus récente d'abord.
+// Application moderation queue (F-26 / F-22), most recent first.
 //
-// PAGINÉE + CHERCHABLE (issues #8 et #49). C'était la dernière liste du
-// back-office à charger sa table entière puis à la trier en mémoire ; y poser
-// une recherche sans la paginer d'abord aurait aggravé exactement ce que #8
-// corrige ailleurs. Le tri décroissant vient maintenant de l'index : une
-// candidature est insérée avec `submittedAt = Date.now()`, donc l'ordre de
-// création EST l'ordre de dépôt — plus besoin d'un `sort` sur la table lue.
+// PAGINATED + SEARCHABLE (issues #8 and #49). It was the last back-office list
+// to load its whole table then sort it in memory; adding
+// a search to it without paginating it first would have worsened exactly what #8
+// fixes elsewhere. The descending sort now comes from the index: an
+// application is inserted with `submittedAt = Date.now()`, so creation order
+// IS submission order — no more need for a `sort` on the read table.
 const applicationValidator = v.object({
   _id: v.id('membershipApplications'),
   type: v.union(v.literal('organisation'), v.literal('individu')),
@@ -70,18 +70,18 @@ const applicationValidator = v.object({
   ),
   reviewNotes: v.union(v.string(), v.null()),
   submittedAt: v.number(),
-  // LE COMPTE QUI SERA ÉLEVÉ (pentest M-6). Approuver une candidature n'accorde
-  // pas un rôle à `contactEmail` : ça l'accorde au compte CONNECTÉ qui a déposé
-  // la demande, et ces deux adresses sont indépendantes — l'une est saisie
-  // librement dans le formulaire, l'autre est celle de la session.
+  // THE ACCOUNT THAT WILL BE ELEVATED (pentest M-6). Approving an application does not grant
+  // a role to `contactEmail`: it grants it to the SIGNED-IN account that submitted
+  // the request, and these two addresses are independent — one is typed
+  // freely into the form, the other is the session's.
   //
-  // Le pentest décrivait l'écart : un visiteur connecté dépose « Institut X —
-  // contact@institut-x.org », le modérateur approuve une organisation
-  // plausible, et c'est le compte du déposant qui devient membre. Rejoué, c'est
-  // exactement ce qui se produit. Ce n'est pas un défaut en soi — sans cette
-  // liaison, un membre invité ne récupérerait jamais son adhésion — mais le
-  // modérateur décidait à l'aveugle : la file ne portait AUCUN champ désignant
-  // ce compte. Elle le porte désormais, et l'écran signale la discordance.
+  // The pentest described the gap: a signed-in visitor submits "Institut X —
+  // contact@institut-x.org", the moderator approves a plausible
+  // organization, and it is the submitter's account that becomes a member. Replayed, that is
+  // exactly what happens. It is not a defect in itself — without this
+  // link, an invited member would never get their membership — but the
+  // moderator was deciding blind: the queue carried NO field designating
+  // this account. It now does, and the screen flags the mismatch.
   applicantEmail: v.union(v.string(), v.null()),
   applicantRole: v.union(networkRole, v.null()),
 });
@@ -104,10 +104,10 @@ export const listApplications = query({
     const opts = clampPageSize(paginationOpts);
     const term = normalizeSearchTerm(search);
 
-    // Recherche : index plein texte sur le nom d'organisation, avec le statut
-    // porté par `filterFields` — donc UNE lecture d'index, filtre compris.
-    // Sans recherche : l'index par statut (ou la table en ordre décroissant),
-    // exactement comme avant.
+    // Search: full-text index on the organization name, with the status
+    // carried by `filterFields` — so ONE index read, filter included.
+    // Without search: the status index (or the table in descending order),
+    // exactly as before.
     const result = term
       ? await ctx.db
           .query('membershipApplications')
@@ -127,8 +127,8 @@ export const listApplications = query({
             .order('desc')
             .paginate(opts);
 
-    // Une lecture par ligne de la PAGE (taille déjà bornée par `clampPageSize`)
-    // pour résoudre le compte lié — pas un scan.
+    // One read per row of the PAGE (size already bounded by `clampPageSize`)
+    // to resolve the linked account — not a scan.
     return {
       ...result,
       page: await Promise.all(
@@ -155,41 +155,41 @@ export const listApplications = query({
   },
 });
 
-// Gestion des utilisateurs & rôles (F-63) — administrateurs seulement.
+// User & role management (F-63) — administrators only.
 //
-// PAGINÉE : la liste chargeait `users` en entier, puis triait par e-mail en
-// mémoire. L'index `email` porte déjà cet ordre — la page sort donc triée de la
-// base, sans lire une ligne de plus que ce qui s'affiche.
+// PAGINATED: the list loaded the whole of `users`, then sorted by email in
+// memory. The `email` index already carries that order — so the page comes out sorted from the
+// database, without reading a single row more than what is displayed.
 const adminUserValidator = v.object({
   _id: v.id('users'),
   name: v.union(v.string(), v.null()),
   email: v.union(v.string(), v.null()),
   role: networkRole,
-  // Cycle de vie (chantier comptes) : suspension et son motif, suppression en
-  // cours, double authentification active. Lus sur la ligne affichée — la
-  // suspension est sur le document, la 2FA coûte une lecture indexée.
+  // Lifecycle (accounts workstream): suspension and its reason, deletion in
+  // progress, two-factor authentication enabled. Read on the displayed row — the
+  // suspension is on the document, 2FA costs one indexed read.
   suspended: v.boolean(),
   suspensionReason: v.union(v.string(), v.null()),
   deleting: v.boolean(),
   twoFactor: v.boolean(),
 });
 
-// CHERCHABLE ET FILTRABLE (issue #49) — les deux par index, jamais en mémoire.
+// SEARCHABLE AND FILTERABLE (issue #49) — both via index, never in memory.
 //
-// Trois chemins, un seul index lu à chaque fois :
-//   recherche (+ rôle) -> `search_email`, le rôle porté par `filterFields` ;
-//   rôle seul          -> `by_role` ;
-//   ni l'un ni l'autre -> `email`, qui porte le tri alphabétique.
+// Three paths, a single index read each time:
+//   search (+ role)    -> `search_email`, the role carried by `filterFields`;
+//   role only          -> `by_role`;
+//   neither            -> `email`, which carries the alphabetical sort.
 //
-// NUANCE SUR LE FILTRE PAR RÔLE, et elle est assumée : il porte sur le rôle
-// STOCKÉ. Les comptes créés avant la PR #4 n'ont pas de colonne `role` ; ils
-// sont indexés sous `undefined`, qui précède toute valeur — donc hors de la
-// plage `role = 'visiteur'`, alors que la liste les AFFICHE « Visiteur »
-// (effectiveRole, issue #27). Réunir les deux demanderait de lire deux plages
-// d'index en une seule page paginée, ce que Convex ne sait pas faire : le
-// choix est donc de ne filtrer que ce qu'un index tranche exactement, et de
-// laisser ces comptes visibles dans la liste non filtrée (et par la recherche
-// sur leur adresse, qui ne passe pas par `role`). Pinné par un test.
+// A NUANCE ON THE ROLE FILTER, and it is accepted: it applies to the STORED
+// role. Accounts created before PR #4 have no `role` column; they
+// are indexed under `undefined`, which precedes every value — so outside the
+// `role = 'visiteur'` range, even though the list DISPLAYS them as "Visiteur"
+// (effectiveRole, issue #27). Combining the two would require reading two index
+// ranges in a single paginated page, which Convex cannot do: the
+// choice is therefore to filter only what an index settles exactly, and to
+// leave these accounts visible in the unfiltered list (and via search
+// on their address, which does not go through `role`). Pinned by a test.
 export const listUsers = query({
   args: {
     paginationOpts: paginationOptsValidator,

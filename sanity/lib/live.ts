@@ -1,12 +1,12 @@
 import { defineLive } from 'next-sanity/live';
 import { client } from './client';
 
-// Lectures cachées et révalidables par tag (sanityFetch) + <SanityLive/>.
+// Cached reads revalidatable by tag (sanityFetch) + <SanityLive/>.
 //
-// SANS CONSOMMATEUR AUJOURD'HUI, ET GARDÉ TEL QUEL — décision reportée
-// (issue #40). Ce module n'est pas mort par accident : il est mort parce que le
-// cache n'a jamais été branché, ce qui est précisément l'objet de #13 (rendu
-// statique et cache des pages éditoriales). Le supprimer ici reviendrait à le
-// réécrire à l'identique dans #13. Le trancher — brancher `sanityFetch` sur les
-// pages éditoriales, ou retirer ce fichier — appartient donc à #13.
+// NO CONSUMER TODAY, AND KEPT AS IS — decision deferred
+// (issue #40). This module is not dead by accident: it is dead because the
+// cache was never wired up, which is precisely the subject of #13 (static
+// rendering and caching of editorial pages). Deleting it here would amount to
+// rewriting it identically in #13. Settling it — wiring `sanityFetch` into the
+// editorial pages, or removing this file — therefore belongs to #13.
 export const { sanityFetch, SanityLive } = defineLive({ client });

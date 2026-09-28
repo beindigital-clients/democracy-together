@@ -5,9 +5,9 @@ import { useTranslations } from 'next-intl';
 import type { Citations } from '@/lib/publications';
 import { CopyButton } from './copy-button';
 
-// Bloc « Citer cette publication » (F-34) — îlot client : bascule APA / BibTeX,
-// copie la citation au format courant, et exporte en RIS. Les chaînes de
-// citation sont construites côté serveur (lib/publications) et passées en props.
+// "Citer cette publication" block (F-34) — client island: APA / BibTeX toggle,
+// copies the citation in the current format, and exports as RIS. The citation
+// strings are built server-side (lib/publications) and passed as props.
 export function CiteBlock({ citations }: { citations: Citations }) {
   const t = useTranslations('library.detail');
   const [fmt, setFmt] = useState<'apa' | 'bibtex'>('apa');
@@ -25,9 +25,9 @@ export function CiteBlock({ citations }: { citations: Citations }) {
         <div
           role="group"
           aria-label={t('citeTitle')}
-          // `shrink-0` : sous espacement de texte élargi (RGAA 10.12), le groupe ne
-          // se comprime plus au point de rogner « BibTeX » ; l'en-tête passe à la
-          // ligne à la place (mesuré au rejeu E2E du 27/09).
+          // `shrink-0`: under increased text spacing (RGAA 10.12), the group no
+          // longer squeezes to the point of clipping "BibTeX"; the header wraps
+          // instead (measured in the 27/09 E2E replay).
           className="ms-auto inline-flex shrink-0 overflow-hidden rounded-sm border border-line-strong"
         >
           {(['apa', 'bibtex'] as const).map((f) => (

@@ -1,24 +1,25 @@
 import type { SiteLocale } from '../locales';
 
-// Libellés de l'HABILLAGE du PDF des rapports annuels (F-41) — ceux que le
-// rédacteur ne saisit pas : sur-titre, pastille d'édition inaugurale, titre du
-// bloc de chiffres clés, pagination.
+// Labels for the FRAME of the annual report PDF (F-41) — the ones the editor
+// does not enter: kicker, inaugural edition badge, key figures block title,
+// pagination.
 //
-// Pourquoi ici et pas dans `src/messages` : le PDF est composé par une action
-// Convex, qui n'a pas le catalogue next-intl — même contrainte, et même
-// réponse, que les e-mails transactionnels (`convex/lib/emailContent.ts`).
-// Le contenu éditorial, lui, vient de la base, dans la langue du PDF.
-// `convex/lib/reportPdf/labels.test.ts` vérifie que les cinq langues sont
-// complètes et que la pagination porte ses deux marqueurs.
+// Why here and not in `src/messages`: the PDF is composed by a Convex action,
+// which does not have the next-intl catalogue — same constraint, and same
+// answer, as the transactional e-mails (`convex/lib/emailContent.ts`).
+// The editorial content, on the other hand, comes from the database, in the
+// PDF's language.
+// `convex/lib/reportPdf/labels.test.ts` checks that the five languages are
+// complete and that the pagination carries its two markers.
 
 export type ReportPdfLabels = {
-  /** Sur-titre de la page de garde, suivi de l'année. */
+  /** Cover page kicker, followed by the year. */
   eyebrow: string;
   inaugural: string;
   keyFigures: string;
-  /** Pagination : `{page}` et `{total}` sont remplacés. */
+  /** Pagination: `{page}` and `{total}` are replaced. */
   pageOf: string;
-  /** Nom de l'éditeur, inscrit comme auteur du PDF. */
+  /** Publisher name, recorded as the PDF's author. */
   publisher: string;
 };
 

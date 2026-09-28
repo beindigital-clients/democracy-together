@@ -1,24 +1,24 @@
 import { defineRouting } from 'next-intl/routing';
 
-// Langue dans l'URL (/fr, /en, /es, /pt, /ar) — choix SEO : chaque langue = une
-// URL distincte, indexable, cacheable CDN, avec hreflang. La préférence est
-// mémorisée par next-intl dans un cookie (NEXT_LOCALE), lisible côté serveur
-// dès le 1er rendu.
+// Language in the URL (/fr, /en, /es, /pt, /ar) — an SEO choice: each language = a
+// distinct URL, indexable, CDN-cacheable, with hreflang. The preference is
+// remembered by next-intl in a cookie (NEXT_LOCALE), readable server-side
+// from the 1st render.
 //
-// L'ARABE EST SERVI, et il ne l'a pas toujours été. Ce commentaire affirmait
-// l'architecture « extensible (pt, ar + RTL) sans refonte », ce que l'audit a
-// démenti (issue #23) : la feuille de style était écrite en propriétés
-// PHYSIQUES (`text-left`, `border-l`…) et les polices ne chargeaient que le
-// sous-ensemble latin. Les deux défauts sont corrigés — les 43 utilitaires
-// physiques sont passés en logiques (`text-start`, `border-s`…), et
-// `src/lib/fonts.ts` charge le sous-ensemble arabe. Ce qui reste vrai :
-// AJOUTER UNE LANGUE DE PLUS qui s'écrit de gauche à droite ne demande qu'une
-// entrée ici, un catalogue de messages et ses blocs de contenu éditorial.
+// ARABIC IS SERVED, and it has not always been. This comment claimed
+// the architecture was "extensible (pt, ar + RTL) without a rewrite", which the audit
+// disproved (issue #23): the stylesheet was written with PHYSICAL
+// properties (`text-left`, `border-l`…) and the fonts only loaded the
+// Latin subset. Both defects are fixed — the 43 physical
+// utilities were switched to logical ones (`text-start`, `border-s`…), and
+// `src/lib/fonts.ts` loads the Arabic subset. What remains true:
+// ADDING ONE MORE LANGUAGE written left to right only requires one
+// entry here, a message catalogue and its editorial content blocks.
 //
-// L'ORDRE EST CELUI DU SÉLECTEUR de langue, qui itère cette liste. Il n'est
-// pas alphabétique : la langue par défaut vient en tête, puis l'anglais comme
-// langue de travail du réseau, puis les langues ajoutées pour l'Afrique du
-// Nord et les Amériques.
+// THE ORDER IS THAT OF THE LANGUAGE PICKER, which iterates over this list. It is
+// not alphabetical: the default language comes first, then English as the
+// network's working language, then the languages added for North
+// Africa and the Americas.
 export const routing = defineRouting({
   locales: ['fr', 'en', 'es', 'pt', 'ar'],
   defaultLocale: 'fr',

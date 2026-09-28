@@ -6,12 +6,12 @@ import { routing } from '@/i18n/routing';
 import { loadAgenda, loadThemes } from '@/lib/contenus/load';
 import { publicReportYears, REPORT_YEARS } from '@/lib/reports-content';
 
-// Sitemap bilingue (F-07). Chaque page logique est listée une fois par locale
-// (localePrefix 'always' -> /fr et /en), avec les alternates hreflang
-// (fr/en/x-default) cohérents avec les canonicals posés par les
-// generateMetadata. Les fetchs dynamiques (publications, membres, actualités)
-// sont tolérants aux pannes : en cas d'échec, le sitemap se réduit aux pages
-// statiques plutôt que de renvoyer une erreur.
+// Bilingual sitemap (F-07). Each logical page is listed once per locale
+// (localePrefix 'always' -> /fr and /en), with hreflang alternates
+// (fr/en/x-default) consistent with the canonicals set by the
+// generateMetadata functions. The dynamic fetches (publications, members,
+// news) are fault-tolerant: on failure, the sitemap shrinks to the static
+// pages rather than returning an error.
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 type ChangeFreq = MetadataRoute.Sitemap[number]['changeFrequency'];
@@ -34,8 +34,8 @@ function localized(
   }));
 }
 
-// Pages publiques statiques (les zones privées/auth sont exclues ici ET
-// interdites dans robots.txt).
+// Static public pages (private/auth zones are excluded here AND
+// disallowed in robots.txt).
 const STATIC_PATHS = [
   '',
   'a-propos',
@@ -72,33 +72,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push(...localized(p, undefined, p === '' ? 'daily' : 'weekly'));
   }
 
-  // Événements (slugs neutres, partagés par les langues) — table
-  // `contentEvents`, ou catalogue codé en repli : jamais un brouillon.
+  // Events (neutral slugs, shared across languages) — `contentEvents`
+  // table, or hard-coded fallback catalogue: never a draft.
   const { items: events } = await loadAgenda(routing.defaultLocale);
   for (const e of events) entries.push(...localized(`evenements/${e.slug}`));
 
-  // Synthèses thématiques (F-36) — slugs stables, même règle de source.
+  // Thematic overviews (F-36) — stable slugs, same source rule.
   const { items: themes } = await loadThemes(routing.defaultLocale);
   for (const th of themes) {
     entries.push(...localized(`thematiques/${th.slug}`));
   }
 
-  // Rapports annuels (F-41) — une URL par année publiée, partagée entre les
-  // langues : éditions administrées (Convex) et éditions codées que la base
-  // ne connaît pas. Base injoignable : les années codées.
+  // Annual reports (F-41) — one URL per published year, shared across
+  // languages: administered editions (Convex) and hard-coded editions the
+  // database does not know. Database unreachable: the hard-coded years.
   let reportYears: number[] = [...REPORT_YEARS];
   try {
     reportYears = publicReportYears(
       await fetchQuery(api.annualReports.listPublic, { locale: 'fr' }),
     );
   } catch {
-    /* Convex injoignable : on garde les années codées. */
+    /* Convex unreachable: we keep the hard-coded years. */
   }
   for (const year of reportYears) {
     entries.push(...localized(`rapports/${year}`, undefined, 'yearly'));
   }
 
-  // Publications publiées (Convex).
+  // Published publications (Convex).
   try {
     const { items } = await fetchQuery(api.publications.listPublished, {});
     for (const pub of items) {
@@ -110,10 +110,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       );
     }
   } catch {
-    /* Convex injoignable : on garde les pages statiques. */
+    /* Convex unreachable: we keep the static pages. */
   }
 
-  // Appels à projets publiés et parcours d'apprentissage (F-60, F-57).
+  // Published calls for projects and learning paths (F-60, F-57).
   try {
     const calls = await fetchQuery(api.projectCalls.listPublicCalls, {});
     for (const c of calls)
@@ -121,21 +121,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const paths = await fetchQuery(api.toolbox.listPaths, {});
     for (const p of paths) entries.push(...localized(`parcours/${p.slug}`));
   } catch {
-    /* idem */
+    /* same */
   }
 
-  // Fiches membres actives (Convex).
+  // Active member entries (Convex).
   try {
     const { items } = await fetchQuery(api.organizations.listDirectory, {});
     for (const org of items)
       entries.push(...localized(`le-reseau/${org.slug}`));
   } catch {
-    /* idem */
+    /* same */
   }
 
-  // Profils PUBLICS de personnes (chantier « social »). La query ne rend que
-  // les profils dont la visibilité est « public » : un profil réservé aux
-  // membres ou privé n'a rien à faire dans un index.
+  // PUBLIC profiles of people ("social" workstream). The query only returns
+  // profiles whose visibility is "public": a members-only or private
+  // profile has no business in an index.
   try {
     const people = await fetchQuery(api.social.profiles.listPublicHandles, {});
     for (const p of people) {
@@ -144,10 +144,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       );
     }
   } catch {
-    /* idem */
+    /* same */
   }
 
-  // Actualités (Sanity) — une URL par langue selon le champ `language` du post.
+  // News (Sanity) — one URL per language based on the post's `language` field.
   try {
     const posts: { slug: string; language: string; _updatedAt?: string }[] =
       await client.fetch(
@@ -165,7 +165,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     }
   } catch {
-    /* Sanity injoignable : on garde le reste. */
+    /* Sanity unreachable: we keep the rest. */
   }
 
   return entries;

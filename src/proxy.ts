@@ -10,29 +10,29 @@ import { notFoundRewriteFor } from './lib/not-found-routes';
 
 const intlMiddleware = createMiddleware(routing);
 
-// Convex Auth gère la route /api/auth (échange de jeton -> cookie httpOnly) et,
-// pour les autres chemins, délègue le routage de langue à next-intl.
+// Convex Auth handles the /api/auth route (token exchange -> httpOnly cookie) and,
+// for other paths, delegates locale routing to next-intl.
 //
-// Gating serveur (audit § 5.1) : les zones privées sont désormais refusées ICI,
-// avant tout rendu. Auparavant, /admin/* et consorts renvoyaient un HTML 200
-// avec « Chargement… » puis redirigeaient en JavaScript au bout de 1,2 seconde
-// — donc aucune frontière HTTP, une page blanche sans JS, et un clignotement.
+// Server-side gating (audit § 5.1): private areas are now refused HERE,
+// before any rendering. Previously, /admin/* and the like returned a 200 HTML
+// page with "Chargement…" and then redirected in JavaScript after 1.2 seconds
+// — hence no HTTP boundary, a blank page without JS, and a flash.
 //
-// Le middleware ne tranche que « connecté ou non ». Le contrôle de RÔLE reste
-// côté Convex (`requireNetworkRole`) : c'est la seule barrière qui compte pour
-// les données, et elle ne doit pas être dupliquée ici où elle dériverait.
+// The middleware only decides "signed in or not". The ROLE check stays on
+// the Convex side (`requireNetworkRole`): it is the only barrier that matters
+// for the data, and it must not be duplicated here where it would drift.
 //
-// 404 DANS LA LANGUE DU VISITEUR (R-04, arbitrage client du 23/09 point 4) :
-// un premier segment inconnu sous un préfixe de langue (`/ar/xyz`) — ou un
-// slug vide (`/fr/le-reseau/%00`, vitrine O4) — est RÉÉCRIT vers la page
-// `/<locale>/introuvable` avec le statut 404. La page est rendue dans le
-// layout de langue (en-tête, pied de page, `lang`/`dir`), donc lisible sans
-// JavaScript — ce qu'un `notFound()` ne donne pas sur Next 16.3.5 (mesuré,
-// cf. src/app/not-found.tsx). Un chemin SANS préfixe (`/xx`, `/de`) est
-// d'abord redirigé par next-intl vers `/<langue détectée>/xx`, et c'est cette
-// seconde requête qui reçoit la 404 — dans la langue du visiteur. La liste
-// des segments connus vit dans src/lib/not-found-routes.ts, testée contre les
-// dossiers réels.
+// 404 IN THE VISITOR'S LANGUAGE (R-04, client decision of 23/09 item 4):
+// an unknown first segment under a locale prefix (`/ar/xyz`) — or an
+// empty slug (`/fr/le-reseau/%00`, showcase O4) — is REWRITTEN to the
+// `/<locale>/introuvable` page with a 404 status. The page is rendered in the
+// locale layout (header, footer, `lang`/`dir`), hence readable without
+// JavaScript — which a `notFound()` does not give on Next 16.3.5 (measured,
+// see src/app/not-found.tsx). A path WITHOUT prefix (`/xx`, `/de`) is first
+// redirected by next-intl to `/<detected locale>/xx`, and it is that
+// second request which gets the 404 — in the visitor's language. The list
+// of known segments lives in src/lib/not-found-routes.ts, tested against the
+// actual folders.
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   if (request.nextUrl.pathname.startsWith('/api')) return;
 
@@ -48,17 +48,17 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 
   const response = intlMiddleware(request);
   const target = notFoundRewriteFor(request.nextUrl.pathname);
-  // Une redirection de next-intl (`/FR` -> `/fr`) passe avant : la requête
-  // suivante sera jugée à son tour.
+  // A next-intl redirect (`/FR` -> `/fr`) takes precedence: the next
+  // request will be judged in its turn.
   if (!target || response.headers.has('location')) return response;
 
   const url = request.nextUrl.clone();
   url.pathname = target;
   url.search = '';
   const notFound = NextResponse.rewrite(url, { status: 404 });
-  // On garde ce que next-intl a posé sur sa réponse — les en-têtes de requête
-  // qui portent la langue (`x-middleware-request-*`) et le cookie de langue —
-  // pour que la page réécrite soit rendue exactement comme une page normale.
+  // We keep what next-intl set on its response — the request headers
+  // carrying the locale (`x-middleware-request-*`) and the locale cookie —
+  // so that the rewritten page is rendered exactly like a normal page.
   response.headers.forEach((value, key) => {
     if (key !== 'x-middleware-next' && key !== 'x-middleware-rewrite') {
       notFound.headers.set(key, value);
@@ -69,9 +69,9 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 
 export const config = {
   matcher: [
-    // pages : tout sauf api, assets Next, le Studio Sanity et les fichiers
+    // pages: everything except api, Next assets, the Sanity Studio and files
     '/((?!api|_next|_vercel|studio|.*\\..*).*)',
-    // route d'auth Convex (doit passer par le middleware, sinon 404)
+    // Convex auth route (must go through the middleware, otherwise 404)
     '/api/auth',
   ],
 };

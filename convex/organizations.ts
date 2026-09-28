@@ -46,20 +46,20 @@ import {
   invitationEmail,
 } from './lib/onboarding';
 
-// Annuaire public des think tanks (F-19) : liste filtrée + facettes calculées
-// sur l'ensemble des membres actifs (pour ne proposer que des filtres utiles).
-// Rendu côté serveur, filtres dans l'URL -> SEO + faible débit (F-05/F-07).
+// Public directory of think tanks (F-19): filtered list + facets computed
+// over all active members (so as to offer only useful filters).
+// Server-side rendering, filters in the URL -> SEO + low bandwidth (F-05/F-07).
 export const listDirectory = query({
   args: {
-    // `region` et `theme` sont des domaines FERMÉS (cf. lib/directory) ; seul
-    // `q`, recherche plein texte, est du texte libre. L'appelant
-    // (src/app/[locale]/le-reseau/page.tsx) assainit les paramètres d'URL en
-    // amont : un `?region=` fantaisiste vaut « pas de filtre », et non une
-    // erreur d'argument sur une page publique.
+    // `region` and `theme` are CLOSED domains (see lib/directory); only
+    // `q`, full-text search, is free text. The caller
+    // (src/app/[locale]/le-reseau/page.tsx) sanitizes the URL parameters
+    // upstream: a bogus `?region=` means "no filter", and not an
+    // argument error on a public page.
     region: v.optional(directoryRegionValidator),
     theme: v.optional(directoryThemeValidator),
-    // Pays et langue (F-19, ajoutés le 27/09) : codes ISO lus sur les fiches,
-    // domaine ouvert — l'appelant vérifie la forme (`isCountryCode`).
+    // Country and language (F-19, added on 27/09): ISO codes read from the profiles,
+    // open domain — the caller checks the format (`isCountryCode`).
     country: v.optional(v.string()),
     language: v.optional(v.string()),
     q: v.optional(v.string()),
@@ -82,9 +82,9 @@ export const listDirectory = query({
   },
 });
 
-// Fiche membre (F-21) — publique : ne renvoie QUE les organisations actives.
-// Le filtrage de statut vit dans la query (et non chez l'appelant) pour qu'aucun
-// consommateur ne puisse exposer une fiche pending/suspended.
+// Member profile (F-21) — public: returns ONLY active organizations.
+// Status filtering lives in the query (and not in the caller) so that no
+// consumer can expose a pending/suspended profile.
 export const getBySlug = query({
   args: { slug: v.string() },
   returns: v.union(publicOrganizationValidator, v.null()),
@@ -93,18 +93,18 @@ export const getBySlug = query({
       .query('organizations')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique();
-    // Le filtre de statut reste ici, et `status` ne sort plus : une fiche
-    // pending/suspended est indistinguable d'une fiche inexistante.
+    // The status filter stays here, and `status` is no longer returned: a
+    // pending/suspended profile is indistinguishable from a non-existent one.
     return org && org.status === 'active' ? projectOrganization(org) : null;
   },
 });
 
-// Candidature d'adhésion (F-22) — ouverte au public ; on lie l'utilisateur
-// connecté. Valide côté serveur (défense en profondeur, l'UI valide aussi).
+// Membership application (F-22) — open to the public; we link the signed-in
+// user. Validated server-side (defense in depth, the UI validates too).
 //
-// Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
-// `storeApplication` (internalMutation). L'identité de l'utilisateur connecté
-// est propagée à travers ctx.runMutation -> la liaison applicantUserId tient.
+// Anti-spam gate: the action checks reCAPTCHA v3 then delegates to
+// `storeApplication` (internalMutation). The signed-in user's identity
+// is propagated through ctx.runMutation -> the applicantUserId link holds.
 export const submitApplication = action({
   args: {
     type: v.union(v.literal('organisation'), v.literal('individu')),
@@ -117,7 +117,7 @@ export const submitApplication = action({
   },
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'membership');
-    // Annotation explicite : casse la circularité de type TS (cf. guidelines).
+    // Explicit annotation: breaks the TS type circularity (see guidelines).
     const id: Id<'membershipApplications'> = await ctx.runMutation(
       internal.organizations.storeApplication,
       input,
@@ -126,9 +126,9 @@ export const submitApplication = action({
   },
 });
 
-// Borne de lecture de la file en attente pour le dédoublonnage ci-dessous :
-// au-delà, la file n'est plus une file de modération mais un stock, et le
-// doublon éventuel serait de toute façon visible du modérateur.
+// Read bound on the pending queue for the deduplication below:
+// beyond it, the queue is no longer a moderation queue but a backlog, and any
+// duplicate would be visible to the moderator anyway.
 const PENDING_APPLICATIONS_MAX = 500;
 
 export const storeApplication = internalMutation({
@@ -146,8 +146,8 @@ export const storeApplication = internalMutation({
     const country = args.country.trim();
     const message = args.message?.trim() || undefined;
 
-    // Bornes HAUTES autant que basses (pentest M-2, « remplissage ») : ce
-    // formulaire est anonyme et n'en avait aucune.
+    // UPPER bounds as well as lower ones (pentest M-2, "stuffing"): this
+    // form is anonymous and had none.
     if (
       organizationName.length < 2 ||
       organizationName.length > FIELD_MAX.name
@@ -162,8 +162,8 @@ export const storeApplication = internalMutation({
       throw new Error('INVALID_MESSAGE');
     }
 
-    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
-    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    // UNFORGEABLE caps (audit M2) — per IP and global per form:
+    // changing address no longer yields a fresh quota. See lib/rateLimit.ts.
     await enforcePublicFormLimit(ctx, 'apply');
 
     await enforceRateLimit(ctx, {
@@ -171,16 +171,16 @@ export const storeApplication = internalMutation({
       ...RATE_LIMITS.apply,
     });
 
-    // UNE SEULE CANDIDATURE EN ATTENTE PAR ADRESSE. Deux envois — double
-    // clic tardif, second essai après un doute — produisaient deux lignes
-    // `pending` que le back-office voyait en double (mesuré le 27/09, vitrine
-    // O3 / R-09). La file des candidatures en attente est courte par
-    // construction (elle se vide à la main, par un modérateur) : la lire par
-    // l'index `by_status` reste borné, sans index supplémentaire sur
-    // l'adresse. La comparaison est normalisée comme le fera l'approbation
-    // (`normalizeEmail`) : « Contact@X.org » et « contact@x.org » sont la
-    // même personne. `ConvexError` : `data` traverse l'action jusqu'au
-    // formulaire, qui peut dire « une candidature est déjà en cours ».
+    // ONLY ONE PENDING APPLICATION PER ADDRESS. Two submissions — a late double
+    // click, a second attempt after a doubt — produced two `pending` rows
+    // that the back-office saw twice (measured on 27/09, showcase
+    // O3 / R-09). The pending applications queue is short by
+    // construction (it is emptied by hand, by a moderator): reading it through
+    // the `by_status` index stays bounded, with no extra index on
+    // the address. The comparison is normalized the way approval will do it
+    // (`normalizeEmail`): "Contact@X.org" and "contact@x.org" are the
+    // same person. `ConvexError`: `data` travels through the action to the
+    // form, which can say "an application is already in progress".
     const wanted = normalizeEmail(contactEmail);
     const pending = await ctx.db
       .query('membershipApplications')
@@ -207,8 +207,8 @@ export const storeApplication = internalMutation({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : relit la dernière candidature d'une
-// adresse, pour que l'E2E vérifie le stockage réel (cf. otp.latestDevCode).
+// DEV/TEST only (AUTH_DEV_OTP guard): reads back the latest application for an
+// address, so the E2E can check the actual storage (see otp.latestDevCode).
 export const latestApplicationForEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
@@ -229,24 +229,24 @@ export const latestApplicationForEmail = internalQuery({
   },
 });
 
-// Validation d'une candidature (F-22 / F-26) — modérateur et au-dessus, audité.
+// Approval of an application (F-22 / F-26) — moderator and above, audited.
 //
-// C'est ici que se jouait le blocage n°1 de l'audit : l'approbation se
-// contentait d'élever le rôle d'un compte DÉJÀ existant. Depuis la suppression
-// de l'auto-inscription, un candidat qui n'avait jamais créé de compte ne
-// pouvait donc jamais se connecter (la connexion refuse un e-mail inconnu), et
-// aucune organisation n'entrait dans l'annuaire. L'approbation crée désormais
-// les trois objets manquants : le COMPTE, l'ORGANISATION et le RATTACHEMENT.
+// This is where the audit's blocker #1 lay: approval merely
+// raised the role of an ALREADY existing account. Since self-signup was
+// removed, an applicant who had never created an account could therefore
+// never sign in (sign-in refuses an unknown email), and
+// no organization entered the directory. Approval now creates
+// the three missing objects: the ACCOUNT, the ORGANIZATION and the LINK.
 export const reviewApplication = mutation({
   args: {
     applicationId: v.id('membershipApplications'),
     decision: v.union(v.literal('approved'), v.literal('rejected')),
     notes: v.optional(v.string()),
-    // Champs d'annuaire saisis par le modérateur (F-19). La candidature ne
-    // collecte qu'un pays en texte libre ; sans ces champs, la fiche serait
-    // publiée avec une région et des thématiques inventées. Absents -> la fiche
-    // est créée en 'pending' et reste hors de l'annuaire public, mais le compte
-    // est créé quand même : le membre peut se connecter immédiatement.
+    // Directory fields entered by the moderator (F-19). The application only
+    // collects a country as free text; without these fields, the profile would be
+    // published with a made-up region and themes. Missing -> the profile
+    // is created as 'pending' and stays out of the public directory, but the account
+    // is created anyway: the member can sign in immediately.
     directory: v.optional(
       v.object({
         countryCode: v.string(),
@@ -262,9 +262,9 @@ export const reviewApplication = mutation({
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
     const application = await ctx.db.get(applicationId);
     if (!application) throw new Error('NOT_FOUND');
-    // Machine à états (audit M6) : une candidature déjà tranchée ne se rejoue
-    // pas. Sans cela, ré-approuver créait des doublons de compte et de fiche, et
-    // « rejeter » après approbation laissait le rôle accordé en place.
+    // State machine (audit M6): an application already decided is not
+    // replayed. Without this, re-approving created duplicate accounts and profiles, and
+    // "rejecting" after approval left the granted role in place.
     if (application.status !== 'pending') throw new Error('ALREADY_REVIEWED');
 
     const now = Date.now();
@@ -294,9 +294,9 @@ export const reviewApplication = mutation({
       return { userCreated: false, organizationId: null };
     }
 
-    // --- 1) Le COMPTE ---------------------------------------------------------
-    // Normalisé exactement comme le fera la connexion, sinon le membre approuvé
-    // ne retrouvera jamais son compte.
+    // --- 1) The ACCOUNT -------------------------------------------------------
+    // Normalized exactly as sign-in will do it, otherwise the approved member
+    // will never find their account.
     const email = normalizeEmail(application.contactEmail);
     const linked = application.applicantUserId
       ? await ctx.db.get(application.applicantUserId)
@@ -322,7 +322,7 @@ export const reviewApplication = mutation({
         metadata: { via: 'membership', email },
       });
     } else if (rank(user.role) < rank('membre')) {
-      // On n'écrase JAMAIS un rôle supérieur.
+      // We NEVER overwrite a higher role.
       await ctx.db.patch(user._id, { role: 'membre' });
       await recordAudit(ctx, {
         actorId: reviewer._id,
@@ -332,14 +332,14 @@ export const reviewApplication = mutation({
       });
     }
 
-    // --- 2) L'ORGANISATION et 3) le RATTACHEMENT -----------------------------
+    // --- 2) The ORGANIZATION and 3) the LINK ---------------------------------
     let organizationId: Id<'organizations'> | null = null;
     if (application.type === 'organisation') {
       const fields = directory ? validateDirectoryFields(directory) : null;
       if (fields && !fields.ok) throw new Error(fields.reason);
       const d = fields && fields.ok ? fields.value : null;
 
-      // Slug unique (suffixe incrémental), comme pour les publications.
+      // Unique slug (incremental suffix), as for publications.
       const root = slugify(application.organizationName);
       let slug = root;
       let n = 2;
@@ -355,8 +355,8 @@ export const reviewApplication = mutation({
       organizationId = await ctx.db.insert('organizations', {
         name: application.organizationName,
         slug,
-        // Sans champs d'annuaire, la fiche reste 'pending' : mieux vaut une
-        // fiche à compléter qu'une fiche publique fausse.
+        // Without directory fields, the profile stays 'pending': better a
+        // profile to be completed than a false public profile.
         country: d?.countryCode ?? application.country,
         region: d?.region ?? '',
         languages: d?.languages ?? [],
@@ -365,7 +365,7 @@ export const reviewApplication = mutation({
         ...(d?.websiteUrl ? { websiteUrl: d.websiteUrl } : {}),
         status: d ? 'active' : 'pending',
         createdAt: now,
-        // Recherche globale (chantier diffusion) : meule tenue à l'écriture.
+        // Global search (diffusion workstream): haystack maintained on write.
         searchText: organizationSearchText(
           {
             name: application.organizationName,
@@ -405,9 +405,9 @@ export const reviewApplication = mutation({
       metadata: { decision },
     });
 
-    // L'e-mail part dans une ACTION planifiée (jamais de fetch en mutation).
-    // Son échec ne remet pas en cause l'approbation : le compte existe déjà, et
-    // l'invitation est renvoyable depuis le back-office.
+    // The email goes out in a scheduled ACTION (never fetch in a mutation).
+    // Its failure does not undo the approval: the account already exists, and
+    // the invitation can be resent from the back-office.
     await ctx.scheduler.runAfter(
       0,
       internal.organizations.sendMembershipInvitation,
@@ -415,8 +415,8 @@ export const reviewApplication = mutation({
         applicationId,
         email,
         organizationName: application.organizationName,
-        // Langue relevée au dépôt de la candidature. Absente sur les
-        // candidatures antérieures à ce champ : le repli reste le français.
+        // Language recorded when the application was submitted. Missing on
+        // applications predating this field: the fallback stays French.
         locale: application.locale ?? 'fr',
       },
     );
@@ -425,9 +425,9 @@ export const reviewApplication = mutation({
   },
 });
 
-// Envoi de l'invitation à se connecter (action : appel réseau interdit en
-// mutation). Marque `invitedAt` seulement si l'envoi a réussi, pour qu'un
-// renvoi reste possible et visible côté back-office.
+// Sending the sign-in invitation (action: network calls are forbidden in a
+// mutation). Sets `invitedAt` only if sending succeeded, so that a
+// resend remains possible and visible in the back-office.
 export const sendMembershipInvitation = internalAction({
   args: {
     applicationId: v.id('membershipApplications'),

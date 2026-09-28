@@ -1,22 +1,22 @@
-// Lecture de la sortie de `npx convex run`.
+// Reading the output of `npx convex run`.
 //
-// LE DÉFAUT CORRIGÉ ICI. L'ancienne version ne gardait que la DERNIÈRE ligne
-// non vide de la sortie, en supposant qu'elle portait la valeur JSON. C'est
-// vrai d'un scalaire (`"123456"`, `true`) mais faux d'un objet : la CLI
-// l'imprime sur plusieurs lignes, la dernière est `}`, qui ne parse pas — et
-// l'ancien `catch` renvoyait `null` sans bruit.
+// THE DEFECT FIXED HERE. The old version kept only the LAST non-empty line
+// of the output, assuming it carried the JSON value. That is true of a
+// scalar (`"123456"`, `true`) but false of an object: the CLI prints it over
+// several lines, the last one is `}`, which does not parse — and the old
+// `catch` silently returned `null`.
 //
-// Conséquence : TOUTE requête de relecture renvoyant un objet valait `null`.
-// `latestContactForEmail`, `latestApplicationForEmail` — donc `stored?.subject`
-// et `stored?.organizationName` valaient `undefined`, et les specs de contact,
-// d'adhésion et du parcours anglais échouaient sur « Received: undefined »
-// alors que le formulaire, lui, avait bien stocké. Les helpers à scalaire
-// (`getOtp`, `isNewsletterSubscribed`) masquaient le défaut en fonctionnant.
+// Consequence: EVERY read-back query returning an object came out as `null`.
+// `latestContactForEmail`, `latestApplicationForEmail` — so `stored?.subject`
+// and `stored?.organizationName` were `undefined`, and the contact,
+// membership and English-journey specs failed on "Received: undefined"
+// even though the form had stored correctly. The scalar helpers
+// (`getOtp`, `isNewsletterSubscribed`) masked the defect by working.
 //
-// La sortie peut être précédée de lignes de log, et suivie d'autres : on
-// cherche donc le plus grand bloc de lignes, au départ le plus précoce, qui
-// forme un JSON valide. Une ligne de log ne parse pas, elle est écartée
-// d'elle-même.
+// The output may be preceded by log lines, and followed by others: we
+// therefore look for the largest block of lines, starting earliest, that
+// forms valid JSON. A log line does not parse, so it is discarded
+// by itself.
 export function parseConvexRunOutput<T>(out: string): T | null {
   const lines = out.trim().split('\n');
   for (let start = 0; start < lines.length; start++) {
@@ -26,7 +26,7 @@ export function parseConvexRunOutput<T>(out: string): T | null {
       try {
         return JSON.parse(candidate) as T;
       } catch {
-        /* pas un JSON complet : on essaie un bloc plus court */
+        /* not a complete JSON: try a shorter block */
       }
     }
   }

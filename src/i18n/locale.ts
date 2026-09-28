@@ -1,59 +1,59 @@
 import { hasLocale } from 'next-intl';
 import { routing, type Locale } from './routing';
 
-// Normalisation d'une chaîne de langue vers une locale du site.
+// Normalizes a language string to a site locale.
 //
-// Cette fonction était réécrite à l'identique dans 20 fichiers (issue #41) :
-// chaque segment `[locale]` d'URL arrive en `string` et doit être ramené au
-// vocabulaire fermé de `routing.locales` avant d'être passé à `Intl`, à un
-// dictionnaire de contenu ou à une balise `hreflang`. Vingt copies, c'est
-// vingt occasions de diverger — et autant d'endroits à retoucher le jour où
-// une troisième langue arrive. Il n'y en a plus qu'un.
+// This function was rewritten identically in 20 files (issue #41):
+// each `[locale]` URL segment arrives as a `string` and must be narrowed to the
+// closed vocabulary of `routing.locales` before being passed to `Intl`, to a
+// content dictionary or to an `hreflang` tag. Twenty copies means
+// twenty opportunities to diverge — and as many places to touch up the day
+// a third language arrives. Now there is only one.
 
-// Garde de type : la valeur est-elle une locale servie par le site ?
-// À utiliser quand une locale inconnue doit être REFUSÉE (404 du layout),
-// plutôt que ramenée à la langue par défaut.
+// Type guard: is the value a locale served by the site?
+// Use it when an unknown locale must be REJECTED (layout 404),
+// rather than mapped to the default language.
 export function isSupportedLocale(
   value: string | null | undefined,
 ): value is Locale {
   return hasLocale(routing.locales, value);
 }
 
-// Repli sur la langue par défaut : à utiliser partout où une locale inconnue
-// doit simplement être remplacée (métadonnées, formats de date, contenus).
+// Falls back to the default language: use it wherever an unknown locale
+// should simply be replaced (metadata, date formats, content).
 export function resolveLocale(value: string | null | undefined): Locale {
   return isSupportedLocale(value) ? value : routing.defaultLocale;
 }
 
-// ÉTIQUETTE BCP-47 POUR `Intl` — et la raison tient dans un seul chiffre.
+// BCP-47 TAG FOR `Intl` — and the reason comes down to a single digit.
 //
-// `new Intl.DateTimeFormat('ar').format(...)` rend « ٢٠٢٦ » : l'ICU associe à
-// l'arabe SANS RÉGION le système de numération arabo-indien. Le reste du site
-// écrit ses nombres en chiffres arabes occidentaux — les scores du Baromètre
-// sont des littéraux ('0.86'), les compteurs viennent de la base, et la
-// feuille de style pose `font-variant-numeric: lining-nums`, qui règle le
-// DESSIN des chiffres latins et ne convertit aucun système. Une page arabe
-// afficherait donc « ٢٠٢٦ » en date et « 0.86 » en score, dans le même
-// tableau.
+// `new Intl.DateTimeFormat('ar').format(...)` returns "٢٠٢٦": ICU associates
+// Arabic WITHOUT A REGION with the Eastern Arabic numeral system. The rest of the site
+// writes its numbers in Western Arabic digits — the Barometer scores
+// are literals ('0.86'), the counters come from the database, and the
+// stylesheet sets `font-variant-numeric: lining-nums`, which controls the
+// SHAPE of Latin digits and converts no numeral system. An Arabic page
+// would therefore show "٢٠٢٦" as a date and "0.86" as a score, in the same
+// table.
 //
-// `ar-MA` lève l'ambiguïté : le Maroc — comme le reste du Maghreb, zone visée
-// par cette langue — écrit les chiffres en occidental, et l'ICU le sait. Le
-// même raisonnement vaut pour `en-GB`, déjà employé par le calendrier pour
-// obtenir « 14 November » plutôt que « November 14 ».
+// `ar-MA` removes the ambiguity: Morocco — like the rest of the Maghreb, the area targeted
+// by this language — writes digits in Western form, and ICU knows it. The
+// same reasoning applies to `en-GB`, already used by the calendar to
+// get "14 November" rather than "November 14".
 //
-// Toute valeur passée à `Intl` traverse cette fonction. Ce n'est pas une
-// précaution de style : deux systèmes de numération dans une même page est un
-// défaut que personne ne voit avant de lire la page en arabe.
-// `fr` et `en` restent SANS RÉGION, et ce n'est pas un oubli. Les y ajouter
-// change des sorties existantes : `en-GB` supprime la virgule d'Oxford de
-// `Intl.ListFormat` (« A, B and C » au lieu de « A, B, and C »), que
-// `src/lib/publications.test.ts` fixe explicitement comme la règle voulue.
-// Cette table est là pour régler le problème des CHIFFRES arabes, pas pour
-// rejuger la typographie des deux langues déjà servies.
+// Every value passed to `Intl` goes through this function. It is not a
+// stylistic precaution: two numeral systems in the same page is a
+// defect nobody sees until they read the page in Arabic.
+// `fr` and `en` stay WITHOUT A REGION, and that is not an oversight. Adding one
+// changes existing outputs: `en-GB` removes the Oxford comma from
+// `Intl.ListFormat` ("A, B and C" instead of "A, B, and C"), which
+// `src/lib/publications.test.ts` explicitly pins as the intended rule.
+// This table is here to fix the Arabic DIGITS problem, not to
+// re-judge the typography of the two languages already served.
 //
-// `es-ES` et `pt-PT` portent en revanche une région : ces catalogues sont
-// rédigés en espagnol d'Espagne et en portugais européen, et autant que les
-// dates suivent le même registre que le texte qui les entoure.
+// `es-ES` and `pt-PT`, on the other hand, carry a region: these catalogues are
+// written in European Spanish and European Portuguese, and dates may as well
+// follow the same register as the text around them.
 const INTL_TAGS: Record<Locale, string> = {
   fr: 'fr',
   en: 'en',

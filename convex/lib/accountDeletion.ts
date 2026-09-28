@@ -23,57 +23,57 @@ import {
   trackYouthApplicationStatus,
 } from './counters';
 
-// SUPPRESSION ET EXPORT DES DONNÉES D'UN COMPTE — POINT D'ENTRÉE UNIQUE
-// (chantier comptes ; RGPD art. 15, 17 et 20).
+// DELETION AND EXPORT OF AN ACCOUNT'S DATA — SINGLE ENTRY POINT
+// (accounts workstream; GDPR art. 15, 17 and 20).
 //
-// Toute table qui porte des données d'un compte est déclarée ICI, par un
-// module du registre ordonné `USER_DATA_MODULES`. La suppression (par un
-// administrateur ou en libre-service) et l'export (« mes données ») lisent le
-// même registre : une table ajoutée demain sans son entrée ne serait ni
-// effacée ni exportée, et c'est précisément ce que ce fichier rend visible.
+// Every table that holds an account's data is declared HERE, by a
+// module of the ordered registry `USER_DATA_MODULES`. Deletion (by an
+// administrator or self-service) and export ("mes données") read the
+// same registry: a table added tomorrow without its entry would be neither
+// erased nor exported, and that is precisely what this file makes visible.
 //
-// LA RÈGLE, ET POURQUOI (détaillée dans docs/backlog/comptes.md) :
+// THE RULE, AND WHY (detailed in docs/backlog/comptes.md):
 //
-//  1. SUPPRIMÉ — tout ce qui n'existe que pour le compte : sessions, moyens
-//     de connexion, 2FA, notifications, rattachements, candidatures, dépôts
-//     NON publiés, inscriptions par adresse (newsletter, rappels, jeunes,
-//     mentorat), propositions de projet, notes d'espace de travail.
-//     Base : art. 17(1)(a)/(b), la finalité disparaît avec le compte.
+//  1. DELETED — everything that exists only for the account: sessions, sign-in
+//     methods, 2FA, notifications, affiliations, applications, UNPUBLISHED
+//     submissions, sign-ups by address (newsletter, reminders, youth,
+//     mentorship), project proposals, workspace notes.
+//     Basis: art. 17(1)(a)/(b), the purpose disappears with the account.
 //
-//  2. SUPPRIMÉ AUSSI — l'EXPRESSION PERSONNELLE publiée : billets et
-//     commentaires de la Tribune, réactions, signalements. Une opinion
-//     politique signée est une donnée sensible (art. 9) dans un réseau qui
-//     travaille sur des régimes autoritaires (cadrage § sécurité : risque de
-//     « doxing » des contributeurs). Aucune exception de l'art. 17(3) ne
-//     justifie de la garder contre la volonté de son auteur. Les
-//     commentaires d'AUTRES membres sous un billet supprimé partent avec lui :
-//     une réponse sans le texte qu'elle commente n'a plus de sens et
-//     risquerait d'être mal lue.
+//  2. ALSO DELETED — published PERSONAL EXPRESSION: Tribune posts and
+//     comments, reactions, reports. A signed political opinion
+//     is sensitive data (art. 9) in a network that
+//     works on authoritarian regimes (security framing §: risk of
+//     "doxing" contributors). No exception in art. 17(3)
+//     justifies keeping it against its author's will. Comments by
+//     OTHER members under a deleted post go with it:
+//     a reply without the text it comments on no longer makes sense and
+//     could be misread.
 //
-//  3. CONSERVÉ MAIS DÉSATTRIBUÉ — les publications PUBLIÉES de la
-//     bibliothèque et les avis de relecture rendus. Ce sont des documents de
-//     recherche citables (DOI, citations entrantes) : les retirer casserait
-//     les références d'autrui. Art. 17(3)(d) (fins de recherche scientifique
-//     et d'archivage) : le lien au COMPTE est coupé (`authorUserId` retiré,
-//     nom du relecteur effacé), la ligne d'auteurs imprimée — mention
-//     bibliographique au même titre que dans un PDF diffusé — reste.
+//  3. KEPT BUT DE-ATTRIBUTED — the library's PUBLISHED publications
+//     and the reviews submitted. These are citable research
+//     documents (DOI, incoming citations): removing them would break
+//     other people's references. Art. 17(3)(d) (scientific research
+//     and archiving purposes): the link to the ACCOUNT is cut (`authorUserId`
+//     removed, reviewer name erased), the printed author line — a
+//     bibliographic mention just as in a distributed PDF — stays.
 //
-//  4. CONSERVÉ — le journal d'audit (intérêt légitime : sécurité, preuve des
-//     décisions de modération). Il ne garde que l'identifiant d'un compte qui
-//     n'existe plus, et plus aucune ligne ne relie cet identifiant à une
-//     personne.
+//  4. KEPT — the audit log (legitimate interest: security, evidence of
+//     moderation decisions). It only keeps the identifier of an account that
+//     no longer exists, and no row links that identifier to a
+//     person anymore.
 //
-// Limites connues (tables sans index sur l'adresse ou le compte) : messages
-// de contact, inscriptions à un événement — docs/backlog/comptes.md.
+// Known limits (tables without an index on the address or the account): contact
+// messages, event registrations — docs/backlog/comptes.md.
 
 export type UserDataMeta = { email: string | null };
 
 /**
- * Supprime (ou anonymise) UN LOT des données d'un compte.
+ * Deletes (or anonymizes) ONE BATCH of an account's data.
  *
- * Rend `false` s'il en reste — l'orchestrateur rappellera le module dans une
- * nouvelle transaction —, `true` ou rien quand le module est vide pour ce
- * compte. Interne, sans `ctx.auth` : c'est l'orchestrateur qui a décidé.
+ * Returns `false` if some remains — the orchestrator will call the module
+ * again in a new transaction —, `true` or nothing when the module is empty for
+ * this account. Internal, no `ctx.auth`: the orchestrator made the decision.
  */
 export type DeleteUserData = (
   ctx: MutationCtx,
@@ -81,7 +81,7 @@ export type DeleteUserData = (
   meta: UserDataMeta,
 ) => Promise<boolean | void>;
 
-/** Les données du compte dans ce module, pour l'export « mes données ». */
+/** The account's data in this module, for the "mes données" export. */
 export type ExportUserData = (
   ctx: QueryCtx,
   userId: Id<'users'>,
@@ -94,23 +94,23 @@ export type UserDataModule = {
   export?: ExportUserData;
 };
 
-// Taille d'un lot : un module ne touche pas plus de BATCH documents
-// « principaux » par appel (ses dépendances directes suivent, bornées).
+// Batch size: a module touches no more than BATCH "main" documents
+// per call (their direct dependencies follow, bounded).
 const BATCH = 50;
-// Plafond de l'export par module : au-delà, le fichier dit qu'il est tronqué.
+// Export cap per module: beyond it, the file says it is truncated.
 export const EXPORT_MAX = 500;
 
 async function deleteStorage(ctx: MutationCtx, id: Id<'_storage'>) {
   try {
     await ctx.storage.delete(id);
   } catch {
-    // Fichier déjà absent : la suppression du document continue.
+    // File already gone: deleting the document carries on.
   }
 }
 
-// --- Sessions et connexion ---------------------------------------------------
+// --- Sessions and sign-in ----------------------------------------------------
 
-/** Supprime toutes les sessions d'un compte et leurs jetons de rafraîchissement. */
+/** Deletes all of an account's sessions and their refresh tokens. */
 export async function invalidateAllSessions(
   ctx: MutationCtx,
   userId: Id<'users'>,
@@ -172,8 +172,8 @@ const twoFactorModule: UserDataModule = {
     for (const c of codes) await ctx.db.delete(c._id);
     return codes.length < BATCH;
   },
-  // Le SECRET n'est jamais exporté : un fichier « mes données » qui
-  // contiendrait le second facteur le rendrait inutile.
+  // The SECRET is never exported: a "mes données" file that
+  // contained the second factor would make it useless.
   export: async (ctx, userId) => {
     const cred = await ctx.db
       .query('twoFactorCredentials')
@@ -218,7 +218,7 @@ const notificationsModule: UserDataModule = {
   },
 };
 
-// --- Organisations -----------------------------------------------------------
+// --- Organizations -----------------------------------------------------------
 
 const organizationsModule: UserDataModule = {
   key: 'organizations',
@@ -228,9 +228,9 @@ const organizationsModule: UserDataModule = {
       .withIndex('by_user', (q) => q.eq('userId', userId))
       .take(BATCH);
     for (const m of memberships) await ctx.db.delete(m._id);
-    // Révisions de fiche EN ATTENTE : proposées par ce compte, personne ne
-    // pourra plus répondre aux questions du modérateur. Les révisions déjà
-    // tranchées ne contiennent que des données de l'organisation.
+    // PENDING profile revisions: proposed by this account, no one will
+    // be able to answer the moderator's questions anymore. Revisions already
+    // decided only contain the organization's data.
     const revisions = await ctx.db
       .query('organizationRevisions')
       .withIndex('by_submitter', (q) => q.eq('submittedBy', userId))
@@ -270,7 +270,7 @@ const organizationsModule: UserDataModule = {
   },
 };
 
-// --- Bibliothèque ------------------------------------------------------------
+// --- Library -----------------------------------------------------------------
 
 async function deletePublicationCompletely(
   ctx: MutationCtx,
@@ -332,9 +332,9 @@ const publicationsModule: UserDataModule = {
       .take(BATCH);
     for (const pub of pubs) {
       if (pub.status === 'published') {
-        // Règle 3 : conservée, désattribuée. Le patch retire `authorUserId`
-        // — la ligne quitte donc l'index `by_author` et ne revient pas dans
-        // le lot suivant.
+        // Rule 3: kept, de-attributed. The patch removes `authorUserId`
+        // — the row therefore leaves the `by_author` index and does not come
+        // back in the next batch.
         await ctx.db.patch(pub._id, { authorUserId: undefined });
       } else {
         await deletePublicationCompletely(ctx, pub);
@@ -367,9 +367,9 @@ const publicationsModule: UserDataModule = {
 const peerReviewModule: UserDataModule = {
   key: 'peerReview',
   delete: async (ctx, userId) => {
-    // Avis rendus : règle 3 — gardés (ils ont fondé une décision éditoriale),
-    // le nom du relecteur effacé. Le patch ne sort pas la ligne de l'index
-    // `by_reviewer` : on ne retraite donc que celles qui portent encore un nom.
+    // Submitted reviews: rule 3 — kept (they grounded an editorial decision),
+    // the reviewer's name erased. The patch does not take the row out of the
+    // `by_reviewer` index: so we only reprocess those that still carry a name.
     const reviews = await ctx.db
       .query('peerReviews')
       .withIndex('by_reviewer', (q) => q.eq('reviewerUserId', userId))
@@ -490,7 +490,7 @@ const tribuneModule: UserDataModule = {
   },
 };
 
-// --- Espaces de travail ------------------------------------------------------
+// --- Workspaces --------------------------------------------------------------
 
 const workspacesModule: UserDataModule = {
   key: 'workspaces',
@@ -501,9 +501,9 @@ const workspacesModule: UserDataModule = {
       .take(BATCH);
     for (const n of notes) await ctx.db.delete(n._id);
 
-    // Espaces DONT il est propriétaire : transmis au plus ancien des autres
-    // membres, pour ne pas priver ceux-ci de leurs propres notes ; supprimés
-    // s'il était seul.
+    // Workspaces the account OWNS: handed over to the longest-standing of the other
+    // members, so as not to deprive them of their own notes; deleted
+    // if the account was alone.
     const owned = await ctx.db
       .query('workspaces')
       .withIndex('by_owner', (q) => q.eq('ownerUserId', userId))
@@ -569,7 +569,7 @@ const workspacesModule: UserDataModule = {
   },
 };
 
-// --- Projets, candidatures ---------------------------------------------------
+// --- Projects, applications --------------------------------------------------
 
 const projectsModule: UserDataModule = {
   key: 'projects',
@@ -626,7 +626,7 @@ const membershipModule: UserDataModule = {
   },
 };
 
-// --- Inscriptions rattachées par l'ADRESSE -----------------------------------
+// --- Sign-ups linked by ADDRESS ----------------------------------------------
 
 const byEmailModule: UserDataModule = {
   key: 'byEmail',
@@ -717,7 +717,7 @@ const byEmailModule: UserDataModule = {
   },
 };
 
-// --- Moyens de connexion, puis le compte lui-même (TOUJOURS EN DERNIER) -----
+// --- Sign-in methods, then the account itself (ALWAYS LAST) -----------------
 
 const authAccountsModule: UserDataModule = {
   key: 'authAccounts',
@@ -736,7 +736,7 @@ const authAccountsModule: UserDataModule = {
     }
     return accounts.length < 20;
   },
-  // Ni secret ni empreinte de mot de passe : seulement les moyens connus.
+  // Neither secret nor password hash: only the known methods.
   export: async (ctx, userId) => {
     const accounts = await ctx.db
       .query('authAccounts')
@@ -746,19 +746,19 @@ const authAccountsModule: UserDataModule = {
   },
 };
 
-// --- REGISTRE DES CHANTIERS --------------------------------------------------
+// --- WORKSTREAM REGISTRY -----------------------------------------------------
 //
-// Branché à la fusion des chantiers du backlog (27/09). Chaque chantier porte
-// sa règle (suppression ou anonymisation, justifiée dans docs/backlog/*.md) ;
-// ce registre ne fait que les appeler. Les appels passent par des fonctions
-// fléchées : les modules importés importent eux-mêmes `lib/`, et une lecture
-// au chargement du module tomberait sur un import circulaire pas encore
-// initialisé.
+// Wired in when the backlog workstreams were merged (27/09). Each workstream
+// carries its rule (deletion or anonymization, justified in docs/backlog/*.md);
+// this registry only calls them. The calls go through arrow
+// functions: the imported modules themselves import `lib/`, and a read
+// at module load time would hit a circular import not yet
+// initialized.
 //
-// La COMMUNAUTÉ passe AVANT les modules « tribune » et « workspaces » du socle
-// (cf. USER_DATA_MODULES) : elle connaît les fichiers, versions et invitations
-// d'un espace et l'historique de modération d'un billet, que le socle, écrit
-// avant elle, ignore — le socle ne trouve ensuite plus rien à faire.
+// COMMUNITY runs BEFORE the core "tribune" and "workspaces" modules
+// (cf. USER_DATA_MODULES): it knows a workspace's files, versions and invitations
+// and a post's moderation history, which the core, written
+// before it, is unaware of — the core then finds nothing left to do.
 const communauteModule: UserDataModule = {
   key: 'communaute',
   delete: async (ctx, userId) =>
@@ -790,8 +790,8 @@ export const CHANTIER_USER_DATA_MODULES: UserDataModule[] = [
     delete: (ctx, userId) => deleteUserDataContenus(ctx, userId),
   },
   {
-    // Les pièces comptables sont CONSERVÉES (obligation légale) et seulement
-    // détachées du compte ; l'export montre au membre ce qui reste à son nom.
+    // Accounting records are KEPT (legal obligation) and only
+    // detached from the account; the export shows the member what remains in their name.
     key: 'paiements',
     delete: (ctx, userId) => deleteUserDataPaiements(ctx, userId),
     export: async (ctx, userId) => {
@@ -830,7 +830,7 @@ export const CHANTIER_USER_DATA_MODULES: UserDataModule[] = [
   },
 ];
 
-/** Registre ordonné — l'ordre est celui de la suppression. */
+/** Ordered registry — the order is the deletion order. */
 export const USER_DATA_MODULES: readonly UserDataModule[] = [
   sessionsModule,
   twoFactorModule,
@@ -848,14 +848,14 @@ export const USER_DATA_MODULES: readonly UserDataModule[] = [
   authAccountsModule,
 ];
 
-// Nombre de modules traités par transaction : chacun touche au plus quelques
-// centaines de documents, la transaction reste loin des plafonds de Convex.
+// Number of modules processed per transaction: each touches at most a few
+// hundred documents, the transaction stays far from Convex's limits.
 export const MODULES_PER_RUN = 4;
 
 /**
- * Fait avancer une suppression d'un pas. Rend l'étape atteinte et `done`
- * quand tous les modules sont vides — il ne reste alors qu'à supprimer la
- * ligne `users` (fait par l'appelant, qui journalise).
+ * Advances a deletion by one step. Returns the step reached, and `done`
+ * when all modules are empty — all that remains then is to delete the
+ * `users` row (done by the caller, which logs it).
  */
 export async function advanceDeletion(
   ctx: MutationCtx,
@@ -874,7 +874,7 @@ export async function advanceDeletion(
   return { step, done: step >= USER_DATA_MODULES.length };
 }
 
-/** Supprime la ligne `users` et tient le compteur. */
+/** Deletes the `users` row and maintains the counter. */
 export async function deleteUserRow(ctx: MutationCtx, userId: Id<'users'>) {
   const user = await ctx.db.get(userId);
   if (!user) return;
@@ -882,7 +882,7 @@ export async function deleteUserRow(ctx: MutationCtx, userId: Id<'users'>) {
   await bumpCounter(ctx, COUNTER.USERS, -1);
 }
 
-/** Toutes les données exportables d'un compte, module par module. */
+/** All of an account's exportable data, module by module. */
 export async function collectUserData(
   ctx: QueryCtx,
   userId: Id<'users'>,

@@ -15,7 +15,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Mock minimal d'une réponse fetch -> .json() renvoie le payload Google.
+// Minimal mock of a fetch response -> .json() returns the Google payload.
 function fetchReturning(payload: Record<string, unknown>) {
   return vi.fn(
     async () => ({ json: async () => payload }) as unknown as Response,
@@ -35,7 +35,7 @@ const okContact = {
 };
 
 describe('verifyRecaptcha — helper de vérification', () => {
-  // Cœur de l'issue #24 : l'absence de clé ne doit PAS valoir autorisation.
+  // Core of issue #24: a missing key must NOT count as authorization.
   it('FAIL-CLOSED : ni clé ni contournement -> rejet, aucun appel réseau', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
     vi.stubEnv('RECAPTCHA_DISABLED', '');
@@ -58,18 +58,18 @@ describe('verifyRecaptcha — helper de vérification', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  // L'ALARME DU CONTOURNEMENT — elle doit sonner là où c'est anormal, et
-  // seulement là. Elle testait `NODE_ENV === 'production'`, que Convex pose à
-  // « production » sur TOUS ses déploiements : elle sonnait donc aussi sur le
-  // dev et sur chaque préversion de CI, où le contournement est posé exprès.
-  // Une alarme qui sonne toujours ne distingue plus rien, et c'est justement
-  // ce qu'on lui demande.
+  // THE BYPASS ALARM — it must go off where it is abnormal, and
+  // only there. It tested `NODE_ENV === 'production'`, which Convex sets to
+  // "production" on ALL its deployments: so it also went off on
+  // dev and on every CI preview, where the bypass is set on purpose.
+  // An alarm that always goes off no longer distinguishes anything, and that is precisely
+  // what we ask of it.
   describe("l'alarme du contournement", () => {
     it('se tait sur un déploiement de dev ou de préversion (AUTH_DEV_OTP posé)', async () => {
       vi.stubEnv('RECAPTCHA_DISABLED', 'true');
       vi.stubEnv('AUTH_DEV_OTP', 'true');
-      // `NODE_ENV` vaut « production » ici comme sur le vrai déploiement : si
-      // l'alarme le lisait encore, ce test la prendrait en défaut.
+      // `NODE_ENV` is "production" here as on the real deployment: if
+      // the alarm still read it, this test would catch it out.
       vi.stubEnv('NODE_ENV', 'production');
       const cri = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -87,9 +87,9 @@ describe('verifyRecaptcha — helper de vérification', () => {
 
       const r = await verifyRecaptcha('tok', 'contact');
 
-      // Elle AVERTIT sans rien casser : le contournement reste effectif, comme
-      // avant. Le rendre bloquant couperait les sept formulaires publics sur
-      // une erreur de configuration, ce qui est un autre arbitrage.
+      // It WARNS without breaking anything: the bypass stays in effect, as
+      // before. Making it blocking would cut off the seven public forms on
+      // a configuration error, which is a different trade-off.
       expect(r).toMatchObject({ ok: true, skipped: true });
       expect(cri).toHaveBeenCalledTimes(1);
       expect(String(cri.mock.calls[0][0])).toContain('RECAPTCHA_DISABLED');
@@ -110,8 +110,8 @@ describe('verifyRecaptcha — helper de vérification', () => {
     });
   });
 
-  // La variable doit être DÉDIÉE : une valeur autre que 'true' ne contourne
-  // rien (pas de « truthy » accidentel sur 'false', '0', 'oui'…).
+  // The variable must be DEDICATED: a value other than 'true' bypasses
+  // nothing (no accidental "truthy" on 'false', '0', 'oui'…).
   it('seul RECAPTCHA_DISABLED=true contourne : toute autre valeur -> rejet', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
     vi.stubGlobal('fetch', fetchReturning({ success: true }));
@@ -122,8 +122,8 @@ describe('verifyRecaptcha — helper de vérification', () => {
     }
   });
 
-  // Le contournement est un interrupteur, pas un repli : posé, il vaut aussi
-  // quand une clé existe — sinon « désactivé » ne voudrait rien dire.
+  // The bypass is a switch, not a fallback: when set, it applies even
+  // when a key exists — otherwise "disabled" would mean nothing.
   it('contournement prioritaire sur la clé : aucune vérification lancée', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', 'secret');
     vi.stubEnv('RECAPTCHA_DISABLED', 'true');
@@ -224,7 +224,7 @@ describe('verifyRecaptcha — helper de vérification', () => {
       fetchReturning({ success: true, score: 0.4, action: 'contact' }),
     );
 
-    expect((await verifyRecaptcha('tok', 'contact')).ok).toBe(false); // défaut 0.5
+    expect((await verifyRecaptcha('tok', 'contact')).ok).toBe(false); // default 0.5
     expect(
       (await verifyRecaptcha('tok', 'contact', { minScore: 0.3 })).ok,
     ).toBe(true);
@@ -232,8 +232,8 @@ describe('verifyRecaptcha — helper de vérification', () => {
 });
 
 describe('Porte reCAPTCHA — action publique contact.submit', () => {
-  // Critère d'acceptation de l'issue #24, bout en bout : sans clé et sans
-  // contournement, un envoi de formulaire ÉCHOUE et rien n'est écrit.
+  // Acceptance criterion of issue #24, end to end: without a key and without
+  // a bypass, a form submission FAILS and nothing is written.
   it('clé absente, pas de contournement -> CAPTCHA_FAILED, rien n est stocké', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
     vi.stubEnv('RECAPTCHA_DISABLED', '');

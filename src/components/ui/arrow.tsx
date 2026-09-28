@@ -1,36 +1,36 @@
-// FLÈCHES DE LECTURE — « en avant » et « en arrière », pas « à droite » et
-// « à gauche ».
+// READING ARROWS — "forward" and "backward", not "right" and
+// "left".
 //
-// Le dépôt écrivait ces flèches en toutes lettres dans le JSX : `{t('next')} →`,
-// `← {t('back')}`. C'est correct dans quatre langues sur cinq et FAUX dans la
-// cinquième, pour une raison qui ne se voit pas à la lecture du code :
-// l'algorithme bidirectionnel d'Unicode REFLÈTE certains caractères selon le
-// sens du texte — les parenthèses, les crochets, les chevrons — mais PAS les
-// flèches. U+2192 n'a pas la propriété `Bidi_Mirrored`. Dans une page arabe,
-// « اقرأ المزيد ← » garderait donc une flèche pointant vers la droite, c'est-à-dire
-// vers le DÉBUT de la ligne : le lien « suivant » désignerait le précédent.
+// The repository wrote these arrows out literally in the JSX: `{t('next')} →`,
+// `← {t('back')}`. That is correct in four languages out of five and WRONG in the
+// fifth, for a reason that is invisible when reading the code:
+// Unicode's bidirectional algorithm MIRRORS certain characters according to the
+// text direction — parentheses, brackets, angle brackets — but NOT
+// arrows. U+2192 does not have the `Bidi_Mirrored` property. In an Arabic page,
+// "اقرأ المزيد ←" would therefore keep an arrow pointing right, that is,
+// toward the START of the line: the "next" link would point to the previous one.
 //
-// POURQUOI DU CSS ET PAS UN TEST SUR LA LOCALE. Ces flèches vivent dans des
-// composants SERVEUR (`getTranslations`) comme dans des composants CLIENT
-// (`useTranslations`). Lire la locale exigerait deux implémentations, ou de
-// rendre client des pages qui n'ont aucune raison de l'être. Le sens d'écriture
-// est déjà porté par le `<html dir>` : une règle `[dir='rtl']` le lit sans
-// JavaScript, sans locale à passer, et sans frontière à traverser.
+// WHY CSS AND NOT A CHECK ON THE LOCALE. These arrows live in
+// SERVER components (`getTranslations`) as well as CLIENT components
+// (`useTranslations`). Reading the locale would require two implementations, or
+// turning into client components pages that have no reason to be. The writing direction
+// is already carried by `<html dir>`: a `[dir='rtl']` rule reads it without
+// JavaScript, without a locale to pass, and without a boundary to cross.
 //
-// Le glyphe est SUBSTITUÉ, pas retourné par une transformation : `scaleX(-1)`
-// sur une flèche donne un dessin miroir aux extrémités mal dessinées, là où
-// « ← » est un caractère à part entière, crénné avec le texte qui l'entoure.
-// Les deux règles sont dans `globals.css`.
+// The glyph is SUBSTITUTED, not flipped by a transform: `scaleX(-1)`
+// on an arrow gives a mirrored drawing with badly drawn ends, whereas
+// "←" is a character in its own right, kerned with the surrounding text.
+// Both rules are in `globals.css`.
 //
-// Les flèches NON directionnelles restent écrites telles quelles : « ↓ » d'un
-// téléchargement descend dans les cinq langues.
+// NON-directional arrows stay written as is: a download's "↓"
+// points down in all five languages.
 
-/** Flèche « vers la suite » : droite en latin, gauche en arabe. */
+/** "Forward" arrow: right in Latin script, left in Arabic. */
 export function ArrowForward() {
   return <span aria-hidden="true" className="dt-arrow-fwd" />;
 }
 
-/** Flèche « retour » : gauche en latin, droite en arabe. */
+/** "Back" arrow: left in Latin script, right in Arabic. */
 export function ArrowBack() {
   return <span aria-hidden="true" className="dt-arrow-back" />;
 }

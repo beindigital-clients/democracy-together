@@ -1,12 +1,12 @@
 import { query } from './_generated/server';
 
-// Annuaire d'experts (F-23) — DÉRIVÉ des auteurs de publications *publiées*.
-// Aucune table « experts » : on agrège les `authors[].name` des publications
-// publiées (les seules exposées publiquement, comme la bibliothèque F-33). Un
-// expert = un nom d'auteur, avec le nombre de publications signées, les axes
-// (thèmes, slugs neutres) distincts auxquels il a contribué, et l'année la plus
-// récente. Lecture publique, aucune donnée fabriquée : la liste reflète
-// exactement les contributions validées du réseau.
+// Expert directory (F-23) — DERIVED from the authors of *published* publications.
+// No "experts" table: we aggregate the `authors[].name` of published
+// publications (the only ones publicly exposed, like the F-33 library). An
+// expert = an author name, with the number of signed publications, the distinct
+// themes (neutral slugs) they contributed to, and the most recent
+// year. Public read, no fabricated data: the list reflects
+// exactly the network's validated contributions.
 export const listExperts = query({
   args: {},
   handler: async (ctx) => {
@@ -47,7 +47,7 @@ export const listExperts = query({
       .map((e) => ({
         name: e.name,
         count: e.count,
-        // Thèmes distincts, triés (slugs) pour un rendu stable des badges.
+        // Distinct themes, sorted (slugs) for a stable rendering of the badges.
         themes: [...e.themes].sort(),
         latestYear: e.latestYear,
       }))

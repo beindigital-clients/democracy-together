@@ -8,11 +8,11 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 
-// Briques partagées des écrans « programmes » (F-56 à F-60) : refus serveur
-// traduits, groupe de cases à cocher, dates.
+// Shared building blocks for the "programmes" screens (F-56 to F-60): translated
+// server rejections, checkbox group, dates.
 
-// Code d'un refus serveur : `ConvexError('CODE')` traverse jusqu'au client
-// avec sa donnée ; les gardes de rôle lèvent en français, reconnues au texte.
+// Code of a server rejection: `ConvexError('CODE')` travels through to the client
+// with its data; role guards throw in French, recognized by their text.
 export function programmeErrorCode(err: unknown): string {
   if (err instanceof ConvexError && typeof err.data === 'string')
     return err.data;
@@ -24,8 +24,8 @@ export function programmeErrorCode(err: unknown): string {
   return m ? m[1] : 'GENERIC';
 }
 
-// Le libellé d'un refus : `errors.programme_<CODE>`, le générique en repli —
-// un code ajouté côté serveur sans son libellé ne s'affiche jamais brut.
+// The label of a rejection: `errors.programme_<CODE>`, with the generic one as fallback —
+// a code added server-side without its label is never shown raw.
 export function useProgrammeError(): (err: unknown) => string {
   const t = useTranslations('errors');
   return useCallback(
@@ -57,7 +57,7 @@ export function useDateFormat() {
   );
 }
 
-// Groupe de cases : `fieldset` + `legend`, chaque case est une cible de 44 px.
+// Checkbox group: `fieldset` + `legend`, each checkbox is a 44 px target.
 export function CheckGroup({
   legend,
   options,
@@ -119,8 +119,8 @@ export function CheckGroup({
   );
 }
 
-// Pastille de statut, sur les jetons du thème (contraste tenu en clair et en
-// sombre par les couleurs de barre, comme le tableau « Mes contributions »).
+// Status badge, using the theme tokens (contrast held in light and
+// dark mode by the bar colours, like the "Mes contributions" table).
 const TONES = {
   neutral: 'border-line-strong bg-surface-2 text-muted',
   pending:
@@ -164,7 +164,7 @@ export function statusTone(status: string): keyof typeof TONES {
 export const CARD = 'rounded-md border border-line bg-surface p-5';
 export const PAGE = 'mx-auto max-w-3xl px-4 py-12 sm:px-6';
 
-// En-tête d'un écran de l'espace membre : fil d'Ariane, titre, chapeau.
+// Header of a member-area screen: breadcrumb, title, standfirst.
 export function MemberPageHeader({
   title,
   lead,

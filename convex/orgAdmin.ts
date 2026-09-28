@@ -22,27 +22,27 @@ import { normalizeEmail, validateDirectoryFields } from './lib/onboarding';
 import { emailProviderStatus } from './email';
 import { organizationRevisionFields } from './lib/tables/comptes';
 
-// ORGANISATIONS DU RÉSEAU (F-21, chantier comptes) : rattachement compte ↔
-// organisation, gestion par le RESPONSABLE (`orgRole: 'owner'`), édition de
-// la fiche d'annuaire soumise à validation, et lien avec les publications.
+// NETWORK ORGANIZATIONS (F-21, accounts workstream): account ↔ organization
+// link, management by the MANAGER (`orgRole: 'owner'`), editing of the
+// directory profile subject to approval, and link with publications.
 //
-// La table de rattachement existait (`organizationMemberships`, créée à
-// l'approbation d'une candidature) mais rien ne s'en servait. Son vocabulaire
-// est gardé : `owner` = responsable, `member` = membre ; l'ancien `editor`,
-// jamais attribué, vaut membre.
+// The link table existed (`organizationMemberships`, created on
+// approval of an application) but nothing used it. Its vocabulary
+// is kept: `owner` = manager, `member` = member; the old `editor`,
+// never assigned, counts as member.
 //
-// POURQUOI LA FICHE PASSE PAR UN MODÉRATEUR. La fiche publique parle au nom du
-// réseau : c'est la validation d'un modérateur qui a fait entrer
-// l'organisation dans l'annuaire (F-22). Laisser son responsable en changer
-// librement le NOM, le SITE ou le LOGO rouvrirait ce que cette validation
-// ferme — usurper le nom d'un autre institut, remplacer le site par une page
-// d'hameçonnage, afficher un logo trompeur. La révision est donc proposée,
-// relue, puis appliquée ; la fiche en ligne reste servie telle quelle entre
-// les deux. Une fiche « à compléter » (créée sans champs d'annuaire) devient
-// publique à l'approbation de sa première révision complète.
+// WHY THE PROFILE GOES THROUGH A MODERATOR. The public profile speaks on behalf of the
+// network: it is a moderator's approval that brought
+// the organization into the directory (F-22). Letting its manager freely change
+// its NAME, WEBSITE or LOGO would reopen what that approval
+// closes — impersonating another institute's name, replacing the website with a
+// phishing page, showing a misleading logo. The revision is therefore proposed,
+// reviewed, then applied; the live profile keeps being served as is in
+// between. A "to be completed" profile (created without directory fields) becomes
+// public on approval of its first complete revision.
 
-// Plafonds : une organisation n'est pas un fournisseur de comptes. Au-delà,
-// passer par le secrétariat (création directe au back-office).
+// Caps: an organization is not an account provider. Beyond this,
+// go through the secretariat (direct creation in the back-office).
 const MAX_MEMBERS_PER_ORG = 50;
 const INVITE_LIMIT = { max: 20, windowMs: 24 * 60 * 60 * 1000 };
 const REVISION_LIMIT = { max: 10, windowMs: 24 * 60 * 60 * 1000 };
@@ -68,7 +68,7 @@ async function membershipOf(
     .first();
 }
 
-/** Le compte courant est-il RESPONSABLE de l'organisation ? Sinon refus. */
+/** Is the current account the MANAGER of the organization? Otherwise refuse. */
 async function requireOrgOwner(
   ctx: QueryCtx | MutationCtx,
   orgId: Id<'organizations'>,
@@ -101,7 +101,7 @@ async function logoUrl(
   return fileId ? await ctx.storage.getUrl(fileId) : null;
 }
 
-// --- Espace membre : mes organisations --------------------------------------
+// --- Member area: my organizations ------------------------------------------
 
 export const myOrganizations = query({
   args: {},
@@ -169,9 +169,9 @@ async function projectRevision(ctx: QueryCtx, r: Doc<'organizationRevisions'>) {
   };
 }
 
-// Vue de gestion d'UNE organisation, pour un de ses comptes. Les ADRESSES des
-// collègues ne sont montrées qu'au responsable, qui en a besoin pour gérer ;
-// un simple membre voit les noms.
+// Management view of ONE organization, for one of its accounts. Colleagues'
+// ADDRESSES are only shown to the manager, who needs them to manage;
+// a plain member sees the names.
 export const organizationForMember = query({
   args: { orgId: v.id('organizations') },
   returns: v.object({
@@ -273,12 +273,12 @@ export const organizationForMember = query({
   },
 });
 
-// --- Rattachements -----------------------------------------------------------
+// --- Links -------------------------------------------------------------------
 
-// Le responsable invite un COLLÈGUE. Une adresse inconnue devient un compte
-// (rang « membre » : l'organisation est membre validée du réseau) ; un compte
-// existant est rattaché sans que son rôle soit jamais abaissé. L'e-mail
-// d'accueil part par l'adaptateur commun (convex/email.ts).
+// The manager invites a COLLEAGUE. An unknown address becomes an account
+// ("member" rank: the organization is a validated member of the network); an
+// existing account is linked without its role ever being lowered. The welcome
+// email goes out through the common adapter (convex/email.ts).
 export const inviteColleague = mutation({
   args: {
     orgId: v.id('organizations'),
@@ -330,8 +330,8 @@ export const inviteColleague = mutation({
         metadata: { via: 'organization', organizationId: org._id },
       });
     } else if (target.suspendedAt !== undefined) {
-      // Un compte suspendu ne se réintroduit pas par la porte d'une
-      // organisation : c'est à l'administrateur de lever la suspension.
+      // A suspended account does not get back in through an
+      // organization's door: it is up to the administrator to lift the suspension.
       throw new ConvexError('ACCOUNT_SUSPENDED');
     } else if (rank(target.role) < rank('membre')) {
       await ctx.db.patch(target._id, { role: 'membre' });
@@ -374,9 +374,9 @@ export const inviteColleague = mutation({
   },
 });
 
-// Retrait d'un rattachement : par le responsable, ou par le membre lui-même
-// (« quitter »). Jamais le DERNIER responsable — l'organisation n'aurait plus
-// personne pour tenir sa fiche.
+// Removing a link: by the manager, or by the member themselves
+// ("leave"). Never the LAST manager — the organization would have no one
+// left to maintain its profile.
 export const removeMember = mutation({
   args: { orgId: v.id('organizations'), userId: v.id('users') },
   returns: v.null(),
@@ -433,7 +433,7 @@ export const setMemberRole = mutation({
   },
 });
 
-// --- Fiche : logo -------------------------------------------------------------
+// --- Profile: logo ------------------------------------------------------------
 
 export const generateLogoUploadUrl = mutation({
   args: { orgId: v.id('organizations') },
@@ -449,9 +449,9 @@ export const generateLogoUploadUrl = mutation({
 });
 
 /**
- * Type d'image reconnu à sa SIGNATURE (premiers octets), jamais au type
- * annoncé par le navigateur. SVG exclu à dessein : c'est du XML qui peut
- * porter du script, servi depuis notre domaine de stockage.
+ * Image type recognized by its SIGNATURE (first bytes), never by the type
+ * announced by the browser. SVG deliberately excluded: it is XML that can
+ * carry script, served from our storage domain.
  */
 export function sniffImageType(
   bytes: Uint8Array,
@@ -504,22 +504,22 @@ export const discardFile = internalMutation({
     try {
       await ctx.storage.delete(fileId);
     } catch {
-      // Déjà absent.
+      // Already gone.
     }
     return null;
   },
 });
 
-// VÉRIFICATION DU CONTENU du logo téléversé : l'action relit le fichier dans
-// le stockage (une mutation ne le peut pas), en contrôle la taille et la
-// signature, et ne l'enregistre qu'ensuite. Un fichier refusé est supprimé
-// sur-le-champ : il ne reste pas d'orphelin servi par une URL.
+// CONTENT VERIFICATION of the uploaded logo: the action re-reads the file from
+// storage (a mutation cannot), checks its size and
+// signature, and only then records it. A refused file is deleted
+// on the spot: no orphan is left served by a URL.
 export const attachLogo = action({
   args: { orgId: v.id('organizations'), fileId: v.id('_storage') },
   returns: v.union(
-    // `url` : adresse signée du stockage, pour l'aperçu. L'aperçu se lit
-    // ainsi depuis le serveur, pas depuis le fichier local (alerte CodeQL
-    // « DOM text reinterpreted as HTML » du 27/09 sur `createObjectURL`).
+    // `url`: signed storage address, for the preview. The preview is thus read
+    // from the server, not from the local file (CodeQL alert
+    // "DOM text reinterpreted as HTML" of 27/09 on `createObjectURL`).
     v.object({ ok: v.literal(true), url: v.union(v.string(), v.null()) }),
     v.object({
       ok: v.literal(false),
@@ -559,7 +559,7 @@ export const attachLogo = action({
   },
 });
 
-// --- Fiche : révision ----------------------------------------------------------
+// --- Profile: revision ---------------------------------------------------------
 
 function validateRevision(fields: {
   name: string;
@@ -620,8 +620,8 @@ export const submitRevision = mutation({
       ...REVISION_LIMIT,
     });
     const fields = validateRevision(args.fields);
-    // Le logo doit venir d'un téléversement VÉRIFIÉ pour cette organisation
-    // (`attachLogo`) : un identifiant de stockage quelconque est refusé.
+    // The logo must come from a VERIFIED upload for this organization
+    // (`attachLogo`): an arbitrary storage id is refused.
     if (args.logoFileId) {
       const upload = await ctx.db
         .query('organizationLogoUploads')
@@ -631,8 +631,8 @@ export const submitRevision = mutation({
         throw new ConvexError('INVALID_LOGO');
       }
     }
-    // Une seule révision en attente par organisation : la nouvelle remplace
-    // l'ancienne, que le modérateur n'a plus à lire.
+    // Only one pending revision per organization: the new one replaces
+    // the old one, which the moderator no longer has to read.
     const previous = await ctx.db
       .query('organizationRevisions')
       .withIndex('by_org_and_status', (q) =>
@@ -664,7 +664,7 @@ export const submitRevision = mutation({
   },
 });
 
-// --- Modération des révisions -------------------------------------------------
+// --- Revision moderation ------------------------------------------------------
 
 export const listPendingRevisions = query({
   args: {},
@@ -763,8 +763,8 @@ export const reviewRevision = mutation({
         await ctx.storage.delete(org.logoFileId);
         logoFileId = undefined;
       }
-      // Fiche « à compléter » (créée sans champs d'annuaire) : sa première
-      // révision validée la publie. Une fiche SUSPENDUE le reste.
+      // "To be completed" profile (created without directory fields): its first
+      // approved revision publishes it. A SUSPENDED profile stays suspended.
       const status = org.status === 'pending' ? 'active' : org.status;
       await ctx.db.patch(org._id, {
         name: f.name,
@@ -805,14 +805,14 @@ export const reviewRevision = mutation({
   },
 });
 
-// --- Fiche publique : logo, publications, membres ----------------------------
+// --- Public profile: logo, publications, members -----------------------------
 
 const PUBLIC_PUBLICATIONS_MAX = 50;
 
-// Complément de la fiche publique `/le-reseau/<slug>` (F-21). Séparé de
-// `organizations.getBySlug`, dont la forme est partagée avec l'annuaire :
-// cette query ne sert que la fiche détaillée. Même règle de statut : une
-// organisation non active est indistinguable d'une organisation absente.
+// Complement to the public profile `/le-reseau/<slug>` (F-21). Separate from
+// `organizations.getBySlug`, whose shape is shared with the directory:
+// this query only serves the detailed profile. Same status rule: a
+// non-active organization is indistinguishable from a missing one.
 export const publicDetails = query({
   args: { slug: v.string() },
   returns: v.union(
@@ -827,7 +827,7 @@ export const publicDetails = query({
           year: v.number(),
         }),
       ),
-      // `null` : l'organisation n'a pas choisi de montrer ses membres.
+      // `null`: the organization has not chosen to show its members.
       members: v.union(v.null(), v.array(v.object({ name: v.string() }))),
     }),
   ),
@@ -846,8 +846,8 @@ export const publicDetails = query({
       .take(PUBLIC_PUBLICATIONS_MAX);
     let members: { name: string }[] | null = null;
     if (org.showMembers) {
-      // Seuls les comptes qui portent un NOM apparaissent : jamais une
-      // adresse e-mail, et un compte suspendu disparaît de la page.
+      // Only accounts that carry a NAME appear: never an
+      // email address, and a suspended account disappears from the page.
       const rows = await ctx.db
         .query('organizationMemberships')
         .withIndex('by_org', (q) => q.eq('orgId', org._id))
@@ -875,7 +875,7 @@ export const publicDetails = query({
 
 // --- Back-office --------------------------------------------------------------
 
-// Liste des organisations pour le formulaire de création de compte.
+// List of organizations for the account creation form.
 export const listForAdmin = query({
   args: {},
   returns: v.array(
@@ -898,9 +898,9 @@ export const listForAdmin = query({
   },
 });
 
-// Reprise des publications déposées AVANT le rattachement automatique : leur
-// organisation est déduite du rattachement actuel de l'auteur. Par lots, à
-// lancer une fois après le déploiement (docs/backlog/comptes.md).
+// Backfill of publications submitted BEFORE automatic linking: their
+// organization is inferred from the author's current link. In batches, to be
+// run once after deployment (docs/backlog/comptes.md).
 export const backfillPublicationOrganizations = internalMutation({
   args: { cursor: v.optional(v.union(v.string(), v.null())) },
   returns: v.object({ updated: v.number(), done: v.boolean() }),

@@ -8,57 +8,57 @@ import {
 } from './_helpers';
 import { SESSIONS } from './_sessions';
 
-// GARDE-FOU des actions irréversibles du back-office (issue #38).
+// SAFEGUARD for the back office's irreversible actions (issue #38).
 //
-// Les quatre actions destructrices — rejeter une candidature, rejeter une
-// publication, retirer un contenu de la tribune, changer un rôle — partaient au
-// PREMIER CLIC. Ce que ces parcours épinglent n'est donc pas « l'action
-// fonctionne » (c'est le sujet d'`admin.spec`, `library-submit.spec` et
-// `admin-moderation.spec`) mais les trois propriétés du garde-fou :
+// The four destructive actions — rejecting an application, rejecting a
+// publication, removing content from the Tribune, changing a role — fired on the
+// FIRST CLICK. What these journeys pin down is therefore not "the action
+// works" (that is the subject of `admin.spec`, `library-submit.spec` and
+// `admin-moderation.spec`) but the three properties of the safeguard:
 //
-//   1. la boîte s'ouvre et NOMME sa cible — pas un « Confirmer ? » générique ;
-//   2. tant qu'elle n'est pas validée, RIEN n'est parti (Échap, annulation, et
-//      pour le rôle : un simple choix dans la liste déroulante) ;
-//   3. l'action aboutie produit un retour VISIBLE, là où l'écran restait muet.
+//   1. the dialog opens and NAMES its target — not a generic "Confirm?";
+//   2. as long as it is not confirmed, NOTHING has been sent (Escape, cancel, and
+//      for the role: a mere choice in the dropdown);
+//   3. the completed action produces VISIBLE feedback, where the screen used to stay silent.
 //
-// SESSION DÉDIÉE (et non l'une des sessions par rôle) : deux de ces parcours
-// écrivent la donnée puis la modèrent, donc tiennent une session de bout en
-// bout. En s'ajoutant aux comptes partagés, ce fichier a fait tomber
-// `admin-moderation` puis `admin.spec` sur l'écran de connexion — deux
-// contextes sur un même jeton de rafraîchissement ne cohabitent pas
-// (cf. `_sessions.ts`). Le compte est de rang administrateur : les gardes du
-// back-office étant hiérarchiques, il dépose comme un membre et tranche comme
-// un modérateur.
+// DEDICATED SESSION (and not one of the per-role sessions): two of these journeys
+// write the data then moderate it, hence hold a session from end to
+// end. By joining the shared accounts, this file brought down
+// `admin-moderation` then `admin.spec` onto the sign-in screen — two
+// contexts on the same refresh token cannot coexist
+// (see `_sessions.ts`). The account has administrator rank: since the
+// back-office guards are hierarchical, it submits like a member and decides like
+// a moderator.
 test.use({
   locale: 'fr-FR',
   storageState: SESSIONS.confirmations.state,
 });
 
-// LE JETON DE RAFRAÎCHISSEMENT TOURNE — IL FAUT LE RÉÉCRIRE. Chaque test part
-// d'un contexte NEUF rechargé depuis le même fichier d'état. Or le premier qui
-// s'en sert fait tourner le jeton (Convex Auth le renouvelle et l'invalide) :
-// les suivants repartent donc d'un jeton déjà consommé. Tant que la fenêtre de
-// tolérance n'est pas dépassée, ça passe ; au-delà, Convex Auth y voit un
-// rejeu et coupe la session — le test se réveille sur /connexion au milieu de
-// son parcours (le mécanisme est décrit dans `_sessions.ts`, pour le cas de
-// deux FICHIERS sur un même compte ; il vaut tout autant pour deux TESTS d'un
-// même fichier, simplement plus tard).
+// THE REFRESH TOKEN ROTATES — IT MUST BE REWRITTEN. Each test starts
+// from a NEW context reloaded from the same state file. But the first one that
+// uses it rotates the token (Convex Auth renews and invalidates it):
+// the following ones therefore start again from an already consumed token. As long as the
+// tolerance window is not exceeded, it works; beyond it, Convex Auth sees a
+// replay and cuts the session — the test wakes up on /connexion in the middle of
+// its journey (the mechanism is described in `_sessions.ts`, for the case of
+// two FILES on the same account; it applies just as much to two TESTS of the
+// same file, only later).
 //
-// Ce fichier est le plus exposé : quatre parcours de back-office à la file,
-// donc le quatrième démarre loin du moment où la session a été ouverte. Il est
-// tombé deux fois de suite sur l'écran de connexion (PR #79), toujours le
-// dernier, pendant que les trois premiers passaient.
+// This file is the most exposed: four back-office journeys in a row,
+// so the fourth starts long after the session was opened. It
+// landed twice in a row on the sign-in screen (PR #79), always the
+// last one, while the first three passed.
 //
-// On réécrit donc l'état APRÈS CHAQUE TEST : le suivant repart du jeton
-// courant, jamais d'un jeton périmé. La session dédiée du fichier
-// (cf. `_sessions.ts`) rend l'écriture sûre — aucun autre fichier ne lit ni
-// n'écrit ce fichier d'état pendant l'exécution.
+// So we rewrite the state AFTER EACH TEST: the next one starts from the current
+// token, never from a stale one. The file's dedicated session
+// (see `_sessions.ts`) makes the write safe — no other file reads or
+// writes this state file during the run.
 test.afterEach(async ({ context }) => {
   await context.storageState({ path: SESSIONS.confirmations.state });
 });
 
-// Marqueur des publications créées ici -> nettoyage ciblé du jeu de données
-// partagé (comme `library-submit.spec.ts`).
+// Marker of the publications created here -> targeted cleanup of the shared
+// dataset (like `library-submit.spec.ts`).
 const PUB_MARKER = 'Rejet confirmé E2E';
 
 test.afterAll(async () => {
@@ -82,21 +82,21 @@ test('rejeter une candidature : confirmation nommant l’organisation, Échap an
   const row = page.getByRole('listitem').filter({ hasText: appOrg });
   await expect(row).toBeVisible();
 
-  // 1. La boîte NOMME la candidature visée.
+  // 1. The dialog NAMES the targeted application.
   await row.getByRole('button', { name: 'Rejeter', exact: true }).click();
   const dialog = page.getByRole('dialog', {
     name: `Rejeter la candidature de ${appOrg} ?`,
   });
   await expect(dialog).toBeVisible();
 
-  // 2. Échap ferme sans rien décider — la candidature est toujours en attente
-  // (ce qui compte : depuis la machine à états #9, un rejet ne se rejoue pas).
+  // 2. Escape closes without deciding anything — the application is still pending
+  // (what matters: since the state machine #9, a rejection cannot be replayed).
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(row).toBeVisible();
   await expect(row.getByText('En attente')).toBeVisible();
 
-  // 3. Confirmée, l'action part — et l'écran le DIT.
+  // 3. Once confirmed, the action goes through — and the screen SAYS so.
   await row.getByRole('button', { name: 'Rejeter', exact: true }).click();
   await page
     .getByRole('dialog')
@@ -117,7 +117,7 @@ test('rejeter une publication : confirmation nommant le titre, annulation sans e
 }) => {
   const title = `${PUB_MARKER} ${Date.now()}`;
 
-  // La publication à rejeter doit exister : on la dépose par le chemin réel.
+  // The publication to reject must exist: we submit it through the real path.
   await page.goto('/fr/espace-membre/deposer');
   await page.getByLabel('Titre', { exact: true }).fill(title);
   await page.getByLabel('Auteur·rice·s').fill('A. Membre E2E');
@@ -141,7 +141,7 @@ test('rejeter une publication : confirmation nommant le titre, annulation sans e
   });
   await expect(dialog).toBeVisible();
 
-  // Annuler laisse la publication dans la file en attente.
+  // Cancel leaves the publication in the pending queue.
   await dialog.getByRole('button', { name: 'Annuler' }).click();
   await expect(dialog).toHaveCount(0);
   await expect(row.getByText('En attente')).toBeVisible();
@@ -162,9 +162,9 @@ test('retirer un contenu signalé : confirmation nommant la cible (issue #38)', 
 }) => {
   const postTitle = `Prise de parole à retirer E2E ${Date.now()}`;
 
-  // Un contenu publié, puis signalé (tout compte authentifié peut signaler).
-  // Modération A PRIORI (F-45) : le billet soumis attend sa validation avant
-  // d'être public — on la donne, puis on le retrouve dans le fil.
+  // Content published, then reported (any authenticated account can report).
+  // PRE-moderation (F-45): the submitted post awaits approval before
+  // being public — we give it, then find it again in the feed.
   await page.goto('/fr/tribune');
   await page.getByRole('button', { name: 'Prendre la parole' }).click();
   const composer = page
@@ -201,8 +201,8 @@ test('retirer un contenu signalé : confirmation nommant la cible (issue #38)', 
     name: 'Retirer cette prise de parole de la tribune ?',
   });
   await expect(dialog).toBeVisible();
-  // La cible est nommée jusqu'à l'extrait signalé : deux lignes de cette file
-  // ne se distinguent que par là.
+  // The target is named down to the reported excerpt: two rows of this queue
+  // differ only by that.
   await expect(dialog).toContainText(postTitle);
 
   await page.keyboard.press('Escape');
@@ -219,10 +219,10 @@ test('retirer un contenu signalé : confirmation nommant la cible (issue #38)', 
   );
   await expect(row).toHaveCount(0);
 
-  // Le contenu a bien quitté la tribune publique. On regarde le FIL (liens
-  // vers une fiche publique) : « Mes billets », sous le composer, garde le
-  // billet retiré de son auteur — avec son état — et pointe vers l'espace
-  // membre, pas vers la tribune.
+  // The content has indeed left the public Tribune. We look at the FEED (links
+  // to a public page): "Mes billets", under the composer, keeps the
+  // removed post for its author — with its state — and points to the member
+  // area, not to the Tribune.
   await page.goto('/fr/tribune');
   await expect(
     page.locator('a[href*="/tribune/"]').filter({ hasText: postTitle }),
@@ -241,16 +241,16 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   const row = page.getByRole('row').filter({ hasText: email });
   await expect(row).toBeVisible();
 
-  // 1. CHOISIR N'EST PAS APPLIQUER. C'est le cœur de l'issue : un mouvement de
-  // molette au-dessus de la liste déroulante en changeait la valeur, et cette
-  // valeur partait au serveur. On simule le geste par sa conséquence (la
-  // valeur change) et on vérifie qu'après rechargement, rien n'est parti.
+  // 1. CHOOSING IS NOT APPLYING. This is the heart of the issue: a mouse-wheel
+  // movement over the dropdown changed its value, and that
+  // value was sent to the server. We simulate the gesture through its consequence (the
+  // value changes) and check that after reloading, nothing was sent.
   await row.getByLabel(`Rôle ${email}`).selectOption('visiteur');
   await expect(row.getByRole('button', { name: 'Appliquer' })).toBeVisible();
   await page.reload();
-  // Le rechargement vide le champ de recherche — c'est un état local. Sans le
-  // reposer, la ligne repart hors de la première page dès que la base est
-  // peuplée, et l'échec ne dit plus rien du sujet du test.
+  // Reloading clears the search field — it is local state. Without
+  // setting it again, the row falls off the first page as soon as the database is
+  // populated, and the failure no longer says anything about the test's subject.
   await chercherUtilisateur(page, email);
   await expect(
     page
@@ -259,8 +259,8 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
       .getByLabel(`Rôle ${email}`),
   ).toHaveValue('membre');
 
-  // 2. « Appliquer » ouvre une confirmation qui nomme le compte, et dit ce qui
-  // change.
+  // 2. "Appliquer" opens a confirmation that names the account, and says what
+  // changes.
   const row2 = page.getByRole('row').filter({ hasText: email });
   await row2.getByLabel(`Rôle ${email}`).selectOption('visiteur');
   await row2.getByRole('button', { name: 'Appliquer' }).click();
@@ -271,13 +271,13 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   await expect(dialog).toContainText('« Membre »');
   await expect(dialog).toContainText('« Visiteur »');
 
-  // Annuler ne touche à rien.
+  // Cancel touches nothing.
   await dialog.getByRole('button', { name: 'Annuler' }).click();
   await expect(dialog).toHaveCount(0);
   await page.reload();
-  // Le rechargement vide le champ de recherche — c'est un état local. Sans le
-  // reposer, la ligne repart hors de la première page dès que la base est
-  // peuplée, et l'échec ne dit plus rien du sujet du test.
+  // Reloading clears the search field — it is local state. Without
+  // setting it again, the row falls off the first page as soon as the database is
+  // populated, and the failure no longer says anything about the test's subject.
   await chercherUtilisateur(page, email);
   await expect(
     page
@@ -286,7 +286,7 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
       .getByLabel(`Rôle ${email}`),
   ).toHaveValue('membre');
 
-  // 3. Confirmée, la bascule part — avec un retour visible.
+  // 3. Once confirmed, the switch goes through — with visible feedback.
   const row3 = page.getByRole('row').filter({ hasText: email });
   await row3.getByLabel(`Rôle ${email}`).selectOption('visiteur');
   await row3.getByRole('button', { name: 'Appliquer' }).click();
@@ -294,8 +294,8 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
     .getByRole('dialog')
     .getByRole('button', { name: 'Changer le rôle' })
     .click();
-  // Filtré : l'écran des utilisateurs porte une seconde région `status` (le
-  // formulaire d'invitation), qui rendrait le sélecteur ambigu.
+  // Filtered: the users screen carries a second `status` region (the
+  // invitation form), which would make the selector ambiguous.
   await expect(
     page
       .getByRole('status')
@@ -303,9 +303,9 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   ).toBeVisible();
 
   await page.reload();
-  // Le rechargement vide le champ de recherche — c'est un état local. Sans le
-  // reposer, la ligne repart hors de la première page dès que la base est
-  // peuplée, et l'échec ne dit plus rien du sujet du test.
+  // Reloading clears the search field — it is local state. Without
+  // setting it again, the row falls off the first page as soon as the database is
+  // populated, and the failure no longer says anything about the test's subject.
   await chercherUtilisateur(page, email);
   await expect(
     page

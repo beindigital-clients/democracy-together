@@ -29,8 +29,8 @@ import { sourceAccepts } from '@convex/lib/searchSources';
 import { shouldMeasure, isMeasuredPath } from '@/lib/audience';
 import { parseSearchFilters, searchHref, hasFilters } from '@/lib/search';
 
-// Règles PURES du chantier diffusion (F-06/F-34, F-18/F-65, F-66) : ce qui se
-// décide sans base ni navigateur se vérifie ici, à la chaîne près.
+// PURE rules of the diffusion workstream (F-06/F-34, F-18/F-65, F-66): what is
+// decided without a database or browser is checked here, down to the string.
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -41,7 +41,7 @@ describe('Recherche — repli de la meule et de la requête', () => {
     expect(foldForSearch('Démocratie, ÉLECTIONS — « Côte d’Ivoire » !')).toBe(
       'democratie elections cote d ivoire',
     );
-    // L'arabe garde ses lettres (une écriture n'est pas de la ponctuation).
+    // Arabic keeps its letters (a script is not punctuation).
     expect(foldForSearch('الديمقراطية، اليوم')).toBe('الديمقراطية اليوم');
   });
 
@@ -157,7 +157,7 @@ describe('Audience — réduction des données à l’entrée', () => {
     expect(isMeasuredPath('/fr/admin/impact')).toBe(false);
     expect(isMeasuredPath('/fr/espace-membre')).toBe(false);
     expect(isMeasuredPath('/fr/bibliotheque')).toBe(true);
-    // `usePathname` de next-intl rend le chemin SANS préfixe de langue.
+    // next-intl's `usePathname` returns the path WITHOUT the language prefix.
     expect(isMeasuredPath('/admin/newsletter')).toBe(false);
     expect(isMeasuredPath('/bibliotheque/x')).toBe(true);
   });
@@ -251,9 +251,9 @@ describe('Recherche — tous les mots (rejeu E2E du 27/09)', () => {
     const { textMatchesAll } = await import('@convex/lib/searchSources');
     const meule = 'etat de la democratie entre l afrique et l europe';
     expect(textMatchesAll(meule, 'democratie afrique')).toBe(true);
-    // Le dernier terme, en cours de frappe, se complète.
+    // The last term, still being typed, is completed.
     expect(textMatchesAll(meule, 'democratie afr')).toBe(true);
-    // Un seul mot commun ne suffit plus : l'index le rendait, pas le filtre.
+    // A single common word is no longer enough: the index returned it, not the filter.
     expect(textMatchesAll(meule, 'democratie 1790550524787')).toBe(false);
     expect(textMatchesAll(undefined, 'democratie')).toBe(false);
   });

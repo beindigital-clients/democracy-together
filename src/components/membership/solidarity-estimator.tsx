@@ -18,14 +18,14 @@ import { Check } from 'lucide-react';
 
 type EstimatorContent = MembershipContent['estimator'];
 
-// Estimateur de cotisation solidaire (F-20) — îlot client : le montant se
-// recalcule en direct selon le niveau de revenu du pays et le type d'adhésion.
+// Solidarity membership fee estimator (F-20) — client island: the amount is
+// recalculated live according to the country's income level and the membership type.
 //
-// BARÈME RÉEL (F-27) : dès que l'administrateur a publié le barème
-// (/admin/finances/formules), c'est LUI qui s'affiche — en euro et en franc
-// CFA — avec le lien pour régler la cotisation dans l'espace membre. Tant
-// qu'il n'existe pas, l'estimation indicative d'origine reste affichée, et
-// dite indicative (cf. lib/membership-content).
+// ACTUAL FEE SCALE (F-27): as soon as the administrator has published the scale
+// (/admin/finances/formules), IT is what is shown — in euros and in CFA
+// francs — with the link to pay the fee in the member area. As long
+// as it does not exist, the original indicative estimate stays shown, and
+// labelled as indicative (see lib/membership-content).
 export function SolidarityEstimator({
   content,
   locale,
@@ -160,9 +160,9 @@ function RadioGroup({
           return (
             <label
               key={o.value}
-              // Focus porté par la carte (le bouton radio est masqué, son
-              // contour serait invisible — RGAA 10.7), sélection doublée d'une
-              // coche (RGAA 3.1).
+              // Focus carried by the card (the radio button is hidden, its
+              // outline would be invisible — RGAA 10.7), selection backed by a
+              // check mark (RGAA 3.1).
               className={`relative flex cursor-pointer flex-col rounded-sm border px-3.5 py-2.5 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
                 active
                   ? 'border-accent bg-accent-tint'
@@ -185,8 +185,8 @@ function RadioGroup({
                 ) : null}
                 {o.label}
               </span>
-              {/* `text-ink-soft`, pas `text-muted` : sur `bg-accent-tint` en
-                  sombre, muted fait 3,93:1 (mesuré le 27/09). */}
+              {/* `text-ink-soft`, not `text-muted`: on `bg-accent-tint` in
+                  dark mode, muted gives 3.93:1 (measured on 27/09). */}
               <span className="text-[12px] text-ink-soft">{o.desc}</span>
             </label>
           );

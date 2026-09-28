@@ -16,17 +16,17 @@ import {
 } from '../lib/payments/validators';
 import { openCheckout, type CreatedCheckout } from './checkout';
 
-// DON MENSUEL PAR RELANCE (F-28) — pour les prestataires qui ne prélèvent pas
-// eux-mêmes. Stripe prélève (abonnement natif) ; ce chemin sert aujourd'hui au
-// prestataire factice, et servirait à un prestataire de mobile money, qui
-// n'autorise pas de débit récurrent sans action du payeur.
+// MONTHLY DONATION BY REMINDER (F-28) — for providers that do not collect
+// themselves. Stripe collects (native subscription); this path currently serves the
+// fake provider, and would serve a mobile money provider, which
+// does not allow recurring debits without action from the payer.
 //
-// Chaque jour, pour chaque engagement actif dont l'échéance est passée : une
-// nouvelle demande de paiement est ouverte chez le prestataire et son lien est
-// envoyé par courriel. Réglée, elle avance l'échéance d'un mois (grand livre).
-// Restée sans suite, elle est renvoyée au plus tous les RESEND_AFTER jours ;
-// après MAX_REMINDERS relances, l'engagement passe « en souffrance » et
-// n'est plus relancé — un donateur qui ne répond plus n'est pas harcelé.
+// Every day, for each active commitment whose due date has passed: a
+// new payment request is opened with the provider and its link is
+// emailed. Once paid, it moves the due date forward by one month (ledger).
+// Left unanswered, it is resent at most every RESEND_AFTER days;
+// after MAX_REMINDERS reminders, the commitment becomes "overdue" and
+// is no longer reminded — a donor who no longer responds is not harassed.
 
 const DAY = 24 * 60 * 60 * 1000;
 export const RESEND_AFTER = 7 * DAY;
@@ -55,9 +55,9 @@ export const dueReminders = internalQuery({
   },
 });
 
-// Prépare la relance d'UN engagement : suspend s'il a épuisé ses relances,
-// sinon crée la demande de paiement et note la relance — dans la même
-// transaction, pour qu'un cron rejoué ne relance pas deux fois.
+// Prepares the reminder for ONE commitment: suspends it if it has used up its reminders,
+// otherwise creates the payment request and records the reminder — in the same
+// transaction, so that a replayed cron does not remind twice.
 export const prepareReminder = internalMutation({
   args: { subscriptionId: v.id('paymentSubscriptions'), now: v.number() },
   returns: v.union(
@@ -82,7 +82,7 @@ export const prepareReminder = internalMutation({
       await ctx.db.patch(sub._id, { status: 'past_due' });
       return null;
     }
-    // Le prestataire d'origine s'il est toujours là, sinon celui de la devise.
+    // The original provider if it is still there, otherwise the currency's one.
     const provider = providerForCurrency(sub.currency);
     if (!provider) return null;
     const ref = randomToken(16);
@@ -183,7 +183,7 @@ export const sendDueReminders = internalAction({
           locale: target.locale,
         };
         const { redirectUrl } = await openCheckout(ctx, created);
-        // Le prestataire factice rend une adresse relative au site.
+        // The fake provider returns a site-relative address.
         const payUrl = redirectUrl.startsWith('/')
           ? `${siteUrl()}${redirectUrl}`
           : redirectUrl;
@@ -196,8 +196,8 @@ export const sendDueReminders = internalAction({
         await sendEmail({ to: target.email, subject, html });
         sent++;
       } catch (err) {
-        // La relance est comptée (elle a été tentée) : l'échec d'un envoi ne
-        // doit pas faire relancer le même donateur à chaque passage du cron.
+        // The reminder is counted (it was attempted): a send failure must
+        // not cause the same donor to be reminded on every cron run.
         console.error(`[payments] relance ${subscriptionId} non envoyée`, err);
       }
     }

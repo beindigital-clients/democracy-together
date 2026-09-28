@@ -5,8 +5,8 @@ import { Link } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { CONTENT_SECTIONS } from '@/components/admin/contenus/content-tabs';
 
-// Accueil de `/admin/contenus` : les six types de contenus, ce que chacun
-// pilote sur le site public.
+// `/admin/contenus` home: the six content types, and what each one
+// drives on the public site.
 export default function ContenusHome() {
   const t = useTranslations('contentAdmin');
   return (

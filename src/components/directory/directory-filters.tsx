@@ -13,8 +13,8 @@ import {
 import { vocabulary } from '@/i18n/vocabulary';
 import { Check } from 'lucide-react';
 
-// Construit l'URL de l'annuaire avec un filtre modifié, en préservant les
-// autres (undefined = on retire le filtre). next-intl ajoute le préfixe locale.
+// Builds the directory URL with one filter changed, preserving the
+// others (undefined = remove the filter). next-intl adds the locale prefix.
 function buildHref(filters: Filters, patch: Partial<Filters>): string {
   const next = { ...filters, ...patch };
   const sp = new URLSearchParams();
@@ -46,20 +46,20 @@ function Chip({
           : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
       }`}
     >
-      {/* Le filtre actif était signalé par la seule teinte (RGAA 3.1) :
-          une coche le dit aussi à qui ne distingue pas les couleurs. */}
+      {/* The active filter was signalled by colour alone (RGAA 3.1):
+          a tick also conveys it to those who cannot tell colours apart. */}
       {active ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
       {children}
     </Link>
   );
 }
 
-// Filtres de l'annuaire (F-19) : recherche plein texte + les quatre facettes
-// demandées — région, thématique, pays, langue (les deux dernières manquaient,
-// mesuré le 27/09). Tout est rendu côté serveur ; chaque filtre est un lien
-// (GET), donc fonctionne sans JavaScript et reste partageable / indexable.
-// Pays et langues sont des codes ISO rendus par `Intl.DisplayNames` dans la
-// langue de la page ; les chips portent le code en minuscules dans l'URL.
+// Directory filters (F-19): full-text search + the four requested facets
+// — region, theme, country, language (the last two were missing,
+// measured on 27/09). Everything is rendered server-side; each filter is a
+// link (GET), so it works without JavaScript and stays shareable / indexable.
+// Countries and languages are ISO codes rendered by `Intl.DisplayNames` in
+// the page's language; the chips carry the lowercase code in the URL.
 export function DirectoryFilters({
   facets,
   filters,
@@ -91,8 +91,8 @@ export function DirectoryFilters({
           defaultValue={filters.q ?? ''}
           placeholder={t('searchPlaceholder')}
           aria-label={t('searchPlaceholder')}
-          // Étiquette NON visible : `title` la rend lisible au survol et remplit
-          // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+          // NON-visible label: `title` makes it readable on hover and meets one
+          // condition of RGAA 11.1.3 (the placeholder disappears while typing).
           title={t('searchPlaceholder')}
         />
         <Button type="submit" variant="outline" className="shrink-0">

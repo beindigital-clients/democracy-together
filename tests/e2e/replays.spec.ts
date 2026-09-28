@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// F-54 — Replays de webinaires : page LEAN dérivée des événements passés.
-// AUCUNE fausse vidéo — un encart honnête « Enregistrement bientôt disponible ».
+// F-54 — Webinar replays: LEAN page derived from past events.
+// NO fake video — an honest "Enregistrement bientôt disponible" notice.
 
 test('replays : la page répond et affiche son titre (F-54)', async ({
   page,
@@ -12,12 +12,12 @@ test('replays : la page répond et affiche son titre (F-54)', async ({
     page.getByRole('heading', { level: 1, name: 'Replays des webinaires' }),
   ).toBeVisible();
 
-  // Encart honnête : pas de faux lecteur vidéo, juste l'annonce.
+  // Honest notice: no fake video player, just the announcement.
   await expect(
     page.getByText('Enregistrement bientôt disponible').first(),
   ).toBeVisible();
 
-  // Au moins un lien vers la fiche d'un événement passé.
+  // At least one link to a past event's page.
   await expect(page.locator('a[href*="/evenements/"]').first()).toBeVisible();
 });
 

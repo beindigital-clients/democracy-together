@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { countPages, extractJpegImages, looksLikePdf } from './lib/pdfImages';
 
-// L'extracteur lit des OCTETS, pas une structure : les tests construisent donc
-// de vrais fragments de PDF, avec les particularités qui font échouer un
-// balayage naïf — le saut de ligne après `stream`, un `/Length` indirect, un
-// filtre en tableau, un codage qu'on ne sait pas lire.
+// The extractor reads BYTES, not a structure: so the tests build
+// real PDF fragments, with the quirks that make a naive scan
+// fail — the line break after `stream`, an indirect `/Length`, a
+// filter in an array, an encoding we cannot read.
 
 const LATIN1 = {
   encode(s: string): Uint8Array {
@@ -14,7 +14,7 @@ const LATIN1 = {
   },
 };
 
-/** Un JPEG minimal reconnaissable : SOI … EOI. */
+/** A minimal recognizable JPEG: SOI … EOI. */
 function jpeg(payload = 'DONNEES'): Uint8Array {
   const body = LATIN1.encode(payload);
   const out = new Uint8Array(body.length + 4);
@@ -66,9 +66,9 @@ describe('Reconnaissance du format', () => {
   });
 
   it('refuse un fichier renommé ou tronqué', () => {
-    // Un téléversement interrompu doit échouer ICI, avec un code clair, plutôt
-    // qu'à la première expression régulière qui ne trouve rien et rend un
-    // document vide sans dire pourquoi.
+    // An interrupted upload must fail HERE, with a clear code, rather
+    // than at the first regular expression that finds nothing and returns an
+    // empty document without saying why.
     expect(looksLikePdf(LATIN1.encode('PK\u0003\u0004'))).toBe(false);
     expect(looksLikePdf(new Uint8Array([0x25, 0x50]))).toBe(false);
     expect(looksLikePdf(new Uint8Array(0))).toBe(false);
@@ -82,8 +82,8 @@ describe('Extraction des images JPEG', () => {
     expect(skipped).toBe(0);
     expect(images).toHaveLength(1);
     expect(images[0].contentType).toBe('image/jpeg');
-    // Octet pour octet : c'est ce qui garantit qu'aucune illustration ne perd
-    // en qualité en passant par la traduction.
+    // Byte for byte: this is what guarantees that no illustration loses
+    // quality going through translation.
     expect(Array.from(images[0].data)).toEqual(Array.from(data));
   });
 
@@ -94,7 +94,7 @@ describe('Extraction des images JPEG', () => {
   });
 
   it('accepte un filtre écrit en tableau', () => {
-    // `/Filter[/DCTDecode]` est aussi courant que `/Filter /DCTDecode`.
+    // `/Filter[/DCTDecode]` is as common as `/Filter /DCTDecode`.
     const { images } = extractJpegImages(
       pdfWithImage({ filter: '[/DCTDecode]' }),
     );
@@ -102,9 +102,9 @@ describe('Extraction des images JPEG', () => {
   });
 
   it('retombe sur `endstream` quand /Length est une référence indirecte', () => {
-    // `/Length 42 0 R` : le nombre lu est un NUMÉRO D'OBJET, pas une longueur.
-    // S'y fier couperait le JPEG n'importe où. La fin calculée ne tombant pas
-    // sur `endstream`, l'extracteur cherche le marqueur.
+    // `/Length 42 0 R`: the number read is an OBJECT NUMBER, not a length.
+    // Trusting it would cut the JPEG anywhere. Since the computed end does not land
+    // on `endstream`, the extractor searches for the marker.
     const data = jpeg('INDIRECT');
     const bytes = concat([
       '%PDF-1.7\n4 0 obj\n<< /Subtype /Image /Width 10 /Height 10 ',
@@ -118,7 +118,7 @@ describe('Extraction des images JPEG', () => {
   });
 
   it('gère un saut de ligne CRLF après `stream`', () => {
-    // Se tromper d'un octet ici décale tout le JPEG et le rend illisible.
+    // Being off by one byte here shifts the whole JPEG and makes it unreadable.
     const data = jpeg('CRLF');
     const bytes = concat([
       '%PDF-1.7\n4 0 obj\n<< /Subtype /Image /Filter /DCTDecode /Length ',
@@ -133,8 +133,8 @@ describe('Extraction des images JPEG', () => {
   });
 
   it('numérote les images dans l’ordre du fichier', () => {
-    // C'est cet ordre qui relie une figure à son illustration : s'il change,
-    // les images du document traduit se retrouvent aux mauvais endroits.
+    // It is this order that links a figure to its illustration: if it changes,
+    // the images of the translated document end up in the wrong places.
     const bytes = concat([
       pdfWithImage({ data: jpeg('UN') }),
       pdfWithImage({ data: jpeg('DEUX') }),
@@ -150,9 +150,9 @@ describe('Extraction des images JPEG', () => {
   });
 
   it('compte — sans les lire — les images d’un codage non pris en charge', () => {
-    // Le comptage n'est pas décoratif : c'est lui qui fait afficher un renvoi
-    // vers le PDF d'origine à l'emplacement de la figure, plutôt qu'une page
-    // qui paraît complète et ne l'est pas.
+    // The count is not decorative: it is what makes a reference to the
+    // original PDF appear at the figure's location, rather than a page
+    // that looks complete and is not.
     const bytes = concat([
       pdfWithImage({ filter: '/FlateDecode', data: LATIN1.encode('xxxx') }),
       pdfWithImage({ filter: '/JPXDecode', data: LATIN1.encode('yyyy') }),

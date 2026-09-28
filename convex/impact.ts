@@ -3,15 +3,15 @@ import { query } from './_generated/server';
 import { requireNetworkRole } from './lib/rbac';
 import { COUNTER, readCounters } from './lib/counters';
 
-// Mesure d'impact & statistiques du réseau (F-66) — back-office.
-// Lecture réservée au staff (modérateur et au-dessus) : défense en profondeur,
-// l'UI masque déjà l'onglet aux rôles inférieurs.
+// Impact measurement & network statistics (F-66) — back office.
+// Read restricted to staff (moderator and above): defense in depth,
+// the UI already hides the tab from lower roles.
 //
-// Ces dix nombres étaient calculés à la lecture, en chargeant CINQ tables
-// entières (inscriptions, abonnés, commentaires, candidatures…) à chaque
-// affichage de l'écran. C'est précisément la page dont le coût aurait grandi
-// avec le succès du réseau. Elle lit désormais des compteurs dénormalisés
-// (convex/counters.ts), tenus à l'écriture : dix lectures d'une ligne.
+// These ten numbers used to be computed at read time, loading FIVE whole
+// tables (registrations, subscribers, comments, applications…) on every
+// display of the screen. It is precisely the page whose cost would have grown
+// with the network's success. It now reads denormalized counters
+// (convex/counters.ts), maintained on write: ten single-row reads.
 export const impactStats = query({
   args: {},
   returns: v.object({

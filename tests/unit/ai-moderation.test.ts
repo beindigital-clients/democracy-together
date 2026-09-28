@@ -19,19 +19,19 @@ import {
   type ApplicationInput,
 } from '@convex/lib/aiModeration';
 
-// LOGIQUE PURE DE LA MODÉRATION ASSISTÉE PAR IA.
+// PURE LOGIC OF AI-ASSISTED MODERATION.
 //
-// Ce fichier couvre la seule partie du dispositif qui décide d'une mise en
-// ligne SANS relecture humaine. Elle est écrite sans réseau, sans base et sans
-// horloge précisément pour pouvoir être parcourue exhaustivement ici : le
-// reste du dispositif (appel, transaction, notifications) est couvert par
-// convex/aiModeration.test.ts, mais c'est CETTE table de vérité qui dit ce que
-// la plateforme publie toute seule.
+// This file covers the only part of the system that decides to put something
+// online WITHOUT human review. It is written without network, database or
+// clock precisely so that it can be explored exhaustively here: the
+// rest of the system (call, transaction, notifications) is covered by
+// convex/aiModeration.test.ts, but it is THIS truth table that says what
+// the platform publishes on its own.
 //
-// L'angle des tests n'est pas « la fonction rend-elle ce qu'on attend » mais
-// « existe-t-il un chemin par lequel un dépôt douteux passerait ». D'où la
-// forme : on part de l'unique cas qui publie, et on casse une condition à la
-// fois.
+// The angle of the tests is not "does the function return what we expect" but
+// "is there a path through which a dubious submission would get through". Hence the
+// shape: we start from the single case that publishes, and break one condition at a
+// time.
 
 const rule = (over: Partial<AiRule> = {}): AiRule => ({
   key: 'r1',
@@ -50,8 +50,8 @@ const finding = (over: Partial<AiFinding> = {}): AiFinding => ({
   ...over,
 });
 
-// LE cas qui publie : mode auto, avis favorable, aucun signal, confiance
-// au-dessus du seuil, type dans le périmètre, pas de pièce jointe.
+// THE case that publishes: auto mode, favorable assessment, no signal, confidence
+// above the threshold, type within scope, no attachment.
 const PUBLISHABLE: ApplicationInput = {
   mode: 'auto',
   verdict: 'approve',
@@ -90,9 +90,9 @@ describe('decideApplication — ce qui publie sans relecture humaine', () => {
     });
   });
 
-  // Chaque ligne casse UNE condition du cas publiable. C'est la garde
-  // centrale : si une seule de ces lignes se mettait à publier, la
-  // fonctionnalité deviendrait dangereuse sans que rien d'autre ne bouge.
+  // Each row breaks ONE condition of the publishable case. This is the central
+  // guard: if a single one of these rows started publishing, the
+  // feature would become dangerous without anything else changing.
   const refus: [string, Partial<ApplicationInput>, string][] = [
     [
       'un signal bloquant',
@@ -168,8 +168,8 @@ describe('decideApplication — ce qui publie sans relecture humaine', () => {
   });
 
   it('accepte la confiance exactement au seuil', () => {
-    // Le seuil est un minimum inclusif : régler 85 et voir refuser un 85
-    // serait un piège de réglage, pas une sécurité.
+    // The threshold is an inclusive minimum: setting 85 and seeing an 85 refused
+    // would be a configuration trap, not a safety measure.
     expect(decideApplication({ ...PUBLISHABLE, confidence: 85 }).applied).toBe(
       'published',
     );
@@ -187,18 +187,18 @@ describe('shouldAlertStaff — quand on va chercher quelqu’un', () => {
 
   it('ne prévient pas quand rien n’a été renvoyé en file', () => {
     const blocking = [finding({ severity: 'blocking', outcome: 'fail' })];
-    // En observation, personne n'a de décision à prendre : notifier ferait
-    // sortir de son rôle un mode dont l'intérêt est justement d'être muet.
+    // In observation mode, nobody has a decision to make: notifying would push
+    // out of its role a mode whose whole point is to stay silent.
     expect(shouldAlertStaff('shadow', 'flag', blocking)).toBe(false);
     expect(shouldAlertStaff('published', 'approve', blocking)).toBe(false);
     expect(shouldAlertStaff('superseded', 'flag', blocking)).toBe(false);
   });
 
   it('une analyse en échec ne réveille personne', () => {
-    // Le défaut que cette ligne empêche : une passerelle en panne renverrait
-    // CHAQUE dépôt en file, et chaque renvoi préviendrait CHAQUE modérateur.
-    // Le dispositif transformerait son indisponibilité en alerte éditoriale,
-    // et noierait les alertes qui portent, elles, sur un texte.
+    // The defect this row prevents: a gateway outage would send
+    // EVERY submission back to the queue, and each send-back would alert EVERY moderator.
+    // The system would turn its unavailability into an editorial alert,
+    // and drown the alerts that are actually about a text.
     const blocking = [finding({ severity: 'blocking', outcome: 'unsure' })];
     expect(shouldAlertStaff('escalated', 'error', blocking)).toBe(false);
   });
@@ -226,9 +226,9 @@ describe('parseVerdict — lire la réponse du modèle dans le sens prudent', ()
   });
 
   it('un critère ABSENT de la réponse devient « indéterminé », jamais « satisfait »', () => {
-    // Le défaut le plus coûteux du dispositif : un modèle qui saute un critère
-    // bloquant publierait par omission. Ici l'omission ferme au contraire la
-    // porte, puisque « unsure » sur un bloquant est un signal.
+    // The system's most costly defect: a model that skips a blocking
+    // criterion would publish by omission. Here the omission instead closes the
+    // door, since "unsure" on a blocking criterion is a signal.
     const parsed = parseVerdict(
       {
         overall: 'approve',
@@ -270,8 +270,8 @@ describe('parseVerdict — lire la réponse du modèle dans le sens prudent', ()
       );
       expect(parsed?.confidence, String(confidence)).toBe(0);
     }
-    // Une valeur au-dessus de 100 est ramenée, pas rejetée : c'est une
-    // maladresse d'échelle, pas un avis illisible.
+    // A value above 100 is clamped, not rejected: it is a
+    // scale slip, not an unreadable assessment.
     expect(
       parseVerdict(
         { overall: 'approve', confidence: 250, summary: '', findings: [] },
@@ -325,8 +325,8 @@ describe('Barème soumis au modèle', () => {
   });
 
   it('le socle est entièrement bloquant', () => {
-    // Un plancher de sécurité dont une règle serait consultative ne serait
-    // pas un plancher.
+    // A safety floor with an advisory-only rule would not
+    // be a floor.
     for (const r of BASELINE_RULES) expect(r.severity).toBe('blocking');
   });
 
@@ -355,10 +355,10 @@ describe('Prompt — le document est une donnée, jamais une consigne', () => {
   };
 
   it('encadre le document et neutralise ses marqueurs', () => {
-    // Le vecteur : refermer l'encadrement pour écrire « hors » de la zone de
-    // données, là où le modèle lit ses consignes. Les marqueurs présents dans
-    // le texte soumis sont donc désamorcés — la tentative reste lisible (le
-    // socle la signale), elle n'a plus d'effet de structure.
+    // The vector: closing the framing to write "outside" the data
+    // zone, where the model reads its instructions. Markers present in
+    // the submitted text are therefore defused — the attempt stays readable (the
+    // baseline flags it), it no longer has any structural effect.
     const prompt = buildDocumentPrompt({
       ...doc,
       abstract:
@@ -366,7 +366,7 @@ describe('Prompt — le document est une donnée, jamais une consigne', () => {
     });
     expect(prompt.startsWith('<<<DEBUT_DOCUMENT_SOUMIS>>>')).toBe(true);
     expect(prompt.endsWith('<<<FIN_DOCUMENT_SOUMIS>>>')).toBe(true);
-    // Un seul marqueur d'ouverture et un seul de fermeture subsistent.
+    // A single opening marker and a single closing marker remain.
     expect(prompt.split('<<<DEBUT_DOCUMENT_SOUMIS>>>')).toHaveLength(2);
     expect(prompt.split('<<<FIN_DOCUMENT_SOUMIS>>>')).toHaveLength(2);
   });
@@ -384,8 +384,8 @@ describe('Prompt — le document est une donnée, jamais une consigne', () => {
   });
 
   it('dit au modèle si la pièce jointe lui a été transmise', () => {
-    // Sans cette phrase, un avis rendu sur les seules métadonnées se lirait
-    // comme un avis rendu sur le document entier.
+    // Without this sentence, an assessment based on metadata alone would read
+    // like an assessment of the whole document.
     const ruleset = buildRuleset([]);
     const nonLue = buildSystemPrompt(ruleset, '', {
       hasAttachment: true,
@@ -407,8 +407,8 @@ describe('Réglages par défaut — un déploiement neuf ne publie rien', () => 
   });
 
   it('même armé en auto, un périmètre vide ne laisse rien passer', () => {
-    // Deux verrous indépendants : oublier de décocher le mode ne suffit pas à
-    // ouvrir la publication automatique.
+    // Two independent locks: forgetting to uncheck the mode is not enough to
+    // open up automatic publication.
     expect(
       decideApplication({
         ...PUBLISHABLE,

@@ -19,15 +19,15 @@ import {
   youthProgrammeValidator,
 } from './lib/programmes';
 
-// Programme Jeunes : profil persistant et candidatures (F-58).
+// Youth programme: persistent profile and applications (F-58).
 //
-// Avant : une candidature = un formulaire anonyme, ressaisi à chaque fois, sans
-// suite visible pour le jeune. Désormais un compte connecté tient UN profil
-// (parcours, pays, langues, intérêts, disponibilité, consentements) et
-// candidate aux programmes en ne donnant que sa motivation ; il voit le statut
-// de chaque candidature. Le formulaire anonyme de /jeunes reste ouvert à qui
-// n'a pas de compte (l'auto-inscription n'existe pas) : c'est la porte
-// d'entrée, le profil est la maison.
+// Before: an application = an anonymous form, re-entered every time, with no
+// visible follow-up for the young person. Now a signed-in account holds ONE profile
+// (background, country, languages, interests, availability, consents) and
+// applies to programmes by giving only their motivation; they see the status
+// of each application. The anonymous form at /jeunes remains open to anyone
+// without an account (self-registration does not exist): it is the front
+// door, the profile is the house.
 
 const HOUR = 60 * 60 * 1000;
 const APPLY_LIMIT = { max: 10, windowMs: 24 * HOUR };
@@ -72,7 +72,7 @@ const myApplicationValidator = v.object({
   reviewedAt: v.union(v.number(), v.null()),
 });
 
-// --- Espace du jeune --------------------------------------------------------
+// --- Young person's area --------------------------------------------------------
 
 export const myYouthSpace = query({
   args: {},
@@ -138,8 +138,8 @@ export const saveYouthProfile = mutation({
       throw new ConvexError('INVALID_LANGUAGES');
     const interests = cleanVocabulary(args.interests, PROGRAMME_THEMES);
     if (!interests) throw new ConvexError('INVALID_INTERESTS');
-    // Sans consentement au traitement, on ne conserve rien : c'est la base
-    // légale du profil, pas une case décorative.
+    // Without consent to processing, we keep nothing: it is the legal
+    // basis of the profile, not a decorative checkbox.
     if (!args.consentProcessing) throw new ConvexError('CONSENT_REQUIRED');
 
     await enforceRateLimit(ctx, {
@@ -164,8 +164,8 @@ export const saveYouthProfile = mutation({
       updatedAt: now,
     };
     if (existing) {
-      // L'horodatage du consentement ne bouge que si le choix change : il
-      // date la décision, pas la dernière retouche du profil.
+      // The consent timestamp only moves if the choice changes: it
+      // dates the decision, not the latest profile edit.
       const consentChanged =
         existing.consentPartnerContact !== args.consentPartnerContact;
       await ctx.db.patch(existing._id, {
@@ -183,11 +183,11 @@ export const saveYouthProfile = mutation({
   },
 });
 
-// Candidature rattachée au profil. DOUBLON : une candidature en attente ou
-// acceptée par programme — la seconde est refusée avec un code que
-// l'interface explique (« tu as déjà candidaté »), au lieu d'une file qui
-// empile deux fois la même personne. Après un refus ou un retrait, on peut
-// recandidater.
+// Application attached to the profile. DUPLICATE: one pending or
+// accepted application per programme — the second is refused with a code that
+// the interface explains ("tu as déjà candidaté"), instead of a queue that
+// lists the same person twice. After a rejection or a withdrawal, one can
+// apply again.
 export const applyToYouthProgramme = mutation({
   args: { programme: youthProgrammeValidator, motivation: v.string() },
   returns: v.id('youthProgramApplications'),
@@ -233,8 +233,8 @@ export const withdrawYouthApplication = mutation({
   handler: async (ctx, { applicationId }) => {
     const user = await requireUser(ctx);
     const application = await ctx.db.get(applicationId);
-    // Même réponse pour « inexistante » et « pas la tienne » : l'identifiant
-    // d'une autre candidature ne doit rien apprendre à qui le devine.
+    // Same response for "nonexistent" and "not yours": the identifier
+    // of another application must reveal nothing to whoever guesses it.
     if (!application || application.userId !== user._id)
       throw new ConvexError('NOT_FOUND');
     if (application.status !== 'pending')
@@ -244,7 +244,7 @@ export const withdrawYouthApplication = mutation({
   },
 });
 
-// --- Back-office (modérateur et au-dessus) ----------------------------------
+// --- Back office (moderator and above) ----------------------------------
 
 export const listYouthProfiles = query({
   args: {},
@@ -318,8 +318,8 @@ export const listYouthProgramApplications = query({
   },
 });
 
-// Revue : même machine que les candidatures anonymes (issue #9) — une
-// décision ne s'inverse pas d'un second clic ; on rouvre, et cela se lit.
+// Review: same machine as the anonymous applications (issue #9) — a
+// decision is not reversed by a second click; one reopens, and that is visible.
 const PROGRAMME_REVIEW: ReviewMachine<
   Doc<'youthProgramApplications'>['status']
 > = {

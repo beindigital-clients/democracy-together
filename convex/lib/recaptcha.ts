@@ -1,42 +1,42 @@
 import { ConvexError } from 'convex/values';
 
-// Vérification reCAPTCHA v3 (sécurité — défense en profondeur) pour les
-// endpoints PUBLICS non authentifiés (contact, newsletter, adhésion). Complète
-// les plafonds de lib/rateLimit.ts par un signal « humain » difficile à
-// falsifier : un score 0..1 calculé par Google.
+// reCAPTCHA v3 verification (security — defence in depth) for PUBLIC
+// unauthenticated endpoints (contact, newsletter, membership). Complements
+// the caps in lib/rateLimit.ts with a "human" signal that is hard to fake: a
+// 0..1 score computed by Google.
 //
-// L'appel réseau (secret -> google.com/siteverify) ne peut vivre QUE dans une
-// ACTION Convex (les mutations n'ont pas `fetch`). C'est pourquoi les
-// formulaires publics passent par une action-portail qui vérifie le jeton puis
-// délègue la logique métier à une internalMutation.
+// The network call (secret -> google.com/siteverify) can ONLY live in a
+// Convex ACTION (mutations do not have `fetch`). That is why public forms go
+// through a gateway action that verifies the token then delegates the
+// business logic to an internalMutation.
 //
-// CONFIG : RECAPTCHA_SECRET_KEY posée sur le déploiement Convex
-// (`npx convex env set RECAPTCHA_SECRET_KEY ...`). Le secret ne transite JAMAIS
-// par le navigateur — seule la clé de site (NEXT_PUBLIC_RECAPTCHA_SITE_KEY) est
-// publique côté Next.
+// CONFIG: RECAPTCHA_SECRET_KEY set on the Convex deployment
+// (`npx convex env set RECAPTCHA_SECRET_KEY ...`). The secret NEVER passes
+// through the browser — only the site key (NEXT_PUBLIC_RECAPTCHA_SITE_KEY) is
+// public on the Next side.
 //
-// FAIL-CLOSED (audit M2, issue #24) : sans secret, la vérification ÉCHOUE.
-// Auparavant elle laissait passer, au motif que « le rate-limit reste la
-// défense de base » — sauf que ce rate-limit était indexé sur l'e-mail du
-// formulaire, donc forgeable : faire varier l'adresse rendait un quota neuf.
-// Une clé oubliée en production doit être une panne visible, pas une protection
-// silencieusement absente.
+// FAIL-CLOSED (audit M2, issue #24): without a secret, verification FAILS.
+// It used to let requests through, on the grounds that "the rate limit
+// remains the baseline defence" — except that this rate limit was keyed on
+// the form's e-mail, hence forgeable: varying the address yielded a fresh
+// quota. A key forgotten in production must be a visible outage, not a
+// silently missing protection.
 //
-// CONTOURNEMENT EXPLICITE : RECAPTCHA_DISABLED=true — une variable DÉDIÉE, et
-// non l'absence de clé. Même mécanique que sendEmail/AUTH_DEV_OTP
-// (convex/email.ts) : le développement, la CI et les E2E la posent, la
-// production ne la pose jamais. Les deux états (« pas encore configuré » et
-// « volontairement désactivé ») cessent ainsi d'être indiscernables.
+// EXPLICIT BYPASS: RECAPTCHA_DISABLED=true — a DEDICATED variable, not the
+// absence of a key. Same mechanism as sendEmail/AUTH_DEV_OTP
+// (convex/email.ts): development, CI and E2E set it, production never does.
+// The two states ("not configured yet" and "deliberately disabled") thus stop
+// being indistinguishable.
 
 const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
-// Seuil par défaut. Google recommande 0.5 : au-dessus = vraisemblablement
-// humain, en dessous = trafic suspect. Réglable par appel selon la sensibilité.
+// Default threshold. Google recommends 0.5: above = probably human, below =
+// suspicious traffic. Adjustable per call depending on sensitivity.
 const DEFAULT_MIN_SCORE = 0.5;
 
 export type RecaptchaResult = {
   ok: boolean;
-  skipped: boolean; // vérification contournée (RECAPTCHA_DISABLED) ou Google injoignable
+  skipped: boolean; // verification bypassed (RECAPTCHA_DISABLED) or Google unreachable
   score?: number;
   reason?: string;
 };
@@ -46,7 +46,7 @@ type VerifyOptions = {
   remoteIp?: string;
 };
 
-// Réponse de l'API siteverify (champs utiles).
+// siteverify API response (useful fields).
 type SiteVerifyResponse = {
   success?: boolean;
   score?: number;
@@ -59,32 +59,31 @@ export async function verifyRecaptcha(
   expectedAction: string,
   opts: VerifyOptions = {},
 ): Promise<RecaptchaResult> {
-  // Contournement DEMANDÉ (dev/CI/E2E) : seul chemin qui laisse passer sans
-  // vérifier. Testé AVANT la clé, pour que « désactivé » veuille dire désactivé
-  // quelle que soit la configuration Google du déploiement.
+  // REQUESTED bypass (dev/CI/E2E): the only path that lets requests through
+  // without verifying. Checked BEFORE the key, so that "disabled" means
+  // disabled whatever the deployment's Google configuration.
   if (process.env.RECAPTCHA_DISABLED === 'true') {
-    // L'ALARME NE POUVAIT PAS DISTINGUER CE QU'ELLE PRÉTENDAIT DISTINGUER.
+    // THE ALARM COULD NOT DISTINGUISH WHAT IT CLAIMED TO DISTINGUISH.
     //
-    // Elle testait `NODE_ENV === 'production'`. Or Convex exécute les fonctions
-    // avec cette valeur sur TOUS ses déploiements, développement compris :
-    // mesuré le 26/09 sur `dev:…`, qui a imprimé « en PRODUCTION » pendant une
-    // campagne E2E locale. Elle criait donc partout où le contournement est
-    // posé LÉGITIMEMENT — un déploiement de dev, et chaque préversion de CI,
-    // puisque `e2e.yml` l'y pose exprès.
+    // It tested `NODE_ENV === 'production'`. But Convex runs functions with that
+    // value on ALL its deployments, development included: measured on 26/09 on
+    // `dev:…`, which printed "in PRODUCTION" during a local E2E campaign. It
+    // therefore shouted everywhere the bypass is set LEGITIMATELY — a dev
+    // deployment, and every CI preview, since `e2e.yml` sets it there on purpose.
     //
-    // Le coût n'est pas le bruit : c'est qu'une vraie erreur de configuration
-    // en production aurait produit EXACTEMENT la ligne que tout le monde a
-    // appris à ignorer. Une alarme qui sonne toujours ne dit plus rien.
+    // The cost is not the noise: it is that a real configuration error in
+    // production would have produced EXACTLY the line everyone had learned to
+    // ignore. An alarm that always rings no longer says anything.
     //
-    // `AUTH_DEV_OTP` est le marqueur que ce dépôt possède déjà. La doc de
-    // déploiement lui interdit la production dans les mêmes termes qu'à cette
-    // variable-ci, et ses deux seuls lieux légitimes sont les mêmes : le dev
-    // local et les préversions de CI. Un déploiement qui contourne reCAPTCHA
-    // SANS lui n'est donc, selon les règles de ce dépôt, aucun des deux.
+    // `AUTH_DEV_OTP` is the marker this repo already has. The deployment docs
+    // forbid it in production in the same terms as this variable, and its only
+    // two legitimate places are the same: local dev and CI previews. A deployment
+    // that bypasses reCAPTCHA WITHOUT it is therefore, by this repo's rules,
+    // neither of the two.
     //
-    // Le sens de l'erreur est voulu : un déploiement de dev qui aurait oublié
-    // `AUTH_DEV_OTP` déclenche l'alarme. Un garde-fou se trompe du côté où il
-    // avertit, jamais du côté où il se tait.
+    // The direction of the error is intended: a dev deployment that forgot
+    // `AUTH_DEV_OTP` triggers the alarm. A safeguard errs on the side of warning,
+    // never on the side of staying silent.
     if (process.env.AUTH_DEV_OTP !== 'true') {
       console.error(
         '[recaptcha] RECAPTCHA_DISABLED=true hors dev/préversion — vérification anti-bot volontairement désactivée. Retirez la variable : npx convex env remove RECAPTCHA_DISABLED',
@@ -95,9 +94,9 @@ export async function verifyRecaptcha(
 
   const secret = process.env.RECAPTCHA_SECRET_KEY;
 
-  // Ni clé, ni contournement -> REJET. C'est une erreur de configuration, pas
-  // un mode de fonctionnement : on la rend bruyante (le message dit exactement
-  // quoi poser) plutôt que d'ouvrir les sept formulaires publics en silence.
+  // Neither key nor bypass -> REJECT. It is a configuration error, not an
+  // operating mode: we make it loud (the message says exactly what to set)
+  // rather than silently opening the seven public forms.
   if (!secret) {
     console.error(
       '[recaptcha] RECAPTCHA_SECRET_KEY absent — soumission REJETÉE. Posez la clé (npx convex env set RECAPTCHA_SECRET_KEY ...) ou, en développement/CI uniquement, npx convex env set RECAPTCHA_DISABLED true',
@@ -105,8 +104,8 @@ export async function verifyRecaptcha(
     return { ok: false, skipped: false, reason: 'not-configured' };
   }
 
-  // Secret présent mais jeton manquant -> rejet (fail-closed) : un client
-  // légitime doit toujours fournir un jeton quand reCAPTCHA est activé.
+  // Secret present but token missing -> reject (fail-closed): a legitimate
+  // client must always provide a token when reCAPTCHA is enabled.
   if (!token) return { ok: false, skipped: false, reason: 'missing-token' };
 
   const minScore = opts.minScore ?? DEFAULT_MIN_SCORE;
@@ -122,20 +121,19 @@ export async function verifyRecaptcha(
     });
     data = (await res.json()) as SiteVerifyResponse;
   } catch {
-    // Google injoignable / réponse illisible -> FAIL-OPEN, mais tracé. Bloquer
-    // toutes les soumissions parce qu'un tiers est momentanément down serait
-    // pire que laisser passer — et l'intérim est désormais réellement couvert :
-    // les plafonds par IP et par formulaire de lib/rateLimit.ts ne dépendent
-    // d'aucune donnée fournie par l'appelant, donc une panne de Google ne rend
-    // plus le remplissage illimité.
+    // Google unreachable / unreadable response -> FAIL-OPEN, but logged. Blocking
+    // every submission because a third party is momentarily down would be worse
+    // than letting them through — and the interim is now genuinely covered: the
+    // per-IP and per-form caps in lib/rateLimit.ts depend on no data supplied by
+    // the caller, so a Google outage no longer makes flooding unlimited.
     console.error(
       '[recaptcha] siteverify injoignable — laissé passer (fail-open)',
     );
     return { ok: true, skipped: true, reason: 'verify-unreachable' };
   }
 
-  // À partir d'ici, on a une vraie réponse Google -> FAIL-CLOSED sur tout signal
-  // négatif (jeton invalide/rejoué, mauvaise action, score trop bas).
+  // From here on, we have a real Google response -> FAIL-CLOSED on any negative
+  // signal (invalid/replayed token, wrong action, score too low).
   if (!data.success) {
     return {
       ok: false,
@@ -144,7 +142,7 @@ export async function verifyRecaptcha(
     };
   }
 
-  // Anti-rejeu inter-formulaires : le jeton doit porter l'action attendue.
+  // Cross-form anti-replay: the token must carry the expected action.
   if (typeof data.action === 'string' && data.action !== expectedAction) {
     return {
       ok: false,
@@ -162,9 +160,9 @@ export async function verifyRecaptcha(
   return { ok: true, skipped: false, score };
 }
 
-// Garde prête à l'emploi pour les actions-portail : vérifie puis lève une
-// ConvexError('CAPTCHA_FAILED') si le verdict est négatif. `data` traverse
-// jusqu'au client (comme RATE_LIMITED) pour un message dédié.
+// Ready-to-use guard for gateway actions: verifies then throws a
+// ConvexError('CAPTCHA_FAILED') if the verdict is negative. `data` reaches
+// the client (like RATE_LIMITED) for a dedicated message.
 export async function enforceRecaptcha(
   token: string | undefined | null,
   expectedAction: string,

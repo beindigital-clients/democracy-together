@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// F-23 — Annuaire d'experts (public), dérivé des auteurs de publications
-// publiées. Test léger : la page répond et le h1 est visible (FR + EN).
+// F-23 — Expert directory (public), derived from the authors of published
+// publications. Lightweight test: the page responds and the h1 is visible (FR + EN).
 
 test('experts : la page répond + h1 visible (F-23)', async ({ page }) => {
   const res = await page.goto('/fr/experts');

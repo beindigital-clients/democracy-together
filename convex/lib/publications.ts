@@ -1,8 +1,8 @@
-// Bibliothèque (F-32/F-33/F-34) — logique pure partagée par la query Convex et
-// les tests unitaires. Le vocabulaire (types, thématiques, régions) est stocké
-// en *slugs* neutres dans Convex ; les libellés sont traduits côté Next
-// (messages `library.types` / `library.themes` / `library.regions`). Garder ces
-// listes synchrones avec src/messages/*.json.
+// Library (F-32/F-33/F-34) — pure logic shared by the Convex query and the
+// unit tests. The vocabulary (types, themes, regions) is stored as neutral
+// *slugs* in Convex; labels are translated on the Next side
+// (`library.types` / `library.themes` / `library.regions` messages). Keep
+// these lists in sync with src/messages/*.json.
 
 import { v, type Infer } from 'convex/values';
 
@@ -14,17 +14,17 @@ export const PUB_TYPES = [
   'dataset',
 ] as const;
 
-// Les 5 axes du réseau vivent dans ./themes (déclaration unique, issue #30).
-// Ré-exportés sous leur nom historique pour ne pas casser les imports existants
-// — même motif que `slugify`, plus bas.
+// The network's 5 axes live in ./themes (single declaration, issue #30).
+// Re-exported under their historical name so as not to break existing imports
+// — same pattern as `slugify`, further down.
 export { NETWORK_THEMES as PUB_THEMES } from './themes';
 
 export const PUB_REGIONS = ['afrique', 'europe', 'mondial'] as const;
 
-// Langues de publication proposées en facette. MIROIR de `routing.locales`
-// (src/i18n/routing.ts), comme `locale` dans schema.ts : une publication peut
-// être déposée dans n'importe quelle langue servie par le site.
-// `tests/unit/i18n-locales.test.ts` compare les deux listes.
+// Publication languages offered as a facet. MIRROR of `routing.locales`
+// (src/i18n/routing.ts), like `locale` in schema.ts: a publication can be
+// submitted in any language the site serves.
+// `tests/unit/i18n-locales.test.ts` compares the two lists.
 export const PUB_LANGS = ['fr', 'en', 'es', 'pt', 'ar'] as const;
 
 export const PUB_ACCESS = ['open', 'members'] as const;
@@ -33,8 +33,8 @@ export const PUB_SORTS = ['recent', 'cited', 'az'] as const;
 
 export type PubSort = (typeof PUB_SORTS)[number];
 
-// Filtres multi-sélection (un tableau par facette, combinés en OU à l'intérieur
-// d'une facette et en ET entre facettes — comme la maquette à cases à cocher).
+// Multi-select filters (one array per facet, combined with OR within a facet
+// and AND across facets — like the checkbox mockup).
 export type PublicationFilters = {
   themes?: string[];
   types?: string[];
@@ -44,7 +44,7 @@ export type PublicationFilters = {
   q?: string;
 };
 
-// Forme minimale lue par les filtres / facettes (compatible Doc<'publications'>).
+// Minimal shape read by filters / facets (compatible with Doc<'publications'>).
 export type PublicationLike = {
   title: string;
   type: string;
@@ -53,10 +53,10 @@ export type PublicationLike = {
   languages: string[];
   access: string;
   authors: { name: string }[];
-  // Résumé et points clés : cherchables depuis le 27/09 (mesuré :
-  // « institutions », présent dans les résumés, ne trouvait rien alors que la
-  // recherche transverse /recherche l'y trouvait). Optionnels pour que les
-  // fixtures minimales des tests restent valides.
+  // Summary and key points: searchable since 27/09 (measured: "institutions",
+  // present in the summaries, found nothing while the cross-site search
+  // /recherche found it there). Optional so that the tests' minimal fixtures
+  // remain valid.
   abstract?: string;
   keypoints?: string[];
   year: number;
@@ -69,9 +69,9 @@ function has(list: string[] | undefined, value: string): boolean {
   return !list || list.length === 0 || list.includes(value);
 }
 
-// Une publication correspond aux filtres fournis. La recherche plein texte porte
-// sur le titre, les auteurs, le résumé et les points clés, sans tenir compte
-// de la casse, des accents ni des guillemets.
+// Whether a publication matches the given filters. Full-text search covers
+// the title, authors, summary and key points, ignoring case, accents and
+// quotation marks.
 export function matchesPublication(
   pub: PublicationLike,
   f: PublicationFilters,
@@ -86,9 +86,10 @@ export function matchesPublication(
   return textMatches(pub, f.q);
 }
 
-// Minuscules SANS diacritiques : « democratie » doit trouver « démocratie »
-// (mesuré le 27/09 : 0 résultat sans l'accent, 2 avec). Un lecteur sur un
-// clavier sans accents — le cas courant en mobile — ne doit pas être puni.
+// Lowercase WITHOUT diacritics: "democratie" must find "démocratie"
+// (measured on 27/09: 0 results without the accent, 2 with it). A reader on a
+// keyboard without accents — the common case on mobile — must not be
+// penalised.
 function fold(s: string): string {
   return s
     .normalize('NFD')
@@ -97,22 +98,21 @@ function fold(s: string): string {
     .toLowerCase();
 }
 
-// Guillemets droits, typographiques et chevrons : un lecteur habitué aux
-// moteurs tape `"démocratie"` pour chercher l'expression exacte. Mesuré le
-// 27/09 : les guillemets étaient cherchés LITTÉRALEMENT, donc zéro résultat.
-// Ils sont retirés — la recherche par sous-chaîne est déjà une recherche
-// d'expression exacte.
+// Straight quotes, curly quotes and guillemets: a reader used to search
+// engines types `"démocratie"` to search for the exact phrase. Measured on
+// 27/09: the quotes were searched LITERALLY, hence zero results. They are
+// stripped — substring search is already an exact-phrase search.
 const QUOTES = /["'«»“”„‟‹›]/g;
 
-// Terme de recherche prêt à comparer : replié, sans guillemets, sans blancs
-// superflus. Chaîne vide = pas de recherche.
+// Search term ready for comparison: folded, without quotes, without
+// superfluous whitespace. Empty string = no search.
 export function normalizeQuery(raw: string | undefined): string {
   return raw ? fold(raw.replace(QUOTES, ' ')).replace(/\s+/g, ' ').trim() : '';
 }
 
-// UNE seule meule pour la liste et pour les facettes : les deux lisaient des
-// champs différents (titre + auteurs repliés d'un côté, sans repli de
-// l'autre), et les compteurs de facettes ne correspondaient plus à la liste.
+// ONE single haystack for the list and for the facets: the two used to read
+// different fields (folded title + authors on one side, unfolded on the
+// other), and the facet counters no longer matched the list.
 function textMatches(pub: PublicationLike, raw: string | undefined): boolean {
   const q = normalizeQuery(raw);
   if (!q) return true;
@@ -123,7 +123,7 @@ function textMatches(pub: PublicationLike, raw: string | undefined): boolean {
   return haystack.includes(q);
 }
 
-// Tri stable : plus récentes (année puis téléchargements), plus citées, ou A→Z.
+// Stable sort: most recent (year then downloads), most cited, or A→Z.
 export function sortPublications<T extends PublicationLike>(
   items: T[],
   sort: PubSort,
@@ -132,7 +132,7 @@ export function sortPublications<T extends PublicationLike>(
   out.sort((a, b) => {
     if (sort === 'cited') return b.citations - a.citations || b.year - a.year;
     if (sort === 'az') return a.title.localeCompare(b.title, 'fr');
-    // 'recent' (défaut)
+    // 'recent' (default)
     return (
       b.year - a.year ||
       b.publishedAt - a.publishedAt ||
@@ -146,11 +146,10 @@ export type Facet = { value: string; count: number };
 
 type FacetKey = 'themes' | 'types' | 'regions' | 'langs' | 'access';
 
-// Correspondance à TOUS les filtres SAUF une facette donnée. Sert à compter les
-// options d'une facette dans le contexte des AUTRES filtres actifs : la facette
-// ignore sa propre sélection (compteur « OU » : combien chaque option
-// ajouterait), les autres facettes la contraignent (compteur « ET »). La
-// recherche plein texte `q` s'applique toujours.
+// Match on ALL filters EXCEPT a given facet. Used to count a facet's options
+// in the context of the OTHER active filters: the facet ignores its own
+// selection ("OR" counter: how many each option would add), the other facets
+// constrain it ("AND" counter). Full-text search `q` always applies.
 function matchesExcept(
   pub: PublicationLike,
   f: PublicationFilters,
@@ -166,14 +165,14 @@ function matchesExcept(
   return textMatches(pub, f.q);
 }
 
-// Facettes « contextuelles » (faceted search) : chaque option est comptée sur le
-// sous-ensemble correspondant aux AUTRES filtres actifs -> le compteur reflète
-// ce qu'on obtient réellement en cochant, et les impasses (0) disparaissent. Les
-// valeurs déjà cochées restent listées (même à 0) pour rester décochables —
-// À CONDITION d'exister dans le corpus : une valeur venue de l'URL et
-// inconnue de toute publication (`?theme=zzz`, mesuré le 27/09 : option
-// « Zzz 0 » rendue cochée) n'est pas une facette, elle est ignorée.
-// Sans filtre actif, on retombe sur les totaux par valeur.
+// "Contextual" facets (faceted search): each option is counted on the subset
+// matching the OTHER active filters -> the counter reflects what you actually
+// get by ticking it, and dead ends (0) disappear. Values already ticked stay
+// listed (even at 0) so they can be unticked — PROVIDED they exist in the
+// corpus: a value coming from the URL and unknown to every publication
+// (`?theme=zzz`, measured on 27/09: option "Zzz 0" rendered ticked) is not a
+// facet, it is ignored.
+// With no active filter, we fall back to totals per value.
 export function computePublicationFacets(
   items: PublicationLike[],
   f: PublicationFilters = {},
@@ -207,15 +206,15 @@ export function computePublicationFacets(
   };
 }
 
-// --- Gating « réservé aux membres » (F-35) ----------------------------------
-// Une publication `access: 'members'` reste DÉCOUVRABLE par tout le monde (titre,
-// auteurs, thème, DOI, métadonnées : nécessaire au SEO et à la décision
-// d'adhérer) mais son CONTENU ne l'est pas : corps masqué, document non servi,
-// résumé réduit à une amorce. Le filtrage vit ici (logique pure, testable) et
-// est appliqué par TOUTES les queries publiques de convex/publications.ts —
-// jamais chez l'appelant, pour qu'aucun consommateur ne puisse l'oublier.
+// --- "Members only" gating (F-35) -------------------------------------------
+// A publication with `access: 'members'` stays DISCOVERABLE by everyone
+// (title, authors, theme, DOI, metadata: needed for SEO and for the decision
+// to join) but its CONTENT does not: body hidden, document not served,
+// summary cut down to a teaser. The filtering lives here (pure, testable
+// logic) and is applied by ALL public queries in convex/publications.ts —
+// never by the caller, so that no consumer can forget it.
 
-// Longueur de l'amorce de résumé servie à un non-membre.
+// Length of the summary teaser served to a non-member.
 export const MEMBERS_TEASER_CHARS = 280;
 
 export function isPublicationLocked(
@@ -225,9 +224,9 @@ export function isPublicationLocked(
   return access === 'members' && !isMember;
 }
 
-// Amorce de résumé : coupe sur une frontière de mot (jamais au milieu d'un mot),
-// retire la ponctuation de fin, ajoute une ellipse. Un résumé déjà court est
-// renvoyé tel quel.
+// Summary teaser: cuts on a word boundary (never in the middle of a word),
+// strips trailing punctuation, adds an ellipsis. An already short summary is
+// returned as is.
 export function truncateAbstract(
   abstract: string,
   max: number = MEMBERS_TEASER_CHARS,
@@ -236,24 +235,25 @@ export function truncateAbstract(
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
   const lastSpace = cut.lastIndexOf(' ');
-  // On ne recule jusqu'à l'espace que s'il reste une amorce substantielle,
-  // sinon on coupe net (cas d'un « mot » anormalement long).
+  // We only back up to the space if a substantial teaser remains, otherwise we
+  // cut sharply (case of an abnormally long "word").
   const head = lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut;
   return `${head.replace(/[\s,;:.!?–—-]+$/u, '')}…`;
 }
 
-// Forme PUBLIQUE d'une publication — la seule qui sorte des queries publiques.
+// PUBLIC shape of a publication — the only one that leaves the public queries.
 //
-// C'est une liste BLANCHE : tout champ absent d'ici ne peut pas sortir. C'est le
-// point de l'issue #30. Le correctif H1 (PR #4) avait bouché le gating « réservé
-// aux membres », mais `projectPublication` renvoyait toujours `{ ...pub }` : une
-// publication OUVERTE servait donc encore le document entier, notes de
-// modération (`reviewNotes`), identifiants internes (`authorUserId`,
-// `reviewedBy`) et identifiant de blob (`fileId`) compris. Les déclarer ici les
-// fait disparaître, et un champ ajouté demain au schéma ne sort pas tout seul.
+// It is an ALLOW LIST: any field absent from here cannot leave. That is the
+// point of issue #30. The H1 fix (PR #4) had plugged the "members only"
+// gating, but `projectPublication` still returned `{ ...pub }`: an OPEN
+// publication therefore still served the whole document, including moderation
+// notes (`reviewNotes`), internal identifiers (`authorUserId`, `reviewedBy`)
+// and the blob identifier (`fileId`). Declaring the fields here makes those
+// disappear, and a field added to the schema tomorrow does not leak on its
+// own.
 //
-// Le validateur est la source unique : le type TypeScript en est DÉDUIT
-// (`Infer`), donc les deux ne peuvent pas diverger.
+// The validator is the single source: the TypeScript type is DERIVED from it
+// (`Infer`), so the two cannot diverge.
 export const publicPublicationValidator = v.object({
   _id: v.id('publications'),
   slug: v.string(),
@@ -265,21 +265,20 @@ export const publicPublicationValidator = v.object({
     v.literal('note'),
     v.literal('dataset'),
   ),
-  // `theme` reste `v.string()` : le schéma lui-même ne le contraint pas (des
-  // publications de seed portent des thèmes hors vocabulaire). Resserrer ici
-  // ferait ÉCHOUER la query sur ces documents — le rôle de ce validateur est de
-  // borner l'ensemble des CHAMPS, pas de rejuger la souplesse du schéma.
+  // `theme` stays `v.string()`: the schema itself does not constrain it (seed
+  // publications carry themes outside the vocabulary). Tightening it here would
+  // make the query FAIL on those documents — this validator's role is to bound
+  // the set of FIELDS, not to second-guess the schema's flexibility.
   theme: v.string(),
   region: v.union(
     v.literal('afrique'),
     v.literal('europe'),
     v.literal('mondial'),
   ),
-  // Recopie le vocabulaire de `locale` (convex/schema.ts) : une publication
-  // peut être déposée dans n'importe quelle langue servie par le site. Ce
-  // validateur BORNE la projection publique — il doit donc accepter ce que le
-  // schéma accepte, sans quoi une publication en espagnol ne sortirait pas de
-  // la query.
+  // Copies the `locale` vocabulary (convex/schema.ts): a publication can be
+  // submitted in any language the site serves. This validator BOUNDS the public
+  // projection — so it must accept what the schema accepts, otherwise a
+  // publication in Spanish would not come out of the query.
   languages: v.array(
     v.union(
       v.literal('fr'),
@@ -304,35 +303,35 @@ export const publicPublicationValidator = v.object({
   pages: v.optional(v.number()),
   downloads: v.number(),
   citations: v.number(),
-  // Normalisé à 0 par la projection : `views` est optionnel en base (seed et
-  // données anciennes), mais le client compte toujours sur un nombre.
+  // Normalised to 0 by the projection: `views` is optional in the database
+  // (seed and older data), but the client always expects a number.
   views: v.number(),
-  // Ajoutés par la projection, absents du document.
+  // Added by the projection, absent from the document.
   fileUrl: v.union(v.string(), v.null()),
   locked: v.boolean(),
 });
 
 export type PublicPublication = Infer<typeof publicPublicationValidator>;
 
-// Champs que la projection LIT. Volontairement structurel plutôt que
-// `Doc<'publications'>` : les tests unitaires construisent un document à la
-// main, et lib/ reste un module pur.
+// Fields the projection READS. Deliberately structural rather than
+// `Doc<'publications'>`: unit tests build a document by hand, and lib/ stays
+// a pure module.
 export type ProjectablePublication = Omit<
   PublicPublication,
   'fileUrl' | 'locked' | 'views'
 > & { views?: number };
 
-// Projection servie au client. `locked` est explicite pour que l'UI puisse
-// afficher l'appel à l'adhésion au lieu des boutons de téléchargement.
+// Projection served to the client. `locked` is explicit so the UI can show
+// the call to join instead of the download buttons.
 //
-// Énumération explicite, JAMAIS `{ ...pub }` : c'est ce spread qui faisait
-// sortir le document entier. Ajouter un champ public se fait ici ET dans le
-// validateur ci-dessus — un oubli ne fuite pas, il ne compile pas.
-// `views` : total de consultations à afficher. Depuis l'isolement du compteur
-// (table `publicationViews`, issue #8), `pub.views` ne porte plus que l'héritage
-// — vues comptées avant le découpage, valeurs de démonstration. L'appelant qui
-// a lu l'agrégat le passe ici ; les autres (listes, bloc « même thématique »,
-// où le décompte n'est pas affiché) laissent la projection retomber dessus.
+// Explicit enumeration, NEVER `{ ...pub }`: that spread is what leaked the
+// whole document. Adding a public field is done here AND in the validator
+// above — an omission does not leak, it does not compile.
+// `views`: total views to display. Since the counter was isolated
+// (`publicationViews` table, issue #8), `pub.views` only carries the legacy
+// value — views counted before the split, demo values. A caller that read
+// the aggregate passes it here; the others (lists, "same theme" block, where
+// the count is not shown) let the projection fall back on it.
 export function projectPublication(
   pub: ProjectablePublication,
   fileUrl: string | null,
@@ -378,7 +377,7 @@ export function projectPublication(
   };
 }
 
-// Facettes servies avec la liste — même motif : déclarées, donc bornées.
+// Facets served with the list — same pattern: declared, hence bounded.
 export const facetValidator = v.array(
   v.object({ value: v.string(), count: v.number() }),
 );
@@ -391,6 +390,6 @@ export const publicationFacetsValidator = v.object({
   access: facetValidator,
 });
 
-// Slug URL — implémentation partagée (publications ET annuaire des membres).
-// Ré-exporté ici pour ne pas casser les imports existants.
+// URL slug — shared implementation (publications AND member directory).
+// Re-exported here so as not to break existing imports.
 export { slugify } from './slug';

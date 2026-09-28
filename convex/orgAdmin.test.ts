@@ -20,8 +20,8 @@ const modules = import.meta.glob([
 type T = ReturnType<typeof convexTest>;
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
-// L'invitation planifie un courriel d'accueil : en mode développement il est
-// journalisé au lieu d'échouer faute de fournisseur.
+// The invitation schedules a welcome email: in development mode it is
+// logged instead of failing for lack of a provider.
 beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
 afterEach(() => vi.unstubAllEnvs());
 
@@ -107,11 +107,11 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
       orgId: orgA,
       fields: FIELDS,
     });
-    // La fiche publique n'a PAS changé : la révision attend un modérateur.
+    // The public profile has NOT changed: the revision awaits a moderator.
     const before = await t.query(api.organizations.getBySlug, { slug: 'a' });
     expect(before?.name).toBe('Institut a');
 
-    // Le responsable ne se valide pas lui-même.
+    // The manager does not approve themselves.
     await expect(
       owner.as.mutation(api.orgAdmin.reviewRevision, {
         revisionId,
@@ -130,7 +130,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
       websiteUrl: 'https://institut.example.org',
       themes: ['gouvernance', 'elections'],
     });
-    // Le responsable est prévenu.
+    // The manager is notified.
     const notes = await owner.as.query(api.notifications.myNotifications, {});
     expect(notes[0]?.titleKey).toBe('orgRevisionApproved');
   });
@@ -191,7 +191,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
         logoFileId: fileId,
       }),
     ).rejects.toThrow('INVALID_LOGO');
-    // Et l'action de vérification refuse (puis supprime) un SVG.
+    // And the verification action refuses (then deletes) an SVG.
     expect(
       await owner.as.action(api.orgAdmin.attachLogo, { orgId: orgA, fileId }),
     ).toEqual({ ok: false, reason: 'LOGO_TYPE' });
@@ -238,7 +238,7 @@ describe('Rattachements', () => {
     expect(colleague?.role).toBe('membre');
     const colleagueAs = t.withIdentity({ subject: `${colleague!._id}|s` });
 
-    // Un membre ne peut ni inviter ni retirer quelqu'un d'autre.
+    // A member can neither invite nor remove someone else.
     await expect(
       colleagueAs.mutation(api.orgAdmin.inviteColleague, {
         orgId: orgA,
@@ -252,7 +252,7 @@ describe('Rattachements', () => {
       }),
     ).rejects.toThrow('NOT_ORG_OWNER');
 
-    // Le dernier responsable ne se retire pas, ni ne se rétrograde.
+    // The last manager cannot leave, nor demote themselves.
     await expect(
       owner.as.mutation(api.orgAdmin.removeMember, {
         orgId: orgA,
@@ -267,7 +267,7 @@ describe('Rattachements', () => {
       }),
     ).rejects.toThrow('LAST_ORG_OWNER');
 
-    // Promu, le collègue permet au premier de partir.
+    // Once promoted, the colleague lets the first one leave.
     await owner.as.mutation(api.orgAdmin.setMemberRole, {
       orgId: orgA,
       userId: colleague!._id,
@@ -320,7 +320,7 @@ describe('Organisation ↔ publications ↔ fiche publique', () => {
     });
     expect((await t.run((ctx) => ctx.db.get(id)))?.organizationId).toBe(orgA);
 
-    // Pas encore publiée : la fiche ne la montre pas.
+    // Not yet published: the profile does not show it.
     let details = await t.query(api.orgAdmin.publicDetails, { slug: 'a' });
     expect(details?.publications).toEqual([]);
     expect(details?.members).toBeNull();
@@ -334,7 +334,7 @@ describe('Organisation ↔ publications ↔ fiche publique', () => {
     expect(details?.publications.map((p) => p.title)).toEqual([
       'Note sur la décentralisation',
     ]);
-    // Les membres : NOMS seulement, jamais d'adresse.
+    // Members: NAMES only, never an address.
     expect(details?.members).toEqual([{ name: 'Awa Diop' }]);
     expect(JSON.stringify(details)).not.toContain('owner@a.org');
   });

@@ -3,21 +3,21 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
 import { SESSIONS } from './_sessions';
 
-// PAIEMENTS (F-28 à F-31) — le parcours d'un don, de bout en bout :
-// formulaire /don → page du prestataire (FACTICE) → webhook signé → retour →
-// reçu PDF dans l'espace membre → transaction au back-office.
+// PAYMENTS (F-28 to F-31) — the donation flow, end to end:
+// /don form → provider page (FAKE) → signed webhook → return →
+// PDF receipt in the member area → transaction in the back office.
 //
-// Le prestataire factice n'existe que sur un déploiement de dev ou de
-// préversion (`PAYMENTS_FAKE_PROVIDER=1` + `AUTH_DEV_OTP=true`, posés par
-// e2e.yml). La spec lit la configuration RÉELLE du déploiement
-// (`payments.checkout.paymentOptions`, la query même que lit la page) et
-// exerce le chemin correspondant — comme `news.spec.ts` pour Sanity :
-//  - un prestataire est disponible : parcours complet ;
-//  - aucun : la page doit le DIRE et proposer une alternative, sans bouton
-//    mort. Le parcours de paiement est alors annoté comme non joué.
+// The fake provider only exists on a dev or
+// preview deployment (`PAYMENTS_FAKE_PROVIDER=1` + `AUTH_DEV_OTP=true`, set by
+// e2e.yml). The spec reads the deployment's ACTUAL configuration
+// (`payments.checkout.paymentOptions`, the very query the page reads) and
+// exercises the corresponding path — like `news.spec.ts` for Sanity:
+//  - a provider is available: full flow;
+//  - none: the page must SAY so and offer an alternative, with no dead
+//    button. The payment flow is then annotated as not run.
 //
-// SESSION DÉDIÉE (`paiements`, rang admin) : le fichier donne, relit son reçu
-// puis ouvre /admin/finances — il tient sa session d'un bout à l'autre.
+// DEDICATED SESSION (`paiements`, admin rank): the file donates, re-reads its receipt
+// then opens /admin/finances — it holds its session from start to finish.
 
 test.use({ locale: 'fr-FR', storageState: SESSIONS.paiements.state });
 
@@ -43,8 +43,8 @@ async function donner(
   await expect(
     page.getByRole('heading', { level: 1, name: 'Faire un don' }),
   ).toBeVisible();
-  // Portée : le formulaire de don (le pied de page porte son propre champ
-  // « E-mail », celui de la newsletter).
+  // Scope: the donation form (the footer carries its own
+  // "E-mail" field, the newsletter one).
   const form = page.getByRole('form', { name: 'Formulaire de don' });
   if (devise === 'USD') {
     await form
@@ -58,8 +58,8 @@ async function donner(
   }
   await form.getByText('Autre montant', { exact: true }).click();
   await form.getByLabel(/Montant libre/).fill(String(montant));
-  // L'adresse du compte connecté pré-remplit le champ : le don est rattaché
-  // au compte, et son reçu paraîtra dans l'espace membre.
+  // The signed-in account's address pre-fills the field: the donation is linked
+  // to the account, and its receipt will show up in the member area.
   await expect(form.getByLabel('E-mail', { exact: true })).toHaveValue(
     SESSIONS.paiements.email,
   );
@@ -76,7 +76,7 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
   const euro = options.currencies.find((c) => c.currency === 'EUR');
 
   if (!euro) {
-    // Chemin dégradé : aucun prestataire pour l'euro sur ce déploiement.
+    // Degraded path: no provider for the euro on this deployment.
     test.info().annotations.push({
       type: 'chemin',
       description:
@@ -103,22 +103,22 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
     'prestataire EUR réel configuré : le paiement hébergé ne se joue pas en E2E',
   );
 
-  // Montant distinct à chaque exécution : c'est lui qui retrouve la ligne.
+  // A distinct amount on each run: it is what finds the row.
   const montant = 6 + (Date.now() % 90);
   await donner(page, montant);
 
-  // Page du « prestataire » : le montant demandé, puis le paiement.
+  // The "provider" page: the requested amount, then the payment.
   await expect(page.getByTestId('sim-amount')).toContainText(String(montant));
   await page.getByRole('button', { name: 'Payer (simulation)' }).click();
 
-  // Retour : l'état vient du webhook inscrit en base, pas de l'URL.
+  // Return: the state comes from the webhook recorded in the database, not from the URL.
   await page.waitForURL(/\/fr\/paiement\/retour\?ref=.*statut=succes/);
   await expect(
     page.getByRole('heading', { name: 'Merci pour votre don !' }),
   ).toBeVisible();
 
-  // Espace membre : la transaction, puis son reçu (le PDF est produit par une
-  // action planifiée — il peut arriver une ou deux secondes après).
+  // Member area: the transaction, then its receipt (the PDF is produced by a
+  // scheduled action — it may arrive a second or two later).
   await page.getByRole('link', { name: 'Voir mes reçus' }).click();
   await page.waitForURL(/\/fr\/espace-membre\/cotisations/);
   const ligne = page
@@ -133,11 +133,11 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
   const numero = (await recu.textContent())?.trim() ?? '';
   expect(numero).toMatch(/^DT-\d{4}-\d{6}$/);
 
-  // Le reçu s'ouvre et c'est un PDF.
-  // On capture la REQUÊTE vers le fichier plutôt que l'adresse de l'onglet :
-  // la Chromium sans interface de la CI TÉLÉCHARGE un PDF au lieu de
-  // l'afficher, et l'onglet ouvert reste sans adresse (vu le 28/09), alors
-  // que la Chromium locale l'affiche. La requête, elle, part dans les deux cas.
+  // The receipt opens and it is a PDF.
+  // We capture the REQUEST for the file rather than the tab's address:
+  // CI's headless Chromium DOWNLOADS a PDF instead of
+  // displaying it, and the opened tab stays without an address (seen on 28/09), whereas
+  // local Chromium displays it. The request, on the other hand, goes out in both cases.
   const [fichier, pdf] = await Promise.all([
     context.waitForEvent('request', (r) => r.url().includes('/api/storage/')),
     context.waitForEvent('page'),
@@ -152,7 +152,7 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
   ).toBe('%PDF-');
   await pdf.close();
 
-  // Back-office : la transaction, retrouvée par son numéro de reçu.
+  // Back office: the transaction, found by its receipt number.
   await page.goto('/fr/admin/finances');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Finances' }),

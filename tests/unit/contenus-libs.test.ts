@@ -43,19 +43,19 @@ import es from '@/messages/es.json';
 import pt from '@/messages/pt.json';
 import ar from '@/messages/ar.json';
 
-// Règles pures du chantier « contenus » : fuseaux, nature réelle des fichiers,
-// liens vidéo, repli des traductions, CSV, et la forme de l'agenda.
+// Pure rules of the "contenus" workstream: time zones, actual file type,
+// video links, translation fallback, CSV, and the shape of the calendar.
 
 describe('Contenus — dates avec fuseau', () => {
   it('convertit une heure murale en instant UTC, heure d’été comprise', () => {
-    // Paris : UTC+2 en été, UTC+1 en hiver.
+    // Paris: UTC+2 in summer, UTC+1 in winter.
     expect(zonedTimeToUtc('2026-07-01', '10:00', 'Europe/Paris')).toBe(
       Date.UTC(2026, 6, 1, 8, 0),
     );
     expect(zonedTimeToUtc('2026-12-01', '10:00', 'Europe/Paris')).toBe(
       Date.UTC(2026, 11, 1, 9, 0),
     );
-    // Dakar : UTC toute l'année.
+    // Dakar: UTC all year round.
     expect(zonedTimeToUtc('2026-07-01', '10:00', 'Africa/Dakar')).toBe(
       Date.UTC(2026, 6, 1, 10, 0),
     );

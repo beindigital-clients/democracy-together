@@ -7,14 +7,14 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { TextField, TextareaField } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
 
-// SAISIE DES TEXTES TRADUISIBLES — une langue à la fois, les manques visibles.
+// ENTRY OF TRANSLATABLE TEXTS — one language at a time, gaps visible.
 //
-// Un contenu porte ses cinq langues dans le même document (`localizedText`,
-// convex/lib/contenus/i18n.ts). L'éditeur choisit UNE langue de saisie pour
-// tout le formulaire — plutôt que cinq champs par texte, qui noieraient
-// l'écran — et chaque bouton de langue dit si une traduction y manque. Le
-// public ne voit jamais un champ vide : il voit le repli (français, puis
-// anglais), et l'aperçu le montre tel quel.
+// A piece of content carries its five languages in the same document
+// (`localizedText`, convex/lib/contenus/i18n.ts). The editor picks ONE
+// editing language for the whole form — rather than five fields per text,
+// which would flood the screen — and each language button says whether a
+// translation is missing there. The public never sees an empty field: it
+// sees the fallback (French, then English), and the preview shows it as is.
 
 export type LText = Partial<Record<SiteLocale, string>>;
 export type LList = Partial<Record<SiteLocale, string[]>>;
@@ -26,12 +26,12 @@ function filled(v: string | string[] | undefined): boolean {
   return typeof v === 'string' && v.trim().length > 0;
 }
 
-/** Langues où AU MOINS UN des textes requis manque. */
+/** Languages where AT LEAST ONE of the required texts is missing. */
 export function missingIn(texts: (LText | LList | undefined)[]): SiteLocale[] {
   return SITE_LOCALES.filter((l) => texts.some((tx) => !filled(tx?.[l])));
 }
 
-/** Même repli que le serveur : langue demandée, français, anglais, autre. */
+/** Same fallback as the server: requested language, French, English, other. */
 export function previewText(
   text: LText | undefined,
   lang: SiteLocale,
@@ -48,7 +48,7 @@ export function useLangName() {
   return (l: string) => vocabulary(t, 'lang_', l, l.toUpperCase());
 }
 
-/** Choix de la langue de saisie, avec l'indicateur de langue manquante. */
+/** Editing-language picker, with the missing-language indicator. */
 export function LangSwitch({
   value,
   onChange,
@@ -91,7 +91,7 @@ export function LangSwitch({
             >
               <span lang={l}>{langName(l)}</span>
               {isMissing ? (
-                // Pastille décorative : l'information est dans `aria-label`.
+                // Decorative dot: the information is in `aria-label`.
                 <span
                   aria-hidden="true"
                   className="inline-block h-2 w-2 rounded-full bg-bar-5"
@@ -105,7 +105,7 @@ export function LangSwitch({
   );
 }
 
-/** Un texte traduisible, saisi dans la langue courante. */
+/** A translatable text, entered in the current language. */
 export function LocalizedInput({
   label,
   value,
@@ -141,8 +141,8 @@ export function LocalizedInput({
     dir: lang === 'ar' ? 'rtl' : 'ltr',
     value: value[lang] ?? '',
     maxLength,
-    // Requis dans AU MOINS une langue (règle serveur) : le champ ne l'exige
-    // du navigateur que tant qu'aucune langue n'est remplie.
+    // Required in AT LEAST one language (server rule): the field only requires
+    // it from the browser while no language is filled in.
     required: required && !SITE_LOCALES.some((l) => filled(value[l])),
   } as const;
   return multiline ? (
@@ -159,8 +159,8 @@ export function LocalizedInput({
   );
 }
 
-// Liste traduisible saisie en texte : paragraphes séparés par une ligne vide
-// (`separator: 'paragraph'`) ou une entrée par ligne (`'line'`).
+// Translatable list entered as text: paragraphs separated by a blank line
+// (`separator: 'paragraph'`) or one entry per line (`'line'`).
 export function listToText(
   list: string[] | undefined,
   sep: 'paragraph' | 'line',
@@ -189,9 +189,9 @@ export function LocalizedListInput({
   separator: 'paragraph' | 'line';
   hint: ReactNode;
 }) {
-  // Brouillon BRUT par langue : la découpe en entrées retire les lignes vides,
-  // et réafficher la valeur découpée ferait sauter le curseur à chaque frappe
-  // (impossible de taper la ligne vide qui sépare deux paragraphes).
+  // RAW draft per language: splitting into entries removes blank lines,
+  // and redisplaying the split value would make the cursor jump on every
+  // keystroke (impossible to type the blank line separating two paragraphs).
   const [drafts, setDrafts] = useState<Partial<Record<SiteLocale, string>>>({});
   const text = drafts[lang] ?? listToText(value[lang], separator);
   return (
@@ -210,7 +210,7 @@ export function LocalizedListInput({
   );
 }
 
-/** Pastille de statut d'un contenu. */
+/** Status pill for a piece of content. */
 export function StatusBadge({ status }: { status: string }) {
   const t = useTranslations('contentAdmin');
   return (
@@ -227,7 +227,7 @@ export function StatusBadge({ status }: { status: string }) {
   );
 }
 
-/** Colonne « traductions » d'une liste : complet, ou les langues à traduire. */
+/** "traductions" column of a list: complete, or the languages to translate. */
 export function MissingLangs({ missing }: { missing: string[] }) {
   const t = useTranslations('contentAdmin');
   const langName = useLangName();

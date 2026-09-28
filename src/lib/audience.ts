@@ -1,15 +1,15 @@
 import { readConsent, type ConsentValue } from '@/lib/consent';
 
-// MESURE D'AUDIENCE — DÉCISION CÔTÉ NAVIGATEUR (F-66, chantier diffusion).
+// AUDIENCE MEASUREMENT — BROWSER-SIDE DECISION (F-66, diffusion workstream).
 //
-// La mesure est exemptée de consentement (conditions CNIL : cf.
-// convex/audience.ts), mais l'OPPOSITION doit rester possible et simple. Trois
-// signaux la désactivent, chacun suffisant :
-//  - Do Not Track / Global Privacy Control, émis par le navigateur ;
-//  - le choix « Essentiels uniquement » du bandeau de cookies ;
-//  - le réglage explicite de la politique de confidentialité.
-// Dans ces cas, la balise n'envoie RIEN : l'opposition se respecte à la
-// source, pas en filtrant à l'arrivée.
+// Measurement is exempt from consent (CNIL conditions: see
+// convex/audience.ts), but OBJECTING must remain possible and simple. Three
+// signals disable it, each one sufficient:
+//  - Do Not Track / Global Privacy Control, sent by the browser;
+//  - the "Essentiels uniquement" choice in the cookie banner;
+//  - the explicit setting in the privacy policy.
+// In these cases, the tag sends NOTHING: the objection is respected at the
+// source, not by filtering on arrival.
 
 export const AUDIENCE_OPTOUT_KEY = 'dt-audience-optout';
 
@@ -19,12 +19,12 @@ export type AudienceSignals = {
   optedOut: boolean;
 };
 
-/** Pure : la décision se teste sans navigateur. */
+/** Pure: the decision can be tested without a browser. */
 export function shouldMeasure(s: AudienceSignals): boolean {
   return !s.doNotTrack && s.consent !== 'essential' && !s.optedOut;
 }
 
-/** Le navigateur demande-t-il à ne pas être suivi (DNT ou GPC) ? */
+/** Does the browser ask not to be tracked (DNT or GPC)? */
 export function browserDoNotTrack(): boolean {
   if (typeof navigator === 'undefined') return false;
   const nav = navigator as Navigator & {
@@ -59,7 +59,7 @@ export function writeAudienceOptOut(optOut: boolean): void {
     if (optOut) window.localStorage.setItem(AUDIENCE_OPTOUT_KEY, '1');
     else window.localStorage.removeItem(AUDIENCE_OPTOUT_KEY);
   } catch {
-    /* stockage indisponible : l'opposition ne peut pas être retenue */
+    /* storage unavailable: the objection cannot be remembered */
   }
 }
 
@@ -72,10 +72,10 @@ export function audienceAllowed(): boolean {
 }
 
 /**
- * Chemins jamais mesurés côté client (le serveur les refuse aussi) : le
- * back-office et l'espace membre ne sont pas de l'audience publique.
+ * Paths never measured client-side (the server rejects them too): the
+ * back-office and the member area are not public audience.
  */
 export function isMeasuredPath(pathname: string): boolean {
-  // Préfixe de langue facultatif : `usePathname` de next-intl l'a déjà retiré.
+  // Optional language prefix: next-intl's `usePathname` has already stripped it.
   return !/^(\/[a-z]{2})?\/(admin|espace-membre)(\/|$)/.test(pathname);
 }

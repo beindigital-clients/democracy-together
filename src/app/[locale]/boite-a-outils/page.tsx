@@ -6,8 +6,8 @@ import { PathList, ToolboxCatalog } from '@/components/toolbox/toolbox-catalog';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-// Boîte à outils (F-56) : catalogue public filtrable des ressources de
-// formation, et parcours d'apprentissage (F-57).
+// Toolbox (F-56): filterable public catalogue of training resources,
+// and learning paths (F-57).
 export async function generateMetadata({
   params,
 }: {

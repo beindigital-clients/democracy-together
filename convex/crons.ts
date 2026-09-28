@@ -1,13 +1,13 @@
 import { cronJobs } from 'convex/server';
 import { internal } from './_generated/api';
 
-// Tâches planifiées du backend. NB : on utilise `crons.cron` (et non l'aide
-// `crons.daily`) conformément aux guidelines Convex du projet — l'expression
-// ci-dessous équivaut à « tous les jours à 07:00 UTC ».
+// Backend scheduled tasks. NB: we use `crons.cron` (and not the
+// `crons.daily` helper) in line with the project's Convex guidelines — the expression
+// below is equivalent to "every day at 07:00 UTC".
 const crons = cronJobs();
 
-// F-55 — Rappels d'événements : chaque jour à 07:00 UTC, envoie les rappels
-// dont la date approche (≤ 2 jours). sendEmail est NO-OP sans clé fournisseur.
+// F-55 — Event reminders: every day at 07:00 UTC, sends the reminders
+// whose date is approaching (≤ 2 days). sendEmail is a NO-OP without a provider key.
 crons.cron(
   'event-reminders',
   '0 7 * * *',
@@ -15,49 +15,49 @@ crons.cron(
   {},
 );
 
-// F-28 — Dons mensuels sans prélèvement automatique (prestataire sans
-// abonnements ; Stripe prélève lui-même) : chaque jour à 08:10 UTC, envoi du lien de
-// paiement des échéances arrivées. Minute décalée : les tâches à l'heure pile
-// se bousculent chez l'hébergeur.
+// F-28 — Monthly donations without automatic debit (provider without
+// subscriptions; Stripe debits by itself): every day at 08:10 UTC, sends the payment
+// link for installments that have come due. Offset minute: tasks on the exact hour
+// jostle each other at the host.
 crons.cron(
   'payments-recurring-reminders',
   '10 8 * * *',
   internal.payments.recurring.sendDueReminders,
   {},
 );
-// Chantier diffusion (F-18 / F-66).
-// Double opt-in : les inscriptions jamais confirmées sont supprimées à
-// l'échéance de leur lien (minimisation). Toutes les heures, à la minute 17.
+// Distribution workstream (F-18 / F-66).
+// Double opt-in: never-confirmed sign-ups are deleted when
+// their link expires (minimization). Every hour, at minute 17.
 crons.cron(
   'newsletter-purge-pending',
   '17 * * * *',
   internal.newsletter.purgeExpiredPending,
   {},
 );
-// Mesure d'audience : les événements bruts deviennent des compteurs par jour
-// et sont supprimés — aucun ne vit plus de quelques minutes.
+// Audience measurement: raw events become per-day counters
+// and are deleted — none lives more than a few minutes.
 crons.interval(
   'audience-aggregate',
   { minutes: 5 },
   internal.audience.aggregate,
   {},
 );
-// Rétention bornée des agrégats (AUDIENCE_RETENTION_DAYS, 13 mois par défaut).
+// Bounded retention of aggregates (AUDIENCE_RETENTION_DAYS, 13 months by default).
 crons.cron('audience-purge', '43 3 * * *', internal.audience.purge, {});
-// F-59 — Mentorat : chaque jour à 06:30 UTC, alerte le coordinateur des
-// binômes actifs sans séance journalisée depuis quatre semaines
-// (INACTIVITY_WEEKS, convex/lib/programmes.ts). Une alerte par période
-// d'inactivité, pas une par nuit.
+// F-59 — Mentoring: every day at 06:30 UTC, alerts the coordinator about
+// active pairs with no session logged for four weeks
+// (INACTIVITY_WEEKS, convex/lib/programmes.ts). One alert per period
+// of inactivity, not one per night.
 crons.cron(
   'mentoring-inactivity',
   '30 6 * * *',
   internal.mentoring.checkInactivity,
   {},
 );
-// F-43 — Relances des relecteurs : chaque jour à 06:13 UTC (minute décalée de
-// l'heure pleine, où se concentrent les tâches), les relectures dont
-// l'échéance est passée reçoivent une relance — au plus trois, espacées de
-// trois jours — puis l'éditeur qui a désigné le relecteur est prévenu.
+// F-43 — Reviewer reminders: every day at 06:13 UTC (minute offset from
+// the full hour, where tasks concentrate), reviews whose
+// deadline has passed receive a reminder — at most three, spaced
+// three days apart — then the editor who assigned the reviewer is notified.
 crons.cron(
   'peer-review-reminders',
   '13 6 * * *',

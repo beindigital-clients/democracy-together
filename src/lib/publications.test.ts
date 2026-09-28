@@ -5,14 +5,14 @@ import {
   formatAuthorParts,
 } from './publications';
 
-// Liste d'auteurs : la ponctuation est une règle de LANGUE (issue #34).
+// Author list: punctuation is a LANGUAGE rule (issue #34).
 //
-// La fiche publication assemblait « A, B et C » à la main, en choisissant la
-// conjonction par un ternaire sur la locale. Deux défauts pour le prix d'un :
-// le libellé n'entrait pas dans le fichier de messages, et la règle inventée
-// était FAUSSE en anglais — l'anglais met une virgule avant « and » (virgule
-// de Oxford), ce qu'aucun ternaire sur la conjonction ne peut rattraper.
-// `Intl.ListFormat` tient cette règle pour toutes les langues.
+// The publication page assembled "A, B et C" by hand, picking the
+// conjunction with a ternary on the locale. Two defects for the price of one:
+// the label was not in the messages file, and the invented rule was WRONG in
+// English — English puts a comma before "and" (the Oxford comma), which no
+// ternary on the conjunction can make up for.
+// `Intl.ListFormat` handles this rule for every language.
 
 const THREE = ['Awa Diop', 'Marc Lefèvre', 'Chen Wei'];
 
@@ -60,8 +60,8 @@ describe('formatAuthorParts — noms et séparateurs séparés', () => {
   });
 
   it('recollés, les segments redonnent exactement la liste formatée', () => {
-    // C'est ce qui autorise la fiche publication à mettre les NOMS en gras
-    // sans toucher aux séparateurs : le rendu ne perd pas un caractère.
+    // This is what lets the publication page put the NAMES in bold
+    // without touching the separators: the rendering loses no character.
     for (const locale of ['fr', 'en']) {
       expect(
         formatAuthorParts(THREE, locale)
@@ -98,9 +98,9 @@ describe('buildCitations — la citation APA suit la langue de lecture', () => {
   });
 
   it('BibTeX et RIS ne dépendent PAS de la langue de lecture', () => {
-    // Ce sont des formats d'échange : leur séparateur d'auteurs est fixé par
-    // la spécification (` and ` en BibTeX, une ligne `AU` par auteur en RIS),
-    // pas par la langue du lecteur.
+    // These are exchange formats: their author separator is fixed by the
+    // specification (` and ` in BibTeX, one `AU` line per author in RIS),
+    // not by the reader's language.
     const fr = buildCitations(pub, 'fr');
     const en = buildCitations(pub, 'en');
     expect(en.bibtex).toBe(fr.bibtex);

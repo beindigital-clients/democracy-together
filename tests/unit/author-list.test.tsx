@@ -5,14 +5,14 @@ import { AuthorList } from '@/components/library/author-list';
 
 afterEach(cleanup);
 
-// LISTE D'AUTEURS de la fiche publication (issue #34).
+// AUTHOR LIST on the publication page (issue #34).
 //
-// La fiche l'assemblait à la main : virgules entre les noms, puis « and » ou
-// « et » choisi par un ternaire sur la locale. Ce que ce test vérifie n'est
-// donc pas le gras — c'est que la PONCTUATION vient de la langue, et que le
-// découpage noms / séparateurs tient : l'anglais met une virgule avant
-// « and » (virgule de Oxford), le français n'en met pas avant « et ». Aucune
-// des deux règles n'est écrite dans le dépôt ; `Intl.ListFormat` les tient.
+// The page assembled it by hand: commas between names, then "and" or
+// "et" chosen by a ternary on the locale. What this test checks is
+// therefore not the bold — it is that the PUNCTUATION comes from the language, and that the
+// names / separators split holds: English puts a comma before
+// "and" (Oxford comma), French puts none before "et". Neither
+// rule is written in the repo; `Intl.ListFormat` handles them.
 
 const THREE = ['Awa Diop', 'Marc Lefèvre', 'Chen Wei'];
 

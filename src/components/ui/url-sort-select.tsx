@@ -3,9 +3,9 @@
 import { useSearchParams } from 'next/navigation';
 import { useRouter, usePathname } from '@/i18n/navigation';
 
-// Sélecteur de tri générique, piloté par l'URL (amélioration progressive) : met
-// à jour le paramètre `sort` en préservant les autres filtres. La liste reste
-// rendue côté serveur ; ce select ne fait que naviguer.
+// Generic sort selector, driven by the URL (progressive enhancement): updates
+// the `sort` parameter while preserving the other filters. The list stays
+// server-rendered; this select only navigates.
 export function UrlSortSelect({
   label,
   value,

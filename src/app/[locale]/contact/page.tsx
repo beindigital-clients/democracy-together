@@ -24,8 +24,8 @@ export default function ContactPage() {
   const executeRecaptcha = useRecaptcha();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
-  // Les valeurs vivent ici, pas dans le DOM : un refus serveur (rate-limit,
-  // reCAPTCHA) laisse le message rédigé intact.
+  // The values live here, not in the DOM: a server refusal (rate limit,
+  // reCAPTCHA) leaves the drafted message intact.
   const { values, field, validate } = useFormFields({
     name: '',
     email: '',
@@ -37,17 +37,17 @@ export default function ContactPage() {
     e.preventDefault();
     setError(null);
 
-    // Une règle par champ, dans l'ordre d'affichage : le message va au champ
-    // qui l'a causé, et le premier champ fautif reçoit le focus.
+    // One rule per field, in display order: the message goes to the field
+    // that caused it, and the first invalid field receives focus.
     if (
       !validate({
         name: (v) => (v.trim().length < 2 ? t('errName') : null),
         email: (v) => (isEmail(v) ? null : t('errEmail')),
         subject: (v) => (v.trim().length < 2 ? t('errSubject') : null),
-        // La borne HAUTE est celle du serveur (pentest M-2). Sans elle, un
-        // message de 4 001 caractères était refusé par `INVALID_BODY` et
-        // l'écran répondait « réessayez » — une consigne qui ne peut pas
-        // aboutir, faute de dire la limite.
+        // The UPPER bound is the server's (pentest M-2). Without it, a
+        // 4,001-character message was refused with `INVALID_BODY` and
+        // the screen said "try again" — an instruction that cannot
+        // succeed, since it doesn't state the limit.
         body: (v) =>
           v.trim().length < 10
             ? t('errMessage')
@@ -149,8 +149,8 @@ export default function ContactPage() {
 
               <FormError>{error}</FormError>
 
-              {/* `min-h-11` : 40 px mesurés au doigt le 27/09 ; 44 px est la
-                  taille de cible recommandée sur mobile. */}
+              {/* `min-h-11`: 40 px measured by finger on 27/09; 44 px is the
+                  recommended target size on mobile. */}
               <Button
                 type="submit"
                 disabled={status === 'pending'}

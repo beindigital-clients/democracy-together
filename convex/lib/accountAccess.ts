@@ -3,30 +3,30 @@ import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
 import { roleRank, type NetworkRole } from './roles';
 
-// ÉTAT D'ACCÈS D'UNE SESSION (chantier comptes) — la seule décision que
-// lisent toutes les gardes de convex/lib/rbac.ts.
+// ACCESS STATE OF A SESSION (accounts workstream) — the single decision that
+// all the guards in convex/lib/rbac.ts read.
 //
-// Un compte AUTHENTIFIÉ n'est pas pour autant un compte qui a accès :
-//  - `suspended`               : un administrateur l'a suspendu (motif
-//                                obligatoire). Plus RIEN de réservé ne lui
-//                                répond, ses sessions ont été invalidées.
-//  - `second_factor_required`  : la 2FA est active sur le compte, mais CETTE
-//                                session n'a pas encore présenté de code. La
-//                                preuve est liée à la session : chaque
-//                                nouvelle connexion doit la refaire.
-//  - `enrollment_required`     : l'obligation de 2FA pour les rôles
-//                                modérateur et plus est activée, et ce compte
-//                                n'a pas encore inscrit d'appareil.
-//  - `active`                  : rien ne s'y oppose.
+// An AUTHENTICATED account is not necessarily an account that has access:
+//  - `suspended`               : an administrator suspended it (reason
+//                                required). NOTHING restricted answers it
+//                                anymore, its sessions were invalidated.
+//  - `second_factor_required`  : 2FA is active on the account, but THIS
+//                                session has not presented a code yet. The
+//                                proof is bound to the session: each
+//                                new sign-in must redo it.
+//  - `enrollment_required`     : the 2FA requirement for moderator roles
+//                                and above is enabled, and this account
+//                                has not enrolled a device yet.
+//  - `active`                  : nothing stands in the way.
 //
-// L'ordre compte : une suspension l'emporte sur tout, puis la preuve d'une
-// 2FA déjà active, puis l'obligation d'en inscrire une.
+// Order matters: a suspension overrides everything, then the proof of an
+// already active 2FA, then the requirement to enroll one.
 export type AccessState =
   'active' | 'suspended' | 'second_factor_required' | 'enrollment_required';
 
-// Rang à partir duquel l'obligation de 2FA s'applique quand elle est activée :
-// les comptes qui décident de ce qui paraît (modération), de ce qui est édité
-// et de qui a quels droits.
+// Rank from which the 2FA requirement applies when enabled:
+// the accounts that decide what gets published (moderation), what is edited
+// and who has which rights.
 export const TWO_FACTOR_STAFF_MIN_ROLE: NetworkRole = 'moderateur';
 
 export type SecurityPolicy = {
@@ -34,11 +34,11 @@ export type SecurityPolicy = {
   updatedAt: number | null;
 };
 
-// DÉSACTIVÉE PAR DÉFAUT, et c'est un choix d'exploitation, pas de sécurité :
-// le déploiement partagé des E2E crée des comptes administrateur qui n'ont
-// aucun appareil. docs/backlog/comptes.md : elle DOIT être activée à la mise
-// en service, et le tableau de bord d'administration l'affiche tant qu'elle
-// ne l'est pas.
+// DISABLED BY DEFAULT, and that is an operational choice, not a security one:
+// the shared E2E deployment creates administrator accounts that have
+// no device. docs/backlog/comptes.md: it MUST be enabled at go-live,
+// and the administration dashboard shows it as long as it
+// is not.
 export const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
   twoFactorRequiredForStaff: false,
   updatedAt: null,
@@ -63,7 +63,7 @@ export function isSuspended(user: Pick<Doc<'users'>, 'suspendedAt'>): boolean {
   return user.suspendedAt !== undefined;
 }
 
-/** Le rôle de ce compte est-il soumis à l'obligation de 2FA, si elle est active ? */
+/** Is this account's role subject to the 2FA requirement, if it is active? */
 export function roleRequiresTwoFactor(role: string | undefined): boolean {
   return roleRank(role) >= roleRank(TWO_FACTOR_STAFF_MIN_ROLE);
 }
@@ -79,13 +79,13 @@ export async function activeCredential(
   return cred && cred.status === 'active' ? cred : null;
 }
 
-/** Identifiant de la session courante, validé comme identifiant de table. */
+/** Identifier of the current session, validated as a table identifier. */
 export async function currentSessionId(
   ctx: QueryCtx | MutationCtx,
 ): Promise<Id<'authSessions'> | null> {
   const raw = await getAuthSessionId(ctx);
-  // Une identité simulée (tests) ou forgée peut porter une chaîne qui n'est
-  // pas un identifiant de session : elle ne vaut alors AUCUNE preuve.
+  // A simulated (tests) or forged identity may carry a string that is not
+  // a session identifier: it then counts as NO proof.
   return raw ? ctx.db.normalizeId('authSessions', raw) : null;
 }
 

@@ -20,7 +20,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Résumé assez long pour être tronqué (> MEMBERS_TEASER_CHARS).
+// Abstract long enough to be truncated (> MEMBERS_TEASER_CHARS).
 const LONG_ABSTRACT =
   'Ce rapport analyse les mécanismes de participation citoyenne dans huit pays ' +
   "d'Afrique de l'Ouest, à partir d'une enquête de terrain menée sur dix-huit " +
@@ -55,7 +55,7 @@ function doc(access: 'open' | 'members', slug: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Logique pure
+// Pure logic
 // ---------------------------------------------------------------------------
 
 describe('Gating membres — logique pure (F-35)', () => {
@@ -70,7 +70,7 @@ describe('Gating membres — logique pure (F-35)', () => {
     const out = truncateAbstract(LONG_ABSTRACT);
     expect(out.length).toBeLessThanOrEqual(MEMBERS_TEASER_CHARS + 1);
     expect(out.endsWith('…')).toBe(true);
-    // pas de mot coupé en deux : le texte tronqué est un préfixe du résumé
+    // no word cut in two: the truncated text is a prefix of the abstract
     expect(LONG_ABSTRACT.startsWith(out.slice(0, -1).trimEnd())).toBe(true);
   });
 
@@ -101,7 +101,7 @@ describe('Gating membres — logique pure (F-35)', () => {
     expect(out.body).toEqual([]);
     expect(out.abstract).not.toBe(LONG_ABSTRACT);
     expect(out.abstract.endsWith('…')).toBe(true);
-    // Les métadonnées de découverte restent publiques (SEO, décision d'adhérer).
+    // Discovery metadata stays public (SEO, decision to join).
     expect(out.title).toBe('Publication reservee');
     expect(out.doi).toBe('10.59000/dt.reservee');
   });
@@ -120,7 +120,7 @@ describe('Gating membres — logique pure (F-35)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Queries Convex — c'est ici que vivait la faille (audit H1 / pentest H-1)
+// Convex queries — this is where the flaw lived (audit H1 / pentest H-1)
 // ---------------------------------------------------------------------------
 
 async function seed() {
@@ -179,7 +179,7 @@ describe('getBySlug — publications réservées aux membres (F-35)', () => {
     expect(pub!.locked).toBe(true);
     expect(pub!.fileUrl).toBeNull();
 
-    // compte sans rôle explicite (= visiteur par défaut) -> verrouillé aussi
+    // account without an explicit role (= visitor by default) -> locked too
     const asNoRole = await userWithRole(t, undefined, 'nr@test.org');
     const pub2 = await asNoRole.query(api.publications.getBySlug, {
       slug: 'reservee',

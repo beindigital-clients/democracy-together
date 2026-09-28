@@ -1,47 +1,47 @@
-// Vue calendrier des événements (Vague 4, complément de /evenements).
-// Fonctions PURES et testables : elles reçoivent year/month en paramètres et
-// NE lisent PAS l'horloge système. La page serveur lit la date du jour.
+// Calendar view of events (Wave 4, complement to /evenements).
+// PURE, testable functions: they receive year/month as parameters and
+// do NOT read the system clock. The server page reads today's date.
 //
-// `month` est toujours exprimé en base 1 (1 = janvier … 12 = décembre) côté
-// API publique, pour rester cohérent avec EventData.mo. En interne on convertit
-// vers la base 0 attendue par l'objet Date de JS.
+// `month` is always 1-based (1 = January … 12 = December) in the
+// public API, to stay consistent with EventData.mo. Internally we convert
+// to the 0-based month expected by JS's Date object.
 
 import type { EventData } from './events-content';
 import { EVENTS } from './events-content';
 
 export type CalendarCell<E extends EventData = EventData> = {
-  day: number | null; // numéro du jour, ou null pour les cases de remplissage
-  events: E[]; // événements tombant ce jour-là (vide pour les cases null)
+  day: number | null; // day number, or null for filler cells
+  events: E[]; // events falling on that day (empty for null cells)
 };
 
 export type MonthGrid<E extends EventData = EventData> = {
   year: number;
   month: number; // 1-12
-  weeks: CalendarCell<E>[][]; // 6 lignes × 7 colonnes (lundi → dimanche)
+  weeks: CalendarCell<E>[][]; // 6 rows × 7 columns (Monday → Sunday)
 };
 
 const WEEKS = 6;
 const DAYS_PER_WEEK = 7;
 
-// Jour de la semaine du 1er du mois, ramené à un index lundi=0 … dimanche=6
-// (la grille démarre le lundi, convention européenne des maquettes).
+// Weekday of the 1st of the month, mapped to an index Monday=0 … Sunday=6
+// (the grid starts on Monday, the mock-ups' European convention).
 function mondayFirstWeekday(year: number, month: number): number {
   const jsDay = new Date(year, month - 1, 1).getDay(); // 0 = dimanche … 6 = samedi
   return (jsDay + 6) % 7; // 0 = lundi … 6 = dimanche
 }
 
-// Nombre de jours dans le mois (le « jour 0 » du mois suivant = dernier jour).
+// Number of days in the month ("day 0" of the next month = last day).
 export function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
-// Construit une grille mensuelle de 6 semaines × 7 cases.
-// - Cases `null` avant le 1er (offset du jour de semaine) et après le dernier
-//   jour (jusqu'à compléter les 42 cases).
-// - Chaque case porte les événements dont (y, mo, d) correspondent exactement.
-// Générique sur la forme d'événement : la page passe l'agenda chargé (table
-// ou repli codé, `src/lib/contenus/`), dont chaque événement porte déjà son
-// titre traduit ; les tests passent le catalogue codé par défaut.
+// Builds a monthly grid of 6 weeks × 7 cells.
+// - `null` cells before the 1st (weekday offset) and after the last
+//   day (until the 42 cells are filled).
+// - Each cell holds the events whose (y, mo, d) match exactly.
+// Generic over the event shape: the page passes the loaded agenda (table
+// or hard-coded fallback, `src/lib/contenus/`), each event of which already carries its
+// translated title; the tests pass the default hard-coded catalogue.
 export function buildMonthGrid<E extends EventData = EventData>(
   year: number,
   month: number /* 1-12 */,
@@ -50,7 +50,7 @@ export function buildMonthGrid<E extends EventData = EventData>(
   const offset = mondayFirstWeekday(year, month);
   const total = daysInMonth(year, month);
 
-  // Index des événements par jour du mois pour ce (year, month).
+  // Index of events by day of month for this (year, month).
   const byDay = new Map<number, E[]>();
   for (const e of events) {
     if (e.y === year && e.mo === month) {
@@ -78,14 +78,14 @@ export function buildMonthGrid<E extends EventData = EventData>(
   return { year, month, weeks };
 }
 
-// Décale (year, month) de `delta` mois en gérant le passage d'année.
-// month en base 1 en entrée comme en sortie.
+// Shifts (year, month) by `delta` months, handling year rollover.
+// month is 1-based on input and output.
 export function monthShift(
   year: number,
   month: number,
   delta: number,
 ): { year: number; month: number } {
-  // Index global de mois en base 0 (janv. an 0 = 0), puis re-projection.
+  // Global 0-based month index (Jan of year 0 = 0), then re-projection.
   const total = year * 12 + (month - 1) + delta;
   return {
     year: Math.floor(total / 12),
@@ -93,12 +93,12 @@ export function monthShift(
   };
 }
 
-// Sérialise (year, month) en paramètre d'URL `ym=YYYY-MM`.
+// Serializes (year, month) to the URL parameter `ym=YYYY-MM`.
 export function formatYm(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, '0')}`;
 }
 
-// Parse `ym=YYYY-MM` ; renvoie null si absent ou mal formé (mois hors 1-12).
+// Parses `ym=YYYY-MM`; returns null if missing or malformed (month outside 1-12).
 export function parseYm(
   value: string | string[] | undefined,
 ): { year: number; month: number } | null {

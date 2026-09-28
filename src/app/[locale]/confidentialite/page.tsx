@@ -11,10 +11,11 @@ import { AudienceOptOut } from '@/components/analytics/audience-opt-out';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 const PATH = 'confidentialite';
 
-// Les sections « Cookies et traceurs » occupent le même rang dans les cinq
-// langues (src/lib/legal-content.ts) : les deux traitements du chantier
-// diffusion — mesure d'audience et double opt-in de la lettre — sont décrits
-// JUSTE APRÈS, là où le lecteur qui cherche « traceurs » les trouvera.
+// The "Cookies et traceurs" sections sit at the same position in all five
+// languages (src/lib/legal-content.ts): the two processing operations of the
+// outreach workstream — audience measurement and the newsletter's double
+// opt-in — are described RIGHT AFTER, where a reader looking for "traceurs"
+// will find them.
 const AFTER_COOKIES = 7;
 
 export async function generateMetadata({

@@ -1,11 +1,11 @@
 import { getCliClient } from 'sanity/cli';
 import { aboutFallback } from '../src/lib/about-content';
 
-// Seed de la page À propos (F-11/F-12) via la session CLI authentifiée :
+// Seed of the About page (F-11/F-12) via the authenticated CLI session:
 //   npx sanity exec scripts/seed-about.ts --with-user-token
-// Idempotent (createOrReplace sur _id déterministes `aboutPage-fr`/`-en`).
-// Le contenu provient du repli LOCAL (aboutFallback) — aucune fabrication. Les
-// tableaux Sanity exigent un `_key` par élément, ajouté ici.
+// Idempotent (createOrReplace on deterministic _ids `aboutPage-fr`/`-en`).
+// The content comes from the LOCAL fallback (aboutFallback) — nothing fabricated. Sanity
+// arrays require a `_key` per item, added here.
 const client = getCliClient();
 
 type Obj = Record<string, unknown>;

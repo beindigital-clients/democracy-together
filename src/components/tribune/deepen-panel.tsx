@@ -11,16 +11,16 @@ import { TextField } from '@/components/ui/field';
 import { isRateLimited } from '@/lib/errors';
 import { TribuneComposer } from './tribune-composer';
 
-// APPROFONDISSEMENT (F-48) — îlot client sous un billet publié.
+// DEEPENING (F-48) — client island below a published post.
 //
-// Ce que le serveur autorise, et rien d'autre (`deepeningState`) :
-//   - l'auteur d'un billet court, ou un membre qu'il a invité, ouvre une
-//     contribution de fond liée (elle passe par la modération) ;
-//   - l'auteur invite un membre par son adresse (sans apprendre si elle
-//     correspond à un compte) ;
-//   - l'auteur d'une contribution de fond publiée la propose à la
-//     bibliothèque, où la modération éditoriale décide.
-// Un visiteur anonyme ne voit rien : l'état rendu est vide, sans erreur.
+// What the server allows, and nothing else (`deepeningState`):
+//   - the author of a short post, or a member they invited, opens a linked
+//     in-depth contribution (it goes through moderation);
+//   - the author invites a member by their address (without learning whether it
+//     matches an account);
+//   - the author of a published in-depth contribution submits it to the
+//     library, where editorial moderation decides.
+// An anonymous visitor sees nothing: the rendered state is empty, without an error.
 export function DeepenPanel({
   postId,
   title,

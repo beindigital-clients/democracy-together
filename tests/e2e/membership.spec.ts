@@ -5,7 +5,7 @@ import { expectFieldError, expectNoFieldError } from './_fields';
 test.use({ locale: 'fr-FR' });
 
 test.beforeAll(async () => {
-  await seedDirectory(); // pour le test du lien depuis une fiche
+  await seedDirectory(); // for the link-from-a-profile test
 });
 
 test('adhésion : candidature -> succès + stockage (F-22)', async ({ page }) => {
@@ -39,9 +39,9 @@ test('adhésion : bascule individu adapte le libellé (F-22)', async ({
   await expect(page.getByLabel('Nom et prénom')).toBeVisible();
 });
 
-// Le formulaire cité par l'issue #37 : trois causes de refus, un seul message.
-// Chacune porte désormais son champ — et la présentation, le champ le plus long
-// à écrire, survit au refus.
+// The form cited by issue #37: three causes of rejection, a single message.
+// Each one now points to its field — and the introduction, the longest field
+// to write, survives the rejection.
 test('adhésion : chaque champ fautif porte son message (F-22, #37)', async ({
   page,
 }) => {
@@ -61,11 +61,11 @@ test('adhésion : chaque champ fautif porte son message (F-22, #37)', async ({
     page.getByLabel('E-mail de contact'),
     /adresse e-mail de contact valide/,
   );
-  // Le pays est correct : il n'est pas mis en cause.
+  // The country is correct: it is not flagged.
   await expectNoFieldError(page.getByLabel('Pays'));
-  // Le premier champ fautif prend le focus.
+  // The first invalid field takes focus.
   await expect(name).toBeFocused();
-  // Rien n'est perdu, la présentation en premier.
+  // Nothing is lost, the introduction first.
   await expect(page.getByLabel('Présentation (optionnel)')).toHaveValue(
     presentation,
   );

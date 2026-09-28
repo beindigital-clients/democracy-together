@@ -10,8 +10,8 @@ import { SESSIONS } from './_sessions';
 test.use({ locale: 'fr-FR' });
 
 test.describe('accès refusé (session membre partagée)', () => {
-  // Session d'un MEMBRE (et pas d'un visiteur) : c'est le cas intéressant, un
-  // visiteur étant refusé a fortiori.
+  // A MEMBER's session (and not a visitor's): that is the interesting case, a
+  // visitor being refused all the more so.
   test.use({ storageState: SESSIONS.membre.state });
 
   test('back-office : un membre ordinaire est refusé (F-26)', async ({
@@ -34,7 +34,7 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     const adminEmail = SESSIONS.admin.email;
     const appOrg = `Institut E2E ${stamp}`;
 
-    // une candidature à modérer
+    // an application to moderate
     await submitApplication({
       type: 'organisation',
       organizationName: appOrg,
@@ -42,7 +42,7 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
       country: 'Sénégal',
     });
 
-    // point d'entrée staff depuis l'espace membre
+    // staff entry point from the member area
     await page.goto('/fr/espace-membre');
     await page.getByRole('link', { name: /Espace d.administration/ }).click();
     await expect(page).toHaveURL(/\/fr\/admin$/);
@@ -50,42 +50,42 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
       page.getByRole('heading', { name: 'Tableau de bord' }),
     ).toBeVisible();
 
-    // vers la file de modération
+    // to the moderation queue
     await page.getByRole('link', { name: /Traiter les candidatures/ }).click();
     await expect(page).toHaveURL(/\/admin\/candidatures$/);
 
-    // la candidature est en attente ; on l'approuve
+    // the application is pending; we approve it
     const row = page.getByRole('listitem').filter({ hasText: appOrg });
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: 'Approuver' }).click();
 
-    // Approuver une ORGANISATION ne tranche pas tout de suite : l'écran demande
-    // d'abord la fiche d'annuaire (F-19/F-22), car c'est à ce moment que
-    // l'organisation est créée. Le test cliquait « Approuver » et attendait que
-    // la ligne quitte la file — elle y restait, puisque rien n'avait encore été
-    // décidé. C'est bien ce que fait le produit, et cette étape mérite d'être
-    // épinglée plutôt que contournée en silence.
+    // Approving an ORGANIZATION does not decide right away: the screen first
+    // asks for the directory entry (F-19/F-22), because that is when
+    // the organization is created. The test clicked "Approuver" and waited for
+    // the row to leave the queue — it stayed there, since nothing had been
+    // decided yet. That is indeed what the product does, and this step deserves to be
+    // pinned down rather than silently bypassed.
     await expect(
       row.getByRole('heading', { name: 'Fiche annuaire' }),
     ).toBeVisible();
 
-    // Ce test porte sur la modération et les utilisateurs (F-26/F-61/F-63) : on
-    // prend la sortie prévue pour cela — le compte est créé, la fiche reste à
-    // compléter. La publication de la fiche (F-19) relève d'un autre parcours.
+    // This test is about moderation and users (F-26/F-61/F-63): we
+    // take the exit provided for that — the account is created, the entry remains to be
+    // completed. Publishing the entry (F-19) belongs to another journey.
     await row
       .getByRole('button', { name: 'Approuver sans publier la fiche' })
       .click();
 
-    // elle quitte la file « En attente »
+    // it leaves the "En attente" queue
     await expect(row).toHaveCount(0);
 
-    // en « Toutes » elle réapparaît, statut Approuvée
+    // under "Toutes" it reappears, with status Approuvée
     await page.getByRole('button', { name: 'Toutes' }).click();
     const approved = page.getByRole('listitem').filter({ hasText: appOrg });
     await expect(approved).toBeVisible();
     await expect(approved.getByText('Approuvée')).toBeVisible();
 
-    // gestion des utilisateurs (admin)
+    // user management (admin)
     await page
       .getByRole('link', {
         name: 'Utilisateurs (Administration)',
@@ -97,24 +97,24 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     await expect(page.getByText(adminEmail)).toBeVisible();
   });
 
-  // Rôle affiché dans /admin/utilisateurs (F-63, issue #27).
+  // Role displayed in /admin/utilisateurs (F-63, issue #27).
   //
-  // Le back-office substituait « membre » à l'absence de rôle, là où le RBAC
-  // serveur substitue « visiteur ». Sur l'écran même où l'administrateur décide
-  // qui a accès à quoi, un compte sans aucun droit s'annonçait donc membre — et
-  // comme le <Select> est CONTRÔLÉ sur cette valeur, laisser la ligne telle
-  // quelle ne changeait rien : l'écart ne se voyait pas.
+  // The back office substituted "membre" for a missing role, whereas the server
+  // RBAC substitutes "visiteur". On the very screen where the administrator decides
+  // who has access to what, an account with no rights at all thus showed as a member — and
+  // since the <Select> is CONTROLLED on this value, leaving the row as
+  // is changed nothing: the discrepancy did not show.
   //
-  // Le cas n'est pas théorique : les comptes créés avant la PR #4 n'ont pas de
-  // colonne `role`. `clearRole` reproduit exactement cet état.
+  // The case is not theoretical: accounts created before PR #4 have no
+  // `role` column. `clearRole` reproduces exactly that state.
   test('back-office : un compte sans rôle est affiché « Visiteur » (F-63)', async ({
     page,
   }) => {
     const stamp = Date.now();
     const legacyEmail = `e2e_role_sansrole_${stamp}@democracytogether.test`;
 
-    // Le compte HÉRITÉ reste créé sur mesure : c'est l'état que la session
-    // partagée ne peut pas produire (elle porte toujours un rôle).
+    // The LEGACY account is still created ad hoc: it is the state the shared
+    // session cannot produce (it always carries a role).
     await provisionUser(legacyEmail);
     await clearRole(legacyEmail);
 
@@ -122,8 +122,8 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     await chercherUtilisateur(page, legacyEmail);
     const roleSelect = page.getByLabel(`Rôle ${legacyEmail}`);
     await expect(roleSelect).toBeVisible();
-    // La VALEUR, pas seulement le libellé : c'est elle que le <Select> contrôlé
-    // renverrait au serveur si l'administrateur validait sans rien changer.
+    // The VALUE, not just the label: it is what the controlled <Select>
+    // would send back to the server if the administrator confirmed without changing anything.
     await expect(roleSelect).toHaveValue('visiteur');
   });
 });

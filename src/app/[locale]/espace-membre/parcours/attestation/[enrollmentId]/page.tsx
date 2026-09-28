@@ -11,11 +11,11 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { PrintButton } from '@/components/reports/print-button';
 import { useDateFormat } from '@/components/programmes/shared';
 
-// Attestation de fin de parcours (F-57) : une page IMPRIMABLE. Aucune
-// dépendance PDF n'est présente dans le dépôt ; la boîte d'impression du
-// navigateur propose « Enregistrer au format PDF », et compose correctement
-// l'arabe, ce qu'une bibliothèque PDF JavaScript ne ferait pas. Lisible par
-// son seul titulaire : `toolbox.getCertificate` refuse toute autre personne.
+// Learning-path completion certificate (F-57): a PRINTABLE page. There is
+// no PDF dependency in the repo; the browser's print dialog offers
+// "Save as PDF", and lays out Arabic correctly, which a JavaScript PDF
+// library would not. Readable by its holder alone:
+// `toolbox.getCertificate` refuses anyone else.
 function Certificate({
   enrollmentId,
 }: {

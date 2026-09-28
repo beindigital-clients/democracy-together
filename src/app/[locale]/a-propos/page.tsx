@@ -28,10 +28,10 @@ export async function generateMetadata({
   };
 }
 
-// `as="h2"` quand l'étiquette est le SEUL titre d'une section (RGAA 9.1) :
-// sous « Mission », quatre `<h3>` suivaient directement le `<h1>` — la
-// hiérarchie sautait un niveau (mesuré à l'audit du 27/09, axe
-// `heading-order`), et la section n'apparaissait pas dans la liste des titres.
+// `as="h2"` when the label is the ONLY heading of a section (RGAA 9.1):
+// under "Mission", four `<h3>` directly followed the `<h1>` — the
+// hierarchy skipped a level (measured in the 27/09 audit, axe
+// `heading-order`), and the section did not appear in the list of headings.
 function Eyebrow({
   children,
   as: Tag = 'p',
@@ -48,25 +48,25 @@ function Eyebrow({
 
 const WRAP = 'mx-auto max-w-[1100px] px-4 sm:px-6';
 
-// Ancres du pied de page (issue #46) — « Mission & vision », « Gouvernance » et
-// « Fondateurs » pointaient tous trois vers `/a-propos` nu : trois libellés, une
-// seule destination, en haut de page. Les trois sections visées portent donc :
+// Footer anchors (issue #46) — "Mission & vision", "Gouvernance" and
+// "Fondateurs" all three pointed to bare `/a-propos`: three labels, a
+// single destination, at the top of the page. The three target sections therefore carry:
 //
-//  - un `id`, la destination promise ;
-//  - `scroll-mt-20`, parce que l'en-tête est COLLANT (h-16) : sans cette marge
-//    de défilement, le titre de la section arrive dessous ;
-//  - `tabIndex={-1}`, et c'est lui qui fait SUIVRE LE FOCUS. Une `<section>` nue
-//    n'est pas focusable : le `focus()` que le routeur applique à la cible d'une
-//    ancre ne fait alors rien, et le clavier repart du pied de page — le lien ne
-//    sert à rien au clavier comme au lecteur d'écran. Même condition au
-//    chargement direct de `/a-propos#gouvernance`, où c'est le navigateur qui
-//    focalise la cible du fragment : encore faut-il qu'elle soit focusable.
+//  - an `id`, the promised destination;
+//  - `scroll-mt-20`, because the header is STICKY (h-16): without this scroll
+//    margin, the section heading ends up underneath it;
+//  - `tabIndex={-1}`, and that is what makes FOCUS FOLLOW. A bare `<section>`
+//    is not focusable: the `focus()` the router applies to the target of an
+//    anchor then does nothing, and the keyboard restarts from the footer — the link is
+//    useless for keyboard and screen reader users alike. Same condition on
+//    direct load of `/a-propos#gouvernance`, where it is the browser that
+//    focuses the fragment's target: it still has to be focusable.
 //
-// Le déplacement reste celui du navigateur — aucun `scrollIntoView` maison —, et
-// c'est ce qui respecte `prefers-reduced-motion` : globals.css force déjà
-// `scroll-behavior: auto !important` sous cette préférence, qu'un défilement
-// animé en JavaScript contournerait. Rien de visible non plus au clic : la
-// feuille globale ne dessine d'outline qu'en `:focus-visible`.
+// The scrolling remains the browser's — no custom `scrollIntoView` —, and
+// that is what respects `prefers-reduced-motion`: globals.css already forces
+// `scroll-behavior: auto !important` under that preference, which a scroll
+// animated in JavaScript would bypass. Nothing visible on click either: the
+// global stylesheet only draws an outline on `:focus-visible`.
 
 export default async function AboutPage({
   params,
@@ -95,8 +95,8 @@ export default async function AboutPage({
         </div>
       </section>
 
-      {/* Vision — cible de « Mission & vision » : premier des deux blocs,
-          la mission suit immédiatement. */}
+      {/* Vision — target of "Mission & vision": first of the two blocks,
+          the mission follows immediately. */}
       <section
         id="vision"
         tabIndex={-1}
@@ -136,7 +136,7 @@ export default async function AboutPage({
         </div>
       </section>
 
-      {/* Fondateurs */}
+      {/* Founders */}
       <section
         id="fondateurs"
         tabIndex={-1}
@@ -185,7 +185,7 @@ export default async function AboutPage({
         </RevealGroup>
       </section>
 
-      {/* Gouvernance */}
+      {/* Governance */}
       <section
         id="gouvernance"
         tabIndex={-1}
@@ -252,7 +252,7 @@ export default async function AboutPage({
         </div>
       </section>
 
-      {/* Financement & transparence */}
+      {/* Funding & transparency */}
       <section className={`${WRAP} py-16 md:py-20`}>
         <Reveal>
           <Eyebrow>{c.funding.eyebrow}</Eyebrow>
@@ -281,7 +281,7 @@ export default async function AboutPage({
         </Reveal>
       </section>
 
-      {/* Dans la lignée de */}
+      {/* In the lineage of */}
       <section className="border-y border-line bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal>
@@ -309,7 +309,7 @@ export default async function AboutPage({
         </div>
       </section>
 
-      {/* Prochaines étapes */}
+      {/* Next steps */}
       <section className={`${WRAP} py-16 md:py-20`}>
         <Reveal>
           <Eyebrow>{c.timeline.eyebrow}</Eyebrow>

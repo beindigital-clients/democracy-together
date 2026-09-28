@@ -20,20 +20,20 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { useConnu } from '@/hooks/use-connu';
 
-// Taille de page. Le serveur la replafonne : elle est indicative.
+// Page size. The server re-caps it: it is indicative.
 const PAGE_SIZE = 50;
 
 function UsersTable() {
   const t = useTranslations('admin');
   const ta = useTranslations('accounts');
-  // PAGINÉ (issue #8) : la liste chargeait la table `users` en entier. L'ordre
-  // (par e-mail) vient désormais de l'index côté serveur, pas d'un tri client.
+  // PAGINATED (issue #8): the list loaded the entire `users` table. The order
+  // (by email) now comes from the server-side index, not from a client sort.
   //
-  // RECHERCHE ET FILTRE SERVEUR (issue #49) : les deux sont des ARGUMENTS de la
-  // query paginée, pas un filtrage du tableau rendu. Les changer repart d'une
-  // première page — c'est le comportement voulu, et c'est aussi la raison pour
-  // laquelle chercher fonctionne : la ligne cherchée n'est en général pas dans
-  // la page déjà chargée.
+  // SERVER-SIDE SEARCH AND FILTER (issue #49): both are ARGUMENTS of the
+  // paginated query, not a filter on the rendered table. Changing them restarts from a
+  // first page — that is the intended behavior, and it is also the reason
+  // why searching works: the row being searched for is generally not in
+  // the already loaded page.
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<NetworkRole | ''>('');
   const {
@@ -48,57 +48,57 @@ function UsersTable() {
     },
     { initialNumItems: PAGE_SIZE },
   );
-  // `useConnu` : un clignotement de cette query ne doit pas DÉMONTER le
-  // tableau. Il emporterait avec lui la boîte de dialogue de confirmation
-  // ouverte dans une ligne — constaté en CI, le bouton « Changer le rôle »
-  // détaché du DOM pendant qu'on le cliquait.
+  // `useConnu`: a flicker of this query must not UNMOUNT the
+  // table. It would take with it the confirmation dialog
+  // open in a row — observed in CI, the "Changer le rôle" button
+  // detached from the DOM while it was being clicked.
   const me = useConnu(useQuery(api.users.current));
   const setRole_ = useMutation(api.users.setRole);
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
 
-  // GELER LA LISTE PENDANT QU'UNE CONFIRMATION EST OUVERTE.
+  // FREEZE THE LIST WHILE A CONFIRMATION IS OPEN.
   //
-  // La boîte de confirmation vit DANS une ligne : si la ligne disparaît, la
-  // boîte part avec, au milieu du geste. `useConnu` a fermé le premier chemin
-  // — le clignotement de `users.current`. Il en restait un second, et la CI
-  // l'a montré : la recherche est TEMPORISÉE, donc frapper puis cliquer
-  // « Appliquer » dans la foulée laisse partir la requête pendant que la boîte
-  // est ouverte. Les arguments de la query changent, `status` repasse à
-  // `LoadingFirstPage`, la liste se vide, la confirmation s'évanouit.
+  // The confirmation dialog lives INSIDE a row: if the row disappears, the
+  // dialog goes with it, mid-gesture. `useConnu` closed the first path
+  // — the flicker of `users.current`. A second one remained, and CI
+  // showed it: the search is DEBOUNCED, so typing then clicking
+  // "Appliquer" right away lets the query fire while the dialog
+  // is open. The query arguments change, `status` goes back to
+  // `LoadingFirstPage`, the list empties, the confirmation vanishes.
   //
-  // On fige donc les lignes AFFICHÉES le temps de la confirmation. La fenêtre
-  // est courte et bornée par un geste de l'utilisateur : rien ne peut y
-  // vieillir longtemps, et la liste repart fraîche dès la fermeture — y
-  // compris après un changement accepté, dont la valeur arrive alors.
+  // We therefore freeze the DISPLAYED rows for the duration of the confirmation. The window
+  // is short and bounded by a user gesture: nothing can go
+  // stale there for long, and the list comes back fresh as soon as it closes —
+  // including after an accepted change, whose value then arrives.
   //
-  // Une seule boîte à la fois : le voile couvre l'écran et intercepte les
-  // clics, donc un booléen suffit là où un compteur ne servirait qu'à
-  // décrire une situation impossible.
+  // Only one dialog at a time: the overlay covers the screen and intercepts
+  // clicks, so a boolean is enough where a counter would only serve to
+  // describe an impossible situation.
   const [gel, setGel] = useState<typeof users | null>(null);
   const lignes = gel ?? users;
   function signalerConfirmation(ouverte: boolean) {
     setGel(ouverte ? users : null);
   }
 
-  // Appelée depuis `RoleSelector`, donc APRÈS « Appliquer » puis confirmation
-  // (issue #38) : la molette au-dessus de la liste déroulante n'arrive plus
-  // jusqu'ici. Rend `true` si le serveur a accepté.
+  // Called from `RoleSelector`, hence AFTER "Appliquer" then confirmation
+  // (issue #38): the scroll wheel over the dropdown no longer reaches
+  // here. Returns `true` if the server accepted.
   async function changeRole(
     userId: string,
     name: string,
     next: NetworkRole,
   ): Promise<boolean> {
     try {
-      // userId est un Id<'users'> côté API ; le cast reste sûr (source = listUsers).
+      // userId is an Id<'users'> on the API side; the cast remains safe (source = listUsers).
       await setRole_({ userId: userId as never, role: next });
       notify(
         t('feedbackRoleChanged', { name, role: vocabulary(t, 'role_', next) }),
       );
       return true;
     } catch (err) {
-      // Rejet serveur (ex. dernier admin / rôle insuffisant) : l'écran le DIT,
-      // par le motif du refus, et le sélecteur revient à la valeur réelle.
+      // Server rejection (e.g. last admin / insufficient role): the screen SAYS so,
+      // via the refusal reason, and the selector reverts to the actual value.
       fail(err);
       return false;
     }
@@ -108,8 +108,8 @@ function UsersTable() {
 
   return (
     <div className="mt-6">
-      {/* Les commandes restent montées pendant le chargement : sinon le champ
-          se démonterait sous les doigts à chaque nouvelle recherche. */}
+      {/* The controls stay mounted during loading: otherwise the field
+          would unmount under the user's fingers on every new search. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <AdminSearch
           label={t('searchUsersLabel')}
@@ -143,16 +143,16 @@ function UsersTable() {
       ) : (
         <ScrollableRegion label={t('users')} className="mt-6">
           <table className="w-full min-w-[860px] text-sm">
-            {/* Titre du tableau (RGAA 5.4) : le `<h1>` de l'écran le nomme pour
-                l'œil ; la légende le relie au tableau pour la synthèse vocale. */}
+            {/* Table caption (RGAA 5.4): the screen's `<h1>` names it for
+                the eye; the caption ties it to the table for speech synthesis. */}
             <caption className="sr-only">{t('users')}</caption>
             <thead>
               <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                {/* Colonne d'IDENTITÉ figée : une fois le tableau défilé
-                    jusqu'à « Appliquer » sur mobile, l'adresse sortait de
-                    l'écran et l'on confirmait un rôle sans voir à qui
-                    (27/09, C-1). `bg-paper` : sans fond, les autres colonnes
-                    passeraient sous elle en transparence. */}
+                {/* Pinned IDENTITY column: once the table was scrolled
+                    to "Appliquer" on mobile, the address went off
+                    screen and one confirmed a role without seeing for whom
+                    (27/09, C-1). `bg-paper`: without a background, the other columns
+                    would show through beneath it. */}
                 <th className="sticky start-0 z-[1] bg-paper py-2 pe-4 font-normal">
                   {t('userEmail')}
                 </th>
@@ -182,7 +182,7 @@ function UsersTable() {
                         onConfirmation={signalerConfirmation}
                       />
                     </td>
-                    {/* Cycle de vie (chantier comptes) : état, puis actions. */}
+                    {/* Lifecycle (accounts workstream): state, then actions. */}
                     <td className="max-w-[14rem] py-3 pe-4 align-top">
                       <span className="flex flex-wrap gap-1">
                         <span
@@ -234,9 +234,9 @@ function UsersTable() {
 
 export default function AdminUsers() {
   const t = useTranslations('admin');
-  // Même raison qu'au-dessus, et l'enjeu est ici le sous-arbre ENTIER :
-  // sans cela, un clignotement démonte le formulaire d'invitation et le
-  // tableau d'un coup, saisie en cours comprise.
+  // Same reason as above, and what is at stake here is the ENTIRE subtree:
+  // without this, a flicker unmounts the invitation form and the
+  // table at once, including input in progress.
   const me = useConnu(useQuery(api.users.current));
 
   if (me === undefined) {

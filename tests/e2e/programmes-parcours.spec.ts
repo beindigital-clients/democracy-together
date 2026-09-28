@@ -2,10 +2,10 @@ import { test, expect, type Browser } from '@playwright/test';
 import { resetProgrammes } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
 
-// F-56 / F-57 — Boîte à outils et parcours, de bout en bout : un éditeur
-// publie une ressource et un parcours de deux étapes (une ressource, un
-// replay référencé par son adresse) ; un membre suit le parcours depuis la
-// page publique jusqu'à l'attestation imprimable.
+// F-56 / F-57 — Toolbox and learning paths, end to end: an editor
+// publishes a resource and a two-step path (a resource, a
+// replay referenced by its address); a member follows the path from the
+// public page to the printable certificate.
 test.use({ locale: 'fr-FR' });
 
 const MARKER = '[E2E-prog-parcours]';
@@ -37,7 +37,7 @@ test.describe
     const resourceTitle = `${MARKER} Guide de la consultation ${stamp}`;
     const pathTitle = `${MARKER} Organiser une consultation ${stamp}`;
 
-    // 1. L'éditeur publie une ressource puis un parcours.
+    // 1. The editor publishes a resource then a path.
     const editeur = await as(browser, 'progParcoursEditeur');
     await editeur.page.goto('/fr/admin/boite-a-outils');
     await editeur.page
@@ -95,7 +95,7 @@ test.describe
     await expect(pathRow.getByText('Publié', { exact: true })).toBeVisible();
     await editeur.done();
 
-    // 2. Le membre suit le parcours depuis la boîte à outils publique.
+    // 2. The member follows the path from the public toolbox.
     const membre = await as(browser, 'progParcoursMembre');
     await membre.page.goto('/fr/boite-a-outils');
     await membre.page.getByRole('link', { name: pathTitle }).click();
@@ -110,7 +110,7 @@ test.describe
     await membre.page.getByLabel('Étape 2 — Regarder le replay').check();
     await expect(membre.page.getByText('2 / 2 étapes')).toBeVisible();
 
-    // 3. L'attestation : page imprimable, au nom du membre.
+    // 3. The certificate: printable page, in the member's name.
     await membre.page
       .getByRole('link', { name: 'Voir mon attestation' })
       .click();
@@ -128,7 +128,7 @@ test.describe
       }),
     ).toBeVisible();
 
-    // La progression se retrouve dans l'espace membre.
+    // The progress shows up in the member area.
     await membre.page.goto('/fr/espace-membre/parcours');
     await expect(
       membre.page.getByRole('listitem').filter({ hasText: pathTitle }),

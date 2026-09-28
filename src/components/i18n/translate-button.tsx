@@ -9,32 +9,32 @@ import type { Locale } from '@/i18n/routing';
 import { translationErrorSuffix } from '@/lib/article-translation';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// LE BOUTON QUI DEMANDE UNE TRADUCTION.
+// THE BUTTON THAT REQUESTS A TRANSLATION.
 //
-// Composant client, et c'est le seul de ce dispositif : tout le reste — la
-// décision d'affichage, le bandeau, le texte traduit — est rendu côté serveur
-// et n'envoie donc rien au navigateur. Ce qui est ici est ce qui ne peut pas
-// être ailleurs : un appel déclenché par un clic, son état d'attente, et son
-// échec éventuel.
+// A client component, and the only one in this setup: everything else — the
+// display decision, the banner, the translated text — is rendered server-side
+// and therefore sends nothing to the browser. What is here is what cannot be
+// anywhere else: a call triggered by a click, its pending state, and its
+// possible failure.
 //
-// POURQUOI UN CLIC ET PAS UNE TRADUCTION À LA PUBLICATION. Traduire chaque
-// contenu dans les quatre autres langues au moment du dépôt, c'est quatre
-// appels par contenu, pour des langues que personne ne demandera peut-être.
-// À la demande, le premier lecteur paie l'appel et TOUS LES SUIVANTS lisent le
-// cache — y compris dans les listes et le back-office. Le coût suit l'usage
-// réel, et le cas fréquent (un contenu jamais lu dans une autre langue) est
-// gratuit.
+// WHY A CLICK AND NOT A TRANSLATION ON PUBLICATION. Translating every piece
+// of content into the four other languages at submission time means four
+// calls per item, for languages nobody may ever ask for.
+// On demand, the first reader pays for the call and ALL SUBSEQUENT ONES read
+// the cache — including in lists and the back office. The cost follows
+// actual usage, and the common case (content never read in another language)
+// is free.
 //
-// `router.refresh()` plutôt qu'un état local : la traduction est rendue par le
-// composant SERVEUR de la page, qui la relit depuis Convex. Rafraîchir le
-// segment le fait reparcourir avec la traduction désormais en cache, sans
-// recharger la page ni perdre la position de lecture.
+// `router.refresh()` rather than local state: the translation is rendered by
+// the page's SERVER component, which rereads it from Convex. Refreshing the
+// segment makes it re-run with the translation now cached, without
+// reloading the page or losing the reading position.
 
 export function TranslateButton({
   sourceType,
   sourceId,
   targetLocale,
-  /** Variante « la traduction existe mais elle est périmée ». */
+  /** Variant "the translation exists but is stale". */
   retranslate = false,
 }: {
   sourceType: 'tribunePost' | 'publication';
@@ -64,8 +64,8 @@ export function TranslateButton({
       }
       startTransition(() => router.refresh());
     } catch {
-      // Une exception ici est une panne de transport : l'action elle-même
-      // renvoie ses échecs en `{ ok: false }` plutôt que de lever.
+      // An exception here is a transport failure: the action itself
+      // returns its failures as `{ ok: false }` rather than throwing.
       setErrorSuffix('Generic');
     } finally {
       setRunning(false);
@@ -99,8 +99,8 @@ export function TranslateButton({
             : t('offer', { language })}
       </button>
       {errorSuffix ? (
-        // `role="status"` et non `alert` : l'échec d'une traduction proposée
-        // n'interrompt pas la lecture de l'article, qui reste entier au-dessus.
+        // `role="status"` and not `alert`: the failure of an offered translation
+        // does not interrupt reading the article, which remains whole above.
         <p role="status" className="text-[13px] text-muted">
           {vocabulary(t, 'err', errorSuffix, t('errGeneric'))}{' '}
           <button

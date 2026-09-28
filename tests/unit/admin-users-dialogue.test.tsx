@@ -4,24 +4,24 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
 
-// UN DIALOGUE OUVERT NE DOIT PAS DISPARAÎTRE SOUS LE CURSEUR.
+// AN OPEN DIALOG MUST NOT DISAPPEAR UNDER THE CURSOR.
 //
-// `useQuery` de Convex rend `undefined` tant qu'une réponse n'est pas arrivée,
-// puis la valeur. Ce `undefined` revient à chaque reconnexion du socket et à
-// chaque rotation du jeton, sur une query DÉJÀ résolue. L'écran des
-// utilisateurs le traitait comme « pas de données » et rendait « Chargement… »
-// à la place de son sous-arbre : le tableau, le formulaire d'invitation, et la
-// confirmation ouverte dans une ligne étaient démontés d'un coup.
+// Convex's `useQuery` returns `undefined` until a response has arrived,
+// then the value. That `undefined` comes back on every socket reconnection and
+// every token rotation, on an ALREADY resolved query. The users
+// screen treated it as "no data" and rendered "Chargement…"
+// in place of its subtree: the table, the invitation form, and the
+// confirmation open in a row were unmounted all at once.
 //
-// Ce n'est pas un scintillement. C'est un administrateur qui confirme un
-// changement de rôle, voit la boîte s'évanouir, et ne sait pas si le geste a
-// porté. La CI l'a vu par son symptôme : « element was detached from the DOM »
-// pendant le clic sur « Changer le rôle ».
+// This is not a flicker. It is an administrator confirming a
+// role change, seeing the box vanish, and not knowing whether the action
+// took effect. CI saw it through its symptom: "element was detached from the DOM"
+// during the click on "Changer le rôle".
 //
-// Ce fichier tient la propriété de bout en bout, sur l'écran réel : la query
-// cligne, le dialogue reste. Et la distinction qui la fonde — `undefined`
-// (pas encore connu) contre `null` (personne) — est tenue juste en dessous,
-// parce que confondre les deux est précisément ce qui a produit le défaut.
+// This file holds the property end to end, on the real screen: the query
+// blinks, the dialog stays. And the distinction it rests on — `undefined`
+// (not yet known) versus `null` (nobody) — is held just below,
+// because confusing the two is precisely what produced the defect.
 
 afterEach(cleanup);
 
@@ -66,7 +66,7 @@ beforeEach(() => {
   };
 });
 
-// Ouvre la confirmation par le chemin réel : choisir, puis « Appliquer ».
+// Opens the confirmation via the real path: choose, then "Appliquer".
 function ouvrirLaConfirmation() {
   fireEvent.change(screen.getByLabelText(`Rôle ${CIBLE}`), {
     target: { value: 'moderateur' },
@@ -82,8 +82,8 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
     const { rerender } = afficher();
     expect(ouvrirLaConfirmation()).toBeTruthy();
 
-    // LE CLIGNOTEMENT. La query repasse à « pas encore connu », comme après une
-    // reconnexion du socket, et l'écran se redessine.
+    // THE BLINK. The query goes back to "not yet known", as after a
+    // socket reconnection, and the screen redraws.
     convex.queries.set('users:current', undefined);
     rerender(
       <NextIntlClientProvider locale="fr" messages={fr}>
@@ -97,7 +97,7 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
       }),
       'le dialogue a été démonté par un clignotement de la query',
     ).toBeTruthy();
-    // Et le bouton reste cliquable : c'est LUI que la CI a vu se détacher.
+    // And the button stays clickable: it is IT that CI saw become detached.
     expect(
       screen.getByRole('button', { name: 'Changer le rôle' }),
     ).toBeTruthy();
@@ -119,11 +119,11 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
   });
 
   it('la confirmation survit au rechargement d’une première page', () => {
-    // LE SECOND CHEMIN DE DÉMONTAGE, celui que la CI a montré après coup. La
-    // recherche est temporisée : frapper puis cliquer « Appliquer » dans la
-    // foulée laisse partir la requête pendant que la boîte est ouverte. Les
-    // arguments changent, `usePaginatedQuery` repasse à `LoadingFirstPage` et
-    // rend une liste VIDE — la ligne disparaît, la confirmation avec.
+    // THE SECOND UNMOUNT PATH, the one CI revealed afterwards. The
+    // search is debounced: typing then clicking "Appliquer" right
+    // after lets the request go out while the box is open. The
+    // arguments change, `usePaginatedQuery` goes back to `LoadingFirstPage` and
+    // returns an EMPTY list — the row disappears, and the confirmation with it.
     const { rerender } = afficher();
     expect(ouvrirLaConfirmation()).toBeTruthy();
 
@@ -143,14 +143,14 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
     expect(
       screen.getByRole('button', { name: 'Changer le rôle' }),
     ).toBeTruthy();
-    // La ligne gelée reste à l'écran : c'est elle qui porte la boîte.
+    // The frozen row stays on screen: it is what carries the box.
     expect(screen.getByText(CIBLE)).toBeTruthy();
   });
 
   it('sans confirmation ouverte, un rechargement montre « Chargement… »', () => {
-    // Le gel est BORNÉ au geste. Hors de lui, l'écran dit ce qu'il fait, comme
-    // avant : sans cette limite, une liste périmée resterait affichée
-    // indéfiniment après un changement de recherche.
+    // The freeze is LIMITED to the action. Outside of it, the screen says what it is doing, as
+    // before: without this limit, a stale list would stay displayed
+    // indefinitely after a search change.
     const { rerender } = afficher();
     expect(screen.getByText(CIBLE)).toBeTruthy();
 
@@ -166,8 +166,8 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
   });
 
   it('le premier rendu, lui, montre bien « Chargement… »', () => {
-    // La correction ne doit pas supprimer l'état de chargement INITIAL : il n'y
-    // a alors aucune valeur connue à retenir, et l'écran doit le dire.
+    // The fix must not remove the INITIAL loading state: there is
+    // then no known value to retain, and the screen must say so.
     convex.queries.set('users:current', undefined);
     afficher();
     expect(screen.getByText('Chargement…')).toBeTruthy();
@@ -178,9 +178,9 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
     const { rerender } = afficher();
     expect(screen.getByText(CIBLE)).toBeTruthy();
 
-    // `null` est une RÉPONSE : la query dit « personne ». Retenir la dernière
-    // valeur connue ici maintiendrait un écran d'administration ouvert après
-    // une déconnexion.
+    // `null` is an ANSWER: the query says "nobody". Retaining the last
+    // known value here would keep an admin screen open after
+    // a sign-out.
     convex.queries.set('users:current', null);
     rerender(
       <NextIntlClientProvider locale="fr" messages={fr}>

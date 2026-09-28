@@ -6,14 +6,14 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
 
-// Pastille de la messagerie privée (chantier « social »), à côté de la cloche,
-// sur bureau ET sur mobile. Même mécanique que `NotificationBell` :
-// `connecteAuRendu` vient du serveur et décide de sa présence tant que Convex
-// n'a pas répondu — sans quoi elle APPARAÎTRAIT après l'hydratation et
-// décalerait la grappe de droite (audit F-13).
+// Private messaging badge ("social" workstream), next to the bell,
+// on desktop AND on mobile. Same mechanism as `NotificationBell`:
+// `connecteAuRendu` comes from the server and decides its presence until
+// Convex has responded — otherwise it WOULD APPEAR after hydration and
+// shift the right-hand cluster (audit F-13).
 //
-// Le compteur est celui des CONVERSATIONS non lues, plafonné comme celui de
-// la cloche ; il est temps réel (query Convex).
+// The counter is that of unread CONVERSATIONS, capped like the bell's;
+// it is real-time (Convex query).
 export function MessagesBadge({
   connecteAuRendu,
 }: {

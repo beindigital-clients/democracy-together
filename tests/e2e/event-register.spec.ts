@@ -3,30 +3,30 @@ import { importCodedContent, isEventRegistered } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-// Depuis le chantier « contenus », le serveur valide l'inscription CONTRE LA
-// TABLE `contentEvents` (point M-5 du pentest) : l'événement doit y exister,
-// publié et non terminé. La CI importe le contenu codé ; en local, on
-// l'importe ici (idempotent) pour ne pas dépendre de l'état du déploiement.
+// Since the "contenus" workstream, the server validates the registration AGAINST THE
+// `contentEvents` TABLE (pentest item M-5): the event must exist there,
+// published and not over. CI imports the coded content; locally, we
+// import it here (idempotent) so as not to depend on the deployment's state.
 test.beforeAll(async () => {
   await importCodedContent();
 });
 
-// Événement non vedette (le formulaire RSVP s'affiche ; la conférence inaugurale
-// garde sa billetterie payante, hors périmètre F-53). Daté du 3 décembre
-// 2026 : passé cette date, le serveur le ferme (EVENT_CLOSED) et la fiche
-// n'affiche plus le formulaire — c'est la règle, et ce test devra alors viser
-// un événement à venir (cf. `contenus-evenements.spec.ts`, qui en crée un).
+// Non-featured event (the RSVP form is shown; the inaugural conference
+// keeps its paid ticketing, outside the F-53 scope). Dated 3 December
+// 2026: after that date, the server closes it (EVENT_CLOSED) and the event page
+// no longer shows the form — that is the rule, and this test will then have to target
+// an upcoming event (see `contenus-evenements.spec.ts`, which creates one).
 const SLUG = 'webinaire-gouvernance-plateformes';
 
-// F-53 — Inscription événement : formulaire -> succès + stockage Convex réel.
+// F-53 — Event registration: form -> success + real Convex storage.
 test('événement : inscription valide -> succès + stockage (F-53)', async ({
   page,
 }) => {
   const email = `e2e_ev_${Date.now()}@democracytogether.test`;
   await page.goto(`/fr/evenements/${SLUG}`);
 
-  // La page porte aussi le formulaire de rappel (F-55) : on cible la carte
-  // d'inscription pour lever l'ambiguïté des libellés partagés (e-mail).
+  // The page also carries the reminder form (F-55): we target the
+  // registration card to disambiguate shared labels (email).
   const form = page.locator('#inscription');
   await form.getByLabel('Nom complet').fill('Awa Diop');
   await form.getByLabel('Adresse e-mail').fill(email);
@@ -34,7 +34,7 @@ test('événement : inscription valide -> succès + stockage (F-53)', async ({
 
   await expect(page.getByText(/Inscription confirmée/)).toBeVisible();
 
-  // lecture dev (garde AUTH_DEV_OTP) : l'inscription est bien stockée
+  // dev read (AUTH_DEV_OTP guard): the registration is indeed stored
   expect(isEventRegistered(SLUG, email)).toBe(true);
 });
 
@@ -47,9 +47,9 @@ test('événement : nom manquant bloqué (F-53)', async ({ page }) => {
   await expect(page.getByText(/indiquer votre nom/)).toBeVisible();
 });
 
-// A-03 / A-10 (campagne du 27/09) — un événement PASSÉ ne propose plus le
-// formulaire d'inscription ; sa fiche porte le bloc rediffusion (mention
-// honnête tant qu'aucun enregistrement n'existe, lien vers les replays).
+// A-03 / A-10 (27/09 campaign) — a PAST event no longer offers the
+// registration form; its page carries the replay block (an honest
+// notice as long as no recording exists, link to the replays).
 test('événement passé : pas de formulaire, bloc rediffusion (A-03, A-10)', async ({
   page,
 }) => {

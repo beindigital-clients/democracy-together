@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-// Pages de passage du paiement (retour du prestataire, simulateur, lien de
-// reçu) : propres à UNE demande, jamais indexées.
+// Transit pages of the payment flow (provider return, simulator, receipt
+// link): specific to ONE request, never indexed.
 export async function generateMetadata({
   params,
 }: {

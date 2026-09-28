@@ -7,14 +7,14 @@ import { unsubscribeOneClick, unsubscribeRedirect } from './newsletterHttp';
 
 const http = httpRouter();
 
-// Monte les routes HTTP de Convex Auth (callbacks, tokens).
+// Mounts the Convex Auth HTTP routes (callbacks, tokens).
 auth.addHttpRoutes(http);
 
-// Webhooks des prestataires de paiement (F-27/F-28) — à déclarer chez chacun
-// avec l'adresse `<CONVEX_SITE_URL>/payments/webhook/<prestataire>`
-// (docs/backlog/paiements.md). Le corps est lu en TEXTE BRUT : la signature
-// porte sur les octets reçus. La logique vit dans convex/payments/webhooks.ts
-// — testée sans ce fichier, que convex-test ne charge pas.
+// Payment provider webhooks (F-27/F-28) — to be declared with each one
+// using the address `<CONVEX_SITE_URL>/payments/webhook/<prestataire>`
+// (docs/backlog/paiements.md). The body is read as RAW TEXT: the signature
+// covers the received bytes. The logic lives in convex/payments/webhooks.ts
+// — tested without this file, which convex-test does not load.
 function webhookRoute(provider: ProviderId) {
   return httpAction(async (ctx, req) => {
     const rawBody = await req.text();
@@ -35,8 +35,8 @@ for (const provider of ['stripe', 'fake'] as const) {
     handler: webhookRoute(provider),
   });
 }
-// Newsletter — désinscription en un clic (RFC 8058), cible de l'en-tête
-// `List-Unsubscribe` des campagnes (convex/newsletterHttp.ts).
+// Newsletter — one-click unsubscribe (RFC 8058), target of the campaigns'
+// `List-Unsubscribe` header (convex/newsletterHttp.ts).
 http.route({
   path: '/newsletter/unsubscribe',
   method: 'POST',

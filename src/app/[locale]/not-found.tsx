@@ -1,10 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 
-// 404 localisée (audit § 5.1). Sans ce fichier, un slug inconnu sur
-// /bibliotheque/x ou /tribune/x affichait la 404 par défaut de Next : en
-// anglais, sans en-tête ni pied de page, hors charte. Placée sous [locale],
-// elle est rendue DANS le layout : en-tête, pied de page et langue conservés.
+// Localized 404 (audit § 5.1). Without this file, an unknown slug on
+// /bibliotheque/x or /tribune/x showed Next's default 404: in
+// English, without header or footer, off-brand. Placed under [locale],
+// it is rendered INSIDE the layout: header, footer and language preserved.
 export default async function LocaleNotFound() {
   const t = await getTranslations('errors');
 

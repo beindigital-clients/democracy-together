@@ -6,9 +6,9 @@ import { useRouter, usePathname } from '@/i18n/navigation';
 import { PUB_SORTS } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// Tri de la bibliothèque — amélioration progressive : met à jour le paramètre
-// `sort` de l'URL en préservant les filtres actifs. La liste reste rendue côté
-// serveur ; ce select ne fait que naviguer.
+// Library sorting — progressive enhancement: updates the URL's `sort`
+// parameter while preserving active filters. The list stays server-rendered;
+// this select only navigates.
 export function SortSelect({ value }: { value: string }) {
   const t = useTranslations('library');
   const router = useRouter();
@@ -19,7 +19,7 @@ export function SortSelect({ value }: { value: string }) {
     const sp = new URLSearchParams(searchParams.toString());
     if (next === 'recent') sp.delete('sort');
     else sp.set('sort', next);
-    sp.delete('page'); // un changement de tri ramène en page 1
+    sp.delete('page'); // a sort change returns to page 1
     const qs = sp.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   }

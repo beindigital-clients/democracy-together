@@ -5,20 +5,19 @@ import { networkRole } from './schema';
 import { normalizeEmail } from './lib/onboarding';
 import { publicationSearchText } from './lib/searchText';
 
-// DEV/TEST UNIQUEMENT — internalMutation (HORS API publique, comme
-// purgeUserByEmail) : invocable seulement depuis le serveur ou la CLI
-// (`npx convex run`), JAMAIS par un client. Double garde AUTH_DEV_OTP.
+// DEV/TEST ONLY — internalMutation (OUTSIDE the public API, like
+// purgeUserByEmail): callable only from the server or the CLI
+// (`npx convex run`), NEVER by a client. Double guard AUTH_DEV_OTP.
 //
-// UPSERT (et non plus simple patch) : depuis la suppression de
-// l'auto-inscription, plus aucun chemin ne créait de compte, donc cette
-// fonction — le seul moyen documenté d'amorcer l'administrateur initial —
-// échouait systématiquement sur « Utilisateur introuvable ». Elle crée
-// désormais le compte si besoin, ce qui débloque à la fois l'amorçage de
-// l'admin et les fixtures E2E.
+// UPSERT (no longer a plain patch): since self-registration was removed,
+// no code path created accounts anymore, so this function — the only
+// documented way to bootstrap the initial administrator — always failed
+// with "Utilisateur introuvable". It now creates the account if needed,
+// which unblocks both the admin bootstrap and the E2E fixtures.
 //
-// L'e-mail est normalisé exactement comme à l'inscription et à la connexion
-// (minuscules, sans espaces) : sinon le compte créé ici ne serait jamais
-// retrouvé par le callback createOrUpdateUser de convex/auth.ts.
+// The e-mail is normalized exactly as at sign-up and sign-in
+// (lowercase, no spaces): otherwise the account created here would never
+// be found by the createOrUpdateUser callback in convex/auth.ts.
 export const setRoleByEmail = internalMutation({
   args: { email: v.string(), role: networkRole },
   handler: async (ctx, { email, role }) => {
@@ -40,18 +39,18 @@ export const setRoleByEmail = internalMutation({
   },
 });
 
-// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : RETIRE la colonne `role` d'un
-// compte, reproduisant un compte hérité — créé avant que `reviewApplication`
-// et `inviteUser` ne posent systématiquement un rôle (PR #4).
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): REMOVES the `role` column from an
+// account, reproducing a legacy account — created before `reviewApplication`
+// and `inviteUser` always set a role (PR #4).
 //
-// C'est le seul état que les fixtures E2E ne savaient pas produire :
-// `setRoleByEmail` pose toujours un rôle. Or c'est précisément celui que le
-// back-office affichait de travers (issue #27) — « membre » pour un compte que
-// le serveur traite en « visiteur ». Sans ce helper, l'écran ne peut pas être
-// testé dans l'état qui l'a mis en défaut.
+// It is the only state the E2E fixtures could not produce:
+// `setRoleByEmail` always sets a role. Yet it is precisely the one the
+// back office displayed wrongly (issue #27) — "membre" for an account the
+// server treats as "visiteur". Without this helper, the screen cannot be
+// tested in the state that broke it.
 //
-// `patch` avec `undefined` SUPPRIME le champ (il ne l'écrit pas à null) : la
-// ligne redevient exactement celle d'un compte d'avant la PR #4.
+// `patch` with `undefined` DELETES the field (it does not write null): the
+// row becomes exactly that of an account from before PR #4.
 export const clearRoleByEmail = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
@@ -69,19 +68,19 @@ export const clearRoleByEmail = internalMutation({
   },
 });
 
-// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : purge complète d'un utilisateur
-// par e-mail — compte Convex Auth, sessions, refresh tokens, codes. Permet de
-// rejouer le flow d'inscription avec une vraie adresse déjà utilisée.
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): full purge of a user
+// by e-mail — Convex Auth account, sessions, refresh tokens, codes. Makes it
+// possible to replay the sign-up flow with a real address already in use.
 export const purgeUserByEmail = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     if (process.env.AUTH_DEV_OTP !== 'true') {
       throw new Error('Désactivé (AUTH_DEV_OTP).');
     }
-    // Lecture indexée (index `email` de `users`), comme setRoleByEmail et comme
-    // le callback de connexion : plus aucun chemin ne scanne `users` par
-    // e-mail. Égalité exacte, sans normalisation — c'est une purge, elle doit
-    // viser l'adresse demandée et elle seule.
+    // Indexed read (`email` index of `users`), like setRoleByEmail and like
+    // the sign-in callback: no code path scans `users` by e-mail
+    // anymore. Exact match, no normalization — this is a purge, it must
+    // target the requested address and that one only.
     const user = await ctx.db
       .query('users')
       .withIndex('email', (q) => q.eq('email', email))
@@ -119,12 +118,12 @@ export const purgeUserByEmail = internalMutation({
   },
 });
 
-// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : supprime les publications de test
-// dont le titre contient `marker`, ainsi que leur fichier stocké. Permet à
-// l'E2E de dépôt (F-32) de rester auto-suffisant — il publie une vraie
-// publication, donc doit la retirer du dataset partagé (sinon il fausse le
-// compteur de la bibliothèque). Marqueur >= 3 caractères pour éviter une purge
-// accidentelle de masse.
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): deletes the test publications
+// whose title contains `marker`, along with their stored file. Lets the
+// submission E2E (F-32) stay self-contained — it publishes a real
+// publication, so it must remove it from the shared dataset (otherwise it
+// skews the library counter). Marker >= 3 characters to avoid an accidental
+// mass purge.
 export const deleteTestPublications = internalMutation({
   args: { marker: v.string() },
   handler: async (ctx, { marker }) => {
@@ -141,20 +140,20 @@ export const deleteTestPublications = internalMutation({
         try {
           await ctx.storage.delete(p.fileId);
         } catch {
-          /* fichier déjà absent : on poursuit la suppression du document */
+          /* file already gone: carry on deleting the document */
         }
       }
-      // La ligne de consultations suit la publication : sans cela, une future
-      // publication réutilisant l'identifiant hériterait d'un décompte.
+      // The views row follows the publication: otherwise a future
+      // publication reusing the identifier would inherit a count.
       const views = await ctx.db
         .query('publicationViews')
         .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
         .unique();
       if (views) await ctx.db.delete(views._id);
 
-      // Traductions de la fiche (convex/translation.ts) — une par langue de
-      // lecture. Elles portent le texte intégral : les laisser derrière une
-      // publication supprimée, c'est garder le contenu qu'on vient d'effacer.
+      // Translations of the record (convex/translation.ts) — one per reading
+      // language. They carry the full text: leaving them behind a deleted
+      // publication means keeping the content we just erased.
       const translations = await ctx.db
         .query('contentTranslations')
         .withIndex('by_source', (q) =>
@@ -163,10 +162,10 @@ export const deleteTestPublications = internalMutation({
         .take(8);
       for (const tr of translations) await ctx.db.delete(tr._id);
 
-      // Document extrait du PDF (convex/documents.ts) et ses versions
-      // traduites. LES IMAGES SONT DES FICHIERS : les oublier laisserait dans
-      // le stockage des illustrations que plus aucune ligne ne référence —
-      // une fuite lente, du genre qu'on ne remarque qu'à la facture.
+      // Document extracted from the PDF (convex/documents.ts) and its translated
+      // versions. IMAGES ARE FILES: forgetting them would leave in storage
+      // illustrations that no row references anymore —
+      // a slow leak, the kind you only notice on the bill.
       const extraction = await ctx.db
         .query('documentExtractions')
         .withIndex('by_publication', (q) => q.eq('publicationId', p._id))
@@ -176,7 +175,7 @@ export const deleteTestPublications = internalMutation({
           try {
             await ctx.storage.delete(img.storageId);
           } catch {
-            /* fichier déjà absent : on poursuit */
+            /* file already gone: carry on */
           }
         }
         const renditions = await ctx.db
@@ -197,10 +196,10 @@ export const deleteTestPublications = internalMutation({
   },
 });
 
-// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : enrichit une publication (corps /
-// points clés / image / métadonnées / compteurs d'impact) repérée par son titre.
-// Le formulaire de dépôt (F-32) ne collecte ni le corps ni l'image ; ce helper
-// sert à donner un contenu étoffé aux publications de DÉMONSTRATION.
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): enriches a publication (body /
+// key points / image / metadata / impact counters) found by its title.
+// The submission form (F-32) collects neither the body nor the image; this
+// helper gives rich content to DEMONSTRATION publications.
 export const enrichPublication = internalMutation({
   args: {
     marker: v.string(),
@@ -258,8 +257,8 @@ export const enrichPublication = internalMutation({
     );
     let patched = 0;
     for (const p of pubs) {
-      // Les points clés font partie de la meule de recherche : la corriger
-      // sans la recalculer laisserait l'index sur l'ancien texte.
+      // Key points are part of the search haystack: fixing it
+      // without recomputing it would leave the index on the old text.
       await ctx.db.patch(p._id, {
         ...patch,
         ...(keypoints !== undefined

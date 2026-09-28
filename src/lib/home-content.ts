@@ -1,6 +1,6 @@
-// Contenu de l'accueil (F-10), porté fidèlement depuis la maquette agence
-// `design/rmdl-accueil.html` (8 sections). Couche de contenu bilingue, prête à
-// basculer vers Sanity (mêmes formes de retour).
+// Home page content (F-10), faithfully ported from the agency mock-up
+// `design/rmdl-accueil.html` (8 sections). Bilingual content layer, ready to
+// switch to Sanity (same return shapes).
 
 import type { Locale } from '@/i18n/routing';
 
@@ -523,9 +523,9 @@ const en: HomeContent = {
   },
 };
 
-// Repli LOCAL pur (sans dépendance Sanity) : utilisé quand aucun document
-// `homePage` n'est publié, et comme source de seed. Le fetch Sanity + fallback
-// vit dans `src/lib/home.ts`. Garder ce module pur (les tests l'importent).
+// Pure LOCAL fallback (no Sanity dependency): used when no `homePage`
+// document is published, and as a seed source. The Sanity fetch + fallback
+// lives in `src/lib/home.ts`. Keep this module pure (the tests import it).
 const es: HomeContent = {
   hero: {
     eyebrow: 'Democracy Together',
@@ -1215,7 +1215,7 @@ const ar: HomeContent = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, HomeContent> = { fr, en, es, pt, ar };
 
 export function homeFallback(locale: Locale): HomeContent {

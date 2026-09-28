@@ -3,38 +3,38 @@ import { dirname, join } from 'node:path';
 import { test, expect, devices, type Page } from '@playwright/test';
 import { SESSIONS } from './_sessions';
 
-// ─── Niveau « dev-browser » — issue #50 ──────────────────────────────────────
+// ─── "dev-browser" level — issue #50 ─────────────────────────────────────────
 //
-// CE QUE CE FICHIER EST. Un OUTIL D'INSPECTION, pas une porte. Il produit le
-// rendu réel de l'application dans toutes les combinaisons que `TESTING.md`
-// exige — clair/sombre × desktop/mobile × nominal/vide/erreur/connecté — et
-// les rassemble dans une planche-contact (`screenshots/index.html`) faite pour
-// être PARCOURUE DES YEUX. Aucune image n'est comparée à une référence : la
-// décision est documentée dans `TESTING.md` § Dev-browser, avec ses raisons.
+// WHAT THIS FILE IS. An INSPECTION TOOL, not a gate. It produces the
+// real rendering of the application in every combination `TESTING.md`
+// requires — light/dark × desktop/mobile × nominal/empty/error/signed-in — and
+// gathers them in a contact sheet (`screenshots/index.html`) made to be
+// BROWSED BY EYE. No image is compared to a reference: the
+// decision is documented in `TESTING.md` § Dev-browser, with its reasons.
 //
-// POURQUOI IL EXISTE. Deux régressions rédhibitoires de la PR #4 n'ont été
-// vues que par une inspection navigateur, jamais par les tests :
-//   1. contenu animé bloqué à `opacity: 0` sans JavaScript — mentions légales
-//      entièrement blanches, accueil réduit à son en-tête ;
-//   2. un `loading.tsx` de segment bloquant TOUTES les pages sur « Chargement… ».
-// Les deux sont des pages qui répondent 200, avec le bon HTML, et que l'œil
-// seul voit vides. D'où les deux assertions ci-dessous : elles ne comparent
-// aucun pixel, mais elles refusent de photographier une page vide. C'est la
-// part de ce niveau qu'une machine peut tenir ; le reste (la mise en page, les
-// contrastes, ce qui déborde) se regarde.
+// WHY IT EXISTS. Two show-stopping regressions in PR #4 were only
+// seen through a browser inspection, never by the tests:
+//   1. animated content stuck at `opacity: 0` without JavaScript — legal notice
+//      entirely blank, home page reduced to its header;
+//   2. a segment `loading.tsx` blocking ALL pages on "Chargement…".
+// Both are pages that respond 200, with the right HTML, and that only the eye
+// sees as empty. Hence the two assertions below: they compare
+// no pixels, but they refuse to photograph an empty page. That is the
+// part of this level a machine can hold; the rest (layout,
+// contrast, what overflows) is looked at.
 //
-// CE QUI N'EST PAS COUVERT ICI. Le contraste automatisable est déjà tenu par
-// `a11y.spec.ts` (axe), et le rendu sans JavaScript par
-// `tests/unit/reveal-nojs.test.ts`. Ce fichier ne les rejoue pas.
+// WHAT IS NOT COVERED HERE. Automatable contrast is already held by
+// `a11y.spec.ts` (axe), and rendering without JavaScript by
+// `tests/unit/reveal-nojs.test.ts`. This file does not replay them.
 //
-// LANCEMENT : `pnpm test:dev-browser` (le script vide `screenshots/` d'abord,
-// pour que la planche montre UNE exécution et pas la sédimentation de
-// plusieurs). Le dossier est ignoré par git.
+// RUNNING: `pnpm test:dev-browser` (the script empties `screenshots/` first,
+// so that the sheet shows ONE run and not the sediment of
+// several). The folder is ignored by git.
 
 const OUT = 'screenshots';
 
-// Rideau de `AuthGate` et ancien symptôme du `loading.tsx` fautif : tant qu'il
-// est là, la page n'est pas celle qu'on veut photographier.
+// `AuthGate` curtain and old symptom of the faulty `loading.tsx`: while it
+// is there, the page is not the one we want to photograph.
 const LOADING = 'Chargement…';
 
 const THEMES = [
@@ -42,11 +42,11 @@ const THEMES = [
   { nom: 'sombre', valeur: 'dark' },
 ] as const;
 
-// `devices[...]` porte aussi `defaultBrowserType`, qui est une option de
-// WORKER : Playwright refuse de la voir dans un `test.use` de bloc (« forces a
-// new worker »). On ne retient donc que l'émulation proprement dite — celle qui
-// se règle par contexte. Le typage des tests ne l'attrape pas, c'est un refus à
-// l'exécution : d'où ce filtrage explicite plutôt qu'un `...devices[...]`.
+// `devices[...]` also carries `defaultBrowserType`, which is a WORKER
+// option: Playwright refuses to see it in a block-level `test.use` ("forces a
+// new worker"). We therefore keep only the emulation proper — the part that
+// is set per context. Test typing does not catch it, it is a refusal at
+// runtime: hence this explicit filtering rather than a `...devices[...]`.
 function emulation(d: (typeof devices)[string]) {
   return {
     viewport: d.viewport,
@@ -58,8 +58,8 @@ function emulation(d: (typeof devices)[string]) {
 }
 
 const VIEWPORTS = [
-  // Mêmes émulations que les deux projets de `playwright.config.ts`, pour que
-  // ce qui est photographié soit ce qui est testé ailleurs.
+  // Same emulations as the two projects in `playwright.config.ts`, so that
+  // what is photographed is what is tested elsewhere.
   { nom: 'desktop', device: emulation(devices['Desktop Chrome']) },
   { nom: 'mobile', device: emulation(devices['Pixel 7']) },
 ] as const;
@@ -70,19 +70,19 @@ type Capture = {
   id: string;
   chemin: string;
   etat: Etat;
-  // Ce que l'œil doit vérifier sur cette capture : reporté dans la
-  // planche-contact, sous l'image. Sans cette phrase, une planche de quarante
-  // images est un dossier d'images.
+  // What the eye must check on this capture: carried over into the
+  // contact sheet, under the image. Without this sentence, a sheet of forty
+  // images is a folder of images.
   regarder: string;
 };
 
-// ─── LA MATRICE ──────────────────────────────────────────────────────────────
-// Explicite et close, à dessein : `TESTING.md` décrivait les combinaisons en
-// prose, ce qui n'a jamais permis à personne de savoir si une feature UI avait
-// été vérifiée « partout ». La liste est ici, elle se lit et elle se complète.
+// ─── THE MATRIX ──────────────────────────────────────────────────────────────
+// Explicit and closed, on purpose: `TESTING.md` described the combinations in
+// prose, which never let anyone know whether a UI feature had
+// been checked "everywhere". The list is here, it can be read and it can be completed.
 //
-// Les routes ne sont pas un échantillon au hasard : chacune apporte une famille
-// de mise en page que les autres n'ont pas.
+// The routes are not a random sample: each one brings a family
+// of layout that the others do not have.
 
 const PUBLIQUES: Capture[] = [
   {
@@ -128,8 +128,8 @@ const PUBLIQUES: Capture[] = [
       'Univers safran (data-universe="jeunes"). En sombre, c’est la seule route qui exerce la règle [data-theme=dark][data-universe=jeunes].',
   },
   {
-    // État VIDE déterministe et atteignable par URL : le terme ne rencontre
-    // rien, quel que soit le jeu de données. Cf. `search.spec.ts`.
+    // Deterministic EMPTY state reachable by URL: the term matches
+    // nothing, whatever the dataset. See `search.spec.ts`.
     id: 'recherche-sans-resultat',
     chemin: '/fr/recherche?q=zzzxqkw',
     etat: 'vide',
@@ -137,12 +137,12 @@ const PUBLIQUES: Capture[] = [
       'Message « Aucun résultat » : il doit rester lisible et centré, pas une page qui a l’air cassée.',
   },
   {
-    // État ERREUR. L'URL n'est pas prise au hasard : une adresse qui ne
-    // correspond à AUCUNE route (`/fr/nimporte-quoi`) sert la 404 par défaut de
-    // Next, en anglais et hors charte — ce n'est pas `[locale]/not-found.tsx`.
-    // Celle-ci ne s'affiche que sur un `notFound()` appelé DEPUIS le segment,
-    // d'où un slug inconnu sur une route existante. `thematiques` est choisie
-    // parce que sa 404 ne dépend d'aucun service externe.
+    // ERROR state. The URL is not picked at random: an address that
+    // matches NO route (`/fr/nimporte-quoi`) serves Next's default 404,
+    // in English and off-brand — it is not `[locale]/not-found.tsx`.
+    // The latter only shows on a `notFound()` called FROM the segment,
+    // hence an unknown slug on an existing route. `thematiques` is chosen
+    // because its 404 depends on no external service.
     id: '404-localisee',
     chemin: '/fr/thematiques/inexistant',
     etat: 'erreur',
@@ -151,8 +151,8 @@ const PUBLIQUES: Capture[] = [
   },
 ];
 
-// État CONNECTÉ. Rang administrateur : les gardes du back-office sont
-// hiérarchiques, un seul compte couvre les deux écrans (cf. `_sessions.ts`).
+// SIGNED-IN state. Administrator rank: the back-office guards are
+// hierarchical, a single account covers both screens (see `_sessions.ts`).
 const CONNECTEES: Capture[] = [
   {
     id: 'espace-membre',
@@ -172,33 +172,33 @@ const CONNECTEES: Capture[] = [
 
 const TOUTES = [...PUBLIQUES, ...CONNECTEES];
 
-// ─── Mécanique ───────────────────────────────────────────────────────────────
+// ─── Mechanics ───────────────────────────────────────────────────────────────
 
-// Chemin relatif au dossier de sortie. Ordre des composants choisi pour que le
-// tri alphabétique place les deux thèmes d'une même page CÔTE À CÔTE — c'est
-// la comparaison qu'on vient faire.
+// Path relative to the output folder. Component order chosen so that
+// alphabetical sorting puts the two themes of the same page SIDE BY SIDE — that is
+// the comparison we come to make.
 function fichier(c: Capture, viewport: string, theme: string): string {
   return join(c.etat, `${c.id}__${viewport}__${theme}.png`);
 }
 
-// Les `Reveal` (framer-motion) démarrent à opacity:0 et ne s'animent qu'une
-// fois entrés dans le viewport : une capture pleine page prise sans parcourir
-// la page montrerait tout ce qui est sous la ligne de flottaison encore
-// invisible. Même intention que `a11y.spec.ts`, avec deux corrections que la
-// capture, elle, rend visibles.
+// The `Reveal`s (framer-motion) start at opacity:0 and only animate once
+// they enter the viewport: a full-page capture taken without scrolling through
+// the page would show everything below the fold still
+// invisible. Same intent as `a11y.spec.ts`, with two corrections that the
+// capture, for its part, makes visible.
 async function toutRevelier(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    // PAS D'UNE DEMI-HAUTEUR, pas d'une hauteur pleine : les `Reveal` se
-    // déclenchent à `viewport: { margin: '-80px' }`, donc 80 px À L'INTÉRIEUR
-    // du cadre. Deux positions espacées d'une hauteur pleine laissent entre
-    // elles une bande que rien ne déclenche jamais. Mesuré sur les mentions
-    // légales en 1280×720 : la section « Directeur de la publication »
-    // (682-771 px) restait à opacity:0, trop basse à y=0, déjà remontée à
-    // y=720. Des fenêtres qui se recouvrent ferment cette bande.
+    // STEP OF HALF A HEIGHT, not a full height: the `Reveal`s
+    // trigger at `viewport: { margin: '-80px' }`, hence 80 px INSIDE
+    // the frame. Two positions a full height apart leave between
+    // them a band that nothing ever triggers. Measured on the legal
+    // notice at 1280×720: the "Directeur de la publication" section
+    // (682-771 px) stayed at opacity:0, too low at y=0, already scrolled up at
+    // y=720. Overlapping windows close that band.
     const pas = Math.max(200, Math.floor(window.innerHeight / 2));
-    // `scrollHeight` est RELU à chaque tour : la page s'allonge à mesure que
-    // les sections reprennent leur place, et une hauteur relevée une fois pour
-    // toutes arrêterait le parcours avant le bas.
+    // `scrollHeight` is RE-READ on every iteration: the page grows as
+    // the sections settle into place, and a height read once and for
+    // all would stop the scroll before the bottom.
     let y = 0;
     for (let garde = 0; garde < 400; garde++) {
       window.scrollTo(0, y);
@@ -211,9 +211,9 @@ async function toutRevelier(page: Page): Promise<void> {
   await page.waitForTimeout(900);
 }
 
-// Compte les éléments animés qui OCCUPENT DE LA PLACE dans la mise en page et
-// sont pourtant encore transparents. Un élément dans un conteneur `display:none`
-// a un rectangle nul : il n'est pas compté, il n'est pas censé se voir.
+// Counts the animated elements that TAKE UP SPACE in the layout and
+// are nevertheless still transparent. An element inside a `display:none` container
+// has a zero rectangle: it is not counted, it is not meant to be seen.
 function revealsBloques(page: Page): Promise<number> {
   return page.evaluate(
     () =>
@@ -231,50 +231,50 @@ async function capturer(
   viewport: string,
   theme: (typeof THEMES)[number],
 ): Promise<void> {
-  // Le thème est appliqué avant peinture par le script inline du layout, qui
-  // lit `localStorage`. On écrit donc la préférence AVANT la navigation, par le
-  // même canal que la bascule de l'interface — pas en forçant l'attribut, ce
-  // qui court-circuiterait justement ce qu'on veut voir fonctionner.
-  // Le consentement cookies est reposé ici parce que les états CONNECTÉS
-  // remplacent le `storageState` global qui le portait : sans cela, le bandeau
-  // F-09 s'inviterait sur une capture sur deux.
+  // The theme is applied before paint by the layout's inline script, which
+  // reads `localStorage`. So we write the preference BEFORE navigation, through the
+  // same channel as the UI toggle — not by forcing the attribute, which
+  // would short-circuit precisely what we want to see working.
+  // The cookie consent is set again here because the SIGNED-IN states
+  // replace the global `storageState` that carried it: without this, the
+  // F-09 banner would show up on every other capture.
   await page.addInitScript((valeur: string) => {
     try {
       localStorage.setItem('dt-theme', valeur);
       localStorage.setItem('dt-cookie-consent', 'essential');
     } catch {
-      /* origine opaque (about:blank) : sans objet */
+      /* opaque origin (about:blank): not applicable */
     }
   }, theme.valeur);
 
   await page.goto(c.chemin);
 
-  // Toutes les routes de la matrice sont rendues DANS le layout de la locale,
-  // donc dans son `<main>` — la 404 localisée comprise. On exige le landmark :
-  // une page qui le perdrait a changé de nature, et la capture doit le dire.
-  // (Une adresse ne correspondant à aucune route, elle, sort du layout et sert
-  // la 404 par défaut de Next : ce n'est pas ce que cette matrice photographie,
-  // cf. le commentaire de la capture « erreur ».)
+  // All the matrix routes are rendered INSIDE the locale layout,
+  // hence in its `<main>` — the localized 404 included. We require the landmark:
+  // a page that lost it has changed nature, and the capture must say so.
+  // (An address matching no route, on the other hand, leaves the layout and serves
+  // Next's default 404: that is not what this matrix photographs,
+  // see the comment on the "erreur" capture.)
   const zone = page.locator('main');
   await expect(zone).toBeVisible();
 
-  // ASSERTION 1 — le rideau est levé. C'est le défaut `loading.tsx` (toutes les
-  // pages bloquées sur « Chargement… »), et le temps d'établissement de la
-  // session pour les écrans connectés.
+  // ASSERTION 1 — the curtain is lifted. That is the `loading.tsx` defect (all
+  // pages stuck on "Chargement…"), and the session setup time
+  // for the signed-in screens.
   await expect(zone.getByText(LOADING, { exact: true })).toHaveCount(0, {
     timeout: 20_000,
   });
 
   await toutRevelier(page);
 
-  // ASSERTION 2 — rien d'animé n'est resté transparent. C'est le défaut
-  // opacity:0, celui qui rendait les mentions légales entièrement blanches.
-  // `expect.poll` plutôt qu'un relevé unique : une animation encore en vol ne
-  // doit pas faire échouer une vérification qui porte sur son état final.
+  // ASSERTION 2 — nothing animated stayed transparent. That is the
+  // opacity:0 defect, the one that made the legal notice entirely blank.
+  // `expect.poll` rather than a single reading: an animation still in flight must
+  // not fail a check that is about its final state.
   await expect.poll(() => revealsBloques(page), { timeout: 5_000 }).toBe(0);
 
-  // ASSERTION 3 — la page dit quelque chose. Une zone vide se photographie sans
-  // bruit ; la capture, elle, ne se plaint jamais.
+  // ASSERTION 3 — the page says something. An empty area gets photographed without
+  // a sound; the capture never complains.
   expect((await zone.innerText()).trim().length).toBeGreaterThan(40);
 
   const cible = join(OUT, fichier(c, viewport, theme.nom));
@@ -286,7 +286,7 @@ async function capturer(
   });
 }
 
-// ─── Les cas ─────────────────────────────────────────────────────────────────
+// ─── The cases ───────────────────────────────────────────────────────────────
 
 for (const viewport of VIEWPORTS) {
   test.describe(viewport.nom, () => {
@@ -314,15 +314,15 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
-// ─── La planche-contact ──────────────────────────────────────────────────────
-// Sans elle, ce fichier produit quarante PNG dans un dossier, et la
-// « vérif dev-browser » revient à ouvrir quarante fichiers à la main —
-// c'est-à-dire à ne pas la faire. La planche met les deux thèmes d'une même
-// page côte à côte, ce qui est le geste qu'on vient faire.
+// ─── The contact sheet ───────────────────────────────────────────────────────
+// Without it, this file produces forty PNGs in a folder, and the
+// "dev-browser check" comes down to opening forty files by hand —
+// that is, not doing it. The sheet puts the two themes of the same
+// page side by side, which is the gesture we come to make.
 //
-// Construite depuis la MATRICE, filtrée par ce qui existe réellement sur
-// disque : une exécution filtrée (`-g`, `--project`) produit une planche
-// partielle plutôt qu'une planche menteuse.
+// Built from the MATRIX, filtered by what actually exists on
+// disk: a filtered run (`-g`, `--project`) produces a partial
+// sheet rather than a lying one.
 
 test.afterAll(() => {
   const sections: string[] = [];
@@ -379,6 +379,6 @@ ${sections.join('\n')}
 `;
 
   writeFileSync(join(OUT, 'index.html'), html, 'utf8');
-  // Le chemin dans le log : c'est là que la vérification commence.
+  // The path in the log: that is where the check begins.
   console.log(`\nPlanche-contact : ${join(OUT, 'index.html')}\n`);
 });

@@ -1,24 +1,24 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Projet `mobile-chromium` (playwright.config.ts) : le viewport téléphone et
-// `hasTouch` viennent du projet, et non plus du fichier.
+// `mobile-chromium` project (playwright.config.ts): the phone viewport and
+// `hasTouch` come from the project, no longer from the file.
 //
-// `reducedMotion` N'EST PAS une option de `test.use` dans @playwright/test 1.61
-// (issue #18) : écrite là, elle était silencieusement ignorée et le test ne
-// s'exécutait jamais sous `prefers-reduced-motion`, contrairement à ce qu'il
-// annonçait. La voie en vigueur est l'option de CONTEXTE, appliquée dès la
-// création du contexte — indispensable ici : le globe lit
-// `matchMedia('(prefers-reduced-motion: reduce)')` UNE seule fois, au montage,
-// donc une émulation posée après `goto` arriverait trop tard.
+// `reducedMotion` IS NOT a `test.use` option in @playwright/test 1.61
+// (issue #18): written there, it was silently ignored and the test never
+// ran under `prefers-reduced-motion`, contrary to what it
+// claimed. The current way is the CONTEXT option, applied as soon as the
+// context is created — essential here: the globe reads
+// `matchMedia('(prefers-reduced-motion: reduce)')` only ONCE, on mount,
+// so an emulation set after `goto` would come too late.
 test.use({
   locale: 'fr-FR',
   contextOptions: { reducedMotion: 'reduce' },
 });
 
-// Nombre de pixels non transparents du canvas : sert à attendre que le globe
-// soit VRAIMENT peint avant de comparer deux images (un canvas vierge est
-// identique d'une image à l'autre — il ferait passer le test de l'immobilité
-// sans rien prouver).
+// Number of non-transparent pixels on the canvas: used to wait until the globe
+// is REALLY painted before comparing two frames (a blank canvas is
+// identical from one frame to the next — it would make the stillness test pass
+// without proving anything).
 async function paintedPixels(page: Page): Promise<number> {
   return page.evaluate(() => {
     const c = document.querySelector<HTMLCanvasElement>('#carte canvas');
@@ -31,8 +31,8 @@ async function paintedPixels(page: Page): Promise<number> {
   });
 }
 
-// Empreinte du contenu DESSINÉ (et non de la capture d'écran) : lue à même le
-// canvas, elle est insensible aux animations d'entrée CSS/framer du conteneur.
+// Fingerprint of the DRAWN content (not of the screenshot): read straight from the
+// canvas, it is insensitive to the container's CSS/framer entrance animations.
 async function frame(page: Page): Promise<string> {
   return page.evaluate(() => {
     const c = document.querySelector<HTMLCanvasElement>('#carte canvas');
@@ -46,7 +46,7 @@ async function showGlobe(page: Page) {
   const canvas = page.locator('#carte canvas');
   await canvas.scrollIntoViewIfNeeded();
   await expect(canvas).toBeVisible();
-  // le fond de carte (topojson) est chargé en différé : on attend le tracé.
+  // the base map (topojson) is lazy-loaded: we wait for the drawing.
   await expect
     .poll(() => paintedPixels(page), { timeout: 15_000 })
     .toBeGreaterThan(1_000);
@@ -56,18 +56,18 @@ async function showGlobe(page: Page) {
 test('carte : un appui sélectionne un pays au tactile (mobile)', async ({
   page,
 }) => {
-  // Régression mobile — auparavant un tap ouvrait/fermait le « glissé » sans
-  // jamais déclencher de sélection (le survol n'existe pas au tactile).
+  // Mobile regression — previously a tap toggled the "drag" without
+  // ever triggering a selection (hover does not exist on touch).
   const canvas = await showGlobe(page);
   const b = await canvas.boundingBox();
   if (!b) throw new Error('canvas de la carte introuvable');
 
-  // Panneau de détail (aria-live) : un <h3> n'apparaît qu'une fois un pays choisi.
+  // Detail panel (aria-live): an <h3> only appears once a country is chosen.
   const heading = page.locator('#carte [aria-live="polite"] h3');
-  await expect(heading).toHaveCount(0); // au repos : aucun pays sélectionné
+  await expect(heading).toHaveCount(0); // at rest: no country selected
 
-  // Balayage d'appuis sur le globe : au moins un tombe sur un pays noté
-  // (données d'illustration Afrique-Europe). Globe figé -> résultat stable.
+  // Sweep of taps over the globe: at least one lands on a rated country
+  // (Africa-Europe illustration data). Frozen globe -> stable result.
   const N = 7;
   let selected = false;
   for (let iy = 1; iy < N && !selected; iy++) {
@@ -84,17 +84,17 @@ test('carte : un appui sélectionne un pays au tactile (mobile)', async ({
   await expect(heading).toBeVisible();
 });
 
-// L'acquis d'accessibilité revendiqué (`prefers-reduced-motion` respecté) est
-// ici VÉRIFIÉ, pas supposé : le globe tourne seul de 0,16°/frame tant que
-// l'utilisateur ne demande pas la réduction des animations.
+// The claimed accessibility feature (`prefers-reduced-motion` respected) is
+// VERIFIED here, not assumed: the globe spins on its own by 0.16°/frame as long as
+// the user does not request reduced motion.
 test('carte : sous prefers-reduced-motion, le globe ne tourne pas tout seul', async ({
   page,
 }) => {
   await showGlobe(page);
   const before = await frame(page);
-  // ~36 frames à 60 Hz : une rotation automatique aurait déplacé le tracé de
-  // ~6°, largement au-delà du bruit de rendu (il n'y en a aucun : le dessin est
-  // déterministe à rotation constante).
+  // ~36 frames at 60 Hz: an automatic rotation would have moved the drawing by
+  // ~6°, far beyond rendering noise (there is none: the drawing is
+  // deterministic at constant rotation).
   await page.waitForTimeout(600);
   expect(
     await frame(page),
@@ -102,13 +102,13 @@ test('carte : sous prefers-reduced-motion, le globe ne tourne pas tout seul', as
   ).toBe(before);
 });
 
-// Contre-épreuve : sans la préférence, le globe DOIT tourner. Sans elle, le
-// test ci-dessus passerait aussi avec un globe cassé (canvas figé pour une tout
-// autre raison) — il ne prouverait rien.
+// Control: without the preference, the globe MUST spin. Without it, the
+// test above would also pass with a broken globe (canvas frozen for an entirely
+// different reason) — it would prove nothing.
 test('carte : sans la préférence, le globe tourne (contre-épreuve)', async ({
   page,
 }) => {
-  // Pose l'émulation AVANT la navigation : le globe lit matchMedia au montage.
+  // Set the emulation BEFORE navigating: the globe reads matchMedia on mount.
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await showGlobe(page);
   const before = await frame(page);

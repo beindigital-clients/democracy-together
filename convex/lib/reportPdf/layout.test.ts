@@ -3,8 +3,8 @@ import { breakLines, logicalText, mirror, placeLine, tokenize } from './layout';
 import { REPORT_PDF_LABELS, pageLabel } from './labels';
 import { SITE_LOCALES } from '../locales';
 
-// Mise en ligne bidirectionnelle du PDF des rapports (F-41). Mesure fictive :
-// un caractère = une unité, pour que les positions se lisent à l'œil.
+// Bidirectional line layout of the report PDF (F-41). Fake measurement: one
+// character = one unit, so that positions can be read by eye.
 const measure = (s: string) => [...s].length;
 
 describe('Mots et directions', () => {
@@ -19,13 +19,13 @@ describe('Mots et directions', () => {
       ['لـ', 'rtl'],
       ['Democracy', 'ltr'],
       ['Together', 'ltr'],
-      // Le deux-points entre un mot latin et un mot arabe prend la direction
-      // du paragraphe.
+      // The colon between a Latin word and an Arabic word takes the paragraph's
+      // direction.
       [':', 'rtl'],
       ['تأسيس', 'rtl'],
       ['2026', 'ltr'],
     ]);
-    // La ponctuation collée ne crée pas d'espace.
+    // Attached punctuation does not create a space.
     expect(toks[5].spaceBefore).toBe(false);
   });
 
@@ -39,7 +39,7 @@ describe('Coupure des lignes', () => {
   it('ne coupe qu’aux espaces : la virgule arabe reste avec son mot', () => {
     const toks = tokenize('ألف باء، جيم', 'rtl');
     const lines = breakLines(toks, 8, measure, 1);
-    // « باء، » ne se sépare pas de sa virgule, même en bout de ligne.
+    // "باء،" does not separate from its comma, even at the end of a line.
     expect(lines.map(logicalText)).toEqual(['ألف باء،', 'جيم']);
   });
 
@@ -59,7 +59,7 @@ describe('Placement visuel', () => {
   it('paragraphe arabe : mots posés de droite à gauche, bloc latin d’un seul tenant', () => {
     const toks = tokenize('ب Latin text ج', 'rtl');
     const placed = placeLine(toks, 'rtl', 20, measure, 1);
-    // Premier mot logique à DROITE.
+    // First logical word on the RIGHT.
     expect(placed.map((p) => [p.text, p.x])).toEqual([
       ['ب', 19],
       ['Latin text', 8],
@@ -72,7 +72,7 @@ describe('Placement visuel', () => {
     const placed = placeLine(toks, 'rtl', 20, measure, 1);
     const texts = placed.map((p) => p.text);
     expect(texts).toContain('1901');
-    // « ( » logique, posé à droite, se dessine « ) » (règle L4).
+    // Logical "(", placed on the right, is drawn as ")" (rule L4).
     expect(texts[0]).toBe(')');
   });
 

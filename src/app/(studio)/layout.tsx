@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
-// Layout racine distinct (route-group) pour le Studio Sanity : il rend son
-// propre <html>, indépendamment de l'arbre localisé [locale]. Non indexé.
+// Separate root layout (route group) for the Sanity Studio: it renders its
+// own <html>, independently of the localized [locale] tree. Not indexed.
 export const metadata = {
   title: 'Democracy Together · Studio',
   robots: { index: false, follow: false },

@@ -44,13 +44,13 @@ function AccessDenied({ rank = false }: { rank?: boolean }) {
   );
 }
 
-// Titre de l'onglet par écran (RGAA 8.6) : « Utilisateurs · Administration ·
-// Democracy Together ». `admin/layout.tsx` sert « Administration » dans le HTML
-// initial ; l'effet précise l'écran une fois la route connue côté client. Il
-// dépend du chemin : une navigation interne au back-office, qui ne change pas
-// les métadonnées du layout, le rejoue quand même. Il se rejoue aussi quand la
-// session est connue (`loading`) : les métadonnées étant diffusées en flux, un
-// `<title>` du layout arrivé APRÈS le premier passage l'aurait écrasé.
+// Tab title per screen (RGAA 8.6): "Utilisateurs · Administration ·
+// Democracy Together". `admin/layout.tsx` serves "Administration" in the
+// initial HTML; the effect specifies the screen once the route is known on
+// the client. It depends on the path: an internal back-office navigation,
+// which does not change the layout's metadata, still replays it. It also
+// replays when the session is known (`loading`): since metadata is streamed,
+// a layout `<title>` arriving AFTER the first pass would have overwritten it.
 function useAdminDocumentTitle(pathname: string, loading: boolean) {
   const t = useTranslations('admin');
   const key = adminScreenKey(pathname);
@@ -67,21 +67,21 @@ function Gate({ children }: { children: ReactNode }) {
   useAdminDocumentTitle(pathname, me === undefined);
   if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
-  // Rang de l'ÉCRAN, pas seulement du back-office : la page enfant ne se
-  // monte pas — donc ne pose aucune requête — si le rôle est insuffisant.
+  // Rank of the SCREEN, not just of the back office: the child page is not
+  // mounted — hence makes no request — if the role is insufficient.
   if (roleRank(me?.role) < roleRank(adminMinRoleForPath(pathname))) {
     return <AccessDenied rank />;
   }
 
-  // Les régions live du retour d'action sont montées ICI, une fois pour tout
-  // le back-office : chaque écran de modération pousse son message dedans
-  // plutôt que d'en poser une dans chaque file (issue #38).
+  // The action-feedback live regions are mounted HERE, once for the whole
+  // back office: each moderation screen pushes its message into them
+  // rather than placing one in each queue (issue #38).
   //
-  // COLONNE LATÉRALE à partir de `lg`, groupes empilés en dessous (issue #49) :
-  // la navigation ne partage plus sa largeur avec les quatorze entrées, donc
-  // rien ne part hors écran. `minmax(0, 1fr)` sur la colonne de contenu, sinon
-  // les tables à défilement horizontal (utilisateurs, journal) élargiraient la
-  // grille au lieu de défiler dans leur propre boîte.
+  // SIDE COLUMN from `lg` up, stacked groups below (issue #49):
+  // the navigation no longer shares its width with the fourteen entries, so
+  // nothing goes off screen. `minmax(0, 1fr)` on the content column, otherwise
+  // the horizontally scrolling tables (users, log) would widen the
+  // grid instead of scrolling within their own box.
   return (
     <ActionFeedbackProvider>
       <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
@@ -94,8 +94,8 @@ function Gate({ children }: { children: ReactNode }) {
   );
 }
 
-// Coquille du back-office : gère l'authentification puis le gate de rôle
-// (modérateur minimum). Les pages enfant ne se montent que pour le staff.
+// Back-office shell: handles authentication then the role gate
+// (moderator minimum). Child pages are only mounted for staff.
 export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <AuthGate className="max-w-[1100px]">

@@ -9,10 +9,10 @@ import { isRateLimited } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
-// Boutons « suivre / écrire / bloquer » d'une page de profil. Îlot client
-// posé dans une page SERVEUR (indexable) : rien ne s'affiche pour un visiteur
-// anonyme, et la relation vient de Convex (`social.profiles.relationship`),
-// qui rend `null` dès que le lecteur n'a pas le droit de voir le profil.
+// "Follow / message / block" buttons on a profile page. Client island
+// placed in a SERVER (indexable) page: nothing is shown to an anonymous
+// visitor, and the relationship comes from Convex (`social.profiles.relationship`),
+// which returns `null` as soon as the reader is not allowed to see the profile.
 export function ProfileActions({
   handle,
   displayName,

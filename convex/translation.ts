@@ -35,32 +35,32 @@ import {
   type TranslationSourceType,
 } from './lib/translation';
 
-// TRADUCTION DES CONTENUS DÉPOSÉS PAR LES MEMBRES — orchestration.
+// TRANSLATION OF CONTENT SUBMITTED BY MEMBERS — orchestration.
 //
-// Le dispositif en une phrase : un lecteur ouvre un contenu écrit dans une
-// langue qu'il ne lit pas, la page lui propose une traduction, et la traduction
-// obtenue est MISE EN CACHE pour tous les suivants.
+// The mechanism in one sentence: a reader opens content written in a
+// language they do not read, the page offers them a translation, and the resulting
+// translation is CACHED for everyone who follows.
 //
-// TROIS RÈGLES, tenues par le code et couvertes par convex/translation.test.ts :
+// THREE RULES, enforced by the code and covered by convex/translation.test.ts:
 //
-//  1. L'ORIGINAL NE DISPARAÎT JAMAIS. Aucune écriture ne touche le document
-//     source. Une traduction est une ligne à côté, que la page peut ignorer —
-//     et qu'elle ignore effectivement dès que l'empreinte du texte a changé.
-//  2. RIEN NE S'AFFICHE COMME TRADUIT SANS L'ÊTRE. Une analyse en échec écrit
-//     une ligne `failed` plutôt que rien : c'est ce qui permet à l'interface de
-//     distinguer « pas encore demandé » de « demandé, et ça n'a pas marché ».
-//     Le fail-closed de `lib/recaptcha.ts`, appliqué à une lecture.
-//  3. C'EST LE SERVEUR QUI LIT LE TEXTE SOURCE. Le client envoie un
-//     identifiant, jamais du contenu : sans cela, n'importe qui ferait traduire
-//     n'importe quoi aux frais du réseau, et une publication réservée aux
-//     membres sortirait par la porte de la traduction.
+//  1. THE ORIGINAL NEVER DISAPPEARS. No write touches the source
+//     document. A translation is a row alongside it, which the page can ignore —
+//     and which it does ignore as soon as the text's fingerprint has changed.
+//  2. NOTHING IS DISPLAYED AS TRANSLATED WITHOUT BEING SO. A failed analysis writes
+//     a `failed` row rather than nothing: that is what lets the interface
+//     distinguish "not yet requested" from "requested, and it did not work".
+//     The fail-closed approach of `lib/recaptcha.ts`, applied to a read.
+//  3. THE SERVER IS WHAT READS THE SOURCE TEXT. The client sends an
+//     identifier, never content: otherwise, anyone could have
+//     anything translated at the network's expense, and a members-only
+//     publication would slip out through the translation door.
 //
-// Le découpage query / action / mutation est celui de `aiModeration.ts`, et
-// pour la même raison : une mutation Convex n'a pas `fetch`, une action n'a pas
-// de transaction. D'où trois temps — lire la source, appeler le modèle,
-// écrire — et la nécessité de revérifier en temps 3 ce qui était vrai en 1.
+// The query / action / mutation split is the one from `aiModeration.ts`, and
+// for the same reason: a Convex mutation has no `fetch`, an action has no
+// transaction. Hence three phases — read the source, call the model,
+// write — and the need to re-check in phase 3 what was true in phase 1.
 
-// --- Forme publique ---------------------------------------------------------
+// --- Public shape ---------------------------------------------------------
 
 const translationValidator = v.object({
   status: translationStatus,
@@ -71,26 +71,26 @@ const translationValidator = v.object({
   model: v.optional(v.string()),
   updatedAt: v.number(),
   /**
-   * La traduction décrit-elle le texte tel qu'il est AUJOURD'HUI ?
+   * Does the translation describe the text as it is TODAY?
    *
-   * Calculé à la lecture en comparant l'empreinte stockée à celle du contenu
-   * courant. `false` -> l'auteur a modifié son texte depuis : la page sert
-   * l'original et propose de retraduire.
+   * Computed at read time by comparing the stored fingerprint with that of the
+   * current content. `false` -> the author has edited their text since: the page serves
+   * the original and offers to retranslate.
    */
   fresh: v.boolean(),
 });
 
-// --- Lecture du contenu source ----------------------------------------------
+// --- Reading the source content ----------------------------------------------
 //
-// Une seule fonction pour les deux familles de contenus, parce qu'une seule
-// forme les couvre (cf. `TranslatableFields`). Elle renvoie AUSSI la langue
-// source, que les deux tables ne stockent pas de la même façon : un billet de
-// Tribune porte un `lang` unique, une publication une LISTE de langues dont la
-// première est la langue de rédaction.
+// A single function for both content families, because a single
+// shape covers them (cf. `TranslatableFields`). It ALSO returns the source
+// language, which the two tables do not store the same way: a Tribune
+// post carries a single `lang`, a publication a LIST of languages whose
+// first is the language it was written in.
 type Source = {
   fields: TranslatableFields;
   sourceLocale: SiteLocale;
-  /** Contenu réservé aux membres : la traduction l'est aussi. */
+  /** Members-only content: so is its translation. */
   membersOnly: boolean;
 };
 
@@ -100,23 +100,23 @@ async function readSource(
   sourceId: string,
 ): Promise<Source | null> {
   if (sourceType === 'tribunePost') {
-    // `normalizeId` AVANT `db.get`, et ce n'est pas une précaution de style :
-    // la surcharge à un argument de `db.get` ne vérifie PAS la table. Avec
-    // `sourceType` fourni par le client, un identifiant de publication réservée
-    // passé comme « billet » chargeait le document publication puis prenait la
-    // branche ci-dessous, qui pose `membersOnly: false` EN DUR. Seul un
-    // `TypeError` fortuit (le corps d'une publication est un tableau) refermait
-    // la porte. `normalizeId` rend `null` dès que l'identifiant vient d'une
-    // autre table : le discriminant du client cesse d'être une autorité.
+    // `normalizeId` BEFORE `db.get`, and this is not a stylistic precaution:
+    // the one-argument overload of `db.get` does NOT check the table. With
+    // `sourceType` supplied by the client, a restricted publication identifier
+    // passed as a "post" loaded the publication document and then took the
+    // branch below, which sets `membersOnly: false` HARD-CODED. Only a
+    // fortuitous `TypeError` (a publication body is an array) closed
+    // the door. `normalizeId` returns `null` as soon as the identifier comes from another
+    // table: the client's discriminant ceases to be an authority.
     const postId = ctx.db.normalizeId('tribunePosts', sourceId);
     if (!postId) return null;
     const post = await ctx.db.get(postId);
     if (!post || post.status !== 'published') return null;
     return {
-      // Le corps d'un billet est un seul champ de saisie : on le découpe en
-      // paragraphes sur les lignes vides, comme le fait le rendu de la page.
-      // Traduire un bloc de 4 000 signes en une seule chaîne donne au modèle
-      // toute latitude pour en recomposer le découpage.
+      // A post body is a single input field: we split it into
+      // paragraphs on blank lines, as the page rendering does.
+      // Translating a 4,000-character block as a single string gives the model
+      // full latitude to recompose its structure.
       fields: { title: post.title, body: splitParagraphs(post.body) },
       sourceLocale: post.lang ?? 'fr',
       membersOnly: false,
@@ -134,21 +134,21 @@ async function readSource(
       keypoints: pub.keypoints.length > 0 ? pub.keypoints : undefined,
       body: pub.body,
     },
-    // `languages` est une liste ; la PREMIÈRE est la langue de rédaction. Une
-    // publication déposée sans langue retombe sur le français, comme partout
-    // ailleurs dans le dépôt.
+    // `languages` is a list; the FIRST is the language it was written in. A
+    // publication submitted without a language falls back to French, as everywhere
+    // else in the repo.
     sourceLocale: pub.languages[0] ?? 'fr',
     membersOnly: pub.access === 'members',
   };
 }
 
 /**
- * Le lecteur a-t-il au moins le rang « membre » ?
+ * Does the reader have at least the "member" rank?
  *
- * Même barème que `viewerIsMember` dans `convex/publications.ts`, et c'est
- * délibéré : la traduction d'une publication réservée est le texte intégral de
- * cette publication. Deux barèmes différents pour la même donnée, c'est une
- * porte dérobée qui s'ouvre à la première divergence.
+ * Same scale as `viewerIsMember` in `convex/publications.ts`, and this is
+ * deliberate: the translation of a restricted publication is the full text of
+ * that publication. Two different scales for the same data is a
+ * back door that opens at the first divergence.
  */
 async function viewerIsMember(ctx: QueryCtx): Promise<boolean> {
   const user = await getCurrentUser(ctx);
@@ -156,33 +156,33 @@ async function viewerIsMember(ctx: QueryCtx): Promise<boolean> {
 }
 
 /**
- * Découpe un texte libre en paragraphes.
+ * Splits free text into paragraphs.
  *
- * Sur les lignes vides, et sur elles seules : un simple retour à la ligne à
- * l'intérieur d'un paragraphe n'en ouvre pas un nouveau, c'est déjà ainsi que
- * la Tribune rend les billets.
+ * On blank lines, and on them only: a simple line break
+ * inside a paragraph does not open a new one, which is already how
+ * the Tribune renders posts.
  */
 export function splitParagraphs(body: string): string[] {
   const parts = body
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
-  // Un texte sans ligne vide reste un paragraphe : renvoyer un tableau vide
-  // ferait échouer le schéma de sortie (`minItems: 0`), et perdrait le texte.
+  // A text without a blank line remains one paragraph: returning an empty array
+  // would make the output schema fail (`minItems: 0`), and would lose the text.
   return parts.length > 0 ? parts : [body.trim()].filter(Boolean);
 }
 
-// --- Query publique ---------------------------------------------------------
+// --- Public query ---------------------------------------------------------
 
 /**
- * La traduction en cache d'un contenu, pour une langue de lecture.
+ * The cached translation of a piece of content, for a reading language.
  *
- * Renvoie `null` quand rien n'a jamais été demandé — ce que l'interface
- * distingue d'une ligne `failed`, qui a une histoire à raconter.
+ * Returns `null` when nothing has ever been requested — which the interface
+ * distinguishes from a `failed` row, which has a story to tell.
  *
- * L'ACCÈS EST REVÉRIFIÉ ICI. Une publication réservée aux membres ne livre pas
- * sa traduction à un visiteur : ce serait le texte intégral, servi par une
- * autre porte que celle qui est gardée.
+ * ACCESS IS RE-CHECKED HERE. A members-only publication does not deliver
+ * its translation to a visitor: that would be the full text, served through a
+ * different door from the guarded one.
  */
 export const getTranslation = query({
   args: {
@@ -222,11 +222,11 @@ export const getTranslation = query({
 });
 
 /**
- * Les langues dans lesquelles ce contenu est déjà traduit et à jour.
+ * The languages into which this content is already translated and up to date.
  *
- * Sert le sélecteur de langue du document : proposer « lire en portugais »
- * quand la traduction existe déjà coûte une lecture, là où la demander coûte
- * un appel au modèle.
+ * Feeds the document's language selector: offering "lire en portugais"
+ * when the translation already exists costs a read, whereas requesting it costs
+ * a model call.
  */
 export const listAvailableTranslations = query({
   args: { sourceType: translationSourceType, sourceId: v.string() },
@@ -241,8 +241,8 @@ export const listAvailableTranslations = query({
       .withIndex('by_source', (q) =>
         q.eq('sourceType', args.sourceType).eq('sourceId', args.sourceId),
       )
-      // Cinq langues au maximum, moins la langue source : la borne est
-      // structurelle, pas arbitraire.
+      // Five languages at most, minus the source language: the bound is
+      // structural, not arbitrary.
       .take(8);
     return rows
       .filter((r) => r.status === 'ready' && r.sourceHash === fingerprint)
@@ -250,7 +250,7 @@ export const listAvailableTranslations = query({
   },
 });
 
-// --- Temps 1 : lire le contexte ---------------------------------------------
+// --- Phase 1: read the context ---------------------------------------------
 
 const contextValidator = v.union(
   v.object({
@@ -298,7 +298,7 @@ export const loadSource = internalQuery({
   },
 });
 
-// --- Temps 3 : écrire le résultat -------------------------------------------
+// --- Phase 3: write the result -------------------------------------------
 
 export const saveTranslation = internalMutation({
   args: {
@@ -326,10 +326,10 @@ export const saveTranslation = internalMutation({
       )
       .unique();
 
-    // `replace` et non `patch` : une traduction qui réussit après un échec doit
-    // PERDRE son `error`, et une qui échoue après un succès doit perdre ses
-    // `fields`. Un patch laisserait les deux cohabiter, et la page afficherait
-    // un texte périmé sous un message d'erreur.
+    // `replace` and not `patch`: a translation that succeeds after a failure must
+    // LOSE its `error`, and one that fails after a success must lose its
+    // `fields`. A patch would let both coexist, and the page would display
+    // a stale text under an error message.
     const row = {
       sourceType: args.sourceType,
       sourceId: args.sourceId,
@@ -352,11 +352,11 @@ export const saveTranslation = internalMutation({
 });
 
 /**
- * Consomme un jeton de débit AVANT l'appel au modèle.
+ * Consumes a rate-limit token BEFORE the model call.
  *
- * Une action n'a pas de transaction : le quota se prend donc dans une mutation
- * à part, et il est pris même si la traduction échoue ensuite. C'est voulu —
- * ce qui coûte, c'est l'appel, pas son résultat.
+ * An action has no transaction: the quota is therefore taken in a separate
+ * mutation, and it is taken even if the translation then fails. This is intended —
+ * what costs is the call, not its result.
  */
 export const consumeQuota = internalMutation({
   args: { key: v.string() },
@@ -364,9 +364,9 @@ export const consumeQuota = internalMutation({
   handler: async (ctx, { key }) => {
     await enforceRateLimit(ctx, {
       key,
-      // Dix traductions par heure et par acteur. Une page de lecture en
-      // demande une ; dix, c'est déjà un usage inhabituel, et le cache sert
-      // tous les lecteurs suivants sans rien consommer.
+      // Ten translations per hour per actor. A reading page
+      // requests one; ten is already unusual usage, and the cache serves
+      // all subsequent readers without consuming anything.
       max: 10,
       windowMs: 60 * 60 * 1000,
     });
@@ -374,21 +374,21 @@ export const consumeQuota = internalMutation({
   },
 });
 
-// --- Temps 2 : l'appel ------------------------------------------------------
+// --- Phase 2: the call ------------------------------------------------------
 
 const requestResultValidator = v.object({
   ok: v.boolean(),
-  /** Code stable, journalisé et affiché traduit. */
+  /** Stable code, logged and displayed translated. */
   code: v.optional(v.string()),
 });
 
 /**
- * Traduit un contenu vers une langue, et met le résultat en cache.
+ * Translates a piece of content into a language, and caches the result.
  *
- * Idempotente à la lecture près : si une traduction À JOUR existe déjà, l'appel
- * ne consomme ni quota ni jeton de modèle. C'est ce qui rend sûr d'appeler
- * cette action depuis un bouton que plusieurs lecteurs peuvent presser en même
- * temps.
+ * Idempotent up to the read: if an UP-TO-DATE translation already exists, the call
+ * consumes neither quota nor model tokens. That is what makes it safe to call
+ * this action from a button that several readers may press at the same
+ * time.
  */
 export const requestTranslation = action({
   args: {
@@ -408,9 +408,9 @@ export const requestTranslation = action({
     });
     if (!context.ok) return { ok: false, code: context.reason };
 
-    // Déjà traduit et à jour : on ne rappelle pas le modèle. La vérification
-    // est ici plutôt que dans le client, parce que c'est ici qu'elle protège
-    // la dépense.
+    // Already translated and up to date: we do not call the model again. The check
+    // is here rather than in the client, because this is where it protects
+    // the spending.
     const cached: { status: string; fresh: boolean } | null =
       await ctx.runQuery(internal.translation.peekCached, {
         sourceType: args.sourceType,
@@ -431,9 +431,9 @@ export const requestTranslation = action({
       return { ok: false, code: GATEWAY_ERRORS.NOT_CONFIGURED };
     }
 
-    // Le quota est pris au nom de l'utilisateur quand il y en a un, et du
-    // contenu sinon : un visiteur anonyme ne doit pas pouvoir épuiser le quota
-    // de tous les autres en changeant d'onglet.
+    // The quota is taken in the user's name when there is one, and in the
+    // content's otherwise: an anonymous visitor must not be able to exhaust the quota
+    // of everyone else by switching tabs.
     try {
       await ctx.runMutation(internal.translation.consumeQuota, {
         key: userId
@@ -464,9 +464,9 @@ export const requestTranslation = action({
       return { ok: false, code: result.code };
     }
 
-    // La sortie est revalidée ici : le schéma est appliqué PAR LA PASSERELLE,
-    // et une traduction dont il manquerait un paragraphe doit être refusée
-    // plutôt que servie amputée.
+    // The output is revalidated here: the schema is applied BY THE GATEWAY,
+    // and a translation missing a paragraph must be rejected
+    // rather than served truncated.
     const translated = parseTranslation(context.fields, result.data);
     if (!translated) {
       await persistFailure(
@@ -507,9 +507,9 @@ async function persistFailure(
   userId: Id<'users'> | null,
   code: string,
 ): Promise<void> {
-  // Une trace est écrite MÊME quand l'appel n'a pas eu lieu (clé absente,
-  // quota) : sans elle, la page ne pourrait qu'afficher indéfiniment le même
-  // bouton, et personne ne saurait que le dispositif est en panne.
+  // A record is written EVEN when the call did not take place (missing key,
+  // quota): without it, the page could only display the same button
+  // indefinitely, and no one would know the mechanism is broken.
   await ctx.runMutation(internal.translation.saveTranslation, {
     sourceType: args.sourceType,
     sourceId: args.sourceId,

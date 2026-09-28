@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-// shadcn Input, thémé.
+// shadcn Input, themed.
 //
-// Plus d'`outline-none` (RGAA 10.7) : il retirait le contour de focus global
-// (`:focus-visible` de `globals.css`) et ne laissait qu'une bordure de 1 px qui
-// change de teinte — mesuré à l'audit du 27/09, c'était le seul indicateur de
-// tous les champs du site. Le contour de 2 px revient ; la bordure foncée reste
-// en complément. Même correction sur `Textarea` et `Select`.
+// No more `outline-none` (RGAA 10.7): it removed the global focus outline
+// (`:focus-visible` in `globals.css`) and left only a 1 px border that
+// changes shade — measured in the 27/09 audit, it was the only indicator for
+// all the site's fields. The 2 px outline is back; the dark border stays
+// as a complement. Same fix on `Textarea` and `Select`.
 function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
   return (
     <input

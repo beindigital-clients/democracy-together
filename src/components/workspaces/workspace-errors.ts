@@ -7,11 +7,11 @@ import { intlLocale } from '@/i18n/locale';
 import { isRateLimited } from '@/lib/errors';
 import { UPLOAD_FAILED } from '@/lib/upload';
 
-// Message d'un refus serveur des espaces collaboratifs, par son CODE
-// (`ConvexError.data`, cf. convex/workspaces.ts et convex/workspaceFiles.ts).
-// Chaque clé est écrite en entier — la garde de l'issue #33 refuse une clé
-// construite à l'exécution — et un code inconnu retombe sur le message
-// générique plutôt que d'afficher un identifiant technique.
+// Message for a server rejection from the collaborative workspaces, by its CODE
+// (`ConvexError.data`, see convex/workspaces.ts and convex/workspaceFiles.ts).
+// Each key is written in full — the issue #33 guard rejects a key
+// built at runtime — and an unknown code falls back to the generic
+// message rather than showing a technical identifier.
 export function useWorkspaceError(): (err: unknown) => string {
   const t = useTranslations('workspaces');
   const locale = intlLocale(useLocale());
@@ -66,8 +66,8 @@ export function useWorkspaceError(): (err: unknown) => string {
   };
 }
 
-// Taille lisible, dans la langue de l'interface : l'unité (« Mo », « MB »,
-// « ميغابايت »…) vient d'`Intl`, pas d'un libellé écrit ici.
+// Human-readable size, in the interface language: the unit ("Mo", "MB",
+// "ميغابايت"…) comes from `Intl`, not from a label written here.
 export function formatBytes(bytes: number, locale: string): string {
   const small = bytes < 1024 * 1024;
   return new Intl.NumberFormat(locale, {

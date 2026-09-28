@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-// shadcn Badge, thémé (pastilles / tags des 5 axes, statuts).
+// shadcn Badge, themed (chips / tags for the 5 themes, statuses).
 const badgeVariants = cva(
   'inline-flex items-center rounded-pill border px-3 py-1 text-xs font-medium',
   {

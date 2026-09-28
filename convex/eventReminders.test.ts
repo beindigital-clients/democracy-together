@@ -17,9 +17,9 @@ const modules = import.meta.glob([
 
 const DAY = 24 * 60 * 60 * 1000;
 
-// Force le NO-OP de l'adaptateur e-mail pour tout le fichier : aucun e-mail
-// réel n'est émis quel que soit l'environnement de test (déterminisme — cf.
-// newsletter.test.ts). sendDueReminders appelle sendEmail, qui devient un log.
+// Forces the e-mail adapter NO-OP for the whole file: no real e-mail
+// is sent whatever the test environment (determinism — cf.
+// newsletter.test.ts). sendDueReminders calls sendEmail, which becomes a log.
 let prevProvider: string | undefined;
 beforeAll(() => {
   prevProvider = process.env.AUTH_EMAIL_PROVIDER;
@@ -54,10 +54,10 @@ describe('Rappels événements — requestReminder (F-55)', () => {
     expect(all[0].email).toBe('awa@example.org');
     expect(all[0].sent).toBe(false);
     expect(all[0].eventSlug).toBe('conference-inaugurale');
-    // La date du rappel est celle de l'ÉVÉNEMENT, lue dans la table.
+    // The reminder date is the EVENT's, read from the table.
     expect(all[0].eventDate).toBe(eventDate);
 
-    // redemander le MÊME rappel = idempotent, pas de doublon
+    // requesting the SAME reminder again = idempotent, no duplicate
     const r2 = await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'conference-inaugurale',
       email: 'awa@example.org',
@@ -68,7 +68,7 @@ describe('Rappels événements — requestReminder (F-55)', () => {
       (await t.run((ctx) => ctx.db.query('eventReminders').collect())).length,
     ).toBe(1);
 
-    // même adresse, AUTRE event = rappel distinct
+    // same address, OTHER event = distinct reminder
     await t.mutation(internal.eventReminders.storeReminder, {
       eventSlug: 'webinaire-jeunes-releve',
       email: 'awa@example.org',
@@ -78,7 +78,7 @@ describe('Rappels événements — requestReminder (F-55)', () => {
       (await t.run((ctx) => ctx.db.query('eventReminders').collect())).length,
     ).toBe(2);
 
-    // e-mail invalide rejeté
+    // invalid e-mail rejected
     await expect(
       t.mutation(internal.eventReminders.storeReminder, {
         eventSlug: 'conference-inaugurale',
@@ -122,8 +122,8 @@ describe('Rappels événements — validés contre la table (pentest M-5)', () =
         }),
       ).rejects.toMatchObject({ data: 'EVENT_CLOSED' });
     }
-    // La date fournie par l'appelant est IGNORÉE : on ne peut plus programmer
-    // un envoi au moment de son choix.
+    // The date supplied by the caller is IGNORED: one can no longer schedule
+    // a send at a time of one's choosing.
     const startsAt = Date.now() + 7 * DAY;
     await t.run((ctx) => insertTestEvent(ctx, { slug: 'ouvert', startsAt }));
     await t.mutation(internal.eventReminders.storeReminder, {
@@ -138,8 +138,8 @@ describe('Rappels événements — validés contre la table (pentest M-5)', () =
 
 describe('Rappels événements — sendDueReminders (F-55)', () => {
   it('marque sent=true un rappel proche ; ignore les rappels hors fenêtre et déjà envoyés', async () => {
-    // Mode dev explicite : depuis le correctif H3, l'adaptateur e-mail n'accepte
-    // de simuler un succès sans fournisseur que si AUTH_DEV_OTP=true.
+    // Explicit dev mode: since the H3 fix, the e-mail adapter only agrees
+    // to simulate a success without a provider if AUTH_DEV_OTP=true.
     const prevDev = process.env.AUTH_DEV_OTP;
     process.env.AUTH_DEV_OTP = 'true';
     try {
@@ -160,19 +160,19 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
         });
       });
 
-      // (a) proche (dans 1 jour) -> doit être envoyé puis marqué sent=true
+      // (a) near (in 1 day) -> must be sent then marked sent=true
       await t.mutation(internal.eventReminders.storeReminder, {
         eventSlug: 'event-proche',
         email: 'soon@dt.test',
         eventDate: now + 1 * DAY,
       });
-      // (b) hors fenêtre (dans 10 jours) -> ne doit PAS être envoyé
+      // (b) outside the window (in 10 days) -> must NOT be sent
       await t.mutation(internal.eventReminders.storeReminder, {
         eventSlug: 'event-lointain',
         email: 'later@dt.test',
         eventDate: now + 10 * DAY,
       });
-      // (c) déjà envoyé (proche mais sent=true) -> reste tel quel
+      // (c) already sent (near but sent=true) -> stays as is
       await t.run((ctx) =>
         ctx.db.insert('eventReminders', {
           eventSlug: 'event-deja-envoye',
@@ -183,7 +183,7 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
         }),
       );
 
-      // Déclenche l'action interne directement (on NE teste PAS le cron lui-même).
+      // Triggers the internal action directly (we do NOT test the cron itself).
       const res = await t.action(internal.eventReminders.sendDueReminders, {});
       expect(res.processed).toBe(1);
 
@@ -195,14 +195,14 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
             .unique(),
         );
 
-      // (a) proche -> envoyé
+      // (a) near -> sent
       expect((await byEmail('soon@dt.test'))?.sent).toBe(true);
-      // (b) hors fenêtre -> toujours en attente
+      // (b) outside the window -> still pending
       expect((await byEmail('later@dt.test'))?.sent).toBe(false);
-      // (c) déjà envoyé -> inchangé (toujours true)
+      // (c) already sent -> unchanged (still true)
       expect((await byEmail('done@dt.test'))?.sent).toBe(true);
 
-      // un second passage ne retraite rien (plus aucun rappel dû non envoyé)
+      // a second pass reprocesses nothing (no due, unsent reminder left)
       const res2 = await t.action(internal.eventReminders.sendDueReminders, {});
       expect(res2.processed).toBe(0);
     } finally {
@@ -211,9 +211,9 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
     }
   });
 
-  // Garde anti-régression de l'audit H3 : sans fournisseur e-mail, un rappel ne
-  // doit PAS être marqué sent=true — sinon il est perdu définitivement, le cron
-  // ne le reprenant jamais. Il reste en attente pour le passage suivant.
+  // Anti-regression guard for audit H3: without an e-mail provider, a reminder
+  // must NOT be marked sent=true — otherwise it is lost for good, as the cron
+  // never picks it up again. It stays pending for the next pass.
   it('sans fournisseur (production) : ne marque PAS sent, le rappel reste à retenter', async () => {
     const prevDev = process.env.AUTH_DEV_OTP;
     const prevProv = process.env.AUTH_EMAIL_PROVIDER;
@@ -232,7 +232,7 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
       });
 
       const res = await t.action(internal.eventReminders.sendDueReminders, {});
-      expect(res.processed).toBe(1); // le rappel a bien été examiné…
+      expect(res.processed).toBe(1); // the reminder was indeed examined…
 
       const row = await t.run((ctx) =>
         ctx.db
@@ -240,7 +240,7 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
           .filter((q) => q.eq(q.field('email'), 'soon@dt.test'))
           .unique(),
       );
-      expect(row?.sent).toBe(false); // …mais PAS marqué envoyé
+      expect(row?.sent).toBe(false); // …but NOT marked as sent
     } finally {
       if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
       else process.env.AUTH_DEV_OTP = prevDev;
@@ -250,8 +250,8 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
   });
 });
 
-// Garde anti-régression : le terme banni « démocratie libérale » / « liberal
-// democracy » ne doit apparaître dans aucun contenu éditorial de la feature.
+// Anti-regression guard: the banned term "démocratie libérale" / "liberal
+// democracy" must not appear in any editorial content of the feature.
 describe('Rappels événements — conformité éditoriale', () => {
   it("n'emploie jamais le terme banni (FR + EN)", async () => {
     const fr = (await import('../src/messages/fr.json')).default as Record<

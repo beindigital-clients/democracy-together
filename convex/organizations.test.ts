@@ -53,26 +53,26 @@ describe('Annuaire — listDirectory (F-19)', () => {
       });
     });
 
-    // sans filtre : actifs seulement, triés par nom (Alpha avant Beta)
+    // no filter: active ones only, sorted by name (Alpha before Beta)
     const all = await t.query(api.organizations.listDirectory, {});
     expect(all.items.map((o) => o.slug)).toEqual(['alpha', 'beta']);
     expect(all.total).toBe(2);
 
-    // facettes (sur l'ensemble actif)
+    // facets (over the active set)
     const regions = Object.fromEntries(
       all.facets.regions.map((r) => [r.value, r.count]),
     );
     expect(regions['afrique-ouest']).toBe(1);
     expect(regions['europe-ouest']).toBe(1);
-    expect(regions['afrique-est']).toBeUndefined(); // 'pending' exclu
+    expect(regions['afrique-est']).toBeUndefined(); // 'pending' excluded
 
-    // filtre région
+    // region filter
     const eu = await t.query(api.organizations.listDirectory, {
       region: 'europe-ouest',
     });
     expect(eu.items.map((o) => o.slug)).toEqual(['beta']);
 
-    // filtre thématique
+    // theme filter
     const gov = await t.query(api.organizations.listDirectory, {
       theme: 'gouvernance',
     });
@@ -82,7 +82,7 @@ describe('Annuaire — listDirectory (F-19)', () => {
     });
     expect(elec.items.map((o) => o.slug)).toEqual(['alpha']);
 
-    // recherche plein texte (description)
+    // full-text search (description)
     const search = await t.query(api.organizations.listDirectory, {
       q: 'sahel',
     });
@@ -124,8 +124,8 @@ describe('Adhésion — une seule candidature en attente par adresse (R-09)', ()
     const t = convexTest(schema, modules);
     await t.mutation(internal.organizations.storeApplication, candidature);
 
-    // `.data` et non le message : c'est lui qui traverse l'action publique
-    // jusqu'au formulaire, pour un libellé dédié.
+    // `.data` and not the message: it is what travels through the public action
+    // to the form, for a dedicated label.
     await expect(
       t.mutation(internal.organizations.storeApplication, {
         ...candidature,
@@ -154,8 +154,8 @@ describe('Adhésion — une seule candidature en attente par adresse (R-09)', ()
         decision: 'rejected',
       });
 
-    // Une candidature rejetée n'est plus « en cours » : on peut se
-    // représenter.
+    // A rejected application is no longer "in progress": one can
+    // apply again.
     await t.mutation(internal.organizations.storeApplication, candidature);
     expect(
       await t.run((ctx) => ctx.db.query('membershipApplications').collect()),

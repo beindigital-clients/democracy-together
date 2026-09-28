@@ -22,8 +22,8 @@ import {
   useRunAction,
 } from '@/components/admin/contenus/editor-shell';
 
-// REVUE DE PRESSE — ÉDITION (F-16, F-62). Un article : titre (dans sa langue,
-// non traduit), média, date, langue, lien ; un extrait facultatif traduisible.
+// PRESS REVIEW — EDITING (F-16, F-62). An article: title (in its own language,
+// untranslated), outlet, date, language, link; an optional translatable excerpt.
 
 type Draft = {
   title: string;
@@ -61,7 +61,7 @@ export default function AdminContentPress() {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  // La liste porte déjà tous les champs : pas de seconde lecture à l'édition.
+  // The list already carries all the fields: no second read when editing.
   function open(id: Id<'contentPress'> | 'new') {
     setEditing(id);
     setLang('fr');

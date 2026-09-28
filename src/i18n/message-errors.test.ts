@@ -2,10 +2,10 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { IntlError, IntlErrorCode } from 'next-intl';
 import { getMessageFallback, onMessageError } from '@/i18n/message-errors';
 
-// Une clé d'interface absente n'émettait AUCUNE erreur et affichait le dernier
-// segment de son chemin : `t('library.detail.notFoundTitle')` manquante rendait
-// « notFoundTitle » dans la page (issue #33). Ces tests tiennent les deux
-// moitiés du correctif — le cri en développement, la trace en production.
+// A missing interface key emitted NO error and displayed the last
+// segment of its path: a missing `t('library.detail.notFoundTitle')` rendered
+// "notFoundTitle" in the page (issue #33). These tests hold both
+// halves of the fix — the loud failure in development, the trace in production.
 
 const missing = (detail = 'library.detail.notFoundTitle') =>
   new IntlError(IntlErrorCode.MISSING_MESSAGE, detail);
@@ -85,7 +85,7 @@ describe('getMessageFallback — les autres erreurs', () => {
       namespace: 'library',
     });
     expect(out).toBe('library.detail.cite');
-    // Pas de doublon : `onMessageError` a déjà l'erreur complète en main.
+    // No duplicate: `onMessageError` already has the full error in hand.
     expect(error).not.toHaveBeenCalled();
   });
 });

@@ -15,40 +15,40 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// F-09 / pentest M-8 — les formulaires publics ne disent plus si une adresse
-// est déjà connue.
+// F-09 / pentest M-8 — public forms no longer say whether an address
+// is already known.
 //
-// CE QUI EST TESTÉ ICI N'EST PAS « le drapeau a disparu ». C'est la propriété
-// qui compte pour un attaquant : les deux réponses doivent être
-// INDISCERNABLES. Un test qui vérifierait l'absence de `already` passerait
-// encore le jour où quelqu'un réintroduirait la distinction sous un autre nom
-// — `status: 'existing'`, un code d'erreur, un champ en plus. La comparaison
-// porte donc sur la réponse ENTIÈRE, sérialisée.
+// WHAT IS TESTED HERE IS NOT "the flag is gone". It is the property that
+// matters to an attacker: the two responses must be
+// INDISTINGUISHABLE. A test checking that `already` is absent would still
+// pass the day someone reintroduced the distinction under another name
+// — `status: 'existing'`, an error code, an extra field. The comparison
+// is therefore on the ENTIRE, serialized response.
 //
-// Ces cinq actions sont ouvertes et non authentifiées. Les plafonds par IP et
-// par formulaire ralentissent une énumération de masse ; ils ne coûtent rien à
-// une vérification ciblée — « cette personne est-elle inscrite chez vous ? » —
-// qui ne demande qu'un seul appel.
+// These five actions are open and unauthenticated. The per-IP and
+// per-form caps slow down mass enumeration; they cost nothing to
+// a targeted check — "is this person registered with you?" —
+// which only takes a single call.
 
 afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-/** Contourne reCAPTCHA comme le font déjà le développement, la CI et les E2E. */
+/** Bypasses reCAPTCHA, as development, CI and the E2E already do. */
 function harnais() {
   vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
   vi.stubEnv('RECAPTCHA_DISABLED', 'true');
-  // Mode d'envoi SIMULÉ, comme le déploiement de développement et la CI :
-  // depuis le double opt-in (chantier diffusion), l'inscription newsletter
-  // refuse — pour toutes les adresses également — quand aucun courriel de
-  // confirmation ne peut partir. Sans fournisseur, la propriété testée ici
-  // ne serait pas atteinte.
+  // SIMULATED sending mode, like the development deployment and CI:
+  // since the double opt-in (diffusion workstream), the newsletter sign-up
+  // refuses — equally for every address — when no confirmation e-mail
+  // can go out. Without a provider, the property tested here
+  // would not be reached.
   vi.stubEnv('AUTH_DEV_OTP', 'true');
   return convexTest(schema, modules);
 }
 
-// Les inscriptions et rappels sont validés contre la table des événements
-// (chantier « contenus ») : l'oracle se teste sur des événements OUVERTS.
+// Registrations and reminders are validated against the events table
+// ("contenus" workstream): the oracle is tested on OPEN events.
 async function ouvrirEvenements(t: ReturnType<typeof harnais>) {
   await t.run(async (ctx) => {
     await insertTestEvent(ctx, { slug: 'conference-inaugurale' });
@@ -70,8 +70,8 @@ const CAS = [
     table: 'eventRegistrations',
     appel: (t: ReturnType<typeof harnais>) =>
       t.action(api.events.registerForEvent, {
-        // Un slug du catalogue : depuis A-03, un événement inconnu ou passé
-        // est refusé AVANT toute lecture — l'oracle se teste sur un ouvert.
+        // A catalog slug: since A-03, an unknown or past event
+        // is refused BEFORE any read — the oracle is tested on an open one.
         eventSlug: 'conference-inaugurale',
         name: 'Awa Diop',
         email: EMAIL,
@@ -125,8 +125,8 @@ describe('F-09 — aucun formulaire public ne révèle qu’une adresse est conn
       const premier = await appel(t);
       const second = await appel(t);
 
-      // La comparaison porte sur la réponse ENTIÈRE : c'est ce qui ferme la
-      // porte à une distinction réintroduite sous un autre nom.
+      // The comparison is on the ENTIRE response: that is what shuts the
+      // door on a distinction reintroduced under another name.
       expect(JSON.stringify(second)).toBe(JSON.stringify(premier));
       expect(premier).toEqual({ ok: true });
     });
@@ -136,8 +136,8 @@ describe('F-09 — aucun formulaire public ne révèle qu’une adresse est conn
       await ouvrirEvenements(t);
       await appel(t);
       await appel(t);
-      // Le silence côté réponse ne doit pas se payer d'un doublon en base :
-      // la mutation interne, elle, distingue toujours les deux cas.
+      // Silence in the response must not come at the cost of a duplicate in the
+      // database: the internal mutation still distinguishes the two cases.
       const lignes = await t.run((ctx) => ctx.db.query(table).collect());
       expect(lignes).toHaveLength(1);
     });

@@ -17,7 +17,7 @@ import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-// Couleurs de la carte par catégorie (1 = plus libre … 5).
+// Map colours by category (1 = most free … 5).
 const CAT_FILL = [
   'var(--color-bar-1)',
   'var(--color-bar-2)',
@@ -26,9 +26,9 @@ const CAT_FILL = [
   'var(--color-bar-5)',
 ];
 
-// Catégorie 1–5 dérivée du score (mêmes seuils que la légende du baromètre :
-// 1 = libre … 5 = non libre). Sert à colorer chaque barre du teaser selon son
-// niveau de liberté, en cohérence avec la légende.
+// Category 1–5 derived from the score (same thresholds as the barometer
+// legend: 1 = free … 5 = not free). Used to colour each teaser bar by its
+// level of freedom, consistent with the legend.
 function scoreCat(score: number): 1 | 2 | 3 | 4 | 5 {
   if (score >= 0.8) return 1;
   if (score >= 0.65) return 2;
@@ -66,9 +66,9 @@ export default async function HomePage({
   const tHome = await getTranslations('home');
   const loc = resolveLocale(locale);
   const c = await getHomeContent(loc);
-  // Contenu canonique du baromètre (légende, titre de légende, aide de la
-  // carte) : source unique, alignée sur la page Baromètre. Le teaser réécrivait
-  // ces trois libellés en dur, par un ternaire sur la locale (issue #34).
+  // Canonical barometer content (legend, legend title, map help text):
+  // single source, aligned with the Baromètre page. The teaser used to rewrite
+  // these three labels hard-coded, via a ternary on the locale (issue #34).
   const baro = getBarometerContent(loc);
   const baroLegend = baro.legend;
   const mapItems: RegionMapItem[] = MAP_DATA.map((d) => ({
@@ -84,12 +84,12 @@ export default async function HomePage({
       {/* ===== Hero ===== */}
       <section className="border-b border-line">
         <div className={`${WRAP} py-12 md:py-16`}>
-          {/* Hero cinématique : entrée séquentielle (titre mot par mot, etc.). */}
+          {/* Cinematic hero: sequential entrance (title word by word, etc.). */}
           <HomeHero hero={c.hero} />
         </div>
       </section>
 
-      {/* ===== Mission (bento) — `.mission{bg surface}` + grille 6 colonnes ===== */}
+      {/* ===== Mission (bento) — `.mission{bg surface}` + 6-column grid ===== */}
       <section className="bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
@@ -102,7 +102,7 @@ export default async function HomePage({
           </Reveal>
 
           <RevealGroup className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-6">
-            {/* 01 — carte vedette pleine largeur, fond accent, horizontale */}
+            {/* 01 — full-width featured card, accent background, horizontal */}
             <RevealItem className="rounded-sm bg-accent p-8 text-accent-contrast md:col-span-6 md:grid md:grid-cols-[1.4fr_1fr] md:items-center md:gap-6">
               <div>
                 <p className="font-mono text-xs tracking-[0.08em] text-accent-contrast/85">
@@ -112,14 +112,14 @@ export default async function HomePage({
                   {c.mission.cells[0].title}
                 </h3>
               </div>
-              {/* 90 % et non 80 : mesuré le 27/09 en sombre, 4,49:1 sur le bleu
-                  d'accent — un centième sous le seuil. */}
+              {/* 90% and not 80: measured on 27/09 in dark mode, 4.49:1 on the
+                  accent blue — one hundredth below the threshold. */}
               <p className="mt-3 text-[14.5px] leading-relaxed text-accent-contrast/90 md:mt-0">
                 {c.mission.cells[0].body}
               </p>
             </RevealItem>
 
-            {/* 02 (large) · 03 / 04 (petites) — cartes claires */}
+            {/* 02 (large) · 03 / 04 (small) — light cards */}
             {c.mission.cells.slice(1).map((cell, i) => (
               <RevealItem
                 key={cell.ix}
@@ -137,7 +137,7 @@ export default async function HomePage({
               </RevealItem>
             ))}
 
-            {/* Le Baromètre — carte large (span 4) */}
+            {/* The Baromètre — wide card (span 4) */}
             <RevealItem className="rounded-sm border border-line bg-paper p-6 md:col-span-4">
               <p className="font-mono text-xs tracking-[0.08em] text-accent-text">
                 {c.mission.barometer.label}
@@ -153,7 +153,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ===== Dernières analyses — section `paper` ===== */}
+      {/* ===== Latest analyses — `paper` section ===== */}
       <section>
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal className="flex flex-wrap items-baseline justify-between gap-4">
@@ -208,7 +208,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ===== Baromètre — section `surface` ===== */}
+      {/* ===== Baromètre — `surface` section ===== */}
       <section className="bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal>
@@ -266,10 +266,10 @@ export default async function HomePage({
 
             <Reveal className="flex min-h-[220px] flex-col rounded-md border border-line bg-paper p-6">
               <div className="flex-1">
-                {/* Le canevas du globe est `aria-hidden` et, en variante
-                    compacte, la page n'a ni tableau ni boutons de région
-                    (vitrine O5, 27/09) : ce texte est l'équivalent pour un
-                    lecteur d'écran ou un clavier. */}
+                {/* The globe canvas is `aria-hidden` and, in the compact
+                    variant, the page has neither a table nor region buttons
+                    (showcase O5, 27/09): this text is the equivalent for a
+                    screen reader or keyboard user. */}
                 <p className="sr-only">{tHome('globeAlt')}</p>
                 <RegionGlobeLazy
                   items={mapItems}
@@ -293,7 +293,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ===== Cinq axes de travail — section `paper` ===== */}
+      {/* ===== Five areas of work — `paper` section ===== */}
       <section>
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal>
@@ -318,7 +318,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ===== Événements — section `surface` ===== */}
+      {/* ===== Events — `surface` section ===== */}
       <section className="bg-surface">
         <div className={`${WRAP} py-16 md:py-20`}>
           <Reveal className="flex flex-wrap items-baseline justify-between gap-4">
@@ -376,7 +376,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ===== Hub jeunes (univers safran) ===== */}
+      {/* ===== Youth hub (saffron universe) ===== */}
       <section
         data-universe="jeunes"
         className="bg-accent text-accent-contrast"
@@ -421,7 +421,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ===== Rejoindre le réseau ===== */}
+      {/* ===== Join the network ===== */}
       <section className={`${WRAP} py-16 md:py-20`}>
         <Reveal className="max-w-[60ch]">
           <h2 className="font-display text-3xl md:text-4xl">{c.join.title}</h2>
@@ -455,7 +455,7 @@ export default async function HomePage({
         </RevealGroup>
       </section>
 
-      {/* ===== Newsletter — section `surface`, bordures haut + bas ===== */}
+      {/* ===== Newsletter — `surface` section, top + bottom borders ===== */}
       <section className="border-y border-line bg-surface">
         <div className={`${WRAP} py-16`}>
           <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">

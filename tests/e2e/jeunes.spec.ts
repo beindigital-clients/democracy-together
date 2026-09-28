@@ -6,7 +6,7 @@ test('jeunes : toutes les sections du hub (F-40)', async ({ page }) => {
   await page.goto('/fr/jeunes');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('agir');
-  // Parcours : 4 étapes
+  // Journey: 4 steps
   await expect(
     page.getByRole('heading', { name: 'Quatre étapes, à ton rythme' }),
   ).toBeVisible();
@@ -16,14 +16,14 @@ test('jeunes : toutes les sections du hub (F-40)', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Ta progression compte' }),
   ).toBeVisible();
-  // Programmes
+  // Programs
   await expect(
     page.getByRole('heading', { name: 'Les programmes' }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Mentorat', exact: true }),
   ).toBeVisible();
-  // Mentorat + témoignage + stats
+  // Mentoring + testimonial + stats
   await expect(
     page.getByRole('heading', { name: 'Un binôme, pas un formulaire' }),
   ).toBeVisible();

@@ -6,23 +6,23 @@ import { ThemeToggle } from './theme-toggle';
 
 export function SiteFooter() {
   const t = useTranslations('footer');
-  // Composant SERVEUR (aucun 'use client' ici ni dans le layout qui le monte) :
-  // l'année est celle du RENDU, plus une constante à rééditer chaque janvier
-  // (issue #36). `CopyrightYear` la reprend telle quelle au premier rendu
-  // client — donc sans écart d'hydratation — et ne la rectifie qu'après
-  // montage, pour le jour où ces pages seraient servies depuis un HTML figé au
-  // build (issue #13).
+  // SERVER component (no 'use client' here nor in the layout that mounts it):
+  // the year is that of the RENDER, no longer a constant to re-edit every
+  // January (issue #36). `CopyrightYear` reuses it as is on the first client
+  // render — hence without hydration mismatch — and only corrects it after
+  // mount, for the day these pages are served from HTML frozen at
+  // build time (issue #13).
   const year = new Date().getFullYear();
 
   const columns = [
     {
       title: t('col1Title'),
       links: [
-        // Trois libellés, trois destinations (issue #46) : ces entrées
-        // pointaient toutes vers `/a-propos` nu, donc en haut de page, à charge
-        // pour le visiteur de retrouver la section — sur un élément présent sur
-        // toutes les pages, et une page longue sur mobile. Les ancres (et le
-        // focus qui les suit) sont posées dans `a-propos/page.tsx`.
+        // Three labels, three destinations (issue #46): these entries
+        // all pointed to bare `/a-propos`, hence to the top of the page, leaving
+        // the visitor to find the section — on an element present on
+        // every page, and a long page on mobile. The anchors (and the
+        // focus that follows them) are set in `a-propos/page.tsx`.
         ['/a-propos#vision', t('col1a')],
         ['/a-propos#gouvernance', t('col1b')],
         ['/a-propos#fondateurs', t('col1c')],
@@ -104,8 +104,8 @@ export function SiteFooter() {
             <Link href="/accessibilite" className="hover:text-ink">
               {t('legalA11y')}
             </Link>
-            {/* Bascule de thème : déplacée ici depuis la barre desktop (espace) ;
-                reste aussi dans le menu mobile. */}
+            {/* Theme toggle: moved here from the desktop bar (space);
+                also remains in the mobile menu. */}
             <span className="inline-flex items-center gap-1.5">
               <span>{t('theme')}</span>
               <ThemeToggle />

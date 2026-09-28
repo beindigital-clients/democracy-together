@@ -10,10 +10,10 @@ import { QrCode } from '@/components/account/qr-code';
 import { errorCode } from '@/lib/account-errors';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// RÉGLAGES DE DOUBLE AUTHENTIFICATION (chantier comptes) — inscription par QR
-// code, codes de secours, désactivation. Toute la cryptographie est côté
-// serveur (convex/twoFactor.ts) : le navigateur ne voit le secret qu'une fois,
-// pour l'afficher, et ne garde rien.
+// TWO-FACTOR AUTHENTICATION SETTINGS (accounts workstream) — enrolment by QR
+// code, backup codes, disabling. All the cryptography is server-side
+// (convex/twoFactor.ts): the browser sees the secret only once, to display
+// it, and keeps nothing.
 
 const ERRORS = [
   'INVALID_CODE',
@@ -96,7 +96,7 @@ function BackupCodes({
   );
 }
 
-/** Formulaire « code actuel » partagé par la désactivation et le renouvellement. */
+/** "Current code" form shared by disabling and regeneration. */
 function CodeConfirm({
   title,
   hint,

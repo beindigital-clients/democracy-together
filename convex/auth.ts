@@ -7,60 +7,60 @@ import {
 } from './lib/passwordPolicy';
 import { assertMaySignIn, resolveSignInUserId } from './lib/signIn';
 
-// Authentification (F-01) : e-mail+mot de passe (vérif/reset par code) et
-// connexion sans mot de passe par code.
+// Authentication (F-01): email+password (verification/reset by code) and
+// passwordless sign-in by code.
 //
-// PAS d'auto-inscription publique : un e-mail inconnu ne crée AUCUN compte
-// (→ demande d'adhésion). Les comptes existants se connectent normalement, par
-// mot de passe OU par code. La page d'inscription est redirigée vers /adhesion.
+// NO public self-signup: an unknown email creates NO account
+// (→ membership application). Existing accounts sign in normally, by
+// password OR by code. The sign-up page redirects to /adhesion.
 //
-// `isAuthenticated` est OBLIGATOIRE depuis convex-auth 0.0.76 (le dépôt est en
-// 0.0.94) : c'est la fonction que `convexAuthNextjsMiddleware` appelle sur le
-// déploiement à CHAQUE requête vers une route protégée (cf. src/proxy.ts). Sans
-// elle, le déploiement répond « could not find api.auth.isAuthenticated », le
-// middleware lève, et TOUTE page authentifiée rend une erreur 500 — l'espace
-// membre comme le back-office. Le défaut ne se voit jamais déconnecté, ce qui
-// explique qu'il ait survécu : il a fallu qu'une session existe pour le révéler
-// (issue #66, découvert par le journal du serveur en CI).
+// `isAuthenticated` is MANDATORY since convex-auth 0.0.76 (the repo is on
+// 0.0.94): it is the function `convexAuthNextjsMiddleware` calls on the
+// deployment on EVERY request to a protected route (see src/proxy.ts). Without
+// it, the deployment responds "could not find api.auth.isAuthenticated", the
+// middleware throws, and EVERY authenticated page returns a 500 error — the member
+// area as well as the back office. The defect never shows when signed out, which
+// explains why it survived: it took a session existing to reveal it
+// (issue #66, discovered through the server log in CI).
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({
       verify: emailVerification,
       reset: passwordReset,
-      // Politique de mot de passe ÉCRITE (sécurité, constat M4) : 12 caractères
-      // minimum et refus des mots de passe les plus courants, au lieu des 8
-      // caractères que Convex Auth appliquerait en silence. Les valeurs et ce
-      // qui les justifie : convex/lib/passwordPolicy.ts.
+      // WRITTEN password policy (security, finding M4): 12 characters
+      // minimum and rejection of the most common passwords, instead of the 8
+      // characters Convex Auth would silently enforce. The values and what
+      // justifies them: convex/lib/passwordPolicy.ts.
       validatePasswordRequirements,
     }),
     emailOtpSignIn,
   ],
   signIn: {
-    // 5 échecs par heure et par compte, au lieu des 10 par défaut de la
-    // bibliothèque. Ce n'est pas un verrouillage (le crédit se reconstitue :
-    // un essai de plus toutes les 12 minutes) et le chemin « connexion par
-    // code » a son propre compteur — même justification détaillée que
-    // ci-dessus, dans convex/lib/passwordPolicy.ts.
+    // 5 failures per hour per account, instead of the library's default
+    // 10. This is not a lockout (the credit replenishes:
+    // one more attempt every 12 minutes) and the "sign-in by
+    // code" path has its own counter — same detailed justification as
+    // above, in convex/lib/passwordPolicy.ts.
     maxFailedAttempsPerHour: MAX_FAILED_SIGN_IN_ATTEMPTS_PER_HOUR,
   },
   callbacks: {
     async createOrUpdateUser(ctx, args) {
-      // Compte déjà identifié : connexion normale, inchangée.
+      // Already-identified account: normal sign-in, unchanged.
       if (args.existingUserId) return args.existingUserId;
-      // Nouvel identifiant : accepté uniquement si un compte existe déjà pour cet
-      // e-mail (on relie alors le nouveau moyen de connexion) ; sinon refus.
+      // New identifier: accepted only if an account already exists for this
+      // email (we then link the new sign-in method); otherwise refused.
       //
-      // Convex Auth type ce ctx sur `AnyDataModel` : un modèle générique sans
-      // aucun index applicatif, d'où le scan de `users` qui vivait ici. Passer
-      // `ctx.db` à une fonction qui l'attend typé sur le `DataModel` du projet
-      // suffit à retrouver l'index `email` — sans cast (cf. lib/signIn.ts, qui
-      // porte la décision, le détail et les tests : auth.ts est exclu du glob
-      // des tests, cf. TESTING.md).
+      // Convex Auth types this ctx as `AnyDataModel`: a generic model without
+      // any application index, hence the scan of `users` that lived here. Passing
+      // `ctx.db` to a function that expects it typed on the project's `DataModel`
+      // is enough to get the `email` index back — without a cast (see lib/signIn.ts, which
+      // carries the decision, the details and the tests: auth.ts is excluded from the
+      // test glob, see TESTING.md).
       return await resolveSignInUserId(ctx.db, args.profile.email);
     },
-    // Un compte SUSPENDU ne peut plus ouvrir de session (chantier comptes).
-    // La décision vit dans lib/signIn.ts, testable : ce fichier est exclu du
-    // glob des tests (cf. TESTING.md).
+    // A SUSPENDED account can no longer open a session (accounts workstream).
+    // The decision lives in lib/signIn.ts, testable: this file is excluded from the
+    // test glob (see TESTING.md).
     async beforeSessionCreation(ctx, { userId }) {
       await assertMaySignIn(ctx.db, userId);
     },

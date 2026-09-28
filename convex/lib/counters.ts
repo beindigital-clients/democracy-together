@@ -1,29 +1,29 @@
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc } from '../_generated/dataModel';
 
-// Compteurs dénormalisés du back-office (issue #8, audit § 4.3).
+// Denormalized back-office counters (issue #8, audit § 4.3).
 //
-// POURQUOI. Les tableaux de bord (admin.dashboardStats, impact.impactStats,
-// newsletter.subscriberCount) comptaient en chargeant les tables entières puis
-// en lisant `.length`. Aujourd'hui les tables sont presque vides, donc c'est
-// rapide ; le jour où l'annuaire compte quelques centaines d'organisations et
-// la bibliothèque quelques milliers de publications, l'écran d'administration
-// devient le point le plus coûteux du produit — et Convex facture à la donnée
-// lue. Les guidelines du dépôt l'interdisent explicitement
-// (convex/_generated/ai/guidelines.md : « Never use `.collect().length` »).
+// WHY. The dashboards (admin.dashboardStats, impact.impactStats,
+// newsletter.subscriberCount) counted by loading entire tables then
+// reading `.length`. Today the tables are almost empty, so it is
+// fast; the day the directory holds a few hundred organizations and
+// the library a few thousand publications, the admin screen
+// becomes the most expensive point of the product — and Convex bills per byte
+// read. The repository guidelines explicitly forbid it
+// (convex/_generated/ai/guidelines.md: "Never use `.collect().length`").
 //
-// COMMENT. Une ligne par compteur dans la table `counters`, lue en O(1) par
-// l'index `by_key`, incrémentée DANS LA TRANSACTION qui écrit la donnée
-// comptée. Si l'écriture échoue, l'incrément est annulé avec elle.
+// HOW. One row per counter in the `counters` table, read in O(1) through
+// the `by_key` index, incremented IN THE TRANSACTION that writes the counted
+// data. If the write fails, the increment is rolled back with it.
 //
-// LIMITE ASSUMÉE. Un compteur est une copie : une écriture qui contourne les
-// mutations (console Convex, script direct, `t.run()` dans un test) le laisse
-// derrière. C'est pour cela que `counters.recompute` existe — voir
+// ACCEPTED LIMITATION. A counter is a copy: a write that bypasses the
+// mutations (Convex console, direct script, `t.run()` in a test) leaves it
+// behind. That is why `counters.recompute` exists — see
 // convex/counters.ts.
 
-// Registre FERMÉ des clés. Une clé inconnue ne compile pas : le compteur lu par
-// un tableau de bord et celui posé par une mutation ne peuvent pas diverger sur
-// une faute de frappe.
+// CLOSED registry of keys. An unknown key does not compile: the counter read by
+// a dashboard and the one set by a mutation cannot diverge over
+// a typo.
 export const COUNTER = {
   USERS: 'users',
   ORGANIZATIONS_ACTIVE: 'organizations.active',
@@ -38,11 +38,11 @@ export const COUNTER = {
   TRIBUNE_COMMENTS_PUBLISHED: 'tribuneComments.published',
   YOUTH_APPLICATIONS: 'youthApplications',
   YOUTH_APPLICATIONS_PENDING: 'youthApplications.pending',
-  // Modération assistée par IA — trois nombres qui disent, sans relire le
-  // journal, ce que le dispositif fait réellement : combien d'analyses, dont
-  // combien de mises en ligne automatiques et combien de renvois en file.
-  // C'est le rapport des deux derniers qui dira si le barème est trop lâche
-  // (tout passe) ou inutile (rien ne passe).
+  // AI-assisted moderation — three numbers that say, without re-reading the
+  // log, what the system actually does: how many analyses, of which
+  // how many automatic publications and how many sent back to the queue.
+  // The ratio of the last two will tell whether the rubric is too loose
+  // (everything passes) or useless (nothing passes).
   AI_REVIEWS: 'aiModerationReviews',
   AI_REVIEWS_PUBLISHED: 'aiModerationReviews.published',
   AI_REVIEWS_ESCALATED: 'aiModerationReviews.escalated',
@@ -52,12 +52,12 @@ export type CounterKey = (typeof COUNTER)[keyof typeof COUNTER];
 
 export const ALL_COUNTER_KEYS: readonly CounterKey[] = Object.values(COUNTER);
 
-// Incrément (ou décrément) d'un compteur. Crée la ligne au premier passage.
+// Increment (or decrement) of a counter. Creates the row on first use.
 //
-// Le compteur est BORNÉ À ZÉRO : un décrément sur un compteur non encore
-// amorcé (déploiement existant dont `recompute` n'a pas encore tourné) doit
-// afficher 0, pas un nombre négatif — une donnée fausse se voit, une donnée
-// absurde décrédibilise l'écran entier.
+// The counter is FLOORED AT ZERO: a decrement on a counter not yet
+// seeded (existing deployment where `recompute` has not run yet) must
+// display 0, not a negative number — wrong data is noticeable, absurd
+// data discredits the whole screen.
 export async function bumpCounter(
   ctx: MutationCtx,
   key: CounterKey,
@@ -75,7 +75,7 @@ export async function bumpCounter(
   await ctx.db.patch(row._id, { value: Math.max(0, row.value + delta) });
 }
 
-// Fixe la valeur d'un compteur (réservé à la réconciliation — cf. recompute).
+// Sets a counter's value (reserved for reconciliation — cf. recompute).
 export async function setCounter(
   ctx: MutationCtx,
   key: CounterKey,
@@ -92,8 +92,8 @@ export async function setCounter(
   if (row.value !== value) await ctx.db.patch(row._id, { value });
 }
 
-// Lecture d'un compteur. Une ligne absente vaut 0 : un déploiement neuf, ou
-// une clé ajoutée après coup, affiche zéro plutôt que d'échouer.
+// Reading a counter. A missing row counts as 0: a fresh deployment, or
+// a key added later, shows zero rather than failing.
 export async function readCounter(
   ctx: QueryCtx,
   key: CounterKey,
@@ -105,7 +105,7 @@ export async function readCounter(
   return row?.value ?? 0;
 }
 
-// Lecture groupée — une lecture indexée par clé, en parallèle.
+// Grouped read — one indexed read per key, in parallel.
 export async function readCounters<K extends CounterKey>(
   ctx: QueryCtx,
   keys: readonly K[],
@@ -118,15 +118,15 @@ export async function readCounters<K extends CounterKey>(
   return out;
 }
 
-// --- Transitions d'état ------------------------------------------------------
+// --- State transitions -------------------------------------------------------
 //
-// La plupart des compteurs suivent un CHANGEMENT DE STATUT, pas une simple
-// insertion : une candidature passe de « en attente » à « approuvée », une
-// publication de « soumise » à « publiée », un billet de la Tribune de
-// « publié » à « retiré ». Décrire la transition (`from` -> `to`, `null` = la
-// ligne n'existe pas encore / plus) plutôt que d'écrire deux `bumpCounter` à la
-// main sur chaque site : un site d'écriture ne peut plus oublier la moitié du
-// mouvement.
+// Most counters follow a STATUS CHANGE, not a mere
+// insertion: an application goes from "pending" to "approved", a
+// publication from "submitted" to "published", a Tribune post from
+// "published" to "removed". Describing the transition (`from` -> `to`, `null` = the
+// row does not exist yet / anymore) rather than writing two `bumpCounter` calls by
+// hand at each site: a write site can no longer forget half of the
+// movement.
 
 type PublicationStatus = Doc<'publications'>['status'];
 type ApplicationStatus = Doc<'membershipApplications'>['status'];

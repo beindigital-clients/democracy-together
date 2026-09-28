@@ -10,10 +10,10 @@ type BankTransfer = {
   bank: string | null;
 };
 
-// AUCUN PRESTATAIRE DE PAIEMENT CONFIGURÉ : l'écran le DIT, et propose
-// l'alternative — jamais un bouton qui ne mène nulle part. Le virement si
-// l'association a publié ses coordonnées (variables PAYMENTS_BANK_*), sinon
-// le formulaire de contact.
+// NO PAYMENT PROVIDER CONFIGURED: the screen SAYS so, and offers
+// the alternative — never a button that leads nowhere. Bank transfer if
+// the association has published its details (PAYMENTS_BANK_* variables), otherwise
+// the contact form.
 export function PaymentsUnavailable({
   bankTransfer,
   purpose,

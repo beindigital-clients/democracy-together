@@ -5,20 +5,20 @@ import {
   type CodedReport,
 } from '@convex/lib/annualReportsCoded';
 
-// F-41 — Rapports annuels, côté site.
+// F-41 — Annual reports, site side.
 //
-// Les rapports ont désormais un modèle de données Convex, administré depuis
-// `/admin/rapports` (convex/annualReports.ts). Le contenu CODÉ historique vit
-// dans `convex/lib/annualReportsCoded.ts` — une seule copie, lue ici par
-// l'alias `@convex` — et sert de REPLI : pour une année que la base ne
-// connaît pas encore, les pages `/rapports` et `/rapports/<année>` rendent le
-// contenu codé, à l'identique. Une année connue de la base (même dépubliée)
-// n'est plus servie depuis le code : dépublier ne fait pas réapparaître
-// l'ancienne version.
+// Reports now have a Convex data model, managed from `/admin/rapports`
+// (convex/annualReports.ts). The historical HARD-CODED content lives in
+// `convex/lib/annualReportsCoded.ts` — a single copy, read here through the
+// `@convex` alias — and serves as a FALLBACK: for a year the database does
+// not know yet, the `/rapports` and `/rapports/<année>` pages render the
+// hard-coded content, identically. A year known to the database (even
+// unpublished) is no longer served from the code: unpublishing does not make
+// the old version reappear.
 
 export type AnnualReport = CodedReport;
 
-// Années codées (descendant).
+// Hard-coded years (descending).
 export const REPORT_YEARS = CODED_REPORT_YEARS;
 
 export function getReports(locale: Locale): AnnualReport[] {
@@ -38,8 +38,8 @@ export type ReportListItem = {
 };
 
 /**
- * Liste publique : les éditions publiées en base, plus les éditions codées
- * que la base ne connaît pas. Ordre décroissant des années.
+ * Public list: the editions published in the database, plus the hard-coded
+ * editions the database does not know. Descending order of years.
  */
 export function mergeReportList(
   locale: Locale,
@@ -57,7 +57,7 @@ export function mergeReportList(
   return [...fromDb.reports, ...coded].sort((a, b) => b.year - a.year);
 }
 
-/** Années publiées — pour le plan du site. */
+/** Published years — for the sitemap. */
 export function publicReportYears(fromDb: {
   reports: { year: number }[];
   knownYears: number[];
@@ -71,12 +71,12 @@ export function publicReportYears(fromDb: {
   ].sort((a, b) => b - a);
 }
 
-/** Nom du fichier PDF d'une édition : ASCII, stable, parlant. */
+/** File name of an edition's PDF: ASCII, stable, meaningful. */
 export function reportPdfFileName(year: number, locale: Locale): string {
   return `democracy-together-rapport-${year}-${locale}.pdf`;
 }
 
-/** Chemin (sans langue) de la route qui sert le PDF d'une édition. */
+/** Path (without locale) of the route that serves an edition's PDF. */
 export function reportPdfPath(year: number): string {
   return `/rapports/${year}/rapport.pdf`;
 }

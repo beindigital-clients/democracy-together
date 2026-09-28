@@ -14,9 +14,9 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// AUTH_DEV_OTP n'est PAS defini dans cet environnement de test -> on verifie que
-// chaque surface « dev » est FERMEE (comme elle le serait en prod).
-// Un guard casse ferait echouer ce test au lieu de passer en silence.
+// AUTH_DEV_OTP is NOT set in this test environment -> we check that
+// every "dev" surface is CLOSED (as it would be in prod).
+// A broken guard would make this test fail instead of passing silently.
 describe('Securite — gardes des backdoors DEV sans AUTH_DEV_OTP', () => {
   it('ferme seed/otp (throw) et les oracles de lecture (null)', async () => {
     const t = convexTest(schema, modules);
@@ -32,7 +32,7 @@ describe('Securite — gardes des backdoors DEV sans AUTH_DEV_OTP', () => {
         email: 'x@y.z',
       }),
     ).toBeNull();
-    // Les 4 oracles que l'audit signalait comme NON couverts (§ 4.2 H2).
+    // The 4 oracles the audit flagged as NOT covered (§ 4.2 H2).
     expect(
       await t.query(internal.newsletter.isSubscribed, { email: 'x@y.z' }),
     ).toBeNull();
@@ -70,13 +70,13 @@ describe('Securite — setRole anti-lockout (F-63)', () => {
     );
     const asAdmin = t.withIdentity({ subject: `${adminId}|s` });
 
-    // 1) l'admin ne peut pas se retrograder lui-meme (dernier rempart)
+    // 1) the admin cannot demote themselves (last line of defense)
     await expect(
       asAdmin.mutation(api.users.setRole, { userId: adminId, role: 'membre' }),
     ).rejects.toThrow();
     expect((await t.run((ctx) => ctx.db.get(adminId)))?.role).toBe('admin');
 
-    // 2) promouvoir un autre utilisateur reste possible
+    // 2) promoting another user is still possible
     await asAdmin.mutation(api.users.setRole, {
       userId: otherId,
       role: 'moderateur',
@@ -85,7 +85,7 @@ describe('Securite — setRole anti-lockout (F-63)', () => {
       'moderateur',
     );
 
-    // 3) avec deux admins, on peut en retrograder un (il en reste un)
+    // 3) with two admins, one can be demoted (one remains)
     const admin2 = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'c@test.org' }),
     );

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-// Select natif thémé (léger, accessible, testable). Pas de Radix : cohérent
-// avec l'objectif faible débit.
+// Themed native select (lightweight, accessible, testable). No Radix: consistent
+// with the low-bandwidth goal.
 function Select({ className, ...props }: React.ComponentProps<'select'>) {
   return (
     <select

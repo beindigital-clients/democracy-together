@@ -1,16 +1,16 @@
 import type { Locale } from '@/i18n/routing';
-// F-36 — Synthèses thématiques. Contenu éditorial (la position du réseau) pour
-// chacun des cinq axes de travail. Les slugs sont le miroir de `PUB_THEMES`
-// (src/lib/publications.ts) : c'est la clé qui relie une synthèse à ses
-// publications (Convex `by_status_and_theme`), à sa sous-dimension du baromètre
-// et aux filtres bibliothèque/annuaire. Les libellés d'axe viennent de l'i18n
-// (`library.themes.*`) ; ici on porte uniquement le texte de synthèse. Module
-// local bilingue (même approche que `about-content.ts`), pas de donnée inventée
-// (positions et questions, pas de chiffres). Vérifié sans terme banni.
+// F-36 — Thematic summaries. Editorial content (the network's position) for
+// each of the five work themes. The slugs mirror `PUB_THEMES`
+// (src/lib/publications.ts): it is the key linking a summary to its
+// publications (Convex `by_status_and_theme`), to its barometer sub-dimension
+// and to the library/directory filters. Theme labels come from i18n
+// (`library.themes.*`); here we only carry the summary text. Local bilingual
+// module (same approach as `about-content.ts`), no invented data
+// (positions and questions, no figures). Checked for banned terms.
 
-// Le texte des synthèses vit désormais dans
-// `convex/lib/contenus/coded/themes.ts` : l'import interne le recopie dans
-// `contentThemes`, et les pages le servent en REPLI (chantier « contenus »).
+// The summary text now lives in
+// `convex/lib/contenus/coded/themes.ts`: the internal import copies it into
+// `contentThemes`, and the pages serve it as a FALLBACK ("contenus" workstream).
 import {
   CODED_THEMES,
   THEME_SLUGS,
@@ -20,7 +20,7 @@ import {
 export { THEME_SLUGS };
 export type { ThemeSlug, ThemeSynthesis };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<
   Locale,
   Record<ThemeSlug, ThemeSynthesis>

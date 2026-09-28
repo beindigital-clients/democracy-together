@@ -1,29 +1,29 @@
-// F-40 — Données ouvertes du Baromètre. Sérialise les données (d'illustration)
-// du module `barometer-content.ts` en jeux téléchargeables CSV / JSON, plus un
-// codebook texte et les géométries projetées de la carte. SOURCE UNIQUE : tout
-// dérive de `barometer-content.ts` (page et exports restent cohérents). Pur /
-// sans état, utilisable côté serveur (route handler) comme en test. Aucune
-// donnée réelle : la mention « illustration » est reprise dans chaque export.
+// F-40 — Barometer open data. Serializes the (illustrative) data
+// of the `barometer-content.ts` module into downloadable CSV / JSON datasets, plus a
+// text codebook and the map's projected geometries. SINGLE SOURCE: everything
+// derives from `barometer-content.ts` (page and exports stay consistent). Pure /
+// stateless, usable server-side (route handler) as well as in tests. No
+// real data: the "illustration" notice is repeated in every export.
 
 import type { Locale } from '@/i18n/routing';
 import { getBarometerContent, MAP_DATA } from './barometer-content';
 import { buildRegionShapes, MAP_W, MAP_H } from './region-geo';
 
-// LES JEUX DE DONNÉES SUIVENT LA LANGUE DE LA PAGE, toutes langues comprises.
+// THE DATASETS FOLLOW THE PAGE LANGUAGE, all languages included.
 //
-// Ce type valait `'fr' | 'en'`, et la route de téléchargement rabattait tout le
-// reste sur le français : un visiteur de /es/barometre, /pt ou /ar cliquait
-// « Télécharger » et recevait un CSV, un JSON et un codebook FRANÇAIS — noms de
-// pays, libellés de catégorie, avertissement et prose compris — alors que la
-// page qui les propose est traduite.
+// This type was `'fr' | 'en'`, and the download route mapped everything
+// else to French: a visitor on /es/barometre, /pt or /ar clicked
+// "Télécharger" and received a FRENCH CSV, JSON and codebook — country
+// names, category labels, disclaimer and prose included — even though the
+// page offering them is translated.
 //
-// Le rétrécissement était d'autant plus inutile que les LIGNES se localisent
-// déjà seules : `compositeRows` et `dimensionRows` dérivent tout de
-// `getBarometerContent(locale)`, qui accepte les cinq langues. Ne restaient en
-// dur que l'étiquette de région et la prose du codebook, traitées ci-dessous.
+// The narrowing was all the more pointless since the ROWS already localize
+// themselves: `compositeRows` and `dimensionRows` derive everything from
+// `getBarometerContent(locale)`, which accepts all five languages. Only the
+// region label and the codebook prose remained hard-coded, handled below.
 //
-// L'alias est conservé : il dit, au point d'appel, que c'est la langue du JEU
-// DE DONNÉES qui est demandée — celle qui finira dans le nom du fichier servi.
+// The alias is kept: it says, at the call site, that it is the DATASET's
+// language being requested — the one that will end up in the served file's name.
 export type DatasetLocale = Locale;
 
 export const BAROMETER_EDITION = '2026';
@@ -40,8 +40,8 @@ export const DATA_FILES = [
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];
 
-// Exhaustif par construction : une langue de plus ne compile pas sans son
-// libellé, au lieu de retomber silencieusement sur le français.
+// Exhaustive by construction: one more language doesn't compile without its
+// label, instead of silently falling back to French.
 const REGIONS: Record<string, Record<Locale, string>> = {
   AFR: {
     fr: 'Afrique',
@@ -63,7 +63,7 @@ function regionLabel(short: string, locale: DatasetLocale): string {
   return REGIONS[short]?.[locale] ?? short;
 }
 
-// --- Jeu 1 : indice composite, une ligne par pays --------------------------
+// --- Dataset 1: composite index, one row per country -----------------------
 export type CompositeRow = {
   rank: number;
   name_en: string;
@@ -92,7 +92,7 @@ export function compositeRows(locale: DatasetLocale): CompositeRow[] {
   }));
 }
 
-// --- Jeu 2 : sous-dimensions (pondérations égales) -------------------------
+// --- Dataset 2: sub-dimensions (equal weights) ------------------------------
 export type DimensionRow = {
   code: string;
   dimension: string;
@@ -105,7 +105,7 @@ export type DimensionRow = {
 
 export function dimensionRows(locale: DatasetLocale): DimensionRow[] {
   const c = getBarometerContent(locale);
-  // Méthodologie : pondération égale entre les sous-dimensions.
+  // Methodology: equal weighting across sub-dimensions.
   const weight = Number((1 / c.dimensions.items.length).toFixed(4));
   return c.dimensions.items.map((d) => ({
     code: d.ix,
@@ -120,10 +120,10 @@ export function dimensionRows(locale: DatasetLocale): DimensionRow[] {
 
 // --- CSV (RFC 4180) ---------------------------------------------------------
 function csvCell(v: unknown): string {
-  // Sérialiseur générique : la coercition de `unknown` est ici l'intention, et
-  // les seules valeurs passées (cf. toDatasetRows) sont des chaînes et des
-  // nombres. Un `JSON.stringify` sur les objets changerait le format du fichier
-  // publié.
+  // Generic serializer: coercing `unknown` is the intent here, and
+  // the only values passed (see toDatasetRows) are strings and
+  // numbers. A `JSON.stringify` on objects would change the format of the published
+  // file.
   // eslint-disable-next-line @typescript-eslint/no-base-to-string
   const s = v == null ? '' : String(v);
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -139,7 +139,7 @@ export function toCSV(rows: readonly Record<string, unknown>[]): string {
   return lines.join('\r\n') + '\r\n';
 }
 
-// --- JSON (métadonnées + lignes) -------------------------------------------
+// --- JSON (metadata + rows) ------------------------------------------------
 export function datasetMeta(locale: DatasetLocale, dataset: string) {
   const c = getBarometerContent(locale);
   return {
@@ -174,7 +174,7 @@ export function dimensionsJSON(locale: DatasetLocale): string {
   );
 }
 
-// --- Géométries projetées de la carte (telles qu'affichées sur le site) ----
+// --- Projected map geometries (as displayed on the site) ------------------
 export function geometriesJSON(): string {
   const shapes = buildRegionShapes();
   const region = new Map(MAP_DATA.map((d) => [d.name, d.region]));
@@ -199,17 +199,17 @@ export function geometriesJSON(): string {
   );
 }
 
-// --- Codebook (texte brut, lisible) ----------------------------------------
+// --- Codebook (plain text, readable) ---------------------------------------
 /**
- * Une phrase du codebook, dans les cinq langues.
+ * A codebook sentence, in all five languages.
  *
- * Ces descriptions étaient posées par `en ? '…' : '…'`, seize fois : le
- * codebook servi à /es, /pt et /ar était donc INTÉGRALEMENT français. Une table
- * indexée par la locale rend l'oubli impossible — il ne compile plus.
+ * These descriptions were set via `en ? '…' : '…'`, sixteen times: the
+ * codebook served on /es, /pt and /ar was therefore ENTIRELY in French. A table
+ * indexed by locale makes the omission impossible — it no longer compiles.
  */
 type Phrase = Record<Locale, string>;
 
-/** Colonnes du jeu `composite-index`. */
+/** Columns of the `composite-index` dataset. */
 const COMPOSITE_COLS: readonly (readonly [string, Phrase])[] = [
   [
     'rank',
@@ -303,7 +303,7 @@ const COMPOSITE_COLS: readonly (readonly [string, Phrase])[] = [
   ],
 ];
 
-/** Colonnes du jeu `sub-dimensions`. */
+/** Columns of the `sub-dimensions` dataset. */
 const DIMENSION_COLS: readonly (readonly [string, Phrase])[] = [
   [
     'code',
@@ -377,7 +377,7 @@ const DIMENSION_COLS: readonly (readonly [string, Phrase])[] = [
   ],
 ];
 
-/** Intitulés de sections du codebook. */
+/** Codebook section headings. */
 const CODEBOOK_LABELS: Record<string, Phrase> = {
   source: {
     fr: 'Source',
@@ -455,7 +455,7 @@ export function codebook(locale: DatasetLocale): string {
   return lines.join('\n');
 }
 
-// Construit le corps + le type MIME d'un fichier de données. `null` = inconnu.
+// Builds the body + MIME type of a data file. `null` = unknown.
 export function buildDataFile(
   file: string,
   locale: DatasetLocale,

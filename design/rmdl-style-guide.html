@@ -4,46 +4,46 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Democracy Together · Système de design (v0.1)</title>
-<!-- Demo : polices chargees via Google Fonts pour un fichier autonome.
-     En production : self-host avec next/font (font-display: swap). -->
+<!-- Demo: fonts loaded via Google Fonts for a self-contained file.
+     In production: self-host with next/font (font-display: swap). -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
 /* =====================================================================
-   Democracy Together TOKENS (source de verite du système)
-   Univers : Institutionnel (indigo) <-> Jeunes (safran), os partage.
-   Tous les couples texte/fond visent WCAG AA min.
+   Democracy Together TOKENS (the system's source of truth)
+   Universes: Institutional (indigo) <-> Youth (saffron), shared skeleton.
+   Every text/background pair targets WCAG AA minimum.
    ===================================================================== */
 :root{
-  /* Échelle neutre clair */
-  --paper:#F4F2EC;          /* fond de page, "papier" éditorial chaud */
-  --surface:#FBFAF5;        /* cartes, surfaces elevees */
-  --surface-2:#EFEDE4;      /* surfaces enfoncees, zones de données */
-  --ink:#16191F;            /* texte principal */
-  --ink-soft:#454953;       /* texte secondaire */
-  --muted:#646771;          /* meta, légendes (AA sur paper) */
-  --line:#D9D6CD;           /* filets, bordures */
+  /* Light neutral scale */
+  --paper:#F4F2EC;          /* page background, warm editorial "paper" */
+  --surface:#FBFAF5;        /* cards, raised surfaces */
+  --surface-2:#EFEDE4;      /* sunken surfaces, data areas */
+  --ink:#16191F;            /* primary text */
+  --ink-soft:#454953;       /* secondary text */
+  --muted:#646771;          /* meta, captions (AA on paper) */
+  --line:#D9D6CD;           /* rules, borders */
   --line-strong:#C3BFB3;
 
-  /* Données Baromètre échelle divergente, lisible daltonisme,
-     sans dependre du rouge/vert seul (toujours doublee d'un libellé). */
-  --bar-1:#2E6E8E;  /* Libre */
-  --bar-2:#7BA7B0;  /* Plutôt libre */
-  --bar-3:#E0B85C;  /* Partiellement */
-  --bar-4:#CC8748;  /* Peu libre */
-  --bar-5:#9A4B3B;  /* Non libre */
+  /* Barometer data: diverging scale, colorblind-safe,
+     not relying on red/green alone (always paired with a label). */
+  --bar-1:#2E6E8E;  /* Free */
+  --bar-2:#7BA7B0;  /* Mostly free */
+  --bar-3:#E0B85C;  /* Partly free */
+  --bar-4:#CC8748;  /* Barely free */
+  --bar-5:#9A4B3B;  /* Not free */
 
-  /* Geometrie */
+  /* Geometry */
   --r-xs:2px; --r-sm:4px; --r-md:6px; --r-pill:999px;
-  /* Règle de forme : chips/tags = pill ; tout le reste = 4px (cartes,
-     boutons, inputs) ; sceaux/avatars = cercle. Documentee, suivie partout. */
+  /* Shape rule: chips/tags = pill; everything else = 4px (cards,
+     buttons, inputs); seals/avatars = circle. Documented, followed everywhere. */
 
-  /* Espacement (échelle 4px) */
+  /* Spacing (4px scale) */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
   --s7:48px; --s8:64px; --s9:96px; --s10:128px;
 
-  /* Élévation ombres teintées encre, jamais noir pur */
+  /* Elevation: ink-tinted shadows, never pure black */
   --shadow-1:0 1px 2px rgba(22,25,31,.06), 0 1px 1px rgba(22,25,31,.04);
   --shadow-2:0 2px 8px rgba(22,25,31,.07), 0 8px 24px rgba(22,25,31,.06);
 
@@ -52,30 +52,30 @@
   --font-sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono:"IBM Plex Mono", ui-monospace, "SF Mono", monospace;
 
-  /* Largeurs */
-  --measure:66ch;           /* longueur de ligne de lecture */
+  /* Widths */
+  --measure:66ch;           /* reading line length */
   --max:1200px;
 
-  /* ACCENT pilote par l'univers (voir data-universe) */
-  --accent:#1F3D6E;         /* remplissage de marque (boutons, barres) */
-  --accent-strong:#16305A;  /* survol / actif */
-  --accent-text:#1F3D6E;    /* texte/lien accessible sur fond clair */
-  --accent-contrast:#FFFFFF;/* texte posé SUR un aplat d'accent */
+  /* ACCENT driven by the universe (see data-universe) */
+  --accent:#1F3D6E;         /* brand fill (buttons, bars) */
+  --accent-strong:#16305A;  /* hover / active */
+  --accent-text:#1F3D6E;    /* accessible text/link on light background */
+  --accent-contrast:#FFFFFF;/* text placed ON a solid accent fill */
   --accent-tint:rgba(31,61,110,.08);
   --accent-edge:rgba(31,61,110,.22);
 }
 
-/* Univers JEUNES même os, accent chaud. Bouton = safran + encre (AA). */
+/* JEUNES (youth) universe: same skeleton, warm accent. Button = saffron + ink (AA). */
 [data-universe="jeunes"]{
   --accent:#DB8A34;
   --accent-strong:#C2771F;
-  --accent-text:#8F5510;     /* ambre foncé, AA pour liens/texte */
-  --accent-contrast:var(--paper); /* encre sur safran */
+  --accent-text:#8F5510;     /* dark amber, AA for links/text */
+  --accent-contrast:var(--paper); /* ink on saffron */
   --accent-tint:rgba(219,138,52,.14);
   --accent-edge:rgba(219,138,52,.35);
 }
 
-/* MODE SOMBRE base encre, accents eclaircis pour tenir l'AA */
+/* DARK MODE: ink base, lightened accents to meet AA */
 [data-theme="dark"]{
   --paper:#14171C;
   --surface:#1C2027;
@@ -135,7 +135,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .kicker{font-size:13px;color:var(--muted)}
 .grid{display:grid;gap:var(--s5)}
 
-/* ===================== BARRE OUTILS ===================== */
+/* ===================== TOOLBAR ===================== */
 .toolbar{
   position:sticky;top:0;z-index:50;
   display:flex;align-items:center;gap:var(--s4);
@@ -154,12 +154,12 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-contrast)}
 .toolbar .tlabel{font-size:12px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em}
 
-/* ===================== MARQUE / SCEAU ===================== */
+/* ===================== BRAND / SEAL ===================== */
 .seal{width:34px;height:34px;flex:0 0 auto}
 .seal circle, .seal line, .seal path{vector-effect:non-scaling-stroke}
 .wordmark{font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:.04em}
 
-/* ===================== BOUTONS ===================== */
+/* ===================== BUTTONS ===================== */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   font-family:var(--font-sans);font-size:15px;font-weight:600;line-height:1;
@@ -177,7 +177,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 .btn-sm{padding:8px 14px;font-size:13.5px}
 
-/* ===================== TAGS / THEMATIQUES ===================== */
+/* ===================== TAGS / THEMES ===================== */
 .tag{
   display:inline-flex;align-items:center;gap:6px;
   font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:var(--r-pill);
@@ -186,7 +186,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .tag-accent{background:var(--accent-tint);color:var(--accent-text);border-color:var(--accent-edge)}
 .tag .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.7}
 
-/* ===================== CARTES ===================== */
+/* ===================== CARDS ===================== */
 .card{
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
   box-shadow:var(--shadow-1);overflow:hidden;
@@ -198,7 +198,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .card h3{font-size:21px;margin-bottom:var(--s2)}
 .card .meta{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 
-/* expert / membre */
+/* expert / member */
 .person{display:flex;gap:var(--s4);align-items:flex-start}
 .avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;background:var(--surface-2);flex:0 0 auto;border:1px solid var(--line)}
 .person h4{font-family:var(--font-sans);font-weight:700;font-size:16px;line-height:1.25}
@@ -209,13 +209,13 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .kpi .lab{margin-top:var(--s2);color:var(--muted);font-size:14px}
 .kpi .num .u{color:var(--accent-text)}
 
-/* citation */
+/* quote */
 .quote{border-left:3px solid var(--accent);padding:var(--s2) 0 var(--s2) var(--s5)}
 .quote p{font-family:var(--font-display);font-size:24px;line-height:1.3;color:var(--ink)}
 .quote .attr{margin-top:var(--s4);font-size:14px;color:var(--muted)}
 .quote .attr b{color:var(--ink);font-weight:600}
 
-/* baromètre tuile pays */
+/* barometer country tile */
 .country{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface)}
 .country .score{font-family:var(--font-mono);font-weight:600;font-size:15px;width:34px;text-align:right;color:var(--ink)}
 .country .bar{flex:1;height:8px;border-radius:var(--r-pill);background:var(--surface-2);overflow:hidden}
@@ -226,7 +226,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
 
-/* formulaire */
+/* form */
 .field{display:flex;flex-direction:column;gap:6px;max-width:420px}
 .field label{font-size:13.5px;font-weight:600;color:var(--ink)}
 .field .hint{font-size:12.5px;color:var(--muted)}
@@ -265,7 +265,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 @media(max-width:900px){.cols-3,.cols-4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.cols-2,.cols-3,.cols-4{grid-template-columns:1fr}.spec{grid-template-columns:1fr;gap:var(--s2)}}
 
-/* ===================== APERCU ACCUEIL ===================== */
+/* ===================== HOME PAGE PREVIEW ===================== */
 .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--s8);align-items:center}
 .hero .eyebrow{margin-bottom:var(--s4)}
 .hero h1{font-size:clamp(38px,5vw,60px);font-weight:500;letter-spacing:-.02em}
@@ -288,7 +288,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 .foot{padding:var(--s7) 0;color:var(--muted);font-size:13px}
 .swap-univers{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
 
-/* ===== Carte Baromètre (choroplèthe interactive, autonome) ===== */
+/* ===== Barometer map (interactive, self-contained choropleth) ===== */
 :root{ --map-land:#DEDAD0; --map-stroke:#EFEDE4; }
 [data-theme="dark"]{ --map-land:#2A303A; --map-stroke:#14171C; }
 .map-wrap{position:relative;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);padding:8px}
@@ -310,7 +310,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 </head>
 <body>
 
-<!-- ============ BARRE OUTILS ============ -->
+<!-- ============ TOOLBAR ============ -->
 <div class="toolbar">
   <div class="brand">
     <svg class="seal" viewBox="0 0 34 34" fill="none" aria-hidden="true">
@@ -335,7 +335,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </div>
 
-<!-- ============ COUVERTURE ============ -->
+<!-- ============ COVER ============ -->
 <header class="section" style="padding-top:var(--s8)">
   <div class="wrap">
     <p class="eyebrow">Democracy Together</p>
@@ -350,7 +350,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </header>
 
-<!-- ============ PRINCIPES ============ -->
+<!-- ============ PRINCIPLES ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">01 Principes</p>
@@ -415,7 +415,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ COULEURS ============ -->
+<!-- ============ COLORS ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">03 Couleurs</p>
@@ -452,7 +452,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ TYPOGRAPHIE ============ -->
+<!-- ============ TYPOGRAPHY ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">04 Typographie</p>
@@ -488,7 +488,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ FONDATIONS ============ -->
+<!-- ============ FOUNDATIONS ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">05 Fondations</p>
@@ -523,7 +523,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ COMPOSANTS ============ -->
+<!-- ============ COMPONENTS ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">06 Composants</p>
@@ -565,7 +565,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ CARTES & BLOCS ============ -->
+<!-- ============ CARDS & BLOCKS ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">07 Cartes et blocs</p>
@@ -604,7 +604,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
         </div>
       </article>
 
-      <!-- Evenement -->
+      <!-- Event -->
       <article class="card hoverable">
         <div class="card-body">
           <div style="display:flex;gap:var(--s4);align-items:baseline">
@@ -623,7 +623,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
       </article>
     </div>
 
-    <!-- KPI + citation -->
+    <!-- KPI + quote -->
     <div class="grid cols-2" style="align-items:start">
       <div class="grid cols-2">
         <div class="kpi"><div class="num">38<span class="u">+</span></div><div class="lab">Think tanks membres</div></div>
@@ -639,7 +639,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ BAROMETRE ============ -->
+<!-- ============ BAROMETER ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">08 Données</p>
@@ -674,7 +674,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ APERCU ACCUEIL ============ -->
+<!-- ============ HOME PAGE PREVIEW ============ -->
 <section class="section" style="background:var(--surface)">
   <div class="wrap">
     <p class="eyebrow">09 Aperçu</p>
@@ -708,7 +708,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ UNIVERS JEUNES (note) ============ -->
+<!-- ============ YOUTH UNIVERSE (note) ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow swap-univers">10 Deux univers</p>
@@ -730,7 +730,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
   </div>
 </section>
 
-<!-- ============ ACCESSIBILITE & I18N ============ -->
+<!-- ============ ACCESSIBILITY & I18N ============ -->
 <section class="section">
   <div class="wrap">
     <p class="eyebrow">11 Accessibilité et multilingue</p>
@@ -768,7 +768,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
 <script>
 (function(){
   var root = document.documentElement;
-  // Univers
+  // Universe
   document.querySelectorAll('[data-univ]').forEach(function(b){
     b.addEventListener('click', function(){
       root.setAttribute('data-universe', b.dataset.univ);
@@ -782,7 +782,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);pa
       document.querySelectorAll('[data-theme-btn]').forEach(function(x){ x.setAttribute('aria-pressed', x===b); });
     });
   });
-  // Reveal (motive : entree douce du hero ; respecte reduced-motion via CSS)
+  // Reveal (rationale: gentle hero entrance; respects reduced-motion via CSS)
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window){
     var io = new IntersectionObserver(function(es){
       es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });

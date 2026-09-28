@@ -1,8 +1,8 @@
-// F-40 — Endpoints de données ouvertes du Baromètre. Sert les jeux CSV/JSON, le
-// codebook et les géométries en téléchargement (Content-Disposition: attachment).
-// La donnée dérive intégralement de `barometer-dataset.ts` (source unique). Le
-// middleware i18n ignore ces URLs (elles contiennent un point) : la locale vient
-// du segment de chemin. Voir aussi la section « Jeux de données » de la page.
+// F-40 — Barometer open data endpoints. Serves the CSV/JSON datasets, the
+// codebook and the geometries as downloads (Content-Disposition: attachment).
+// The data derives entirely from `barometer-dataset.ts` (single source). The
+// i18n middleware ignores these URLs (they contain a dot): the locale comes
+// from the path segment. See also the page's "Jeux de données" section.
 import { buildDataFile, type DatasetLocale } from '@/lib/barometer-dataset';
 import { resolveLocale } from '@/i18n/locale';
 
@@ -11,8 +11,8 @@ export async function GET(
   { params }: { params: Promise<{ locale: string; file: string }> },
 ) {
   const { locale: rawLocale, file } = await params;
-  // `resolveLocale` et non un ternaire : le ternaire servait un fichier FRANÇAIS
-  // à /es, /pt et /ar. Même motif que la route sœur `agenda.ics`.
+  // `resolveLocale` and not a ternary: the ternary served a FRENCH file
+  // to /es, /pt and /ar. Same pattern as the sibling route `agenda.ics`.
   const locale: DatasetLocale = resolveLocale(rawLocale);
 
   const built = buildDataFile(file, locale);

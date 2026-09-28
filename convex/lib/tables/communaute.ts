@@ -14,16 +14,15 @@ import {
   workspaceRoleValidator,
 } from '../communaute';
 
-// Tables du chantier « communauté » : espaces collaboratifs (fichiers,
-// invitations), modération a priori de la Tribune et son historique,
-// approfondissement. Les tables EXISTANTES qu'il touche (workspaces,
-// workspaceMembers, tribunePosts, tribuneComments…) sont modifiées en place
-// dans convex/schema.ts.
+// Tables of the "community" workstream: collaborative spaces (files,
+// invitations), pre-moderation of the Tribune and its history, deep-dive.
+// The EXISTING tables it touches (workspaces, workspaceMembers,
+// tribunePosts, tribuneComments…) are modified in place in convex/schema.ts.
 
 export const communauteTables = {
-  // FICHIER LOGIQUE d'un espace (F-24) : un nom, et une suite de versions. La
-  // ligne porte un résumé de la version courante pour que la liste des
-  // fichiers ne relise pas chaque version.
+  // LOGICAL FILE of a space (F-24): a name, and a sequence of versions. The row
+  // carries a summary of the current version so that the file list does not
+  // re-read every version.
   workspaceFiles: defineTable({
     workspaceId: v.id('workspaces'),
     name: v.string(),
@@ -31,8 +30,8 @@ export const communauteTables = {
     createdByName: v.string(),
     currentVersion: v.number(),
     versionCount: v.number(),
-    // Somme des tailles de TOUTES les versions conservées : c'est ce qui est
-    // décompté du quota de l'espace à la suppression.
+    // Sum of the sizes of ALL retained versions: this is what is deducted from
+    // the space's quota on deletion.
     totalBytes: v.number(),
     latestSize: v.number(),
     latestContentType: v.string(),
@@ -42,17 +41,17 @@ export const communauteTables = {
     .index('by_workspace', ['workspaceId'])
     .index('by_creator', ['createdBy']),
 
-  // VERSIONS successives d'un fichier, avec leur auteur et leur date. Le blob
-  // (`storageId`) ne sort JAMAIS de Convex tel quel : seule une URL signée,
-  // produite pour un membre de l'espace, en donne l'accès.
+  // Successive VERSIONS of a file, with their author and date. The blob
+  // (`storageId`) NEVER leaves Convex as is: only a signed URL, produced for a
+  // member of the space, grants access to it.
   workspaceFileVersions: defineTable({
     fileId: v.id('workspaceFiles'),
     workspaceId: v.id('workspaces'),
     version: v.number(),
     storageId: v.id('_storage'),
     size: v.number(),
-    // Type du FORMAT RECONNU par la vérification des octets
-    // (convex/lib/fileCheck.ts), pas celui annoncé par le navigateur.
+    // Type of the format RECOGNISED by byte checking (convex/lib/fileCheck.ts),
+    // not the one announced by the browser.
     contentType: v.string(),
     sha256: v.string(),
     authorUserId: v.id('users'),
@@ -62,15 +61,15 @@ export const communauteTables = {
     .index('by_file_and_version', ['fileId', 'version'])
     .index('by_workspace', ['workspaceId'])
     .index('by_author', ['authorUserId'])
-    // Un même blob ne sert qu'une version : sans cette garde, l'identifiant
-    // d'un fichier d'un autre espace (lu dans une URL) pourrait être
-    // « rattaché » à un espace où l'on est animateur, et servi à ses membres.
+    // A given blob serves only one version: without this guard, the identifier
+    // of a file from another workspace (read from a URL) could be "attached"
+    // to a workspace where one is a facilitator, and served to its members.
     .index('by_storage', ['storageId']),
 
-  // INVITATIONS dans un espace. L'invité est désigné par son ADRESSE : le
-  // compte correspondant, s'il existe, est rattaché à la création
-  // (`invitedUserId`), mais la réponse à l'animateur est la même dans les deux
-  // cas — inviter n'est pas un moyen de savoir qui est inscrit.
+  // INVITATIONS to a space. The invitee is designated by their ADDRESS: the
+  // matching account, if it exists, is attached on creation
+  // (`invitedUserId`), but the answer to the facilitator is the same in both
+  // cases — inviting is not a way to find out who is registered.
   workspaceInvitations: defineTable({
     workspaceId: v.id('workspaces'),
     email: v.string(),
@@ -88,8 +87,8 @@ export const communauteTables = {
     .index('by_user_and_status', ['invitedUserId', 'status'])
     .index('by_inviter', ['invitedBy']),
 
-  // RÉGLAGES de modération de la Tribune — SINGLETON (`key` = 'default').
-  // Absent : billets a priori, commentaires a posteriori (cf.
+  // Tribune moderation SETTINGS — SINGLETON (`key` = 'default').
+  // Absent: posts pre-moderated, comments post-moderated (see
   // DEFAULT_COMMUNITY_MODERATION).
   communityModerationConfig: defineTable({
     key: v.literal('default'),
@@ -99,22 +98,22 @@ export const communauteTables = {
     updatedAt: v.number(),
   }).index('by_key', ['key']),
 
-  // HISTORIQUE DE MODÉRATION (F-49) — une ligne par fait, jamais réécrite :
-  // soumission, modification, avis IA, décision, signalement. `targetId` est
-  // une chaîne (billet OU commentaire, `targetType` dit lequel) ; `postId`
-  // rattache un commentaire à son billet.
+  // MODERATION HISTORY (F-49) — one row per event, never rewritten:
+  // submission, edit, AI opinion, decision, report. `targetId` is a string
+  // (post OR comment, `targetType` says which); `postId` links a comment to its
+  // post.
   moderationEvents: defineTable({
     targetType: moderationTargetValidator,
     targetId: v.string(),
     postId: v.optional(v.id('tribunePosts')),
     kind: moderationEventKindValidator,
-    // Absent pour un fait sans auteur humain (avis de l'IA, compte supprimé).
+    // Absent for an event with no human author (AI opinion, deleted account).
     actorId: v.optional(v.id('users')),
     statusFrom: v.optional(contentStatusValidator),
     statusTo: v.optional(contentStatusValidator),
     reason: v.optional(v.string()),
-    // Avis de l'IA, recopié en entier : l'historique doit se lire sans aller
-    // chercher ailleurs ce que le modèle a dit.
+    // AI opinion, copied in full: the history must be readable without looking
+    // elsewhere for what the model said.
     ai: v.optional(
       v.object({
         verdict: aiModerationVerdict,
@@ -146,9 +145,9 @@ export const communauteTables = {
     .index('by_target', ['targetType', 'targetId'])
     .index('by_actor', ['actorId']),
 
-  // APPROFONDISSEMENT (F-48) : l'auteur d'un billet court invite un membre à
-  // le prolonger en contribution de fond. Même principe que les invitations
-  // d'espace : désigné par son adresse, sans oracle d'existence.
+  // DEEP-DIVE (F-48): the author of a short post invites a member to extend it
+  // into an in-depth contribution. Same principle as space invitations:
+  // designated by address, with no existence oracle.
   tribuneDeepeningInvites: defineTable({
     postId: v.id('tribunePosts'),
     email: v.string(),

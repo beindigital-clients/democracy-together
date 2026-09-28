@@ -15,7 +15,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Publication complète, inspirée de pubDoc() de search.test.ts / notifications.test.ts.
+// Complete publication, modeled on pubDoc() from search.test.ts / notifications.test.ts.
 function pubDoc(over: Record<string, unknown> = {}) {
   return {
     title: 'Titre',
@@ -62,12 +62,12 @@ describe('Compteur de consultations (F-37)', () => {
 
   it('démarre depuis 0 quand views est absent en base', async () => {
     const t = convexTest(schema, modules);
-    // Pas de champ `views` (données seed / anciennes) : optionnel au schéma.
+    // No `views` field (seed / legacy data): optional in the schema.
     await t.run((ctx) =>
       ctx.db.insert('publications', pubDoc({ slug: 'pub-seed' })),
     );
 
-    // getBySlug normalise views -> 0 même sans enregistrement.
+    // getBySlug normalizes views -> 0 even without a record.
     const before = await t.query(api.publications.getBySlug, {
       slug: 'pub-seed',
     });
@@ -91,19 +91,19 @@ describe('Compteur de consultations (F-37)', () => {
       ),
     );
 
-    // Mutation publique = no-op silencieux (pas d'auth, pas d'erreur).
+    // Public mutation = silent no-op (no auth, no error).
     const res = await t.mutation(api.publications.recordPublicationView, {
       slug: 'pub-pending',
     });
     expect(res).toBeNull();
 
-    // La query publique n'expose jamais une publication non publiée.
+    // The public query never exposes an unpublished publication.
     const fetched = await t.query(api.publications.getBySlug, {
       slug: 'pub-pending',
     });
     expect(fetched).toBeNull();
 
-    // Et views reste à 0 en base (inspection directe).
+    // And views stays at 0 in the database (direct inspection).
     const raw = await t.run(async (ctx) => {
       const all = await ctx.db.query('publications').collect();
       return all.find((p) => p.slug === 'pub-pending');
@@ -124,12 +124,12 @@ describe('Compteur de consultations (F-37)', () => {
   });
 });
 
-// --- Isolement du compteur (issue #8) ---------------------------------------
+// --- Counter isolation (issue #8) ---------------------------------------
 //
-// Le décompte ne patche plus le document de la publication — celui que lisent
-// la bibliothèque, le détail et le bloc « même thématique ». Il vit dans une
-// ligne dédiée `publicationViews`, ce que ces tests vérifient directement : le
-// correctif porte précisément sur QUI est écrit, pas sur le nombre affiché.
+// The count no longer patches the publication document — the one read by
+// the library, the detail page and the "même thématique" block. It lives in a
+// dedicated `publicationViews` row, which these tests check directly: the
+// fix is precisely about WHAT is written, not about the displayed number.
 describe('Compteur de consultations — écriture isolée (issue #8)', () => {
   it('écrit dans publicationViews et ne touche pas le document', async () => {
     const t = convexTest(schema, modules);
@@ -149,9 +149,9 @@ describe('Compteur de consultations — écriture isolée (issue #8)', () => {
       rows: await ctx.db.query('publicationViews').collect(),
     }));
 
-    // Le document est INCHANGÉ : `views` n'y a pas été posé.
+    // The document is UNCHANGED: `views` was not set on it.
     expect(doc?.views).toBeUndefined();
-    // …et la ligne dédiée porte le décompte.
+    // …and the dedicated row holds the count.
     expect(rows).toHaveLength(1);
     expect(rows[0].count).toBe(1);
     expect(rows[0].publicationId).toBe(doc?._id);
@@ -159,7 +159,7 @@ describe('Compteur de consultations — écriture isolée (issue #8)', () => {
 
   it('additionne l’héritage du document et la ligne agrégée', async () => {
     const t = convexTest(schema, modules);
-    // 40 vues comptées AVANT le découpage (ou posées en démonstration).
+    // 40 views counted BEFORE the split (or set for demo purposes).
     await t.run((ctx) =>
       ctx.db.insert('publications', pubDoc({ slug: 'pub-mix', views: 40 })),
     );
@@ -176,7 +176,7 @@ describe('Compteur de consultations — écriture isolée (issue #8)', () => {
   });
 });
 
-// --- Plafond de débit (issue #8, critère d’acceptation) ----------------------
+// --- Rate cap (issue #8, acceptance criterion) ----------------------
 describe('Compteur de consultations — plafond de débit (issue #8)', () => {
   it('consomme un quota, dans un espace de noms par publication', async () => {
     const t = convexTest(schema, modules);
@@ -191,8 +191,8 @@ describe('Compteur de consultations — plafond de débit (issue #8)', () => {
       slug: 'pub-quota',
     });
 
-    // convex-test ne simule pas `ctx.meta` : pas d'IP, donc le repli par
-    // publication (cf. lib/rateLimit.ts). La clé reste propre à la publication.
+    // convex-test does not simulate `ctx.meta`: no IP, hence the per-publication
+    // fallback (cf. lib/rateLimit.ts). The key remains specific to the publication.
     const limits = await t.run((ctx) => ctx.db.query('rateLimits').collect());
     expect(limits).toHaveLength(1);
     expect(limits[0].key).toBe('view:noip:pub-quota');
@@ -204,8 +204,8 @@ describe('Compteur de consultations — plafond de débit (issue #8)', () => {
     await t.run((ctx) =>
       ctx.db.insert('publications', pubDoc({ slug: 'pub-full' })),
     );
-    // Fenêtre en cours, déjà au plafond — atteindre le plafond par 1 000 appels
-    // ne testerait rien de plus que la patience du lanceur de tests.
+    // Current window, already at the cap — reaching the cap through 1,000 calls
+    // would test nothing more than the test runner's patience.
     await t.run((ctx) =>
       ctx.db.insert('rateLimits', {
         key: 'view:noip:pub-full',
@@ -214,8 +214,8 @@ describe('Compteur de consultations — plafond de débit (issue #8)', () => {
       }),
     );
 
-    // Silencieux : enregistrer une vue ne doit JAMAIS casser la page (l'îlot
-    // client avale déjà les rejets, mais une vue de trop n'est pas une erreur).
+    // Silent: recording a view must NEVER break the page (the client
+    // island already swallows rejections, but one view too many is not an error).
     const res = await t.mutation(api.publications.recordPublicationView, {
       slug: 'pub-full',
     });

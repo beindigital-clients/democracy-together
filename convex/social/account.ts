@@ -20,39 +20,39 @@ import {
 } from '../lib/socialAccess';
 import { removeFollow } from './follows';
 
-// CYCLE DE VIE DES DONNÉES SOCIALES : suppression de compte et export RGPD.
+// SOCIAL DATA LIFECYCLE: account deletion and GDPR export.
 //
-// Le chantier « comptes » appelle `deleteUserDataSocial(ctx, userId)` depuis
-// sa propre suppression de compte (fonction INTERNE, sans `ctx.auth`), et
-// `exportUserDataSocial(ctx, userId)` depuis son export.
+// The "accounts" workstream calls `deleteUserDataSocial(ctx, userId)` from
+// its own account deletion (INTERNAL function, without `ctx.auth`), and
+// `exportUserDataSocial(ctx, userId)` from its export.
 //
-// DÉCISION — SUPPRESSION, PAS ANONYMISATION, pour tout ce qui est social :
+// DECISION — DELETION, NOT ANONYMIZATION, for everything social:
 //
-//  - Profil, photo, liens de suivi, blocages : données de la personne, sans
-//    valeur pour autrui une fois la personne partie. Supprimés. Les compteurs
-//    d'abonnés des AUTRES profils sont décrémentés dans la même opération.
+//  - Profile, photo, follow links, blocks: the person's own data, with no
+//    value to others once the person is gone. Deleted. The follower counts
+//    of OTHER profiles are decremented in the same operation.
 //
-//  - Messages privés : SUPPRIMÉS, dans les deux sens, avec la conversation.
-//    L'anonymisation a été écartée pour trois raisons :
-//      1. un message privé est un texte libre ; remplacer le nom de
-//         l'expéditeur par « compte supprimé » n'anonymise pas un corps qui
-//         dit « c'est Awa, de l'institut X » — ce serait une pseudonymisation
-//         affichée comme une anonymisation ;
-//      2. contrairement à un billet de Tribune, une conversation 1:1 n'a
-//         aucune valeur collective à préserver : elle n'a qu'un lecteur ;
-//      3. la moitié restante (les messages de l'interlocuteur) est
-//         inintelligible sans l'autre, et resterait liée à une personne qui a
-//         demandé l'effacement.
-//    Le prix, assumé et documenté (docs/backlog/social.md) : l'interlocuteur
-//    perd la conversation. Il peut l'exporter avant, comme toute donnée.
+//  - Private messages: DELETED, in both directions, along with the conversation.
+//    Anonymization was ruled out for three reasons:
+//      1. a private message is free text; replacing the sender's name
+//         with "compte supprimé" does not anonymize a body that
+//         says "it's Awa, from institute X" — that would be pseudonymization
+//         presented as anonymization;
+//      2. unlike a Tribune post, a 1:1 conversation has
+//         no collective value to preserve: it has only one reader;
+//      3. the remaining half (the other party's messages) is
+//         unintelligible without the other, and would remain linked to a person who
+//         requested erasure.
+//    The cost, accepted and documented (docs/backlog/social.md): the other party
+//    loses the conversation. They can export it beforehand, like any data.
 //
-//  - Signalements où la personne est signalée OU signalante : supprimés
-//    (le message transmis disparaît avec le compte ; la décision éventuelle
-//    reste au journal d'audit, qui ne porte que des identifiants).
+//  - Reports where the person is reported OR reporting: deleted
+//    (the forwarded message disappears with the account; any decision
+//    remains in the audit log, which holds only identifiers).
 //
-// La suppression est PAR LOTS : une transaction Convex est bornée en écritures,
-// et un compte ancien peut porter des milliers de messages. La fonction rend
-// `{ done }` ; `deleteUserDataSocialStep` la relance jusqu'au bout.
+// Deletion is DONE IN BATCHES: a Convex transaction is bounded in writes,
+// and an old account can hold thousands of messages. The function returns
+// `{ done }`; `deleteUserDataSocialStep` re-runs it until the end.
 
 const DELETE_BUDGET = 400;
 
@@ -62,7 +62,7 @@ export async function deleteUserDataSocial(
 ): Promise<{ done: boolean }> {
   let budget = DELETE_BUDGET;
 
-  // 1. Conversations (les deux participants, tous les messages).
+  // 1. Conversations (both participants, all messages).
   const CONV_BATCH = 20;
   const convIds = new Set<Id<'conversations'>>();
   const own = await ctx.db
@@ -95,13 +95,13 @@ export async function deleteUserDataSocial(
     budget -= members.length + 1;
     if (budget <= 0) return { done: false };
   }
-  // Un lot plein : il peut en rester, on reprend au passage suivant.
+  // A full batch: some may remain, we resume on the next pass.
   if (own.length === CONV_BATCH || theirs.length === CONV_BATCH) {
     return { done: false };
   }
 
-  // Messages envoyés hors d'une conversation encore rattachée (données
-  // incohérentes, par exemple une conversation effacée à la main).
+  // Messages sent outside a still-attached conversation (inconsistent
+  // data, for example a conversation deleted by hand).
   const stray = await ctx.db
     .query('directMessages')
     .withIndex('by_sender', (q) => q.eq('senderId', userId))
@@ -110,7 +110,7 @@ export async function deleteUserDataSocial(
   budget -= stray.length;
   if (budget <= 0) return { done: false };
 
-  // 2. Signalements (signalant ou signalé).
+  // 2. Reports (reporter or reported).
   for (const idx of ['by_reporter', 'by_reportedUser'] as const) {
     const rows =
       idx === 'by_reporter'
@@ -127,7 +127,7 @@ export async function deleteUserDataSocial(
     if (budget <= 0) return { done: false };
   }
 
-  // 3. Suivis, dans les deux sens (compteurs d'autrui tenus par removeFollow).
+  // 3. Follows, in both directions (others' counters maintained by removeFollow).
   const following = await ctx.db
     .query('follows')
     .withIndex('by_follower_and_followee', (q) => q.eq('followerId', userId))
@@ -143,7 +143,7 @@ export async function deleteUserDataSocial(
   budget -= followers.length * 4;
   if (budget <= 0) return { done: false };
 
-  // 4. Organisations suivies, blocages dans les deux sens.
+  // 4. Followed organizations, blocks in both directions.
   const orgs = await ctx.db
     .query('orgFollows')
     .withIndex('by_user_and_org', (q) => q.eq('userId', userId))
@@ -164,8 +164,8 @@ export async function deleteUserDataSocial(
   budget -= blockedBy.length;
   if (budget <= 0) return { done: false };
 
-  // 5. Le profil en DERNIER (les étapes précédentes relisent les compteurs),
-  //    et sa photo dans le stockage.
+  // 5. The profile LAST (the previous steps re-read the counters),
+  //    and its photo in storage.
   const profile = await profileByUserId(ctx, userId);
   if (profile) {
     if (profile.photoId) await ctx.storage.delete(profile.photoId);
@@ -174,9 +174,9 @@ export async function deleteUserDataSocial(
   return { done: true };
 }
 
-// Enveloppe planifiable : relance le lot suivant tant qu'il en reste. Le
-// chantier « comptes » peut appeler la fonction directement dans sa
-// transaction, ou planifier celle-ci pour les comptes volumineux.
+// Schedulable wrapper: re-runs the next batch as long as some remain. The
+// "accounts" workstream can call the function directly in its
+// transaction, or schedule this one for large accounts.
 export const deleteUserDataSocialStep = internalMutation({
   args: { userId: v.id('users') },
   returns: v.object({ done: v.boolean() }),
@@ -193,7 +193,7 @@ export const deleteUserDataSocialStep = internalMutation({
   },
 });
 
-// --- Export RGPD -------------------------------------------------------------------
+// --- GDPR export -------------------------------------------------------------------
 
 export const socialExportValidator = v.object({
   profile: v.union(
@@ -222,8 +222,8 @@ export const socialExportValidator = v.object({
       since: v.number(),
     }),
   ),
-  // Les abonnés sont des TIERS : on exporte ceux dont le profil est visible
-  // de la personne, et le nombre des autres — jamais leur identité.
+  // Followers are THIRD PARTIES: we export those whose profile is visible
+  // to the person, and the count of the others — never their identity.
   followers: v.array(
     v.object({
       displayName: v.string(),
@@ -236,9 +236,9 @@ export const socialExportValidator = v.object({
     v.object({ name: v.string(), slug: v.string(), since: v.number() }),
   ),
   blocked: v.array(v.object({ displayName: v.string(), since: v.number() })),
-  // SA copie des conversations : messages envoyés ET reçus (une
-  // correspondance adressée à la personne la concerne), hors messages qu'elle
-  // a supprimés de sa copie.
+  // THEIR copy of the conversations: messages sent AND received (a
+  // correspondence addressed to the person concerns them), excluding messages they
+  // deleted from their copy.
   conversations: v.array(
     v.object({
       with: v.string(),
@@ -406,7 +406,7 @@ export async function exportUserDataSocial(ctx: QueryCtx, userId: Id<'users'>) {
   };
 }
 
-// Enveloppe interne pour l'export du chantier « comptes » (sans `ctx.auth`).
+// Internal wrapper for the "accounts" workstream export (without `ctx.auth`).
 export const exportUserDataSocialQuery = internalQuery({
   args: { userId: v.id('users') },
   returns: socialExportValidator,

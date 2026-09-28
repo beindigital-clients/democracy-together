@@ -1,12 +1,12 @@
 import type { Locale } from '@/i18n/routing';
 
-// F-16 — Espace presse / kit média. Page publique sans backend Convex : contenu
-// éditorial local bilingue (même approche que `partners-content.ts` /
-// `reports-content.ts`). On y trouve un boilerplate (présentation du réseau en
-// un paragraphe), des FAITS CLÉS — uniquement des faits ÉTABLIS, AUCUN chiffre
-// inventé type « X membres » — le contact presse (renvoi au formulaire
-// /contact) et des ressources (liens vers /a-propos et vers les données
-// ouvertes du Baromètre, CC-BY). Vérifié sans terme banni.
+// F-16 — Press area / media kit. Public page with no Convex backend: local
+// bilingual editorial content (same approach as `partners-content.ts` /
+// `reports-content.ts`). It contains a boilerplate (presentation of the network in
+// one paragraph), KEY FACTS — only ESTABLISHED facts, NO invented
+// figure like "X membres" — the press contact (link to the /contact
+// form) and resources (links to /a-propos and to the Barometer's open
+// data, CC-BY). Checked for banned terms.
 
 export type PressFact = {
   slug: string;
@@ -19,18 +19,18 @@ export type PressResource = {
   label: string;
   description: string;
   href: string;
-  external: boolean; // true = fichier de données (lien <a>), false = route interne (<Link>)
+  external: boolean; // true = data file (<a> link), false = internal route (<Link>)
 };
 
 export type PressKit = {
-  // Boilerplate : présentation du réseau en un paragraphe, réutilisable tel quel
-  // par une rédaction (« à propos de Democracy Together »).
+  // Boilerplate: presentation of the network in one paragraph, reusable as is
+  // by a newsroom ("à propos de Democracy Together").
   boilerplate: string;
   facts: PressFact[];
   resources: PressResource[];
 };
 
-// Slugs neutres (partagés fr/en), ordre d'affichage des faits clés.
+// Neutral slugs (shared fr/en), display order of the key facts.
 export const PRESS_FACT_SLUGS = [
   'statut',
   'perimetre',
@@ -40,7 +40,7 @@ export const PRESS_FACT_SLUGS = [
 
 export type PressFactSlug = (typeof PRESS_FACT_SLUGS)[number];
 
-// Slugs neutres des ressources presse.
+// Neutral slugs of the press resources.
 export const PRESS_RESOURCE_SLUGS = [
   'a-propos',
   'donnees',
@@ -333,7 +333,7 @@ const ar: PressKit = {
   ],
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, PressKit> = { fr, en, es, pt, ar };
 
 export function getPressKit(locale: Locale): PressKit {

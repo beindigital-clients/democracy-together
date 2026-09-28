@@ -2,44 +2,43 @@
 
 import { useCallback, useEffect } from 'react';
 
-// reCAPTCHA v3 — côté client : obtenir un jeton. Le pendant serveur, qui le
-// vérifie auprès de Google, est `convex/lib/recaptcha.ts`.
+// reCAPTCHA v3 — client side: obtain a token. The server counterpart, which
+// verifies it with Google, is `convex/lib/recaptcha.ts`.
 //
-// CHARGEMENT À LA DEMANDE (issue #39). Auparavant un `RecaptchaProvider` monté
-// dans le layout racine posait le <script> de Google sur TOUTES les pages, y
-// compris purement éditoriales : `/fr/mentions-legales` est du texte statique,
-// sans le moindre formulaire, et payait quand même deux requêtes tierces.
-// Sur une connexion mobile à faible débit — exigence structurante du cadrage
-// pour l'Afrique — c'est de la latence, de la batterie et des données
-// consommées pour rien. Et comme ce script dépose des identifiants, le charger
-// sur une page sans formulaire est aussi difficile à justifier au regard du
-// RGPD.
+// ON-DEMAND LOADING (issue #39). Previously a `RecaptchaProvider` mounted
+// in the root layout put Google's <script> on EVERY page, including purely
+// editorial ones: `/fr/mentions-legales` is static text, without a single
+// form, and still paid for two third-party requests.
+// On a low-bandwidth mobile connection — a core requirement of the brief
+// for Africa — that is latency, battery and data spent for nothing. And
+// since this script drops identifiers, loading it on a page without a form
+// is also hard to justify under the GDPR.
 //
-// Désormais il n'est demandé qu'au PREMIER RENDU d'un formulaire protégé :
-// `useRecaptcha()` l'injecte à son montage. Les sept formulaires publics n'ont
-// pas changé d'appel — `const execute = useRecaptcha()` puis
-// `const token = await execute('contact')` juste avant l'appel serveur.
+// It is now requested only on the FIRST RENDER of a protected form:
+// `useRecaptcha()` injects it on mount. The seven public forms have not
+// changed their call — `const execute = useRecaptcha()` then
+// `const token = await execute('contact')` right before the server call.
 //
-// NO-OP GRACIEUX : sans NEXT_PUBLIC_RECAPTCHA_SITE_KEY (dev / CI / E2E), rien
-// n'est injecté et execute() renvoie ''. Le serveur tranche alors seul, selon
-// sa propre configuration (fail-closed documenté dans convex/lib/recaptcha.ts).
+// GRACEFUL NO-OP: without NEXT_PUBLIC_RECAPTCHA_SITE_KEY (dev / CI / E2E),
+// nothing is injected and execute() returns ''. The server then decides on
+// its own, per its own configuration (fail-closed, documented in convex/lib/recaptcha.ts).
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
 const SCRIPT_ID = 'recaptcha-v3';
 
-// Une clé de site est-elle configurée ? Sans elle, aucun script n'est chargé et
-// aucun jeton n'est produit (dev / CI / E2E). Exporté pour que les tests E2E
-// prennent la MÊME décision que le navigateur au lieu de recopier la règle —
-// même motif que `projectId` côté Sanity (TESTING.md § « Sources externes »).
+// Is a site key configured? Without one, no script is loaded and no token is
+// produced (dev / CI / E2E). Exported so that E2E tests make the SAME
+// decision as the browser instead of copying the rule —
+// same pattern as `projectId` on the Sanity side (TESTING.md § "Sources externes").
 export const recaptchaConfigured = Boolean(SITE_KEY);
 
-// Plafond d'attente du script. Le chargement démarre au montage du formulaire,
-// donc bien avant la soumission : ce délai ne sert qu'au cas limite où
-// l'utilisateur envoie le formulaire pendant que le script est encore en
-// route. Au-delà, on rend la main sans jeton plutôt que de figer le bouton —
-// le serveur tranchera (c'était déjà le comportement, en pire : sans script
-// chargé, l'ancien execute() renvoyait '' immédiatement).
+// Upper bound on waiting for the script. Loading starts when the form mounts,
+// so well before submission: this delay only matters in the edge case where
+// the user submits the form while the script is still on its way. Beyond
+// it, we return without a token rather than freezing the button —
+// the server will decide (that was already the behavior, only worse: with no
+// script loaded, the old execute() returned '' immediately).
 const LOAD_TIMEOUT_MS = 10_000;
 
 declare global {
@@ -54,8 +53,8 @@ declare global {
 type Grecaptcha = NonNullable<Window['grecaptcha']>;
 type ExecuteFn = (action: string) => Promise<string>;
 
-// Une seule promesse par page : deux formulaires affichés ensemble (c'est le
-// cas de /jeunes) partagent le même chargement, pas deux <script>.
+// A single promise per page: two forms shown together (as on
+// /jeunes) share the same load, not two <script>s.
 let pending: Promise<Grecaptcha | null> | null = null;
 
 function whenReady(api: Grecaptcha): Promise<Grecaptcha> {
@@ -73,16 +72,16 @@ function scriptElement(siteKey: string): HTMLScriptElement {
   return script;
 }
 
-// Injecte le script au premier appel, puis renvoie l'API Google prête à
-// l'emploi — ou `null` si elle est hors d'atteinte (clé absente, réseau,
-// bloqueur de traqueurs). Aucun appelant n'est jamais bloqué par un `null` :
-// la soumission part sans jeton et le serveur décide.
+// Injects the script on the first call, then returns the Google API ready
+// to use — or `null` if it is out of reach (missing key, network, tracker
+// blocker). No caller is ever blocked by a `null`: the submission goes
+// out without a token and the server decides.
 export function loadRecaptcha(): Promise<Grecaptcha | null> {
   if (!SITE_KEY || typeof document === 'undefined') {
     return Promise.resolve(null);
   }
 
-  // Déjà chargé (autre formulaire, navigation client) : rien à injecter.
+  // Already loaded (another form, client-side navigation): nothing to inject.
   const present = window.grecaptcha;
   if (present) return whenReady(present);
   if (pending) return pending;
@@ -92,9 +91,9 @@ export function loadRecaptcha(): Promise<Grecaptcha | null> {
 
     const giveUp = () => {
       clearTimeout(timer);
-      // Remis à zéro : une soumission ultérieure retentera (le script, lui,
-      // peut très bien finir par arriver — `window.grecaptcha` est retesté
-      // en tête de fonction).
+      // Reset: a later submission will retry (the script itself may well
+      // end up arriving — `window.grecaptcha` is re-checked at the top of
+      // the function).
       pending = null;
       resolve(null);
     };
@@ -109,8 +108,8 @@ export function loadRecaptcha(): Promise<Grecaptcha | null> {
     });
 
     script.addEventListener('error', () => {
-      // Échec définitif : on retire la balise morte, sans quoi une nouvelle
-      // tentative attendrait un événement `load` qui ne viendra jamais.
+      // Permanent failure: we remove the dead tag, otherwise a new attempt
+      // would wait for a `load` event that will never come.
       script.remove();
       giveUp();
     });
@@ -119,9 +118,9 @@ export function loadRecaptcha(): Promise<Grecaptcha | null> {
   return pending;
 }
 
-// Hook des formulaires protégés. Son montage vaut demande de chargement : le
-// script arrive pendant que l'utilisateur remplit le formulaire, et non au
-// chargement de chaque page du site.
+// Hook for protected forms. Mounting it counts as a load request: the
+// script arrives while the user fills in the form, not on the load of
+// every page of the site.
 export function useRecaptcha(): ExecuteFn {
   useEffect(() => {
     void loadRecaptcha();
@@ -134,8 +133,8 @@ export function useRecaptcha(): ExecuteFn {
     try {
       return await api.execute(SITE_KEY, { action });
     } catch {
-      // Exécution refusée par Google -> '' : on ne bloque pas l'UX, le serveur
-      // tranche (fail-closed documenté côté convex/lib/recaptcha.ts).
+      // Execution refused by Google -> '': we do not block the UX, the server
+      // decides (fail-closed, documented in convex/lib/recaptcha.ts).
       return '';
     }
   }, []);

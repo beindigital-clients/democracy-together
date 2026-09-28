@@ -17,16 +17,16 @@ import {
   useProgrammeError,
 } from '@/components/programmes/shared';
 
-// Coordination du mentorat (F-59) — rang modérateur. Pour chaque mentoré sans
-// binôme : les mentors suggérés avec leur score expliqué ; le coordinateur
-// confirme, puis les deux parties acceptent depuis leur espace. Les binômes
-// inactifs (aucune séance depuis quatre semaines) sont signalés.
+// Mentoring coordination (F-59) — moderator rank. For each mentee without a
+// pair: the suggested mentors with their explained score; the coordinator
+// confirms, then both parties accept from their area. Inactive
+// pairs (no session for four weeks) are flagged.
 export default function MentoringCoordination() {
   const t = useTranslations('mentorship');
   const tl = useTranslations('library');
   const fmt = useDateFormat();
-  // L'heure vient du client (une query ne lit pas l'horloge) et avance à la
-  // minute : un binôme qui devient inactif pendant la consultation le dit.
+  // The time comes from the client (a query does not read the clock) and advances by the
+  // minute: a pair that becomes inactive while the page is being viewed says so.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);

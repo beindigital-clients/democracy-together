@@ -9,15 +9,15 @@ import type {
 } from './types';
 import { CURRENCIES, isCurrency } from './amounts';
 
-// PRESTATAIRE FACTICE — développement et E2E UNIQUEMENT (garde : `fakeProvider
-// State()` dans ./config.ts).
+// FAKE PROVIDER — development and E2E ONLY (guard: `fakeProvider
+// State()` in ./config.ts).
 //
-// Il ne court-circuite PAS la chaîne : il la joue. Le « paiement » est une page
-// du site (/paiement/simulateur) ; valider y fabrique un webhook SIGNÉ
-// (HMAC-SHA256, en-tête `x-fake-signature`) qui passe par la même vérification
-// et le même grand livre qu'un webhook Stripe. Ce qu'un E2E prouve avec lui —
-// idempotence, reçu, espace membre, back-office — vaut donc pour les vrais
-// prestataires, à la traduction de l'événement près.
+// It does NOT short-circuit the pipeline: it plays it. The "payment" is a page
+// of the site (/paiement/simulateur); confirming there produces a SIGNED
+// webhook (HMAC-SHA256, `x-fake-signature` header) that goes through the same
+// verification and the same ledger as a Stripe webhook. What an E2E test
+// proves with it — idempotency, receipt, member area, back office — therefore
+// holds for the real providers, up to the translation of the event.
 
 export const FAKE_SIGNATURE_HEADER = 'x-fake-signature';
 
@@ -38,9 +38,9 @@ export async function signFakePayload(rawBody: string): Promise<string> {
 export const fakeAdapter: PaymentAdapter = {
   id: 'fake',
   currencies: CURRENCIES,
-  // Pas de prélèvement automatique : le don mensuel factice suit le chemin des
-  // relances, celui que prendrait un prestataire sans abonnements (mobile
-  // money) ; Stripe, lui, prélève (tests de `stripe.ts`).
+  // No automatic debit: the fake monthly donation follows the reminder path,
+  // the one a provider without subscriptions would take (mobile money);
+  // Stripe, on the other hand, debits (see the `stripe.ts` tests).
   nativeSubscriptions: false,
 
   async createCheckout(req: CheckoutRequest) {
@@ -57,8 +57,8 @@ export const fakeAdapter: PaymentAdapter = {
     rawBody: string,
     header: HeaderReader,
   ): Promise<WebhookParseResult> {
-    // Garde AVANT toute lecture : désactivé, le point d'entrée n'accepte rien,
-    // même une requête correctement signée avec le secret par défaut.
+    // Guard BEFORE any read: when disabled, the endpoint accepts nothing, not even
+    // a request correctly signed with the default secret.
     if (fakeProviderState() !== 'active')
       return { ok: false, reason: 'disabled' };
     const signature = header(FAKE_SIGNATURE_HEADER);
@@ -97,8 +97,8 @@ export const fakeAdapter: PaymentAdapter = {
     return { ok: true, eventId: p.id, type: p.type, events };
   },
 
-  // Le « remboursement » factice réussit toujours : il exerce le chemin du
-  // back-office qui appelle le prestataire.
+  // The fake "refund" always succeeds: it exercises the back-office path that
+  // calls the provider.
   async refund() {
     return fakeProviderState() === 'active';
   },

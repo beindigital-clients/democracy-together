@@ -1,10 +1,10 @@
 import type { SiteLocale } from './locales';
 import { escapeHtml, shell, subject, type Phrase } from './emailContent';
 
-// Courriels du chantier « comptes », dans les cinq langues — même discipline
-// que lib/emailContent.ts (chaque phrase est un `Record<SiteLocale, string>` :
-// une langue sans libellé ne compile pas). Fichier séparé pour ne pas
-// réécrire le module commun à chaque chantier.
+// E-mails of the "comptes" workstream, in the five languages — same discipline
+// as lib/emailContent.ts (each sentence is a `Record<SiteLocale, string>`:
+// a language without a label does not compile). Separate file so as not to
+// rewrite the shared module for every workstream.
 
 const GREETING: Phrase = {
   fr: 'Bonjour,',
@@ -14,7 +14,7 @@ const GREETING: Phrase = {
   ar: 'مرحباً،',
 };
 
-// --- Accueil d'un compte créé pour quelqu'un ---------------------------------
+// --- Welcome for an account created on someone's behalf ----------------------
 
 const WELCOME_SUBJECT: Phrase = {
   fr: 'Votre compte a été créé',
@@ -32,7 +32,7 @@ const WELCOME_INTRO: Phrase = {
   ar: 'تم للتوّ فتح حساب لكم على منصة Democracy Together.',
 };
 
-/** `{org}` est remplacé par le nom de l'organisation (échappé). */
+/** `{org}` is replaced by the organization's name (escaped). */
 const WELCOME_ORG: Phrase = {
   fr: 'Il est rattaché à l’organisation <strong>{org}</strong>.',
   en: 'It is linked to the organisation <strong>{org}</strong>.',
@@ -84,7 +84,7 @@ export function accountWelcomeEmail(args: {
   return { subject: subject(WELCOME_SUBJECT, loc), html: shell(loc, body) };
 }
 
-// --- Reconfirmation de la suppression de son compte --------------------------
+// --- Reconfirmation of one's own account deletion ----------------------------
 
 const DELETE_SUBJECT: Phrase = {
   fr: 'Confirmez la suppression de votre compte',

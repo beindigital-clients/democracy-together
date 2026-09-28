@@ -1,22 +1,22 @@
 import { ConvexError } from 'convex/values';
 
-// Détecte le dépassement de limite de débit renvoyé par le serveur
-// (convex/lib/rateLimit.ts -> ConvexError('RATE_LIMITED')). `data` traverse
-// jusqu'au client, contrairement au message d'un Error nu (masqué en prod).
+// Detects the rate-limit overflow returned by the server
+// (convex/lib/rateLimit.ts -> ConvexError('RATE_LIMITED')). `data` travels through
+// to the client, unlike a bare Error's message (masked in prod).
 export function isRateLimited(error: unknown): boolean {
   return error instanceof ConvexError && error.data === 'RATE_LIMITED';
 }
 
-// Échec de la vérification reCAPTCHA v3 renvoyée par l'action-portail
-// (convex/lib/recaptcha.ts -> ConvexError('CAPTCHA_FAILED')). Même mécanique que
-// RATE_LIMITED : `data` traverse jusqu'au client pour un message dédié.
+// reCAPTCHA v3 verification failure returned by the gateway action
+// (convex/lib/recaptcha.ts -> ConvexError('CAPTCHA_FAILED')). Same mechanism as
+// RATE_LIMITED: `data` travels through to the client for a dedicated message.
 export function isCaptchaFailed(error: unknown): boolean {
   return error instanceof ConvexError && error.data === 'CAPTCHA_FAILED';
 }
 
-// Inscription à la newsletter refusée faute de fournisseur d'e-mail
-// (convex/newsletter.ts -> ConvexError('EMAIL_PROVIDER_NOT_CONFIGURED')) : le
-// lien de confirmation du double opt-in ne pourrait pas partir.
+// Newsletter sign-up refused for lack of an email provider
+// (convex/newsletter.ts -> ConvexError('EMAIL_PROVIDER_NOT_CONFIGURED')): the
+// double opt-in confirmation link could not be sent.
 export function isEmailProviderMissing(error: unknown): boolean {
   return (
     error instanceof ConvexError &&

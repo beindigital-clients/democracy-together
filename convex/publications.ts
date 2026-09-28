@@ -42,19 +42,19 @@ import {
   type PubSort,
 } from './lib/publications';
 
-// Le lecteur a-t-il les droits « membre » (adhésion validée) ? Sert au gating des
-// publications `access: 'members'` (F-35). Un compte authentifié SANS adhésion
-// validée vaut « visiteur » et reste donc verrouillé.
+// Does the reader have "member" rights (validated membership)? Used for gating
+// `access: 'members'` publications (F-35). An authenticated account WITHOUT validated
+// membership counts as "visitor" and therefore stays locked.
 async function viewerIsMember(ctx: QueryCtx): Promise<boolean> {
   const user = await getCurrentUser(ctx);
   return rank(user?.role) >= rank('membre');
 }
 
-// Total de consultations d'une publication (F-37). Somme des deux sources
-// DISJOINTES : `publications.views` (héritage — vues comptées avant l'isolement
-// du compteur, valeurs de démonstration posées par devAdmin) et la ligne
-// `publicationViews` (tout ce qui est compté depuis). Aucune vue perdue, aucune
-// comptée deux fois : plus rien n'écrit `publications.views` en production.
+// Total views of a publication (F-37). Sum of the two DISJOINT
+// sources: `publications.views` (legacy — views counted before the counter
+// was isolated, demo values set by devAdmin) and the
+// `publicationViews` row (everything counted since). No view lost, none
+// counted twice: nothing writes `publications.views` in production anymore.
 async function totalViews(ctx: QueryCtx, pub: Doc<'publications'>) {
   const row = await ctx.db
     .query('publicationViews')
@@ -63,15 +63,15 @@ async function totalViews(ctx: QueryCtx, pub: Doc<'publications'>) {
   return (pub.views ?? 0) + (row?.count ?? 0);
 }
 
-// Bibliothèque publique (F-32/F-33) : liste filtrée + facettes calculées sur
-// l'ensemble des publications *publiées* (pour ne proposer que des filtres
-// utiles). Rendu côté serveur, filtres dans l'URL -> SEO + faible débit
-// (F-05/F-07). Aucune publication draft/pending n'est jamais exposée ici.
+// Public library (F-32/F-33): filtered list + facets computed over
+// all *published* publications (so as to offer only useful
+// filters). Server-side rendering, filters in the URL -> SEO + low bandwidth
+// (F-05/F-07). No draft/pending publication is ever exposed here.
 const sortValidator = v.optional(
   v.union(...PUB_SORTS.map((s) => v.literal(s))),
 );
 
-// Validators de vocabulaire (slugs neutres) — réutilisés par le dépôt membre.
+// Vocabulary validators (neutral slugs) — reused by the member submission.
 const typeValidator = v.union(...PUB_TYPES.map((t) => v.literal(t)));
 const themeValidator = v.union(...PUB_THEMES.map((t) => v.literal(t)));
 const regionValidator = v.union(...PUB_REGIONS.map((r) => v.literal(r)));
@@ -88,9 +88,9 @@ export const listPublished = query({
     q: v.optional(v.string()),
     sort: sortValidator,
   },
-  // Validateur de RETOUR : décrit ce qui sort, et rien d'autre ne peut sortir.
-  // Convex ÉCHOUE la query si le handler renvoie un champ non déclaré — la
-  // fuite devient une panne visible plutôt qu'une donnée servie en silence.
+  // RETURN validator: describes what goes out, and nothing else can go out.
+  // Convex FAILS the query if the handler returns an undeclared field — the
+  // leak becomes a visible failure rather than data served silently.
   returns: v.object({
     items: v.array(publicPublicationValidator),
     facets: publicationFacetsValidator,
@@ -108,17 +108,17 @@ export const listPublished = query({
     ).map((p) => projectPublication(p, null, isMember));
     return {
       items,
-      // Les facettes comptent TOUTES les publiées, réservées comprises : le
-      // gating masque le contenu, pas l'existence (découvrabilité, F-35).
+      // The facets count ALL published ones, restricted ones included: the
+      // gating hides the content, not the existence (discoverability, F-35).
       facets: computePublicationFacets(published, filters),
       total: published.length,
     };
   },
 });
 
-// Détail publication (F-34) — publique : ne renvoie QUE les publications
-// publiées. Le filtrage de statut vit dans la query (et non chez l'appelant)
-// pour qu'aucun consommateur ne puisse exposer un brouillon / une soumission.
+// Publication detail (F-34) — public: returns ONLY published
+// publications. Status filtering lives in the query (and not in the caller)
+// so that no consumer can expose a draft / a submission.
 export const getBySlug = query({
   args: { slug: v.string() },
   returns: v.union(publicPublicationValidator, v.null()),
@@ -128,15 +128,15 @@ export const getBySlug = query({
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique();
     if (!pub || pub.status !== 'published') return null;
-    // Gating « réservé aux membres » (F-35). L'URL signée n'est même pas
-    // GÉNÉRÉE quand la publication est verrouillée : rien à fuiter.
+    // "Members only" gating (F-35). The signed URL is not even
+    // GENERATED when the publication is locked: nothing to leak.
     const isMember = await viewerIsMember(ctx);
     const locked = isPublicationLocked(pub.access, isMember);
     const fileUrl =
       !locked && pub.fileId ? await ctx.storage.getUrl(pub.fileId) : null;
-    // Le décompte de consultations (F-37) vient de la ligne agrégée, pas du
-    // document : c'est la seule query qui l'affiche, donc la seule à payer
-    // cette lecture supplémentaire.
+    // The view count (F-37) comes from the aggregated row, not from the
+    // document: this is the only query that displays it, hence the only one to pay
+    // for this extra read.
     return projectPublication(
       pub,
       fileUrl,
@@ -146,26 +146,26 @@ export const getBySlug = query({
   },
 });
 
-// Compteur de consultations (F-37) — mutation PUBLIQUE, sans authentification.
-// No-op si la publication n'existe pas ou n'est pas publiée (on n'expose ni ne
-// compte les brouillons / soumissions). La déduplication par session vit côté
-// client (sessionStorage).
+// View counter (F-37) — PUBLIC mutation, without authentication.
+// No-op if the publication does not exist or is not published (we neither expose nor
+// count drafts / submissions). Per-session deduplication lives on the
+// client side (sessionStorage).
 //
-// DEUX CORRECTIFS (issue #8) :
+// TWO FIXES (issue #8):
 //
-//  1. PLAFOND. Endpoint public non authentifié, sans aucun quota : le compteur
-//     se gonflait avec une boucle `for`. Le quota est posé sur (bloc d'adresses,
-//     publication) — la seule clé non forgeable ici (cf. lib/rateLimit.ts).
-//     Dépasser le quota n'est PAS une erreur remontée à la page : la
-//     consultation n'est simplement pas comptée. Le quota est consommé AVANT de
-//     lire la publication, pour qu'un martèlement sur des slugs inconnus ne soit
-//     pas gratuit non plus.
+//  1. CAP. Unauthenticated public endpoint, with no quota at all: the counter
+//     could be inflated with a `for` loop. The quota is set on (address block,
+//     publication) — the only unforgeable key here (see lib/rateLimit.ts).
+//     Exceeding the quota is NOT an error surfaced to the page: the
+//     view is simply not counted. The quota is consumed BEFORE
+//     reading the publication, so that hammering unknown slugs is not
+//     free either.
 //
-//  2. CONTENTION. L'incrément patchait le document de la publication — celui
-//     que lisent la bibliothèque, le détail et le bloc « même thématique ».
-//     Chaque visite invalidait donc tous ces abonnements, et la publication la
-//     plus lue entrait en concurrence d'écriture avec elle-même (OCC). Le
-//     décompte vit maintenant dans une ligne dédiée, lue seulement par
+//  2. CONTENTION. The increment patched the publication document — the one
+//     read by the library, the detail and the "même thématique" block.
+//     Each visit therefore invalidated all these subscriptions, and the most
+//     read publication was in write contention with itself (OCC). The
+//     count now lives in a dedicated row, read only by
 //     `getBySlug`.
 export const recordPublicationView = mutation({
   args: { slug: v.string() },
@@ -195,17 +195,17 @@ export const recordPublicationView = mutation({
   },
 });
 
-// Compteur de téléchargements / consultations — mutation PUBLIQUE, appelée au
-// clic sur « Télécharger le PDF » ou « Consulter (DOI) » de la fiche.
+// Download / consultation counter — PUBLIC mutation, called on
+// clicking "Télécharger le PDF" or "Consulter (DOI)" on the record page.
 //
-// Mesuré le 27/09 (membre A-8) : AUCUNE mutation n'écrivait `downloads` — le
-// compteur « Télécharg. » affiché n'était que la valeur posée par le seed, et
-// ne bougeait jamais. Même garde que les vues : quota par (bloc d'adresses,
-// publication), dépassement = non compté et non signalé ; no-op sur une
-// publication absente ou non publiée. Le décompte reste sur le document
-// (`downloads`, lu par la liste et la fiche) : un clic est un événement rare
-// — sans commune mesure avec une consultation — et c'est ce champ que le
-// tri « plus téléchargées » et les cartes affichent.
+// Measured on 27/09 (member A-8): NO mutation wrote `downloads` — the
+// displayed "Télécharg." counter was only the value set by the seed, and
+// never moved. Same guard as views: quota per (address block,
+// publication), exceeding = not counted and not reported; no-op on a
+// missing or unpublished publication. The count stays on the document
+// (`downloads`, read by the list and the record page): a click is a rare event
+// — nothing like a view — and it is this field that the
+// "most downloaded" sort and the cards display.
 export const recordPublicationDownload = mutation({
   args: { slug: v.string() },
   returns: v.null(),
@@ -223,14 +223,14 @@ export const recordPublicationDownload = mutation({
   },
 });
 
-// Publications liées (même thématique) — pour le bloc « Dans la même
-// thématique » du détail. Exclut la publication courante, bornée à `limit`.
+// Related publications (same theme) — for the "Dans la même
+// thématique" block of the detail. Excludes the current publication, bounded by `limit`.
 export const relatedByTheme = query({
   args: {
-    // PAS de resserrement ici : `publications.theme` est `v.string()` au schéma
-    // (des publications de seed portent des thèmes hors vocabulaire), et
-    // l'appelant passe le thème d'une publication existante. Un union ferait
-    // échouer le bloc « dans la même thématique » sur ces publications-là.
+    // NO narrowing here: `publications.theme` is `v.string()` in the schema
+    // (seed publications carry themes outside the vocabulary), and
+    // the caller passes the theme of an existing publication. A union would make
+    // the "dans la même thématique" block fail on those publications.
     theme: v.string(),
     excludeSlug: v.string(),
     limit: v.optional(v.number()),
@@ -253,10 +253,10 @@ export const relatedByTheme = query({
   },
 });
 
-// --- Dépôt documentaire (F-32) : workflow membre -> modérateur ---------------
+// --- Document submission (F-32): member -> moderator workflow ---------------
 
-// URL de téléversement à usage unique pour le document (PDF, jeu de données…).
-// Authentifié : seul un membre connecté peut obtenir une URL d'upload.
+// Single-use upload URL for the document (PDF, dataset…).
+// Authenticated: only a signed-in member can obtain an upload URL.
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
@@ -274,16 +274,16 @@ const authorValidator = v.object({
   role: v.optional(v.string()),
 });
 
-// Bornes serveur du fichier téléversé (miroir du client MAX_FILE_MB=20). On NE
-// fait JAMAIS confiance au content-type annoncé à l'upload : on relit les
-// métadonnées RÉELLES du blob (ctx.db.system) au moment de la soumission.
+// Server-side bounds of the uploaded file (mirrors the client's MAX_FILE_MB=20). We
+// NEVER trust the content-type announced at upload: we re-read the
+// REAL metadata of the blob (ctx.db.system) at submission time.
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_FILE_TYPES = ['application/pdf'];
 
-// Soumission d'une publication par un membre (F-32). Crée un enregistrement en
-// statut 'pending' — jamais exposé publiquement tant qu'un modérateur ne l'a
-// pas publié. Validé côté serveur (défense en profondeur, l'UI valide aussi).
-// Audité.
+// Submission of a publication by a member (F-32). Creates a record in
+// 'pending' status — never exposed publicly until a moderator has
+// published it. Validated server-side (defense in depth, the UI validates too).
+// Audited.
 export const submitPublication = mutation({
   args: {
     title: v.string(),
@@ -300,8 +300,8 @@ export const submitPublication = mutation({
     fileName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Réservé aux membres validés (modèle d'adhésion B) — un visiteur doit
-    // d'abord faire valider sa candidature d'adhésion.
+    // Reserved for validated members (membership model B) — a visitor must
+    // first get their membership application validated.
     const user = await requireNetworkRole(ctx, 'membre');
 
     const title = args.title.trim();
@@ -334,22 +334,22 @@ export const submitPublication = mutation({
       ...RATE_LIMITS.publicationSubmit,
     });
 
-    // Validation serveur du blob téléversé (défense en profondeur) : on relit
-    // les métadonnées RÉELLES du stockage, jamais le content-type annoncé par le
-    // client. La TAILLE est toujours bornée (vecteur DoS / coût). Le TYPE n'est
-    // rejeté que s'il est renseigné et hors allow-list (Convex ne le garantit pas
-    // toujours ; la modération a posteriori couvre le cas où il manque).
-    // NB : pas de ctx.storage.delete ici — le throw annule la transaction
-    // (rollback), donc la suppression serait sans effet. Un blob rejeté reste
-    // orphelin (jamais référencé par une publication ni servi) ; le nettoyage des
-    // orphelins relève d'un job séparé.
+    // Server-side validation of the uploaded blob (defense in depth): we re-read
+    // the REAL storage metadata, never the content-type announced by the
+    // client. The SIZE is always bounded (DoS / cost vector). The TYPE is only
+    // rejected if it is set and outside the allow-list (Convex does not always
+    // guarantee it; after-the-fact moderation covers the case where it is missing).
+    // NB: no ctx.storage.delete here — the throw rolls back the transaction
+    // (rollback), so the deletion would have no effect. A rejected blob stays
+    // orphaned (never referenced by a publication nor served); cleaning up
+    // orphans belongs to a separate job.
     if (args.fileId) {
       const meta = await ctx.db.system.get(args.fileId);
       const typeRejected = meta?.contentType
         ? !ALLOWED_FILE_TYPES.includes(meta.contentType)
         : false;
-      // Un fichier VIDE n'est pas un document : accepté, il devenait une
-      // publication dont le « PDF » pèse 0 octet (mesuré le 27/09).
+      // An EMPTY file is not a document: once accepted, it became a
+      // publication whose "PDF" weighs 0 bytes (measured on 27/09).
       if (
         !meta ||
         meta.size === 0 ||
@@ -360,7 +360,7 @@ export const submitPublication = mutation({
       }
     }
 
-    // Slug unique (suffixe incrémental en cas de collision de titre).
+    // Unique slug (incremental suffix in case of title collision).
     const root = slugify(title);
     let slug = root;
     let n = 2;
@@ -373,8 +373,8 @@ export const submitPublication = mutation({
       slug = `${root}-${n++}`;
     }
 
-    // Organisation du déposant (F-21) : la fiche publique de l'organisation
-    // liste ce que ses comptes publient.
+    // Submitter's organization (F-21): the organization's public profile
+    // lists what its accounts publish.
     const organizationId = await organizationOfAuthor(ctx, user._id);
 
     const now = Date.now();
@@ -388,11 +388,11 @@ export const submitPublication = mutation({
       access: args.access,
       authors,
       year: args.year,
-      publishedAt: 0, // fixé à la publication
+      publishedAt: 0, // set at publication
       abstract,
       keypoints,
       body: [],
-      doi: '', // DOI interne attribué à la publication
+      doi: '', // internal DOI assigned at publication
       downloads: 0,
       citations: 0,
       views: 0,
@@ -402,9 +402,9 @@ export const submitPublication = mutation({
       createdAt: now,
       ...(args.fileId ? { fileId: args.fileId } : {}),
       ...(args.fileName ? { fileName: args.fileName.slice(0, 200) } : {}),
-      // Recherche globale (chantier diffusion) : meule tenue à l'écriture.
-      // Un dépôt `pending` est indexé mais JAMAIS servi — la recherche fixe
-      // `status: 'published'` dans la lecture d'index.
+      // Global search (diffusion workstream): haystack maintained on write.
+      // A `pending` submission is indexed but NEVER served — the search pins
+      // `status: 'published'` in the index read.
       searchText: publicationSearchText({
         title,
         authors,
@@ -424,21 +424,21 @@ export const submitPublication = mutation({
       metadata: { type: args.type, theme: args.theme },
     });
 
-    // Modération assistée par IA (convex/aiModeration.ts) — PLANIFIÉE, jamais
-    // appelée ici. Trois raisons, dans cet ordre :
+    // AI-assisted moderation (convex/aiModeration.ts) — SCHEDULED, never
+    // called here. Three reasons, in this order:
     //
-    //  1. une mutation Convex n'a pas `fetch` : l'appel au modèle ne peut
-    //     vivre que dans une action ;
-    //  2. le membre qui dépose n'a pas à attendre l'arbitrage. Sa soumission
-    //     est acquise à l'insertion, quoi qu'il advienne ensuite ;
-    //  3. si l'analyse échoue, le dépôt reste simplement `pending` — l'état
-    //     dans lequel cette mutation vient de l'écrire. L'échec du dispositif
-    //     ramène donc au comportement d'avant le dispositif, jamais à une
+    //  1. a Convex mutation has no `fetch`: the model call can only
+    //     live in an action;
+    //  2. the submitting member need not wait for the ruling. Their submission
+    //     is secured on insert, whatever happens next;
+    //  3. if the analysis fails, the submission simply stays `pending` — the state
+    //     in which this mutation just wrote it. Failure of the mechanism
+    //     therefore falls back to the behavior before the mechanism, never to a
     //     publication.
     //
-    // La lecture du mode ici n'est pas une garde de sécurité (`runReview` le
-    // revérifie) : elle évite simplement de planifier une action dont on sait
-    // déjà qu'elle n'aura rien à faire.
+    // Reading the mode here is not a security guard (`runReview`
+    // re-checks it): it simply avoids scheduling an action we already know
+    // will have nothing to do.
     const aiConfig = await ctx.db
       .query('aiModerationConfig')
       .withIndex('by_key', (q) => q.eq('key', 'default'))
@@ -453,8 +453,8 @@ export const submitPublication = mutation({
   },
 });
 
-// Mes contributions (F-32) — l'utilisateur connecté voit SES dépôts, tous
-// statuts confondus (brouillon / en revue / publié), les plus récents d'abord.
+// My contributions (F-32) — the signed-in user sees THEIR submissions, all
+// statuses combined (draft / under review / published), most recent first.
 export const listMine = query({
   args: {},
   handler: async (ctx) => {
@@ -481,15 +481,15 @@ export const listMine = query({
   },
 });
 
-// File de modération des publications (F-32 / F-26) — modérateur et au-dessus.
-// Renvoie les soumissions en attente (ou toutes), avec l'e-mail de l'auteur et
-// l'URL du document téléversé pour examen.
+// Publication moderation queue (F-32 / F-26) — moderator and above.
+// Returns pending submissions (or all), with the author's email and
+// the URL of the uploaded document for review.
 //
-// PAGINÉE (issue #8). La file chargeait la table `publications` ENTIÈRE dans le
-// mode « toutes », puis résolvait l'auteur d'une ligne à la fois — un
-// aller-retour par publication, et une URL signée par fichier. L'ordre vient
-// désormais de l'index (le plus récent d'abord) au lieu d'un tri en mémoire :
-// c'est ce qui rend le curseur possible.
+// PAGINATED (issue #8). The queue loaded the ENTIRE `publications` table in
+// "all" mode, then resolved the author one row at a time — one
+// round-trip per publication, and one signed URL per file. The order now comes
+// from the index (most recent first) instead of an in-memory sort:
+// that is what makes the cursor possible.
 const reviewItemValidator = v.object({
   _id: v.id('publications'),
   title: v.string(),
@@ -508,18 +508,18 @@ const reviewItemValidator = v.object({
     v.literal('published'),
   ),
   submittedAt: v.number(),
-  // Date de la dernière décision. Un `draft` qui en porte une est un REFUS,
-  // pas un brouillon jamais soumis (issue #32) : c'est ce qui décide si
-  // l'écran propose « Rouvrir » (issue #9).
+  // Date of the last decision. A `draft` carrying one is a REJECTION,
+  // not a never-submitted draft (issue #32): this is what decides whether
+  // the screen offers "Rouvrir" (issue #9).
   reviewedAt: v.union(v.number(), v.null()),
   reviewNotes: v.union(v.string(), v.null()),
   authorEmail: v.union(v.string(), v.null()),
   fileName: v.union(v.string(), v.null()),
   fileUrl: v.union(v.string(), v.null()),
-  // Avis IA — RÉSUMÉ seulement (verdict, décision, nombre de signaux). Le
-  // détail (constats, extraits cités) se lit par `aiModeration.getReview`, sur
-  // la ligne qu'un modérateur ouvre : le charger pour cent lignes rendrait la
-  // file plus lourde que ce qu'elle affiche.
+  // AI review — SUMMARY only (verdict, decision, number of signals). The
+  // detail (findings, quoted excerpts) is read via `aiModeration.getReview`, on
+  // the row a moderator opens: loading it for a hundred rows would make the
+  // queue heavier than what it displays.
   aiReview: v.union(
     v.object({
       verdict: aiModerationVerdict,
@@ -532,15 +532,15 @@ const reviewItemValidator = v.object({
     }),
     v.null(),
   ),
-  // Mise en ligne SANS relecture humaine : la file le dit, et c'est ce qui
-  // ouvre « remettre en file ».
+  // Put online WITHOUT human review: the queue says so, and that is what
+  // enables "remettre en file".
   autoPublished: v.boolean(),
 });
 
-// CHERCHABLE (issue #49) : le titre, par index plein texte, avec le statut
-// porté par `filterFields` — la file « en attente » reste donc une seule
-// lecture d'index quand on y cherche. Filtrer côté client la page affichée
-// n'aurait cherché que dans les 25 lignes déjà là, jamais dans la file.
+// SEARCHABLE (issue #49): the title, via a full-text index, with the status
+// carried by `filterFields` — the "pending" queue thus remains a single
+// index read when searching it. Filtering the displayed page client-side
+// would only have searched the 25 rows already there, never the queue.
 export const listForReview = query({
   args: {
     status: v.optional(v.union(v.literal('pending'), v.literal('all'))),
@@ -550,11 +550,11 @@ export const listForReview = query({
   returns: paginatedValidator(reviewItemValidator),
   handler: async (ctx, { status, search, paginationOpts }) => {
     const viewer = await requireNetworkRole(ctx, 'moderateur');
-    // DOUBLE AVEUGLE (F-43, chantier editorial) : un modérateur peut être le
-    // RELECTEUR d'un manuscrit présent dans cette file. Pour une publication
-    // engagée dans une revue à comité de lecture, l'identité de l'auteur — noms,
-    // adresse, fichier d'origine (ses métadonnées le nomment souvent) — n'est
-    // rendue qu'à l'éditeur, qui pilote la revue.
+    // DOUBLE BLIND (F-43, editorial workstream): a moderator may be the
+    // REVIEWER of a manuscript present in this queue. For a publication
+    // engaged in a peer review, the author's identity — names,
+    // address, original file (its metadata often names them) — is only
+    // returned to the editor, who drives the review.
     const seesAuthors = rank(viewer.role) >= rank('editeur');
     const opts = clampPageSize(paginationOpts);
     const term = normalizeSearchTerm(search);
@@ -574,8 +574,8 @@ export const listForReview = query({
             .order('desc')
             .paginate(opts);
 
-    // Un même membre dépose souvent plusieurs publications : on dédoublonne les
-    // auteurs de la page avant de les lire, une fois chacun.
+    // The same member often submits several publications: we deduplicate the
+    // page's authors before reading them, once each.
     const authors = await loadAuthors(
       ctx,
       result.page.map((p) => p.authorUserId),
@@ -600,8 +600,8 @@ export const listForReview = query({
             authors: blind ? [] : p.authors,
             status: p.status,
             submittedAt: p.submittedAt ?? p.createdAt,
-            // Un `draft` AVEC `reviewedAt` est un refus, pas un brouillon jamais
-            // soumis (issue #32) : c'est ce qui rend le bouton « Rouvrir ».
+            // A `draft` WITH `reviewedAt` is a rejection, not a never-submitted
+            // draft (issue #32): this is what renders the "Rouvrir" button.
             reviewedAt: p.reviewedAt ?? null,
             reviewNotes: p.reviewNotes ?? null,
             authorEmail: blind
@@ -620,29 +620,29 @@ export const listForReview = query({
   },
 });
 
-// --- Machine à états de la modération (audit M6 · issue #9) -----------------
+// --- Moderation state machine (audit M6 · issue #9) --------------------------
 //
-//   draft ─────────────────────────────────────────► (cul-de-sac)
+//   draft ─────────────────────────────────────────► (dead end)
 //   pending ──approved─► published        pending ──rejected─► rejected
 //   rejected ──reopenPublicationReview──► pending
-//   published ─────────────────────────────────────► (cul-de-sac ici)
+//   published ─────────────────────────────────────► (dead end here)
 //
-// Trois points tranchés :
+// Three points settled:
 //
-//  1. un `draft` ne s'approuve PAS. Un brouillon jamais soumis n'a été proposé
-//     à personne ; l'approuver publierait un texte que son auteur n'a pas mis
-//     en revue.
-//  2. une décision ne se rejoue ni ne s'inverse. « Rejeter » après avoir
-//     approuvé dépublierait en silence, sur un simple second clic, un document
-//     déjà en ligne et déjà indexé.
-//  3. le RETRAIT d'une publication en ligne n'est pas un rejeu de revue :
-//     c'est une sortie de catalogue, qui attend l'état `archived` de l'issue
-//     #32. Tant qu'il n'existe pas, `published` est un cul-de-sac ici.
+//  1. a `draft` is NOT approved. A never-submitted draft was proposed
+//     to no one; approving it would publish a text its author did not put
+//     up for review.
+//  2. a decision is neither replayed nor reversed. "Rejeter" after having
+//     approved would silently unpublish, on a mere second click, a document
+//     already online and already indexed.
+//  3. WITHDRAWING an online publication is not a review replay:
+//     it is a removal from the catalog, which awaits the `archived` state of issue
+//     #32. Until it exists, `published` is a dead end here.
 //
-// `rejected` n'est pas (encore) un statut au schéma — c'est l'objet de l'issue
-// #32 — donc un refus retombe en `draft`. On reconstitue l'état réel avec
-// `reviewedAt` : sans cela, un brouillon jamais soumis et un refus prononcé
-// seraient le même état, et la garde du point 1 tomberait.
+// `rejected` is not (yet) a status in the schema — that is the subject of issue
+// #32 — so a rejection falls back to `draft`. We reconstruct the real state with
+// `reviewedAt`: without it, a never-submitted draft and a pronounced rejection
+// would be the same state, and the guard of point 1 would fall.
 type PublicationReviewState = Doc<'publications'>['status'] | 'rejected';
 
 const PUBLICATION_REVIEW: ReviewMachine<PublicationReviewState> = {
@@ -661,7 +661,7 @@ function reviewState(pub: Doc<'publications'>): PublicationReviewState {
     : pub.status;
 }
 
-// Lit les auteurs d'une page en dédoublonnant les identifiants.
+// Reads a page's authors, deduplicating the ids.
 async function loadAuthors(
   ctx: QueryCtx,
   ids: (Id<'users'> | undefined)[],
@@ -679,11 +679,11 @@ async function loadAuthors(
   return out;
 }
 
-// Décision de modération (F-32) — modérateur et au-dessus, audité. N'accepte
-// qu'une publication SOUMISE (`pending`), cf. la machine ci-dessus.
-//  - approved : la publication devient publique (status 'published' ; date et
-//    DOI interne attribués si absents) ;
-//  - rejected : retour en brouillon, avec une note pour l'auteur.
+// Moderation decision (F-32) — moderator and above, audited. Only accepts
+// a SUBMITTED publication (`pending`), see the machine above.
+//  - approved: the publication becomes public (status 'published'; date and
+//    internal DOI assigned if missing);
+//  - rejected: back to draft, with a note for the author.
 export const reviewPublication = mutation({
   args: {
     publicationId: v.id('publications'),
@@ -712,8 +712,8 @@ export const reviewPublication = mutation({
         reviewNotes,
       });
     } else {
-      // Faute d'un statut `rejected` (issue #32), un refus retombe en `draft` ;
-      // c'est `reviewedAt` qui le distingue d'un brouillon jamais soumis.
+      // Lacking a `rejected` status (issue #32), a rejection falls back to `draft`;
+      // it is `reviewedAt` that distinguishes it from a never-submitted draft.
       await ctx.db.patch(publicationId, {
         status: 'draft',
         reviewedBy: reviewer._id,
@@ -728,7 +728,7 @@ export const reviewPublication = mutation({
       decision === 'approved' ? 'published' : 'draft',
     );
 
-    // Notifie l'auteur du dépôt de l'issue de la modération (F-25/F-51).
+    // Notifies the submission's author of the moderation outcome (F-25/F-51).
     if (pub.authorUserId) {
       await notify(ctx, {
         userId: pub.authorUserId,
@@ -754,22 +754,22 @@ export const reviewPublication = mutation({
   },
 });
 
-// Réouverture d'un refus (issue #9) — modérateur et au-dessus, audité.
+// Reopening a rejection (issue #9) — moderator and above, audited.
 //
-// C'est LA transition arrière de la modération, et elle porte un nom : un refus
-// prononcé par erreur retourne dans la file (`pending`) sous sa propre action
-// d'audit (`publication.reopened`), au lieu d'être effacé par un second clic
-// sur « Approuver » qui, lui, ne laisserait aucune trace de l'hésitation.
+// This is THE backward transition of moderation, and it has a name: a rejection
+// pronounced by mistake goes back into the queue (`pending`) under its own audit
+// action (`publication.reopened`), instead of being erased by a second click
+// on "Approuver" which, for its part, would leave no trace of the hesitation.
 //
-// Ne rouvre QUE ce qui a été refusé : un brouillon jamais soumis (pas de
-// `reviewedAt`) reste hors de la file — INVALID_TRANSITION — sinon la garde
-// « une publication jamais soumise ne peut pas être approuvée » se contournerait
-// en deux clics. Une publication EN LIGNE ne se rouvre pas non plus : la
-// dépublier est un retrait, qui attend l'état `archived` de l'issue #32.
+// Reopens ONLY what was rejected: a never-submitted draft (no
+// `reviewedAt`) stays out of the queue — INVALID_TRANSITION — otherwise the guard
+// "a never-submitted publication cannot be approved" would be bypassed
+// in two clicks. An ONLINE publication is not reopened either:
+// unpublishing it is a withdrawal, which awaits the `archived` state of issue #32.
 //
-// Les champs de la décision précédente (`reviewNotes`, `reviewedBy`,
-// `reviewedAt`) sont CONSERVÉS : ils disent pourquoi le refus avait été
-// prononcé, et la prochaine décision les remplacera.
+// The fields of the previous decision (`reviewNotes`, `reviewedBy`,
+// `reviewedAt`) are KEPT: they say why the rejection had been
+// pronounced, and the next decision will replace them.
 export const reopenPublicationReview = mutation({
   args: { publicationId: v.id('publications') },
   handler: async (ctx, { publicationId }) => {
@@ -780,9 +780,9 @@ export const reopenPublicationReview = mutation({
     assertTransition(from, 'pending', PUBLICATION_REVIEW);
 
     await ctx.db.patch(publicationId, { status: 'pending' });
-    // La publication revient dans la file : le compteur du tableau de bord la
-    // recompte (issue #8). Sans cet appel, « en attente » sous-compterait
-    // chaque dossier rouvert.
+    // The publication returns to the queue: the dashboard counter counts it
+    // again (issue #8). Without this call, "pending" would undercount
+    // every reopened case.
     await trackPublicationStatus(ctx, pub.status, 'pending');
     await recordAudit(ctx, {
       actorId: reviewer._id,
@@ -794,33 +794,33 @@ export const reopenPublicationReview = mutation({
   },
 });
 
-// Remise en file d'une publication mise en ligne par l'IA (modérateur+, audité).
+// Requeueing a publication put online by the AI (moderator+, audited).
 //
-// POURQUOI CETTE SORTIE EXISTE, alors que `published` est un cul-de-sac.
+// WHY THIS EXIT EXISTS, even though `published` is a dead end.
 //
-// La machine ci-dessus ferme `published` pour une raison précise : dépublier
-// un document déjà en ligne et déjà indexé est un RETRAIT DE CATALOGUE, qui
-// attend l'état `archived` de l'issue #32 — pas l'effet de bord d'un second
-// clic sur un bouton de revue.
+// The machine above closes `published` for a precise reason: unpublishing
+// a document already online and already indexed is a CATALOG WITHDRAWAL, which
+// awaits the `archived` state of issue #32 — not the side effect of a second
+// click on a review button.
 //
-// Une publication automatique n'est pas ce cas-là. Personne ne l'a lue : le
-// premier regard humain n'INVERSE pas une décision, il est la décision —
-// celle que le dispositif a anticipée. Refuser ce retour reviendrait à rendre
-// l'arbitrage du modèle plus définitif que celui d'un modérateur, dont les
-// refus, eux, se rouvrent (`reopenPublicationReview`).
+// An automatic publication is not that case. Nobody has read it: the
+// first human look does not REVERSE a decision, it is the decision —
+// the one the mechanism anticipated. Refusing this return would make
+// the model's ruling more final than a moderator's, whose
+// rejections, for their part, can be reopened (`reopenPublicationReview`).
 //
-// La porte est donc étroite, et trois clefs la tiennent ensemble :
-//   - `autoPublished === true` — un document validé par un humain, même
-//     approuvé après un avis IA, n'entre pas ici ;
-//   - `status === 'published'` — on ne « remet en file » que ce qui est
-//     en ligne ;
-//   - le drapeau est RETIRÉ au passage : la sortie ne sert qu'une fois, et
-//     la décision qui suivra sera humaine, donc définitive au sens de la
-//     machine.
+// The door is therefore narrow, and three keys hold it together:
+//   - `autoPublished === true` — a document validated by a human, even
+//     approved after an AI review, does not enter here;
+//   - `status === 'published'` — we only "requeue" what is
+//     online;
+//   - the flag is REMOVED on the way: the exit only works once, and
+//     the decision that follows will be human, hence final in the
+//     machine's sense.
 //
-// Auditée sous son action propre (`publication.ai_reverted`) : le journal doit
-// pouvoir montrer la séquence complète — publiée par l'IA, retirée par un
-// humain, puis tranchée — sans que les trois se confondent.
+// Audited under its own action (`publication.ai_reverted`): the log must
+// be able to show the complete sequence — published by the AI, withdrawn by a
+// human, then decided — without the three being confused.
 export const revertAutoPublication = mutation({
   args: { publicationId: v.id('publications') },
   returns: v.object({ ok: v.boolean() }),
@@ -835,9 +835,9 @@ export const revertAutoPublication = mutation({
     await ctx.db.patch(publicationId, {
       status: 'pending',
       autoPublished: false,
-      // `reviewedAt` posé par l'IA est EFFACÉ : le laisser ferait lire un
-      // `pending` comme un dossier déjà tranché — exactement la confusion que
-      // `reviewState` doit éviter sur les brouillons refusés.
+      // `reviewedAt` set by the AI is ERASED: leaving it would make a
+      // `pending` read as an already decided case — exactly the confusion that
+      // `reviewState` must avoid on rejected drafts.
       reviewedAt: undefined,
     });
     await trackPublicationStatus(ctx, 'published', 'pending');

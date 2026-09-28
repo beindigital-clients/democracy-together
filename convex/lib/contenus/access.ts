@@ -7,20 +7,20 @@ import type { AuditAction } from '../auditActions';
 import { pickText, pickedLocale } from './i18n';
 import type { SiteLocale } from '../locales';
 
-// RANG DES CONTENUS ÉDITORIAUX : ÉDITEUR.
+// RANK FOR EDITORIAL CONTENT: EDITOR.
 //
-// Le back-office s'ouvre au modérateur, mais publier un événement, un
-// partenaire ou une thématique engage la parole du réseau : c'est le rang qui
-// tient déjà la revue et la newsletter. `requireNetworkRole` est hiérarchique,
-// l'administrateur passe donc aussi. L'interface cache les écrans ; c'est
-// cette garde, en tête de CHAQUE fonction, qui protège.
+// The back office opens to moderators, but publishing an event, a
+// partner or a theme commits the network's voice: it is the rank that
+// already runs the journal and the newsletter. `requireNetworkRole` is hierarchical,
+// so administrators pass too. The interface hides the screens; it is
+// this guard, at the top of EACH function, that protects.
 export async function requireEditor(ctx: QueryCtx | MutationCtx) {
   return await requireNetworkRole(ctx, 'editeur');
 }
 
 export type ContentKind = 'event' | 'replay' | 'partner' | 'press' | 'theme';
 
-/** Une entrée de journal par geste éditorial (cf. `AUDIT.CONTENT_*`). */
+/** One log entry per editorial action (cf. `AUDIT.CONTENT_*`). */
 export async function auditContent(
   ctx: MutationCtx,
   actorId: Id<'users'>,
@@ -37,9 +37,9 @@ export async function auditContent(
   });
 }
 
-// Forme publique d'un média référencé par un contenu : l'URL signée du
-// stockage, le texte alternatif DANS LA LANGUE de la page (avec repli), et les
-// dimensions — sans lesquelles l'image ferait sauter la mise en page.
+// Public shape of a medium referenced by a content item: the signed storage
+// URL, the alternative text IN THE LANGUAGE of the page (with fallback), and the
+// dimensions — without which the image would make the layout jump.
 export const publicMediaValidator = v.object({
   url: v.string(),
   alt: v.string(),

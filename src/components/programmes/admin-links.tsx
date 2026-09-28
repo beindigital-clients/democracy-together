@@ -4,9 +4,9 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ArrowForward } from '@/components/ui/arrow';
 
-// Lien des files historiques du back-office vers leurs écrans « programmes » :
-// la file anonyme de /admin/jeunes mène aux profils, celle de /admin/mentorat
-// à la coordination des binômes, celle de /admin/projets aux appels datés.
+// Links from the historical back-office queues to their "programmes" screens:
+// the anonymous queue of /admin/jeunes leads to profiles, the one of /admin/mentorat
+// to pair coordination, the one of /admin/projets to dated calls.
 export function ProgrammeAdminLink({
   kind,
 }: {

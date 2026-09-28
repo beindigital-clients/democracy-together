@@ -11,8 +11,8 @@ import {
   type ProfileAccessInput,
 } from '@convex/lib/social';
 
-// Règles PURES du réseau social (convex/lib/social.ts), en table de vérité :
-// on part du cas qui ouvre, et l'on casse une condition à la fois.
+// PURE rules of the social network (convex/lib/social.ts), as a truth table:
+// we start from the case that opens, and break one condition at a time.
 
 describe('canViewProfile', () => {
   const open: ProfileAccessInput = {

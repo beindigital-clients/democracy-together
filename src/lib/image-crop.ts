@@ -1,13 +1,13 @@
-// RECADRAGE CARRÉ D'UNE PHOTO DE PROFIL, côté navigateur (facultatif).
+// SQUARE CROPPING OF A PROFILE PHOTO, browser-side (optional).
 //
-// Le serveur n'exige pas un carré — il vérifie le type, la taille et le
-// contenu réel (convex/social/profiles.ts#setPhoto). Le recadrage sert
-// l'affichage (pastilles rondes) ET le faible débit : une photo de téléphone
-// de 4 000 px est ramenée à 512 px avant de partir, ce qui divise l'envoi par
-// dix sur une connexion lente.
+// The server doesn't require a square — it checks the type, size and
+// actual content (convex/social/profiles.ts#setPhoto). Cropping serves
+// display (round badges) AND low bandwidth: a 4,000 px phone photo
+// is scaled down to 512 px before it's sent, which cuts the upload by a factor of
+// ten on a slow connection.
 //
-// La GÉOMÉTRIE est une fonction pure (testée dans tests/unit) ; le dessin,
-// qui demande un canvas, n'en est que l'application.
+// The GEOMETRY is a pure function (tested in tests/unit); the drawing,
+// which needs a canvas, is merely its application.
 
 export const CROP_OUTPUT_SIZE = 512;
 
@@ -18,7 +18,7 @@ export type CropRect = {
   out: number;
 };
 
-/** Carré centré le plus grand possible, et taille de sortie (sans agrandir). */
+/** Largest possible centred square, and output size (without upscaling). */
 export function centeredSquare(width: number, height: number): CropRect {
   const side = Math.max(1, Math.floor(Math.min(width, height)));
   return {
@@ -30,9 +30,9 @@ export function centeredSquare(width: number, height: number): CropRect {
 }
 
 /**
- * Recadre une image en carré centré et la réencode en JPEG. Rend `null` si le
- * navigateur ne sait pas décoder le fichier : l'appelant envoie alors
- * l'original, que le serveur jugera.
+ * Crops an image to a centred square and re-encodes it as JPEG. Returns `null` if the
+ * browser cannot decode the file: the caller then sends
+ * the original, which the server will judge.
  */
 export async function cropToSquare(file: Blob): Promise<Blob | null> {
   if (typeof createImageBitmap !== 'function') return null;
@@ -48,8 +48,8 @@ export async function cropToSquare(file: Blob): Promise<Blob | null> {
   canvas.height = out;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  // Fond blanc : le JPEG n'a pas de transparence, et un PNG détouré
-  // deviendrait noir.
+  // White background: JPEG has no transparency, and a cut-out PNG
+  // would turn black.
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, out, out);
   ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, out, out);

@@ -3,11 +3,11 @@ import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
 import type { LegalDoc } from '@/lib/legal-content';
 
-// Rendu d'une page légale (F-09) : en-tête + sections, colonne de lecture
-// étroite et typographie éditoriale. Server component, animé sobrement (Reveal).
-// `after` : un élément d'interface rendu sous le texte d'une section — le
-// réglage d'opposition à la mesure d'audience, dans la politique de
-// confidentialité (F-66).
+// Renders a legal page (F-09): header + sections, narrow reading column
+// and editorial typography. Server component, soberly animated (Reveal).
+// `after`: an interface element rendered below a section's text — the
+// audience-measurement opt-out control, in the privacy
+// policy (F-66).
 export type LegalSectionWithSlot = LegalDoc['sections'][number] & {
   after?: ReactNode;
 };

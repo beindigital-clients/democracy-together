@@ -24,23 +24,23 @@ import {
   throttleLimits,
 } from './lib/audience';
 
-// MESURE D'AUDIENCE FIRST-PARTY, SANS COOKIE NI IDENTIFIANT (F-66).
+// FIRST-PARTY AUDIENCE MEASUREMENT, WITH NO COOKIE OR IDENTIFIER (F-66).
 //
-// Chaîne complète :
-//   balise client (src/components/analytics/audience-beacon.tsx)
-//     -> `hit` (mutation publique, bornée, anti-abus) : UNE insertion
-//     -> `audienceEvents` (tampon de quelques minutes)
-//     -> `aggregate` (cron, toutes les 5 min) : compteurs par jour, puis
-//        SUPPRESSION des événements bruts
-//     -> `audienceDaily` (seule donnée conservée, 13 mois par défaut)
-//     -> `overview` / `top` (écran admin/impact, modérateur et au-dessus).
+// Full chain:
+//   client beacon (src/components/analytics/audience-beacon.tsx)
+//     -> `hit` (public mutation, bounded, anti-abuse): ONE insertion
+//     -> `audienceEvents` (buffer of a few minutes)
+//     -> `aggregate` (cron, every 5 min): per-day counters, then
+//        DELETION of the raw events
+//     -> `audienceDaily` (the only data kept, 13 months by default)
+//     -> `overview` / `top` (admin/impact screen, moderator and above).
 //
-// Conditions d'exemption CNIL tenues ici : finalité statistique seule,
-// agrégats (aucune donnée par visiteur n'est conservée), pas d'IP stockée
-// (l'anti-abus n'en garde qu'une empreinte salée d'une minute, sel détruit
-// chaque jour), pas de recoupement possible (aucun identifiant). Le respect
-// de Do Not Track / Global Privacy Control et de l'opposition est côté client
-// : un navigateur qui le demande n'envoie rien.
+// CNIL exemption conditions upheld here: statistical purpose only,
+// aggregates (no per-visitor data is kept), no IP stored
+// (anti-abuse only keeps a one-minute salted hash of it, salt destroyed
+// every day), no cross-referencing possible (no identifier). Respect
+// for Do Not Track / Global Privacy Control and for opt-out is client-side
+// : a browser that asks for it sends nothing.
 
 const MINUTE = 60_000;
 const GLOBAL_SHARDS = 16;
@@ -52,9 +52,9 @@ async function sha256Hex(s: string): Promise<string> {
   ).join('');
 }
 
-// Fenêtre fixe d'une minute sur une clé de `audienceThrottle`. Contention
-// limitée : la clé d'un visiteur ne concerne que lui, et le plafond global
-// est RÉPARTI sur 16 lignes tirées au hasard.
+// Fixed one-minute window on an `audienceThrottle` key. Limited
+// contention: a visitor's key only concerns them, and the global cap
+// is SPREAD over 16 randomly chosen rows.
 async function consume(
   ctx: MutationCtx,
   key: string,
@@ -87,9 +87,9 @@ function siteHost(): string | undefined {
   }
 }
 
-// Point d'entrée PUBLIC de la balise. Ne lève jamais pour une donnée refusée
-// ou un plafond atteint : la page vue n'est simplement pas comptée, et la
-// réponse est la même (rien à apprendre en sondant).
+// PUBLIC entry point of the beacon. Never throws for refused data
+// or a reached cap: the page view is simply not counted, and the
+// response is the same (nothing to learn by probing).
 export const hit = mutation({
   args: {
     path: v.string(),
@@ -99,7 +99,7 @@ export const hit = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Bornes AVANT tout travail : un corps démesuré n'est même pas lu.
+    // Bounds BEFORE any work: an oversized body is not even read.
     if (
       args.path.length > 512 ||
       (args.referrer?.length ?? 0) > 2048 ||
@@ -123,9 +123,9 @@ export const hit = mutation({
     ) {
       return null;
     }
-    // Plafond par visiteur : empreinte SALÉE du bloc d'adresses, jamais
-    // l'adresse. Le sel est celui du jour (tourné par `aggregate`) ; sans sel
-    // à jour, seul le plafond global s'applique.
+    // Per-visitor cap: SALTED hash of the address block, never
+    // the address. The salt is the day's (rotated by `aggregate`); without an
+    // up-to-date salt, only the global cap applies.
     const bucket = await callerIpBucket(ctx);
     if (bucket) {
       const salt = await ctx.db.query('audienceSalt').first();
@@ -163,16 +163,16 @@ async function findRow(
     .unique();
 }
 
-// AGRÉGATION (cron toutes les 5 min) : les événements bruts deviennent des
-// compteurs par jour, puis sont SUPPRIMÉS. Une seule chaîne à la fois (le
-// cron, puis ses reprises) : pas de contention sur les compteurs.
+// AGGREGATION (cron every 5 min): raw events become
+// per-day counters, then are DELETED. Only one chain at a time (the
+// cron, then its continuations): no contention on the counters.
 const AGG_BATCH = 1000;
 export const aggregate = internalMutation({
   args: {},
   returns: v.object({ processed: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
-    // Rotation du sel anti-abus : l'ancien est ÉCRASÉ, donc détruit.
+    // Anti-abuse salt rotation: the old one is OVERWRITTEN, hence destroyed.
     const today = dayKey(now);
     const salt = await ctx.db.query('audienceSalt').first();
     if (!salt || salt.day !== today) {
@@ -209,8 +209,8 @@ export const aggregate = internalMutation({
       let key = rawKey;
       let row = await findRow(ctx, dim, day, key);
       if (!row && (dim === 'page' || dim === 'referrer')) {
-        // BORNE DE CARDINALITÉ : au-delà de N clés distinctes pour ce jour,
-        // le compte va dans « (autres) ».
+        // CARDINALITY BOUND: beyond N distinct keys for this day,
+        // the count goes into "(autres)".
         const meta = await findRow(ctx, 'meta', day, dim);
         const used = meta?.count ?? 0;
         if (used >= KEYS_PER_DAY[dim]) {
@@ -239,8 +239,8 @@ export const aggregate = internalMutation({
     }
     for (const e of events) await ctx.db.delete(e._id);
 
-    // Fenêtres anti-abus échues : elles ne servent plus à rien, et une
-    // empreinte, même salée, n'a pas à survivre à sa minute.
+    // Expired anti-abuse windows: they are no longer of any use, and a
+    // hash, even salted, has no business outliving its minute.
     const stale = await ctx.db
       .query('audienceThrottle')
       .withIndex('by_windowStart', (q) => q.lt('windowStart', now - 2 * MINUTE))
@@ -254,8 +254,8 @@ export const aggregate = internalMutation({
   },
 });
 
-// RÉTENTION (cron quotidien) : les agrégats plus vieux que la durée
-// configurée sont supprimés.
+// RETENTION (daily cron): aggregates older than the configured
+// duration are deleted.
 export const purge = internalMutation({
   args: {},
   returns: v.object({ deleted: v.number() }),
@@ -273,11 +273,11 @@ export const purge = internalMutation({
   },
 });
 
-// --- Tableau de bord (écran admin/impact) ------------------------------------
+// --- Dashboard (admin/impact screen) -----------------------------------------
 
 const rangeArgs = {
-  // Jour de fin (UTC), fourni par le client : une requête ne lit pas
-  // l'horloge (elle ne serait pas réévaluée quand le jour change).
+  // End day (UTC), provided by the client: a query does not read
+  // the clock (it would not be re-evaluated when the day changes).
   until: v.string(),
   days: v.union(v.literal(7), v.literal(30), v.literal(90)),
 };
@@ -341,8 +341,8 @@ export const overview = query({
   },
 });
 
-// Classements (pages, contenus, référents) — requête séparée : c'est la plus
-// lourde (jusqu'à 100 clés par jour), elle ne doit pas retarder les courbes.
+// Rankings (pages, content, referrers) — separate query: it is the
+// heaviest (up to 100 keys per day), it must not delay the curves.
 const TOP_SCAN = 9500;
 export const top = query({
   args: {

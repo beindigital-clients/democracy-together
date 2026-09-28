@@ -34,14 +34,14 @@ export default async function NewsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('news');
-  // Repli si Sanity est indisponible (audit § 5.1) : la page rendait un 500
-  // générique faute de try/catch, contrairement à src/lib/home.ts et about.ts
-  // qui replient déjà. La dégradation reste gracieuse — le reste du site
-  // continue de fonctionner — mais la PANNE n'est plus affichée comme une
-  // liste VIDE : mesuré le 27/09, « Aucune actualité pour le moment » sortait
-  // dans les deux cas, alors que le détail d'article distingue déjà les deux
-  // (doctrine F-02, `DataUnavailable`). `undefined` = la requête a échoué ;
-  // `[]` = le CMS a répondu et n'a rien.
+  // Fallback if Sanity is unavailable (audit § 5.1): the page rendered a generic
+  // 500 for lack of a try/catch, unlike src/lib/home.ts and about.ts
+  // which already fall back. The degradation stays graceful — the rest of the site
+  // keeps working — but the OUTAGE is no longer displayed as an
+  // EMPTY list: measured on 27/09, "Aucune actualité pour le moment" came out
+  // in both cases, whereas the article detail page already distinguishes the two
+  // (F-02 doctrine, `DataUnavailable`). `undefined` = the request failed;
+  // `[]` = the CMS responded and has nothing.
   let posts: PostCardData[] | undefined;
   try {
     posts =

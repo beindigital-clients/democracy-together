@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Issue #46 — les trois entrées « Le réseau » du pied de page pointaient vers
-// `/a-propos` nu. Le correctif est un CONTRAT ENTRE DEUX FICHIERS : le pied de
-// page promet un fragment, la page À propos le porte. Rien dans le typage ne
-// relie les deux — renommer un `id` d'un côté laisse l'autre pointer dans le
-// vide, sans erreur de compilation et sans rien de visible à la relecture.
+// Issue #46 — the footer's three "Le réseau" entries pointed to
+// bare `/a-propos`. The fix is a CONTRACT BETWEEN TWO FILES: the footer
+// promises a fragment, the About page carries it. Nothing in the typing
+// links the two — renaming an `id` on one side leaves the other pointing into the
+// void, with no compile error and nothing visible in review.
 //
-// La spec E2E vérifie le comportement réel (défilement, focus, préférence de
-// mouvement) ; ce fichier tient le contrat de source, qui se casse plus vite
-// qu'il ne se remarque.
+// The E2E spec checks the real behavior (scrolling, focus, motion
+// preference); this file holds the source contract, which breaks faster
+// than it gets noticed.
 
 const RACINE = process.cwd();
 const FOOTER = join(RACINE, 'src', 'components', 'layout', 'site-footer.tsx');
@@ -24,12 +24,12 @@ const ANCRE_FOCUS = join(
 );
 const GLOBALS = join(RACINE, 'src', 'app', 'globals.css');
 
-// Les fichiers concernés COMMENTENT ce qu'il ne faut pas écrire (un
-// `scrollIntoView` animé, qui contournerait la préférence de mouvement). Une
-// garde qui lit la prose attraperait l'avertissement au lieu de la faute : on
-// retire donc les lignes de commentaire avant d'examiner le code. Les URL en
-// chaîne (`http://…`) sont préservées, seules les lignes ENTIÈREMENT commentées
-// tombent.
+// The files concerned have COMMENTS about what must not be written (an
+// animated `scrollIntoView`, which would bypass the motion preference). A
+// guard that reads the prose would catch the warning instead of the mistake: we
+// therefore strip comment lines before examining the code. URLs in
+// strings (`http://…`) are preserved, only ENTIRELY commented lines
+// are dropped.
 function code(chemin: string): string {
   return readFileSync(chemin, 'utf8')
     .split('\n')
@@ -42,13 +42,13 @@ const aPropos = code(A_PROPOS);
 const ancreFocus = code(ANCRE_FOCUS);
 const globals = readFileSync(GLOBALS, 'utf8');
 
-// Table des liens de colonnes du pied de page : `['/href', t('clé')]`.
+// Table of footer column links: `['/href', t('clé')]`.
 const liensColonnes = [
   ...footer.matchAll(/\['([^']+)',\s*t\('([^']+)'\)\]/g),
 ].map(([, href, cle]) => ({ href, cle }));
 
-// La balise ouvrante d'une `<section>` portant cet `id` (attributs sur
-// plusieurs lignes, mais jamais de `>` avant la fin de la balise).
+// The opening tag of a `<section>` carrying this `id` (attributes over
+// several lines, but never a `>` before the end of the tag).
 function baliseDeSection(id: string): string | undefined {
   return aPropos.match(new RegExp(`<section\\b[^>]*\\bid="${id}"[^>]*>`))?.[0];
 }
@@ -57,8 +57,8 @@ const ENTREES_RESEAU = ['col1a', 'col1b', 'col1c'] as const;
 
 describe('Pied de page — « Le réseau » promet trois destinations', () => {
   it('a bien relevé la table des liens', () => {
-    // Garde-fou du garde-fou : si la forme des liens change, les assertions
-    // suivantes deviendraient vertes faute de matière à examiner.
+    // Safeguard for the safeguard: if the shape of the links changes, the following
+    // assertions would turn green for lack of material to examine.
     expect(liensColonnes.length).toBeGreaterThanOrEqual(18);
   });
 
@@ -101,8 +101,8 @@ describe('Page À propos — les ancres promises existent et sont atteignables',
   it.each(['vision', 'gouvernance', 'fondateurs'])(
     'rend la section #%s focusable — sans quoi le focus ne peut pas suivre',
     (id) => {
-      // `focus()` sur une `<section>` nue ne fait rien : le focus resterait sur
-      // le lien du pied de page, et le lien ne servirait à rien au clavier.
+      // `focus()` on a bare `<section>` does nothing: focus would stay on
+      // the footer link, and the link would be useless with a keyboard.
       expect(baliseDeSection(id)).toContain('tabIndex={-1}');
     },
   );
@@ -116,10 +116,10 @@ describe('Page À propos — les ancres promises existent et sont atteignables',
 });
 
 describe('Le saut d’ancre reste celui du navigateur', () => {
-  // `prefers-reduced-motion` est respecté PARCE QUE le déplacement est opéré par
-  // le navigateur, donc gouverné par `scroll-behavior`. Un défilement animé
-  // écrit en JavaScript passerait outre la préférence : c'est la régression que
-  // ces deux assertions attrapent.
+  // `prefers-reduced-motion` is respected BECAUSE the movement is performed by
+  // the browser, hence governed by `scroll-behavior`. An animated scroll
+  // written in JavaScript would override the preference: that is the regression
+  // these two assertions catch.
   it.each([
     ['la page À propos', aPropos],
     ['le composant de focus', ancreFocus],

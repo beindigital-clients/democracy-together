@@ -26,20 +26,20 @@ const fields = {
   body: v.string(),
 };
 
-// Formulaire de contact public (F-17) : valide côté serveur (défense en
-// profondeur, l'UI valide aussi) puis stocke la soumission. La lecture / le
-// traitement se feront depuis le back-office (F-26).
+// Public contact form (F-17): validates server-side (defense in
+// depth, the UI validates too) then stores the submission. Reading /
+// processing will be done from the back office (F-26).
 //
-// PORTAIL anti-spam : l'action `submit` vérifie d'abord le jeton reCAPTCHA v3
-// (seules les actions ont `fetch`) puis délègue à `store`. La logique métier
-// reste dans une internalMutation -> non appelable directement, donc la porte
-// captcha ne peut pas être contournée en visant la mutation.
+// Anti-spam GATE: the `submit` action first verifies the reCAPTCHA v3 token
+// (only actions have `fetch`) then delegates to `store`. The business logic
+// stays in an internalMutation -> not directly callable, so the captcha
+// gate cannot be bypassed by targeting the mutation.
 export const submit = action({
   args: { ...fields, captchaToken: v.optional(v.string()) },
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'contact');
-    // Annotation explicite : casse la circularité de type TS (action -> api
-    // générée -> action) quand on appelle une fonction du même module.
+    // Explicit annotation: breaks the TS type circularity (action -> generated
+    // api -> action) when calling a function from the same module.
     const result: { ok: boolean } = await ctx.runMutation(
       internal.contact.store,
       input,
@@ -56,9 +56,9 @@ export const store = internalMutation({
     const subject = args.subject.trim();
     const body = args.body.trim();
 
-    // Bornes HAUTES autant que basses (pentest M-2). Sans elles, ce formulaire
-    // anonyme acceptait ~1 Mo par soumission : mesuré, un corps de 1 000 000
-    // caractères était écrit en base tel quel.
+    // UPPER bounds as well as lower ones (pentest M-2). Without them, this anonymous
+    // form accepted ~1 MB per submission: measured, a body of 1,000,000
+    // characters was written to the database as-is.
     if (name.length < 2 || name.length > FIELD_MAX.name) {
       throw new Error('INVALID_NAME');
     }
@@ -70,8 +70,8 @@ export const store = internalMutation({
       throw new Error('INVALID_BODY');
     }
 
-    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
-    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    // UNFORGEABLE caps (audit M2) — per IP and global per form:
+    // changing address no longer yields a fresh quota. See lib/rateLimit.ts.
     await enforcePublicFormLimit(ctx, 'contact');
 
     await enforceRateLimit(ctx, {
@@ -92,8 +92,8 @@ export const store = internalMutation({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : relit le dernier message d'une
-// adresse pour que l'E2E vérifie le stockage réel (cf. otp.latestDevCode).
+// DEV/TEST only (AUTH_DEV_OTP guard): reads back the last message from an
+// address so the E2E can verify actual storage (see otp.latestDevCode).
 export const latestForEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
@@ -106,13 +106,13 @@ export const latestForEmail = internalQuery({
   },
 });
 
-// --- Back-office (F-17 / F-26) ----------------------------------------------
-// Les messages partaient dans un trou noir : aucune query ne les relisait et
-// `handled` n'était jamais mis à jour (audit § 3.1). Un visiteur écrivait au
-// secrétariat, et personne ne pouvait le lire.
+// --- Back office (F-17 / F-26) ----------------------------------------------
+// Messages went into a black hole: no query read them back and
+// `handled` was never updated (audit § 3.1). A visitor wrote to the
+// secretariat, and nobody could read it.
 //
-// Réservé au modérateur et au-dessus : ces messages contiennent des données
-// personnelles (nom, adresse e-mail, contenu libre).
+// Reserved to moderators and above: these messages contain personal
+// data (name, email address, free-form content).
 export const listMessages = query({
   args: { status: v.optional(v.union(v.literal('pending'), v.literal('all'))) },
   handler: async (ctx, { status }) => {
@@ -126,20 +126,20 @@ export const listMessages = query({
               .withIndex('by_handled', (q) => q.eq('handled', false))
               .collect()
           : await ctx.db.query('contactMessages').collect();
-    // Ordre TOTAL : `createdAt` est en millisecondes, donc deux messages reçus
-    // dans la même milliseconde sont à égalité — et un comparateur qui renvoie
-    // 0 laisse `Array.sort` conserver l'ordre d'entrée, c'est-à-dire le plus
-    // ANCIEN en tête. `_creationTime` (précision infra-milliseconde) départage,
-    // pour que « les plus récents d'abord » soit vrai quelle que soit la
-    // vitesse d'arrivée. Garde : convex/contact-admin.test.ts.
+    // TOTAL order: `createdAt` is in milliseconds, so two messages received
+    // in the same millisecond are tied — and a comparator returning
+    // 0 lets `Array.sort` keep the input order, i.e. the
+    // OLDEST first. `_creationTime` (sub-millisecond precision) breaks the tie,
+    // so that "most recent first" holds whatever the
+    // arrival speed. Guard: convex/contact-admin.test.ts.
     return msgs.sort(
       (a, b) => b.createdAt - a.createdAt || b._creationTime - a._creationTime,
     );
   },
 });
 
-// Marquage « traité », réversible : un message rouvert doit pouvoir repasser
-// dans la file. Audité, comme toute action de back-office.
+// "Handled" marking, reversible: a reopened message must be able to go back
+// into the queue. Audited, like every back-office action.
 export const setHandled = mutation({
   args: { messageId: v.id('contactMessages'), handled: v.boolean() },
   handler: async (ctx, { messageId, handled }) => {

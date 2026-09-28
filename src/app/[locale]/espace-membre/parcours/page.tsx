@@ -13,7 +13,7 @@ import {
   useDateFormat,
 } from '@/components/programmes/shared';
 
-// Ma progression dans les parcours d'apprentissage (F-57).
+// My progress in the learning paths (F-57).
 function Page() {
   const t = useTranslations('toolbox');
   const fmt = useDateFormat();

@@ -16,12 +16,12 @@ import {
 } from '@/components/admin/action-feedback';
 import { formatLongDate } from '@/lib/publications';
 
-// RELECTURE DES FICHES D'ORGANISATION (F-21, chantier comptes).
+// REVIEW OF ORGANIZATION ENTRIES (F-21, accounts workstream).
 //
-// Le modérateur voit, champ par champ, ce qui est EN LIGNE et ce qui est
-// PROPOSÉ, les changements mis en évidence : on juge une modification, pas une
-// fiche entière à relire. Le site proposé est affiché en clair (jamais comme
-// lien cliquable) — c'est précisément ce qu'on vérifie.
+// The moderator sees, field by field, what is LIVE and what is
+// PROPOSED, with the changes highlighted: one judges a change, not a
+// whole entry to reread. The proposed website is shown as plain text (never
+// as a clickable link) — that is precisely what is being checked.
 
 type Labels = {
   regionLabels: Record<string, string>;
@@ -180,7 +180,7 @@ function RevisionCard({ item, labels }: { item: Item; labels: Labels }) {
         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
           <span className="text-ink-soft">{t('fieldLogo')}</span>
           {org.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL signée du stockage Convex
+            // eslint-disable-next-line @next/next/no-img-element -- signed Convex storage URL
             <img
               src={org.logoUrl}
               alt={t('logoAlt', { org: org.name })}
@@ -191,7 +191,7 @@ function RevisionCard({ item, labels }: { item: Item; labels: Labels }) {
           {revision.removeLogo ? (
             <span className="text-ink">{t('modLogoRemoved')}</span>
           ) : revision.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL signée du stockage Convex
+            // eslint-disable-next-line @next/next/no-img-element -- signed Convex storage URL
             <img
               src={revision.logoUrl}
               alt={t('logoProposedAlt', { org: org.name })}

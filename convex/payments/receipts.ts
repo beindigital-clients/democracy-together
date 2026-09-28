@@ -8,14 +8,14 @@ import {
   providerIdValidator,
 } from '../lib/payments/validators';
 
-// REÇUS (F-29) — données du reçu et enregistrement de son fichier.
+// RECEIPTS (F-29) — receipt data and recording of its file.
 //
-// La composition du PDF et le courriel de confirmation sont dans
-// `./receiptsNode.ts` (action Node : pdfkit + polices embarquées, pour
-// imprimer un nom arabe ou vietnamien). Elle est planifiée par le grand livre
-// juste après l'inscription d'un paiement ; le numéro est DÉJÀ attribué, dans
-// la transaction du paiement (convex/lib/payments/ledger.ts). Rejouable sans
-// effet de bord : un reçu déjà produit n'est pas refait.
+// The PDF composition and the confirmation email are in
+// `./receiptsNode.ts` (Node action: pdfkit + embedded fonts, to
+// print an Arabic or Vietnamese name). It is scheduled by the ledger
+// right after a payment is recorded; the number is ALREADY assigned, in
+// the payment transaction (convex/lib/payments/ledger.ts). Replayable without
+// side effects: a receipt already produced is not redone.
 
 const CATEGORY_LABEL: Record<string, string> = {
   org: 'Organisation (think tank)',
@@ -92,7 +92,7 @@ export const saveReceiptFile = internalMutation({
       return false;
     }
     if (receipt.storageId) {
-      // Deux générations concurrentes : on garde la première.
+      // Two concurrent generations: we keep the first one.
       await ctx.storage.delete(storageId);
       return false;
     }
@@ -101,7 +101,7 @@ export const saveReceiptFile = internalMutation({
   },
 });
 
-// Régénération (reçu dont le PDF a échoué) — rejouable depuis la CLI :
+// Regeneration (receipt whose PDF failed) — replayable from the CLI:
 // `npx convex run payments/receipts:regenerate '{"receiptId":"…"}'`.
 export const regenerate = internalMutation({
   args: { receiptId: v.id('paymentReceipts') },

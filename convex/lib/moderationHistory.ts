@@ -10,10 +10,10 @@ import {
   type ModerationTarget,
 } from './communaute';
 
-// Écriture de l'historique de modération (F-49) et lecture des réglages de la
-// Tribune. Helpers appelés DANS la transaction de l'appelant (comme
-// `recordAudit`) : un fait n'est journalisé que si l'écriture qu'il décrit a
-// réellement eu lieu.
+// Writing the moderation history (F-49) and reading the Tribune
+// settings. Helpers called WITHIN the caller's transaction (like
+// `recordAudit`): a fact is only logged if the write it describes
+// actually took place.
 
 export type ModerationEventInput = {
   targetType: ModerationTarget;
@@ -50,8 +50,8 @@ export type CommunityModerationSettings = {
   commentMode: ModerationMode;
 };
 
-// Réglages effectifs. Un déploiement où l'administrateur n'a jamais rien
-// réglé n'a pas de ligne : billets A PRIORI (F-45), commentaires a
+// Effective settings. A deployment where the administrator never set anything
+// has no row: posts A PRIORI (F-45), comments a
 // posteriori.
 export async function loadCommunitySettings(
   ctx: QueryCtx,
@@ -65,11 +65,11 @@ export async function loadCommunitySettings(
     : { ...DEFAULT_COMMUNITY_MODERATION };
 }
 
-// Planifie l'avis de l'IA sur un contenu de la Tribune (pré-tri, F-45). Une
-// mutation n'a pas `fetch` : l'appel au modèle vit dans une action, planifiée
-// ici. Le mode `off` est lu pour ne pas planifier une action dont on sait déjà
-// qu'elle n'aura rien à faire — ce n'est pas une garde de sécurité, l'action
-// relit tout (convex/communityModeration.ts).
+// Schedules the AI's verdict on a Tribune item (pre-sorting, F-45). A
+// mutation has no `fetch`: the model call lives in an action, scheduled
+// here. The `off` mode is read so as not to schedule an action we already know
+// will have nothing to do — this is not a security guard, the action
+// re-reads everything (convex/communityModeration.ts).
 export async function scheduleTribuneAiReview(
   ctx: MutationCtx,
   targetType: ModerationTarget,

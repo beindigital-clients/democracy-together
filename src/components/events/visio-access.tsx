@@ -6,25 +6,26 @@ import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 
-// LIEN DE VISIOCONFÉRENCE D'UN ÉVÉNEMENT — réservé aux inscrits (F-54).
+// VIDEO CONFERENCE LINK FOR AN EVENT — reserved for registrants (F-54).
 //
-// La fiche est rendue par le serveur pour tout le monde ; le lien, lui, ne
-// figure dans AUCUNE réponse publique. Ce composant le demande à
-// `contenus/events:myVisioAccess`, qui ne le rend qu'à un compte connecté dont
-// l'adresse figure parmi les inscrits. La requête est réactive : quelqu'un
-// qui s'inscrit sur cette même page voit le lien apparaître sans recharger.
+// The detail page is rendered by the server for everyone; the link, however,
+// appears in NO public response. This component requests it from
+// `contenus/events:myVisioAccess`, which only returns it to a signed-in
+// account whose address is among the registrants. The query is reactive:
+// someone who registers on this same page sees the link appear without
+// reloading.
 //
-// Trois états, un seul message à la fois :
-//  - inscrit, salle connue          -> le lien ;
-//  - inscrit, salle pas encore créée -> « vous le recevrez par e-mail » ;
-//  - autrement                      -> le texte d'origine (envoi aux inscrits),
-//    plus, pour un visiteur non connecté, l'invitation à se connecter.
+// Three states, one message at a time:
+//  - registered, room known           -> the link;
+//  - registered, room not yet created -> "vous le recevrez par e-mail";
+//  - otherwise                        -> the original text (sent to
+//    registrants), plus, for a signed-out visitor, the invitation to sign in.
 export function VisioAccess({
   slug,
   defaultText,
 }: {
   slug: string;
-  // « Le lien est envoyé par e-mail aux inscrits » — libellé de la fiche.
+  // "Le lien est envoyé par e-mail aux inscrits" — label from the detail page.
   defaultText: string;
 }) {
   const t = useTranslations('eventRegister');

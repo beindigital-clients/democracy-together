@@ -1,19 +1,19 @@
 import type { Locale } from '@/i18n/routing';
 
-// Adhésion (F-20) — contenu éditorial porté 1:1 depuis la maquette agence
-// `design/rmdl-adhesion.html` (sections autour du formulaire F-22). Cotisation
-// SOLIDAIRE (ajustée au niveau de revenu du pays) : pilier d'accessibilité
-// Afrique-Europe. Montants = **tarifs indicatifs / illustration** (explicite
-// dans la maquette). Module bilingue. Le formulaire reste géré par
-// `membership-form.tsx` (namespace i18n `membership`). Vérifié sans terme banni.
+// Membership (F-20) — editorial content ported 1:1 from the agency mock-up
+// `design/rmdl-adhesion.html` (sections around the F-22 form). SOLIDARITY
+// membership fee (adjusted to the country's income level): an accessibility pillar for
+// Africa-Europe. Amounts = **indicative rates / illustration** (explicit
+// in the mock-up). Bilingual module. The form is still handled by
+// `membership-form.tsx` (i18n namespace `membership`). Checked for banned terms.
 
 export type IncomeLevel = 'high' | 'mid' | 'low';
 export type MemberType = 'org' | 'ind' | 'jeu';
 
-// Barème indicatif EUR/an : base par type au revenu élevé, atténuée par palier.
-// Affiché tant que le barème RÉEL (table `paymentPlans`, F-27) n'est pas publié.
-// Pastilles : « reçu de paiement » et non « reçu fiscal » — l'éligibilité au
-// mécénat n'est pas acquise (cf. convex/lib/payments/config.ts).
+// Indicative scale in EUR/year: base per type at high income, reduced per tier.
+// Displayed as long as the ACTUAL scale (`paymentPlans` table, F-27) is not published.
+// Chips: "reçu de paiement" and not "reçu fiscal" — eligibility for
+// tax-deductible donations is not established (see convex/lib/payments/config.ts).
 export const BASE_EUR: Record<MemberType, number> = {
   org: 1200,
   ind: 120,
@@ -908,7 +908,7 @@ const ar: MembershipContent = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, MembershipContent> = { fr, en, es, pt, ar };
 
 export function getMembershipContent(locale: Locale): MembershipContent {

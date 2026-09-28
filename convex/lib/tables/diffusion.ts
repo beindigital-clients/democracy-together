@@ -2,18 +2,18 @@ import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { locale } from '../locales';
 
-// Tables du chantier « diffusion » : envoi en volume de la newsletter (F-65) et
-// mesure d'audience first-party (F-66). Les modifications des tables
-// EXISTANTES (abonnés, campagnes, champs de recherche) sont, elles, en place
-// dans convex/schema.ts.
+// Tables of the "diffusion" workstream: bulk newsletter sending (F-65) and
+// first-party audience measurement (F-66). Changes to EXISTING tables
+// (subscribers, campaigns, search fields) are made in place in
+// convex/schema.ts.
 
 export const deliveryStatus = v.union(
   v.literal('queued'),
   v.literal('sending'),
   v.literal('sent'),
   v.literal('failed'),
-  // Abonné parti (désinscrit, ou revenu en attente) entre la mise en file et
-  // l'envoi : on ne lui écrit pas, et on le dit.
+  // Subscriber gone (unsubscribed, or back to pending) between queueing and
+  // sending: we do not write to them, and we say so.
   v.literal('skipped'),
 );
 
@@ -23,23 +23,23 @@ export const audienceDimension = v.union(
   v.literal('lang'),
   v.literal('referrer'),
   v.literal('screen'),
-  // Nombre de clés distinctes déjà créées pour (jour, dimension) — sert à
-  // borner la cardinalité (cf. convex/audience.ts).
+  // Number of distinct keys already created for (day, dimension) — used to
+  // bound cardinality (see convex/audience.ts).
   v.literal('meta'),
 );
 
 export const diffusionTables = {
-  // UN STATUT PAR DESTINATAIRE ET PAR CAMPAGNE (F-65).
+  // ONE STATUS PER RECIPIENT AND PER CAMPAIGN (F-65).
   //
-  // Pas d'adresse ici : la ligne pointe l'abonnement, relu au moment de
-  // l'envoi. Un abonné qui se désinscrit pendant que la campagne part n'est
-  // donc plus servi (`skipped`), et la table ne duplique aucune donnée
-  // personnelle.
+  // No address here: the row points to the subscription, re-read at sending
+  // time. A subscriber who unsubscribes while the campaign is going out is
+  // therefore no longer served (`skipped`), and the table duplicates no
+  // personal data.
   //
-  // `claimId` identifie le LOT qui a pris la ligne en charge. Il sert de clé
-  // d'idempotence auprès du fournisseur : un lot repris après une coupure est
-  // renvoyé avec la MÊME clé, et le fournisseur rend la réponse d'origine au
-  // lieu d'envoyer une seconde fois.
+  // `claimId` identifies the BATCH that took charge of the row. It serves as
+  // the idempotency key with the provider: a batch resumed after an
+  // interruption is resent with the SAME key, and the provider returns the
+  // original response instead of sending a second time.
   newsletterDeliveries: defineTable({
     campaignId: v.id('newsletterCampaigns'),
     subscriptionId: v.id('newsletterSubscriptions'),
@@ -56,14 +56,13 @@ export const diffusionTables = {
     .index('by_campaign_and_subscription', ['campaignId', 'subscriptionId'])
     .index('by_claim', ['claimId']),
 
-  // ÉVÉNEMENTS BRUTS D'AUDIENCE — TAMPON DE QUELQUES MINUTES (F-66).
+  // RAW AUDIENCE EVENTS — A BUFFER OF A FEW MINUTES (F-66).
   //
-  // Une page vue = une insertion, sans aucune lecture préalable : rien ne
-  // contend, même en pic de sommet. Une tâche planifiée les agrège par jour
-  // toutes les cinq minutes puis les SUPPRIME : aucun événement brut ne vit
-  // plus longtemps que l'intervalle d'agrégation (plus une marge de reprise).
-  // Aucun identifiant, aucune IP, aucun agent utilisateur : rien ne permet de
-  // relier deux lignes à une même personne.
+  // One page view = one insert, with no prior read: nothing contends, even at a
+  // summit peak. A scheduled job aggregates them per day every five minutes
+  // then DELETES them: no raw event lives longer than the aggregation interval
+  // (plus a retry margin). No identifier, no IP, no user agent: nothing makes
+  // it possible to link two rows to the same person.
   audienceEvents: defineTable({
     day: v.string(),
     path: v.string(),
@@ -73,9 +72,9 @@ export const diffusionTables = {
     at: v.number(),
   }),
 
-  // COMPTEURS AGRÉGÉS PAR JOUR — la seule donnée d'audience conservée.
-  // Une ligne par (dimension, jour, clé). Rétention bornée
-  // (`AUDIENCE_RETENTION_DAYS`, 395 jours par défaut, soit 13 mois).
+  // DAILY AGGREGATED COUNTERS — the only audience data retained.
+  // One row per (dimension, day, key). Bounded retention
+  // (`AUDIENCE_RETENTION_DAYS`, 395 days by default, i.e. 13 months).
   audienceDaily: defineTable({
     dimension: audienceDimension,
     day: v.string(),
@@ -85,10 +84,10 @@ export const diffusionTables = {
     .index('by_dimension_and_day_and_key', ['dimension', 'day', 'key'])
     .index('by_day', ['day']),
 
-  // Anti-abus du point d'entrée public — fenêtres d'une minute, purgées toutes
-  // les cinq minutes. La clé d'un visiteur est une EMPREINTE salée de son bloc
-  // d'adresses, jamais l'adresse : le sel change chaque jour et l'ancien est
-  // détruit, ce qui rend l'empreinte inutilisable au-delà de la journée.
+  // Anti-abuse for the public endpoint — one-minute windows, purged every five
+  // minutes. A visitor's key is a salted HASH of their address block, never the
+  // address: the salt changes every day and the old one is destroyed, which
+  // makes the hash unusable beyond the day.
   audienceThrottle: defineTable({
     key: v.string(),
     count: v.number(),
@@ -97,17 +96,17 @@ export const diffusionTables = {
     .index('by_key', ['key'])
     .index('by_windowStart', ['windowStart']),
 
-  // Sel du jour de l'empreinte anti-abus. Singleton (une ligne) : remplacé, et
-  // donc détruit, à chaque changement de jour.
+  // Daily salt for the anti-abuse hash. Singleton (one row): replaced, and
+  // therefore destroyed, at each change of day.
   audienceSalt: defineTable({
     day: v.string(),
     salt: v.string(),
   }),
 
-  // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) — boîte d'envoi simulée : le lien
-  // de confirmation newsletter y est lisible par la spec E2E, comme
-  // `devOtpCodes` pour les codes de connexion. Jamais alimentée quand
-  // AUTH_DEV_OTP n'est pas 'true' ; purgée après 24 h.
+  // DEV/TEST ONLY (AUTH_DEV_OTP guard) — simulated outbox: the newsletter
+  // confirmation link is readable there by the E2E spec, like `devOtpCodes`
+  // for sign-in codes. Never populated when AUTH_DEV_OTP is not 'true'; purged
+  // after 24 h.
   devOutbox: defineTable({
     to: v.string(),
     kind: v.string(),

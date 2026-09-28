@@ -9,11 +9,11 @@ import { FAKE_SIGNATURE_HEADER, signFakePayload } from './lib/payments/fake';
 import { fakeProviderState } from './lib/payments/config';
 import { verifyStripeSignature } from './lib/payments/stripe';
 
-// PAIEMENTS — webhooks, idempotence, garde du prestataire factice, bornes.
+// PAYMENTS — webhooks, idempotency, fake provider guard, bounds.
 //
-// Chaque webhook passe par `handleWebhook`, qui appelle la MÊME fonction que la
-// route HTTP (`processWebhook`) : seule la lecture de la requête HTTP n'est pas
-// exercée ici, parce que convex-test ne charge pas `http.ts` (TESTING.md).
+// Each webhook goes through `handleWebhook`, which calls the SAME function as the
+// HTTP route (`processWebhook`): only the reading of the HTTP request is not
+// exercised here, because convex-test does not load `http.ts` (TESTING.md).
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -27,8 +27,8 @@ const modules = import.meta.glob([
 
 const STRIPE_SECRET = 'whsec_test_secret';
 
-// État de départ : un déploiement SANS aucune configuration de paiement.
-// Chaque test pose ce dont il a besoin.
+// Starting state: a deployment WITHOUT any payment configuration.
+// Each test sets what it needs.
 const PAYMENT_ENV = [
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
@@ -232,8 +232,8 @@ describe('Webhook — idempotence', () => {
     expect(await count(t, 'paymentReceipts')).toBe(1);
     expect(await count(t, 'donations')).toBe(1);
 
-    // Un AUTRE événement (autre id) qui décrit le MÊME paiement : le filet
-    // d'événement ne l'arrête pas, l'index d'idempotence si.
+    // ANOTHER event (different id) describing the SAME payment: the event
+    // net does not stop it, the idempotency index does.
     const other = sessionCompleted(ref, {
       eventId: 'evt_2',
       type: 'checkout.session.async_payment_succeeded',
@@ -290,7 +290,7 @@ describe('Webhook — idempotence', () => {
             object: 'invoice',
             amount_paid: 1500,
             currency: 'eur',
-            // Forme d'API 2025 : l'abonnement sous `parent`.
+            // 2025 API shape: the subscription under `parent`.
             parent: {
               subscription_details: {
                 subscription: 'sub_1',
@@ -332,7 +332,7 @@ describe('Webhook — idempotence', () => {
     expect(donations).toHaveLength(1);
     expect(donations[0]).toMatchObject({ kind: 'monthly', status: 'active' });
 
-    // Fin d'abonnement côté Stripe.
+    // Subscription ended on the Stripe side.
     const deleted = JSON.stringify({
       id: 'evt_del',
       type: 'customer.subscription.deleted',
@@ -451,8 +451,8 @@ describe('Stripe — euro et dollar sur le même compte', () => {
       amountMinor: 5000,
     });
 
-    // Session réglée en livres sterling (compte mal réglé) : rien n'est
-    // inscrit, le grand livre ne sait pas totaliser cette devise.
+    // Session settled in pounds sterling (misconfigured account): nothing is
+    // recorded, the ledger cannot total this currency.
     const ref2 = await insertCheckout(t);
     const gbp = sessionCompleted(ref2, {
       currency: 'gbp',
@@ -534,7 +534,7 @@ describe('Prestataire factice — garde (modèle AUTH_DEV_OTP)', () => {
     expect(options.currencies.map((c) => c.provider)).toEqual(['fake', 'fake']);
 
     const ref = await insertCheckout(t, { provider: 'fake' });
-    // Une signature fausse reste refusée, même garde ouverte.
+    // A forged signature is still refused, even with the guard open.
     const bad = await t.action(internal.payments.webhooks.handleWebhook, {
       provider: 'fake',
       rawBody: (await signedFake(ref)).body,
@@ -551,7 +551,7 @@ describe('Prestataire factice — garde (modèle AUTH_DEV_OTP)', () => {
     expect(
       (await t.query(api.payments.checkout.checkoutStatus, { ref }))?.status,
     ).toBe('completed');
-    // Rejouer la simulation sur une demande payée ne paie pas deux fois.
+    // Replaying the simulation on a paid request does not pay twice.
     await t.action(api.payments.fake.simulate, { ref, outcome: 'paid' });
     expect(await count(t, 'paymentTransactions')).toBe(1);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -597,7 +597,7 @@ describe('Formulaire de don — bornes et prestataire', () => {
         }),
       ).rejects.toThrow(/AMOUNT_OUT_OF_BOUNDS/);
     }
-    // Les bornes elles-mêmes sont acceptées.
+    // The bounds themselves are accepted.
     for (const [currency, amount, minor] of [
       ['EUR', 5, 500],
       ['EUR', 10_000, 1_000_000],

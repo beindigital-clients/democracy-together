@@ -21,15 +21,14 @@ next-env.d.ts
 .env
 .env*.local
 
-# convex : `convex/_generated` est VERSIONNÉ, à dessein — pas de règle ici.
-# La CI typecheck, teste et build sans déploiement Convex, donc sans pouvoir
-# lancer `convex codegen` au préalable : sans ces fichiers suivis, les trois
-# jobs échoueraient sur des imports manquants. Ce bloc n'a jamais exclu quoi que
-# ce soit (aucun motif, seulement des commentaires) ; il annonçait l'inverse de
-# ce que fait le dépôt.
+# convex: `convex/_generated` is COMMITTED on purpose — no rule here.
+# CI typechecks, tests and builds without a Convex deployment, so it cannot
+# run `convex codegen` first: without these tracked files, all three jobs
+# would fail on missing imports. This block never excluded anything (no
+# pattern, only comments); it used to claim the opposite of what the repo does.
 
-# documents commerciaux (devis, montants) : pas leur place dans un dépôt de
-# code, ils se partagent par le canal client. Cf. issue #19.
+# commercial documents (quotes, amounts): they do not belong in a code
+# repository, they are shared through the client channel. See issue #19.
 /docs/devis-*.pdf
 
 # tests
@@ -39,21 +38,21 @@ next-env.d.ts
 /coverage
 /screenshots
 
-# Sessions E2E pré-ouvertes (produites par le projet Playwright `setup`)
+# Pre-opened E2E sessions (produced by the Playwright `setup` project)
 tests/e2e/.auth/
 
-# Garde-fou (issue #44) : tout état d'authentification Playwright écrit HORS de
-# `tests/e2e/.auth/` reste hors du dépôt. Un `storageState` d'authentification
-# contient les cookies de session — donc de quoi se faire passer pour le compte.
-# Le fichier de consentement cookies (`tests/e2e/cookie-consent-state.json`) ne
-# correspond pas à ce motif : il est versionné, à dessein.
+# Safeguard (issue #44): any Playwright authentication state written OUTSIDE
+# `tests/e2e/.auth/` stays out of the repo. An authentication `storageState`
+# holds the session cookies — enough to impersonate the account.
+# The cookie-consent file (`tests/e2e/cookie-consent-state.json`) does not
+# match this pattern: it is committed on purpose.
 *auth-state*.json
 
-# Journal du serveur Next capté pendant les E2E (diagnostic #66)
+# Next server log captured during E2E runs (diagnostic #66)
 server.log
 
-# Artefacts d'audit régénérables (journaux, traces) — les specs et PoC, elles,
-# sont versionnées : elles régénèrent tout.
+# Regenerable audit artifacts (logs, traces) — the specs and PoCs themselves
+# are committed: they regenerate everything.
 audit/logs/
 audit/traces/
 audit/routes-statiques.txt

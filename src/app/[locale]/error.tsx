@@ -4,13 +4,13 @@ import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 
-// Frontière d'erreur localisée (audit § 5.1). Sans elle, une panne Convex ou
-// Sanity produisait un 500 générique, hors charte et en anglais.
+// Localized error boundary (audit § 5.1). Without it, a Convex or Sanity
+// outage produced a generic 500, off-brand and in English.
 //
-// NB Next 16 : la prop de reprise s'appelle `retry` (et non `reset` comme dans
-// les versions antérieures) — cf. node_modules/next/dist/docs/01-app/
-// 03-api-reference/03-file-conventions/error.md. Une frontière d'erreur DOIT
-// être un composant client.
+// NB Next 16: the recovery prop is called `retry` (not `reset` as in
+// earlier versions) — see node_modules/next/dist/docs/01-app/
+// 03-api-reference/03-file-conventions/error.md. An error boundary MUST
+// be a client component.
 export default function LocaleError({
   error,
   retry,
@@ -21,8 +21,8 @@ export default function LocaleError({
   const t = useTranslations('errors');
 
   useEffect(() => {
-    // Pas de service de télémétrie dans le projet : on journalise côté serveur
-    // via la console, ce que Vercel capture déjà dans les logs d'exécution.
+    // No telemetry service in the project: we log server-side via the
+    // console, which Vercel already captures in the runtime logs.
     console.error(error);
   }, [error]);
 
@@ -52,8 +52,8 @@ export default function LocaleError({
           {t('errorHome')}
         </Link>
       </div>
-      {/* `digest` est l'identifiant que Next attribue à l'erreur côté serveur :
-          c'est ce qui permet de la retrouver dans les logs. */}
+      {/* `digest` is the identifier Next assigns to the error server-side:
+          it is what lets us find it in the logs. */}
       {error.digest ? (
         <p className="mt-6 font-mono text-[12px] text-muted">
           {t('errorReference')} : {error.digest}

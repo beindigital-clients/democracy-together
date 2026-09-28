@@ -2,19 +2,19 @@ import { test, expect, type Page } from '@playwright/test';
 
 test.use({ locale: 'fr-FR' });
 
-// F-23 / F-52 — l'agenda public.
+// F-23 / F-52 — the public calendar.
 //
-// DEPUIS LE CHANTIER « CONTENUS », deux choses ont changé sous cette page, et
-// ce fichier en tient compte au lieu de figer des nombres :
-//  - l'agenda vient de la table `contentEvents` (import du contenu codé en CI,
-//    `contenus/migration:importCodedContent`), ou du catalogue codé en repli ;
-//    un éditeur peut y ajouter des événements, et `contenus-*.spec.ts` le fait ;
-//  - « à venir » ou « passé » se décide par la DATE de l'événement, plus par un
-//    indicateur posé à la main. Le compte d'événements à venir dépend donc du
-//    jour où la suite tourne.
-// Les assertions portent sur la COHÉRENCE de la page (le compte annoncé est
-// celui des cartes affichées, un filtre ne garde que ce qu'il nomme), pas sur
-// un total qui changerait avec le calendrier.
+// SINCE THE "CONTENUS" WORKSTREAM, two things have changed under this page, and
+// this file accounts for them instead of hard-coding numbers:
+//  - the calendar comes from the `contentEvents` table (import of the coded content in CI,
+//    `contenus/migration:importCodedContent`), or from the coded catalog as a fallback;
+//    an editor can add events to it, and `contenus-*.spec.ts` does so;
+//  - "upcoming" or "past" is decided by the event's DATE, no longer by a
+//    manually set flag. The number of upcoming events therefore depends on the
+//    day the suite runs.
+// The assertions target the page's CONSISTENCY (the announced count is
+// that of the displayed cards, a filter keeps only what it names), not
+// a total that would change with the calendar.
 
 async function annonce(page: Page): Promise<number> {
   const b = page
@@ -35,12 +35,12 @@ test('événements : liste, filtres serveur, période (F-23, F-52)', async ({
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Événements',
   );
-  // Le compte annoncé est celui des cartes affichées.
+  // The announced count is that of the displayed cards.
   const total = await annonce(page);
   expect(total).toBeGreaterThan(0);
   await expect(await cartes(page)).toHaveCount(total);
 
-  // Filtre facette : Webinaire (lien GET) — chaque carte restante en est un.
+  // Facet filter: "Webinaire" (GET link) — every remaining card is one.
   await page.locator('aside a[href*="type=webinaire"]').click();
   await expect(page).toHaveURL(/[?&]type=webinaire/);
   const webinaires = await annonce(page);
@@ -52,8 +52,8 @@ test('événements : liste, filtres serveur, période (F-23, F-52)', async ({
     await expect(carte).toContainText('Webinaire');
   }
 
-  // Filtre par mois (F-52) : la facette « Mois » ne propose que des mois
-  // peuplés ; en choisir un ne laisse jamais la liste vide.
+  // Month filter (F-52): the "Mois" facet only offers populated months;
+  // picking one never leaves the list empty.
   await page.goto('/fr/evenements');
   const mois = page.locator('aside a[href*="mois="]').first();
   if (await mois.count()) {
@@ -62,7 +62,7 @@ test('événements : liste, filtres serveur, période (F-23, F-52)', async ({
     expect(await annonce(page)).toBeGreaterThan(0);
   }
 
-  // Bascule période → Passés : la page reste cohérente avec son compte.
+  // Period toggle → "Passés": the page stays consistent with its count.
   await page.goto('/fr/evenements');
   await page.getByRole('link', { name: 'Passés', exact: true }).click();
   await expect(page).toHaveURL(/[?&]period=passes/);
@@ -74,9 +74,9 @@ test('événements : liste, filtres serveur, période (F-23, F-52)', async ({
 test('événements : fiche riche de la conférence inaugurale (F-23)', async ({
   page,
 }) => {
-  // Le bloc « à la une » de la liste n'existe que tant que la conférence est
-  // à venir (14 novembre 2026) : on vérifie la VEDETTE à cette condition, et
-  // la fiche riche dans tous les cas.
+  // The list's "featured" block only exists while the conference is
+  // upcoming (14 November 2026): we check the FEATURED item under that condition, and
+  // the rich event page in all cases.
   if (Date.now() < Date.UTC(2026, 10, 14, 22)) {
     await page.goto('/fr/evenements');
     await expect(
@@ -100,8 +100,8 @@ test('événements : fiche riche de la conférence inaugurale (F-23)', async ({
   await expect(
     page.getByRole('heading', { name: 'Infos pratiques' }),
   ).toBeVisible();
-  // Billetterie (tarif illustratif) : seulement tant que la conférence est à
-  // venir — passée, la fiche montre la rediffusion à la place.
+  // Ticketing (illustrative price): only while the conference is
+  // upcoming — once past, the event page shows the replay instead.
   if (Date.now() < Date.UTC(2026, 10, 14, 22)) {
     await expect(page.getByText('45 €')).toBeVisible();
   }

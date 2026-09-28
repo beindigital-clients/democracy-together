@@ -1,14 +1,14 @@
 import { useTranslations } from 'next-intl';
 
-// APERÇU D'UNE CAMPAGNE (campagne du 27/09, R-07). L'éditeur envoyait à
-// l'aveugle : aucun rendu du sujet ni du corps avant « Envoyer ». Ce composant
-// rend le texte comme `campaignHtml` (convex/newsletter.ts) le mettra en
-// forme : un paragraphe par ligne vide, un retour à la ligne conservé dans le
-// paragraphe, et le pied de désinscription que chaque envoi porte. Il ne rend
-// PAS de HTML : le corps est du texte simple, il est affiché comme tel.
+// CAMPAIGN PREVIEW (27/09 campaign, R-07). The editor was sending
+// blind: no rendering of the subject or body before "Envoyer". This component
+// renders the text the way `campaignHtml` (convex/newsletter.ts) will format
+// it: one paragraph per blank line, a line break kept within the
+// paragraph, and the unsubscribe footer every send carries. It does NOT
+// render HTML: the body is plain text, and is displayed as such.
 //
-// Composant PUR — le sujet et le corps viennent en props — pour être testé
-// sans navigateur (tests/unit/admin-campaign-preview.test.tsx).
+// PURE component — subject and body come in as props — so it can be tested
+// without a browser (tests/unit/admin-campaign-preview.test.tsx).
 
 export function splitParagraphs(body: string): string[][] {
   return body

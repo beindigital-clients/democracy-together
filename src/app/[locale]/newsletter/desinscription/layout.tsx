@@ -2,19 +2,19 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-// Page de désinscription : on y arrive par un lien d'e-mail, jamais par une
-// recherche. Elle n'est ni dans le sitemap ni dans les zones interdites de
-// `robots.txt` — elle n'était donc déclarée nulle part (audit F-04).
+// Unsubscribe page: one arrives via an e-mail link, never via a search. It
+// is neither in the sitemap nor in the disallowed zones of `robots.txt` — so
+// it was declared nowhere (audit F-04).
 //
-// La déclaration juste ici est `noindex`, PAS un canonical : c'est le même
-// arbitrage que `/recherche` (issue #35). Sur une page qu'on ne veut pas voir
-// indexée, le `noindex` EST la déclaration, et un hreflang n'y serait que du
-// bruit qu'un moteur ignore. Contrairement aux pages d'authentification,
-// celle-ci reste CRAWLABLE : sans cela un moteur ne lirait jamais le
-// `noindex` qu'on vient de poser.
+// The right declaration here is `noindex`, NOT a canonical: same decision
+// as `/recherche` (issue #35). On a page we do not want indexed, the
+// `noindex` IS the declaration, and an hreflang would only be noise that a
+// crawler ignores. Unlike the authentication pages, this one stays
+// CRAWLABLE: otherwise a crawler would never read the `noindex` we just
+// set.
 //
-// La page elle-même porte `'use client'` (elle lit un jeton dans l'URL), donc
-// ne peut pas exporter `generateMetadata` : d'où ce layout.
+// The page itself is `'use client'` (it reads a token from the URL), so it
+// cannot export `generateMetadata`: hence this layout.
 export async function generateMetadata({
   params,
 }: {

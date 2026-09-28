@@ -2,22 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { EMAIL_RE, isEmail, formField } from '@/lib/validation';
 import * as serveur from '@convex/lib/validation';
 
-// `isEmail` filtre l'adresse de CHAQUE formulaire du site — adhésion, contact,
-// newsletter, invitation, inscription jeunesse, mentorat, rappel d'événement,
-// et les trois écrans de connexion. Rien ne la couvrait.
+// `isEmail` filters the address of EVERY form on the site — membership, contact,
+// newsletter, invitation, youth signup, mentoring, event reminder,
+// and the three sign-in screens. Nothing covered it.
 //
-// Deux choses se jouent ici, et une seule est un détail de regex :
+// Two things are at stake here, and only one is a regex detail:
 //
-//   1. CE QUI PASSE. Trop permissif, le serveur reçoit des adresses qui
-//      n'aboutiront jamais (un code de connexion parti dans le vide) ; trop
-//      strict, un membre légitime est refusé à la porte par son propre
-//      formulaire.
-//   2. LA SYNCHRONIE. La règle est écrite DEUX FOIS — ici et dans
-//      convex/lib/validation.ts — parce que la frontière Convex/Next interdit
-//      un module unique. Les deux fichiers le disent en commentaire ; aucun ne
-//      l'imposait. Une divergence donnerait le pire des cas : un formulaire qui
-//      accepte ce que le serveur rejette (erreur incompréhensible côté membre)
-//      ou l'inverse (validation client qui ne sert plus à rien).
+//   1. WHAT GETS THROUGH. Too permissive, and the server receives addresses that
+//      will never work (a sign-in code sent into the void); too
+//      strict, and a legitimate member is turned away at the door by their own
+//      form.
+//   2. SYNCHRONY. The rule is written TWICE — here and in
+//      convex/lib/validation.ts — because the Convex/Next boundary forbids
+//      a single module. Both files say so in a comment; neither
+//      enforced it. A divergence would produce the worst case: a form that
+//      accepts what the server rejects (an incomprehensible error for the member)
+//      or the reverse (client validation that no longer serves any purpose).
 
 const VALIDES = [
   'membre@institut-sahel.org',
@@ -29,16 +29,16 @@ const VALIDES = [
 ];
 
 const INVALIDES = [
-  '', // champ laissé vide
-  'membre', // pas d'arobase
-  'membre@example', // pas de point dans le domaine
-  '@example.org', // pas de partie locale
-  'membre@', // pas de domaine
-  'membre@@example.org', // deux arobases
-  'membre@exemple.org autre@exemple.org', // deux adresses collées
-  'prenom nom@example.org', // espace dans la partie locale
-  'membre@exem ple.org', // espace dans le domaine
-  'membre@.org', // domaine vide avant le point
+  '', // field left empty
+  'membre', // no at sign
+  'membre@example', // no dot in the domain
+  '@example.org', // no local part
+  'membre@', // no domain
+  'membre@@example.org', // two at signs
+  'membre@exemple.org autre@exemple.org', // two addresses stuck together
+  'prenom nom@example.org', // space in the local part
+  'membre@exem ple.org', // space in the domain
+  'membre@.org', // empty domain before the dot
 ];
 
 describe('isEmail — le filtre de tous les formulaires', () => {
@@ -50,32 +50,32 @@ describe('isEmail — le filtre de tous les formulaires', () => {
     expect(isEmail(value)).toBe(false);
   });
 
-  // Un copier-coller depuis un client de messagerie traîne presque toujours une
-  // espace ou un saut de ligne. La refuser ferait échouer une adresse correcte
-  // sur un caractère que l'utilisateur ne voit même pas.
+  // A copy-paste from an email client almost always drags along a
+  // space or a line break. Refusing it would make a correct address fail
+  // on a character the user cannot even see.
   it('ignore les espaces autour de la saisie', () => {
     expect(isEmail('  membre@institut-sahel.org  ')).toBe(true);
     expect(isEmail('\tmembre@institut-sahel.org\n')).toBe(true);
   });
 
-  // …mais l'espace INTÉRIEURE reste un refus : c'est une autre adresse, pas un
-  // artefact de collage.
+  // …but an INNER space is still a refusal: it is a different address, not a
+  // paste artifact.
   it("ne rattrape pas une espace à l'intérieur de l'adresse", () => {
     expect(isEmail('  prenom nom@example.org  ')).toBe(false);
   });
 
   it('ancre la règle aux deux bouts (pas de correspondance partielle)', () => {
-    // Sans `^`/`$`, une chaîne qui CONTIENT une adresse passerait — la porte
-    // ouverte à un en-tête injecté dans un champ de formulaire.
+    // Without `^`/`$`, a string that CONTAINS an address would get through — opening
+    // the door to a header injected into a form field.
     expect(isEmail('Nom <membre@example.org>')).toBe(false);
     expect(isEmail('membre@example.org\nBcc: tiers@example.org')).toBe(false);
   });
 });
 
 describe('Validation — le client et le serveur appliquent la MÊME règle', () => {
-  // Deux fichiers, une seule règle : on compare les décisions, pas les sources.
-  // Une réécriture équivalente de la regex reste donc verte ; une divergence de
-  // COMPORTEMENT, seule chose qui casse un formulaire, ne l'est pas.
+  // Two files, a single rule: we compare the decisions, not the sources.
+  // An equivalent rewrite of the regex therefore stays green; a divergence in
+  // BEHAVIOR, the only thing that breaks a form, does not.
   it.each([...VALIDES, ...INVALIDES])(
     'rend le même verdict sur %o',
     (value) => {
@@ -88,10 +88,10 @@ describe('Validation — le client et le serveur appliquent la MÊME règle', ()
     expect(serveur.EMAIL_RE.flags).toBe(EMAIL_RE.flags);
   });
 
-  // `EMAIL_RE` est exportée et réutilisée telle quelle (attribut `pattern` d'un
-  // <input>, validations dérivées). Un drapeau `g` la rendrait à état : `test()`
-  // alternerait vrai/faux sur la MÊME adresse d'un appel à l'autre, et un
-  // formulaire refuserait une saisie sur deux sans que rien ne le trahisse.
+  // `EMAIL_RE` is exported and reused as is (the `pattern` attribute of an
+  // <input>, derived validations). A `g` flag would make it stateful: `test()`
+  // would alternate true/false on the SAME address from one call to the next, and a
+  // form would reject every other input without anything giving it away.
   it("n'est pas globale (sinon `test()` alternerait d'un appel à l'autre)", () => {
     expect(EMAIL_RE.global).toBe(false);
     const adresse = 'membre@institut-sahel.org';
@@ -106,24 +106,24 @@ describe('formField — lecture d’un champ texte de formulaire', () => {
     expect(formField(fd, 'email')).toBe('membre@institut-sahel.org');
   });
 
-  // Le piège que la fonction existe pour éviter : `String(fd.get(name))` rend
-  // la CHAÎNE « null » sur un champ absent — cinq caractères, non vides, qui
-  // passent tous les tests de présence et finissent en base.
+  // The trap the function exists to avoid: `String(fd.get(name))` returns
+  // the STRING "null" for a missing field — five characters, non-empty, that
+  // pass every presence check and end up in the database.
   it('rend la chaîne vide sur un champ absent (jamais « null »)', () => {
     const fd = new FormData();
     expect(formField(fd, 'email')).toBe('');
     expect(formField(fd, 'email')).not.toBe('null');
   });
 
-  // Même piège avec un fichier : `String(File)` rend « [object File] ».
+  // Same trap with a file: `String(File)` returns "[object File]".
   it('rend la chaîne vide sur un champ fichier (jamais « [object File] »)', () => {
     const fd = new FormData();
     fd.set('email', new File(['contenu'], 'piece.pdf'));
     expect(formField(fd, 'email')).toBe('');
   });
 
-  // Les appelants enchaînent `formField(fd, 'email').trim()` : la fonction doit
-  // rendre une VRAIE chaîne dans tous les cas, sinon `.trim()` lève.
+  // Callers chain `formField(fd, 'email').trim()`: the function must
+  // return a REAL string in every case, otherwise `.trim()` throws.
   it('rend toujours une chaîne, donc `.trim()` ne lève jamais', () => {
     const fd = new FormData();
     fd.set('fichier', new File([''], 'vide.pdf'));
@@ -134,8 +134,8 @@ describe('formField — lecture d’un champ texte de formulaire', () => {
   });
 
   it('préserve les espaces : c’est à l’appelant de couper', () => {
-    // `isEmail` coupe pour son verdict, mais la valeur STOCKÉE vient d'ici :
-    // couper en douce ferait diverger ce qui est validé de ce qui est envoyé.
+    // `isEmail` trims for its verdict, but the STORED value comes from here:
+    // trimming quietly would make what is validated diverge from what is sent.
     const fd = new FormData();
     fd.set('name', '  Aïcha Diallo  ');
     expect(formField(fd, 'name')).toBe('  Aïcha Diallo  ');

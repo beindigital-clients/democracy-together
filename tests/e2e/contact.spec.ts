@@ -24,14 +24,14 @@ test('contact : envoi valide -> succès + message stocké (F-17)', async ({
     page.getByRole('heading', { name: 'Message envoyé' }),
   ).toBeVisible();
 
-  // vérifie le stockage réel côté Convex (lecture dev, garde AUTH_DEV_OTP)
+  // checks the actual storage on the Convex side (dev read, AUTH_DEV_OTP guard)
   const stored = latestContactForEmail(email);
   expect(stored?.subject).toBe('Partenariat think tank');
   expect(stored?.handled).toBe(false);
 });
 
-// Auparavant : un message unique en bas de formulaire, à charge pour la
-// personne de deviner lequel des quatre champs pose problème (issue #37).
+// Previously: a single message at the bottom of the form, leaving the
+// person to guess which of the four fields was the problem (issue #37).
 test('contact : l’envoi invalide désigne LE champ fautif (F-17, #37)', async ({
   page,
 }) => {
@@ -46,13 +46,13 @@ test('contact : l’envoi invalide désigne LE champ fautif (F-17, #37)', async 
 
   const email = page.getByLabel('E-mail');
   await expectFieldError(page, email, 'Saisissez une adresse e-mail valide.');
-  // Et lui SEUL : les champs valides ne sont pas mis en cause.
+  // And it ALONE: the valid fields are not implicated.
   await expectNoFieldError(page.getByLabel('Nom'));
   await expectNoFieldError(page.getByLabel('Sujet'));
   await expectNoFieldError(page.getByLabel('Message'));
-  // Le focus va au champ à corriger : c'est ce qui fait lire le message.
+  // Focus goes to the field to correct: that is what gets the message read.
   await expect(email).toBeFocused();
-  // Et rien de ce qui a été écrit n'est perdu.
+  // And nothing that was typed is lost.
   await expect(page.getByLabel('Message')).toHaveValue(message);
 
   await expect(
@@ -70,6 +70,6 @@ test('contact : le message disparaît dès que le champ est corrigé (#37)', asy
   await expectFieldError(page, name, /Indiquez votre nom/);
   await name.fill('Awa Diop');
   await expectNoFieldError(name);
-  // Les autres restent en cause : corriger l'un n'absout pas les autres.
+  // The others remain implicated: fixing one does not clear the others.
   await expectFieldError(page, page.getByLabel('E-mail'), /adresse e-mail/);
 });

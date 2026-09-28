@@ -5,7 +5,7 @@ import { AuthGate } from '@/components/auth/auth-gate';
 import { Link } from '@/i18n/navigation';
 import { MemberPayments } from '@/components/payments/member-payments';
 
-// Espace membre / donateur (F-30) : cotisation, dons mensuels, reçus.
+// Member / donor area (F-30): membership fee, monthly donations, receipts.
 export default function CotisationsPage() {
   const t = useTranslations('payments');
   return (

@@ -39,8 +39,8 @@ export default async function PressePage({
   const loc = resolveLocale(locale);
   const t = await getTranslations('press');
   const kit = getPressKit(loc);
-  // Revue de presse (table `contentPress`) : aucune source codée, la section
-  // n'apparaît qu'à partir du premier article publié.
+  // Press review (`contentPress` table): no hard-coded source, the section
+  // only appears once the first article is published.
   const press = await loadPress(loc);
   const pressDate = (iso: string) =>
     new Intl.DateTimeFormat(intlLocale(loc), {
@@ -66,7 +66,7 @@ export default async function PressePage({
         </Reveal>
       </header>
 
-      {/* Boilerplate — texte de présentation libre de reprise */}
+      {/* Boilerplate — presentation text free to reuse */}
       <Reveal>
         <section className="mt-10 rounded-sm border border-line bg-surface p-6 md:mt-12 md:p-8">
           <div className="flex items-baseline justify-between gap-4">
@@ -83,7 +83,7 @@ export default async function PressePage({
         </section>
       </Reveal>
 
-      {/* Faits clés — uniquement des faits établis */}
+      {/* Key facts — established facts only */}
       <section className="mt-12 md:mt-16">
         <Reveal>
           <h2 className="font-display text-2xl font-medium leading-tight md:text-3xl">
@@ -112,7 +112,7 @@ export default async function PressePage({
         </RevealGroup>
       </section>
 
-      {/* Revue de presse — « ils parlent de nous » (chantier « contenus ») */}
+      {/* Press review — "they talk about us" ("contenus" workstream) */}
       {press.length > 0 ? (
         <section className="mt-12 md:mt-16" aria-labelledby="revue-de-presse">
           <Reveal>
@@ -164,7 +164,7 @@ export default async function PressePage({
         </section>
       ) : null}
 
-      {/* Contact presse — renvoi au formulaire /contact */}
+      {/* Press contact — pointer to the /contact form */}
       <Reveal>
         <section className="mt-12 rounded-sm border border-accent-edge bg-accent-tint p-8 md:mt-16 md:p-10">
           <div className="max-w-[60ch]">
@@ -181,7 +181,7 @@ export default async function PressePage({
         </section>
       </Reveal>
 
-      {/* Ressources — liens vers /a-propos et données ouvertes du Baromètre */}
+      {/* Resources — links to /a-propos and the Baromètre's open data */}
       <section className="mt-12 md:mt-16">
         <Reveal>
           <h2 className="font-display text-2xl font-medium leading-tight md:text-3xl">
@@ -210,9 +210,9 @@ export default async function PressePage({
               <RevealItem as="li" key={r.slug}>
                 {r.external ? (
                   <a
-                    // Fichier servi sous la route localisée : le préfixe est
-                    // celui de la page, pas « /fr » en dur (mesuré : /en/presse
-                    // envoyait vers /fr/barometre/data/…).
+                    // File served under the localized route: the prefix is
+                    // the page's, not a hard-coded "/fr" (measured: /en/presse
+                    // linked to /fr/barometre/data/…).
                     href={
                       r.href.startsWith('/') ? `/${locale}${r.href}` : r.href
                     }

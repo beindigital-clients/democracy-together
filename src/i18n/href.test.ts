@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { withSearchParams } from '@/i18n/href';
 
-// Le sélecteur de langue perdait la query string (issue #35) : c'est ici que
-// se joue la conservation des filtres au changement de locale. Le reste du
-// chemin — préfixe /fr ou /en — appartient à next-intl.
+// The language picker lost the query string (issue #35): this is where
+// preserving filters on locale change is decided. The rest of the
+// path — the /fr or /en prefix — belongs to next-intl.
 
 describe('withSearchParams — conserver les filtres au changement de langue', () => {
   it('rejoint le chemin et la query', () => {
@@ -24,8 +24,8 @@ describe('withSearchParams — conserver les filtres au changement de langue', (
   });
 
   it('préserve les paramètres répétés et leur ordre', () => {
-    // Un aller-retour par `Object.fromEntries` écraserait le premier `theme`
-    // et pourrait réordonner les clés : la query est donc passée en chaîne.
+    // A round trip through `Object.fromEntries` would overwrite the first `theme`
+    // and could reorder the keys: the query is therefore passed as a string.
     expect(withSearchParams('/recherche', 'theme=a&q=eau&theme=b')).toBe(
       '/recherche?theme=a&q=eau&theme=b',
     );

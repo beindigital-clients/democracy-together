@@ -8,17 +8,17 @@ import {
   EMPTY_TRIBUNE_POSTS,
 } from '@/lib/convex-fallback';
 
-// F-02 — une source indisponible ne doit pas emporter la page.
+// F-02 — an unavailable source must not take the page down with it.
 //
-// Ce qui compte ici n'est pas « la valeur est bien relue » : c'est qu'AUCUN
-// mode de défaillance ne remonte jusqu'au rendu. Cinq pages publiques
-// (bibliothèque, experts, réseau, thématiques, tribune) répondaient 500 quand
-// Convex était injoignable ; ce module est la garde, donc ses chemins de
-// sortie sont exercés un par un.
+// What matters here is not "the value is read back correctly": it is that NO
+// failure mode propagates up to the render. Five public pages
+// (library, experts, network, themes, tribune) responded 500 when
+// Convex was unreachable; this module is the guard, so its exit
+// paths are exercised one by one.
 //
-// `vi.restoreAllMocks()` n'est PAS employé : il ne restaure pas un espion posé
-// sur une instance (constaté sur `window.localStorage` sous happy-dom, audit
-// F-01). Chaque espion est rendu explicitement par son propre `mockRestore()`.
+// `vi.restoreAllMocks()` is NOT used: it does not restore a spy set
+// on an instance (observed on `window.localStorage` under happy-dom, audit
+// F-01). Each spy is restored explicitly by its own `mockRestore()`.
 
 function silenceConsole() {
   const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -53,10 +53,10 @@ describe('fetchOrFallback — les défaillances', () => {
     spy.mockRestore();
   });
 
-  // C'est la raison d'être de l'argument FONCTION. Une promesse passée telle
-  // quelle serait déjà créée au moment d'entrer dans le `try` ; un jet
-  // synchrone au montage de la requête échapperait alors à la capture et la
-  // page reprendrait un 500 — exactement le défaut qu'on referme.
+  // This is the reason for the FUNCTION argument. A promise passed as is
+  // would already be created by the time the `try` is entered; a
+  // synchronous throw while building the request would then escape the catch and the
+  // page would go back to a 500 — exactly the defect we are closing.
   it('capture aussi un jet SYNCHRONE au montage de la requête', async () => {
     const spy = silenceConsole();
     const out = await fetchOrFallback(
@@ -89,29 +89,29 @@ describe('fetchOrFallback — les défaillances', () => {
       () => Promise.reject(new Error('x')),
       repli,
     );
-    // Identité, pas égalité structurelle : la page doit recevoir CET objet,
-    // pas une copie — sans quoi un repli partagé pourrait diverger.
+    // Identity, not structural equality: the page must receive THIS object,
+    // not a copy — otherwise a shared fallback could diverge.
     expect(out).toBe(repli);
     spy.mockRestore();
   });
 });
 
-// Le mode de défaillance le plus coûteux de ce module, et le moins visible.
+// The most costly failure mode of this module, and the least visible.
 //
-// Next signale par un JET ce qui n'est pas une panne : `notFound()`,
-// `redirect()`, et la sortie du rendu statique (« Dynamic server usage »), que
-// `fetchQuery` déclenche à CHAQUE génération. Un `catch` qui les avale ne
-// produit pas une erreur : il produit une route que Next croit statique, dont
-// le REPLI est figé dans le HTML pré-rendu. La page afficherait « contenu
-// indisponible » en permanence, backend en parfait état — et aucun test
-// fonctionnel ne le verrait, puisque la page répond 200.
+// Next signals by a THROW things that are not outages: `notFound()`,
+// `redirect()`, and the bail-out from static rendering ("Dynamic server usage"), which
+// `fetchQuery` triggers on EVERY generation. A `catch` that swallows them does not
+// produce an error: it produces a route that Next believes is static, whose
+// FALLBACK is frozen into the prerendered HTML. The page would show "contenu
+// indisponible" permanently, with the backend in perfect shape — and no functional
+// test would see it, since the page responds 200.
 describe('Signaux internes de Next — ils doivent TRAVERSER le repli', () => {
   it('laisse passer notFound()', async () => {
     const spy = silenceConsole();
     await expect(
       fetchOrFallback('detail', async () => notFound(), 'repli'),
     ).rejects.toThrow();
-    // Et ne le journalise pas comme une panne : ce n'en est pas une.
+    // And does not log it as an outage: it is not one.
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
@@ -141,9 +141,9 @@ describe('Signaux internes de Next — ils doivent TRAVERSER le repli', () => {
 });
 
 describe('Formes vides — ce que la page rend quand le backend est muet', () => {
-  // Le typage (`FunctionReturnType`) garantit déjà que les clés existent. Ce
-  // que ces tests tiennent, c'est qu'elles sont VIDES : un repli peuplé à la
-  // main afficherait des données inventées, ce qui serait pire qu'un 500.
+  // The typing (`FunctionReturnType`) already guarantees the keys exist. What
+  // these tests hold is that they are EMPTY: a fallback populated by
+  // hand would display made-up data, which would be worse than a 500.
   it('publications : items, total et les cinq facettes à zéro', () => {
     expect(EMPTY_PUBLICATION_LIST.items).toEqual([]);
     expect(EMPTY_PUBLICATION_LIST.total).toBe(0);

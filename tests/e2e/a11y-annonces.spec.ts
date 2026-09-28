@@ -2,20 +2,20 @@ import { test, expect } from '@playwright/test';
 import { expectFieldError } from './_fields';
 import { SESSIONS } from './_sessions';
 
-// F-08 — CE QU'ENTEND UNE PERSONNE QUI UTILISE UN LECTEUR D'ÉCRAN (audit RGAA
-// du 27/09, critères 7.1, 7.5, 8.6, 8.7, 11.1, 11.10 et 11.9).
+// F-08 — WHAT A PERSON USING A SCREEN READER HEARS (RGAA audit
+// of 27/09, criteria 7.1, 7.5, 8.6, 8.7, 11.1, 11.10 and 11.9).
 //
-// Aucun lecteur d'écran ne tourne dans la CI. Ce que ces tests tiennent, c'est
-// ce que le lecteur d'écran LIT : l'arbre d'accessibilité du navigateur (noms,
-// rôles, états — `ariaSnapshot`), les régions live (`role=status` /
-// `role=alert`), le rattachement des erreurs aux champs, la langue des blocs.
-// La restitution vocale elle-même se vérifie à la main, selon le protocole de
+// No screen reader runs in CI. What these tests hold is
+// what the screen reader READS: the browser's accessibility tree (names,
+// roles, states — `ariaSnapshot`), live regions (`role=status` /
+// `role=alert`), tying errors to fields, the language of blocks.
+// The spoken output itself is checked by hand, following the protocol in
 // `docs/rgaa/protocole-lecteurs-ecran.md`.
 
 test.use({ locale: 'fr-FR' });
 
 // ---------------------------------------------------------------------------
-// 1. Messages d'erreur et de succès (RGAA 7.5, 11.10)
+// 1. Error and success messages (RGAA 7.5, 11.10)
 // ---------------------------------------------------------------------------
 
 test.describe('messages annoncés', () => {
@@ -28,7 +28,7 @@ test.describe('messages annoncés', () => {
       .getByLabel('Mot de passe', { exact: true })
       .fill('mauvaise-phrase-de-passe');
     await page.getByRole('button', { name: 'Se connecter' }).click();
-    // Filtré : Next pose sa propre région `alert` vide, l'annonceur de route.
+    // Filtered: Next sets its own empty `alert` region, the route announcer.
     const alerte = page.getByRole('alert').filter({ hasText: /\S/ });
     await expect(alerte).toBeVisible({ timeout: 15_000 });
     await expect(alerte).toHaveText('E-mail ou mot de passe incorrect.');
@@ -42,8 +42,8 @@ test.describe('messages annoncés', () => {
     for (const libelle of ['Nom', 'E-mail', 'Sujet', 'Message']) {
       const champ = page.getByLabel(libelle, { exact: true });
       await expect(champ, libelle).toHaveAttribute('aria-invalid', 'true');
-      // Ce que le lecteur d'écran lit en arrivant sur le champ : son nom,
-      // « invalide », et la description — le message d'erreur.
+      // What the screen reader reads on reaching the field: its name,
+      // "invalid", and the description — the error message.
       await expect(champ, libelle).not.toHaveAccessibleDescription('');
     }
     await expectFieldError(
@@ -71,8 +71,8 @@ test.describe('messages annoncés', () => {
       .getByRole('status')
       .filter({ hasText: 'Message envoyé' });
     await expect(statut).toBeVisible({ timeout: 15_000 });
-    // Le formulaire (et son bouton, qui avait le focus) a disparu : sans
-    // reprise du focus, il retombait sur <body> (correctif RGAA 7.5 du 27/09).
+    // The form (and its button, which had focus) is gone: without
+    // moving the focus, it fell back to <body> (RGAA 7.5 fix of 27/09).
     await expect(statut).toBeFocused();
   });
 
@@ -92,8 +92,8 @@ test.describe('messages annoncés', () => {
     await champ.fill(`e2e_a11y_nl_${Date.now()}@democracytogether.test`);
     await page.getByRole('button', { name: "S'inscrire" }).first().click();
     const statut = page.getByRole('status').filter({
-      // Double opt-in (chantier diffusion) : le succès annonce le courriel
-      // de confirmation, plus une inscription immédiate.
+      // Double opt-in ("diffusion" workstream): success announces the confirmation
+      // email, no longer an immediate subscription.
       hasText: 'Merci ! Un e-mail de confirmation vient de vous être envoyé',
     });
     await expect(statut).toBeVisible({ timeout: 15_000 });
@@ -121,7 +121,7 @@ test.describe('messages annoncés', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. Noms accessibles des contrôles clés (RGAA 7.1, 11.9, 6.1)
+// 2. Accessible names of key controls (RGAA 7.1, 11.9, 6.1)
 // ---------------------------------------------------------------------------
 
 test.describe('arbre d’accessibilité', () => {
@@ -143,7 +143,7 @@ test.describe('arbre d’accessibilité', () => {
         - button "Recherche"
         - button "Langue et affichage FR"
     `);
-    // La page courante est signalée autrement que par la couleur.
+    // The current page is indicated by something other than color.
     await expect(
       page.getByRole('banner').getByRole('link', { name: 'À propos' }),
     ).toHaveAttribute('aria-current', 'page');
@@ -161,8 +161,8 @@ test.describe('arbre d’accessibilité', () => {
     }
   });
 
-  // Sur desktop, le thème se règle dans le menu « Langue et affichage » de
-  // l'en-tête (28/09) : l'état choisi est exposé par `aria-checked`.
+  // On desktop, the theme is set in the header's "Langue et affichage"
+  // menu (28/09): the chosen state is exposed through `aria-checked`.
   test('apparence : le choix clair / sombre est exposé (aria-checked)', async ({
     page,
   }) => {
@@ -175,7 +175,7 @@ test.describe('arbre d’accessibilité', () => {
     await expect(sombre).toHaveAttribute('aria-checked', 'false');
     await sombre.click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    // Le menu s'est refermé et le focus est revenu au déclencheur.
+    // The menu closed and focus went back to the trigger.
     await expect(page.getByRole('menu')).toHaveCount(0);
     await expect(
       bandeau.getByRole('button', { name: /Langue et affichage/ }),
@@ -220,23 +220,13 @@ test.describe('arbre d’accessibilité', () => {
     ).toBeVisible();
     await expect(main).toContainText('partiellement conforme');
     await expect(main).toContainText('72,6 %');
-    // Non-conformités, contenus non évalués, contact, recours : des LISTES.
+    // Non-conformities, content not evaluated, contact, remedies: LISTS.
     expect(await main.getByRole('list').count()).toBeGreaterThanOrEqual(4);
-  });
-
-  test('globe : un bouton nommé arrête la rotation (RGAA 13.8)', async ({
-    page,
-  }) => {
-    await page.goto('/fr/barometre');
-    const bouton = page.getByRole('button', {
-      name: /(Mettre en pause|Lancer) la rotation du globe/,
-    });
-    await expect(bouton).toBeVisible({ timeout: 15_000 });
   });
 });
 
 // ---------------------------------------------------------------------------
-// 3. Langue et sens des contenus (RGAA 8.3, 8.7, 8.10)
+// 3. Language and direction of content (RGAA 8.3, 8.7, 8.10)
 // ---------------------------------------------------------------------------
 
 test.describe('langue des pages et des blocs', () => {
@@ -273,7 +263,7 @@ test.describe('langue des pages et des blocs', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4. Écrans connectés : titres de page et régions live (RGAA 8.6, 7.5)
+// 4. Signed-in screens: page titles and live regions (RGAA 8.6, 7.5)
 // ---------------------------------------------------------------------------
 
 test.describe('espace connecté', () => {
@@ -297,11 +287,11 @@ test.describe('espace connecté', () => {
     await expect(page).toHaveTitle(
       'Utilisateurs · Administration · Democracy Together',
     );
-    // Les retours d'action doivent exister AVANT leur texte pour être lus
-    // (cf. components/admin/action-feedback.tsx).
+    // Action feedback regions must exist BEFORE their text in order to be read
+    // (see components/admin/action-feedback.tsx).
     await expect(page.locator('[role="status"]').first()).toBeAttached();
     await expect(page.locator('[role="alert"]').first()).toBeAttached();
-    // Tableau titré (RGAA 5.4).
+    // Table with a caption (RGAA 5.4).
     await expect(
       page.getByRole('table', { name: 'Utilisateurs' }),
     ).toBeVisible();

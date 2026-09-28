@@ -1,26 +1,26 @@
 import { type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-// MÉTHODOLOGIE D'ACCESSIBILITÉ DE L'AUDIT — une seule, et c'est celle du dépôt.
+// THE AUDIT'S ACCESSIBILITY METHODOLOGY — a single one, and it is the repo's.
 //
-// Elle est écrite ICI plutôt que recopiée dans chaque spec parce que la
-// première version de l'audit en avait employé une autre : sans dérouler les
-// `Reveal`, et sans écarter `color-contrast`. Elle annonçait des centaines de
-// violations graves dont la quasi-totalité étaient (a) du texte mesuré à
-// opacity:0 — un faux positif de contraste — et (b) un arbitrage de palette de
-// marque que le dépôt a explicitement différé et documenté
-// (`DEFERRED_RULES` dans tests/e2e/a11y.spec.ts).
+// It is written HERE rather than copied into each spec because the
+// first version of the audit used a different one: without playing the
+// `Reveal`s, and without setting aside `color-contrast`. It reported hundreds of
+// serious violations, almost all of which were (a) text measured at
+// opacity:0 — a contrast false positive — and (b) a brand palette
+// decision that the repo explicitly deferred and documented
+// (`DEFERRED_RULES` in tests/e2e/a11y.spec.ts).
 //
-// Le rapport a été corrigé. La spec, elle, était restée sur l'ancienne
-// méthode : elle rougissait trente-six fois pour une décision déjà prise, ce
-// qui est la meilleure façon d'apprendre à un relecteur à ignorer le rouge.
-// Un instrument ne vaut que s'il est le même partout.
+// The report was corrected. The spec, however, had stayed on the old
+// method: it went red thirty-six times for a decision already made, which
+// is the best way to teach a reviewer to ignore red.
+// An instrument is only worth anything if it is the same everywhere.
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const DIFFEREES = ['color-contrast'];
 
 /**
- * Amène les `Reveal` (`once:true`) à leur état final avant l'analyse : sans
- * cela, axe lit la couleur d'un texte encore fondu.
+ * Brings the `Reveal`s (`once:true`) to their final state before analysis: without
+ * this, axe reads the color of text that is still faded.
  */
 export async function deroulerLesReveals(page: Page): Promise<void> {
   await page.evaluate(async () => {
@@ -36,11 +36,11 @@ export async function deroulerLesReveals(page: Page): Promise<void> {
 }
 
 /**
- * Analyse une page ouverte et sépare ce qui BLOQUE de ce qui est DIFFÉRÉ.
+ * Analyzes an open page and separates what BLOCKS from what is DEFERRED.
  *
- * Un seul passage d'axe, sans `disableRules` : les règles différées sont
- * écartées du verdict mais restent COMPTÉES, pour que le coût de l'arbitrage
- * de palette reste visible dans les journaux au lieu de disparaître.
+ * A single axe pass, without `disableRules`: deferred rules are
+ * excluded from the verdict but still COUNTED, so that the cost of the palette
+ * decision stays visible in the logs instead of disappearing.
  */
 export async function scanA11y(
   page: Page,

@@ -15,19 +15,19 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { useConnu } from '@/hooks/use-connu';
 import { cn } from '@/lib/utils';
 
-// Garde d'authentification côté client, factorisée (audit § 5.9 : le motif
-// était recopié dans 6 fichiers, avec 6 composants `Loading` quasi identiques
-// ne différant que par une largeur).
+// Client-side authentication guard, factored out (audit § 5.9: the pattern
+// was copied in 6 files, with 6 nearly identical `Loading` components
+// differing only by a width).
 //
-// Depuis le gating serveur de `src/proxy.ts`, un visiteur non connecté est
-// redirigé AVANT tout rendu : cette garde n'est donc plus la frontière, mais un
-// second rideau. Elle reste utile pour deux cas que le middleware ne couvre
-// pas : une navigation côté client, et une session qui expire pendant que la
-// page est ouverte.
+// Since the server-side gating in `src/proxy.ts`, a signed-out visitor is
+// redirected BEFORE any rendering: this guard is therefore no longer the
+// boundary, but a second curtain. It stays useful for two cases the
+// middleware does not cover: a client-side navigation, and a session that
+// expires while the page is open.
 
-// Au-delà de ce délai, « Chargement… » n'est plus une attente mais un
-// silence : le websocket Convex ne répond pas (CSP, proxy, panne). Mesuré le
-// 27/09 : les pages privées restaient sur « Chargement… » indéfiniment.
+// Beyond this delay, "Chargement…" is no longer waiting but
+// silence: the Convex websocket is not responding (CSP, proxy, outage).
+// Measured on 27/09: private pages stayed on "Chargement…" indefinitely.
 const SLOW_MS = 8000;
 
 export function AuthGateLoading({ className }: { className?: string }) {
@@ -52,16 +52,17 @@ export function AuthGateLoading({ className }: { className?: string }) {
   );
 }
 
-// Ne redirige que si l'état est DÉFINITIVEMENT non authentifié, jamais pendant
-// le chargement : sans ce délai, la page rebondissait vers /connexion juste
-// après une connexion réussie, le temps que l'état client se propage.
+// Only redirects if the state is DEFINITIVELY unauthenticated, never while
+// loading: without this delay, the page bounced to /connexion right
+// after a successful sign-in, while the client state propagated.
 //
-// ET SEULEMENT SI LE VERDICT VIENT D'UN BACKEND JOINT. Websocket coupé (CSP,
-// proxy, panne), le client Convex répond « non authentifié » faute de pouvoir
-// demander : la page rebondissait vers /connexion sans un mot, alors que le
-// serveur venait d'ouvrir la session (mesuré le 27/09, backend bloqué côté
-// navigateur). Tant que la connexion n'est pas établie, on reste sur la garde
-// de chargement — qui, passé huit secondes, dit que le service tarde.
+// AND ONLY IF THE VERDICT COMES FROM A REACHED BACKEND. With the websocket
+// cut (CSP, proxy, outage), the Convex client answers "unauthenticated"
+// because it cannot ask: the page bounced to /connexion without a word, even
+// though the server had just opened the session (measured on 27/09, backend
+// blocked on the browser side). As long as the connection is not
+// established, we stay on the loading guard — which, after eight seconds,
+// says the service is slow.
 function RedirectToSignIn({ className }: { className?: string }) {
   const router = useRouter();
   const convex = useConvex();
@@ -80,18 +81,19 @@ function RedirectToSignIn({ className }: { className?: string }) {
   return <AuthGateLoading className={className} />;
 }
 
-// ÉTAT DU COMPTE (chantier comptes). Une session AUTHENTIFIÉE n'a pas pour
-// autant accès : le serveur refuse tout à un compte suspendu, à une session
-// qui n'a pas présenté son second facteur, et à un compte d'encadrement tenu
-// d'inscrire une 2FA qu'il n'a pas. Sans ce rideau, ces trois cas verraient
-// des écrans vides ou des erreurs ; ils sont conduits là où ils peuvent agir :
-//  - suspendu          -> déconnexion, puis écran de connexion avec le motif ;
-//  - en suppression    -> déconnexion, retour à l'accueil ;
-//  - second facteur    -> saisie du code, puis retour à la page demandée ;
-//  - inscription 2FA   -> écran de sécurité (seul écran qui l'accepte).
+// ACCOUNT STATE (accounts workstream). An AUTHENTICATED session does not
+// necessarily have access: the server refuses everything to a suspended
+// account, to a session that has not presented its second factor, and to a
+// staff account required to enrol a 2FA it does not have. Without this
+// curtain, these three cases would see empty screens or errors; they are
+// taken to where they can act:
+//  - suspended          -> sign-out, then sign-in screen with the reason;
+//  - being deleted      -> sign-out, back to the home page;
+//  - second factor      -> code entry, then back to the requested page;
+//  - 2FA enrolment      -> security screen (the only screen that accepts it).
 //
-// `useConnu` : un clignotement de la query (renouvellement du jeton) ne doit
-// pas démonter l'écran — même raison que dans le back-office.
+// `useConnu`: a flicker of the query (token renewal) must not unmount the
+// screen — same reason as in the back office.
 function AccessGate({
   className,
   allowEnrollment,
@@ -106,9 +108,9 @@ function AccessGate({
   const pathname = usePathname();
   const { signOut } = useAuthActions();
   const state = session?.state;
-  // Une redirection par état : un nouveau rendu (identité de `signOut`,
-  // clignotement de la query) ne doit pas relancer une déconnexion déjà
-  // partie.
+  // One redirect per state: a new render (`signOut` identity, query
+  // flicker) must not restart a sign-out already
+  // under way.
   const handled = useRef<string | null>(null);
 
   useEffect(() => {
@@ -129,8 +131,8 @@ function AccessGate({
 
   if (
     state === 'active' ||
-    // Anonyme côté serveur alors que le client se croit connecté : le compte
-    // a disparu (suppression). Les écrans rendent leur état vide.
+    // Anonymous server-side while the client believes it is signed in: the
+    // account has disappeared (deletion). The screens render their empty state.
     state === 'anonymous' ||
     (state === 'enrollment_required' && allowEnrollment)
   ) {
@@ -145,8 +147,8 @@ export function AuthGate({
   children,
 }: {
   className?: string;
-  // Réservé à l'écran de sécurité : il doit rester ouvert à un compte tenu
-  // d'inscrire sa 2FA, puisque c'est là qu'il le fait.
+  // Reserved for the security screen: it must stay open to an account
+  // required to enrol its 2FA, since that is where it does so.
   allowEnrollment?: boolean;
   children: ReactNode;
 }) {

@@ -31,9 +31,9 @@ type QueueItem = FunctionReturnType<
 
 const PAGE_SIZE = 20;
 
-// Instant d'ouverture de l'écran, lu une fois au chargement du module et non
-// pendant le rendu : une échéance « dépassée » se juge à cette heure-là. La
-// file est chargée côté client, le rendu serveur n'en montre aucune.
+// Moment the screen was opened, read once when the module loads and not
+// during render: a deadline is judged "overdue" as of that time. The
+// queue is loaded client-side, the server rendering shows none of it.
 const OPENED_AT = Date.now();
 const DECISIONS: ManuscriptDecision[] = ['revision', 'accepted', 'rejected'];
 const DECISION_EVENT = {
@@ -56,16 +56,16 @@ function useDateFormat() {
   return (ms: number) => fmt.format(ms);
 }
 
-// Une date du sélecteur (AAAA-MM-JJ) lue comme la fin de ce jour-là, en UTC :
-// une échéance « le 15 » laisse la journée du 15.
+// A picker date (YYYY-MM-DD) read as the end of that day, in UTC:
+// a deadline "on the 15th" leaves the whole day of the 15th.
 function dueFromInput(value: string): number | undefined {
   if (!value) return undefined;
   const ms = Date.parse(`${value}T23:59:00Z`);
   return Number.isFinite(ms) ? ms : undefined;
 }
 
-// OUVRIR UNE REVUE (campagne du 27/09, R-01) : un dépôt en attente de
-// modération, un relecteur, et la revue s'ouvre — soumission puis évaluation.
+// OPEN A REVIEW (27/09 campaign, R-01): a submission awaiting
+// moderation, a reviewer, and the review opens — submission then evaluation.
 function OpenReviewPanel({ staff }: { staff: Staff | undefined }) {
   const t = useTranslations('admin');
   const openable = useQuery(api.peerReview.listOpenable, {});
@@ -150,8 +150,8 @@ function OpenReviewPanel({ staff }: { staff: Staff | undefined }) {
   );
 }
 
-// Dossier complet (versions, lettres de réponse, décisions, avis de chaque
-// tour) — chargé seulement quand l'éditeur l'ouvre.
+// Full file (versions, response letters, decisions, reviews from each
+// round) — loaded only when the editor opens it.
 function Dossier({ publicationId }: { publicationId: Id<'publications'> }) {
   const tp = useTranslations('peerReview');
   const t = useTranslations('admin');
@@ -372,7 +372,7 @@ function ManuscriptCard({
           #{vocabulary(tl, 'themes.', item.theme)}
         </span>
       </div>
-      {/* L'éditeur voit l'auteur (double aveugle : lui seul). */}
+      {/* The editor sees the author (double-blind: them alone). */}
       <p className="mt-1 wrap-anywhere text-sm text-ink-soft">
         {tp('authorLabel')} {item.authorName ?? tp('authorUnknown')}
         {item.authorEmail ? ` — ${item.authorEmail}` : ''}
@@ -409,7 +409,7 @@ function ManuscriptCard({
         </div>
       ) : null}
 
-      {/* Relecteurs du manuscrit */}
+      {/* Manuscript reviewers */}
       <div className="mt-4">
         <h4 className="text-sm font-medium text-ink-soft">
           {tp('reviewersTitle')}
@@ -488,7 +488,7 @@ function ManuscriptCard({
         ) : null}
       </div>
 
-      {/* Avis de la version courante */}
+      {/* Reviews of the current version */}
       <div className="mt-4">
         <div className="flex flex-wrap items-center gap-2">
           <h4 className="text-sm font-medium text-ink-soft">
@@ -538,7 +538,7 @@ function ManuscriptCard({
         )}
       </div>
 
-      {/* Décision motivée */}
+      {/* Reasoned decision */}
       <div className="mt-4 border-t border-line pt-4">
         <h4 className="text-sm font-medium text-ink-soft">
           {t('revDecisionLabel')}
@@ -598,11 +598,11 @@ function ManuscriptCard({
   );
 }
 
-// REVUE À COMITÉ DE LECTURE (F-43) — l'écran de l'ÉDITEUR. La machine à
-// états, le double aveugle et les droits vivent côté Convex
-// (convex/peerReview.ts) : l'écran ne propose que les transitions que la
-// machine autorise (`canTransition`, la même table), et le serveur refuse le
-// reste. Un relecteur de rang modérateur passe par « Mes relectures ».
+// PEER REVIEW (F-43) — the EDITOR's screen. The state
+// machine, the double-blind and the permissions live on the Convex side
+// (convex/peerReview.ts): the screen only offers the transitions the
+// machine allows (`canTransition`, the same table), and the server refuses the
+// rest. A moderator-rank reviewer goes through "Mes relectures".
 export default function AdminReview() {
   const t = useTranslations('admin');
   const tp = useTranslations('peerReview');

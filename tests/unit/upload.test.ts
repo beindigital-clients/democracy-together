@@ -5,16 +5,16 @@ import {
   type UploadProgress,
 } from '@/lib/upload';
 
-// TÉLÉVERSEMENT AVEC PROGRESSION (issue #37).
+// UPLOAD WITH PROGRESS (issue #37).
 //
-// Ce que ces tests tiennent : la progression est bien LUE sur `upload`, la
-// réponse est rendue telle quelle, et tout échec — statut, réseau, réponse
-// illisible — arrive à l'appelant sous la même forme, celle qu'il sait traduire
-// en « réessayez ».
+// What these tests hold: progress is indeed READ from `upload`, the
+// response is returned as is, and every failure — status, network, unreadable
+// response — reaches the caller in the same shape, the one it knows how to translate
+// into "réessayez".
 //
-// La vraie raison d'être du module est invérifiable autrement : `fetch`
-// n'expose pas la progression d'envoi. On simule donc XMLHttpRequest, seule
-// API qui l'expose, et on éprouve le câblage qu'on en fait.
+// The module's real purpose cannot be verified otherwise: `fetch`
+// does not expose upload progress. So we simulate XMLHttpRequest, the only
+// API that exposes it, and put our wiring of it to the test.
 
 type ProgressInit = {
   loaded: number;
@@ -51,8 +51,8 @@ class FakeXhr {
     this.headers[name] = value;
   }
 
-  // L'envoi ne résout rien de lui-même : chaque test joue la suite qu'il veut
-  // éprouver (progression, succès, panne).
+  // Sending resolves nothing by itself: each test plays out the sequence it wants
+  // to test (progress, success, failure).
   send(body: unknown) {
     this.sent = body;
   }
@@ -111,8 +111,8 @@ describe('Téléversement — progression', () => {
     const seen: UploadProgress[] = [];
     const done = upload((p) => seen.push(p));
 
-    // `lengthComputable` faux : inventer un pourcentage serait mentir sur
-    // l'avancement — l'interface doit pouvoir montrer une barre indéterminée.
+    // `lengthComputable` false: inventing a percentage would be lying about
+    // progress — the interface must be able to show an indeterminate bar.
     current().progress({ loaded: 4096, total: 0, lengthComputable: false });
     current().succeed('{"storageId":"kg123"}');
     await done;

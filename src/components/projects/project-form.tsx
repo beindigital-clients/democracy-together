@@ -21,9 +21,9 @@ import { isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
 import { StatusMessage } from '@/components/a11y/status-message';
 
-// Proposition de projet collaboratif (F-60) — îlot client sur /appels-a-projets.
-// Réservé aux membres : un visiteur (anonyme ou compte sans rôle membre) est
-// invité à adhérer ; un membre choisit un axe, un titre et un résumé.
+// Collaborative project proposal (F-60) — client island on /appels-a-projets.
+// Reserved for members: a visitor (anonymous or account without the member role) is
+// invited to join; a member chooses a theme, a title and a summary.
 export function ProjectForm() {
   const t = useTranslations('projects');
   const tl = useTranslations('library');
@@ -40,9 +40,9 @@ export function ProjectForm() {
 
   const member = isMember(me?.role);
 
-  // Borne ALIGNÉE sur le serveur (`convex/projects.ts` via `FIELD_MAX`) : un
-  // résumé de 4 001 caractères était refusé sous « Envoi impossible pour le
-  // moment » sans la raison (mesuré le 27/09, A-04).
+  // Limit ALIGNED with the server (`convex/projects.ts` via `FIELD_MAX`): a
+  // 4,001-character summary was rejected under "Envoi impossible pour le
+  // moment" without the reason (measured on 27/09, A-04).
   const summaryMax = FIELD_MAX.body;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -89,7 +89,7 @@ export function ProjectForm() {
     }
   }
 
-  // En attente de l'identité (évite un flash visiteur -> membre).
+  // Waiting for the identity (avoids a visitor -> member flash).
   if (me === undefined) {
     return (
       <div className="rounded-md border border-line bg-surface p-6 text-ink-soft">
@@ -98,7 +98,7 @@ export function ProjectForm() {
     );
   }
 
-  // Visiteur (non connecté ou compte sans rôle membre) : invitation à adhérer.
+  // Visitor (not signed in or account without the member role): invitation to join.
   if (!member) {
     return (
       <div className="rounded-md border border-line bg-surface p-6">

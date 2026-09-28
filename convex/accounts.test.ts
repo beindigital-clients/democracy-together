@@ -19,8 +19,8 @@ const modules = import.meta.glob([
 
 type T = ReturnType<typeof convexTest>;
 
-// Un compte AVEC une vraie session Convex Auth (ligne `authSessions` + jeton
-// de rafraîchissement) : c'est ce que la suspension doit supprimer.
+// An account WITH a real Convex Auth session (`authSessions` row + refresh
+// token): this is what suspension must delete.
 async function account(
   t: T,
   email: string,
@@ -45,8 +45,8 @@ async function account(
   };
 }
 
-// Les courriels planifiés (accueil, code) sont journalisés en mode
-// développement au lieu d'échouer faute de fournisseur.
+// Scheduled emails (welcome, code) are logged in development
+// mode instead of failing for lack of a provider.
 beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -59,11 +59,11 @@ describe('Suspension (F-63)', () => {
     const admin = await account(t, 'admin@test.org', 'admin');
     const mod = await account(t, 'mod@test.org', 'moderateur');
 
-    // Avant : le compte a accès (requireUser, requireNetworkRole, getCurrentUser).
+    // Before: the account has access (requireUser, requireNetworkRole, getCurrentUser).
     expect(await mod.as.query(api.users.current, {})).not.toBeNull();
     await mod.as.query(api.admin.dashboardStats, {});
 
-    // Motif obligatoire.
+    // Mandatory reason.
     await expect(
       admin.as.mutation(api.accounts.suspendAccount, {
         userId: mod.userId,
@@ -77,7 +77,7 @@ describe('Suspension (F-63)', () => {
     });
     expect(res.sessionsRevoked).toBe(1);
 
-    // getCurrentUser -> null ; requireUser -> ACCOUNT_SUSPENDED ;
+    // getCurrentUser -> null; requireUser -> ACCOUNT_SUSPENDED;
     // requireNetworkRole -> ACCOUNT_SUSPENDED.
     expect(await mod.as.query(api.users.current, {})).toBeNull();
     await expect(
@@ -86,7 +86,7 @@ describe('Suspension (F-63)', () => {
     await expect(mod.as.query(api.admin.dashboardStats, {})).rejects.toThrow(
       'ACCOUNT_SUSPENDED',
     );
-    // Les lectures personnalisées le traitent en visiteur.
+    // Personalized reads treat it as a visitor.
     expect(await mod.as.query(api.notifications.myNotifications, {})).toEqual(
       [],
     );
@@ -94,7 +94,7 @@ describe('Suspension (F-63)', () => {
       state: 'suspended',
     });
 
-    // Sessions ET jetons de rafraîchissement supprimés.
+    // Sessions AND refresh tokens deleted.
     const left = await t.run(async (ctx) => ({
       session: await ctx.db.get(mod.sessionId),
       tokens: await ctx.db
@@ -105,7 +105,7 @@ describe('Suspension (F-63)', () => {
     expect(left.session).toBeNull();
     expect(left.tokens).toEqual([]);
 
-    // Plus de NOUVELLE session (callback beforeSessionCreation).
+    // No more NEW sessions (beforeSessionCreation callback).
     await t.run(async (ctx) => {
       await expect(assertMaySignIn(ctx.db, mod.userId)).rejects.toThrow(
         'ACCOUNT_SUSPENDED',
@@ -115,7 +115,7 @@ describe('Suspension (F-63)', () => {
       );
     });
 
-    // Journalisée, motif compris.
+    // Logged, reason included.
     const audit = await t.run((ctx) =>
       ctx.db
         .query('auditLog')
@@ -124,7 +124,7 @@ describe('Suspension (F-63)', () => {
     );
     expect(audit[0]?.metadata).toMatchObject({ reason: 'Usurpation signalée' });
 
-    // Réactivation : l'accès revient (nouvelle session).
+    // Reactivation: access comes back (new session).
     await admin.as.mutation(api.accounts.reactivateAccount, {
       userId: mod.userId,
     });
@@ -167,16 +167,16 @@ describe('Dernier administrateur', () => {
     const a2 = await account(t, 'a2@test.org', 'admin');
     const a3 = await account(t, 'a3@test.org', 'admin');
 
-    // Trois administrateurs actifs : en suspendre un est permis.
+    // Three active administrators: suspending one is allowed.
     await a1.as.mutation(api.accounts.suspendAccount, {
       userId: a2.userId,
       reason: 'Départ du bureau',
     });
-    // La garde compte les administrateurs ACTIFS : a2 (suspendu) n'en est
-    // plus un, mais a1 et a3 le sont encore.
+    // The guard counts ACTIVE administrators: a2 (suspended) is no longer
+    // one, but a1 and a3 still are.
     await t.run(async (ctx) => {
       const { assertNotLastActiveAdmin } = await import('./accounts');
-      // Deux actifs (a1, a3) : viser l'un d'eux est permis.
+      // Two active (a1, a3): targeting one of them is allowed.
       await expect(
         assertNotLastActiveAdmin(ctx, (await ctx.db.get(a3.userId))!),
       ).resolves.toBe(undefined);
@@ -185,14 +185,14 @@ describe('Dernier administrateur', () => {
       userId: a3.userId,
       reason: 'Rotation',
     });
-    // a1 est désormais le SEUL administrateur actif.
+    // a1 is now the ONLY active administrator.
     await t.run(async (ctx) => {
       const { assertNotLastActiveAdmin } = await import('./accounts');
       await expect(
         assertNotLastActiveAdmin(ctx, (await ctx.db.get(a1.userId))!),
       ).rejects.toThrow('LAST_ADMIN');
     });
-    // Et le dernier actif ne peut pas non plus se rétrograder.
+    // And the last active one cannot demote themselves either.
     await expect(
       a1.as.mutation(api.users.setRole, { userId: a1.userId, role: 'membre' }),
     ).rejects.toThrow();
@@ -302,7 +302,7 @@ describe('Suppression par un administrateur', () => {
       userId: victim.userId,
       confirmEmail: ' MEMBRE@test.org ',
     });
-    // Aussitôt : plus aucun accès, même avant la fin du traitement.
+    // Immediately: no more access at all, even before processing finishes.
     expect(await victim.as.query(api.users.current, {})).toBeNull();
 
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -338,18 +338,18 @@ describe('Suppression par un administrateur', () => {
         .collect(),
     }));
     expect(after.user).toBeNull();
-    // Règle 3 : la publication PUBLIÉE reste, sans lien vers le compte.
+    // Rule 3: the PUBLISHED publication stays, with no link to the account.
     expect(after.published?.authorUserId).toBeUndefined();
     expect(after.published?.authors).toEqual([{ name: 'Awa Diop' }]);
-    // Règle 1 : le dépôt non publié disparaît.
+    // Rule 1: the unpublished submission disappears.
     expect(after.pending).toBeNull();
     expect(after.notifications).toEqual([]);
     expect(after.newsletter).toEqual([]);
-    // Règle 2 : l'expression personnelle, et ce qui y était attaché.
+    // Rule 2: personal expression, and whatever was attached to it.
     expect(after.posts).toEqual([]);
     expect(after.reactions).toEqual([]);
     expect(after.accounts).toEqual([]);
-    // Le suivi du traitement ne garde aucune donnée personnelle.
+    // The processing tracker keeps no personal data.
     expect(after.job?.status).toBe('done');
     expect(after.job?.email).toBeUndefined();
     expect(after.audit).toHaveLength(1);
@@ -420,12 +420,12 @@ describe('Export de ses données (RGPD art. 15/20)', () => {
     expect(exported.account.email).toBe('a@test.org');
     expect(text).toContain('Billet de A');
     expect(text).toContain('notif-Billet de A');
-    // Rien de B.
+    // Nothing from B.
     expect(text).not.toContain('Billet de B');
     expect(text).not.toContain('b@test.org');
-    // Ni l'empreinte du mot de passe.
+    // Nor the password hash.
     expect(text).not.toContain('empreinte-du-mot-de-passe');
-    // Chaque module exportable du registre a sa section.
+    // Each exportable module in the registry has its section.
     for (const m of USER_DATA_MODULES) {
       if (m.export) expect(Object.keys(exported.data)).toContain(m.key);
     }
@@ -445,7 +445,7 @@ describe('Suppression en libre-service (code par e-mail)', () => {
     await account(t, 'admin@test.org', 'admin');
     const me = await account(t, 'moi@test.org', 'membre');
 
-    // Sans demande préalable.
+    // Without a prior request.
     expect(
       await me.as.action(api.accounts.confirmAccountDeletion, {
         code: '123456',
@@ -456,7 +456,7 @@ describe('Suppression en libre-service (code par e-mail)', () => {
     const stored = await t.run((ctx) =>
       ctx.db.query('accountConfirmationCodes').collect(),
     );
-    // Empreinte seulement, jamais le code.
+    // Hash only, never the code.
     const code = await t.run(async (ctx) => {
       const row = await ctx.db
         .query('devOtpCodes')
@@ -524,7 +524,7 @@ describe('Création directe par un administrateur', () => {
       'accounts:sendWelcomeEmail',
     );
 
-    // Idempotent, et ne touche jamais au rôle d'un compte existant.
+    // Idempotent, and never touches the role of an existing account.
     const again = await admin.as.mutation(api.accounts.createAccount, {
       email: 'nouveau@test.org',
       role: 'admin',

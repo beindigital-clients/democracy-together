@@ -1,7 +1,7 @@
-// Le runtime Convex expose `process.env` (variables d'environnement du
-// déploiement), mais ce n'est pas Node : on déclare donc uniquement
-// `process.env` pour le typecheck, sans inclure tout @types/node (qui
-// laisserait passer des API Node indisponibles dans l'isolate).
+// The Convex runtime exposes `process.env` (the deployment's environment
+// variables), but it is not Node: we therefore declare only
+// `process.env` for typechecking, without including all of @types/node (which
+// would let through Node APIs unavailable in the isolate).
 declare const process: {
   readonly env: Record<string, string | undefined>;
 };

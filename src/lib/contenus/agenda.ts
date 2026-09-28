@@ -15,23 +15,23 @@ import {
   scheduleInstants,
 } from '@convex/lib/contenus/time';
 
-// L'AGENDA TEL QUE LES PAGES LE LISENT — une seule forme, deux sources.
+// THE AGENDA AS THE PAGES READ IT — a single shape, two sources.
 //
-// Source 1, la table `contentEvents` (chantier « contenus ») ; source 2, le
-// catalogue codé (`convex/lib/contenus/coded/events.ts`), servi en REPLI tant
-// que la table est vide ou le backend injoignable. Les pages ne savent pas
-// laquelle des deux elles affichent : c'est le principe du repli, et c'est ce
-// qui garde les URL publiques inchangées pendant la bascule.
+// Source 1, the `contentEvents` table ("contenus" workstream); source 2, the
+// hard-coded catalogue (`convex/lib/contenus/coded/events.ts`), served as a FALLBACK as long
+// as the table is empty or the backend unreachable. The pages don't know
+// which of the two they display: that is the point of the fallback, and it is what
+// keeps public URLs unchanged during the switchover.
 //
-// La forme étend `EventData` — celle que les pages, la grille du calendrier et
-// les filtres lisaient déjà — de ce que la table apporte : titre et lieu DÉJÀ
-// traduits, chapô, statut, instants UTC, fuseau, capacité, visuel.
+// The shape extends `EventData` — the one the pages, the calendar grid and
+// the filters already read — with what the table adds: title and venue ALREADY
+// translated, standfirst, status, UTC instants, time zone, capacity, image.
 //
-// PASSÉ OU À VENIR : c'est la DATE qui décide (`endsAt` comparé à l'instant de
-// la requête), dans les deux sources. L'indicateur `upcoming` du catalogue
-// codé était posé à la main et avait pris du retard sur le calendrier ; il est
-// désormais recalculé ici, et c'est la même règle que le serveur applique pour
-// fermer les inscriptions (`EVENT_CLOSED`).
+// PAST OR UPCOMING: the DATE decides (`endsAt` compared with the time of
+// the request), in both sources. The hard-coded catalogue's `upcoming` flag
+// was set by hand and had fallen behind the calendar; it is
+// now recomputed here, and it is the same rule the server applies to
+// close registrations (`EVENT_CLOSED`).
 
 export type AgendaImage = {
   url: string;
@@ -54,8 +54,8 @@ export type AgendaEvent = EventData & {
   startsAt: number;
   endsAt: number;
   capacity: number | null;
-  // Commencé (début passé) : plus de rappel possible, même si l'événement
-  // n'est pas terminé. Calculé au chargement, comme `upcoming`.
+  // Started (start in the past): no more reminders possible, even if the event
+  // is not over. Computed at load time, like `upcoming`.
   started: boolean;
   hasVisio: boolean;
   featured: boolean;
@@ -67,7 +67,7 @@ export type ConvexAgenda = FunctionReturnType<
   typeof api.contenus.events.listPublic
 >;
 
-/** Un événement est « à venir » tant qu'il n'est pas terminé. */
+/** An event is "upcoming" as long as it is not over. */
 export function isUpcoming(e: { endsAt: number }, now: number): boolean {
   return e.endsAt > now;
 }
@@ -81,7 +81,7 @@ export function fromConvex(rows: ConvexAgenda, now: number): AgendaEvent[] {
       region: r.region,
       format: r.format,
       langs: r.langs,
-      // Le thème est un slug d'axe (ou `vie-reseau`) : la saisie l'a validé.
+      // The theme is a theme slug (or `vie-reseau`): input validation has checked it.
       theme: r.theme as EventData['theme'],
       cityKey: r.cityKey ?? '',
       y,
@@ -110,7 +110,7 @@ export function fromConvex(rows: ConvexAgenda, now: number): AgendaEvent[] {
   });
 }
 
-/** Le catalogue codé, sous la même forme (repli). */
+/** The hard-coded catalogue, in the same shape (fallback). */
 export function codedAgenda(locale: Locale, now: number): AgendaEvent[] {
   return CODED_EVENTS.map((e) => {
     const startDate = isoDate(e.y, e.mo, e.d);
@@ -141,9 +141,9 @@ export function codedAgenda(locale: Locale, now: number): AgendaEvent[] {
 }
 
 /**
- * L'événement mis en avant : le premier événement « à la une » à venir et
- * publié ; à défaut, aucun (le bloc vedette disparaît plutôt que de pousser
- * une date passée).
+ * The featured event: the first upcoming, published "featured"
+ * event; failing that, none (the featured block disappears rather than promoting
+ * a past date).
  */
 export function featuredEvent(events: AgendaEvent[]): AgendaEvent | null {
   return (

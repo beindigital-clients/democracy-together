@@ -1,33 +1,33 @@
 import { type SiteLocale, intlTag, isRtlLocale } from './locales';
 
-// LES COURRIELS TRANSACTIONNELS, DANS LES CINQ LANGUES.
+// TRANSACTIONAL E-MAILS, IN THE FIVE LANGUAGES.
 //
-// POURQUOI CE FICHIER EXISTE. Le site sert cinq langues ; ses courriels
-// partaient tous en français — code de connexion, validation d'adhésion, rappel
-// d'événement. C'était vrai avant l'ajout de l'espagnol, du portugais et de
-// l'arabe : un membre anglophone recevait déjà « Vérifiez votre adresse
-// e-mail ». Le défaut ne se voit pas depuis un navigateur, et aucun test ne le
-// montrait, parce qu'un courriel n'est jamais rendu dans une page.
+// WHY THIS FILE EXISTS. The site serves five languages; its e-mails
+// all went out in French — sign-in code, membership approval, event
+// reminder. This was true before Spanish, Portuguese and
+// Arabic were added: an English-speaking member already received "Vérifiez votre adresse
+// e-mail". The defect cannot be seen from a browser, and no test
+// showed it, because an e-mail is never rendered in a page.
 //
-// POURQUOI PAS LE CATALOGUE DU SITE. `src/messages/*.json` est hors de portée :
-// Convex est déployé séparément et n'a pas l'alias `@/` (cf. `locales.ts`, même
-// contrainte). Et le mécanisme employé pour les notifications
-// (`lib/notify.ts` : une CLÉ et des paramètres, rendus côté client) ne marche
-// pas ici — un courriel est composé au moment de l'envoi, sur le serveur, et
-// part figé. Le texte doit donc vivre de ce côté-ci de la cloison.
+// WHY NOT THE SITE'S CATALOG. `src/messages/*.json` is out of reach:
+// Convex is deployed separately and has no `@/` alias (cf. `locales.ts`, same
+// constraint). And the mechanism used for notifications
+// (`lib/notify.ts`: a KEY and parameters, rendered client-side) does not work
+// here — an e-mail is composed at send time, on the server, and
+// goes out frozen. The text must therefore live on this side of the wall.
 //
-// EXHAUSTIF PAR CONSTRUCTION. Chaque phrase est un `Record<SiteLocale, string>`
-// : ajouter une langue sans ses libellés ne compile plus. C'est la discipline
-// déjà appliquée aux contenus éditoriaux du site.
+// EXHAUSTIVE BY CONSTRUCTION. Each sentence is a `Record<SiteLocale, string>`:
+// adding a language without its labels no longer compiles. It is the discipline
+// already applied to the site's editorial content.
 //
-// CE QUI EST VOLONTAIREMENT RESTÉ EN FRANÇAIS : rien. En revanche, le nom
-// « Democracy Together » ne se traduit pas, et les erreurs techniques
-// (`EMAIL_PROVIDER_NOT_CONFIGURED`…) ne sont pas ici : elles s'adressent à
-// l'exploitant, pas au destinataire.
+// WHAT WAS DELIBERATELY LEFT IN FRENCH: nothing. On the other hand, the name
+// "Democracy Together" is not translated, and technical errors
+// (`EMAIL_PROVIDER_NOT_CONFIGURED`…) are not here: they are addressed to
+// the operator, not the recipient.
 
 export type Phrase = Record<SiteLocale, string>;
 
-// --- Coque commune ----------------------------------------------------------
+// --- Shared shell -----------------------------------------------------------
 
 const BRAND = 'Democracy Together';
 
@@ -40,15 +40,15 @@ const GREETING: Phrase = {
 };
 
 /**
- * Enveloppe HTML d'un courriel.
+ * HTML envelope of an e-mail.
  *
- * `dir` ET `text-align` sont posés ensemble, et ce n'est pas une redondance :
- * beaucoup de clients de messagerie (Outlook en tête) n'alignent pas le texte
- * d'après `dir` seul. Sans les deux, un courriel arabe s'affiche en drapeau à
- * gauche — la ponctuation finale du mauvais côté de chaque phrase.
+ * `dir` AND `text-align` are set together, and it is not redundant:
+ * many e-mail clients (Outlook first and foremost) do not align text
+ * based on `dir` alone. Without both, an Arabic e-mail displays ragged-left
+ * — the final punctuation on the wrong side of each sentence.
  *
- * Les styles sont EN LIGNE parce qu'un client de messagerie n'exécute pas de
- * feuille externe : c'est la contrainte du format, pas un oubli.
+ * Styles are INLINE because an e-mail client does not run an external
+ * stylesheet: it is a constraint of the format, not an oversight.
  */
 export function shell(loc: SiteLocale, inner: string): string {
   const rtl = isRtlLocale(loc);
@@ -66,12 +66,12 @@ export function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Sujet suffixé de la marque, comme les courriels actuels. */
+/** Subject suffixed with the brand, like the current e-mails. */
 export function subject(p: Phrase, loc: SiteLocale): string {
   return `${p[loc]} · ${BRAND}`;
 }
 
-// --- Code à usage unique -----------------------------------------------------
+// --- One-time code -----------------------------------------------------------
 
 export type OtpPurpose = 'verification' | 'reset' | 'signin';
 
@@ -131,15 +131,15 @@ const OTP_EXPIRY: Phrase = {
   ar: 'ينتهي هذا الرمز خلال 15 دقيقة. إذا لم تطلبوه، تجاهلوا هذه الرسالة.',
 };
 
-/** Courriel de code à usage unique (vérification, réinitialisation, connexion). */
+/** One-time code e-mail (verification, reset, sign-in). */
 export function otpEmail(
   code: string,
   purpose: OtpPurpose,
   loc: SiteLocale,
 ): { subject: string; html: string } {
-  // `dir="ltr"` SUR LE CODE, même en arabe : c'est une suite de chiffres à lire
-  // de gauche à droite, et l'espacement des lettres la rend fragile à
-  // l'algorithme bidirectionnel si elle hérite du sens du paragraphe.
+  // `dir="ltr"` ON THE CODE, even in Arabic: it is a sequence of digits to be read
+  // left to right, and the letter spacing makes it fragile under the
+  // bidirectional algorithm if it inherits the paragraph's direction.
   const body = `<p>${OTP_INTRO[purpose][loc]}</p>
     <p dir="ltr" style="font-size:30px;letter-spacing:8px;font-weight:600;font-family:monospace;text-align:center">${escapeHtml(code)}</p>
     <p style="color:#646771;font-size:13px">${OTP_EXPIRY[loc]}</p>`;
@@ -149,7 +149,7 @@ export function otpEmail(
   };
 }
 
-// --- Invitation / adhésion validée -------------------------------------------
+// --- Invitation / membership approved ----------------------------------------
 
 const INVITE_SUBJECT_APPROVED: Phrase = {
   fr: 'Votre adhésion est validée',
@@ -167,7 +167,7 @@ const INVITE_SUBJECT_ACCOUNT: Phrase = {
   ar: 'حسابكم على Democracy Together',
 };
 
-/** `{org}` est remplacé par le nom de l'organisation, déjà échappé. */
+/** `{org}` is replaced by the organization's name, already escaped. */
 const INVITE_INTRO_APPROVED: Phrase = {
   fr: 'La candidature de <b>{org}</b> a été validée par le secrétariat. Votre compte est désormais actif.',
   en: 'The application from <b>{org}</b> has been approved by the secretariat. Your account is now active.',
@@ -209,13 +209,13 @@ const INVITE_NOTE: Phrase = {
 };
 
 /**
- * Courriel d'invitation. Le membre n'a PAS de mot de passe : on l'oriente vers
- * la connexion par code à usage unique, qui fonctionne dès que son compte
- * existe.
+ * Invitation e-mail. The member has NO password: we direct them to
+ * one-time code sign-in, which works as soon as their account
+ * exists.
  *
- * Le lien porte la LANGUE DU DESTINATAIRE. Il était écrit `/fr/connexion-otp`
- * en dur : un membre arabophone recevait un courriel qui, même traduit,
- * l'aurait déposé sur une page française.
+ * The link carries the RECIPIENT'S LANGUAGE. It was hard-coded as `/fr/connexion-otp`:
+ * an Arabic-speaking member received an e-mail that, even translated,
+ * would have dropped them on a French page.
  */
 export function invitationEmail(args: {
   organizationName?: string;
@@ -247,7 +247,7 @@ export function invitationEmail(args: {
   };
 }
 
-// --- Rappel d'événement -------------------------------------------------------
+// --- Event reminder -----------------------------------------------------------
 
 const REMINDER_SUBJECT: Phrase = {
   fr: 'Rappel — un événement approche',
@@ -265,7 +265,7 @@ const REMINDER_LEAD: Phrase = {
   ar: 'كنتم قد طلبتم تذكيراً بفعالية قادمة.',
 };
 
-/** `{date}` est remplacé par la date formatée dans la langue du destinataire. */
+/** `{date}` is replaced by the date formatted in the recipient's language. */
 const REMINDER_WHEN: Phrase = {
   fr: 'Il a lieu le <strong>{date}</strong>. Retrouvez les informations pratiques et confirmez votre présence :',
   en: 'It takes place on <strong>{date}</strong>. Find the practical details and confirm your attendance:',
@@ -283,20 +283,20 @@ const REMINDER_FOOTER: Phrase = {
 };
 
 /**
- * Courriel de rappel d'événement.
+ * Event reminder e-mail.
  *
- * La date est formatée dans la LANGUE DU DESTINATAIRE. Elle l'était en français
- * en dur (`Intl.DateTimeFormat('fr', …)`), alors que la ligne de rappel portait
- * déjà sa locale — celle-ci ne servait qu'à construire l'URL.
+ * The date is formatted in the RECIPIENT'S LANGUAGE. It used to be hard-coded
+ * in French (`Intl.DateTimeFormat('fr', …)`), even though the reminder row already
+ * carried its locale — which was only used to build the URL.
  */
 export function eventReminderEmail(args: {
   eventSlug: string;
   eventDate: number;
   siteUrl: string;
   locale: SiteLocale;
-  // Fuseau du LIEU de l'événement (chantier « contenus ») : `eventDate` est
-  // l'instant de début, et une journée qui commence à minuit à Paris est
-  // encore la veille en UTC. Sans fuseau connu, UTC (comportement d'avant).
+  // Time zone of the event's VENUE ("contenus" workstream): `eventDate` is
+  // the start instant, and a day that starts at midnight in Paris is
+  // still the day before in UTC. Without a known time zone, UTC (previous behavior).
   timeZone?: string;
 }): { subject: string; html: string } {
   const loc = args.locale;
@@ -317,7 +317,7 @@ export function eventReminderEmail(args: {
   return { subject: subject(REMINDER_SUBJECT, loc), html: shell(loc, body) };
 }
 
-// --- Lien de visioconférence (F-54) ------------------------------------------
+// --- Videoconference link (F-54) ---------------------------------------------
 
 const VISIO_SUBJECT: Phrase = {
   fr: 'Votre lien de visioconférence',
@@ -327,7 +327,7 @@ const VISIO_SUBJECT: Phrase = {
   ar: 'رابط مؤتمر الفيديو الخاص بكم',
 };
 
-/** `{title}` et `{date}` sont remplacés à l'envoi. */
+/** `{title}` and `{date}` are replaced at send time. */
 const VISIO_LEAD: Phrase = {
   fr: 'Vous êtes inscrit·e à <strong>{title}</strong>, le <strong>{date}</strong>. Voici le lien pour rejoindre la séance en ligne :',
   en: 'You are registered for <strong>{title}</strong> on <strong>{date}</strong>. Here is the link to join the online session:',
@@ -353,9 +353,9 @@ const VISIO_FOOTER: Phrase = {
 };
 
 /**
- * Courriel portant le lien de visioconférence à un INSCRIT, avant l'événement.
- * Le lien n'est public nulle part ailleurs : c'est son seul canal pour les
- * inscrits sans compte.
+ * E-mail carrying the videoconference link to a REGISTRANT, before the event.
+ * The link is public nowhere else: it is its only channel for
+ * registrants without an account.
  */
 export function eventVisioEmail(args: {
   eventSlug: string;

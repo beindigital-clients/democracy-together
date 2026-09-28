@@ -9,7 +9,7 @@ import {
 
 test.use({ locale: 'fr-FR' });
 
-// Couverture des chemins de REFUS (l'audit avait relevé leur absence).
+// Coverage of REFUSAL paths (the audit had noted their absence).
 
 test('connexion : mauvais mot de passe refusé, pas de session (F-01)', async ({
   page,
@@ -25,30 +25,30 @@ test('connexion : mauvais mot de passe refusé, pas de session (F-01)', async ({
     .fill('un-mauvais-mot-de-passe');
   await page.getByRole('button', { name: 'Se connecter' }).click();
 
-  // reste sur /connexion, message d'erreur, jamais authentifié
+  // stays on /connexion, error message, never authenticated
   await expect(
     page.getByText('E-mail ou mot de passe incorrect.'),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/fr\/connexion$/);
 
-  // Un REFUS SERVEUR ne vide aucun champ (#37) : rien à retaper pour réessayer.
-  // Le message reste global — dire lequel des deux est faux renseignerait sur
-  // l'existence du compte.
+  // A SERVER REFUSAL clears no field (#37): nothing to retype to try again.
+  // The message stays global — saying which of the two is wrong would reveal
+  // whether the account exists.
   await expect(page.getByLabel('E-mail')).toHaveValue(email);
   await expect(page.getByLabel('Mot de passe', { exact: true })).toHaveValue(
     'un-mauvais-mot-de-passe',
   );
 });
 
-// Ce test visait /fr/inscription, qui redirige désormais vers /adhesion
-// (src/app/[locale]/inscription/page.tsx) : l'auto-inscription n'existe plus.
-// Le COMPORTEMENT vérifié — un code à usage unique erroné est refusé et
-// n'ouvre pas de session — existe toujours, sur la connexion par code. C'est là
-// qu'il est vérifié maintenant.
+// This test targeted /fr/inscription, which now redirects to /adhesion
+// (src/app/[locale]/inscription/page.tsx): self-registration no longer exists.
+// The BEHAVIOR checked — a wrong one-time code is refused and
+// does not open a session — still exists, on code sign-in. That is where
+// it is checked now.
 //
-// Le compte est provisionné d'abord : la connexion par code refuse une adresse
-// inconnue (NO_SELF_SIGNUP), donc sans cela le test échouerait à l'étape
-// précédant celle qu'il veut éprouver.
+// The account is provisioned first: code sign-in refuses an unknown
+// address (NO_SELF_SIGNUP), so without this the test would fail at the step
+// before the one it wants to exercise.
 test('connexion par code : code invalide refusé, pas de session (F-01)', async ({
   page,
 }) => {
@@ -63,7 +63,7 @@ test('connexion par code : code invalide refusé, pas de session (F-01)', async 
     page.getByRole('heading', { name: 'Saisissez le code' }),
   ).toBeVisible();
 
-  // code volontairement faux
+  // deliberately wrong code
   await page.getByLabel('Code de vérification').fill('000000');
   await page.getByRole('button', { name: 'Se connecter' }).click();
 
@@ -71,7 +71,7 @@ test('connexion par code : code invalide refusé, pas de session (F-01)', async 
   await expect(page).not.toHaveURL(/\/espace-membre$/);
 });
 
-// L'auto-inscription est fermée : la page ne doit pas réapparaître par accident.
+// Self-registration is closed: the page must not reappear by accident.
 test('/inscription redirige vers la demande d’adhésion (F-22)', async ({
   page,
 }) => {
@@ -79,16 +79,16 @@ test('/inscription redirige vers la demande d’adhésion (F-22)', async ({
   await expect(page).toHaveURL(/\/fr\/adhesion$/);
 });
 
-// Politique de mot de passe (sécurité — constat M4). La banalité d'un mot de
-// passe est la SEULE règle que le navigateur ne peut pas vérifier lui-même : la
-// longueur, il la refuse par `minLength`. Ce test vise donc le refus serveur, et
-// le message que l'interface en tire.
+// Password policy (security — finding M4). A password being too common
+// is the ONLY rule the browser cannot check by itself: the
+// length, it refuses through `minLength`. This test therefore targets the server refusal, and
+// the message the UI derives from it.
 //
-// Le compte reçoit d'abord un mot de passe par `provisionPassword` : « mot de
-// passe oublié » commence par `retrieveAccount` et lève `InvalidAccountId` sans
-// compte « password » préalable (issue #66). Une fixture qui s'arrêterait à
-// `provisionUser` mourrait donc avant d'atteindre le champ visé, et le test
-// passerait pour un échec de politique alors qu'il n'aurait rien exercé.
+// The account first gets a password through `provisionPassword`: "forgot
+// password" starts with `retrieveAccount` and throws `InvalidAccountId` without
+// a prior "password" account (issue #66). A fixture stopping at
+// `provisionUser` would therefore die before reaching the targeted field, and the test
+// would pass for a policy failure when it would have exercised nothing.
 test('changement de mot de passe : un mot de passe trop courant est refusé', async ({
   page,
 }) => {
@@ -104,8 +104,8 @@ test('changement de mot de passe : un mot de passe trop courant est refusé', as
     page.getByRole('heading', { name: 'Nouveau mot de passe' }),
   ).toBeVisible();
   await page.getByLabel('Code de vérification').fill(await getOtp(email));
-  // 13 caractères : la longueur seule ne l'aurait pas arrêté, et le code est
-  // valide — c'est bien la politique qui refuse.
+  // 13 characters: length alone would not have stopped it, and the code is
+  // valid — it is indeed the policy that refuses.
   await page
     .getByLabel('Nouveau mot de passe', { exact: true })
     .fill('MotDePasse123');
@@ -114,8 +114,8 @@ test('changement de mot de passe : un mot de passe trop courant est refusé', as
     .getByRole('button', { name: 'Réinitialiser le mot de passe' })
     .click();
 
-  // Message dédié — et surtout PAS « Code invalide ou expiré », qui enverrait
-  // la personne corriger le mauvais champ.
+  // Dedicated message — and above all NOT "Code invalide ou expiré", which would send
+  // the person to correct the wrong field.
   await expect(
     page.getByText('Ce mot de passe est trop courant'),
   ).toBeVisible();

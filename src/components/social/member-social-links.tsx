@@ -4,9 +4,9 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ArrowForward } from '@/components/ui/arrow';
 
-// Entrées de l'espace membre vers le réseau social : profil, messages,
-// réseau, annuaire des personnes. Composant à part pour que l'ajout à
-// `espace-membre/page.tsx` tienne en une ligne.
+// Entries from the member area to the social network: profile, messages,
+// network, people directory. A separate component so that the addition to
+// `espace-membre/page.tsx` fits on one line.
 const LINK =
   'inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent-text hover:underline';
 

@@ -1,36 +1,36 @@
 import { test, expect } from '@playwright/test';
 import { choixLangue, ouvrirSelecteurDeLangue } from './_langue';
 
-// Issue #35 — le sélecteur de langue basculait bien /fr/… en /en/…, mais
-// abandonnait la query string : un visiteur qui avait filtré la bibliothèque
-// repartait sur /en/bibliotheque, tous ses filtres perdus.
+// Issue #35 — the language selector did switch /fr/… to /en/…, but
+// dropped the query string: a visitor who had filtered the library
+// landed back on /en/bibliotheque, all their filters lost.
 //
-// Ce n'est pas un détail d'ergonomie : le projet met délibérément les facettes
-// dans l'URL pour qu'elles soient partageables et indexables. Le sélecteur de
-// langue était le seul endroit du site à rompre ce contrat.
+// This is not a UX detail: the project deliberately puts facets
+// in the URL so that they are shareable and indexable. The language selector
+// was the only place on the site that broke that contract.
 //
-// LE GESTE A CHANGÉ DE FORME, PAS D'ENJEU. Le sélecteur est devenu un menu
-// (cf. `_langue.ts`) : il faut l'ouvrir avant de choisir. Ce que ces tests
-// vérifient est inchangé — l'adresse d'arrivée, query string comprise.
+// THE GESTURE CHANGED SHAPE, NOT STAKES. The selector became a menu
+// (see `_langue.ts`): it must be opened before choosing. What these tests
+// check is unchanged — the landing address, query string included.
 //
-// POURQUOI LA GARDE F-13 A CHANGÉ DE CLIC.
-// La bascule de langue est le geste que l'audit F-13 a mesuré comme perdant
-// son clic : émis juste après `page.goto()`, il n'aboutit JAMAIS sous bridage
-// processeur ×4 (0/6), alors qu'il aboutit toujours une fois la page établie.
-// Le clic exposé est désormais celui qui OUVRE le menu, et c'est
-// `ouvrirSelecteurDeLangue` qui le protège.
+// WHY THE F-13 GUARD MOVED TO A DIFFERENT CLICK.
+// The language toggle is the gesture that audit F-13 measured as losing
+// its click: fired right after `page.goto()`, it NEVER succeeds under 4x CPU
+// throttling (0/6), whereas it always succeeds once the page has settled.
+// The exposed click is now the one that OPENS the menu, and it is
+// `ouvrirSelecteurDeLangue` that protects it.
 //
-// Le clic sur la langue, lui, reste nu — et il est mieux fondé qu'avant. Le
-// menu ne s'ouvre que par `useState` : un menu VISIBLE prouve que React a
-// repris la main, donc que la page est hydratée. C'est précisément la
-// condition dont l'absence faisait perdre le clic. On ne peut d'ailleurs pas
-// le protéger par `cliquerJusqua` : choisir une langue REFERME le menu, donc
-// re-cliquer viserait un élément détaché — le geste n'est plus idempotent.
+// The click on the language itself stays bare — and it is better founded than before. The
+// menu only opens via `useState`: a VISIBLE menu proves that React has
+// taken over, hence that the page is hydrated. That is precisely the
+// condition whose absence made the click get lost. Nor can we
+// protect it with `cliquerJusqua`: choosing a language CLOSES the menu, so
+// re-clicking would target a detached element — the gesture is no longer idempotent.
 //
-// Ce qui subsiste du risque est l'ATTENTE : `router.replace` déclenche une
-// navigation serveur, et le délai par défaut d'une assertion (5 s) est court
-// pour un runner chargé. Les assertions d'URL gardent donc le budget large que
-// `cliquerJusqua` leur donnait — on attend autant qu'avant, sans re-cliquer.
+// What remains of the risk is the WAIT: `router.replace` triggers a
+// server navigation, and an assertion's default timeout (5 s) is short
+// for a loaded runner. The URL assertions therefore keep the generous budget that
+// `cliquerJusqua` gave them — we wait as long as before, without re-clicking.
 const NAVIGATION = { timeout: 20_000 };
 
 test('bibliothèque filtrée : la bascule de langue garde les filtres (#35)', async ({
@@ -45,7 +45,7 @@ test('bibliothèque filtrée : la bascule de langue garde les filtres (#35)', as
   await expect(page).toHaveURL(`/en/bibliotheque?${query}`, NAVIGATION);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
-  // ...et le retour ne les perd pas davantage.
+  // ...and switching back does not lose them either.
   await ouvrirSelecteurDeLangue(page);
   await choixLangue(page, 'fr').click();
   await expect(page).toHaveURL(`/fr/bibliotheque?${query}`, NAVIGATION);

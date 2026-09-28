@@ -12,16 +12,16 @@ import {
   type StageOrNone,
 } from './manuscripts';
 
-// Machine à états du manuscrit (F-43) : la table de transitions est la SEULE
-// source de vérité. Ce fichier parcourt toutes les paires (étape, événement)
-// — une transition absente de la table doit être refusée, avec la bonne
-// erreur, et une transition présente doit mener à l'étape annoncée.
+// Manuscript state machine (F-43): the transition table is the ONLY
+// source of truth. This file walks all (stage, event) pairs
+// — a transition absent from the table must be refused, with the right
+// error, and a transition present must lead to the announced stage.
 
 const ALL: StageOrNone[] = ['none', ...MANUSCRIPT_STAGES];
 
-// Les transitions ATTENDUES, écrites ici à la main à partir du cahier des
-// charges (soumis → en évaluation → révision demandée → re-soumis → accepté /
-// rejeté) : si la table du module dérive, ce test le dit.
+// The EXPECTED transitions, written here by hand from the
+// specifications (submitted → under review → revision requested → resubmitted → accepted /
+// rejected): if the module's table drifts, this test says so.
 const EXPECTED: Record<string, string> = {
   'none/submit': 'submitted',
   'submitted/startReview': 'in_review',
@@ -59,7 +59,7 @@ describe('Machine à états du manuscrit (F-43)', () => {
       expect(nextStage(from, event)).toBe(EXPECTED[key]);
       expect(canTransition(from, event)).toBe(true);
     } else {
-      // Une décision rendue ne se rejoue ni ne s'inverse : erreur propre.
+      // A rendered decision cannot be replayed or reversed: clean error.
       const code =
         from === 'accepted' || from === 'rejected'
           ? 'ALREADY_REVIEWED'
@@ -108,7 +108,7 @@ describe('Versions : différentiel de métadonnées', () => {
     );
     expect(diff.title).toEqual({ from: 'Titre v1', to: 'Titre v2' });
     expect(diff.abstract).toBeNull();
-    // La casse ne fait pas un nouveau mot-clé.
+    // Case does not make a new keyword.
     expect(diff.keywordsAdded).toEqual(['Europe']);
     expect(diff.keywordsRemoved).toEqual(['Afrique']);
     expect(diff.fileReplaced).toBe(true);

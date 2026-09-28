@@ -6,10 +6,10 @@ import fr from '@/messages/fr.json';
 import { AudienceOptOut } from '@/components/analytics/audience-opt-out';
 import { AUDIENCE_OPTOUT_KEY, audienceAllowed } from '@/lib/audience';
 
-// Réglage d'opposition à la mesure d'audience (F-66, chantier diffusion),
-// posé dans la politique de confidentialité. Ce qui compte : la case pilote
-// RÉELLEMENT la balise (`audienceAllowed`), et l'état est dit en toutes
-// lettres — pas seulement par la coche.
+// Opt-out setting for audience measurement (F-66, diffusion workstream),
+// placed in the privacy policy. What matters: the checkbox ACTUALLY drives
+// the tag (`audienceAllowed`), and the state is spelled out in
+// words — not just by the checkmark.
 
 afterEach(() => {
   cleanup();

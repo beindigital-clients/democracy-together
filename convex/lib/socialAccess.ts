@@ -2,13 +2,13 @@ import { v } from 'convex/values';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
 import { roleRank } from './roles';
-// Un compte suspendu (chantier comptes) est lu comme un visiteur.
+// A suspended account (accounts workstream) is read as a visitor.
 import { getActiveUserId } from './rbac';
 import { canViewProfile, isNotificationPrefType } from './social';
 
-// Lectures partagées du chantier « social » : qui regarde, qui a bloqué qui,
-// qui suit qui. Toute décision d'accès passe par les fonctions PURES de
-// `./social` — ce module ne fait que rassembler les faits qu'elles jugent.
+// Shared reads for the "social" workstream: who is looking, who blocked
+// whom, who follows whom. Every access decision goes through the PURE
+// functions in `./social` — this module only gathers the facts they judge.
 
 type Ctx = QueryCtx | MutationCtx;
 
@@ -30,9 +30,9 @@ export async function loadViewer(ctx: Ctx): Promise<Viewer> {
   return { userId, user, isMember: isMemberRole(user.role) };
 }
 
-// Garde des écritures sociales : un membre VALIDÉ du réseau. Les visiteurs
-// auto-inscrits peuvent tenir leur profil et leurs préférences, pas écrire à
-// autrui ni suivre quelqu'un.
+// Guard for social writes: a VALIDATED network member. Self-registered
+// visitors can maintain their profile and preferences, but not write to
+// others or follow someone.
 export async function requireSocialMember(ctx: Ctx) {
   const viewer = await loadViewer(ctx);
   if (!viewer) throw new Error('UNAUTHENTICATED');
@@ -104,8 +104,8 @@ export async function userIsMember(
   return user ? isMemberRole(user.role) : false;
 }
 
-// Le profil est-il visible de ce lecteur ? Rassemble les faits (rôle du
-// propriétaire, blocage) et laisse `canViewProfile` trancher.
+// Is the profile visible to this reader? Gathers the facts (owner's role,
+// blocking) and lets `canViewProfile` decide.
 export async function viewerCanSee(
   ctx: Ctx,
   viewer: Viewer,
@@ -133,10 +133,10 @@ export async function photoUrl(
   return profile.photoId ? await ctx.storage.getUrl(profile.photoId) : null;
 }
 
-// Organisation affichée sur un profil : LUE depuis le rattachement existant
-// (`organizationMemberships`), jamais saisie par la personne — sinon chacun
-// pourrait se déclarer d'une organisation du réseau. Seule une fiche ACTIVE
-// est montrée, comme dans l'annuaire.
+// Organisation shown on a profile: READ from the existing affiliation
+// (`organizationMemberships`), never entered by the person — otherwise anyone
+// could claim to belong to a network organisation. Only an ACTIVE profile is
+// shown, as in the directory.
 export async function displayedOrganization(
   ctx: Ctx,
   userId: Id<'users'>,
@@ -153,9 +153,9 @@ export async function displayedOrganization(
   return null;
 }
 
-// Préférence de notification : le type est-il coupé par ce destinataire ?
-// Appelé par `notify()` (convex/lib/notify.ts) AVANT toute écriture : une
-// notification d'un type désactivé n'est ni créée ni, a fortiori, envoyée.
+// Notification preference: has this recipient turned off the type?
+// Called by `notify()` (convex/lib/notify.ts) BEFORE any write: a
+// notification of a disabled type is neither created nor, a fortiori, sent.
 export async function isNotificationMuted(
   ctx: Ctx,
   userId: Id<'users'>,
@@ -166,14 +166,15 @@ export async function isNotificationMuted(
   return profile?.mutedNotificationTypes.includes(type) ?? false;
 }
 
-// Nom à montrer pour un compte, profil ou pas. Le repli n'expose JAMAIS
-// l'adresse e-mail : c'est le défaut qu'on éviterait mal ailleurs.
+// Name to show for an account, with or without a profile. The fallback NEVER
+// exposes the e-mail address: that is the default we would struggle to avoid
+// elsewhere.
 export function fallbackName(user: Doc<'users'> | null): string {
   return user?.name?.trim() || '';
 }
 
-// Paire RANGÉE d'une conversation 1:1 : une seule ligne par couple, quel que
-// soit celui qui écrit le premier.
+// ORDERED pair of a 1:1 conversation: a single row per pair, whoever writes
+// first.
 export function sortPair(
   x: Id<'users'>,
   y: Id<'users'>,
@@ -181,7 +182,7 @@ export function sortPair(
   return x < y ? [x, y] : [y, x];
 }
 
-// Carte de personne (annuaire, abonnés, abonnements) — projection explicite.
+// Person card (directory, followers, following) — explicit projection.
 export const personCardValidator = v.object({
   handle: v.string(),
   displayName: v.string(),

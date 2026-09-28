@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sendEmail, sendOtpEmail } from './email';
 
-// `email.ts` n'était couvert par AUCUN test (audit § 6.1). L'enjeu : sans clé
-// fournisseur, l'adaptateur « réussissait » silencieusement (audit H3), ce qui
-// marquait des campagnes `sent` sans destinataire, des rappels traités
-// définitivement, et rendait la connexion par code impossible sans erreur
-// visible. Il doit désormais échouer — sauf en dev/test explicite.
+// `email.ts` was covered by NO test (audit § 6.1). The stake: without a
+// provider key, the adapter silently "succeeded" (audit H3), which
+// marked campaigns `sent` with no recipient, event reminders as processed
+// for good, and made code sign-in impossible without any visible
+// error. It must now fail — except in explicit dev/test.
 
 const ENV_KEYS = [
   'AUTH_EMAIL_PROVIDER',
@@ -45,8 +45,8 @@ describe('Adaptateur e-mail — fail-fast sans fournisseur (audit H3)', () => {
   });
 
   it('la langue du destinataire atteint bien le sujet envoyé', async () => {
-    // Le paramètre est OBLIGATOIRE côté type ; ce test vérifie qu'il est
-    // réellement employé, et pas simplement accepté puis ignoré.
+    // The parameter is REQUIRED at the type level; this test checks that it is
+    // actually used, and not merely accepted then ignored.
     process.env.AUTH_RESEND_KEY = 're_test';
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -102,8 +102,8 @@ describe('Adaptateur e-mail — branche Resend', () => {
   });
 
   it('AUTH_DEV_OTP ne court-circuite PAS un fournisseur configuré', async () => {
-    // Le no-op ne doit s'appliquer qu'en l'absence de fournisseur : si une clé
-    // existe, on envoie réellement, même en dev.
+    // The no-op must apply only when there is no provider: if a key
+    // exists, we really send, even in dev.
     process.env.AUTH_DEV_OTP = 'true';
     process.env.AUTH_RESEND_KEY = 're_test';
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));

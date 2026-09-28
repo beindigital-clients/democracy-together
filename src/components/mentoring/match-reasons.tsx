@@ -4,9 +4,9 @@ import { useTranslations } from 'next-intl';
 import { vocabulary } from '@/i18n/vocabulary';
 import type { MatchReason } from '@convex/lib/programmes';
 
-// Le score d'appariement EXPLIQUÉ (F-59) : une ligne par composante, avec les
-// points qu'elle apporte. C'est ce que lit le coordinateur avant de décider,
-// et ce que le binôme retrouve ensuite (« pourquoi nous ? »).
+// The EXPLAINED matching score (F-59): one line per component, with the
+// points it contributes. It is what the coordinator reads before deciding,
+// and what the pair finds later ("why us?").
 export function MatchReasons({
   score,
   reasons,

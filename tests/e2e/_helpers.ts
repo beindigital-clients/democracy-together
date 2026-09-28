@@ -5,10 +5,10 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
 import { retrySync, retryAsync } from './_retry';
 
-// Client Convex créé À LA DEMANDE. Instancié au niveau module, il faisait
-// échouer `playwright test --list` avant même d'afficher la liste des tests dès
-// que NEXT_PUBLIC_CONVEX_URL manquait (audit § 6.1). En paresseux, seuls les
-// tests qui s'en servent réellement échouent, avec un message actionnable.
+// Convex client created ON DEMAND. Instantiated at module level, it made
+// `playwright test --list` fail before even displaying the test list whenever
+// NEXT_PUBLIC_CONVEX_URL was missing (audit § 6.1). Lazily, only the tests
+// that actually use it fail, with an actionable message.
 let convexClientInstance: ConvexHttpClient | null = null;
 function convex(): ConvexHttpClient {
   if (!convexClientInstance) {
@@ -23,18 +23,18 @@ function convex(): ConvexHttpClient {
   return convexClientInstance;
 }
 
-// Invoque une fonction Convex via la CLI — contexte de CONFIANCE, seul moyen
-// d'atteindre les internalMutations de test (hors API publique : défense en
-// profondeur).
+// Invokes a Convex function via the CLI — a TRUSTED context, the only way
+// to reach the test internalMutations (outside the public API: defense in
+// depth).
 //
-// Sélection du déploiement :
-// - en local, la CLI relit .env.local elle-même. playwright.config charge ce
-//   fichier avec un loader naïf qui garde le commentaire inline de
-//   CONVEX_DEPLOYMENT (« dev:xxx # team: … ») -> on retire la variable de
-//   l'env pour ne pas lui passer une valeur commentée (dotenv, lui, strip).
-// - en CI, `CONVEX_DEPLOY_KEY` est une clé de PRÉVERSION : elle désigne le
-//   projet, pas un déploiement. Le nom de la préversion (posé par le workflow
-//   dans CONVEX_PREVIEW_NAME) lève l'ambiguïté.
+// Deployment selection:
+// - locally, the CLI re-reads .env.local itself. playwright.config loads that
+//   file with a naive loader that keeps the inline comment of
+//   CONVEX_DEPLOYMENT ("dev:xxx # team: …") -> we remove the variable from
+//   the env so as not to pass it a commented value (dotenv, for its part, strips it).
+// - in CI, `CONVEX_DEPLOY_KEY` is a PREVIEW key: it designates the
+//   project, not a deployment. The preview name (set by the workflow
+//   in CONVEX_PREVIEW_NAME) removes the ambiguity.
 function convexRun(fn: string, args: Record<string, unknown> = {}): void {
   const env = { ...process.env };
   delete env.CONVEX_DEPLOYMENT;
@@ -54,23 +54,23 @@ function convexRun(fn: string, args: Record<string, unknown> = {}): void {
   );
 }
 
-// Peuple l'annuaire (F-19) avec les think tanks de démo. Idempotent.
+// Populates the directory (F-19) with the demo think tanks. Idempotent.
 export async function seedDirectory(): Promise<void> {
   convexRun('seed:seedDirectory');
 }
 
-// Recopie le contenu codé (agenda, replays, partenaires, thématiques) dans les
-// tables du chantier « contenus ». IDEMPOTENT : la CI le fait déjà
-// (`e2e.yml`) ; en local, une spec qui dépend de l'agenda l'appelle pour ne
-// pas dépendre de l'état du déploiement de dev.
+// Copies the hard-coded content (agenda, replays, partners, themes) into the
+// tables of the "contenus" workstream. IDEMPOTENT: CI already does it
+// (`e2e.yml`); locally, a spec that depends on the agenda calls it so as not
+// to depend on the state of the dev deployment.
 export async function importCodedContent(): Promise<void> {
   convexRun('contenus/migration:importCodedContent');
 }
 
-// Retire les contenus créés par les specs (slugs et fichiers `e2e-…`). Gardé
-// par AUTH_DEV_OTP côté Convex, comme les autres helpers de test.
-// `stamp` : l'horodatage de la spec — le ménage ne touche que SES contenus
-// (le même fichier tourne en parallèle sur le projet mobile).
+// Removes the content created by the specs (`e2e-…` slugs and files). Guarded
+// by AUTH_DEV_OTP on the Convex side, like the other test helpers.
+// `stamp`: the spec's timestamp — the cleanup only touches ITS content
+// (the same file runs in parallel on the mobile project).
 export async function deleteE2eContent(stamp?: number): Promise<void> {
   convexRun(
     'contenus/devCleanup:deleteE2eContent',
@@ -80,9 +80,9 @@ export async function deleteE2eContent(stamp?: number): Promise<void> {
 
 type NetworkRole = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
-// Élève le rôle d'un utilisateur (DEV, garde AUTH_DEV_OTP) — amorce un admin
-// pour les tests du back-office (setRole « réel » exige déjà un admin :
-// problème de l'œuf et de la poule).
+// Elevates a user's role (DEV, AUTH_DEV_OTP guard) — bootstraps an admin
+// for the back-office tests (the "real" setRole already requires an admin:
+// chicken-and-egg problem).
 export async function elevateRole(
   email: string,
   role: NetworkRole,
@@ -90,35 +90,35 @@ export async function elevateRole(
   convexRun('devAdmin:setRoleByEmail', { email, role });
 }
 
-// Retire le rôle d'un compte (DEV, garde AUTH_DEV_OTP) — reproduit un compte
-// HÉRITÉ, créé avant que tous les chemins de création ne posent un rôle. C'est
-// l'état dans lequel le back-office affichait « Membre » au lieu de
-// « Visiteur » (issue #27) ; `provisionUser` ne peut pas le produire, puisqu'il
-// pose toujours un rôle.
+// Removes an account's role (DEV, AUTH_DEV_OTP guard) — reproduces a LEGACY
+// account, created before every creation path set a role. It is the state in
+// which the back office displayed "Membre" instead of
+// "Visiteur" (issue #27); `provisionUser` cannot produce it, since it
+// always sets a role.
 export async function clearRole(email: string): Promise<void> {
   convexRun('devAdmin:clearRoleByEmail', { email });
 }
 
-// Supprime les publications de test (titre contenant `marker`) et leurs
-// fichiers — nettoyage du dataset partagé après l'E2E de dépôt (F-32), qui
-// publie une vraie publication.
+// Deletes the test publications (title containing `marker`) and their
+// files — cleanup of the shared dataset after the submission E2E (F-32), which
+// publishes a real publication.
 export async function deleteTestPublications(marker: string): Promise<void> {
   convexRun('devAdmin:deleteTestPublications', { marker });
 }
 
-// Valide les billets de la tribune EN ATTENTE dont le titre contient
-// `marker` (DEV, garde AUTH_DEV_OTP), comme le ferait un modérateur.
+// Approves the PENDING Tribune posts whose title contains
+// `marker` (DEV, AUTH_DEV_OTP guard), as a moderator would.
 //
-// Depuis la modération A PRIORI (F-45, chantier communauté), un billet soumis
-// n'est visible du public qu'après validation. Les specs qui publient pour
-// tester AUTRE CHOSE (signalement, canonical, retrait) passent donc par la
-// validation — sans rejouer l'écran de modération, qui a sa propre spec
+// Since PRE-moderation (F-45, "communauté" workstream), a submitted post
+// is visible to the public only after approval. Specs that publish in order to
+// test SOMETHING ELSE (reporting, canonical, removal) therefore go through
+// approval — without replaying the moderation screen, which has its own spec
 // (`communaute-tribune.spec.ts`).
 export async function approveTribunePosts(marker: string): Promise<void> {
   convexRun('communityModeration:devApprovePendingByTitle', { marker });
 }
 
-// Dépose une candidature d'adhésion (F-22) — pour alimenter la file de modération.
+// Submits a membership application (F-22) — to feed the moderation queue.
 export async function submitApplication(args: {
   type: 'organisation' | 'individu';
   organizationName: string;
@@ -126,20 +126,20 @@ export async function submitApplication(args: {
   country: string;
   message?: string;
 }): Promise<void> {
-  // `submitApplication` est désormais une ACTION (porte reCAPTCHA) : on l'appelle
-  // via .action(). La porte est fail-closed (issue #24) : le déploiement de test
-  // doit porter RECAPTCHA_DISABLED=true — posé par .github/workflows/e2e.yml, et
-  // à poser une fois sur son déploiement de dev (cf. .env.example).
+  // `submitApplication` is now an ACTION (reCAPTCHA gate): we call it
+  // via .action(). The gate is fail-closed (issue #24): the test deployment
+  // must carry RECAPTCHA_DISABLED=true — set by .github/workflows/e2e.yml, and
+  // to be set once on your dev deployment (see .env.example).
   await retryAsync('organizations:submitApplication', () =>
     convex().action(api.organizations.submitApplication, args),
   );
 }
 
-// Dépose une candidature du hub jeunes (F-40) par le chemin public — pour
-// alimenter la file de modération sans passer par le formulaire.
+// Submits a youth hub application (F-40) through the public path — to
+// feed the moderation queue without going through the form.
 //
-// Comme `submitApplication`, c'est une ACTION (porte reCAPTCHA) : le
-// déploiement de test doit porter RECAPTCHA_DISABLED=true (cf. ci-dessus).
+// Like `submitApplication`, it is an ACTION (reCAPTCHA gate): the
+// test deployment must carry RECAPTCHA_DISABLED=true (see above).
 export async function applyYouth(args: {
   name: string;
   email: string;
@@ -152,13 +152,13 @@ export async function applyYouth(args: {
   );
 }
 
-// --- Oracles de lecture DEV --------------------------------------------------
-// Ces fonctions relisent en base ce qu'un formulaire vient d'écrire (code OTP,
-// message de contact, inscription…). Ce sont désormais des `internalQuery` et
-// non plus des `query` publiques (audit § 4.2 H2) : hors API publique, elles ne
-// sont appelables par aucun client, même si AUTH_DEV_OTP fuitait en production.
-// On les invoque donc via la CLI Convex — contexte de confiance — exactement
-// comme seedDirectory, elevateRole et deleteTestPublications ci-dessus.
+// --- DEV read oracles ---------------------------------------------------------
+// These functions read back from the database what a form just wrote (OTP code,
+// contact message, subscription…). They are now `internalQuery`s and
+// no longer public `query`s (audit § 4.2 H2): outside the public API, they
+// cannot be called by any client, even if AUTH_DEV_OTP leaked into production.
+// We therefore invoke them via the Convex CLI — a trusted context — exactly
+// like seedDirectory, elevateRole and deleteTestPublications above.
 function convexRunQuery<T>(
   fn: string,
   args: Record<string, unknown>,
@@ -195,16 +195,16 @@ export function isNewsletterSubscribed(email: string) {
   return convexRunQuery<boolean>('newsletter:isSubscribed', { email });
 }
 
-// Jeton de désinscription d'un abonné — ce que porte le lien du pied de
-// l'e-mail de campagne. Sans lui, `/newsletter/desinscription` n'est testable
-// que sur ses branches d'échec (audit F-12).
+// Unsubscribe token of a subscriber — what the link in the campaign email
+// footer carries. Without it, `/newsletter/desinscription` can only be tested
+// on its failure branches (audit F-12).
 export function newsletterUnsubToken(email: string) {
   return convexRunQuery<string | null>('newsletter:devUnsubToken', { email });
 }
 
-// Double opt-in (chantier diffusion) : état de l'abonnement et dernier lien
-// de confirmation « envoyé » — lus dans la boîte d'envoi de DÉVELOPPEMENT
-// (`devOutbox`, garde AUTH_DEV_OTP), exactement comme `getOtp` lit les codes.
+// Double opt-in ("diffusion" workstream): subscription state and last
+// confirmation link "sent" — read from the DEVELOPMENT outbox
+// (`devOutbox`, AUTH_DEV_OTP guard), exactly as `getOtp` reads the codes.
 export function newsletterStatus(email: string) {
   return convexRunQuery<'pending' | 'confirmed' | 'legacy' | null>(
     'newsletter:devSubscriptionStatus',
@@ -212,8 +212,8 @@ export function newsletterStatus(email: string) {
   );
 }
 
-// Le lien est écrit par une action planifiée juste après l'inscription : petit
-// retry, comme pour le code OTP.
+// The link is written by an action scheduled right after the subscription: a
+// small retry, as for the OTP code.
 export async function getNewsletterConfirmationLink(
   email: string,
 ): Promise<string> {
@@ -228,8 +228,8 @@ export async function getNewsletterConfirmationLink(
   throw new Error(`Aucun lien de confirmation trouvé pour ${email}`);
 }
 
-// Remplit les meules de recherche des documents seedés avant les index
-// `search_text` (migration idempotente, cf. convex/searchIndexing.ts).
+// Fills the search haystacks of documents seeded before the `search_text`
+// indexes (idempotent migration, see convex/searchIndexing.ts).
 export async function backfillSearch(): Promise<void> {
   convexRun('searchIndexing:backfill', {});
 }
@@ -250,8 +250,8 @@ export function latestApplicationForEmail(email: string) {
   } | null>('organizations:latestApplicationForEmail', { email });
 }
 
-// Lit le dernier code OTP en clair (DEV seulement, garde AUTH_DEV_OTP).
-// Petit retry : le code est écrit par une action juste après l'appel signIn.
+// Reads the latest OTP code in clear (DEV only, AUTH_DEV_OTP guard).
+// Small retry: the code is written by an action right after the signIn call.
 export async function getOtp(email: string): Promise<string> {
   for (let i = 0; i < 24; i++) {
     const code = convexRunQuery<string | null>('otp:latestDevCode', { email });
@@ -261,20 +261,20 @@ export async function getOtp(email: string): Promise<string> {
   throw new Error(`Aucun code OTP trouvé pour ${email}`);
 }
 
-// Provisionne un compte ET connecte le navigateur (remplace signUpAndVerify).
+// Provisions an account AND signs the browser in (replaces signUpAndVerify).
 //
-// L'auto-inscription publique n'existe plus : /inscription redirige vers
-// /adhesion, et la connexion refuse un e-mail inconnu. Un test qui a besoin
-// d'une session doit donc d'abord faire EXISTER le compte — comme le fait la
-// vraie vie, où c'est l'approbation d'une candidature ou une invitation
-// d'administrateur qui l'ouvre. On passe par la CLI Convex (contexte de
-// confiance) puis par la connexion par code, qui est le parcours réel d'un
-// membre invité.
+// Public self-registration no longer exists: /inscription redirects to
+// /adhesion, and sign-in refuses an unknown email. A test that needs a
+// session must therefore first make the account EXIST — as happens in
+// real life, where it is the approval of an application or an admin
+// invitation that opens it. We go through the Convex CLI (trusted
+// context) then through code sign-in, which is the real journey of an
+// invited member.
 export async function provisionUser(
   email: string,
   role: NetworkRole = 'visiteur',
 ): Promise<void> {
-  await elevateRole(email, role); // upsert : crée le compte s'il n'existe pas
+  await elevateRole(email, role); // upsert: creates the account if it does not exist
 }
 
 export async function signInWithCode(page: Page, email: string) {
@@ -291,47 +291,48 @@ export async function signInWithCode(page: Page, email: string) {
   await expect(page).toHaveURL(/\/espace-membre$/);
 }
 
-// Mot de passe des comptes de test. Il traverse la POLITIQUE du serveur
-// (convex/lib/passwordPolicy.ts) comme n'importe quel mot de passe posé par un
-// humain — `provisionPassword` ci-dessous passe par `flow: 'signUp'`, et c'est
-// exactement le flux que `validatePasswordRequirements` garde. « motdepasse123 »,
-// qu'employaient les fixtures, figure désormais dans la liste des refusés : une
-// valeur partagée évite que le prochain contournement se cache dans un fichier.
+// Password of the test accounts. It goes through the server's POLICY
+// (convex/lib/passwordPolicy.ts) like any password set by a human —
+// `provisionPassword` below goes through `flow: 'signUp'`, and that is
+// exactly the flow `validatePasswordRequirements` guards. "motdepasse123",
+// which the fixtures used, is now on the rejected list: a shared value
+// keeps the next workaround from hiding in some file.
 export const E2E_PASSWORD = 'phrase-de-passe-e2e';
 
-// Donne un MOT DE PASSE à un compte provisionné, par le seul chemin que le
-// backend laisse ouvert (issue #66).
+// Gives a PASSWORD to a provisioned account, through the only path the
+// backend leaves open (issue #66).
 //
-// Le helper précédent prétendait le faire avec « mot de passe oublié », au
-// motif que ce flux ne demande pas l'ancien mot de passe. C'est faux, et c'est
-// ce qui cassait 13 specs : `signIn('password', { flow: 'reset' })` commence
-// par `retrieveAccount` et lève `InvalidAccountId` quand il n'existe aucun
-// compte « password » pour l'adresse. Or `provisionUser` ne crée QUE la ligne
-// `users` — pas de ligne `authAccounts`. La page attrapait l'erreur, affichait
-// son message générique, et l'écran « Nouveau mot de passe » n'arrivait jamais.
-// (Reproduit en une ligne sous convex-test ; cf. le fil de la PR.)
+// The previous helper claimed to do it with "forgot password", on the
+// grounds that this flow does not ask for the old password. That is wrong, and
+// it is what broke 13 specs: `signIn('password', { flow: 'reset' })` starts
+// with `retrieveAccount` and throws `InvalidAccountId` when there is no
+// "password" account for the address. Yet `provisionUser` creates ONLY the
+// `users` row — no `authAccounts` row. The page caught the error, showed
+// its generic message, and the "Nouveau mot de passe" screen never came.
+// (Reproduced in one line under convex-test; see the PR thread.)
 //
-// `flow: 'signUp'`, lui, passe : il appelle `createAccount`, donc le callback
-// `createOrUpdateUser`, qui ACCEPTE une adresse déjà connue — c'est le cas
-// « relier un nouveau moyen de connexion à un compte existant », exactement ce
-// que le modèle d'adhésion validée autorise. Comme le provider est configuré
-// avec `verify`, l'inscription n'ouvre pas de session : elle envoie un code,
-// qu'on relit puis qu'on présente en `email-verification`.
+// `flow: 'signUp'`, on the other hand, goes through: it calls `createAccount`,
+// hence the `createOrUpdateUser` callback, which ACCEPTS an already known
+// address — the "link a new sign-in method to an existing account" case,
+// exactly what the validated-membership model allows. Since the provider is
+// configured with `verify`, signing up does not open a session: it sends a
+// code, which we read back and then present as `email-verification`.
 //
-// L'écran `/espace-membre/mot-de-passe` fait la même chose par l'interface
-// depuis le lot 3 du 27/09 (`auth-mot-de-passe.spec.ts` l'exerce). Ce helper
-// garde le chemin API parce qu'il provisionne des comptes AVANT toute session —
-// pas pour contourner une interface.
+// The `/espace-membre/mot-de-passe` screen does the same thing through the UI
+// since batch 3 of 27/09 (`auth-mot-de-passe.spec.ts` exercises it). This helper
+// keeps the API path because it provisions accounts BEFORE any session —
+// not to bypass a UI.
 export async function provisionPassword(
   email: string,
   password: string,
 ): Promise<void> {
-  // Le compte a-t-il DÉJÀ ce mot de passe ? Les sessions partagées portent des
-  // adresses stables, donc sur un déploiement de dev — ou à la reprise d'un
-  // test — on repasse ici avec un compte déjà pourvu ET déjà vérifié. Dans ce
-  // cas `signUp` n'envoie aucun nouveau code, `getOtp` rend le précédent, et la
-  // vérification échoue sur « Could not verify code ». On commence donc par
-  // essayer de se connecter : si ça marche, il n'y a rien à provisionner.
+  // Does the account ALREADY have this password? Shared sessions use
+  // stable addresses, so on a dev deployment — or when a test is
+  // retried — we come back here with an account that already has one AND is
+  // already verified. In that case `signUp` sends no new code, `getOtp`
+  // returns the previous one, and verification fails on "Could not verify
+  // code". So we start by trying to sign in: if that works, there is nothing
+  // to provision.
   try {
     await convex().action(api.auth.signIn, {
       provider: 'password',
@@ -339,7 +340,7 @@ export async function provisionPassword(
     });
     return;
   } catch {
-    /* pas encore de compte mot de passe pour cette adresse : on le crée */
+    /* no password account for this address yet: create it */
   }
 
   await convex().action(api.auth.signIn, {
@@ -353,10 +354,10 @@ export async function provisionPassword(
   });
 }
 
-// Réinitialise un mot de passe EXISTANT par le flux « mot de passe oublié ».
-// Suppose donc un compte qui a déjà un mot de passe (cf. `provisionPassword`) :
-// c'est le sujet d'`auth-reset.spec.ts`, et la raison pour laquelle ce helper
-// ne sert plus à en définir un premier.
+// Resets an EXISTING password through the "forgot password" flow.
+// It therefore assumes an account that already has a password (see
+// `provisionPassword`): that is the subject of `auth-reset.spec.ts`, and the
+// reason this helper is no longer used to set a first one.
 export async function setPasswordViaReset(
   page: Page,
   email: string,
@@ -377,18 +378,18 @@ export async function setPasswordViaReset(
     .click();
 }
 
-// Remplaçant direct de l'ancienne fixture : elle naviguait vers
-// /fr/inscription, désormais redirigée vers /adhesion, ce qui cassait 5 specs
-// (audit § 6.1, commit 8be46bc). Contrat préservé : à la sortie, le compte
-// existe, possède ce mot de passe, et la session est ouverte.
+// Drop-in replacement for the old fixture: it navigated to
+// /fr/inscription, now redirected to /adhesion, which broke 5 specs
+// (audit § 6.1, commit 8be46bc). Contract preserved: on exit, the account
+// exists, has this password, and the session is open.
 //
-// RÔLE PAR DÉFAUT = `visiteur`, et non `membre` : c'est ce que produisait
-// l'auto-inscription que cette fixture remplace. Un défaut à `membre`
-// PROMOUVAIT silencieusement chaque compte de test, ce qui retirait leur sujet
-// aux specs qui vérifient justement l'état non-membre — `auth.spec.ts` attend
-// « visiteur » et l'invitation à candidater. Les specs qui ont besoin de plus
-// passent le rôle, ou appellent `elevateRole` juste après : c'est déjà le cas
-// partout (admin, admin-ecrans, admin-moderation, library-submit).
+// DEFAULT ROLE = `visiteur`, not `membre`: that is what the self-registration
+// this fixture replaces produced. A `membre` default silently PROMOTED
+// every test account, which took their subject away from the specs that
+// precisely check the non-member state — `auth.spec.ts` expects
+// "visiteur" and the invitation to apply. Specs that need more pass
+// the role, or call `elevateRole` right after: that is already the case
+// everywhere (admin, admin-ecrans, admin-moderation, library-submit).
 export async function signUpAndVerify(
   page: Page,
   email: string,
@@ -398,43 +399,43 @@ export async function signUpAndVerify(
   await provisionUser(email, role);
   await provisionPassword(email, password);
 
-  // La session s'ouvre par l'ÉCRAN DE CONNEXION réel : le provisionnement
-  // ci-dessus ne fait qu'amener le compte dans l'état où l'invitation le laisse
-  // (compte + mot de passe), ce sont les assertions qui doivent passer par
-  // l'interface.
+  // The session is opened through the real SIGN-IN SCREEN: the provisioning
+  // above only brings the account to the state the invitation leaves it in
+  // (account + password); it is the assertions that must go through the
+  // UI.
   await page.goto('/fr/connexion');
   await page.getByLabel('E-mail').fill(email);
   await page.getByLabel('Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
 
-  // L'URL ne suffit pas : elle change dès la redirection côté client, avant que
-  // le cookie de session ne soit posé et que l'espace membre n'ait de quoi
-  // s'afficher. On attend donc un élément qui n'existe QUE connecté — sinon la
-  // navigation suivante de la spec repart vers /connexion, et elle cherche
-  // ensuite un lien de l'espace membre sur la page de connexion.
+  // The URL is not enough: it changes as soon as the client-side redirect
+  // happens, before the session cookie is set and the member area has
+  // anything to display. So we wait for an element that exists ONLY when signed
+  // in — otherwise the spec's next navigation heads back to /connexion, and it
+  // then looks for a member-area link on the sign-in page.
   await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
     timeout: 15_000,
   });
 }
 
-// TROUVER UN COMPTE DANS `/admin/utilisateurs`, QUEL QUE SOIT LE VOLUME.
+// FINDING AN ACCOUNT IN `/admin/utilisateurs`, WHATEVER THE VOLUME.
 //
-// Le tableau est PAGINÉ — 50 lignes — et trié par e-mail côté index. Aller sur
-// l'écran puis attendre la ligne d'un compte créé à l'instant ne tient donc que
-// sur une base presque vide. C'est le cas d'une préversion de CI, qui naît
-// vide ; ce n'est pas celui d'un déploiement de développement, qui vit
-// longtemps et accumule les comptes de test.
+// The table is PAGINATED — 50 rows — and sorted by email on the index side.
+// Going to the screen and then waiting for the row of an account just created
+// therefore only holds on an almost empty database. That is the case of a CI
+// preview, which is born empty; it is not that of a development deployment,
+// which lives long and accumulates test accounts.
 //
-// Mesuré sur le déploiement de dev de ce projet : ~900 lignes dans `users`, et
-// trois parcours du back-office rouges parce que leur compte n'était pas en
-// première page. L'échec ne dit rien de ce qu'ils vérifient — « élément
-// introuvable » là où le sujet est la confirmation d'un changement de rôle.
+// Measured on this project's dev deployment: ~900 rows in `users`, and
+// three back-office journeys red because their account was not on the
+// first page. The failure says nothing about what they check — "element
+// not found" where the subject is confirming a role change.
 //
-// On cherche donc le compte, comme le ferait un administrateur. L'assertion
-// n'est pas affaiblie : elle attend toujours la ligne, et la spec échoue
-// toujours si elle n'existe pas. Le champ est temporisé et la recherche est
-// faite par le SERVEUR, d'où une assertion qui réessaie.
+// So we search for the account, as an administrator would. The assertion
+// is not weakened: it still waits for the row, and the spec still fails
+// if it does not exist. The field is debounced and the search is done
+// by the SERVER, hence an assertion that retries.
 export async function chercherUtilisateur(
   page: Page,
   email: string,
@@ -443,35 +444,35 @@ export async function chercherUtilisateur(
     .getByRole('searchbox', { name: 'Rechercher un utilisateur' })
     .fill(email);
 
-  // CE HELPER N'ATTEND PAS QUE LE FILTRE SOIT APPLIQUÉ, ET NE LE PEUT PAS.
+  // THIS HELPER DOES NOT WAIT FOR THE FILTER TO BE APPLIED, AND CANNOT.
   //
-  // La tentation est réelle, parce que « la ligne existe » est vrai D'AVANCE
-  // sur une base presque vide — celle d'une préversion de CI —, où le compte
-  // figure en première page sans aucun filtre. La recherche TEMPORISÉE part
-  // alors pendant la suite du parcours.
+  // The temptation is real, because "the row exists" is true IN ADVANCE
+  // on an almost empty database — that of a CI preview —, where the account
+  // appears on the first page without any filter. The DEBOUNCED search then
+  // fires during the rest of the journey.
   //
-  // Mais « le filtre est appliqué » ne s'observe pas ici : `admin:listUsers`
-  // cherche par index PLEIN TEXTE, donc tokenisé. Une adresse de test partage
-  // « democracytogether » et « test » avec toutes les autres : la liste
-  // filtrée en garde des dizaines. Mesuré — 50 lignes restantes là où une
-  // assertion « plus aucune ligne étrangère » en attendait une.
+  // But "the filter is applied" cannot be observed here: `admin:listUsers`
+  // searches through a FULL-TEXT index, hence tokenized. A test address shares
+  // "democracytogether" and "test" with all the others: the filtered list
+  // keeps dozens of them. Measured — 50 rows remaining where an
+  // assertion of "no more foreign rows" expected one.
   //
-  // La course est donc neutralisée À LA SOURCE, côté produit : la liste est
-  // gelée tant qu'une confirmation est ouverte (`utilisateurs/page.tsx`), si
-  // bien qu'une requête qui revient entre-temps ne peut plus emporter la boîte.
-  // Ce helper n'a rien à compenser.
+  // The race is therefore neutralized AT THE SOURCE, on the product side: the
+  // list is frozen while a confirmation is open (`utilisateurs/page.tsx`), so
+  // that a query coming back in the meantime can no longer take the dialog with it.
+  // This helper has nothing to compensate for.
   await expect(
     page.getByRole('row').filter({ hasText: email }),
     `compte introuvable après recherche : ${email}`,
   ).toHaveCount(1);
 }
 
-// Chantier « programmes » (F-56 à F-60) : remet à zéro les données des comptes
-// de test (profils, binômes, candidatures, progression) et supprime les
-// appels, parcours et ressources dont le titre porte `marker`. Les sessions
-// partagées portant des adresses STABLES, un binôme laissé par l'exécution
-// précédente empêcherait de réapparier les mêmes comptes. Garde AUTH_DEV_OTP
-// côté serveur, et seules les adresses `@democracytogether.test` sont touchées.
+// "programmes" workstream (F-56 to F-60): resets the data of the test
+// accounts (profiles, pairs, applications, progress) and deletes the
+// calls, tracks and resources whose title carries `marker`. Since shared
+// sessions use STABLE addresses, a pair left by the previous run
+// would prevent re-pairing the same accounts. AUTH_DEV_OTP guard
+// on the server side, and only `@democracytogether.test` addresses are touched.
 export async function resetProgrammes(
   emails: string[],
   marker?: string,

@@ -6,12 +6,12 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { readConsent, writeConsent, type ConsentValue } from '@/lib/consent';
 
-// Bandeau de consentement cookies (F-09). N'apparaît que si aucun choix n'a été
-// mémorisé. Honnête vu l'état réel du site : seuls des cookies essentiels sont
-// posés, et la mesure d'audience first-party (F-66) ne dépose rien — elle est
-// exemptée de consentement, mais « Essentiels uniquement » vaut opposition et
-// la coupe sur ce navigateur (src/lib/audience.ts). Rendu côté client
-// uniquement (pas de SSR -> pas de mismatch d'hydratation).
+// Cookie consent banner (F-09). Only appears if no choice has been
+// remembered. Honest given the site's actual state: only essential cookies are
+// set, and first-party audience measurement (F-66) stores nothing — it is
+// exempt from consent, but "Essentiels uniquement" counts as an objection and
+// turns it off on this browser (src/lib/audience.ts). Rendered client-side
+// only (no SSR -> no hydration mismatch).
 export function CookieConsent() {
   const t = useTranslations('cookies');
   const [show, setShow] = useState(false);

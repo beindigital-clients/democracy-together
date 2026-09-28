@@ -1,8 +1,8 @@
 import { v, type Infer } from 'convex/values';
 
-// Validateurs partagés par les tables (convex/lib/tables/paiements.ts) et les
-// fonctions de paiement. Module séparé pour ne pas créer de cycle d'imports
-// entre le schéma et les modules qui l'importent (même raison que
+// Validators shared by the tables (convex/lib/tables/paiements.ts) and the
+// payment functions. Separate module to avoid an import cycle between the
+// schema and the modules that import it (same reason as
 // convex/lib/locales.ts).
 
 export const currencyValidator = v.union(v.literal('EUR'), v.literal('USD'));
@@ -31,9 +31,9 @@ export const planZoneValidator = v.union(
 );
 
 export const checkoutStatusValidator = v.union(
-  // créé en base, pas encore ouvert chez le prestataire
+  // created in the database, not yet opened at the provider
   v.literal('created'),
-  // session ouverte chez le prestataire, paiement attendu
+  // session opened at the provider, payment pending
   v.literal('open'),
   v.literal('completed'),
   v.literal('cancelled'),
@@ -47,37 +47,36 @@ export const transactionStatusValidator = v.union(
 );
 
 export const subscriptionModeValidator = v.union(
-  // le prestataire prélève lui-même chaque mois (Stripe Billing)
+  // the provider debits by itself every month (Stripe Billing)
   v.literal('native'),
-  // le prestataire ne sait pas prélever : un lien de paiement est envoyé à
-  // chaque échéance (prestataire factice aujourd'hui)
+  // the provider cannot debit: a payment link is sent at each due date (fake
+  // provider today)
   v.literal('reminder'),
 );
 
 export const subscriptionStatusValidator = v.union(
   v.literal('active'),
   v.literal('cancelled'),
-  // relances restées sans paiement : l'engagement est suspendu
+  // reminders left unpaid: the pledge is suspended
   v.literal('past_due'),
 );
 
-// ÉVÉNEMENT NORMALISÉ — ce que chaque adaptateur rend après avoir VÉRIFIÉ la
-// requête de son prestataire. Le cœur comptable (convex/payments/webhooks.ts)
-// ne connaît que cette forme : ajouter un prestataire ne touche pas au grand
-// livre.
+// NORMALISED EVENT — what each adapter returns after VERIFYING its provider's
+// request. The accounting core (convex/payments/webhooks.ts) only knows this
+// shape: adding a provider does not touch the ledger.
 export const normalizedEventValidator = v.union(
   v.object({
     kind: v.literal('payment_succeeded'),
-    // Clé d'idempotence : identifiant du PAIEMENT chez le prestataire (session
-    // Stripe, facture Stripe d'un abonnement, paiement factice). Deux
-    // événements qui portent la même clé sont le même paiement.
+    // Idempotency key: identifier of the PAYMENT at the provider (Stripe session,
+    // Stripe invoice of a subscription, fake payment). Two events carrying the
+    // same key are the same payment.
     providerPaymentId: v.string(),
     checkoutRef: v.optional(v.string()),
     providerSubscriptionId: v.optional(v.string()),
     amountMinor: v.number(),
     currency: currencyValidator,
     paidAt: v.number(),
-    // Référence utile au remboursement (payment_intent Stripe).
+    // Reference needed for refunds (Stripe payment_intent).
     providerRef: v.optional(v.string()),
   }),
   v.object({
@@ -101,7 +100,7 @@ export const normalizedEventValidator = v.union(
   }),
   v.object({
     kind: v.literal('refunded'),
-    // L'un ou l'autre selon ce que le prestataire renvoie.
+    // One or the other depending on what the provider returns.
     providerPaymentId: v.optional(v.string()),
     providerRef: v.optional(v.string()),
   }),

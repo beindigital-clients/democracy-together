@@ -1,6 +1,6 @@
 import { defineField, defineType } from 'sanity';
 
-// Actualités / blog (F-15).
+// News / blog (F-15).
 export const post = defineType({
   name: 'post',
   title: 'Actualité',

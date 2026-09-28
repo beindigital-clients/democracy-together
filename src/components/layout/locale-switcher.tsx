@@ -12,39 +12,40 @@ import { LOCALE_ENDONYMS, direction, localeBadge } from '@/i18n/direction';
 import { Check, Moon, Sun } from 'lucide-react';
 import { useTheme, type Theme } from './theme-toggle';
 
-// Sélecteur de langue — MENU, et non plus bascule segmentée.
+// Language switcher — a MENU, no longer a segmented toggle.
 //
-// POURQUOI LA FORME A CHANGÉ. La maquette agence posait les langues côte à
-// côte (`.lang`), ce qui se tient à deux : deux jetons de 28 px, un clic pour
-// basculer, l'état visible sans rien ouvrir. À CINQ, la même forme coûte ~190 px
-// dans une barre qui bascule déjà en menu hamburger à 1120 px, et « العربية »
-// n'a pas de forme courte à deux lettres — son code ISO s'écrirait en
-// caractères latins au milieu d'une interface arabe. La rangée cassait donc la
-// barre desktop ET affichait mal la langue qu'elle venait d'ajouter.
+// WHY THE FORM CHANGED. The agency mock-up placed the languages side by
+// side (`.lang`), which works with two: two 28 px tokens, one click to
+// switch, the state visible without opening anything. With FIVE, the same
+// form costs ~190 px in a bar that already switches to a hamburger menu at
+// 1120 px, and "العربية" has no two-letter short form — its ISO code would be
+// written in Latin characters in the middle of an Arabic interface. The row
+// thus broke the desktop bar AND poorly displayed the language it had just
+// added.
 //
-// Le menu garde ce qui faisait la valeur de la rangée : la langue courante
-// reste lisible SANS ouvrir (elle est sur le bouton), et le choix reste à un
-// seul clic une fois ouvert.
+// The menu keeps what made the row valuable: the current language
+// stays readable WITHOUT opening (it is on the button), and the choice stays
+// a single click away once open.
 //
-// LES LIBELLÉS SONT DES ENDONYMES — « Español », pas « Espagnol ». Quelqu'un
-// qui cherche sa langue dans une interface qu'il ne lit pas cherche le mot
-// qu'il connaît. Ils ne viennent donc pas du catalogue de messages : ils sont
-// identiques dans les cinq langues (voir `src/i18n/direction.ts`).
+// THE LABELS ARE ENDONYMS — "Español", not "Espagnol". Someone
+// looking for their language in an interface they cannot read looks for the
+// word they know. So they do not come from the message catalogue: they are
+// identical in all five languages (see `src/i18n/direction.ts`).
 //
-// La query string est conservée (issue #35) : `usePathname` de next-intl rend
-// le chemin dépouillé de la locale ET de la query, il faut donc lui rejoindre
-// `useSearchParams`. Sans cela, changer de langue sur une page filtrée —
-// bibliothèque, annuaire, événements, recherche, thématiques — perdait tous
-// les filtres. C'est le motif déjà suivi par les sélecteurs de tri
+// The query string is preserved (issue #35): next-intl's `usePathname`
+// returns the path stripped of the locale AND the query, so
+// `useSearchParams` must be joined to it. Without this, switching language on
+// a filtered page — library, directory, events, search, themes — lost all
+// the filters. This is the pattern already followed by the sort selectors
 // (`SortSelect`, `UrlSortSelect`).
 
-// LANGUE ET AFFICHAGE (28/09). Dans l'en-tête desktop, le menu porte aussi le
-// thème clair/sombre (`withTheme`) : la bascule de 36 px qui le précédait
-// chargeait la grappe de droite (recherche, langue, thème, connexion,
-// adhésion). La ranger ici la garde à UN clic de toute page — elle avait été
-// remise dans l'en-tête parce que, sur desktop, son seul autre emplacement
-// était le pied de page, à quelque 5 900 px (transversal A-8). Le menu mobile
-// et le pied de page gardent leur bascule, qui n'y encombre rien.
+// LANGUAGE AND DISPLAY (28/09). In the desktop header, the menu also carries
+// the light/dark theme (`withTheme`): the 36 px toggle that preceded it
+// weighed down the right-hand cluster (search, language, theme, sign-in,
+// membership). Putting it here keeps it ONE click from any page — it had been
+// put back in the header because, on desktop, its only other location
+// was the footer, some 5,900 px away (cross-cutting A-8). The mobile menu
+// and the footer keep their toggle, which clutters nothing there.
 const THEMES: readonly Theme[] = ['light', 'dark'];
 
 export function LocaleSwitcher({
@@ -52,17 +53,17 @@ export function LocaleSwitcher({
   withTheme = false,
 }: {
   /**
-   * Sens d'ouverture du menu.
+   * Direction in which the menu opens.
    *
-   * `up` sert au MENU MOBILE, et ce n'est pas un réglage esthétique : le
-   * panneau mobile est un conteneur à défilement (`overflow-y-auto`), et le
-   * sélecteur vit tout en bas, sous la liste des rubriques. Ouvert vers le
-   * bas, le menu dépassait le panneau de 148 px — mesuré — et trois des cinq
-   * langues n'étaient atteignables qu'en faisant défiler un menu qu'on venait
-   * d'ouvrir. Vers le haut, il se déploie dans l'espace libre au-dessus.
+   * `up` is for the MOBILE MENU, and it is not an aesthetic setting: the
+   * mobile panel is a scrolling container (`overflow-y-auto`), and the
+   * switcher lives at the very bottom, below the list of sections. Opened
+   * downwards, the menu overflowed the panel by 148 px — measured — and three
+   * of the five languages were only reachable by scrolling a menu one had just
+   * opened. Upwards, it unfolds into the free space above.
    */
   placement?: 'down' | 'up';
-  /** Ajoute la section « Apparence » (clair / sombre) sous les langues. */
+  /** Adds the "Apparence" section (light / dark) below the languages. */
   withTheme?: boolean;
 }) {
   const active = useLocale() as Locale;
@@ -71,16 +72,16 @@ export function LocaleSwitcher({
   const router = useRouter();
   const t = useTranslations('nav');
   const [open, setOpen] = useState(false);
-  // `router.replace` déclenche une navigation serveur : sans état de
-  // transition, le menu se refermait et il ne se passait rien de visible
-  // pendant le temps de réponse. Le bouton porte donc `aria-busy`.
+  // `router.replace` triggers a server navigation: without a transition
+  // state, the menu closed and nothing visible happened during the
+  // response time. The button therefore carries `aria-busy`.
   const [pending, startTransition] = useTransition();
   const menuId = useId();
   const root = useRef<HTMLDivElement>(null);
-  // La préférence suit le COMPTE, pas seulement l'onglet : c'est elle que lisent
-  // les courriels transactionnels, qui sont composés sur le serveur bien après
-  // la visite (code de connexion, validation d'adhésion). Le cookie NEXT_LOCALE
-  // ne leur est d'aucun secours — ils ne voient aucune requête HTTP.
+  // The preference follows the ACCOUNT, not just the tab: it is what the
+  // transactional e-mails read, which are composed on the server long after
+  // the visit (sign-in code, membership approval). The NEXT_LOCALE cookie
+  // is of no help to them — they see no HTTP request.
   const { isAuthenticated } = useConvexAuth();
   const rememberLocale = useMutation(api.users.setPreferredLocale);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
@@ -88,9 +89,9 @@ export function LocaleSwitcher({
   const itemCount = routing.locales.length + (withTheme ? THEMES.length : 0);
   const label = withTheme ? t('languageAndDisplay') : t('language');
 
-  // Fermeture au clic extérieur. `pointerdown` plutôt que `click` : un `click`
-  // sur un lien de la page naviguerait avant que le menu se ferme, et le menu
-  // resterait ouvert sur la page suivante.
+  // Close on outside click. `pointerdown` rather than `click`: a `click`
+  // on a page link would navigate before the menu closes, and the menu
+  // would stay open on the next page.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
@@ -100,23 +101,23 @@ export function LocaleSwitcher({
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
-  // ÉCHAP EST ÉCOUTÉ SUR LA RACINE DU COMPOSANT, ET NON SUR `document`.
-  // C'est un correctif, pas un détail d'implémentation.
+  // ESCAPE IS LISTENED TO ON THE COMPONENT'S ROOT, NOT ON `document`.
+  // This is a fix, not an implementation detail.
   //
-  // Le menu mobile (`mobile-nav.tsx`) écoute lui aussi Échap sur `document`
-  // pour se refermer, et il CONTIENT un sélecteur de langue. Tant que les deux
-  // écoutaient au même endroit, une seule touche fermait le menu de langue ET
-  // le panneau autour de lui — mesuré : le panneau repassait à
-  // `aria-expanded="false"`. La règle attendue est celle du motif « menu
-  // button » de l'ARIA APG : Échap ferme le calque le PLUS INTÉRIEUR, lui seul.
+  // The mobile menu (`mobile-nav.tsx`) also listens for Escape on `document`
+  // to close itself, and it CONTAINS a language switcher. As long as both
+  // listened in the same place, a single keypress closed the language menu AND
+  // the panel around it — measured: the panel went back to
+  // `aria-expanded="false"`. The expected rule is that of the ARIA APG "menu
+  // button" pattern: Escape closes the INNERMOST layer, and only that one.
   //
-  // POURQUOI PAS UN `onKeyDown` REACT AVEC `stopPropagation`. Essayé, et sans
-  // effet : dans l'App Router, React hydrate le DOCUMENT, donc sa délégation
-  // d'événements est posée sur `document` — exactement là où le menu mobile
-  // écoute. Or `stopPropagation` n'empêche PAS les autres écouteurs du MÊME
-  // nœud de s'exécuter. Un écouteur natif posé sur la racine du composant, lui,
-  // s'exécute pendant que l'événement remonte, STRICTEMENT avant d'atteindre
-  // `document` : l'interrompre là le rend invisible aux deux.
+  // WHY NOT A REACT `onKeyDown` WITH `stopPropagation`. Tried, and to no
+  // effect: in the App Router, React hydrates the DOCUMENT, so its event
+  // delegation is attached to `document` — exactly where the mobile menu
+  // listens. And `stopPropagation` does NOT prevent other listeners on the SAME
+  // node from running. A native listener attached to the component's root, on
+  // the other hand, runs while the event bubbles up, STRICTLY before it reaches
+  // `document`: stopping it there makes it invisible to both.
   useEffect(() => {
     if (!open) return;
     const node = root.current;
@@ -125,16 +126,16 @@ export function LocaleSwitcher({
       if (event.key !== 'Escape') return;
       event.stopPropagation();
       setOpen(false);
-      // Le focus DOIT revenir au déclencheur : sans cela, Échap le laisse sur
-      // le <body> et la tabulation suivante repart du haut du document.
+      // Focus MUST return to the trigger: otherwise, Escape leaves it on
+      // the <body> and the next tab press restarts from the top of the document.
       node.querySelector('button')?.focus();
     };
     node.addEventListener('keydown', onKeyDown);
     return () => node.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  // À l'ouverture, le focus va sur la langue courante — c'est le repère de
-  // l'utilisateur au clavier, et la seule position d'où les flèches ont un sens.
+  // On opening, focus goes to the current language — it is the keyboard
+  // user's reference point, and the only position from which the arrows make sense.
   useEffect(() => {
     if (!open) return;
     items.current[routing.locales.indexOf(active)]?.focus();
@@ -143,21 +144,21 @@ export function LocaleSwitcher({
   function selectTheme(next: Theme) {
     setOpen(false);
     setTheme(next);
-    // Le menu se ferme comme après un choix de langue : le focus revient au
-    // déclencheur, faute de quoi il tomberait sur le <body>.
+    // The menu closes as after a language choice: focus returns to the
+    // trigger, otherwise it would land on the <body>.
     root.current?.querySelector('button')?.focus();
   }
 
   function select(next: Locale) {
     setOpen(false);
     if (next === active) return;
-    // AU MIEUX, JAMAIS BLOQUANT. La navigation ne dépend pas de cet appel : si
-    // Convex ne répond pas, le visiteur change quand même de langue et le
-    // serveur n'apprend simplement rien. L'inverse — attendre l'écriture avant
-    // de naviguer — ferait payer une aller-retour réseau à un geste d'interface.
+    // BEST EFFORT, NEVER BLOCKING. Navigation does not depend on this call: if
+    // Convex does not respond, the visitor still changes language and the
+    // server simply learns nothing. The reverse — waiting for the write before
+    // navigating — would make a UI gesture pay for a network round trip.
     if (isAuthenticated) {
       void rememberLocale({ locale: next }).catch(() => {
-        /* la préférence est un confort, pas une condition */
+        /* the preference is a convenience, not a requirement */
       });
     }
     startTransition(() => {
@@ -167,9 +168,9 @@ export function LocaleSwitcher({
     });
   }
 
-  // Flèches, Début et Fin dans le menu (motif « menu button » de l'ARIA APG).
-  // Le menu est vertical : les flèches HAUT/BAS ne dépendent pas du sens
-  // d'écriture, contrairement à GAUCHE/DROITE qu'on n'utilise donc pas ici.
+  // Arrows, Home and End in the menu (ARIA APG "menu button" pattern).
+  // The menu is vertical: the UP/DOWN arrows do not depend on the writing
+  // direction, unlike LEFT/RIGHT, which are therefore not used here.
   function onMenuKeyDown(event: React.KeyboardEvent, index: number) {
     const last = itemCount - 1;
     const go = (i: number) => {
@@ -205,11 +206,11 @@ export function LocaleSwitcher({
           <circle cx="12" cy="12" r="9" />
           <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" />
         </svg>
-        {/* NOM ACCESSIBLE = « Langue » + CE QUI EST AFFICHÉ (RGAA 7.1, WCAG
-            2.5.3). Un `aria-label` réduit à « Langue » REMPLAÇAIT le texte visible « FR » :
-            un utilisateur de commande vocale qui dit « cliquer FR » ne trouvait
-            rien, et un lecteur d'écran n'annonçait pas la langue courante.
-            Le mot est ajouté en texte masqué, le badge reste le texte visible. */}
+        {/* ACCESSIBLE NAME = "Langue" + WHAT IS DISPLAYED (RGAA 7.1, WCAG
+            2.5.3). An `aria-label` reduced to "Langue" REPLACED the visible text "FR":
+            a voice-control user saying "click FR" found
+            nothing, and a screen reader did not announce the current language.
+            The word is added as hidden text, the badge stays the visible text. */}
         <span className="sr-only">{label} </span>
         <span
           lang={active}
@@ -217,9 +218,9 @@ export function LocaleSwitcher({
         >
           {localeBadge(active)}
         </span>
-        {/* Le chevron n'est pas directionnel au sens du sens d'écriture : il
-            pointe vers le BAS, là où le menu s'ouvre, dans les cinq langues.
-            Il ne porte donc pas `dt-flip-rtl`. */}
+        {/* The chevron is not directional in the writing-direction sense: it
+            points DOWN, where the menu opens, in all five languages.
+            It therefore does not carry `dt-flip-rtl`. */}
         <svg
           viewBox="0 0 24 24"
           width="12"
@@ -241,9 +242,9 @@ export function LocaleSwitcher({
           id={menuId}
           role="menu"
           aria-label={label}
-          // `end-0` et non `right-0` : le menu s'aligne sur le bord FINAL de
-          // son déclencheur, donc à gauche quand le document est en arabe.
-          // C'est précisément ce que les propriétés physiques empêchaient.
+          // `end-0` and not `right-0`: the menu aligns with the END edge of
+          // its trigger, so on the left when the document is in Arabic.
+          // That is precisely what the physical properties prevented.
           className={`absolute end-0 z-50 min-w-[11rem] overflow-hidden rounded-sm border border-line-strong bg-surface py-1 shadow-pop ${
             placement === 'up'
               ? 'bottom-[calc(100%+4px)]'
@@ -270,10 +271,10 @@ export function LocaleSwitcher({
                 role="menuitemradio"
                 aria-checked={current}
                 lang={l}
-                // Chaque entrée porte SON sens d'écriture, pas celui de la
-                // page : « العربية » doit se composer de droite à gauche même
-                // dans un menu français, sans quoi la ponctuation et les
-                // caractères latins voisins se placent du mauvais côté.
+                // Each entry carries ITS OWN writing direction, not the
+                // page's: "العربية" must be laid out right to left even
+                // in a French menu, otherwise the punctuation and
+                // neighbouring Latin characters end up on the wrong side.
                 dir={direction(l)}
                 onClick={() => select(l)}
                 onKeyDown={(event) => onMenuKeyDown(event, index)}
@@ -283,7 +284,7 @@ export function LocaleSwitcher({
                     : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
                 }`}
               >
-                {/* Langue courante : coche en plus de la teinte (RGAA 3.1). */}
+                {/* Current language: tick in addition to the colour (RGAA 3.1). */}
                 <span className="inline-flex items-center gap-1.5">
                   {current ? (
                     <Check className="h-3.5 w-3.5" aria-hidden="true" />

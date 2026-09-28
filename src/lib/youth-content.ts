@@ -1,9 +1,9 @@
 import type { Locale } from '@/i18n/routing';
 
-// Hub jeunes (F-40) — contenu porté 1:1 depuis la maquette agence
-// `design/rmdl-jeunes.html`. Univers visuel "jeunes" (safran) appliqué via
-// data-universe sur la page. Données d'illustration (profil, stats, témoignage
-// fictifs, c'est explicite). Module bilingue. Vérifié sans terme banni.
+// Youth hub (F-40) — content ported 1:1 from the agency mockup
+// `design/rmdl-jeunes.html`. "jeunes" visual universe (saffron) applied via
+// data-universe on the page. Illustrative data (profile, stats, testimonial
+// are fictitious, and explicitly so). Bilingual module. Checked for banned terms.
 
 export type YouthContent = {
   hero: {
@@ -766,7 +766,7 @@ const ar: YouthContent = {
   },
 };
 
-// Table exhaustive par construction (cf. `projects-content.ts`).
+// Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, YouthContent> = { fr, en, es, pt, ar };
 
 export function getYouthContent(locale: Locale): YouthContent {

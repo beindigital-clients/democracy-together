@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useConvexAuth } from 'convex/react';
 import { useRouter } from '@/i18n/navigation';
 
-// Redirige vers `to` UNIQUEMENT une fois la session client confirmée.
-// Évite la course « signIn réussi côté serveur mais état client pas encore
-// propagé » qui faisait rebondir la route protégée vers /connexion.
-// Retourne une fonction à appeler après un signIn réussi (arme la redirection).
-// Délai au-delà duquel une session confirmée côté serveur mais muette côté
-// client est tenue pour un service en difficulté.
+// Redirects to `to` ONLY once the client session is confirmed.
+// Avoids the race "signIn succeeded server-side but client state not yet
+// propagated" that made the protected route bounce to /connexion.
+// Returns a function to call after a successful signIn (arms the redirect).
+// Delay beyond which a session confirmed server-side but silent on the
+// client side is treated as a struggling service.
 const STALL_MS = 8000;
 
 export function useRedirectAfterAuth(to: string = '/espace-membre') {
@@ -21,11 +21,11 @@ export function useRedirectAfterAuth(to: string = '/espace-membre') {
     }
   }, [armed, isAuthenticated, router, to]);
 
-  // Si la session client ne se confirme JAMAIS (websocket Convex coupé : CSP,
-  // proxy, panne), le bouton restait grisé sans un mot — mesuré le 27/09,
-  // 15 s après le code. Le serveur, lui, a bien ouvert la session (cookie
-  // posé par /api/auth) : on navigue, et la garde de la page destination
-  // dit ce qu'il en est (`AuthGateLoading` annonce la lenteur du service).
+  // If the client session NEVER confirms (Convex websocket cut: CSP,
+  // proxy, outage), the button stayed greyed out without a word — measured on
+  // 27/09, 15 s after the code. The server, however, did open the session
+  // (cookie set by /api/auth): we navigate, and the destination page's guard
+  // says what is going on (`AuthGateLoading` announces the service is slow).
   useEffect(() => {
     if (!armed || isAuthenticated) return;
     const id = setTimeout(() => router.replace(to), STALL_MS);

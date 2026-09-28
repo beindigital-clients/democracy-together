@@ -43,7 +43,7 @@ describe('Impact — impactStats (F-66)', () => {
     const t = convexTest(schema, modules);
 
     await t.run(async (ctx) => {
-      // Publications : 2 publiées + 1 en attente -> compte 2.
+      // Publications: 2 published + 1 pending -> count 2.
       await ctx.db.insert(
         'publications',
         makePublication({ status: 'published' }),
@@ -57,7 +57,7 @@ describe('Impact — impactStats (F-66)', () => {
         makePublication({ status: 'pending' }),
       );
 
-      // Organisations : 2 actives + 1 en attente -> compte 2.
+      // Organizations: 2 active + 1 pending -> count 2.
       const baseOrg = {
         country: 'SN',
         region: 'afrique',
@@ -84,7 +84,7 @@ describe('Impact — impactStats (F-66)', () => {
         status: 'pending',
       });
 
-      // Inscriptions événements : 3.
+      // Event registrations: 3.
       for (let i = 0; i < 3; i++) {
         await ctx.db.insert('eventRegistrations', {
           eventSlug: 'conf',
@@ -94,9 +94,9 @@ describe('Impact — impactStats (F-66)', () => {
         });
       }
 
-      // Abonnés newsletter : 4 CONFIRMÉS (double opt-in, chantier
-      // diffusion) — plus une attente et un héritier non migré, qui ne
-      // reçoivent rien et ne comptent donc pas.
+      // Newsletter subscribers: 4 CONFIRMED (double opt-in, diffusion
+      // workstream) — plus one pending and one unmigrated legacy entry, which
+      // receive nothing and therefore do not count.
       for (let i = 0; i < 4; i++) {
         await ctx.db.insert('newsletterSubscriptions', {
           email: `sub${i}@x.org`,
@@ -114,8 +114,8 @@ describe('Impact — impactStats (F-66)', () => {
         createdAt: Date.now(),
       });
 
-      // Tribune : 2 posts publiés + 1 retiré -> compte 2 ; 3 commentaires
-      // publiés + 1 retiré -> compte 3. (authorUserId doit être un vrai id.)
+      // Tribune: 2 published posts + 1 removed -> count 2; 3 published
+      // comments + 1 removed -> count 3. (authorUserId must be a real id.)
       const authorId = await ctx.db.insert('users', {
         role: 'membre',
         email: 'author@x.org',
@@ -172,7 +172,7 @@ describe('Impact — impactStats (F-66)', () => {
         createdAt: Date.now(),
       });
 
-      // Candidatures jeunes : 2 pending + 1 approved -> total 3, pending 2.
+      // Youth applications: 2 pending + 1 approved -> total 3, pending 2.
       const baseYouth = {
         country: 'SN',
         motivation: 'x',
@@ -197,7 +197,7 @@ describe('Impact — impactStats (F-66)', () => {
         status: 'approved',
       });
 
-      // Candidatures adhésion : 1 pending + 1 approved -> total 2, pending 1.
+      // Membership applications: 1 pending + 1 approved -> total 2, pending 1.
       const baseApp = {
         type: 'organisation' as const,
         country: 'SN',
@@ -221,10 +221,10 @@ describe('Impact — impactStats (F-66)', () => {
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
 
-    // L'écran d'impact lit des compteurs dénormalisés, tenus à l'écriture
-    // (issue #8). Ce test pose ses données EN DIRECT (`t.run`), donc sans
-    // passer par une seule mutation : il joue d'abord la réconciliation —
-    // celle-là même qui amorce un déploiement existant.
+    // The impact screen reads denormalized counters, maintained on write
+    // (issue #8). This test sets its data DIRECTLY (`t.run`), hence without
+    // going through a single mutation: it first runs the reconciliation —
+    // the very one that bootstraps an existing deployment.
     await t.mutation(internal.counters.recompute, {});
 
     const stats = await t
@@ -264,10 +264,10 @@ describe('Impact — impactStats (F-66)', () => {
   it('réserve la lecture aux modérateurs et au-dessus', async () => {
     const t = convexTest(schema, modules);
 
-    // anonyme refusé
+    // anonymous refused
     await expect(t.query(api.impact.impactStats, {})).rejects.toThrow();
 
-    // visiteur refusé
+    // visitor refused
     const visitorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
@@ -277,7 +277,7 @@ describe('Impact — impactStats (F-66)', () => {
         .query(api.impact.impactStats, {}),
     ).rejects.toThrow();
 
-    // membre refusé
+    // member refused
     const membreId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'm@test.org' }),
     );
@@ -287,7 +287,7 @@ describe('Impact — impactStats (F-66)', () => {
         .query(api.impact.impactStats, {}),
     ).rejects.toThrow();
 
-    // modérateur autorisé
+    // moderator allowed
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );

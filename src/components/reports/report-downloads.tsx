@@ -5,16 +5,16 @@ import { intlLocale } from '@/i18n/locale';
 import { reportPdfFileName, reportPdfPath } from '@/lib/reports-content';
 import { PrintButton } from './print-button';
 
-// F-41 — « Télécharger le PDF » d'un rapport annuel. Composant SERVEUR : un
-// lien vers la route du site qui sert le PDF composé et stocké côté Convex
-// (`/[locale]/rapports/[année]/rapport.pdf`), avec sa taille, son nombre de
-// pages et sa langue — ce qu'on veut savoir avant de télécharger sur une
-// connexion lente. Les autres langues disponibles suivent, chacune dans sa
-// langue (`lang`, `hrefLang`).
+// F-41 — "Télécharger le PDF" for an annual report. SERVER component: a
+// link to the site route that serves the PDF composed and stored in Convex
+// (`/[locale]/rapports/[année]/rapport.pdf`), with its size, page
+// count and language — what one wants to know before downloading on a
+// slow connection. The other available languages follow, each in its own
+// language (`lang`, `hrefLang`).
 //
-// Sans PDF composé pour cette langue (édition encore servie par le contenu
-// codé, ou composition en cours après une correction), l'impression du
-// navigateur reste proposée.
+// Without a composed PDF for this language (edition still served from the hard-coded
+// content, or composition in progress after a correction), the browser's
+// print dialog is still offered.
 
 export type ReportPdfInfo = { locale: Locale; size: number; pages: number };
 

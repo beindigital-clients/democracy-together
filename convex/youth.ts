@@ -22,11 +22,11 @@ import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import { locale } from './schema';
 import type { Doc } from './_generated/dataModel';
 
-// --- Candidature publique au hub Jeunes (F-58) ------------------------------
-// Sans compte (par e-mail), comme l'adhésion. Rate-limitée ; une candidature en
-// attente par e-mail (dédoublonnage doux) pour éviter les envois multiples.
-// Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
-// `storeApplication` (internalMutation -> non contournable).
+// --- Public application to the Youth hub (F-58) ------------------------------
+// Without an account (by email), like membership. Rate-limited; one pending
+// application per email (soft deduplication) to avoid multiple submissions.
+// Anti-spam gate: the action checks reCAPTCHA v3 then delegates to
+// `storeApplication` (internalMutation -> cannot be bypassed).
 export const applyYouth = action({
   args: {
     name: v.string(),
@@ -39,20 +39,20 @@ export const applyYouth = action({
   },
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'youth_apply');
-    // ORACLE D'EXISTENCE REFERMÉ (pentest M-8, audit F-09).
+    // EXISTENCE ORACLE CLOSED (pentest M-8, audit F-09).
     //
-    // La mutation interne distingue toujours « déjà connu » de « nouveau » —
-    // elle en a besoin pour ne pas dupliquer ni recompter. Mais cette
-    // distinction ne FRANCHIT PLUS la frontière publique : cette action est
-    // ouverte, non authentifiée, et rendait `already: true/false`. Une seule
-    // requête suffisait donc pour savoir si une adresse donnée figure dans nos
-    // listes — appartenance à un réseau militant, inscription à un événement.
-    // Les plafonds par IP et par formulaire ralentissent l'énumération ; ils
-    // ne changent rien à une vérification ciblée, qui ne coûte qu'un appel.
+    // The internal mutation still distinguishes "already known" from "new" —
+    // it needs to, so as not to duplicate or recount. But this
+    // distinction NO LONGER CROSSES the public boundary: this action is
+    // open, unauthenticated, and returned `already: true/false`. A single
+    // request was therefore enough to know whether a given address is in our
+    // lists — membership of an activist network, registration for an event.
+    // The per-IP and per-form caps slow down enumeration; they
+    // change nothing for a targeted check, which costs only one call.
     //
-    // La réponse est désormais IDENTIQUE dans les deux cas. Rien n'est perdu
-    // côté produit : aucun formulaire ne lisait `already` — tous affichent le
-    // même message de succès (vérifié sur les cinq).
+    // The response is now IDENTICAL in both cases. Nothing is lost
+    // product-wise: no form read `already` — they all display the
+    // same success message (checked on all five).
     await ctx.runMutation(internal.youth.storeApplication, input);
     return { ok: true };
   },
@@ -77,15 +77,15 @@ export const storeApplication = internalMutation({
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
     if (country.length < 2 || country.length > FIELD_MAX.country)
       throw new Error('INVALID_COUNTRY');
-    // Borne partagée avec le formulaire (`maxLength` + compteur) ; le code
-    // traverse en `ConvexError` pour qu'un refus dise « 4 000 caractères
-    // maximum » et non « L'envoi a échoué » (A-04, mesuré avec 5 000 car.).
+    // Bound shared with the form (`maxLength` + counter); the code
+    // travels as a `ConvexError` so that a refusal says "4 000 caractères
+    // maximum" and not "L'envoi a échoué" (A-04, measured with 5,000 chars).
     if (motivation.length < 10 || motivation.length > FIELD_MAX.body) {
       throw new ConvexError('INVALID_MOTIVATION');
     }
 
-    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
-    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    // UNFORGEABLE caps (audit M2) — per IP and global per form:
+    // changing address no longer yields a fresh quota. Cf. lib/rateLimit.ts.
     await enforcePublicFormLimit(ctx, 'youthApply');
 
     await enforceRateLimit(ctx, {
@@ -116,10 +116,10 @@ export const storeApplication = internalMutation({
   },
 });
 
-// --- Back-office (modérateur et au-dessus) ----------------------------------
+// --- Back office (moderator and above) ----------------------------------
 export const listYouthApplications = query({
-  // Domaine FERMÉ (miroir du schéma) : le back-office ne propose que ces
-  // valeurs, le validateur les impose. Sans filtre -> toute la file.
+  // CLOSED domain (mirror of the schema): the back office only offers these
+  // values, the validator enforces them. No filter -> the whole queue.
   args: {
     status: v.optional(
       v.union(
@@ -148,27 +148,27 @@ export const listYouthApplications = query({
         motivation: a.motivation,
         status: a.status,
         createdAt: a.createdAt,
-        // La note saisie à la décision (campagne du 27/09, A-08) : elle était
-        // stockée mais jamais rendue, donc invisible dans « Toutes ».
+        // The note entered at decision time (27/09 campaign, A-08): it was
+        // stored but never returned, hence invisible in "Toutes".
         reviewNotes: a.reviewNotes ?? null,
       }));
   },
 });
 
-// --- Machine à états de la revue des candidatures jeunes (issue #9) --------
+// --- State machine for the youth application review (issue #9) --------
 //
 //   pending ──approved/rejected──► approved | rejected
 //   approved | rejected ──reopenYouthApplication──► pending
 //
-// Effet de bord de la décision : AUCUN. Contrairement à l'adhésion
-// (`organizations.reviewApplication`, PR #4), approuver une candidature jeune
-// ne crée ni compte ni rôle — inverser ne laisserait donc aucun privilège
-// derrière soi. L'inversion silencieuse reste refusée pour l'autre raison de
-// l'issue : la mutation est AUDITÉE, et un journal qui empile « approuvée »,
-// « rejetée », « approuvée » ne dit plus laquelle des trois fait foi.
+// Side effect of the decision: NONE. Unlike membership
+// (`organizations.reviewApplication`, PR #4), approving a youth application
+// creates neither account nor role — reversing it would therefore leave no privilege
+// behind. Silent reversal remains refused for the issue's other
+// reason: the mutation is AUDITED, and a log that piles up "approuvée",
+// "rejetée", "approuvée" no longer says which of the three is authoritative.
 //
-// Rouvrir reste possible — on se trompe de bouton — mais par la transition
-// nommée `reopenYouthApplication`, tracée sous `youth.reopened`.
+// Reopening remains possible — people click the wrong button — but through the
+// named transition `reopenYouthApplication`, recorded under `youth.reopened`.
 const YOUTH_REVIEW: ReviewMachine<Doc<'youthApplications'>['status']> = {
   transitions: {
     pending: ['approved', 'rejected'],
@@ -207,11 +207,11 @@ export const reviewYouthApplication = mutation({
   },
 });
 
-// Réouverture d'une candidature tranchée (issue #9) — modérateur et au-dessus,
-// audité sous sa propre action. La candidature retourne dans la file, et le
-// journal montre le retour en arrière au lieu de le dissimuler derrière une
-// seconde ligne « youth.reviewed ». La note du refus est conservée : elle dit
-// pourquoi la décision d'origine avait été prise.
+// Reopening of a decided application (issue #9) — moderator and above,
+// audited under its own action. The application returns to the queue, and the
+// log shows the going back instead of hiding it behind a
+// second "youth.reviewed" row. The rejection note is kept: it says
+// why the original decision was made.
 export const reopenYouthApplication = mutation({
   args: { applicationId: v.id('youthApplications') },
   handler: async (ctx, { applicationId }) => {
@@ -222,8 +222,8 @@ export const reopenYouthApplication = mutation({
     assertTransition(from, 'pending', YOUTH_REVIEW);
 
     await ctx.db.patch(applicationId, { status: 'pending' });
-    // La candidature revient dans la file : le compteur du tableau de bord la
-    // recompte (issue #8).
+    // The application returns to the queue: the dashboard counter
+    // counts it again (issue #8).
     await trackYouthApplicationStatus(ctx, from, 'pending');
     await recordAudit(ctx, {
       actorId: reviewer._id,
@@ -235,7 +235,7 @@ export const reopenYouthApplication = mutation({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
+// DEV/TEST only (AUTH_DEV_OTP guard): checks the actual storage in E2E.
 export const isYouthApplicant = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {

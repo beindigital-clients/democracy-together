@@ -27,14 +27,14 @@ import {
 } from './lib/contenus/events';
 import { pickText } from './lib/contenus/i18n';
 
-// --- Inscription publique à un événement (F-53) -----------------------------
-// RSVP en ligne, sans compte. `eventSlug` est VALIDÉ CONTRE LA TABLE
-// `contentEvents` (chantier « contenus », point M-5 du pentest) : un événement
-// inconnu, en brouillon, annulé ou terminé est refusé par `EVENT_CLOSED`, un
-// événement dont la capacité est atteinte par `EVENT_FULL`. Idempotent : une
-// même adresse réinscrite au même event ne crée pas de doublon. Rate-limité
-// par adresse. Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue
-// à `storeRegistration` (internalMutation -> non contournable).
+// --- Public event registration (F-53) ---------------------------------------
+// Online RSVP, no account needed. `eventSlug` is VALIDATED AGAINST THE
+// `contentEvents` TABLE ("contenus" workstream, pentest item M-5): an unknown,
+// draft, cancelled or finished event is refused with `EVENT_CLOSED`, an
+// event whose capacity is reached with `EVENT_FULL`. Idempotent: the same
+// address re-registered for the same event creates no duplicate. Rate-limited
+// per address. Anti-spam gate: the action verifies reCAPTCHA v3 then delegates
+// to `storeRegistration` (internalMutation -> cannot be bypassed).
 export const registerForEvent = action({
   args: {
     eventSlug: v.string(),
@@ -46,20 +46,20 @@ export const registerForEvent = action({
   },
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'event_register');
-    // ORACLE D'EXISTENCE REFERMÉ (pentest M-8, audit F-09).
+    // EXISTENCE ORACLE CLOSED (pentest M-8, audit F-09).
     //
-    // La mutation interne distingue toujours « déjà connu » de « nouveau » —
-    // elle en a besoin pour ne pas dupliquer ni recompter. Mais cette
-    // distinction ne FRANCHIT PLUS la frontière publique : cette action est
-    // ouverte, non authentifiée, et rendait `already: true/false`. Une seule
-    // requête suffisait donc pour savoir si une adresse donnée figure dans nos
-    // listes — appartenance à un réseau militant, inscription à un événement.
-    // Les plafonds par IP et par formulaire ralentissent l'énumération ; ils
-    // ne changent rien à une vérification ciblée, qui ne coûte qu'un appel.
+    // The internal mutation still distinguishes "already known" from "new" —
+    // it needs to, so as not to duplicate or double-count. But this
+    // distinction NO LONGER CROSSES the public boundary: this action is
+    // open, unauthenticated, and returned `already: true/false`. A single
+    // request was thus enough to know whether a given address is in our
+    // lists — membership of an activist network, registration to an event.
+    // The per-IP and per-form caps slow down enumeration; they
+    // change nothing for a targeted check, which costs a single call.
     //
-    // La réponse est désormais IDENTIQUE dans les deux cas. Rien n'est perdu
-    // côté produit : aucun formulaire ne lisait `already` — tous affichent le
-    // même message de succès (vérifié sur les cinq).
+    // The response is now IDENTICAL in both cases. Nothing is lost
+    // product-wise: no form read `already` — all display the
+    // same success message (checked on all five).
     await ctx.runMutation(internal.events.storeRegistration, input);
     return { ok: true };
   },
@@ -78,15 +78,15 @@ export const storeRegistration = internalMutation({
     const name = args.name.trim();
     const email = args.email.trim().toLowerCase();
     if (!eventSlug || eventSlug.length > 100) throw new Error('INVALID_EVENT');
-    // Événement inconnu, brouillon, annulé ou passé : inscription fermée. Lu
-    // dans la table, jamais dans l'appel. `ConvexError` pour que le formulaire
-    // dise « inscriptions closes » plutôt qu'un échec générique.
+    // Unknown, draft, cancelled or past event: registration closed. Read
+    // from the table, never from the call. `ConvexError` so that the form
+    // says "inscriptions closes" rather than a generic failure.
     const event = await requireOpenEvent(ctx, eventSlug, Date.now());
     if (name.length < 2 || name.length > 120) throw new Error('INVALID_NAME');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
 
-    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
-    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    // NON-FORGEABLE caps (audit M2) — per IP and global per form:
+    // changing address no longer yields a fresh quota. Cf. lib/rateLimit.ts.
     await enforcePublicFormLimit(ctx, 'eventRegister');
 
     await enforceRateLimit(ctx, {
@@ -102,8 +102,8 @@ export const storeRegistration = internalMutation({
       .unique();
     if (existing) return { ok: true, already: true };
 
-    // Capacité vérifiée APRÈS le dédoublonnage : une personne déjà inscrite
-    // qui renvoie le formulaire d'un événement complet n'est pas refusée.
+    // Capacity checked AFTER deduplication: someone already registered
+    // who resubmits the form for a full event is not refused.
     if (await isEventFull(ctx, event)) throw new ConvexError('EVENT_FULL');
 
     await ctx.db.insert('eventRegistrations', {
@@ -119,9 +119,9 @@ export const storeRegistration = internalMutation({
   },
 });
 
-// --- Back-office : liste des inscriptions (modérateur et au-dessus) ----------
-// Chaque inscription porte le TITRE de son événement, lu dans la table dans la
-// langue de l'écran : l'écran n'a plus à le chercher dans un catalogue codé.
+// --- Back office: registration list (moderator and above) -------------------
+// Each registration carries its event's TITLE, read from the table in the
+// screen's language: the screen no longer has to look it up in a coded catalog.
 export const listEventRegistrations = query({
   args: { locale: v.optional(locale) },
   returns: v.array(
@@ -167,9 +167,9 @@ export const listEventRegistrations = query({
   },
 });
 
-// Export CSV des inscrits d'un événement. Une MUTATION et non une query : des
-// données personnelles quittent le système, le geste est donc JOURNALISÉ (une
-// query ne peut pas écrire). Même rang que la liste qui les affiche déjà.
+// CSV export of an event's registrants. A MUTATION and not a query: personal
+// data leaves the system, so the action is LOGGED (a
+// query cannot write). Same rank as the list that already displays them.
 export const exportEventRegistrations = mutation({
   args: { eventSlug: v.string() },
   returns: v.array(
@@ -205,7 +205,7 @@ export const exportEventRegistrations = mutation({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
+// DEV/TEST only (AUTH_DEV_OTP guard): checks the actual storage in E2E.
 export const isRegistered = internalQuery({
   args: { eventSlug: v.string(), email: v.string() },
   handler: async (ctx, { eventSlug, email }) => {

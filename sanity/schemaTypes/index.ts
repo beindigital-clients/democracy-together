@@ -9,7 +9,7 @@ export const schemaTypes = [
   aboutPage,
   homePage,
   post,
-  // objets réutilisables
+  // reusable objects
   blockContent,
   seo,
 ];

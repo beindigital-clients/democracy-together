@@ -3,29 +3,29 @@ import { test, expect } from '@playwright/test';
 const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
 const CIBLE = '/fr/actualites/un-article-quelconque';
 
-// F-10 — la seule page adossée à Sanity, quand Sanity ne répond pas.
+// F-10 — the only page backed by Sanity, when Sanity does not respond.
 //
-// PRÉCONDITION : la suite d'audit tourne contre un build sans
-// `NEXT_PUBLIC_SANITY_PROJECT_ID` (voir § 6 du rapport). `sanity/env.ts`
-// retombe alors sur le projet `placeholder`, dont l'API n'existe pas : toute
-// requête échoue, et c'est exactement le cas que ces tests mesurent.
+// PRECONDITION: the audit suite runs against a build without
+// `NEXT_PUBLIC_SANITY_PROJECT_ID` (see § 6 of the report). `sanity/env.ts`
+// then falls back to the `placeholder` project, whose API does not exist: every
+// request fails, and that is exactly the case these tests measure.
 //
-// PAS de `test.skip` conditionnel ici, et c'est délibéré. La première version
-// détectait le chemin dégradé en cherchant `noindex` dans le HTML servi.
-// Mesuré : la page d'erreur par défaut de Next émet ELLE AUSSI `noindex`.
-// La condition ne distinguait donc pas « corrigé et dégradé » de « cassé » —
-// elle ne détectait rien du tout. Un détecteur qui lit la sortie du correctif
-// qu'il est censé conditionner ne peut pas faire autrement.
+// NO conditional `test.skip` here, and that is deliberate. The first version
+// detected the degraded path by looking for `noindex` in the served HTML.
+// Measured: Next's default error page ALSO emits `noindex`.
+// So the condition did not distinguish "fixed and degraded" from "broken" —
+// it detected nothing at all. A detector that reads the output of the fix
+// it is supposed to condition cannot do otherwise.
 //
-// Toute la suite d'audit suppose déjà cet environnement (`_routes.ts` exclut
-// les routes Convex pour la même raison) ; contre un Sanity joignable, ces
-// tests rougissent bruyamment, et l'en-tête ci-dessus dit pourquoi.
+// The whole audit suite already assumes this environment (`_routes.ts` excludes
+// Convex routes for the same reason); against a reachable Sanity, these
+// tests go loudly red, and the header above says why.
 //
-// Mesuré avant correctif : 500 avec ZÉRO caractère dans le HTML servi. La
-// frontière `error.tsx` est un composant CLIENT ; son contenu n'arrive que
-// par la charge utile RSC. Page blanche, donc, pour qui n'exécute pas
-// JavaScript — alors que la même panne sur /fr/bibliotheque/… rendait déjà
-// 671 caractères lisibles depuis F-02. Deux backends, deux comportements.
+// Measured before the fix: 500 with ZERO characters in the served HTML. The
+// `error.tsx` boundary is a CLIENT component; its content only arrives
+// via the RSC payload. A blank page, then, for anyone not running
+// JavaScript — whereas the same outage on /fr/bibliotheque/… already rendered
+// 671 readable characters since F-02. Two backends, two behaviors.
 
 test('Sanity muet : la page reste lisible SANS JavaScript', async ({
   browser,
@@ -37,8 +37,8 @@ test('Sanity muet : la page reste lisible SANS JavaScript', async ({
   await ctx.close();
 
   console.log(`[sanity-ko] statut=${res?.status()} ${texte.length} caractères`);
-  // 200 et non 500 : le visiteur garde l'en-tête, la navigation et un retour
-  // vers la liste. Un 500 serait défendable, mais il ne rend RIEN sans JS.
+  // 200 and not 500: the visitor keeps the header, the navigation and a way back
+  // to the list. A 500 would be defensible, but it renders NOTHING without JS.
   expect(res?.status()).toBe(200);
   expect(texte.length).toBeGreaterThan(200);
 });
@@ -49,8 +49,8 @@ test('Sanity muet : le rendu dégradé n’est pas indexable', async ({
   const html = await (await request.get(CIBLE)).text();
   const robots = /<meta name="robots" content="([^"]*)"/.exec(html)?.[1];
   console.log(`[sanity-ko] robots: ${robots}`);
-  // Sans ce noindex, un moteur qui passe pendant la panne remplacerait
-  // l'article par le panneau « indisponible » dans son index.
+  // Without this noindex, a search engine crawling during the outage would replace
+  // the article with the "unavailable" panel in its index.
   expect(robots).toContain('noindex');
   expect(robots).toContain('follow');
 });

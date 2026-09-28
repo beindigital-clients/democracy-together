@@ -8,17 +8,17 @@ import { CONTENT_MAX, requireHttpUrl } from '../lib/contenus/validate';
 import { isValidDate } from '../lib/contenus/time';
 import { publishStatus } from '../lib/tables/contenus';
 
-// REVUE DE PRESSE (F-16) — « ils parlent de nous » : un article, le média qui
-// l'a publié, sa date, sa langue et son lien.
+// PRESS REVIEW (F-16) — "they talk about us": an article, the outlet that
+// published it, its date, its language and its link.
 //
-// Le kit média de /presse (présentation, faits clés, ressources) reste du
-// contenu éditorial codé : ce n'est pas une liste qui s'allonge. La revue de
-// presse, elle, grossit à chaque parution — d'où la table. Le catalogue codé
-// n'en contenait aucune : la migration n'a rien à reprendre ici, et la section
-// ne s'affiche qu'à partir du premier article publié.
+// The /presse media kit (presentation, key facts, resources) remains
+// hard-coded editorial content: it is not a list that grows. The press
+// review, on the other hand, grows with each publication — hence the table. The hard-coded catalog
+// contained none: the migration has nothing to carry over here, and the section
+// only displays from the first published article.
 //
-// Le TITRE n'est pas traduit : c'est celui de l'article, dans la langue de sa
-// parution (`lang`), que la page pose dans l'attribut `lang` du lien.
+// The TITLE is not translated: it is the article's, in the language of its
+// publication (`lang`), which the page sets in the link's `lang` attribute.
 
 const PRESS_MAX = 300;
 

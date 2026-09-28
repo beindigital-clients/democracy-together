@@ -1,23 +1,23 @@
 import { v } from 'convex/values';
 import { internalMutation } from '../_generated/server';
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) — nettoyage des contenus créés par
-// les specs E2E `contenus-*.spec.ts`.
+// DEV/TEST only (AUTH_DEV_OTP guard) — cleanup of content created by
+// the E2E specs `contenus-*.spec.ts`.
 //
-// Un déploiement de dev vit longtemps : sans ménage, chaque exécution
-// ajouterait un événement, un partenaire et un média à l'agenda et aux pages
-// publiques, et les specs qui lisent ces pages finiraient par compter des
-// restes de campagnes passées. Le ménage est BORNÉ au préfixe `e2e-` (slugs,
-// noms de fichier) : il ne peut pas toucher un contenu réel, qui n'a aucune
-// raison de le porter — et il est fermé hors dev, comme tous les oracles.
+// A dev deployment lives a long time: without cleanup, each run
+// would add an event, a partner and a media item to the agenda and to the public
+// pages, and the specs that read those pages would end up counting
+// leftovers from past campaigns. Cleanup is BOUNDED to the `e2e-` prefix (slugs,
+// file names): it cannot touch real content, which has no
+// reason to carry it — and it is closed outside dev, like all the oracles.
 const PREFIX = 'e2e-';
 
 export const deleteE2eContent = internalMutation({
-  // `stamp` : ne retirer que ce qu'UNE exécution a créé (son horodatage est
-  // dans chaque slug, titre et nom de fichier). Sans lui, le ménage de fin
-  // d'un projet Playwright effaçait l'événement que le MÊME fichier, lancé en
-  // parallèle par l'autre projet (bureau / mobile), était en train de tester
-  // — mesuré au rejeu du 27/09 : « Page introuvable » pour le membre.
+  // `stamp`: only remove what ONE run created (its timestamp is
+  // in each slug, title and file name). Without it, the end-of-run cleanup
+  // of one Playwright project erased the event that the SAME file, run in
+  // parallel by the other project (desktop / mobile), was in the middle of testing
+  // — measured in the 27/09 replay: "Page introuvable" for the member.
   args: { stamp: v.optional(v.string()) },
   returns: v.union(v.null(), v.object({ deleted: v.number() })),
   handler: async (ctx, { stamp }) => {
@@ -59,7 +59,7 @@ export const deleteE2eContent = internalMutation({
         deleted += 1;
       }
     }
-    // Médias en dernier : les références ci-dessus sont parties.
+    // Media last: the references above are gone.
     for (const m of await ctx.db.query('contentMedia').take(1000)) {
       if (mine(m.filename)) {
         await ctx.storage.delete(m.storageId);

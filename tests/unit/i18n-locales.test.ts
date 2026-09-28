@@ -7,42 +7,42 @@ import { PUB_LANGS } from '@convex/lib/publications';
 import { LOCALE_ENDONYMS, direction } from '@/i18n/direction';
 import { intlLocale } from '@/i18n/locale';
 
-// LA LISTE DES LANGUES EST ÉCRITE À TROIS ENDROITS, et elle ne peut pas l'être
-// ailleurs :
+// THE LIST OF LANGUAGES IS WRITTEN IN THREE PLACES, and it cannot be
+// anywhere else:
 //
-//   src/i18n/routing.ts        `routing.locales`  — la seule qui fasse autorité
-//   convex/lib/locales.ts      `SITE_LOCALES`, et le validateur `locale`
-//   convex/lib/publications.ts `PUB_LANGS`        — la facette bibliothèque
+//   src/i18n/routing.ts        `routing.locales`  — the only authoritative one
+//   convex/lib/locales.ts      `SITE_LOCALES`, and the `locale` validator
+//   convex/lib/publications.ts `PUB_LANGS`        — the library facet
 //
-// Convex ne peut PAS importer un module de `src/` : son bundle est déployé
-// séparément et n'a pas l'alias `@/`. La recopie est donc imposée par
-// l'architecture, pas choisie. Ce que ce test empêche, c'est qu'elle DÉRIVE —
-// le mode d'échec réel étant silencieux : une sixième langue ajoutée au routage
-// sans l'être au validateur ferait passer tout le site, jusqu'à ce qu'un membre
-// tente de déposer une publication dans cette langue et reçoive une erreur de
-// validation à l'écriture.
+// Convex can NOT import a module from `src/`: its bundle is deployed
+// separately and does not have the `@/` alias. The copy is therefore imposed by
+// the architecture, not chosen. What this test prevents is it DRIFTING —
+// the real failure mode being silent: a sixth language added to routing
+// without being added to the validator would let the whole site pass, until a member
+// tried to submit a publication in that language and got a validation
+// error on write.
 //
-// `convex/lib/locales.ts` est IMPORTÉ, pas lu comme du texte : il ne tire que
-// `convex/values`, donc il n'y a rien à monter. C'est précisément pour cela
-// qu'il a été extrait de `convex/schema.ts`, lequel tire `authTables`.
+// `convex/lib/locales.ts` is IMPORTED, not read as text: it only pulls in
+// `convex/values`, so there is nothing to mount. That is precisely why
+// it was extracted from `convex/schema.ts`, which pulls in `authTables`.
 //
-// LA TROISIÈME COMPARAISON EST LA MOINS ÉVIDENTE ET LA PLUS UTILE : à
-// l'intérieur même de ce module, la LISTE (`SITE_LOCALES`) et le VALIDATEUR
-// (`v.union(v.literal(…))`) sont deux écritures séparées de la même vérité.
-// Rien dans TypeScript n'oblige la seconde à suivre la première.
+// THE THIRD COMPARISON IS THE LEAST OBVIOUS AND THE MOST USEFUL: within
+// this very module, the LIST (`SITE_LOCALES`) and the VALIDATOR
+// (`v.union(v.literal(…))`) are two separate writings of the same truth.
+// Nothing in TypeScript forces the second to follow the first.
 
-/** Les littéraux effectivement admis par le validateur Convex. */
+/** The literals actually accepted by the Convex validator. */
 function validatorLiterals(): string[] {
-  // `v.union(...)` expose ses branches : on interroge le validateur lui-même
-  // plutôt que le texte qui le déclare.
+  // `v.union(...)` exposes its branches: we query the validator itself
+  // rather than the text declaring it.
   return (locale.members as readonly { value: string }[]).map((m) => m.value);
 }
 
 describe('Langues du site — les déclarations disent la même chose', () => {
   it('la garde interroge vraiment le validateur', () => {
-    // Sans cette vérification, une API Convex qui cesserait d'exposer `members`
-    // rendrait une liste vide, et le test passerait au vert en comparant deux
-    // fois rien.
+    // Without this check, a Convex API that stopped exposing `members`
+    // would return an empty list, and the test would turn green comparing
+    // nothing with nothing.
     expect(validatorLiterals().length).toBeGreaterThan(1);
   });
 
@@ -61,8 +61,8 @@ describe('Langues du site — les déclarations disent la même chose', () => {
 
 describe('Langues du site — chacune est complètement décrite', () => {
   it('porte un endonyme non vide', () => {
-    // Le sélecteur affiche ces libellés et eux seuls : une locale sans endonyme
-    // y apparaîtrait comme une ligne vide, cliquable.
+    // The selector displays these labels and only these: a locale without an endonym
+    // would show up there as an empty, clickable row.
     for (const l of routing.locales) {
       expect(
         LOCALE_ENDONYMS[l],
@@ -88,12 +88,12 @@ describe('Langues du site — chacune est complètement décrite', () => {
   });
 
   it('porte la MÊME étiquette `Intl` des deux côtés de la cloison', () => {
-    // Convex n'a pas l'alias `@/` : la table des étiquettes régionales est
-    // recopiée dans `convex/lib/locales.ts`, comme la liste des langues l'est
-    // déjà. Elles doivent dire la même chose, sans quoi un courriel de rappel
-    // formaterait sa date autrement que la page de l'événement qu'il annonce —
-    // et l'arbitrage `ar-MA` (chiffres arabes occidentaux) vaudrait pour le
-    // site mais pas pour les courriels, qui annonceraient « ٢٠٢٦ ».
+    // Convex does not have the `@/` alias: the table of regional tags is
+    // copied into `convex/lib/locales.ts`, as the list of languages already
+    // is. They must say the same thing, otherwise a reminder email
+    // would format its date differently from the event page it announces —
+    // and the `ar-MA` decision (Western Arabic numerals) would apply to the
+    // site but not to emails, which would announce "٢٠٢٦".
     for (const l of routing.locales) {
       expect(intlTag(l), `étiquette Intl divergente pour « ${l} »`).toBe(
         intlLocale(l),

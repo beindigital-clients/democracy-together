@@ -3,14 +3,14 @@
 import { useMemo } from 'react';
 import { encode } from 'uqr';
 
-// QR CODE GÉNÉRÉ DANS LE NAVIGATEUR (chantier comptes, inscription 2FA).
+// QR CODE GENERATED IN THE BROWSER (accounts workstream, 2FA enrolment).
 //
-// Le secret TOTP ne doit transiter par aucun service tiers de génération
-// d'images : il est encodé ici, par `uqr` (sans dépendance, ~10 Ko), et rendu
-// en SVG — un seul chemin, net à toutes les tailles, sans `innerHTML`.
+// The TOTP secret must not pass through any third-party image generation
+// service: it is encoded here, by `uqr` (no dependencies, ~10 KB), and
+// rendered as SVG — a single path, crisp at every size, no `innerHTML`.
 //
-// Noir sur blanc dans les deux thèmes (jetons `qr-ink` / `qr-paper`) : une
-// partie des applications d'authentification ne lit pas un code inversé.
+// Black on white in both themes (`qr-ink` / `qr-paper` tokens): some
+// authenticator apps do not read an inverted code.
 export function QrCode({ value, label }: { value: string; label: string }) {
   const { size, path } = useMemo(() => {
     const qr = encode(value, { ecc: 'M', border: 2 });

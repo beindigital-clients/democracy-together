@@ -1,24 +1,24 @@
-// Chiffrement AU REPOS des secrets de double authentification.
+// AT-REST encryption of two-factor authentication secrets.
 //
-// Un secret TOTP en clair dans la base, c'est le second facteur de chaque
-// compte offert à quiconque lit une sauvegarde, un export de la base ou le
-// tableau de bord Convex. Il est donc chiffré en AES-256-GCM avec une clé qui
-// n'est PAS dans la base : la variable d'environnement
-// `TWO_FACTOR_ENCRYPTION_KEY` (32 octets en base64 — `openssl rand -base64 32`).
+// A plaintext TOTP secret in the database means every account's second
+// factor handed to anyone who reads a backup, a database export or the Convex
+// dashboard. It is therefore encrypted with AES-256-GCM using a key that is
+// NOT in the database: the `TWO_FACTOR_ENCRYPTION_KEY` environment variable
+// (32 bytes in base64 — `openssl rand -base64 32`).
 //
-// L'identifiant du compte est passé en DONNÉE ASSOCIÉE (AAD) : un secret
-// recopié d'une ligne à l'autre par quelqu'un qui peut écrire en base ne se
-// déchiffre plus. Le vol d'une ligne ne sert pas à un autre compte.
+// The account identifier is passed as ASSOCIATED DATA (AAD): a secret copied
+// from one row to another by someone who can write to the database no longer
+// decrypts. Stealing a row is of no use for another account.
 //
-// SANS CLÉ, fail-closed : l'inscription à la 2FA est refusée
-// (TWO_FACTOR_KEY_NOT_CONFIGURED) et l'écran le dit. Seule exception, le
-// déploiement de DÉVELOPPEMENT (`AUTH_DEV_OTP=true`, jamais en production —
-// TESTING.md) : une clé dérivée d'une constante publique, marquée `dev`, pour
-// que la spec E2E puisse inscrire un appareil. Un secret `dev` est refusé dès
-// que le déploiement porte une vraie clé.
+// WITHOUT A KEY, fail-closed: 2FA enrolment is refused
+// (TWO_FACTOR_KEY_NOT_CONFIGURED) and the screen says so. The only exception
+// is the DEVELOPMENT deployment (`AUTH_DEV_OTP=true`, never in production —
+// TESTING.md): a key derived from a public constant, marked `dev`, so that
+// the E2E spec can enrol a device. A `dev` secret is refused as soon as the
+// deployment carries a real key.
 //
-// Ce module ne s'exécute que dans des ACTIONS : Web Crypto et le hasard vrai y
-// sont disponibles, ce qui n'est pas garanti dans une mutation.
+// This module only runs in ACTIONS: Web Crypto and true randomness are
+// available there, which is not guaranteed in a mutation.
 
 export type SecretKeyId = 'env' | 'dev';
 
@@ -56,8 +56,8 @@ async function keyFor(keyId: SecretKeyId): Promise<CryptoKey> {
     }
     if (raw.length !== 32) throw new Error('TWO_FACTOR_KEY_INVALID');
   } else {
-    // Clé de développement : refusée dès qu'une vraie clé existe, et hors
-    // d'un déploiement de développement.
+    // Development key: refused as soon as a real key exists, and outside a
+    // development deployment.
     if (secretKeyStatus() !== 'dev') {
       throw new Error('TWO_FACTOR_KEY_NOT_CONFIGURED');
     }
@@ -77,7 +77,7 @@ async function keyFor(keyId: SecretKeyId): Promise<CryptoKey> {
   );
 }
 
-/** Clé à employer pour un NOUVEAU secret, ou erreur si aucune n'est admise. */
+/** Key to use for a NEW secret, or an error if none is allowed. */
 export function currentKeyId(): SecretKeyId {
   const status = secretKeyStatus();
   if (status === 'configured') return 'env';
@@ -109,8 +109,8 @@ export async function openSecret(
   sealed: { ciphertext: string; iv: string; keyId: SecretKeyId },
   aad: string,
 ): Promise<Uint8Array> {
-  // Une clé absente ou mal formée lève ici, avec son propre code : c'est une
-  // erreur de CONFIGURATION, que l'exploitant doit pouvoir distinguer.
+  // A missing or malformed key throws here, with its own code: it is a
+  // CONFIGURATION error, which the operator must be able to tell apart.
   const key = await keyFor(sealed.keyId);
   try {
     return new Uint8Array(
@@ -125,8 +125,8 @@ export async function openSecret(
       ),
     );
   } catch {
-    // Mauvaise clé (rotation sans rechiffrement) ou ligne altérée — y compris
-    // un secret recopié sur un autre compte (donnée associée différente).
+    // Wrong key (rotation without re-encryption) or tampered row — including a
+    // secret copied onto another account (different associated data).
     throw new Error('TWO_FACTOR_SECRET_UNREADABLE');
   }
 }

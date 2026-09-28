@@ -7,16 +7,16 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 import { contentLangAttrs } from '@/i18n/content-lang';
 
-// La carte ne reçoit que ce que les queries publiques servent — pas le
-// document complet (issue #30).
+// The card only receives what the public queries serve — not the
+// full document (issue #30).
 type Pub = PublicPublication;
 
 function langsLabel(languages: string[]): string {
   return languages.map((l) => l.toUpperCase()).join(' / ');
 }
 
-// Couverture de repli pour les dépôts membres sans vignette (F-32) : un aplat
-// discret portant le type de document, plutôt qu'une image cassée.
+// Fallback cover for member submissions without a thumbnail (F-32): a discreet
+// flat colour block showing the document type, rather than a broken image.
 function CoverFallback({ label }: { label: string }) {
   return (
     <div className="absolute inset-0 grid place-items-center bg-[linear-gradient(135deg,var(--color-surface-2),var(--color-paper))]">
@@ -27,9 +27,9 @@ function CoverFallback({ label }: { label: string }) {
   );
 }
 
-// Carte publication (F-32). Variante `compact` pour le bloc « liées » du détail
-// (image + méta + titre seulement). Image décorative (alt vide) : le titre
-// adjacent porte le lien. Vignette lazy + optimisée (next/image).
+// Publication card (F-32). `compact` variant for the "related" block on the detail page
+// (image + meta + title only). Decorative image (empty alt): the adjacent
+// title carries the link. Lazy + optimized thumbnail (next/image).
 export async function PublicationCard({
   pub,
   locale,
@@ -40,8 +40,8 @@ export async function PublicationCard({
   variant?: 'full' | 'compact';
 }) {
   const t = await getTranslations('library');
-  // Le titre est dans la langue de RÉDACTION (`languages[0]`, comme la fiche),
-  // pas forcément celle de la page : RGAA 8.7 — cf. `@/i18n/content-lang`.
+  // The title is in the WRITING language (`languages[0]`, like the detail page),
+  // not necessarily the page's: RGAA 8.7 — see `@/i18n/content-lang`.
   const titleLang = contentLangAttrs(pub.languages[0], locale);
   const date = formatMonthYear(pub.publishedAt, locale);
   const meta = `${vocabulary(t, 'types.', pub.type)} · ${date}${
@@ -132,10 +132,10 @@ export async function PublicationCard({
             className="inline-flex items-center gap-1 font-mono text-[11px] text-muted"
             title={t('downloads')}
           >
-            {/* Symbole seul = contenu cryptique (RGAA 13.5) : un lecteur
-                d'écran lisait « flèche vers le bas 1 234 », et `title` sur un
-                `<span>` n'est pas restitué. Le symbole est masqué, le mot est
-                donné en texte. */}
+            {/* Symbol alone = cryptic content (RGAA 13.5): a screen
+                reader read "flèche vers le bas 1 234", and `title` on a
+                `<span>` is not announced. The symbol is hidden, the word is
+                given as text. */}
             <span aria-hidden="true">↓</span>
             <span className="sr-only">{t('downloads')} :</span>{' '}
             {pub.downloads.toLocaleString(intlLocale(locale))}

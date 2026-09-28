@@ -2,20 +2,20 @@ import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { SESSIONS } from './_sessions';
 
-// F-41 — Rapports annuels : migration de l'édition codée depuis
-// l'administration, puis TÉLÉCHARGEMENT du PDF composé côté serveur, en
-// français et en arabe (droite à gauche, lettres liées : vérifié par les tests
-// unitaires de convex/lib/reportPdf/render.test.ts ; ici, le parcours réel).
+// F-41 — Annual reports: migration of the coded edition from the admin
+// area, then DOWNLOAD of the server-composed PDF, in French and Arabic
+// (right-to-left, joined letters: verified by the unit tests in
+// convex/lib/reportPdf/render.test.ts; here, the real flow).
 //
-// Idempotent sur un déploiement qui vit longtemps : si l'édition 2026 est
-// déjà migrée, le bouton d'import n'est plus proposé et le parcours reprend
-// au téléchargement.
+// Idempotent on a long-lived deployment: if the 2026 edition has
+// already been migrated, the import button is no longer offered and the flow
+// resumes at the download.
 
 test.use({ storageState: SESSIONS.editorialRapports.state });
 
-// La composition du PDF est PLANIFIÉE à l'écriture (action Convex) : la page
-// affiche l'impression du navigateur le temps qu'elle aboutisse. On recharge
-// jusqu'à voir le lien, dans une limite généreuse.
+// PDF composition is SCHEDULED on write (Convex action): the page shows
+// the browser print version until it completes. We reload until the link
+// appears, within a generous limit.
 async function waitForPdfLink(page: Page, url: string, name: string) {
   const link = page.getByRole('link', { name, exact: true });
   await expect(async () => {
@@ -43,18 +43,18 @@ test('F-41 : migrer l’édition 2026 puis télécharger son PDF en français et
       page.getByText('Édition 2026 importée', { exact: false }),
     ).toBeVisible();
   }
-  // L'édition est administrée, publiée, en cinq langues.
+  // The edition is administered, published, in five languages.
   const card = page.getByRole('listitem').filter({ hasText: '2026' }).first();
   await expect(card.getByText('Publiée')).toBeVisible();
   await expect(card.getByRole('cell', { name: 'العربية' })).toBeVisible();
 
-  // --- Français ---
+  // --- French ---
   const fr = await waitForPdfLink(
     page,
     '/fr/rapports/2026',
     'Télécharger le PDF',
   );
-  // La page dit ce qu'on télécharge : format, taille, pages, langue.
+  // The page says what is being downloaded: format, size, pages, language.
   await expect(page.getByText(/PDF · .+ · \d+ pages · Français/)).toBeVisible();
   const [frDownload] = await Promise.all([
     page.waitForEvent('download'),
@@ -65,12 +65,12 @@ test('F-41 : migrer l’édition 2026 puis télécharger son PDF en français et
   );
   const frBytes = readFileSync(await frDownload.path());
   expect(frBytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
-  // Métadonnées d'accessibilité dans le catalogue (non compressé) : langue
-  // et PDF balisé.
+  // Accessibility metadata in the (uncompressed) catalog: language
+  // and tagged PDF.
   expect(frBytes.toString('latin1')).toContain('/Lang (fr)');
   expect(frBytes.toString('latin1')).toContain('/StructTreeRoot');
 
-  // --- Arabe ---
+  // --- Arabic ---
   const ar = await waitForPdfLink(page, '/ar/rapports/2026', 'تنزيل ملف PDF');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.getByText('العربية').first()).toBeVisible();
@@ -85,14 +85,14 @@ test('F-41 : migrer l’édition 2026 puis télécharger son PDF en français et
   expect(arBytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   expect(arBytes.toString('latin1')).toContain('/Lang (ar)');
 
-  // La route du site sert le PDF avec les bons en-têtes.
+  // The site route serves the PDF with the right headers.
   const res = await page.request.get('/ar/rapports/2026/rapport.pdf');
   expect(res.status()).toBe(200);
   expect(res.headers()['content-type']).toBe('application/pdf');
   expect(res.headers()['content-disposition']).toContain(
     'democracy-together-rapport-2026-ar.pdf',
   );
-  // Une année sans édition : 404, pas une erreur.
+  // A year with no edition: 404, not an error.
   expect(
     (await page.request.get('/fr/rapports/1999/rapport.pdf')).status(),
   ).toBe(404);

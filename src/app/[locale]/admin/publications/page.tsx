@@ -29,7 +29,7 @@ type ReviewStage = FunctionReturnType<
   typeof api.peerReview.reviewStagesFor
 >[number]['reviewStage'];
 
-// Taille de page. Le serveur la replafonne : elle est indicative.
+// Page size. The server re-caps it: it is indicative.
 const PAGE_SIZE = 25;
 
 function PublicationRow({
@@ -39,11 +39,11 @@ function PublicationRow({
   staff,
 }: {
   pub: ReviewItem;
-  // Étape de la revue à comité de lecture, `null` hors revue — lue en un
-  // seul appel pour toute la page (`reviewStagesFor`), pas une par ligne.
+  // Peer review stage, `null` outside review — read in a
+  // single call for the whole page (`reviewStagesFor`), not one per row.
   reviewStage: ReviewStage;
-  // Éditeur et au-dessus : seul rang qui peut OUVRIR une revue. Le staff
-  // (relecteurs possibles) n'est chargé que pour lui.
+  // Editor and above: the only rank that can OPEN a review. The staff
+  // (possible reviewers) is loaded only for them.
   editor: boolean;
   staff: Staff | undefined;
 }) {
@@ -59,13 +59,13 @@ function PublicationRow({
   const [notes, setNotes] = useState('');
   const [reviewerId, setReviewerId] = useState('');
   const [pending, setPending] = useState(false);
-  // Retirer de la bibliothèque un document déjà en ligne passe par une
-  // confirmation nommée, comme le refus : c'est l'action la plus visible de
-  // cet écran vers l'extérieur.
+  // Removing a document that is already live from the library goes through a
+  // named confirmation, like a rejection: it is the most externally visible action of
+  // this screen.
   const [confirmingRevert, setConfirmingRevert] = useState(false);
-  // Le REJET passe par une confirmation qui nomme la publication visée
-  // (issue #38) : sur une file où les lignes se ressemblent, un clic d'une
-  // ligne trop bas se voyait seulement au départ de la mauvaise entrée.
+  // REJECTION goes through a confirmation that names the targeted publication
+  // (issue #38): in a queue where rows look alike, a click one
+  // row too low was only noticed when the wrong entry left.
   const [confirmingReject, setConfirmingReject] = useState(false);
 
   async function decide(decision: 'approved' | 'rejected') {
@@ -86,25 +86,25 @@ function PublicationRow({
         ),
       );
     } catch (err) {
-      // Action refusée côté serveur (rôle insuffisant, décision déjà prise
-      // ailleurs) : la file reste inchangée — et l'écran dit POURQUOI, par le
-      // code du refus (27/09, R-08), au lieu d'accuser les droits.
+      // Action refused server-side (insufficient role, decision already made
+      // elsewhere): the queue stays unchanged — and the screen says WHY, via the
+      // refusal code (27/09, R-08), instead of blaming permissions.
       fail(err);
     } finally {
       setPending(false);
     }
   }
 
-  // Un refus ne se re-décide pas (issue #9) : on ROUVRE la publication, qui
-  // retourne dans la file en attente. La réouverture est auditée sous sa
-  // propre action, là où un second clic sur « Approuver » aurait effacé le
-  // refus sans laisser de trace de l'hésitation.
+  // A rejection is not re-decided (issue #9): we REOPEN the publication, which
+  // returns to the pending queue. Reopening is audited under its
+  // own action, whereas a second click on "Approuver" would have erased the
+  // rejection without leaving a trace of the hesitation.
   async function reopenReview() {
     setPending(true);
     try {
       await reopen({ publicationId: pub._id });
-      // « Rouvrir » restait muet (27/09, m-5) : le message du rejet précédent
-      // restait seul à l'écran, à lire à l'envers.
+      // "Rouvrir" stayed silent (27/09, m-5): the message from the previous rejection
+      // remained alone on screen, to be read backwards.
       notify(t('feedbackReopened', { name: pub.title }));
     } catch (err) {
       fail(err);
@@ -113,10 +113,10 @@ function PublicationRow({
     }
   }
 
-  // ENVOYER AU COMITÉ DE LECTURE (27/09, R-01) — depuis la file de modération,
-  // sans quitter l'écran : l'éditeur désigne un relecteur, la revue s'ouvre
-  // (`reviewStage` = in_review), le relecteur est notifié. La modération
-  // (approuver / rejeter) reste indépendante.
+  // SEND TO PEER REVIEW (27/09, R-01) — from the moderation queue,
+  // without leaving the screen: the editor designates a reviewer, the review opens
+  // (`reviewStage` = in_review), the reviewer is notified. Moderation
+  // (approve / reject) remains independent.
   async function openReview() {
     const who = staff?.find((u) => u._id === reviewerId);
     if (!who) return;
@@ -137,10 +137,10 @@ function PublicationRow({
     }
   }
 
-  // Analyse à la demande — pour un dépôt arrivé alors que le dispositif était
-  // éteint, ou à réexaminer après un durcissement du barème. Le serveur
-  // respecte le mode : si le dispositif est désactivé, rien n'est planifié et
-  // l'écran le dit, plutôt que de laisser croire à une analyse en cours.
+  // On-demand analysis — for a submission that arrived while the mechanism was
+  // off, or to re-examine after the rubric was tightened. The server
+  // respects the mode: if the mechanism is disabled, nothing is scheduled and
+  // the screen says so, rather than suggesting an analysis is in progress.
   async function requestAiReview() {
     setPending(true);
     try {
@@ -207,7 +207,7 @@ function PublicationRow({
 
       <p className="mt-2 text-sm">
         {pub.fileUrl ? (
-          // `py-1` en bloc : 18 px de lien au doigt, mesuré le 27/09 (C-3).
+          // `py-1` as a block: 18 px finger link target, measured on 27/09 (C-3).
           <a
             href={pub.fileUrl}
             target="_blank"
@@ -224,8 +224,8 @@ function PublicationRow({
 
       <AiVerdictPanel publicationId={pub._id} review={pub.aiReview} />
 
-      {/* Comité de lecture (F-43) — l'étape si une revue est engagée, et pour
-          l'éditeur la porte pour en ouvrir une sur un dépôt en attente. */}
+      {/* Peer review (F-43) — the stage if a review is under way, and for
+          the editor the door to open one on a pending submission. */}
       {reviewStage || (editor && pub.status === 'pending') ? (
         <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-3">
           {reviewStage ? (
@@ -318,9 +318,9 @@ function PublicationRow({
               “{pub.reviewNotes}”
             </p>
           ) : null}
-          {/* Un brouillon AVEC une date de revue est un refus, pas un dépôt
-              jamais soumis — la distinction attend le statut `rejected` de
-              l'issue #32. Seul le premier se rouvre. */}
+          {/* A draft WITH a review date is a rejection, not a submission that was
+              never submitted — the distinction awaits the `rejected` status from
+              issue #32. Only the former can be reopened. */}
           {pub.status === 'draft' && pub.reviewedAt !== null ? (
             <Button
               variant="outline"
@@ -331,9 +331,9 @@ function PublicationRow({
               {t('reopen')}
             </Button>
           ) : null}
-          {/* Sortie arrière RÉSERVÉE aux mises en ligne automatiques : une
-              publication approuvée par un humain n'a pas ce bouton, son
-              retrait relève du catalogue (issue #32). */}
+          {/* Back exit RESERVED for automatic publications: a
+              publication approved by a human does not have this button, its
+              removal belongs to the catalog (issue #32). */}
           {pub.autoPublished ? (
             <>
               <Button
@@ -367,11 +367,11 @@ export default function AdminPublications() {
   const t = useTranslations('admin');
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [search, setSearch] = useState('');
-  // PAGINÉE (issue #8) : le mode « toutes » chargeait la table `publications`
-  // entière, et résolvait l'auteur d'une ligne à la fois. Changer de filtre
-  // change les arguments, donc repart d'une première page — comportement voulu.
-  // CHERCHABLE (issue #49) : le titre, côté serveur. Une file de modération
-  // filtrée en mémoire ne chercherait que dans les 25 lignes affichées.
+  // PAGINATED (issue #8): the "toutes" mode loaded the entire `publications`
+  // table, and resolved the author one row at a time. Changing the filter
+  // changes the arguments, hence restarts from a first page — intended behavior.
+  // SEARCHABLE (issue #49): the title, server-side. A moderation queue
+  // filtered in memory would only search the 25 displayed rows.
   const {
     results: pubs,
     status,
@@ -381,10 +381,10 @@ export default function AdminPublications() {
     { status: filter, ...(search ? { search } : {}) },
     { initialNumItems: PAGE_SIZE },
   );
-  // Porte d'entrée de la revue à comité de lecture (27/09, R-01) : le rang
-  // vient de la session, la liste des relecteurs n'est demandée qu'à un
-  // éditeur (le serveur la refuse en dessous), et l'étape de revue des lignes
-  // AFFICHÉES se lit en un seul appel.
+  // Entry point to peer review (27/09, R-01): the rank
+  // comes from the session, the list of reviewers is only requested for an
+  // editor (the server refuses it below that), and the review stage of the
+  // DISPLAYED rows is read in a single call.
   const me = useQuery(api.users.current);
   const editor = isEditor(me?.role);
   const staff = useQuery(api.peerReview.listStaffUsers, editor ? {} : 'skip');
@@ -433,7 +433,7 @@ export default function AdminPublications() {
           {search ? t('noResults') : t('noPublications')}
         </p>
       ) : (
-        // Liste NOMMÉE : la navigation groupée (#49) rend aussi des `<li>`.
+        // NAMED list: the grouped navigation (#49) also renders `<li>`s.
         <ul aria-label={t('publicationsListLabel')} className="mt-6 space-y-3">
           {pubs.map((p) => (
             <PublicationRow

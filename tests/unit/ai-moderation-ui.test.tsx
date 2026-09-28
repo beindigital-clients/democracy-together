@@ -5,31 +5,31 @@ import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
 
-// LES ÉCRANS DE LA MODÉRATION ASSISTÉE — est-ce que ça s'affiche, et est-ce
-// que ça dit la vérité ?
+// THE AI-ASSISTED MODERATION SCREENS — do they render, and do
+// they tell the truth?
 //
-// La fonctionnalité a ajouté une centaine de clés de traduction. Deux gardes
-// existaient déjà et ne couvrent PAS ce que ce fichier couvre :
+// The feature added about a hundred translation keys. Two guards
+// already existed and do NOT cover what this file covers:
 //
-//   - `i18n-keys.test.ts` vérifie que chaque clé littérale du code existe des
-//     deux côtés. Elle ne dit pas qu'on demande la BONNE clé au bon endroit ;
-//   - `i18n-hardcoded.test.ts` interdit le français en dur. Elle ne monte
-//     aucun composant.
+//   - `i18n-keys.test.ts` checks that every literal key in the code exists on
+//     both sides. It does not say that the RIGHT key is requested in the right place;
+//   - `i18n-hardcoded.test.ts` forbids hard-coded French. It mounts
+//     no component.
 //
-// Ici on monte les écrans avec les VRAIS catalogues, en français et en
-// anglais, et on lit ce qu'ils affichent. Une clé demandée via `vocabulary()`
-// et absente des messages ne lève pas : elle rend le slug « humanisé ». Le
-// repli est voulu pour un vocabulaire venu de la base — mais sur `aiMode_off`
-// ou `aiReason_blocking_signal`, qui sont écrits dans ce dépôt, il masquerait
-// une faute de frappe. Les assertions ci-dessous portent donc sur le LIBELLÉ
-// attendu, jamais sur la présence d'un élément.
+// Here we mount the screens with the REAL catalogs, in French and in
+// English, and read what they display. A key requested via `vocabulary()`
+// and missing from the messages does not throw: it renders the "humanized" slug. The
+// fallback is intended for vocabulary coming from the database — but on `aiMode_off`
+// or `aiReason_blocking_signal`, which are written in this repo, it would hide
+// a typo. The assertions below therefore target the expected LABEL,
+// never the mere presence of an element.
 
 afterEach(cleanup);
 
-// --- Simulacre de Convex -----------------------------------------------------
+// --- Convex mock -------------------------------------------------------------
 //
-// `vi.mock` est hissé au-dessus des imports : la table des réponses vit donc
-// dans un `vi.hoisted`, et `getFunctionName` est importé DANS la fabrique.
+// `vi.mock` is hoisted above the imports: the response table therefore lives
+// in a `vi.hoisted`, and `getFunctionName` is imported INSIDE the factory.
 const convex = vi.hoisted(() => ({
   queries: new Map<string, unknown>(),
   mutation: () => Promise.resolve(),
@@ -71,7 +71,7 @@ beforeEach(() => {
   convex.queries.clear();
 });
 
-// --- L'avis dans la file de modération ---------------------------------------
+// --- The assessment in the moderation queue ----------------------------------
 
 const AVIS_BLOQUANT = {
   verdict: 'flag' as const,
@@ -91,8 +91,8 @@ describe("Avis de l'IA dans la file de modération", () => {
     expect(screen.getByText('À regarder')).toBeTruthy();
     expect(screen.getByText(/Renvoyée en file/)).toBeTruthy();
     expect(screen.getByText(/confiance 88 %/)).toBeTruthy();
-    // Le motif est rendu traduit, pas sous son code stable : `blocking_signal`
-    // ne doit jamais atteindre l'écran.
+    // The reason is rendered translated, not as its stable code: `blocking_signal`
+    // must never reach the screen.
     expect(screen.getByText('signal bloquant')).toBeTruthy();
     expect(screen.queryByText(/blocking_signal/)).toBeNull();
   });
@@ -124,20 +124,20 @@ describe("Avis de l'IA dans la file de modération", () => {
       <AiVerdictPanel publicationId={'p1' as never} review={AVIS_BLOQUANT} />,
     );
 
-    // Replié : le résumé de l'avis n'est pas là — la file reste légère.
+    // Collapsed: the assessment summary is not there — the queue stays light.
     expect(screen.queryByText(/met en cause nommément/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Voir les signaux' }));
 
     expect(screen.getByText(/met en cause nommément/)).toBeTruthy();
     expect(screen.getByText('Risque diffamatoire')).toBeTruthy();
-    // L'extrait cité est ce qui rend le signal vérifiable sans rouvrir le
-    // dépôt : il doit être à l'écran, mot pour mot.
+    // The quoted excerpt is what makes the signal verifiable without reopening the
+    // submission: it must be on screen, word for word.
     expect(
       screen.getByText(/a détourné une partie de l'enveloppe/),
     ).toBeTruthy();
-    // Les critères SATISFAITS ne sont pas listés : sur un barème fourni, ils
-    // noieraient les deux qui comptent.
+    // SATISFIED criteria are not listed: on a full rubric, they
+    // would drown the two that matter.
     expect(screen.queryByText('Contenu illégal')).toBeNull();
   });
 
@@ -161,7 +161,7 @@ describe("Avis de l'IA dans la file de modération", () => {
       />,
     );
     expect(screen.getByText('Analyse indisponible')).toBeTruthy();
-    // Pas de « confiance 0 % » : une confiance n'a pas de sens sans avis.
+    // No "confiance 0 %": a confidence makes no sense without an assessment.
     expect(screen.queryByText(/confiance/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Voir les signaux' }));
@@ -169,8 +169,8 @@ describe("Avis de l'IA dans la file de modération", () => {
   });
 
   it("ne rend rien tant qu'aucune analyse n'a eu lieu", () => {
-    // Le cas de l'immense majorité des lignes d'un déploiement où le
-    // dispositif est éteint : la file ne doit pas grossir d'un bloc vide.
+    // The case of the vast majority of rows on a deployment where the
+    // feature is off: the queue must not grow by an empty block.
     const { container } = render(
       <NextIntlClientProvider locale="fr" messages={fr}>
         <AiVerdictPanel publicationId={'p1' as never} review={null} />
@@ -190,7 +190,7 @@ describe("Avis de l'IA dans la file de modération", () => {
   });
 });
 
-// --- Le panneau d'administration ---------------------------------------------
+// --- The administration panel ------------------------------------------------
 
 const REGLAGES = {
   settings: {
@@ -236,9 +236,9 @@ function showPanel(over: Partial<typeof REGLAGES> = {}, role = 'admin') {
 
 describe("Panneau d'administration de la modération IA", () => {
   it('refuse l’écran à un modérateur, sans appeler la query réservée', () => {
-    // Le serveur refuse déjà `getSettings` à un non-admin ; l'écran ne doit
-    // pas la demander pour autant — une query qui lève rendrait l'écran, pas
-    // un message.
+    // The server already refuses `getSettings` to a non-admin; the screen must
+    // not request it anyway — a throwing query would crash the screen, not
+    // show a message.
     convex.queries.set('users:current', { _id: 'u1', role: 'moderateur' });
     convex.queries.set('aiModeration:getSettings', REGLAGES);
     show(<AdminAiModeration />);
@@ -256,8 +256,8 @@ describe("Panneau d'administration de la modération IA", () => {
       screen.getByText('Publiées automatiquement').nextSibling?.textContent,
     ).toBe('7');
     expect(screen.getByText('Sources vérifiables')).toBeTruthy();
-    // Le socle est montré en lecture seule : voir ce qu'on ne peut PAS retirer
-    // fait partie de savoir ce qu'on règle.
+    // The baseline is shown read-only: seeing what you CANNOT remove
+    // is part of knowing what you are configuring.
     expect(
       screen.getByText('Tentative de manipulation du relecteur automatique'),
     ).toBeTruthy();
@@ -279,8 +279,8 @@ describe("Panneau d'administration de la modération IA", () => {
     expect(screen.getByText(/rien ne s'affiche dans la file/)).toBeTruthy();
 
     fireEvent.change(mode, { target: { value: 'auto' } });
-    // L'avertissement est porté par le mode lui-même, au moment de le
-    // choisir — pas relégué à la documentation.
+    // The warning is carried by the mode itself, at the moment of
+    // choosing it — not relegated to the documentation.
     expect(screen.getByText(/sans qu'un humain les ait lus/)).toBeTruthy();
   });
 
@@ -300,25 +300,25 @@ describe("Panneau d'administration de la modération IA", () => {
 
   it('le périmètre liste les types de publication, décochés par défaut', () => {
     showPanel();
-    // « Aucun type coché » est le défaut, et c'est le second verrou : armer le
-    // mode ne suffit pas à ouvrir la publication automatique.
-    // Les libellés viennent du vocabulaire de la bibliothèque
-    // (`library.types.*`), pas du slug : « note » s'affiche « Note de
-    // synthèse ». C'est le même dictionnaire que la file de modération.
+    // "No type checked" is the default, and it is the second lock: arming the
+    // mode is not enough to open up automatic publication.
+    // The labels come from the library vocabulary
+    // (`library.types.*`), not from the slug: "note" displays as "Note de
+    // synthèse". It is the same dictionary as the moderation queue.
     for (const type of ['Rapport', 'Note de synthèse']) {
       expect(screen.getByLabelText<HTMLInputElement>(type).checked).toBe(false);
     }
   });
 
   it('un critère désactivé le dit, au lieu de se déclarer actif', () => {
-    // Le barème se règle sur DEUX axes — la sévérité et l'activation — et un
-    // critère au repos est le cas où l'écran ment le plus cher : lu comme
-    // actif, il fait croire que le dépôt a été mesuré contre lui.
+    // The rubric is configured on TWO axes — severity and activation — and a
+    // dormant criterion is where the screen's lie costs the most: read as
+    // active, it suggests the submission was measured against it.
     //
-    // L'assertion porte sur le LIBELLÉ, comme partout dans ce fichier : c'est
-    // la seule qui attrape une clé voisine demandée à la place de la bonne,
-    // et c'est exactement ce qui était écrit ici — « Actif : Toutes », la
-    // mention du filtre de liste collée à celle de l'état du critère.
+    // The assertion targets the LABEL, as everywhere in this file: it is
+    // the only one that catches a neighboring key requested instead of the right one,
+    // and that is exactly what was written here — "Actif : Toutes", the
+    // list filter label stuck onto the criterion's state label.
     showPanel({
       rules: [
         {
@@ -337,8 +337,8 @@ describe("Panneau d'administration de la modération IA", () => {
     convex.queries.set('users:current', { _id: 'u1', role: 'admin' });
     convex.queries.set('aiModeration:getSettings', {
       ...REGLAGES,
-      // Un critère au repos, pour que le catalogue anglais soit tenu sur les
-      // DEUX états : c'est l'état second qui vieillit sans se faire voir.
+      // A dormant criterion, so that the English catalog is held on
+      // BOTH states: it is the secondary state that ages unnoticed.
       rules: [{ ...REGLAGES.rules[0], enabled: false }],
     });
     show(<AdminAiModeration />, 'en');

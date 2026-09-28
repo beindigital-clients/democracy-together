@@ -1,15 +1,15 @@
 import { defineCliConfig } from 'sanity/cli';
 
-// Config CLI Sanity (distincte de sanity.config.ts qui sert le Studio).
-// Permet `npx sanity exec ... --with-user-token` et les commandes CLI.
+// Sanity CLI config (separate from sanity.config.ts, which serves the Studio).
+// Enables `npx sanity exec ... --with-user-token` and the CLI commands.
 
-// Pas de repli en dur sur un projectId (issue #44). Un projectId Sanity n'est
-// pas un secret — il circule dans le navigateur — mais un défaut SILENCIEUX
-// masque une erreur de configuration : le développeur qui oublie la variable
-// croit travailler sur son projet pendant que la CLI en vise un autre, et
-// selon les droits de son jeton il peut y déployer un schéma ou y écrire un
-// seed (`npx sanity exec scripts/seed-*.ts`). Même logique que `sendEmail`
-// (convex/email.ts) : une erreur franche vaut mieux qu'un succès trompeur.
+// No hard-coded fallback projectId (issue #44). A Sanity projectId is
+// not a secret — it circulates in the browser — but a SILENT default
+// masks a configuration error: the developer who forgets the variable
+// thinks they are working on their project while the CLI targets another one, and
+// depending on their token's rights they may deploy a schema to it or write a
+// seed into it (`npx sanity exec scripts/seed-*.ts`). Same logic as `sendEmail`
+// (convex/email.ts): an outright error is better than a misleading success.
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
 if (!projectId) {
   throw new Error(

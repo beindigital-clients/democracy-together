@@ -1,19 +1,19 @@
-// MONTANTS, DEVISES ET BORNES DES PAIEMENTS (F-27/F-28) — module PUR.
+// PAYMENT AMOUNTS, CURRENCIES AND BOUNDS (F-27/F-28) — PURE module.
 //
-// Pur à dessein : l'interface le lit par l'alias `@convex/lib/payments/amounts`
-// (bornes du formulaire de don, montants suggérés, barème par défaut) et le
-// serveur par import relatif. Une borne écrite deux fois finirait par
-// diverger : le formulaire accepterait un montant que le serveur refuse, et le
-// donateur ne verrait qu'une erreur générique après la redirection.
+// Pure by design: the interface reads it through the `@convex/lib/payments/amounts`
+// alias (donation form bounds, suggested amounts, default price list) and the
+// server through a relative import. A bound written twice would end up
+// diverging: the form would accept an amount the server refuses, and the
+// donor would only see a generic error after the redirect.
 //
-// UNITÉ MINEURE PARTOUT EN BASE. Un montant stocké est un ENTIER dans l'unité
-// mineure de sa devise (ISO 4217) : le centime d'euro, le cent de dollar.
-// C'est ce qu'attend Stripe (`unit_amount`), et c'est ce qui évite les
-// flottants dans les totaux comptables.
+// MINOR UNIT EVERYWHERE IN THE DATABASE. A stored amount is an INTEGER in the minor
+// unit of its currency (ISO 4217): the euro cent, the dollar cent.
+// That is what Stripe expects (`unit_amount`), and it is what avoids
+// floats in accounting totals.
 //
-// Deux devises, toutes deux réglées par Stripe : l'euro (Europe) et le dollar
-// des États-Unis. L'exposant reste explicite par devise : une devise sans
-// décimales (franc CFA, exposant 0) pourra s'ajouter sans toucher aux calculs.
+// Two currencies, both settled by Stripe: the euro (Europe) and the United
+// States dollar. The exponent stays explicit per currency: a currency without
+// decimals (CFA franc, exponent 0) can be added without touching the computations.
 
 export const CURRENCIES = ['EUR', 'USD'] as const;
 export type Currency = (typeof CURRENCIES)[number];
@@ -27,40 +27,40 @@ export function isCurrency(value: unknown): value is Currency {
   );
 }
 
-// Bornes d'un DON, en unités MAJEURES. Le plancher couvre les frais fixes du
-// prestataire (un don de 1 € coûterait presque autant qu'il rapporte) ; le
-// plafond borne une faute de frappe (un zéro de trop) et le blanchiment par
-// petite structure : au-delà, un grand don passe par le secrétariat.
+// Bounds of a DONATION, in MAJOR units. The floor covers the provider's
+// fixed fees (a €1 donation would cost almost as much as it brings in); the
+// ceiling bounds a typo (one zero too many) and laundering through
+// a small organization: beyond it, a large donation goes through the secretariat.
 export const DONATION_BOUNDS: Record<Currency, { min: number; max: number }> = {
   EUR: { min: 5, max: 10_000 },
   USD: { min: 5, max: 10_000 },
 };
 
-// Montants proposés en un clic sur /don, en unités majeures.
+// Amounts offered in one click on /don, in major units.
 export const SUGGESTED_DONATIONS: Record<Currency, readonly number[]> = {
   EUR: [20, 50, 100, 250],
   USD: [20, 50, 100, 250],
 };
 
-// Bornes d'un montant du BARÈME (édité par l'administrateur), en unités
-// majeures. Une cotisation d'organisation peut être élevée ; zéro n'est pas un
-// tarif (une formule gratuite se désactive, elle ne se facture pas à 0).
+// Bounds of a PRICE LIST amount (edited by the administrator), in major
+// units. An organization membership fee can be high; zero is not a
+// price (a free plan is disabled, it is not billed at 0).
 export const PLAN_BOUNDS: Record<Currency, { min: number; max: number }> = {
   EUR: { min: 1, max: 100_000 },
   USD: { min: 1, max: 100_000 },
 };
 
-// Une cotisation couvre douze mois à compter de son règlement (ou de la fin de
-// la période en cours, si le membre renouvelle en avance).
+// A membership fee covers twelve months from its payment (or from the end of
+// the current period, if the member renews early).
 export const MEMBERSHIP_PERIOD_MONTHS = 12;
 
-/** Convertit un montant saisi (unités majeures) en unités mineures, ou null
- *  si le montant n'est pas représentable exactement (trop de décimales, NaN). */
+/** Converts an entered amount (major units) into minor units, or null
+ *  if the amount cannot be represented exactly (too many decimals, NaN). */
 export function toMinor(major: number, currency: Currency): number | null {
   if (!Number.isFinite(major)) return null;
   const factor = 10 ** CURRENCY_EXPONENT[currency];
   const minor = Math.round(major * factor);
-  // Tolérance d'un millième d'unité mineure : 19.99 * 100 vaut 1998.9999…
+  // Tolerance of a thousandth of a minor unit: 19.99 * 100 is 1998.9999…
   if (Math.abs(minor - major * factor) > 1e-6 * factor) return null;
   return minor;
 }
@@ -86,11 +86,11 @@ export function isPlanAmountValid(minor: number, currency: Currency): boolean {
   return minor >= min * factor && minor <= max * factor;
 }
 
-// --- Barème par défaut ------------------------------------------------------
+// --- Default price list -----------------------------------------------------
 //
-// Catégories et zones reprennent EXACTEMENT les clés de l'estimateur public
-// (src/lib/membership-content.ts) : le barème en base remplace l'estimation
-// indicative sans changer le vocabulaire de l'écran.
+// Categories and zones reuse EXACTLY the keys of the public estimator
+// (src/lib/membership-content.ts): the price list in the database replaces the
+// indicative estimate without changing the screen's vocabulary.
 export const PLAN_CATEGORIES = ['org', 'ind', 'jeu'] as const;
 export type PlanCategory = (typeof PLAN_CATEGORIES)[number];
 export const PLAN_ZONES = ['high', 'mid', 'low'] as const;
@@ -107,29 +107,29 @@ const DEFAULT_ZONE_FACTOR: Record<PlanZone, number> = {
   low: 0.25,
 };
 
-/** Barème proposé à l'initialisation, en unités MINEURES. L'administrateur
- *  l'ajuste ensuite dans l'écran « Formules » ; rien ne le relit après. */
+/** Price list proposed at initialization, in MINOR units. The administrator
+ *  then adjusts it in the "Formules" screen; nothing re-reads it afterwards. */
 export function defaultPlanAmounts(
   category: PlanCategory,
   zone: PlanZone,
 ): { amountEur: number; amountUsd: number } {
-  // Même arrondi aux 5 € que l'estimateur, plancher 5 € (un tarif à 0 € n'en
-  // est pas un).
+  // Same rounding to €5 as the estimator, €5 floor (a €0 price is not
+  // a price).
   const eur = Math.max(
     5,
     Math.round((DEFAULT_BASE_EUR[category] * DEFAULT_ZONE_FACTOR[zone]) / 5) *
       5,
   );
-  // Même chiffre rond en dollars : l'euro et le dollar flottent l'un contre
-  // l'autre, un taux figé dans le code serait faux dans six mois. C'est un
-  // point de départ, que l'administrateur fixe dans l'écran « Formules ».
+  // Same round figure in dollars: the euro and the dollar float against
+  // each other, a rate frozen in the code would be wrong in six months. It is a
+  // starting point, which the administrator sets in the "Formules" screen.
   return { amountEur: eur * 100, amountUsd: eur * 100 };
 }
 
 // --- Dates -------------------------------------------------------------------
 
-/** Ajoute des mois calendaires en UTC, en ramenant le jour au dernier jour du
- *  mois cible (31 janvier + 1 mois = 28/29 février, pas 3 mars). */
+/** Adds calendar months in UTC, clamping the day to the last day of the
+ *  target month (January 31 + 1 month = February 28/29, not March 3). */
 export function addMonthsUtc(ts: number, months: number): number {
   const d = new Date(ts);
   const day = d.getUTCDate();
@@ -151,18 +151,18 @@ export function addMonthsUtc(ts: number, months: number): number {
   return target.getTime();
 }
 
-/** Mois comptable « AAAA-MM » (UTC) d'un horodatage. */
+/** Accounting month "YYYY-MM" (UTC) of a timestamp. */
 export function monthKey(ts: number): string {
   const d = new Date(ts);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
-// --- Formatage « document » --------------------------------------------------
+// --- "Document" formatting ---------------------------------------------------
 //
-// Formatage SANS `Intl`, pour le reçu PDF : les polices standard du PDF ne
-// connaissent que l'encodage WinAnsi, et `Intl` en français sépare les milliers
-// par une espace fine insécable (U+202F) qu'elles ne savent pas dessiner. Le
-// reçu est un document comptable français : « 1 234,56 € », « 1 234,56 $ US ».
+// Formatting WITHOUT `Intl`, for the PDF receipt: the standard PDF fonts only
+// know the WinAnsi encoding, and French `Intl` separates thousands
+// with a narrow no-break space (U+202F) they cannot draw. The
+// receipt is a French accounting document: "1 234,56 €", "1 234,56 $ US".
 export function formatAmountFr(minor: number, currency: Currency): string {
   const exp = CURRENCY_EXPONENT[currency];
   const negative = minor < 0;
@@ -172,8 +172,8 @@ export function formatAmountFr(minor: number, currency: Currency): string {
   const grouped = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   const number =
     exp > 0 ? `${grouped},${String(frac).padStart(exp, '0')}` : grouped;
-  // « $ US » et non « $ » seul : le dollar canadien, australien… s'écrivent
-  // aussi « $ ».
+  // "$ US" and not "$" alone: the Canadian, Australian… dollars are also
+  // written "$".
   const symbol = currency === 'EUR' ? '€' : '$ US';
   return `${negative ? '-' : ''}${number} ${symbol}`;
 }

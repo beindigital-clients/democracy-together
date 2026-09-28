@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { MyCallApplications } from '@/components/projects/my-applications';
 import { MemberPageHeader, PAGE } from '@/components/programmes/shared';
 
-// Mes candidatures aux appels à projets (F-60).
+// My applications to calls for projects (F-60).
 function Page() {
   const t = useTranslations('projects');
   return (

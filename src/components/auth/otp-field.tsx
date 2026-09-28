@@ -9,13 +9,14 @@ import {
 } from '@/components/ui/input-otp';
 import { Field } from '@/components/ui/field';
 
-// Saisie du code à 6 chiffres (composant shadcn InputOTP), contrôlée. Contrôle
-// particulier — six cases pour un seul champ — donc rendu via la coquille
-// `Field` du système commun, qui lui remet libellé et rattachement ARIA.
+// Entry of the 6-digit code (shadcn InputOTP component), controlled. A
+// special control — six boxes for a single field — hence rendered through
+// the shared system's `Field` shell, which gives it its label and ARIA
+// association.
 //
-// `name` et `ref` traversent jusqu'à la saisie réelle : c'est ce qui permet à
-// `useFormFields` de tenir la valeur et de porter le focus ici quand le code
-// est le champ fautif.
+// `name` and `ref` pass through to the actual input: that is what lets
+// `useFormFields` hold the value and move focus here when the code
+// is the invalid field.
 export function OtpField({
   value,
   onChange,

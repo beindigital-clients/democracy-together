@@ -3,15 +3,15 @@ import { internalAction } from './_generated/server';
 import { internal } from './_generated/api';
 import { anonymizePdf } from './lib/pdfAnonymize';
 
-// COPIE ANONYMISÉE du fichier d'une version de manuscrit (F-43, double
-// aveugle). Planifiée à chaque nouvelle version (convex/peerReview.ts) :
-// l'auteur n'attend pas, et le relecteur ne reçoit le fichier qu'une fois
-// cette copie faite.
+// ANONYMIZED COPY of a manuscript version's file (F-43, double
+// blind). Scheduled on each new version (convex/peerReview.ts):
+// the author does not wait, and the reviewer only receives the file once
+// this copy is made.
 //
-// Runtime Convex par défaut (pas de `"use node"`) : pdf-lib est du JavaScript
-// pur. Un PDF illisible (chiffré, corrompu) n'est PAS transmis tel quel : la
-// version passe en `unreadable`, l'éditeur est averti dans sa file et décide
-// de libérer l'original après l'avoir vérifié.
+// Default Convex runtime (no `"use node"`): pdf-lib is pure
+// JavaScript. An unreadable PDF (encrypted, corrupted) is NOT passed on as is: the
+// version switches to `unreadable`, the editor is alerted in their queue and decides
+// whether to release the original after checking it.
 export const anonymizeVersion = internalAction({
   args: { versionId: v.id('manuscriptVersions') },
   returns: v.null(),

@@ -14,21 +14,21 @@ import { COUNTER, readCounter } from './lib/counters';
 import { ROLE_ORDER } from './lib/roles';
 import { resolveSignInUserId } from './lib/signIn';
 
-// `devAdmin.ts` n'était couvert par AUCUN test (issue #42), alors que la PR #4
-// a changé la nature même de `setRoleByEmail` : de `patch` à UPSERT.
+// `devAdmin.ts` was covered by NO test (issue #42), even though PR #4
+// changed the very nature of `setRoleByEmail`: from `patch` to UPSERT.
 //
-// Pourquoi ce changement : la fermeture de l'auto-inscription a supprimé le
-// dernier chemin qui CRÉAIT un compte. `setRoleByEmail` — le seul moyen
-// documenté d'amorcer un administrateur sur un déploiement de dev, et la
-// fixture de toutes les sessions E2E — échouait donc systématiquement sur
-// « Utilisateur introuvable » : un déploiement neuf n'avait plus aucun compte à
-// promouvoir. C'est le CAS DE CRÉATION qui débloque tout, et c'est précisément
-// celui que rien ne vérifiait.
+// Why this change: closing self-signup removed the
+// last path that CREATED an account. `setRoleByEmail` — the only
+// documented way to bootstrap an administrator on a dev deployment, and the
+// fixture for all E2E sessions — therefore systematically failed with
+// "Utilisateur introuvable": a new deployment no longer had any account to
+// promote. It is the CREATION CASE that unblocks everything, and it is precisely
+// the one nothing checked.
 //
-// Attention au périmètre : ce helper n'est PAS la procédure de production.
-// L'amorçage en service passe par `bootstrap:bootstrapAdmin` et sa variable
-// dédiée (TESTING.md, docs/deploiement.md § 5) ; ses tests vivent dans
-// convex/bootstrap.test.ts et ne sont pas redits ici.
+// Mind the scope: this helper is NOT the production procedure.
+// Bootstrapping in service goes through `bootstrap:bootstrapAdmin` and its dedicated
+// variable (TESTING.md, docs/deploiement.md § 5); its tests live in
+// convex/bootstrap.test.ts and are not repeated here.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -40,9 +40,9 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Convention de bootstrap.test.ts / otp.test.ts : on part de l'état d'un
-// déploiement de PRODUCTION, drapeau absent, et chaque test pose ce dont il a
-// besoin. Ici presque tous en ont besoin — la garde est le sujet d'un seul.
+// Convention from bootstrap.test.ts / otp.test.ts: we start from the state of a
+// PRODUCTION deployment, flag absent, and each test sets what it
+// needs. Here almost all need it — the guard is the subject of only one.
 let saved: string | undefined;
 
 beforeEach(() => {
@@ -67,8 +67,8 @@ describe('setRoleByEmail — le cas de CRÉATION (PR #4)', () => {
 
   it('crée le compte quand l’e-mail est inconnu, au lieu d’échouer', async () => {
     const t = convexTest(schema, modules);
-    // Base neuve : c'est l'état d'un déploiement de dev tout juste créé, et
-    // celui d'une préversion CI. Avant l'upsert, l'appel levait ici.
+    // Fresh database: this is the state of a freshly created dev deployment, and
+    // that of a CI preview. Before the upsert, the call threw here.
     expect(await utilisateurs(t)).toHaveLength(0);
 
     const res = await t.mutation(internal.devAdmin.setRoleByEmail, {
@@ -101,11 +101,11 @@ describe('setRoleByEmail — le cas de CRÉATION (PR #4)', () => {
     });
   });
 
-  // Le compteur `users` alimente le tableau de bord du back-office. Il est
-  // incrémenté DANS la transaction qui crée — donc il doit l'être une fois à la
-  // création, et JAMAIS sur une mise à jour : `setRoleByEmail` est rejoué à
-  // chaque exécution E2E (les helpers sont idempotents), et un incrément par
-  // passage ferait dériver l'écran un peu plus à chaque run.
+  // The `users` counter feeds the back-office dashboard. It is
+  // incremented IN the transaction that creates — so it must be incremented once at
+  // creation, and NEVER on an update: `setRoleByEmail` is replayed on
+  // every E2E run (the helpers are idempotent), and one increment per
+  // pass would make the screen drift a little more on each run.
   it('compte la création une seule fois, et ne compte pas les mises à jour', async () => {
     const t = convexTest(schema, modules);
     const compteur = () => t.run((ctx) => readCounter(ctx, COUNTER.USERS));
@@ -155,11 +155,11 @@ describe('setRoleByEmail — normalisation de l’adresse', () => {
     });
   });
 
-  // L'ENJEU de cette normalisation, et la raison pour laquelle elle mérite un
-  // test à elle : la décision de connexion (convex/lib/signIn.ts, appelée par
-  // le callback createOrUpdateUser) fait une égalité EXACTE sur l'adresse. Un
-  // compte amorcé sous « Fondateur@DT.TEST » ne serait JAMAIS retrouvé — un
-  // administrateur créé, visible en base, et hors d'état de se connecter.
+  // WHAT IS AT STAKE in this normalization, and the reason it deserves a
+  // test of its own: the sign-in decision (convex/lib/signIn.ts, called by
+  // the createOrUpdateUser callback) does an EXACT equality on the address. An
+  // account bootstrapped under "Fondateur@DT.TEST" would NEVER be found — an
+  // administrator created, visible in the database, and unable to sign in.
   it('le compte amorcé est retrouvé par la décision de connexion', async () => {
     const t = convexTest(schema, modules);
     const res = await t.mutation(internal.devAdmin.setRoleByEmail, {
@@ -167,7 +167,7 @@ describe('setRoleByEmail — normalisation de l’adresse', () => {
       role: 'admin',
     });
 
-    // L'adresse telle que Convex Auth la présentera au callback : normalisée.
+    // The address as Convex Auth will present it to the callback: normalized.
     expect(await t.run((ctx) => resolveSignInUserId(ctx.db, ADMIN))).toBe(
       res.userId,
     );
@@ -206,14 +206,14 @@ describe('clearRoleByEmail — reproduire un compte hérité', () => {
     await t.mutation(internal.devAdmin.clearRoleByEmail, { email: ADMIN });
 
     const ligne = await t.run((ctx) => ctx.db.get(userId));
-    // La nuance est tout le helper : la ligne doit redevenir EXACTEMENT celle
-    // d'un compte d'avant la PR #4 — champ absent. Un `role: null` serait un
-    // troisième état, que le validateur de schéma refuse et que le back-office
-    // n'a jamais eu à afficher.
+    // The nuance is the whole helper: the row must become EXACTLY that
+    // of an account from before PR #4 again — field absent. A `role: null` would be a
+    // third state, which the schema validator refuses and which the back office
+    // never had to display.
     expect(ligne).not.toBeNull();
-    // `Object.keys` plutôt que `Object.hasOwn` : la lib déclarée par
-    // convex/tsconfig.json s'arrête à ES2021. Et le message d'échec est plus
-    // parlant — il liste les colonnes réellement présentes.
+    // `Object.keys` rather than `Object.hasOwn`: the lib declared by
+    // convex/tsconfig.json stops at ES2021. And the failure message is more
+    // telling — it lists the columns actually present.
     expect(Object.keys(ligne!)).not.toContain('role');
     expect(ligne?.role).toBeUndefined();
   });
@@ -233,8 +233,8 @@ describe('purgeUserByEmail — le compteur revient à son point de départ', () 
   });
 
   it('défait exactement ce que la création avait compté', async () => {
-    // Sans cette symétrie, chaque cycle « amorcer puis purger » d'une suite E2E
-    // laisserait le compteur `users` un cran plus haut, définitivement.
+    // Without this symmetry, each "bootstrap then purge" cycle of an E2E suite
+    // would leave the `users` counter one notch higher, permanently.
     const t = convexTest(schema, modules);
     await t.mutation(internal.devAdmin.setRoleByEmail, {
       email: ADMIN,
@@ -267,14 +267,14 @@ describe('purgeUserByEmail — le compteur revient à son point de départ', () 
   });
 });
 
-// --- La surface de développement reste fermée --------------------------------
+// --- The development surface stays closed ------------------------------------
 //
-// Ces cinq mutations promeuvent un compte au rang d'administrateur, purgent un
-// utilisateur, suppriment des publications. Deux verrous les tiennent, et
-// aucun des deux n'était vérifié : la garde AUTH_DEV_OTP, et le fait qu'elles
-// soient INTERNES — donc injoignables par un client, quelle que soit la valeur
-// du drapeau. Même raisonnement que convex/dev-oracles.test.ts pour les
-// oracles de lecture, appliqué ici aux mutations qui ÉCRIVENT.
+// These five mutations promote an account to administrator rank, purge a
+// user, delete publications. Two locks hold them, and
+// neither was checked: the AUTH_DEV_OTP guard, and the fact that they
+// are INTERNAL — hence unreachable by a client, whatever the value
+// of the flag. Same reasoning as convex/dev-oracles.test.ts for the
+// read oracles, applied here to the mutations that WRITE.
 
 const MUTATIONS = [
   ['setRoleByEmail', setRoleByEmail, { email: ADMIN, role: 'admin' }],
@@ -311,9 +311,9 @@ describe('devAdmin — surface DEV/TEST verrouillée', () => {
   );
 
   it('l’amorçage ne laisse aucun code de connexion en clair', async () => {
-    // `setRoleByEmail` est gardé par AUTH_DEV_OTP, le drapeau qui ouvre
-    // l'écriture des codes OTP en clair. Il ne doit pas pour autant en écrire :
-    // promouvoir un compte n'émet aucun code.
+    // `setRoleByEmail` is guarded by AUTH_DEV_OTP, the flag that enables
+    // writing OTP codes in plaintext. It must not write any for all that:
+    // promoting an account issues no code.
     process.env.AUTH_DEV_OTP = 'true';
     const t = convexTest(schema, modules);
     await t.mutation(internal.devAdmin.setRoleByEmail, {

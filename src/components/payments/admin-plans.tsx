@@ -19,9 +19,9 @@ import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { formatDay, knownPaymentError } from './format';
 
-// ÉDITION DU BARÈME (F-27) — administrateurs. Une ligne par (catégorie,
-// zone), un montant par devise ; un champ vide = formule non proposée dans
-// cette devise. Chaque enregistrement est journalisé côté serveur.
+// FEE SCALE EDITING (F-27) — administrators. One row per (category,
+// zone), one amount per currency; an empty field = plan not offered in
+// that currency. Each save is logged server-side.
 
 type Row = {
   category: PlanCategory;

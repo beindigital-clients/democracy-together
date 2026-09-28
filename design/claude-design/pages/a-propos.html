@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
-/* ===== TOKENS (design system Democracy Together) ===== */
+/* ===== TOKENS (Democracy Together design system) ===== */
 :root{
   --paper:#F4F2EC; --surface:#FBFAF5; --surface-2:#EFEDE4;
   --ink:#16191F; --ink-soft:#454953; --muted:#646771;
@@ -54,7 +54,7 @@ img{max-width:100%;display:block}
 .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 
-/* ===== BOUTONS / TAGS ===== */
+/* ===== BUTTONS / TAGS ===== */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-size:15px;font-weight:600;line-height:1;padding:13px 22px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s}
 .btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--accent);color:var(--accent-contrast)}
@@ -82,7 +82,7 @@ img{max-width:100%;display:block}
 .burger{display:none;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:8px 11px;cursor:pointer;color:var(--ink)}
 @media(max-width:980px){.nav .links{display:none}.burger{display:inline-flex}.nav .links.open{display:flex;position:absolute;top:72px;left:0;right:0;flex-direction:column;background:var(--paper);border-bottom:1px solid var(--line);padding:var(--s4) var(--s5);gap:var(--s4)}}
 
-/* ===== EN-TÊTE DE PAGE ===== */
+/* ===== PAGE HEADER ===== */
 .phead{padding:var(--s8) 0 var(--s7);border-bottom:1px solid var(--line)}
 .crumb{font-size:13px;color:var(--muted);margin-bottom:var(--s4);font-family:var(--font-mono);letter-spacing:.04em}
 .crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--ink)}
@@ -112,13 +112,13 @@ img{max-width:100%;display:block}
 @media(max-width:900px){.vision-grid{grid-template-columns:1fr;gap:var(--s7)}}
 @media(max-width:560px){.axes{grid-template-columns:1fr}.axis{border-right:0}.axis:nth-child(3){border-bottom:1px solid var(--line)}}
 
-/* ===== SECTION GENERIQUE ===== */
+/* ===== GENERIC SECTION ===== */
 .sec-head{max-width:62ch}
 .sec-head .eyebrow{display:block;margin-bottom:var(--s3)}
 .sec-head h2{font-size:clamp(28px,3.4vw,40px)}
 .sec-head p{color:var(--ink-soft);margin-top:var(--s4)}
 
-/* ===== FONDATEURS ===== */
+/* ===== FOUNDERS ===== */
 .people{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s5);margin-top:var(--s7)}
 .person{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s5);display:flex;flex-direction:column}
 .person .ph{display:flex;align-items:center;gap:var(--s4);margin-bottom:var(--s4)}
@@ -133,7 +133,7 @@ img{max-width:100%;display:block}
 @media(max-width:880px){.people{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.people{grid-template-columns:1fr}}
 
-/* ===== GOUVERNANCE ===== */
+/* ===== GOVERNANCE ===== */
 .gov{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .gov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s5);margin-top:var(--s7)}
 .office{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;display:flex;flex-direction:column}
@@ -153,7 +153,7 @@ img{max-width:100%;display:block}
 .committees li b{font-family:var(--font-mono);font-size:11px;color:var(--accent-text);letter-spacing:.06em;min-width:34px}
 @media(max-width:900px){.gov-grid{grid-template-columns:1fr}.gov-info{grid-template-columns:1fr}}
 
-/* ===== FINANCEMENT ===== */
+/* ===== FUNDING ===== */
 .fin-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:var(--s7);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
 .fin{padding:var(--s5);border-right:1px solid var(--line);background:var(--surface)}
 .fin:last-child{border-right:0}
@@ -164,7 +164,7 @@ img{max-width:100%;display:block}
 @media(max-width:980px){.fin-grid{grid-template-columns:1fr 1fr}.fin{border-bottom:1px solid var(--line)}.fin:nth-child(2n){border-right:0}}
 @media(max-width:560px){.fin-grid{grid-template-columns:1fr}.fin{border-right:0}}
 
-/* ===== LIGNEE / REFERENCES ===== */
+/* ===== LINEAGE / REFERENCES ===== */
 .lineage{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .refrow{display:flex;flex-wrap:wrap;gap:0;margin-top:var(--s6);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .refrow .ref{flex:1 1 0;min-width:220px;padding:var(--s5) var(--s5);border-right:1px solid var(--line)}
@@ -173,7 +173,7 @@ img{max-width:100%;display:block}
 .refrow .ref .ds{font-size:13px;color:var(--muted);margin-top:6px}
 @media(max-width:760px){.refrow .ref{flex:1 1 100%;border-right:0;border-bottom:1px solid var(--line)}.refrow .ref:last-child{border-bottom:0}}
 
-/* ===== REPERES / FRISE ===== */
+/* ===== MILESTONES / TIMELINE ===== */
 .timeline{margin-top:var(--s7);border-left:2px solid var(--line-strong);padding-left:var(--s6)}
 .tl{position:relative;padding-bottom:var(--s6)}
 .tl:last-child{padding-bottom:0}
@@ -236,7 +236,7 @@ img{max-width:100%;display:block}
   </div>
 </nav>
 
-<!-- ===== EN-TÊTE ===== -->
+<!-- ===== HEADER ===== -->
 <header class="phead">
   <div class="wrap">
     <div class="crumb"><a href="rmdl-accueil.html">Accueil</a> / Le réseau</div>
@@ -300,7 +300,7 @@ img{max-width:100%;display:block}
   </div>
 </section>
 
-<!-- ===== FONDATEURS ===== -->
+<!-- ===== FOUNDERS ===== -->
 <section class="section" id="fondateurs" aria-labelledby="fond-t">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -380,7 +380,7 @@ img{max-width:100%;display:block}
   </div>
 </section>
 
-<!-- ===== GOUVERNANCE & STRUCTURE ===== -->
+<!-- ===== GOVERNANCE & STRUCTURE ===== -->
 <section class="gov section" id="gouvernance" aria-labelledby="gov-t">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -430,7 +430,7 @@ img{max-width:100%;display:block}
   </div>
 </section>
 
-<!-- ===== FINANCEMENT & TRANSPARENCE ===== -->
+<!-- ===== FUNDING & TRANSPARENCY ===== -->
 <section class="section" id="financement" aria-labelledby="fin-t">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -479,7 +479,7 @@ img{max-width:100%;display:block}
   </div>
 </section>
 
-<!-- ===== DANS LA LIGNÉE DE ===== -->
+<!-- ===== IN THE LINEAGE OF ===== -->
 <section class="lineage section" aria-labelledby="lin-t">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -504,7 +504,7 @@ img{max-width:100%;display:block}
   </div>
 </section>
 
-<!-- ===== PROCHAINES ÉTAPES / REPÈRES ===== -->
+<!-- ===== NEXT STEPS / MILESTONES ===== -->
 <section class="section" id="reperes" aria-labelledby="rep-t">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -537,7 +537,7 @@ img{max-width:100%;display:block}
   </div>
 </section>
 
-<!-- ===== BANDE CTA ===== -->
+<!-- ===== CTA BAND ===== -->
 <section class="ctaband" aria-labelledby="cta-t">
   <div class="wrap">
     <div class="inner reveal">

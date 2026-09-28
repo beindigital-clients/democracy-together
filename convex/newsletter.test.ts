@@ -4,9 +4,9 @@ import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 
-// L'abonnement public est gaté par reCAPTCHA via l'action `subscribe` ; la
-// logique (normalisation, dédup, rate-limit) vit dans `recordSubscription`,
-// que l'on teste directement ici (la porte captcha est couverte ailleurs).
+// Public subscription is gated by reCAPTCHA via the `subscribe` action; the
+// logic (normalization, dedup, rate-limit) lives in `recordSubscription`,
+// which we test directly here (the captcha gate is covered elsewhere).
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -27,14 +27,14 @@ describe('Newsletter — subscribe (F-18)', () => {
     });
     expect(r1.already).toBe(false);
 
-    // e-mail normalisé (trim + minuscule), une seule ligne
+    // email normalized (trim + lowercase), a single row
     const all = await t.run((ctx) =>
       ctx.db.query('newsletterSubscriptions').collect(),
     );
     expect(all).toHaveLength(1);
     expect(all[0].email).toBe('awa@example.org');
 
-    // ré-inscription = idempotente, pas de doublon
+    // re-subscription = idempotent, no duplicate
     const r2 = await t.mutation(internal.newsletter.recordSubscription, {
       email: 'awa@example.org',
     });
@@ -44,7 +44,7 @@ describe('Newsletter — subscribe (F-18)', () => {
         .length,
     ).toBe(1);
 
-    // adresse invalide rejetée
+    // invalid address rejected
     await expect(
       t.mutation(internal.newsletter.recordSubscription, {
         email: 'pas-un-email',
@@ -73,14 +73,14 @@ describe('Newsletter — désinscription par jeton', () => {
         .length,
     ).toBe(0);
 
-    // un second appel (lien cliqué deux fois) ne casse pas — mais dit que
-    // rien ne correspondait plus : la page affiche « lien expiré » plutôt
-    // qu'une confirmation à vide (R-09).
+    // a second call (link clicked twice) does not break — but says that
+    // nothing matched anymore: the page shows "link expired" rather
+    // than an empty confirmation (R-09).
     expect(await t.mutation(api.newsletter.unsubscribe, { token })).toEqual({
       ok: true,
       found: false,
     });
-    // jeton vide ignoré
+    // empty token ignored
     expect(await t.mutation(api.newsletter.unsubscribe, { token: '' })).toEqual(
       { ok: false, found: false },
     );
@@ -96,7 +96,7 @@ describe('Newsletter — désinscription par jeton', () => {
         token: '0000000000000000jeton-inexistant',
       }),
     ).toEqual({ ok: true, found: false });
-    // L'abonné témoin est toujours là.
+    // The control subscriber is still there.
     expect(
       await t.run((ctx) => ctx.db.query('newsletterSubscriptions').collect()),
     ).toHaveLength(1);
@@ -115,12 +115,12 @@ describe('Newsletter — campagnes (F-65)', () => {
     const t = convexTest(schema, modules);
     const args = { subject: 'Sujet', body: 'Corps suffisamment long.' };
 
-    // anonyme
+    // anonymous
     await expect(
       t.mutation(api.newsletter.createCampaign, args),
     ).rejects.toThrow();
 
-    // visiteur connecté
+    // signed-in visitor
     const visitorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
@@ -152,20 +152,20 @@ describe('Newsletter — campagnes (F-65)', () => {
   });
 
   it('envoie : draft → sending → sent, livre aux CONFIRMÉS (no-op en dev), compte les destinataires', async () => {
-    // Forcer le no-op : aucun e-mail réel quel que soit l'env de test. Depuis le
-    // correctif H3, le no-op doit être EXPLICITE (AUTH_DEV_OTP=true) — sans lui,
-    // l'absence de fournisseur est une erreur (voir le test suivant).
+    // Force the no-op: no real email whatever the test env. Since the
+    // H3 fix, the no-op must be EXPLICIT (AUTH_DEV_OTP=true) — without it,
+    // a missing provider is an error (see the next test).
     const prev = process.env.AUTH_EMAIL_PROVIDER;
     const prevDev = process.env.AUTH_DEV_OTP;
     process.env.AUTH_EMAIL_PROVIDER = 'none';
     process.env.AUTH_DEV_OTP = 'true';
-    // L'envoi passe par scheduler.runAfter(...) : il faut faire avancer les
-    // timers (faux timers) pour déclencher la mise en file et les lots.
+    // Sending goes through scheduler.runAfter(...): timers must be advanced
+    // (fake timers) to trigger the enqueueing and the batches.
     vi.useFakeTimers();
     try {
       const t = convexTest(schema, modules);
-      // Double opt-in (chantier diffusion) : deux abonnés CONFIRMÉS, et une
-      // attente qui ne doit rien recevoir.
+      // Double opt-in (diffusion workstream): two CONFIRMED subscribers, and one
+      // pending that must receive nothing.
       await t.run(async (ctx) => {
         for (const email of ['a@dt.test', 'b@dt.test']) {
           await ctx.db.insert('newsletterSubscriptions', {
@@ -193,7 +193,7 @@ describe('Newsletter — campagnes (F-65)', () => {
         campaignId: id,
       });
       expect(r.ok).toBe(true);
-      // statut intermédiaire avant que les fonctions planifiées ne tournent
+      // intermediate status before the scheduled functions run
       expect((await t.run((ctx) => ctx.db.get(id)))?.status).toBe('sending');
 
       await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -204,7 +204,7 @@ describe('Newsletter — campagnes (F-65)', () => {
       expect(done?.failedCount).toBe(0);
       expect(done?.totalCount).toBe(2);
 
-      // ré-envoyer une campagne déjà partie échoue
+      // re-sending a campaign that has already gone out fails
       await expect(
         ed.mutation(api.newsletter.sendCampaign, { campaignId: id }),
       ).rejects.toThrow();
@@ -217,12 +217,12 @@ describe('Newsletter — campagnes (F-65)', () => {
     }
   });
 
-  // Garde anti-régression de l'audit H3 : sans fournisseur e-mail configuré, une
-  // campagne ne doit JAMAIS être marquée « sent » avec un compteur de
-  // destinataires mensonger. Depuis la campagne du 27/09 (R-07), l'envoi est
-  // REFUSÉ avant même de partir — par un code que l'écran traduit — et le
-  // brouillon reste un brouillon ; la livraison, appelée malgré tout, marque
-  // toujours 'error' sans rien livrer.
+  // Regression guard for audit H3: without a configured email provider, a
+  // campaign must NEVER be marked "sent" with a misleading recipient
+  // count. Since the 27/09 campaign (R-07), sending is
+  // REFUSED before it even starts — with a code the screen translates — and the
+  // draft stays a draft; delivery, if called anyway, still marks
+  // 'error' without delivering anything.
   it('sans fournisseur (production) : l’envoi est refusé, et la livraison forcée part en erreur, pas en « sent »', async () => {
     const prev = process.env.AUTH_EMAIL_PROVIDER;
     const prevDev = process.env.AUTH_DEV_OTP;
@@ -257,9 +257,9 @@ describe('Newsletter — campagnes (F-65)', () => {
         status: 'draft',
       });
 
-      // La livraison elle-même reste fail-closed (audit H3) : on force la
-      // campagne en envoi (comme si le fournisseur avait disparu en cours de
-      // route) et on laisse la mise en file et les lots tourner.
+      // Delivery itself stays fail-closed (audit H3): we force the
+      // campaign into sending (as if the provider had vanished midway)
+      // and let the enqueueing and batches run.
       await t.run((ctx) =>
         ctx.db.patch(id, {
           status: 'sending',

@@ -14,10 +14,10 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
-// notifications, signalements) : le mode A POSTERIORI y est réglé
-// explicitement, comme le ferait l'administrateur. La modération a priori —
-// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// These tests cover the PUBLISHED feed and its effects (comments, counters,
+// notifications, reports): POST-moderation mode is set
+// explicitly, as the administrator would. Pre-moderation —
+// the default since the community workstream (F-45) — has its own tests
 // (convex/communaute-moderation.test.ts).
 async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
   await t.run(async (ctx) => {
@@ -36,12 +36,12 @@ async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
   return t;
 }
 
-// Déni de service de la file de modération (audit M1 / pentest H-2).
-// `reportContent` acceptait un `targetId` chaîne ARBITRAIRE. `listReports` fait
-// ensuite un ctx.db.get(targetId) : un identifiant malformé faisait échouer la
-// requête pour TOUS les modérateurs — et comme un signalement ne se résout que
-// depuis cette page, la file devenait définitivement inaccessible. N'importe
-// quel compte authentifié pouvait donc la condamner.
+// Denial of service of the moderation queue (audit M1 / pentest H-2).
+// `reportContent` accepted an ARBITRARY string `targetId`. `listReports` then
+// does a ctx.db.get(targetId): a malformed identifier made the
+// query fail for ALL moderators — and since a report can only be resolved
+// from that page, the queue became permanently inaccessible. Any
+// authenticated account could therefore lock it.
 
 async function userWith(
   t: ReturnType<typeof convexTest>,
@@ -80,7 +80,7 @@ describe('Signalements Tribune — validation de la cible (audit M1)', () => {
 
   it('refuse un identifiant bien formé mais inexistant', async () => {
     const { t, membre } = await setup();
-    // identifiant syntaxiquement valide pour la table, mais supprimé
+    // identifier syntactically valid for the table, but deleted
     const ghost = await t.run(async (ctx) => {
       const id = await ctx.db.insert('tribunePosts', {
         theme: 'transitions',
@@ -108,7 +108,7 @@ describe('Signalements Tribune — validation de la cible (audit M1)', () => {
     const { membre, postId } = await setup();
     await expect(
       membre.as.mutation(api.tribune.reportContent, {
-        targetType: 'comment', // ... alors que l'id est celui d'un post
+        targetType: 'comment', // ... whereas the id is that of a post
         targetId: postId,
       }),
     ).rejects.toThrow('INVALID_TARGET');
@@ -164,17 +164,17 @@ describe('Signalements Tribune — validation de la cible (audit M1)', () => {
 });
 
 describe('Signalements Tribune — la file résiste aux données déjà corrompues', () => {
-  // Le correctif doit aussi GUÉRIR : une ligne malformée écrite avant le
-  // correctif ne doit plus condamner la file pour tous les modérateurs.
+  // The fix must also HEAL: a malformed row written before the
+  // fix must no longer lock the queue for all moderators.
   it('listReports ne lève pas sur une ligne corrompue préexistante', async () => {
     const { t, membre, mod, postId } = await setup();
-    // signalement légitime
+    // legitimate report
     await membre.as.mutation(api.tribune.reportContent, {
       targetType: 'post',
       targetId: postId,
     });
-    // ligne empoisonnée insérée directement en base (héritage d'avant le
-    // correctif) : targetId n'est pas un identifiant Convex
+    // poisoned row inserted directly into the database (legacy from before the
+    // fix): targetId is not a Convex identifier
     await t.run((ctx) =>
       ctx.db.insert('tribuneReports', {
         targetType: 'post',
@@ -187,7 +187,7 @@ describe('Signalements Tribune — la file résiste aux données déjà corrompu
 
     const reports = await mod.as.query(api.tribune.listReports, {});
     expect(reports).toHaveLength(2);
-    // la cible illisible est signalée comme telle, la file reste exploitable
+    // the unreadable target is flagged as such, the queue remains usable
     expect(reports.some((r) => r.excerpt === '(supprimé)')).toBe(true);
     expect(reports.some((r) => r.excerpt === 'Sur les transitions')).toBe(true);
   });
@@ -213,7 +213,7 @@ describe('Signalements Tribune — la file résiste aux données déjà corrompu
       } as never),
     );
 
-    // « retirer » ne doit pas lever, même si la cible est introuvable
+    // "retirer" must not throw, even if the target cannot be found
     await mod.as.mutation(api.tribune.resolveReport, {
       reportId: poisoned,
       action: 'remove',
@@ -223,7 +223,7 @@ describe('Signalements Tribune — la file résiste aux données déjà corrompu
       action: 'remove',
     });
 
-    // la file est vidée : plus aucun signalement bloquant
+    // the queue is emptied: no blocking report left
     expect(await mod.as.query(api.tribune.listReports, {})).toHaveLength(0);
   });
 });

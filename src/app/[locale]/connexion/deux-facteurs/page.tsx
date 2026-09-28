@@ -12,17 +12,17 @@ import { FormError, TextField } from '@/components/ui/field';
 import { errorCode } from '@/lib/account-errors';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// SAISIE DU SECOND FACTEUR APRÈS CONNEXION (chantier comptes, 2FA).
+// SECOND-FACTOR ENTRY AFTER SIGN-IN (accounts workstream, 2FA).
 //
-// La connexion par mot de passe ou par code e-mail a ouvert une session ; tant
-// que cette session n'a pas présenté un code TOTP (ou un code de secours), le
-// serveur lui refuse tout (convex/lib/rbac.ts). La garde des espaces privés
-// renvoie ici avec la page demandée en paramètre `suite`.
+// Sign-in by password or by e-mail code opened a session; until that
+// session has presented a TOTP code (or a backup code), the server refuses
+// it everything (convex/lib/rbac.ts). The private-area guard sends the user
+// back here with the requested page in the `suite` parameter.
 
 const ERRORS = ['INVALID_CODE', 'REPLAYED', 'NOT_ENABLED', 'RATE_LIMITED'];
 
-// Chemin de retour : un chemin INTERNE seulement (pas de `//hote`), sinon ce
-// paramètre deviendrait une redirection ouverte.
+// Return path: an INTERNAL path only (no `//host`), otherwise this
+// parameter would become an open redirect.
 function safeNext(raw: string | null): string {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//')) {
     return '/espace-membre';

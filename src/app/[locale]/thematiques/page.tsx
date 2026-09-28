@@ -39,11 +39,11 @@ export default async function ThematiquesPage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const t = await getTranslations('thematiques');
-  const tl = await getTranslations('library'); // libellés themes.*
-  // Synthèses : la table `contentThemes` (ordre et textes édités au
-  // back-office), ou le texte codé en repli. Backend injoignable -> les
-  // synthèses codées restent servies, avec un compte à zéro : les perdre pour
-  // un décompte serait payer cher une donnée d'appoint (F-02).
+  const tl = await getTranslations('library'); // themes.* labels
+  // Overviews: the `contentThemes` table (order and texts edited in the
+  // back office), or the hard-coded fallback text. Backend unreachable -> the
+  // hard-coded overviews are still served, with a zero count: losing them for
+  // a count would be a high price to pay for secondary data (F-02).
   const { items: syntheses } = await loadThemes(loc);
   const { facets } = await fetchOrFallback(
     'thematiques',

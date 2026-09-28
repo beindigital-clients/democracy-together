@@ -14,7 +14,7 @@ import {
   useDateFormat,
 } from '@/components/programmes/shared';
 
-// « Mes candidatures » aux appels (F-60) et appels ouverts à cet instant.
+// "Mes candidatures" to calls (F-60) and calls open right now.
 export function MyCallApplications() {
   const t = useTranslations('projects');
   const fmt = useDateFormat();

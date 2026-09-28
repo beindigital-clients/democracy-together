@@ -3,11 +3,11 @@ import { aboutPageQuery } from '@dt-sanity/lib/queries';
 import { aboutFallback, type AboutContent } from '@/lib/about-content';
 import type { Locale } from '@/i18n/routing';
 
-// Page À propos (F-11/F-12) côté Sanity : un document `aboutPage` par langue,
-// édité par l'équipe (F-62). Lecture publique cachée (client CDN). Fallback
-// **par section** sur le contenu local : si une section manque côté Sanity (ou
-// si Sanity est indisponible), on rend la version locale — la page ne casse
-// jamais et le SSR reste rapide.
+// About page (F-11/F-12) on the Sanity side: one `aboutPage` document per language,
+// edited by the team (F-62). Cached public read (CDN client). Fallback
+// **per section** to the local content: if a section is missing in Sanity (or
+// if Sanity is unavailable), the local version is rendered — the page never
+// breaks and SSR stays fast.
 export async function getAboutContent(locale: Locale): Promise<AboutContent> {
   const fb = aboutFallback(locale);
   let doc: Partial<AboutContent> | null;

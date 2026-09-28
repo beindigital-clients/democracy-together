@@ -9,22 +9,22 @@ import {
   yearOf,
 } from './lib/searchText';
 
-// MIGRATION : REMPLISSAGE DES MEULES DE RECHERCHE (chantier diffusion).
+// MIGRATION: FILLING THE SEARCH HAYSTACKS (diffusion workstream).
 //
-// Les documents écrits AVANT l'ajout des index `search_text` ne portent pas
-// de `searchText` : l'index les ignore, et la recherche globale ne les trouve
-// pas. Cette migration recalcule la meule de chaque document, table par
-// table, par pages — une mutation ne lit qu'un nombre borné de documents, la
-// suite est replanifiée.
+// Documents written BEFORE the `search_text` indexes were added do not carry
+// `searchText`: the index ignores them, and the global search does not find
+// them. This migration recomputes each document's haystack, table by
+// table, in pages — a mutation only reads a bounded number of documents, the
+// rest is rescheduled.
 //
-// IDEMPOTENTE : elle RECALCULE, elle ne se contente pas de combler les trous.
-// La relancer après avoir modifié une fonction de meule (un champ de plus
-// dans `publicationSearchText`, par exemple) met tout l'existant à jour. Un
-// document dont la meule est déjà juste n'est pas réécrit.
+// IDEMPOTENT: it RECOMPUTES, it does not just fill the gaps.
+// Re-running it after changing a haystack function (one more field
+// in `publicationSearchText`, for example) updates all existing data. A
+// document whose haystack is already correct is not rewritten.
 //
-// Lancement, une fois après le déploiement (contexte de confiance) :
+// Run once after deployment (trusted context):
 //   npx convex run searchIndexing:backfill '{}'
-// ou pour une seule table :
+// or for a single table:
 //   npx convex run searchIndexing:backfill '{"table":"publications"}'
 
 const TABLES = ['publications', 'organizations', 'tribunePosts'] as const;
@@ -35,8 +35,8 @@ export const backfill = internalMutation({
   args: {
     table: v.optional(tableValidator),
     cursor: v.optional(v.union(v.string(), v.null())),
-    // Enchaîne sur la table suivante une fois celle-ci finie (lancement sans
-    // `table` : toutes les tables).
+    // Moves on to the next table once this one is done (run without
+    // `table`: all tables).
     chain: v.optional(v.boolean()),
   },
   returns: v.object({

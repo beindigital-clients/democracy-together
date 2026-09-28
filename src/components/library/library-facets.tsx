@@ -16,9 +16,9 @@ type Facets = {
   access: Facet[];
 };
 
-// Facettes de la bibliothèque (F-32) — multi-sélection rendue côté serveur :
-// chaque option est un lien (GET) qui bascule sa valeur dans l'URL. Fonctionne
-// sans JavaScript, reste partageable et indexable (cohérent avec l'annuaire).
+// Library facets (F-32) — server-rendered multi-select:
+// each option is a (GET) link that toggles its value in the URL. Works
+// without JavaScript, stays shareable and indexable (consistent with the directory).
 export async function LibraryFacets({
   facets,
   filters,

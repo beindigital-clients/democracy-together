@@ -19,26 +19,26 @@ import {
   resourceKindValidator,
 } from './lib/programmes';
 
-// Boîte à outils et parcours d'apprentissage (F-56, F-57).
+// Toolbox and learning paths (F-56, F-57).
 //
-// Une RESSOURCE est un guide, une fiche, un modèle, une vidéo ou un lien, avec
-// ses thèmes, sa langue, son niveau, et un fichier OU une adresse. Un PARCOURS
-// ordonne des étapes ; une étape pointe une ressource de la boîte, ou une
-// adresse — typiquement un replay, que le chantier « contenus » gère : le
-// parcours le référence, il ne le recopie pas.
+// A RESOURCE is a guide, a sheet, a template, a video or a link, with
+// its themes, language, level, and a file OR an address. A PATH
+// orders steps; a step points to a toolbox resource, or an
+// address — typically a replay, which the "content" workstream manages: the
+// path references it, it does not copy it.
 //
-// Un compte connecté s'inscrit à un parcours, coche ses étapes, et obtient une
-// ATTESTATION quand toutes le sont (page imprimable : aucune dépendance PDF
-// n'est présente dans le dépôt, et une page d'impression suffit à la
-// produire). La progression d'un membre n'est lisible que par lui.
+// A signed-in account enrolls in a path, ticks its steps, and obtains a
+// CERTIFICATE when all are ticked (printable page: no PDF dependency
+// is present in the repo, and a print page is enough to
+// produce it). A member's progress is readable only by them.
 //
-// Édition : rang ÉDITEUR, comme les autres contenus éditoriaux.
+// Editing: EDITOR rank, like the other editorial content.
 
 const HOUR = 60 * 60 * 1000;
 const PROGRESS_LIMIT = { max: 300, windowMs: HOUR };
 const MAX_RESOURCE_BYTES = 20 * 1024 * 1024;
-// Types acceptés pour un fichier de ressource, relus sur les métadonnées
-// RÉELLES du stockage (jamais le type annoncé par le formulaire).
+// Accepted types for a resource file, read from the ACTUAL storage
+// metadata (never the type claimed by the form).
 const RESOURCE_FILE_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -100,7 +100,7 @@ const stepValidator = v.object({
   order: v.number(),
   title: v.string(),
   note: v.union(v.string(), v.null()),
-  // Ressource liée (publiée), sinon adresse.
+  // Linked (published) resource, otherwise address.
   resource: v.union(resourceValidator, v.null()),
   url: v.union(v.string(), v.null()),
 });
@@ -205,7 +205,7 @@ export const getPath = query({
   },
 });
 
-// --- Progression (compte connecté) ------------------------------------------
+// --- Progress (signed-in account) ------------------------------------------
 
 async function myEnrollment(
   ctx: QueryCtx,
@@ -220,8 +220,8 @@ async function myEnrollment(
     .unique();
 }
 
-// La progression rendue est TOUJOURS celle de l'appelant : aucun argument ne
-// désigne un autre membre, il n'y a donc rien à deviner.
+// The progress returned is ALWAYS the caller's: no argument
+// designates another member, so there is nothing to guess.
 export const myPathProgress = query({
   args: { pathId: v.id('learningPaths') },
   returns: v.union(
@@ -330,9 +330,9 @@ async function refreshCompletion(
       certificateCode: certificateCode(enrollment._id, completedAt),
     });
   } else if (!complete && enrollment.completedAt !== undefined) {
-    // Une étape décochée retire l'attestation : elle certifie un parcours
-    // ACHEVÉ, pas un parcours commencé. (Une étape AJOUTÉE après coup ne la
-    // retire pas : l'attestation date ce que le parcours était alors.)
+    // An unticked step removes the certificate: it certifies a COMPLETED
+    // path, not a started one. (A step ADDED afterwards does not
+    // remove it: the certificate records what the path was at the time.)
     await ctx.db.patch(enrollment._id, {
       completedAt: undefined,
       certificateCode: undefined,
@@ -390,8 +390,8 @@ export const getCertificate = query({
   handler: async (ctx, { enrollmentId }) => {
     const user = await requireUser(ctx);
     const e = await ctx.db.get(enrollmentId);
-    // L'attestation d'un autre membre répond comme une attestation
-    // inexistante : l'identifiant ne révèle ni son titulaire ni sa progression.
+    // Another member's certificate responds like a nonexistent
+    // certificate: the identifier reveals neither its holder nor their progress.
     if (!e || e.userId !== user._id) throw new ConvexError('NOT_FOUND');
     if (e.completedAt === undefined || !e.certificateCode)
       throw new ConvexError('NOT_COMPLETED');
@@ -409,7 +409,7 @@ export const getCertificate = query({
   },
 });
 
-// --- Back-office (éditeur et au-dessus) ---------------------------------------
+// --- Back office (editor and above) ---------------------------------------
 
 export const generateResourceUploadUrl = mutation({
   args: {},
@@ -504,8 +504,8 @@ export const saveResource = mutation({
       )
         throw new ConvexError('INVALID_FILE');
     }
-    // Un lien EST une adresse ; les autres formats ont un fichier ou une
-    // adresse (une vidéo hébergée ailleurs, un modèle partagé en ligne).
+    // A link IS an address; the other formats have a file or an
+    // address (a video hosted elsewhere, a template shared online).
     if (args.kind === 'lien' && !url) throw new ConvexError('URL_REQUIRED');
     if (!url && !fileId) throw new ConvexError('FILE_OR_URL_REQUIRED');
 
@@ -663,8 +663,8 @@ export const setPathStatus = mutation({
     const editor = await requireNetworkRole(ctx, 'editeur');
     const p = await ctx.db.get(pathId);
     if (!p) throw new ConvexError('NOT_FOUND');
-    // Un parcours publié sans étape serait une page vide qu'on ne peut pas
-    // achever — donc une attestation impossible.
+    // A path published without steps would be an empty page that cannot be
+    // completed — hence an impossible certificate.
     if (status === 'published' && (await stepsOf(ctx, pathId)).length === 0)
       throw new ConvexError('NO_STEPS');
     await ctx.db.patch(pathId, { status, updatedAt: Date.now() });
@@ -752,8 +752,8 @@ export const removeStep = mutation({
     const editor = await requireNetworkRole(ctx, 'editeur');
     const step = await ctx.db.get(stepId);
     if (!step) throw new ConvexError('NOT_FOUND');
-    // La progression attachée à l'étape disparaît avec elle ; les inscrits
-    // dont c'était la seule étape restante achèvent alors le parcours.
+    // The progress attached to the step disappears with it; enrollees
+    // for whom it was the only remaining step then complete the path.
     const enrollments = await ctx.db
       .query('learningEnrollments')
       .withIndex('by_path_and_user', (q) => q.eq('pathId', step.pathId))

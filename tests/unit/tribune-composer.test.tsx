@@ -6,19 +6,19 @@ import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
 import { routing } from '@/i18n/routing';
 
-// Issue #35 — un billet de Tribune est rédigé dans UNE langue et n'est jamais
-// traduit : c'est cette langue, déclarée ici, qui fixera le canonical de la
-// fiche. Elle est PRÉ-REMPLIE avec la langue de l'interface, pas déduite
-// d'elle : un membre qui navigue en français peut écrire en anglais, et lui
-// seul le sait.
+// Issue #35 — a Tribune post is written in ONE language and is never
+// translated: it is this language, declared here, that will set the page's
+// canonical. It is PRE-FILLED with the interface language, not inferred
+// from it: a member browsing in French can write in English, and only they
+// know it.
 
-// Pas de setupFiles global dans ce projet (cf. directory-fields.test.tsx).
+// No global setupFiles in this project (see directory-fields.test.tsx).
 afterEach(cleanup);
 
 const createPost = vi.fn();
-// Une seule réponse pour toutes les requêtes du composer : l'utilisateur
-// (`users.current`) ET la règle de modération (`tribune.moderationPolicy`),
-// dont seul `postMode` est lu. Le mode est réglable par test.
+// A single response for all the composer's queries: the user
+// (`users.current`) AND the moderation rule (`tribune.moderationPolicy`),
+// of which only `postMode` is read. The mode is configurable per test.
 const policy = { postMode: 'a_priori' as 'a_priori' | 'a_posteriori' };
 vi.mock('convex/react', () => ({
   useQuery: () => ({
@@ -83,9 +83,9 @@ describe('Composer de la Tribune — langue du billet (#35)', () => {
   });
 
   it('propose exactement les langues servies par le site', () => {
-    // Dérivé de `routing.locales` plutôt que recopié : c'est ce que le titre
-    // du test affirme, et une sixième langue ne doit pas faire échouer ce
-    // fichier — elle doit apparaître dans le sélecteur.
+    // Derived from `routing.locales` rather than copied: that is what the test's
+    // title claims, and a sixth language must not make this
+    // file fail — it must appear in the selector.
     const select = openComposer('fr');
     expect([...select.options].map((o) => o.value)).toEqual([
       ...routing.locales,
@@ -93,13 +93,13 @@ describe('Composer de la Tribune — langue du billet (#35)', () => {
   });
 });
 
-// Campagne du 27/09 — trois anomalies du composer, corrigées ensemble :
-//   A-05  aucun compteur ni limite visible ; 12 000 caractères acceptés en
-//         « Brève », 21 000 refusés sous un message générique (F-46) ;
-//   A-09  « Annuler » ré-affichait le brouillon et le format précédents ;
-//   A-11  rien ne disait à l'auteur que son billet est publié immédiatement.
-// Les nombres viennent de `TRIBUNE_BODY` — la même constante que le serveur —
-// et le texte attendu est rendu par le catalogue, pas recopié à la main.
+// 27/09 campaign — three composer anomalies, fixed together:
+//   A-05  no visible counter or limit; 12,000 characters accepted as a
+//         "Brève", 21,000 refused under a generic message (F-46);
+//   A-09  "Annuler" redisplayed the previous draft and format;
+//   A-11  nothing told authors that their post is published immediately.
+// The numbers come from `TRIBUNE_BODY` — the same constant as the server —
+// and the expected text is rendered by the catalog, not copied by hand.
 import { TRIBUNE_BODY } from '@convex/lib/validation';
 
 const nombreFr = (n: number) => new Intl.NumberFormat('fr').format(n);
@@ -125,14 +125,14 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
     expect(compteur()).toBe(
       message('bodyCount', { count: 11, max: TRIBUNE_BODY.court.max }),
     );
-    // « Analyse » : la borne passe à 20 000.
+    // "Analyse": the limit goes up to 20,000.
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldFormat), {
       target: { value: 'fond' },
     });
     expect(compteur()).toBe(
       message('bodyCount', { count: 11, max: TRIBUNE_BODY.fond.max }),
     );
-    // Le `maxLength` du champ est celui du format courant.
+    // The field's `maxLength` is that of the current format.
     expect(
       screen.getByLabelText<HTMLTextAreaElement>(fr.tribune.fieldBody)
         .maxLength,
@@ -148,9 +148,9 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldTitle), {
       target: { value: 'Une analyse longue' },
     });
-    // 10 001 caractères tiennent dans une Analyse — pas dans une Brève. Un
-    // `maxLength` seul ne tronque pas ce qui est déjà saisi : c'est le cas
-    // mesuré (12 000 caractères publiés en « Brève » sans un mot).
+    // 10,001 characters fit in an Analyse — not in a Brève. A
+    // `maxLength` alone does not truncate what has already been entered: that is the case
+    // measured (12,000 characters published as a "Brève" without a word).
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldBody), {
       target: { value: 'a'.repeat(TRIBUNE_BODY.court.max + 1) },
     });
@@ -163,8 +163,8 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
     fireEvent.click(
       screen.getByRole('button', { name: fr.tribune.submitForReview }),
     );
-    // Comparaison sur `textContent` : le séparateur de milliers français est
-    // une espace fine insécable, que le normaliseur de `findByText` replie.
+    // Comparison on `textContent`: the French thousands separator is
+    // a narrow no-break space, which `findByText`'s normalizer collapses.
     expect((await screen.findByRole('alert')).textContent).toBe(
       message('errBodyTooLong', { max: TRIBUNE_BODY.court.max }),
     );
@@ -210,7 +210,7 @@ describe('Composer de la Tribune — « Annuler » et brouillon (A-09)', () => {
 
     const dialogue = screen.getByRole('dialog');
     expect(dialogue.textContent).toContain(fr.tribune.cancelConfirmTitle);
-    // « Continuer à écrire » : rien n'est perdu.
+    // "Continuer à écrire": nothing is lost.
     fireEvent.click(
       screen.getByRole('button', { name: fr.tribune.cancelConfirmNo }),
     );
@@ -218,7 +218,7 @@ describe('Composer de la Tribune — « Annuler » et brouillon (A-09)', () => {
       screen.getByLabelText<HTMLTextAreaElement>(fr.tribune.fieldBody).value,
     ).toBe(texte);
 
-    // « Abandonner » : le composer se referme, et rouvre vierge.
+    // "Abandonner": the composer closes, and reopens blank.
     fireEvent.click(screen.getByRole('button', { name: fr.tribune.cancel }));
     fireEvent.click(
       screen.getByRole('button', { name: fr.tribune.cancelConfirmYes }),
@@ -230,10 +230,10 @@ describe('Composer de la Tribune — « Annuler » et brouillon (A-09)', () => {
   });
 });
 
-// A-11 puis F-45 : l'auteur doit savoir ce qu'il advient de son billet. En
-// modération A PRIORI (le défaut), il attend la validation — l'écran le dit
-// AVANT l'envoi (bouton « Soumettre à la modération ») et APRÈS ; en a
-// posteriori, il est publié aussitôt.
+// A-11 then F-45: authors must know what happens to their post. Under
+// PRE-moderation (the default), it awaits approval — the screen says so
+// BEFORE sending ("Soumettre à la modération" button) and AFTER; under
+// post-moderation, it is published immediately.
 describe('Composer de la Tribune — sort du billet annoncé (A-11, F-45)', () => {
   function fill() {
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldTitle), {

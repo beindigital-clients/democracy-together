@@ -10,8 +10,8 @@ import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { PathSteps } from '@/components/toolbox/path-steps';
 
-// Parcours d'apprentissage (F-57) : étapes ordonnées, progression et
-// attestation pour un compte connecté.
+// Learning path (F-57): ordered steps, progress and certificate for a
+// signed-in account.
 
 export async function generateMetadata({
   params,

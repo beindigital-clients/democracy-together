@@ -8,27 +8,27 @@ test.skip(
   'une seule passe suffit : la palette est la même',
 );
 
-// MESURE DU CONTRASTE, reprise à zéro (arbitrage client du 23/09).
+// CONTRAST MEASUREMENT, redone from scratch (client decision of 23/09).
 //
-// Les premiers chiffres de l'audit avaient été RÉTRACTÉS : ils comptaient du
-// texte à opacité nulle (animations non déroulées) et annonçaient des
-// centaines de violations. Repris proprement — Reveals déroulés, un thème à la
-// fois, et seulement ce qu'axe attribue à `color-contrast` — il en reste
-// quelques dizaines, avec pour chacune les deux couleurs et le ratio.
+// The audit's first numbers had been RETRACTED: they counted
+// zero-opacity text (animations not played) and reported
+// hundreds of violations. Redone properly — Reveals played, one theme at a
+// time, and only what axe attributes to `color-contrast` — a few dozen
+// remain, each with its two colors and ratio.
 //
-// Ce fichier RAPPORTE, il ne tranche pas : `color-contrast` reste hors du
-// verdict (cf. `_a11y.ts`) tant que la palette n'a pas été arbitrée. Sa raison
-// d'être est qu'un arbitrage de couleurs se prend sur des paires et des
-// ratios, pas sur un nombre global — et que ce nombre global, la première
-// fois, était faux.
+// This file REPORTS, it does not decide: `color-contrast` stays out of the
+// verdict (see `_a11y.ts`) until the palette has been decided. Its reason
+// for being is that a color decision is made on pairs and
+// ratios, not on a global number — and that global number, the first
+// time, was wrong.
 //
-// CE QU'IL A DÉJÀ SERVI À TROUVER : en sombre, l'univers « jeunes » gardait
-// ses jetons de thème clair, parce que `[data-theme][data-universe]` exige les
-// deux attributs sur le même élément alors qu'ils vivent sur <html> et sur un
-// <div> de page. 14 nœuds sur 35 venaient de là. Corrigé dans globals.css.
+// WHAT IT HAS ALREADY HELPED FIND: in dark mode, the "jeunes" universe kept
+// its light-theme tokens, because `[data-theme][data-universe]` requires both
+// attributes on the same element whereas they live on <html> and on a
+// page <div>. 14 nodes out of 35 came from there. Fixed in globals.css.
 for (const theme of ['light', 'dark'] as const) {
   test(`contraste réel — thème ${theme}`, async ({ page }) => {
-    test.setTimeout(900_000); // 24 routes × (chargement + déroulement + analyse)
+    test.setTimeout(900_000); // 24 routes × (load + scroll-through + analysis)
     const parPaire = new Map<string, { n: number; ou: Set<string> }>();
     for (const route of PUBLIQUES) {
       await page.goto(`/fr${route}`, { waitUntil: 'domcontentloaded' });

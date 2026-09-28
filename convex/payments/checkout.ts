@@ -44,18 +44,18 @@ import {
   type ProviderId,
 } from '../lib/payments/validators';
 
-// DEMANDES DE PAIEMENT (F-27/F-28) — du formulaire au prestataire.
+// PAYMENT REQUESTS (F-27/F-28) — from the form to the provider.
 //
-// Deux temps, parce qu'une mutation n'a pas le réseau : une internalMutation
-// VALIDE et enregistre la demande (bornes, plafonds, montant du barème), puis
-// l'action ouvre la session chez le prestataire et renvoie l'adresse où
-// rediriger. Le paiement n'est inscrit qu'au webhook : le retour du
-// navigateur ne prouve rien.
+// Two steps, because a mutation has no network: an internalMutation
+// VALIDATES and records the request (bounds, caps, schedule amount), then
+// the action opens the session with the provider and returns the address to
+// redirect to. The payment is only recorded on the webhook: the browser's
+// return proves nothing.
 
-// Message borné du donateur (F-28 : « message du donateur »).
+// Donor's bounded message (F-28: "message du donateur").
 const DONATION_MESSAGE_MAX = 500;
 
-// --- Ce que l'interface doit savoir ------------------------------------------------
+// --- What the interface needs to know ----------------------------------------------
 
 export const paymentOptions = query({
   args: {},
@@ -100,7 +100,7 @@ export const paymentOptions = query({
   },
 });
 
-// --- Ouverture chez le prestataire ------------------------------------------------
+// --- Opening with the provider ----------------------------------------------------
 
 const DESCRIPTION: Record<'donation' | 'monthly' | 'dues', Phrase> = {
   donation: {
@@ -152,7 +152,7 @@ const createdCheckoutValidator = v.object({
   locale,
 });
 
-/** Ouvre la session chez le prestataire. Partagée avec les relances. */
+/** Opens the session with the provider. Shared with the reminders. */
 export async function openCheckout(
   ctx: Pick<ActionCtx, 'runMutation'>,
   c: CreatedCheckout,
@@ -203,7 +203,7 @@ export const attachSession = internalMutation({
     if (!c) return null;
     await ctx.db.patch(checkoutId, {
       providerSessionId,
-      // Un webhook très rapide a pu compléter la demande avant ce retour.
+      // A very fast webhook may have completed the request before this return.
       ...(c.status === 'created' ? { status: 'open' as const } : {}),
     });
     return null;
@@ -222,11 +222,11 @@ export const markCheckoutFailed = internalMutation({
   },
 });
 
-// --- Don (F-28) ------------------------------------------------------------------
+// --- Donation (F-28) ----------------------------------------------------------------
 
 const donationArgs = {
   currency: currencyValidator,
-  // Unités MAJEURES, telles que saisies (20 = 20 €).
+  // MAJOR units, as entered (20 = €20).
   amount: v.number(),
   recurring: v.boolean(),
   email: v.string(),
@@ -236,8 +236,8 @@ const donationArgs = {
   locale,
 };
 
-// Portail public : reCAPTCHA (le formulaire est ouvert aux visiteurs), puis
-// validation et plafonds dans la mutation, puis ouverture chez le prestataire.
+// Public gate: reCAPTCHA (the form is open to visitors), then
+// validation and caps in the mutation, then opening with the provider.
 export const startDonation = action({
   args: { ...donationArgs, captchaToken: v.optional(v.string()) },
   returns: v.object({ redirectUrl: v.string(), ref: v.string() }),
@@ -256,8 +256,8 @@ export const createDonationCheckout = internalMutation({
   returns: createdCheckoutValidator,
   handler: async (ctx, args) => {
     const provider = providerForCurrency(args.currency);
-    // Aucun prestataire pour cette devise : l'interface ne propose pas le
-    // bouton, mais le serveur ne suppose rien de l'interface.
+    // No provider for this currency: the interface does not offer the
+    // button, but the server assumes nothing about the interface.
     if (!provider) throw new ConvexError('PAYMENTS_UNAVAILABLE');
 
     const amountMinor = toMinor(args.amount, args.currency);
@@ -277,14 +277,14 @@ export const createDonationCheckout = internalMutation({
       throw new ConvexError('INVALID_MESSAGE');
     }
 
-    // Plafonds non forgeables (IP, global) PUIS par adresse.
+    // Unforgeable caps (IP, global) THEN per address.
     await enforcePublicFormLimit(ctx, 'donation');
     await enforceRateLimit(ctx, {
       key: `donation:${email}`,
       ...RATE_LIMITS.donation,
     });
 
-    // Un compte suspendu donne comme un visiteur : rien n'est rattaché à lui.
+    // A suspended account donates like a visitor: nothing is linked to it.
     const userId = await getActiveUserId(ctx);
     const ref = randomToken(16);
     const checkoutId = await ctx.db.insert('paymentCheckouts', {
@@ -318,7 +318,7 @@ export const createDonationCheckout = internalMutation({
   },
 });
 
-// --- Cotisation (F-27) ---------------------------------------------------------------
+// --- Membership fee (F-27) -----------------------------------------------------------
 
 const duesArgs = {
   category: planCategoryValidator,
@@ -327,9 +327,9 @@ const duesArgs = {
   locale,
 };
 
-// Réservé aux membres connectés : la cotisation se rattache à un compte (et,
-// pour un think tank, à son organisation). Pas de reCAPTCHA : l'appelant est
-// authentifié, le plafond par compte suffit.
+// Reserved for signed-in members: the membership fee is linked to an account (and,
+// for a think tank, to its organization). No reCAPTCHA: the caller is
+// authenticated, the per-account cap is enough.
 export const startDues = action({
   args: duesArgs,
   returns: v.object({ redirectUrl: v.string(), ref: v.string() }),
@@ -351,7 +351,7 @@ export const createDuesCheckout = internalMutation({
     const provider = providerForCurrency(args.currency);
     if (!provider) throw new ConvexError('PAYMENTS_UNAVAILABLE');
 
-    // Le montant vient du BARÈME, jamais du navigateur.
+    // The amount comes from the SCHEDULE, never from the browser.
     const plan = await ctx.db
       .query('paymentPlans')
       .withIndex('by_category_and_zone', (q) =>
@@ -369,8 +369,8 @@ export const createDuesCheckout = internalMutation({
       ...RATE_LIMITS.dues,
     });
 
-    // Cotisation d'organisation : rattachée à l'organisation que le compte
-    // représente (propriétaire), pour le suivi du back-office.
+    // Organization membership fee: linked to the organization the account
+    // represents (owner), for back-office tracking.
     let orgId: Id<'organizations'> | undefined;
     if (args.category === 'org') {
       const memberships = await ctx.db
@@ -414,10 +414,10 @@ export const createDuesCheckout = internalMutation({
   },
 });
 
-// --- Retour de paiement ---------------------------------------------------------------
+// --- Payment return -------------------------------------------------------------------
 
-// État d'une demande, par sa référence (jeton aléatoire, non devinable). Ne
-// rend AUCUNE donnée personnelle : la page de retour s'ouvre sans compte.
+// Status of a request, by its reference (random, unguessable token). Returns
+// NO personal data: the return page opens without an account.
 export const checkoutStatus = query({
   args: { ref: v.string() },
   returns: v.union(
@@ -468,9 +468,9 @@ export const prepareSync = internalMutation({
   },
 });
 
-// Relecture chez le prestataire au retour du navigateur : si le webhook tarde
-// ou n'a jamais été déclaré, la page de retour obtient quand même l'état réel.
-// Même inscription idempotente que le webhook ; rien n'est cru du navigateur.
+// Re-read from the provider when the browser returns: if the webhook is late
+// or was never declared, the return page still gets the actual status.
+// Same idempotent recording as the webhook; nothing is trusted from the browser.
 export const syncCheckout = action({
   args: { ref: v.string() },
   returns: v.null(),

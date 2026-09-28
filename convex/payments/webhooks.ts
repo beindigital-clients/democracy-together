@@ -22,18 +22,18 @@ import {
   type ProviderId,
 } from '../lib/payments/validators';
 
-// POINT D'ENTRÉE DES WEBHOOKS — commun aux trois prestataires.
+// WEBHOOK ENTRY POINT — shared by the three providers.
 //
-// `processWebhook` est appelée par les routes HTTP (convex/http.ts) avec le
-// corps BRUT : la signature Stripe porte sur les octets reçus, un corps
-// re-sérialisé ne la vérifierait plus. L'adaptateur authentifie, puis traduit
-// en événements normalisés ; la mutation `applyEvents` les inscrit au grand
-// livre en une transaction.
+// `processWebhook` is called by the HTTP routes (convex/http.ts) with the
+// RAW body: the Stripe signature covers the bytes received, a
+// re-serialized body would no longer verify it. The adapter authenticates, then translates
+// into normalized events; the `applyEvents` mutation records them in the
+// ledger in one transaction.
 //
-// Réponses HTTP : 400 pour une requête non authentifiée (le prestataire ne
-// doit pas la rejouer), 404 pour un prestataire non configuré, 500 si
-// l'inscription échoue (le prestataire REJOUERA : c'est voulu, l'inscription
-// est idempotente), 200 sinon — y compris pour un événement ignoré.
+// HTTP responses: 400 for an unauthenticated request (the provider must not
+// replay it), 404 for an unconfigured provider, 500 if
+// recording fails (the provider WILL REPLAY: this is intended, recording
+// is idempotent), 200 otherwise — including for an ignored event.
 
 export type WebhookOutcome = { status: number; body: string };
 
@@ -50,8 +50,8 @@ export async function processWebhook(
   try {
     parsed = await getAdapter(provider).parseWebhook(rawBody, header);
   } catch (err) {
-    // Vérification impossible pour une raison passagère (prestataire
-    // injoignable) : 500, pour que le webhook soit renvoyé plus tard.
+    // Verification impossible for a transient reason (provider
+    // unreachable): 500, so the webhook is resent later.
     console.error(
       `[payments] webhook ${provider} : vérification impossible`,
       err,
@@ -78,10 +78,10 @@ export async function processWebhook(
 
 const applyResultValidator = v.array(v.string());
 
-// Inscrit les événements d'UN webhook, en une transaction. Le filet d'événement
-// (`paymentWebhookEvents`) arrête un rejeu à l'entrée ; le filet décisif reste
-// l'index d'idempotence des transactions, qui tient même si deux événements
-// DIFFÉRENTS décrivent le même paiement.
+// Records the events of ONE webhook, in one transaction. The event net
+// (`paymentWebhookEvents`) stops a replay at the entrance; the decisive net remains
+// the transactions' idempotency index, which holds even if two
+// DIFFERENT events describe the same payment.
 export const applyEvents = internalMutation({
   args: {
     provider: providerIdValidator,
@@ -140,9 +140,9 @@ async function applyNormalizedEvents(
   return out;
 }
 
-// Même inscription SANS filet d'événement : pour la relecture d'un paiement
-// chez le prestataire (retour de paiement, webhook manqué), qui n'a pas
-// d'identifiant d'événement. L'idempotence des transactions suffit.
+// Same recording WITHOUT the event net: for re-reading a payment
+// from the provider (payment return, missed webhook), which has no
+// event id. Transaction idempotency is enough.
 export const applySyncedEvents = internalMutation({
   args: {
     provider: providerIdValidator,
@@ -153,8 +153,8 @@ export const applySyncedEvents = internalMutation({
     await applyNormalizedEvents(ctx, provider, events),
 });
 
-// Variante appelable d'une action (et des tests) : même chemin que la route
-// HTTP, sans le saut réseau.
+// Variant callable from an action (and from tests): same path as the HTTP
+// route, without the network hop.
 export const handleWebhook = internalAction({
   args: {
     provider: providerIdValidator,

@@ -12,25 +12,26 @@ import {
   youthProgrammeValidator,
 } from '../programmes';
 
-// Tables du chantier « programmes » (F-56 à F-60). Toutes les listes portées
-// par un document sont BORNÉES à l'écriture (thèmes, langues, critères, pièces
-// demandées : quelques unités) ; ce qui croît sans limite — séances, jalons,
-// candidatures, évaluations, étapes — a sa propre table.
+// Tables of the "programmes" workstream (F-56 to F-60). All lists carried by
+// a document are BOUNDED on write (themes, languages, criteria, requested
+// attachments: a handful); whatever grows without limit — sessions,
+// milestones, applications, evaluations, steps — has its own table.
 export const programmesTables = {
-  // --- F-58 Programme Jeunes ------------------------------------------------
-  // Profil PERSISTANT d'un jeune, lié à son compte : saisi une fois, réutilisé
-  // par chaque candidature (plus de ressaisie du nom, du pays, des thèmes).
+  // --- F-58 Youth Programme -------------------------------------------------
+  // PERSISTENT profile of a young person, linked to their account: entered
+  // once, reused by every application (no more re-entering name, country,
+  // themes).
   youthProfiles: defineTable({
     userId: v.id('users'),
     displayName: v.string(),
-    // Parcours : études, engagement, expérience — texte libre borné.
+    // Background: studies, involvement, experience — bounded free text.
     background: v.string(),
     country: v.string(),
     languages: v.array(locale),
     interests: v.array(v.string()),
     availability: availabilityValidator,
-    // Consentements explicites, horodatés. Le traitement est obligatoire
-    // (sans lui, pas de profil) ; le contact par les partenaires est un choix.
+    // Explicit, timestamped consents. Processing is mandatory (without it, no
+    // profile); contact by partners is a choice.
     consentProcessing: v.boolean(),
     consentPartnerContact: v.boolean(),
     consentedAt: v.number(),
@@ -52,8 +53,8 @@ export const programmesTables = {
     .index('by_user_and_programme', ['userId', 'programme'])
     .index('by_status', ['status']),
 
-  // --- F-59 Mentorat --------------------------------------------------------
-  // Un compte peut tenir DEUX profils (mentor et mentoré), un par rôle.
+  // --- F-59 Mentoring -------------------------------------------------------
+  // An account can hold TWO profiles (mentor and mentee), one per role.
   mentorProfiles: defineTable({
     userId: v.id('users'),
     role: mentorRoleValidator,
@@ -61,12 +62,12 @@ export const programmesTables = {
     themes: v.array(v.string()),
     languages: v.array(locale),
     region: v.string(),
-    // Décalage horaire en heures (−12 à +14) : départage deux régions
-    // différentes mais voisines en heure.
+    // Time offset in hours (−12 to +14): breaks ties between two regions that are
+    // different but close in time.
     utcOffset: v.optional(v.number()),
     availability: availabilityValidator,
     goals: v.string(),
-    // Mentor : nombre de binômes simultanés qu'il accepte.
+    // Mentor: number of simultaneous pairs they accept.
     capacity: v.number(),
     active: v.boolean(),
     createdAt: v.number(),
@@ -83,12 +84,12 @@ export const programmesTables = {
     status: pairStatusValidator,
     mentorAccepted: v.boolean(),
     menteeAccepted: v.boolean(),
-    // Score et raisons FIGÉS à la proposition : ce que le coordinateur a vu
-    // en décidant, même si les profils changent ensuite.
+    // Score and reasons FROZEN at proposal time: what the coordinator saw when
+    // deciding, even if the profiles change afterwards.
     score: v.number(),
     scoreReasons: v.any(),
-    // Coordinateur qui a confirmé l'appariement (optionnel : effacé si son
-    // compte est supprimé, le binôme lui survit).
+    // Coordinator who confirmed the match (optional: cleared if their account is
+    // deleted, the pair outlives it).
     proposedBy: v.optional(v.id('users')),
     proposedAt: v.number(),
     startedAt: v.optional(v.number()),
@@ -105,8 +106,8 @@ export const programmesTables = {
     .index('by_mentee_profile', ['menteeProfileId'])
     .index('by_status', ['status']),
 
-  // Journal des séances : notes PRIVÉES au binôme (le coordinateur voit la
-  // date et la durée, jamais les notes).
+  // Session log: notes PRIVATE to the pair (the coordinator sees the date and
+  // duration, never the notes).
   mentorSessions: defineTable({
     pairId: v.id('mentorPairs'),
     date: v.number(),
@@ -125,13 +126,13 @@ export const programmesTables = {
     createdAt: v.number(),
   }).index('by_pair', ['pairId']),
 
-  // --- F-60 Appels à projets -------------------------------------------------
+  // --- F-60 Calls for projects -----------------------------------------------
   projectCalls: defineTable({
     slug: v.string(),
     title: v.string(),
     summary: v.string(),
-    // Instants UTC ; `timeZone` (IANA) sert à les afficher tels que l'appel
-    // les annonce (« clôture le 30 novembre à 18 h, heure de Dakar »).
+    // UTC instants; `timeZone` (IANA) is used to display them as the call
+    // announces them ("closes on 30 November at 6 pm, Dakar time").
     opensAt: v.number(),
     closesAt: v.number(),
     timeZone: v.string(),
@@ -154,7 +155,7 @@ export const programmesTables = {
       }),
     ),
     status: v.union(v.literal('draft'), v.literal('published')),
-    // Les décisions ont été notifiées : l'appel est archivé comme « clos ».
+    // The decisions have been notified: the call is archived as "closed".
     decisionsPublishedAt: v.optional(v.number()),
     createdBy: v.optional(v.id('users')),
     createdAt: v.number(),
@@ -195,7 +196,7 @@ export const programmesTables = {
     docKey: v.string(),
     storageId: v.id('_storage'),
     fileName: v.string(),
-    // Type RECONNU au contenu (octets de tête), pas celui annoncé.
+    // Type RECOGNISED from the content (leading bytes), not the announced one.
     contentType: v.string(),
     size: v.number(),
     uploadedAt: v.number(),
@@ -205,8 +206,8 @@ export const programmesTables = {
     applicationId: v.id('projectCallApplications'),
     callId: v.id('projectCalls'),
     evaluatorId: v.id('users'),
-    // Conflit d'intérêts DÉCLARÉ : la grille est vide et l'évaluateur est
-    // exclu du classement de cette candidature.
+    // DECLARED conflict of interest: the grid is empty and the evaluator is
+    // excluded from this application's ranking.
     conflict: v.boolean(),
     scores: v.array(v.object({ criterionKey: v.string(), score: v.number() })),
     comment: v.optional(v.string()),
@@ -216,7 +217,7 @@ export const programmesTables = {
     .index('by_call', ['callId'])
     .index('by_evaluator', ['evaluatorId']),
 
-  // --- F-56 / F-57 Boîte à outils et parcours ------------------------------
+  // --- F-56 / F-57 Toolbox and learning paths ------------------------------
   toolboxResources: defineTable({
     slug: v.string(),
     title: v.string(),
@@ -251,9 +252,9 @@ export const programmesTables = {
     .index('by_slug', ['slug'])
     .index('by_status', ['status']),
 
-  // Étape d'un parcours : une ressource de la boîte à outils, OU une adresse
-  // (un replay géré par le chantier « contenus », une page externe). Le
-  // parcours ne duplique pas ce qu'il référence.
+  // Step of a learning path: a toolbox resource, OR an address (a replay
+  // managed by the "contenus" workstream, an external page). The path does not
+  // duplicate what it references.
   learningPathSteps: defineTable({
     pathId: v.id('learningPaths'),
     order: v.number(),

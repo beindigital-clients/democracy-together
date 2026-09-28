@@ -1,16 +1,16 @@
-// F-41 — PDF d'un rapport annuel, servi par le site.
+// F-41 — PDF of an annual report, served by the site.
 //
-// Le PDF est composé et stocké côté Convex (convex/reportPdfNode.ts) ; cette
-// route le relaie sous une adresse du site, stable et parlante
-// (`/ar/rapports/2026/rapport.pdf`), avec un nom de fichier propre — l'URL
-// signée du stockage n'a ni l'un ni l'autre, et un lien `download` vers une
-// autre origine est ignoré par les navigateurs.
+// The PDF is composed and stored on the Convex side (convex/reportPdfNode.ts);
+// this route relays it under a site URL that is stable and readable
+// (`/ar/rapports/2026/rapport.pdf`), with a clean file name — the signed
+// storage URL has neither, and a `download` link to another origin is
+// ignored by browsers.
 //
-// Le middleware i18n ignore les chemins qui contiennent un point : la langue
-// vient donc du segment de chemin, comme pour `agenda.ics`. 404 si l'édition
-// n'est pas publiée, ou si son PDF ne correspond plus au texte courant
-// (composition en cours après une correction) : la page propose alors
-// l'impression du navigateur.
+// The i18n middleware ignores paths containing a dot: the language therefore
+// comes from the path segment, as for `agenda.ics`. 404 if the edition is
+// not published, or if its PDF no longer matches the current text
+// (composition in progress after a correction): the page then offers the
+// browser's print function.
 import { fetchQuery } from 'convex/nextjs';
 import type { FunctionReturnType } from 'convex/server';
 import { api } from '@convex/_generated/api';
@@ -41,8 +41,8 @@ export async function GET(
   }
   if (!pdf) return notFound();
 
-  // L'empreinte du texte identifie le fichier : un navigateur qui la connaît
-  // n'a rien à retélécharger.
+  // The text's fingerprint identifies the file: a browser that knows it
+  // has nothing to download again.
   const etag = `"${pdf.contentHash}"`;
   if (req.headers.get('if-none-match') === etag) {
     return new Response(null, { status: 304, headers: { ETag: etag } });
@@ -60,8 +60,8 @@ export async function GET(
       'Content-Disposition': `attachment; filename="${reportPdfFileName(year, locale)}"`,
       'Content-Language': locale,
       ETag: etag,
-      // Court côté navigateur, plus long au CDN : une correction du rapport
-      // change l'empreinte, donc l'ETag, et se propage en quelques minutes.
+      // Short on the browser side, longer at the CDN: a correction to the report
+      // changes the fingerprint, hence the ETag, and propagates within minutes.
       'Cache-Control': 'public, max-age=300, s-maxage=3600',
     },
   });

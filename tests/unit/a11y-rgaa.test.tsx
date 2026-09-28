@@ -3,7 +3,6 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
-import ar from '@/messages/ar.json';
 import { StatusMessage } from '@/components/a11y/status-message';
 import { contentLangAttrs, textAttrs } from '@/i18n/content-lang';
 import { adminScreenKey } from '@/components/admin/admin-nav';
@@ -17,24 +16,24 @@ import { getLegalContent } from '@/lib/legal-content';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Correctifs de l'audit RGAA du 27/09 (F-08) — ce qui se vérifie sans
-// navigateur. Le parcours réel (clavier, annonces, affichage) est tenu par
-// `tests/e2e/a11y-clavier`, `a11y-annonces` et `a11y-affichage`.
+// Fixes from the RGAA audit of 27/09 (F-08) — what can be checked without a
+// browser. The real flow (keyboard, announcements, display) is covered by
+// `tests/e2e/a11y-clavier`, `a11y-annonces` and `a11y-affichage`.
 
-// Pas de setupFiles global dans ce projet (cf. directory-fields.test.tsx).
+// No global setupFiles in this project (see directory-fields.test.tsx).
 afterEach(cleanup);
 
-// L'estimateur lit le barème publié (F-27) par `useQuery`, hors de tout
-// ConvexProvider ici : on simule un barème NON publié, qui rend l'estimation
-// indicative — les cartes de choix, seules visées, sont les mêmes dans les
-// deux cas.
+// The estimator reads the published rate scale (F-27) via `useQuery`, outside any
+// ConvexProvider here: we simulate an UNPUBLISHED scale, which makes the estimate
+// indicative — the choice cards, the only target, are the same in both
+// cases.
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useQuery: () => undefined,
 }));
 
-// L'estimateur traduit ses mentions de paiement (`payments`) : il lui faut le
-// catalogue, comme dans la page /adhesion.
+// The estimator translates its payment notices (`payments`): it needs the
+// catalog, as on the /adhesion page.
 function renderEstimator() {
   const content = getMembershipContent('fr').estimator;
   const view = render(
@@ -55,9 +54,9 @@ describe('StatusMessage — confirmation qui remplace un formulaire (RGAA 7.5)',
     );
     const statut = screen.getByRole('status');
     expect(statut.textContent).toBe('Message envoyé');
-    // Sans cela, le bouton d'envoi disparu laissait le focus sur <body>.
+    // Without this, the vanished submit button left focus on <body>.
     expect(document.activeElement).toBe(statut);
-    // Focalisable par script, hors de la séquence de tabulation.
+    // Focusable by script, outside the tab sequence.
     expect(statut.getAttribute('tabindex')).toBe('-1');
   });
 
@@ -109,7 +108,7 @@ describe('titre de page du back-office (RGAA 8.6)', () => {
   });
 });
 
-describe('globe : rotation automatique contrôlable (RGAA 13.8)', () => {
+describe('globe : rotation automatique sans bouton pause', () => {
   const items = [
     {
       name: 'Senegal',
@@ -120,35 +119,22 @@ describe('globe : rotation automatique contrôlable (RGAA 13.8)', () => {
     },
   ];
 
-  it('un bouton nommé met en pause puis relance la rotation', () => {
+  // Client decision (28/09): the pause button weighed on the globe and was
+  // removed; hovering or dragging stops the rotation, and the system
+  // reduced-motion preference keeps it still. RGAA 13.8 is non-compliant
+  // again as a result (accessibility statement).
+  it('aucune commande de rotation n’est affichée sur le globe', () => {
     render(
       <NextIntlClientProvider locale="fr" messages={fr}>
         <RegionGlobe
           items={items}
           hint="Survolez un pays"
           ariaLabel="Régions"
+          variant="compact"
         />
       </NextIntlClientProvider>,
     );
-    // happy-dom ne demande pas moins de mouvement : la rotation démarre.
-    const pause = screen.getByRole('button', {
-      name: 'Mettre en pause la rotation du globe',
-    });
-    fireEvent.click(pause);
-    expect(
-      screen.getByRole('button', { name: 'Lancer la rotation du globe' }),
-    ).toBeTruthy();
-  });
-
-  it('le libellé est traduit (arabe)', () => {
-    render(
-      <NextIntlClientProvider locale="ar" messages={ar}>
-        <RegionGlobe items={items} hint="—" ariaLabel="—" variant="compact" />
-      </NextIntlClientProvider>,
-    );
-    expect(
-      screen.getByRole('button', { name: ar.accessibility.globePause }),
-    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /rotation/i })).toBeNull();
   });
 });
 
@@ -159,7 +145,7 @@ describe('estimateur solidaire : sélection et focus visibles (RGAA 3.1, 10.7)',
       [...container.querySelectorAll('label')].filter((l) =>
         l.querySelector('svg[aria-hidden="true"]'),
       );
-    // Une coche par groupe : revenu et type.
+    // One checkmark per group: income and type.
     expect(coches()).toHaveLength(2);
     const autre = screen.getByRole('radio', {
       name: new RegExp(content.incomes[1].label),
@@ -199,9 +185,9 @@ describe('champs de formulaire : focus et limite visibles (RGAA 10.7, 3.3)', () 
 });
 
 // ---------------------------------------------------------------------------
-// Déclaration d'accessibilité (RGAA) : complète, dans les cinq langues, et
-// FIDÈLE à la grille d'audit — le taux affiché est recalculé ici depuis
-// `docs/rgaa/grille.csv`, selon la méthode RGAA.
+// Accessibility statement (RGAA): complete, in all five languages, and
+// FAITHFUL to the audit grid — the displayed rate is recomputed here from
+// `docs/rgaa/grille.csv`, using the RGAA method.
 
 function lireCsv(texte: string): string[][] {
   const lignes: string[][] = [];
@@ -260,13 +246,13 @@ describe('déclaration d’accessibilité (RGAA)', () => {
     (locale) => {
       const doc = getLegalContent('accessibilite', locale);
       const texte = JSON.stringify(doc);
-      // Le taux MESURÉ, à la décimale près (virgule ou point selon la langue).
+      // The MEASURED rate, to the decimal (comma or point depending on the language).
       expect(texte).toMatch(new RegExp(taux.replace('.', '[.,]')));
       expect(texte).toContain(String(nc));
-      // Entre 50 et 100 % : « partiellement conforme » (méthode RGAA).
+      // Between 50 and 100 %: "partiellement conforme" (RGAA method).
       expect(Number(taux)).toBeGreaterThanOrEqual(50);
       expect(Number(taux)).toBeLessThan(100);
-      // Les énumérations sont des LISTES, et elles citent les critères.
+      // The enumerations are LISTS, and they cite the criteria.
       const listes = doc.sections.filter((s) => s.items?.length);
       expect(listes.length).toBeGreaterThanOrEqual(3);
       expect(texte).toContain('13.8');

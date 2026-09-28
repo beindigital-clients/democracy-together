@@ -19,27 +19,27 @@ import {
 import { formatAmountFr, type Currency } from './amounts';
 import type { AssociationInfo } from './config';
 
-// REÇU PDF (F-29) — composé côté serveur par pdfkit + fontkit, dans une
-// action Convex Node (convex/payments/receiptsNode.ts).
+// PDF RECEIPT (F-29) — composed server-side by pdfkit + fontkit, in a Convex
+// Node action (convex/payments/receiptsNode.ts).
 //
-// EN FRANÇAIS, quelle que soit la langue du payeur : c'est une pièce
-// comptable de l'association, qui tient sa comptabilité en français. Le
-// courriel qui l'accompagne, lui, est dans la langue du payeur.
+// IN FRENCH, whatever the payer's language: it is an accounting record of the
+// association, which keeps its books in French. The accompanying e-mail, on
+// the other hand, is in the payer's language.
 //
-// MAIS LE NOM DU PAYEUR EST LE SIEN. Jusqu'au 27/09, le reçu employait les
-// polices standard du PDF (Helvetica, encodage WinAnsi) : « عائشة ديوب » ou
-// « Nguyễn Thị Ánh » s'imprimaient « ???? ». Le choix de la technique qui
-// lève cette limite est MESURÉ (docs/backlog/paiements.md § 7) :
-//  - pdf-lib + @pdf-lib/fontkit embarque bien la police, mais n'applique pas
-//    la mise en forme contextuelle arabe (chaque lettre sort en forme isolée)
-//    et retourne toute la chaîne (« بويد ةشئاع ») ;
-//  - pdfkit + fontkit, avec la mise en ligne bidirectionnelle et les
-//    corrections du PDF des rapports annuels (convex/lib/reportPdf), sort les
-//    lettres liées et un texte extrait dans l'ordre de lecture. Retenu : même
-//    code, mêmes polices embarquées (aucune seconde copie), mêmes tests.
-// La contrepartie est le runtime Node (pdfkit s'appuie sur les flux et zlib de
-// Node) : seule la COMPOSITION du PDF y va, le numéro du reçu reste attribué
-// dans la transaction du paiement (convex/lib/payments/ledger.ts).
+// BUT THE PAYER'S NAME IS THEIR OWN. Until 27/09, the receipt used the
+// standard PDF fonts (Helvetica, WinAnsi encoding): "عائشة ديوب" or
+// "Nguyễn Thị Ánh" printed as "????". The choice of technique that lifts this
+// limit is MEASURED (docs/backlog/paiements.md § 7):
+//  - pdf-lib + @pdf-lib/fontkit does embed the font, but does not apply
+//    Arabic contextual shaping (every letter comes out in isolated form)
+//    and reverses the whole string ("بويد ةشئاع");
+//  - pdfkit + fontkit, with the bidirectional line layout and the fixes from
+//    the annual report PDF (convex/lib/reportPdf), outputs joined letters and
+//    extracted text in reading order. Chosen: same code, same embedded fonts
+//    (no second copy), same tests.
+// The trade-off is the Node runtime (pdfkit relies on Node streams and zlib):
+// only the PDF COMPOSITION goes there, the receipt number is still assigned
+// in the payment transaction (convex/lib/payments/ledger.ts).
 
 export type ReceiptData = {
   number: string;
@@ -79,15 +79,15 @@ const CURRENCY_NAME_FR: Record<Currency, string> = {
   USD: 'Dollar des États-Unis (USD)',
 };
 
-// Jetons du site (src/app/globals.css, thème clair), ceux du PDF des rapports.
+// Site tokens (src/app/globals.css, light theme), the same as the report PDF.
 const COLOR = { ink: '#16191f', muted: '#646771', accent: '#1f3d6e' };
 
-const PAGE = { width: 595.28, height: 841.89 }; // A4, en points
+const PAGE = { width: 595.28, height: 841.89 }; // A4, in points
 
 type Weight = 'regular' | 'bold';
 
-// IBM Plex Sans compose le latin, le grec, le cyrillique et le vietnamien ;
-// un mot arabe (ou persan, ourdou) bascule sur IBM Plex Sans Arabic.
+// IBM Plex Sans sets Latin, Greek, Cyrillic and Vietnamese; an Arabic word
+// (or Persian, Urdu) switches to IBM Plex Sans Arabic.
 const FONTS: Record<Weight, { latin: FontKey; arabic: FontKey }> = {
   regular: { latin: 'body', arabic: 'arabic' },
   bold: { latin: 'bodyBold', arabic: 'arabicBold' },
@@ -95,11 +95,11 @@ const FONTS: Record<Weight, { latin: FontKey; arabic: FontKey }> = {
 
 type Glyphs = { hasGlyphForCodePoint(codePoint: number): boolean };
 
-// Couverture d'une police, lue sur l'objet fontkit que pdfkit garde en
-// `_font.font` (champ interne : le test « 李 → ? » de receiptPdf.test.ts
-// échoue si une version de pdfkit le déplace). Sans elle, un caractère
-// qu'aucune police n'a serait dessiné par le glyphe vide `.notdef` — un blanc
-// muet au lieu du « ? » qui signale la perte.
+// A font's coverage, read from the fontkit object pdfkit keeps in
+// `_font.font` (internal field: the "李 → ?" test in receiptPdf.test.ts fails
+// if a pdfkit version moves it). Without it, a character no font has would
+// be drawn with the empty `.notdef` glyph — a silent blank instead of the "?"
+// that signals the loss.
 function glyphsOf(doc: PDFKit.PDFDocument, key: FontKey): Glyphs | null {
   doc.font(key);
   const font = (doc as unknown as { _font?: { font?: Partial<Glyphs> } })._font
@@ -111,21 +111,20 @@ function glyphsOf(doc: PDFKit.PDFDocument, key: FontKey): Glyphs | null {
 
 const INVISIBLE = /[\p{Cc}\p{Cf}]/u;
 
-// Réunit les mots d'une même course droite-à-gauche en UN morceau, posé d'un
-// bloc. `placeLine` les rend mot par mot, dessinés de droite à gauche : pdf.js
-// (le lecteur de Firefox) n'insère alors aucune espace entre eux, et
-// « عائشة ديوب » se relisait « عائشةديوب » (mesuré). Une course qui ne
-// contient QUE des mots arabes et leur ponctuation — les chiffres et le latin
-// forment leurs propres courses — peut être confiée entière à fontkit, dont
-// le retournement de la chaîne est alors exactement l'ordre visuel ; les
-// espaces sont dessinées, et l'extracteur les retrouve. Les signes appariés
-// ont déjà été mis en miroir par `placeLine`.
+// Merges the words of a single right-to-left run into ONE chunk, placed as a
+// block. `placeLine` returns them word by word, drawn right to left: pdf.js
+// (Firefox's viewer) then inserts no space between them, and "عائشة ديوب"
+// read back as "عائشةديوب" (measured). A run that contains ONLY Arabic words
+// and their punctuation — digits and Latin text form their own runs — can be
+// handed whole to fontkit, whose string reversal is then exactly the visual
+// order; the spaces are drawn, and the extractor finds them. Paired
+// characters have already been mirrored by `placeLine`.
 function mergeRtl(placed: Placed[], measure: Measure): Placed[] {
   const out: Placed[] = [];
   for (const piece of placed) {
     const last = out[out.length - 1];
-    // Dans une course, le mot logiquement suivant est posé À GAUCHE du
-    // précédent, séparé de rien (ponctuation collée) ou d'une espace.
+    // Within a run, the logically next word is placed TO THE LEFT of the previous
+    // one, separated by nothing (attached punctuation) or by a space.
     const gap = last ? last.x - (piece.x + piece.width) : -1;
     if (last?.dir === 'rtl' && piece.dir === 'rtl' && gap > -0.01) {
       const text = `${last.text}${gap > 0.01 ? ' ' : ''}${piece.text}`;
@@ -133,7 +132,7 @@ function mergeRtl(placed: Placed[], measure: Measure): Placed[] {
       out[out.length - 1] = {
         text,
         dir: 'rtl',
-        // Ancré sur le bord DROIT de la course, là où la lecture commence.
+        // Anchored on the RIGHT edge of the run, where reading starts.
         x: last.x + last.width - width,
         width,
       };
@@ -149,13 +148,13 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
     size: [PAGE.width, PAGE.height],
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
     pdfVersion: '1.7',
-    // Accessibilité, comme les rapports : PDF balisé, langue du document,
-    // titre affiché à la place du nom de fichier.
+    // Accessibility, like the reports: tagged PDF, document language, title shown
+    // instead of the file name.
     tagged: true,
     lang: 'fr',
     displayTitle: true,
-    // Police par défaut = une police EMBARQUÉE : sans cela pdfkit charge
-    // Helvetica depuis ses fichiers AFM, absents d'un bundle d'action.
+    // Default font = an EMBEDDED font: otherwise pdfkit loads Helvetica from its
+    // AFM files, which are absent from an action bundle.
     font: fonts.body as unknown as string,
     info: {
       Title: `Reçu ${data.number}`,
@@ -185,12 +184,12 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
   const has = (key: FontKey, ch: string) =>
     glyphs[key]?.hasGlyphForCodePoint(ch.codePointAt(0)!) ?? true;
 
-  // Texte venu de l'extérieur (nom, adresse, e-mail, informations légales
-  // configurées) : forme composée (NFC — un « ễ » saisi en lettre + deux
-  // accents combinants a son glyphe précomposé dans Plex Sans), caractères
-  // de contrôle et marques bidirectionnelles invisibles retirés (le placement
-  // est fait par `layout`), et « ? » pour ce qu'aucune police embarquée ne
-  // porte (idéogrammes, devanagari… : limite écrite dans paiements.md § 7).
+  // Text coming from outside (name, address, e-mail, configured legal
+  // information): composed form (NFC — an "ễ" entered as a letter + two
+  // combining accents has its precomposed glyph in Plex Sans), control
+  // characters and invisible bidirectional marks removed (placement is done by
+  // `layout`), and "?" for whatever no embedded font carries (ideographs,
+  // Devanagari…: limitation documented in paiements.md § 7).
   const printable = (text: string) =>
     [...text.normalize('NFC').replace(/ᵉʳ/g, 'er')]
       .map((ch) => {
@@ -200,9 +199,9 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
       })
       .join('');
 
-  // Police d'un morceau de ligne (déjà mis dans l'ordre visuel par
-  // `placeLine`), et son texte ramené aux glyphes de cette police — un mot
-  // qui colle deux écritures sans espace ne peut pas en porter deux.
+  // Font of a line chunk (already put in visual order by `placeLine`), and its
+  // text reduced to that font's glyphs — a word that glues two scripts together
+  // without a space cannot carry both.
   const shape = (weight: Weight, text: string) => {
     const { latin, arabic } = FONTS[weight];
     const chars = [...text];
@@ -230,16 +229,16 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
 
   const left = 56;
   const width = PAGE.width - left * 2;
-  // Ordonnée de la LIGNE DE BASE, comptée depuis le BAS de la page : la
-  // géométrie du reçu pdf-lib d'origine, reprise telle quelle.
+  // BASELINE y-coordinate, measured from the BOTTOM of the page: the geometry
+  // of the original pdf-lib receipt, kept as is.
   let y = 790;
 
   type Style = { weight?: Weight; size?: number; color?: string };
 
-  // Pose une ligne dans l'ordre visuel et la relie à l'élément de structure.
-  // Une ligne qui contient de l'arabe porte son texte LOGIQUE en
-  // `/ActualText` : c'est ce que lisent un lecteur d'écran et un
-  // copier-coller, quel que soit l'ordre de dessin des mots.
+  // Places a line in visual order and links it to the structure element.
+  // A line that contains Arabic carries its LOGICAL text in `/ActualText`:
+  // that is what a screen reader and a copy-paste read, whatever the drawing
+  // order of the words.
   const drawLine = (
     element: PDFKit.PDFStructureElement,
     line: Token[],
@@ -326,7 +325,7 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
     y -= 3;
   };
 
-  // En-tête : l'émetteur.
+  // Header: the issuer.
   text(a.name, { weight: 'bold', size: 18, color: COLOR.accent, gap: 2 });
   text(a.legalForm, { size: 9.5, color: COLOR.muted });
   text(`Siège : ${a.address}`, { size: 9.5, color: COLOR.muted });
@@ -354,7 +353,7 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
     gap: 16,
   });
 
-  // Décor : jamais lu par un lecteur d'écran (artefact de mise en page).
+  // Decoration: never read by a screen reader (layout artifact).
   doc.markContent('Artifact', { type: 'Layout' });
   doc
     .moveTo(left, PAGE.height - (y + 6))
@@ -396,11 +395,11 @@ export async function buildReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
     }. Ce reçu est numéroté dans une série continue par année civile.`,
     { gap: 8 },
   );
-  // Le reçu FISCAL suppose l'éligibilité au régime du mécénat (rescrit), non
-  // acquise à ce jour : on ne le laisse pas croire. Et même éligible, un reçu
-  // fiscal français chiffre le don EN EUROS : un paiement en dollars n'en
-  // tient pas lieu (la contre-valeur au jour du paiement est établie par le
-  // secrétariat, pas par ce document).
+  // The TAX receipt requires eligibility for the patronage scheme (tax ruling),
+  // not obtained to date: we do not let anyone believe otherwise. And even if
+  // eligible, a French tax receipt states the donation IN EUROS: a payment in
+  // dollars does not qualify (the equivalent value on the payment date is
+  // established by the secretariat, not by this document).
   text(
     !a.taxReceiptEligible
       ? 'Ce document atteste un paiement. Il ne constitue pas un reçu fiscal ouvrant droit à réduction d’impôt (articles 200 et 238 bis du Code général des impôts).'

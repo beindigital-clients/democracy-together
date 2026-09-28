@@ -2,37 +2,37 @@ import { test, expect, type Page } from '@playwright/test';
 
 const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
 
-// F-06 — ce que voit quelqu'un qui tombe sur une 404.
+// F-06 — what someone landing on a 404 sees.
 //
-// Le dépôt en sert DEUX, et elles n'ont pas le même sort :
-//   • adresse sans route du tout      -> `src/app/not-found.tsx`
-//   • `notFound()` depuis une route   -> `src/app/[locale]/not-found.tsx`
+// The repo serves TWO of them, and they do not share the same fate:
+//   • address with no route at all      -> `src/app/not-found.tsx`
+//   • `notFound()` from a route         -> `src/app/[locale]/not-found.tsx`
 //
-// Mesuré sur Next 16.3.5 : seule la première est rendue dans le HTML servi.
-// La seconde n'arrive que par la charge utile RSC, donc uniquement si
-// JavaScript s'exécute. Trois hypothèses ont été écartées par la mesure
-// (suspension du composant, place du fichier, coquille du layout) : c'est un
-// comportement du cadriciel, pas un défaut du dépôt.
+// Measured on Next 16.3.5: only the first is rendered in the served HTML.
+// The second only arrives via the RSC payload, so only if
+// JavaScript runs. Three hypotheses were ruled out by measurement
+// (component suspension, file location, layout shell): it is a
+// framework behavior, not a repo defect.
 //
-// Ces tests tiennent donc ce qui est GARANTI, et RENDENT VISIBLE ce qui ne
-// l'est pas — plutôt que d'enregistrer la limite comme si elle allait de soi.
+// These tests therefore hold what is GUARANTEED, and MAKE VISIBLE what is
+// not — rather than recording the limitation as if it went without saying.
 
 /**
- * Texte visible d'un HTML SERVI, `<script>` et `<style>` retirés — analysé par
- * le moteur du navigateur, jamais par une expression régulière.
+ * Visible text of a SERVED HTML, with `<script>` and `<style>` removed — parsed by
+ * the browser engine, never by a regular expression.
  *
- * Ce filtrage EST le test, et c'est pourquoi il doit être exact : ce que ces
- * specs établissent, c'est que le texte se trouve dans le HTML AUTREMENT que
- * dans la charge utile RSC — laquelle voyage précisément à l'intérieur d'un
- * `<script>`. Un bloc qui échapperait au filtre ferait PASSER le test pour la
- * mauvaise raison, c'est-à-dire en présence exacte du défaut que F-06 sert à
- * détecter.
+ * This filtering IS the test, which is why it must be exact: what these
+ * specs establish is that the text is in the HTML OTHER than
+ * in the RSC payload — which travels precisely inside a
+ * `<script>`. A block that escaped the filter would make the test PASS for the
+ * wrong reason, i.e. in the exact presence of the defect F-06 is meant to
+ * detect.
  *
- * Le `/<script[\s\S]*?<\/script>/` qui tenait ce rôle ne voyait ni un
- * `<SCRIPT>` majuscule, ni un `<script` laissé derrière par une imbrication
- * (CodeQL js/bad-tag-filter et js/incomplete-multi-character-sanitization).
- * `DOMParser` analyse comme un navigateur et construit un document INERTE :
- * rien de ce qui passe ici ne s'exécute.
+ * The `/<script[\s\S]*?<\/script>/` that held this role saw neither an
+ * uppercase `<SCRIPT>`, nor a `<script` left behind by nesting
+ * (CodeQL js/bad-tag-filter and js/incomplete-multi-character-sanitization).
+ * `DOMParser` parses like a browser and builds an INERT document:
+ * nothing that goes through here executes.
  */
 async function texteVisible(page: Page, html: string): Promise<string> {
   return page.evaluate((brut) => {
@@ -44,21 +44,21 @@ async function texteVisible(page: Page, html: string): Promise<string> {
   }, html);
 }
 
-// LE FILTRE EST LE TEST — il est donc testé lui aussi.
+// THE FILTER IS THE TEST — so it is tested too.
 //
-// Mesuré sur la 404 localisée : « Page introuvable » apparaît TROIS fois dans
-// les 78 912 octets servis, à l'intérieur de <script> (charge utile RSC), pour
-// zéro caractère de texte visible. Un filtre qui laisse passer un bloc ferait
-// donc virer au vert la spec de mesure en présence exacte du défaut qu'elle
-// cherche : la panne la plus coûteuse qu'un test puisse avoir.
+// Measured on the localized 404: "Page introuvable" appears THREE times in
+// the 78,912 bytes served, inside <script> (RSC payload), for
+// zero characters of visible text. A filter that lets a block through would
+// therefore turn the measuring spec green in the exact presence of the defect it
+// is looking for: the costliest failure a test can have.
 //
-// L'ancien filtre par expression régulière échouait sur le premier cas
-// ci-dessous — mesuré : `<SCRIPT>` en ressortait avec sa charge.
+// The old regular-expression filter failed on the first case
+// below — measured: `<SCRIPT>` came out with its payload.
 //
-// ABSENT de la liste, et délibérément : `<scr<script>ipt>charge</script>`.
-// Un navigateur n'y voit AUCUN script — il lit une balise nommée « scr<script »
-// puis le texte « ipt>charge ». Cette chaîne est donc réellement visible pour
-// un visiteur, et l'exiger absente ferait mentir le test sur ce qu'il mesure.
+// ABSENT from the list, and deliberately: `<scr<script>ipt>charge</script>`.
+// A browser sees NO script there — it reads a tag named "scr<script"
+// then the text "ipt>charge". This string is therefore genuinely visible to
+// a visitor, and requiring it to be absent would make the test lie about what it measures.
 test('le filtre de scripts ne laisse pas fuir la charge utile', async ({
   page,
 }) => {
@@ -113,18 +113,18 @@ test('404 sans route : les deux langues et un retour vers chacune', async ({
 test('404 localisée : lisible avec JavaScript', async ({ page }) => {
   const res = await page.goto('/fr/rapports/9999');
   expect(res?.status()).toBe(404);
-  // Assertion qui RÉESSAIE, et non un `innerText()` lu une seule fois : sur
-  // cette 404-là le texte n'existe qu'une fois la charge utile RSC appliquée
-  // par le client — c'est tout le sujet de F-06. Lire juste après `goto`, qui
-  // rend la main à l'événement `load`, est donc une course : mesuré, le même
-  // test sur le même serveur passait en desktop puis échouait au run suivant,
-  // le `<body>` étant encore vide.
+  // RETRYING assertion, not an `innerText()` read once: on
+  // this particular 404 the text only exists once the RSC payload has been applied
+  // by the client — that is the whole point of F-06. Reading right after `goto`, which
+  // returns on the `load` event, is therefore a race: measured, the same
+  // test on the same server passed on desktop then failed on the next run,
+  // the `<body>` still being empty.
   await expect(page.locator('body')).toContainText('Page introuvable');
 });
 
-// Pas d'assertion ici : on MESURE la limite du cadriciel et on l'imprime. Le
-// jour où Next rendra ce cas dans le HTML, ce chiffre cessera d'être nul et on
-// le verra dans le rapport — sans qu'un test rouge n'ait eu à l'annoncer.
+// No assertion here: we MEASURE the framework's limitation and print it. The
+// day Next renders this case in the HTML, this number will stop being zero and we
+// will see it in the report — without a red test having had to announce it.
 test('404 localisée : ce que le HTML servi en contient (limite mesurée)', async ({
   page,
   request,

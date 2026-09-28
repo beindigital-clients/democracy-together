@@ -1,45 +1,43 @@
-// EXTRACTION DES IMAGES D'UN PDF — lecture d'octets, sans dépendance.
+// EXTRACTING IMAGES FROM A PDF — byte reading, no dependency.
 //
-// POURQUOI CE FICHIER EXISTE. La traduction d'un document (convex/documents.ts)
-// reconstruit son texte dans une autre langue. Un modèle peut lire un PDF et en
-// rendre le texte ; il ne peut pas en rendre les IMAGES. Sans elles, un rapport
-// traduit perdrait ses photographies et ses graphiques — c'est-à-dire souvent
-// ce qu'il a de plus démonstratif. Il faut donc aller les chercher dans le
-// fichier, et c'est tout ce que fait ce module.
+// WHY THIS FILE EXISTS. Translating a document (convex/documents.ts) rebuilds
+// its text in another language. A model can read a PDF and return its text;
+// it cannot return its IMAGES. Without them, a translated report would lose
+// its photographs and charts — which is often its most compelling part. They
+// therefore have to be fetched from the file, and that is all this module
+// does.
 //
-// POURQUOI SANS BIBLIOTHÈQUE. `pdfjs-dist` pèse plusieurs mégaoctets et tire un
-// worker ; `pdf-lib` ne sait pas décoder les flux d'image. Le dépôt a déjà
-// tranché deux fois en faveur d'un adaptateur écrit à la main plutôt que d'un
-// SDK (Resend, reCAPTCHA, et la passerelle IA elle-même) ; le besoin ici est
-// plus étroit encore.
+// WHY NO LIBRARY. `pdfjs-dist` weighs several megabytes and pulls in a
+// worker; `pdf-lib` cannot decode image streams. The repo has already decided
+// twice in favour of a hand-written adapter rather than an SDK (Resend,
+// reCAPTCHA, and the AI gateway itself); the need here is narrower still.
 //
-// CE QUE CE MODULE SAIT FAIRE, ET CE QU'IL NE SAIT PAS.
+// WHAT THIS MODULE CAN DO, AND WHAT IT CANNOT.
 //
-// Il extrait les images encodées en **DCTDecode**, c'est-à-dire en JPEG. Ce
-// cas n'est pas choisi par facilité : le flux d'un XObject `/DCTDecode` EST un
-// fichier JPEG complet, octet pour octet. L'extraire, c'est le recopier — il
-// n'y a ni décodage, ni ré-encodage, ni perte. C'est aussi le codage de la
-// quasi-totalité des photographies et des figures tramées produites par les
-// chaînes éditoriales courantes (export InDesign, Word, LaTeX, Google Docs).
+// It extracts images encoded with **DCTDecode**, i.e. JPEG. This case is not
+// chosen for convenience: the stream of a `/DCTDecode` XObject IS a complete
+// JPEG file, byte for byte. Extracting it means copying it — no decoding, no
+// re-encoding, no loss. It is also the encoding of almost all photographs and
+// raster figures produced by common publishing pipelines (InDesign, Word,
+// LaTeX, Google Docs exports).
 //
-// Il NE sait PAS extraire :
-//   - les images **FlateDecode** (bitmaps bruts compressés) : les rendre
-//     demanderait de décompresser puis de ré-encoder en PNG, donc un encodeur
-//     PNG complet — CRC32, filtrage par ligne, flux zlib — pour un cas qui,
-//     dans un PDF éditorial, est minoritaire ;
-//   - les images **JPXDecode** (JPEG 2000), que les navigateurs ne savent de
-//     toute façon pas afficher ;
-//   - les **graphiques vectoriels**, qui ne sont pas des images du tout mais
-//     des instructions de tracé dans le flux de contenu de la page.
+// It CANNOT extract:
+//   - **FlateDecode** images (compressed raw bitmaps): returning them would
+//     require decompressing then re-encoding to PNG, hence a full PNG encoder
+//     — CRC32, per-row filtering, zlib stream — for a case that is a minority
+//     in an editorial PDF;
+//   - **JPXDecode** images (JPEG 2000), which browsers cannot display anyway;
+//   - **vector graphics**, which are not images at all but drawing
+//     instructions in the page's content stream.
 //
-// Ces trois cas ne sont pas silencieux : `extractJpegImages` renvoie AUSSI le
-// nombre d'images qu'elle a vues sans pouvoir les lire (`skipped`), et la vue
-// document affiche alors un renvoi vers le PDF d'origine à l'emplacement de la
-// figure. Le lecteur sait qu'il manque quelque chose et où le trouver — ce qui
-// vaut infiniment mieux qu'une page qui paraît complète et ne l'est pas.
+// These three cases are not silent: `extractJpegImages` ALSO returns the
+// number of images it saw but could not read (`skipped`), and the document
+// view then shows a link to the original PDF where the figure belongs. The
+// reader knows something is missing and where to find it — which is
+// infinitely better than a page that looks complete and is not.
 
 export type ExtractedImage = {
-  /** Rang dans le fichier, en ordre d'apparition. Sert à relier une figure. */
+  /** Rank in the file, in order of appearance. Used to link a figure. */
   index: number;
   data: Uint8Array;
   contentType: string;
@@ -49,34 +47,34 @@ export type ExtractedImage = {
 
 export type ImageExtraction = {
   images: ExtractedImage[];
-  /** Images repérées mais dans un codage que ce module ne lit pas. */
+  /** Images found but in an encoding this module does not read. */
   skipped: number;
 };
 
-// Les PDF mêlent texte et binaire. `latin1` associe un octet à un point de code
-// et un seul : c'est le seul encodage qui permet de chercher des motifs ASCII
-// dans le fichier sans que le décodeur invente des caractères de remplacement
-// — et donc sans que les décalages trouvés cessent de correspondre aux octets.
+// PDFs mix text and binary. `latin1` maps one byte to one and only one code
+// point: it is the only encoding that lets us search for ASCII patterns in the
+// file without the decoder inventing replacement characters — and therefore
+// without the offsets found drifting away from the bytes.
 const LATIN1 = new TextDecoder('latin1');
 
-/** Valeur d'une clé de dictionnaire PDF, quand elle est écrite en clair. */
+/** Value of a PDF dictionary key, when it is written in plain form. */
 function dictNumber(dict: string, key: string): number | undefined {
   const m = new RegExp(`/${key}\\s+(\\d+)`).exec(dict);
   return m ? Number(m[1]) : undefined;
 }
 
 function dictHasName(dict: string, key: string, name: string): boolean {
-  // `/Filter /DCTDecode` comme `/Filter[/DCTDecode]` : l'espace est optionnel
-  // et le filtre peut être seul ou dans un tableau.
+  // `/Filter /DCTDecode` as well as `/Filter[/DCTDecode]`: the space is
+  // optional and the filter may be alone or in an array.
   return new RegExp(`/${key}\\s*\\[?\\s*/${name}\\b`).test(dict);
 }
 
 /**
- * Les images JPEG d'un PDF, en ordre d'apparition.
+ * The JPEG images of a PDF, in order of appearance.
  *
- * @param bytes le fichier entier
- * @param max   plafond de sécurité : un PDF pathologique ne doit pas faire
- *              exploser la mémoire d'une action ni le stockage.
+ * @param bytes the whole file
+ * @param max   safety cap: a pathological PDF must not blow up an action's
+ *              memory or the storage.
  */
 export function extractJpegImages(
   bytes: Uint8Array,
@@ -86,18 +84,18 @@ export function extractJpegImages(
   const images: ExtractedImage[] = [];
   let skipped = 0;
 
-  // Un objet image est un objet indirect dont le dictionnaire porte
-  // `/Subtype /Image`, suivi de son flux. Les objets à FLUX ne peuvent pas
-  // vivre dans un `/ObjStm` (la spécification l'interdit), donc ce balayage
-  // les trouve y compris dans les PDF 1.5+ à flux de références croisées —
-  // c'est ce qui rend l'approche viable sans analyseur complet.
+  // An image object is an indirect object whose dictionary carries
+  // `/Subtype /Image`, followed by its stream. STREAM objects cannot live in an
+  // `/ObjStm` (the specification forbids it), so this scan finds them even in
+  // PDF 1.5+ files with cross-reference streams — which is what makes the
+  // approach viable without a full parser.
   const objRe = /\/Subtype\s*\/Image\b/g;
   let m: RegExpExecArray | null;
 
   while ((m = objRe.exec(text)) !== null) {
     if (images.length >= max) break;
 
-    // Début du dictionnaire : le « << » qui précède, au plus près.
+    // Start of the dictionary: the nearest preceding "<<".
     const dictStart = text.lastIndexOf('<<', m.index);
     if (dictStart < 0) continue;
     const streamAt = text.indexOf('stream', m.index);
@@ -105,21 +103,21 @@ export function extractJpegImages(
     const dict = text.slice(dictStart, streamAt);
 
     if (!dictHasName(dict, 'Filter', 'DCTDecode')) {
-      // Une image, mais pas dans un codage qu'on sait recopier.
+      // An image, but not in an encoding we know how to copy.
       skipped++;
       continue;
     }
 
-    // Après le mot-clé `stream` vient EXACTEMENT un CRLF ou un LF, jamais un
-    // CR seul (PDF 32000-1, 7.3.8.1). Se tromper d'un octet corrompt le JPEG.
+    // After the `stream` keyword comes EXACTLY one CRLF or one LF, never a lone
+    // CR (PDF 32000-1, 7.3.8.1). Being off by one byte corrupts the JPEG.
     let dataStart = streamAt + 'stream'.length;
     if (text[dataStart] === '\r') dataStart++;
     if (text[dataStart] === '\n') dataStart++;
 
-    // `/Length` donne la taille quand elle est écrite en clair. Elle peut être
-    // une référence indirecte (`/Length 42 0 R`) : `dictNumber` lit alors le
-    // premier nombre, qui est le numéro d'objet et non une longueur. On ne s'y
-    // fie donc QUE si la fin ainsi calculée tombe bien sur `endstream`.
+    // `/Length` gives the size when it is written in plain form. It may be an
+    // indirect reference (`/Length 42 0 R`): `dictNumber` then reads the first
+    // number, which is the object number and not a length. So we rely on it ONLY
+    // if the end computed this way lands exactly on `endstream`.
     const declared = dictNumber(dict, 'Length');
     let dataEnd = -1;
     if (declared !== undefined && declared > 0) {
@@ -130,7 +128,7 @@ export function extractJpegImages(
     if (dataEnd < 0) {
       const found = text.indexOf('endstream', dataStart);
       if (found < 0) continue;
-      // Retirer le saut de ligne que le producteur insère avant `endstream`.
+      // Strip the line break the producer inserts before `endstream`.
       dataEnd = found;
       if (text[dataEnd - 1] === '\n') dataEnd--;
       if (text[dataEnd - 1] === '\r') dataEnd--;
@@ -138,9 +136,9 @@ export function extractJpegImages(
     if (dataEnd <= dataStart) continue;
 
     const data = bytes.subarray(dataStart, dataEnd);
-    // Un JPEG commence par FF D8 et finit par FF D9. Le contrôle n'est pas
-    // décoratif : il écarte les cas où le balayage s'est trompé de flux, et
-    // évite de stocker puis de servir un fichier que le navigateur refusera.
+    // A JPEG starts with FF D8 and ends with FF D9. The check is not decorative:
+    // it rules out cases where the scan picked the wrong stream, and avoids
+    // storing then serving a file the browser will reject.
     if (data.length < 4 || data[0] !== 0xff || data[1] !== 0xd8) {
       skipped++;
       continue;
@@ -159,12 +157,12 @@ export function extractJpegImages(
 }
 
 /**
- * Nombre de pages du document.
+ * Number of pages in the document.
  *
- * Lu pour une seule raison : la vue document l'affiche à côté du renvoi vers
- * l'original, pour que le lecteur sache ce qu'il compare. `/Count` du nœud
- * racine des pages est la valeur faisant autorité ; à défaut, on compte les
- * objets `/Type /Page`, ce qui donne le même résultat sur un PDF bien formé.
+ * Read for one reason only: the document view shows it next to the link to
+ * the original, so the reader knows what they are comparing. `/Count` of the
+ * root pages node is the authoritative value; failing that, we count the
+ * `/Type /Page` objects, which gives the same result on a well-formed PDF.
  */
 export function countPages(bytes: Uint8Array): number | undefined {
   const text = LATIN1.decode(bytes);
@@ -177,11 +175,11 @@ export function countPages(bytes: Uint8Array): number | undefined {
 }
 
 /**
- * Le fichier est-il bien un PDF ?
+ * Is the file really a PDF?
  *
- * En-tête `%PDF-`. Un fichier renommé, ou un téléversement interrompu, doit
- * échouer ICI avec un code clair plutôt qu'à la première expression régulière
- * qui ne trouve rien et rend un document vide.
+ * `%PDF-` header. A renamed file, or an interrupted upload, must fail HERE
+ * with a clear code rather than at the first regular expression that finds
+ * nothing and returns an empty document.
  */
 export function looksLikePdf(bytes: Uint8Array): boolean {
   return (

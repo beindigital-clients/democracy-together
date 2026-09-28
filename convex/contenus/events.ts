@@ -38,21 +38,21 @@ import {
 } from '../lib/tables/contenus';
 import { NETWORK_THEMES } from '../lib/themes';
 
-// AGENDA (F-52) ET WEBINAIRES (F-54) — lecture publique et édition.
+// AGENDA (F-52) AND WEBINARS (F-54) — public reading and editing.
 //
-// Deux familles de fonctions, deux règles :
-//  - PUBLIQUES (`listPublic`, `getPublic`, `myVisioAccess`) : ne lisent que
-//    les statuts `published` et `cancelled`, par index. Un brouillon n'en sort
-//    jamais, ni le lien de visioconférence (seul `myVisioAccess` le rend, et à
-//    un compte inscrit).
-//  - ÉDITION (`adminList`, `adminGet`, `save`, `setStatus`, `remove`) : rang
-//    éditeur, contrôlé ici ; chaque écriture laisse une entrée au journal.
+// Two families of functions, two rules:
+//  - PUBLIC (`listPublic`, `getPublic`, `myVisioAccess`): only read
+//    the `published` and `cancelled` statuses, via index. A draft never
+//    comes out, nor does the videoconference link (only `myVisioAccess` returns it, and to
+//    a registered account).
+//  - EDITING (`adminList`, `adminGet`, `save`, `setStatus`, `remove`): editor
+//    rank, checked here; each write leaves an entry in the log.
 
-// Plafond de lecture de l'agenda : un réseau publie quelques dizaines
-// d'événements par an. La borne protège la requête publique, pas le produit.
+// Read cap for the agenda: a network publishes a few dozen
+// events per year. The bound protects the public query, not the product.
 const AGENDA_MAX = 500;
-// Capacité maximale saisissable : au-delà, la vérification « complet » (qui
-// relit au plus `capacity` inscriptions) cesserait d'être bon marché.
+// Maximum capacity that can be entered: beyond it, the "full" check (which
+// reads back at most `capacity` registrations) would stop being cheap.
 const CAPACITY_MAX = 5000;
 const EVENT_THEMES: readonly string[] = ['vie-reseau', ...NETWORK_THEMES];
 
@@ -77,8 +77,8 @@ const publicEventValidator = v.object({
   status: v.union(v.literal('published'), v.literal('cancelled')),
   featured: v.boolean(),
   capacity: v.union(v.number(), v.null()),
-  // Qu'une salle virtuelle existe se dit publiquement (« le lien est envoyé
-  // aux inscrits ») ; son adresse, non.
+  // That a virtual room exists is said publicly ("the link is sent
+  // to registrants"); its address is not.
   hasVisio: v.boolean(),
   durationMin: v.union(v.number(), v.null()),
   image: v.union(publicMediaValidator, v.null()),
@@ -119,14 +119,14 @@ async function toPublic(
   };
 }
 
-// --- Lecture publique ---------------------------------------------------------
+// --- Public reading -----------------------------------------------------------
 
 /**
- * L'agenda public, dans la langue demandée : événements publiés et annulés
- * (l'annulation s'annonce, elle ne fait pas disparaître la date), par date.
- * Le tri passé / à venir se fait côté page, qui lit l'horloge (une requête
- * Convex ne doit pas le faire : elle ne serait pas réévaluée quand le temps
- * passe).
+ * The public agenda, in the requested language: published and cancelled events
+ * (a cancellation is announced, it does not make the date disappear), by date.
+ * The past / upcoming split is done on the page side, which reads the clock (a Convex
+ * query must not: it would not be re-evaluated as time
+ * passes).
  */
 export const listPublic = query({
   args: { locale: localeValidator },
@@ -146,7 +146,7 @@ export const listPublic = query({
   },
 });
 
-/** La fiche d'un événement, avec son éventuel replay et l'état « complet ». */
+/** An event's detail page, with its possible replay and the "full" state. */
 export const getPublic = query({
   args: { slug: v.string(), locale: localeValidator },
   returns: v.union(
@@ -183,17 +183,17 @@ export const getPublic = query({
 });
 
 /**
- * Le lien de visioconférence, RÉSERVÉ AUX INSCRITS (F-54).
+ * The videoconference link, RESERVED TO REGISTRANTS (F-54).
  *
- * L'inscription se fait sans compte (F-53) ; la reconnaissance se fait donc
- * par l'ADRESSE : un compte connecté dont l'adresse figure parmi les inscrits
- * de l'événement voit le lien. Les adresses de compte sont vérifiées à la
- * création (code par e-mail) : se connecter sous une adresse, c'est prouver
- * qu'on la détient. Un inscrit sans compte reçoit le lien par courriel avant
- * l'événement (`eventReminders.sendDueReminders`).
+ * Registration happens without an account (F-53); recognition is therefore done
+ * by ADDRESS: a signed-in account whose address is among the event's
+ * registrants sees the link. Account addresses are verified at
+ * creation (code by email): signing in under an address proves
+ * you own it. A registrant without an account receives the link by email before
+ * the event (`eventReminders.sendDueReminders`).
  *
- * Aucune distinction publique n'est faite entre « pas inscrit », « pas de
- * salle » et « événement inconnu » : la réponse vaut `visioUrl: null`.
+ * No public distinction is made between "not registered", "no
+ * room" and "unknown event": the response is `visioUrl: null`.
  */
 export const myVisioAccess = query({
   args: { slug: v.string() },
@@ -219,7 +219,7 @@ export const myVisioAccess = query({
   },
 });
 
-// --- Édition (rang éditeur) ------------------------------------------------------
+// --- Editing (editor rank) -------------------------------------------------------
 
 const adminRowValidator = v.object({
   _id: v.id('contentEvents'),
@@ -324,8 +324,8 @@ export const adminGet = query({
   },
 });
 
-// Contrôle et normalisation d'une saisie d'événement. Chaque refus porte un
-// code que l'écran traduit (`admin.feedbackErr_<CODE>`).
+// Checking and normalizing an event entry. Each refusal carries a
+// code the screen translates (`admin.feedbackErr_<CODE>`).
 function normalizeEvent(input: {
   theme: string;
   langs: SiteLocale[];
@@ -404,11 +404,11 @@ function normalizeEvent(input: {
 }
 
 /**
- * Création (sans `id`) ou modification d'un événement.
+ * Creation (without `id`) or modification of an event.
  *
- * Le SLUG ne se modifie pas : il est l'adresse publique de la fiche, et les
- * inscriptions et rappels y sont rattachés. Une création naît en BROUILLON —
- * publier est un geste distinct (`setStatus`), journalisé comme tel.
+ * The SLUG cannot be modified: it is the detail page's public address, and
+ * registrations and reminders are attached to it. A creation starts as a DRAFT —
+ * publishing is a separate action (`setStatus`), logged as such.
  */
 export const save = mutation({
   args: {
@@ -436,16 +436,16 @@ export const save = mutation({
     if (id) {
       const current = await ctx.db.get(id);
       if (!current) throw new Error('NOT_FOUND');
-      // `replace` et non `patch` : un champ vidé (heure de fin retirée, lien
-      // visio supprimé) doit disparaître du document, pas garder sa valeur.
+      // `replace` and not `patch`: a cleared field (end time removed, video
+      // link deleted) must disappear from the document, not keep its value.
       await ctx.db.replace(id, {
         ...fields,
         slug: current.slug,
         status: current.status,
         cityKey: current.cityKey,
       });
-      // Les rappels en attente suivent la nouvelle date : ils sont envoyés
-      // d'après `eventDate`, qui n'est plus fourni par l'appelant.
+      // Pending reminders follow the new date: they are sent
+      // based on `eventDate`, which is no longer provided by the caller.
       if (current.startsAt !== clean.startsAt) {
         const pending = await ctx.db
           .query('eventReminders')
@@ -479,11 +479,11 @@ export const save = mutation({
 });
 
 /**
- * Publier, dépublier (retour en brouillon) ou annuler un événement.
+ * Publish, unpublish (back to draft) or cancel an event.
  *
- * Annuler n'est pas dépublier : l'événement reste à l'agenda, marqué
- * « annulé », et ses inscriptions sont fermées — les personnes inscrites
- * doivent pouvoir constater l'annulation sur la page qu'elles connaissent.
+ * Cancelling is not unpublishing: the event stays on the agenda, marked
+ * "cancelled", and its registrations are closed — registered people
+ * must be able to see the cancellation on the page they know.
  */
 export const setStatus = mutation({
   args: { id: v.id('contentEvents'), status: eventStatus },
@@ -513,9 +513,9 @@ export const setStatus = mutation({
 });
 
 /**
- * Supprimer un événement : seulement un BROUILLON sans inscrit. Un événement
- * qui a été public a des inscriptions, des rappels et des liens partagés —
- * on l'annule ou on le dépublie, on ne l'efface pas.
+ * Delete an event: only a DRAFT with no registrant. An event
+ * that has been public has registrations, reminders and shared links —
+ * it gets cancelled or unpublished, not erased.
  */
 export const remove = mutation({
   args: { id: v.id('contentEvents') },
@@ -545,7 +545,7 @@ export const remove = mutation({
   },
 });
 
-// Options du sélecteur « événement lié » de l'éditeur de replays.
+// Options for the replay editor's "linked event" selector.
 export const adminOptions = query({
   args: { locale: localeValidator },
   returns: v.array(

@@ -24,17 +24,17 @@ import {
 } from '../lib/payments/validators';
 import { cancelSubscriptionEverywhere } from './member';
 
-// SUIVI FINANCIER (F-31) — back-office, ADMINISTRATEURS uniquement : montants,
-// identités des payeurs et remboursements sont des données sensibles. Chaque
-// geste qui change l'argent (remboursement, arrêt d'un don) ou qui en sort une
-// copie (export) est journalisé.
+// FINANCIAL TRACKING (F-31) — back-office, ADMINISTRATORS only: amounts,
+// payer identities and refunds are sensitive data. Every
+// action that moves money (refund, stopping a donation) or takes a
+// copy out (export) is logged.
 
-// --- Tableau de bord --------------------------------------------------------------
+// --- Dashboard ---------------------------------------------------------------------
 
 export const dashboard = query({
   args: {
-    // Premier mois affiché, « AAAA-MM » (fourni par le client : une query ne
-    // lit pas l'horloge).
+    // First month displayed, "YYYY-MM" (supplied by the client: a query does not
+    // read the clock).
     fromMonth: v.string(),
   },
   returns: v.object({
@@ -61,7 +61,7 @@ export const dashboard = query({
   }),
   handler: async (ctx, { fromMonth }) => {
     await requireNetworkRole(ctx, 'admin');
-    // Au plus 24 mois × 2 devises × 2 types : lecture bornée par l'index.
+    // At most 24 months × 2 currencies × 2 types: read bounded by the index.
     const months = await ctx.db
       .query('paymentMonthlyTotals')
       .withIndex('by_month', (q) => q.gte('month', fromMonth))
@@ -163,10 +163,10 @@ export const listTransactions = query({
     { paginationOpts, kind, currency, status, provider },
   ) => {
     await requireNetworkRole(ctx, 'admin');
-    // Chronologique décroissant par l'index ; les filtres (quatre critères
-    // combinables, faible cardinalité) s'appliquent après l'index. Une page
-    // filtrée peut donc revenir plus courte que demandé — « charger la suite »
-    // la complète.
+    // Reverse chronological via the index; the filters (four combinable
+    // criteria, low cardinality) apply after the index. A filtered page
+    // may therefore come back shorter than requested — "load more"
+    // completes it.
     const result = await ctx.db
       .query('paymentTransactions')
       .withIndex('by_paidAt')
@@ -187,9 +187,9 @@ export const listTransactions = query({
   },
 });
 
-// Export comptable : une MUTATION, pour que la sortie des données soit
-// journalisée (qui a exporté quelle période). Bornée : au-delà, exporter par
-// périodes plus courtes.
+// Accounting export: a MUTATION, so that the data extraction is
+// logged (who exported which period). Bounded: beyond that, export in
+// shorter periods.
 export const EXPORT_MAX = 5000;
 
 export const exportTransactions = mutation({
@@ -218,12 +218,12 @@ export const exportTransactions = mutation({
   },
 });
 
-// --- Cotisations en retard ------------------------------------------------------------
+// --- Overdue membership fees -----------------------------------------------------------
 //
-// « En retard » = la DERNIÈRE période réglée d'un payeur est échue. On part des
-// périodes échues (index par date de fin), puis on écarte celles dont le payeur
-// a réglé une période plus récente. Un membre qui n'a JAMAIS cotisé n'apparaît
-// pas ici : il n'est pas en retard, il n'a pas commencé (limite documentée).
+// "Overdue" = a payer's LAST paid period has lapsed. We start from the
+// lapsed periods (index by end date), then discard those whose payer
+// has paid a more recent period. A member who has NEVER paid does not appear
+// here: they are not overdue, they have not started (documented limitation).
 const LATE_SCAN = 300;
 
 export const lateDues = query({
@@ -278,7 +278,7 @@ export const lateDues = query({
   },
 });
 
-// --- Remboursements ---------------------------------------------------------------------
+// --- Refunds ----------------------------------------------------------------------------
 
 const REASON_MAX = FIELD_MAX.subject;
 
@@ -289,9 +289,9 @@ function checkReason(reason: string): string {
   return r;
 }
 
-// Remboursement MARQUÉ : l'argent est rendu hors plateforme (virement, geste
-// dans le tableau de bord du prestataire, prestataire sans API). Le grand
-// livre en prend acte sans appeler personne.
+// Refund MARKED: the money is returned outside the platform (bank transfer, action
+// in the provider's dashboard, provider without an API). The ledger
+// records it without calling anyone.
 export const markRefunded = mutation({
   args: { transactionId: v.id('paymentTransactions'), reason: v.string() },
   returns: v.boolean(),
@@ -331,8 +331,8 @@ export const prepareProviderRefund = internalMutation({
     providerRef: v.union(v.string(), v.null()),
   }),
   handler: async (ctx, { transactionId, reason }) => {
-    // L'identité de l'appelant traverse `runMutation` depuis l'action : la
-    // garde de rang se fait ici, dans une transaction.
+    // The caller's identity travels through `runMutation` from the action: the
+    // rank guard happens here, in a transaction.
     const admin = await requireNetworkRole(ctx, 'admin');
     checkReason(reason);
     const tx = await ctx.db.get(transactionId);
@@ -379,7 +379,7 @@ export const recordProviderRefund = internalMutation({
   },
 });
 
-// Remboursement EXÉCUTÉ chez le prestataire (Stripe, ou factice en test).
+// Refund EXECUTED with the provider (Stripe, or fake in tests).
 export const refundAtProvider = action({
   args: { transactionId: v.id('paymentTransactions'), reason: v.string() },
   returns: v.boolean(),
@@ -412,7 +412,7 @@ export const refundAtProvider = action({
   },
 });
 
-// --- Dons mensuels ---------------------------------------------------------------------
+// --- Monthly donations ------------------------------------------------------------------
 
 export const listSubscriptions = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -470,7 +470,7 @@ export const cancelSubscription = mutation({
   },
 });
 
-// --- Journal ------------------------------------------------------------------------------
+// --- Log ----------------------------------------------------------------------------------
 
 export const auditTrail = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -484,8 +484,8 @@ export const auditTrail = query({
   ),
   handler: async (ctx, { paginationOpts }) => {
     await requireNetworkRole(ctx, 'admin');
-    // Index plein texte du journal : le slug `payment.*` y est découpé, le
-    // mot « payment » remonte donc toute la famille.
+    // Full-text index of the log: the `payment.*` slug is split there, so the
+    // word "payment" brings up the whole family.
     const result = await ctx.db
       .query('auditLog')
       .withSearchIndex('search_action', (q) => q.search('action', 'payment'))

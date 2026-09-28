@@ -27,16 +27,16 @@ import {
   transactionStatusValidator,
 } from '../lib/payments/validators';
 
-// ESPACE MEMBRE / DONATEUR (F-30) — cotisation en cours, historique, reçus,
-// dons mensuels. Tout est lu par le compte CONNECTÉ : aucune fonction ne prend
-// un identifiant d'utilisateur en argument.
+// MEMBER / DONOR AREA (F-30) — current membership fee, history, receipts,
+// monthly donations. Everything is read by the SIGNED-IN account: no function takes
+// a user id as an argument.
 
 const HISTORY_MAX = 50;
 
 export const overview = query({
   args: {
-    // L'heure vient du client (arrondie) : une query ne lit pas l'horloge,
-    // sans quoi « à jour / échue » ne se recalculerait jamais.
+    // The time comes from the client (rounded): a query does not read the clock,
+    // otherwise "up to date / lapsed" would never be recomputed.
     now: v.number(),
   },
   returns: v.object({
@@ -153,15 +153,15 @@ export const overview = query({
   },
 });
 
-// --- Reçus : téléchargement -----------------------------------------------------------
+// --- Receipts: download ---------------------------------------------------------------
 //
-// Deux portes, et deux seulement :
-//  - le COMPTE propriétaire du paiement (ou un administrateur) ;
-//  - le LIEN envoyé par courriel au payeur, porteur d'un jeton aléatoire de
-//    192 bits — le seul moyen pour un donateur sans compte de retrouver son
-//    reçu. Il vaut ce que vaut sa boîte aux lettres, comme un lien de
-//    réinitialisation.
-// L'URL rendue est celle du stockage Convex, signée et non devinable.
+// Two doors, and only two:
+//  - the ACCOUNT that owns the payment (or an administrator);
+//  - the LINK emailed to the payer, carrying a random 192-bit
+//    token — the only way for a donor without an account to retrieve their
+//    receipt. It is only as good as their mailbox, like a password
+//    reset link.
+// The returned URL is the Convex storage one, signed and unguessable.
 
 export const receiptDownloadUrl = query({
   args: { receiptId: v.id('paymentReceipts') },
@@ -172,9 +172,9 @@ export const receiptDownloadUrl = query({
     if (!receipt) return null;
     const isOwner = receipt.userId !== undefined && receipt.userId === user._id;
     const isAdmin = roleRank(user.role) >= roleRank('admin');
-    // Même réponse pour « n'existe pas » et « pas à vous » ? Non : l'appelant
-    // est authentifié et l'identifiant n'est pas une donnée devinable ; un
-    // refus explicite est plus utile qu'un silence.
+    // Same response for "does not exist" and "not yours"? No: the caller
+    // is authenticated and the id is not guessable data; an
+    // explicit refusal is more useful than silence.
     if (!isOwner && !isAdmin) throw new ConvexError('FORBIDDEN');
     if (!receipt.storageId) return null;
     const url = await ctx.storage.getUrl(receipt.storageId);
@@ -189,7 +189,7 @@ export const receiptByToken = query({
     v.object({ number: v.string(), url: v.union(v.string(), v.null()) }),
   ),
   handler: async (ctx, { token }) => {
-    // Jeton de 24 octets en hexadécimal : tout le reste est refusé sans lecture.
+    // 24-byte token in hexadecimal: everything else is refused without a read.
     if (!/^[0-9a-f]{48}$/.test(token)) return null;
     const receipt = await ctx.db
       .query('paymentReceipts')
@@ -203,14 +203,14 @@ export const receiptByToken = query({
   },
 });
 
-// --- Arrêt d'un don mensuel ----------------------------------------------------------
+// --- Stopping a monthly donation --------------------------------------------------------
 
-// Le donateur arrête son don : effet IMMÉDIAT côté association (plus de
-// relance, statut « arrêté »), puis annulation chez le prestataire quand il
-// prélève lui-même (Stripe). Si cet appel échoue, le webhook
-// `customer.subscription.deleted` n'arrive pas et l'échec est journalisé :
-// l'administrateur le voit dans l'écran Finances (abonnement arrêté ici,
-// encore actif chez Stripe) — cf. docs/backlog/paiements.md.
+// The donor stops their donation: IMMEDIATE effect on the association side (no more
+// reminders, status "stopped"), then cancellation with the provider when it
+// collects itself (Stripe). If that call fails, the
+// `customer.subscription.deleted` webhook does not arrive and the failure is logged:
+// the administrator sees it in the Finances screen (subscription stopped here,
+// still active at Stripe) — see docs/backlog/paiements.md.
 export const cancelMyRecurring = mutation({
   args: { subscriptionId: v.id('paymentSubscriptions') },
   returns: v.null(),
@@ -327,6 +327,6 @@ export const sendCancelledEmail = internalAction({
   },
 });
 
-// Utilisé par la suppression de compte (orchestrateur) : voir
-// `deleteUserDataPaiements` dans convex/lib/payments/ledger.ts.
+// Used by account deletion (orchestrator): see
+// `deleteUserDataPaiements` in convex/lib/payments/ledger.ts.
 export { deleteUserDataPaiements } from '../lib/payments/ledger';

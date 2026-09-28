@@ -31,8 +31,8 @@ function longDate(e: EventData, loc: Locale): string {
   }).format(Date.UTC(e.y, e.mo - 1, e.d));
 }
 
-// Horaire d'un événement minuté, dans le fuseau de son LIEU, fuseau nommé :
-// « 14:00 – 15:30 (UTC+2) ». `null` pour un événement à la journée.
+// Time of a timed event, in the time zone of its VENUE, zone named:
+// "14:00 – 15:30 (UTC+2)". `null` for an all-day event.
 function timeRange(e: AgendaEvent, loc: Locale): string | null {
   if (!e.startTime) return null;
   const fmt = (ms: number, withZone: boolean) =>
@@ -80,21 +80,21 @@ export default async function EventDetailPage({
   const L = getEventsLabels(loc);
   const tAgenda = await getTranslations({ locale, namespace: 'agenda' });
   const tReminder = await getTranslations({ locale, namespace: 'reminder' });
-  // La fiche vient de la table `contentEvents`, ou du catalogue codé en repli
-  // (table vide, backend injoignable) — même adresse dans les deux cas.
+  // The page comes from the `contentEvents` table, or from the hard-coded
+  // fallback catalogue (empty table, backend unreachable) — same URL either way.
   const detail = await loadEvent(slug, loc);
   if (!detail) notFound();
   const { event, full } = detail;
 
   const d = L.detail;
-  // Le contenu RICHE (programme, intervenants, billetterie) est codé pour la
-  // seule conférence inaugurale ; toute autre fiche se compose de ses champs.
+  // The RICH content (programme, speakers, ticketing) is hard-coded for the
+  // inaugural conference only; any other page is built from its fields.
   const isFeatured = event.slug === FEATURED_SLUG;
   const conf = d.conf;
   const lead = isFeatured ? conf.lead : (event.lead ?? d.leadFallback);
   const cancelled = event.status === 'cancelled';
-  // Inscriptions ouvertes : à venir, publié, pas complet. Même règle que le
-  // serveur (`requireOpenEvent` + capacité) — l'interface ne fait que la dire.
+  // Registrations open: upcoming, published, not full. Same rule as the
+  // server (`requireOpenEvent` + capacity) — the UI merely states it.
   const open = event.upcoming && !cancelled && !full;
   const replayUrl = detail.replayUrl ?? event.replayUrl ?? null;
   const hours = timeRange(event, loc);
@@ -103,9 +103,10 @@ export default async function EventDetailPage({
     .sort((a, b) => a.startsAt - b.startsAt)
     .slice(0, 3);
 
-  // Fiche `Event` (F-03, P1 n° 4 du plan d'action). Elle reprend le chapô
-  // AFFICHÉ (`lead`), et non celui de la page de liste que `generateMetadata`
-  // sert en description : une fiche doit décrire la page où elle se trouve.
+  // `Event` record (F-03, P1 no. 4 of the action plan). It reuses the
+  // DISPLAYED standfirst (`lead`), not the list page's one that
+  // `generateMetadata` serves as description: a record must describe the
+  // page it is on.
   const fiche = eventJsonLd({
     name: event.title,
     slug: event.slug,
@@ -119,9 +120,9 @@ export default async function EventDetailPage({
 
   return (
     <div>
-      {/* Données structurées : posées dans le HTML SERVI, donc lisibles par un
-          robot qui n'exécute pas JavaScript. L'organisation, elle, est déclarée
-          une seule fois par le layout et simplement référencée ici. */}
+      {/* Structured data: placed in the SERVED HTML, hence readable by a
+          crawler that does not run JavaScript. The organization itself is
+          declared once by the layout and simply referenced here. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(fiche) }}
@@ -211,9 +212,9 @@ export default async function EventDetailPage({
               </div>
             </dl>
             <div className="mt-6 flex flex-wrap gap-3">
-              {/* Un événement PASSÉ n'a plus de formulaire : le bouton du hero
-                  pointait vers une ancre qui n'existe plus (contre-vérification
-                  du 27/09). */}
+              {/* A PAST event no longer has a form: the hero button pointed to
+                  an anchor that no longer exists (cross-check of
+                  27/09). */}
               {open || (isFeatured && event.upcoming && !cancelled) ? (
                 <a
                   href={isFeatured ? '#billetterie' : '#inscription'}
@@ -258,8 +259,8 @@ export default async function EventDetailPage({
                   {d.visualPin}
                 </span>
                 <div className="relative aspect-[4/3]">
-                  {/* Photo d'ILLUSTRATION (la même pour plusieurs contenus) : décorative,
-                    ignorée des aides techniques (RGAA 1.2, audit du 27/09). */}
+                  {/* ILLUSTRATION photo (the same for several pieces of content):
+                    decorative, ignored by assistive technologies (RGAA 1.2, 27/09 audit). */}
                   <Image
                     src="/library/paris.jpg"
                     alt=""
@@ -277,10 +278,10 @@ export default async function EventDetailPage({
         </Reveal>
       </header>
 
-      {/* Corps */}
+      {/* Body */}
       <div className={`${WRAP} grid gap-12 pb-16 lg:grid-cols-[1fr_330px]`}>
         <div>
-          {/* La journée */}
+          {/* The day */}
           <Reveal as="section" id="presentation">
             <h2 className="font-display text-2xl">{d.sections.day}</h2>
             <div className="mt-4">
@@ -348,7 +349,7 @@ export default async function EventDetailPage({
                 </RevealGroup>
               </Reveal>
 
-              {/* Intervenants */}
+              {/* Speakers */}
               <Reveal as="section" id="intervenants" className="mt-12">
                 <h2 className="font-display text-2xl">{d.sections.speakers}</h2>
                 <p className="mt-2 max-w-[68ch] text-[15px] text-muted">
@@ -385,7 +386,7 @@ export default async function EventDetailPage({
                 </RevealGroup>
               </Reveal>
 
-              {/* Infos pratiques */}
+              {/* Practical information */}
               <Reveal as="section" id="infos" className="mt-12 scroll-mt-24">
                 <h2 className="font-display text-2xl">{d.sections.infos}</h2>
                 <RevealGroup className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -431,7 +432,7 @@ export default async function EventDetailPage({
           )}
         </div>
 
-        {/* Sidebar : billetterie (conférence) ou inscription simple */}
+        {/* Sidebar: ticketing (conference) or simple registration */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           {isFeatured && !cancelled && event.upcoming ? (
             <div
@@ -519,11 +520,11 @@ export default async function EventDetailPage({
               </div>
             </div>
           ) : (
-            // Événement PASSÉ : le formulaire d'inscription était rendu quand
-            // même, et l'inscription acceptée et stockée (mesuré le 27/09).
-            // À la place : le bloc REDIFFUSION (A-10) — le lien du replay
-            // publié s'il existe, sinon la mention honnête et le chemin vers
-            // la page des replays.
+            // PAST event: the registration form was rendered anyway, and the
+            // registration accepted and stored (measured on 27/09).
+            // Instead: the REPLAY block (A-10) — the link to the published
+            // replay if there is one, otherwise an honest note and the way to
+            // the replays page.
             <div
               id="rediffusion"
               className="scroll-mt-24 rounded-md border border-line bg-surface p-5"
@@ -555,10 +556,10 @@ export default async function EventDetailPage({
             </div>
           )}
 
-          {/* Visioconférence (A-10, F-54) — événement À VENIR en ligne ou
-              hybride. Le lien n'est JAMAIS rendu ici par le serveur : il est
-              réservé aux inscrits, et c'est `VisioAccess` qui le demande pour
-              le compte connecté. */}
+          {/* Video conference (A-10, F-54) — UPCOMING online or hybrid
+              event. The link is NEVER rendered here by the server: it is
+              reserved for registrants, and it is `VisioAccess` that requests it
+              for the signed-in account. */}
           {event.upcoming && !cancelled && event.format !== 'presentiel' ? (
             <div className="mt-5 rounded-md border border-line bg-surface p-5">
               <h2 className="font-display text-lg">{d.replay.visioTitle}</h2>
@@ -589,7 +590,7 @@ export default async function EventDetailPage({
             </dl>
           ) : null}
 
-          {/* Rappel par e-mail (F-55) — événements à venir uniquement. */}
+          {/* E-mail reminder (F-55) — upcoming events only. */}
           {event.upcoming && !cancelled && !event.started ? (
             <div className="mt-5 rounded-md border border-line bg-surface p-5">
               <h2 className="font-display text-lg">{tReminder('title')}</h2>
@@ -601,7 +602,7 @@ export default async function EventDetailPage({
         </aside>
       </div>
 
-      {/* Ressources (conférence) */}
+      {/* Resources (conference) */}
       {isFeatured ? (
         <section className="border-t border-line bg-surface">
           <div className={`${WRAP} py-14`}>
@@ -627,7 +628,7 @@ export default async function EventDetailPage({
         </section>
       ) : null}
 
-      {/* Autres rendez-vous */}
+      {/* Other events */}
       {related.length ? (
         <section className={`${WRAP} py-14`}>
           <Reveal>

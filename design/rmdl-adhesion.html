@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
-/* ===== TOKENS (design system Democracy Together) ===== */
+/* ===== TOKENS (Democracy Together design system) ===== */
 :root{
   --paper:#F4F2EC; --surface:#FBFAF5; --surface-2:#EFEDE4;
   --ink:#16191F; --ink-soft:#454953; --muted:#646771;
@@ -48,7 +48,7 @@ img{max-width:100%;display:block}
 .meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .section{padding:var(--s9) 0}
 
-/* boutons / tags */
+/* buttons / tags */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-size:14.5px;font-weight:600;line-height:1;padding:11px 18px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s}
 .btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--accent);color:var(--accent-contrast)}
@@ -74,7 +74,7 @@ img{max-width:100%;display:block}
 .theme-toggle{font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);border-radius:var(--r-sm);padding:7px 11px;cursor:pointer}
 @media(max-width:900px){.nav .links{display:none}}
 
-/* en-tête de page */
+/* page header */
 .phead{padding:var(--s8) 0 var(--s7);border-bottom:1px solid var(--line);background:var(--surface)}
 .crumb{font-size:13px;color:var(--muted);margin-bottom:var(--s4)}
 .crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--ink)}
@@ -82,7 +82,7 @@ img{max-width:100%;display:block}
 .phead .lead{margin-top:var(--s4);max-width:62ch}
 .phead .pills{display:flex;gap:var(--s2);flex-wrap:wrap;margin-top:var(--s5)}
 
-/* ===== SÉLECTEUR DE TYPE (segmenté) ===== */
+/* ===== TYPE SELECTOR (segmented) ===== */
 .choose{display:grid;grid-template-columns:1fr 1fr;gap:var(--s8);align-items:start;margin-top:var(--s7)}
 .seg{display:inline-flex;padding:4px;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);flex-wrap:wrap}
 .seg button{font-family:var(--font-sans);font-size:14px;font-weight:600;color:var(--ink-soft);background:transparent;border:0;border-radius:var(--r-sm);padding:10px 16px;cursor:pointer;transition:background .14s,color .14s}
@@ -112,7 +112,7 @@ img{max-width:100%;display:block}
 .type-aside .btn{width:100%;margin-top:var(--s4)}
 @media(max-width:900px){.choose{grid-template-columns:1fr;gap:var(--s6)}.type-aside{position:static}}
 
-/* ===== ESTIMATEUR ===== */
+/* ===== ESTIMATOR ===== */
 .estim{background:var(--surface)}
 .estim-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s8);align-items:center;margin-top:var(--s6)}
 .field-group{margin-bottom:var(--s5)}
@@ -138,7 +138,7 @@ img{max-width:100%;display:block}
 .solidarity svg{flex:0 0 auto;margin-top:2px;color:var(--accent-text)}
 @media(max-width:900px){.estim-grid{grid-template-columns:1fr;gap:var(--s6)}}
 
-/* ===== COMPARATIF ===== */
+/* ===== COMPARISON ===== */
 .cmp-scroll{margin-top:var(--s7);overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
 table.cmp{width:100%;border-collapse:collapse;min-width:620px;background:var(--surface)}
 table.cmp th,table.cmp td{text-align:left;padding:var(--s4) var(--s5);border-bottom:1px solid var(--line);vertical-align:top}
@@ -155,7 +155,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
 .ck.no{color:var(--muted)}
 .ck.no svg{color:var(--muted)}
 
-/* ===== PAIEMENT (maquette) ===== */
+/* ===== PAYMENT (mockup) ===== */
 .pay{background:var(--surface)}
 .pay-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:var(--s8);align-items:start;margin-top:var(--s6)}
 .recap{border:1px solid var(--line);border-radius:var(--r-md);background:var(--paper);box-shadow:var(--shadow-1);overflow:hidden;position:sticky;top:96px}
@@ -182,7 +182,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
 .mock-flag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border:1px dashed var(--line-strong);border-radius:var(--r-pill);padding:4px 10px;margin-bottom:var(--s4)}
 @media(max-width:900px){.pay-grid{grid-template-columns:1fr;gap:var(--s6)}.recap{position:static}.method{grid-template-columns:1fr}.frow{grid-template-columns:1fr}}
 
-/* ===== DON ===== */
+/* ===== DONATION ===== */
 .donate{border:1px solid var(--accent-edge);border-radius:var(--r-md);background:var(--accent-tint);padding:var(--s7);display:grid;grid-template-columns:1fr auto;gap:var(--s6);align-items:center}
 .donate h2{font-size:clamp(24px,3vw,30px)}
 .donate p{color:var(--ink-soft);font-size:15px;max-width:52ch;margin-top:var(--s2)}
@@ -253,7 +253,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
   </div>
 </nav>
 
-<!-- =================== EN-TÊTE =================== -->
+<!-- =================== HEADER =================== -->
 <header class="phead">
   <div class="wrap">
     <div class="crumb"><a href="rmdl-accueil.html">Accueil</a> / Adhésion</div>
@@ -268,7 +268,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
   </div>
 </header>
 
-<!-- =================== TYPE D'ADHÉSION =================== -->
+<!-- =================== MEMBERSHIP TYPE =================== -->
 <section class="section" id="types" aria-labelledby="types-h">
   <div class="wrap">
     <div class="sec-head">
@@ -289,7 +289,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
         <p class="who" id="tp-who">Pour les think tanks et organisations</p>
         <h2 id="tp-title">Adhésion organisation</h2>
         <p class="desc" id="tp-desc">Pour les instituts de recherche, centres d'analyse et organisations de la société civile qui veulent contribuer à la production commune et peser dans le débat démocratique Afrique-Europe.</p>
-        <ul class="adv" id="tp-adv"><!-- rempli par JS --></ul>
+        <ul class="adv" id="tp-adv"><!-- filled by JS --></ul>
       </div>
 
       <aside class="type-aside" aria-live="polite">
@@ -314,7 +314,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
   </div>
 </section>
 
-<!-- =================== ESTIMATEUR SOLIDAIRE =================== -->
+<!-- =================== SOLIDARITY ESTIMATOR =================== -->
 <section class="section estim" id="estimateur" aria-labelledby="estim-h">
   <div class="wrap">
     <div class="sec-head">
@@ -370,7 +370,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
   </div>
 </section>
 
-<!-- =================== COMPARATIF =================== -->
+<!-- =================== COMPARISON =================== -->
 <section class="section" id="comparatif" aria-labelledby="cmp-h">
   <div class="wrap">
     <div class="sec-head">
@@ -446,7 +446,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
   </div>
 </section>
 
-<!-- =================== PAIEMENT (maquette) =================== -->
+<!-- =================== PAYMENT (mockup) =================== -->
 <section class="section pay" id="paiement" aria-labelledby="pay-h">
   <div class="wrap">
     <div class="sec-head">
@@ -525,7 +525,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
   </div>
 </section>
 
-<!-- =================== DON =================== -->
+<!-- =================== DONATION =================== -->
 <section class="section" id="don" aria-labelledby="don-h">
   <div class="wrap">
     <div class="donate">
@@ -638,8 +638,8 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
     });
   }
 
-  /* ===== Données indicatives (tarifs solidaires) ===== */
-  var XOF_RATE=655; /* conversion approximative 1 EUR pour 655 XOF */
+  /* ===== Indicative data (solidarity rates) ===== */
+  var XOF_RATE=655; /* approximate conversion 1 EUR to 655 XOF */
   var PRICES={
     org:{high:1200, mid:600, low:250},
     ind:{high:120,  mid:60,  low:30},
@@ -691,7 +691,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
     }
   };
 
-  /* ===== Formatage ===== */
+  /* ===== Formatting ===== */
   function fmt(n){ return n.toLocaleString('fr-FR'); }
   function amountFor(type, rev, cur){
     var eur=PRICES[type][rev];
@@ -700,7 +700,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
   }
   function check(svg){ return svg; }
 
-  /* ===== Sélecteur de type (onglets) ===== */
+  /* ===== Type selector (tabs) ===== */
   var tabs=Array.prototype.slice.call(document.querySelectorAll('.seg [role=tab]'));
   var tpWho=document.getElementById('tp-who');
   var tpTitle=document.getElementById('tp-title');
@@ -722,11 +722,11 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
     tpDesc.textContent=c.desc;
     tpAdv.innerHTML=c.adv.map(function(a){ return '<li>'+CHECK+'<span>'+a+'</span></li>'; }).join('');
     asTitle.textContent=c.title;
-    /* tarif de la fiche : niveau revenu élevé, EUR, par cohérence */
+    /* rate from the sheet: high-income tier, EUR, for consistency */
     asAmount.textContent=fmt(PRICES[type].high);
     asCur.textContent='EUR';
     asNote.textContent="Tarif au niveau de revenu élevé. Ajustez avec l'estimateur solidaire ci-dessous.";
-    /* synchronise l'estimateur sur le type choisi */
+    /* syncs the estimator to the selected type */
     var er=document.querySelector('input[name="etype"][value="'+type+'"]');
     if(er && !er.checked){ er.checked=true; renderEstim(); }
   }
@@ -744,7 +744,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
     });
   });
 
-  /* ===== Estimateur ===== */
+  /* ===== Estimator ===== */
   var estAmount=document.getElementById('est-amount');
   var estCur=document.getElementById('est-cur');
   var estCtx=document.getElementById('est-ctx');
@@ -762,18 +762,18 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
     estAmount.textContent=fmt(amt);
     estCur.textContent=cur;
     estCtx.textContent=TYPE_LABEL[type]+', '+REV_CTX[rev]+'.';
-    /* équivalent dans l'autre devise */
+    /* equivalent in the other currency */
     if(cur==='EUR'){
       estAlt.textContent='Équivalent indicatif : '+fmt(amountFor(type, rev, 'XOF'))+' XOF par an.';
     } else {
       estAlt.textContent='Équivalent indicatif : '+fmt(PRICES[type][rev])+' EUR par an.';
     }
-    /* met à jour le récapitulatif de paiement */
+    /* updates the payment summary */
     rcType.textContent=TYPE_LABEL[type];
     rcRev.textContent=REV_LABEL[rev];
     rcAmount.textContent=fmt(amt);
     rcCur.textContent=cur;
-    /* synchronise les onglets de type si l'estimateur change le type */
+    /* syncs the type tabs if the estimator changes the type */
     if(type!==currentType){
       currentType=type;
       tabs.forEach(function(t){ t.setAttribute('aria-selected', t.getAttribute('data-type')===type?'true':'false'); });
@@ -785,7 +785,7 @@ table.cmp tbody tr:last-child td,table.cmp tbody tr:last-child th{border-bottom:
     i.addEventListener('change', renderEstim);
   });
 
-  /* ===== FAQ accordéon ===== */
+  /* ===== FAQ accordion ===== */
   document.querySelectorAll('.qa button').forEach(function(btn){
     var ans=document.getElementById(btn.getAttribute('aria-controls'));
     btn.addEventListener('click',function(){

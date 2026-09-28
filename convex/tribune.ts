@@ -28,24 +28,24 @@ import {
 import { loadSettings as loadAiSettings } from './aiModeration';
 import { internal } from './_generated/api';
 
-// Formes publiques de la Tribune. Les handlers projetaient déjà champ par
-// champ ; les déclarer ici FIGE cette projection : le jour où l'un d'eux
-// renverra `{ ...post }`, la query échouera au lieu de servir `authorUserId`,
-// `status` et le corps intégral des billets retirés (issue #30).
+// Public shapes of the Tribune. The handlers already projected field by
+// field; declaring them here FREEZES that projection: the day one of them
+// returns `{ ...post }`, the query will fail instead of serving `authorUserId`,
+// `status` and the full body of withdrawn posts (issue #30).
 const postSummaryValidator = v.object({
   _id: v.id('tribunePosts'),
   theme: v.string(),
   format: v.union(v.literal('court'), v.literal('fond')),
   title: v.string(),
   excerpt: v.string(),
-  // Langue de rédaction, pour l'attribut `lang` du titre et de l'extrait dans
-  // le FIL (RGAA 8.7) — la fiche la recevait déjà. Optionnelle pour la même
-  // raison qu'ici-dessous : les billets antérieurs au champ n'en portent pas.
+  // Writing language, for the `lang` attribute of the title and excerpt in
+  // the FEED (RGAA 8.7) — the entry page already received it. Optional for the same
+  // reason as below: posts predating the field do not carry it.
   lang: v.optional(locale),
   authorName: v.string(),
   commentCount: v.number(),
   createdAt: v.number(),
-  // Contribution de fond qui prolonge un billet court (F-48).
+  // Long-form contribution that extends a short post (F-48).
   isDeepening: v.boolean(),
 });
 
@@ -62,9 +62,9 @@ const postDetailValidator = v.object({
   format: v.union(v.literal('court'), v.literal('fond')),
   title: v.string(),
   body: v.string(),
-  // Langue de rédaction : la fiche en a besoin pour son canonical et pour
-  // l'attribut `lang` de l'article (issue #35). Absente sur les billets
-  // antérieurs au champ — le repli appartient à `resolveLocale`, côté Next.
+  // Writing language: the entry page needs it for its canonical and for
+  // the article's `lang` attribute (issue #35). Absent on posts
+  // predating the field — the fallback belongs to `resolveLocale`, on the Next side.
   lang: v.optional(locale),
   authorName: v.string(),
   commentCount: v.number(),
@@ -77,29 +77,29 @@ const postDetailValidator = v.object({
       createdAt: v.number(),
     }),
   ),
-  // APPROFONDISSEMENT (F-48) — les deux contenus se renvoient l'un à l'autre,
-  // publiquement : le billet court liste ses contributions de fond PUBLIÉES,
-  // la contribution de fond nomme le billet qu'elle prolonge.
+  // DEEPENING (F-48) — the two pieces of content point to each other,
+  // publicly: the short post lists its PUBLISHED long-form contributions,
+  // the long-form contribution names the post it extends.
   parent: v.union(linkedPostValidator, v.null()),
   deepenings: v.array(linkedPostValidator),
 });
 
-// Tribune démocratique (F-44/F-47/F-50). Lecture publique, écriture membre.
-// Modération A PRIORI par défaut (F-45, chantier communauté) : un billet soumis
-// reste `pending`, invisible du public, jusqu'à la décision d'un modérateur
-// (convex/communityModeration.ts). L'administrateur peut revenir à la
-// modération a posteriori. `theme` = un des 5 axes du réseau.
+// Democratic Tribune (F-44/F-47/F-50). Public read, member write.
+// PRE-moderation by default (F-45, community workstream): a submitted post
+// stays `pending`, invisible to the public, until a moderator decides
+// (convex/communityModeration.ts). The administrator can switch back to
+// post-moderation. `theme` = one of the network's 5 axes.
 
 function authorName(user: Doc<'users'>): string {
   return user.name?.trim() || 'Membre';
 }
 
-// --- Effets de la mise en ligne ----------------------------------------------
+// --- Effects of going live ----------------------------------------------
 //
-// Ce qu'entraîne la PARUTION d'un contenu, qu'elle vienne de la soumission (a
-// posteriori), d'un modérateur ou de l'IA (a priori). Écrit une fois, appelé
-// des trois chemins : les notifications et les compteurs ne suivent plus le
-// geste de l'auteur, mais le moment où le public voit le contenu.
+// What the PUBLICATION of content triggers, whether it comes from the submission
+// (post-moderation), a moderator or the AI (pre-moderation). Written once, called
+// from all three paths: notifications and counters no longer follow the
+// author's action, but the moment the public sees the content.
 
 export async function onPostPublished(
   ctx: MutationCtx,
@@ -107,8 +107,8 @@ export async function onPostPublished(
   from: Doc<'tribunePosts'>['status'] | null,
 ): Promise<void> {
   await trackTribunePostStatus(ctx, from, 'published');
-  // Une contribution de fond paraît : l'auteur du billet qu'elle prolonge
-  // l'apprend (sauf s'il en est lui-même l'auteur).
+  // A long-form contribution is published: the author of the post it extends
+  // is told (unless they are its author themselves).
   if (post.parentPostId) {
     const parent = await ctx.db.get(post.parentPostId);
     if (parent && parent.authorUserId !== post.authorUserId) {
@@ -133,8 +133,8 @@ export async function onCommentPublished(
   if (!post) return;
   await ctx.db.patch(post._id, { commentCount: post.commentCount + 1 });
 
-  // Participants distincts (auteurs des AUTRES commentaires publiés du fil).
-  // Sert à notifier les autres intervenants. F-25/F-51.
+  // Distinct participants (authors of the OTHER published comments in the thread).
+  // Used to notify the other contributors. F-25/F-51.
   const existingComments = await ctx.db
     .query('tribuneComments')
     .withIndex('by_post', (q) => q.eq('postId', post._id))
@@ -144,8 +144,8 @@ export async function onCommentPublished(
     if (c.status === 'published' && c._id !== comment._id)
       participantIds.add(c.authorUserId);
   }
-  // Le commentateur ne se notifie jamais lui-même, et l'auteur du post est
-  // notifié séparément (pas de doublon).
+  // The commenter never notifies themselves, and the post author is
+  // notified separately (no duplicate).
   participantIds.delete(comment.authorUserId);
   participantIds.delete(post.authorUserId);
 
@@ -169,8 +169,8 @@ export async function onCommentPublished(
   }
 }
 
-// Un membre peut-il ouvrir une contribution de fond sur ce billet ? Son
-// auteur, ou un membre qu'il y a invité (invitation en cours).
+// Can a member open a long-form contribution on this post? Its
+// author, or a member they invited (pending invitation).
 async function canDeepen(
   ctx: QueryCtx,
   parent: Doc<'tribunePosts'>,
@@ -191,26 +191,26 @@ async function canDeepen(
   return byEmail.some((i) => i.postId === parent._id && i.status === 'pending');
 }
 
-// Un billet court PUBLIÉ est le seul qu'on approfondit : une contribution de
-// fond ne prolonge pas un texte que le public ne voit pas.
+// A PUBLISHED short post is the only one that can be deepened: a long-form
+// contribution does not extend a text the public cannot see.
 function isDeepenable(post: Doc<'tribunePosts'> | null): boolean {
   return !!post && post.status === 'published' && post.format === 'court';
 }
 
-// --- Écriture (membre et au-dessus) -----------------------------------------
+// --- Writing (member and above) -----------------------------------------
 export const createPost = mutation({
   args: {
     theme: v.string(),
     format: v.union(v.literal('court'), v.literal('fond')),
     title: v.string(),
     body: v.string(),
-    // Déclarée par l'auteur (le composer la pré-remplit avec la langue de
-    // l'interface, sans l'imposer : on écrit en anglais depuis une interface
-    // française). Vocabulaire fermé : une valeur hors `locale` est refusée par
-    // le validateur, jamais repliée en silence.
+    // Declared by the author (the composer pre-fills it with the interface
+    // language, without imposing it: one may write in English from a French
+    // interface). Closed vocabulary: a value outside `locale` is rejected by
+    // the validator, never silently folded back.
     lang: locale,
-    // APPROFONDISSEMENT (F-48) : le billet court que cette contribution de
-    // fond prolonge.
+    // DEEPENING (F-48): the short post that this long-form
+    // contribution extends.
     parentPostId: v.optional(v.id('tribunePosts')),
   },
   returns: v.id('tribunePosts'),
@@ -228,8 +228,8 @@ export const createPost = mutation({
       if (!(await canDeepen(ctx, parent, user))) {
         throw new ConvexError('NOT_INVITED');
       }
-      // Une contribution de fond est… de fond : format long (bornes F-46), et
-      // sur l'axe du billet qu'elle prolonge.
+      // A long-form contribution is… long-form: long format (F-46 bounds), and
+      // on the axis of the post it extends.
       if (args.format !== 'fond') throw new ConvexError('DEEPENING_FORMAT');
       theme = parent.theme;
     }
@@ -237,11 +237,11 @@ export const createPost = mutation({
     if (!isNetworkTheme(theme)) throw new Error('INVALID_THEME');
     if (title.length < 4 || title.length > 160)
       throw new Error('INVALID_TITLE');
-    // Bornes PAR FORMAT (F-46, A-05) : une « Brève » n'a pas la longueur
-    // d'une « Analyse ». `ConvexError` et non `Error` : le code traverse
-    // jusqu'au navigateur (le message d'un `Error` nu est masqué en prod), et
-    // le composer peut dire « trop long pour ce format » au lieu d'un échec
-    // générique — c'est ce que 21 000 caractères produisaient le 27/09.
+    // Bounds PER FORMAT (F-46, A-05): a "Brève" does not have the length
+    // of an "Analyse". `ConvexError` and not `Error`: the code travels
+    // all the way to the browser (a bare `Error` message is masked in prod), and
+    // the composer can say "too long for this format" instead of a generic
+    // failure — which is what 21,000 characters produced on 27/09.
     const bounds = TRIBUNE_BODY[args.format];
     if (body.length < bounds.min) throw new ConvexError('INVALID_BODY');
     if (body.length > bounds.max) throw new ConvexError('BODY_TOO_LONG');
@@ -253,8 +253,8 @@ export const createPost = mutation({
 
     const now = Date.now();
     const name = authorName(user);
-    // A PRIORI (défaut) : en attente, invisible du public. A POSTERIORI :
-    // publié aussitôt, modéré sur signalement.
+    // PRE-moderation (default): pending, invisible to the public. POST-moderation:
+    // published immediately, moderated upon report.
     const { postMode } = await loadCommunitySettings(ctx);
     const status: 'pending' | 'published' =
       postMode === 'a_priori' ? 'pending' : 'published';
@@ -270,7 +270,7 @@ export const createPost = mutation({
       status,
       commentCount: 0,
       createdAt: now,
-      // Recherche globale (chantier diffusion) : meule tenue à l'écriture.
+      // Global search (diffusion workstream): haystack maintained on write.
       searchText: tribuneSearchText({ title, body, authorName: name }),
       searchYear: yearOf(now),
       ...(args.parentPostId ? { parentPostId: args.parentPostId } : {}),
@@ -292,10 +292,10 @@ export const createPost = mutation({
   },
 });
 
-// Modifier SON billet tant qu'il n'est pas en ligne : en attente (correction
-// avant décision) ou rejeté (reprise après motif). Un billet rejeté puis
-// corrigé repart en file — c'est une nouvelle soumission, qu'un humain relit.
-// L'historique garde la trace de la modification.
+// Edit ONE'S OWN post while it is not live: pending (correction
+// before decision) or rejected (rework after reason). A post rejected then
+// corrected goes back into the queue — it is a new submission, which a human reviews.
+// The history keeps a record of the edit.
 export const updatePost = mutation({
   args: {
     postId: v.id('tribunePosts'),
@@ -327,8 +327,8 @@ export const updatePost = mutation({
     await ctx.db.patch(post._id, {
       title,
       body,
-      // La meule de recherche suit le texte (chantier diffusion) : un billet
-      // corrigé puis validé doit se trouver par ses NOUVEAUX mots.
+      // The search haystack follows the text (diffusion workstream): a post
+      // corrected then approved must be findable by its NEW words.
       searchText: tribuneSearchText({
         title,
         body,
@@ -355,8 +355,8 @@ export const updatePost = mutation({
 
 export const addComment = mutation({
   args: { postId: v.id('tribunePosts'), body: v.string() },
-  // `status` dit à l'écran si le commentaire est en ligne ou en attente de
-  // modération (mode a priori des commentaires).
+  // `status` tells the screen whether the comment is live or awaiting
+  // moderation (comment pre-moderation mode).
   returns: v.object({
     ok: v.boolean(),
     status: v.union(v.literal('published'), v.literal('pending')),
@@ -364,8 +364,8 @@ export const addComment = mutation({
   handler: async (ctx, { postId, body }) => {
     const user = await requireNetworkRole(ctx, 'membre');
     const text = body.trim();
-    // `ConvexError` : le refus (« 1 caractère », « 4 001 caractères ») était
-    // avalé par le formulaire faute de code lisible côté client (A-06).
+    // `ConvexError`: the refusal ("1 caractère", "4 001 caractères") was
+    // swallowed by the form for lack of a client-readable code (A-06).
     if (text.length < TRIBUNE_COMMENT.min || text.length > TRIBUNE_COMMENT.max)
       throw new ConvexError('INVALID_COMMENT');
     const post = await ctx.db.get(postId);
@@ -405,8 +405,8 @@ export const addComment = mutation({
   },
 });
 
-// Réaction « soutien » (comme un like) — réservée aux membres. Une réaction par
-// membre et par post : bascule (toggle). Renvoie l'état après bascule.
+// "Support" reaction (like a like) — reserved for members. One reaction per
+// member per post: toggle. Returns the state after toggling.
 export const toggleReaction = mutation({
   args: { postId: v.id('tribunePosts') },
   returns: v.object({ reacted: v.boolean() }),
@@ -435,7 +435,7 @@ export const toggleReaction = mutation({
   },
 });
 
-// Signalement (F-50) — tout compte authentifié peut signaler.
+// Report (F-50) — any authenticated account can report.
 export const reportContent = mutation({
   args: {
     targetType: v.union(v.literal('post'), v.literal('comment')),
@@ -449,12 +449,12 @@ export const reportContent = mutation({
       key: `tribuneReport:${user._id}`,
       ...RATE_LIMITS.tribuneReport,
     });
-    // La cible doit être un identifiant Convex de la BONNE table, et exister
-    // (audit M1 / pentest H-2). Sans cette validation, n'importe quel compte
-    // authentifié pouvait écrire une chaîne arbitraire ici : `listReports` la
-    // relisait ensuite via ctx.db.get et la file de modération devenait
-    // inaccessible à TOUS les modérateurs — sans moyen de résoudre le
-    // signalement fautif, qui ne se résout que depuis cette même page.
+    // The target must be a Convex identifier from the RIGHT table, and exist
+    // (audit M1 / pentest H-2). Without this validation, any
+    // authenticated account could write an arbitrary string here: `listReports`
+    // then re-read it via ctx.db.get and the moderation queue became
+    // inaccessible to ALL moderators — with no way to resolve the
+    // offending report, which can only be resolved from that same page.
     let postId: Id<'tribunePosts'> | undefined;
     let normalized: string;
     if (targetType === 'post') {
@@ -469,10 +469,10 @@ export const reportContent = mutation({
       normalized = id;
       postId = c.postId;
     }
-    // Un signalement OUVERT par personne et par cible : rechargeant la page,
-    // le même compte pouvait signaler le même billet à volonté, et la file
-    // des modérateurs se remplissait de doublons (mesuré le 27/09). Le second
-    // appel est idempotent — l'écran dit « signalé » dans les deux cas.
+    // One OPEN report per person per target: by reloading the page,
+    // the same account could report the same post at will, and the
+    // moderators' queue filled with duplicates (measured on 27/09). The second
+    // call is idempotent — the screen says "signalé" in both cases.
     const existing = await ctx.db
       .query('tribuneReports')
       .withIndex('by_target', (q) => q.eq('targetId', normalized))
@@ -493,7 +493,7 @@ export const reportContent = mutation({
       resolved: false,
       createdAt: Date.now(),
     });
-    // Le signalement entre dans l'HISTORIQUE du contenu (F-49).
+    // The report enters the content's HISTORY (F-49).
     await logModerationEvent(ctx, {
       targetType,
       targetId: normalized,
@@ -506,18 +506,18 @@ export const reportContent = mutation({
   },
 });
 
-// --- Lecture publique --------------------------------------------------------
+// --- Public read --------------------------------------------------------
 export const listPosts = query({
-  // `theme` est un domaine FERMÉ : le validateur le dit, plutôt que de laisser
-  // passer n'importe quelle chaîne pour la filtrer ensuite dans le handler.
-  // L'appelant (src/app/[locale]/tribune/page.tsx) assainit le paramètre d'URL
-  // en amont, pour qu'un `?theme=` fantaisiste reste « pas de filtre » au lieu
-  // de devenir une erreur d'argument sur une page publique.
+  // `theme` is a CLOSED domain: the validator says so, rather than letting
+  // any string through only to filter it afterwards in the handler.
+  // The caller (src/app/[locale]/tribune/page.tsx) sanitizes the URL parameter
+  // upstream, so that a bogus `?theme=` stays "no filter" instead of
+  // becoming an argument error on a public page.
   args: { theme: v.optional(networkThemeValidator) },
   returns: v.array(postSummaryValidator),
   handler: async (ctx, { theme }) => {
-    // SEULS les billets `published` : un billet en attente, rejeté ou retiré
-    // n'existe pas pour le public.
+    // ONLY `published` posts: a pending, rejected or withdrawn post
+    // does not exist for the public.
     const posts = theme
       ? await ctx.db
           .query('tribunePosts')
@@ -595,8 +595,8 @@ export const getPost = query({
           body: c.body,
           createdAt: c.createdAt,
         })),
-      // Le lien vers le billet court n'est servi que s'il est lui-même en
-      // ligne : un billet retiré ne se découvre pas par ses contributions.
+      // The link to the short post is only served if it is itself
+      // live: a withdrawn post is not discovered through its contributions.
       parent: parent && parent.status === 'published' ? linked(parent) : null,
       deepenings: deepenings
         .sort((a, b) => a.createdAt - b.createdAt)
@@ -605,8 +605,8 @@ export const getPost = query({
   },
 });
 
-// État des réactions d'un post : décompte + si l'utilisateur courant a réagi.
-// Lecture publique : `mine` vaut false pour un visiteur anonyme (pas de throw).
+// Reaction state of a post: count + whether the current user has reacted.
+// Public read: `mine` is false for an anonymous visitor (no throw).
 export const reactionState = query({
   args: { postId: v.id('tribunePosts') },
   returns: v.object({ count: v.number(), mine: v.boolean() }),
@@ -621,9 +621,9 @@ export const reactionState = query({
   },
 });
 
-// Réglage de modération en vigueur, pour que l'écran dise AVANT l'envoi ce
-// qui arrivera (« soumis à validation » ou « publié aussitôt »). Public : ce
-// n'est pas un secret, c'est une règle du lieu.
+// Moderation setting in force, so the screen can say BEFORE sending what
+// will happen ("soumis à validation" or "publié aussitôt"). Public: it
+// is not a secret, it is a house rule.
 export const moderationPolicy = query({
   args: {},
   returns: v.object({
@@ -633,12 +633,12 @@ export const moderationPolicy = query({
   handler: async (ctx) => await loadCommunitySettings(ctx),
 });
 
-// --- Mes billets (auteur) ----------------------------------------------------
-// Un membre voit l'ÉTAT de ses propres contributions (F-45) : en attente,
-// publiée, rejetée (avec le motif), retirée. Le corps n'est pas rendu ici :
-// la liste dit l'état ; l'aperçu intégral passe par `getOwnPost`.
-// Un visiteur anonyme reçoit une liste vide, pas une erreur : la query est
-// montée sur une page publique.
+// --- My posts (author) ----------------------------------------------------
+// A member sees the STATE of their own contributions (F-45): pending,
+// published, rejected (with the reason), withdrawn. The body is not returned here:
+// the list gives the state; the full preview goes through `getOwnPost`.
+// An anonymous visitor receives an empty list, not an error: the query is
+// mounted on a public page.
 const MY_POSTS_MAX = 50;
 
 const myPostValidator = v.object({
@@ -673,7 +673,7 @@ export const myPosts = query({
         format: p.format,
         title: p.title,
         status: p.status,
-        // Le motif d'un REJET est dû à l'auteur ; celui d'un retrait aussi.
+        // The reason for a REJECTION is owed to the author; so is that of a withdrawal.
         rejectionReason: p.rejectionReason ?? null,
         parentPostId: p.parentPostId ?? null,
         libraryPublicationId: p.libraryPublicationId ?? null,
@@ -683,9 +683,9 @@ export const myPosts = query({
   },
 });
 
-// Aperçu d'UN de ses billets, quel que soit son état — c'est ainsi que
-// l'auteur relit un texte en attente ou rejeté, que la page publique ne sert
-// pas. Tout autre compte reçoit `null`.
+// Preview of ONE of their posts, whatever its state — this is how
+// the author rereads a pending or rejected text, which the public page does not
+// serve. Any other account receives `null`.
 export const getOwnPost = query({
   args: { postId: v.string() },
   returns: v.union(
@@ -727,8 +727,8 @@ export const getOwnPost = query({
   },
 });
 
-// Mes commentaires, avec leur état (utile en mode a priori des
-// commentaires, et pour lire le motif d'un rejet).
+// My comments, with their state (useful in comment pre-moderation
+// mode, and to read the reason for a rejection).
 export const myComments = query({
   args: {},
   returns: v.array(
@@ -768,12 +768,12 @@ export const myComments = query({
   },
 });
 
-// --- Approfondissement (F-48) -------------------------------------------------
+// --- Deepening (F-48) -------------------------------------------------
 
-// Ce que l'utilisateur courant peut faire autour d'un billet publié :
-// l'approfondir (auteur ou invité), inviter (auteur d'un billet court), le
-// proposer à la bibliothèque (auteur d'une contribution de fond). Anonyme :
-// rien, sans erreur — la query est montée sur une page publique.
+// What the current user can do around a published post:
+// deepen it (author or invitee), invite (author of a short post),
+// propose it to the library (author of a long-form contribution). Anonymous:
+// nothing, without error — the query is mounted on a public page.
 export const deepeningState = query({
   args: { postId: v.id('tribunePosts') },
   returns: v.object({
@@ -821,9 +821,9 @@ export const deepeningState = query({
   },
 });
 
-// L'auteur d'un billet court invite un membre du réseau à le prolonger. Même
-// règle que les invitations d'espace : désigné par son adresse, réponse
-// identique qu'un compte existe ou non (pas d'oracle d'existence).
+// The author of a short post invites a network member to extend it. Same
+// rule as workspace invitations: designated by their address, identical response
+// whether or not an account exists (no existence oracle).
 export const inviteDeepening = mutation({
   args: { postId: v.id('tribunePosts'), email: v.string() },
   returns: v.object({ ok: v.boolean() }),
@@ -894,7 +894,7 @@ export const revokeDeepeningInvite = mutation({
   },
 });
 
-// Invitations à approfondir reçues par l'utilisateur courant.
+// Invitations to deepen received by the current user.
 export const myDeepeningInvites = query({
   args: {},
   returns: v.array(
@@ -942,13 +942,13 @@ export const myDeepeningInvites = query({
   },
 });
 
-// Proposer sa contribution de fond PUBLIÉE à la bibliothèque (F-48 → F-32).
+// Propose one's PUBLISHED long-form contribution to the library (F-48 → F-32).
 //
-// Le modèle existant le permet simplement : une publication naît `pending`,
-// dans la file de /admin/publications, où la modération éditoriale (et son
-// pré-tri par l'IA) décide comme pour tout dépôt. Rien n'est publié ici. Les
-// métadonnées que la Tribune ne connaît pas prennent la valeur la plus neutre
-// — type `note`, région `mondial`, accès libre — et le modérateur les ajuste.
+// The existing model allows it simply: a publication is born `pending`,
+// in the /admin/publications queue, where editorial moderation (and its
+// AI pre-sort) decides as for any submission. Nothing is published here. The
+// metadata the Tribune does not know takes the most neutral value
+// — type `note`, region `mondial`, open access — and the moderator adjusts it.
 export const proposeToLibrary = mutation({
   args: { postId: v.id('tribunePosts') },
   returns: v.id('publications'),
@@ -1016,7 +1016,7 @@ export const proposeToLibrary = mutation({
       targetId: pubId,
       metadata: { type: 'note', theme: post.theme, fromTribunePost: post._id },
     });
-    // Même pré-tri que tout dépôt de la bibliothèque (convex/aiModeration.ts).
+    // Same pre-sort as any library submission (convex/aiModeration.ts).
     const ai = await loadAiSettings(ctx);
     if (ai.mode !== 'off') {
       await ctx.scheduler.runAfter(0, internal.aiModeration.runReview, {
@@ -1027,7 +1027,7 @@ export const proposeToLibrary = mutation({
   },
 });
 
-// --- Back-office : file de signalements (modérateur et au-dessus) -----------
+// --- Back office: report queue (moderator and above) -----------
 const REPORTS_QUEUE_MAX = 200;
 
 export const listReports = query({
@@ -1038,34 +1038,34 @@ export const listReports = query({
       targetType: v.union(v.literal('post'), v.literal('comment')),
       reason: v.union(v.string(), v.null()),
       excerpt: v.string(),
-      // `normalizeId` peut ne rien rendre (cible supprimée) : d'où le null.
+      // `normalizeId` may return nothing (deleted target): hence the null.
       postId: v.union(v.id('tribunePosts'), v.null()),
       createdAt: v.number(),
     }),
   ),
   handler: async (ctx) => {
     await requireNetworkRole(ctx, 'moderateur');
-    // File de TRAVAIL : l'index ne contient que les signalements NON résolus,
-    // et résoudre retire la ligne de la file. Le plafond découvre donc la suite
-    // au fur et à mesure du traitement, au lieu de faire grossir une lecture
-    // sans limite (issue #8).
+    // WORK queue: the index contains only UNRESOLVED reports,
+    // and resolving removes the row from the queue. The cap therefore uncovers the rest
+    // as processing proceeds, instead of growing an unbounded
+    // read (issue #8).
     const reports = await ctx.db
       .query('tribuneReports')
       .withIndex('by_resolved', (q) => q.eq('resolved', false))
       .order('desc')
       .take(REPORTS_QUEUE_MAX);
 
-    // N+1 : la cible était relue signalement par signalement. Or le cas normal
-    // est justement que PLUSIEURS signalements visent le MÊME contenu — dix
-    // personnes signalent le même billet. On dédoublonne donc les cibles avant
-    // de les lire, une fois chacune.
+    // N+1: the target was re-read report by report. Yet the normal case
+    // is precisely that SEVERAL reports target the SAME content — ten
+    // people report the same post. We therefore deduplicate the targets before
+    // reading them, once each.
     //
-    // `normalizeId` AVANT tout ctx.db.get : `targetId` est une colonne
-    // `v.string()`, donc une ligne écrite avant le correctif (ou par une future
-    // voie d'écriture) peut contenir n'importe quoi. Un cast aveugle y faisait
-    // échouer la requête entière, condamnant la file pour tous les modérateurs
-    // (audit M1). Une cible illisible est simplement affichée « (supprimé) » et
-    // reste résolvable.
+    // `normalizeId` BEFORE any ctx.db.get: `targetId` is a
+    // `v.string()` column, so a row written before the fix (or by a future
+    // write path) may contain anything. A blind cast made the entire
+    // query fail, locking the queue for all moderators
+    // (audit M1). An unreadable target is simply displayed "(supprimé)" and
+    // remains resolvable.
     const targetKey = (
       r: Pick<Doc<'tribuneReports'>, 'targetType' | 'targetId'>,
     ) => `${r.targetType}:${r.targetId}`;
@@ -1127,10 +1127,10 @@ export const resolveReport = mutation({
 
     let postId: Id<'tribunePosts'> | undefined;
     if (action === 'remove') {
-      // Même précaution que dans `listReports` : la cible est normalisée avant
-      // toute lecture. Sans cela, un signalement à la cible illisible ne
-      // pouvait même pas être TRAITÉ (« retirer » levait), et restait donc
-      // indéfiniment dans la file (audit M1).
+      // Same precaution as in `listReports`: the target is normalized before
+      // any read. Without it, a report with an unreadable target could
+      // not even be PROCESSED ("retirer" threw), and therefore stayed
+      // indefinitely in the queue (audit M1).
       if (report.targetType === 'post') {
         const id = ctx.db.normalizeId('tribunePosts', report.targetId);
         const p = id ? await ctx.db.get(id) : null;

@@ -32,28 +32,28 @@ import {
   type CallApplicationStatus,
 } from './lib/programmes';
 
-// Appels à projets datés (F-60) : publication, candidature, évaluation,
-// sélection.
+// Dated calls for projects (F-60): publication, application, evaluation,
+// selection.
 //
-// DÉCISION SUR LE DÉPÔT LIBRE EXISTANT (convex/projects.ts). Il est CONSERVÉ
-// tel quel, présenté comme « proposition hors appel ». Le rattacher à ce
-// modèle aurait demandé un appel fictif sans fenêtre, sans fonds ni grille —
-// c'est-à-dire exactement les trois choses qui définissent un appel, et la
-// règle « refusé hors fenêtre » aurait dû souffrir une exception. Les deux
-// dispositifs ne répondent pas au même besoin : la proposition libre met en
-// relation autour d'une idée, à tout moment ; l'appel sélectionne, à date,
-// des projets pour un fonds, sur critères. Leurs données restent séparées,
-// leurs files aussi (/admin/projets et /admin/projets/appels).
+// DECISION ON THE EXISTING OPEN SUBMISSION (convex/projects.ts). It is KEPT
+// as is, presented as "proposition hors appel". Attaching it to this
+// model would have required a fictitious call with no window, no fund and no grid —
+// that is, exactly the three things that define a call, and the
+// "refused outside the window" rule would have needed an exception. The two
+// schemes do not meet the same need: the open proposal connects
+// people around an idea, at any time; the call selects, on a date,
+// projects for a fund, based on criteria. Their data stay separate,
+// and so do their queues (/admin/projets and /admin/projets/appels).
 //
-// Règles tenues ici, toutes côté serveur :
-//  - une candidature n'est créée, complétée ou déposée QUE dans la fenêtre
-//    de l'appel (ouverture incluse, clôture exclue) ;
-//  - une pièce jointe n'est acceptée qu'après lecture de ses premiers octets
-//    (PDF, PNG, JPEG, document bureautique) — jamais sur son extension ;
-//  - un évaluateur désigné qui déclare un conflit d'intérêts est EXCLU de la
-//    candidature : il n'en lit plus le contenu et sa note ne compte pas ;
-//  - la décision (sélectionné / liste d'attente / refusé) est notifiée au
-//    porteur et tracée au journal.
+// Rules enforced here, all server-side:
+//  - an application is created, completed or submitted ONLY within the call's
+//    window (opening included, closing excluded);
+//  - an attachment is only accepted after reading its first bytes
+//    (PDF, PNG, JPEG, office document) — never based on its extension;
+//  - an assigned evaluator who declares a conflict of interest is EXCLUDED from the
+//    application: they no longer read its content and their score does not count;
+//  - the decision (selected / waiting list / refused) is notified to the
+//    applicant and recorded in the log.
 
 const HOUR = 60 * 60 * 1000;
 const WRITE_LIMIT = { max: 60, windowMs: HOUR };
@@ -163,8 +163,8 @@ async function evaluationOf(
 
 // --- Public -------------------------------------------------------------------
 
-// Tous les appels PUBLIÉS ; la page les range en « ouverts », « à venir » et
-// « archivés » avec l'heure du visiteur (une query ne lit pas l'horloge).
+// All PUBLISHED calls; the page sorts them into "open", "upcoming" and
+// "archived" using the visitor's time (a query does not read the clock).
 export const listPublicCalls = query({
   args: {},
   returns: v.array(publicCallValidator),
@@ -190,7 +190,7 @@ export const getPublicCall = query({
   },
 });
 
-// --- Candidat (membre et au-dessus) ------------------------------------------
+// --- Applicant (member and above) ---------------------------------------------
 
 const myApplicationValidator = v.object({
   _id: v.id('projectCallApplications'),
@@ -229,7 +229,7 @@ async function projectMyApplication(
     status: a.status,
     submittedAt: a.submittedAt ?? null,
     decidedAt: decided ? (a.decidedAt ?? null) : null,
-    // La note de décision n'est rendue qu'une fois la décision prise.
+    // The decision note is only returned once the decision is made.
     decisionNote: decided ? (a.decisionNote ?? null) : null,
     attachments: await attachmentsOf(ctx, a._id),
   };
@@ -268,8 +268,8 @@ export const myApplicationForCall = query({
   },
 });
 
-// Crée ou met à jour le BROUILLON. Une candidature par appel et par compte :
-// le doublon est structurel (index `by_call_and_user`), pas un avertissement.
+// Creates or updates the DRAFT. One application per call and per account:
+// the duplicate check is structural (`by_call_and_user` index), not a warning.
 export const saveCallApplication = mutation({
   args: {
     callId: v.id('projectCalls'),
@@ -289,7 +289,7 @@ export const saveCallApplication = mutation({
       throw new ConvexError('INVALID_TITLE');
     if (s.length < 20 || s.length > FIELD_MAX.body)
       throw new ConvexError('INVALID_SUMMARY');
-    // La langue du dossier doit être une de celles que l'appel accepte.
+    // The application's language must be one of those the call accepts.
     if (call.languages.length > 0 && !call.languages.includes(language))
       throw new ConvexError('INVALID_LANGUAGE');
     await enforceRateLimit(ctx, {
@@ -335,11 +335,11 @@ export const generateAttachmentUploadUrl = mutation({
   },
 });
 
-// Pièce jointe : l'ACTION lit le fichier (une mutation n'a pas accès au
-// contenu du stockage), en reconnaît le type par ses premiers octets, puis
-// confie l'enregistrement à une mutation interne qui refait TOUS les
-// contrôles d'appartenance et de fenêtre. Un fichier refusé est supprimé du
-// stockage aussitôt : il ne reste pas orphelin.
+// Attachment: the ACTION reads the file (a mutation has no access to the
+// storage content), recognizes its type from its first bytes, then
+// hands the recording to an internal mutation that redoes ALL the
+// ownership and window checks. A refused file is deleted from
+// storage immediately: it is not left orphaned.
 export const attachDocument = action({
   args: {
     applicationId: v.id('projectCallApplications'),
@@ -351,8 +351,8 @@ export const attachDocument = action({
   handler: async (ctx, args): Promise<Id<'projectCallAttachments'>> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError('NOT_AUTHENTICATED');
-    // Compte suspendu (chantier comptes) : l'action n'a pas de base, la
-    // garde complète est rejouée par la query qui connaît l'état du compte.
+    // Suspended account (accounts workstream): the action has no database, the
+    // full guard is replayed by the query that knows the account's state.
     await ctx.runQuery(internal.accounts.selfForAction, {});
     const blob = await ctx.storage.get(args.storageId);
     const reject = async (code: string): Promise<never> => {
@@ -407,7 +407,7 @@ export const recordAttachment = internalMutation({
     requireOpen(call, Date.now());
     if (!call.requiredDocuments.some((d) => d.key === args.docKey))
       throw new ConvexError('INVALID_DOCUMENT');
-    // Une pièce par document demandé : la nouvelle remplace l'ancienne.
+    // One attachment per requested document: the new one replaces the old one.
     const previous = await ctx.db
       .query('projectCallAttachments')
       .withIndex('by_application', (q) =>
@@ -492,8 +492,8 @@ export const withdrawCallApplication = mutation({
   },
 });
 
-// Adresse d'une pièce : le porteur, le coordinateur, et les évaluateurs
-// désignés NON EN CONFLIT sur cette candidature. Rien pour les autres.
+// Address of an attachment: the applicant, the coordinator, and the assigned
+// evaluators NOT IN CONFLICT on this application. Nothing for anyone else.
 export const attachmentUrl = query({
   args: { attachmentId: v.id('projectCallAttachments') },
   returns: v.union(v.string(), v.null()),
@@ -514,7 +514,7 @@ export const attachmentUrl = query({
   },
 });
 
-// --- Évaluateur désigné -------------------------------------------------------
+// --- Assigned evaluator ---------------------------------------------------------
 
 export const myEvaluationAssignments = query({
   args: {},
@@ -524,7 +524,7 @@ export const myEvaluationAssignments = query({
       applications: v.array(
         v.object({
           _id: v.id('projectCallApplications'),
-          // Contenu masqué (`null`) quand l'évaluateur est en conflit.
+          // Content hidden (`null`) when the evaluator is in conflict.
           title: v.union(v.string(), v.null()),
           summary: v.union(v.string(), v.null()),
           applicantName: v.union(v.string(), v.null()),
@@ -559,7 +559,7 @@ export const myEvaluationAssignments = query({
       const applications = [];
       for (const a of submitted) {
         const own = await evaluationOf(ctx, a._id, user._id);
-        // Sa propre candidature : conflit d'office, sans déclaration.
+        // Their own application: automatic conflict, without a declaration.
         const conflict = own?.conflict === true || a.userId === user._id;
         applications.push({
           _id: a._id,
@@ -594,14 +594,14 @@ export const submitEvaluation = mutation({
     if (!(await isEvaluator(ctx, application.callId, user._id)))
       throw new ConvexError('NOT_FOUND');
     if (application.userId === user._id) throw new ConvexError('CONFLICT_OWN');
-    // On évalue un dossier DÉPOSÉ et pas encore tranché.
+    // One evaluates a SUBMITTED application not yet decided.
     if (application.status !== 'submitted')
       throw new ConvexError('NOT_EVALUABLE');
     const call = await ctx.db.get(application.callId);
     if (!call) throw new ConvexError('NOT_FOUND');
     const existing = await evaluationOf(ctx, applicationId, user._id);
-    // Un conflit déclaré est DÉFINITIF : l'évaluateur a dit ne pas pouvoir
-    // juger ce dossier ; il ne peut plus le noter ensuite.
+    // A declared conflict is FINAL: the evaluator said they cannot
+    // judge this application; they can no longer score it afterwards.
     if (existing?.conflict) throw new ConvexError('CONFLICT_DECLARED');
 
     const text = comment?.trim().slice(0, PROGRAMME_LIMITS.review) || undefined;
@@ -637,7 +637,7 @@ export const submitEvaluation = mutation({
   },
 });
 
-// --- Back-office (modérateur et au-dessus) ------------------------------------
+// --- Back-office (moderator and above) ----------------------------------------
 
 export const adminListCalls = query({
   args: {},
@@ -780,8 +780,8 @@ export const saveCall = mutation({
     if (callId) {
       const call = await ctx.db.get(callId);
       if (!call) throw new ConvexError('NOT_FOUND');
-      // La grille ne change plus une fois qu'une évaluation existe : on ne
-      // compare pas des notes données sur deux grilles différentes.
+      // The grid no longer changes once an evaluation exists: we do not
+      // compare scores given on two different grids.
       const evaluated = await ctx.db
         .query('projectEvaluations')
         .withIndex('by_call', (q) => q.eq('callId', callId!))
@@ -833,7 +833,7 @@ export const setCallStatus = mutation({
     const call = await ctx.db.get(callId);
     if (!call) throw new ConvexError('NOT_FOUND');
     if (status === 'draft') {
-      // Dépublier un appel qui a reçu des dossiers les rendrait orphelins.
+      // Unpublishing a call that has received applications would orphan them.
       const any = await ctx.db
         .query('projectCallApplications')
         .withIndex('by_call_and_status', (q) => q.eq('callId', callId))
@@ -862,7 +862,7 @@ export const addEvaluator = mutation({
       .query('users')
       .withIndex('email', (q) => q.eq('email', email.trim().toLowerCase()))
       .first();
-    // Un évaluateur est un compte du réseau (membre et au-dessus).
+    // An evaluator is a network account (member and above).
     if (!user || rank(user.role) < rank('membre'))
       throw new ConvexError('USER_NOT_FOUND');
     const rows = await ctx.db
@@ -958,7 +958,7 @@ export const callRanking = query({
       inputs.push({
         id: a._id as string,
         evaluations: evaluations.map((e) => ({
-          // L'évaluateur qui est le porteur lui-même est exclu d'office.
+          // An evaluator who is the applicant themselves is automatically excluded.
           conflict: e.conflict || e.evaluatorId === a.userId,
           score: e.conflict ? null : weightedScore(call.criteria, e.scores),
         })),
@@ -985,9 +985,9 @@ export const callRanking = query({
   },
 });
 
-// Décision : d'un dossier déposé vers sélectionné, liste d'attente ou refusé ;
-// la liste d'attente peut encore basculer (un sélectionné se désiste). Une
-// sélection ou un refus est définitif — le porteur en a été notifié.
+// Decision: from a submitted application to selected, waiting list or refused;
+// the waiting list can still switch (a selected one withdraws). A
+// selection or a refusal is final — the applicant has been notified of it.
 export const decideCallApplication = mutation({
   args: {
     applicationId: v.id('projectCallApplications'),

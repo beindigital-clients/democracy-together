@@ -2,9 +2,9 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 
-// Placeholder « bientôt disponible » pour les routes du réseau pas encore
-// construites (évite tout 404 dans la nav / le footer). Le titre de section est
-// résolu par la page appelante.
+// "Coming soon" placeholder for network routes not yet built (avoids any
+// 404 in the nav / footer). The section title is resolved by the calling
+// page.
 export async function ComingSoon({ title }: { title: string }) {
   const t = await getTranslations('comingSoon');
   return (

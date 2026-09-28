@@ -37,8 +37,8 @@ export default async function PartenairesPage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const t = await getTranslations('partners');
-  // Partenaires : la table `contentPartners` (logo de la médiathèque, lien,
-  // ordre), ou les catégories codées en repli — cf. src/lib/contenus/load.ts.
+  // Partners: the `contentPartners` table (media-library logo, link,
+  // order), or the hard-coded fallback categories — see src/lib/contenus/load.ts.
   const { items: categories } = await loadPartners(loc);
 
   return (
@@ -68,8 +68,8 @@ export default async function PartenairesPage({
                 </span>
               </div>
               {c.logo ? (
-                // Logo tiré de la médiathèque : dimensions réelles lues au
-                // téléversement, texte alternatif obligatoire (F-64).
+                // Logo taken from the media library: real dimensions read at
+                // upload, alternative text required (F-64).
                 <Image
                   src={c.logo.url}
                   alt={c.logo.alt}

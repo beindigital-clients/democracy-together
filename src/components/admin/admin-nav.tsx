@@ -4,54 +4,54 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { roleRank, type NetworkRole } from '@/lib/roles';
 
-// NAVIGATION DU BACK-OFFICE (issue #49).
+// BACK-OFFICE NAVIGATION (issue #49).
 //
-// CE QUI NE CHANGE PAS, et qui était déjà juste : le `<nav>` porte un
-// `aria-label`, l'entrée courante porte `aria-current="page"`, et le tableau de
-// bord est détecté à part pour ne pas s'allumer sur toutes ses sous-routes.
-// Ces trois points sont conservés à l'identique — c'est la FORME qui posait
-// problème, pas le câblage.
+// WHAT DOES NOT CHANGE, and was already right: the `<nav>` has an
+// `aria-label`, the current entry has `aria-current="page"`, and the
+// dashboard is detected separately so it does not light up on all its
+// sub-routes. These three points are kept as is — it was the FORM that was
+// the problem, not the wiring.
 //
-// CE QUI CHANGE, et pourquoi. Les quatorze entrées vivaient dans une rangée
-// unique en `overflow-x-auto` : sur mobile la majorité était hors écran sans
-// aucun indice qu'il fallait faire défiler, et contenus, modération, réseau et
-// administration y étaient mélangés dans l'ordre où le tableau avait été écrit.
+// WHAT CHANGES, and why. The fourteen entries lived in a single
+// `overflow-x-auto` row: on mobile most of them were off screen without
+// any hint that one had to scroll, and content, moderation, network and
+// administration were mixed in the order the array had been written.
 //
-// La réponse retenue est un REGROUPEMENT PAR DOMAINE rendu en colonne latérale
-// à partir de `lg`, et en groupes empilés qui REVIENNENT À LA LIGNE en dessous.
-// Trois raisons de préférer cela aux deux autres pistes de l'issue :
+// The chosen answer is a GROUPING BY DOMAIN rendered as a side column
+// from `lg` up, and as stacked groups that WRAP below that.
+// Three reasons to prefer this to the issue's two other options:
 //
-//  1. rien n'est caché. Un repli (menus déroulants, `<details>` fermés) réduit
-//     la hauteur mais remplace un défaut par un autre : une entrée derrière un
-//     clic est aussi invisible qu'une entrée hors écran, et elle cesse d'être
-//     atteignable au clavier en une seule tabulation.
-//  2. le découpage par domaine coïncide avec le découpage par RÔLE. Les deux
-//     derniers groupes sont exactement ceux que l'issue décrit comme réservés
-//     (éditeurs : revue + newsletter ; administrateurs : utilisateurs +
-//     journal). Le « repli selon le rôle » proposé est donc déjà obtenu : un
-//     modérateur voit trois groupes, un éditeur quatre, un administrateur
-//     cinq — sans mécanique de repli à maintenir.
-//  3. en colonne, la largeur disponible ne dépend plus du nombre d'entrées :
-//     une quinzième entrée allonge la liste au lieu de repousser les autres
-//     hors de l'écran.
+//  1. nothing is hidden. Collapsing (dropdown menus, closed `<details>`)
+//     reduces height but swaps one flaw for another: an entry behind a
+//     click is as invisible as an off-screen entry, and it stops being
+//     reachable by keyboard in a single tab press.
+//  2. the split by domain coincides with the split by ROLE. The last two
+//     groups are exactly those the issue describes as restricted
+//     (editors: review + newsletter; administrators: users +
+//     log). The proposed "collapse by role" is thus already achieved: a
+//     moderator sees three groups, an editor four, an administrator
+//     five — with no collapse mechanism to maintain.
+//  3. in a column, the available width no longer depends on the number of
+//     entries: a fifteenth entry lengthens the list instead of pushing the
+//     others off screen.
 //
-// L'ordre suit l'usage : ce qu'on ouvre à chaque session (pilotage), puis ce
-// qui attend une décision (modération), puis les programmes, puis l'édition,
-// puis l'administration des comptes.
+// The order follows usage: what one opens every session (steering), then
+// what awaits a decision (moderation), then the programmes, then editing,
+// then account administration.
 
 export type AdminNavItem = { href: string; key: string };
 export type AdminNavGroup = {
   key: string;
-  // Clé du titre de groupe, ÉCRITE EN ENTIER plutôt que composée à l'affichage
-  // (`navGroup_${key}`). La garde de l'issue #33 refuse une clé construite à
-  // l'exécution passée au traducteur, et `vocabulary()` ne convient pas ici :
-  // ces titres sont écrits en dur dans ce fichier, donc une clé absente est un
-  // bug, pas un vocabulaire venu de la base qui mérite un repli. Elle est
-  // vérifiée dans les deux langues par tests/unit/admin-nav.test.tsx.
+  // Group title key, WRITTEN IN FULL rather than composed at render time
+  // (`navGroup_${key}`). The guard from issue #33 rejects a key built at
+  // runtime being passed to the translator, and `vocabulary()` does not fit
+  // here: these titles are hard-coded in this file, so a missing key is a
+  // bug, not vocabulary coming from the database that deserves a fallback. It
+  // is checked in both languages by tests/unit/admin-nav.test.tsx.
   labelKey: string;
-  // Rôle MINIMAL auquel le groupe est proposé. Le rang vient de la hiérarchie
-  // partagée (`@convex/lib/roles`), jamais d'un booléen recopié ici : c'est ce
-  // qui garantit que l'UI et `requireNetworkRole` lisent le même ordre.
+  // MINIMUM role to which the group is offered. The rank comes from the shared
+  // hierarchy (`@convex/lib/roles`), never from a boolean copied here: that is
+  // what guarantees the UI and `requireNetworkRole` read the same order.
   minRole: NetworkRole;
   items: readonly AdminNavItem[];
 };
@@ -73,25 +73,25 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     items: [
       { href: '/admin/candidatures', key: 'applications' },
       { href: '/admin/publications', key: 'publications' },
-      // « Mes relectures » (campagne du 27/09, A-02) : la vue du RELECTEUR,
-      // ouverte au rang modérateur parce que `submitReview` l'est. Elle ne
-      // rend que ses assignations ; la file complète et les décisions
-      // restent dans « Comité de lecture », réservé à l'éditeur. Rangée avec
-      // la modération : c'est là que travaille un modérateur.
+      // "Mes relectures" (27/09 campaign, A-02): the REVIEWER's view,
+      // open from moderator rank because `submitReview` is. It only
+      // shows their assignments; the full queue and the decisions
+      // stay in "Comité de lecture", reserved for editors. Filed with
+      // moderation: that is where a moderator works.
       { href: '/admin/mes-relectures', key: 'myReviews' },
-      // File unifiée de la tribune (chantier communauté, F-45/F-49) : billets
-      // et commentaires en attente, validés, rejetés, retirés, signalés, avec
-      // l'historique de chacun. Chemin distinct de `/admin/moderation-ia` —
-      // l'actif se décide par préfixe, et `/admin/moderation` l'aurait
-      // allumé (et en aurait abaissé le rang minimal).
+      // Unified tribune queue (community workstream, F-45/F-49): posts
+      // and comments pending, approved, rejected, withdrawn, reported, with
+      // each one's history. A path distinct from `/admin/moderation-ia` —
+      // the active entry is decided by prefix, and `/admin/moderation` would
+      // have lit it up (and lowered its minimum rank).
       { href: '/admin/file-moderation', key: 'fileModeration' },
       { href: '/admin/signalements', key: 'reports' },
-      // Messages privés signalés (chantier « social ») : même rang que la file
-      // de la Tribune, celui qu'exige `social.messages.listReports`.
+      // Reported private messages ("social" workstream): same rank as the
+      // Tribune queue, the one required by `social.messages.listReports`.
       { href: '/admin/messages-signales', key: 'messageReports' },
       { href: '/admin/contact', key: 'contactMessages' },
-      // Fiches d'annuaire proposées par les responsables d'organisation
-      // (F-21, chantier comptes) : c'est une modération, au rang de
+      // Directory entries proposed by organization managers
+      // (F-21, accounts workstream): this is moderation, at the rank of
       // `orgAdmin.reviewRevision`.
       { href: '/admin/organisations', key: 'organizations' },
     ],
@@ -113,39 +113,39 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     minRole: 'editeur',
     items: [
       { href: '/admin/revue', key: 'review' },
-      // Rapports annuels (F-41, chantier editorial) : la garde Convex est au
-      // rang éditeur (`annualReports.*`), comme la revue.
+      // Annual reports (F-41, editorial workstream): the Convex guard is at
+      // editor rank (`annualReports.*`), like the review.
       { href: '/admin/rapports', key: 'annualReports' },
       { href: '/admin/newsletter', key: 'newsletter' },
-      // Contenus éditoriaux (F-62/F-64) : événements, replays, partenaires,
-      // presse, thématiques, médiathèque. Rang éditeur, comme la garde
-      // `requireEditor` de convex/lib/contenus/access.ts. Les INSCRIPTIONS aux
-      // événements restent sous « Programmes », au rang modérateur.
+      // Editorial content (F-62/F-64): events, replays, partners,
+      // press, themes, media library. Editor rank, like the `requireEditor`
+      // guard in convex/lib/contenus/access.ts. Event REGISTRATIONS
+      // stay under "Programmes", at moderator rank.
       { href: '/admin/contenus', key: 'contents' },
-      // Boîte à outils et parcours (F-56, F-57) : contenu éditorial, donc
-      // rang éditeur — celui de `toolbox.saveResource` et `savePath`.
+      // Toolbox and learning paths (F-56, F-57): editorial content, hence
+      // editor rank — that of `toolbox.saveResource` and `savePath`.
       { href: '/admin/boite-a-outils', key: 'toolbox' },
     ],
   },
-  // L'automatisation est un groupe à part, et réservé à l'administrateur.
+  // Automation is a separate group, reserved for administrators.
   //
-  // Deux découpages se discutaient : ranger « Modération IA » sous
-  // « Modération », là où travaillent les modérateurs, ou lui donner son
-  // groupe. Le premier aurait montré à un modérateur une entrée que le
-  // serveur lui refuse — la navigation cesserait de dire la vérité sur ce
-  // qu'on peut ouvrir. Et ce que règle cet écran n'est pas une modération :
-  // c'est la décision de s'en passer. L'AVIS de l'IA, lui, reste là où on
-  // modère — dans la file de /admin/publications, que voit tout le staff.
+  // Two splits were debated: filing "Modération IA" under
+  // "Modération", where moderators work, or giving it its own
+  // group. The first would have shown a moderator an entry that the
+  // server refuses them — the navigation would stop telling the truth about
+  // what one can open. And what this screen configures is not moderation:
+  // it is the decision to do without it. The AI's OPINION, however, stays where
+  // moderation happens — in the /admin/publications queue, seen by all staff.
   {
     key: 'automatisation',
     labelKey: 'navGroup_automatisation',
     minRole: 'admin',
     items: [{ href: '/admin/moderation-ia', key: 'aiModeration' }],
   },
-  // Trésorerie (F-31) : montants, identités des payeurs et remboursements —
-  // réservée à l'administrateur, comme la garde des fonctions de
-  // convex/payments/finances.ts. Le barème (/admin/finances/formules) hérite
-  // du rang de l'écran par préfixe.
+  // Treasury (F-31): amounts, payer identities and refunds —
+  // reserved for administrators, like the guard on the functions in
+  // convex/payments/finances.ts. The price list (/admin/finances/formules)
+  // inherits the screen's rank by prefix.
   {
     key: 'finances',
     labelKey: 'navGroup_finances',
@@ -163,14 +163,14 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   },
 ] as const;
 
-// Groupes proposés à un rôle. Un groupe entier disparaît, pas une entrée à
-// l'intérieur : c'est ce qui évite un groupe au titre sans contenu.
-// Rang minimal pour un CHEMIN du back-office, lu dans la même table que la
-// navigation : un écran que la barre cache à un rôle ne doit pas s'ouvrir par
-// URL directe. Mesuré le 27/09 : un modérateur tapant /admin/revue ou
-// /admin/newsletter tombait sur « Une erreur est survenue », la requête
-// « éditeur » de la page ayant levé avant tout garde d'écran. Un chemin hors
-// table (page inconnue sous /admin) vaut le rang de la coquille : modérateur.
+// Groups offered to a role. A whole group disappears, not an entry
+// inside it: that is what avoids a group with a title and no content.
+// Minimum rank for a back-office PATH, read from the same table as the
+// navigation: a screen the bar hides from a role must not open via a
+// direct URL. Measured on 27/09: a moderator typing /admin/revue or
+// /admin/newsletter landed on "Une erreur est survenue", the page's
+// "editor" query having thrown before any screen guard. A path outside
+// the table (unknown page under /admin) gets the shell's rank: moderator.
 export function adminMinRoleForPath(pathname: string): NetworkRole {
   const path = pathname.replace(/\/+$/, '') || '/';
   for (const group of ADMIN_NAV_GROUPS) {
@@ -188,12 +188,12 @@ export function adminMinRoleForPath(pathname: string): NetworkRole {
 }
 
 /**
- * Clé de libellé de l'écran courant (`admin.<clé>`), ou `null` hors du menu.
+ * Label key of the current screen (`admin.<key>`), or `null` outside the menu.
  *
- * Sert au TITRE DE PAGE (RGAA 8.6) : les écrans du back-office sont des
- * composants client, sans `generateMetadata` ; mesuré à l'audit du 27/09, les
- * seize portaient le même titre. Le libellé du menu est celui que la personne
- * vient de choisir — c'est donc le nom de l'écran le plus sûr à annoncer.
+ * Used for the PAGE TITLE (RGAA 8.6): the back-office screens are
+ * client components, without `generateMetadata`; measured in the 27/09 audit,
+ * all sixteen had the same title. The menu label is the one the person
+ * has just chosen — so it is the safest screen name to announce.
  */
 export function adminScreenKey(pathname: string): string | null {
   const path = pathname.replace(/\/+$/, '') || '/';
@@ -219,10 +219,10 @@ export function visibleAdminNavGroups(
   );
 }
 
-// Entrée courante. Le tableau de bord est traité à part : son chemin est le
-// préfixe de TOUS les autres, donc un `startsWith` l'allumerait sur chaque
-// sous-route du back-office. Comportement repris tel quel de la barre
-// d'onglets qu'elle remplace.
+// Current entry. The dashboard is handled separately: its path is the
+// prefix of ALL the others, so a `startsWith` would light it up on every
+// back-office sub-route. Behaviour carried over as is from the tab bar
+// it replaces.
 export function isAdminNavItemActive(href: string, pathname: string): boolean {
   return href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
 }
@@ -244,10 +244,10 @@ export function AdminNav({
         const labelId = `admin-nav-${group.key}`;
         return (
           <div key={group.key}>
-            {/* Titre de groupe porté par un `<span>` relié à la liste par
-                `aria-labelledby`, et non par un `<h2>` : la navigation précède
-                le `<h1>` de l'écran, un titre de niveau 2 y casserait l'ordre
-                des titres de la page. Le nom du groupe est annoncé quand même. */}
+            {/* Group title carried by a `<span>` linked to the list via
+                `aria-labelledby`, and not by an `<h2>`: the navigation precedes
+                the screen's `<h1>`, a level-2 heading there would break the page's
+                heading order. The group name is announced anyway. */}
             <span
               id={labelId}
               className="block font-mono text-[11px] uppercase tracking-[0.14em] text-muted"
@@ -265,13 +265,13 @@ export function AdminNav({
                     <Link
                       href={href}
                       aria-current={active ? 'page' : undefined}
-                      // LIEN EXPLICITE (RGAA 6.1). « Événements », « Jeunes »,
-                      // « Newsletter » existent AUSSI dans l'en-tête public, vers
-                      // d'autres pages : mesuré à l'audit du 27/09, une liste des
-                      // liens de `/admin/utilisateurs` en montrait deux de chaque,
-                      // sans rien pour les distinguer (le nom du repère n'est pas un
-                      // contexte au sens du RGAA). Le nom commence par le texte
-                      // visible (WCAG 2.5.3) et dit l'espace visé.
+                      // EXPLICIT LINK (RGAA 6.1). "Événements", "Jeunes",
+                      // "Newsletter" ALSO exist in the public header, pointing to
+                      // other pages: measured in the 27/09 audit, a list of the
+                      // links of `/admin/utilisateurs` showed two of each,
+                      // with nothing to tell them apart (the landmark name is not
+                      // context in the RGAA sense). The name starts with the visible
+                      // text (WCAG 2.5.3) and states the targeted area.
                       aria-label={`${t(key)} (${t('title')})`}
                       className={`block rounded-sm px-2.5 py-1.5 text-sm transition-colors ${
                         active

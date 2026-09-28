@@ -3,12 +3,12 @@
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 
-// Commande « charger la suite » des listes paginées du back-office (issue #8).
+// "Load more" control for the back office's paginated lists (issue #8).
 //
-// `usePaginatedQuery` expose un statut plutôt qu'un booléen : on distingue le
-// premier chargement (la liste elle-même affiche « Chargement… »), la page
-// suivante disponible, celle en cours, et la fin de liste — où il n'y a plus
-// rien à proposer, donc rien à afficher.
+// `usePaginatedQuery` exposes a status rather than a boolean: we distinguish
+// the first load (the list itself shows "Chargement…"), the next page
+// available, the one in progress, and the end of the list — where there is
+// nothing more to offer, hence nothing to display.
 export type PaginationStatus =
   'LoadingFirstPage' | 'CanLoadMore' | 'LoadingMore' | 'Exhausted';
 

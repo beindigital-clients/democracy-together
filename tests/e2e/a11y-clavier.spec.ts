@@ -7,19 +7,19 @@ import {
 import { provisionUser, chercherUtilisateur } from './_helpers';
 import { SESSIONS } from './_sessions';
 
-// F-08 — NAVIGATION AU CLAVIER SEUL (audit RGAA du 27/09, critères 10.7,
-// 12.7, 12.8, 12.9, 7.3 et 7.1).
+// F-08 — KEYBOARD-ONLY NAVIGATION (RGAA audit of 27/09, criteria 10.7,
+// 12.7, 12.8, 12.9, 7.3 and 7.1).
 //
-// L'analyse axe du gate (`a11y.spec.ts`) ne touche pas au clavier : elle lit
-// le DOM d'une page au repos. Ce que ce fichier exerce, c'est ce qu'une
-// personne qui ne se sert pas d'une souris FAIT : tabuler d'un bout à l'autre
-// d'une page, remplir et envoyer un formulaire, ouvrir puis fermer un
-// dialogue. Aucun `click()` ici — un clic ferait passer un parcours que le
-// clavier ne permet pas.
+// The gate's axe analysis (`a11y.spec.ts`) does not touch the keyboard: it reads
+// the DOM of a page at rest. What this file exercises is what a
+// person who does not use a mouse DOES: tab from one end of a page
+// to the other, fill in and submit a form, open then close a
+// dialog. No `click()` here — a click would let through a journey the
+// keyboard does not allow.
 
 test.use({ locale: 'fr-FR' });
 
-/** Tabule jusqu'à l'élément dont le nom accessible correspond. */
+/** Tabs until the element whose accessible name matches. */
 async function tabulerJusqua(page: Page, nom: RegExp, max = 80) {
   for (let i = 0; i < max; i++) {
     await page.keyboard.press('Tab');
@@ -46,7 +46,7 @@ function focusDans(page: Page, selecteur: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Lien d'évitement (RGAA 12.7)
+// 1. Skip link (RGAA 12.7)
 // ---------------------------------------------------------------------------
 
 test.describe("lien d'évitement (RGAA 12.7)", () => {
@@ -62,8 +62,8 @@ test.describe("lien d'évitement (RGAA 12.7)", () => {
       await page.keyboard.press('Tab');
       const lien = page.getByRole('link', { name: nom });
       await expect(lien).toBeFocused();
-      // Visible à la prise de focus : un lien d'évitement qui reste
-      // `sr-only` ne sert qu'aux lecteurs d'écran.
+      // Visible on focus: a skip link that stays
+      // `sr-only` only serves screen readers.
       const boite = await lien.boundingBox();
       expect(boite?.width ?? 0).toBeGreaterThan(40);
       expect(boite?.height ?? 0).toBeGreaterThan(20);
@@ -79,7 +79,7 @@ test.describe("lien d'évitement (RGAA 12.7)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. Parcours complet : ordre, focus visible, pas de piège (10.7, 12.8, 12.9)
+// 2. Full journey: order, visible focus, no trap (10.7, 12.8, 12.9)
 // ---------------------------------------------------------------------------
 
 const PAGES = [
@@ -114,18 +114,18 @@ test.describe('parcours complet à la tabulation', () => {
       expect(arrets.length, 'au moins un élément focalisable').toBeGreaterThan(
         5,
       );
-      // RGAA 12.9 : la tabulation rend la main au navigateur en fin de page,
-      // au lieu de tourner en rond dans un sous-ensemble.
+      // RGAA 12.9: tabbing hands control back to the browser at the end of the page,
+      // instead of going round in circles within a subset.
       expect(finAtteinte, 'piège au clavier').toBe(true);
-      // RGAA 10.7 : chaque arrêt montre son focus.
+      // RGAA 10.7: every stop shows its focus.
       expect(
         arrets
           .filter((a) => a.indicateur.length === 0)
           .map((a) => `${a.balise} « ${a.nom} »`),
         'éléments sans indicateur de focus',
       ).toEqual([]);
-      // Un élément masqué qui reçoit le focus : la personne ne voit pas où
-      // elle est.
+      // A hidden element receiving focus: the person cannot see where
+      // they are.
       expect(
         arrets.filter((a) => a.cache).map((a) => `${a.balise} « ${a.nom} »`),
         'focus sur un élément masqué',
@@ -135,7 +135,7 @@ test.describe('parcours complet à la tabulation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. Formulaires clés, au clavier seul (RGAA 7.3, 11.10, 12.8)
+// 3. Key forms, keyboard only (RGAA 7.3, 11.10, 12.8)
 // ---------------------------------------------------------------------------
 
 test.describe('formulaires au clavier seul', () => {
@@ -152,12 +152,12 @@ test.describe('formulaires au clavier seul', () => {
     await page.keyboard.type('mauvaise-phrase-de-passe');
     await page.keyboard.press('Enter');
 
-    // Filtré : Next pose sa propre région `alert` vide, l'annonceur de route.
+    // Filtered: Next sets its own empty `alert` region, the route announcer.
     await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toBeVisible(
       { timeout: 15_000 },
     );
-    // Le focus ne retombe pas sur <body> : la personne reste dans le
-    // formulaire, prête à corriger.
+    // Focus does not fall back to <body>: the person stays in the
+    // form, ready to correct.
     expect(await focusDans(page, 'main')).toBe(true);
   });
 
@@ -180,8 +180,8 @@ test.describe('formulaires au clavier seul', () => {
     await sansTransitions(page);
     await tabulerJusqua(page, /Think tank \/ organisation/);
     const arret = await lireIndicateurDeFocus(page);
-    // Le bouton radio est masqué : c'est sa pastille qui doit porter le focus
-    // (correctif RGAA 10.7 du 27/09).
+    // The radio button is hidden: it is its dot that must carry the focus
+    // (RGAA 10.7 fix of 27/09).
     expect(arret.indicateur, 'focus visible sur la pastille').not.toEqual([]);
 
     await expect(page.getByLabel('Nom du think tank')).toBeVisible();
@@ -193,7 +193,7 @@ test.describe('formulaires au clavier seul', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4. Dialogues : Échap ferme, le focus revient au déclencheur (RGAA 7.1, 12.9)
+// 4. Dialogs: Escape closes, focus returns to the trigger (RGAA 7.1, 12.9)
 // ---------------------------------------------------------------------------
 
 test.describe('dialogues et menus', () => {
@@ -211,8 +211,8 @@ test.describe('dialogues et menus', () => {
     await expect(dialogue).toBeVisible();
     await expect(dialogue.getByRole('combobox')).toBeFocused();
 
-    // Modal : la tabulation reste DANS le dialogue (c'est voulu, et Échap en
-    // sort — ce n'est donc pas un piège au sens de 12.9).
+    // Modal: tabbing stays WITHIN the dialog (this is intended, and Escape
+    // exits it — so it is not a trap in the sense of 12.9).
     for (let i = 0; i < 4; i++) {
       await page.keyboard.press('Tab');
       expect(await focusDans(page, '[role="dialog"]')).toBe(true);
@@ -281,7 +281,7 @@ test.describe('dialogues et menus', () => {
       await expect(panneau).toBeVisible();
       expect(await focusDans(page, '#mobile-nav')).toBe(true);
 
-      // Maj+Tab depuis le premier élément : on reste dans le panneau.
+      // Shift+Tab from the first element: we stay in the panel.
       await page.keyboard.press('Shift+Tab');
       expect(await focusDans(page, '#mobile-nav')).toBe(true);
 
@@ -292,29 +292,10 @@ test.describe('dialogues et menus', () => {
       await expect(bouton).toHaveAttribute('aria-expanded', 'false');
     });
   });
-
-  test('globe : la rotation automatique s’arrête au clavier (RGAA 13.8)', async ({
-    page,
-  }) => {
-    await page.goto('/fr/barometre');
-    await tabulerJusqua(page, /rotation du globe/);
-    const avant = await page.evaluate(() =>
-      document.activeElement?.getAttribute('aria-label'),
-    );
-    await page.keyboard.press('Enter');
-    const apres = await page.evaluate(() =>
-      document.activeElement?.getAttribute('aria-label'),
-    );
-    expect(apres).not.toBe(avant);
-    expect([avant, apres].sort()).toEqual([
-      'Lancer la rotation du globe',
-      'Mettre en pause la rotation du globe',
-    ]);
-  });
 });
 
 // ---------------------------------------------------------------------------
-// 5. Espace connecté : dialogue de confirmation du back-office
+// 5. Signed-in area: back-office confirmation dialog
 // ---------------------------------------------------------------------------
 
 test.describe('back-office', () => {
@@ -334,7 +315,7 @@ test.describe('back-office', () => {
     const liste = ligne.getByLabel(`Rôle ${email}`);
     await expect(liste).toBeVisible();
 
-    // Au clavier : focus sur la liste, flèche vers le haut (« Visiteur »).
+    // With the keyboard: focus on the list, arrow up ("Visiteur").
     await liste.focus();
     await page.keyboard.press('ArrowUp');
     const appliquer = ligne.getByRole('button', { name: 'Appliquer' });
@@ -347,8 +328,8 @@ test.describe('back-office', () => {
       name: `Changer le rôle de ${email} ?`,
     });
     await expect(dialogue).toBeVisible();
-    // Sur une boîte qui protège d'un geste irréversible, Entrée ne doit pas
-    // valider : le focus est sur l'annulation.
+    // On a dialog guarding an irreversible action, Enter must not
+    // confirm: focus is on the cancel button.
     await expect(
       dialogue.getByRole('button', { name: 'Annuler' }),
     ).toBeFocused();

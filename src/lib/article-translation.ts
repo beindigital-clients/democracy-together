@@ -1,21 +1,21 @@
 import type { Locale } from '@/i18n/routing';
 
-// QUE MONTRE-T-ON AU LECTEUR ? — décision pure, testable seule.
+// WHAT DO WE SHOW THE READER? — a pure decision, testable on its own.
 //
-// Un contenu déposé par un membre existe dans UNE langue. Le lecteur en demande
-// une autre. Entre les deux, il y a peut-être une traduction en cache, peut-être
-// périmée, peut-être en échec. Cinq états, et la page doit en afficher un seul
-// — avec, dans chaque cas, de quoi comprendre ce qu'elle a sous les yeux.
+// Content submitted by a member exists in ONE language. The reader asks for
+// another. In between, there may be a cached translation, perhaps
+// stale, perhaps failed. Five states, and the page must display just one
+// — with, in each case, what's needed to understand what is in front of them.
 //
-// La règle qui gouverne tout le reste : L'ORIGINAL NE DISPARAÎT JAMAIS. Une
-// traduction automatique n'est pas une édition ; elle s'affiche sous une
-// mention explicite, et l'original reste à un clic. C'est la même honnêteté que
-// la clause « le français prévaut » des pages légales.
+// The rule that governs everything else: THE ORIGINAL NEVER DISAPPEARS. A
+// machine translation is not an edition; it is displayed under an
+// explicit notice, and the original stays one click away. It is the same honesty as
+// the "French prevails" clause of the legal pages.
 //
-// POURQUOI UN MODULE PUR, et pas un `if` dans la page : ces cinq états se
-// décident deux fois (billet de Tribune, publication) et se vérifient une —
-// dans `tests/unit/article-translation.test.ts`. La page, elle, ne fait que
-// rendre le verdict.
+// WHY A PURE MODULE, and not an `if` in the page: these five states are
+// decided twice (Tribune post, publication) and checked once —
+// in `tests/unit/article-translation.test.ts`. The page merely
+// renders the verdict.
 
 export type TranslationFields = {
   title: string;
@@ -24,7 +24,7 @@ export type TranslationFields = {
   body: string[];
 };
 
-/** Ce que la query Convex `translation.getTranslation` renvoie. */
+/** What the Convex query `translation.getTranslation` returns. */
 export type CachedTranslation = {
   status: 'pending' | 'ready' | 'failed';
   sourceLocale: Locale;
@@ -35,20 +35,20 @@ export type CachedTranslation = {
 } | null;
 
 export type ArticleDisplay =
-  /** La langue du contenu est celle du lecteur : rien à signaler. */
+  /** The content's language is the reader's: nothing to report. */
   | { kind: 'native' }
-  /** Le lecteur a demandé l'original, ou aucune traduction n'existe encore. */
+  /** The reader asked for the original, or no translation exists yet. */
   | {
       kind: 'original';
       sourceLocale: Locale;
-      /** Une traduction à jour existe : on peut y renvoyer. */
+      /** An up-to-date translation exists: we can point to it. */
       translationAvailable: boolean;
-      /** Une traduction existe mais décrit une version périmée du texte. */
+      /** A translation exists but describes a stale version of the text. */
       stale: boolean;
-      /** La dernière tentative a échoué ; `errorCode` dit pourquoi. */
+      /** The last attempt failed; `errorCode` says why. */
       errorCode?: string;
     }
-  /** Traduction affichée, original à un clic. */
+  /** Translation displayed, original one click away. */
   | {
       kind: 'translated';
       sourceLocale: Locale;
@@ -56,12 +56,12 @@ export type ArticleDisplay =
     };
 
 /**
- * Décide de l'affichage.
+ * Decides what to display.
  *
- * @param sourceLocale langue de rédaction du contenu
- * @param readerLocale langue de la page
- * @param cached       traduction en cache pour `readerLocale`, ou null
- * @param wantsOriginal le lecteur a demandé l'original (`?original=1`)
+ * @param sourceLocale writing language of the content
+ * @param readerLocale language of the page
+ * @param cached       cached translation for `readerLocale`, or null
+ * @param wantsOriginal the reader asked for the original (`?original=1`)
  */
 export function resolveArticleDisplay(
   sourceLocale: Locale,
@@ -69,35 +69,35 @@ export function resolveArticleDisplay(
   cached: CachedTranslation,
   wantsOriginal: boolean,
 ): ArticleDisplay {
-  // 1. Même langue : aucun bandeau, aucune offre. Le cas le plus fréquent, et
-  //    celui où toute mention serait du bruit.
+  // 1. Same language: no banner, no offer. The most frequent case, and
+  //    the one where any notice would be noise.
   if (sourceLocale === readerLocale) return { kind: 'native' };
 
   const usable =
     cached?.status === 'ready' && cached.fresh && cached.fields !== undefined;
 
-  // 2. Le lecteur a explicitement demandé l'original. Son choix prime sur la
-  //    disponibilité d'une traduction — c'est tout l'objet du lien.
+  // 2. The reader explicitly asked for the original. Their choice takes precedence over the
+  //    availability of a translation — that is the whole point of the link.
   if (wantsOriginal) {
     return {
       kind: 'original',
       sourceLocale,
       translationAvailable: usable,
       stale: false,
-      // Un échec n'a pas à être rappelé à quelqu'un qui lit l'original de son
-      // plein gré : il a déjà ce qu'il est venu chercher.
+      // A failure need not be brought up to someone reading the original of their
+      // own accord: they already have what they came for.
       errorCode: undefined,
     };
   }
 
-  // 3. Traduction à jour : on la sert, sous mention.
+  // 3. Up-to-date translation: serve it, with a notice.
   if (usable) {
     return { kind: 'translated', sourceLocale, fields: cached.fields! };
   }
 
-  // 4. et 5. Pas de traduction utilisable. On sert l'original en disant
-  //    pourquoi : périmée (l'auteur a corrigé son texte), en échec, ou
-  //    simplement jamais demandée.
+  // 4. and 5. No usable translation. Serve the original, saying
+  //    why: stale (the author corrected their text), failed, or
+  //    simply never requested.
   return {
     kind: 'original',
     sourceLocale,
@@ -109,19 +109,19 @@ export function resolveArticleDisplay(
 }
 
 /**
- * Suffixe de clé de message pour un code d'échec de traduction.
+ * Message key suffix for a translation failure code.
  *
- * Les libellés vivent dans le catalogue sous `translation.err*` et se
- * demandent par `vocabulary(t, 'err', suffixe)` — le mécanisme prévu par le
- * dépôt pour une clé construite à l'exécution (src/i18n/vocabulary.ts).
- * L'alternative, `t(cléCalculée)`, est explicitement interdite par
- * `tests/unit/i18n-keys.test.ts`, et pour une bonne raison : elle ferait passer
- * un code inattendu venu de la passerelle pour une clé d'interface manquante,
- * c'est-à-dire un bug, alors que c'est un cas de repli normal.
+ * The labels live in the catalogue under `translation.err*` and are
+ * requested via `vocabulary(t, 'err', suffix)` — the mechanism provided by the
+ * repository for a key built at runtime (src/i18n/vocabulary.ts).
+ * The alternative, `t(computedKey)`, is explicitly forbidden by
+ * `tests/unit/i18n-keys.test.ts`, and for good reason: it would pass off
+ * an unexpected code coming from the gateway as a missing interface key,
+ * i.e. a bug, whereas it is a normal fallback case.
  *
- * Tout ce qui n'est pas dans cette table retombe sur `errGeneric` : la
- * passerelle peut renvoyer un code nouveau demain, la page ne doit pas s'en
- * émouvoir.
+ * Anything not in this table falls back to `errGeneric`: the
+ * gateway may return a new code tomorrow, the page must not be
+ * bothered by it.
  */
 const ERROR_SUFFIXES: Record<string, string> = {
   AI_GATEWAY_NOT_CONFIGURED: 'NotConfigured',

@@ -2,15 +2,15 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createTranslator } from 'next-intl';
 import { vocabulary, humanizeTerm } from '@/i18n/vocabulary';
 
-// Le VOCABULAIRE est la seule famille de clés qui mérite un repli (issue #33) :
-// un slug de thème ou de région venu de la base peut sortir du dictionnaire —
-// `THEMES` vit dans quatre fichiers (issue #30) — et ne doit pas emporter la
-// page. Tout le reste est un libellé écrit en dur, donc un bug quand il manque.
+// VOCABULARY is the only family of keys that deserves a fallback (issue #33):
+// a theme or region slug coming from the database may fall outside the dictionary —
+// `THEMES` lives in four files (issue #30) — and must not take down the
+// page. Everything else is a hard-coded label, hence a bug when it's missing.
 //
-// Le traducteur employé ici est le VRAI (`createTranslator` de next-intl), pas
-// une doublure : ce qu'on vérifie tient entièrement à `t.has()`, qui répond
-// sans lever ni journaliser. Une doublure maison prouverait seulement que la
-// doublure se comporte comme on l'a écrite.
+// The translator used here is the REAL one (next-intl's `createTranslator`), not
+// a test double: what we check relies entirely on `t.has()`, which answers
+// without throwing or logging. A home-made double would only prove that the
+// double behaves the way we wrote it.
 
 const messages = {
   library: {
@@ -48,8 +48,8 @@ describe('vocabulary — repli explicite pour le vocabulaire dynamique', () => {
   });
 
   it('gère un séparateur autre que le point', () => {
-    // `revStage_in_review` : le terme porte lui-même un souligné, d'où le
-    // préfixe passé en entier plutôt qu'un découpage a posteriori.
+    // `revStage_in_review`: the term itself contains an underscore, hence the
+    // prefix passed in full rather than splitting after the fact.
     expect(vocabulary(t('admin'), 'revStage_', 'in_review')).toBe('En revue');
   });
 
@@ -61,11 +61,11 @@ describe('vocabulary — repli explicite pour le vocabulaire dynamique', () => {
       vocabulary(t('library'), 'themes.', 'slug-jamais-vu'),
     ).not.toThrow();
 
-    // C'est LA propriété qui permet de rendre `getMessageFallback` strict :
-    // une clé de vocabulaire absente ne passe jamais par le chemin d'erreur.
+    // This is THE property that makes it possible to make `getMessageFallback` strict:
+    // a missing vocabulary key never goes down the error path.
     expect(error).not.toHaveBeenCalled();
-    // En développement elle laisse tout de même une trace — un vocabulaire qui
-    // a divergé se voit, sans être traité comme un bug d'interface.
+    // In development it still leaves a trace — vocabulary that
+    // has diverged is visible, without being treated as an interface bug.
     expect(warn).toHaveBeenCalledOnce();
   });
 

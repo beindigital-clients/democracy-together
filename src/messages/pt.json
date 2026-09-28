@@ -3403,9 +3403,5 @@
     "revisionSubmit": "Submeter a revisão",
     "revisionSent": "Versão {version} submetida: o editor foi avisado.",
     "fileSelected": "Ficheiro selecionado: {name}"
-  },
-  "accessibility": {
-    "globePause": "Pausar a rotação do globo",
-    "globePlay": "Iniciar a rotação do globo"
   }
 }

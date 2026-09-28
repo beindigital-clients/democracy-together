@@ -18,9 +18,9 @@ import { WorkspaceManage, useRoleLabel } from './workspace-manage';
 import { MyInvitations } from './workspace-invitations';
 import { useWorkspaceError } from './workspace-errors';
 
-// Formulaire de note (réservé aux membres DE L'ESPACE). Réplique le motif du
-// CommentForm de la Tribune.
-// Même nombre que `convex/workspaces.ts#addNote` (INVALID_NOTE au-delà).
+// Note form (reserved for members OF THE WORKSPACE). Replicates the pattern of
+// the Tribune's CommentForm.
+// Same number as `convex/workspaces.ts#addNote` (INVALID_NOTE beyond it).
 const NOTE_MAX = 4000;
 
 function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
@@ -34,8 +34,8 @@ function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
     e.preventDefault();
     setError(null);
     if (body.trim().length < 2) return;
-    // Borne du serveur (`addNote` : INVALID_NOTE au-delà). Sans ce message, une
-    // note trop longue disparaissait sans un mot — le refus était attrapé et tu.
+    // Server limit (`addNote`: INVALID_NOTE beyond it). Without this message, a
+    // note that was too long vanished without a word — the rejection was caught and swallowed.
     if (body.trim().length > NOTE_MAX) {
       setError(t('errNote', { max: NOTE_MAX }));
       return;
@@ -45,8 +45,8 @@ function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
       await add({ workspaceId, body: body.trim() });
       setBody('');
     } catch {
-      // Refusé (rôle / appartenance / rate-limit / borne) : le texte reste, et
-      // l'auteur sait que rien n'est parti.
+      // Rejected (role / membership / rate-limit / limit): the text stays, and
+      // the author knows nothing was sent.
       setError(t('errGeneric'));
     } finally {
       setPending(false);
@@ -78,8 +78,8 @@ function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
   );
 }
 
-// Détail d'un espace : description, membres, rejoindre/quitter, fil de notes.
-// Monté uniquement pour un membre réseau connecté (gating amont dans la page).
+// Workspace detail: description, members, join/leave, notes feed.
+// Mounted only for a signed-in network member (gating upstream in the page).
 export function WorkspaceDetail({
   workspaceId,
 }: {
@@ -89,9 +89,9 @@ export function WorkspaceDetail({
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  // Même garde que la liste : la requête n'est posée qu'une fois le rôle
-  // connu et suffisant (cf. workspaces-board.tsx). L'identifiant malformé ou
-  // étranger, lui, est absorbé par le serveur, qui rend `null` -> « introuvable ».
+  // Same guard as the list: the query is only issued once the role is
+  // known and sufficient (see workspaces-board.tsx). A malformed or
+  // foreign identifier is absorbed by the server, which returns `null` -> "not found".
   const data = useQuery(
     api.workspaces.getWorkspace,
     me !== undefined && isMember(me?.role) ? { workspaceId } : 'skip',
@@ -110,8 +110,8 @@ export function WorkspaceDetail({
       year: 'numeric',
     }).format(ms);
 
-  // Garde de rôle (membre réseau). Le compte connecté mais non membre voit le
-  // même message que sur la liste.
+  // Role guard (network member). A signed-in account that is not a member sees the
+  // same message as on the list.
   if (me !== undefined && !isMember(me?.role)) {
     return (
       <div className="mx-auto max-w-[760px] px-4 py-16 sm:px-6">
@@ -155,8 +155,8 @@ export function WorkspaceDetail({
     );
   }
 
-  // Les refus (espace privé, dernier animateur…) sont DITS : un bouton qui
-  // ne fait rien sans explication est le défaut que la campagne relevait.
+  // Rejections (private workspace, last facilitator…) are STATED: a button that
+  // does nothing without explanation is the defect the campaign flagged.
   async function onJoin() {
     setPending(true);
     setActionError(null);
@@ -226,8 +226,8 @@ export function WorkspaceDetail({
         {data.description}
       </p>
 
-      {/* Rejoindre / Quitter. Un espace privé ne se rejoint pas : on y
-          entre en acceptant l'invitation, affichée ici. */}
+      {/* Join / Leave. A private workspace cannot be joined: one
+          enters it by accepting the invitation, shown here. */}
       <div className="mt-6">
         {data.isLastAnimator ? (
           <p className="text-sm text-muted">{t('ownerCannotLeave')}</p>
@@ -272,9 +272,9 @@ export function WorkspaceDetail({
         </ul>
       </section>
 
-      {/* Notes partagées — le serveur ne les rend qu'aux membres de l'espace
-          (R-11) : pour les autres, le titre reste générique (le nombre de
-          notes n'est pas connu) et l'invitation à rejoindre remplace le fil. */}
+      {/* Shared notes — the server only returns them to workspace members
+          (R-11): for others, the title stays generic (the number of
+          notes is not known) and the invitation to join replaces the feed. */}
       <section className="mt-12 border-t border-line pt-8">
         <h2 className="font-display text-2xl">
           {data.isMember
@@ -315,7 +315,7 @@ export function WorkspaceDetail({
         )}
       </section>
 
-      {/* Fichiers partagés : membres de l'espace seulement. */}
+      {/* Shared files: workspace members only. */}
       {data.isMember ? (
         <WorkspaceFiles
           workspaceId={workspaceId}
@@ -325,7 +325,7 @@ export function WorkspaceDetail({
         />
       ) : null}
 
-      {/* Animation : animateurs seulement. */}
+      {/* Facilitation: facilitators only. */}
       {data.myRole === 'animateur' ? (
         <WorkspaceManage
           workspaceId={workspaceId}

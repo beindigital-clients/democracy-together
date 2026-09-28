@@ -1,21 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Issue #35 — la fiche d'un billet de Tribune. Un billet est rédigé dans UNE
-// langue et n'est jamais traduit : les deux préfixes d'URL servent le même
-// texte. Ce que ce test tient, ce sont les deux critères d'acceptation qui en
-// découlent — un canonical cohérent avec la langue RÉELLE du billet, et aucun
-// hreflang vers une traduction inexistante.
+// Issue #35 — the page of a Tribune post. A post is written in ONE
+// language and is never translated: both URL prefixes serve the same
+// text. What this test holds are the two acceptance criteria that
+// follow — a canonical consistent with the post's ACTUAL language, and no
+// hreflang to a nonexistent translation.
 
 const fetchQuery = vi.fn();
 vi.mock('convex/nextjs', () => ({
   fetchQuery: (...args: unknown[]) => fetchQuery(...args),
 }));
 
-// `@/i18n/navigation` appelle `createNavigation` de next-intl, qui importe
-// `next/navigation` — un module que l'exécuteur de tests ne sait pas résoudre
-// hors runtime Next. `generateMetadata` ne s'en sert pas : on ne charge donc
-// que le strict nécessaire, plutôt que d'installer un alias global pour un
-// import que ce test n'exerce pas.
+// `@/i18n/navigation` calls next-intl's `createNavigation`, which imports
+// `next/navigation` — a module the test runner cannot resolve
+// outside the Next runtime. `generateMetadata` does not use it: so we only load
+// the bare minimum, rather than installing a global alias for an
+// import this test does not exercise.
 vi.mock('@/i18n/navigation', () => ({
   Link: () => null,
   usePathname: () => '/',

@@ -21,13 +21,13 @@ import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import { locale } from './schema';
 import type { Doc } from './_generated/dataModel';
 
-// --- Mentorat : mise en relation (F-59) -------------------------------------
-// Rend réelle l'intention « Demander un mentor » / « Trouver mon mentor » du hub
-// Jeunes. Sans compte (par e-mail, comme la candidature F-58). On s'inscrit
-// comme « mentore » (cherche un mentor) ou « mentor » (propose son aide).
-// Rate-limitée ; dédoublonnage doux : une demande en attente par (e-mail, rôle).
-// Portail anti-spam : l'action vérifie reCAPTCHA v3 puis délègue à
-// `storeRequest` (internalMutation -> non contournable).
+// --- Mentoring: matchmaking (F-59) -----------------------------------------
+// Makes real the "Demander un mentor" / "Trouver mon mentor" intent of the
+// Youth hub. No account needed (by email, like the F-58 application). One signs up
+// as "mentore" (looking for a mentor) or "mentor" (offering help).
+// Rate-limited; soft deduplication: one pending request per (email, role).
+// Anti-spam gate: the action checks reCAPTCHA v3 then delegates to
+// `storeRequest` (internalMutation -> cannot be bypassed).
 export const requestMentorship = action({
   args: {
     name: v.string(),
@@ -41,20 +41,20 @@ export const requestMentorship = action({
   },
   handler: async (ctx, { captchaToken, ...input }) => {
     await enforceRecaptcha(captchaToken, 'mentorship');
-    // ORACLE D'EXISTENCE REFERMÉ (pentest M-8, audit F-09).
+    // EXISTENCE ORACLE CLOSED (pentest M-8, audit F-09).
     //
-    // La mutation interne distingue toujours « déjà connu » de « nouveau » —
-    // elle en a besoin pour ne pas dupliquer ni recompter. Mais cette
-    // distinction ne FRANCHIT PLUS la frontière publique : cette action est
-    // ouverte, non authentifiée, et rendait `already: true/false`. Une seule
-    // requête suffisait donc pour savoir si une adresse donnée figure dans nos
-    // listes — appartenance à un réseau militant, inscription à un événement.
-    // Les plafonds par IP et par formulaire ralentissent l'énumération ; ils
-    // ne changent rien à une vérification ciblée, qui ne coûte qu'un appel.
+    // The internal mutation still distinguishes "already known" from "new" —
+    // it needs to, so as not to duplicate or double-count. But this
+    // distinction NO LONGER CROSSES the public boundary: this action is
+    // open, unauthenticated, and used to return `already: true/false`. A single
+    // request was therefore enough to know whether a given address is in our
+    // lists — membership of an activist network, registration for an event.
+    // Per-IP and per-form caps slow down enumeration; they
+    // change nothing for a targeted check, which costs only one call.
     //
-    // La réponse est désormais IDENTIQUE dans les deux cas. Rien n'est perdu
-    // côté produit : aucun formulaire ne lisait `already` — tous affichent le
-    // même message de succès (vérifié sur les cinq).
+    // The response is now IDENTICAL in both cases. Nothing is lost
+    // product-wise: no form read `already` — they all display the
+    // same success message (checked on all five).
     await ctx.runMutation(internal.mentorship.storeRequest, input);
     return { ok: true };
   },
@@ -82,8 +82,8 @@ export const storeRequest = internalMutation({
       throw new ConvexError('INVALID_MESSAGE');
     }
 
-    // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
-    // changer d'adresse ne rend plus un quota neuf. Cf. lib/rateLimit.ts.
+    // UNFORGEABLE caps (audit M2) — per IP and global per form:
+    // changing address no longer yields a fresh quota. See lib/rateLimit.ts.
     await enforcePublicFormLimit(ctx, 'mentorship');
 
     await enforceRateLimit(ctx, {
@@ -91,9 +91,9 @@ export const storeRequest = internalMutation({
       ...RATE_LIMITS.apply,
     });
 
-    // Dédoublonnage doux : une demande pending par (email, role). On peut donc
-    // s'inscrire à la fois comme mentoré ET mentor, mais pas deux fois dans le
-    // même rôle tant que la première est en attente.
+    // Soft deduplication: one pending request per (email, role). So one can
+    // sign up both as mentee AND mentor, but not twice in the
+    // same role while the first one is pending.
     const existing = await ctx.db
       .query('mentorshipRequests')
       .withIndex('by_email', (q) => q.eq('email', email))
@@ -117,18 +117,18 @@ export const storeRequest = internalMutation({
   },
 });
 
-// --- Ma demande (membre connecté) -------------------------------------------
-// Le mentorat n'avait AUCUN parcours membre (A-13) : formulaire public d'un
-// côté, file d'appariement de l'autre, et le demandeur n'apprenait rien —
-// ni que sa demande est en attente, ni qu'elle a été appariée ou close.
-// Cette query rend à un compte connecté SES demandes, retrouvées par
-// l'adresse de son compte (vérifiée à la connexion par code) : une par rôle,
-// avec le statut. Un visiteur anonyme ou un compte sans adresse reçoit une
-// liste vide, jamais une erreur — la page /jeunes est publique.
+// --- My request (signed-in member) ------------------------------------------
+// Mentoring had NO member journey (A-13): a public form on one
+// side, a matching queue on the other, and the requester learned nothing —
+// neither that their request is pending, nor that it was matched or closed.
+// This query returns to a signed-in account ITS requests, found by
+// its account address (verified at sign-in by code): one per role,
+// with the status. An anonymous visitor or an account without an address gets
+// an empty list, never an error — the /jeunes page is public.
 //
-// Ce qui reste hors de portée ici, et relève d'une fonctionnalité à part :
-// le choix du mentor, le suivi du binôme, la notification du demandeur à
-// l'appariement (aucun `notify`/`sendEmail` dans ce module).
+// What remains out of scope here, and belongs to a separate feature:
+// choosing the mentor, following the pair, notifying the requester on
+// matching (no `notify`/`sendEmail` in this module).
 export const myMentorshipRequest = query({
   args: {},
   returns: v.array(
@@ -164,10 +164,10 @@ export const myMentorshipRequest = query({
   },
 });
 
-// --- Back-office (modérateur et au-dessus) ----------------------------------
+// --- Back-office (moderator and above) --------------------------------------
 export const listMentorshipRequests = query({
-  // Domaine FERMÉ (miroir du schéma) : le back-office ne propose que ces
-  // valeurs, le validateur les impose. Sans filtre -> toute la file.
+  // CLOSED domain (mirrors the schema): the back-office only offers these
+  // values, the validator enforces them. No filter -> the whole queue.
   args: {
     status: v.optional(
       v.union(v.literal('pending'), v.literal('matched'), v.literal('closed')),
@@ -198,21 +198,21 @@ export const listMentorshipRequests = query({
   },
 });
 
-// --- Machine à états de la revue des demandes de mentorat (issue #9) -------
+// --- State machine for reviewing mentoring requests (issue #9) -------------
 //
 //   pending ──matched/closed──► matched | closed
-//   matched ──closed──► closed                  (fin d'accompagnement)
+//   matched ──closed──► closed                  (end of mentoring)
 //   matched | closed ──reopenMentorshipRequest──► pending
 //
-// `matched -> closed` est une SUITE, pas une inversion : la mise en relation a
-// bien eu lieu, puis l'accompagnement se termine. L'inverse — `closed` repassé
-// en `matched` — prétendrait qu'un appariement existe alors qu'il a été clos ;
-// il faut d'abord rouvrir la demande.
+// `matched -> closed` is a CONTINUATION, not a reversal: the match did
+// take place, then the mentoring ends. The reverse — `closed` moved back
+// to `matched` — would claim a match exists when it was closed;
+// the request must first be reopened.
 //
-// Effet de bord de la décision : AUCUN (ni compte, ni rôle, ni mise en relation
-// automatique — l'appariement se fait par e-mail, hors de l'outil). La garde
-// protège donc le JOURNAL : ces mutations sont auditées, et une décision
-// rejouée ou inversée en silence y empile des lignes contradictoires.
+// Side effect of the decision: NONE (no account, no role, no automatic
+// matchmaking — matching happens by email, outside the tool). The guard
+// therefore protects the LOG: these mutations are audited, and a decision
+// replayed or silently reversed piles up contradictory rows there.
 const MENTORSHIP_REVIEW: ReviewMachine<Doc<'mentorshipRequests'>['status']> = {
   transitions: {
     pending: ['matched', 'closed'],
@@ -254,9 +254,9 @@ export const reviewMentorshipRequest = mutation({
   },
 });
 
-// Réouverture d'une demande tranchée (issue #9) — modérateur et au-dessus,
-// audité sous sa propre action. C'est le seul chemin de retour : un
-// appariement clos qu'on veut reprendre repasse par la file, visiblement.
+// Reopening a decided request (issue #9) — moderator and above,
+// audited under its own action. It is the only way back: a closed
+// match one wants to resume goes back through the queue, visibly.
 export const reopenMentorshipRequest = mutation({
   args: { requestId: v.id('mentorshipRequests') },
   handler: async (ctx, { requestId }) => {
@@ -277,7 +277,7 @@ export const reopenMentorshipRequest = mutation({
   },
 });
 
-// DEV/TEST seulement (garde AUTH_DEV_OTP) : vérifie le stockage réel en E2E.
+// DEV/TEST only (AUTH_DEV_OTP guard): checks the actual storage in E2E.
 export const isMentorshipRequested = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {

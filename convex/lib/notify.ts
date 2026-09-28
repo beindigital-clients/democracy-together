@@ -2,16 +2,16 @@ import type { MutationCtx } from '../_generated/server';
 import type { Id } from '../_generated/dataModel';
 import { isNotificationMuted } from './socialAccess';
 
-// Helper d'émission de notification (F-25/F-51) — appelé DANS une mutation
-// (transaction de l'appelant), comme `recordAudit`. Le rendu est i18n côté
-// client : `titleKey` est une clé du namespace `notifications`, `params` est
-// interpolé, `link` est un chemin interne (sans préfixe de locale).
+// Notification emission helper (F-25/F-51) — called WITHIN a mutation
+// (the caller's transaction), like `recordAudit`. Rendering is i18n on the
+// client side: `titleKey` is a key of the `notifications` namespace, `params` is
+// interpolated, `link` is an internal path (without a locale prefix).
 //
-// PRÉFÉRENCES (chantier « social ») : le destinataire peut couper un type de
-// notification depuis `/espace-membre/profil`. La garde est posée ICI, au seul
-// point d'émission, et non chez chaque appelant : un type coupé n'est jamais
-// écrit, donc jamais affiché ni relayé. Renvoie `false` quand rien n'a été
-// créé, pour qu'un appelant qui voudrait doubler par un courriel le sache.
+// PREFERENCES ("social" workstream): the recipient can switch off a notification
+// type from `/espace-membre/profil`. The guard is placed HERE, at the single
+// emission point, and not at each caller: a switched-off type is never
+// written, hence never displayed or relayed. Returns `false` when nothing was
+// created, so that a caller wanting to double it with an e-mail knows.
 export async function notify(
   ctx: MutationCtx,
   entry: {

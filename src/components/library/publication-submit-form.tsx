@@ -31,25 +31,25 @@ import { StatusMessage } from '@/components/a11y/status-message';
 
 const MAX_FILE_MB = 20;
 
-// Le CONTENU, pas l'extension : un `.txt` renommé `.pdf`, ou un fichier vide,
-// passait le sélecteur (`accept`) et le serveur, qui ne peut relire que la
-// taille et le type annoncé (mesuré le 27/09). Un PDF commence par `%PDF-`.
+// The CONTENT, not the extension: a `.txt` renamed `.pdf`, or an empty file,
+// got past the picker (`accept`) and the server, which can only check the
+// size and declared type (measured on 27/09). A PDF starts with `%PDF-`.
 async function looksLikePdf(file: File): Promise<boolean> {
   if (file.size < 5) return false;
   try {
     return (await file.slice(0, 5).text()) === '%PDF-';
   } catch {
-    return true; // navigateur sans `Blob.text()` : on laisse le serveur trancher
+    return true; // browser without `Blob.text()`: let the server decide
   }
 }
 const CURRENT_YEAR = new Date().getFullYear();
 
 type Status = 'idle' | 'uploading' | 'sending' | 'success';
 
-// Formulaire de dépôt d'une publication (F-32) — îlot client. Flux de
-// téléversement Convex Storage : generateUploadUrl -> POST du fichier -> storageId
-// -> submitPublication. La soumission part en statut « en attente » et n'apparaît
-// publiquement qu'après validation d'un modérateur. Validé côté client ET serveur.
+// Publication submission form (F-32) — client island. Convex Storage
+// upload flow: generateUploadUrl -> POST the file -> storageId
+// -> submitPublication. The submission starts in "pending" status and only appears
+// publicly after a moderator approves it. Validated client-side AND server-side.
 export function PublicationSubmitForm() {
   const t = useTranslations('library');
   const me = useQuery(api.users.current);
@@ -80,21 +80,21 @@ export function PublicationSubmitForm() {
     abstract: '',
     keypoints: '',
   });
-  // Les langues (cases à cocher) et le fichier ne sont pas des champs texte :
-  // leurs messages vivent ici, mais suivent la même règle — chacun s'affiche à
-  // l'endroit fautif, et non en bas du formulaire.
+  // The languages (checkboxes) and the file are not text fields:
+  // their messages live here, but follow the same rule — each one is shown at
+  // the faulty spot, not at the bottom of the form.
   const [groupErrors, setGroupErrors] = useState<{
     languages?: string;
     file?: string;
   }>({});
   const languagesErrorId = useId();
-  // Le groupe de langues n'a pas de contrôle unique à viser : c'est le
-  // `fieldset` qui prend le focus (`tabIndex={-1}`), ce qui amène la légende et
-  // le message à l'écran et sous le lecteur d'écran.
+  // The language group has no single control to target: it is the
+  // `fieldset` that takes focus (`tabIndex={-1}`), which brings the legend and
+  // the message on screen and under the screen reader.
   const languagesRef = useRef<HTMLFieldSetElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Pré-remplit l'auteur principal avec le nom du membre connecté (une fois).
+  // Pre-fills the lead author with the signed-in member's name (once).
   useEffect(() => {
     if (me?.name && values.authors.trim() === '') setValue('authors', me.name);
   }, [me, values.authors, setValue]);
@@ -114,9 +114,9 @@ export function PublicationSubmitForm() {
     setLanguages(['fr']);
     setAccess(PUB_ACCESS[0]);
     setFile(null);
-    // Le champ fichier est le seul contrôle non piloté par l'état (un
-    // `<input type="file">` ne se remplit pas par `value`) : il se vide à la
-    // main, faute de quoi il continuerait d'annoncer le document précédent.
+    // The file field is the only control not driven by state (an
+    // `<input type="file">` is not filled via `value`): it is cleared
+    // by hand, otherwise it would keep announcing the previous document.
     if (fileRef.current) fileRef.current.value = '';
     setGroupErrors({});
     setError(null);
@@ -128,9 +128,9 @@ export function PublicationSubmitForm() {
     e.preventDefault();
     setError(null);
 
-    // Validation miroir du backend (défense en profondeur côté serveur aussi),
-    // mais cause par cause : un dépôt refusé dit désormais LEQUEL des six
-    // champs reprendre.
+    // Mirrors the backend validation (defence in depth on the server side too),
+    // but cause by cause: a rejected submission now says WHICH of the six
+    // fields to fix.
     const groups: { languages?: string; file?: string } = {};
     if (languages.length === 0) groups.languages = t('submit.errLanguages');
     if (file && file.size > MAX_FILE_MB * 1024 * 1024) {
@@ -146,8 +146,8 @@ export function PublicationSubmitForm() {
         const year = Number(v);
         const valid =
           Number.isInteger(year) && year >= 1990 && year <= CURRENT_YEAR + 1;
-        // `max` est passé en TEXTE : en argument numérique, l'ICU écrirait
-        // « 2 027 ».
+        // `max` is passed as TEXT: as a numeric argument, ICU would write
+        // "2 027".
         return valid
           ? null
           : t('submit.errYear', { max: String(CURRENT_YEAR + 1) });
@@ -158,8 +158,8 @@ export function PublicationSubmitForm() {
           : t('submit.errAuthors'),
       abstract: (v) => (v.trim().length < 20 ? t('submit.errAbstract') : null),
     });
-    // Le focus est déjà parti sur le premier champ texte fautif, s'il y en a
-    // un ; sinon il va au groupe qui bloque.
+    // Focus has already moved to the first faulty text field, if there is
+    // one; otherwise it goes to the blocking group.
     if (!fieldsOk) return;
     if (groups.languages) {
       languagesRef.current?.focus();
@@ -188,8 +188,8 @@ export function PublicationSubmitForm() {
         setPercent(null);
         setStatus('uploading');
         const uploadUrl = await generateUploadUrl();
-        // `XMLHttpRequest`, et non `fetch` : lui seul rend compte de
-        // l'avancement de l'ENVOI (cf. src/lib/upload.ts).
+        // `XMLHttpRequest`, not `fetch`: only it reports
+        // UPLOAD progress (see src/lib/upload.ts).
         const json = await uploadWithProgress<{ storageId: Id<'_storage'> }>({
           url: uploadUrl,
           file,
@@ -227,8 +227,8 @@ export function PublicationSubmitForm() {
               ? t('submit.errorFileType')
               : t('submit.errorGeneric'),
       );
-      // La saisie reste en place : un refus n'est pas une raison de tout
-      // reprendre (le fichier choisi non plus).
+      // The input stays in place: a rejection is no reason to start
+      // over (nor is the chosen file).
       setStatus('idle');
       setPercent(null);
     }
@@ -344,8 +344,8 @@ export function PublicationSubmitForm() {
           {PUB_LANGS.map((l) => {
             const checked = languages.includes(l);
             return (
-              // Focus sur la pastille (RGAA 10.7), coche en plus de la
-              // couleur (RGAA 3.1) : la case elle-même est masquée.
+              // Focus on the chip (RGAA 10.7), a check mark in addition to
+              // colour (RGAA 3.1): the checkbox itself is hidden.
               <label
                 key={l}
                 className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
@@ -379,8 +379,8 @@ export function PublicationSubmitForm() {
         <legend className="text-sm text-ink-soft">
           {t('submit.fieldAccess')}
         </legend>
-        {/* Sans `role="radiogroup"` anonyme : le `<fieldset>` nomme le
-            groupe (RGAA 11.6). */}
+        {/* No anonymous `role="radiogroup"`: the `<fieldset>` names the
+            group (RGAA 11.6). */}
         <div className="mt-2 flex flex-wrap gap-2">
           {PUB_ACCESS.map((a) => (
             <label
@@ -432,8 +432,8 @@ export function PublicationSubmitForm() {
         {...field('keypoints')}
       />
 
-      {/* Champ fichier : contrôle particulier (habillage `file:*`), donc rendu
-          par la coquille du système commun plutôt que réassemblé à la main. */}
+      {/* File field: a special control (`file:*` styling), so rendered
+          through the shared system's shell rather than reassembled by hand. */}
       <Field
         label={t('submit.fieldFile')}
         hint={

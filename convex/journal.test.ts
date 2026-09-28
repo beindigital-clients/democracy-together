@@ -15,16 +15,16 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Pagination : les listes du back-office prennent désormais `paginationOpts`
-// (issue #8). Une page large suffit à ces tests — ce qu'ils vérifient n'est pas
-// le découpage mais le contenu.
+// Pagination: back-office lists now take `paginationOpts`
+// (issue #8). A large page is enough for these tests — what they check is not
+// the slicing but the content.
 const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
 
 describe("Journal d'activité (F-67) — listAuditLog", () => {
   it('renvoie les entrées triées desc + résout actorName/actorEmail', async () => {
     const t = convexTest(schema, modules);
 
-    // Acteur connu (résolu via ctx.db.get) + un id d'acteur disparu (null).
+    // Known actor (resolved via ctx.db.get) + a vanished actor id (null).
     const actorId = await t.run((ctx) =>
       ctx.db.insert('users', {
         role: 'admin',
@@ -36,8 +36,8 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );
 
-    // Trois entrées d'audit, horodatages croissants — l'ordre attendu en
-    // sortie est l'inverse (la plus récente d'abord).
+    // Three audit entries, increasing timestamps — the expected output order
+    // is the reverse (most recent first).
     await t.run(async (ctx) => {
       await ctx.db.insert('auditLog', {
         actorId,
@@ -52,7 +52,7 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
         targetId: 'cible-2',
         createdAt: 2_000,
       });
-      // Entrée sans acteur résoluble (actorId absent) -> actorName/Email null.
+      // Entry without a resolvable actor (actorId absent) -> actorName/Email null.
       await ctx.db.insert('auditLog', {
         action: AUDIT.MEMBERSHIP_REVIEWED,
         targetId: 'cible-3',
@@ -64,7 +64,7 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
       .withIdentity({ subject: `${adminId}|s` })
       .query(api.journal.listAuditLog, PAGE);
 
-    // Tri décroissant par createdAt.
+    // Descending sort by createdAt.
     expect(rows.map((r) => r.createdAt)).toEqual([3_000, 2_000, 1_000]);
     expect(rows.map((r) => r.action)).toEqual([
       AUDIT.MEMBERSHIP_REVIEWED,
@@ -72,13 +72,13 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
       AUDIT.USER_ROLE_CHANGED,
     ]);
 
-    // Acteur résolu sur les deux premières entrées (par createdAt) ...
+    // Actor resolved on the first two entries (by createdAt) ...
     const oldest = rows[2];
     expect(oldest.actorName).toBe('Awa Diop');
     expect(oldest.actorEmail).toBe('awa@demo.org');
     expect(oldest.targetId).toBe('cible-1');
 
-    // ... et null quand l'entrée n'a pas d'acteur.
+    // ... and null when the entry has no actor.
     const newest = rows[0];
     expect(newest.actorName).toBeNull();
     expect(newest.actorEmail).toBeNull();
@@ -98,7 +98,7 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
       ctx.db.insert('users', { role: 'membre', email: 'cible@test.org' }),
     );
 
-    // setRole appelle recordAudit(USER_ROLE_CHANGED) — peuple auditLog.
+    // setRole calls recordAudit(USER_ROLE_CHANGED) — populates auditLog.
     await t
       .withIdentity({ subject: `${adminId}|s` })
       .mutation(api.users.setRole, { userId: targetId, role: 'moderateur' });
@@ -142,10 +142,10 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
   it('réserve la lecture aux administrateurs (modérateur -> throw, admin OK)', async () => {
     const t = convexTest(schema, modules);
 
-    // anonyme refusé
+    // anonymous refused
     await expect(t.query(api.journal.listAuditLog, PAGE)).rejects.toThrow();
 
-    // modérateur refusé (données sensibles -> admin seulement)
+    // moderator refused (sensitive data -> admin only)
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
@@ -155,7 +155,7 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
         .query(api.journal.listAuditLog, PAGE),
     ).rejects.toThrow();
 
-    // éditeur refusé
+    // editor refused
     const editorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'editeur', email: 'ed@test.org' }),
     );
@@ -165,7 +165,7 @@ describe("Journal d'activité (F-67) — listAuditLog", () => {
         .query(api.journal.listAuditLog, PAGE),
     ).rejects.toThrow();
 
-    // admin autorisé
+    // admin allowed
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );

@@ -8,10 +8,10 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { formatMoney } from './format';
 
-// Écran de retour de paiement. Réactif : il passe de « confirmation en
-// cours » à « merci » dès que le webhook a inscrit le paiement, sans
-// rechargement. Au montage, il demande une relecture chez le prestataire —
-// filet quand le webhook tarde ou n'a pas été déclaré.
+// Payment return screen. Reactive: it goes from "confirmation in
+// progress" to "thank you" as soon as the webhook has recorded the payment, without
+// reloading. On mount, it asks for a re-read from the provider —
+// a safety net when the webhook is late or has not been registered.
 export function PaymentReturn({
   paymentRef,
   cancelled,
@@ -34,7 +34,7 @@ export function PaymentReturn({
     if (!open || cancelled || synced.current) return;
     synced.current = true;
     sync({ ref: paymentRef }).catch(() => {
-      // Relecture impossible : le webhook fera foi, l'écran reste réactif.
+      // Re-read impossible: the webhook will be authoritative, the screen stays reactive.
     });
   }, [open, cancelled, paymentRef, sync]);
 

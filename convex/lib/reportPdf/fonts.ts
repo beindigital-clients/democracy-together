@@ -6,8 +6,8 @@ import plexSans600 from './fonts/plexSans600';
 import plexArabic400 from './fonts/plexArabic400';
 import plexArabic600 from './fonts/plexArabic600';
 
-// Polices embarquées du PDF des rapports (F-41) — celles du site, décodées une
-// fois par instance d'action. Régénération : `node scripts/report-pdf-fonts.mjs`.
+// Embedded fonts of the report PDF (F-41) — the site's own, decoded once per
+// action instance. Regenerate with: `node scripts/report-pdf-fonts.mjs`.
 export type FontKey = 'display' | 'body' | 'bodyBold' | 'arabic' | 'arabicBold';
 
 const SOURCES: Record<FontKey, string> = {

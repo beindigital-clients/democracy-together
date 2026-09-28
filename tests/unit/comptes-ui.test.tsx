@@ -13,9 +13,9 @@ import ar from '@/messages/ar.json';
 
 afterEach(cleanup);
 
-// Chantier comptes — ce qui se teste sans navigateur ni backend : le QR code
-// d'inscription 2FA, la lecture des codes de refus, et la présence des
-// messages dans les cinq langues.
+// Accounts workstream — what can be tested without a browser or backend: the 2FA
+// enrollment QR code, reading the refusal codes, and the presence of the
+// messages in all five languages.
 
 describe('QR code d’inscription', () => {
   it('s’annonce comme une image nommée et encode exactement l’URI', () => {
@@ -25,11 +25,11 @@ describe('QR code d’inscription', () => {
     const img = screen.getByRole('img', { name: "QR code d'inscription" });
     const size = encode(uri, { ecc: 'M', border: 2 }).size;
     expect(img.getAttribute('viewBox')).toBe(`0 0 ${size} ${size}`);
-    // Un module noir par case sombre : le chemin n'est pas vide.
+    // One black module per dark cell: the path is not empty.
     expect(
       img.querySelector('path')?.getAttribute('d')?.length,
     ).toBeGreaterThan(100);
-    // Noir sur blanc dans les deux thèmes : jetons dédiés, jamais `ink`.
+    // Black on white in both themes: dedicated tokens, never `ink`.
     expect(img.getAttribute('class')).toContain('bg-qr-paper');
     expect(img.querySelector('path')?.getAttribute('class')).toBe(
       'fill-qr-ink',

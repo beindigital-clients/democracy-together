@@ -1,8 +1,8 @@
 import { setRequestLocale } from 'next-intl/server';
 import { PaymentSimulator } from '@/components/payments/payment-simulator';
 
-// Page de paiement du PRESTATAIRE FACTICE (développement, E2E). Hors
-// développement, le serveur refuse la simulation et la page le dit.
+// Payment page of the FAKE PROVIDER (development, E2E). Outside
+// development, the server refuses the simulation and the page says so.
 export default async function PaymentSimulatorPage({
   params,
   searchParams,

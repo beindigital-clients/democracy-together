@@ -17,28 +17,28 @@ import { WORKSPACE_FILE_LIMITS, workspaceRoleAtLeast } from './lib/communaute';
 import { checkFileContent, sanitizeFileName } from './lib/fileCheck';
 import { memberName, requireWorkspaceRole } from './workspaces';
 
-// FICHIERS PARTAGÉS d'un espace collaboratif (F-24, chantier communauté).
+// SHARED FILES of a collaborative workspace (F-24, community workstream).
 //
-// Le parcours d'un fichier, et pourquoi il a trois temps :
-//   1. `generateUploadUrl` (mutation) — contributeur ou animateur de l'espace,
-//      débit limité. Le navigateur envoie le fichier au stockage Convex.
-//   2. `attachFile` (ACTION) — seule une action peut LIRE les octets d'un blob
-//      (`ctx.storage.get`) ; c'est donc ici que le contenu est vérifié
-//      (convex/lib/fileCheck.ts) : extension autorisée ET signature du format.
-//   3. `recordFile` (internalMutation) — revérifie droits, taille et quota DANS
-//      la transaction qui écrit : entre 2 et 3, un animateur a pu retirer le
-//      déposant, ou un autre dépôt a pu consommer le quota.
+// A file's journey, and why it has three phases:
+//   1. `generateUploadUrl` (mutation) — contributor or facilitator of the workspace,
+//      rate-limited. The browser sends the file to Convex storage.
+//   2. `attachFile` (ACTION) — only an action can READ a blob's bytes
+//      (`ctx.storage.get`); this is therefore where the content is checked
+//      (convex/lib/fileCheck.ts): allowed extension AND format signature.
+//   3. `recordFile` (internalMutation) — re-checks rights, size and quota IN
+//      the transaction that writes: between 2 and 3, a facilitator may have removed the
+//      uploader, or another upload may have consumed the quota.
 //
-// ACCÈS. Aucune requête ne renvoie un `storageId`. Un fichier ne se lit que
-// par `fileVersionUrl`, qui exige d'être membre de l'espace au moment de la
-// demande : un non-membre n'obtient jamais d'URL.
+// ACCESS. No query returns a `storageId`. A file can only be read
+// through `fileVersionUrl`, which requires being a member of the workspace at the time of the
+// request: a non-member never obtains a URL.
 
 const L = WORKSPACE_FILE_LIMITS;
 
-// Un blob refusé n'est effacé QUE s'il est frais et rattaché à rien. Sans
-// cette double garde, un appel malveillant passant l'identifiant d'un blob
-// d'autrui (une publication en file, un fichier d'un autre espace) obtiendrait
-// sa suppression par un simple refus.
+// A rejected blob is deleted ONLY if it is fresh and attached to nothing. Without
+// this double guard, a malicious call passing the identifier of someone else's
+// blob (a queued publication, a file from another workspace) would obtain
+// its deletion through a simple rejection.
 const DISCARD_WINDOW_MS = 15 * 60 * 1000;
 
 export const generateUploadUrl = mutation({
@@ -62,9 +62,9 @@ type UploadCheck =
   | { ok: true; size: number; sha256: string }
   | { ok: false; code: string; discardable: boolean };
 
-// Contrôles préalables à la lecture des octets. La garde de rôle LÈVE (un
-// appelant non autorisé ne déclenche rien, pas même l'effacement du blob) ;
-// les autres refus sont RENDUS, avec la possibilité d'effacer le blob.
+// Checks prior to reading the bytes. The role guard THROWS (an
+// unauthorized caller triggers nothing, not even the blob's deletion);
+// the other refusals are RETURNED, with the option of deleting the blob.
 export const uploadContext = internalQuery({
   args: {
     workspaceId: v.id('workspaces'),
@@ -92,7 +92,7 @@ export const uploadContext = internalQuery({
       .query('workspaceFileVersions')
       .withIndex('by_storage', (q) => q.eq('storageId', args.storageId))
       .first();
-    // Déjà rattaché : ni accepté une seconde fois, ni effacé.
+    // Already attached: neither accepted a second time, nor deleted.
     if (used) return { ok: false, code: 'INVALID_FILE', discardable: false };
     const discardable = args.now - meta._creationTime < DISCARD_WINDOW_MS;
     const refuse = (code: string) => ({
@@ -121,8 +121,8 @@ export const uploadContext = internalQuery({
   },
 });
 
-// Rattache un blob téléversé à l'espace — nouveau fichier, ou nouvelle
-// version de `fileId`. Rend `{ fileId, version }`.
+// Attaches an uploaded blob to the workspace — new file, or new
+// version of `fileId`. Returns `{ fileId, version }`.
 export const attachFile = action({
   args: {
     workspaceId: v.id('workspaces'),
@@ -150,8 +150,8 @@ export const attachFile = action({
       throw new ConvexError(check.code);
     }
 
-    // LE CONTENU, pas l'étiquette : les octets doivent porter la signature du
-    // format que l'extension annonce.
+    // THE CONTENT, not the label: the bytes must carry the signature of the
+    // format the extension announces.
     const blob = await ctx.storage.get(args.storageId);
     if (!blob) throw new ConvexError('INVALID_FILE');
     const verdict = checkFileContent(
@@ -174,8 +174,8 @@ export const attachFile = action({
         sha256: check.sha256,
       });
     } catch (err) {
-      // Refusé à l'écriture (droits retirés, quota consommé entre-temps) : le
-      // blob n'est rattaché à rien, et il est frais — on le retire.
+      // Rejected at write time (rights removed, quota consumed in the meantime): the
+      // blob is attached to nothing, and it is fresh — we remove it.
       await ctx.storage.delete(args.storageId);
       throw err;
     }
@@ -271,9 +271,9 @@ export const recordFile = internalMutation({
       fileCount: (workspace.fileCount ?? 0) + (args.fileId ? 0 : 1),
     });
 
-    // Les autres membres de l'espace sont prévenus. Plafonné : au-delà, un
-    // espace est une liste de diffusion, et chaque dépôt n'y mérite pas une
-    // alerte par personne.
+    // The other workspace members are notified. Capped: beyond that, a
+    // workspace is a mailing list, and each upload does not deserve an
+    // alert per person.
     const members = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_workspace', (q) => q.eq('workspaceId', args.workspaceId))
@@ -293,7 +293,7 @@ export const recordFile = internalMutation({
   },
 });
 
-// --- Lecture (membres de l'espace, lecteurs compris) -------------------------
+// --- Reading (workspace members, readers included) -------------------------
 
 const FILES_MAX = L.maxFiles;
 
@@ -304,7 +304,7 @@ export const listFiles = query({
       _id: v.id('workspaceFiles'),
       name: v.string(),
       createdByName: v.string(),
-      // Peut le supprimer : son auteur, ou un animateur.
+      // Can delete it: its author, or a facilitator.
       canDelete: v.boolean(),
       currentVersion: v.number(),
       updatedAt: v.number(),
@@ -359,8 +359,8 @@ export const listFiles = query({
   },
 });
 
-// L'URL d'une version, pour un membre de l'espace SEULEMENT. C'est la seule
-// porte vers le contenu d'un fichier.
+// The URL of a version, for a workspace member ONLY. It is the only
+// door to a file's content.
 export const fileVersionUrl = query({
   args: { versionId: v.id('workspaceFileVersions') },
   returns: v.union(v.string(), v.null()),
@@ -372,8 +372,8 @@ export const fileVersionUrl = query({
   },
 });
 
-// Supprime un fichier ET toutes ses versions (blobs compris). Son auteur ou un
-// animateur ; l'animateur qui supprime le fichier d'autrui est journalisé.
+// Deletes a file AND all its versions (blobs included). Its author or a
+// facilitator; a facilitator deleting someone else's file is logged.
 export const deleteFile = mutation({
   args: { fileId: v.id('workspaceFiles') },
   returns: v.null(),
@@ -402,8 +402,8 @@ export const deleteFile = mutation({
   },
 });
 
-// Suppression d'un fichier logique : versions, blobs, compteurs de l'espace.
-// Exportée pour la suppression de compte et d'espace (convex/communaute.ts).
+// Deletion of a logical file: versions, blobs, workspace counters.
+// Exported for account and workspace deletion (convex/communaute.ts).
 export async function removeFileCascade(
   ctx: MutationCtx,
   file: Doc<'workspaceFiles'>,

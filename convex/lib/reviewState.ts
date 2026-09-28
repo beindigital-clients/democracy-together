@@ -1,40 +1,39 @@
-// Machines à états des revues (audit M6 · issue #9) — généralisation de la
-// garde posée sur `organizations.reviewApplication` par la PR #4.
+// Review state machines (audit M6 · issue #9) — generalisation of the guard
+// added to `organizations.reviewApplication` by PR #4.
 //
-// Le défaut corrigé : une mutation de revue qui ne lit pas le statut courant
-// tranche deux fois. Un double clic REJOUE la décision ; un clic sur l'autre
-// bouton l'INVERSE. Et comme ces mutations sont AUDITÉES, chaque passage écrit
-// une entrée de plus : l'historique finit par montrer trois décisions
-// contradictoires sur le même dossier sans qu'on puisse dire laquelle fait foi
-// — pire qu'une absence d'historique pour une association qui devra rendre
-// compte de ses décisions.
+// The defect fixed: a review mutation that does not read the current status
+// decides twice. A double click REPLAYS the decision; a click on the other
+// button REVERSES it. And since these mutations are AUDITED, each pass writes
+// one more entry: the history ends up showing three contradictory decisions
+// on the same case with no way to tell which one is authoritative — worse
+// than no history at all for an association that will have to account for
+// its decisions.
 //
-// La règle : chaque mutation de revue déclare la table de transitions de son
-// domaine AU-DESSUS du handler (elle documente la machine) et appelle
-// `assertTransition` en tête de handler. Le `throw` annule la transaction :
-// une décision refusée n'écrit donc NI le document NI la ligne d'audit.
+// The rule: each review mutation declares its domain's transition table
+// ABOVE the handler (it documents the machine) and calls `assertTransition`
+// at the top of the handler. The `throw` rolls back the transaction: a
+// refused decision therefore writes NEITHER the document NOR the audit row.
 //
-// Deux erreurs, et deux seulement :
-//   - ALREADY_REVIEWED   : l'état de départ est DÉJÀ TRANCHÉ — rejeu ou
-//     inversion d'une décision prise ;
-//   - INVALID_TRANSITION : l'état de départ n'attend aucune décision —
-//     publication jamais soumise, revue sans relecteur assigné, dossier déjà
-//     de retour dans la file.
+// Two errors, and only two:
+//   - ALREADY_REVIEWED   : the starting state is ALREADY DECIDED — replay or
+//     reversal of a decision already taken;
+//   - INVALID_TRANSITION : the starting state awaits no decision —
+//     publication never submitted, review without an assigned reviewer, case
+//     already back in the queue.
 //
-// Un retour en arrière reste possible — on rouvre un dossier tranché par
-// erreur — mais c'est une transition NOMMÉE : une mutation `reopen*` dédiée,
-// tracée dans `auditLog` sous sa propre action, jamais l'effet de bord d'un
-// second clic.
+// Going back remains possible — reopening a case decided by mistake — but it
+// is a NAMED transition: a dedicated `reopen*` mutation, recorded in
+// `auditLog` under its own action, never the side effect of a second click.
 
 export type ReviewMachine<S extends string> = {
-  // État de départ -> états d'arrivée légitimes. Clé absente = cul-de-sac.
+  // Starting state -> legitimate target states. Missing key = dead end.
   readonly transitions: Readonly<Partial<Record<S, readonly S[]>>>;
-  // États « tranchés » : en repartir est un rejeu ou une inversion.
+  // "Decided" states: leaving them is a replay or a reversal.
   readonly decided: readonly S[];
 };
 
-// L'erreur qui correspond à l'état de DÉPART — utile telle quelle pour les
-// gardes qui ne sont pas un changement d'état (déposer un avis de relecture).
+// The error matching the STARTING state — usable as is for guards that are
+// not a state change (submitting a review opinion).
 export function reviewStateError<S extends string>(
   from: S,
   machine: ReviewMachine<S>,

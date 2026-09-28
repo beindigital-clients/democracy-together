@@ -6,24 +6,24 @@ import { internal } from './_generated/api';
 import { emailVerification, passwordReset, emailOtpSignIn } from './otp';
 import { RATE_LIMITS } from './lib/rateLimit';
 
-// `otp.ts` n'était couvert par AUCUN test (issue #42). C'est pourtant le SEUL
-// chemin de connexion d'un membre invité : le modèle d'adhésion ayant fermé
-// l'auto-inscription, un membre entre parce qu'un code lui parvient. Trois
-// choses s'y jouent, et chacune casse la connexion d'une façon différente :
+// `otp.ts` was covered by NO test (issue #42). Yet it is the ONLY
+// sign-in path for an invited member: since the membership model closed
+// self-signup, a member gets in because a code reaches them. Three
+// things are at stake, and each breaks sign-in in a different way:
 //
-//   1. LE CODE — six chiffres, zéros en tête compris. Un code tronqué est un
-//      code refusé par le vérificateur, donc un membre à la porte.
-//   2. LE PLAFOND — l'adresse vient d'un appelant ANONYME (connexion, reset,
-//      inscription). Sans plafond appliqué AVANT l'envoi, on inonde la boîte
-//      d'un tiers, et la facture e-mail avec.
-//   3. LE CODE EN CLAIR — écrit en base sous AUTH_DEV_OTP, jamais autrement.
-//      TESTING.md le dit sans détour : ce drapeau posé en production rend
-//      lisible en base tout code de connexion émis pendant la fenêtre, admin
-//      compris. La garde mérite un test, pas seulement un commentaire.
+//   1. THE CODE — six digits, leading zeros included. A truncated code is a
+//      code refused by the verifier, hence a member locked out.
+//   2. THE CAP — the address comes from an ANONYMOUS caller (sign-in, reset,
+//      signup). Without a cap applied BEFORE sending, we flood a third party's
+//      inbox, and the email bill with it.
+//   3. THE PLAINTEXT CODE — written to the database under AUTH_DEV_OTP, never otherwise.
+//      TESTING.md says it bluntly: this flag set in production makes
+//      every sign-in code issued during the window readable in the database, admin
+//      included. The guard deserves a test, not just a comment.
 //
-// Ce qui est DÉJÀ couvert ailleurs n'est pas redit ici : le barème du plafond
-// (convex/rateLimit.test.ts), la branche Resend de l'adaptateur et son
-// fail-fast (convex/email.test.ts), le fait que `latestDevCode` soit une
+// What is ALREADY covered elsewhere is not repeated here: the cap schedule
+// (convex/rateLimit.test.ts), the adapter's Resend branch and its
+// fail-fast (convex/email.test.ts), the fact that `latestDevCode` is an
 // internalQuery (convex/dev-oracles.test.ts).
 
 const modules = import.meta.glob([
@@ -45,9 +45,9 @@ const ENV_KEYS = [
 
 let saved: Record<string, string | undefined>;
 
-// Convention reprise de bootstrap.test.ts / email.test.ts : on part de l'état
-// d'un déploiement de PRODUCTION — aucun de ces drapeaux n'est défini — et
-// chaque test pose seulement ce dont il a besoin.
+// Convention taken from bootstrap.test.ts / email.test.ts: we start from the state
+// of a PRODUCTION deployment — none of these flags is defined — and
+// each test sets only what it needs.
 beforeEach(() => {
   saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
   for (const k of ENV_KEYS) delete process.env[k];
@@ -64,20 +64,20 @@ afterEach(() => {
 
 type Provider = typeof emailVerification;
 
-// Les trois flux, avec l'intention que chacun écrit dans `devOtpCodes`.
+// The three flows, with the intent each one writes into `devOtpCodes`.
 const PROVIDERS: Array<[nom: string, provider: Provider, purpose: string]> = [
   ['vérification', emailVerification, 'verification'],
   ['reset', passwordReset, 'reset'],
   ['connexion', emailOtpSignIn, 'signin'],
 ];
 
-// --- Accès aux deux fonctions du provider -----------------------------------
+// --- Access to the provider's two functions ---------------------------------
 //
-// `Email()` (convex-auth) range la configuration fournie dans `options` et
-// n'en remonte qu'une partie à la racine ; `convexAuth` fusionne ensuite
-// `options` PAR-DESSUS la base (server/provider_utils : `merge(provider,
-// provider.options)`). Les valeurs effectives — `id`, `maxAge`, le générateur
-// de code — se lisent donc dans `options`.
+// `Email()` (convex-auth) stores the supplied configuration in `options` and
+// only surfaces part of it at the root; `convexAuth` then merges
+// `options` ON TOP of the base (server/provider_utils: `merge(provider,
+// provider.options)`). The effective values — `id`, `maxAge`, the code
+// generator — are therefore read from `options`.
 function generateurDe(p: Provider): () => Promise<string> {
   const generer = p.options?.generateVerificationToken;
   if (!generer) throw new Error('provider OTP sans generateVerificationToken');
@@ -86,10 +86,10 @@ function generateurDe(p: Provider): () => Promise<string> {
 
 type CtxEnvoi = { runMutation: TestConvex<typeof schema>['mutation'] };
 
-// Auth.js type `sendVerificationRequest` avec UN paramètre ; Convex en passe un
-// second à l'exécution (le ctx de l'action). otp.ts déclare donc ce ctx
-// optionnel — c'est ce qui rend sa fonction assignable au type à un paramètre.
-// L'appeler ici AVEC son ctx demande de retrouver la signature réelle.
+// Auth.js types `sendVerificationRequest` with ONE parameter; Convex passes a
+// second one at runtime (the action's ctx). otp.ts therefore declares this ctx
+// optional — that is what makes its function assignable to the one-parameter type.
+// Calling it here WITH its ctx requires recovering the real signature.
 type EnvoyerCode = (
   params: { identifier: string; token: string },
   ctx?: CtxEnvoi,
@@ -98,11 +98,11 @@ type EnvoyerCode = (
 const envoiDe = (p: Provider) =>
   p.sendVerificationRequest as unknown as EnvoyerCode;
 
-// Le ctx minimal que la fonction consomme : elle ne lit QUE `runMutation`.
-// Tout autre besoin ferait échouer ces tests — c'est le signal voulu. Les
-// mutations appelées sont les VRAIES (`internal.otp.*`), exécutées par
-// convex-test : ce sont bien elles qu'on exerce, pas des doublures. Même motif
-// que `ctxSeenFrom` dans rateLimit.test.ts.
+// The minimal ctx the function consumes: it reads ONLY `runMutation`.
+// Any other need would make these tests fail — that is the intended signal. The
+// mutations called are the REAL ones (`internal.otp.*`), run by
+// convex-test: they are indeed what we exercise, not doubles. Same pattern
+// as `ctxSeenFrom` in rateLimit.test.ts.
 const ctxDe = (t: TestConvex<typeof schema>): CtxEnvoi => ({
   runMutation: (ref, ...args) => t.mutation(ref, ...args),
 });
@@ -118,11 +118,11 @@ describe('Codes OTP — génération', () => {
     }
   });
 
-  // LE piège de ce générateur : `(n % 1_000_000).toString()` rend « 42 » une
-  // fois sur mille environ. Un code de deux caractères là où le formulaire en
-  // attend six, c'est une connexion sur mille qui échoue — le genre de défaut
-  // qu'aucun test tiré au hasard n'attrape, et qu'on met des mois à reproduire.
-  // On fixe donc la source d'aléa pour viser exactement ces valeurs.
+  // THE trap of this generator: `(n % 1_000_000).toString()` yields "42" about
+  // once in a thousand. A two-character code where the form
+  // expects six is one sign-in in a thousand failing — the kind of defect
+  // no randomly drawn test catches, and that takes months to reproduce.
+  // So we pin the randomness source to hit exactly these values.
   it.each([
     [0, '000000'],
     [7, '000007'],
@@ -130,8 +130,8 @@ describe('Codes OTP — génération', () => {
     [999, '000999'],
     [123_456, '123456'],
     [999_999, '999999'],
-    [1_000_000, '000000'], // le modulo reboucle : toujours six chiffres
-    [4_294_967_295, '967295'], // valeur maximale d'un Uint32
+    [1_000_000, '000000'], // the modulo wraps around: always six digits
+    [4_294_967_295, '967295'], // maximum value of a Uint32
   ])('tirage %i -> code %s (zéros en tête conservés)', async (tirage, code) => {
     vi.spyOn(crypto, 'getRandomValues').mockImplementation(((
       a: Uint32Array,
@@ -143,16 +143,16 @@ describe('Codes OTP — génération', () => {
     expect(await generateurDe(emailOtpSignIn)()).toBe(code);
   });
 
-  // Contre-épreuve du test précédent : une fois l'aléa rendu, les codes doivent
-  // effectivement varier. Sans cela, un générateur constant passerait les deux
-  // premiers tests — et tous les comptes partageraient le même code.
+  // Counter-check of the previous test: once randomness is restored, the codes must
+  // actually vary. Without this, a constant generator would pass the first two
+  // tests — and all accounts would share the same code.
   it('tire des codes variés (l’aléa n’est pas décoratif)', async () => {
     const generer = generateurDe(emailOtpSignIn);
     const vus = new Set<string>();
     for (let i = 0; i < 300; i++) vus.add(await generer());
-    // 300 tirages dans 10^6 valeurs : la probabilité d'observer moins de 290
-    // valeurs distinctes est négligeable, celle d'en observer une poignée est
-    // nulle. Le seuil est là pour attraper un générateur figé, pas une
+    // 300 draws among 10^6 values: the probability of observing fewer than 290
+    // distinct values is negligible, that of observing only a handful is
+    // zero. The threshold is there to catch a frozen generator, not a
     // collision.
     expect(vus.size).toBeGreaterThan(290);
   });
@@ -162,24 +162,24 @@ describe('Codes OTP — les trois flux sont distincts', () => {
   it('chaque provider a son identifiant', () => {
     const ids = PROVIDERS.map(([, p]) => p.options?.id);
     expect(ids).toEqual(['otp-verify', 'otp-reset', 'otp-signin']);
-    // Deux flux qui partageraient un identifiant se marcheraient dessus : un
-    // code de reset vaudrait connexion, ou l'inverse.
+    // Two flows sharing an id would step on each other: a
+    // reset code would count as sign-in, or vice versa.
     expect(new Set(ids).size).toBe(3);
   });
 
   it('les codes expirent au bout de 15 minutes', () => {
-    // La durée est ANNONCÉE au destinataire dans le corps de l'e-mail
-    // (convex/email.ts) : les deux doivent dire la même chose.
+    // The duration is ANNOUNCED to the recipient in the email body
+    // (convex/email.ts): both must say the same thing.
     for (const [, p] of PROVIDERS) expect(p.options?.maxAge).toBe(60 * 15);
   });
 });
 
 describe('Codes OTP — plafond d’envoi (anti email-bombing)', () => {
-  // Le barème lui-même est couvert par rateLimit.test.ts. Ce qui ne l'est pas,
-  // et qui rendrait le plafond DÉCORATIF : la clé de comptage. `enforceSendRate`
-  // normalise l'adresse (minuscules, sans espaces) avant de compter — sinon
-  // « Victime@… », « VICTIME@… » et « victime@… » ouvrent trois crédits pour
-  // une seule boîte, et le plafond se contourne à la touche Maj.
+  // The schedule itself is covered by rateLimit.test.ts. What is not,
+  // and would make the cap DECORATIVE: the counting key. `enforceSendRate`
+  // normalizes the address (lowercase, no spaces) before counting — otherwise
+  // "Victime@…", "VICTIME@…" and "victime@…" open three credits for
+  // a single inbox, and the cap is bypassed with the Shift key.
   it('compte les variantes de casse et d’espacement sur le MÊME crédit', async () => {
     const t = convexTest(schema, modules);
     const variantes = [
@@ -190,8 +190,8 @@ describe('Codes OTP — plafond d’envoi (anti email-bombing)', () => {
       'ViCtImE@ExAmPlE.oRg',
     ];
 
-    // On consomme le crédit en faisant tourner les variantes : si chacune avait
-    // sa propre clé, aucune n'approcherait le plafond.
+    // We consume the credit by rotating the variants: if each one had
+    // its own key, none would approach the cap.
     for (let i = 0; i < RATE_LIMITS.otpSend.max; i++) {
       await t.mutation(internal.otp.enforceSendRate, {
         email: variantes[i % variantes.length],
@@ -204,15 +204,15 @@ describe('Codes OTP — plafond d’envoi (anti email-bombing)', () => {
       ).rejects.toMatchObject({ data: 'RATE_LIMITED' });
     }
 
-    // Une AUTRE boîte garde bien son crédit : on a resserré la clé, pas
-    // fusionné tout le monde dans un compteur unique.
+    // ANOTHER inbox does keep its credit: we tightened the key, we did not
+    // merge everyone into a single counter.
     await expect(
       t.mutation(internal.otp.enforceSendRate, { email: 'autre@example.org' }),
     ).resolves.not.toThrow();
   });
 
-  // L'ordre est la moitié de la protection : plafonner APRÈS l'envoi laisserait
-  // partir chaque e-mail avant de compter.
+  // The order is half of the protection: capping AFTER sending would let
+  // each email go out before counting.
   it('refuse AVANT de générer, d’écrire ou d’envoyer quoi que ce soit', async () => {
     process.env.AUTH_DEV_OTP = 'true';
     process.env.AUTH_RESEND_KEY = 're_test';
@@ -234,7 +234,7 @@ describe('Codes OTP — plafond d’envoi (anti email-bombing)', () => {
       envoyer({ identifier: email, token: '222222' }, ctx),
     ).rejects.toMatchObject({ data: 'RATE_LIMITED' });
 
-    // Rien de plus n'est parti, rien de plus n'a été écrit.
+    // Nothing more went out, nothing more was written.
     expect(fetchMock.mock.calls.length).toBe(envoisLegitimes);
     expect(await codesDe(t)).toHaveLength(codesAvant);
   });
@@ -252,17 +252,17 @@ describe('Codes OTP — stockage en clair, réservé au développement', () => {
         ctxDe(t),
       );
 
-      // Le code STOCKÉ doit être celui ENVOYÉ : c'est ce que les E2E relisent
-      // pour se connecter. Un code régénéré à l'écriture leur ferait saisir un
-      // code que le vérificateur refuse.
+      // The STORED code must be the one SENT: that is what the E2E read back
+      // to sign in. A code regenerated on write would make them enter a
+      // code the verifier refuses.
       expect(await codesDe(t)).toMatchObject([
         { email: 'membre@dt.test', code: '123456', purpose },
       ]);
     },
   );
 
-  // LA propriété de production (TESTING.md). Sans le drapeau, la table reste
-  // VIDE : aucun code de connexion lisible en base, admin compris.
+  // THE production property (TESTING.md). Without the flag, the table stays
+  // EMPTY: no sign-in code readable in the database, admin included.
   it.each(PROVIDERS)(
     '%s : sans AUTH_DEV_OTP, RIEN n’est écrit en base',
     async (_nom, provider) => {
@@ -278,8 +278,8 @@ describe('Codes OTP — stockage en clair, réservé au développement', () => {
     },
   );
 
-  // La garde compare à la chaîne « true », exactement. Un drapeau posé de
-  // travers ne doit pas ouvrir la surface à moitié.
+  // The guard compares against the string "true", exactly. A flag set
+  // wrongly must not half-open the surface.
   it.each(['1', 'yes', 'TRUE', 'True', 'true ', ''])(
     'AUTH_DEV_OTP=%o n’ouvre pas le stockage',
     async (valeur) => {
@@ -307,12 +307,12 @@ describe('Codes OTP — relecture du dernier code (oracle de test)', () => {
     await envoyer({ identifier: 'autre@dt.test', token: '999999' }, ctx);
     await envoyer({ identifier: 'membre@dt.test', token: '222222' }, ctx);
 
-    // Un renvoi de code invalide le précédent : l'oracle doit suivre, sinon
-    // les E2E saisissent un code périmé dès qu'une spec en redemande un.
+    // Resending a code invalidates the previous one: the oracle must follow, otherwise
+    // the E2E enter a stale code as soon as a spec requests a new one.
     expect(
       await t.query(internal.otp.latestDevCode, { email: 'membre@dt.test' }),
     ).toBe('222222');
-    // …et ne mélange pas les adresses.
+    // …and does not mix up addresses.
     expect(
       await t.query(internal.otp.latestDevCode, { email: 'autre@dt.test' }),
     ).toBe('999999');
@@ -337,8 +337,8 @@ describe('Codes OTP — relecture du dernier code (oracle de test)', () => {
       }),
     );
 
-    // Même avec un code en base — laissé par une fenêtre où le drapeau était
-    // posé — la relecture doit être refusée.
+    // Even with a code in the database — left over from a window when the flag was
+    // set — reading it back must be refused.
     await expect(
       t.query(internal.otp.latestDevCode, { email: 'membre@dt.test' }),
     ).rejects.toThrow(/AUTH_DEV_OTP/);
@@ -347,9 +347,9 @@ describe('Codes OTP — relecture du dernier code (oracle de test)', () => {
 
 describe('Codes OTP — envoi réel', () => {
   it('adresse .test : aucun e-mail ne part, même avec un fournisseur configuré', async () => {
-    // RFC 6761 : `.test` ne résout jamais. Les comptes E2E portent ces
-    // adresses ; appeler le fournisseur avec des destinataires factices
-    // brûlerait le quota et ferait rougir la suite pour une raison étrangère.
+    // RFC 6761: `.test` never resolves. E2E accounts carry these
+    // addresses; calling the provider with dummy recipients
+    // would burn the quota and turn the suite red for an unrelated reason.
     process.env.AUTH_RESEND_KEY = 're_test';
     const t = convexTest(schema, modules);
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
@@ -364,7 +364,7 @@ describe('Codes OTP — envoi réel', () => {
   });
 
   it('adresse réelle : le code part bien chez le fournisseur', async () => {
-    // Contre-épreuve : la garde `.test` ne doit pas avaler les envois légitimes.
+    // Counter-check: the `.test` guard must not swallow legitimate sends.
     process.env.AUTH_RESEND_KEY = 're_test';
     const t = convexTest(schema, modules);
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
@@ -386,9 +386,9 @@ describe('Codes OTP — envoi réel', () => {
   });
 
   it('sans fournisseur : journalise au lieu de lever (la connexion locale tient)', async () => {
-    // `sendEmail` échoue volontairement sans fournisseur (audit H3) ; l'OTP ne
-    // doit pas l'appeler dans ce cas, sinon aucune connexion ne serait possible
-    // sur un déploiement de dev tout neuf.
+    // `sendEmail` deliberately fails without a provider (audit H3); the OTP must
+    // not call it in that case, otherwise no sign-in would be possible
+    // on a brand-new dev deployment.
     const t = convexTest(schema, modules);
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));

@@ -4,22 +4,22 @@ import { resolveLocale } from '@/i18n/locale';
 import { isRtl } from '@/i18n/direction';
 import { SITE_NAME } from '@/lib/seo';
 
-// Image de partage (F-03), GÉNÉRÉE plutôt que versionnée.
+// Share image (F-03), GENERATED rather than versioned.
 //
-// Le dépôt a déjà payé le coût des binaires : l'issue #19 a établi que
-// `design/` (38 Mo) pesait à lui seul ~95 % du `.git`. Une image produite au
-// rendu ne pèse rien dans l'historique, et suit le texte du site quand il
-// change — une PNG figée dirait « Réseau international… » longtemps après que
-// la description a bougé.
+// The repo has already paid the cost of binaries: issue #19 established that
+// `design/` (38 MB) alone accounted for ~95% of `.git`. An image produced at
+// render time weighs nothing in the history, and follows the site's text when
+// it changes — a frozen PNG would say "Réseau international…" long after the
+// description has moved on.
 //
-// Placée sous `[locale]`, elle vaut pour TOUTES les pages du segment : Next
-// pose `og:image`, ses dimensions et son type sur chacune, sans que la page
-// ait à s'en occuper.
+// Placed under `[locale]`, it applies to ALL pages of the segment: Next
+// sets `og:image`, its dimensions and its type on each one, without the page
+// having to deal with it.
 
-// Les deux textes viennent du fichier de messages, pas d'un ternaire de
-// locale : le garde-fou de l'issue #34 refuse qu'une phrase visible soit
-// choisie par `loc === 'fr' ? … : …`, et il a raison — une langue de plus
-// et le ternaire ment.
+// Both texts come from the messages file, not from a locale ternary:
+// the guardrail from issue #34 refuses a visible sentence being
+// chosen by `loc === 'fr' ? … : …`, and rightly so — one more language
+// and the ternary lies.
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 export const alt = SITE_NAME;
@@ -32,18 +32,19 @@ export default async function OpenGraphImage({
   const loc = resolveLocale(params.locale);
   const t = await getTranslations({ locale: loc, namespace: 'site' });
 
-  // SATORI NE LIT PAS `globals.css`, et c'est tout l'enjeu de ces deux lignes.
+  // SATORI DOES NOT READ `globals.css`, and that is the whole point of these
+  // two lines.
   //
-  // Le correctif RTL du site vit dans la feuille de style — `[lang='ar'] h1..h4
-  // { letter-spacing: normal }` et le `dir` posé sur `<html>`. Cette image est
-  // composée par Satori, qui n'a ni l'un ni l'autre : c'est la SEULE surface
-  // arabe du produit que ce correctif ne couvre pas, et elle est publique à
-  // chaque partage de lien.
+  // The site's RTL fix lives in the stylesheet — `[lang='ar'] h1..h4
+  // { letter-spacing: normal }` and the `dir` set on `<html>`. This image is
+  // composed by Satori, which has neither: it is the ONLY Arabic surface
+  // of the product that the fix does not cover, and it is public on every
+  // link share.
   //
-  // `letterSpacing` sur de l'arabe détache les lettres d'un même mot — l'arabe
-  // est une écriture cursive, et « أفريقيا · أوروبا » sortait disloqué. La
-  // direction manquante, elle, renvoyait le point final et le séparateur « · »
-  // du mauvais côté de la phrase.
+  // `letterSpacing` on Arabic detaches the letters of a single word — Arabic
+  // is a cursive script, and "أفريقيا · أوروبا" came out broken apart. The
+  // missing direction, for its part, sent the final full stop and the "·"
+  // separator to the wrong side of the sentence.
   const rtl = isRtl(loc);
 
   return new ImageResponse(
@@ -73,10 +74,10 @@ export default async function OpenGraphImage({
           style={{
             color: '#f58b1a',
             fontSize: 26,
-            // L'interlettrage est une respiration typographique latine ; sur
-            // une écriture cursive, il casse les liaisons entre lettres.
+            // Letter spacing is a Latin typographic breathing space; on a
+            // cursive script, it breaks the joins between letters.
             letterSpacing: rtl ? 0 : 4,
-            // `uppercase` est inoffensif : l'arabe n'a pas de casse.
+            // `uppercase` is harmless: Arabic has no letter case.
             textTransform: 'uppercase',
           }}
         >

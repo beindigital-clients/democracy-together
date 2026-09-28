@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// 3 pages représentatives × 3 mesures, médiane retenue.
-// Convex étant injoignable ici, on prend des pages qui n'en dépendent pas :
-// accueil (hero animé), barometre (data-viz + d3/topojson), adhesion (formulaire).
+// 3 representative pages × 3 measurements, median kept.
+// Since Convex is unreachable here, we take pages that don't depend on it:
+// home (animated hero), barometre (data-viz + d3/topojson), adhesion (form).
 const PAGES = ['/fr', '/fr/barometre', '/fr/adhesion'];
 const MESURES = 3;
 
@@ -32,13 +32,13 @@ for (const route of PAGES) {
           const l = (await r.headerValue('content-length')) ?? '0';
           octets += parseInt(l, 10) || 0;
         } catch {
-          /* réponse disparue */
+          /* response gone */
         }
       };
       page.on('response', onResp);
 
       await page.goto(route, { waitUntil: 'load' });
-      await page.waitForTimeout(2500); // laisse LCP/CLS se stabiliser
+      await page.waitForTimeout(2500); // let LCP/CLS settle
 
       const vitals = await page.evaluate(
         () =>
@@ -89,7 +89,7 @@ for (const route of PAGES) {
     };
     console.log(`[perf] ${JSON.stringify(r)}`);
 
-    // Seuils annoncés : LCP < 2500 ms, CLS < 0.1.
+    // Announced thresholds: LCP < 2500 ms, CLS < 0.1.
     expect(r.lcp_ms, `${route} : LCP`).toBeLessThan(2500);
     expect(r.cls, `${route} : CLS`).toBeLessThan(0.1);
   });

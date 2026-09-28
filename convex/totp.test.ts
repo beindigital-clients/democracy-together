@@ -17,8 +17,8 @@ import {
 import { openSecret, sealSecret } from './lib/secretBox';
 import { vi, afterEach } from 'vitest';
 
-// Clé des vecteurs de la RFC 6238 (annexe B), mode SHA-1 : les vingt octets
-// ASCII de « 12345678901234567890 ».
+// Key of the RFC 6238 test vectors (appendix B), SHA-1 mode: the twenty
+// ASCII bytes of "12345678901234567890".
 const RFC_KEY = new TextEncoder().encode('12345678901234567890');
 
 describe('TOTP — vecteurs de la RFC 6238 (annexe B, SHA-1, 8 chiffres)', () => {
@@ -28,7 +28,7 @@ describe('TOTP — vecteurs de la RFC 6238 (annexe B, SHA-1, 8 chiffres)', () =>
     [1111111111, '14050471'],
     [1234567890, '89005924'],
     [2000000000, '69279037'],
-    // Au-delà de 2^32 secondes / 30 : le compteur déborde 32 bits.
+    // Beyond 2^32 seconds / 30: the counter overflows 32 bits.
     [20000000000, '65353130'],
   ];
   for (const [seconds, expected] of VECTORS) {
@@ -54,9 +54,9 @@ describe('TOTP — fenêtre et rejeu', () => {
     }
     for (const delta of [-3, 2]) {
       const code = await hotp(RFC_KEY, step + delta);
-      // Un code d'un pas éloigné peut coïncider par hasard avec un code de la
-      // fenêtre (1 chance sur un million) : on ne vérifie que l'absence du
-      // pas lointain.
+      // A code one step away may coincide by chance with a code in the
+      // window (1 chance in a million): we only check the absence of the
+      // distant step.
       expect(await matchTotpStep(RFC_KEY, code, now)).not.toBe(step + delta);
     }
   });
@@ -117,12 +117,12 @@ describe('Codes de secours', () => {
   });
 
   it('rejette les octets qui biaiseraient le tirage, et refuse de manquer d’aléa', () => {
-    // 248 à 255 sont rejetés : un flux qui n'en contient que très peu
-    // d'utilisables ne produit PAS de code tronqué, il échoue.
+    // 248 to 255 are rejected: a stream containing very few
+    // usable ones does NOT produce a truncated code, it fails.
     const biased = new Uint8Array(200).fill(250);
     expect(() => backupCodesFromBytes(biased)).toThrow('NOT_ENOUGH_RANDOMNESS');
-    // Un octet rejeté ne décale pas le tirage vers un symbole favori : 250
-    // puis 0 donne le même premier symbole que 0 seul.
+    // A rejected byte does not skew the draw toward a favored symbol: 250
+    // then 0 gives the same first symbol as 0 alone.
     const bytes = new Uint8Array(100).fill(0);
     const withReject = new Uint8Array([250, ...bytes]);
     expect(backupCodesFromBytes(withReject)).toEqual(

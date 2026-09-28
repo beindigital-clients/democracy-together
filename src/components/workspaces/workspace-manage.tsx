@@ -26,7 +26,7 @@ type Invitation = {
   expiresAt: number;
 };
 
-// Libellé d'un rôle — clés écrites en entier (garde de l'issue #33).
+// Label for a role — keys written in full (issue #33 guard).
 export function useRoleLabel() {
   const t = useTranslations('workspaces');
   return (role: WorkspaceRole) =>
@@ -48,10 +48,10 @@ function RoleOptions() {
   );
 }
 
-// ANIMATION D'UN ESPACE (F-24) : inviter (par adresse ou depuis la liste des
-// personnes avec qui l'on partage déjà un espace), suivre et révoquer les
-// invitations, changer un rôle, retirer un membre, ouvrir ou fermer l'espace.
-// Monté pour les animateurs seulement ; chaque action est revérifiée côté
+// WORKSPACE FACILITATION (F-24): invite (by address or from the list of
+// people one already shares a workspace with), track and revoke
+// invitations, change a role, remove a member, open or close the workspace.
+// Mounted for facilitators only; each action is re-checked in
 // Convex (`requireWorkspaceRole`).
 export function WorkspaceManage({
   workspaceId,
@@ -119,8 +119,8 @@ export function WorkspaceManage({
       setError(t('errInvalidEmail'));
       return;
     }
-    // Même message que l'adresse corresponde à un compte ou non : le
-    // serveur ne le dit pas, l'écran non plus.
+    // Same message whether or not the address matches an account: the
+    // server doesn't say, and neither does the screen.
     if (
       await run(
         () => invite({ workspaceId, email: email.trim(), role }),
@@ -170,7 +170,7 @@ export function WorkspaceManage({
         </p>
       ) : null}
 
-      {/* Ouvert / privé */}
+      {/* Open / private */}
       <div className="mt-5 flex flex-wrap items-center gap-3 rounded-md border border-line bg-surface p-4">
         <p className="flex-1 text-sm text-ink-soft">
           {visibility === 'private'
@@ -199,7 +199,7 @@ export function WorkspaceManage({
         </Button>
       </div>
 
-      {/* Inviter par adresse */}
+      {/* Invite by address */}
       <form
         onSubmit={onInvite}
         noValidate
@@ -227,7 +227,7 @@ export function WorkspaceManage({
         </Button>
       </form>
 
-      {/* Inviter depuis la liste */}
+      {/* Invite from the list */}
       {candidates && candidates.length > 0 ? (
         <form
           onSubmit={onInviteCandidate}
@@ -265,7 +265,7 @@ export function WorkspaceManage({
         </form>
       ) : null}
 
-      {/* Invitations en cours */}
+      {/* Pending invitations */}
       <h3 className="mt-8 font-display text-lg">{t('pendingInvitations')}</h3>
       {invitations.length === 0 ? (
         <p className="mt-2 text-sm text-ink-soft">
@@ -303,7 +303,7 @@ export function WorkspaceManage({
         </ul>
       )}
 
-      {/* Rôles et retrait */}
+      {/* Roles and removal */}
       <h3 className="mt-8 font-display text-lg">{t('manageMembers')}</h3>
       <ul className="mt-3 flex flex-col divide-y divide-line rounded-md border border-line bg-surface">
         {members
@@ -332,7 +332,7 @@ export function WorkspaceManage({
                 >
                   <RoleOptions />
                 </SelectField>
-                {/* Choisir n'est pas appliquer (même motif que le
+                {/* Choosing is not applying (same pattern as the
                     back-office, issue #38). */}
                 <Button
                   type="button"

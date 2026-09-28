@@ -13,21 +13,21 @@ import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { intlLocale } from '@/i18n/locale';
 
-// Compteur de consultations (F-37).
+// View counter (F-37).
 //
-// `ViewCounter` : au montage, si la session courante n'a pas encore vu cette
-// publication, enregistre une consultation (mutation publique) et marque la
-// clé en sessionStorage pour ne pas recompter au rechargement / à la
-// navigation interne.
+// `ViewCounter`: on mount, if the current session has not yet seen this
+// publication, records a view (public mutation) and marks the
+// key in sessionStorage so as not to count again on reload / internal
+// navigation.
 //
-// AFFICHAGE EN RETARD D'UNE VUE (membre A-9, 27/09) : le nombre est rendu par
-// le serveur AVANT que la vue courante soit enregistrée, donc chaque visiteur
-// lisait un compteur qui n'incluait pas sa propre visite (4 220 → recharge →
-// 4 221…). Le composant tient maintenant le nombre AFFICHÉ : `initial` (rendu
-// serveur) + 1 dès que la vue courante est comptée. Une vue dédoublonnée
-// (déjà comptée dans cette session) est déjà dans `initial`. `ViewsCount`
-// lit ce nombre partout où la fiche l'affiche — en phrase (« 4 221 vues »)
-// ou en chiffre (bloc « Mesure d'impact »).
+// DISPLAY ONE VIEW BEHIND (member A-9, 27/09): the number is rendered by
+// the server BEFORE the current view is recorded, so each visitor
+// read a counter that did not include their own visit (4 220 → reload →
+// 4 221…). The component now holds the DISPLAYED number: `initial` (server
+// render) + 1 as soon as the current view is counted. A deduplicated view
+// (already counted in this session) is already in `initial`. `ViewsCount`
+// reads this number everywhere the page shows it — in a sentence ("4 221 vues")
+// or as a figure ("Mesure d'impact" block).
 const ViewsContext = createContext<number>(0);
 
 export function ViewCounter({
@@ -41,7 +41,7 @@ export function ViewCounter({
 }) {
   const record = useMutation(api.publications.recordPublicationView);
   const [count, setCount] = useState(initial);
-  // Garde StrictMode (double montage en dev) et changements de slug.
+  // Guards against StrictMode (double mount in dev) and slug changes.
   const done = useRef<string | null>(null);
 
   useEffect(() => {
@@ -53,15 +53,15 @@ export function ViewCounter({
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, '1');
     } catch {
-      // sessionStorage indisponible (mode privé strict, SSR) : on enregistre
-      // quand même la vue, sans dédoublonnage de session.
+      // sessionStorage unavailable (strict private mode, SSR): record the view
+      // anyway, without session deduplication.
     }
 
-    // Le +1 est optimiste : la mutation ne compte pas au-delà du quota, mais
-    // pour CE lecteur sa visite a bien eu lieu.
+    // The +1 is optimistic: the mutation does not count beyond the quota, but
+    // for THIS reader the visit did happen.
     setCount((c) => c + 1);
     void record({ slug }).catch(() => {
-      // L'enregistrement d'une vue ne doit jamais perturber la page.
+      // Recording a view must never disrupt the page.
     });
   }, [slug, record]);
 
@@ -70,7 +70,7 @@ export function ViewCounter({
   );
 }
 
-// Nombre de consultations, tel que tenu par `ViewCounter`.
+// Number of views, as held by `ViewCounter`.
 export function ViewsCount({ format }: { format: 'sentence' | 'number' }) {
   const count = useContext(ViewsContext);
   const t = useTranslations('library');

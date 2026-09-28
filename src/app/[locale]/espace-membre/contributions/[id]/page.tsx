@@ -17,11 +17,11 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { isRateLimited } from '@/lib/errors';
 import { STATUS_PILL } from '@/components/tribune/my-posts';
 
-// APERÇU D'UNE CONTRIBUTION par son auteur (F-45) — quel que soit son état.
-// La page publique ne sert qu'un billet en ligne ; ici l'auteur relit un texte
-// en attente ou rejeté, lit le motif d'un rejet, et le CORRIGE : un billet
-// corrigé repart en file de modération. Tout autre compte reçoit
-// « introuvable » (le serveur ne rend le billet qu'à son auteur).
+// PREVIEW OF A CONTRIBUTION by its author (F-45) — whatever its state.
+// The public page only serves a live post; here the author rereads a
+// pending or rejected text, reads the reason for a rejection, and FIXES it:
+// a corrected post goes back into the moderation queue. Any other account
+// gets "not found" (the server only returns the post to its author).
 function OwnPost({ postId }: { postId: string }) {
   const t = useTranslations('tribune');
   const tl = useTranslations('library');

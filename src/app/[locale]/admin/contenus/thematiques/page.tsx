@@ -28,10 +28,10 @@ import {
   useRunAction,
 } from '@/components/admin/contenus/editor-shell';
 
-// THÉMATIQUES — ÉDITION (F-36, F-62). Titres et synthèses traduits, ordre.
-// Le slug est la clé qui relie publications, Tribune, appels à projets et
-// baromètre à un axe : il ne se modifie JAMAIS, et une thématique ne se
-// supprime pas (on la dépublie).
+// THEMES — EDITING (F-36, F-62). Translated titles and summaries, order.
+// The slug is the key that links publications, Tribune, calls for projects and
+// barometer to an axis: it is NEVER modified, and a theme is not
+// deleted (it is unpublished).
 
 type Draft = {
   slug: string;
@@ -185,8 +185,8 @@ export default function AdminContentThemes() {
             maxLength={4000}
           />
           <LocalizedListInput
-            // Clé par FICHE : le brouillon brut de la saisie repart de la
-            // valeur enregistrée quand on change de thématique.
+            // Key per ENTRY: the raw input draft restarts from the
+            // saved value when switching themes.
             key={`stance-${editing}`}
             label={t('th_stance')}
             hint={t('th_stanceHint')}

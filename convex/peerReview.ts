@@ -34,32 +34,32 @@ import {
   type StageOrNone,
 } from './lib/manuscripts';
 
-// REVUE À COMITÉ DE LECTURE (F-43).
+// PEER REVIEW (F-43).
 //
-// Couche AU-DESSUS de la modération (convex/publications.ts) : elle pilote
-// l'étape du manuscrit (`publications.reviewStage`), ses versions
-// (`manuscriptVersions`), ses relecteurs (`peerReviewAssignments`), leurs avis
-// (`peerReviews`) et les décisions motivées (`manuscriptDecisions`). Elle ne
-// touche `status` (draft / pending / published) qu'au moment de la DÉCISION :
-// un manuscrit accepté est publié dans la bibliothèque, un manuscrit rejeté
-// sort de la file de modération.
+// Layer ON TOP of moderation (convex/publications.ts): it drives
+// the manuscript's stage (`publications.reviewStage`), its versions
+// (`manuscriptVersions`), its reviewers (`peerReviewAssignments`), their reviews
+// (`peerReviews`) and the reasoned decisions (`manuscriptDecisions`). It only
+// touches `status` (draft / pending / published) at the moment of the DECISION:
+// an accepted manuscript is published in the library, a rejected manuscript
+// leaves the moderation queue.
 //
-// LA MACHINE À ÉTATS vit dans convex/lib/manuscripts.ts — une seule table de
-// transitions, testée paire par paire. Aucune mutation de ce module n'écrit
-// `reviewStage` sans passer par `nextStage` (ou `stageAfterAssignment`, qui
-// la compose).
+// THE STATE MACHINE lives in convex/lib/manuscripts.ts — a single
+// transition table, tested pair by pair. No mutation in this module writes
+// `reviewStage` without going through `nextStage` (or `stageAfterAssignment`, which
+// composes it).
 //
-// DOUBLE AVEUGLE. Trois règles, tenues ICI et non dans l'interface :
-//  1. aucune réponse destinée à un relecteur ne porte l'identité de l'auteur
-//     — ni `authors`, ni l'adresse, ni le nom du fichier d'origine (souvent
-//     « Dupont_article.pdf »), ni le fichier lui-même : le relecteur reçoit la
-//     COPIE ANONYMISÉE (métadonnées retirées, convex/peerReviewFiles.ts) ;
-//  2. aucune réponse destinée à l'auteur ne porte l'identité d'un relecteur :
-//     les avis lui sont rendus numérotés, sans nom ni identifiant ;
-//  3. l'éditeur voit tout.
-// `convex/peerReview.test.ts` appelle chaque requête accessible à un relecteur
-// et vérifie que ni le nom ni l'adresse de l'auteur n'apparaissent dans la
-// réponse sérialisée.
+// DOUBLE BLIND. Three rules, enforced HERE and not in the interface:
+//  1. no response intended for a reviewer carries the author's identity
+//     — not `authors`, not the address, not the original file name (often
+//     "Dupont_article.pdf"), not the file itself: the reviewer receives the
+//     ANONYMIZED COPY (metadata removed, convex/peerReviewFiles.ts);
+//  2. no response intended for the author carries a reviewer's identity:
+//     reviews are returned to them numbered, without name or id;
+//  3. the editor sees everything.
+// `convex/peerReview.test.ts` calls every query accessible to a reviewer
+// and checks that neither the author's name nor address appears in the
+// serialized response.
 
 const recommendationValidator = v.union(
   v.literal('accept'),
@@ -89,9 +89,9 @@ const pubStatusValidator = v.union(
   v.literal('published'),
 );
 
-// Le lien de la notification d'assignation : « Mes relectures », ouverte au
-// rang modérateur et qui ne rend que SES assignations (campagne du 27/09,
-// A-02) — la file complète est réservée à l'éditeur.
+// The assignment notification link: "Mes relectures", open to the
+// moderator rank and which only returns THEIR assignments (27/09 campaign,
+// A-02) — the full queue is reserved for the editor.
 const MY_REVIEWS_LINK = '/admin/mes-relectures';
 const EDITOR_QUEUE_LINK = '/admin/revue';
 const AUTHOR_LINK = '/espace-membre/manuscrits';
@@ -108,7 +108,7 @@ function stageOf(pub: Doc<'publications'>): StageOrNone {
   return pub.reviewStage ?? 'none';
 }
 
-// Les avis et assignations antérieurs aux versions portent sur la version 1.
+// Reviews and assignments predating versions refer to version 1.
 const versionOfReview = (r: Doc<'peerReviews'>) => r.version ?? 1;
 const versionOfAssignment = (a: Doc<'peerReviewAssignments'>) => a.version ?? 1;
 
@@ -170,7 +170,7 @@ async function assignmentFor(
     .unique();
 }
 
-// Planifie la copie anonymisée du fichier d'une version.
+// Schedules the anonymized copy of a version's file.
 async function scheduleBlindCopy(
   ctx: MutationCtx,
   versionId: Id<'manuscriptVersions'>,
@@ -181,9 +181,9 @@ async function scheduleBlindCopy(
 }
 
 /**
- * Version 1 d'un manuscrit, créée à partir de la publication si elle n'existe
- * pas encore (ouverture depuis la file de modération, ou revue ouverte avant
- * l'existence des versions). Renvoie la DERNIÈRE version.
+ * Version 1 of a manuscript, created from the publication if it does not exist
+ * yet (opened from the moderation queue, or review opened before
+ * versions existed). Returns the LATEST version.
  */
 async function ensureVersion(
   ctx: MutationCtx,
@@ -208,8 +208,8 @@ async function ensureVersion(
   return (await ctx.db.get(id)) as Doc<'manuscriptVersions'>;
 }
 
-// Le relecteur ne reçoit le fichier que si sa copie est anonymisée — ou que
-// l'éditeur a vérifié et libéré l'original d'un PDF illisible.
+// The reviewer only receives the file if their copy is anonymized — or if
+// the editor has checked and released the original of an unreadable PDF.
 function blindFileFor(
   version: Doc<'manuscriptVersions'>,
 ): Id<'_storage'> | null {
@@ -220,7 +220,7 @@ function blindFileFor(
   return null;
 }
 
-// État de la déclaration de conflit d'intérêts d'une assignation.
+// Status of an assignment's conflict-of-interest declaration.
 type ConflictState = 'undeclared' | 'clear' | 'conflict';
 const conflictStateValidator = v.union(
   v.literal('undeclared'),
@@ -236,8 +236,8 @@ async function notifyEditors(
   ctx: MutationCtx,
   entry: { titleKey: string; type: string; title: string },
 ) {
-  // Le comité éditorial : éditeurs et administrateurs. Borné — un réseau en
-  // compte quelques-uns ; au-delà, la file de l'éditeur reste la référence.
+  // The editorial board: editors and administrators. Bounded — a network
+  // has a handful; beyond that, the editor's queue remains the reference.
   for (const role of ['editeur', 'admin'] as const) {
     const staff = await ctx.db
       .query('users')
@@ -255,21 +255,21 @@ async function notifyEditors(
   }
 }
 
-// === Éditeur ===================================================================
+// === Editor ====================================================================
 
 /**
- * Désigne un relecteur (éditeur+), avec une échéance.
+ * Assigns a reviewer (editor+), with a deadline.
  *
- * Sur une publication jamais entrée en revue, c'est l'OUVERTURE (soumission
- * puis évaluation — la porte historique depuis la file de modération) ; sur
- * un manuscrit soumis ou re-soumis, c'est le début d'un tour d'évaluation de
- * la DERNIÈRE version ; sur une revue en évaluation, un relecteur de plus.
- * Ailleurs (révision attendue de l'auteur, décision rendue), refus : la
- * machine à états le dit.
+ * On a publication that never entered review, this is the OPENING (submission
+ * then evaluation — the historical door from the moderation queue); on
+ * a submitted or resubmitted manuscript, it is the start of an evaluation round of
+ * the LATEST version; on a review under evaluation, one more reviewer.
+ * Elsewhere (revision awaited from the author, decision made), refused: the
+ * state machine says so.
  *
- * Refus nommés : REVIEWER_NOT_STAFF (le compte ne pourrait pas déposer
- * d'avis), REVIEWER_IS_AUTHOR (double aveugle), ALREADY_ASSIGNED (déjà
- * désigné pour cette version), CONFLICT_DECLARED (il s'est récusé),
+ * Named refusals: REVIEWER_NOT_STAFF (the account could not submit
+ * a review), REVIEWER_IS_AUTHOR (double blind), ALREADY_ASSIGNED (already
+ * assigned for this version), CONFLICT_DECLARED (they recused themselves),
  * INVALID_DUE_DATE.
  */
 export const assignReviewer = mutation({
@@ -306,8 +306,8 @@ export const assignReviewer = mutation({
       ) {
         throw new Error('ALREADY_ASSIGNED');
       }
-      // Nouveau tour pour le même relecteur : la déclaration d'absence de
-      // conflit vaut toujours, les relances repartent de zéro.
+      // New round for the same reviewer: the no-conflict declaration
+      // still stands, reminders start again from zero.
       await ctx.db.patch(existing._id, {
         assignedBy: editor._id,
         assignedAt: now,
@@ -356,19 +356,19 @@ export const assignReviewer = mutation({
 });
 
 /**
- * Décision éditoriale MOTIVÉE (éditeur+) : révision demandée, acceptation ou
- * rejet. Le motif (20 caractères au moins) est notifié à l'auteur et reste
- * dans l'historique du manuscrit.
+ * REASONED editorial decision (editor+): revision requested, acceptance or
+ * rejection. The reason (at least 20 characters) is notified to the author and stays
+ * in the manuscript's history.
  *
- * Demander une révision ou accepter à l'issue d'une évaluation exige au moins
- * un avis sur la version évaluée (NO_REVIEWS) — trancher sans avis n'est pas
- * une revue par les pairs. Le rejet sans évaluation reste possible depuis
- * `submitted` (refus éditorial d'un texte hors champ).
+ * Requesting a revision or accepting after an evaluation requires at least
+ * one review on the evaluated version (NO_REVIEWS) — deciding without a review is not
+ * peer review. Rejection without evaluation remains possible from
+ * `submitted` (editorial rejection of an out-of-scope text).
  *
- * À l'ACCEPTATION, la publication entre dans la bibliothèque : statut
- * `published`, date et DOI interne attribués comme par la modération, et
- * titre / résumé / mots-clés / fichier de la version acceptée. Au REJET, le
- * dépôt sort de la file de modération (brouillon refusé, motif en note).
+ * On ACCEPTANCE, the publication enters the library: status
+ * `published`, date and internal DOI assigned as by moderation, and
+ * title / abstract / keywords / file of the accepted version. On REJECTION, the
+ * submission leaves the moderation queue (refused draft, reason as a note).
  */
 export const decideManuscript = mutation({
   args: {
@@ -407,8 +407,8 @@ export const decideManuscript = mutation({
       createdAt: now,
     });
 
-    // Le tour est clos : plus aucune relecture n'est attendue, donc plus de
-    // relance.
+    // The round is closed: no more reviews are expected, so no more
+    // reminders.
     for (const a of await assignmentsOf(ctx, publicationId)) {
       if (a.dueAt !== undefined)
         await ctx.db.patch(a._id, { dueAt: undefined });
@@ -470,9 +470,9 @@ export const decideManuscript = mutation({
 });
 
 /**
- * Libère le fichier ORIGINAL d'une version que l'anonymisation n'a pas pu
- * relire (PDF chiffré, corrompu). L'éditeur atteste l'avoir vérifié : c'est
- * lui qui engage le double aveugle, et l'audit le retient.
+ * Releases the ORIGINAL file of a version that anonymization could not
+ * read (encrypted, corrupted PDF). The editor attests having checked it: it is
+ * they who take responsibility for the double blind, and the audit records it.
  */
 export const releaseVersionFile = mutation({
   args: { publicationId: v.id('publications'), version: v.number() },
@@ -498,7 +498,7 @@ export const releaseVersionFile = mutation({
   },
 });
 
-// --- File de l'éditeur ---------------------------------------------------------
+// --- Editor's queue --------------------------------------------------------------
 
 const assignmentView = v.object({
   reviewerUserId: v.id('users'),
@@ -530,7 +530,7 @@ const queueItemValidator = v.object({
   theme: v.string(),
   status: pubStatusValidator,
   reviewStage: manuscriptStage,
-  // L'éditeur voit l'auteur (règle 3 du double aveugle).
+  // The editor sees the author (rule 3 of the double blind).
   hasAuthor: v.boolean(),
   authorName: v.union(v.string(), v.null()),
   authorEmail: v.union(v.string(), v.null()),
@@ -538,7 +538,7 @@ const queueItemValidator = v.object({
   blindStatus: v.union(blindStatus, v.null()),
   aggregate: v.union(recommendationValidator, v.null()),
   assignments: v.array(assignmentView),
-  // Avis de la version COURANTE (les précédents sont dans le détail).
+  // Reviews of the CURRENT version (earlier ones are in the detail view).
   reviews: v.array(editorReviewView),
 });
 
@@ -582,10 +582,10 @@ function editorReview(r: Doc<'peerReviews'>) {
   };
 }
 
-// File de revue (éditeur+), paginée par l'index `by_reviewStage` : la plage
-// `> undefined` est exactement « les publications engagées dans une revue »
-// (issue #8). Les étapes qui attendent une décision de l'éditeur passent
-// avant celles qui attendent les relecteurs, par l'ordre de l'index.
+// Review queue (editor+), paginated by the `by_reviewStage` index: the range
+// `> undefined` is exactly "publications engaged in a review"
+// (issue #8). Stages awaiting an editor decision come
+// before those awaiting reviewers, by index order.
 export const getReviewQueue = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -673,7 +673,7 @@ const decisionView = v.object({
   createdAt: v.number(),
 });
 
-/** Dossier complet d'un manuscrit (éditeur+) : versions, avis, décisions. */
+/** Full file of a manuscript (editor+): versions, reviews, decisions. */
 export const getManuscriptForEditor = query({
   args: { publicationId: v.id('publications') },
   returns: v.union(
@@ -743,8 +743,8 @@ export const getManuscriptForEditor = query({
   },
 });
 
-// Liste des relecteurs potentiels (éditeur+) — le staff, par l'index
-// `by_role` (issue #8) : on ne lit que des relecteurs possibles.
+// List of potential reviewers (editor+) — the staff, via the
+// `by_role` index (issue #8): we only read possible reviewers.
 const STAFF_ROLES = ['moderateur', 'editeur', 'admin'] as const;
 const STAFF_PER_ROLE_MAX = 200;
 
@@ -779,8 +779,8 @@ export const listStaffUsers = query({
   },
 });
 
-// Ce que la file de modération peut envoyer en revue : les dépôts en attente,
-// jamais entrés en revue (campagne du 27/09, R-01).
+// What the moderation queue can send to review: pending submissions,
+// never entered into review (27/09 campaign, R-01).
 const OPENABLE_MAX = 100;
 
 export const listOpenable = query({
@@ -811,8 +811,8 @@ export const listOpenable = query({
   },
 });
 
-// Étape de revue d'un lot de publications (file de modération, modérateur+).
-// Ne rend QUE l'étape et un compte : rien qui nomme l'auteur ou un relecteur.
+// Review stage of a batch of publications (moderation queue, moderator+).
+// Returns ONLY the stage and a count: nothing that names the author or a reviewer.
 const STAGES_FOR_MAX = 100;
 
 export const reviewStagesFor = query({
@@ -843,7 +843,7 @@ export const reviewStagesFor = query({
   },
 });
 
-// === Relecteur ================================================================
+// === Reviewer =================================================================
 
 const myReviewView = v.object({
   version: v.number(),
@@ -853,9 +853,9 @@ const myReviewView = v.object({
 });
 
 /**
- * Les assignations du compte connecté (modérateur+), et rien d'autre —
- * l'identité vient de la session. Aucune donnée d'auteur : ni `authors`, ni
- * adresse, ni nom de fichier d'origine.
+ * The signed-in account's assignments (moderator+), and nothing else —
+ * the identity comes from the session. No author data: no `authors`, no
+ * address, no original file name.
  */
 export const myAssignments = query({
   args: {},
@@ -870,7 +870,7 @@ export const myAssignments = query({
       assignedAt: v.number(),
       dueAt: v.union(v.number(), v.null()),
       conflict: conflictStateValidator,
-      // Un avis est-il attendu de moi, maintenant ?
+      // Is a review expected from me, now?
       open: v.boolean(),
       myReview: v.union(myReviewView, v.null()),
     }),
@@ -935,10 +935,10 @@ export const myAssignments = query({
 });
 
 /**
- * Le manuscrit tel que le voit SON relecteur : la version qu'il évalue, le
- * différentiel de métadonnées avec la précédente, la lettre de réponse de
- * l'auteur, et le fichier ANONYMISÉ — seulement une fois le conflit
- * d'intérêts déclaré absent. Aucun champ d'identité de l'auteur.
+ * The manuscript as ITS reviewer sees it: the version they evaluate, the
+ * metadata diff with the previous one, the author's response
+ * letter, and the ANONYMIZED file — only once the conflict of
+ * interest has been declared absent. No author identity field.
  */
 export const getAssignment = query({
   args: { publicationId: v.id('publications') },
@@ -974,8 +974,8 @@ export const getAssignment = query({
       dueAt: v.union(v.number(), v.null()),
       conflict: conflictStateValidator,
       file: v.object({
-        // Nom NEUTRE (« manuscrit-v2.pdf ») : le nom d'origine nomme souvent
-        // l'auteur.
+        // NEUTRAL name ("manuscrit-v2.pdf"): the original name often names
+        // the author.
         name: v.union(v.string(), v.null()),
         url: v.union(v.string(), v.null()),
         blindStatus: v.union(blindStatus, v.null()),
@@ -1059,10 +1059,10 @@ export const getAssignment = query({
 });
 
 /**
- * Déclaration de conflit d'intérêts (relecteur assigné), PRÉALABLE à l'accès
- * au fichier et au dépôt d'un avis. Une déclaration de conflit récuse le
- * relecteur : son échéance tombe, et l'éditeur qui l'a désigné est prévenu
- * pour en désigner un autre. Elle ne se modifie pas (CONFLICT_ALREADY_DECLARED).
+ * Conflict-of-interest declaration (assigned reviewer), PREREQUISITE to accessing
+ * the file and submitting a review. Declaring a conflict recuses the
+ * reviewer: their deadline is dropped, and the editor who assigned them is notified
+ * to assign another one. It cannot be changed (CONFLICT_ALREADY_DECLARED).
  */
 export const declareConflict = mutation({
   args: {
@@ -1114,10 +1114,10 @@ export const declareConflict = mutation({
 });
 
 /**
- * Dépôt d'un avis par le relecteur ASSIGNÉ à la version courante, après sa
- * déclaration d'absence de conflit. Un avis par version (ALREADY_REVIEWED) :
- * sans cela un même relecteur pèserait deux fois dans la recommandation
- * agrégée. Le commentaire à l'éditeur reste confidentiel.
+ * Submission of a review by the reviewer ASSIGNED to the current version, after their
+ * no-conflict declaration. One review per version (ALREADY_REVIEWED):
+ * otherwise the same reviewer would weigh twice in the aggregated
+ * recommendation. The comment to the editor stays confidential.
  */
 export const submitReview = mutation({
   args: {
@@ -1203,9 +1203,9 @@ export const submitReview = mutation({
   },
 });
 
-// === Auteur ===================================================================
+// === Author ===================================================================
 
-// Bornes du fichier d'une révision : celles du dépôt (convex/publications.ts).
+// Bounds of a revision's file: those of the submission (convex/publications.ts).
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_FILE_TYPES = ['application/pdf'];
 
@@ -1215,15 +1215,15 @@ async function assertOwnedPublication(
   userId: Id<'users'>,
 ): Promise<Doc<'publications'>> {
   const pub = await ctx.db.get(publicationId);
-  // Le dépôt d'un autre se lit comme un dépôt inexistant : rien à apprendre.
+  // Someone else's submission reads as a non-existent one: nothing to learn.
   if (!pub || pub.authorUserId !== userId) throw new Error('NOT_FOUND');
   return pub;
 }
 
 /**
- * L'auteur soumet SON dépôt en attente au comité de lecture (membre+).
- * Transition `submit` : la version 1 est figée à partir du dépôt, sa copie
- * anonymisée est planifiée, le comité éditorial est prévenu.
+ * The author submits THEIR pending submission to the review board (member+).
+ * `submit` transition: version 1 is frozen from the submission, its anonymized
+ * copy is scheduled, the editorial board is notified.
  */
 export const submitManuscript = mutation({
   args: {
@@ -1234,8 +1234,8 @@ export const submitManuscript = mutation({
   handler: async (ctx, { publicationId, keywords }) => {
     const me = await requireNetworkRole(ctx, 'membre');
     const pub = await assertOwnedPublication(ctx, publicationId, me._id);
-    // Seul un dépôt EN ATTENTE entre en revue : un texte publié ou refusé
-    // n'est plus un manuscrit.
+    // Only a PENDING submission enters review: a published or refused text
+    // is no longer a manuscript.
     if (pub.status !== 'pending') throw new Error('INVALID_TRANSITION');
     const to = nextStage(stageOf(pub), 'submit');
     await enforceRateLimit(ctx, {
@@ -1272,11 +1272,11 @@ export const submitManuscript = mutation({
 });
 
 /**
- * Révision (auteur, sur une révision DEMANDÉE) : une NOUVELLE version —
- * nouveau fichier, métadonnées éventuellement corrigées — et une lettre de
- * réponse aux relecteurs, obligatoire. Rien n'est réécrit dans les versions
- * précédentes. L'éditeur qui a demandé la révision est prévenu ; c'est lui
- * qui ouvre le tour suivant (ou accepte directement une révision mineure).
+ * Revision (author, on a REQUESTED revision): a NEW version —
+ * new file, possibly corrected metadata — and a mandatory response letter
+ * to the reviewers. Nothing is rewritten in the previous
+ * versions. The editor who requested the revision is notified; it is they
+ * who open the next round (or directly accept a minor revision).
  */
 export const submitRevision = mutation({
   args: {
@@ -1305,8 +1305,8 @@ export const submitRevision = mutation({
       B.responseLetter,
       'INVALID_RESPONSE_LETTER',
     );
-    // Le blob se juge sur ses métadonnées RÉELLES, jamais sur ce qu'annonce
-    // le client (même défiance que le dépôt).
+    // The blob is judged on its REAL metadata, never on what the client
+    // announces (same distrust as for the submission).
     const meta = await ctx.db.system.get(args.fileId);
     if (
       !meta ||
@@ -1372,11 +1372,11 @@ export const submitRevision = mutation({
 });
 
 /**
- * Suivi de l'auteur (espace membre) : ses manuscrits, leurs versions, les
- * décisions motivées et les avis — NUMÉROTÉS, sans nom ni identifiant de
- * relecteur, et seulement pour une version déjà tranchée (un avis n'est pas
- * montré à l'auteur avant que l'éditeur l'ait pesé). Et les dépôts qu'il peut
- * encore soumettre au comité.
+ * Author tracking (member area): their manuscripts, their versions, the
+ * reasoned decisions and the reviews — NUMBERED, without reviewer name or
+ * id, and only for an already decided version (a review is not
+ * shown to the author before the editor has weighed it). And the submissions they can
+ * still submit to the board.
  */
 export const myManuscripts = query({
   args: {},
@@ -1403,7 +1403,7 @@ export const myManuscripts = query({
         reviews: v.array(
           v.object({
             version: v.number(),
-            // « Relecteur 1 », « Relecteur 2 » — un rang, pas une identité.
+            // "Relecteur 1", "Relecteur 2" — a rank, not an identity.
             index: v.number(),
             recommendation: recommendationValidator,
             comment: v.string(),
@@ -1439,8 +1439,8 @@ export const myManuscripts = query({
       const reviews = (await reviewsOf(ctx, pub._id))
         .filter((r) => decided.has(versionOfReview(r)))
         .sort((a, b) => a.createdAt - b.createdAt);
-      // Rang du relecteur dans le manuscrit : stable d'une version à l'autre
-      // (le « Relecteur 1 » de la v1 est celui de la v2), sans rien révéler.
+      // Reviewer's rank within the manuscript: stable from one version to the next
+      // (v1's "Relecteur 1" is v2's), without revealing anything.
       const order: Id<'users'>[] = [];
       for (const r of reviews) {
         if (!order.includes(r.reviewerUserId)) order.push(r.reviewerUserId);
@@ -1488,7 +1488,7 @@ export const myManuscripts = query({
   },
 });
 
-/** Le dossier d'une version pour préparer la révision (auteur). */
+/** A version's file for preparing the revision (author). */
 export const myRevisionContext = query({
   args: { publicationId: v.id('publications') },
   returns: v.union(
@@ -1514,16 +1514,16 @@ export const myRevisionContext = query({
   },
 });
 
-// === Relances (tâche planifiée) ===============================================
+// === Reminders (scheduled task) ===============================================
 
 /**
- * Relance les relecteurs en retard — appelée chaque jour par convex/crons.ts.
+ * Reminds late reviewers — called every day by convex/crons.ts.
  *
- * L'index `by_dueAt` ne contient que les relectures ATTENDUES (l'échéance est
- * effacée dès que l'avis est rendu, le relecteur récusé ou le tour clos) : la
- * plage « échue » se lit sans parcourir les assignations closes. Chaque ligne
- * est revérifiée ici — une échéance restée posée sur un tour dépassé est
- * effacée plutôt que relancée.
+ * The `by_dueAt` index only contains EXPECTED reviews (the deadline is
+ * cleared as soon as the review is submitted, the reviewer recused or the round closed): the
+ * "overdue" range is read without scanning closed assignments. Each row
+ * is re-checked here — a deadline left set on a past round is
+ * cleared rather than reminded.
  */
 export const sendDueReminders = internalMutation({
   args: {},
@@ -1602,7 +1602,7 @@ export const sendDueReminders = internalMutation({
   },
 });
 
-// === Fichiers anonymisés (appelé par convex/peerReviewFiles.ts) ================
+// === Anonymized files (called by convex/peerReviewFiles.ts) ====================
 
 export const versionForBlindCopy = internalQuery({
   args: { versionId: v.id('manuscriptVersions') },

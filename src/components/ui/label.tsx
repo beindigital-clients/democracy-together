@@ -4,7 +4,7 @@ import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
 import { cn } from '@/lib/utils';
 
-// shadcn Label, thémé.
+// shadcn Label, themed.
 function Label({
   className,
   ...props

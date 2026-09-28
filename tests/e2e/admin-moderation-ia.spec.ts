@@ -5,60 +5,60 @@ import { ouvrirPanneau } from './_panneau';
 
 test.use({ locale: 'fr-FR', storageState: SESSIONS.adminModerationIa.state });
 
-// F-32 — AUTO-ACCEPTATION DES DÉPÔTS : le dispositif, exercé par le navigateur.
+// F-32 — AUTO-ACCEPTANCE OF SUBMISSIONS: the mechanism, exercised through the browser.
 //
-// La fonctionnalité arrive avec quatre familles de tests qui ne passent par
-// aucun navigateur : la table de vérité de la décision, l'orchestration
-// Convex, les parcours par les fonctions publiques, et les écrans montés hors
-// application. Elles couvrent la DÉCISION. Aucune ne couvre le CÂBLAGE :
-// l'écran de réglage sert-il sur une vraie route, l'administrateur y écrit-il
-// vraiment, un dépôt déposé par le formulaire réel déclenche-t-il l'analyse,
-// et la file en rend-elle compte. C'est ce que la convention de TESTING.md
-// appelle la seconde porte, et c'est ce fichier.
+// The feature comes with four families of tests that go through no
+// browser: the decision truth table, the Convex orchestration,
+// the journeys through the public functions, and the screens mounted outside
+// the application. They cover the DECISION. None covers the WIRING:
+// is the settings screen served on a real route, does the administrator
+// really write to it, does a submission made through the real form trigger the analysis,
+// and does the queue reflect it. That is what the TESTING.md convention
+// calls the second gate, and it is this file.
 //
-// LA PROPRIÉTÉ QUE CE FICHIER TIENT, et qui vaut qu'on paie un navigateur :
-// rien ne paraît sans humain tant qu'un humain ne l'a pas armé. Le dernier
-// test le vérifie là où ça compte — dans un contexte NON AUTHENTIFIÉ, qui est
-// la seule place d'où l'on voit ce que voit le public.
+// THE PROPERTY THIS FILE HOLDS, and which is worth paying for a browser:
+// nothing appears without a human as long as a human has not armed it. The last
+// test checks it where it matters — in an UNAUTHENTICATED context, which is
+// the only place from which one sees what the public sees.
 //
-// CE QUI N'EST PAS ICI, ET POURQUOI.
+// WHAT IS NOT HERE, AND WHY.
 //
-//  - L'APPEL RÉEL À LA PASSERELLE. La CI n'a pas de clé, et une porte qui
-//    dépend d'un tiers payant n'est pas une porte. TESTING.md décrit les trois
-//    niveaux manuels, dont `scripts/verifier-passerelle-ia.mjs`. Les
-//    assertions ci-dessous sont donc choisies pour valoir DANS LES DEUX
-//    configurations — clé posée ou non —, sur le modèle de `news.spec.ts` ;
-//  - LE MODE AUTO-PUBLICATION. L'armer sur un déploiement partagé ferait
-//    paraître les dépôts des AUTRES specs sans relecture. Ce que le mode
-//    change est déjà tenu par `convex/aiModeration.test.ts`, qui peut le poser
-//    sans conséquence pour personne. Ici on vérifie qu'il s'ANNONCE ;
-//  - LE CLOISONNEMENT PAR RÔLE. `admin-ecrans.spec.ts` tient déjà la route et
-//    son rang minimal, avec la session qui va avec.
+//  - THE REAL CALL TO THE GATEWAY. CI has no key, and a gate that
+//    depends on a paid third party is not a gate. TESTING.md describes the three
+//    manual levels, including `scripts/verifier-passerelle-ia.mjs`. The
+//    assertions below are therefore chosen to hold IN BOTH
+//    configurations — key set or not —, on the model of `news.spec.ts`;
+//  - THE AUTO-PUBLISH MODE. Arming it on a shared deployment would make
+//    the OTHER specs' submissions appear without review. What the mode
+//    changes is already held by `convex/aiModeration.test.ts`, which can set it
+//    with no consequence for anyone. Here we check that it ANNOUNCES itself;
+//  - ROLE PARTITIONING. `admin-ecrans.spec.ts` already holds the route and
+//    its minimal rank, with the session that goes with it.
 //
-// SESSION DÉDIÉE (cf. `_sessions.ts`) : ce fichier règle, dépose, puis relit.
-// Il tient sa session d'un bout à l'autre.
+// DEDICATED SESSION (see `_sessions.ts`): this file configures, submits, then re-reads.
+// It holds its session from one end to the other.
 
 const PANNEAU = '/fr/admin/moderation-ia';
 
-// Marqueur porté par le titre du dépôt créé ici -> nettoyage ciblé du jeu de
-// données partagé (ce test écrit une vraie publication).
+// Marker carried by the title of the submission created here -> targeted cleanup of the
+// shared dataset (this test writes a real publication).
 const MARQUEUR = 'Auto-acceptation E2E';
 
-// Un nom de critère improbable : le barème est partagé, et un `getByText`
-// large attraperait un critère écrit par quelqu'un d'autre.
+// An unlikely criterion name: the rubric is shared, and a broad `getByText`
+// would catch a criterion written by someone else.
 const CRITERE = `Critère E2E ${Date.now()}`;
 
-// Le jeton de rafraîchissement tourne au premier test : on réécrit l'état pour
-// que le suivant ne reparte pas d'un jeton consommé (même précaution que
-// `admin-nav`, `admin-recherche`, `admin-contact` et `admin-confirmations`).
+// The refresh token rotates on the first test: we rewrite the state so that
+// the next one does not start again from a consumed token (same precaution as
+// `admin-nav`, `admin-recherche`, `admin-contact` and `admin-confirmations`).
 test.afterEach(async ({ context }) => {
   await context.storageState({ path: SESSIONS.adminModerationIa.state });
 });
 
-// REMETTRE LE DISPOSITIF AU REPOS. Les réglages sont un singleton : les
-// laisser en « Assistance » ferait analyser les dépôts des specs suivantes.
-// C'est sans danger — l'assistance ne publie rien — mais une spec ne laisse
-// pas le déploiement dans un état qu'elle est seule à comprendre.
+// PUT THE MECHANISM BACK AT REST. The settings are a singleton: leaving
+// them on "Assistance" would have the following specs' submissions analyzed.
+// This is harmless — assistance publishes nothing — but a spec does not leave
+// the deployment in a state only it understands.
 test.afterAll(async ({ browser }) => {
   const context = await browser.newContext({
     locale: 'fr-FR',
@@ -94,10 +94,10 @@ test('le panneau dit son état avant de proposer de le régler (F-32)', async ({
     page.getByRole('heading', { level: 1, name: 'Modération assistée par IA' }),
   ).toBeVisible();
 
-  // L'ÉTAT DE LA CLÉ, EN PREMIER. Le déploiement décide de la branche — une
-  // préversion CI n'a pas de clé, un déploiement de dev peut en avoir une —,
-  // et les deux phrasés sont écrits dans le catalogue, donc vérifiables. Ce
-  // qu'on refuse est le troisième cas : un écran qui ne dit rien de son état.
+  // THE KEY STATE, FIRST. The deployment decides the branch — a
+  // CI preview has no key, a dev deployment may have one —,
+  // and both wordings are written in the catalog, hence verifiable. What
+  // we refuse is the third case: a screen that says nothing about its state.
   const etat = page.getByText(
     /Passerelle configurée|Aucune clé de passerelle n'est posée/,
   );
@@ -107,8 +107,8 @@ test('le panneau dit son état avant de proposer de le régler (F-32)', async ({
     `[F-32] passerelle ${cleAbsente ? 'NON configurée' : 'configurée'} sur ce déploiement`,
   );
 
-  // Les trois compteurs portent un NOMBRE. Un intitulé sans valeur est ce que
-  // rend une agrégation absente, et il se lit comme un écran en ordre.
+  // The three counters carry a NUMBER. A heading without a value is what
+  // a missing aggregation renders, and it reads like a screen in working order.
   for (const compteur of [
     'Analyses',
     'Publiées automatiquement',
@@ -136,9 +136,9 @@ test('le panneau dit son état avant de proposer de le régler (F-32)', async ({
     ).toBeVisible();
   }
 
-  // LE SOCLE EST MONTRÉ ET NON DÉSARMABLE. C'est la promesse du panneau : ce
-  // qu'on ne peut pas retirer est visible, et aucun bouton ne prétend le
-  // retirer. Un socle rendu comme le barème serait la régression à attraper.
+  // THE BASELINE IS SHOWN AND CANNOT BE DISARMED. That is the panel's promise: what
+  // cannot be removed is visible, and no button claims to
+  // remove it. A baseline rendered like the rubric would be the regression to catch.
   const socle = page.getByRole('list', { name: 'Socle de sécurité' });
   await expect(socle.getByRole('listitem').first()).toBeVisible();
   await expect(socle.getByRole('button')).toHaveCount(0);
@@ -149,7 +149,7 @@ test('un critère écrit ici survit au rechargement, et sa suppression aussi (F-
 }) => {
   await page.goto(PANNEAU);
 
-  // --- Créer ----------------------------------------------------------------
+  // --- Create ----------------------------------------------------------------
   await page.getByRole('button', { name: 'Ajouter un critère' }).click();
   await page.getByLabel('Nom du critère').fill(CRITERE);
   await page
@@ -164,18 +164,18 @@ test('un critère écrit ici survit au rechargement, et sa suppression aussi (F-
   await expect(ligne).toHaveCount(1);
   await expect(ligne.getByText('Avertissement')).toBeVisible();
 
-  // LE RECHARGEMENT EST LE SUJET. Sans lui, le test ne distingue pas une
-  // écriture acceptée par le serveur d'un état React ajouté à la liste.
+  // THE RELOAD IS THE SUBJECT. Without it, the test cannot tell a
+  // write accepted by the server from React state added to the list.
   await page.reload();
   await expect(
     bareme(page).getByRole('listitem').filter({ hasText: CRITERE }),
     "le critère n'a pas survécu au rechargement : l'écriture n'a pas porté",
   ).toHaveCount(1);
 
-  // --- Supprimer -------------------------------------------------------------
-  // Le dialogue de confirmation est l'un des trois panneaux sur lesquels la CI
-  // a vu un clic sans effet (audit F-13) : on passe par le helper, qui
-  // re-clique tant qu'il est fermé et imprime le nombre d'essais.
+  // --- Delete -------------------------------------------------------------
+  // The confirmation dialog is one of the three panels on which CI
+  // saw a click with no effect (audit F-13): we go through the helper, which
+  // re-clicks while it is closed and prints the number of attempts.
   const apres = bareme(page).getByRole('listitem').filter({ hasText: CRITERE });
   const dialogue = page.getByRole('dialog');
   await ouvrirPanneau(
@@ -201,15 +201,15 @@ test('les réglages tiennent après rechargement, et l’auto-publication s’an
   const mode = page.getByLabel('Mode', { exact: true });
   const avertissement = page.getByText(/sans qu'un humain les ait lus/);
 
-  // L'AVERTISSEMENT EST PORTÉ PAR LE MODE, AU MOMENT DE LE CHOISIR — pas
-  // relégué à une documentation. On le lit sur la route réelle, et SANS
-  // enregistrer : armer l'auto-publication sur un déploiement partagé ferait
-  // paraître les dépôts des autres specs.
+  // THE WARNING IS CARRIED BY THE MODE, AT THE MOMENT IT IS CHOSEN — not
+  // relegated to documentation. We read it on the real route, and WITHOUT
+  // saving: arming auto-publish on a shared deployment would make
+  // the other specs' submissions appear.
   await expect(avertissement).toHaveCount(0);
   await mode.selectOption('auto');
   await expect(avertissement).toBeVisible();
 
-  // Et il disparaît quand on redescend : c'est un état, pas un décor.
+  // And it disappears when stepping back down: it is a state, not decoration.
   await mode.selectOption('assist');
   await expect(avertissement).toHaveCount(0);
 
@@ -229,26 +229,26 @@ test('un dépôt analysé reste en file, et le public ne le voit pas (F-32)', as
   page,
   browser,
 }) => {
-  // Le timeout par défaut du fichier de configuration est de 45 s. Ce parcours
-  // enregistre des réglages, téléverse un document, traverse trois écrans PUIS
-  // attend une analyse PLANIFIÉE — l'attente du journal à elle seule peut en
-  // consommer 60. Le relever ici vaut mieux que le relever pour toutes les
-  // specs, où il sert de garde-fou.
+  // The configuration file's default timeout is 45 s. This journey
+  // saves settings, uploads a document, goes through three screens THEN
+  // waits for a SCHEDULED analysis — waiting for the log alone can
+  // consume 60. Raising it here is better than raising it for all the
+  // specs, where it serves as a safeguard.
   test.setTimeout(150_000);
 
   const titre = `${MARQUEUR} ${Date.now()}`;
 
-  // --- Armer le dispositif, en ASSISTANCE ------------------------------------
-  // Le test précédent l'a déjà posé, mais un fichier de spec ne se lit pas de
-  // haut en bas quand une seule ligne échoue : on pose ce dont ce test dépend.
+  // --- Arm the mechanism, in ASSISTANCE ------------------------------------
+  // The previous test already set it, but a spec file is not read from
+  // top to bottom when a single line fails: we set what this test depends on.
   await page.goto(PANNEAU);
   await page.getByLabel('Mode', { exact: true }).selectOption('assist');
   await page.getByRole('button', { name: 'Enregistrer les réglages' }).click();
   await expect(page.getByText(/Réglages enregistrés/)).toBeVisible();
 
-  // --- Déposer par le formulaire RÉEL ----------------------------------------
-  // C'est ce formulaire qui déclenche l'analyse en production ; une écriture
-  // par l'API ne prouverait pas que le déclenchement est câblé.
+  // --- Submit through the REAL form ----------------------------------------
+  // It is this form that triggers the analysis in production; a write
+  // through the API would not prove that the trigger is wired.
   await page.goto('/fr/espace-membre/deposer');
   await page.getByLabel('Titre', { exact: true }).fill(titre);
   await page.getByLabel('Auteur·rice·s').fill('A. Membre E2E');
@@ -267,7 +267,7 @@ test('un dépôt analysé reste en file, et le public ne le voit pas (F-32)', as
     page.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();
 
-  // --- Il est dans la file humaine -------------------------------------------
+  // --- It is in the human queue -------------------------------------------
   await page.goto('/fr/admin/publications');
   const file = page.getByRole('list', {
     name: 'Liste des publications à modérer',
@@ -277,19 +277,19 @@ test('un dépôt analysé reste en file, et le public ne le voit pas (F-32)', as
     fiche,
     'le dépôt ne figure pas dans la file de modération',
   ).toHaveCount(1);
-  // Et il n'y porte PAS la mention réservée aux mises en ligne sans humain.
+  // And it does NOT carry the mention reserved for publications without a human.
   await expect(fiche.getByText('Publiée sans relecture humaine')).toHaveCount(
     0,
   );
 
-  // --- Le journal rend compte de l'analyse -----------------------------------
-  // L'analyse est planifiée : elle n'a pas encore eu lieu au retour du
-  // formulaire. `toPass` attend l'effet plutôt qu'une durée choisie au hasard.
+  // --- The log reports the analysis -----------------------------------
+  // The analysis is scheduled: it has not happened yet when the
+  // form returns. `toPass` waits for the effect rather than a randomly chosen duration.
   //
-  // CES DEUX LIBELLÉS VALENT DANS LES DEUX CONFIGURATIONS. En assistance,
-  // `decideApplication` rend `escalated` / `mode_assist` AVANT de regarder le
-  // verdict : que la passerelle ait répondu, échoué ou manqué à l'appel, la
-  // ligne dit la même chose. C'est ce qui rend ce test jouable en CI.
+  // THESE TWO LABELS HOLD IN BOTH CONFIGURATIONS. In assistance mode,
+  // `decideApplication` returns `escalated` / `mode_assist` BEFORE looking at the
+  // verdict: whether the gateway answered, failed or did not respond, the
+  // row says the same thing. That is what makes this test playable in CI.
   await expect(async () => {
     await page.goto(PANNEAU);
     const entree = journal(page)
@@ -302,29 +302,29 @@ test('un dépôt analysé reste en file, et le public ne le voit pas (F-32)', as
     );
   }).toPass({ timeout: 60_000 });
 
-  // --- CE QUE VOIT LE PUBLIC --------------------------------------------------
-  // La seule place d'où l'on voit ce que voit le public : un contexte SANS
-  // session. Depuis l'onglet de l'administrateur, une fuite de statut
-  // ressemblerait à un écran qui marche.
+  // --- WHAT THE PUBLIC SEES --------------------------------------------------
+  // The only place from which one sees what the public sees: a context WITHOUT
+  // a session. From the administrator's tab, a status leak
+  // would look like a working screen.
   const anonyme = await browser.newContext({ locale: 'fr-FR' });
   try {
     const visiteur = await anonyme.newPage();
     await visiteur.goto(`/fr/recherche?q=${encodeURIComponent(titre)}`);
-    // ON CHERCHE LE RÉSULTAT, PAS LE TITRE. La page de recherche REPREND la
-    // requête dans son propre message de vacuité — « Aucun résultat pour
-    // « … » » —, si bien qu'un `getByText(titre)` trouve un élément dans les
-    // DEUX cas : quand le dépôt a fuité, et quand il est absent. Première
-    // campagne CI : l'assertion est tombée sur la phrase qui prouvait
-    // justement l'absence.
+    // WE LOOK FOR THE RESULT, NOT THE TITLE. The search page ECHOES the
+    // query in its own empty-state message — "Aucun résultat pour
+    // « … »" —, so that a `getByText(titre)` finds an element in
+    // BOTH cases: when the submission leaked, and when it is absent. First
+    // CI campaign: the assertion landed on the very sentence that proved
+    // the absence.
     //
-    // Un LIEN portant ce titre, lui, n'existe que si la recherche a rendu une
-    // fiche : c'est le seul élément dont la présence signifie ce qu'on croit.
+    // A LINK carrying this title, on the other hand, only exists if the search returned an
+    // entry: it is the only element whose presence means what we think.
     await expect(
       visiteur.getByRole('link', { name: titre, exact: false }),
       'un dépôt non relu par un humain est visible du public',
     ).toHaveCount(0);
-    // Et la vacuité est dite pour de bon : ce message ne s'affiche que lorsque
-    // les TROIS sources — bibliothèque, annuaire, actualités — n'ont rien.
+    // And the empty state is stated for real: this message only shows when
+    // the THREE sources — library, directory, news — have nothing.
     await expect(visiteur.getByText(/Aucun résultat pour/)).toBeVisible();
   } finally {
     await anonyme.close();

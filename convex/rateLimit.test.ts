@@ -10,9 +10,9 @@ import {
   PUBLIC_FORM_LIMITS,
 } from './lib/rateLimit';
 
-// Les endpoints publics gatés par reCAPTCHA (contact, adhésion) déportent leur
-// logique dans des internalMutations -> on cible celles-ci pour tester le
-// rate-limit sans la porte captcha (publication reste une mutation directe).
+// Public endpoints gated by reCAPTCHA (contact, membership) move their
+// logic into internalMutations -> we target those to test the
+// rate limit without the captcha gate (publication remains a direct mutation).
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -24,8 +24,8 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Sur dépassement, le serveur lève ConvexError('RATE_LIMITED') -> `.data`
-// traverse jusqu'à l'appelant (robuste, indépendant du format de message).
+// When exceeded, the server throws ConvexError('RATE_LIMITED') -> `.data`
+// travels to the caller (robust, independent of the message format).
 async function expectRateLimited(p: Promise<unknown>) {
   await expect(p).rejects.toMatchObject({ data: 'RATE_LIMITED' });
 }
@@ -41,17 +41,17 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
   it('contact : bloque au-delà de la limite puis se réinitialise après la fenêtre', async () => {
     const t = convexTest(schema, modules);
 
-    // 5 envois valides (même e-mail) passent
+    // 5 valid submissions (same email) go through
     for (let i = 0; i < 5; i++) {
       await t.mutation(internal.contact.store, contactMsg(i));
     }
-    // le 6e est bloqué
+    // the 6th is blocked
     await expectRateLimited(t.mutation(internal.contact.store, contactMsg(99)));
     expect(
       await t.run((ctx) => ctx.db.query('contactMessages').collect()),
     ).toHaveLength(5);
 
-    // simule l'expiration de la fenêtre -> nouvel envoi accepté
+    // simulates the window expiring -> new submission accepted
     await t.run(async (ctx) => {
       const rl = await ctx.db
         .query('rateLimits')
@@ -74,11 +74,11 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
     for (let i = 0; i < 5; i++) {
       await t.mutation(internal.contact.store, contactMsg(i, 'a@example.org'));
     }
-    // a@ est plein...
+    // a@ is full...
     await expectRateLimited(
       t.mutation(internal.contact.store, contactMsg(9, 'a@example.org')),
     );
-    // ...mais b@ passe (clé distincte)
+    // ...but b@ goes through (distinct key)
     await t.mutation(internal.contact.store, contactMsg(0, 'b@example.org'));
     expect(
       await t.run((ctx) => ctx.db.query('contactMessages').collect()),
@@ -94,10 +94,10 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
         contactEmail: 'flood@example.org',
         country: 'SN',
       });
-      // Depuis le lot 3 du 27/09, une seconde candidature EN ATTENTE pour la
-      // même adresse est refusée (`DUPLICATE_APPLICATION`) — avant même de
-      // compter pour le plafond. On clôt donc chaque candidature pour que ce
-      // soit bien le plafond, et lui seul, qui refuse la sixième.
+      // Since batch 3 of 27/09, a second PENDING application for the
+      // same address is refused (`DUPLICATE_APPLICATION`) — even before
+      // counting towards the cap. So we close each application so that it
+      // is indeed the cap, and the cap alone, that refuses the sixth.
       await t.run(async (ctx) => {
         for (const app of await ctx.db
           .query('membershipApplications')
@@ -150,32 +150,32 @@ describe('Rate-limiting (sécurité, défense en profondeur)', () => {
   it('envoi de codes OTP : plafonné par e-mail (anti email-bombing)', async () => {
     const t = convexTest(schema, modules);
     const victim = 'victim@example.org';
-    // 8 envois (barème otpSend) passent...
+    // 8 sends (otpSend schedule) go through...
     for (let i = 0; i < 8; i++) {
       await t.mutation(internal.otp.enforceSendRate, { email: victim });
     }
-    // ...le 9e est bloqué -> on n'inonde pas la boîte d'un tiers.
+    // ...the 9th is blocked -> we do not flood a third party's inbox.
     await expectRateLimited(
       t.mutation(internal.otp.enforceSendRate, { email: victim }),
     );
-    // compteur distinct par adresse (clé indépendante)
+    // distinct counter per address (independent key)
     await t.mutation(internal.otp.enforceSendRate, {
       email: 'autre@example.org',
     });
   });
 });
 
-// --- Plafonds NON FORGEABLES (audit M2, issue #24) ---------------------------
+// --- UNFORGEABLE caps (audit M2, issue #24) ----------------------------------
 //
-// Le barème par e-mail ci-dessus ne borne qu'un acteur honnête : l'adresse vient
-// du formulaire, donc un script la fait varier et repart avec un quota neuf.
-// Ces tests couvrent les deux plafonds qui ne dépendent d'aucune donnée de
-// l'appelant — l'IP vue par l'infrastructure, et le compteur global par
-// formulaire.
+// The per-email schedule above only bounds an honest actor: the address comes
+// from the form, so a script varies it and leaves with a fresh quota.
+// These tests cover the two caps that depend on no data from
+// the caller — the IP seen by the infrastructure, and the global counter per
+// form.
 
-// `ctx.meta` n'est pas simulé par convex-test : on le fournit ici pour exercer
-// le chemin par IP. Seuls `db` et `meta` sont lus par la garde — tout autre
-// besoin ferait échouer ce test, ce qui est le signal voulu.
+// `ctx.meta` is not simulated by convex-test: we provide it here to exercise
+// the per-IP path. Only `db` and `meta` are read by the guard — any other
+// need would make this test fail, which is the intended signal.
 function ctxSeenFrom(ctx: MutationCtx, ip: string | null): MutationCtx {
   return {
     db: ctx.db,
@@ -204,7 +204,7 @@ describe('Plafonds non forgeables — regroupement des adresses', () => {
     const a = ipBucket('2001:db8:1234:5678:aaaa:bbbb:cccc:dddd');
     const b = ipBucket('2001:db8:1234:5678:1111:2222:3333:4444');
     expect(a).toBe(b);
-    // ...mais un préfixe DIFFÉRENT reste un compteur différent.
+    // ...but a DIFFERENT prefix remains a different counter.
     expect(ipBucket('2001:db8:1234:9999::1')).not.toBe(a);
   });
 
@@ -220,8 +220,8 @@ describe('Plafonds non forgeables — par IP', () => {
     const t = convexTest(schema, modules);
     const { max } = PUBLIC_FORM_LIMITS.contact.perIp;
 
-    // Une transaction par requête : un rejet annule la transaction, donc
-    // mutualiser les appels masquerait le comportement réel.
+    // One transaction per request: a rejection rolls back the transaction, so
+    // pooling the calls would mask the real behavior.
     for (let i = 0; i < max; i++) {
       await t.run((ctx) =>
         enforcePublicFormLimit(ctxSeenFrom(ctx, '203.0.113.7'), 'contact'),
@@ -233,7 +233,7 @@ describe('Plafonds non forgeables — par IP', () => {
       ),
     );
 
-    // Une autre source passe : le plafond vise la source, pas le formulaire.
+    // Another source goes through: the cap targets the source, not the form.
     await t.run((ctx) =>
       enforcePublicFormLimit(ctxSeenFrom(ctx, '198.51.100.4'), 'contact'),
     );
@@ -254,14 +254,14 @@ describe('Plafonds non forgeables — par IP', () => {
 });
 
 describe('Plafond non forgeable — global par formulaire', () => {
-  // LE test de l'issue : faire varier l'e-mail ne rend plus un quota neuf.
+  // THE test of the issue: varying the email no longer yields a fresh quota.
   it('contact : un e-mail neuf à chaque envoi ne contourne pas le plafond du formulaire', async () => {
     const t = convexTest(schema, modules);
     const { max } = PUBLIC_FORM_LIMITS.contact.global;
 
-    // On amorce le compteur global juste sous le plafond plutôt que d'émettre
-    // `max` requêtes : le test reste rapide et ne se périme pas si le barème
-    // change.
+    // We prime the global counter just below the cap rather than issuing
+    // `max` requests: the test stays fast and does not go stale if the schedule
+    // changes.
     await t.run((ctx) =>
       ctx.db.insert('rateLimits', {
         key: 'form:contact',
@@ -270,9 +270,9 @@ describe('Plafond non forgeable — global par formulaire', () => {
       }),
     );
 
-    // Dernier jeton disponible -> passe, avec une adresse jamais vue.
+    // Last available token -> goes through, with a never-seen address.
     await t.mutation(internal.contact.store, contactMsg(1, 'un@example.org'));
-    // Adresse encore différente -> bloqué quand même.
+    // Yet another address -> blocked anyway.
     await expectRateLimited(
       t.mutation(internal.contact.store, contactMsg(2, 'deux@example.org')),
     );
@@ -283,7 +283,7 @@ describe('Plafond non forgeable — global par formulaire', () => {
   });
 
   it('les formulaires publics ont un barème, et des compteurs indépendants', async () => {
-    // `donation` : formulaire de don (F-28), ouvert aux visiteurs.
+    // `donation`: donation form (F-28), open to visitors.
     expect(Object.keys(PUBLIC_FORM_LIMITS).sort()).toEqual([
       'apply',
       'contact',
@@ -305,11 +305,11 @@ describe('Plafond non forgeable — global par formulaire', () => {
       }),
     );
 
-    // `contact` est saturé...
+    // `contact` is saturated...
     await expectRateLimited(
       t.mutation(internal.contact.store, contactMsg(3, 'trois@example.org')),
     );
-    // ...l'adhésion, elle, n'est pas concernée.
+    // ...membership, however, is not affected.
     await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
       organizationName: 'Institut A',
@@ -318,9 +318,9 @@ describe('Plafond non forgeable — global par formulaire', () => {
     });
   });
 
-  // Une soumission rejetée ne doit pas consommer de quota : sinon un flot de
-  // requêtes invalides suffirait à épuiser le plafond global et à bloquer les
-  // envois légitimes (déni de service gratuit).
+  // A rejected submission must not consume quota: otherwise a stream of
+  // invalid requests would be enough to exhaust the global cap and block
+  // legitimate submissions (free denial of service).
   it('une soumission invalide ne consomme aucun quota', async () => {
     const t = convexTest(schema, modules);
 

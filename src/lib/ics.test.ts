@@ -20,7 +20,7 @@ describe('eventToIcs', () => {
     expect(ics).toContain('BEGIN:VEVENT');
     expect(ics).toContain('END:VEVENT');
     expect(ics).toContain('END:VCALENDAR');
-    // Ordre correct : VEVENT fermé avant VCALENDAR.
+    // Correct order: VEVENT closed before VCALENDAR.
     expect(ics.indexOf('END:VEVENT')).toBeLessThan(
       ics.indexOf('END:VCALENDAR'),
     );

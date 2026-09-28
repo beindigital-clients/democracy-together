@@ -1,12 +1,12 @@
-// Chantier « programmes » (F-56 à F-60) — vocabulaire et RÈGLES PURES.
+// "Programmes" workstream (F-56 to F-60) — vocabulary and PURE RULES.
 //
-// Tout ce qui se décide sans base de données vit ici : le score d'appariement
-// du mentorat, la fenêtre d'un appel à projets, la reconnaissance du contenu
-// d'une pièce jointe, le classement des candidatures, le seuil d'inactivité
-// d'un binôme. Les mutations les appellent ; `tests/unit/programmes-rules.test.ts`
-// les exerce sans Convex. Module sans type serveur : l'interface l'importe par
-// l'alias `@convex/lib/programmes` pour afficher les mêmes bornes que celles
-// que le serveur applique.
+// Everything that is decided without a database lives here: the mentoring
+// match score, a call for projects' window, recognising an attachment's
+// content, ranking applications, a pair's inactivity threshold. Mutations
+// call them; `tests/unit/programmes-rules.test.ts` exercises them without
+// Convex. Module with no server type: the interface imports it through the
+// `@convex/lib/programmes` alias to display the same bounds the server
+// enforces.
 
 import { v } from 'convex/values';
 import { REGIONS } from './directory';
@@ -14,13 +14,13 @@ import { NETWORK_THEMES } from './themes';
 import { SITE_LOCALES } from './locales';
 import { isHttpUrl } from './validation';
 
-// --- Vocabulaires fermés ----------------------------------------------------
+// --- Closed vocabularies ----------------------------------------------------
 
 export { REGIONS as PROGRAMME_REGIONS, NETWORK_THEMES as PROGRAMME_THEMES };
 export const PROGRAMME_LANGUAGES = SITE_LOCALES;
 
-// Programmes du hub Jeunes auxquels un profil candidate (F-58). Le mentorat
-// n'y est pas : il a son propre parcours (profil mentoré, appariement).
+// Youth hub programmes a profile applies to (F-58). Mentoring is not among
+// them: it has its own path (mentee profile, matching).
 export const YOUTH_PROGRAMMES = [
   'hub',
   'bourses',
@@ -70,12 +70,12 @@ export const mentorRoleValidator = v.union(
 export type MentorRole = 'mentor' | 'mentore';
 
 export const pairStatusValidator = v.union(
-  // Proposé par le coordinateur, en attente de l'accord des DEUX parties.
+  // Proposed by the coordinator, awaiting the agreement of BOTH parties.
   v.literal('proposed'),
   v.literal('active'),
   v.literal('paused'),
   v.literal('ended'),
-  // Une des parties a refusé la proposition : le binôme n'a jamais existé.
+  // One of the parties declined the proposal: the pair never existed.
   v.literal('declined'),
 );
 export type PairStatus =
@@ -106,9 +106,9 @@ export const callDecisionValidator = v.union(
 );
 export type CallDecision = 'selected' | 'waitlisted' | 'rejected';
 
-// --- Bornes des champs --------------------------------------------------------
-// Partagées avec les formulaires (même import) : compteur, `maxLength` et refus
-// serveur lisent les mêmes nombres.
+// --- Field bounds -------------------------------------------------------------
+// Shared with the forms (same import): counter, `maxLength` and server
+// rejection read the same numbers.
 export const PROGRAMME_LIMITS = {
   shortText: 160,
   text: 4000,
@@ -120,34 +120,34 @@ export const PROGRAMME_LIMITS = {
   maxCriteria: 10,
   maxDocuments: 10,
   maxSteps: 40,
-  // Une séance de plus de huit heures est une saisie erronée, pas une séance.
+  // A session longer than eight hours is a data-entry error, not a session.
   maxSessionMinutes: 480,
   maxMentorCapacity: 5,
   maxScore: 5,
   maxFileBytes: 10 * 1024 * 1024,
 } as const;
 
-// Inactivité d'un binôme (F-59) : au-delà de ce délai sans séance journalisée,
-// le coordinateur est alerté. Quatre semaines = un rendez-vous mensuel manqué,
-// le rythme minimal que le programme promet (« un vrai suivi »).
+// Pair inactivity (F-59): beyond this delay without a logged session, the
+// coordinator is alerted. Four weeks = one missed monthly meeting, the
+// minimum pace the programme promises ("real follow-up").
 export const INACTIVITY_WEEKS = 4;
 export const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-// --- Appariement (F-59) --------------------------------------------------------
+// --- Matching (F-59) -----------------------------------------------------------
 //
-// Le score est une SOMME DE RAISONS : chaque composante rend les points
-// qu'elle apporte et ce qui les justifie, pour que le coordinateur lise
-// pourquoi un mentor est proposé (« 2 thèmes communs, français en commun, même
-// région, 1 binôme sur 2 ») au lieu d'un nombre opaque. Barème sur 100 :
+// The score is a SUM OF REASONS: each component returns the points it
+// contributes and what justifies them, so the coordinator reads why a mentor
+// is suggested ("2 shared themes, French in common, same region, 1 of 2
+// pairs") instead of an opaque number. Scale out of 100:
 //
-//   thèmes communs      15 par thème, plafonné à 45
-//   langue commune      25 (au moins une)
-//   région / fuseau     15 même région, sinon 10 à ≤ 3 h d'écart, 5 à ≤ 6 h
-//   charge du mentor    15 × place restante / capacité
+//   shared themes       15 per theme, capped at 45
+//   shared language     25 (at least one)
+//   region / timezone   15 same region, else 10 at ≤ 3 h apart, 5 at ≤ 6 h
+//   mentor load         15 × remaining slots / capacity
 //
-// Un mentor à capacité pleine n'est PAS proposé : le proposer quand même
-// reviendrait à demander au coordinateur de refaire le calcul à la main.
-// Déterministe : aucun aléa, et l'égalité se départage par l'identifiant.
+// A mentor at full capacity is NOT suggested: suggesting them anyway would
+// amount to asking the coordinator to redo the calculation by hand.
+// Deterministic: no randomness, and ties are broken by identifier.
 
 export type MatchProfile = {
   themes: readonly string[];
@@ -224,8 +224,8 @@ export function scoreMatch(
   };
 }
 
-// Classe des candidats mentors. Égalité -> identifiant croissant : deux appels
-// avec les mêmes données rendent le même ordre.
+// Ranks mentor candidates. Tie -> ascending identifier: two calls with the
+// same data return the same order.
 export function rankMatches<T extends { id: string; score: MatchScore }>(
   candidates: readonly T[],
   limit = 5,
@@ -244,10 +244,10 @@ export function rankMatches<T extends { id: string; score: MatchScore }>(
     .slice(0, limit);
 }
 
-// --- Inactivité d'un binôme ------------------------------------------------
-// Référence = dernière séance, à défaut le début du binôme. Une alerte déjà
-// émise dans la même fenêtre n'est pas répétée : le coordinateur est prévenu
-// une fois par période d'inactivité, pas chaque nuit.
+// --- Pair inactivity -------------------------------------------------------
+// Reference = last session, failing that the start of the pair. An alert
+// already raised in the same window is not repeated: the coordinator is
+// notified once per inactivity period, not every night.
 export function isPairInactive(
   pair: {
     status: PairStatus;
@@ -272,10 +272,10 @@ export function isPairInactive(
   return true;
 }
 
-// --- Fenêtre d'un appel à projets (F-60) ----------------------------------
-// Les bornes sont des instants UTC ; le fuseau de l'appel ne sert qu'à les
-// AFFICHER. Ouverture incluse, clôture exclue : à 23:59:59 le dépôt passe, à
-// l'instant de clôture il est refusé.
+// --- Call for projects window (F-60) --------------------------------------
+// The bounds are UTC instants; the call's timezone is only used to DISPLAY
+// them. Opening included, closing excluded: at 23:59:59 the submission goes
+// through, at the closing instant it is refused.
 export type CallWindowState = 'upcoming' | 'open' | 'closed';
 
 export function callWindowState(
@@ -296,11 +296,11 @@ export function isValidTimeZone(tz: string): boolean {
   }
 }
 
-// --- Contenu d'une pièce jointe ---------------------------------------------
-// On ne croit ni l'extension ni le type annoncé par le navigateur : on lit les
-// premiers octets. Formats acceptés : PDF, PNG, JPEG, et les documents
-// bureautiques ouverts ou Office (conteneur ZIP). Un exécutable renommé en
-// `.pdf` est refusé ici, avant d'être référencé par une candidature.
+// --- Attachment content -----------------------------------------------------
+// We trust neither the extension nor the type announced by the browser: we
+// read the first bytes. Accepted formats: PDF, PNG, JPEG, and open or Office
+// documents (ZIP container). An executable renamed to `.pdf` is refused here,
+// before being referenced by an application.
 export type SniffedType =
   'application/pdf' | 'image/png' | 'image/jpeg' | 'application/zip';
 
@@ -315,11 +315,11 @@ export function sniffFileType(bytes: Uint8Array): SniffedType | null {
   return null;
 }
 
-// --- Évaluation et classement (F-60) ----------------------------------------
+// --- Evaluation and ranking (F-60) ------------------------------------------
 export type Criterion = { key: string; label: string; weight: number };
 
-// Note pondérée d'UNE évaluation, sur 100. Un critère non noté invalide la
-// grille : on ne classe pas sur une évaluation à moitié remplie.
+// Weighted score of ONE evaluation, out of 100. An unscored criterion
+// invalidates the grid: we do not rank on a half-filled evaluation.
 export function weightedScore(
   criteria: readonly Criterion[],
   scores: readonly { criterionKey: string; score: number }[],
@@ -341,9 +341,9 @@ export type RankInput = {
   evaluations: { conflict: boolean; score: number | null }[];
 };
 
-// Classement : moyenne des évaluations RECEVABLES — un évaluateur en conflit
-// d'intérêts déclaré est exclu, une grille incomplète aussi. Une candidature
-// sans évaluation recevable est classée en dernier, sans note.
+// Ranking: average of ADMISSIBLE evaluations — an evaluator with a declared
+// conflict of interest is excluded, so is an incomplete grid. An application
+// without an admissible evaluation is ranked last, without a score.
 export function rankApplications(inputs: readonly RankInput[]) {
   return inputs
     .map((a) => {
@@ -375,8 +375,8 @@ export function rankApplications(inputs: readonly RankInput[]) {
     .map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-// Code d'attestation (F-57) : lisible, recopiable, dérivé de l'inscription.
-// Pas un secret — il identifie l'attestation, il ne l'authentifie pas.
+// Certificate code (F-57): readable, copyable, derived from the enrolment.
+// Not a secret — it identifies the certificate, it does not authenticate it.
 export function certificateCode(enrollmentId: string, completedAt: number) {
   let h = 2166136261;
   const input = `${enrollmentId}:${completedAt}`;
@@ -388,9 +388,8 @@ export function certificateCode(enrollmentId: string, completedAt: number) {
   return `DT-${hex.slice(0, 4)}-${hex.slice(4)}`;
 }
 
-// Nettoyage des listes de vocabulaire reçues du client : dédoublonne, ne garde
-// que les valeurs connues. Une valeur inconnue est une erreur de saisie, pas
-// une donnée à stocker.
+// Cleans vocabulary lists received from the client: deduplicates, keeps only
+// known values. An unknown value is an input error, not data to store.
 export function cleanVocabulary(
   values: readonly string[],
   allowed: readonly string[],
@@ -400,18 +399,18 @@ export function cleanVocabulary(
   return unique;
 }
 
-// Adresse d'une étape de parcours ou d'une ressource : absolue (http/https)
-// ou chemin interne du site (`/replays/…`), sans schéma exotique ni `//hôte`.
+// Address of a path step or a resource: absolute (http/https) or an internal
+// site path (`/replays/…`), with no exotic scheme or `//host`.
 export function isStepUrl(value: string): boolean {
   const s = value.trim();
   if (/^\/[A-Za-z0-9\-._~/%]*$/.test(s) && !s.startsWith('//')) return true;
   return isHttpUrl(s);
 }
 
-// --- Heure « murale » d'un fuseau <-> instant UTC ---------------------------
-// Le back-office saisit l'ouverture et la clôture telles que l'appel les
-// annonce (« 30 novembre, 18 h, heure de Dakar »). Ces deux fonctions font la
-// conversion avec `Intl` seul, heure d'été comprise, sans dépendance.
+// --- Timezone "wall clock" time <-> UTC instant -----------------------------
+// The back office enters the opening and closing as the call announces them
+// ("30 November, 6 pm, Dakar time"). These two functions do the conversion
+// with `Intl` alone, daylight saving included, with no dependency.
 function partsInZone(ms: number, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -448,20 +447,20 @@ function offsetAt(ms: number, timeZone: string): number {
   return asUtc - Math.floor(ms / 1000) * 1000;
 }
 
-// « 2026-11-30T18:00 » dans `timeZone` -> instant UTC (ms). `NaN` si illisible.
+// "2026-11-30T18:00" in `timeZone` -> UTC instant (ms). `NaN` if unreadable.
 export function zonedInputToUtc(value: string, timeZone: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   if (!m) return NaN;
   const wall = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
   let guess = wall - offsetAt(wall, timeZone);
-  // Second passage : l'écart peut changer de part et d'autre d'un passage à
-  // l'heure d'été.
+  // Second pass: the offset can change on either side of a daylight saving
+  // transition.
   guess = wall - offsetAt(guess, timeZone);
   return guess;
 }
 
-// Instant UTC -> « 2026-11-30T18:00 » dans `timeZone` (valeur d'un champ
-// `datetime-local`).
+// UTC instant -> "2026-11-30T18:00" in `timeZone` (value of a
+// `datetime-local` field).
 export function utcToZonedInput(ms: number, timeZone: string): string {
   const p = partsInZone(ms, timeZone);
   const pad = (n: number) => String(n).padStart(2, '0');

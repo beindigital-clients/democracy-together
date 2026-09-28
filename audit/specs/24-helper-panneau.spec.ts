@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { ouvrirPanneau, cliquerJusqua } from '../../tests/e2e/_panneau';
 
-// Le helper d'ouverture de panneau est lui-même testé — sur une page
-// SYNTHÉTIQUE, parce que la suite E2E du dépôt exige un déploiement Convex que
-// l'environnement d'audit n'a pas. Ce qu'on vérifie ici est justement ce qui ne
-// dépend pas du produit : le comportement du helper face à un premier clic
-// perdu, face à une bascule, et face à un panneau qui ne s'ouvre jamais.
+// The panel-opening helper is itself tested — on a SYNTHETIC
+// page, because the repo's E2E suite requires a Convex deployment that
+// the audit environment does not have. What we check here is precisely what does not
+// depend on the product: the helper's behavior on a lost first
+// click, on a toggle, and on a panel that never opens.
 
-/** Page à un bouton, qui IGNORE ses `perdus` premiers clics. */
+/** One-button page that IGNORES its first `perdus` clicks. */
 function pageAvecClicsPerdus(perdus: number) {
   return `<!doctype html><meta charset="utf-8"><body>
     <button id="d">Ouvrir</button>
@@ -34,8 +34,8 @@ test('aucun clic perdu : UN SEUL clic — une bascule ne doit pas se refermer', 
 }) => {
   await page.setContent(pageAvecClicsPerdus(0));
   await ouvrirPanneau(page.locator('#d'), page.locator('#p'), 'synthétique');
-  // Le cœur du helper : il ne re-clique que tant que le panneau est FERMÉ.
-  // Un helper qui cliquerait en aveugle refermerait la bascule ici.
+  // The heart of the helper: it only re-clicks while the panel is CLOSED.
+  // A helper that clicked blindly would close the toggle again here.
   await expect(page.locator('#p')).toBeVisible();
 });
 
@@ -43,15 +43,15 @@ test('panneau qui ne s’ouvre jamais : le test échoue toujours', async ({
   page,
 }) => {
   await page.setContent(pageAvecClicsPerdus(9999));
-  // La garantie qui empêche ce helper d'être une mise sous le tapis.
+  // The guarantee that keeps this helper from sweeping things under the rug.
   await expect(
     ouvrirPanneau(page.locator('#d'), page.locator('#p'), 'synthétique'),
   ).rejects.toThrow();
 });
 
-// --- cliquerJusqua : même symptôme, effet non localisable ------------------
+// --- cliquerJusqua: same symptom, effect not localizable ------------------
 
-/** Page dont le bouton n'agit qu'au `perdus+1`-ième clic, de façon IDEMPOTENTE. */
+/** Page whose button only acts on the `perdus+1`-th click, IDEMPOTENTLY. */
 function pageEffetIdempotent(perdus: number) {
   return `<!doctype html><meta charset="utf-8"><body>
     <button id="d">Agir</button>

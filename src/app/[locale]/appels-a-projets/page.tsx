@@ -37,7 +37,7 @@ export default async function ProjectsPage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const t = await getTranslations('projects');
-  const tl = await getTranslations('library'); // libellés themes.*
+  const tl = await getTranslations('library'); // themes.* labels
   const intro = getProjectsIntro(loc);
 
   return (
@@ -56,8 +56,8 @@ export default async function ProjectsPage({
         </Reveal>
       </header>
 
-      {/* Appels datés (F-60) : ouverts, à venir, archivés. Rendu client — le
-          classement dépend de l'heure du visiteur. */}
+      {/* Dated calls (F-60): open, upcoming, archived. Client rendering — the
+          classification depends on the visitor's time. */}
       <section className="mt-12" aria-labelledby="calls-h">
         <Reveal>
           <h2 id="calls-h" className="font-display text-2xl leading-tight">
@@ -70,7 +70,7 @@ export default async function ProjectsPage({
         <CallsList />
       </section>
 
-      {/* Principe du dispositif */}
+      {/* How the scheme works */}
       <section className="mt-12 max-w-[68ch]" aria-labelledby="principle-h">
         <Reveal>
           <h2 id="principle-h" className="font-display text-2xl leading-tight">
@@ -84,7 +84,7 @@ export default async function ProjectsPage({
         </Reveal>
       </section>
 
-      {/* Axes éligibles (cadre, pas une liste d'appels) */}
+      {/* Eligible axes (framework, not a list of calls) */}
       <section className="mt-12" aria-labelledby="scope-h">
         <Reveal>
           <h2 id="scope-h" className="font-display text-2xl leading-tight">
@@ -105,7 +105,7 @@ export default async function ProjectsPage({
         </RevealGroup>
       </section>
 
-      {/* Critères qualitatifs */}
+      {/* Qualitative criteria */}
       <section className="mt-12" aria-labelledby="criteria-h">
         <Reveal>
           <h2 id="criteria-h" className="font-display text-2xl leading-tight">
@@ -131,7 +131,7 @@ export default async function ProjectsPage({
         </RevealGroup>
       </section>
 
-      {/* Accompagnement du réseau */}
+      {/* Network support */}
       <section className="mt-12" aria-labelledby="support-h">
         <Reveal>
           <h2 id="support-h" className="font-display text-2xl leading-tight">
@@ -159,7 +159,7 @@ export default async function ProjectsPage({
         </Reveal>
       </section>
 
-      {/* Proposer un projet (réservé aux membres) */}
+      {/* Propose a project (members only) */}
       <section className="mt-14 max-w-[68ch]" aria-labelledby="propose-h">
         <Reveal>
           <h2 id="propose-h" className="font-display text-2xl leading-tight">
@@ -168,8 +168,8 @@ export default async function ProjectsPage({
           <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
             {t('proposeLead')}
           </p>
-          {/* Proposition LIBRE, hors appel : conservée telle quelle (cf. la
-              décision en tête de convex/projectCalls.ts). */}
+          {/* FREE proposal, outside any call: kept as is (cf. the
+              decision at the top of convex/projectCalls.ts). */}
           <p className="mt-2 text-[14px] leading-relaxed text-muted">
             {t('outsideCallNote')}
           </p>

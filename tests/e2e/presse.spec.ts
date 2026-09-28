@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// F-16 — Espace presse / kit média : page publique sans backend (contenu local
-// bilingue). Boilerplate + faits clés + contact presse (vers /contact) +
-// ressources (à-propos et données ouvertes du Baromètre).
+// F-16 — Press area / media kit: public page without a backend (local
+// bilingual content). Boilerplate + key facts + press contact (to /contact) +
+// resources (about page and the Barometer's open data).
 
 test('presse : la page répond et affiche le h1 (F-16)', async ({ page }) => {
   await page.goto('/fr/presse');
@@ -10,14 +10,14 @@ test('presse : la page répond et affiche le h1 (F-16)', async ({ page }) => {
     page.getByRole('heading', { level: 1, name: 'Espace presse & kit média' }),
   ).toBeVisible();
 
-  // Bloc faits clés : au moins 4 cartes.
+  // Key facts block: at least 4 cards.
   const cards = page.locator('article');
   expect(await cards.count()).toBeGreaterThanOrEqual(4);
 
-  // Contact presse vers /contact.
+  // Press contact to /contact.
   await expect(page.locator('a[href$="/contact"]').last()).toBeVisible();
 
-  // Ressources : lien vers /a-propos et vers les données ouvertes du Baromètre.
+  // Resources: link to /a-propos and to the Barometer's open data.
   await expect(page.locator('a[href$="/a-propos"]').last()).toBeVisible();
   await expect(
     page.locator('a[href$="/barometre/data/composite.csv"]'),

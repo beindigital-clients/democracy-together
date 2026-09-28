@@ -1,22 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Config d'AUDIT (lecture seule, hors arborescence du projet).
-// Trois écarts assumés avec playwright.config.ts, tous documentés :
-//  1. `executablePath` explicite : l'environnement fournit Chromium build 1194,
-//     le Playwright épinglé (1.61.1) en réclame 1228 et refuse de démarrer.
-//  2. aucune dépendance au projet `setup` : aucun déploiement Convex n'est
-//     disponible ici, donc aucune session ne peut être ouverte.
-//  3. le consentement aux cookies est CONSTRUIT pour l'origine réellement
-//     servie, au lieu d'être lu dans `tests/e2e/cookie-consent-state.json`.
-//     Ce fichier fige l'origine `http://localhost:3000` ; or le localStorage
-//     est cloisonné par origine, donc dès qu'`AUDIT_BASE_URL` désigne un autre
-//     port le consentement ne s'applique plus SANS RIEN SIGNALER : le bandeau
-//     réapparaît, `fixed inset-x-0 bottom-0 z-[80]`, et il intercepte les clics
-//     sur le pied de page en plus de s'ajouter à chaque scan d'accessibilité.
-//     Mesuré : un clic sur le bouton de thème échouait à chaque essai, avec
-//     « <div role="region" aria-label="Gestion des cookies"> intercepts
-//     pointer events » — un défaut d'instrument pris un moment pour un
-//     résultat.
+// AUDIT config (read-only, outside the project tree).
+// Three deliberate deviations from playwright.config.ts, all documented:
+//  1. explicit `executablePath`: the environment provides Chromium build 1194,
+//     the pinned Playwright (1.61.1) asks for 1228 and refuses to start.
+//  2. no dependency on the `setup` project: no Convex deployment is
+//     available here, so no session can be opened.
+//  3. cookie consent is BUILT for the origin actually
+//     served, instead of being read from `tests/e2e/cookie-consent-state.json`.
+//     That file hard-codes the origin `http://localhost:3000`; but localStorage
+//     is partitioned by origin, so as soon as `AUDIT_BASE_URL` points to another
+//     port the consent no longer applies, WITHOUT ANY SIGNAL: the banner
+//     reappears, `fixed inset-x-0 bottom-0 z-[80]`, and it intercepts clicks
+//     on the footer on top of being added to every accessibility scan.
+//     Measured: a click on the theme button failed on every attempt, with
+//     "<div role="region" aria-label="Gestion des cookies"> intercepts
+//     pointer events" — an instrument defect briefly mistaken for a
+//     result.
 const CHROME = '/opt/pw-browsers/chromium';
 const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
 const CONSENTI = {

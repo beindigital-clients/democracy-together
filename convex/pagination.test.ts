@@ -15,12 +15,12 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Pagination des listes du back-office (issue #8).
+// Pagination of back-office lists (issue #8).
 //
-// Deux propriétés, et rien d'autre : une page tient la taille demandée et le
-// curseur ramène la suite SANS trou ni doublon ; et la taille demandée est
-// REPLAFONNÉE côté serveur — sinon `numItems: 1e6`, que le client choisit,
-// ressuscite exactement le scan de table que la pagination remplace.
+// Two properties, and nothing else: a page holds the requested size and the
+// cursor brings back the rest WITHOUT gaps or duplicates; and the requested size is
+// RE-CAPPED server-side — otherwise `numItems: 1e6`, which the client chooses,
+// revives exactly the table scan that pagination replaces.
 
 function pubDoc(i: number, over: Record<string, unknown> = {}) {
   return {
@@ -47,7 +47,7 @@ function pubDoc(i: number, over: Record<string, unknown> = {}) {
   };
 }
 
-// Parcourt toutes les pages d'une liste et rend les lignes bout à bout.
+// Walks through all pages of a list and returns the rows end to end.
 async function drain<T>(
   next: (cursor: string | null) => Promise<{
     page: T[];
@@ -98,7 +98,7 @@ describe('Back-office — pagination des listes (issue #8)', () => {
     const emails = all.map((u) => u.email);
     expect(emails).toHaveLength(8);
     expect(new Set(emails).size).toBe(8);
-    // L'ordre vient de l'index `email`, plus d'un tri en mémoire.
+    // The order comes from the `email` index, no longer from an in-memory sort.
     expect(emails).toEqual([...emails].sort());
   });
 
@@ -108,7 +108,7 @@ describe('Back-office — pagination des listes (issue #8)', () => {
       for (let i = 0; i < 5; i++) {
         await ctx.db.insert('publications', pubDoc(i));
       }
-      // Une publiée : elle ne doit PAS apparaître dans la file « en attente ».
+      // A published one: it must NOT appear in the "pending" queue.
       await ctx.db.insert(
         'publications',
         pubDoc(99, { status: 'published', slug: 'pub-99' }),
@@ -159,7 +159,7 @@ describe('Back-office — pagination des listes (issue #8)', () => {
       });
     });
 
-    // Ce que faisait `limit` sans plafond : tout relire d'un coup.
+    // What `limit` without a cap did: re-read everything at once.
     const res = await t
       .withIdentity({ subject: `${adminId}|s` })
       .query(api.journal.listAuditLog, {
@@ -173,7 +173,7 @@ describe('Back-office — pagination des listes (issue #8)', () => {
   it('getReviewQueue : ne remonte que les publications engagées dans une revue', async () => {
     const t = convexTest(schema, modules);
     const editorId = await t.run(async (ctx) => {
-      // Trois en revue, une à chaque étape…
+      // Three under review, one at each stage…
       await ctx.db.insert(
         'publications',
         pubDoc(1, { slug: 'r-in', reviewStage: 'in_review' }),
@@ -186,7 +186,7 @@ describe('Back-office — pagination des listes (issue #8)', () => {
         'publications',
         pubDoc(3, { slug: 'r-done', reviewStage: 'reviewed' }),
       );
-      // … et deux hors revue, qui ne doivent jamais être lues.
+      // … and two out of review, which must never be read.
       await ctx.db.insert('publications', pubDoc(4, { slug: 'hors-1' }));
       await ctx.db.insert('publications', pubDoc(5, { slug: 'hors-2' }));
       return await ctx.db.insert('users', {
@@ -207,7 +207,7 @@ describe('Back-office — pagination des listes (issue #8)', () => {
       'r-rev',
     ]);
 
-    // Filtre par étape : une seule étape, via la même plage d'index.
+    // Filter by stage: a single stage, via the same index range.
     const revision = await as.query(api.peerReview.getReviewQueue, {
       stage: 'revision',
       paginationOpts: { numItems: 10, cursor: null },
@@ -228,8 +228,8 @@ describe('Back-office — sélecteur de relecteurs (issue #8)', () => {
       await ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' });
       await ctx.db.insert('users', { role: 'membre', email: 'm@test.org' });
       await ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' });
-      // Compte hérité, sans colonne `role` : absent de l'index `by_role` sous
-      // une valeur de staff, donc absent du sélecteur.
+      // Legacy account, without a `role` column: absent from the `by_role` index under
+      // a staff value, hence absent from the selector.
       await ctx.db.insert('users', { email: 'ancien@test.org' });
       return await ctx.db.insert('users', {
         role: 'editeur',
