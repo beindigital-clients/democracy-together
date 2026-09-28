@@ -457,10 +457,12 @@ export async function chercherUtilisateur(
   // keeps dozens of them. Measured — 50 rows remaining where an
   // assertion of "no more foreign rows" expected one.
   //
-  // The race is therefore neutralized AT THE SOURCE, on the product side: the
-  // list is frozen while a confirmation is open (`utilisateurs/page.tsx`), so
-  // that a query coming back in the meantime can no longer take the dialog with it.
-  // This helper has nothing to compensate for.
+  // The race is therefore neutralized AT THE SOURCE, on the product side
+  // (`utilisateurs/page.tsx`): the last settled rows stay mounted while a new
+  // page loads, so a prepared role survives the search landing, and the list
+  // is frozen while a confirmation is open, so a query coming back in the
+  // meantime can no longer take the dialog with it. This helper has nothing
+  // to compensate for.
   await expect(
     page.getByRole('row').filter({ hasText: email }),
     `compte introuvable après recherche : ${email}`,

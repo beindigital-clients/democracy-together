@@ -147,12 +147,15 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
     expect(screen.getByText(CIBLE)).toBeTruthy();
   });
 
-  it('sans confirmation ouverte, un rechargement montre « Chargement… »', () => {
-    // The freeze is LIMITED to the action. Outside of it, the screen says what it is doing, as
-    // before: without this limit, a stale list would stay displayed
-    // indefinitely after a search change.
+  it('un rôle préparé survit au rechargement de la liste (recherche différée)', () => {
+    // THE THIRD PATH, seen in CI (a11y-clavier.spec.ts): the debounced
+    // search lands between choosing a role and pressing "Appliquer". The
+    // freeze only covers an OPEN dialog; the rows must not unmount before.
     const { rerender } = afficher();
-    expect(screen.getByText(CIBLE)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(`Rôle ${CIBLE}`), {
+      target: { value: 'moderateur' },
+    });
+    expect(screen.getByRole('button', { name: /Appliquer/ })).toBeTruthy();
 
     convex.page = { results: [], status: 'LoadingFirstPage' as never };
     rerender(
@@ -161,7 +164,49 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
       </NextIntlClientProvider>,
     );
 
-    expect(screen.getByText('Chargement…')).toBeTruthy();
+    // The last settled rows stay, marked busy, and the draft with them.
+    expect(screen.queryByText('Chargement…')).toBeNull();
+    expect(screen.getByRole('table').getAttribute('aria-busy')).toBe('true');
+    expect(screen.getByLabelText(`Rôle ${CIBLE}`).value).toBe('moderateur');
+    expect(screen.getByRole('button', { name: /Appliquer/ })).toBeTruthy();
+
+    // The new page arrives with the same account: the row, keyed by
+    // account, is the same one — the draft is still there.
+    convex.page = {
+      results: [{ _id: 'u2', email: CIBLE, name: null, role: 'membre' }],
+      status: 'Exhausted',
+    };
+    rerender(
+      <NextIntlClientProvider locale="fr" messages={fr}>
+        <AdminUsers />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole('table').getAttribute('aria-busy')).toBeNull();
+    expect(screen.getByRole('button', { name: /Appliquer/ })).toBeTruthy();
+  });
+
+  it('la nouvelle page remplace les anciennes lignes dès qu’elle arrive', () => {
+    // Keeping the old rows is bounded by the load: they never outlive it.
+    const { rerender } = afficher();
+    convex.page = { results: [], status: 'LoadingFirstPage' as never };
+    rerender(
+      <NextIntlClientProvider locale="fr" messages={fr}>
+        <AdminUsers />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByText(CIBLE)).toBeTruthy();
+
+    const AUTRE = 'autre@democracytogether.test';
+    convex.page = {
+      results: [{ _id: 'u3', email: AUTRE, name: null, role: 'membre' }],
+      status: 'Exhausted',
+    };
+    rerender(
+      <NextIntlClientProvider locale="fr" messages={fr}>
+        <AdminUsers />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByText(AUTRE)).toBeTruthy();
     expect(screen.queryByText(CIBLE)).toBeNull();
   });
 
