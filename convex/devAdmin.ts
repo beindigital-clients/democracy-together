@@ -3,6 +3,7 @@ import { internalMutation } from './_generated/server';
 import { COUNTER, bumpCounter, trackPublicationStatus } from './lib/counters';
 import { networkRole } from './schema';
 import { normalizeEmail } from './lib/onboarding';
+import { publicationSearchText } from './lib/searchText';
 
 // DEV/TEST UNIQUEMENT — internalMutation (HORS API publique, comme
 // purgeUserByEmail) : invocable seulement depuis le serveur ou la CLI
@@ -257,7 +258,14 @@ export const enrichPublication = internalMutation({
     );
     let patched = 0;
     for (const p of pubs) {
-      await ctx.db.patch(p._id, patch);
+      // Les points clés font partie de la meule de recherche : la corriger
+      // sans la recalculer laisserait l'index sur l'ancien texte.
+      await ctx.db.patch(p._id, {
+        ...patch,
+        ...(keypoints !== undefined
+          ? { searchText: publicationSearchText({ ...p, keypoints }) }
+          : {}),
+      });
       patched++;
     }
     return { patched };

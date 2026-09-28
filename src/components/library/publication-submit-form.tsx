@@ -26,8 +26,22 @@ import {
 import { isRateLimited } from '@/lib/errors';
 import { UPLOAD_FAILED, uploadWithProgress } from '@/lib/upload';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Check } from 'lucide-react';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 const MAX_FILE_MB = 20;
+
+// Le CONTENU, pas l'extension : un `.txt` renommé `.pdf`, ou un fichier vide,
+// passait le sélecteur (`accept`) et le serveur, qui ne peut relire que la
+// taille et le type annoncé (mesuré le 27/09). Un PDF commence par `%PDF-`.
+async function looksLikePdf(file: File): Promise<boolean> {
+  if (file.size < 5) return false;
+  try {
+    return (await file.slice(0, 5).text()) === '%PDF-';
+  } catch {
+    return true; // navigateur sans `Blob.text()` : on laisse le serveur trancher
+  }
+}
 const CURRENT_YEAR = new Date().getFullYear();
 
 type Status = 'idle' | 'uploading' | 'sending' | 'success';
@@ -121,6 +135,8 @@ export function PublicationSubmitForm() {
     if (languages.length === 0) groups.languages = t('submit.errLanguages');
     if (file && file.size > MAX_FILE_MB * 1024 * 1024) {
       groups.file = t('submit.errorFileSize', { mb: MAX_FILE_MB });
+    } else if (file && !(await looksLikePdf(file))) {
+      groups.file = t('submit.errorFileType');
     }
     setGroupErrors(groups);
 
@@ -207,7 +223,9 @@ export function PublicationSubmitForm() {
           ? t('submit.rateLimited')
           : err instanceof Error && err.message === UPLOAD_FAILED
             ? t('submit.errorFile')
-            : t('submit.errorGeneric'),
+            : err instanceof Error && /INVALID_FILE/.test(err.message)
+              ? t('submit.errorFileType')
+              : t('submit.errorGeneric'),
       );
       // La saisie reste en place : un refus n'est pas une raison de tout
       // reprendre (le fichier choisi non plus).
@@ -218,10 +236,7 @@ export function PublicationSubmitForm() {
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8"
-      >
+      <StatusMessage className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8">
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-accent-tint text-accent-text">
           <svg
             width="22"
@@ -253,7 +268,7 @@ export function PublicationSubmitForm() {
             {t('submit.submitAnother')}
           </Button>
         </div>
-      </div>
+      </StatusMessage>
     );
   }
 
@@ -329,9 +344,11 @@ export function PublicationSubmitForm() {
           {PUB_LANGS.map((l) => {
             const checked = languages.includes(l);
             return (
+              // Focus sur la pastille (RGAA 10.7), coche en plus de la
+              // couleur (RGAA 3.1) : la case elle-même est masquée.
               <label
                 key={l}
-                className={`cursor-pointer rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
                   checked
                     ? 'border-accent-edge bg-accent-tint text-accent-text'
                     : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
@@ -343,6 +360,9 @@ export function PublicationSubmitForm() {
                   onChange={() => toggleLang(l)}
                   className="sr-only"
                 />
+                {checked ? (
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : null}
                 {vocabulary(t, 'langs.', l)}
               </label>
             );
@@ -359,11 +379,13 @@ export function PublicationSubmitForm() {
         <legend className="text-sm text-ink-soft">
           {t('submit.fieldAccess')}
         </legend>
-        <div className="mt-2 flex flex-wrap gap-2" role="radiogroup">
+        {/* Sans `role="radiogroup"` anonyme : le `<fieldset>` nomme le
+            groupe (RGAA 11.6). */}
+        <div className="mt-2 flex flex-wrap gap-2">
           {PUB_ACCESS.map((a) => (
             <label
               key={a}
-              className={`cursor-pointer rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
                 access === a
                   ? 'border-accent-edge bg-accent-tint text-accent-text'
                   : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
@@ -377,6 +399,9 @@ export function PublicationSubmitForm() {
                 onChange={() => setAccess(a)}
                 className="sr-only"
               />
+              {access === a ? (
+                <Check className="h-3.5 w-3.5" aria-hidden="true" />
+              ) : null}
               {vocabulary(t, 'access.', a)}
             </label>
           ))}

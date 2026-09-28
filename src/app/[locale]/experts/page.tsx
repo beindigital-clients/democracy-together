@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
@@ -21,11 +22,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/experts`,
-      languages: {
-        fr: `${SITE}/fr/experts`,
-        en: `${SITE}/en/experts`,
-        'x-default': `${SITE}/fr/experts`,
-      },
+      languages: hreflangFor(`experts`),
     },
   };
 }

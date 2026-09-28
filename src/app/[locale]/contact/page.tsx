@@ -15,6 +15,8 @@ import { Reveal } from '@/components/motion/reveal';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { FIELD_MAX } from '@convex/lib/validation';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 export default function ContactPage() {
   const t = useTranslations('contact');
@@ -42,7 +44,16 @@ export default function ContactPage() {
         name: (v) => (v.trim().length < 2 ? t('errName') : null),
         email: (v) => (isEmail(v) ? null : t('errEmail')),
         subject: (v) => (v.trim().length < 2 ? t('errSubject') : null),
-        body: (v) => (v.trim().length < 10 ? t('errMessage') : null),
+        // La borne HAUTE est celle du serveur (pentest M-2). Sans elle, un
+        // message de 4 001 caractères était refusé par `INVALID_BODY` et
+        // l'écran répondait « réessayez » — une consigne qui ne peut pas
+        // aboutir, faute de dire la limite.
+        body: (v) =>
+          v.trim().length < 10
+            ? t('errMessage')
+            : v.trim().length > FIELD_MAX.body
+              ? t('errMessageTooLong', { max: FIELD_MAX.body })
+              : null,
       })
     ) {
       return;
@@ -100,14 +111,14 @@ export default function ContactPage() {
           className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8"
         >
           {status === 'success' ? (
-            <div role="status" className="py-6">
+            <StatusMessage className="py-6">
               <h2 className="font-display text-2xl text-ink">
                 {t('successTitle')}
               </h2>
               <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">
                 {t('successBody')}
               </p>
-            </div>
+            </StatusMessage>
           ) : (
             <form onSubmit={onSubmit} noValidate className="space-y-5">
               <TextField
@@ -131,16 +142,19 @@ export default function ContactPage() {
                 label={t('message')}
                 rows={6}
                 required
+                maxLength={FIELD_MAX.body}
                 placeholder={t('messagePlaceholder')}
                 {...field('body')}
               />
 
               <FormError>{error}</FormError>
 
+              {/* `min-h-11` : 40 px mesurés au doigt le 27/09 ; 44 px est la
+                  taille de cible recommandée sur mobile. */}
               <Button
                 type="submit"
                 disabled={status === 'pending'}
-                className="w-full sm:w-auto"
+                className="min-h-11 w-full sm:w-auto"
               >
                 {status === 'pending' ? t('sending') : t('send')}
               </Button>

@@ -11,7 +11,9 @@ export type IncomeLevel = 'high' | 'mid' | 'low';
 export type MemberType = 'org' | 'ind' | 'jeu';
 
 // Barème indicatif EUR/an : base par type au revenu élevé, atténuée par palier.
-// Paiement en euro (EUR) uniquement pour le moment.
+// Affiché tant que le barème RÉEL (table `paymentPlans`, F-27) n'est pas publié.
+// Pastilles : « reçu de paiement » et non « reçu fiscal » — l'éligibilité au
+// mécénat n'est pas acquise (cf. convex/lib/payments/config.ts).
 export const BASE_EUR: Record<MemberType, number> = {
   org: 1200,
   ind: 120,
@@ -66,8 +68,8 @@ export type MembershipContent = {
 const fr: MembershipContent = {
   pills: [
     'Cotisation solidaire',
-    'Reçu fiscal · loi 1901',
-    'Paiement en euro (EUR)',
+    'Reçu de paiement',
+    'Euro (EUR) ou dollar (USD)',
   ],
   intro: {
     eyebrow: 'Adhésion',
@@ -204,7 +206,7 @@ const fr: MembershipContent = {
       {
         q: 'Comment se passe le paiement de la cotisation ?',
         a: [
-          'Pour le moment, la cotisation et les dons se règlent en euro (EUR). Quel que soit votre pays, le paiement est traité dans cette devise ; votre banque applique le cas échéant sa propre conversion.',
+          'La cotisation et les dons se règlent par carte bancaire, en euro (EUR) ou en dollar des États-Unis (USD), au choix. Le paiement est traité dans la devise choisie ; votre banque applique le cas échéant sa propre conversion.',
           "Vous êtes basé en Afrique de l'Ouest ? Le bureau de Dakar peut vous accompagner pour le règlement et étudier d'autres moyens de paiement locaux.",
         ],
       },
@@ -239,8 +241,8 @@ const fr: MembershipContent = {
 const en: MembershipContent = {
   pills: [
     'Solidarity contribution',
-    'Tax receipt · loi 1901',
-    'Pay in euro (EUR)',
+    'Payment receipt',
+    'Euro (EUR) or US dollar (USD)',
   ],
   intro: {
     eyebrow: 'Membership',
@@ -377,7 +379,7 @@ const en: MembershipContent = {
       {
         q: 'How does contribution payment work?',
         a: [
-          'For now, contributions and donations are paid in euro (EUR). Whatever your country, payment is processed in this currency; your bank applies its own conversion if needed.',
+          'Contributions and donations are paid by bank card, in euro (EUR) or US dollar (USD), as you prefer. Payment is processed in the chosen currency; your bank applies its own conversion if needed.',
           'Based in West Africa? The Dakar office can help you with payment and look into other local payment methods.',
         ],
       },
@@ -410,7 +412,7 @@ const en: MembershipContent = {
 };
 
 const es: MembershipContent = {
-  pills: ['Cuota solidaria', 'Recibo fiscal · loi 1901', 'Pago en euros (EUR)'],
+  pills: ['Cuota solidaria', 'Recibo de pago', 'Euro (EUR) o dólar (USD)'],
   intro: {
     eyebrow: 'Adhesión',
     title: 'Elegir un tipo de adhesión',
@@ -546,7 +548,7 @@ const es: MembershipContent = {
       {
         q: '¿Cómo se paga la cuota?',
         a: [
-          'Por ahora, la cuota y las donaciones se abonan en euros (EUR). Sea cual sea su país, el pago se tramita en esa divisa; su banco aplicará, en su caso, su propia conversión.',
+          'La cuota y las donaciones se abonan con tarjeta bancaria, en euros (EUR) o en dólares estadounidenses (USD), a su elección. El pago se tramita en la divisa elegida; su banco aplicará, en su caso, su propia conversión.',
           '¿Reside en África Occidental? La oficina de Dakar puede acompañarle en el pago y estudiar otros medios de pago locales.',
         ],
       },
@@ -580,8 +582,8 @@ const es: MembershipContent = {
 const pt: MembershipContent = {
   pills: [
     'Quota solidária',
-    'Recibo fiscal · loi 1901',
-    'Pagamento em euros (EUR)',
+    'Recibo de pagamento',
+    'Euro (EUR) ou dólar (USD)',
   ],
   intro: {
     eyebrow: 'Adesão',
@@ -718,7 +720,7 @@ const pt: MembershipContent = {
       {
         q: 'Como se paga a quota?',
         a: [
-          'Por agora, a quota e os donativos são pagos em euros (EUR). Seja qual for o seu país, o pagamento é processado nessa moeda; o seu banco aplicará, se for caso disso, a sua própria conversão.',
+          'A quota e os donativos são pagos com cartão bancário, em euros (EUR) ou em dólares dos Estados Unidos (USD), à sua escolha. O pagamento é processado na moeda escolhida; o seu banco aplicará, se for caso disso, a sua própria conversão.',
           'Reside na África Ocidental? O escritório de Dakar pode acompanhá-lo no pagamento e estudar outros meios de pagamento locais.',
         ],
       },
@@ -750,7 +752,7 @@ const pt: MembershipContent = {
   },
 };
 const ar: MembershipContent = {
-  pills: ['اشتراك تضامني', 'وصل ضريبي · قانون 1901', 'الأداء باليورو (EUR)'],
+  pills: ['اشتراك تضامني', 'وصل أداء', 'اليورو (EUR) أو الدولار (USD)'],
   intro: {
     eyebrow: 'الانضمام',
     title: 'اختيار نوع العضوية',
@@ -874,7 +876,7 @@ const ar: MembershipContent = {
       {
         q: 'كيف يتم أداء الاشتراك؟',
         a: [
-          'في الوقت الحالي، يُؤدى الاشتراك وتُؤدى التبرعات باليورو (EUR). ومهما كان بلدكم، تُعالَج العملية بهذه العملة؛ ويطبّق بنككم عند الاقتضاء سعر صرفه الخاص.',
+          'يُؤدى الاشتراك وتُؤدى التبرعات بالبطاقة المصرفية، باليورو (EUR) أو بالدولار الأمريكي (USD)، حسب اختياركم. تُعالَج العملية بالعملة المختارة؛ ويطبّق بنككم عند الاقتضاء سعر صرفه الخاص.',
           'هل تقيمون في غرب أفريقيا؟ يمكن لمكتب داكار مرافقتكم في الأداء ودراسة وسائل دفع محلية أخرى.',
         ],
       },

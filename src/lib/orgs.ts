@@ -14,6 +14,9 @@ export type Facets = {
 export type DirectoryFilters = {
   region?: string;
   theme?: string;
+  // Codes ISO (pays alpha-2, langue 639-1), en minuscules dans l'URL.
+  country?: string;
+  language?: string;
   q?: string;
 };
 

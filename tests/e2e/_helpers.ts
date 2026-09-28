@@ -59,6 +59,25 @@ export async function seedDirectory(): Promise<void> {
   convexRun('seed:seedDirectory');
 }
 
+// Recopie le contenu codé (agenda, replays, partenaires, thématiques) dans les
+// tables du chantier « contenus ». IDEMPOTENT : la CI le fait déjà
+// (`e2e.yml`) ; en local, une spec qui dépend de l'agenda l'appelle pour ne
+// pas dépendre de l'état du déploiement de dev.
+export async function importCodedContent(): Promise<void> {
+  convexRun('contenus/migration:importCodedContent');
+}
+
+// Retire les contenus créés par les specs (slugs et fichiers `e2e-…`). Gardé
+// par AUTH_DEV_OTP côté Convex, comme les autres helpers de test.
+// `stamp` : l'horodatage de la spec — le ménage ne touche que SES contenus
+// (le même fichier tourne en parallèle sur le projet mobile).
+export async function deleteE2eContent(stamp?: number): Promise<void> {
+  convexRun(
+    'contenus/devCleanup:deleteE2eContent',
+    stamp === undefined ? {} : { stamp: String(stamp) },
+  );
+}
+
 type NetworkRole = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 // Élève le rôle d'un utilisateur (DEV, garde AUTH_DEV_OTP) — amorce un admin
@@ -85,6 +104,18 @@ export async function clearRole(email: string): Promise<void> {
 // publie une vraie publication.
 export async function deleteTestPublications(marker: string): Promise<void> {
   convexRun('devAdmin:deleteTestPublications', { marker });
+}
+
+// Valide les billets de la tribune EN ATTENTE dont le titre contient
+// `marker` (DEV, garde AUTH_DEV_OTP), comme le ferait un modérateur.
+//
+// Depuis la modération A PRIORI (F-45, chantier communauté), un billet soumis
+// n'est visible du public qu'après validation. Les specs qui publient pour
+// tester AUTRE CHOSE (signalement, canonical, retrait) passent donc par la
+// validation — sans rejouer l'écran de modération, qui a sa propre spec
+// (`communaute-tribune.spec.ts`).
+export async function approveTribunePosts(marker: string): Promise<void> {
+  convexRun('communityModeration:devApprovePendingByTitle', { marker });
 }
 
 // Dépose une candidature d'adhésion (F-22) — pour alimenter la file de modération.
@@ -171,6 +202,38 @@ export function newsletterUnsubToken(email: string) {
   return convexRunQuery<string | null>('newsletter:devUnsubToken', { email });
 }
 
+// Double opt-in (chantier diffusion) : état de l'abonnement et dernier lien
+// de confirmation « envoyé » — lus dans la boîte d'envoi de DÉVELOPPEMENT
+// (`devOutbox`, garde AUTH_DEV_OTP), exactement comme `getOtp` lit les codes.
+export function newsletterStatus(email: string) {
+  return convexRunQuery<'pending' | 'confirmed' | 'legacy' | null>(
+    'newsletter:devSubscriptionStatus',
+    { email },
+  );
+}
+
+// Le lien est écrit par une action planifiée juste après l'inscription : petit
+// retry, comme pour le code OTP.
+export async function getNewsletterConfirmationLink(
+  email: string,
+): Promise<string> {
+  for (let i = 0; i < 24; i++) {
+    const link = convexRunQuery<string | null>(
+      'newsletter:devLatestConfirmationLink',
+      { email },
+    );
+    if (link) return link;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`Aucun lien de confirmation trouvé pour ${email}`);
+}
+
+// Remplit les meules de recherche des documents seedés avant les index
+// `search_text` (migration idempotente, cf. convex/searchIndexing.ts).
+export async function backfillSearch(): Promise<void> {
+  convexRun('searchIndexing:backfill', {});
+}
+
 export function isEventRegistered(eventSlug: string, email: string) {
   return convexRunQuery<boolean>('events:isRegistered', { eventSlug, email });
 }
@@ -255,12 +318,10 @@ export const E2E_PASSWORD = 'phrase-de-passe-e2e';
 // avec `verify`, l'inscription n'ouvre pas de session : elle envoie un code,
 // qu'on relit puis qu'on présente en `email-verification`.
 //
-// À NOTER, et à traiter ailleurs : aucun écran de l'application ne fait cela.
-// L'e-mail d'invitation promet « vous pourrez en définir un depuis votre espace
-// membre » — cet écran n'existe pas, et `src/` ne contient aucun `flow:
-// 'signUp'`. Un membre invité ne peut donc PAS se donner de mot de passe ;
-// seule la connexion par code lui est ouverte. Ce helper passe par l'API parce
-// qu'il n'y a pas d'interface à exercer, pas pour contourner une interface.
+// L'écran `/espace-membre/mot-de-passe` fait la même chose par l'interface
+// depuis le lot 3 du 27/09 (`auth-mot-de-passe.spec.ts` l'exerce). Ce helper
+// garde le chemin API parce qu'il provisionne des comptes AVANT toute session —
+// pas pour contourner une interface.
 export async function provisionPassword(
   email: string,
   password: string,
@@ -403,4 +464,17 @@ export async function chercherUtilisateur(
     page.getByRole('row').filter({ hasText: email }),
     `compte introuvable après recherche : ${email}`,
   ).toHaveCount(1);
+}
+
+// Chantier « programmes » (F-56 à F-60) : remet à zéro les données des comptes
+// de test (profils, binômes, candidatures, progression) et supprime les
+// appels, parcours et ressources dont le titre porte `marker`. Les sessions
+// partagées portant des adresses STABLES, un binôme laissé par l'exécution
+// précédente empêcherait de réapparier les mêmes comptes. Garde AUTH_DEV_OTP
+// côté serveur, et seules les adresses `@democracytogether.test` sont touchées.
+export async function resetProgrammes(
+  emails: string[],
+  marker?: string,
+): Promise<void> {
+  convexRun('programmes:devResetProgrammes', { emails, marker });
 }

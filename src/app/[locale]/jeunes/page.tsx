@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import Image from 'next/image';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -8,6 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getYouthContent } from '@/lib/youth-content';
 import { YouthApplyForm } from '@/components/youth/youth-apply-form';
 import { MentorshipForm } from '@/components/youth/mentorship-form';
+import { YouthAccountHint } from '@/components/youth/account-hint';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -23,11 +25,7 @@ export async function generateMetadata({
     description: c.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}/jeunes`,
-      languages: {
-        fr: `${SITE}/fr/jeunes`,
-        en: `${SITE}/en/jeunes`,
-        'x-default': `${SITE}/fr/jeunes`,
-      },
+      languages: hreflangFor(`jeunes`),
     },
   };
 }
@@ -94,9 +92,14 @@ export default async function JeunesPage({
           </div>
           <div className="relative overflow-hidden rounded-md border border-line">
             <div className="relative aspect-[4/3]">
+              {/* Photo d'ILLUSTRATION (la même pour plusieurs contenus) : elle
+                n'apporte aucune information, elle est donc décorative et
+                ignorée des aides techniques (RGAA 1.2). Son ancienne
+                alternative répétait le titre voisin — lu deux fois de suite
+                (audit RGAA du 27/09). */}
               <Image
                 src="/library/youth.jpg"
-                alt={c.hero.chip}
+                alt=""
                 fill
                 sizes="(max-width: 1024px) 100vw, 520px"
                 className="object-cover"
@@ -152,7 +155,7 @@ export default async function JeunesPage({
                 {c.parcours.gam.badges.map((b) => (
                   <span
                     key={b.letter}
-                    className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[13px] ${b.locked ? 'border-line bg-surface-2 text-muted opacity-70' : 'border-accent-edge bg-accent-tint text-accent-text'}`}
+                    className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[13px] ${b.locked ? 'border-line bg-surface-2 text-ink-soft opacity-85' : 'border-accent-edge bg-accent-tint text-accent-text'}`}
                   >
                     <span
                       className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[11px] font-semibold ${b.locked ? 'bg-line-strong text-paper' : 'bg-accent text-accent-contrast'}`}
@@ -209,7 +212,9 @@ export default async function JeunesPage({
         </Reveal>
         <RevealGroup className="mt-8 grid gap-4 lg:grid-cols-3">
           <RevealItem className="flex flex-col rounded-md bg-accent p-6 text-accent-contrast lg:row-span-2">
-            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent-contrast/70">
+            {/* 80 % et non 70 : à 70 % l'encre fondue dans le safran tombe à 4,1:1
+                (mesuré le 27/09) ; 80 % tient 5,1:1. */}
+            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent-contrast/80">
               {c.programmes.featured.kicker}
             </span>
             <h3 className="mt-2 font-display text-2xl text-accent-contrast">
@@ -327,6 +332,7 @@ export default async function JeunesPage({
               {tm('sectionLead')}
             </p>
             <div className="mt-7">
+              <YouthAccountHint kind="mentoring" />
               <MentorshipForm />
             </div>
           </Reveal>
@@ -376,6 +382,7 @@ export default async function JeunesPage({
               {ty('sectionLead')}
             </p>
             <div className="mt-7">
+              <YouthAccountHint kind="youth" />
               <YouthApplyForm />
             </div>
           </Reveal>

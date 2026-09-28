@@ -21,14 +21,20 @@ test.use({ locale: 'fr-FR' });
 const PHONE = { width: 412, height: 839 };
 
 // Les quatorze entrées de l'issue, telles qu'elles s'affichent, plus la
-// quinzième arrivée depuis (« Modération IA »).
+// quinzième arrivée depuis (« Modération IA »), la seizième (« Mes
+// relectures », vue du relecteur — campagne du 27/09, A-02) et la
+// dix-septième (« File de modération » de la tribune, chantier communauté),
+// puis la dix-huitième (« Organisations », relecture des fiches — chantier comptes).
 const ALL_ITEMS = [
   'Tableau de bord',
   'Impact',
   'Candidatures',
   'Publications',
+  'Mes relectures',
+  'File de modération',
   'Signalements',
   'Messages',
+  'Organisations',
   'Jeunes',
   'Mentorat',
   'Projets',
@@ -68,7 +74,7 @@ async function fitsOnScreen(page: Page, width: number) {
 
   for (const item of ALL_ITEMS) {
     const box = await bar
-      .getByRole('link', { name: item, exact: true })
+      .getByRole('link', { name: `${item} (Administration)`, exact: true })
       .boundingBox();
     expect(
       box,
@@ -100,7 +106,7 @@ test.afterEach(async ({ context }) => {
 test.describe('navigation du back-office sur téléphone (session dédiée)', () => {
   test.use({ storageState: SESSIONS.adminNav.state, viewport: PHONE });
 
-  test('back-office : les 15 entrées tiennent sans défilement horizontal (F-26)', async ({
+  test('back-office : les 17 entrées tiennent sans défilement horizontal (F-26)', async ({
     page,
   }) => {
     await page.goto('/fr/admin');
@@ -143,7 +149,10 @@ test.describe('navigation du back-office en large (session dédiée)', () => {
     await expect(current).toHaveCount(1);
     await expect(current).toHaveText('Journal');
     await expect(
-      nav(page).getByRole('link', { name: 'Tableau de bord', exact: true }),
+      nav(page).getByRole('link', {
+        name: 'Tableau de bord (Administration)',
+        exact: true,
+      }),
     ).not.toHaveAttribute('aria-current', 'page');
   });
 });

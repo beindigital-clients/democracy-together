@@ -38,7 +38,13 @@ export function ScrollableRegion({
       role="region"
       aria-label={label}
       tabIndex={0}
-      className={cn('overflow-x-auto', className)}
+      // `relative` : un descendant en position absolue (un `sr-only`, par
+      // exemple) se place par rapport au PREMIER ancêtre positionné, et un
+      // ancêtre `overflow-x-auto` non positionné ne le clippe pas. Mesuré le
+      // 27/09 sur /barometre en mobile : le tableau « Télécharger et citer »
+      // élargissait tout le document (585 px pour 412) par un tel élément,
+      // et la page entière défilait en largeur.
+      className={cn('relative overflow-x-auto', className)}
     >
       {children}
     </div>

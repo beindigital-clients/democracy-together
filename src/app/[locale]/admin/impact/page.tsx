@@ -3,6 +3,7 @@
 import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
+import { AudienceDashboard } from '@/components/admin/audience-dashboard';
 
 // Mesure d'impact & statistiques (F-66) — back-office. Grille de cartes
 // (chiffre + libellé), même style que le tableau de bord (admin/page.tsx).
@@ -79,6 +80,9 @@ export default function AdminImpact() {
           </div>
         ))}
       </div>
+
+      {/* Mesure d'audience web first-party (F-66, chantier diffusion). */}
+      <AudienceDashboard />
     </div>
   );
 }

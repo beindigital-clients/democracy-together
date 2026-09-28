@@ -55,6 +55,42 @@ const docBase = {
 };
 
 describe('Bibliothèque — logique pure (lib/publications)', () => {
+  it('matchesPublication ignore les accents et la casse (« democratie » trouve « Démocratie »)', () => {
+    const p = pub({
+      title: 'L’état de la Démocratie en Afrique',
+      authors: [{ name: 'Aïssatou Ndiaye' }],
+    });
+    expect(matchesPublication(p, { q: 'democratie' })).toBe(true);
+    expect(matchesPublication(p, { q: 'DÉMOCRATIE' })).toBe(true);
+    expect(matchesPublication(p, { q: 'aissatou' })).toBe(true);
+    expect(matchesPublication(p, { q: 'senegal' })).toBe(false);
+  });
+
+  it('matchesPublication cherche aussi le résumé et les points clés', () => {
+    // Mesuré le 27/09 : « institutions » (présent dans les résumés) -> 0.
+    const p = pub({
+      title: 'Titre neutre',
+      abstract: 'Le rôle des institutions dans la transition.',
+      keypoints: ['Financement de la société civile'],
+    });
+    expect(matchesPublication(p, { q: 'institutions' })).toBe(true);
+    expect(matchesPublication(p, { q: 'société civile' })).toBe(true);
+    expect(matchesPublication(p, { q: 'societe civile' })).toBe(true);
+    expect(matchesPublication(p, { q: 'absent' })).toBe(false);
+    // Fixture sans résumé ni points clés : ne jette pas, ne trouve pas.
+    expect(matchesPublication(pub(), { q: 'institutions' })).toBe(false);
+  });
+
+  it('matchesPublication ne cherche pas les guillemets littéralement', () => {
+    // Mesuré le 27/09 : `"démocratie"` -> 0 résultat.
+    const p = pub({ title: 'L’état de la démocratie' });
+    expect(matchesPublication(p, { q: '"démocratie"' })).toBe(true);
+    expect(matchesPublication(p, { q: '« démocratie »' })).toBe(true);
+    expect(matchesPublication(p, { q: '“democratie”' })).toBe(true);
+    // Des guillemets seuls = pas de recherche.
+    expect(matchesPublication(p, { q: '""' })).toBe(true);
+  });
+
   it('matchesPublication combine les facettes en OU intra / ET inter', () => {
     const p = pub({
       theme: 'gouvernance-numerique',
@@ -132,6 +168,23 @@ describe('Bibliothèque — logique pure (lib/publications)', () => {
     );
     // fr apparaît 2x, en 2x -> ordre alpha (en avant fr)
     expect(f.languages.map((x) => x.value)).toEqual(['en', 'fr']);
+  });
+
+  it('computePublicationFacets ignore une valeur cochée inconnue du corpus', () => {
+    // Mesuré le 27/09 : `?theme=zzz` rendait une option « Zzz 0 » cochée.
+    const items = [pub({ theme: 'transitions' }), pub({ theme: 'crises' })];
+    const facets = computePublicationFacets(items, { themes: ['zzz'] });
+    expect(facets.themes.map((f) => f.value)).toEqual([
+      'crises',
+      'transitions',
+    ]);
+    // Une valeur connue mais absente du sous-ensemble filtré reste listée à 0
+    // (décochable) : ce comportement-là est conservé.
+    const contextual = computePublicationFacets(items, {
+      themes: ['crises'],
+      types: ['note'],
+    });
+    expect(contextual.themes).toContainEqual({ value: 'crises', count: 0 });
   });
 
   it('computePublicationFacets : compteurs contextuels selon les autres filtres', () => {
@@ -241,6 +294,43 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
     expect(
       await t.query(api.publications.getBySlug, { slug: 'nope' }),
     ).toBeNull();
+  });
+
+  it('recordPublicationDownload : incrémente `downloads` d’une publiée, no-op sinon', async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert('publications', {
+        ...docBase,
+        ...pub({ title: 'Publiée', downloads: 4 }),
+        slug: 'publiee',
+      });
+      await ctx.db.insert('publications', {
+        ...docBase,
+        ...pub({ title: 'Brouillon', downloads: 4 }),
+        slug: 'brouillon',
+        status: 'draft',
+      });
+    });
+    await t.mutation(api.publications.recordPublicationDownload, {
+      slug: 'publiee',
+    });
+    await t.mutation(api.publications.recordPublicationDownload, {
+      slug: 'brouillon',
+    });
+    await t.mutation(api.publications.recordPublicationDownload, {
+      slug: 'inconnue',
+    });
+    const after = await t.query(api.publications.getBySlug, {
+      slug: 'publiee',
+    });
+    expect(after?.downloads).toBe(5);
+    const draft = await t.run((ctx) =>
+      ctx.db
+        .query('publications')
+        .withIndex('by_slug', (q) => q.eq('slug', 'brouillon'))
+        .unique(),
+    );
+    expect(draft?.downloads).toBe(4);
   });
 
   it('relatedByTheme : même thème, exclut la courante', async () => {
@@ -753,6 +843,22 @@ describe('Dépôt de publication (F-32) — validation serveur du fichier', () =
         .unique(),
     );
     expect(doc?.fileId).toBe(fileId);
+  });
+
+  it('rejette un fichier VIDE (INVALID_FILE) : 0 octet n’est pas un document', async () => {
+    const { t, as } = await asMember();
+    const fileId = await t.run((ctx) =>
+      ctx.storage.store(new Blob([], { type: 'application/pdf' })),
+    );
+    await expect(
+      as.mutation(api.publications.submitPublication, {
+        ...SUBMIT,
+        fileId,
+        fileName: 'vide.pdf',
+      }),
+    ).rejects.toThrow('INVALID_FILE');
+    const all = await t.run((ctx) => ctx.db.query('publications').collect());
+    expect(all).toHaveLength(0);
   });
 
   it('rejette un fichier au-dela de la limite de taille (INVALID_FILE)', async () => {

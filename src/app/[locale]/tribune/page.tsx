@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
@@ -8,7 +9,9 @@ import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { PUB_THEMES } from '@/lib/publications';
 import { isNetworkTheme } from '@convex/lib/themes';
 import { TribuneComposer } from '@/components/tribune/tribune-composer';
+import { MyPosts } from '@/components/tribune/my-posts';
 import { vocabulary } from '@/i18n/vocabulary';
+import { contentLangAttrs } from '@/i18n/content-lang';
 import { fetchOrFallback, EMPTY_TRIBUNE_POSTS } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -30,11 +33,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/tribune`,
-      languages: {
-        fr: `${SITE}/fr/tribune`,
-        en: `${SITE}/en/tribune`,
-        'x-default': `${SITE}/fr/tribune`,
-      },
+      languages: hreflangFor(`tribune`),
     },
   };
 }
@@ -90,8 +89,10 @@ export default async function TribunePage({
 
       {/* Code de conduite (F-50) + prise de parole */}
       <Reveal className="mt-8 grid gap-4 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-        <div>
+        <div className="space-y-4">
           <TribuneComposer />
+          {/* Statut de ses propres billets, visible du seul auteur (A-11). */}
+          <MyPosts />
         </div>
         <aside className="rounded-md border border-line bg-surface p-5">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
@@ -161,11 +162,23 @@ export default async function TribunePage({
                   <span className="font-mono uppercase tracking-[0.06em] text-muted">
                     {vocabulary(t, 'format_', p.format)}
                   </span>
+                  {p.isDeepening ? (
+                    <span className="font-mono uppercase tracking-[0.06em] text-muted">
+                      · {t('deepeningBadge')}
+                    </span>
+                  ) : null}
                 </div>
-                <h2 className="mt-2 font-display text-xl leading-snug">
+                {/* Langue de rédaction du billet (RGAA 8.7) : cf. la fiche. */}
+                <h2
+                  {...contentLangAttrs(p.lang, loc)}
+                  className="mt-2 font-display text-xl leading-snug"
+                >
                   {p.title}
                 </h2>
-                <p className="mt-1.5 line-clamp-2 text-[15px] leading-relaxed text-ink-soft">
+                <p
+                  {...contentLangAttrs(p.lang, loc)}
+                  className="mt-1.5 line-clamp-2 text-[15px] leading-relaxed text-ink-soft"
+                >
                   {p.excerpt}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted">

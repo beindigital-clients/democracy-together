@@ -10,7 +10,15 @@ import { resolveLocale } from '@/i18n/locale';
 // IMPORTANT : ne contient aucune fabrication d'identifiants (SIRET/RNA), de noms
 // de responsables ou d'adresses ; ces champs portent un marqueur à compléter.
 
-export type LegalSection = { heading: string; body: string[] };
+// `items` : énumération rendue en LISTE (`<ul>`), et non en paragraphes
+// successifs — la déclaration d'accessibilité en porte plusieurs (non-
+// conformités, voies de recours), et une liste annonce son nombre d'éléments
+// (RGAA 9.3).
+export type LegalSection = {
+  heading: string;
+  body: string[];
+  items?: string[];
+};
 
 export type LegalDoc = {
   eyebrow: string;
@@ -404,7 +412,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies et traceurs',
           body: [
             'Le site utilise uniquement des cookies et stockages strictement nécessaires : préférence de langue, préférence de thème et session d’authentification. Ils sont exemptés de consentement car indispensables au service.',
-            'Aucun traceur publicitaire ni outil de mesure d’audience tiers n’est actuellement déposé. Si une mesure d’audience est ajoutée à l’avenir, votre consentement préalable sera recueilli.',
+            'Aucun traceur publicitaire ni outil de mesure d’audience tiers n’est déposé. La fréquentation du site est mesurée par nos soins, sans cookie ni identifiant, dans les conditions d’exemption de consentement de la CNIL : voir la section « Mesure d’audience » ci-dessous, qui décrit aussi comment vous y opposer.',
           ],
         },
         {
@@ -478,7 +486,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies and trackers',
           body: [
             'The site uses only strictly necessary cookies and storage: language preference, theme preference and authentication session. These are exempt from consent as they are essential to the service.',
-            'No advertising trackers or third-party analytics are currently set. If audience measurement is added in the future, your prior consent will be collected.',
+            'No advertising trackers or third-party analytics are set. Site traffic is measured by us, without cookies or identifiers, under the CNIL’s conditions for exemption from consent: see the “Audience measurement” section below, which also explains how to object.',
           ],
         },
         {
@@ -552,7 +560,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies y rastreadores',
           body: [
             'El sitio utiliza únicamente cookies y almacenamientos estrictamente necesarios: preferencia de lengua, preferencia de tema y sesión de autenticación. Están exentos de consentimiento por ser indispensables para el servicio.',
-            'Actualmente no se instala ningún rastreador publicitario ni herramienta de medición de audiencia de terceros. Si en el futuro se añade una medición de audiencia, se recabará su consentimiento previo.',
+            'No se instala ningún rastreador publicitario ni herramienta de medición de audiencia de terceros. La audiencia del sitio la medimos nosotros mismos, sin cookies ni identificadores, en las condiciones de exención de consentimiento de la CNIL: véase la sección «Medición de audiencia» más abajo, que también explica cómo oponerse.',
           ],
         },
         {
@@ -632,7 +640,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Cookies e rastreadores',
           body: [
             'O sítio utiliza unicamente cookies e armazenamentos estritamente necessários: preferência de língua, preferência de tema e sessão de autenticação. Estão isentos de consentimento por serem indispensáveis ao serviço.',
-            'Não é atualmente colocado qualquer rastreador publicitário nem ferramenta de medição de audiência de terceiros. Se no futuro for acrescentada uma medição de audiência, o seu consentimento prévio será recolhido.',
+            'Não é colocado qualquer rastreador publicitário nem ferramenta de medição de audiência de terceiros. A audiência do sítio é medida por nós, sem cookies nem identificadores, nas condições de isenção de consentimento da CNIL: ver a secção «Medição de audiência» abaixo, que explica também como se opor.',
           ],
         },
         {
@@ -712,7 +720,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'ملفات تعريف الارتباط وأدوات التتبّع',
           body: [
             'لا يستعمل الموقع سوى ملفات تعريف ارتباط ووسائل تخزين ضرورية حصراً: تفضيل اللغة، وتفضيل السمة، وجلسة المصادقة. وهي معفاة من الموافقة لكونها لا غنى عنها للخدمة.',
-            'لا يُوضَع حالياً أي متتبّع إعلاني ولا أي أداة لقياس الجمهور تابعة لطرف ثالث. وإذا أُضيف قياس للجمهور مستقبلاً، فستُطلب موافقتكم المسبقة.',
+            'لا يُوضَع أي متتبّع إعلاني ولا أي أداة لقياس الجمهور تابعة لطرف ثالث. ونقيس زيارات الموقع بأنفسنا، من دون ملفات تعريف ارتباط ولا معرِّفات، وفق شروط الإعفاء من الموافقة التي حدّدتها CNIL: انظروا قسم «قياس الجمهور» أدناه، الذي يوضّح أيضاً كيفية الاعتراض.',
           ],
         },
         {
@@ -733,45 +741,120 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
     },
   },
 
+  // DÉCLARATION D'ACCESSIBILITÉ au format RGAA (F-08), établie à partir de
+  // l'audit du 27/09/2026 (`docs/rgaa/audit-2026-09.md`). Elle affiche le taux
+  // MESURÉ (72,6 %), pas le taux projeté après correctifs : ceux-ci sont
+  // intégrés mais pas encore re-mesurés sur la version en ligne, et la
+  // restitution par lecteur d'écran n'a pas été testée. Une déclaration ne
+  // doit pas promettre plus que ce qui a été vérifié. À mettre à jour après le
+  // contre-audit (taux, date, liste des non-conformités).
   accessibilite: {
     fr: {
       eyebrow: 'Accessibilité',
       title: 'Déclaration d’accessibilité',
       updatedLabel: 'Dernière mise à jour',
-      updated: '27 juin 2026',
+      updated: '27 septembre 2026',
       homeLabel: 'Accueil',
       intro:
-        'Democracy Together s’engage à rendre son site accessible au plus grand nombre, conformément à l’article 47 de la loi n° 2005-102 du 11 février 2005 et au Référentiel général d’amélioration de l’accessibilité (RGAA).',
+        'Democracy Together s’engage à rendre son site accessible conformément à l’article 47 de la loi n° 2005-102 du 11 février 2005. La présente déclaration d’accessibilité s’applique au site Democracy Together, dans toutes ses versions linguistiques.',
       sections: [
         {
           heading: 'État de conformité',
           body: [
-            `Un audit RGAA complet n’a pas encore été réalisé. À ce stade, le niveau de conformité ne peut être déclaré : ${TODO_FR} (audit RGAA à mener, puis indiquer « conforme », « partiellement conforme » ou « non conforme »).`,
-            'Le site a néanmoins été conçu en intégrant de bonnes pratiques d’accessibilité : structure sémantique, navigation au clavier, respect du contraste, libellés de formulaires associés, respect de la préférence « mouvement réduit » et alternatives textuelles.',
+            'Le site Democracy Together est partiellement conforme avec le référentiel général d’amélioration de l’accessibilité (RGAA), version 4.1.2, en raison des non-conformités énumérées ci-dessous.',
           ],
         },
         {
-          heading: 'Contenus non accessibles',
+          heading: 'Résultats des tests',
           body: [
-            `La liste des contenus non conformes et des dérogations éventuelles sera publiée à l’issue de l’audit : ${TODO_FR}.`,
+            'L’audit de conformité réalisé le 27 septembre 2026 sur un échantillon de 19 pages révèle que 72,6 % des critères du RGAA 4.1.2 applicables sont respectés : 53 critères conformes, 20 non conformes, 33 non applicables. Le taux moyen de conformité par page est de 88,5 %.',
+            'Des corrections portant sur les 20 critères non conformes ont été intégrées au site depuis l’audit. Elles seront vérifiées par un contre-audit, à l’issue duquel cette déclaration sera mise à jour avec le taux mesuré.',
+          ],
+        },
+        {
+          heading: 'Contenus non accessibles — non-conformités',
+          body: [
+            'Relevées lors de l’audit du 27 septembre 2026 (corrections intégrées, en attente de vérification par le contre-audit) :',
+          ],
+          items: [
+            'des photographies d’illustration portaient une alternative textuelle inutile (critère 1.2) et deux images légendées n’étaient pas reliées à leur légende (1.9) ;',
+            'l’option sélectionnée de certains filtres et formulaires n’était signalée que par la couleur (3.1) ; la bordure des champs de formulaire manquait de contraste (3.3) ;',
+            'deux tableaux de données n’avaient pas de titre associé et l’un n’avait pas d’en-têtes de lignes (5.4, 5.6) ;',
+            'certains liens n’étaient pas explicites : numéros de page, liens « CSV », entrées du menu d’administration (6.1) ;',
+            'le bouton de choix de la langue et la palette de recherche n’étaient pas correctement restitués par les technologies d’assistance ; le nombre de résultats de recherche et certaines confirmations d’envoi n’étaient pas annoncés (7.1, 7.5) ;',
+            'les pages de l’espace membre et de l’administration n’avaient pas de titre pertinent (8.6) ;',
+            'dans les pages en arabe, les textes rédigés en français (descriptions des membres, titres de publications, billets) n’indiquaient ni leur langue ni leur sens de lecture (8.7, 8.10) ;',
+            'la hiérarchie des titres présentait des sauts sur deux pages (9.1) ;',
+            'la prise de focus n’était pas visible sur le champ de la palette de recherche et sur certains boutons radio (10.7) ;',
+            'la page d’une publication défilait horizontalement sur un écran de 320 pixels de large (10.11) ;',
+            'des champs de recherche n’avaient pas d’étiquette visible (11.1), un groupe de boutons radio n’avait pas de légende restituée (11.6) et le champ « Pays » de deux formulaires n’indiquait pas sa finalité (11.13) ;',
+            'des compteurs n’étaient signalés que par un symbole (13.5) ;',
+            'le globe interactif tournait en continu sans moyen de l’arrêter (13.8).',
+          ],
+        },
+        {
+          heading: 'Dérogations pour charge disproportionnée',
+          body: ['Aucune.'],
+        },
+        {
+          heading: 'Contenus non évalués ou tiers',
+          body: [
+            'Les contenus suivants n’ont pas été évalués lors de l’audit et leur accessibilité n’est pas garantie :',
+          ],
+          items: [
+            'les documents PDF déposés par les membres dans la bibliothèque ; une version HTML (« Lire le document ») est proposée lorsque le texte peut en être extrait ;',
+            'les replays vidéo d’événements publiés sur des plateformes externes (sous-titres et transcriptions à la charge des organisateurs) ;',
+            'le module anti-robot reCAPTCHA de Google, contenu tiers invisible qui ne demande aucune action.',
           ],
         },
         {
           heading: 'Établissement de cette déclaration',
           body: [
-            'Cette déclaration a été établie le 27 juin 2026. Elle sera mise à jour après la réalisation de l’audit de conformité.',
+            'Cette déclaration a été établie le 27 septembre 2026, à partir d’un audit de conformité réalisé le même jour.',
+          ],
+        },
+        {
+          heading: 'Technologies utilisées pour la réalisation du site',
+          body: ['HTML5, CSS, JavaScript (React, Next.js), WAI-ARIA.'],
+        },
+        {
+          heading: 'Environnement de test',
+          body: [
+            'Les vérifications ont été menées avec le navigateur Chromium 141 piloté par Playwright, sur ordinateur et en émulation mobile, en français et en arabe, en thème clair et sombre : arbre d’accessibilité du navigateur (noms, rôles, états, messages de statut), navigation au clavier seul, visibilité du focus, zoom de la page et du texte à 200 %, affichage à 320 pixels de large, espacement du texte.',
+            'La restitution par des lecteurs d’écran (NVDA, JAWS, VoiceOver, TalkBack) n’a pas encore été testée ; elle fera partie du contre-audit.',
+          ],
+        },
+        {
+          heading: 'Outils pour évaluer l’accessibilité',
+          body: [
+            'axe-core 4.12, Playwright 1.61, html-validate 11, et des scripts de mesure de l’ordre de tabulation, du focus visible, du contraste, du redimensionnement et du zoom.',
+          ],
+        },
+        {
+          heading: 'Pages du site ayant fait l’objet de la vérification',
+          body: [
+            'Accueil, À propos, Annuaire du réseau, une fiche membre, Bibliothèque, une publication, Événements, un événement, Tribune, Hub jeunes, Baromètre, Rapport d’activité 2026, Adhésion, Contact, Recherche, Connexion, Espace membre, un écran d’administration (utilisateurs) et la présente déclaration.',
           ],
         },
         {
           heading: 'Retour d’information et contact',
           body: [
-            'Si vous rencontrez un défaut d’accessibilité vous empêchant d’accéder à un contenu, contactez-nous via le formulaire de contact afin que nous puissions vous orienter vers une alternative et corriger le problème.',
+            'Si vous n’arrivez pas à accéder à un contenu ou à un service, vous pouvez nous contacter pour être orienté vers une alternative accessible ou obtenir le contenu sous une autre forme :',
+          ],
+          items: [
+            'par le formulaire de la page « Contact » du site ;',
+            `par courrier postal : ${TODO_FR} (adresse du siège).`,
           ],
         },
         {
           heading: 'Voies de recours',
           body: [
-            'Si vous constatez un défaut d’accessibilité et que, après nous avoir signalé le problème, vous n’obtenez pas de réponse satisfaisante, vous pouvez adresser une réclamation ou une demande de saisine au Défenseur des droits (www.defenseurdesdroits.fr).',
+            'Cette procédure est à utiliser dans le cas suivant : vous avez signalé au responsable du site un défaut d’accessibilité qui vous empêche d’accéder à un contenu ou à un des services du site, et vous n’avez pas obtenu de réponse satisfaisante. Vous pouvez :',
+          ],
+          items: [
+            'écrire un message au Défenseur des droits (formulaire en ligne sur www.defenseurdesdroits.fr) ;',
+            'contacter le délégué du Défenseur des droits dans votre région ;',
+            'envoyer un courrier par la poste (gratuit, ne pas mettre de timbre) : Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07.',
           ],
         },
       ],
@@ -780,40 +863,114 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Accessibility',
       title: 'Accessibility statement',
       updatedLabel: 'Last updated',
-      updated: 'June 27, 2026',
+      updated: 'September 27, 2026',
       homeLabel: 'Home',
       intro:
-        'Democracy Together is committed to making its website accessible to as many people as possible, in line with French accessibility law (Article 47 of Act No. 2005-102) and the RGAA accessibility framework.',
+        'Democracy Together is committed to making its website accessible in accordance with Article 47 of French Act No. 2005-102 of 11 February 2005. This accessibility statement applies to the Democracy Together website in all its language versions.',
       sections: [
         {
           heading: 'Compliance status',
           body: [
-            `A full RGAA audit has not yet been carried out. At this stage, the level of compliance cannot be declared: ${TODO_EN} (RGAA audit to be conducted, then state “compliant”, “partially compliant” or “non-compliant”).`,
-            'The site was nonetheless built with accessibility good practices: semantic structure, keyboard navigation, colour contrast, associated form labels, respect for the “reduced motion” preference and text alternatives.',
+            'The Democracy Together website is partially compliant with the French accessibility framework RGAA, version 4.1.2, due to the non-compliances listed below.',
           ],
         },
         {
-          heading: 'Non-accessible content',
+          heading: 'Test results',
           body: [
-            `The list of non-compliant content and any exemptions will be published once the audit is complete: ${TODO_EN}.`,
+            'The compliance audit carried out on 27 September 2026 on a sample of 19 pages shows that 72.6% of the applicable RGAA 4.1.2 criteria are met: 53 criteria compliant, 20 non-compliant, 33 not applicable. The average compliance rate per page is 88.5%.',
+            'Fixes addressing the 20 non-compliant criteria have been integrated into the site since the audit. They will be verified by a follow-up audit, after which this statement will be updated with the measured rate.',
+          ],
+        },
+        {
+          heading: 'Non-accessible content — non-compliances',
+          body: [
+            'Found during the audit of 27 September 2026 (fixes integrated, pending verification by the follow-up audit):',
+          ],
+          items: [
+            'illustrative photographs carried a needless text alternative (criterion 1.2) and two captioned images were not linked to their caption (1.9);',
+            'the selected option of some filters and forms was indicated by colour alone (3.1); form field borders lacked contrast (3.3);',
+            'two data tables had no associated title and one had no row headers (5.4, 5.6);',
+            'some links were not explicit: page numbers, “CSV” links, administration menu entries (6.1);',
+            'the language button and the search palette were not correctly conveyed to assistive technologies; the number of search results and some submission confirmations were not announced (7.1, 7.5);',
+            'the member area and administration pages had no relevant page title (8.6);',
+            'on Arabic pages, texts written in French (member descriptions, publication titles, posts) did not state their language or reading direction (8.7, 8.10);',
+            'the heading hierarchy skipped levels on two pages (9.1);',
+            'keyboard focus was not visible on the search palette field and on some radio buttons (10.7);',
+            'a publication page scrolled horizontally on a 320-pixel-wide screen (10.11);',
+            'search fields had no visible label (11.1), a radio button group had no conveyed legend (11.6) and the “Country” field of two forms did not state its purpose (11.13);',
+            'some counters were indicated by a symbol alone (13.5);',
+            'the interactive globe rotated continuously with no way to stop it (13.8).',
+          ],
+        },
+        {
+          heading: 'Exemptions for disproportionate burden',
+          body: ['None.'],
+        },
+        {
+          heading: 'Content not assessed or third-party content',
+          body: [
+            'The following content was not assessed during the audit and its accessibility is not guaranteed:',
+          ],
+          items: [
+            'PDF documents uploaded by members to the library; an HTML version (“Read the document”) is offered when their text can be extracted;',
+            'video replays of events published on external platforms (captions and transcripts are the organisers’ responsibility);',
+            'Google’s reCAPTCHA anti-bot module, an invisible third-party component that requires no action.',
           ],
         },
         {
           heading: 'Preparation of this statement',
           body: [
-            'This statement was prepared on 27 June 2026. It will be updated once the compliance audit has been carried out.',
+            'This statement was prepared on 27 September 2026, based on a compliance audit carried out on the same day.',
+          ],
+        },
+        {
+          heading: 'Technologies used to build the site',
+          body: ['HTML5, CSS, JavaScript (React, Next.js), WAI-ARIA.'],
+        },
+        {
+          heading: 'Test environment',
+          body: [
+            'Checks were carried out with the Chromium 141 browser driven by Playwright, on desktop and in mobile emulation, in French and Arabic, in light and dark themes: the browser’s accessibility tree (names, roles, states, status messages), keyboard-only navigation, focus visibility, 200% page and text zoom, display at 320 pixels wide, text spacing.',
+            'Output through screen readers (NVDA, JAWS, VoiceOver, TalkBack) has not yet been tested; it will be part of the follow-up audit.',
+          ],
+        },
+        {
+          heading: 'Tools used to assess accessibility',
+          body: [
+            'axe-core 4.12, Playwright 1.61, html-validate 11, and scripts measuring tab order, visible focus, contrast, reflow and zoom.',
+          ],
+        },
+        {
+          heading: 'Pages checked for compliance',
+          body: [
+            'Home, About, Network directory, a member profile, Library, a publication, Events, an event, Forum, Youth hub, Barometer, 2026 Activity report, Membership, Contact, Search, Sign in, Member area, an administration screen (users) and this statement.',
           ],
         },
         {
           heading: 'Feedback and contact',
           body: [
-            'If you encounter an accessibility barrier that prevents you from accessing content, contact us via the contact form so we can point you to an alternative and fix the issue.',
+            'If you cannot access a piece of content or a service, contact us to be directed to an accessible alternative or to obtain the content in another form:',
+          ],
+          items: [
+            'through the form on the site’s “Contact” page;',
+            `by post: ${TODO_EN} (head office address).`,
           ],
         },
         {
           heading: 'Remedies',
           body: [
-            'If you report an accessibility problem and do not receive a satisfactory response, you may refer the matter to the French Defender of Rights (www.defenseurdesdroits.fr).',
+            'Use this procedure if you have reported an accessibility barrier preventing you from accessing content or a service on the site to the site manager and have not received a satisfactory response. You can:',
+          ],
+          items: [
+            'write to the French Defender of Rights (online form at www.defenseurdesdroits.fr);',
+            'contact the Defender of Rights delegate in your region;',
+            'send a letter by post (free of charge, no stamp needed): Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07, France.',
+          ],
+        },
+        {
+          heading: 'Reference language',
+          body: [
+            'This translation is provided for convenience. In the event of any difference in interpretation, the French version prevails as the sole reference text under the applicable French law.',
           ],
         },
       ],
@@ -822,40 +979,108 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Accesibilidad',
       title: 'Declaración de accesibilidad',
       updatedLabel: 'Última actualización',
-      updated: '27 de junio de 2026',
+      updated: '27 de septiembre de 2026',
       homeLabel: 'Inicio',
       intro:
-        'Democracy Together se compromete a hacer su sitio accesible al mayor número de personas, de conformidad con el artículo 47 de la ley francesa n.º 2005-102, de 11 de febrero de 2005, y con el Referencial general de mejora de la accesibilidad (RGAA).',
+        'Democracy Together se compromete a hacer accesible su sitio conforme al artículo 47 de la ley francesa n.º 2005-102, de 11 de febrero de 2005. La presente declaración de accesibilidad se aplica al sitio Democracy Together en todas sus versiones lingüísticas.',
       sections: [
         {
           heading: 'Estado de conformidad',
           body: [
-            `Todavía no se ha realizado una auditoría RGAA completa. En esta fase no puede declararse el nivel de conformidad: ${TODO_ES} (auditoría RGAA pendiente; después, indicar «conforme», «parcialmente conforme» o «no conforme»).`,
-            'Aun así, el sitio se ha concebido integrando buenas prácticas de accesibilidad: estructura semántica, navegación por teclado, respeto del contraste, etiquetas de formulario asociadas, respeto de la preferencia de «movimiento reducido» y alternativas textuales.',
+            'El sitio Democracy Together es parcialmente conforme con el Referencial general de mejora de la accesibilidad (RGAA), versión 4.1.2, debido a los incumplimientos enumerados a continuación.',
           ],
         },
         {
-          heading: 'Contenidos no accesibles',
+          heading: 'Resultados de las pruebas',
           body: [
-            `La lista de contenidos no conformes y de las eventuales exenciones se publicará una vez concluida la auditoría: ${TODO_ES}.`,
+            'La auditoría de conformidad realizada el 27 de septiembre de 2026 sobre una muestra de 19 páginas revela que se cumple el 72,6 % de los criterios aplicables del RGAA 4.1.2: 53 criterios conformes, 20 no conformes y 33 no aplicables. La tasa media de conformidad por página es del 88,5 %.',
+            'Desde la auditoría se han integrado en el sitio correcciones para los 20 criterios no conformes. Se comprobarán en una auditoría de control, tras la cual esta declaración se actualizará con la tasa medida.',
+          ],
+        },
+        {
+          heading: 'Contenidos no accesibles — incumplimientos',
+          body: [
+            'Detectados en la auditoría del 27 de septiembre de 2026 (correcciones integradas, pendientes de verificación en la auditoría de control):',
+          ],
+          items: [
+            'algunas fotografías ilustrativas tenían una alternativa textual innecesaria (criterio 1.2) y dos imágenes con leyenda no estaban vinculadas a ella (1.9);',
+            'la opción seleccionada de algunos filtros y formularios solo se indicaba mediante el color (3.1); el borde de los campos de formulario carecía de contraste (3.3);',
+            'dos tablas de datos no tenían un título asociado y una no tenía encabezados de fila (5.4, 5.6);',
+            'algunos enlaces no eran explícitos: números de página, enlaces «CSV», entradas del menú de administración (6.1);',
+            'el botón de idioma y la paleta de búsqueda no se transmitían correctamente a las tecnologías de apoyo; el número de resultados de búsqueda y algunas confirmaciones de envío no se anunciaban (7.1, 7.5);',
+            'las páginas del espacio de miembros y de administración no tenían un título pertinente (8.6);',
+            'en las páginas en árabe, los textos redactados en francés (descripciones de miembros, títulos de publicaciones, artículos) no indicaban su idioma ni su sentido de lectura (8.7, 8.10);',
+            'la jerarquía de títulos presentaba saltos en dos páginas (9.1);',
+            'el foco del teclado no era visible en el campo de la paleta de búsqueda ni en algunos botones de opción (10.7);',
+            'la página de una publicación se desplazaba horizontalmente en una pantalla de 320 píxeles de ancho (10.11);',
+            'algunos campos de búsqueda no tenían etiqueta visible (11.1), un grupo de botones de opción no tenía leyenda transmitida (11.6) y el campo «País» de dos formularios no indicaba su finalidad (11.13);',
+            'algunos contadores solo se indicaban con un símbolo (13.5);',
+            'el globo interactivo giraba continuamente sin forma de detenerlo (13.8).',
+          ],
+        },
+        {
+          heading: 'Exenciones por carga desproporcionada',
+          body: ['Ninguna.'],
+        },
+        {
+          heading: 'Contenidos no evaluados o de terceros',
+          body: [
+            'Los siguientes contenidos no se evaluaron en la auditoría y su accesibilidad no está garantizada:',
+          ],
+          items: [
+            'los documentos PDF depositados por los miembros en la biblioteca; se ofrece una versión HTML («Leer el documento») cuando su texto puede extraerse;',
+            'las grabaciones en vídeo de eventos publicadas en plataformas externas (subtítulos y transcripciones a cargo de los organizadores);',
+            'el módulo antirrobots reCAPTCHA de Google, contenido de terceros invisible que no exige ninguna acción.',
           ],
         },
         {
           heading: 'Elaboración de esta declaración',
           body: [
-            'Esta declaración se estableció el 27 de junio de 2026. Se actualizará tras la realización de la auditoría de conformidad.',
+            'Esta declaración se estableció el 27 de septiembre de 2026, a partir de una auditoría de conformidad realizada el mismo día.',
+          ],
+        },
+        {
+          heading: 'Tecnologías utilizadas para la realización del sitio',
+          body: ['HTML5, CSS, JavaScript (React, Next.js), WAI-ARIA.'],
+        },
+        {
+          heading: 'Entorno de prueba',
+          body: [
+            'Las comprobaciones se realizaron con el navegador Chromium 141 controlado por Playwright, en ordenador y en emulación móvil, en francés y en árabe, con tema claro y oscuro: árbol de accesibilidad del navegador (nombres, roles, estados, mensajes de estado), navegación solo con teclado, visibilidad del foco, zoom de página y de texto al 200 %, visualización a 320 píxeles de ancho y espaciado del texto.',
+            'La restitución mediante lectores de pantalla (NVDA, JAWS, VoiceOver, TalkBack) aún no se ha probado; formará parte de la auditoría de control.',
+          ],
+        },
+        {
+          heading: 'Herramientas para evaluar la accesibilidad',
+          body: [
+            'axe-core 4.12, Playwright 1.61, html-validate 11 y scripts de medición del orden de tabulación, del foco visible, del contraste, del redimensionamiento y del zoom.',
+          ],
+        },
+        {
+          heading: 'Páginas del sitio verificadas',
+          body: [
+            'Inicio, Quiénes somos, Directorio de la red, una ficha de miembro, Biblioteca, una publicación, Eventos, un evento, Tribuna, Espacio jóvenes, Barómetro, Informe de actividad 2026, Adhesión, Contacto, Búsqueda, Inicio de sesión, Espacio de miembros, una pantalla de administración (usuarios) y la presente declaración.',
           ],
         },
         {
           heading: 'Comentarios y contacto',
           body: [
-            'Si encuentra un problema de accesibilidad que le impida acceder a un contenido, póngase en contacto con nosotros mediante el formulario de contacto para que podamos orientarle hacia una alternativa y corregir el problema.',
+            'Si no puede acceder a un contenido o a un servicio, puede ponerse en contacto con nosotros para que le orientemos hacia una alternativa accesible u obtener el contenido en otro formato:',
+          ],
+          items: [
+            'mediante el formulario de la página «Contacto» del sitio;',
+            `por correo postal: ${TODO_ES} (dirección de la sede).`,
           ],
         },
         {
           heading: 'Vías de recurso',
           body: [
-            'Si constata un defecto de accesibilidad y, tras habérnoslo comunicado, no obtiene una respuesta satisfactoria, puede dirigir una reclamación al Defensor de Derechos francés (www.defenseurdesdroits.fr).',
+            'Utilice este procedimiento si ha comunicado al responsable del sitio un defecto de accesibilidad que le impide acceder a un contenido o a un servicio y no ha obtenido una respuesta satisfactoria. Puede:',
+          ],
+          items: [
+            'escribir al Defensor de Derechos francés (formulario en línea en www.defenseurdesdroits.fr);',
+            'ponerse en contacto con el delegado del Defensor de Derechos de su región;',
+            'enviar una carta por correo postal (gratuito, sin sello): Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07, Francia.',
           ],
         },
         {
@@ -870,40 +1095,108 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Acessibilidade',
       title: 'Declaração de acessibilidade',
       updatedLabel: 'Última atualização',
-      updated: '27 de junho de 2026',
+      updated: '27 de setembro de 2026',
       homeLabel: 'Início',
       intro:
-        'A Democracy Together compromete-se a tornar o seu sítio acessível ao maior número de pessoas, em conformidade com o artigo 47.º da lei francesa n.º 2005-102, de 11 de fevereiro de 2005, e com o Referencial geral de melhoria da acessibilidade (RGAA).',
+        'A Democracy Together compromete-se a tornar o seu sítio acessível em conformidade com o artigo 47.º da lei francesa n.º 2005-102, de 11 de fevereiro de 2005. A presente declaração de acessibilidade aplica-se ao sítio Democracy Together em todas as suas versões linguísticas.',
       sections: [
         {
           heading: 'Estado de conformidade',
           body: [
-            `Ainda não foi realizada uma auditoria RGAA completa. Nesta fase, o nível de conformidade não pode ser declarado: ${TODO_PT} (auditoria RGAA a realizar; depois, indicar «conforme», «parcialmente conforme» ou «não conforme»).`,
-            'Ainda assim, o sítio foi concebido integrando boas práticas de acessibilidade: estrutura semântica, navegação por teclado, respeito do contraste, etiquetas de formulário associadas, respeito da preferência de «movimento reduzido» e alternativas textuais.',
+            'O sítio Democracy Together está parcialmente conforme com o Referencial geral de melhoria da acessibilidade (RGAA), versão 4.1.2, devido às não conformidades enumeradas abaixo.',
           ],
         },
         {
-          heading: 'Conteúdos não acessíveis',
+          heading: 'Resultados dos testes',
           body: [
-            `A lista dos conteúdos não conformes e das eventuais derrogações será publicada no final da auditoria: ${TODO_PT}.`,
+            'A auditoria de conformidade realizada a 27 de setembro de 2026 sobre uma amostra de 19 páginas revela que 72,6 % dos critérios aplicáveis do RGAA 4.1.2 são respeitados: 53 critérios conformes, 20 não conformes e 33 não aplicáveis. A taxa média de conformidade por página é de 88,5 %.',
+            'Desde a auditoria, foram integradas no sítio correções para os 20 critérios não conformes. Serão verificadas numa auditoria de controlo, após a qual esta declaração será atualizada com a taxa medida.',
+          ],
+        },
+        {
+          heading: 'Conteúdos não acessíveis — não conformidades',
+          body: [
+            'Detetadas na auditoria de 27 de setembro de 2026 (correções integradas, a aguardar verificação na auditoria de controlo):',
+          ],
+          items: [
+            'algumas fotografias ilustrativas tinham uma alternativa textual desnecessária (critério 1.2) e duas imagens legendadas não estavam ligadas à respetiva legenda (1.9);',
+            'a opção selecionada de alguns filtros e formulários só era indicada pela cor (3.1); a margem dos campos de formulário não tinha contraste suficiente (3.3);',
+            'duas tabelas de dados não tinham título associado e uma não tinha cabeçalhos de linha (5.4, 5.6);',
+            'algumas ligações não eram explícitas: números de página, ligações «CSV», entradas do menu de administração (6.1);',
+            'o botão de idioma e a paleta de pesquisa não eram corretamente transmitidos às tecnologias de apoio; o número de resultados da pesquisa e algumas confirmações de envio não eram anunciados (7.1, 7.5);',
+            'as páginas da área de membros e da administração não tinham um título pertinente (8.6);',
+            'nas páginas em árabe, os textos redigidos em francês (descrições de membros, títulos de publicações, artigos) não indicavam o seu idioma nem o sentido de leitura (8.7, 8.10);',
+            'a hierarquia de títulos apresentava saltos em duas páginas (9.1);',
+            'o foco do teclado não era visível no campo da paleta de pesquisa nem em alguns botões de opção (10.7);',
+            'a página de uma publicação deslocava-se na horizontal num ecrã com 320 píxeis de largura (10.11);',
+            'alguns campos de pesquisa não tinham etiqueta visível (11.1), um grupo de botões de opção não tinha legenda transmitida (11.6) e o campo «País» de dois formulários não indicava a sua finalidade (11.13);',
+            'alguns contadores só eram indicados por um símbolo (13.5);',
+            'o globo interativo rodava continuamente sem forma de o parar (13.8).',
+          ],
+        },
+        {
+          heading: 'Derrogações por encargo desproporcionado',
+          body: ['Nenhuma.'],
+        },
+        {
+          heading: 'Conteúdos não avaliados ou de terceiros',
+          body: [
+            'Os conteúdos seguintes não foram avaliados na auditoria e a sua acessibilidade não é garantida:',
+          ],
+          items: [
+            'os documentos PDF depositados pelos membros na biblioteca; é proposta uma versão HTML («Ler o documento») quando o texto pode ser extraído;',
+            'as gravações em vídeo de eventos publicadas em plataformas externas (legendas e transcrições a cargo dos organizadores);',
+            'o módulo antirrobô reCAPTCHA da Google, conteúdo de terceiros invisível que não exige qualquer ação.',
           ],
         },
         {
           heading: 'Elaboração desta declaração',
           body: [
-            'Esta declaração foi estabelecida a 27 de junho de 2026. Será atualizada após a realização da auditoria de conformidade.',
+            'Esta declaração foi estabelecida a 27 de setembro de 2026, com base numa auditoria de conformidade realizada no mesmo dia.',
+          ],
+        },
+        {
+          heading: 'Tecnologias utilizadas na realização do sítio',
+          body: ['HTML5, CSS, JavaScript (React, Next.js), WAI-ARIA.'],
+        },
+        {
+          heading: 'Ambiente de teste',
+          body: [
+            'As verificações foram realizadas com o navegador Chromium 141 controlado pelo Playwright, em computador e em emulação móvel, em francês e em árabe, com tema claro e escuro: árvore de acessibilidade do navegador (nomes, funções, estados, mensagens de estado), navegação apenas por teclado, visibilidade do foco, zoom da página e do texto a 200 %, apresentação com 320 píxeis de largura e espaçamento do texto.',
+            'A restituição por leitores de ecrã (NVDA, JAWS, VoiceOver, TalkBack) ainda não foi testada; fará parte da auditoria de controlo.',
+          ],
+        },
+        {
+          heading: 'Ferramentas para avaliar a acessibilidade',
+          body: [
+            'axe-core 4.12, Playwright 1.61, html-validate 11 e scripts de medição da ordem de tabulação, do foco visível, do contraste, do redimensionamento e do zoom.',
+          ],
+        },
+        {
+          heading: 'Páginas do sítio verificadas',
+          body: [
+            'Início, Quem somos, Diretório da rede, uma ficha de membro, Biblioteca, uma publicação, Eventos, um evento, Tribuna, Espaço jovens, Barómetro, Relatório de atividade 2026, Adesão, Contacto, Pesquisa, Início de sessão, Área de membros, um ecrã de administração (utilizadores) e a presente declaração.',
           ],
         },
         {
           heading: 'Comentários e contacto',
           body: [
-            'Se encontrar uma falha de acessibilidade que o impeça de aceder a um conteúdo, contacte-nos através do formulário de contacto para que possamos orientá-lo para uma alternativa e corrigir o problema.',
+            'Se não conseguir aceder a um conteúdo ou a um serviço, pode contactar-nos para ser orientado para uma alternativa acessível ou obter o conteúdo noutro formato:',
+          ],
+          items: [
+            'através do formulário da página «Contacto» do sítio;',
+            `por correio postal: ${TODO_PT} (morada da sede).`,
           ],
         },
         {
           heading: 'Vias de recurso',
           body: [
-            'Se constatar uma falha de acessibilidade e, depois de nos ter comunicado o problema, não obtiver uma resposta satisfatória, pode dirigir uma reclamação ao Defensor dos Direitos francês (www.defenseurdesdroits.fr).',
+            'Utilize este procedimento se tiver comunicado ao responsável do sítio uma falha de acessibilidade que o impede de aceder a um conteúdo ou a um serviço e não tiver obtido uma resposta satisfatória. Pode:',
+          ],
+          items: [
+            'escrever ao Defensor dos Direitos francês (formulário em linha em www.defenseurdesdroits.fr);',
+            'contactar o delegado do Defensor dos Direitos da sua região;',
+            'enviar uma carta pelo correio (gratuito, sem selo): Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07, França.',
           ],
         },
         {
@@ -918,40 +1211,108 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'إتاحة الوصول',
       title: 'تصريح بشأن إتاحة الوصول',
       updatedLabel: 'آخر تحديث',
-      updated: '27 يونيو 2026',
+      updated: '27 سبتمبر 2026',
       homeLabel: 'الرئيسية',
       intro:
-        'تلتزم Democracy Together بجعل موقعها متاحاً لأكبر عدد من الناس، عملاً بالمادة 47 من القانون الفرنسي رقم 2005-102 الصادر في 11 فبراير 2005، وبالمرجع العام لتحسين إتاحة الوصول (RGAA).',
+        'تلتزم Democracy Together بجعل موقعها متاحاً للجميع عملاً بالمادة 47 من القانون الفرنسي رقم 2005-102 الصادر في 11 فبراير 2005. ويسري هذا التصريح على موقع Democracy Together بجميع نسخه اللغوية.',
       sections: [
         {
           heading: 'حالة المطابقة',
           body: [
-            `لم يُنجَز بعدُ تدقيق كامل وفق مرجع RGAA. وفي هذه المرحلة لا يمكن التصريح بمستوى المطابقة: ${TODO_AR} (تدقيق RGAA مرتقب، ثم يُذكر «مطابق» أو «مطابق جزئياً» أو «غير مطابق»).`,
-            'ومع ذلك، صُمّم الموقع بإدماج ممارسات جيدة في مجال إتاحة الوصول: بنية دلالية، وتصفح بلوحة المفاتيح، واحترام التباين، وربط عناوين حقول الاستمارات بحقولها، واحترام تفضيل «تقليل الحركة»، وبدائل نصية.',
+            'موقع Democracy Together مطابق جزئياً للمرجع العام لتحسين إتاحة الوصول (RGAA) في نسخته 4.1.2، بسبب حالات عدم المطابقة المذكورة أدناه.',
           ],
         },
         {
-          heading: 'المحتويات غير المتاحة',
+          heading: 'نتائج الاختبارات',
           body: [
-            `ستُنشر لائحة المحتويات غير المطابقة والاستثناءات المحتملة عند انتهاء التدقيق: ${TODO_AR}.`,
+            'كشف تدقيق المطابقة المُنجَز في 27 سبتمبر 2026 على عيّنة من 19 صفحة أن 72,6 % من معايير RGAA 4.1.2 المنطبقة مستوفاة: 53 معياراً مطابقاً، و20 غير مطابق، و33 غير منطبق. ويبلغ متوسط نسبة المطابقة لكل صفحة 88,5 %.',
+            'أُدمِجت في الموقع منذ التدقيق تصحيحات تخصّ المعايير العشرين غير المطابقة. وسيتحقَّق منها تدقيقٌ لاحق، يُحدَّث هذا التصريح بعده بالنسبة المقيسة.',
+          ],
+        },
+        {
+          heading: 'المحتويات غير المتاحة — حالات عدم المطابقة',
+          body: [
+            'رُصدت خلال تدقيق 27 سبتمبر 2026 (والتصحيحات مُدمَجة في انتظار التحقق منها في التدقيق اللاحق):',
+          ],
+          items: [
+            'حملت صور توضيحية بديلاً نصياً لا حاجة إليه (المعيار 1.2)، ولم تكن صورتان مرفقتان بتعليق مربوطتين بتعليقهما (1.9)؛',
+            'كان الخيار المحدَّد في بعض عوامل التصفية والاستمارات يُبيَّن باللون وحده (3.1)، وكان تباين حدود حقول الاستمارات غير كافٍ (3.3)؛',
+            'لم يكن لجدولَي بيانات عنوان مرتبط بهما، ولم يكن لأحدهما رؤوس صفوف (5.4، 5.6)؛',
+            'لم تكن بعض الروابط صريحة: أرقام الصفحات، وروابط «CSV»، وعناصر قائمة الإدارة (6.1)؛',
+            'لم يكن زر اختيار اللغة ولوحة البحث يُنقلان على نحو سليم إلى التقنيات المساعدة، ولم يكن عدد نتائج البحث وبعض تأكيدات الإرسال يُعلَن عنها (7.1، 7.5)؛',
+            'لم يكن لصفحات فضاء الأعضاء والإدارة عنوان ملائم (8.6)؛',
+            'في الصفحات العربية، لم تكن النصوص المحرَّرة بالفرنسية (أوصاف الأعضاء، وعناوين المنشورات، والمقالات) تُبيِّن لغتها ولا اتجاه قراءتها (8.7، 8.10)؛',
+            'كان تسلسل العناوين يتخطّى مستويات في صفحتين (9.1)؛',
+            'لم يكن التركيز مرئياً في حقل لوحة البحث وعلى بعض أزرار الاختيار (10.7)؛',
+            'كانت صفحة أحد المنشورات تتطلّب تمريراً أفقياً على شاشة عرضها 320 بكسلاً (10.11)؛',
+            'لم يكن لبعض حقول البحث عنوان مرئي (11.1)، ولم يكن لمجموعة من أزرار الاختيار وسيلة إيضاح تُنقَل (11.6)، ولم يكن حقل «البلد» في استمارتين يُبيِّن غرضه (11.13)؛',
+            'كانت بعض العدّادات تُبيَّن برمز وحده (13.5)؛',
+            'كانت الكرة الأرضية التفاعلية تدور باستمرار دون وسيلة لإيقافها (13.8).',
+          ],
+        },
+        {
+          heading: 'الاستثناءات بسبب العبء غير المتناسب',
+          body: ['لا توجد.'],
+        },
+        {
+          heading: 'محتويات لم تُقيَّم أو محتويات أطراف أخرى',
+          body: [
+            'لم تُقيَّم المحتويات التالية خلال التدقيق، ولا تُضمَن إتاحتها:',
+          ],
+          items: [
+            'وثائق PDF التي يودِعها الأعضاء في المكتبة، مع إتاحة نسخة HTML («قراءة الوثيقة») متى أمكن استخراج نصها؛',
+            'تسجيلات الفيديو للفعاليات المنشورة على منصات خارجية (الترجمة المكتوبة والنصوص المفرَّغة على عاتق المنظِّمين)؛',
+            'وحدة reCAPTCHA لمكافحة الروبوتات من Google، وهي محتوى خارجي غير مرئي لا يتطلب أي إجراء.',
           ],
         },
         {
           heading: 'إعداد هذا التصريح',
           body: [
-            'أُعِدّ هذا التصريح في 27 يونيو 2026، وسيُحدَّث بعد إنجاز تدقيق المطابقة.',
+            'أُعِدّ هذا التصريح في 27 سبتمبر 2026 بناءً على تدقيق مطابقة أُجري في اليوم نفسه.',
+          ],
+        },
+        {
+          heading: 'التقنيات المستخدمة في إنجاز الموقع',
+          body: ['HTML5، CSS، JavaScript (React، Next.js)، WAI-ARIA.'],
+        },
+        {
+          heading: 'بيئة الاختبار',
+          body: [
+            'أُجريت عمليات التحقق بمتصفح Chromium 141 المُدار عبر Playwright، على الحاسوب وبمحاكاة الهاتف المحمول، بالفرنسية والعربية، في المظهرين الفاتح والداكن: شجرة إتاحة الوصول في المتصفح (الأسماء، والأدوار، والحالات، ورسائل الحالة)، والتصفح بلوحة المفاتيح وحدها، ووضوح التركيز، وتكبير الصفحة والنص إلى 200 %، والعرض بعرض 320 بكسلاً، وتباعد النص.',
+            'لم تُختبَر بعدُ القراءة عبر قارئات الشاشة (NVDA وJAWS وVoiceOver وTalkBack)، وستكون جزءاً من التدقيق اللاحق.',
+          ],
+        },
+        {
+          heading: 'أدوات تقييم إتاحة الوصول',
+          body: [
+            'axe-core 4.12، وPlaywright 1.61، وhtml-validate 11، وبرامج لقياس ترتيب التنقل، ووضوح التركيز، والتباين، وإعادة التدفق، والتكبير.',
+          ],
+        },
+        {
+          heading: 'صفحات الموقع التي شملها التحقق',
+          body: [
+            'الرئيسية، ومن نحن، ودليل الشبكة، وصفحة عضو، والمكتبة، ومنشور، والفعاليات، وفعالية، والمنبر، وفضاء الشباب، والمؤشر، وتقرير النشاط 2026، والانضمام، والاتصال، والبحث، وتسجيل الدخول، وفضاء الأعضاء، وشاشة إدارة (المستخدمون)، وهذا التصريح.',
           ],
         },
         {
           heading: 'الملاحظات والاتصال',
           body: [
-            'إذا صادفتم عائقاً في إتاحة الوصول يمنعكم من بلوغ محتوى ما، فاتصلوا بنا عبر استمارة الاتصال حتى نوجّهكم إلى بديل ونصحّح الخلل.',
+            'إذا تعذّر عليكم الوصول إلى محتوى أو خدمة، يمكنكم الاتصال بنا لتوجيهكم إلى بديل متاح أو للحصول على المحتوى بشكل آخر:',
+          ],
+          items: [
+            'عبر استمارة صفحة «اتصلوا بنا» في الموقع؛',
+            `بالبريد: ${TODO_AR} (عنوان المقر).`,
           ],
         },
         {
           heading: 'سبل الطعن',
           body: [
-            'إذا لاحظتم خللاً في إتاحة الوصول ولم تحصلوا، بعد إبلاغنا به، على جواب مُرضٍ، فبإمكانكم رفع شكاية إلى المدافع عن الحقوق بفرنسا (www.defenseurdesdroits.fr).',
+            'تُتَّبع هذه الإجراءات إذا أبلغتم المسؤول عن الموقع بخلل في إتاحة الوصول يمنعكم من بلوغ محتوى أو خدمة، ولم تحصلوا على جواب مُرضٍ. يمكنكم:',
+          ],
+          items: [
+            'مراسلة المدافع عن الحقوق بفرنسا (استمارة على الإنترنت في www.defenseurdesdroits.fr)؛',
+            'الاتصال بمندوب المدافع عن الحقوق في منطقتكم؛',
+            'إرسال رسالة بالبريد (مجاناً ودون طابع): Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07, France.',
           ],
         },
         {

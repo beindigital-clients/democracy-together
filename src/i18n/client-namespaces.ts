@@ -31,6 +31,14 @@ import type { AbstractIntlMessages } from 'next-intl';
  * C'est ce que porte le HTML de toutes les pages publiques.
  */
 export const BASE_CLIENT_NAMESPACES = [
+  // Chantier comptes : écrans de l'espace membre (données, sécurité,
+  // organisation), saisie du second facteur après connexion, message de
+  // compte suspendu sur la page de connexion. Le back-office s'en sert aussi
+  // (cycle de vie des comptes, réglage 2FA, fiches d'organisation), mais ils
+  // ne peuvent pas être réservés à `admin/layout.tsx` : des pages publiques
+  // les demandent.
+  'accounts',
+  'accessibility',
   'auth',
   'contact',
   'cookies',
@@ -44,19 +52,41 @@ export const BASE_CLIENT_NAMESPACES = [
   'library',
   'membership',
   'mentorship',
+  // `messages` : la pastille de la messagerie est dans l'en-tête de TOUTES
+  // les pages (chantier « social »).
+  'messages',
   'nav',
   'newsletter',
   'notifications',
+  // `people` et `profile` : écrans du réseau social (annuaire des personnes,
+  // boutons d'une page de profil publique, espace membre).
+  'people',
+  'profile',
+  // `payments` : formulaire de don, retour de paiement, espace membre
+  // (cotisations, reçus) — et l'écran Finances, qui le partage.
+  'payments',
+  // `privacy` : le réglage d'opposition à la mesure d'audience, posé dans la
+  // politique de confidentialité (F-66, chantier diffusion).
+  'privacy',
+  'orgAdmin',
+  // `peerReview` : le suivi de l'auteur (espace membre, F-43) est un
+  // composant client ; le back-office réutilise le même espace.
+  'peerReview',
   'projects',
   'reminder',
   'search',
+  // Chantier « programmes » (F-56 à F-60) : boîte à outils et parcours, profil
+  // Jeunes — îlots client des pages publiques et de l'espace membre.
+  'toolbox',
   // `translation` : le bandeau de traduction est un composant SERVEUR, mais il
   // monte `TranslateButton` — un bouton qui appelle une action Convex, donc
   // nécessairement client. C'est le seul morceau de ce dispositif qui traverse
   // la frontière RSC.
   'translation',
   'tribune',
+  'twoFactor',
   'workspaces',
+  'youth',
   'youthApply',
 ] as const;
 
@@ -69,7 +99,14 @@ export const BASE_CLIENT_NAMESPACES = [
  * racine. Vérifié : tous les composants client qui le demandent vivent sous
  * `app/[locale]/admin/` ou `components/admin/`.
  */
-export const ADMIN_NAMESPACES = ['admin'] as const;
+// Espaces de noms du back-office : chaque chantier y ajoute les siens.
+export const ADMIN_NAMESPACES = [
+  'admin',
+  'analytics',
+  'moderationQueue',
+  'contentAdmin',
+  'reports',
+] as const;
 
 /** Tous les espaces demandés par un composant client, où qu'il soit. */
 export const CLIENT_NAMESPACES = [

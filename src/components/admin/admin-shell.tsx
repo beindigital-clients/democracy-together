@@ -1,13 +1,18 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link, usePathname } from '@/i18n/navigation';
-import { effectiveRole, isStaff } from '@/lib/roles';
+import { effectiveRole, isStaff, roleRank } from '@/lib/roles';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
-import { AdminNav } from '@/components/admin/admin-nav';
+import {
+  AdminNav,
+  adminMinRoleForPath,
+  adminScreenKey,
+} from '@/components/admin/admin-nav';
+import { SITE_NAME } from '@/lib/seo';
 import { ActionFeedbackProvider } from '@/components/admin/action-feedback';
 
 function Centered({ children }: { children: ReactNode }) {
@@ -18,7 +23,7 @@ function Centered({ children }: { children: ReactNode }) {
   );
 }
 
-function AccessDenied() {
+function AccessDenied({ rank = false }: { rank?: boolean }) {
   const t = useTranslations('admin');
   return (
     <Centered>
@@ -26,7 +31,9 @@ function AccessDenied() {
         403
       </p>
       <h1 className="mt-3 font-display text-3xl">{t('accessDeniedTitle')}</h1>
-      <p className="mt-3 text-ink-soft">{t('accessDeniedBody')}</p>
+      <p className="mt-3 text-ink-soft">
+        {rank ? t('accessDeniedBodyRank') : t('accessDeniedBody')}
+      </p>
       <Link
         href="/"
         className="mt-6 inline-block text-sm font-medium text-accent-text hover:underline"
@@ -37,11 +44,34 @@ function AccessDenied() {
   );
 }
 
+// Titre de l'onglet par écran (RGAA 8.6) : « Utilisateurs · Administration ·
+// Democracy Together ». `admin/layout.tsx` sert « Administration » dans le HTML
+// initial ; l'effet précise l'écran une fois la route connue côté client. Il
+// dépend du chemin : une navigation interne au back-office, qui ne change pas
+// les métadonnées du layout, le rejoue quand même. Il se rejoue aussi quand la
+// session est connue (`loading`) : les métadonnées étant diffusées en flux, un
+// `<title>` du layout arrivé APRÈS le premier passage l'aurait écrasé.
+function useAdminDocumentTitle(pathname: string, loading: boolean) {
+  const t = useTranslations('admin');
+  const key = adminScreenKey(pathname);
+  const screen = key ? t(key) : null;
+  const admin = t('title');
+  useEffect(() => {
+    document.title = [screen, admin, SITE_NAME].filter(Boolean).join(' · ');
+  }, [screen, admin, loading]);
+}
+
 function Gate({ children }: { children: ReactNode }) {
   const me = useQuery(api.users.current);
   const pathname = usePathname();
+  useAdminDocumentTitle(pathname, me === undefined);
   if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
+  // Rang de l'ÉCRAN, pas seulement du back-office : la page enfant ne se
+  // monte pas — donc ne pose aucune requête — si le rôle est insuffisant.
+  if (roleRank(me?.role) < roleRank(adminMinRoleForPath(pathname))) {
+    return <AccessDenied rank />;
+  }
 
   // Les régions live du retour d'action sont montées ICI, une fois pour tout
   // le back-office : chaque écran de modération pousse son message dedans

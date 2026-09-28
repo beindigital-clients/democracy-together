@@ -10,19 +10,15 @@ import { FormError, TextField } from '@/components/ui/field';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Rappel d'événement (F-55) — îlot client, sur la page de détail d'un événement
 // À VENIR. Le visiteur (sans compte) laisse son e-mail ; un cron quotidien
-// enverra le rappel quelques jours avant. `eventDate` est calculé par
-// l'appelant (Date.UTC). Idempotent côté serveur (redemander = succès sans
-// doublon). Libellés du namespace i18n `reminder`.
-export function ReminderForm({
-  eventSlug,
-  eventDate,
-}: {
-  eventSlug: string;
-  eventDate: number;
-}) {
+// enverra le rappel quelques jours avant. La date du rappel est celle de
+// l'événement, LUE CÔTÉ SERVEUR dans la table (pentest M-5) : ce formulaire ne
+// l'envoie plus. Idempotent côté serveur (redemander = succès sans doublon).
+// Libellés du namespace i18n `reminder`.
+export function ReminderForm({ eventSlug }: { eventSlug: string }) {
   const t = useTranslations('reminder');
   const locale = useLocale();
   const requestReminder = useAction(api.eventReminders.requestReminder);
@@ -45,7 +41,6 @@ export function ReminderForm({
       await requestReminder({
         eventSlug,
         email,
-        eventDate,
         locale: resolveLocale(locale),
         captchaToken,
       });
@@ -64,12 +59,9 @@ export function ReminderForm({
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-4"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-4">
         <p className="text-sm font-medium text-ink">{t('success')}</p>
-      </div>
+      </StatusMessage>
     );
   }
 

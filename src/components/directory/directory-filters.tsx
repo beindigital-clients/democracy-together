@@ -1,10 +1,17 @@
 import type { ReactNode } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import type { DirectoryFilters as Filters, Facets } from '@/lib/orgs';
+import {
+  countryFlag,
+  countryName,
+  languageName,
+  type DirectoryFilters as Filters,
+  type Facets,
+} from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Check } from 'lucide-react';
 
 // Construit l'URL de l'annuaire avec un filtre modifié, en préservant les
 // autres (undefined = on retire le filtre). next-intl ajoute le préfixe locale.
@@ -13,6 +20,8 @@ function buildHref(filters: Filters, patch: Partial<Filters>): string {
   const sp = new URLSearchParams();
   if (next.region) sp.set('region', next.region);
   if (next.theme) sp.set('theme', next.theme);
+  if (next.country) sp.set('country', next.country);
+  if (next.language) sp.set('language', next.language);
   if (next.q) sp.set('q', next.q);
   const qs = sp.toString();
   return qs ? `/le-reseau?${qs}` : '/le-reseau';
@@ -37,14 +46,20 @@ function Chip({
           : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
       }`}
     >
+      {/* Le filtre actif était signalé par la seule teinte (RGAA 3.1) :
+          une coche le dit aussi à qui ne distingue pas les couleurs. */}
+      {active ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
       {children}
     </Link>
   );
 }
 
-// Filtres de l'annuaire (F-19) : recherche plein texte + facettes région /
-// thématique. Tout est rendu côté serveur ; chaque filtre est un lien (GET),
-// donc fonctionne sans JavaScript et reste partageable / indexable.
+// Filtres de l'annuaire (F-19) : recherche plein texte + les quatre facettes
+// demandées — région, thématique, pays, langue (les deux dernières manquaient,
+// mesuré le 27/09). Tout est rendu côté serveur ; chaque filtre est un lien
+// (GET), donc fonctionne sans JavaScript et reste partageable / indexable.
+// Pays et langues sont des codes ISO rendus par `Intl.DisplayNames` dans la
+// langue de la page ; les chips portent le code en minuscules dans l'URL.
 export function DirectoryFilters({
   facets,
   filters,
@@ -53,6 +68,7 @@ export function DirectoryFilters({
   filters: Filters;
 }) {
   const t = useTranslations('directory');
+  const locale = useLocale();
 
   return (
     <div className="space-y-5">
@@ -63,12 +79,21 @@ export function DirectoryFilters({
         {filters.theme ? (
           <input type="hidden" name="theme" value={filters.theme} />
         ) : null}
+        {filters.country ? (
+          <input type="hidden" name="country" value={filters.country} />
+        ) : null}
+        {filters.language ? (
+          <input type="hidden" name="language" value={filters.language} />
+        ) : null}
         <Input
           type="search"
           name="q"
           defaultValue={filters.q ?? ''}
           placeholder={t('searchPlaceholder')}
           aria-label={t('searchPlaceholder')}
+          // Étiquette NON visible : `title` la rend lisible au survol et remplit
+          // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+          title={t('searchPlaceholder')}
         />
         <Button type="submit" variant="outline" className="shrink-0">
           {t('searchCta')}
@@ -120,6 +145,61 @@ export function DirectoryFilters({
               <span className="text-muted">{th.count}</span>
             </Chip>
           ))}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+          {t('filterCountry')}
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          <Chip
+            href={buildHref(filters, { country: undefined })}
+            active={!filters.country}
+          >
+            {t('all')}
+          </Chip>
+          {facets.countries.map((c) => {
+            const code = c.value.toLowerCase();
+            return (
+              <Chip
+                key={c.value}
+                href={buildHref(filters, { country: code })}
+                active={filters.country?.toLowerCase() === code}
+              >
+                <span aria-hidden="true">{countryFlag(c.value)}</span>
+                {countryName(c.value, locale)}
+                <span className="text-muted">{c.count}</span>
+              </Chip>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+          {t('filterLanguage')}
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          <Chip
+            href={buildHref(filters, { language: undefined })}
+            active={!filters.language}
+          >
+            {t('all')}
+          </Chip>
+          {facets.languages.map((l) => {
+            const code = l.value.toLowerCase();
+            return (
+              <Chip
+                key={l.value}
+                href={buildHref(filters, { language: code })}
+                active={filters.language?.toLowerCase() === code}
+              >
+                {languageName(l.value, locale)}
+                <span className="text-muted">{l.count}</span>
+              </Chip>
+            );
+          })}
         </div>
       </fieldset>
     </div>

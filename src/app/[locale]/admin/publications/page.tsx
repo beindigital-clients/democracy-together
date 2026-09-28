@@ -1,36 +1,63 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation, usePaginatedQuery } from 'convex/react';
+import { useMutation, usePaginatedQuery, useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { FunctionReturnType } from 'convex/server';
+import { Link } from '@/i18n/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { SelectField } from '@/components/ui/field';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useActionFeedback } from '@/components/admin/action-feedback';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { AiVerdictPanel } from '@/components/admin/ai-verdict';
 import { vocabulary } from '@/i18n/vocabulary';
+import { isEditor } from '@/lib/roles';
 
 type ReviewItem = FunctionReturnType<
   typeof api.publications.listForReview
 >['page'][number];
+type Staff = FunctionReturnType<typeof api.peerReview.listStaffUsers>;
+type ReviewStage = FunctionReturnType<
+  typeof api.peerReview.reviewStagesFor
+>[number]['reviewStage'];
 
 // Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 25;
 
-function PublicationRow({ pub }: { pub: ReviewItem }) {
+function PublicationRow({
+  pub,
+  reviewStage,
+  editor,
+  staff,
+}: {
+  pub: ReviewItem;
+  // Étape de la revue à comité de lecture, `null` hors revue — lue en un
+  // seul appel pour toute la page (`reviewStagesFor`), pas une par ligne.
+  reviewStage: ReviewStage;
+  // Éditeur et au-dessus : seul rang qui peut OUVRIR une revue. Le staff
+  // (relecteurs possibles) n'est chargé que pour lui.
+  editor: boolean;
+  staff: Staff | undefined;
+}) {
   const t = useTranslations('admin');
   const tl = useTranslations('library');
   const review = useMutation(api.publications.reviewPublication);
   const reopen = useMutation(api.publications.reopenPublicationReview);
   const analyze = useMutation(api.aiModeration.requestReview);
   const revert = useMutation(api.publications.revertAutoPublication);
+  const assign = useMutation(api.peerReview.assignReviewer);
   const notify = useActionFeedback();
+  const fail = useFailureFeedback();
   const [notes, setNotes] = useState('');
+  const [reviewerId, setReviewerId] = useState('');
   const [pending, setPending] = useState(false);
   // Retirer de la bibliothèque un document déjà en ligne passe par une
   // confirmation nommée, comme le refus : c'est l'action la plus visible de
@@ -58,11 +85,11 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
           { title: pub.title },
         ),
       );
-    } catch {
-      // Action refusée côté serveur (ex. rôle insuffisant, décision déjà
-      // prise) : la file reste inchangée — et l'écran le dit, au lieu de
-      // laisser le doute sur un clic peut-être perdu.
-      notify(t('feedbackError'), 'error');
+    } catch (err) {
+      // Action refusée côté serveur (rôle insuffisant, décision déjà prise
+      // ailleurs) : la file reste inchangée — et l'écran dit POURQUOI, par le
+      // code du refus (27/09, R-08), au lieu d'accuser les droits.
+      fail(err);
     } finally {
       setPending(false);
     }
@@ -76,8 +103,35 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
     setPending(true);
     try {
       await reopen({ publicationId: pub._id });
-    } catch {
-      // idem
+      // « Rouvrir » restait muet (27/09, m-5) : le message du rejet précédent
+      // restait seul à l'écran, à lire à l'envers.
+      notify(t('feedbackReopened', { name: pub.title }));
+    } catch (err) {
+      fail(err);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  // ENVOYER AU COMITÉ DE LECTURE (27/09, R-01) — depuis la file de modération,
+  // sans quitter l'écran : l'éditeur désigne un relecteur, la revue s'ouvre
+  // (`reviewStage` = in_review), le relecteur est notifié. La modération
+  // (approuver / rejeter) reste indépendante.
+  async function openReview() {
+    const who = staff?.find((u) => u._id === reviewerId);
+    if (!who) return;
+    setPending(true);
+    try {
+      await assign({ publicationId: pub._id, reviewerUserId: who._id });
+      setReviewerId('');
+      notify(
+        t('feedbackRevOpened', {
+          title: pub.title,
+          name: who.name || who.email || who._id,
+        }),
+      );
+    } catch (err) {
+      fail(err);
     } finally {
       setPending(false);
     }
@@ -95,8 +149,8 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
         scheduled ? t('aiAnalyzeScheduled') : t('aiAnalyzeDisabled'),
         scheduled ? 'success' : 'error',
       );
-    } catch {
-      notify(t('feedbackError'), 'error');
+    } catch (err) {
+      fail(err);
     } finally {
       setPending(false);
     }
@@ -108,8 +162,8 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
       await revert({ publicationId: pub._id });
       setConfirmingRevert(false);
       notify(t('aiRevertDone', { title: pub.title }));
-    } catch {
-      notify(t('feedbackError'), 'error');
+    } catch (err) {
+      fail(err);
     } finally {
       setPending(false);
     }
@@ -130,7 +184,9 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-lg">{pub.title}</h2>
+            <h2 className="min-w-0 wrap-anywhere font-display text-lg">
+              {pub.title}
+            </h2>
             <Badge>{vocabulary(tl, 'accessShort.', pub.access)}</Badge>
           </div>
           <p className="mt-1 text-sm text-ink-soft">{meta}</p>
@@ -145,17 +201,18 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
         </div>
       </div>
 
-      <p className="mt-3 max-w-[72ch] text-sm leading-relaxed text-ink-soft">
+      <p className="mt-3 max-w-[72ch] wrap-anywhere text-sm leading-relaxed text-ink-soft">
         {pub.abstract}
       </p>
 
-      <p className="mt-3 text-sm">
+      <p className="mt-2 text-sm">
         {pub.fileUrl ? (
+          // `py-1` en bloc : 18 px de lien au doigt, mesuré le 27/09 (C-3).
           <a
             href={pub.fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-accent-text hover:underline"
+            className="inline-block py-1 font-medium text-accent-text hover:underline"
           >
             {t('viewFile')}
             {pub.fileName ? ` · ${pub.fileName}` : ''} ↗
@@ -166,6 +223,54 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
       </p>
 
       <AiVerdictPanel publicationId={pub._id} review={pub.aiReview} />
+
+      {/* Comité de lecture (F-43) — l'étape si une revue est engagée, et pour
+          l'éditeur la porte pour en ouvrir une sur un dépôt en attente. */}
+      {reviewStage || (editor && pub.status === 'pending') ? (
+        <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-3">
+          {reviewStage ? (
+            <p className="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
+              {t('revStatusLabel')}
+              <Badge variant="accent">
+                {vocabulary(t, 'revStage_', reviewStage)}
+              </Badge>
+              {editor ? (
+                <Link
+                  href="/admin/revue"
+                  className="inline-block py-1 text-accent-text hover:underline"
+                >
+                  {t('revSeeInQueue')}
+                </Link>
+              ) : null}
+            </p>
+          ) : null}
+          {editor && pub.status === 'pending' && staff && staff.length > 0 ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <SelectField
+                label={t('revAssignLabel')}
+                controlClassName="w-auto py-2"
+                value={reviewerId}
+                onChange={(e) => setReviewerId(e.target.value)}
+              >
+                <option value="">{t('revAssignPlaceholder')}</option>
+                {staff.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {u.name || u.email || u._id}
+                  </option>
+                ))}
+              </SelectField>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending || !reviewerId}
+                onClick={openReview}
+              >
+                {t('revOpenFromQueue')}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {pub.status === 'pending' ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -209,7 +314,9 @@ function PublicationRow({ pub }: { pub: ReviewItem }) {
       ) : (
         <>
           {pub.reviewNotes ? (
-            <p className="mt-3 text-xs text-muted">“{pub.reviewNotes}”</p>
+            <p className="mt-3 wrap-anywhere text-xs text-muted">
+              “{pub.reviewNotes}”
+            </p>
           ) : null}
           {/* Un brouillon AVEC une date de revue est un refus, pas un dépôt
               jamais soumis — la distinction attend le statut `rejected` de
@@ -274,6 +381,20 @@ export default function AdminPublications() {
     { status: filter, ...(search ? { search } : {}) },
     { initialNumItems: PAGE_SIZE },
   );
+  // Porte d'entrée de la revue à comité de lecture (27/09, R-01) : le rang
+  // vient de la session, la liste des relecteurs n'est demandée qu'à un
+  // éditeur (le serveur la refuse en dessous), et l'étape de revue des lignes
+  // AFFICHÉES se lit en un seul appel.
+  const me = useQuery(api.users.current);
+  const editor = isEditor(me?.role);
+  const staff = useQuery(api.peerReview.listStaffUsers, editor ? {} : 'skip');
+  const stages = useQuery(
+    api.peerReview.reviewStagesFor,
+    pubs.length > 0 ? { publicationIds: pubs.map((p) => p._id) } : 'skip',
+  );
+  const stageOf = new Map(
+    (stages ?? []).map((s) => [s.publicationId, s.reviewStage]),
+  );
 
   return (
     <div>
@@ -315,7 +436,13 @@ export default function AdminPublications() {
         // Liste NOMMÉE : la navigation groupée (#49) rend aussi des `<li>`.
         <ul aria-label={t('publicationsListLabel')} className="mt-6 space-y-3">
           {pubs.map((p) => (
-            <PublicationRow key={p._id} pub={p} />
+            <PublicationRow
+              key={p._id}
+              pub={p}
+              reviewStage={stageOf.get(p._id) ?? null}
+              editor={editor}
+              staff={staff}
+            />
           ))}
         </ul>
       )}

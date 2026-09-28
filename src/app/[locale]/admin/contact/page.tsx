@@ -7,6 +7,10 @@ import { api } from '@convex/_generated/api';
 import type { Doc } from '@convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { intlLocale } from '@/i18n/locale';
 
 // F-17 / F-26 — les messages de contact n'avaient AUCUN écran de lecture :
@@ -18,6 +22,10 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
   const locale = useLocale();
   const setHandled = useMutation(api.contact.setHandled);
   const [pending, setPending] = useState(false);
+  // Retour d'action (27/09, m-2 / m-5) : « traité » et « Rouvrir » ne
+  // disaient rien, et un refus serveur restait muet.
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
 
   const received = new Intl.DateTimeFormat(intlLocale(locale), {
     dateStyle: 'long',
@@ -28,8 +36,13 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
     setPending(true);
     try {
       await setHandled({ messageId: msg._id, handled: !msg.handled });
-    } catch {
-      // refus serveur (rôle insuffisant) : la liste réactive reste cohérente.
+      notify(
+        t(msg.handled ? 'feedbackContactReopened' : 'feedbackContactHandled', {
+          subject: msg.subject,
+        }),
+      );
+    } catch (err) {
+      fail(err);
     } finally {
       setPending(false);
     }
@@ -39,7 +52,9 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
     <li className="rounded-md border border-line bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg">{msg.subject}</h2>
+          <h2 className="min-w-0 wrap-anywhere font-display text-lg">
+            {msg.subject}
+          </h2>
           <p className="mt-1 text-sm text-ink-soft">
             {t('contactFrom')}{' '}
             <b className="font-semibold text-ink">{msg.name}</b> ·{' '}
@@ -61,7 +76,7 @@ function MessageRow({ msg }: { msg: Doc<'contactMessages'> }) {
         </Badge>
       </div>
 
-      <p className="mt-3 max-w-[70ch] whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+      <p className="mt-3 max-w-[70ch] whitespace-pre-line break-words text-sm leading-relaxed text-ink-soft">
         {msg.body}
       </p>
 

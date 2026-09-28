@@ -3,7 +3,7 @@
 import { useConvexAuth } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 
 // `connecteAuRendu` vient du SERVEUR (`isAuthenticatedNextjs()`, lu dans
 // `site-header.tsx`). Tant que Convex n'a pas répondu, c'est lui qui décide de
@@ -23,7 +23,21 @@ export function AuthButton({
 } = {}) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
+  const router = useRouter();
   const t = useTranslations('auth');
+
+  // LA DÉCONNEXION NAVIGUE ELLE-MÊME (auth A-6). `signOut()` ne fait que vider
+  // les jetons : sur une page privée, c'était la garde `AuthGate` qui, 1,2 s
+  // plus tard, remplaçait la page par le formulaire de connexion — l'URL
+  // restait `/espace-membre` sous ce formulaire, et « Précédent » ressortait
+  // une entrée `/connexion?_rsc=…`, l'URL interne d'un prefetch RSC (mesuré
+  // le 27/09). `replace` vers l'accueil, une route propre, juste après la
+  // sortie : la garde est démontée avant d'avoir à rediriger, et l'historique
+  // ne garde aucune URL qu'on ne peut pas partager.
+  async function onSignOut() {
+    await signOut();
+    router.replace('/');
+  }
 
   const connecte = isLoading ? connecteAuRendu : isAuthenticated;
 
@@ -44,7 +58,7 @@ export function AuthButton({
         </Link>
         <button
           type="button"
-          onClick={() => signOut()}
+          onClick={onSignOut}
           className="text-sm text-ink-soft transition-colors hover:text-ink"
         >
           {t('signOut')}

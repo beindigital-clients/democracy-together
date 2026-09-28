@@ -28,8 +28,10 @@ test('recherche globale : header -> palette -> page -> résultats', async ({
   // Recherche live dans la palette : la section Publications apparaît (terme
   // présent dans les publications seedées).
   await dialog.getByRole('combobox').fill('démocratie');
+  // Un GROUPE d'options nommé, et non plus un titre : le `listbox` ne peut
+  // contenir que des groupes et des options (audit RGAA du 27/09, 7.1).
   await expect(
-    dialog.getByRole('heading', { name: 'Publications' }),
+    dialog.getByRole('group', { name: 'Publications' }),
   ).toBeVisible();
 
   // « Voir tous les résultats » -> page exhaustive /recherche.

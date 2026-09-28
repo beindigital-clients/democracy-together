@@ -8,8 +8,13 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
+import { ProgrammeAdminLink } from '@/components/programmes/admin-links';
 
 // File de revue des propositions de projets collaboratifs (F-60). Modérateur+.
 export default function AdminProjects() {
@@ -24,6 +29,9 @@ export default function AdminProjects() {
   const reopen = useMutation(api.projects.reopenProjectProposal);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  // Retour d'action (27/09, m-2 / m-5) : décider et rouvrir restaient muets.
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
 
   const fmt = (ms: number) =>
     new Intl.DateTimeFormat(intlLocale(locale), {
@@ -32,7 +40,11 @@ export default function AdminProjects() {
       year: 'numeric',
     }).format(ms);
 
-  async function decide(id: string, decision: 'accepted' | 'rejected') {
+  async function decide(
+    id: string,
+    title: string,
+    decision: 'accepted' | 'rejected',
+  ) {
     setBusy(id);
     try {
       await review({
@@ -40,8 +52,16 @@ export default function AdminProjects() {
         decision,
         notes: notes[id]?.trim() || undefined,
       });
-    } catch {
-      /* erreur silencieuse : la liste se rafraîchit toute seule */
+      notify(
+        t(
+          decision === 'accepted'
+            ? 'feedbackProjectAccepted'
+            : 'feedbackProjectRejected',
+          { title },
+        ),
+      );
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
@@ -50,12 +70,13 @@ export default function AdminProjects() {
   // Revenir sur une décision demande de ROUVRIR la proposition (issue #9) : le
   // serveur refuse qu'on la retranche directement, et la réouverture laisse sa
   // propre trace au journal.
-  async function reopenProposal(id: string) {
+  async function reopenProposal(id: string, title: string) {
     setBusy(id);
     try {
       await reopen({ proposalId: id as Id<'projectProposals'> });
-    } catch {
-      /* idem */
+      notify(t('feedbackReopened', { name: title }));
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
@@ -64,7 +85,10 @@ export default function AdminProjects() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl">{t('prjTitle')}</h1>
+        <div>
+          <h1 className="font-display text-3xl">{t('prjTitle')}</h1>
+          <ProgrammeAdminLink kind="calls" />
+        </div>
         <div className="flex gap-1 rounded-md border border-line p-0.5">
           <button
             type="button"
@@ -95,7 +119,9 @@ export default function AdminProjects() {
               className="rounded-md border border-line bg-surface p-4"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-medium text-ink">{p.title}</h2>
+                <h2 className="min-w-0 wrap-anywhere font-medium text-ink">
+                  {p.title}
+                </h2>
                 <Badge variant="default">
                   {vocabulary(t, 'prjStatus_', p.status)}
                 </Badge>
@@ -109,11 +135,11 @@ export default function AdminProjects() {
                   #{vocabulary(tl, 'themes.', p.theme)}
                 </span>
               </div>
-              <p className="mt-2 text-[14px] leading-relaxed text-ink">
+              <p className="mt-2 wrap-anywhere text-[14px] leading-relaxed text-ink">
                 {p.summary}
               </p>
               {p.reviewNotes ? (
-                <p className="mt-2 text-[13px] text-muted">
+                <p className="mt-2 wrap-anywhere text-[13px] text-muted">
                   {t('prjNotesLabel')} {p.reviewNotes}
                 </p>
               ) : null}
@@ -133,14 +159,14 @@ export default function AdminProjects() {
                     size="sm"
                     variant="outline"
                     disabled={busy === p._id}
-                    onClick={() => decide(p._id, 'rejected')}
+                    onClick={() => decide(p._id, p.title, 'rejected')}
                   >
                     {t('prjReject')}
                   </Button>
                   <Button
                     size="sm"
                     disabled={busy === p._id}
-                    onClick={() => decide(p._id, 'accepted')}
+                    onClick={() => decide(p._id, p.title, 'accepted')}
                   >
                     {t('prjAccept')}
                   </Button>
@@ -152,7 +178,7 @@ export default function AdminProjects() {
                     size="sm"
                     variant="outline"
                     disabled={busy === p._id}
-                    onClick={() => reopenProposal(p._id)}
+                    onClick={() => reopenProposal(p._id, p.title)}
                   >
                     {t('reopen')}
                   </Button>

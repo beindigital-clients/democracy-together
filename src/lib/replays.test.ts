@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { getReplays } from './replays';
+import {
+  getReplays,
+  parseReplayFilters,
+  filterReplays,
+  replayFacets,
+  replaysHref,
+  hasReplayFilters,
+} from './replays';
 import { EVENTS, whenOf } from './events-content';
 
 describe('Replays de webinaires (F-54)', () => {
@@ -64,5 +71,63 @@ describe('Replays de webinaires (F-54)', () => {
       .toLowerCase();
     expect(all).not.toContain('démocratie libérale');
     expect(all).not.toContain('liberal democracy');
+  });
+});
+
+describe('Replays — filtres type / thématique / langue (communauté A-12)', () => {
+  const replays = getReplays('fr');
+
+  it('parseReplayFilters ne garde que des valeurs portées par les replays', () => {
+    const f = parseReplayFilters(
+      { type: 'webinaire', theme: 'zzz', lang: ['FR'] },
+      replays,
+    );
+    expect(f).toEqual({ type: 'webinaire', theme: undefined, lang: 'fr' });
+    expect(parseReplayFilters({}, replays)).toEqual({
+      type: undefined,
+      theme: undefined,
+      lang: undefined,
+    });
+    expect(hasReplayFilters(f)).toBe(true);
+    expect(hasReplayFilters({})).toBe(false);
+  });
+
+  it('filterReplays combine les filtres en ET, sans jamais inventer de résultat', () => {
+    const webinaires = filterReplays(replays, { type: 'webinaire' });
+    expect(webinaires.length).toBeGreaterThan(0);
+    expect(webinaires.every((r) => r.typeKey === 'webinaire')).toBe(true);
+    const en = filterReplays(replays, { type: 'webinaire', lang: 'en' });
+    expect(
+      en.every((r) => r.typeKey === 'webinaire' && r.langs.includes('en')),
+    ).toBe(true);
+    expect(en.length).toBeLessThanOrEqual(webinaires.length);
+    expect(filterReplays(replays, {})).toEqual(replays);
+  });
+
+  it('replayFacets compte chaque valeur présente, avec un libellé localisé', () => {
+    for (const loc of ['fr', 'en'] as const) {
+      const facets = replayFacets(getReplays(loc), loc);
+      const total = facets.types.reduce((n, f) => n + f.count, 0);
+      expect(total).toBe(replays.length);
+      for (const group of [facets.types, facets.themes, facets.langs]) {
+        for (const f of group) {
+          expect(f.count).toBeGreaterThan(0);
+          expect(f.label.length).toBeGreaterThan(0);
+          // Chaque facette proposée donne au moins un résultat.
+        }
+      }
+      for (const f of facets.themes) {
+        expect(filterReplays(replays, { theme: f.value }).length).toBe(f.count);
+      }
+    }
+  });
+
+  it('replaysHref conserve les autres filtres et retire ceux mis à undefined', () => {
+    const f = { type: 'webinaire', lang: 'fr' };
+    expect(replaysHref(f, { theme: 'participation' })).toBe(
+      '/replays?type=webinaire&theme=participation&lang=fr',
+    );
+    expect(replaysHref(f, { type: undefined })).toBe('/replays?lang=fr');
+    expect(replaysHref({}, {})).toBe('/replays');
   });
 });

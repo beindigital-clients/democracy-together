@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
+import { insertTestEvent } from './lib/contenus/fixtures';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -17,6 +18,10 @@ const modules = import.meta.glob([
 describe('Inscriptions événements — register (F-53)', () => {
   it('inscrit (normalise), dédupe par event+email, rejette invalides', async () => {
     const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await insertTestEvent(ctx, { slug: 'conference-inaugurale' });
+      await insertTestEvent(ctx, { slug: 'webinaire-jeunes-releve' });
+    });
 
     const r1 = await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'conference-inaugurale',
@@ -60,24 +65,30 @@ describe('Inscriptions événements — register (F-53)', () => {
     // e-mail invalide / nom trop court rejetés
     await expect(
       t.mutation(internal.events.storeRegistration, {
-        eventSlug: 'x',
+        eventSlug: 'conference-inaugurale',
         name: 'Bob',
         email: 'pas-un-email',
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow('INVALID_EMAIL');
     await expect(
       t.mutation(internal.events.storeRegistration, {
-        eventSlug: 'x',
+        eventSlug: 'conference-inaugurale',
         name: 'B',
         email: 'b@example.org',
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow('INVALID_NAME');
   });
 });
 
 describe('Inscriptions événements — back-office (F-53)', () => {
   it('réserve la liste aux modérateurs et au-dessus', async () => {
     const t = convexTest(schema, modules);
+    await t.run((ctx) =>
+      insertTestEvent(ctx, {
+        slug: 'conference-inaugurale',
+        title: { fr: 'Conférence inaugurale' },
+      }),
+    );
     await t.mutation(internal.events.storeRegistration, {
       eventSlug: 'conference-inaugurale',
       name: 'Awa Diop',
@@ -108,6 +119,86 @@ describe('Inscriptions événements — back-office (F-53)', () => {
       .query(api.events.listEventRegistrations, {});
     expect(list).toHaveLength(1);
     expect(list[0].eventSlug).toBe('conference-inaugurale');
+    // Le titre vient de la table, plus d'un catalogue codé côté écran.
+    expect(list[0].eventTitle).toBe('Conférence inaugurale');
     expect(list[0].email).toBe('awa@example.org');
+  });
+});
+
+// A-03 (campagne du 27/09) puis M-5 (pentest) : l'inscription à un événement
+// PASSÉ était acceptée et stockée, et le slug n'était confronté qu'à une liste
+// recopiée. Il l'est désormais à la table `contentEvents`.
+describe('Inscriptions événements — validées contre la table (A-03, M-5)', () => {
+  it('refuse un événement inconnu, brouillon, annulé ou passé avec EVENT_CLOSED, sans rien stocker', async () => {
+    const t = convexTest(schema, modules);
+    const past = Date.now() - 10 * 86_400_000;
+    await t.run(async (ctx) => {
+      await insertTestEvent(ctx, { slug: 'brouillon', status: 'draft' });
+      await insertTestEvent(ctx, { slug: 'annule', status: 'cancelled' });
+      await insertTestEvent(ctx, {
+        slug: 'passe',
+        startsAt: past,
+        endsAt: past + 3_600_000,
+      });
+    });
+    for (const eventSlug of [
+      'evenement-inexistant',
+      'brouillon',
+      'annule',
+      'passe',
+    ]) {
+      await expect(
+        t.mutation(internal.events.storeRegistration, {
+          eventSlug,
+          name: 'Awa Diop',
+          email: 'awa@example.org',
+        }),
+      ).rejects.toMatchObject({ data: 'EVENT_CLOSED' });
+    }
+    expect(
+      await t.run((ctx) => ctx.db.query('eventRegistrations').collect()),
+    ).toHaveLength(0);
+  });
+
+  it('un événement EN COURS reste ouvert jusqu’à sa fin', async () => {
+    const t = convexTest(schema, modules);
+    await t.run((ctx) =>
+      insertTestEvent(ctx, {
+        slug: 'en-cours',
+        startsAt: Date.now() - 3_600_000,
+        endsAt: Date.now() + 3_600_000,
+      }),
+    );
+    const r = await t.mutation(internal.events.storeRegistration, {
+      eventSlug: 'en-cours',
+      name: 'Awa Diop',
+      email: 'awa@example.org',
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it('refuse au-delà de la capacité (EVENT_FULL), sans refuser un inscrit qui renvoie le formulaire', async () => {
+    const t = convexTest(schema, modules);
+    await t.run((ctx) =>
+      insertTestEvent(ctx, { slug: 'petit-atelier', capacity: 1 }),
+    );
+    await t.mutation(internal.events.storeRegistration, {
+      eventSlug: 'petit-atelier',
+      name: 'Awa Diop',
+      email: 'awa@example.org',
+    });
+    await expect(
+      t.mutation(internal.events.storeRegistration, {
+        eventSlug: 'petit-atelier',
+        name: 'Bob Martin',
+        email: 'bob@example.org',
+      }),
+    ).rejects.toMatchObject({ data: 'EVENT_FULL' });
+    const again = await t.mutation(internal.events.storeRegistration, {
+      eventSlug: 'petit-atelier',
+      name: 'Awa Diop',
+      email: 'awa@example.org',
+    });
+    expect(again.already).toBe(true);
   });
 });

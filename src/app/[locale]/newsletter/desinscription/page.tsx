@@ -12,23 +12,30 @@ function UnsubscribeInner() {
   const params = useSearchParams();
   const token = params.get('token') ?? '';
   const unsubscribe = useMutation(api.newsletter.unsubscribe);
-  const [status, setStatus] = useState<'pending' | 'done' | 'notoken'>(
-    token ? 'pending' : 'notoken',
-  );
+  const [status, setStatus] = useState<
+    'pending' | 'done' | 'notoken' | 'invalid' | 'error'
+  >(token ? 'pending' : 'notoken');
 
   // Désinscription en un clic depuis le lien de l'e-mail (idempotent côté
-  // serveur). On confirme toujours, même si le jeton est déjà retiré.
+  // serveur). Un jeton qui ne correspond à RIEN — tronqué par un client mail,
+  // déjà consommé, inventé — affichait « vous êtes désinscrit » (mesuré le
+  // 27/09, vitrine O2 / R-09) : l'abonné au lien tronqué le croyait et restait
+  // abonné. Le serveur dit désormais `found`, et la page « lien invalide ou
+  // expiré ». Ce n'est pas un oracle : le jeton est un secret aléatoire, il
+  // n'identifie aucune adresse (cf. convex/newsletter.ts#unsubscribe).
   useEffect(() => {
     if (!token) return;
     let active = true;
     unsubscribe({ token })
-      .catch(() => {
-        // Jeton déjà consommé ou réseau indisponible : la désinscription est
-        // idempotente côté serveur et on confirme de toute façon ci-dessous.
-        // Sans ce `catch`, le rejet remontait non géré.
+      .then((r) => {
+        if (active) setStatus(r.found ? 'done' : 'invalid');
       })
-      .finally(() => {
-        if (active) setStatus('done');
+      .catch(() => {
+        // Réseau indisponible : la mutation n'a pas répondu. On ne peut ni
+        // confirmer ni infirmer — ni dire que le lien est invalide : il l'est
+        // peut-être pas. On invite à recharger. Sans ce `catch`, le rejet
+        // remontait non géré.
+        if (active) setStatus('error');
       });
     return () => {
       active = false;
@@ -39,11 +46,13 @@ function UnsubscribeInner() {
     <div className="mx-auto max-w-md px-4 py-20 text-center sm:px-6">
       <h1 className="font-display text-2xl">{t('unsubTitle')}</h1>
       <p className="mt-3 text-ink-soft">
-        {status === 'notoken'
+        {status === 'notoken' || status === 'invalid'
           ? t('unsubInvalid')
-          : status === 'pending'
-            ? t('unsubPending')
-            : t('unsubDone')}
+          : status === 'error'
+            ? t('unsubError')
+            : status === 'pending'
+              ? t('unsubPending')
+              : t('unsubDone')}
       </p>
       <Link
         href="/"

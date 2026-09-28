@@ -8,8 +8,13 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
+import { ProgrammeAdminLink } from '@/components/programmes/admin-links';
 
 export default function AdminYouth() {
   const t = useTranslations('admin');
@@ -23,6 +28,10 @@ export default function AdminYouth() {
   const reopen = useMutation(api.youth.reopenYouthApplication);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  // Retour d'action (27/09, m-2 / A-08) : la ligne changeait d'état sans un
+  // mot, et un refus serveur (« déjà traitée ailleurs ») restait muet.
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
 
   const fmt = (ms: number) =>
     new Intl.DateTimeFormat(intlLocale(locale), {
@@ -31,7 +40,11 @@ export default function AdminYouth() {
       year: 'numeric',
     }).format(ms);
 
-  async function decide(id: string, decision: 'approved' | 'rejected') {
+  async function decide(
+    id: string,
+    name: string,
+    decision: 'approved' | 'rejected',
+  ) {
     setBusy(id);
     try {
       await review({
@@ -39,8 +52,16 @@ export default function AdminYouth() {
         decision,
         notes: notes[id]?.trim() || undefined,
       });
-    } catch {
-      /* idem */
+      notify(
+        t(
+          decision === 'approved'
+            ? 'feedbackYouthApproved'
+            : 'feedbackYouthRejected',
+          { name },
+        ),
+      );
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
@@ -49,12 +70,13 @@ export default function AdminYouth() {
   // Revenir sur une décision demande de ROUVRIR la candidature (issue #9) :
   // le serveur refuse qu'on la retranche directement, et la réouverture laisse
   // sa propre trace au journal.
-  async function reopenApplication(id: string) {
+  async function reopenApplication(id: string, name: string) {
     setBusy(id);
     try {
       await reopen({ applicationId: id as Id<'youthApplications'> });
-    } catch {
-      /* idem */
+      notify(t('feedbackReopened', { name }));
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
@@ -63,7 +85,10 @@ export default function AdminYouth() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl">{t('yTitle')}</h1>
+        <div>
+          <h1 className="font-display text-3xl">{t('yTitle')}</h1>
+          <ProgrammeAdminLink kind="youth" />
+        </div>
         <div className="flex gap-1 rounded-md border border-line p-0.5">
           <button
             type="button"
@@ -94,7 +119,9 @@ export default function AdminYouth() {
               className="rounded-md border border-line bg-surface p-4"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-medium text-ink">{a.name}</h2>
+                <h2 className="min-w-0 wrap-anywhere font-medium text-ink">
+                  {a.name}
+                </h2>
                 <Badge variant="default">
                   {vocabulary(t, 'status_', a.status)}
                 </Badge>
@@ -116,9 +143,15 @@ export default function AdminYouth() {
                   </span>
                 ))}
               </div>
-              <p className="mt-2 text-[14px] leading-relaxed text-ink">
+              <p className="mt-2 wrap-anywhere text-[14px] leading-relaxed text-ink">
                 {a.motivation}
               </p>
+              {/* La note de décision, enfin rendue (27/09, A-08). */}
+              {a.reviewNotes ? (
+                <p className="mt-2 wrap-anywhere text-[13px] text-muted">
+                  {t('reviewNoteLabel')} {a.reviewNotes}
+                </p>
+              ) : null}
 
               {a.status === 'pending' ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -135,14 +168,14 @@ export default function AdminYouth() {
                     size="sm"
                     variant="outline"
                     disabled={busy === a._id}
-                    onClick={() => decide(a._id, 'rejected')}
+                    onClick={() => decide(a._id, a.name, 'rejected')}
                   >
                     {t('reject')}
                   </Button>
                   <Button
                     size="sm"
                     disabled={busy === a._id}
-                    onClick={() => decide(a._id, 'approved')}
+                    onClick={() => decide(a._id, a.name, 'approved')}
                   >
                     {t('approve')}
                   </Button>
@@ -154,7 +187,7 @@ export default function AdminYouth() {
                     size="sm"
                     variant="outline"
                     disabled={busy === a._id}
-                    onClick={() => reopenApplication(a._id)}
+                    onClick={() => reopenApplication(a._id, a.name)}
                   >
                     {t('reopen')}
                   </Button>

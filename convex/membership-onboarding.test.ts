@@ -445,14 +445,17 @@ describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)
     const t = convexTest(schema, modules);
     const mod = await moderator(t);
 
-    for (const websiteUrl of [
+    for (const [i, websiteUrl] of [
       'javascript:alert(1)',
       'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
       'vbscript:msgbox(1)',
       'institut-sahel.org', // saisie sans schéma : incomplète, pas un lien
-    ]) {
+    ].entries()) {
+      // Une adresse par candidature : une seule candidature en attente par
+      // adresse depuis R-09, et les quatre restent `pending` ici.
       const applicationId = await applicationFrom(t, {
         organizationName: `Institut ${websiteUrl.slice(0, 8)}`,
+        contactEmail: `contact-${i}@institut-sahel.org`,
       });
       await expect(
         mod.as.mutation(api.organizations.reviewApplication, {

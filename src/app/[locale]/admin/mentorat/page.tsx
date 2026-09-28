@@ -8,8 +8,13 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
+import { ProgrammeAdminLink } from '@/components/programmes/admin-links';
 
 export default function AdminMentorship() {
   const t = useTranslations('admin');
@@ -23,6 +28,10 @@ export default function AdminMentorship() {
   const reopen = useMutation(api.mentorship.reopenMentorshipRequest);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  // Retour d'action (27/09, m-2 / A-08) : apparier, clôturer et rouvrir ne
+  // disaient rien, et la note d'appariement n'était jamais rendue.
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
 
   const fmt = (ms: number) =>
     new Intl.DateTimeFormat(intlLocale(locale), {
@@ -31,7 +40,11 @@ export default function AdminMentorship() {
       year: 'numeric',
     }).format(ms);
 
-  async function decide(id: string, status: 'matched' | 'closed') {
+  async function decide(
+    id: string,
+    name: string,
+    status: 'matched' | 'closed',
+  ) {
     setBusy(id);
     try {
       await review({
@@ -39,8 +52,16 @@ export default function AdminMentorship() {
         status,
         notes: notes[id]?.trim() || undefined,
       });
-    } catch {
-      /* l'UI masque déjà l'action ; on ignore l'échec serveur silencieusement */
+      notify(
+        t(
+          status === 'matched'
+            ? 'feedbackMentorMatched'
+            : 'feedbackMentorClosed',
+          { name },
+        ),
+      );
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
@@ -50,12 +71,13 @@ export default function AdminMentorship() {
   // serveur refuse qu'on la retranche directement — un appariement clos ne
   // redevient pas « apparié » sur un second clic —, et la réouverture laisse
   // sa propre trace au journal.
-  async function reopenRequest(id: string) {
+  async function reopenRequest(id: string, name: string) {
     setBusy(id);
     try {
       await reopen({ requestId: id as Id<'mentorshipRequests'> });
-    } catch {
-      /* idem */
+      notify(t('feedbackReopened', { name }));
+    } catch (err) {
+      fail(err);
     } finally {
       setBusy(null);
     }
@@ -64,7 +86,10 @@ export default function AdminMentorship() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl">{t('mTitle')}</h1>
+        <div>
+          <h1 className="font-display text-3xl">{t('mTitle')}</h1>
+          <ProgrammeAdminLink kind="mentoring" />
+        </div>
         <div className="flex gap-1 rounded-md border border-line p-0.5">
           <button
             type="button"
@@ -95,7 +120,9 @@ export default function AdminMentorship() {
               className="rounded-md border border-line bg-surface p-4"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-medium text-ink">{m.name}</h2>
+                <h2 className="min-w-0 wrap-anywhere font-medium text-ink">
+                  {m.name}
+                </h2>
                 <Badge variant="outline">
                   {vocabulary(t, 'role_', m.role)}
                 </Badge>
@@ -120,9 +147,14 @@ export default function AdminMentorship() {
                   </span>
                 ))}
               </div>
-              <p className="mt-2 text-[14px] leading-relaxed text-ink">
+              <p className="mt-2 wrap-anywhere text-[14px] leading-relaxed text-ink">
                 {m.message}
               </p>
+              {m.reviewNotes ? (
+                <p className="mt-2 wrap-anywhere text-[13px] text-muted">
+                  {t('reviewNoteLabel')} {m.reviewNotes}
+                </p>
+              ) : null}
 
               {m.status === 'pending' ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -139,14 +171,14 @@ export default function AdminMentorship() {
                     size="sm"
                     variant="outline"
                     disabled={busy === m._id}
-                    onClick={() => decide(m._id, 'closed')}
+                    onClick={() => decide(m._id, m.name, 'closed')}
                   >
                     {t('mClose')}
                   </Button>
                   <Button
                     size="sm"
                     disabled={busy === m._id}
-                    onClick={() => decide(m._id, 'matched')}
+                    onClick={() => decide(m._id, m.name, 'matched')}
                   >
                     {t('mMatch')}
                   </Button>
@@ -158,7 +190,7 @@ export default function AdminMentorship() {
                     size="sm"
                     variant="outline"
                     disabled={busy === m._id}
-                    onClick={() => reopenRequest(m._id)}
+                    onClick={() => reopenRequest(m._id, m.name)}
                   >
                     {t('reopen')}
                   </Button>

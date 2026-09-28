@@ -88,7 +88,7 @@ describe('Espaces — création & gating (F-24)', () => {
     );
     expect(memberships).toHaveLength(1);
     expect(memberships[0].userId).toBe(owner.id);
-    expect(memberships[0].role).toBe('owner');
+    expect(memberships[0].role).toBe('animateur');
   });
 });
 
@@ -180,6 +180,119 @@ describe('Espaces — notes réservées aux membres de l’espace (F-24)', () =>
     expect(detail?.notes[1].authorName).toBe('Extérieur');
     expect(detail?.isMember).toBe(true);
     expect(detail?.members).toHaveLength(2);
+  });
+});
+
+describe('Espaces — les notes ne se lisent qu’une fois dedans (R-11)', () => {
+  // Tout membre du réseau lisait le fil complet d'un espace qu'il n'avait pas
+  // rejoint : la lecture n'avait que la garde de rôle, seule l'écriture
+  // vérifiait l'appartenance (mesuré le 27/09, membre A-6). La fiche — titre,
+  // description, participants — reste lisible pour décider de rejoindre.
+  it('un membre réseau étranger à l’espace voit la fiche, pas les notes', async () => {
+    const t = convexTest(schema, modules);
+    const owner = await member(t, 'owner@test.org', 'Owner');
+    const outsider = await member(t, 'out@test.org', 'Extérieur');
+    const id = await owner.as.mutation(api.workspaces.createWorkspace, WS);
+    await owner.as.mutation(api.workspaces.addNote, {
+      workspaceId: id,
+      body: 'Note réservée aux membres de l’espace.',
+    });
+
+    // NON-VACUITÉ : la note existe bien en base.
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('workspaceNotes')
+          .withIndex('by_workspace', (q) => q.eq('workspaceId', id))
+          .collect(),
+      ),
+    ).toHaveLength(1);
+
+    const vue = await outsider.as.query(api.workspaces.getWorkspace, {
+      workspaceId: id,
+    });
+    expect(vue?.title).toBe(WS.title);
+    expect(vue?.description).toBe(WS.description);
+    expect(vue?.members).toHaveLength(1);
+    expect(vue?.isMember).toBe(false);
+    expect(vue?.notes).toEqual([]);
+
+    // Une fois l'espace rejoint, le fil se lit.
+    await outsider.as.mutation(api.workspaces.joinWorkspace, {
+      workspaceId: id,
+    });
+    const dedans = await outsider.as.query(api.workspaces.getWorkspace, {
+      workspaceId: id,
+    });
+    expect(dedans?.isMember).toBe(true);
+    expect(dedans?.notes).toHaveLength(1);
+    expect(dedans?.notes[0].body).toBe(
+      'Note réservée aux membres de l’espace.',
+    );
+  });
+});
+
+describe('Espaces — nom affiché d’un compte sans `name` (A-11)', () => {
+  // Les comptes invités n'ont qu'une adresse : ils s'affichaient tous
+  // « Membre », indiscernables entre eux (mesuré le 27/09). Repli sur la
+  // partie locale de l'adresse ; le nom, quand il existe, garde la priorité.
+  it('replie sur la partie locale de l’e-mail pour l’animateur, les membres et les notes', async () => {
+    const t = convexTest(schema, modules);
+    const sansNom = await member(t, 'awa.diop@institut-sahel.org');
+    const avecNom = await member(t, 'b@test.org', 'Bakary Koné');
+
+    const id = await sansNom.as.mutation(api.workspaces.createWorkspace, WS);
+    await avecNom.as.mutation(api.workspaces.joinWorkspace, {
+      workspaceId: id,
+    });
+    await sansNom.as.mutation(api.workspaces.addNote, {
+      workspaceId: id,
+      body: 'Première note.',
+    });
+
+    const detail = await sansNom.as.query(api.workspaces.getWorkspace, {
+      workspaceId: id,
+    });
+    expect(detail?.ownerName).toBe('awa.diop');
+    expect(detail?.members.map((m) => m.userName)).toEqual([
+      'awa.diop',
+      'Bakary Koné',
+    ]);
+    expect(detail?.notes[0].authorName).toBe('awa.diop');
+    // Le libellé générique n'apparaît plus dès qu'une adresse existe.
+    expect(JSON.stringify(detail)).not.toContain('"Membre"');
+  });
+});
+
+describe('Espaces — identifiant venu de l’URL (F-24)', () => {
+  // L'identifiant de /espaces/<id> vient de n'importe qui. Avec `v.id`, un
+  // `zzz` ou l'identifiant d'une AUTRE table faisaient lever la validation
+  // d'arguments avant le handler, et la page tombait sur « Une erreur est
+  // survenue » au lieu d'« introuvable » (mesuré le 27/09).
+  it('un identifiant malformé ou étranger rend null, sans lever', async () => {
+    const t = convexTest(schema, modules);
+    const m = await member(t, 'm@dt.test', 'M');
+    expect(
+      await m.as.query(api.workspaces.getWorkspace, { workspaceId: 'zzz' }),
+    ).toBeNull();
+    // identifiant BIEN FORMÉ, mais d'une autre table
+    expect(
+      await m.as.query(api.workspaces.getWorkspace, { workspaceId: m.id }),
+    ).toBeNull();
+  });
+
+  it('un visiteur reste refusé (la garde de rôle ne bouge pas)', async () => {
+    const t = convexTest(schema, modules);
+    const id = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'visiteur', email: 'v@dt.test' }),
+    );
+    const v = t.withIdentity({ subject: `${id}|s` });
+    await expect(
+      v.query(api.workspaces.getWorkspace, { workspaceId: 'zzz' }),
+    ).rejects.toThrow(/rôle « membre » requis/);
+    await expect(v.query(api.workspaces.listWorkspaces, {})).rejects.toThrow(
+      /rôle « membre » requis/,
+    );
   });
 });
 

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { SESSIONS } from './_sessions';
+import { approveTribunePosts } from './_helpers';
 
 // F-07 — SEO : sitemap.xml et robots.txt servis à la racine (non interceptés
 // par le proxy next-intl, qui ignore les chemins avec extension).
@@ -75,9 +76,20 @@ test.describe('Tribune — un billet n’existe que dans une langue (#35)', () =
       .fill(
         'A short English contribution on citizen participation, written from the French interface.',
       );
-    await composer.getByRole('button', { name: 'Publier' }).click();
+    // Modération A PRIORI (F-45) : le billet n'a de page publique qu'une fois
+    // validé.
+    await composer
+      .getByRole('button', { name: 'Soumettre à la modération' })
+      .click();
+    await expect(page.getByText(/soumise à la modération/)).toBeVisible();
+    await approveTribunePosts(title);
 
-    await page.getByRole('link').filter({ hasText: title }).first().click();
+    await page.goto('/fr/tribune');
+    await page
+      .locator('a[href*="/tribune/"]')
+      .filter({ hasText: title })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/fr\/tribune\/[a-z0-9]+$/);
     const id = new URL(page.url()).pathname.split('/').pop();
 

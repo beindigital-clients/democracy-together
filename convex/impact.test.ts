@@ -94,13 +94,25 @@ describe('Impact — impactStats (F-66)', () => {
         });
       }
 
-      // Abonnés newsletter : 4.
+      // Abonnés newsletter : 4 CONFIRMÉS (double opt-in, chantier
+      // diffusion) — plus une attente et un héritier non migré, qui ne
+      // reçoivent rien et ne comptent donc pas.
       for (let i = 0; i < 4; i++) {
         await ctx.db.insert('newsletterSubscriptions', {
           email: `sub${i}@x.org`,
           createdAt: Date.now(),
+          status: 'confirmed',
         });
       }
+      await ctx.db.insert('newsletterSubscriptions', {
+        email: 'attente@x.org',
+        createdAt: Date.now(),
+        status: 'pending',
+      });
+      await ctx.db.insert('newsletterSubscriptions', {
+        email: 'herite@x.org',
+        createdAt: Date.now(),
+      });
 
       // Tribune : 2 posts publiés + 1 retiré -> compte 2 ; 3 commentaires
       // publiés + 1 retiré -> compte 3. (authorUserId doit être un vrai id.)

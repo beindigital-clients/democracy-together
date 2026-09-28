@@ -9,6 +9,7 @@ import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
+import { isSendLimited, isTooManyAttempts } from '@/lib/auth-errors';
 import { isEmail } from '@/lib/validation';
 import {
   PASSWORD_MIN_LENGTH,
@@ -21,6 +22,7 @@ export default function ForgotPasswordPage() {
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<'request' | 'reset'>('request');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const { values, field, validate } = useFormFields({
     email: '',
@@ -40,8 +42,34 @@ export default function ForgotPasswordPage() {
     try {
       await signIn('password', { email, flow: 'reset' });
       setStep('reset');
-    } catch {
-      setError(t('errorGeneric'));
+    } catch (err) {
+      if (isSendLimited(err)) {
+        setError(t('errorSendLimit'));
+      } else {
+        // ANTI-ÉNUMÉRATION, comme sur la connexion par code : une adresse
+        // sans compte mot de passe (`InvalidAccountId`) ne doit pas se
+        // distinguer d'une adresse connue. Le sous-titre de l'étape suivante
+        // dit « si un compte avec mot de passe existe » et renvoie vers la
+        // connexion par code, seul chemin d'un membre invité.
+        setStep('reset');
+      }
+    } finally {
+      setPending(false);
+    }
+  }
+
+  // Renvoi du code depuis l'étape « nouveau mot de passe » (auth A-5) : même
+  // anti-énumération que `onRequest`, même message dédié au plafond (A-4).
+  async function onResend() {
+    setError(null);
+    setNotice(null);
+    setPending(true);
+    try {
+      await signIn('password', { email, flow: 'reset' });
+      setNotice(t('resendDone'));
+    } catch (err) {
+      if (isSendLimited(err)) setError(t('errorSendLimit'));
+      else setNotice(t('resendDone'));
     } finally {
       setPending(false);
     }
@@ -50,6 +78,7 @@ export default function ForgotPasswordPage() {
   async function onReset(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     // Même politique que le serveur (convex/lib/passwordPolicy.ts), appliquée
     // ICI pour pouvoir DIRE laquelle des deux règles casse. Le refus serveur ne
     // le permet pas : la route /api/auth de Convex Auth aplatit `ConvexError.data`
@@ -83,8 +112,10 @@ export default function ForgotPasswordPage() {
         flow: 'reset-verification',
       });
       redirectAfterAuth();
-    } catch {
-      setError(t('errorCode'));
+    } catch (err) {
+      setError(
+        isTooManyAttempts(err) ? t('errorTooManyAttempts') : t('errorCode'),
+      );
       setPending(false);
     }
   }
@@ -108,9 +139,22 @@ export default function ForgotPasswordPage() {
             required
             {...field('confirmPassword')}
           />
+          {notice ? (
+            <p role="status" className="text-sm text-ink-soft">
+              {notice}
+            </p>
+          ) : null}
           <FormError>{error}</FormError>
           <SubmitButton pending={pending}>{t('resetCta')}</SubmitButton>
         </form>
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={pending}
+          className="mt-4 text-sm text-accent-text hover:underline disabled:opacity-50"
+        >
+          {t('resendCode')}
+        </button>
       </AuthCard>
     );
   }

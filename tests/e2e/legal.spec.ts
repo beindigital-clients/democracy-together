@@ -21,7 +21,8 @@ test('pages légales : contenu réel FR + EN (F-09)', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Cookies et traceurs' }),
   ).toBeVisible();
-  await expect(page.getByText(/CNIL/)).toBeVisible();
+  // Plusieurs mentions depuis la mesure d'audience (exemption CNIL) : une suffit.
+  await expect(page.getByText(/CNIL/).first()).toBeVisible();
 
   await page.goto('/fr/accessibilite');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(

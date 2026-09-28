@@ -14,6 +14,28 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
+// notifications, signalements) : le mode A POSTERIORI y est réglé
+// explicitement, comme le ferait l'administrateur. La modération a priori —
+// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// (convex/communaute-moderation.test.ts).
+async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+  return t;
+}
+
 // Déni de service de la file de modération (audit M1 / pentest H-2).
 // `reportContent` acceptait un `targetId` chaîne ARBITRAIRE. `listReports` fait
 // ensuite un ctx.db.get(targetId) : un identifiant malformé faisait échouer la
@@ -31,7 +53,7 @@ async function userWith(
 }
 
 async function setup() {
-  const t = convexTest(schema, modules);
+  const t = await aPosteriori(convexTest(schema, modules));
   const membre = await userWith(t, 'membre', 'm@test.org');
   const mod = await userWith(t, 'moderateur', 'mod@test.org');
   const postId = await membre.as.mutation(api.tribune.createPost, {
@@ -103,6 +125,20 @@ describe('Signalements Tribune — validation de la cible (audit M1)', () => {
     const reports = await mod.as.query(api.tribune.listReports, {});
     expect(reports).toHaveLength(1);
     expect(reports[0].excerpt).toBe('Sur les transitions');
+  });
+
+  it('un même compte ne signale une même cible qu’une fois (doublons de la file)', async () => {
+    const { membre, mod, postId } = await setup();
+    for (let i = 0; i < 3; i++) {
+      const r = await membre.as.mutation(api.tribune.reportContent, {
+        targetType: 'post',
+        targetId: postId,
+        reason: `essai ${i}`,
+      });
+      expect(r.ok).toBe(true);
+    }
+    const reports = await mod.as.query(api.tribune.listReports, {});
+    expect(reports).toHaveLength(1);
   });
 
   it('accepte un signalement légitime sur un commentaire', async () => {

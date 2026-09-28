@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { NewsletterForm } from '@/components/newsletter/newsletter-form';
 
@@ -16,11 +17,7 @@ export async function generateMetadata({
     description: t('subtitle'),
     alternates: {
       canonical: `${SITE}/${locale}/newsletter`,
-      languages: {
-        fr: `${SITE}/fr/newsletter`,
-        en: `${SITE}/en/newsletter`,
-        'x-default': `${SITE}/fr/newsletter`,
-      },
+      languages: hreflangFor(`newsletter`),
     },
   };
 }
@@ -45,7 +42,11 @@ export default async function NewsletterPage({
         {t('subtitle')}
       </p>
       <div className="mt-8 max-w-md">
-        <NewsletterForm placeholder={t('placeholder')} cta={t('cta')} />
+        <NewsletterForm
+          placeholder={t('placeholder')}
+          cta={t('cta')}
+          source="newsletter-page"
+        />
       </div>
       <p className="mt-4 text-xs text-muted">{t('privacy')}</p>
     </div>

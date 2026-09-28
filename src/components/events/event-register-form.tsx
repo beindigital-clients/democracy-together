@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
+import { ConvexError } from 'convex/values';
 import { useLocale, useTranslations } from 'next-intl';
 import { resolveLocale } from '@/i18n/locale';
 import { api } from '@convex/_generated/api';
@@ -10,6 +11,7 @@ import { FormError, TextField } from '@/components/ui/field';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Formulaire d'inscription à un événement (F-53) — îlot client, sur la page de
 // détail. Idempotent côté serveur (réinscription = succès sans doublon). Les
@@ -57,12 +59,22 @@ export function EventRegisterForm({
       });
       setStatus('success');
     } catch (err) {
+      // Événement passé ou inconnu : le serveur refuse désormais (A-03) et le
+      // dit — la fiche ne rend plus ce formulaire, mais une page restée
+      // ouverte pendant que l'événement passait peut encore l'envoyer.
+      const closed = err instanceof ConvexError && err.data === 'EVENT_CLOSED';
+      // Capacité atteinte entre l'affichage de la fiche et l'envoi.
+      const full = err instanceof ConvexError && err.data === 'EVENT_FULL';
       setError(
         isCaptchaFailed(err)
           ? t('captchaFailed')
           : isRateLimited(err)
             ? t('rateLimited')
-            : t('errorGeneric'),
+            : closed
+              ? t('closed')
+              : full
+                ? t('full')
+                : t('errorGeneric'),
       );
       setStatus('idle');
     }
@@ -70,12 +82,9 @@ export function EventRegisterForm({
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-4"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-4">
         <p className="text-sm font-medium text-ink">{t('success')}</p>
-      </div>
+      </StatusMessage>
     );
   }
 

@@ -1,5 +1,7 @@
 import { internalMutation } from './_generated/server';
 import { trackOrganizationStatus } from './lib/counters';
+import { organizationSearchText } from './lib/searchText';
+import { countryTerms } from './lib/directory';
 
 // DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple l'annuaire (F-19) avec un
 // jeu de think tanks de démonstration, réparti sur les régions Afrique–Europe
@@ -143,6 +145,7 @@ export const seedDirectory = internalMutation({
         themes: [...org.themes],
         status: 'active',
         createdAt: Date.now(),
+        searchText: organizationSearchText(org, countryTerms),
       });
       await trackOrganizationStatus(ctx, null, 'active');
       inserted += 1;

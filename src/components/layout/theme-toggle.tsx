@@ -34,6 +34,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={t('toggleTheme')}
+      aria-pressed={theme === 'dark'}
       className="grid h-9 w-9 place-items-center rounded-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
     >
       {theme === 'dark' ? (

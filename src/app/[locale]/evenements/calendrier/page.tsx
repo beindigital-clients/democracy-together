@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
@@ -8,6 +9,8 @@ import {
   monthAbbr,
   type EventData,
 } from '@/lib/events-content';
+import { loadAgenda } from '@/lib/contenus/load';
+import type { AgendaEvent } from '@/lib/contenus/agenda';
 import { buildMonthGrid, monthShift, parseYm, formatYm } from '@/lib/calendar';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowBack, ArrowForward } from '@/components/ui/arrow';
@@ -27,11 +30,7 @@ export async function generateMetadata({
     description: t('lead'),
     alternates: {
       canonical: `${SITE}/${locale}/evenements/calendrier`,
-      languages: {
-        fr: `${SITE}/fr/evenements/calendrier`,
-        en: `${SITE}/en/evenements/calendrier`,
-        'x-default': `${SITE}/fr/evenements/calendrier`,
-      },
+      languages: hreflangFor(`evenements/calendrier`),
     },
   };
 }
@@ -78,7 +77,9 @@ export default async function CalendrierPage({
     year: now.getFullYear(),
     month: now.getMonth() + 1,
   };
-  const grid = buildMonthGrid(ym.year, ym.month);
+  // Agenda : table `contentEvents`, ou catalogue codé en repli.
+  const { items: events } = await loadAgenda(loc);
+  const grid = buildMonthGrid(ym.year, ym.month, events);
   const prev = monthShift(ym.year, ym.month, -1);
   const next = monthShift(ym.year, ym.month, 1);
 
@@ -140,7 +141,7 @@ export default async function CalendrierPage({
         </div>
       </header>
 
-      <main className={`${WRAP} py-10`}>
+      <div className={`${WRAP} py-10`}>
         {/* Barre de navigation mensuelle */}
         <Reveal className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-baseline gap-3">
@@ -247,7 +248,7 @@ export default async function CalendrierPage({
             {t('noEventsThisMonth')}
           </p>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }
@@ -265,18 +266,18 @@ function CalendarEvent({
   L,
   loc,
 }: {
-  event: EventData;
+  event: AgendaEvent;
   L: ReturnType<typeof getEventsLabels>;
   loc: Locale;
 }) {
   return (
     <Link
       href={`/evenements/${event.slug}`}
-      title={`${L.titles[event.slug]} — ${L.types[event.type]} · ${L.cities[event.cityKey]}`}
+      title={`${event.title} — ${L.types[event.type]} · ${event.place}`}
       className={`block rounded-[3px] border-s-2 bg-accent-tint px-1.5 py-1 text-[11.5px] leading-tight text-ink transition-colors hover:bg-accent-edge/40 ${TYPE_BAR[event.type]}`}
     >
-      <span className="block truncate font-medium">{L.titles[event.slug]}</span>
-      <span className="block truncate font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
+      <span className="block truncate font-medium">{event.title}</span>
+      <span className="block truncate font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
         {L.types[event.type]} · {monthAbbr(event, loc).toLowerCase()}
       </span>
     </Link>

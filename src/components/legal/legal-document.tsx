@@ -1,10 +1,22 @@
+import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/components/motion/reveal';
 import type { LegalDoc } from '@/lib/legal-content';
 
 // Rendu d'une page légale (F-09) : en-tête + sections, colonne de lecture
 // étroite et typographie éditoriale. Server component, animé sobrement (Reveal).
-export function LegalDocument({ doc }: { doc: LegalDoc }) {
+// `after` : un élément d'interface rendu sous le texte d'une section — le
+// réglage d'opposition à la mesure d'audience, dans la politique de
+// confidentialité (F-66).
+export type LegalSectionWithSlot = LegalDoc['sections'][number] & {
+  after?: ReactNode;
+};
+
+export function LegalDocument({
+  doc,
+}: {
+  doc: Omit<LegalDoc, 'sections'> & { sections: LegalSectionWithSlot[] };
+}) {
   return (
     <div className="mx-auto w-full max-w-[760px] px-4 py-12 sm:px-6 sm:py-16">
       <p className="text-[13px] text-muted">
@@ -44,6 +56,16 @@ export function LegalDocument({ doc }: { doc: LegalDoc }) {
                   {p}
                 </p>
               ))}
+              {s.items?.length ? (
+                <ul className="flex max-w-[68ch] list-disc flex-col gap-2 ps-5 leading-relaxed text-ink-soft marker:text-muted">
+                  {s.items.map((item) => (
+                    <li key={item.slice(0, 60)} className="wrap-anywhere">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {s.after}
             </div>
           </Reveal>
         ))}

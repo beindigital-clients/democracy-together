@@ -53,6 +53,12 @@ export type PublicationLike = {
   languages: string[];
   access: string;
   authors: { name: string }[];
+  // Résumé et points clés : cherchables depuis le 27/09 (mesuré :
+  // « institutions », présent dans les résumés, ne trouvait rien alors que la
+  // recherche transverse /recherche l'y trouvait). Optionnels pour que les
+  // fixtures minimales des tests restent valides.
+  abstract?: string;
+  keypoints?: string[];
   year: number;
   publishedAt: number;
   downloads: number;
@@ -64,7 +70,8 @@ function has(list: string[] | undefined, value: string): boolean {
 }
 
 // Une publication correspond aux filtres fournis. La recherche plein texte porte
-// sur le titre + les auteurs, sans tenir compte de la casse.
+// sur le titre, les auteurs, le résumé et les points clés, sans tenir compte
+// de la casse, des accents ni des guillemets.
 export function matchesPublication(
   pub: PublicationLike,
   f: PublicationFilters,
@@ -76,15 +83,44 @@ export function matchesPublication(
   if (f.langs && f.langs.length > 0) {
     if (!f.langs.some((l) => pub.languages.includes(l))) return false;
   }
-  if (f.q) {
-    const q = f.q.trim().toLowerCase();
-    if (q) {
-      const authors = pub.authors.map((a) => a.name).join(' ');
-      const haystack = `${pub.title} ${authors}`.toLowerCase();
-      if (!haystack.includes(q)) return false;
-    }
-  }
-  return true;
+  return textMatches(pub, f.q);
+}
+
+// Minuscules SANS diacritiques : « democratie » doit trouver « démocratie »
+// (mesuré le 27/09 : 0 résultat sans l'accent, 2 avec). Un lecteur sur un
+// clavier sans accents — le cas courant en mobile — ne doit pas être puni.
+function fold(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+// Guillemets droits, typographiques et chevrons : un lecteur habitué aux
+// moteurs tape `"démocratie"` pour chercher l'expression exacte. Mesuré le
+// 27/09 : les guillemets étaient cherchés LITTÉRALEMENT, donc zéro résultat.
+// Ils sont retirés — la recherche par sous-chaîne est déjà une recherche
+// d'expression exacte.
+const QUOTES = /["'«»“”„‟‹›]/g;
+
+// Terme de recherche prêt à comparer : replié, sans guillemets, sans blancs
+// superflus. Chaîne vide = pas de recherche.
+export function normalizeQuery(raw: string | undefined): string {
+  return raw ? fold(raw.replace(QUOTES, ' ')).replace(/\s+/g, ' ').trim() : '';
+}
+
+// UNE seule meule pour la liste et pour les facettes : les deux lisaient des
+// champs différents (titre + auteurs repliés d'un côté, sans repli de
+// l'autre), et les compteurs de facettes ne correspondaient plus à la liste.
+function textMatches(pub: PublicationLike, raw: string | undefined): boolean {
+  const q = normalizeQuery(raw);
+  if (!q) return true;
+  const authors = pub.authors.map((a) => a.name).join(' ');
+  const haystack = fold(
+    `${pub.title} ${authors} ${pub.abstract ?? ''} ${(pub.keypoints ?? []).join(' ')}`,
+  );
+  return haystack.includes(q);
 }
 
 // Tri stable : plus récentes (année puis téléchargements), plus citées, ou A→Z.
@@ -127,20 +163,16 @@ function matchesExcept(
   if (except !== 'langs' && f.langs && f.langs.length > 0) {
     if (!f.langs.some((l) => pub.languages.includes(l))) return false;
   }
-  if (f.q) {
-    const q = f.q.trim().toLowerCase();
-    if (q) {
-      const authors = pub.authors.map((a) => a.name).join(' ');
-      if (!`${pub.title} ${authors}`.toLowerCase().includes(q)) return false;
-    }
-  }
-  return true;
+  return textMatches(pub, f.q);
 }
 
 // Facettes « contextuelles » (faceted search) : chaque option est comptée sur le
 // sous-ensemble correspondant aux AUTRES filtres actifs -> le compteur reflète
 // ce qu'on obtient réellement en cochant, et les impasses (0) disparaissent. Les
-// valeurs déjà cochées restent listées (même à 0) pour rester décochables.
+// valeurs déjà cochées restent listées (même à 0) pour rester décochables —
+// À CONDITION d'exister dans le corpus : une valeur venue de l'URL et
+// inconnue de toute publication (`?theme=zzz`, mesuré le 27/09 : option
+// « Zzz 0 » rendue cochée) n'est pas une facette, elle est ignorée.
 // Sans filtre actif, on retombe sur les totaux par valeur.
 export function computePublicationFacets(
   items: PublicationLike[],
@@ -151,8 +183,9 @@ export function computePublicationFacets(
     pick: (p: PublicationLike) => string[],
     selected: string[] | undefined,
   ): Facet[] => {
+    const known = new Set(items.flatMap(pick));
     const counts = new Map<string, number>();
-    for (const v of selected ?? []) counts.set(v, 0);
+    for (const v of selected ?? []) if (known.has(v)) counts.set(v, 0);
     for (const p of list) {
       for (const value of pick(p)) {
         counts.set(value, (counts.get(value) ?? 0) + 1);

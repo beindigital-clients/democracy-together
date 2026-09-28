@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
+import { insertTestEvent } from './lib/contenus/fixtures';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -37,7 +38,22 @@ afterEach(() => {
 function harnais() {
   vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
   vi.stubEnv('RECAPTCHA_DISABLED', 'true');
+  // Mode d'envoi SIMULÉ, comme le déploiement de développement et la CI :
+  // depuis le double opt-in (chantier diffusion), l'inscription newsletter
+  // refuse — pour toutes les adresses également — quand aucun courriel de
+  // confirmation ne peut partir. Sans fournisseur, la propriété testée ici
+  // ne serait pas atteinte.
+  vi.stubEnv('AUTH_DEV_OTP', 'true');
   return convexTest(schema, modules);
+}
+
+// Les inscriptions et rappels sont validés contre la table des événements
+// (chantier « contenus ») : l'oracle se teste sur des événements OUVERTS.
+async function ouvrirEvenements(t: ReturnType<typeof harnais>) {
+  await t.run(async (ctx) => {
+    await insertTestEvent(ctx, { slug: 'conference-inaugurale' });
+    await insertTestEvent(ctx, { slug: 'sommet-2026' });
+  });
 }
 
 const EMAIL = 'awa@example.org';
@@ -54,7 +70,9 @@ const CAS = [
     table: 'eventRegistrations',
     appel: (t: ReturnType<typeof harnais>) =>
       t.action(api.events.registerForEvent, {
-        eventSlug: 'sommet-2026',
+        // Un slug du catalogue : depuis A-03, un événement inconnu ou passé
+        // est refusé AVANT toute lecture — l'oracle se teste sur un ouvert.
+        eventSlug: 'conference-inaugurale',
         name: 'Awa Diop',
         email: EMAIL,
         captchaToken: '',
@@ -102,6 +120,7 @@ describe('F-09 — aucun formulaire public ne révèle qu’une adresse est conn
   for (const { nom, table, appel } of CAS) {
     it(`${nom} : deux envois, deux réponses indiscernables`, async () => {
       const t = harnais();
+      await ouvrirEvenements(t);
 
       const premier = await appel(t);
       const second = await appel(t);
@@ -114,6 +133,7 @@ describe('F-09 — aucun formulaire public ne révèle qu’une adresse est conn
 
     it(`${nom} : la déduplication continue de fonctionner`, async () => {
       const t = harnais();
+      await ouvrirEvenements(t);
       await appel(t);
       await appel(t);
       // Le silence côté réponse ne doit pas se payer d'un doublon en base :

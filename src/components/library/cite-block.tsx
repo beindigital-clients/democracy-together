@@ -18,14 +18,17 @@ export function CiteBlock({ citations }: { citations: Citations }) {
       id="cite"
       className="mt-12 scroll-mt-24 overflow-hidden rounded-md border border-line bg-surface"
     >
-      <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
         <h2 className="font-display text-base font-semibold">
           {t('citeTitle')}
         </h2>
         <div
           role="group"
           aria-label={t('citeTitle')}
-          className="ms-auto inline-flex overflow-hidden rounded-sm border border-line-strong"
+          // `shrink-0` : sous espacement de texte élargi (RGAA 10.12), le groupe ne
+          // se comprime plus au point de rogner « BibTeX » ; l'en-tête passe à la
+          // ligne à la place (mesuré au rejeu E2E du 27/09).
+          className="ms-auto inline-flex shrink-0 overflow-hidden rounded-sm border border-line-strong"
         >
           {(['apa', 'bibtex'] as const).map((f) => (
             <button
@@ -33,7 +36,7 @@ export function CiteBlock({ citations }: { citations: Citations }) {
               type="button"
               onClick={() => setFmt(f)}
               aria-pressed={fmt === f}
-              className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`whitespace-nowrap px-3 py-1.5 text-xs font-semibold transition-colors ${
                 fmt === f
                   ? 'bg-accent text-accent-contrast'
                   : 'bg-transparent text-ink-soft hover:text-ink'

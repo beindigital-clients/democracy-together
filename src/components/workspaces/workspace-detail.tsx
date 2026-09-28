@@ -13,48 +13,41 @@ import { isMember } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowBack } from '@/components/ui/arrow';
 import { intlLocale } from '@/i18n/locale';
-
-type WorkspaceDetail = {
-  _id: Id<'workspaces'>;
-  title: string;
-  theme: string;
-  description: string;
-  ownerName: string;
-  memberCount: number;
-  createdAt: number;
-  isMember: boolean;
-  isOwner: boolean;
-  members: {
-    _id: Id<'workspaceMembers'>;
-    userName: string;
-    role: 'owner' | 'member';
-    joinedAt: number;
-  }[];
-  notes: {
-    _id: Id<'workspaceNotes'>;
-    authorName: string;
-    body: string;
-    createdAt: number;
-  }[];
-};
+import { WorkspaceFiles } from './workspace-files';
+import { WorkspaceManage, useRoleLabel } from './workspace-manage';
+import { MyInvitations } from './workspace-invitations';
+import { useWorkspaceError } from './workspace-errors';
 
 // Formulaire de note (réservé aux membres DE L'ESPACE). Réplique le motif du
 // CommentForm de la Tribune.
+// Même nombre que `convex/workspaces.ts#addNote` (INVALID_NOTE au-delà).
+const NOTE_MAX = 4000;
+
 function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
   const t = useTranslations('workspaces');
   const add = useMutation(api.workspaces.addNote);
   const [body, setBody] = useState('');
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
     if (body.trim().length < 2) return;
+    // Borne du serveur (`addNote` : INVALID_NOTE au-delà). Sans ce message, une
+    // note trop longue disparaissait sans un mot — le refus était attrapé et tu.
+    if (body.trim().length > NOTE_MAX) {
+      setError(t('errNote', { max: NOTE_MAX }));
+      return;
+    }
     setPending(true);
     try {
       await add({ workspaceId, body: body.trim() });
       setBody('');
     } catch {
-      /* refusé (rôle / appartenance / rate-limit) : on n'insiste pas */
+      // Refusé (rôle / appartenance / rate-limit / borne) : le texte reste, et
+      // l'auteur sait que rien n'est parti.
+      setError(t('errGeneric'));
     } finally {
       setPending(false);
     }
@@ -70,8 +63,14 @@ function NoteForm({ workspaceId }: { workspaceId: Id<'workspaces'> }) {
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         required
+        maxLength={NOTE_MAX}
         placeholder={t('notePlaceholder')}
       />
+      {error ? (
+        <p role="alert" className="text-sm text-bar-5">
+          {error}
+        </p>
+      ) : null}
       <Button type="submit" size="sm" disabled={pending}>
         {t('noteSubmit')}
       </Button>
@@ -90,10 +89,19 @@ export function WorkspaceDetail({
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  const data = useQuery(api.workspaces.getWorkspace, { workspaceId });
+  // Même garde que la liste : la requête n'est posée qu'une fois le rôle
+  // connu et suffisant (cf. workspaces-board.tsx). L'identifiant malformé ou
+  // étranger, lui, est absorbé par le serveur, qui rend `null` -> « introuvable ».
+  const data = useQuery(
+    api.workspaces.getWorkspace,
+    me !== undefined && isMember(me?.role) ? { workspaceId } : 'skip',
+  );
   const join = useMutation(api.workspaces.joinWorkspace);
   const leave = useMutation(api.workspaces.leaveWorkspace);
+  const roleLabel = useRoleLabel();
+  const errorMessage = useWorkspaceError();
   const [pending, setPending] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(intlLocale(locale), {
@@ -147,26 +155,33 @@ export function WorkspaceDetail({
     );
   }
 
+  // Les refus (espace privé, dernier animateur…) sont DITS : un bouton qui
+  // ne fait rien sans explication est le défaut que la campagne relevait.
   async function onJoin() {
     setPending(true);
+    setActionError(null);
     try {
       await join({ workspaceId });
-    } catch {
-      /* sans incidence : l'état réactif reflètera l'échec éventuel */
+    } catch (err) {
+      setActionError(errorMessage(err));
     } finally {
       setPending(false);
     }
   }
   async function onLeave() {
     setPending(true);
+    setActionError(null);
     try {
       await leave({ workspaceId });
-    } catch {
-      /* owner ne peut pas quitter, etc. */
+    } catch (err) {
+      setActionError(errorMessage(err));
     } finally {
       setPending(false);
     }
   }
+
+  const canWrite =
+    data.myRole === 'animateur' || data.myRole === 'contributeur';
 
   return (
     <article className="mx-auto max-w-[820px] px-4 py-12 sm:px-6 md:py-16">
@@ -190,6 +205,14 @@ export function WorkspaceDetail({
           <span className="font-mono uppercase tracking-[0.06em] text-muted">
             {t('memberCount', { count: data.memberCount })}
           </span>
+          <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+            {data.visibility === 'private' ? t('privateBadge') : t('openBadge')}
+          </span>
+          {data.myRole ? (
+            <span className="font-mono text-[11px] text-muted">
+              {t('yourRole', { role: roleLabel(data.myRole) })}
+            </span>
+          ) : null}
         </div>
         <h1 className="mt-3 font-display text-[clamp(26px,3.6vw,40px)] font-medium leading-[1.1] tracking-[-0.015em]">
           {data.title}
@@ -203,19 +226,32 @@ export function WorkspaceDetail({
         {data.description}
       </p>
 
-      {/* Rejoindre / Quitter */}
+      {/* Rejoindre / Quitter. Un espace privé ne se rejoint pas : on y
+          entre en acceptant l'invitation, affichée ici. */}
       <div className="mt-6">
-        {data.isOwner ? (
+        {data.isLastAnimator ? (
           <p className="text-sm text-muted">{t('ownerCannotLeave')}</p>
         ) : data.isMember ? (
-          <Button variant="outline" onClick={onLeave} disabled={pending}>
+          <Button
+            variant="outline"
+            className="min-h-11"
+            onClick={onLeave}
+            disabled={pending}
+          >
             {t('leave')}
           </Button>
+        ) : data.visibility === 'private' ? (
+          <MyInvitations workspaceId={workspaceId} />
         ) : (
-          <Button onClick={onJoin} disabled={pending}>
+          <Button className="min-h-11" onClick={onJoin} disabled={pending}>
             {t('join')}
           </Button>
         )}
+        {actionError ? (
+          <p role="alert" className="mt-2 text-sm text-bar-5">
+            {actionError}
+          </p>
+        ) : null}
       </div>
 
       {/* Membres */}
@@ -227,22 +263,28 @@ export function WorkspaceDetail({
               key={m._id}
               className="flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm"
             >
-              <span className="text-ink">{m.userName}</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
-                {m.role === 'owner' ? t('roleOwner') : t('roleMember')}
+              <span className="wrap-anywhere text-ink">{m.userName}</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                {roleLabel(m.role)}
               </span>
             </li>
           ))}
         </ul>
       </section>
 
-      {/* Notes partagées */}
+      {/* Notes partagées — le serveur ne les rend qu'aux membres de l'espace
+          (R-11) : pour les autres, le titre reste générique (le nombre de
+          notes n'est pas connu) et l'invitation à rejoindre remplace le fil. */}
       <section className="mt-12 border-t border-line pt-8">
         <h2 className="font-display text-2xl">
-          {t('notesCount', { count: data.notes.length })}
+          {data.isMember
+            ? t('notesCount', { count: data.notes.length })
+            : t('notesTitle')}
         </h2>
 
-        {data.notes.length > 0 ? (
+        {!data.isMember ? (
+          <p className="mt-4 text-sm text-ink-soft">{t('notesJoinToRead')}</p>
+        ) : data.notes.length > 0 ? (
           <ul className="mt-5 flex flex-col gap-4">
             {data.notes.map((n) => (
               <li
@@ -254,7 +296,7 @@ export function WorkspaceDetail({
                   <span aria-hidden="true">·</span>
                   <span>{fmtDate(n.createdAt)}</span>
                 </div>
-                <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink">
+                <p className="mt-2 whitespace-pre-line wrap-anywhere text-[15px] leading-relaxed text-ink">
                   {n.body}
                 </p>
               </li>
@@ -264,12 +306,34 @@ export function WorkspaceDetail({
           <p className="mt-4 text-sm text-ink-soft">{t('noNotes')}</p>
         )}
 
-        {data.isMember ? (
+        {canWrite ? (
           <NoteForm workspaceId={workspaceId} />
+        ) : data.isMember ? (
+          <p className="mt-5 text-sm text-ink-soft">{t('notesReadOnly')}</p>
         ) : (
           <p className="mt-5 text-sm text-ink-soft">{t('noteJoinPrompt')}</p>
         )}
       </section>
+
+      {/* Fichiers partagés : membres de l'espace seulement. */}
+      {data.isMember ? (
+        <WorkspaceFiles
+          workspaceId={workspaceId}
+          canUpload={canWrite}
+          storageBytes={data.storageBytes}
+          quotaBytes={data.quotaBytes}
+        />
+      ) : null}
+
+      {/* Animation : animateurs seulement. */}
+      {data.myRole === 'animateur' ? (
+        <WorkspaceManage
+          workspaceId={workspaceId}
+          visibility={data.visibility}
+          members={data.members}
+          invitations={data.invitations}
+        />
+      ) : null}
     </article>
   );
 }

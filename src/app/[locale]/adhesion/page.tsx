@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
@@ -23,11 +24,7 @@ export async function generateMetadata({
     description: t('subtitle'),
     alternates: {
       canonical: `${SITE}/${locale}/adhesion`,
-      languages: {
-        fr: `${SITE}/fr/adhesion`,
-        en: `${SITE}/en/adhesion`,
-        'x-default': `${SITE}/fr/adhesion`,
-      },
+      languages: hreflangFor(`adhesion`),
     },
   };
 }
@@ -161,7 +158,7 @@ export default async function MembershipPage({
                       className="px-4 py-3 font-medium"
                     >
                       {tier.label}
-                      <span className="block font-mono text-[10.5px] font-normal uppercase tracking-[0.04em] text-muted">
+                      <span className="block font-mono text-[11px] font-normal uppercase tracking-[0.04em] text-muted">
                         {tier.sub}
                       </span>
                     </th>

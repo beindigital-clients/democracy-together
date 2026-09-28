@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -9,11 +9,14 @@ import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { Button } from '@/components/ui/button';
+import { isTooManyAttempts } from '@/lib/auth-errors';
+import { isAccountSuspended } from '@/lib/account-errors';
 import { isEmail } from '@/lib/validation';
 
 export default function ConnexionPage() {
   const t = useTranslations('auth');
   const tNav = useTranslations('nav');
+  const tAccounts = useTranslations('accounts');
   const { signIn } = useAuthActions();
   const redirectAfterAuth = useRedirectAfterAuth();
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +25,18 @@ export default function ConnexionPage() {
     email: '',
     password: '',
   });
+
+  // Session fermée parce que le compte a été SUSPENDU (chantier comptes) :
+  // la garde des espaces privés déconnecte et renvoie ici avec le motif.
+  // Lu au montage plutôt que par `useSearchParams`, qui imposerait une
+  // frontière Suspense à une page pré-rendue.
+  useEffect(() => {
+    if (
+      new URLSearchParams(window.location.search).get('motif') === 'suspendu'
+    ) {
+      setError(tAccounts('suspendedSignIn'));
+    }
+  }, [tAccounts]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,8 +62,21 @@ export default function ConnexionPage() {
         flow: 'signIn',
       });
       redirectAfterAuth();
-    } catch {
-      setError(t('errorSignIn'));
+    } catch (err) {
+      // Le verrou anti-force-brute de Convex Auth refusait AUSSI le bon mot de
+      // passe, avec le même « incorrect » : l'utilisateur corrigeait un mot de
+      // passe qui était juste (mesuré le 27/09). Le message du serveur
+      // traverse `/api/auth` tel quel : on le lit.
+      // Compte SUSPENDU : le refus n'arrive qu'APRÈS la vérification du mot
+      // de passe (convex/lib/signIn.ts), il ne renseigne donc que son
+      // titulaire — on peut le dire clairement.
+      setError(
+        isAccountSuspended(err)
+          ? tAccounts('suspendedSignIn')
+          : isTooManyAttempts(err)
+            ? t('errorTooManyAttempts')
+            : t('errorSignIn'),
+      );
       setPending(false);
     }
   }

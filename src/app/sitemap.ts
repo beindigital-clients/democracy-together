@@ -3,9 +3,8 @@ import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import { client } from '@dt-sanity/lib/client';
 import { routing } from '@/i18n/routing';
-import { EVENTS } from '@/lib/events-content';
-import { THEME_SLUGS } from '@/lib/themes-content';
-import { REPORT_YEARS } from '@/lib/reports-content';
+import { loadAgenda, loadThemes } from '@/lib/contenus/load';
+import { publicReportYears, REPORT_YEARS } from '@/lib/reports-content';
 
 // Sitemap bilingue (F-07). Chaque page logique est listée une fois par locale
 // (localePrefix 'always' -> /fr et /en), avec les alternates hreflang
@@ -53,6 +52,8 @@ const STATIC_PATHS = [
   'jeunes',
   'adhesion',
   'appels-a-projets',
+  'boite-a-outils',
+  'parcours',
   'actualites',
   'contact',
   'partenaires',
@@ -71,16 +72,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push(...localized(p, undefined, p === '' ? 'daily' : 'weekly'));
   }
 
-  // Événements (slugs neutres, partagés fr/en).
-  for (const e of EVENTS) entries.push(...localized(`evenements/${e.slug}`));
+  // Événements (slugs neutres, partagés par les langues) — table
+  // `contentEvents`, ou catalogue codé en repli : jamais un brouillon.
+  const { items: events } = await loadAgenda(routing.defaultLocale);
+  for (const e of events) entries.push(...localized(`evenements/${e.slug}`));
 
-  // Synthèses thématiques (F-36) — 5 axes, slugs neutres partagés fr/en.
-  for (const slug of THEME_SLUGS) {
-    entries.push(...localized(`thematiques/${slug}`));
+  // Synthèses thématiques (F-36) — slugs stables, même règle de source.
+  const { items: themes } = await loadThemes(routing.defaultLocale);
+  for (const th of themes) {
+    entries.push(...localized(`thematiques/${th.slug}`));
   }
 
-  // Rapports annuels (F-41) — une URL par année, partagée fr/en.
-  for (const year of REPORT_YEARS) {
+  // Rapports annuels (F-41) — une URL par année publiée, partagée entre les
+  // langues : éditions administrées (Convex) et éditions codées que la base
+  // ne connaît pas. Base injoignable : les années codées.
+  let reportYears: number[] = [...REPORT_YEARS];
+  try {
+    reportYears = publicReportYears(
+      await fetchQuery(api.annualReports.listPublic, { locale: 'fr' }),
+    );
+  } catch {
+    /* Convex injoignable : on garde les années codées. */
+  }
+  for (const year of reportYears) {
     entries.push(...localized(`rapports/${year}`, undefined, 'yearly'));
   }
 
@@ -99,11 +113,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* Convex injoignable : on garde les pages statiques. */
   }
 
+  // Appels à projets publiés et parcours d'apprentissage (F-60, F-57).
+  try {
+    const calls = await fetchQuery(api.projectCalls.listPublicCalls, {});
+    for (const c of calls)
+      entries.push(...localized(`appels-a-projets/${c.slug}`));
+    const paths = await fetchQuery(api.toolbox.listPaths, {});
+    for (const p of paths) entries.push(...localized(`parcours/${p.slug}`));
+  } catch {
+    /* idem */
+  }
+
   // Fiches membres actives (Convex).
   try {
     const { items } = await fetchQuery(api.organizations.listDirectory, {});
     for (const org of items)
       entries.push(...localized(`le-reseau/${org.slug}`));
+  } catch {
+    /* idem */
+  }
+
+  // Profils PUBLICS de personnes (chantier « social »). La query ne rend que
+  // les profils dont la visibilité est « public » : un profil réservé aux
+  // membres ou privé n'a rien à faire dans un index.
+  try {
+    const people = await fetchQuery(api.social.profiles.listPublicHandles, {});
+    for (const p of people) {
+      entries.push(
+        ...localized(`membres/${p.handle}`, new Date(p.updatedAt), 'monthly'),
+      );
+    }
   } catch {
     /* idem */
   }

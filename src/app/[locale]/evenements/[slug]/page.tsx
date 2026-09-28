@@ -6,13 +6,16 @@ import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale, intlLocale } from '@/i18n/locale';
 import {
-  EVENTS,
   FEATURED_SLUG,
   getEventsLabels,
+  langLabel,
   monthAbbr,
   type EventData,
 } from '@/lib/events-content';
-import { eventJsonLd, jsonLdScript } from '@/lib/seo';
+import { loadEvent } from '@/lib/contenus/load';
+import type { AgendaEvent } from '@/lib/contenus/agenda';
+import { VisioAccess } from '@/components/events/visio-access';
+import { eventJsonLd, jsonLdScript, hreflangFor } from '@/lib/seo';
 import { EventRegisterForm } from '@/components/events/event-register-form';
 import { ReminderForm } from '@/components/events/reminder-form';
 import type { Locale } from '@/i18n/routing';
@@ -28,25 +31,38 @@ function longDate(e: EventData, loc: Locale): string {
   }).format(Date.UTC(e.y, e.mo - 1, e.d));
 }
 
+// Horaire d'un événement minuté, dans le fuseau de son LIEU, fuseau nommé :
+// « 14:00 – 15:30 (UTC+2) ». `null` pour un événement à la journée.
+function timeRange(e: AgendaEvent, loc: Locale): string | null {
+  if (!e.startTime) return null;
+  const fmt = (ms: number, withZone: boolean) =>
+    new Intl.DateTimeFormat(intlLocale(loc), {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: e.timezone,
+      ...(withZone ? { timeZoneName: 'short' as const } : {}),
+    }).format(ms);
+  return e.endTime
+    ? `${fmt(e.startsAt, false)} – ${fmt(e.endsAt, true)}`
+    : fmt(e.startsAt, true);
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const L = getEventsLabels(resolveLocale(locale));
-  const title = L.titles[slug];
-  if (!title) return {};
+  const loc = resolveLocale(locale);
+  const L = getEventsLabels(loc);
+  const detail = await loadEvent(slug, loc);
+  if (!detail) return {};
   return {
-    title,
-    description: L.hero.lead,
+    title: detail.event.title,
+    description: detail.event.lead ?? L.hero.lead,
     alternates: {
       canonical: `${SITE}/${locale}/evenements/${slug}`,
-      languages: {
-        fr: `${SITE}/fr/evenements/${slug}`,
-        en: `${SITE}/en/evenements/${slug}`,
-        'x-default': `${SITE}/fr/evenements/${slug}`,
-      },
+      languages: hreflangFor(`evenements/${slug}`),
     },
   };
 }
@@ -64,28 +80,40 @@ export default async function EventDetailPage({
   const L = getEventsLabels(loc);
   const tAgenda = await getTranslations({ locale, namespace: 'agenda' });
   const tReminder = await getTranslations({ locale, namespace: 'reminder' });
-  const event = EVENTS.find((e) => e.slug === slug);
-  if (!event) notFound();
+  // La fiche vient de la table `contentEvents`, ou du catalogue codé en repli
+  // (table vide, backend injoignable) — même adresse dans les deux cas.
+  const detail = await loadEvent(slug, loc);
+  if (!detail) notFound();
+  const { event, full } = detail;
 
   const d = L.detail;
+  // Le contenu RICHE (programme, intervenants, billetterie) est codé pour la
+  // seule conférence inaugurale ; toute autre fiche se compose de ses champs.
   const isFeatured = event.slug === FEATURED_SLUG;
   const conf = d.conf;
-  const lead = isFeatured ? conf.lead : d.leadFallback;
-  const related = EVENTS.filter(
-    (e) => e.upcoming && e.slug !== event.slug,
-  ).slice(0, 3);
+  const lead = isFeatured ? conf.lead : (event.lead ?? d.leadFallback);
+  const cancelled = event.status === 'cancelled';
+  // Inscriptions ouvertes : à venir, publié, pas complet. Même règle que le
+  // serveur (`requireOpenEvent` + capacité) — l'interface ne fait que la dire.
+  const open = event.upcoming && !cancelled && !full;
+  const replayUrl = detail.replayUrl ?? event.replayUrl ?? null;
+  const hours = timeRange(event, loc);
+  const related = detail.others
+    .filter((e) => e.upcoming && e.status === 'published')
+    .sort((a, b) => a.startsAt - b.startsAt)
+    .slice(0, 3);
 
   // Fiche `Event` (F-03, P1 n° 4 du plan d'action). Elle reprend le chapô
   // AFFICHÉ (`lead`), et non celui de la page de liste que `generateMetadata`
   // sert en description : une fiche doit décrire la page où elle se trouve.
   const fiche = eventJsonLd({
-    name: L.titles[event.slug],
+    name: event.title,
     slug: event.slug,
     locale,
     description: lead,
     start: { y: event.y, mo: event.mo, d: event.d },
     format: event.format,
-    placeName: L.cities[event.cityKey],
+    placeName: event.place,
     inLanguage: event.langs,
   });
 
@@ -107,7 +135,7 @@ export default async function EventDetailPage({
           <Link href="/evenements" className="text-muted hover:text-ink">
             {L.hero.title}
           </Link>{' '}
-          / {L.titles[event.slug]}
+          / <span className="wrap-anywhere">{event.title}</span>
         </p>
       </div>
 
@@ -132,31 +160,49 @@ export default async function EventDetailPage({
             <p className="mt-4 font-mono text-xs uppercase tracking-[0.12em] text-muted">
               {d.eyebrow}
             </p>
-            <h1 className="mt-2 font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em]">
-              {L.titles[event.slug]}
+            <h1 className="mt-2 font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em] wrap-anywhere">
+              {event.title}
             </h1>
-            <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-ink-soft">
+            {cancelled ? (
+              <p
+                role="status"
+                className="mt-4 max-w-[60ch] rounded-sm border border-line-strong bg-surface-2 px-4 py-3 text-sm font-semibold text-ink"
+              >
+                {tAgenda('cancelledNotice')}
+              </p>
+            ) : null}
+            <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-ink-soft wrap-anywhere">
               {lead}
             </p>
             <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3 border-y border-line py-4">
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {d.factDate}
                 </dt>
                 <dd className="mt-0.5 font-mono text-sm font-medium text-ink">
                   {longDate(event, loc)}
                 </dd>
               </div>
+              {hours ? (
+                <div>
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                    {tAgenda('factTime')}
+                  </dt>
+                  <dd className="mt-0.5 font-mono text-sm font-medium text-ink">
+                    {hours}
+                  </dd>
+                </div>
+              ) : null}
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {d.factPlace}
                 </dt>
-                <dd className="mt-0.5 text-sm font-medium text-ink">
-                  {L.cities[event.cityKey]}
+                <dd className="mt-0.5 text-sm font-medium text-ink wrap-anywhere">
+                  {event.place}
                 </dd>
               </div>
               <div>
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+                <dt className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                   {d.factFormat}
                 </dt>
                 <dd className="mt-0.5 text-sm font-medium text-ink">
@@ -165,12 +211,17 @@ export default async function EventDetailPage({
               </div>
             </dl>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                href={isFeatured ? '#billetterie' : '#inscription'}
-                className="inline-flex items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-              >
-                {d.register}
-              </a>
+              {/* Un événement PASSÉ n'a plus de formulaire : le bouton du hero
+                  pointait vers une ancre qui n'existe plus (contre-vérification
+                  du 27/09). */}
+              {open || (isFeatured && event.upcoming && !cancelled) ? (
+                <a
+                  href={isFeatured ? '#billetterie' : '#inscription'}
+                  className="inline-flex items-center justify-center rounded-sm bg-accent px-[18px] py-[11px] text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
+                  {d.register}
+                </a>
+              ) : null}
               {isFeatured ? (
                 <a
                   href="#programme"
@@ -189,36 +240,57 @@ export default async function EventDetailPage({
             </div>
           </div>
           <div className="relative overflow-hidden rounded-md border border-line">
-            <span className="absolute start-3 top-3 z-10 rounded-pill bg-ink/85 px-2.5 py-1 font-mono text-[11px] text-paper">
-              {d.visualPin}
-            </span>
-            <div className="relative aspect-[4/3]">
-              <Image
-                src="/library/paris.jpg"
-                alt={L.titles[event.slug]}
-                fill
-                sizes="(max-width: 1024px) 100vw, 460px"
-                className="object-cover"
-              />
-            </div>
-            <p className="bg-surface px-3 py-2 text-[12px] text-muted">
-              {d.visualCap}
-            </p>
+            {event.image ? (
+              <div className="relative aspect-[4/3]">
+                <Image
+                  src={event.image.url}
+                  alt={event.image.alt}
+                  lang={event.image.altLang}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 460px"
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <>
+                <span className="absolute start-3 top-3 z-10 rounded-pill bg-ink/85 px-2.5 py-1 font-mono text-[11px] text-paper">
+                  {d.visualPin}
+                </span>
+                <div className="relative aspect-[4/3]">
+                  {/* Photo d'ILLUSTRATION (la même pour plusieurs contenus) : décorative,
+                    ignorée des aides techniques (RGAA 1.2, audit du 27/09). */}
+                  <Image
+                    src="/library/paris.jpg"
+                    alt=""
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 460px"
+                    className="object-cover"
+                  />
+                </div>
+                <p className="bg-surface px-3 py-2 text-[12px] text-muted">
+                  {d.visualCap}
+                </p>
+              </>
+            )}
           </div>
         </Reveal>
       </header>
 
       {/* Corps */}
-      <main className={`${WRAP} grid gap-12 pb-16 lg:grid-cols-[1fr_330px]`}>
+      <div className={`${WRAP} grid gap-12 pb-16 lg:grid-cols-[1fr_330px]`}>
         <div>
           {/* La journée */}
           <Reveal as="section" id="presentation">
             <h2 className="font-display text-2xl">{d.sections.day}</h2>
             <div className="mt-4">
-              {(isFeatured ? conf.dayIntro : [d.leadFallback]).map((p, i) => (
+              {(isFeatured
+                ? conf.dayIntro
+                : [event.lead ?? d.leadFallback]
+              ).map((p, i) => (
                 <p
                   key={i}
-                  className={`mb-4 max-w-[68ch] leading-relaxed text-ink-soft ${i === 0 ? 'font-display text-lg text-ink' : ''}`}
+                  className={`mb-4 max-w-[68ch] leading-relaxed text-ink-soft wrap-anywhere ${i === 0 ? 'font-display text-lg text-ink' : ''}`}
                 >
                   {p}
                 </p>
@@ -256,7 +328,7 @@ export default async function EventDetailPage({
                         </div>
                       </div>
                       <div className="min-w-0">
-                        <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-accent-text">
+                        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent-text">
                           {s.kind}
                         </span>
                         <h3 className="mt-1 font-display text-lg leading-snug">
@@ -303,7 +375,7 @@ export default async function EventDetailPage({
                           {sp.role}
                         </p>
                         {sp.founder ? (
-                          <span className="mt-1.5 inline-block rounded-pill border border-accent-edge bg-accent-tint px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-accent-text">
+                          <span className="mt-1.5 inline-block rounded-pill border border-accent-edge bg-accent-tint px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
                             {d.founderBadge}
                           </span>
                         ) : null}
@@ -343,8 +415,8 @@ export default async function EventDetailPage({
                 <dt className="text-muted">{d.factDate}</dt>
                 <dd className="font-medium text-ink">{longDate(event, loc)}</dd>
                 <dt className="text-muted">{d.factPlace}</dt>
-                <dd className="font-medium text-ink">
-                  {L.cities[event.cityKey]}
+                <dd className="font-medium text-ink wrap-anywhere">
+                  {event.place}
                 </dd>
                 <dt className="text-muted">{d.factFormat}</dt>
                 <dd className="font-medium text-ink">
@@ -352,7 +424,7 @@ export default async function EventDetailPage({
                 </dd>
                 <dt className="text-muted">{L.filter.lang}</dt>
                 <dd className="font-medium text-ink">
-                  {event.langs.map((l) => L.langName[l]).join(' / ')}
+                  {event.langs.map((l) => langLabel(L, l, loc)).join(' / ')}
                 </dd>
               </dl>
             </Reveal>
@@ -361,7 +433,7 @@ export default async function EventDetailPage({
 
         {/* Sidebar : billetterie (conférence) ou inscription simple */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          {isFeatured ? (
+          {isFeatured && !cancelled && event.upcoming ? (
             <div
               id="billetterie"
               className="scroll-mt-24 overflow-hidden rounded-md border border-line bg-surface"
@@ -409,7 +481,31 @@ export default async function EventDetailPage({
                 </p>
               </div>
             </div>
-          ) : (
+          ) : cancelled ? (
+            <div
+              id="annulation"
+              className="scroll-mt-24 rounded-md border border-line bg-surface p-5"
+            >
+              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                {tAgenda('cancelled')}
+              </p>
+              <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
+                {tAgenda('cancelledNotice')}
+              </p>
+            </div>
+          ) : event.upcoming && full ? (
+            <div
+              id="complet"
+              className="scroll-mt-24 rounded-md border border-line bg-surface p-5"
+            >
+              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                {tAgenda('full')}
+              </p>
+              <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
+                {tAgenda('fullNotice')}
+              </p>
+            </div>
+          ) : event.upcoming ? (
             <div
               id="inscription"
               className="scroll-mt-24 rounded-md border border-line bg-surface p-5"
@@ -418,11 +514,66 @@ export default async function EventDetailPage({
               <div className="mt-4">
                 <EventRegisterForm
                   eventSlug={event.slug}
-                  eventTitle={L.titles[event.slug]}
+                  eventTitle={event.title}
                 />
               </div>
             </div>
+          ) : (
+            // Événement PASSÉ : le formulaire d'inscription était rendu quand
+            // même, et l'inscription acceptée et stockée (mesuré le 27/09).
+            // À la place : le bloc REDIFFUSION (A-10) — le lien du replay
+            // publié s'il existe, sinon la mention honnête et le chemin vers
+            // la page des replays.
+            <div
+              id="rediffusion"
+              className="scroll-mt-24 rounded-md border border-line bg-surface p-5"
+            >
+              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                {L.filter.past}
+              </p>
+              <h2 className="mt-1 font-display text-lg">{d.replay.title}</h2>
+              {replayUrl ? (
+                <a
+                  href={replayUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 flex w-full items-center justify-center rounded-sm bg-accent px-4 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                >
+                  {d.replay.available}
+                </a>
+              ) : (
+                <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">
+                  {d.replay.soon}
+                </p>
+              )}
+              <Link
+                href="/replays"
+                className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline"
+              >
+                {d.replay.seeAll}
+              </Link>
+            </div>
           )}
+
+          {/* Visioconférence (A-10, F-54) — événement À VENIR en ligne ou
+              hybride. Le lien n'est JAMAIS rendu ici par le serveur : il est
+              réservé aux inscrits, et c'est `VisioAccess` qui le demande pour
+              le compte connecté. */}
+          {event.upcoming && !cancelled && event.format !== 'presentiel' ? (
+            <div className="mt-5 rounded-md border border-line bg-surface p-5">
+              <h2 className="font-display text-lg">{d.replay.visioTitle}</h2>
+              {event.hasVisio ? (
+                <VisioAccess
+                  slug={event.slug}
+                  defaultText={d.replay.visioSent}
+                />
+              ) : (
+                <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+                  {d.replay.visioSent}
+                </p>
+              )}
+            </div>
+          ) : null}
 
           {isFeatured ? (
             <dl className="mt-5 overflow-hidden rounded-md border border-line bg-surface">
@@ -439,19 +590,16 @@ export default async function EventDetailPage({
           ) : null}
 
           {/* Rappel par e-mail (F-55) — événements à venir uniquement. */}
-          {event.upcoming ? (
+          {event.upcoming && !cancelled && !event.started ? (
             <div className="mt-5 rounded-md border border-line bg-surface p-5">
               <h2 className="font-display text-lg">{tReminder('title')}</h2>
               <div className="mt-4">
-                <ReminderForm
-                  eventSlug={event.slug}
-                  eventDate={Date.UTC(event.y, event.mo - 1, event.d)}
-                />
+                <ReminderForm eventSlug={event.slug} />
               </div>
             </div>
           ) : null}
         </aside>
-      </main>
+      </div>
 
       {/* Ressources (conférence) */}
       {isFeatured ? (
@@ -498,11 +646,11 @@ export default async function EventDetailPage({
                     {e.d} {monthAbbr(e, loc).toLowerCase()} {e.y} ·{' '}
                     {L.types[e.type]}
                   </span>
-                  <h3 className="mt-2 font-display text-[17px] leading-snug">
-                    {L.titles[e.slug]}
+                  <h3 className="mt-2 font-display text-[17px] leading-snug wrap-anywhere">
+                    {e.title}
                   </h3>
-                  <span className="mt-2 text-[13px] text-ink-soft">
-                    {L.cities[e.cityKey]} · {L.formats[e.format]}
+                  <span className="mt-2 text-[13px] text-ink-soft wrap-anywhere">
+                    {e.place} · {L.formats[e.format]}
                   </span>
                 </Link>
               </RevealItem>

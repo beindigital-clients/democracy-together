@@ -15,4 +15,54 @@ crons.cron(
   {},
 );
 
+// F-28 — Dons mensuels sans prélèvement automatique (prestataire sans
+// abonnements ; Stripe prélève lui-même) : chaque jour à 08:10 UTC, envoi du lien de
+// paiement des échéances arrivées. Minute décalée : les tâches à l'heure pile
+// se bousculent chez l'hébergeur.
+crons.cron(
+  'payments-recurring-reminders',
+  '10 8 * * *',
+  internal.payments.recurring.sendDueReminders,
+  {},
+);
+// Chantier diffusion (F-18 / F-66).
+// Double opt-in : les inscriptions jamais confirmées sont supprimées à
+// l'échéance de leur lien (minimisation). Toutes les heures, à la minute 17.
+crons.cron(
+  'newsletter-purge-pending',
+  '17 * * * *',
+  internal.newsletter.purgeExpiredPending,
+  {},
+);
+// Mesure d'audience : les événements bruts deviennent des compteurs par jour
+// et sont supprimés — aucun ne vit plus de quelques minutes.
+crons.interval(
+  'audience-aggregate',
+  { minutes: 5 },
+  internal.audience.aggregate,
+  {},
+);
+// Rétention bornée des agrégats (AUDIENCE_RETENTION_DAYS, 13 mois par défaut).
+crons.cron('audience-purge', '43 3 * * *', internal.audience.purge, {});
+// F-59 — Mentorat : chaque jour à 06:30 UTC, alerte le coordinateur des
+// binômes actifs sans séance journalisée depuis quatre semaines
+// (INACTIVITY_WEEKS, convex/lib/programmes.ts). Une alerte par période
+// d'inactivité, pas une par nuit.
+crons.cron(
+  'mentoring-inactivity',
+  '30 6 * * *',
+  internal.mentoring.checkInactivity,
+  {},
+);
+// F-43 — Relances des relecteurs : chaque jour à 06:13 UTC (minute décalée de
+// l'heure pleine, où se concentrent les tâches), les relectures dont
+// l'échéance est passée reçoivent une relance — au plus trois, espacées de
+// trois jours — puis l'éditeur qui a désigné le relecteur est prévenu.
+crons.cron(
+  'peer-review-reminders',
+  '13 6 * * *',
+  internal.peerReview.sendDueReminders,
+  {},
+);
+
 export default crons;

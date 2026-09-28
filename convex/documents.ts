@@ -12,7 +12,7 @@ import {
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { locale, type SiteLocale } from './lib/locales';
-import { getCurrentUser, rank } from './lib/rbac';
+import { getCurrentUser, getActiveUserById, rank } from './lib/rbac';
 import { enforceRateLimit } from './lib/rateLimit';
 import {
   isGatewayConfigured,
@@ -273,7 +273,9 @@ export const loadDocumentContext = internalQuery({
     }
     if (!pub.fileId) return { ok: false as const, reason: 'NO_DOCUMENT' };
     if (pub.access === 'members') {
-      const user = args.userId ? await ctx.db.get(args.userId) : null;
+      const user = args.userId
+        ? await getActiveUserById(ctx, args.userId)
+        : null;
       if (rank(user?.role) < rank('membre')) {
         return { ok: false as const, reason: 'FORBIDDEN' };
       }

@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from 'convex/react';
+import { ConvexError } from 'convex/values';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
+import { FIELD_MAX } from '@convex/lib/validation';
 import { Link, useRouter } from '@/i18n/navigation';
 import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
@@ -17,6 +19,7 @@ import {
 } from '@/components/ui/field';
 import { isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Proposition de projet collaboratif (F-60) — îlot client sur /appels-a-projets.
 // Réservé aux membres : un visiteur (anonyme ou compte sans rôle membre) est
@@ -37,6 +40,11 @@ export function ProjectForm() {
 
   const member = isMember(me?.role);
 
+  // Borne ALIGNÉE sur le serveur (`convex/projects.ts` via `FIELD_MAX`) : un
+  // résumé de 4 001 caractères était refusé sous « Envoi impossible pour le
+  // moment » sans la raison (mesuré le 27/09, A-04).
+  const summaryMax = FIELD_MAX.body;
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -45,7 +53,12 @@ export function ProjectForm() {
         theme: (v) =>
           (PUB_THEMES as readonly string[]).includes(v) ? null : t('errTheme'),
         title: (v) => (v.trim().length < 4 ? t('errTitle') : null),
-        summary: (v) => (v.trim().length < 20 ? t('errSummary') : null),
+        summary: (v) =>
+          v.trim().length < 20
+            ? t('errSummary')
+            : v.trim().length > summaryMax
+              ? t('errSummaryLong', { max: summaryMax })
+              : null,
       })
     ) {
       return;
@@ -61,7 +74,17 @@ export function ProjectForm() {
       setStatus('success');
       router.refresh();
     } catch (err) {
-      setError(isRateLimited(err) ? t('rateLimited') : t('errGeneric'));
+      const code =
+        err instanceof ConvexError && typeof err.data === 'string'
+          ? err.data
+          : null;
+      setError(
+        isRateLimited(err)
+          ? t('rateLimited')
+          : code === 'INVALID_SUMMARY'
+            ? t('errSummaryLong', { max: summaryMax })
+            : t('errGeneric'),
+      );
       setStatus('idle');
     }
   }
@@ -99,13 +122,10 @@ export function ProjectForm() {
 
   if (status === 'success') {
     return (
-      <div
-        role="status"
-        className="rounded-md border border-accent-edge bg-accent-tint p-5"
-      >
+      <StatusMessage className="rounded-md border border-accent-edge bg-accent-tint p-5">
         <p className="font-medium text-ink">{t('success')}</p>
         <p className="mt-1 text-[14px] text-ink-soft">{t('successBody')}</p>
-      </div>
+      </StatusMessage>
     );
   }
 
@@ -143,6 +163,12 @@ export function ProjectForm() {
         id="p-summary"
         rows={5}
         required
+        maxLength={summaryMax}
+        hint={
+          <span className="wrap-anywhere">
+            {t('charCount', { count: values.summary.length, max: summaryMax })}
+          </span>
+        }
         placeholder={t('summaryPlaceholder')}
         {...field('summary')}
       />

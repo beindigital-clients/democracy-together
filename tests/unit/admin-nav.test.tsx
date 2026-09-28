@@ -6,6 +6,7 @@ import messages from '@/messages/fr.json';
 import {
   AdminNav,
   ADMIN_NAV_GROUPS,
+  adminMinRoleForPath,
   isAdminNavItemActive,
   visibleAdminNavGroups,
 } from '@/components/admin/admin-nav';
@@ -40,55 +41,89 @@ function renderNav(role: NetworkRole, pathname = '/admin') {
 
 // Les quatorze entrées de l'issue, par le libellé qu'elles portent à l'écran,
 // plus la quinzième arrivée depuis (« Modération IA », réservée à
-// l'administrateur). Le total est réaffirmé ci-dessous : une entrée ajoutée
-// sans passer par ici fait échouer le test, ce qui est l'objet du fichier.
+// l'administrateur) et la seizième (« Mes relectures », la vue du relecteur
+// de rang modérateur — campagne du 27/09, A-02), puis « Organisations » (la
+// relecture des fiches proposées par les responsables d'organisation, F-21,
+// chantier comptes — une modération). Le total est réaffirmé
+// ci-dessous : une entrée ajoutée sans passer par ici fait échouer le test,
+// ce qui est l'objet du fichier.
 const STAFF_ITEMS = [
   'Tableau de bord',
   'Impact',
   'Candidatures',
   'Publications',
+  'Mes relectures',
+  // File de modération de la tribune (chantier communauté), rang modérateur.
+  'File de modération',
   'Signalements',
+  // Messages privés signalés (chantier « social »), rang modérateur.
+  'Messages signalés',
   'Messages',
+  'Organisations',
   'Jeunes',
   'Mentorat',
   'Projets',
   'Événements',
 ];
-const EDITOR_ITEMS = ['Comité de lecture', 'Newsletter'];
+// « Contenus » (chantier « contenus », F-62) : rang éditeur.
+const EDITOR_ITEMS = [
+  'Comité de lecture',
+  'Rapports annuels',
+  'Newsletter',
+  'Contenus',
+  'Boîte à outils',
+];
 // « Modération IA » rejoint les entrées réservées à l'administrateur : ce
 // qu'elle règle n'est pas une modération, c'est la décision de s'en passer
 // (cf. le groupe `automatisation` de admin-nav.tsx).
-const ADMIN_ITEMS = ['Modération IA', 'Utilisateurs', 'Journal'];
+const ADMIN_ITEMS = ['Modération IA', 'Finances', 'Utilisateurs', 'Journal'];
 
+// Le NOM accessible des entrées précise l'espace (RGAA 6.1, cf. admin-nav.tsx) :
+// « Publications (Administration) ». Le texte VISIBLE, lui, reste le libellé
+// seul — c'est ce que compare `linkNames`.
 function linkNames(nav: HTMLElement): string[] {
   return within(nav)
     .getAllByRole('link')
     .map((a) => a.textContent ?? '');
 }
 
+// Nombre total d'entrées : dérivé des trois listes nommées ci-dessus, pour
+// qu'ajouter un écran oblige à le nommer dans SA liste (rang), sans avoir à
+// retoucher un compteur à chaque chantier — les listes, elles, restent la
+// spécification.
+const ALL_COUNT = STAFF_ITEMS.length + EDITOR_ITEMS.length + ADMIN_ITEMS.length;
+
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
-  it('un modérateur voit les 10 entrées communes, et aucune entrée réservée', () => {
+  it('un modérateur voit les 12 entrées communes, et aucune entrée réservée', () => {
     const nav = renderNav('moderateur');
     expect(linkNames(nav).sort()).toEqual([...STAFF_ITEMS].sort());
     for (const reserved of [...EDITOR_ITEMS, ...ADMIN_ITEMS]) {
-      expect(within(nav).queryByRole('link', { name: reserved })).toBeNull();
+      expect(
+        within(nav).queryByRole('link', {
+          name: `${reserved} (Administration)`,
+        }),
+      ).toBeNull();
     }
   });
 
-  it('un éditeur ajoute revue et newsletter, sans les entrées admin', () => {
+  it('un éditeur ajoute revue, newsletter et contenus, sans les entrées admin', () => {
     const nav = renderNav('editeur');
     expect(linkNames(nav).sort()).toEqual(
       [...STAFF_ITEMS, ...EDITOR_ITEMS].sort(),
     );
     for (const reserved of ADMIN_ITEMS) {
-      expect(within(nav).queryByRole('link', { name: reserved })).toBeNull();
+      expect(
+        within(nav).queryByRole('link', {
+          name: `${reserved} (Administration)`,
+        }),
+      ).toBeNull();
     }
   });
 
-  it('un administrateur voit les 15 entrées attendues', () => {
+  it('un administrateur voit toutes les entrées attendues', () => {
     const nav = renderNav('admin');
     const expected = [...STAFF_ITEMS, ...EDITOR_ITEMS, ...ADMIN_ITEMS];
-    expect(expected).toHaveLength(15);
+    expect(expected).toHaveLength(ALL_COUNT);
     expect(linkNames(nav).sort()).toEqual([...expected].sort());
   });
 
@@ -111,6 +146,7 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       'Programmes',
       'Édition',
       'Automatisation',
+      'Trésorerie',
       'Comptes et audit',
     ];
     for (const label of labels) {
@@ -118,9 +154,9 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
       // est donc annoncé, sans introduire un `<h2>` avant le `<h1>` de l'écran.
       expect(within(nav).getByRole('list', { name: label })).toBeTruthy();
     }
-    // Aucune entrée hors groupe : la somme des listes rend bien les 15 liens.
+    // Aucune entrée hors groupe : la somme des listes rend bien tous les liens.
     const grouped = lists.flatMap((l) => within(l).getAllByRole('link'));
-    expect(grouped).toHaveLength(15);
+    expect(grouped).toHaveLength(ALL_COUNT);
   });
 
   it('ne défile plus horizontalement : aucun conteneur en overflow-x', () => {
@@ -153,7 +189,7 @@ describe('Navigation du back-office — entrée courante (issue #49)', () => {
     const nav = renderNav('admin', '/admin/publications/en-attente');
     expect(
       within(nav)
-        .getByRole('link', { name: 'Publications' })
+        .getByRole('link', { name: 'Publications (Administration)' })
         .getAttribute('aria-current'),
     ).toBe('page');
   });
@@ -169,7 +205,7 @@ describe('Navigation du back-office — entrée courante (issue #49)', () => {
     const nav = renderNav('admin', '/admin/journal');
     expect(
       within(nav)
-        .getByRole('link', { name: 'Tableau de bord' })
+        .getByRole('link', { name: 'Tableau de bord (Administration)' })
         .getAttribute('aria-current'),
     ).toBeNull();
   });
@@ -200,9 +236,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
 
   it('aucun chemin ni aucune clé de libellé en double', () => {
     const items = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-    expect(items).toHaveLength(15);
-    expect(new Set(items.map((i) => i.href)).size).toBe(15);
-    expect(new Set(items.map((i) => i.key)).size).toBe(15);
+    expect(items).toHaveLength(ALL_COUNT);
+    expect(new Set(items.map((i) => i.href)).size).toBe(ALL_COUNT);
+    expect(new Set(items.map((i) => i.key)).size).toBe(ALL_COUNT);
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
@@ -214,6 +250,48 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
       for (const group of ADMIN_NAV_GROUPS) {
         expect(dict[group.labelKey]).toBeTruthy();
         for (const item of group.items) expect(dict[item.key]).toBeTruthy();
+      }
+    }
+  });
+});
+
+// Rang minimal d'un ÉCRAN, lu par la coquille avant de monter la page. Un
+// modérateur qui tapait /admin/revue ou /admin/newsletter tombait sur la page
+// d'erreur (requête « éditeur » levée avant tout garde) — mesuré le 27/09.
+describe('adminMinRoleForPath', () => {
+  it('reprend le rang du groupe de navigation qui porte le chemin', () => {
+    expect(adminMinRoleForPath('/admin')).toBe('moderateur');
+    expect(adminMinRoleForPath('/admin/candidatures')).toBe('moderateur');
+    // La vue du relecteur est ouverte au rang modérateur (27/09, A-02) — la
+    // file complète, elle, reste à l'éditeur. Les deux chemins ne se
+    // préfixent pas l'un l'autre.
+    expect(adminMinRoleForPath('/admin/mes-relectures')).toBe('moderateur');
+    expect(adminMinRoleForPath('/admin/revue')).toBe('editeur');
+    expect(adminMinRoleForPath('/admin/newsletter')).toBe('editeur');
+    expect(adminMinRoleForPath('/admin/utilisateurs')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/journal')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/moderation-ia')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/finances')).toBe('admin');
+    // Le barème hérite du rang de l'écran Finances.
+    expect(adminMinRoleForPath('/admin/finances/formules')).toBe('admin');
+  });
+
+  it('un sous-chemin hérite du rang de son écran ; un chemin inconnu vaut le rang de la coquille', () => {
+    expect(adminMinRoleForPath('/admin/utilisateurs/')).toBe('admin');
+    expect(adminMinRoleForPath('/admin/revue/abc')).toBe('editeur');
+    expect(adminMinRoleForPath('/admin/inconnu')).toBe('moderateur');
+  });
+
+  it('est cohérent avec la barre : ce qu’elle cache à un rôle, la coquille le refuse', () => {
+    for (const role of ROLE_ORDER) {
+      const visible = new Set(
+        visibleAdminNavGroups(role).flatMap((g) => g.items.map((i) => i.href)),
+      );
+      for (const item of ADMIN_NAV_GROUPS.flatMap((g) => g.items)) {
+        const allowed =
+          ROLE_ORDER.indexOf(role) >=
+          ROLE_ORDER.indexOf(adminMinRoleForPath(item.href));
+        expect(allowed).toBe(visible.has(item.href));
       }
     }
   });

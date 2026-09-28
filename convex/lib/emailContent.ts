@@ -25,7 +25,7 @@ import { type SiteLocale, intlTag, isRtlLocale } from './locales';
 // (`EMAIL_PROVIDER_NOT_CONFIGURED`…) ne sont pas ici : elles s'adressent à
 // l'exploitant, pas au destinataire.
 
-type Phrase = Record<SiteLocale, string>;
+export type Phrase = Record<SiteLocale, string>;
 
 // --- Coque commune ----------------------------------------------------------
 
@@ -50,7 +50,7 @@ const GREETING: Phrase = {
  * Les styles sont EN LIGNE parce qu'un client de messagerie n'exécute pas de
  * feuille externe : c'est la contrainte du format, pas un oubli.
  */
-function shell(loc: SiteLocale, inner: string): string {
+export function shell(loc: SiteLocale, inner: string): string {
   const rtl = isRtlLocale(loc);
   return `<div lang="${loc}" dir="${rtl ? 'rtl' : 'ltr'}" style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;color:#16191f;text-align:${rtl ? 'right' : 'left'}">
     <h2 style="font-family:Georgia,serif;color:#1f3d6e">${BRAND}</h2>
@@ -67,7 +67,7 @@ export function escapeHtml(s: string): string {
 }
 
 /** Sujet suffixé de la marque, comme les courriels actuels. */
-function subject(p: Phrase, loc: SiteLocale): string {
+export function subject(p: Phrase, loc: SiteLocale): string {
   return `${p[loc]} · ${BRAND}`;
 }
 
@@ -294,6 +294,10 @@ export function eventReminderEmail(args: {
   eventDate: number;
   siteUrl: string;
   locale: SiteLocale;
+  // Fuseau du LIEU de l'événement (chantier « contenus ») : `eventDate` est
+  // l'instant de début, et une journée qui commence à minuit à Paris est
+  // encore la veille en UTC. Sans fuseau connu, UTC (comportement d'avant).
+  timeZone?: string;
 }): { subject: string; html: string } {
   const loc = args.locale;
   const url = `${args.siteUrl.replace(/\/+$/, '')}/${loc}/evenements/${encodeURIComponent(args.eventSlug)}`;
@@ -301,7 +305,7 @@ export function eventReminderEmail(args: {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-    timeZone: 'UTC',
+    timeZone: args.timeZone ?? 'UTC',
   }).format(args.eventDate);
 
   const body = `<p>${REMINDER_LEAD[loc]}</p>
@@ -311,4 +315,78 @@ export function eventReminderEmail(args: {
     <p style="color:#646771;font-size:12px">${REMINDER_FOOTER[loc]}</p>`;
 
   return { subject: subject(REMINDER_SUBJECT, loc), html: shell(loc, body) };
+}
+
+// --- Lien de visioconférence (F-54) ------------------------------------------
+
+const VISIO_SUBJECT: Phrase = {
+  fr: 'Votre lien de visioconférence',
+  en: 'Your video conference link',
+  es: 'Su enlace de videoconferencia',
+  pt: 'A sua ligação de videoconferência',
+  ar: 'رابط مؤتمر الفيديو الخاص بكم',
+};
+
+/** `{title}` et `{date}` sont remplacés à l'envoi. */
+const VISIO_LEAD: Phrase = {
+  fr: 'Vous êtes inscrit·e à <strong>{title}</strong>, le <strong>{date}</strong>. Voici le lien pour rejoindre la séance en ligne :',
+  en: 'You are registered for <strong>{title}</strong> on <strong>{date}</strong>. Here is the link to join the online session:',
+  es: 'Está inscrito/a en <strong>{title}</strong>, el <strong>{date}</strong>. Este es el enlace para unirse a la sesión en línea:',
+  pt: 'Está inscrito/a em <strong>{title}</strong>, a <strong>{date}</strong>. Eis a ligação para participar na sessão em linha:',
+  ar: 'أنتم مسجَّلون في <strong>{title}</strong> بتاريخ <strong>{date}</strong>. إليكم رابط الانضمام إلى الجلسة عن بُعد:',
+};
+
+const VISIO_PRIVATE: Phrase = {
+  fr: 'Ce lien vous est personnel : merci de ne pas le diffuser. La fiche de l’événement reste consultable ici :',
+  en: 'This link is for you only: please do not share it. The event page remains available here:',
+  es: 'Este enlace es personal: le rogamos que no lo difunda. La ficha del evento sigue disponible aquí:',
+  pt: 'Esta ligação é pessoal: pedimos-lhe que não a divulgue. A página do evento continua disponível aqui:',
+  ar: 'هذا الرابط خاص بكم: نرجو عدم نشره. تبقى صفحة الفعالية متاحة هنا:',
+};
+
+const VISIO_FOOTER: Phrase = {
+  fr: 'Vous recevez cet e-mail car vous vous êtes inscrit·e à cet événement sur le site de Democracy Together.',
+  en: 'You are receiving this email because you registered for this event on the Democracy Together website.',
+  es: 'Recibe este mensaje porque se inscribió en este evento en el sitio de Democracy Together.',
+  pt: 'Recebe esta mensagem porque se inscreveu neste evento no sítio da Democracy Together.',
+  ar: 'تصلكم هذه الرسالة لأنكم سجّلتم في هذه الفعالية على موقع Democracy Together.',
+};
+
+/**
+ * Courriel portant le lien de visioconférence à un INSCRIT, avant l'événement.
+ * Le lien n'est public nulle part ailleurs : c'est son seul canal pour les
+ * inscrits sans compte.
+ */
+export function eventVisioEmail(args: {
+  eventSlug: string;
+  eventTitle: string;
+  eventDate: number;
+  timeZone: string;
+  visioUrl: string;
+  siteUrl: string;
+  locale: SiteLocale;
+}): { subject: string; html: string } {
+  const loc = args.locale;
+  const page = `${args.siteUrl.replace(/\/+$/, '')}/${loc}/evenements/${encodeURIComponent(args.eventSlug)}`;
+  const when = new Intl.DateTimeFormat(intlTag(loc), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: args.timeZone,
+    timeZoneName: 'short',
+  }).format(args.eventDate);
+  const lead = VISIO_LEAD[loc]
+    .replace('{title}', escapeHtml(args.eventTitle))
+    .replace('{date}', escapeHtml(when));
+  const link = escapeHtml(args.visioUrl);
+  const body = `<p>${GREETING[loc]}</p>
+    <p>${lead}</p>
+    <p><a href="${link}" style="display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600">${link}</a></p>
+    <p>${VISIO_PRIVATE[loc]}</p>
+    <p><a href="${page}">${escapeHtml(page)}</a></p>
+    <hr style="border:none;border-top:1px solid #d9d6cd;margin:24px 0"/>
+    <p style="color:#646771;font-size:12px">${VISIO_FOOTER[loc]}</p>`;
+  return { subject: subject(VISIO_SUBJECT, loc), html: shell(loc, body) };
 }

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -109,5 +109,68 @@ describe('Annuaire — listDirectory (F-19)', () => {
       slug: 'inexistant',
     });
     expect(missing).toBeNull();
+  });
+});
+
+describe('Adhésion — une seule candidature en attente par adresse (R-09)', () => {
+  const candidature = {
+    type: 'organisation' as const,
+    organizationName: 'Institut Démo Sahel',
+    contactEmail: 'contact@institut-demo.org',
+    country: 'Sénégal',
+  };
+
+  it('refuse la seconde candidature pending, quelle que soit la casse de l’adresse', async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.organizations.storeApplication, candidature);
+
+    // `.data` et non le message : c'est lui qui traverse l'action publique
+    // jusqu'au formulaire, pour un libellé dédié.
+    await expect(
+      t.mutation(internal.organizations.storeApplication, {
+        ...candidature,
+        contactEmail: '  Contact@Institut-Demo.ORG ',
+      }),
+    ).rejects.toMatchObject({ data: 'DUPLICATE_APPLICATION' });
+
+    expect(
+      await t.run((ctx) => ctx.db.query('membershipApplications').collect()),
+    ).toHaveLength(1);
+  });
+
+  it('accepte une nouvelle candidature une fois la précédente tranchée', async () => {
+    const t = convexTest(schema, modules);
+    const modId = await t.run((ctx) =>
+      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+    );
+    const premiere = await t.mutation(
+      internal.organizations.storeApplication,
+      candidature,
+    );
+    await t
+      .withIdentity({ subject: `${modId}|s` })
+      .mutation(api.organizations.reviewApplication, {
+        applicationId: premiere,
+        decision: 'rejected',
+      });
+
+    // Une candidature rejetée n'est plus « en cours » : on peut se
+    // représenter.
+    await t.mutation(internal.organizations.storeApplication, candidature);
+    expect(
+      await t.run((ctx) => ctx.db.query('membershipApplications').collect()),
+    ).toHaveLength(2);
+  });
+
+  it('deux adresses différentes ne se bloquent pas', async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.organizations.storeApplication, candidature);
+    await t.mutation(internal.organizations.storeApplication, {
+      ...candidature,
+      contactEmail: 'autre@institut-demo.org',
+    });
+    expect(
+      await t.run((ctx) => ctx.db.query('membershipApplications').collect()),
+    ).toHaveLength(2);
   });
 });

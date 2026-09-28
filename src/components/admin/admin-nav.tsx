@@ -73,8 +73,27 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     items: [
       { href: '/admin/candidatures', key: 'applications' },
       { href: '/admin/publications', key: 'publications' },
+      // « Mes relectures » (campagne du 27/09, A-02) : la vue du RELECTEUR,
+      // ouverte au rang modérateur parce que `submitReview` l'est. Elle ne
+      // rend que ses assignations ; la file complète et les décisions
+      // restent dans « Comité de lecture », réservé à l'éditeur. Rangée avec
+      // la modération : c'est là que travaille un modérateur.
+      { href: '/admin/mes-relectures', key: 'myReviews' },
+      // File unifiée de la tribune (chantier communauté, F-45/F-49) : billets
+      // et commentaires en attente, validés, rejetés, retirés, signalés, avec
+      // l'historique de chacun. Chemin distinct de `/admin/moderation-ia` —
+      // l'actif se décide par préfixe, et `/admin/moderation` l'aurait
+      // allumé (et en aurait abaissé le rang minimal).
+      { href: '/admin/file-moderation', key: 'fileModeration' },
       { href: '/admin/signalements', key: 'reports' },
+      // Messages privés signalés (chantier « social ») : même rang que la file
+      // de la Tribune, celui qu'exige `social.messages.listReports`.
+      { href: '/admin/messages-signales', key: 'messageReports' },
       { href: '/admin/contact', key: 'contactMessages' },
+      // Fiches d'annuaire proposées par les responsables d'organisation
+      // (F-21, chantier comptes) : c'est une modération, au rang de
+      // `orgAdmin.reviewRevision`.
+      { href: '/admin/organisations', key: 'organizations' },
     ],
   },
   {
@@ -94,7 +113,18 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     minRole: 'editeur',
     items: [
       { href: '/admin/revue', key: 'review' },
+      // Rapports annuels (F-41, chantier editorial) : la garde Convex est au
+      // rang éditeur (`annualReports.*`), comme la revue.
+      { href: '/admin/rapports', key: 'annualReports' },
       { href: '/admin/newsletter', key: 'newsletter' },
+      // Contenus éditoriaux (F-62/F-64) : événements, replays, partenaires,
+      // presse, thématiques, médiathèque. Rang éditeur, comme la garde
+      // `requireEditor` de convex/lib/contenus/access.ts. Les INSCRIPTIONS aux
+      // événements restent sous « Programmes », au rang modérateur.
+      { href: '/admin/contenus', key: 'contents' },
+      // Boîte à outils et parcours (F-56, F-57) : contenu éditorial, donc
+      // rang éditeur — celui de `toolbox.saveResource` et `savePath`.
+      { href: '/admin/boite-a-outils', key: 'toolbox' },
     ],
   },
   // L'automatisation est un groupe à part, et réservé à l'administrateur.
@@ -112,6 +142,16 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     minRole: 'admin',
     items: [{ href: '/admin/moderation-ia', key: 'aiModeration' }],
   },
+  // Trésorerie (F-31) : montants, identités des payeurs et remboursements —
+  // réservée à l'administrateur, comme la garde des fonctions de
+  // convex/payments/finances.ts. Le barème (/admin/finances/formules) hérite
+  // du rang de l'écran par préfixe.
+  {
+    key: 'finances',
+    labelKey: 'navGroup_finances',
+    minRole: 'admin',
+    items: [{ href: '/admin/finances', key: 'finances' }],
+  },
   {
     key: 'comptes',
     labelKey: 'navGroup_comptes',
@@ -125,6 +165,52 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
 
 // Groupes proposés à un rôle. Un groupe entier disparaît, pas une entrée à
 // l'intérieur : c'est ce qui évite un groupe au titre sans contenu.
+// Rang minimal pour un CHEMIN du back-office, lu dans la même table que la
+// navigation : un écran que la barre cache à un rôle ne doit pas s'ouvrir par
+// URL directe. Mesuré le 27/09 : un modérateur tapant /admin/revue ou
+// /admin/newsletter tombait sur « Une erreur est survenue », la requête
+// « éditeur » de la page ayant levé avant tout garde d'écran. Un chemin hors
+// table (page inconnue sous /admin) vaut le rang de la coquille : modérateur.
+export function adminMinRoleForPath(pathname: string): NetworkRole {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (
+        item.href === '/admin'
+          ? path === '/admin'
+          : isAdminNavItemActive(item.href, path)
+      ) {
+        return group.minRole;
+      }
+    }
+  }
+  return 'moderateur';
+}
+
+/**
+ * Clé de libellé de l'écran courant (`admin.<clé>`), ou `null` hors du menu.
+ *
+ * Sert au TITRE DE PAGE (RGAA 8.6) : les écrans du back-office sont des
+ * composants client, sans `generateMetadata` ; mesuré à l'audit du 27/09, les
+ * seize portaient le même titre. Le libellé du menu est celui que la personne
+ * vient de choisir — c'est donc le nom de l'écran le plus sûr à annoncer.
+ */
+export function adminScreenKey(pathname: string): string | null {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (
+        item.href === '/admin'
+          ? path === '/admin'
+          : isAdminNavItemActive(item.href, path)
+      ) {
+        return item.key;
+      }
+    }
+  }
+  return null;
+}
+
 export function visibleAdminNavGroups(
   role: NetworkRole,
 ): readonly AdminNavGroup[] {
@@ -179,6 +265,14 @@ export function AdminNav({
                     <Link
                       href={href}
                       aria-current={active ? 'page' : undefined}
+                      // LIEN EXPLICITE (RGAA 6.1). « Événements », « Jeunes »,
+                      // « Newsletter » existent AUSSI dans l'en-tête public, vers
+                      // d'autres pages : mesuré à l'audit du 27/09, une liste des
+                      // liens de `/admin/utilisateurs` en montrait deux de chaque,
+                      // sans rien pour les distinguer (le nom du repère n'est pas un
+                      // contexte au sens du RGAA). Le nom commence par le texte
+                      // visible (WCAG 2.5.3) et dit l'espace visé.
+                      aria-label={`${t(key)} (${t('title')})`}
                       className={`block rounded-sm px-2.5 py-1.5 text-sm transition-colors ${
                         active
                           ? 'bg-accent-tint font-medium text-accent-text'

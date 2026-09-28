@@ -5,7 +5,7 @@ import {
   MAX_FAILED_SIGN_IN_ATTEMPTS_PER_HOUR,
   validatePasswordRequirements,
 } from './lib/passwordPolicy';
-import { resolveSignInUserId } from './lib/signIn';
+import { assertMaySignIn, resolveSignInUserId } from './lib/signIn';
 
 // Authentification (F-01) : e-mail+mot de passe (vérif/reset par code) et
 // connexion sans mot de passe par code.
@@ -57,6 +57,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // porte la décision, le détail et les tests : auth.ts est exclu du glob
       // des tests, cf. TESTING.md).
       return await resolveSignInUserId(ctx.db, args.profile.email);
+    },
+    // Un compte SUSPENDU ne peut plus ouvrir de session (chantier comptes).
+    // La décision vit dans lib/signIn.ts, testable : ce fichier est exclu du
+    // glob des tests (cf. TESTING.md).
+    async beforeSessionCreation(ctx, { userId }) {
+      await assertMaySignIn(ctx.db, userId);
     },
   },
 });

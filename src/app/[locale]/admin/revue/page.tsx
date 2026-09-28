@@ -5,41 +5,608 @@ import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import type { FunctionReturnType } from 'convex/server';
+import {
+  canTransition,
+  MANUSCRIPT_BOUNDS,
+  MANUSCRIPT_STAGES,
+  type ManuscriptDecision,
+  type ManuscriptStage,
+} from '@convex/lib/manuscripts';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextareaField } from '@/components/ui/field';
+import { SelectField, TextField, TextareaField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { LoadMore } from '@/components/admin/load-more';
+import {
+  useActionFeedback,
+  useFailureFeedback,
+} from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 
-type Recommendation = 'accept' | 'minor' | 'major' | 'reject';
-const RECOMMENDATIONS: Recommendation[] = [
-  'accept',
-  'minor',
-  'major',
-  'reject',
-];
+type Staff = FunctionReturnType<typeof api.peerReview.listStaffUsers>;
+type QueueItem = FunctionReturnType<
+  typeof api.peerReview.getReviewQueue
+>['page'][number];
 
-type Stage = 'in_review' | 'revision' | 'reviewed';
-const STAGES: Stage[] = ['in_review', 'revision', 'reviewed'];
-
-// Taille de page. Le serveur la replafonne : elle est indicative.
 const PAGE_SIZE = 20;
 
-// Revue à comité de lecture (F-43) — RÉSERVÉE AU STAFF. Surcouche de la
-// modération : les relecteurs (modérateur+) déposent un avis, l'éditeur arbitre
-// (assignation, décision revision/reviewed). La file `getReviewQueue` et les
-// actions d'arbitrage exigent le rôle éditeur côté serveur (défense en
-// profondeur) ; ici on s'appuie sur le même garde-fou que l'onglet (isEditor).
+// Instant d'ouverture de l'écran, lu une fois au chargement du module et non
+// pendant le rendu : une échéance « dépassée » se juge à cette heure-là. La
+// file est chargée côté client, le rendu serveur n'en montre aucune.
+const OPENED_AT = Date.now();
+const DECISIONS: ManuscriptDecision[] = ['revision', 'accepted', 'rejected'];
+const DECISION_EVENT = {
+  revision: 'requestRevision',
+  accepted: 'accept',
+  rejected: 'reject',
+} as const;
+
+function staffName(u: Staff[number]): string {
+  return u.name || u.email || u._id;
+}
+
+function useDateFormat() {
+  const locale = useLocale();
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return (ms: number) => fmt.format(ms);
+}
+
+// Une date du sélecteur (AAAA-MM-JJ) lue comme la fin de ce jour-là, en UTC :
+// une échéance « le 15 » laisse la journée du 15.
+function dueFromInput(value: string): number | undefined {
+  if (!value) return undefined;
+  const ms = Date.parse(`${value}T23:59:00Z`);
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
+// OUVRIR UNE REVUE (campagne du 27/09, R-01) : un dépôt en attente de
+// modération, un relecteur, et la revue s'ouvre — soumission puis évaluation.
+function OpenReviewPanel({ staff }: { staff: Staff | undefined }) {
+  const t = useTranslations('admin');
+  const openable = useQuery(api.peerReview.listOpenable, {});
+  const assign = useMutation(api.peerReview.assignReviewer);
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
+  const [publicationId, setPublicationId] = useState('');
+  const [reviewerId, setReviewerId] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function open() {
+    const pub = openable?.find((p) => p._id === publicationId);
+    const reviewer = staff?.find((u) => u._id === reviewerId);
+    if (!pub || !reviewer) return;
+    setBusy(true);
+    try {
+      await assign({ publicationId: pub._id, reviewerUserId: reviewer._id });
+      setPublicationId('');
+      setReviewerId('');
+      notify(
+        t('feedbackRevOpened', { title: pub.title, name: staffName(reviewer) }),
+      );
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section
+      aria-labelledby="admin-review-open"
+      className="mt-6 rounded-md border border-line bg-surface p-5"
+    >
+      <h2 id="admin-review-open" className="font-display text-xl">
+        {t('revOpenTitle')}
+      </h2>
+      <p className="mt-1 max-w-[72ch] text-sm text-ink-soft">
+        {t('revOpenIntro')}
+      </p>
+      {openable !== undefined && openable.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">{t('revOpenNoPending')}</p>
+      ) : staff !== undefined && staff.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">{t('revNoStaff')}</p>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <SelectField
+            label={t('revOpenPublication')}
+            className="min-w-0 flex-1 basis-64"
+            value={publicationId}
+            onChange={(e) => setPublicationId(e.target.value)}
+          >
+            <option value="">{t('revOpenPublicationPlaceholder')}</option>
+            {(openable ?? []).map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.title}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label={t('revAssignLabel')}
+            className="min-w-0 flex-1 basis-56"
+            value={reviewerId}
+            onChange={(e) => setReviewerId(e.target.value)}
+          >
+            <option value="">{t('revAssignPlaceholder')}</option>
+            {(staff ?? []).map((u) => (
+              <option key={u._id} value={u._id}>
+                {staffName(u)}
+              </option>
+            ))}
+          </SelectField>
+          <Button
+            disabled={busy || !publicationId || !reviewerId}
+            onClick={open}
+          >
+            {t('revOpen')}
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Dossier complet (versions, lettres de réponse, décisions, avis de chaque
+// tour) — chargé seulement quand l'éditeur l'ouvre.
+function Dossier({ publicationId }: { publicationId: Id<'publications'> }) {
+  const tp = useTranslations('peerReview');
+  const t = useTranslations('admin');
+  const fmt = useDateFormat();
+  const dossier = useQuery(api.peerReview.getManuscriptForEditor, {
+    publicationId,
+  });
+  if (dossier === undefined) {
+    return <p className="mt-3 text-sm text-muted">{t('loading')}</p>;
+  }
+  if (dossier === null) return null;
+  return (
+    <div className="mt-3 space-y-4">
+      <div>
+        <h4 className="text-sm font-medium text-ink-soft">
+          {tp('versionsTitle')}
+        </h4>
+        <ol className="mt-2 space-y-2">
+          {dossier.versions.map((ver) => (
+            <li
+              key={ver.version}
+              className="rounded border border-line bg-surface-2 p-3 text-sm"
+            >
+              <p className="font-medium text-ink">
+                {tp('versionLabel', { version: ver.version })} —{' '}
+                <span className="wrap-anywhere">{ver.title}</span>
+              </p>
+              <p className="mt-1 font-mono text-[11px] text-muted">
+                {tp('submittedOn', { date: fmt(ver.createdAt) })}
+              </p>
+              <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                {ver.fileUrl ? (
+                  <a
+                    href={ver.fileUrl}
+                    className="inline-block py-1 text-accent-text hover:underline"
+                  >
+                    {tp('originalFile')}
+                  </a>
+                ) : null}
+                {ver.blindFileUrl ? (
+                  <a
+                    href={ver.blindFileUrl}
+                    className="inline-block py-1 text-accent-text hover:underline"
+                  >
+                    {tp('blindFile')}
+                  </a>
+                ) : null}
+                <span className="py-1 text-muted">
+                  {vocabulary(tp, 'blind_', ver.blindStatus)}
+                  {ver.strippedFields.length > 0
+                    ? ` (${ver.strippedFields.join(', ')})`
+                    : ''}
+                </span>
+              </p>
+              {ver.responseLetter ? (
+                <details className="mt-2">
+                  <summary className="cursor-pointer py-1 text-ink-soft">
+                    {tp('responseLetter')}
+                  </summary>
+                  <p className="mt-1 whitespace-pre-line wrap-anywhere text-ink">
+                    {ver.responseLetter}
+                  </p>
+                </details>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </div>
+      {dossier.decisions.length > 0 ? (
+        <div>
+          <h4 className="text-sm font-medium text-ink-soft">
+            {tp('decisionsTitle')}
+          </h4>
+          <ul className="mt-2 space-y-2">
+            {dossier.decisions.map((d, i) => (
+              <li
+                key={i}
+                className="rounded border border-line p-3 text-sm text-ink"
+              >
+                <p className="font-medium">
+                  {tp('versionLabel', { version: d.version })} ·{' '}
+                  {vocabulary(tp, 'decision_', d.decision)} · {fmt(d.createdAt)}
+                </p>
+                <p className="mt-1 whitespace-pre-line wrap-anywhere">
+                  {d.reason}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {dossier.reviews.length > 0 ? (
+        <div>
+          <h4 className="text-sm font-medium text-ink-soft">
+            {tp('allReviewsTitle')}
+          </h4>
+          <ul className="mt-2 space-y-2">
+            {dossier.reviews.map((r) => (
+              <li
+                key={r._id}
+                className="rounded border border-line p-3 text-sm"
+              >
+                <p className="font-medium text-ink">
+                  {tp('versionLabel', { version: r.version })} ·{' '}
+                  {r.reviewerName} ·{' '}
+                  {vocabulary(t, 'revRec_', r.recommendation)}
+                </p>
+                <p className="mt-1 whitespace-pre-line wrap-anywhere text-ink">
+                  {r.comment}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ManuscriptCard({
+  item,
+  staff,
+}: {
+  item: QueueItem;
+  staff: Staff | undefined;
+}) {
+  const t = useTranslations('admin');
+  const tp = useTranslations('peerReview');
+  const tl = useTranslations('library');
+  const fmt = useDateFormat();
+  const assign = useMutation(api.peerReview.assignReviewer);
+  const decide = useMutation(api.peerReview.decideManuscript);
+  const release = useMutation(api.peerReview.releaseVersionFile);
+  const notify = useActionFeedback();
+  const fail = useFailureFeedback();
+  const [reviewerId, setReviewerId] = useState('');
+  const [due, setDue] = useState('');
+  const [decision, setDecision] = useState<ManuscriptDecision | ''>('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [showDossier, setShowDossier] = useState(false);
+
+  const stage = item.reviewStage;
+  const canAssign =
+    stage === 'in_review' || canTransition(stage, 'startReview');
+  const decisions = DECISIONS.filter((d) =>
+    canTransition(stage, DECISION_EVENT[d]),
+  );
+  const reasonOk =
+    reason.trim().length >= MANUSCRIPT_BOUNDS.reason.min &&
+    reason.trim().length <= MANUSCRIPT_BOUNDS.reason.max;
+
+  async function run(action: () => Promise<unknown>, message: string) {
+    setBusy(true);
+    try {
+      await action();
+      notify(message);
+      return true;
+    } catch (err) {
+      fail(err);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onAssign() {
+    const who = staff?.find((u) => u._id === reviewerId);
+    if (!who) return;
+    const ok = await run(
+      () =>
+        assign({
+          publicationId: item._id,
+          reviewerUserId: who._id,
+          dueAt: dueFromInput(due),
+        }),
+      t('feedbackRevAssigned', { title: item.title, name: staffName(who) }),
+    );
+    if (ok) {
+      setReviewerId('');
+      setDue('');
+    }
+  }
+
+  async function onDecide() {
+    if (!decision || !reasonOk) return;
+    const ok = await run(
+      () =>
+        decide({
+          publicationId: item._id,
+          decision,
+          reason: reason.trim(),
+        }),
+      tp('feedbackDecided', {
+        title: item.title,
+        decision: vocabulary(tp, 'decision_', decision),
+      }),
+    );
+    if (ok) {
+      setDecision('');
+      setReason('');
+    }
+  }
+
+  return (
+    <li className="rounded-md border border-line bg-surface p-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="min-w-0 wrap-anywhere font-medium text-ink">
+          {item.title}
+        </h3>
+        <Badge variant="accent">
+          {vocabulary(tp, 'stage_', item.reviewStage)}
+        </Badge>
+        <Badge variant="outline">
+          {tp('versionLabel', { version: item.version })}
+        </Badge>
+        <span className="text-[13px] text-accent-text">
+          #{vocabulary(tl, 'themes.', item.theme)}
+        </span>
+      </div>
+      {/* L'éditeur voit l'auteur (double aveugle : lui seul). */}
+      <p className="mt-1 wrap-anywhere text-sm text-ink-soft">
+        {tp('authorLabel')} {item.authorName ?? tp('authorUnknown')}
+        {item.authorEmail ? ` — ${item.authorEmail}` : ''}
+      </p>
+
+      {item.blindStatus ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+          <span
+            className={
+              item.blindStatus === 'unreadable' ? 'text-bar-5' : 'text-muted'
+            }
+          >
+            {vocabulary(tp, 'blind_', item.blindStatus)}
+          </span>
+          {item.blindStatus === 'unreadable' ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() =>
+                run(
+                  () =>
+                    release({
+                      publicationId: item._id,
+                      version: item.version,
+                    }),
+                  tp('feedbackReleased', { title: item.title }),
+                )
+              }
+            >
+              {tp('releaseOriginal')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Relecteurs du manuscrit */}
+      <div className="mt-4">
+        <h4 className="text-sm font-medium text-ink-soft">
+          {tp('reviewersTitle')}
+        </h4>
+        {item.assignments.length === 0 ? (
+          <p className="mt-1 text-[13px] text-muted">{tp('noReviewers')}</p>
+        ) : (
+          <ul className="mt-2 space-y-1 text-sm">
+            {item.assignments.map((a) => (
+              <li
+                key={a.reviewerUserId}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1"
+              >
+                <span className="font-medium text-ink">{a.reviewerName}</span>
+                <span className="text-muted">
+                  {tp('versionLabel', { version: a.version })}
+                </span>
+                <span className="text-ink-soft">
+                  {vocabulary(tp, 'conflict_', a.conflict)}
+                </span>
+                {a.reviewed ? (
+                  <span className="text-bar-1">{tp('reviewDone')}</span>
+                ) : a.dueAt ? (
+                  <span
+                    className={
+                      a.dueAt < OPENED_AT ? 'text-bar-5' : 'text-muted'
+                    }
+                  >
+                    {tp('dueOn', { date: fmt(a.dueAt) })}
+                    {a.remindersSent > 0
+                      ? ` · ${tp('remindersSent', { count: a.remindersSent })}`
+                      : ''}
+                  </span>
+                ) : null}
+                {a.conflictDetails ? (
+                  <span className="basis-full wrap-anywhere text-[13px] text-muted">
+                    {a.conflictDetails}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        {canAssign && staff && staff.length > 0 ? (
+          <div className="mt-3 flex flex-wrap items-end gap-2">
+            <SelectField
+              label={t('revAssignLabel')}
+              controlClassName="w-auto"
+              value={reviewerId}
+              onChange={(e) => setReviewerId(e.target.value)}
+            >
+              <option value="">{t('revAssignPlaceholder')}</option>
+              {staff.map((u) => (
+                <option key={u._id} value={u._id}>
+                  {staffName(u)}
+                </option>
+              ))}
+            </SelectField>
+            <TextField
+              type="date"
+              label={tp('dueLabel')}
+              hint={tp('dueHint')}
+              controlClassName="w-auto"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy || !reviewerId}
+              onClick={onAssign}
+            >
+              {t('revAssign')}
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Avis de la version courante */}
+      <div className="mt-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h4 className="text-sm font-medium text-ink-soft">
+            {t('revReviewsLabel')}
+          </h4>
+          {item.aggregate ? (
+            <span className="text-[13px] text-muted">
+              {t('revAggregateLabel')}{' '}
+              <span className="text-ink">
+                {vocabulary(t, 'revRec_', item.aggregate)}
+              </span>
+            </span>
+          ) : null}
+        </div>
+        {item.reviews.length === 0 ? (
+          <p className="mt-1 text-[13px] text-muted">{t('revNoReviews')}</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {item.reviews.map((r) => (
+              <li
+                key={r._id}
+                className="rounded border border-line bg-surface-2 p-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[13px] font-medium text-ink">
+                    {r.reviewerName}
+                  </span>
+                  <Badge variant="default">
+                    {vocabulary(t, 'revRec_', r.recommendation)}
+                  </Badge>
+                  <span className="font-mono text-[11px] text-muted">
+                    {fmt(r.createdAt)}
+                  </span>
+                </div>
+                <p className="mt-1 whitespace-pre-line wrap-anywhere text-[14px] leading-relaxed text-ink">
+                  {r.comment}
+                </p>
+                {r.commentToEditor ? (
+                  <p className="mt-2 whitespace-pre-line wrap-anywhere text-[13px] text-ink-soft">
+                    <span className="font-medium">{tp('toEditorLabel')}</span>{' '}
+                    {r.commentToEditor}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Décision motivée */}
+      <div className="mt-4 border-t border-line pt-4">
+        <h4 className="text-sm font-medium text-ink-soft">
+          {t('revDecisionLabel')}
+        </h4>
+        {decisions.length === 0 ? (
+          <p className="mt-1 text-[13px] text-muted">
+            {vocabulary(tp, 'noDecision_', item.reviewStage)}
+          </p>
+        ) : (
+          <div className="mt-2 space-y-2">
+            <SelectField
+              label={tp('decisionLabel')}
+              controlClassName="w-auto"
+              value={decision}
+              onChange={(e) =>
+                setDecision(e.target.value as ManuscriptDecision | '')
+              }
+            >
+              <option value="">{tp('decisionPlaceholder')}</option>
+              {decisions.map((d) => (
+                <option key={d} value={d}>
+                  {vocabulary(tp, 'decision_', d)}
+                </option>
+              ))}
+            </SelectField>
+            <TextareaField
+              label={tp('reasonLabel')}
+              hint={tp('reasonHint', { min: MANUSCRIPT_BOUNDS.reason.min })}
+              rows={4}
+              maxLength={MANUSCRIPT_BOUNDS.reason.max}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+            <Button
+              size="sm"
+              disabled={busy || !decision || !reasonOk}
+              onClick={onDecide}
+            >
+              {tp('decideSubmit')}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4">
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-expanded={showDossier}
+          onClick={() => setShowDossier((v) => !v)}
+        >
+          {showDossier ? tp('hideDossier') : tp('showDossier')}
+        </Button>
+        {showDossier ? <Dossier publicationId={item._id} /> : null}
+      </div>
+    </li>
+  );
+}
+
+// REVUE À COMITÉ DE LECTURE (F-43) — l'écran de l'ÉDITEUR. La machine à
+// états, le double aveugle et les droits vivent côté Convex
+// (convex/peerReview.ts) : l'écran ne propose que les transitions que la
+// machine autorise (`canTransition`, la même table), et le serveur refuse le
+// reste. Un relecteur de rang modérateur passe par « Mes relectures ».
 export default function AdminReview() {
   const t = useTranslations('admin');
-  const tl = useTranslations('library');
-  const locale = useLocale();
-  // PAGINÉE (issue #8) : la file chargeait la table `publications` entière pour
-  // n'en garder que les quelques-unes engagées dans une revue. L'ordre vient de
-  // l'index `by_reviewStage` — les étapes qui attendent une décision de
-  // l'éditeur d'abord —, d'où le filtre par étape à côté.
-  const [stage, setStage] = useState<Stage | ''>('');
+  const tp = useTranslations('peerReview');
+  const [stage, setStage] = useState<ManuscriptStage | ''>('');
   const {
     results: queue,
     status,
@@ -48,94 +615,27 @@ export default function AdminReview() {
     initialNumItems: PAGE_SIZE,
   });
   const staff = useQuery(api.peerReview.listStaffUsers, {});
-  const assign = useMutation(api.peerReview.assignReviewer);
-  const submit = useMutation(api.peerReview.submitReview);
-  const decide = useMutation(api.peerReview.decideReview);
-
-  // États de formulaire indexés par publication (chaque carte est autonome).
-  const [reviewer, setReviewer] = useState<Record<string, string>>({});
-  const [recommendation, setRecommendation] = useState<
-    Record<string, Recommendation>
-  >({});
-  const [comment, setComment] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-
-  const fmt = (ms: number) =>
-    new Intl.DateTimeFormat(intlLocale(locale), {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(ms);
-
-  async function onAssign(pubId: string) {
-    const uid = reviewer[pubId];
-    if (!uid) return;
-    setBusy(`assign:${pubId}`);
-    try {
-      await assign({
-        publicationId: pubId as Id<'publications'>,
-        reviewerUserId: uid as Id<'users'>,
-      });
-      setReviewer((r) => ({ ...r, [pubId]: '' }));
-    } catch {
-      /* refusé côté serveur (rôle) : la file se rafraîchit toute seule */
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function onSubmitReview(pubId: string) {
-    const text = (comment[pubId] ?? '').trim();
-    if (text.length < 10) return;
-    setBusy(`review:${pubId}`);
-    try {
-      await submit({
-        publicationId: pubId as Id<'publications'>,
-        recommendation: recommendation[pubId] ?? 'accept',
-        comment: text,
-      });
-      setComment((c) => ({ ...c, [pubId]: '' }));
-    } catch {
-      /* idem */
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function onDecide(pubId: string, decision: 'revision' | 'reviewed') {
-    setBusy(`decide:${pubId}`);
-    try {
-      await decide({
-        publicationId: pubId as Id<'publications'>,
-        decision,
-      });
-    } catch {
-      /* idem */
-    } finally {
-      setBusy(null);
-    }
-  }
 
   return (
     <div id="admin-review">
       <h1 className="font-display text-3xl">{t('revTitle')}</h1>
-      <p className="mt-2 max-w-2xl text-ink-soft">{t('revIntro')}</p>
+      <p className="mt-2 max-w-2xl text-ink-soft">{tp('editorIntro')}</p>
 
-      {/* Filtre d'étape (#71) passé par la coquille de champ (#72) : le
-          libellé y est porté par un vrai `<label>` masqué, au lieu d'un
-          `aria-label` posé à côté. */}
+      <OpenReviewPanel staff={staff} />
+
+      <h2 className="mt-10 font-display text-xl">{t('revQueueTitle')}</h2>
       <SelectField
         label={t('revStageFilterLabel')}
         labelHidden
-        className="mt-5"
+        className="mt-4"
         controlClassName="w-auto"
         value={stage}
-        onChange={(e) => setStage(e.target.value as Stage | '')}
+        onChange={(e) => setStage(e.target.value as ManuscriptStage | '')}
       >
         <option value="">{t('revStageAll')}</option>
-        {STAGES.map((sg) => (
+        {MANUSCRIPT_STAGES.map((sg) => (
           <option key={sg} value={sg}>
-            {vocabulary(t, 'revStage_', sg)}
+            {vocabulary(tp, 'stage_', sg)}
           </option>
         ))}
       </SelectField>
@@ -145,201 +645,9 @@ export default function AdminReview() {
       ) : queue.length === 0 ? (
         <p className="mt-6 text-ink-soft">{t('revEmpty')}</p>
       ) : (
-        <ul className="mt-6 space-y-4">
+        <ul aria-label={t('revQueueTitle')} className="mt-6 space-y-4">
           {queue.map((p) => (
-            <li
-              key={p._id}
-              className="rounded-md border border-line bg-surface p-5"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-medium text-ink">{p.title}</h2>
-                <Badge variant="accent">
-                  {vocabulary(t, 'revStage_', p.reviewStage)}
-                </Badge>
-                <span className="text-accent-text text-[13px]">
-                  #{vocabulary(tl, 'themes.', p.theme)}
-                </span>
-              </div>
-
-              {/* Avis des relecteurs + recommandation agrégée */}
-              <div className="mt-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-sm font-medium text-ink-soft">
-                    {t('revReviewsLabel')}
-                  </h3>
-                  {p.aggregate ? (
-                    <span className="text-[13px] text-muted">
-                      {t('revAggregateLabel')}{' '}
-                      <span className="text-ink">
-                        {vocabulary(t, 'revRec_', p.aggregate)}
-                      </span>
-                    </span>
-                  ) : null}
-                </div>
-                {p.reviews.length === 0 ? (
-                  <p className="mt-2 text-[13px] text-muted">
-                    {t('revNoReviews')}
-                  </p>
-                ) : (
-                  <ul className="mt-2 space-y-2">
-                    {p.reviews.map((r) => (
-                      <li
-                        key={r._id}
-                        className="rounded border border-line bg-surface-2 p-3"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[13px] font-medium text-ink">
-                            {r.reviewerName}
-                          </span>
-                          <Badge variant="default">
-                            {vocabulary(t, 'revRec_', r.recommendation)}
-                          </Badge>
-                          <span className="font-mono text-[11px] text-muted">
-                            {fmt(r.createdAt)}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[14px] leading-relaxed text-ink">
-                          {r.comment}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* Déposer un avis (relecteur = modérateur+) */}
-              <div className="mt-4 rounded border border-line p-3">
-                <h3 className="text-sm font-medium text-ink-soft">
-                  {t('revSubmitLabel')}
-                </h3>
-                <SelectField
-                  label={t('revRecommendationLabel')}
-                  className="mt-2"
-                  controlClassName="w-auto"
-                  value={recommendation[p._id] ?? 'accept'}
-                  onChange={(e) =>
-                    setRecommendation((s) => ({
-                      ...s,
-                      [p._id]: e.target.value as Recommendation,
-                    }))
-                  }
-                >
-                  {RECOMMENDATIONS.map((rec) => (
-                    <option key={rec} value={rec}>
-                      {vocabulary(t, 'revRec_', rec)}
-                    </option>
-                  ))}
-                </SelectField>
-                <TextareaField
-                  label={t('revSubmitLabel')}
-                  labelHidden
-                  className="mt-2"
-                  value={comment[p._id] ?? ''}
-                  onChange={(e) =>
-                    setComment((c) => ({ ...c, [p._id]: e.target.value }))
-                  }
-                  rows={3}
-                  placeholder={t('revCommentPlaceholder')}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-2"
-                  disabled={
-                    busy === `review:${p._id}` ||
-                    (comment[p._id] ?? '').trim().length < 10 ||
-                    p.reviewStage !== 'in_review'
-                  }
-                  onClick={() => onSubmitReview(p._id)}
-                >
-                  {t('revSubmit')}
-                </Button>
-              </div>
-
-              {/* Arbitrage éditeur : assignation + décision */}
-              <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-4">
-                <div>
-                  {staff !== undefined && staff.length === 0 ? (
-                    <>
-                      <p className="text-sm text-ink-soft">
-                        {t('revAssignLabel')}
-                      </p>
-                      <p className="mt-1 text-[13px] text-muted">
-                        {t('revNoStaff')}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="flex flex-wrap items-end gap-2">
-                      <SelectField
-                        label={t('revAssignLabel')}
-                        controlClassName="w-auto"
-                        value={reviewer[p._id] ?? ''}
-                        onChange={(e) =>
-                          setReviewer((r) => ({
-                            ...r,
-                            [p._id]: e.target.value,
-                          }))
-                        }
-                      >
-                        <option value="">{t('revAssignPlaceholder')}</option>
-                        {(staff ?? []).map((u) => (
-                          <option key={u._id} value={u._id}>
-                            {u.name || u.email || u._id}
-                          </option>
-                        ))}
-                      </SelectField>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={
-                          busy === `assign:${p._id}` || !reviewer[p._id]
-                        }
-                        onClick={() => onAssign(p._id)}
-                      >
-                        {t('revAssign')}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <span className="flex-1" />
-                <div>
-                  <p className="text-[13px] text-ink-soft">
-                    {t('revDecisionLabel')}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={
-                        busy === `decide:${p._id}` ||
-                        p.reviewStage !== 'in_review'
-                      }
-                      onClick={() => onDecide(p._id, 'revision')}
-                    >
-                      {t('revDecideRevision')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      disabled={
-                        busy === `decide:${p._id}` ||
-                        p.reviewStage !== 'in_review'
-                      }
-                      onClick={() => onDecide(p._id, 'reviewed')}
-                    >
-                      {t('revDecideReviewed')}
-                    </Button>
-                  </div>
-                  {/* Un arbitrage rendu ne se rejoue pas et ne s'inverse pas
-                      (issue #9) : le serveur le refuse, l'écran le dit plutôt
-                      que d'offrir un bouton sans effet. Rouvrir = assigner. */}
-                  {p.reviewStage !== 'in_review' ? (
-                    <p className="mt-1 text-[13px] text-muted">
-                      {t('revClosedOrIdle')}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </li>
+            <ManuscriptCard key={p._id} item={p} staff={staff} />
           ))}
         </ul>
       )}

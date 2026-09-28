@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
+import { FIELD_MAX } from './lib/validation';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -239,5 +240,26 @@ describe('Appels à projets — machine à états de la revue (issue #9)', () =>
     expect(await t.run((ctx) => ctx.db.get(proposalId))).toMatchObject({
       status: 'accepted',
     });
+  });
+});
+
+// A-04 : un résumé de 4 001 caractères était refusé sous « Envoi impossible »
+// — le code ne traversait pas. Il traverse (`data`), et la borne est celle
+// que le formulaire affiche (`FIELD_MAX.body`).
+describe('Appels à projets — refus de longueur lisible (A-04)', () => {
+  it('INVALID_SUMMARY porte son code dans `data`, la borne exacte passe', async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await member(t, 'm@test.org');
+    await expect(
+      as.mutation(api.projects.submitProject, {
+        ...PROPOSAL,
+        summary: 'a'.repeat(FIELD_MAX.body + 1),
+      }),
+    ).rejects.toMatchObject({ data: 'INVALID_SUMMARY' });
+    const r = await as.mutation(api.projects.submitProject, {
+      ...PROPOSAL,
+      summary: 'a'.repeat(FIELD_MAX.body),
+    });
+    expect(r.ok).toBe(true);
   });
 });

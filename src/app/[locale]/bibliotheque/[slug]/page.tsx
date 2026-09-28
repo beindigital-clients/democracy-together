@@ -11,7 +11,8 @@ import { AuthorList } from '@/components/library/author-list';
 import { CiteBlock } from '@/components/library/cite-block';
 import { CopyButton } from '@/components/library/copy-button';
 import { PublicationCard } from '@/components/library/publication-card';
-import { ViewCounter } from '@/components/library/view-counter';
+import { ViewCounter, ViewsCount } from '@/components/library/view-counter';
+import { DownloadLink } from '@/components/library/download-link';
 import { buildCitations, formatLongDate } from '@/lib/publications';
 import { alternatesFor } from '@/lib/seo';
 import { resolveLocale } from '@/i18n/locale';
@@ -168,7 +169,11 @@ export default async function PublicationPage({
 
   const citations = buildCitations(pub, locale);
   const doiUrl = `https://doi.org/${pub.doi}`;
-  // Document téléversé (F-32) si présent, sinon repli sur le DOI.
+  // Document téléversé (F-32) si présent, sinon repli sur le DOI — et le
+  // bouton le DIT : mesuré le 27/09 (membre A-8), les 14 publications de
+  // démonstration sans fichier affichaient « Télécharger le PDF » et
+  // ouvraient une notice DOI. Sans fichier, un seul bouton « Consulter
+  // (DOI) », et une note qui l'explique.
   const fileHref = pub.fileUrl ?? doiUrl;
   const langNames = pub.languages
     .map((l) => vocabulary(t, 'langs.', l))
@@ -183,320 +188,338 @@ export default async function PublicationPage({
   ];
 
   return (
-    <div>
-      {/* Compteur de consultations (F-37) — îlot client invisible. */}
-      <ViewCounter slug={pub.slug} />
-      {/* Fil d'Ariane */}
-      <div className={`${WRAP} pt-8`}>
-        <p className="text-[13px] text-muted">
-          <Link href="/" className="text-muted hover:text-ink">
-            {t('breadcrumbHome')}
-          </Link>{' '}
-          /{' '}
-          <Link href="/bibliotheque" className="text-muted hover:text-ink">
-            {t('title')}
-          </Link>{' '}
-          / {vocabulary(t, 'themes.', pub.theme)}
-        </p>
-      </div>
-
-      {/* En-tête publication */}
-      <header className="border-b border-line">
-        <div className={`${WRAP} pb-12 pt-6`}>
-          <Reveal>
-            <div className="mb-4 flex flex-wrap items-center gap-2.5">
-              <span className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-muted">
-                {vocabulary(t, 'types.', pub.type)}
-              </span>
-              <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-[12.5px] font-medium text-accent-text">
-                {vocabulary(t, 'themes.', pub.theme)}
-              </span>
-              <span className="rounded-pill border border-[color-mix(in_srgb,var(--color-bar-1)_40%,transparent)] px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-bar-1">
-                {vocabulary(t, 'accessShort.', pub.access)}
-              </span>
-            </div>
-            <h1
-              {...attrs}
-              className="max-w-[22ch] font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em]"
-            >
-              {shown.title}
-            </h1>
-            <p className="mt-5 text-[15px] text-ink-soft">
-              {td('by')}{' '}
-              <AuthorList
-                names={pub.authors.map((a) => a.name)}
-                locale={locale}
-              />
-            </p>
-            <p className="mt-1.5 text-sm text-muted">{subParts.join(' · ')}</p>
-            {/* Compteur de consultations (F-37) — rendu serveur depuis pub.views. */}
-            <p className="mt-1 text-[13px] text-muted">
-              {t('views', { count: pub.views })}
-            </p>
-          </Reveal>
+    <ViewCounter slug={pub.slug} initial={pub.views}>
+      {/* Compteur de consultations (F-37) : enregistre la vue courante et tient
+          le nombre affiché (cf. view-counter.tsx). */}
+      <div>
+        {/* Fil d'Ariane */}
+        <div className={`${WRAP} pt-8`}>
+          <p className="text-[13px] text-muted">
+            <Link href="/" className="text-muted hover:text-ink">
+              {t('breadcrumbHome')}
+            </Link>{' '}
+            /{' '}
+            <Link href="/bibliotheque" className="text-muted hover:text-ink">
+              {t('title')}
+            </Link>{' '}
+            / {vocabulary(t, 'themes.', pub.theme)}
+          </p>
         </div>
-      </header>
 
-      {/* Corps */}
-      <main
-        className={`${WRAP} grid gap-12 pb-24 pt-12 lg:grid-cols-[1fr_340px]`}
-      >
-        {/* Article */}
-        <article>
-          <TranslationNotice
-            display={display}
-            readerLocale={loc}
-            sourceType="publication"
-            sourceId={pub._id}
-            pathname={`/bibliotheque/${slug}`}
-          />
-
-          <Reveal className="mt-8 block" as="div">
-            <h2 className="font-display text-2xl">{td('abstract')}</h2>
-            <p
-              {...attrs}
-              className="mt-4 max-w-[68ch] font-display text-xl leading-relaxed text-ink"
-            >
-              {shown.abstract}
-            </p>
-          </Reveal>
-
-          {shown.keypoints.length ? (
-            <Reveal className="mt-12">
-              <h2 className="font-display text-2xl">{td('keypoints')}</h2>
-              <ul {...attrs} className="mt-4 flex flex-col gap-3">
-                {shown.keypoints.map((kp) => (
-                  <li
-                    key={kp}
-                    className="relative max-w-[68ch] ps-7 text-base leading-relaxed text-ink-soft before:absolute before:start-0 before:top-2.5 before:h-2 before:w-2 before:rounded-full before:bg-accent"
-                  >
-                    {kp}
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          ) : null}
-
-          {pub.image ? (
-            <Reveal className="my-8 block" as="div">
-              <figure className="my-6">
-                <div className="relative aspect-[16/9] overflow-hidden rounded-sm border border-line bg-surface-2">
-                  <Image
-                    src={pub.image}
-                    alt=""
-                    fill
-                    sizes="(max-width: 880px) 100vw, 760px"
-                    className="object-cover"
-                  />
-                </div>
-                <figcaption className="mt-2 text-[12.5px] text-muted">
-                  {vocabulary(t, 'types.', pub.type)} ·{' '}
-                  {vocabulary(t, 'themes.', pub.theme)} · Democracy Together
-                </figcaption>
-              </figure>
-            </Reveal>
-          ) : null}
-
-          {shown.body.length ? (
+        {/* En-tête publication */}
+        <header className="border-b border-line">
+          <div className={`${WRAP} pb-12 pt-6`}>
             <Reveal>
-              <h2 className="font-display text-2xl">{td('extract')}</h2>
-              <div {...attrs} className="mt-4">
-                {shown.body.map((para) => (
-                  <p
-                    key={para.slice(0, 24)}
-                    className="mb-4 max-w-[68ch] font-display text-lg leading-[1.7] text-ink"
-                  >
-                    {para}
-                  </p>
-                ))}
-              </div>
-            </Reveal>
-          ) : null}
-
-          <CiteBlock citations={citations} />
-
-          {/* Auteurs */}
-          <div className="mt-12 flex flex-wrap gap-6 border-t border-line pt-8">
-            {pub.authors.map((a) => (
-              <div key={a.name} className="flex items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="grid h-12 w-12 place-items-center rounded-full bg-accent-tint font-mono font-semibold text-accent-text"
-                >
-                  {initials(a.name)}
+              <div className="mb-4 flex flex-wrap items-center gap-2.5">
+                <span className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-muted">
+                  {vocabulary(t, 'types.', pub.type)}
                 </span>
-                <div>
-                  <b className="text-[14.5px]">{a.name}</b>
-                  {a.role ? (
-                    <span className="block text-[12.5px] text-muted">
-                      {a.role}
-                    </span>
-                  ) : null}
-                </div>
+                <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-[12.5px] font-medium text-accent-text">
+                  {vocabulary(t, 'themes.', pub.theme)}
+                </span>
+                <span className="rounded-pill border border-[color-mix(in_srgb,var(--color-bar-1)_40%,transparent)] px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.06em] text-bar-1">
+                  {vocabulary(t, 'accessShort.', pub.access)}
+                </span>
               </div>
-            ))}
+              <h1
+                {...attrs}
+                className="max-w-[22ch] font-display text-[clamp(30px,4.2vw,48px)] font-medium leading-[1.08] tracking-[-0.015em]"
+              >
+                {shown.title}
+              </h1>
+              <p className="mt-5 text-[15px] text-ink-soft">
+                {td('by')}{' '}
+                <AuthorList
+                  names={pub.authors.map((a) => a.name)}
+                  locale={locale}
+                />
+              </p>
+              <p className="mt-1.5 text-sm text-muted">
+                {subParts.join(' · ')}
+              </p>
+              {/* Compteur de consultations (F-37) — `pub.views` au rendu serveur,
+                puis la vue courante en plus une fois comptée. */}
+              <p className="mt-1 text-[13px] text-muted">
+                <ViewsCount format="sentence" />
+              </p>
+            </Reveal>
           </div>
-        </article>
+        </header>
 
-        {/* Sidebar */}
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-sm border border-line bg-surface p-5">
-            {/* Publication réservée aux membres (F-35) : `locked` est décidé par
+        {/* Corps */}
+        {/* `minmax(0, 1fr)` et non la piste implicite `auto` (RGAA 10.11) :
+            une piste `auto` s'élargit à la largeur MINIMALE de son contenu,
+            et un mot insécable de l'article (DOI, URL de citation) la portait
+            à 331 px dans une fenêtre de 320 — défilement horizontal mesuré à
+            l'audit du 27/09, en français comme en arabe. */}
+        <div
+          className={`${WRAP} grid grid-cols-[minmax(0,1fr)] gap-12 pb-24 pt-12 lg:grid-cols-[minmax(0,1fr)_340px]`}
+        >
+          {/* Article */}
+          <article className="min-w-0">
+            <TranslationNotice
+              display={display}
+              readerLocale={loc}
+              sourceType="publication"
+              sourceId={pub._id}
+              pathname={`/bibliotheque/${slug}`}
+            />
+
+            <Reveal className="mt-8 block" as="div">
+              <h2 className="font-display text-2xl">{td('abstract')}</h2>
+              <p
+                {...attrs}
+                className="mt-4 max-w-[68ch] font-display text-xl leading-relaxed text-ink"
+              >
+                {shown.abstract}
+              </p>
+            </Reveal>
+
+            {shown.keypoints.length ? (
+              <Reveal className="mt-12">
+                <h2 className="font-display text-2xl">{td('keypoints')}</h2>
+                <ul {...attrs} className="mt-4 flex flex-col gap-3">
+                  {shown.keypoints.map((kp) => (
+                    <li
+                      key={kp}
+                      className="relative max-w-[68ch] ps-7 text-base leading-relaxed text-ink-soft before:absolute before:start-0 before:top-2.5 before:h-2 before:w-2 before:rounded-full before:bg-accent"
+                    >
+                      {kp}
+                    </li>
+                  ))}
+                </ul>
+              </Reveal>
+            ) : null}
+
+            {pub.image ? (
+              <Reveal className="my-8 block" as="div">
+                {/* Image légendée (RGAA 1.9) : cf. `home-hero.tsx`. */}
+                <figure
+                  role="figure"
+                  aria-label={`${vocabulary(t, 'types.', pub.type)} · ${vocabulary(t, 'themes.', pub.theme)} · Democracy Together`}
+                  className="my-6"
+                >
+                  <div className="relative aspect-[16/9] overflow-hidden rounded-sm border border-line bg-surface-2">
+                    <Image
+                      src={pub.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 880px) 100vw, 760px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <figcaption className="mt-2 text-[12.5px] text-muted">
+                    {vocabulary(t, 'types.', pub.type)} ·{' '}
+                    {vocabulary(t, 'themes.', pub.theme)} · Democracy Together
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ) : null}
+
+            {shown.body.length ? (
+              <Reveal>
+                <h2 className="font-display text-2xl">{td('extract')}</h2>
+                <div {...attrs} className="mt-4">
+                  {shown.body.map((para) => (
+                    <p
+                      key={para.slice(0, 24)}
+                      className="mb-4 max-w-[68ch] font-display text-lg leading-[1.7] text-ink"
+                    >
+                      {para}
+                    </p>
+                  ))}
+                </div>
+              </Reveal>
+            ) : null}
+
+            <CiteBlock citations={citations} />
+
+            {/* Auteurs */}
+            <div className="mt-12 flex flex-wrap gap-6 border-t border-line pt-8">
+              {pub.authors.map((a) => (
+                <div key={a.name} className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="grid h-12 w-12 place-items-center rounded-full bg-accent-tint font-mono font-semibold text-accent-text"
+                  >
+                    {initials(a.name)}
+                  </span>
+                  <div>
+                    <b className="text-[14.5px]">{a.name}</b>
+                    {a.role ? (
+                      <span className="block text-[12.5px] text-muted">
+                        {a.role}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          {/* Sidebar */}
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+            <div className="rounded-sm border border-line bg-surface p-5">
+              {/* Publication réservée aux membres (F-35) : `locked` est décidé par
                 Convex, jamais par le client. Aucune URL de document n'est servie
                 ici — on propose l'adhésion à la place du téléchargement. */}
-            {pub.locked ? (
-              <div className="flex flex-col gap-3">
-                <h2 className="font-display text-lg leading-snug">
-                  {td('lockedTitle')}
-                </h2>
-                <p className="text-[13.5px] leading-relaxed text-ink-soft">
-                  {td('lockedBody')}
-                </p>
-                <Link
-                  href="/adhesion"
-                  className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-                >
-                  {td('lockedCta')}
-                </Link>
-                <Link
-                  href="/connexion"
-                  className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
-                >
-                  {td('lockedSignIn')}
-                </Link>
-                <a
-                  href="#cite"
-                  className="inline-flex w-full items-center justify-center rounded-sm px-4 py-3 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-tint"
-                >
-                  {td('cite')}
-                </a>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <a
-                  href={fileHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-                >
-                  {td('download')}
-                </a>
-                {/* Le document joint, reconstruit dans la langue du lecteur
+              {pub.locked ? (
+                <div className="flex flex-col gap-3">
+                  <h2 className="font-display text-lg leading-snug">
+                    {td('lockedTitle')}
+                  </h2>
+                  <p className="text-[13.5px] leading-relaxed text-ink-soft">
+                    {td('lockedBody')}
+                  </p>
+                  <Link
+                    href="/adhesion"
+                    className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                  >
+                    {td('lockedCta')}
+                  </Link>
+                  <Link
+                    href="/connexion"
+                    className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+                  >
+                    {td('lockedSignIn')}
+                  </Link>
+                  <a
+                    href="#cite"
+                    className="inline-flex w-full items-center justify-center rounded-sm px-4 py-3 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-tint"
+                  >
+                    {td('cite')}
+                  </a>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <DownloadLink
+                    slug={pub.slug}
+                    href={fileHref}
+                    className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                  >
+                    {pub.fileUrl ? td('download') : td('consultDoi')}
+                  </DownloadLink>
+                  {pub.fileUrl ? null : (
+                    <p className="text-[12.5px] leading-relaxed text-ink-soft">
+                      {td('noFileNote')}
+                    </p>
+                  )}
+                  {/* Le document joint, reconstruit dans la langue du lecteur
                     (images conservées). Proposé UNIQUEMENT quand il y a un
                     fichier : sans PDF, la vue document n'aurait rien à
                     montrer et le lien mènerait à une page vide. */}
-                {pub.fileUrl ? (
-                  <Link
-                    href={`/bibliotheque/${slug}/document`}
-                    className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong bg-surface px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+                  {pub.fileUrl ? (
+                    <Link
+                      href={`/bibliotheque/${slug}/document`}
+                      className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong bg-surface px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+                    >
+                      {tTrad('docTitle')}
+                    </Link>
+                  ) : null}
+                  {/* « Lire en ligne » n'a de sens qu'avec un document : sans
+                    fichier, il ouvrirait la même notice DOI que le bouton
+                    principal. */}
+                  {pub.fileUrl ? (
+                    <DownloadLink
+                      slug={pub.slug}
+                      href={fileHref}
+                      className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+                    >
+                      {td('readOnline')}
+                    </DownloadLink>
+                  ) : null}
+                  <a
+                    href="#cite"
+                    className="inline-flex w-full items-center justify-center rounded-sm px-4 py-3 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-tint"
                   >
-                    {tTrad('docTitle')}
-                  </Link>
-                ) : null}
-                <a
-                  href={fileHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"
+                    {td('cite')}
+                  </a>
+                </div>
+              )}
+              <div className="mt-4 flex items-center gap-2 rounded-sm border border-line bg-surface-2 px-2.5 py-2 font-mono text-xs text-ink-soft">
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                  doi.org/{pub.doi}
+                </span>
+                <CopyButton
+                  text={doiUrl}
+                  copiedLabel={td('copied')}
+                  className="ms-auto shrink-0 rounded-[3px] border border-line-strong bg-surface px-2 py-1 text-[11px] font-semibold text-ink-soft"
                 >
-                  {td('readOnline')}
-                </a>
-                <a
-                  href="#cite"
-                  className="inline-flex w-full items-center justify-center rounded-sm px-4 py-3 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-tint"
-                >
-                  {td('cite')}
-                </a>
+                  {td('copy')}
+                </CopyButton>
               </div>
-            )}
-            <div className="mt-4 flex items-center gap-2 rounded-sm border border-line bg-surface-2 px-2.5 py-2 font-mono text-xs text-ink-soft">
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                doi.org/{pub.doi}
-              </span>
-              <CopyButton
-                text={doiUrl}
-                copiedLabel={td('copied')}
-                className="ms-auto shrink-0 rounded-[3px] border border-line-strong bg-surface px-2 py-1 text-[11px] font-semibold text-ink-soft"
-              >
-                {td('copy')}
-              </CopyButton>
             </div>
-          </div>
 
-          <div className="rounded-sm border border-line bg-surface p-5">
-            <h2 className="mb-4 font-mono text-[12px] uppercase tracking-[0.08em] text-muted">
-              {td('metadata')}
-            </h2>
-            <dl className="flex flex-col">
-              <MetaRow
-                k={td('metaType')}
-                v={vocabulary(t, 'types.', pub.type)}
-                first
-              />
-              <MetaRow
-                k={td('metaPublished')}
-                v={formatLongDate(pub.publishedAt, locale)}
-              />
-              <MetaRow k={td('metaLanguages')} v={langCodes} />
-              <MetaRow
-                k={td('metaRegion')}
-                v={vocabulary(t, 'regions.', pub.region)}
-              />
-              <MetaRow
-                k={td('metaTheme')}
-                v={vocabulary(t, 'themes.', pub.theme)}
-              />
-              {pub.pages ? (
-                <MetaRow k={td('metaPages')} v={String(pub.pages)} />
-              ) : null}
-              {pub.license ? (
-                <MetaRow k={td('metaLicense')} v={pub.license} />
-              ) : null}
-            </dl>
-          </div>
+            <div className="rounded-sm border border-line bg-surface p-5">
+              <h2 className="mb-4 font-mono text-[12px] uppercase tracking-[0.08em] text-muted">
+                {td('metadata')}
+              </h2>
+              <dl className="flex flex-col">
+                <MetaRow
+                  k={td('metaType')}
+                  v={vocabulary(t, 'types.', pub.type)}
+                  first
+                />
+                <MetaRow
+                  k={td('metaPublished')}
+                  v={formatLongDate(pub.publishedAt, locale)}
+                />
+                <MetaRow k={td('metaLanguages')} v={langCodes} />
+                <MetaRow
+                  k={td('metaRegion')}
+                  v={vocabulary(t, 'regions.', pub.region)}
+                />
+                <MetaRow
+                  k={td('metaTheme')}
+                  v={vocabulary(t, 'themes.', pub.theme)}
+                />
+                {pub.pages ? (
+                  <MetaRow k={td('metaPages')} v={String(pub.pages)} />
+                ) : null}
+                {pub.license ? (
+                  <MetaRow k={td('metaLicense')} v={pub.license} />
+                ) : null}
+              </dl>
+            </div>
 
-          <div className="rounded-sm border border-line bg-surface p-5">
-            <h2 className="mb-4 font-mono text-[12px] uppercase tracking-[0.08em] text-muted">
-              {td('impact')}
-            </h2>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              {pub.views ? (
+            <div className="rounded-sm border border-line bg-surface p-5">
+              <h2 className="mb-4 font-mono text-[12px] uppercase tracking-[0.08em] text-muted">
+                {td('impact')}
+              </h2>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <Metric n={<ViewsCount format="number" />} l={td('views')} />
                 <Metric
-                  n={pub.views.toLocaleString(intlLocale(locale))}
-                  l={td('views')}
+                  n={pub.downloads.toLocaleString(intlLocale(locale))}
+                  l={td('downloadsShort')}
                 />
-              ) : null}
-              <Metric
-                n={pub.downloads.toLocaleString(intlLocale(locale))}
-                l={td('downloadsShort')}
-              />
-              <Metric n={String(pub.citations)} l={td('citationsShort')} />
+                <Metric n={String(pub.citations)} l={td('citationsShort')} />
+              </div>
             </div>
-          </div>
-        </aside>
-      </main>
+          </aside>
+        </div>
 
-      {/* Liées */}
-      {related.length ? (
-        <section className="border-t border-line">
-          <div className={`${WRAP} py-16`}>
-            <Reveal>
-              <h2 className="mb-6 font-display text-2xl">{td('related')}</h2>
-            </Reveal>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((rp) => (
-                <PublicationCard
-                  key={rp._id}
-                  pub={rp}
-                  locale={locale}
-                  variant="compact"
-                />
-              ))}
+        {/* Liées */}
+        {related.length ? (
+          <section className="border-t border-line">
+            <div className={`${WRAP} py-16`}>
+              <Reveal>
+                <h2 className="mb-6 font-display text-2xl">{td('related')}</h2>
+              </Reveal>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {related.map((rp) => (
+                  <PublicationCard
+                    key={rp._id}
+                    pub={rp}
+                    locale={locale}
+                    variant="compact"
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      ) : null}
-    </div>
+          </section>
+        ) : null}
+      </div>
+    </ViewCounter>
   );
 }
 
@@ -513,7 +536,7 @@ function MetaRow({ k, v, first }: { k: string; v: string; first?: boolean }) {
   );
 }
 
-function Metric({ n, l }: { n: string; l: string }) {
+function Metric({ n, l }: { n: React.ReactNode; l: string }) {
   return (
     <div>
       <div className="font-mono text-[22px] font-semibold text-ink">{n}</div>

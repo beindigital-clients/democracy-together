@@ -17,6 +17,7 @@ import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
+import { MyInvitations } from './workspace-invitations';
 
 // Formulaire de création d'espace (membre réseau). Réplique le motif du
 // composer de la Tribune (champs Input/Textarea, select natif de thème).
@@ -29,11 +30,27 @@ function CreateForm() {
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState<string>(PUB_THEMES[0]);
   const [description, setDescription] = useState('');
+  // Ouvert par défaut (comportement de l'incrément 1) ; privé = sur
+  // invitation seulement.
+  const [visibility, setVisibility] = useState<'open' | 'private'>('open');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!open) {
     return <Button onClick={() => setOpen(true)}>{t('createCta')}</Button>;
+  }
+
+  // « Annuler » VIDE le brouillon. Le composant reste monté quand le
+  // formulaire est replié (il rend le bouton d'ouverture) : ses états
+  // survivaient, et la saisie abandonnée réapparaissait à l'ouverture
+  // suivante — le même défaut que le composer de la tribune (R-13).
+  function cancel() {
+    setTitle('');
+    setTheme(PUB_THEMES[0]);
+    setDescription('');
+    setVisibility('open');
+    setError(null);
+    setOpen(false);
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -53,6 +70,7 @@ function CreateForm() {
         title: title.trim(),
         theme,
         description: description.trim(),
+        visibility,
       });
       setTitle('');
       setDescription('');
@@ -68,6 +86,10 @@ function CreateForm() {
     <form
       id="workspace-create"
       onSubmit={onSubmit}
+      // Les règles vivent dans `onSubmit`, traduites ; la bulle native du
+      // navigateur (« Please fill out this field ») parlait anglais sur un
+      // écran français (mesuré le 27/09).
+      noValidate
       className="space-y-4 rounded-md border border-line bg-surface p-5"
     >
       <h2 className="font-display text-lg">{t('createTitle')}</h2>
@@ -95,6 +117,19 @@ function CreateForm() {
         </SelectField>
       </div>
 
+      <SelectField
+        label={t('fieldVisibility')}
+        id="ws-visibility"
+        value={visibility}
+        hint={t('visibilityHint')}
+        onChange={(e) =>
+          setVisibility(e.target.value === 'private' ? 'private' : 'open')
+        }
+      >
+        <option value="open">{t('visibilityOpen')}</option>
+        <option value="private">{t('visibilityPrivate')}</option>
+      </SelectField>
+
       <TextareaField
         label={t('fieldDescription')}
         hint={t('descriptionHint')}
@@ -111,7 +146,7 @@ function CreateForm() {
         <Button type="submit" disabled={pending}>
           {t('create')}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+        <Button type="button" variant="outline" onClick={cancel}>
           {t('cancel')}
         </Button>
       </div>
@@ -127,7 +162,16 @@ export function WorkspacesBoard() {
   const tl = useTranslations('library');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  const items = useQuery(api.workspaces.listWorkspaces);
+  // `listWorkspaces` REFUSE un compte sans rôle « membre » (garde serveur).
+  // Appelée avant de connaître le rôle, la requête levait côté client et la
+  // page entière tombait sur « Une erreur est survenue » — pour un visiteur
+  // qui n'avait rien à voir d'autre que le message d'adhésion ci-dessous.
+  // Mesuré (exploration du 27/09). On attend donc le rôle, et on ne demande
+  // la liste qu'à qui peut la lire.
+  const items = useQuery(
+    api.workspaces.listWorkspaces,
+    me !== undefined && isMember(me?.role) ? {} : 'skip',
+  );
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(intlLocale(locale), {
@@ -169,6 +213,11 @@ export function WorkspacesBoard() {
         </section>
       ) : (
         <>
+          {/* Invitations reçues : c'est ici qu'on entre dans un espace
+              privé (F-24). */}
+          <div className="mt-8">
+            <MyInvitations />
+          </div>
           <div className="mt-8">
             <CreateForm />
           </div>
@@ -191,8 +240,13 @@ export function WorkspacesBoard() {
                       <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
                         {vocabulary(tl, 'themes.', w.theme)}
                       </span>
+                      {w.visibility === 'private' ? (
+                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                          {t('privateBadge')}
+                        </span>
+                      ) : null}
                       {w.mine ? (
-                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
+                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
                           {t('mineBadge')}
                         </span>
                       ) : null}

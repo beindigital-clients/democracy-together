@@ -61,7 +61,29 @@ export type SessionKey =
   | 'enTete'
   | 'adminContact'
   | 'adminModeration'
-  | 'adminModerationIa';
+  | 'adminModerationIa'
+  | 'paiements'
+  | 'diffusion'
+  | 'contenusEvenements'
+  | 'contenusMembre'
+  | 'contenusMedias'
+  | 'comptes'
+  | 'progAppelsAdmin'
+  | 'progAppelsMembre'
+  | 'progAppelsEvaluateur'
+  | 'progMentoratCoordination'
+  | 'progMentor'
+  | 'progMentore'
+  | 'progParcoursEditeur'
+  | 'progParcoursMembre'
+  | 'editorialRapports'
+  | 'editorialAuteur'
+  | 'editorialEditeur'
+  | 'editorialRelecteur1'
+  | 'editorialRelecteur2'
+  | 'a11yClavier'
+  | 'a11yAnnonces'
+  | 'a11yAffichage';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -183,6 +205,157 @@ export const SESSIONS: Record<
   adminModerationIa: {
     email: 'e2e_session_admin_moderation_ia@democracytogether.test',
     state: 'tests/e2e/.auth/admin-moderation-ia.json',
+    role: 'admin',
+  },
+  // Session dédiée à `paiements-don.spec.ts` (F-28 à F-31). Le fichier donne
+  // PUIS relit son reçu dans l'espace membre PUIS retrouve la transaction au
+  // back-office : il tient sa session d'un bout à l'autre. Rang
+  // ADMINISTRATEUR, celui qu'exige /admin/finances — les gardes étant
+  // hiérarchiques, le même compte donne et consulte son espace membre.
+  paiements: {
+    email: 'e2e_session_paiements@democracytogether.test',
+    state: 'tests/e2e/.auth/paiements.json',
+    role: 'admin',
+  },
+  // Session dédiée à `diffusion-newsletter.spec.ts` (chantier diffusion) :
+  // inscription publique, confirmation par le lien du courriel, PUIS
+  // vérification au back-office — la session est tenue d'un bout à l'autre.
+  // Rang ÉDITEUR, celui qu'exige `newsletter.listSubscribers`.
+  diffusion: {
+    email: 'e2e_session_diffusion@democracytogether.test',
+    state: 'tests/e2e/.auth/diffusion.json',
+    role: 'editeur',
+  },
+  // Sessions dédiées aux specs `contenus-*.spec.ts` (chantier « contenus »).
+  // Chacune crée un contenu puis le publie puis le relit côté public : elles
+  // tiennent leur session d'un bout à l'autre. Rang ÉDITEUR, celui qu'exige
+  // `requireEditor` — un administrateur ferait passer le test même le jour où
+  // la garde serait relevée par erreur. Le MEMBRE inscrit à l'événement a la
+  // sienne : c'est son adresse qui lui ouvre le lien de visioconférence.
+  contenusEvenements: {
+    email: 'e2e_session_contenus_evenements@democracytogether.test',
+    state: 'tests/e2e/.auth/contenus-evenements.json',
+    role: 'editeur',
+  },
+  contenusMembre: {
+    email: 'e2e_session_contenus_membre@democracytogether.test',
+    state: 'tests/e2e/.auth/contenus-membre.json',
+    role: 'membre',
+  },
+  contenusMedias: {
+    email: 'e2e_session_contenus_medias@democracytogether.test',
+    state: 'tests/e2e/.auth/contenus-medias.json',
+    role: 'editeur',
+  },
+  // Session dédiée à `comptes-suspension.spec.ts` (chantier comptes, F-63).
+  // Le fichier crée un compte, le fait se connecter, le suspend puis le
+  // supprime : il tient la session d'un bout à l'autre, le cas que la règle
+  // ci-dessus vise. Rang ADMINISTRATEUR, celui qu'exigent la création, la
+  // suspension et la suppression.
+  comptes: {
+    email: 'e2e_session_comptes@democracytogether.test',
+    state: 'tests/e2e/.auth/comptes.json',
+    role: 'admin',
+  },
+  // Chantier « programmes » (F-56 à F-60). Chaque fichier `programmes-*`
+  // enchaîne PLUSIEURS personnes sur un même parcours (qui publie, qui
+  // candidate, qui évalue ; qui coordonne, qui mentore, qui est mentoré) et
+  // tient chacune de bout en bout : une session par personne ET par fichier,
+  // selon la règle ci-dessus. Les rangs sont les rangs MINIMAUX exercés —
+  // modérateur pour publier un appel et coordonner (gardes `moderateur`),
+  // éditeur pour la boîte à outils, membre pour candidater, évaluer, mentorer.
+  progAppelsAdmin: {
+    email: 'e2e_session_prog_appels_admin@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-appels-admin.json',
+    role: 'moderateur',
+  },
+  progAppelsMembre: {
+    email: 'e2e_session_prog_appels_membre@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-appels-membre.json',
+    role: 'membre',
+  },
+  progAppelsEvaluateur: {
+    email: 'e2e_session_prog_appels_evaluateur@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-appels-evaluateur.json',
+    role: 'membre',
+  },
+  progMentoratCoordination: {
+    email: 'e2e_session_prog_mentorat_coord@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-mentorat-coord.json',
+    role: 'moderateur',
+  },
+  progMentor: {
+    email: 'e2e_session_prog_mentor@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-mentor.json',
+    role: 'membre',
+  },
+  progMentore: {
+    email: 'e2e_session_prog_mentore@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-mentore.json',
+    role: 'membre',
+  },
+  progParcoursEditeur: {
+    email: 'e2e_session_prog_parcours_editeur@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-parcours-editeur.json',
+    role: 'editeur',
+  },
+  progParcoursMembre: {
+    email: 'e2e_session_prog_parcours_membre@democracytogether.test',
+    state: 'tests/e2e/.auth/prog-parcours-membre.json',
+    role: 'membre',
+  },
+  // Chantier editorial (F-41 / F-43). `editorial-rapports.spec.ts` migre
+  // l'édition codée depuis l'administration puis télécharge ses PDF : rang
+  // ÉDITEUR, celui qu'exige `annualReports.*`.
+  editorialRapports: {
+    email: 'e2e_session_editorial_rapports@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-rapports.json',
+    role: 'editeur',
+  },
+  // `editorial-revue.spec.ts` fait jouer QUATRE personnes en double aveugle :
+  // l'autrice (membre), l'éditeur, et deux relecteurs de rang modérateur —
+  // le rang minimal que la revue exige d'un relecteur. Chacun tient sa
+  // session d'un bout à l'autre du parcours, dans son propre contexte.
+  editorialAuteur: {
+    email: 'e2e_session_editorial_auteur@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-auteur.json',
+    role: 'membre',
+  },
+  editorialEditeur: {
+    email: 'e2e_session_editorial_editeur@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-editeur.json',
+    role: 'editeur',
+  },
+  editorialRelecteur1: {
+    email: 'e2e_session_editorial_relecteur1@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-relecteur1.json',
+    role: 'moderateur',
+  },
+  editorialRelecteur2: {
+    email: 'e2e_session_editorial_relecteur2@democracytogether.test',
+    state: 'tests/e2e/.auth/editorial-relecteur2.json',
+    role: 'moderateur',
+  },
+  // Sessions des specs d'accessibilité (F-08, audit RGAA) : `a11y-clavier`,
+  // `a11y-annonces` et `a11y-affichage` parcourent l'espace membre et un écran
+  // du back-office. Une session PAR FICHIER, selon la règle ci-dessus ; chacun
+  // réécrit son état après chaque test (`test.afterEach`), comme
+  // `admin-confirmations`, pour ne jamais repartir d'un jeton consommé. Rang
+  // administrateur : les gardes étant hiérarchiques, un compte couvre l'espace
+  // membre ET `/admin/utilisateurs`.
+  a11yClavier: {
+    email: 'e2e_session_a11y_clavier@democracytogether.test',
+    state: 'tests/e2e/.auth/a11y-clavier.json',
+    role: 'admin',
+  },
+  a11yAnnonces: {
+    email: 'e2e_session_a11y_annonces@democracytogether.test',
+    state: 'tests/e2e/.auth/a11y-annonces.json',
+    role: 'admin',
+  },
+  a11yAffichage: {
+    email: 'e2e_session_a11y_affichage@democracytogether.test',
+    state: 'tests/e2e/.auth/a11y-affichage.json',
     role: 'admin',
   },
 };

@@ -60,6 +60,14 @@ const SCREENS = [
     h1: 'Propositions de projets',
     min: 'moderateur',
   },
+  // Vue du RELECTEUR (campagne du 27/09, A-02) : ouverte au rang modérateur,
+  // elle ne rend que ses assignations — la file complète reste à l'éditeur.
+  {
+    path: '/fr/admin/mes-relectures',
+    nav: 'Mes relectures',
+    h1: 'Mes relectures',
+    min: 'moderateur',
+  },
   {
     path: '/fr/admin/signalements',
     nav: 'Signalements',
@@ -108,7 +116,12 @@ test.describe('parcours des onglets (session admin partagée)', () => {
     const tabs = page.getByRole('navigation', { name: 'Administration' });
 
     for (const screen of SCREENS) {
-      await tabs.getByRole('link', { name: screen.nav, exact: true }).click();
+      await tabs
+        .getByRole('link', {
+          name: `${screen.nav} (Administration)`,
+          exact: true,
+        })
+        .click();
       await expect(page).toHaveURL(
         new RegExp(`${screen.path.replace('/fr', '')}$`),
       );
@@ -117,7 +130,10 @@ test.describe('parcours des onglets (session admin partagée)', () => {
       ).toBeVisible();
       // l'onglet courant est signalé (et lui seul)
       await expect(
-        tabs.getByRole('link', { name: screen.nav, exact: true }),
+        tabs.getByRole('link', {
+          name: `${screen.nav} (Administration)`,
+          exact: true,
+        }),
       ).toHaveAttribute('aria-current', 'page');
     }
   });
@@ -136,7 +152,10 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
     ).toBeVisible();
 
     for (const screen of SCREENS) {
-      const tab = tabs.getByRole('link', { name: screen.nav, exact: true });
+      const tab = tabs.getByRole('link', {
+        name: `${screen.nav} (Administration)`,
+        exact: true,
+      });
       if (screen.min === 'moderateur') {
         await expect(tab).toBeVisible();
       } else {
@@ -155,9 +174,21 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
     }
     await expect(tabs.getByRole('list')).toHaveCount(3);
 
-    // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus —
-    // l'écran refuse de rendre la liste (et la requête Convex la refuserait aussi).
-    await page.goto('/fr/admin/utilisateurs');
-    await expect(page.getByText('Réservé aux administrateurs.')).toBeVisible();
+    // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus.
+    // La COQUILLE refuse l'écran (403, rang lu dans la table de navigation)
+    // avant de le monter, donc avant toute requête — c'est ce qui manquait à
+    // /admin/revue et /admin/newsletter, qui tombaient sur la page d'erreur
+    // pour un modérateur (exploration du 27/09). La requête Convex refuserait
+    // aussi ; elle n'est plus posée.
+    for (const path of [
+      '/fr/admin/utilisateurs',
+      '/fr/admin/revue',
+      '/fr/admin/newsletter',
+    ]) {
+      await page.goto(path);
+      await expect(
+        page.getByRole('heading', { name: 'Accès réservé' }),
+      ).toBeVisible();
+    }
   });
 });

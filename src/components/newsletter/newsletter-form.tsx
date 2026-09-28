@@ -9,19 +9,32 @@ import { Button } from '@/components/ui/button';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
-import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
+import {
+  isCaptchaFailed,
+  isEmailProviderMissing,
+  isRateLimited,
+} from '@/lib/errors';
+import { StatusMessage } from '@/components/a11y/status-message';
 
 // Formulaire d'inscription newsletter (F-18) — îlot client réutilisable (accueil
 // + page /newsletter). Les libellés `placeholder`/`cta` sont passés en props ;
 // les messages d'état viennent du namespace i18n `newsletter`. Idempotent côté
 // serveur (une adresse déjà inscrite renvoie un succès sans doublon).
+//
+// DOUBLE OPT-IN (chantier diffusion) : le succès annonce un courriel de
+// confirmation, pas un abonnement. `source` dit de quel formulaire vient le
+// consentement — il est conservé avec la preuve (RGPD art. 7.1).
+export type NewsletterSource = 'home' | 'footer' | 'newsletter-page';
+
 export function NewsletterForm({
   placeholder,
   cta,
+  source,
   className,
 }: {
   placeholder: string;
   cta: string;
+  source: NewsletterSource;
   className?: string;
 }) {
   const t = useTranslations('newsletter');
@@ -46,6 +59,7 @@ export function NewsletterForm({
       await subscribe({
         email: values.email.trim(),
         locale: resolveLocale(locale),
+        source,
         captchaToken,
       });
       setStatus('success');
@@ -55,7 +69,9 @@ export function NewsletterForm({
           ? t('captchaFailed')
           : isRateLimited(err)
             ? t('rateLimited')
-            : t('errorGeneric'),
+            : isEmailProviderMissing(err)
+              ? t('unavailable')
+              : t('errorGeneric'),
       );
       setStatus('idle');
     }
@@ -63,12 +79,12 @@ export function NewsletterForm({
 
   if (status === 'success') {
     return (
-      <p
-        role="status"
+      <StatusMessage
+        as="p"
         className={`text-sm font-medium text-bar-1 ${className ?? ''}`}
       >
         {t('success')}
-      </p>
+      </StatusMessage>
     );
   }
 

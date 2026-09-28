@@ -10,6 +10,8 @@ import { isStaff, isMember } from '@/lib/roles';
 import { formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowForward } from '@/components/ui/arrow';
+import { MemberSocialLinks } from '@/components/social/member-social-links';
+import { ProgrammeMemberLinks } from '@/components/programmes/member-links';
 const STATUS_BADGE: Record<string, string> = {
   published:
     'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
@@ -47,16 +49,16 @@ function MyContributions() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-line">
-                <th className="px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted">
+                <th className="px-4 py-3 text-start font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted">
                   {t('mine.colTitle')}
                 </th>
-                <th className="hidden px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted sm:table-cell">
+                <th className="hidden px-4 py-3 text-start font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted sm:table-cell">
                   {t('mine.colType')}
                 </th>
-                <th className="px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted">
+                <th className="px-4 py-3 text-start font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted">
                   {t('mine.colStatus')}
                 </th>
-                <th className="hidden px-4 py-3 text-start font-mono text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted md:table-cell">
+                <th className="hidden px-4 py-3 text-start font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted md:table-cell">
                   {t('mine.colDate')}
                 </th>
                 <th className="px-4 py-3" />
@@ -81,7 +83,7 @@ function MyContributions() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-block whitespace-nowrap rounded-pill border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.06em] ${
+                      className={`inline-block whitespace-nowrap rounded-pill border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.06em] ${
                         STATUS_BADGE[p.status] ?? STATUS_BADGE.draft
                       }`}
                     >
@@ -131,24 +133,33 @@ function BecomeMember() {
 
 function MemberDashboard() {
   const t = useTranslations('auth');
+  const tAccounts = useTranslations('accounts');
   const me = useQuery(api.users.current);
   const member = isMember(me?.role);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <h1 className="font-display text-3xl">{t('memberTitle')}</h1>
-      <p className="mt-2 text-ink-soft">
+      <p className="mt-2 wrap-anywhere text-ink-soft">
         {t('memberWelcome', { name: me?.name ?? me?.email ?? '' })}
       </p>
 
       <dl className="mt-8 divide-y divide-line rounded-md border border-line bg-surface">
         <div className="flex items-center justify-between px-4 py-3">
           <dt className="text-sm text-ink-soft">{t('memberEmail')}</dt>
-          <dd className="font-mono text-sm">{me?.email}</dd>
+          <dd className="break-all font-mono text-sm">{me?.email}</dd>
         </div>
         <div className="flex items-center justify-between px-4 py-3">
           <dt className="text-sm text-ink-soft">{t('memberRole')}</dt>
-          <dd className="text-sm">{me?.role}</dd>
+          {/* Le rôle vient de la base (`membre`, `admin`…) : c'est du
+              VOCABULAIRE, traduit par sa clé construite — l'écran rendait la
+              valeur brute, « Role membre » même en anglais (mesuré le 27/09,
+              auth A-7). Les libellés `auth.role_*` sont la copie de
+              `admin.role_*` : l'espace `admin` ne voyage pas jusqu'au
+              navigateur hors back-office (cf. src/i18n/client-namespaces.ts). */}
+          <dd className="text-sm">
+            {me?.role ? vocabulary(t, 'role_', me.role) : null}
+          </dd>
         </div>
       </dl>
 
@@ -167,7 +178,61 @@ function MemberDashboard() {
         >
           {t('workspacesLink')} <ArrowForward />
         </Link>
+        {/* État de ses contributions à la tribune (F-45). */}
+        <Link
+          href="/espace-membre/contributions"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {t('contributionsLink')} <ArrowForward />
+        </Link>
+        {/* L'e-mail d'invitation promet « vous pourrez en définir un depuis
+            votre espace membre » : c'est ici (R-05). */}
+        <Link
+          href="/espace-membre/mot-de-passe"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {t('passwordLink')} <ArrowForward />
+        </Link>
+        {/* Cotisation, dons et reçus (F-30). */}
+        <Link
+          href="/espace-membre/cotisations"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {t('paymentsLink')} <ArrowForward />
+        </Link>
+        {/* Chantier comptes : double authentification, données personnelles
+            (export, suppression), organisation (F-21). */}
+        <Link
+          href="/espace-membre/securite"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {tAccounts('linkSecurity')} <ArrowForward />
+        </Link>
+        <Link
+          href="/espace-membre/organisation"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {tAccounts('linkOrganization')} <ArrowForward />
+        </Link>
+        <Link
+          href="/espace-membre/donnees"
+          className="inline-block text-sm font-medium text-accent-text hover:underline"
+        >
+          {tAccounts('linkData')} <ArrowForward />
+        </Link>
+        {/* Suivi des manuscrits soumis au comité de lecture (F-43). */}
+        {member ? (
+          <Link
+            href="/espace-membre/manuscrits"
+            className="inline-block text-sm font-medium text-accent-text hover:underline"
+          >
+            {t('manuscriptsLink')} <ArrowForward />
+          </Link>
+        ) : null}
       </div>
+
+      <MemberSocialLinks />
+      <ProgrammeMemberLinks member={member} />
 
       {member ? <MyContributions /> : <BecomeMember />}
     </div>

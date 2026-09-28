@@ -8,228 +8,32 @@ import type { Locale } from '@/i18n/routing';
 // liste). Pensé pour basculer plus tard sur une table Convex `events` (avec
 // inscription/RSVP). Vérifié sans terme banni.
 
-export type EventType = 'sommet' | 'webinaire' | 'atelier';
-export type EventRegion = 'afrique' | 'europe' | 'en-ligne';
-export type EventFormat = 'presentiel' | 'en-ligne' | 'hybride';
-export type ThemeKey =
-  | 'vie-reseau'
-  | 'gouvernance-numerique'
-  | 'participation'
-  | 'anti-corruption'
-  | 'transitions'
-  | 'crises';
+// Le catalogue (types, données neutres, titres et lieux par langue) vit dans
+// `convex/lib/contenus/coded/events.ts` : c'est la source que la migration
+// recopie en base et que les pages servent en repli (chantier « contenus »).
+import {
+  CODED_EVENTS,
+  CODED_EVENT_TITLES,
+  CODED_EVENT_CITIES,
+  CODED_FEATURED_SLUG,
+  type EventData,
+  type EventType,
+  type EventRegion,
+  type EventFormat,
+  type ThemeKey,
+} from '@convex/lib/contenus/coded/events';
+export type { EventData, EventType, EventRegion, EventFormat, ThemeKey };
 
-export type EventData = {
-  slug: string;
-  type: EventType;
-  region: EventRegion;
-  format: EventFormat;
-  langs: ('fr' | 'en')[];
-  theme: ThemeKey;
-  cityKey: string;
-  y: number;
-  mo: number; // 1-12
-  d: number;
-  upcoming: boolean;
-  durationMin?: number; // pour les rediffusions (événements passés)
-};
-
-// Liste neutre (la plus proche en haut). `when` dérivé pour le tri.
-export const EVENTS: EventData[] = [
-  {
-    slug: 'conference-inaugurale',
-    type: 'sommet',
-    region: 'europe',
-    format: 'hybride',
-    langs: ['fr', 'en'],
-    theme: 'vie-reseau',
-    cityKey: 'paris',
-    y: 2026,
-    mo: 11,
-    d: 14,
-    upcoming: true,
-  },
-  {
-    slug: 'webinaire-gouvernance-plateformes',
-    type: 'webinaire',
-    region: 'en-ligne',
-    format: 'en-ligne',
-    langs: ['fr', 'en'],
-    theme: 'gouvernance-numerique',
-    cityKey: 'online',
-    y: 2026,
-    mo: 12,
-    d: 3,
-    upcoming: true,
-  },
-  {
-    slug: 'atelier-dakar-transparence-budgetaire',
-    type: 'atelier',
-    region: 'afrique',
-    format: 'presentiel',
-    langs: ['fr'],
-    theme: 'anti-corruption',
-    cityKey: 'dakar',
-    y: 2026,
-    mo: 9,
-    d: 17,
-    upcoming: true,
-  },
-  {
-    slug: 'atelier-bruxelles-democratie-ue',
-    type: 'atelier',
-    region: 'europe',
-    format: 'hybride',
-    langs: ['fr', 'en'],
-    theme: 'transitions',
-    cityKey: 'bruxelles',
-    y: 2026,
-    mo: 10,
-    d: 8,
-    upcoming: true,
-  },
-  {
-    slug: 'webinaire-jeunes-releve',
-    type: 'webinaire',
-    region: 'en-ligne',
-    format: 'en-ligne',
-    langs: ['fr'],
-    theme: 'participation',
-    cityKey: 'online',
-    y: 2026,
-    mo: 9,
-    d: 24,
-    upcoming: true,
-  },
-  {
-    slug: 'atelier-dakar-integrite-electorale',
-    type: 'atelier',
-    region: 'afrique',
-    format: 'presentiel',
-    langs: ['fr', 'en'],
-    theme: 'transitions',
-    cityKey: 'dakar',
-    y: 2026,
-    mo: 10,
-    d: 15,
-    upcoming: true,
-  },
-  {
-    slug: 'webinaire-desinformation-confiance',
-    type: 'webinaire',
-    region: 'en-ligne',
-    format: 'en-ligne',
-    langs: ['en'],
-    theme: 'crises',
-    cityKey: 'online',
-    y: 2026,
-    mo: 11,
-    d: 5,
-    upcoming: true,
-  },
-  {
-    slug: 'atelier-bruxelles-souverainete-numerique',
-    type: 'atelier',
-    region: 'europe',
-    format: 'presentiel',
-    langs: ['fr', 'en'],
-    theme: 'gouvernance-numerique',
-    cityKey: 'bruxelles',
-    y: 2026,
-    mo: 11,
-    d: 26,
-    upcoming: true,
-  },
-  {
-    slug: 'webinaire-financer-societe-civile',
-    type: 'webinaire',
-    region: 'en-ligne',
-    format: 'hybride',
-    langs: ['fr'],
-    theme: 'participation',
-    cityKey: 'dakar-online',
-    y: 2026,
-    mo: 12,
-    d: 10,
-    upcoming: true,
-  },
-  {
-    slug: 'restitution-barometre-annuel',
-    type: 'webinaire',
-    region: 'en-ligne',
-    format: 'en-ligne',
-    langs: ['fr', 'en'],
-    theme: 'vie-reseau',
-    cityKey: 'online',
-    y: 2026,
-    mo: 12,
-    d: 16,
-    upcoming: true,
-  },
-  // passés (rediffusions)
-  {
-    slug: 'ia-generative-integrite-information',
-    type: 'webinaire',
-    region: 'en-ligne',
-    format: 'en-ligne',
-    langs: ['fr', 'en'],
-    theme: 'gouvernance-numerique',
-    cityKey: 'online',
-    y: 2026,
-    mo: 6,
-    d: 4,
-    upcoming: false,
-    durationMin: 72,
-  },
-  {
-    slug: 'atelier-dakar-financer-societe-civile',
-    type: 'atelier',
-    region: 'afrique',
-    format: 'hybride',
-    langs: ['fr'],
-    theme: 'participation',
-    cityKey: 'dakar',
-    y: 2026,
-    mo: 5,
-    d: 22,
-    upcoming: false,
-    durationMin: 125,
-  },
-  {
-    slug: 'reguler-plateformes-debat-public',
-    type: 'webinaire',
-    region: 'en-ligne',
-    format: 'en-ligne',
-    langs: ['fr', 'en'],
-    theme: 'gouvernance-numerique',
-    cityKey: 'online',
-    y: 2026,
-    mo: 4,
-    d: 9,
-    upcoming: false,
-    durationMin: 58,
-  },
-  {
-    slug: 'atelier-bruxelles-participation-locale',
-    type: 'atelier',
-    region: 'europe',
-    format: 'hybride',
-    langs: ['fr', 'en'],
-    theme: 'participation',
-    cityKey: 'bruxelles',
-    y: 2026,
-    mo: 3,
-    d: 18,
-    upcoming: false,
-    durationMin: 100,
-  },
-];
+// Catalogue codé, conservé sous son nom historique pour ses lecteurs (repli,
+// grille du calendrier, tests).
+export const EVENTS: EventData[] = CODED_EVENTS;
 
 export function whenOf(e: EventData): number {
   return e.y * 10000 + e.mo * 100 + e.d;
 }
 
-export const FEATURED_SLUG = 'conference-inaugurale';
+// Événement dont la fiche porte le contenu riche codé (programme, billetterie).
+export const FEATURED_SLUG = CODED_FEATURED_SLUG;
 
 export type EventFilters = {
   period: 'venir' | 'passes';
@@ -237,6 +41,7 @@ export type EventFilters = {
   regions: string[];
   formats: string[];
   langs: string[];
+  months: string[];
   q?: string;
   sort: string;
 };
@@ -244,6 +49,7 @@ export type EventFilters = {
 export const EVENT_SORTS = ['date-asc', 'date-desc', 'az'] as const;
 
 // --- Dictionnaires de libellés (bilingues) ---
+export type EventsLabels = Labels;
 type Labels = {
   hero: {
     crumbHome: string;
@@ -299,6 +105,8 @@ type Labels = {
   formats: Record<EventFormat, string>;
   themes: Record<ThemeKey, string>;
   cities: Record<string, string>;
+  // Noms des langues du catalogue codé (fr, en). Les autres langues d'un
+  // événement créé au back-office passent par `langLabel`.
   langName: Record<'fr' | 'en', string>;
   titles: Record<string, string>;
   // détail
@@ -323,6 +131,16 @@ type DetailLabels = {
   founderBadge: string;
   related: string;
   resources: string;
+  // Bloc rediffusion / visioconférence de la fiche (A-10).
+  replay: {
+    title: string;
+    available: string;
+    soon: string;
+    seeAll: string;
+    visioTitle: string;
+    visioLink: string;
+    visioSent: string;
+  };
   // contenu riche de la conférence (featured)
   conf: {
     lead: string;
@@ -525,42 +343,9 @@ const fr: Labels = {
     transitions: 'Transitions démocratiques',
     crises: 'Crises globales',
   },
-  cities: {
-    paris: 'Paris',
-    dakar: 'Dakar',
-    bruxelles: 'Bruxelles',
-    online: 'En ligne',
-    'dakar-online': 'Dakar et en ligne',
-  },
+  cities: CODED_EVENT_CITIES.fr,
   langName: { fr: 'Français', en: 'Anglais' },
-  titles: {
-    'conference-inaugurale': 'Conférence inaugurale de Democracy Together',
-    'webinaire-gouvernance-plateformes':
-      "Webinaire : gouvernance des plateformes après l'IA",
-    'atelier-dakar-transparence-budgetaire':
-      'Atelier régional de Dakar : transparence budgétaire',
-    'atelier-bruxelles-democratie-ue':
-      "Atelier de Bruxelles : démocratie et politiques de l'UE",
-    'webinaire-jeunes-releve': 'Webinaire jeunes : la relève au cœur du débat',
-    'atelier-dakar-integrite-electorale':
-      'Atelier régional de Dakar : intégrité électorale',
-    'webinaire-desinformation-confiance':
-      'Webinaire : désinformation et confiance civique',
-    'atelier-bruxelles-souverainete-numerique':
-      'Atelier de Bruxelles : souveraineté numérique européenne',
-    'webinaire-financer-societe-civile':
-      "Webinaire : financer la société civile en Afrique de l'Ouest",
-    'restitution-barometre-annuel':
-      'Restitution du Baromètre annuel de la démocratie',
-    'ia-generative-integrite-information':
-      "IA générative et intégrité de l'information",
-    'atelier-dakar-financer-societe-civile':
-      'Atelier régional de Dakar : financer la société civile',
-    'reguler-plateformes-debat-public':
-      'Réguler les plateformes sans affaiblir le débat public',
-    'atelier-bruxelles-participation-locale':
-      'Atelier de Bruxelles : participation citoyenne locale',
-  },
+  titles: CODED_EVENT_TITLES.fr,
   detail: {
     back: 'Tous les événements',
     badges: (e) => [
@@ -588,6 +373,16 @@ const fr: Labels = {
     founderBadge: 'Fondateur',
     related: 'Autres rendez-vous',
     resources: 'Replays et ressources',
+    replay: {
+      title: 'Rediffusion',
+      available: 'Replay disponible',
+      soon: 'Enregistrement bientôt disponible.',
+      seeAll: 'Voir toutes les rediffusions',
+      visioTitle: 'Visioconférence',
+      visioLink: 'Lien de visioconférence',
+      visioSent:
+        'Le lien de visioconférence est envoyé par e-mail aux inscrits avant l’événement.',
+    },
     conf: {
       lead: "Une journée pour fonder publiquement le réseau : think tanks d'Afrique et d'Europe, chercheurs, responsables publics et jeunes engagés, réunis pour penser et défendre la démocratie.",
       dayIntro: [
@@ -867,42 +662,9 @@ const en: Labels = {
     transitions: 'Democratic transitions',
     crises: 'Global crises',
   },
-  cities: {
-    paris: 'Paris',
-    dakar: 'Dakar',
-    bruxelles: 'Brussels',
-    online: 'Online',
-    'dakar-online': 'Dakar and online',
-  },
+  cities: CODED_EVENT_CITIES.en,
   langName: { fr: 'French', en: 'English' },
-  titles: {
-    'conference-inaugurale': 'Democracy Together inaugural conference',
-    'webinaire-gouvernance-plateformes':
-      'Webinar: platform governance after AI',
-    'atelier-dakar-transparence-budgetaire':
-      'Dakar regional workshop: budget transparency',
-    'atelier-bruxelles-democratie-ue':
-      'Brussels workshop: democracy and EU policy',
-    'webinaire-jeunes-releve':
-      'Youth webinar: the next generation at the heart of debate',
-    'atelier-dakar-integrite-electorale':
-      'Dakar regional workshop: electoral integrity',
-    'webinaire-desinformation-confiance':
-      'Webinar: disinformation and civic trust',
-    'atelier-bruxelles-souverainete-numerique':
-      'Brussels workshop: European digital sovereignty',
-    'webinaire-financer-societe-civile':
-      'Webinar: funding civil society in West Africa',
-    'restitution-barometre-annuel': 'Release of the annual Democracy Barometer',
-    'ia-generative-integrite-information':
-      'Generative AI and information integrity',
-    'atelier-dakar-financer-societe-civile':
-      'Dakar regional workshop: funding civil society',
-    'reguler-plateformes-debat-public':
-      'Regulating platforms without weakening public debate',
-    'atelier-bruxelles-participation-locale':
-      'Brussels workshop: local citizen participation',
-  },
+  titles: CODED_EVENT_TITLES.en,
   detail: {
     back: 'All events',
     badges: (e) => [
@@ -930,6 +692,16 @@ const en: Labels = {
     founderBadge: 'Founder',
     related: 'Other gatherings',
     resources: 'Replays and resources',
+    replay: {
+      title: 'Replay',
+      available: 'Replay available',
+      soon: 'Recording coming soon.',
+      seeAll: 'See all replays',
+      visioTitle: 'Video conference',
+      visioLink: 'Video conference link',
+      visioSent:
+        'The video conference link is e-mailed to registered participants before the event.',
+    },
     conf: {
       lead: 'A day to publicly found the network: think tanks from Africa and Europe, researchers, public officials and engaged young people, gathered to think about and defend democracy.',
       dayIntro: [
@@ -1204,43 +976,9 @@ const es: Labels = {
     transitions: 'Transiciones democráticas',
     crises: 'Crisis globales',
   },
-  cities: {
-    paris: 'París',
-    dakar: 'Dakar',
-    bruxelles: 'Bruselas',
-    online: 'En línea',
-    'dakar-online': 'Dakar y en línea',
-  },
+  cities: CODED_EVENT_CITIES.es,
   langName: { fr: 'Francés', en: 'Inglés' },
-  titles: {
-    'conference-inaugurale': 'Conferencia inaugural de Democracy Together',
-    'webinaire-gouvernance-plateformes':
-      'Seminario web: gobernanza de las plataformas después de la IA',
-    'atelier-dakar-transparence-budgetaire':
-      'Taller regional de Dakar: transparencia presupuestaria',
-    'atelier-bruxelles-democratie-ue':
-      'Taller de Bruselas: democracia y políticas de la UE',
-    'webinaire-jeunes-releve':
-      'Seminario web joven: el relevo en el centro del debate',
-    'atelier-dakar-integrite-electorale':
-      'Taller regional de Dakar: integridad electoral',
-    'webinaire-desinformation-confiance':
-      'Seminario web: desinformación y confianza cívica',
-    'atelier-bruxelles-souverainete-numerique':
-      'Taller de Bruselas: soberanía digital europea',
-    'webinaire-financer-societe-civile':
-      'Seminario web: financiar la sociedad civil en África Occidental',
-    'restitution-barometre-annuel':
-      'Presentación del Barómetro anual de la democracia',
-    'ia-generative-integrite-information':
-      'IA generativa e integridad de la información',
-    'atelier-dakar-financer-societe-civile':
-      'Taller regional de Dakar: financiar la sociedad civil',
-    'reguler-plateformes-debat-public':
-      'Regular las plataformas sin debilitar el debate público',
-    'atelier-bruxelles-participation-locale':
-      'Taller de Bruselas: participación ciudadana local',
-  },
+  titles: CODED_EVENT_TITLES.es,
   detail: {
     back: 'Todos los eventos',
     badges: (e) => [
@@ -1268,6 +1006,16 @@ const es: Labels = {
     founderBadge: 'Fundador',
     related: 'Otras citas',
     resources: 'Repeticiones y recursos',
+    replay: {
+      title: 'Retransmisión',
+      available: 'Repetición disponible',
+      soon: 'Grabación disponible próximamente.',
+      seeAll: 'Ver todas las repeticiones',
+      visioTitle: 'Videoconferencia',
+      visioLink: 'Enlace de videoconferencia',
+      visioSent:
+        'El enlace de videoconferencia se envía por correo a las personas inscritas antes del evento.',
+    },
     conf: {
       lead: 'Una jornada para fundar públicamente la red: centros de estudios de África y de Europa, investigadores, responsables públicos y jóvenes comprometidos, reunidos para pensar y defender la democracia.',
       dayIntro: [
@@ -1550,43 +1298,9 @@ const pt: Labels = {
     transitions: 'Transições democráticas',
     crises: 'Crises globais',
   },
-  cities: {
-    paris: 'Paris',
-    dakar: 'Dakar',
-    bruxelles: 'Bruxelas',
-    online: 'Em linha',
-    'dakar-online': 'Dakar e em linha',
-  },
+  cities: CODED_EVENT_CITIES.pt,
   langName: { fr: 'Francês', en: 'Inglês' },
-  titles: {
-    'conference-inaugurale': 'Conferência inaugural da Democracy Together',
-    'webinaire-gouvernance-plateformes':
-      'Seminário online: governação das plataformas depois da IA',
-    'atelier-dakar-transparence-budgetaire':
-      'Oficina regional de Dakar: transparência orçamental',
-    'atelier-bruxelles-democratie-ue':
-      'Oficina de Bruxelas: democracia e políticas da UE',
-    'webinaire-jeunes-releve':
-      'Seminário online jovem: a nova geração no centro do debate',
-    'atelier-dakar-integrite-electorale':
-      'Oficina regional de Dakar: integridade eleitoral',
-    'webinaire-desinformation-confiance':
-      'Seminário online: desinformação e confiança cívica',
-    'atelier-bruxelles-souverainete-numerique':
-      'Oficina de Bruxelas: soberania digital europeia',
-    'webinaire-financer-societe-civile':
-      'Seminário online: financiar a sociedade civil na África Ocidental',
-    'restitution-barometre-annuel':
-      'Apresentação do Barómetro anual da democracia',
-    'ia-generative-integrite-information':
-      'IA generativa e integridade da informação',
-    'atelier-dakar-financer-societe-civile':
-      'Oficina regional de Dakar: financiar a sociedade civil',
-    'reguler-plateformes-debat-public':
-      'Regular as plataformas sem enfraquecer o debate público',
-    'atelier-bruxelles-participation-locale':
-      'Oficina de Bruxelas: participação cidadã local',
-  },
+  titles: CODED_EVENT_TITLES.pt,
   detail: {
     back: 'Todos os eventos',
     badges: (e) => [
@@ -1614,6 +1328,16 @@ const pt: Labels = {
     founderBadge: 'Fundador',
     related: 'Outros encontros',
     resources: 'Repetições e recursos',
+    replay: {
+      title: 'Gravação',
+      available: 'Gravação disponível',
+      soon: 'Gravação disponível em breve.',
+      seeAll: 'Ver todas as gravações',
+      visioTitle: 'Videoconferência',
+      visioLink: 'Ligação de videoconferência',
+      visioSent:
+        'A ligação de videoconferência é enviada por e-mail aos inscritos antes do evento.',
+    },
     conf: {
       lead: 'Um dia para fundar publicamente a rede: centros de estudos de África e da Europa, investigadores, responsáveis públicos e jovens empenhados, reunidos para pensar e defender a democracia.',
       dayIntro: [
@@ -1896,40 +1620,9 @@ const ar: Labels = {
     transitions: 'الانتقالات الديمقراطية',
     crises: 'الأزمات العالمية',
   },
-  cities: {
-    paris: 'باريس',
-    dakar: 'داكار',
-    bruxelles: 'بروكسل',
-    online: 'عن بُعد',
-    'dakar-online': 'داكار وعن بُعد',
-  },
+  cities: CODED_EVENT_CITIES.ar,
   langName: { fr: 'الفرنسية', en: 'الإنجليزية' },
-  titles: {
-    'conference-inaugurale': 'المؤتمر التأسيسي لـ Democracy Together',
-    'webinaire-gouvernance-plateformes':
-      'ندوة: حوكمة المنصات بعد الذكاء الاصطناعي',
-    'atelier-dakar-transparence-budgetaire':
-      'ورشة داكار الجهوية: شفافية الميزانية',
-    'atelier-bruxelles-democratie-ue':
-      'ورشة بروكسل: الديمقراطية وسياسات الاتحاد الأوروبي',
-    'webinaire-jeunes-releve': 'ندوة الشباب: الجيل الصاعد في صلب النقاش',
-    'atelier-dakar-integrite-electorale':
-      'ورشة داكار الجهوية: نزاهة الانتخابات',
-    'webinaire-desinformation-confiance': 'ندوة: التضليل والثقة المدنية',
-    'atelier-bruxelles-souverainete-numerique':
-      'ورشة بروكسل: السيادة الرقمية الأوروبية',
-    'webinaire-financer-societe-civile':
-      'ندوة: تمويل المجتمع المدني في غرب أفريقيا',
-    'restitution-barometre-annuel': 'عرض المؤشر السنوي للديمقراطية',
-    'ia-generative-integrite-information':
-      'الذكاء الاصطناعي التوليدي ونزاهة المعلومة',
-    'atelier-dakar-financer-societe-civile':
-      'ورشة داكار الجهوية: تمويل المجتمع المدني',
-    'reguler-plateformes-debat-public':
-      'تنظيم المنصات دون إضعاف النقاش العمومي',
-    'atelier-bruxelles-participation-locale':
-      'ورشة بروكسل: المشاركة المواطنة المحلية',
-  },
+  titles: CODED_EVENT_TITLES.ar,
   detail: {
     back: 'كل الفعاليات',
     badges: (e) => [
@@ -1956,6 +1649,16 @@ const ar: Labels = {
     founderBadge: 'عضو مؤسِّس',
     related: 'مواعيد أخرى',
     resources: 'التسجيلات والموارد',
+    replay: {
+      title: 'إعادة البث',
+      available: 'التسجيل متاح',
+      soon: 'التسجيل سيكون متاحًا قريبًا.',
+      seeAll: 'عرض كل التسجيلات',
+      visioTitle: 'الاجتماع المرئي',
+      visioLink: 'رابط الاجتماع المرئي',
+      visioSent:
+        'يُرسل رابط الاجتماع المرئي عبر البريد الإلكتروني إلى المسجّلين قبل الفعالية.',
+    },
     conf: {
       lead: 'يوم لتأسيس الشبكة علناً: مراكز دراسات من أفريقيا وأوروبا، وباحثون، ومسؤولون عموميون، وشباب منخرطون، يجتمعون للتفكير في الديمقراطية والدفاع عنها.',
       dayIntro: [
@@ -2162,19 +1865,60 @@ const ar: Labels = {
 // Table exhaustive par construction (cf. `projects-content.ts`).
 const BY_LOCALE: Record<Locale, Labels> = { fr, en, es, pt, ar };
 
+/**
+ * Nom d'une langue d'événement dans la langue de la page : le dictionnaire du
+ * catalogue pour fr/en, `Intl.DisplayNames` pour les autres (un événement du
+ * back-office peut se tenir en arabe ou en portugais).
+ */
+export function langLabel(L: Labels, lang: string, locale: Locale): string {
+  if (lang === 'fr' || lang === 'en') return L.langName[lang];
+  try {
+    const name = new Intl.DisplayNames([locale], { type: 'language' }).of(lang);
+    return name ? name.charAt(0).toUpperCase() + name.slice(1) : lang;
+  } catch {
+    return lang.toUpperCase();
+  }
+}
+
 export function getEventsLabels(locale: Locale): Labels {
   return BY_LOCALE[locale];
 }
 
 // --- Filtres liste (URL-driven, comme la bibliothèque) ---
-export const EVENT_FACETS = ['types', 'regions', 'formats', 'langs'] as const;
+//
+// Les filtres portent sur la liste que la page leur DONNE (`events`) : la
+// table `contentEvents` quand elle répond, le catalogue codé en repli
+// (`src/lib/contenus/agenda.ts`). Titre et lieu arrivent déjà traduits dans
+// chaque événement — la recherche ne passe plus par les dictionnaires codés,
+// qu'un événement créé depuis le back-office n'a pas.
+//
+// FILTRE PAR DATE (F-52) : la facette « mois » (`?mois=2026-11`) complète la
+// période (à venir / passés) et la vue calendrier. Ses valeurs sont les mois
+// qui portent au moins un événement de la période : jamais de cul-de-sac.
+export const EVENT_FACETS = [
+  'types',
+  'regions',
+  'formats',
+  'langs',
+  'months',
+] as const;
 export type EventFacetKey = (typeof EVENT_FACETS)[number];
 const EVENT_FACET_PARAM: Record<EventFacetKey, string> = {
   types: 'type',
   regions: 'region',
   formats: 'format',
   langs: 'lang',
+  months: 'mois',
 };
+
+// Ce que les filtres lisent d'un événement : la forme neutre, plus le titre et
+// le lieu DANS LA LANGUE de la page.
+export type SearchableEvent = EventData & { title: string; place: string };
+
+/** Mois d'un événement, clé de la facette « mois » : `YYYY-MM`. */
+export function eventMonth(e: Pick<EventData, 'y' | 'mo'>): string {
+  return `${e.y}-${String(e.mo).padStart(2, '0')}`;
+}
 
 function csv(value: string | string[] | undefined): string[] {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -2204,6 +1948,8 @@ export function parseEventFilters(
     regions: csv(sp.region),
     formats: csv(sp.format),
     langs: csv(sp.lang),
+    // Un mois mal formé est ignoré plutôt que de vider la liste.
+    months: csv(sp.mois).filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m)),
     q: q || undefined,
     sort,
   };
@@ -2239,6 +1985,7 @@ export function hasActiveEventFilters(f: EventFilters): boolean {
     f.regions.length ||
     f.formats.length ||
     f.langs.length ||
+    f.months.length ||
     f.q,
   );
 }
@@ -2247,34 +1994,40 @@ function has(list: string[], value: string): boolean {
   return list.length === 0 || list.includes(value);
 }
 
+function matchesQuery(
+  e: SearchableEvent,
+  q: string | undefined,
+  labels: Labels,
+): boolean {
+  if (!q) return true;
+  const hay =
+    `${e.title} ${e.place} ${labels.themes[e.theme] ?? ''} ${labels.types[e.type]}`.toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
 // Filtre + trie la liste pour une locale donnée (la recherche porte sur le titre
 // + la ville + le thème traduits).
-export function filterAndSortEvents(
+export function filterAndSortEvents<E extends SearchableEvent>(
   filters: EventFilters,
   labels: Labels,
-): EventData[] {
+  events: E[],
+): E[] {
   const wantUpcoming = filters.period === 'venir';
-  const out = EVENTS.filter((e) => {
+  const out = events.filter((e) => {
     if (e.upcoming !== wantUpcoming) return false;
     if (!has(filters.types, e.type)) return false;
     if (!has(filters.regions, e.region)) return false;
     if (!has(filters.formats, e.format)) return false;
+    if (!has(filters.months, eventMonth(e))) return false;
     if (
       filters.langs.length &&
-      !filters.langs.some((l) => e.langs.includes(l as 'fr' | 'en'))
+      !filters.langs.some((l) => (e.langs as string[]).includes(l))
     )
       return false;
-    if (filters.q) {
-      const q = filters.q.toLowerCase();
-      const hay =
-        `${labels.titles[e.slug]} ${labels.cities[e.cityKey]} ${labels.themes[e.theme]} ${labels.types[e.type]}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
+    return matchesQuery(e, filters.q, labels);
   });
   out.sort((a, b) => {
-    if (filters.sort === 'az')
-      return labels.titles[a.slug].localeCompare(labels.titles[b.slug], 'fr');
+    if (filters.sort === 'az') return a.title.localeCompare(b.title, 'fr');
     if (filters.sort === 'date-desc') return whenOf(b) - whenOf(a);
     return whenOf(a) - whenOf(b);
   });
@@ -2285,7 +2038,7 @@ export function filterAndSortEvents(
 // qui s'applique toujours) — pour compter les options d'une facette dans le
 // contexte des AUTRES filtres actifs + la période courante.
 function matchesEventExcept(
-  e: EventData,
+  e: SearchableEvent,
   f: EventFilters,
   labels: Labels,
   except: EventFacetKey,
@@ -2294,30 +2047,29 @@ function matchesEventExcept(
   if (except !== 'types' && !has(f.types, e.type)) return false;
   if (except !== 'regions' && !has(f.regions, e.region)) return false;
   if (except !== 'formats' && !has(f.formats, e.format)) return false;
+  if (except !== 'months' && !has(f.months, eventMonth(e))) return false;
   if (
     except !== 'langs' &&
     f.langs.length &&
-    !f.langs.some((l) => e.langs.includes(l as 'fr' | 'en'))
+    !f.langs.some((l) => (e.langs as string[]).includes(l))
   ) {
     return false;
   }
-  if (f.q) {
-    const q = f.q.toLowerCase();
-    const hay =
-      `${labels.titles[e.slug]} ${labels.cities[e.cityKey]} ${labels.themes[e.theme]} ${labels.types[e.type]}`.toLowerCase();
-    if (!hay.includes(q)) return false;
-  }
-  return true;
+  return matchesQuery(e, f.q, labels);
 }
 
 // Facettes « contextuelles » des événements (même principe que la bibliothèque) :
 // chaque option est comptée sur les événements correspondant aux AUTRES filtres
 // actifs (+ période). Les options sans événement disparaissent -> tout filtre
 // cliquable donne >=1 résultat ; les valeurs cochées restent listées (à 0).
-export function computeEventFacets(f: EventFilters, labels: Labels) {
+export function computeEventFacets(
+  f: EventFilters,
+  labels: Labels,
+  events: SearchableEvent[],
+) {
   const tally = (
-    list: EventData[],
-    pick: (e: EventData) => string[],
+    list: SearchableEvent[],
+    pick: (e: SearchableEvent) => string[],
     selected: string[],
   ): { value: string; count: number }[] => {
     const counts = new Map<string, number>();
@@ -2330,11 +2082,15 @@ export function computeEventFacets(f: EventFilters, labels: Labels) {
       .map(([value, count]) => ({ value, count }));
   };
   const sub = (except: EventFacetKey) =>
-    EVENTS.filter((e) => matchesEventExcept(e, f, labels, except));
+    events.filter((e) => matchesEventExcept(e, f, labels, except));
   return {
     types: tally(sub('types'), (e) => [e.type], f.types),
     regions: tally(sub('regions'), (e) => [e.region], f.regions),
     formats: tally(sub('formats'), (e) => [e.format], f.formats),
     langs: tally(sub('langs'), (e) => e.langs, f.langs),
+    // Les mois se lisent dans l'ordre du calendrier, pas par fréquence.
+    months: tally(sub('months'), (e) => [eventMonth(e)], f.months).sort(
+      (a, b) => a.value.localeCompare(b.value),
+    ),
   };
 }

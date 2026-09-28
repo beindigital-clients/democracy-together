@@ -86,7 +86,12 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     await expect(approved.getByText('Approuvée')).toBeVisible();
 
     // gestion des utilisateurs (admin)
-    await page.getByRole('link', { name: 'Utilisateurs', exact: true }).click();
+    await page
+      .getByRole('link', {
+        name: 'Utilisateurs (Administration)',
+        exact: true,
+      })
+      .click();
     await expect(page).toHaveURL(/\/admin\/utilisateurs$/);
     await chercherUtilisateur(page, adminEmail);
     await expect(page.getByText(adminEmail)).toBeVisible();

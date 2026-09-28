@@ -9,15 +9,15 @@
 import type { EventData } from './events-content';
 import { EVENTS } from './events-content';
 
-export type CalendarCell = {
+export type CalendarCell<E extends EventData = EventData> = {
   day: number | null; // numéro du jour, ou null pour les cases de remplissage
-  events: EventData[]; // événements tombant ce jour-là (vide pour les cases null)
+  events: E[]; // événements tombant ce jour-là (vide pour les cases null)
 };
 
-export type MonthGrid = {
+export type MonthGrid<E extends EventData = EventData> = {
   year: number;
   month: number; // 1-12
-  weeks: CalendarCell[][]; // 6 lignes × 7 colonnes (lundi → dimanche)
+  weeks: CalendarCell<E>[][]; // 6 lignes × 7 colonnes (lundi → dimanche)
 };
 
 const WEEKS = 6;
@@ -39,16 +39,19 @@ export function daysInMonth(year: number, month: number): number {
 // - Cases `null` avant le 1er (offset du jour de semaine) et après le dernier
 //   jour (jusqu'à compléter les 42 cases).
 // - Chaque case porte les événements dont (y, mo, d) correspondent exactement.
-export function buildMonthGrid(
+// Générique sur la forme d'événement : la page passe l'agenda chargé (table
+// ou repli codé, `src/lib/contenus/`), dont chaque événement porte déjà son
+// titre traduit ; les tests passent le catalogue codé par défaut.
+export function buildMonthGrid<E extends EventData = EventData>(
   year: number,
   month: number /* 1-12 */,
-  events: EventData[] = EVENTS,
-): MonthGrid {
+  events: E[] = EVENTS as E[],
+): MonthGrid<E> {
   const offset = mondayFirstWeekday(year, month);
   const total = daysInMonth(year, month);
 
   // Index des événements par jour du mois pour ce (year, month).
-  const byDay = new Map<number, EventData[]>();
+  const byDay = new Map<number, E[]>();
   for (const e of events) {
     if (e.y === year && e.mo === month) {
       const bucket = byDay.get(e.d);
@@ -57,7 +60,7 @@ export function buildMonthGrid(
     }
   }
 
-  const cells: CalendarCell[] = [];
+  const cells: CalendarCell<E>[] = [];
   for (let i = 0; i < WEEKS * DAYS_PER_WEEK; i++) {
     const dayNumber = i - offset + 1;
     if (dayNumber < 1 || dayNumber > total) {
@@ -67,7 +70,7 @@ export function buildMonthGrid(
     }
   }
 
-  const weeks: CalendarCell[][] = [];
+  const weeks: CalendarCell<E>[][] = [];
   for (let w = 0; w < WEEKS; w++) {
     weeks.push(cells.slice(w * DAYS_PER_WEEK, (w + 1) * DAYS_PER_WEEK));
   }

@@ -190,12 +190,12 @@ test('EN : noms accessibles et description racine en anglais (#34)', async ({
   // 2. La section de résultats : `<section aria-label>` -> rôle `region`.
   await expect(page.getByRole('region', { name: 'Results' })).toBeVisible();
 
-  // 3. La description par défaut du site, servie par `generateMetadata` du
-  // layout. `/en/don` n'a pas de métadonnées propres : c'est donc bien celle du
-  // layout qu'un moteur de recherche afficherait pour cette page.
+  // 3. La description servie en ANGLAIS. `/en/don` a désormais ses propres
+  // métadonnées (chantier paiements, 27/09) : c'est la sienne, traduite, que
+  // le moteur de recherche afficherait — la vérification porte sur la langue.
   await page.goto('/en/don');
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     'content',
-    'International network of think tanks for democracy · Africa–Europe.',
+    'Your donation funds Democracy Together’s meetings, publications and youth programmes in Africa and Europe.',
   );
 });

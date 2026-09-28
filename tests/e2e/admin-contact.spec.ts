@@ -51,7 +51,7 @@ async function deposerUnMessage(
   await page.getByLabel('Nom').fill('Awa Diop');
   await page.getByLabel('E-mail').fill(email);
   await page.getByLabel('Sujet').fill(sujet);
-  await page.getByLabel('Message').fill(CORPS);
+  await page.getByLabel('Message', { exact: true }).fill(CORPS);
   await page.getByRole('button', { name: 'Envoyer le message' }).click();
   await expect(
     page.getByRole('heading', { name: 'Message envoyé' }),

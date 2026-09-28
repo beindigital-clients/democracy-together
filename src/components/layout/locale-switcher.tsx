@@ -9,6 +9,7 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { withSearchParams } from '@/i18n/href';
 import { routing, type Locale } from '@/i18n/routing';
 import { LOCALE_ENDONYMS, direction, localeBadge } from '@/i18n/direction';
+import { Check } from 'lucide-react';
 
 // Sélecteur de langue — MENU, et non plus bascule segmentée.
 //
@@ -165,7 +166,6 @@ export function LocaleSwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={t('language')}
         aria-busy={pending}
         className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-ink-soft transition-colors hover:text-ink"
       >
@@ -181,6 +181,12 @@ export function LocaleSwitcher({
           <circle cx="12" cy="12" r="9" />
           <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" />
         </svg>
+        {/* NOM ACCESSIBLE = « Langue » + CE QUI EST AFFICHÉ (RGAA 7.1, WCAG
+            2.5.3). Un `aria-label` réduit à « Langue » REMPLAÇAIT le texte visible « FR » :
+            un utilisateur de commande vocale qui dit « cliquer FR » ne trouvait
+            rien, et un lecteur d'écran n'annonçait pas la langue courante.
+            Le mot est ajouté en texte masqué, le badge reste le texte visible. */}
+        <span className="sr-only">{t('language')} </span>
         <span
           lang={active}
           className="font-mono text-[11.5px] font-semibold uppercase leading-none"
@@ -245,10 +251,16 @@ export function LocaleSwitcher({
                     : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
                 }`}
               >
-                <span>{LOCALE_ENDONYMS[l]}</span>
+                {/* Langue courante : coche en plus de la teinte (RGAA 3.1). */}
+                <span className="inline-flex items-center gap-1.5">
+                  {current ? (
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : null}
+                  {LOCALE_ENDONYMS[l]}
+                </span>
                 <span
                   aria-hidden="true"
-                  className="font-mono text-[10.5px] uppercase text-muted"
+                  className="font-mono text-[11px] uppercase text-muted"
                 >
                   {l}
                 </span>

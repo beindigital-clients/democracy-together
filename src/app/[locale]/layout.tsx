@@ -17,6 +17,7 @@ import { IntlClientProvider } from '@/components/providers/intl-client-provider'
 import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
 import { MotionProvider } from '@/components/motion/motion-provider';
 import { CookieConsent } from '@/components/legal/cookie-consent';
+import { AudienceBeacon } from '@/components/analytics/audience-beacon';
 import {
   SITE_NAME,
   SITE_URL,
@@ -88,7 +89,10 @@ export function generateStaticParams() {
 
 // Applique le thème avant peinture (anti-flash). Le thème est une préférence
 // visuelle sans enjeu SEO -> localStorage est légitime ici.
-const themeInit = `(function(){try{var t=localStorage.getItem('dt-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
+// Sans préférence ENREGISTRÉE, c'est celle du système qui décide
+// (`prefers-color-scheme`) : mesuré le 27/09, un navigateur réglé en sombre
+// arrivait en clair tant qu'il n'avait pas touché à la bascule.
+const themeInit = `(function(){try{var t=localStorage.getItem('dt-theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
 
 // Filet pour les navigateurs sans JavaScript (F-05, faible débit) : les
 // primitives d'animation posent `opacity:0` en style inline côté serveur. Sans
@@ -159,10 +163,24 @@ export default async function LocaleLayout({
           >
             <ConvexClientProvider>
               <MotionProvider>
+                {/* Lien d'évitement (RGAA 12.7) : douze tabulations séparaient
+                    le premier focus du contenu (mesuré le 27/09). Invisible
+                    jusqu'au focus clavier, premier élément focalisable de la
+                    page. */}
+                <a
+                  href="#contenu"
+                  className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-contrast focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+                >
+                  {tSite('skipToContent')}
+                </a>
                 <SiteHeader />
-                <main className="flex-1">{children}</main>
+                <main id="contenu" className="flex-1">
+                  {children}
+                </main>
                 <SiteFooter />
                 <CookieConsent />
+                {/* Mesure d'audience first-party, sans cookie (F-66). */}
+                <AudienceBeacon />
               </MotionProvider>
             </ConvexClientProvider>
           </IntlClientProvider>

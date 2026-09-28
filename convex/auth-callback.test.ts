@@ -43,6 +43,38 @@ describe('Connexion — décision du callback createOrUpdateUser (F-01)', () => 
     );
   });
 
+  it('relie un mot de passe à un compte invité SANS toucher à son rôle ni à son profil (R-05)', async () => {
+    // C'est le chemin de l'écran « définir mon mot de passe » de l'espace
+    // membre : `signIn('password', { flow: 'signUp' })` sur l'adresse d'un
+    // compte provisionné passe par `createAccount`, donc par ce callback. Il
+    // doit rendre l'identifiant EXISTANT — Convex Auth se contente alors
+    // d'insérer la ligne `authAccounts` — et ne rien réécrire : un rôle
+    // modérateur qui redeviendrait « visiteur » en posant un mot de passe
+    // serait une régression silencieuse.
+    const t = convexTest(schema, modules);
+    const userId = await t.run((ctx) =>
+      ctx.db.insert('users', {
+        email: MEMBRE,
+        role: 'moderateur',
+        name: 'Awa Diop',
+        preferredLocale: 'pt',
+      }),
+    );
+    const avant = await t.run((ctx) => ctx.db.get(userId));
+
+    expect(await t.run((ctx) => resolveSignInUserId(ctx.db, MEMBRE))).toBe(
+      userId,
+    );
+
+    const apres = await t.run((ctx) => ctx.db.get(userId));
+    expect(apres).toEqual(avant);
+    expect(apres?.role).toBe('moderateur');
+    // Et aucun second compte n'est né de la liaison.
+    expect(await t.run((ctx) => ctx.db.query('users').collect())).toHaveLength(
+      1,
+    );
+  });
+
   it("refuse un e-mail inconnu et ne crée aucun compte (pas d'auto-inscription)", async () => {
     const t = convexTest(schema, modules);
     await t.run((ctx) =>

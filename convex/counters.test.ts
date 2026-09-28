@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
+import { hashToken } from './lib/newsletterOptIn';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -13,6 +14,28 @@ const modules = import.meta.glob([
   '!./auth.config.ts',
   '!./http.ts',
 ]);
+
+// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
+// notifications, signalements) : le mode A POSTERIORI y est réglé
+// explicitement, comme le ferait l'administrateur. La modération a priori —
+// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// (convex/communaute-moderation.test.ts).
+async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+  await t.run(async (ctx) => {
+    const admin = await ctx.db.insert('users', {
+      role: 'admin',
+      email: 'reglages@test.org',
+    });
+    await ctx.db.insert('communityModerationConfig', {
+      key: 'default',
+      postMode: 'a_posteriori',
+      commentMode: 'a_posteriori',
+      updatedBy: admin,
+      updatedAt: 0,
+    });
+  });
+  return t;
+}
 
 // Compteurs dénormalisés du back-office (issue #8).
 //
@@ -95,7 +118,7 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
   });
 
   it('retirer un billet de la Tribune décrémente le compteur des publiés', async () => {
-    const t = convexTest(schema, modules);
+    const t = await aPosteriori(convexTest(schema, modules));
     const memberId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
     );
@@ -136,8 +159,20 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'abonne@test.org',
     });
+    // Double opt-in (chantier diffusion) : une ATTENTE ne compte pas — le
+    // compteur est celui des abonnés qu'une campagne atteint.
+    expect((await counters(t))['newsletterSubscriptions'] ?? 0).toBe(0);
+    // Le lien du courriel porte un jeton dont seule l'empreinte est en base :
+    // on arme une empreinte connue, puis la confirmation passe par le vrai
+    // chemin public — c'est elle qui incrémente.
+    const jeton = 'c'.repeat(64);
+    const empreinte = await hashToken(jeton);
+    await t.run(async (ctx) => {
+      const [sub] = await ctx.db.query('newsletterSubscriptions').collect();
+      await ctx.db.patch(sub._id, { confirmTokenHash: empreinte });
+    });
+    await t.mutation(api.newsletter.confirm, { token: jeton });
     expect((await counters(t))['newsletterSubscriptions']).toBe(1);
-
     const token = await t.run(async (ctx) => {
       const [sub] = await ctx.db.query('newsletterSubscriptions').collect();
       return sub.unsubToken!;

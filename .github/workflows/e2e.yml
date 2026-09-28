@@ -122,6 +122,10 @@ jobs:
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" AUTH_DEV_OTP true
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" RECAPTCHA_DISABLED true
           npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" SITE_URL http://localhost:3000
+          # Prestataire de paiement FACTICE (F-28, paiements-don.spec.ts) :
+          # refusé par le serveur sans AUTH_DEV_OTP et en présence d'une clé
+          # de production (convex/lib/payments/config.ts).
+          npx convex env set --preview-name "$CONVEX_PREVIEW_NAME" PAYMENTS_FAKE_PROVIDER 1
 
       - name: Vérifier les clés Convex Auth de la préversion
         run: |
@@ -142,6 +146,12 @@ jobs:
         run: |
           npx convex run --preview-name "$CONVEX_PREVIEW_NAME" seed:seedDirectory '{}'
           npx convex run --preview-name "$CONVEX_PREVIEW_NAME" seedPublications:seedPublications '{}'
+          # Contenus éditoriaux (chantier « contenus ») : l'agenda, les replays,
+          # les partenaires et les thématiques codés sont recopiés en base. Sans
+          # cet import, le premier événement créé par `contenus-*.spec.ts`
+          # ferait basculer l'agenda de son repli codé sur une table qui ne
+          # contient que lui. Idempotent (docs/backlog/contenus.md).
+          npx convex run --preview-name "$CONVEX_PREVIEW_NAME" contenus/migration:importCodedContent '{}'
 
       # Un seul navigateur : les projets `chromium` (desktop) et
       # `mobile-chromium` (viewport téléphone + tactile) partagent le binaire.

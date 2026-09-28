@@ -42,7 +42,9 @@ test("l'espace membre affiche l'utilisateur courant", async ({ page }) => {
   const email = `e2e_me_${Date.now()}@democracytogether.test`;
   await signUpAndVerify(page, email, E2E_PASSWORD);
   await expect(page.getByText(email).first()).toBeVisible();
-  await expect(page.getByText('visiteur', { exact: true })).toBeVisible();
+  // Le rôle est affiché par son LIBELLÉ (`auth.role_*`), plus par sa valeur
+  // brute « visiteur » (auth A-7).
+  await expect(page.getByText('Visiteur', { exact: true })).toBeVisible();
   // visiteur -> invité à candidater (pas encore membre)
   await expect(
     page.getByRole('heading', { name: 'Devenez membre du réseau' }),

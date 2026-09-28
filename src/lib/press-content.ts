@@ -92,7 +92,7 @@ const fr: PressKit = {
       label: 'Données du Baromètre (CSV, CC-BY)',
       description:
         "L'indice composite Afrique-Europe en données ouvertes, prêtes à être citées et réutilisées.",
-      href: '/fr/barometre/data/composite.csv',
+      href: '/barometre/data/composite.csv',
       external: true,
     },
     {
@@ -100,7 +100,7 @@ const fr: PressKit = {
       label: 'Codebook du Baromètre (TXT)',
       description:
         'Le dictionnaire des variables et la méthode de construction de chaque indicateur.',
-      href: '/fr/barometre/data/codebook.txt',
+      href: '/barometre/data/codebook.txt',
       external: true,
     },
   ],
@@ -149,7 +149,7 @@ const en: PressKit = {
       label: 'Barometer data (CSV, CC-BY)',
       description:
         'The composite Africa-Europe index as open data, ready to be cited and reused.',
-      href: '/fr/barometre/data/composite.csv',
+      href: '/barometre/data/composite.csv',
       external: true,
     },
     {
@@ -157,7 +157,7 @@ const en: PressKit = {
       label: 'Barometer codebook (TXT)',
       description:
         'The dictionary of variables and the construction method behind each indicator.',
-      href: '/fr/barometre/data/codebook.txt',
+      href: '/barometre/data/codebook.txt',
       external: true,
     },
   ],
@@ -206,7 +206,7 @@ const es: PressKit = {
       label: 'Datos del Barómetro (CSV, CC-BY)',
       description:
         'El índice compuesto África-Europa en datos abiertos, listos para ser citados y reutilizados.',
-      href: '/fr/barometre/data/composite.csv',
+      href: '/barometre/data/composite.csv',
       external: true,
     },
     {
@@ -214,7 +214,7 @@ const es: PressKit = {
       label: 'Libro de códigos del Barómetro (TXT)',
       description:
         'El diccionario de variables y el método de construcción de cada indicador.',
-      href: '/fr/barometre/data/codebook.txt',
+      href: '/barometre/data/codebook.txt',
       external: true,
     },
   ],
@@ -263,7 +263,7 @@ const pt: PressKit = {
       label: 'Dados do Barómetro (CSV, CC-BY)',
       description:
         'O índice compósito África-Europa em dados abertos, prontos a ser citados e reutilizados.',
-      href: '/fr/barometre/data/composite.csv',
+      href: '/barometre/data/composite.csv',
       external: true,
     },
     {
@@ -271,7 +271,7 @@ const pt: PressKit = {
       label: 'Livro de códigos do Barómetro (TXT)',
       description:
         'O dicionário das variáveis e o método de construção de cada indicador.',
-      href: '/fr/barometre/data/codebook.txt',
+      href: '/barometre/data/codebook.txt',
       external: true,
     },
   ],
@@ -320,14 +320,14 @@ const ar: PressKit = {
       label: 'بيانات المؤشر (CSV، CC-BY)',
       description:
         'المؤشر المركّب لأفريقيا وأوروبا في صيغة بيانات مفتوحة، جاهزة للاستشهاد وإعادة الاستخدام.',
-      href: '/fr/barometre/data/composite.csv',
+      href: '/barometre/data/composite.csv',
       external: true,
     },
     {
       slug: 'codebook',
       label: 'دليل ترميز المؤشر (TXT)',
       description: 'قاموس المتغيرات ومنهجية بناء كل مؤشر فرعي.',
-      href: '/fr/barometre/data/codebook.txt',
+      href: '/barometre/data/codebook.txt',
       external: true,
     },
   ],

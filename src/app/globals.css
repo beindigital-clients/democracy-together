@@ -18,6 +18,11 @@
   --muted: #646771;
   --line: #d9d6cd;
   --line-strong: #c3bfb3;
+  /* Bordure des CHAMPS de formulaire (RGAA 3.3, WCAG 1.4.11). `--line`
+     (1,4:1 sur la surface) était la seule limite visible d'un champ de
+     saisie — un composant d'interface dont la limite doit atteindre 3:1.
+     3,7:1 sur `--surface`, 3,5:1 sur `--paper` (mesuré à l'audit du 27/09). */
+  --line-field: #858176;
 
   /* accent — institutionnel (indigo civique) */
   --accent: #1f3d6e;
@@ -33,10 +38,23 @@
   --bar-3: #e0b85c;
   --bar-4: #cc8748;
   --bar-5: #9a4b3b;
+  /* Variantes TEXTE des teintes 2 et 4 du baromètre. Comme aplats de carte,
+     `--bar-2`/`--bar-4` sont justes ; comme texte de 11 px sur `--surface`,
+     mesuré le 27/09 : 2,51:1 et 2,81:1. Ces deux jetons ne servent qu'aux
+     libellés de catégorie (5,0:1 et 4,7:1), la carte garde sa palette. */
+  --bar-2-ink: #3a7480;
+  --bar-4-ink: #a2601f;
 
   /* carte choroplèthe */
   --map-land: #dedad0;
   --map-stroke: #efede4;
+
+  /* QR code d'inscription 2FA (chantier comptes). Noir sur blanc dans LES
+     DEUX thèmes, et c'est voulu : beaucoup d'applications d'authentification
+     ne lisent pas un QR code inversé. Ces deux jetons ne sont donc pas
+     redéfinis sous [data-theme='dark']. */
+  --qr-ink: #000000;
+  --qr-paper: #ffffff;
 
   /* layout */
   --measure: 66ch;
@@ -80,7 +98,14 @@
   --accent: #f58b1a;
   --accent-strong: #d4770e;
   --accent-text: #8a4a08;
-  --accent-contrast: var(--paper);
+  /* TEXTE SOMBRE sur safran, pas le papier. Mesuré le 27/09 (axe, thème
+     clair) : papier #f4f2ec sur safran = 2,18:1, et 1,8 à 2,1 pour les
+     variantes à 80–90 % d'opacité — 32 nœuds sur /, /jeunes et /a-propos.
+     Aucun orange qui reste du safran n'atteint 4,5:1 sous du texte clair ;
+     l'encre, elle, tient 7:1 sur #f58b1a — et c'est déjà ce que fait le thème
+     sombre, où `--paper` est sombre. Ajustement validé par le client (point 5
+     des arbitrages du 23/09). Le safran ne bouge pas. */
+  --accent-contrast: var(--ink);
   --accent-tint: rgba(245, 139, 26, 0.13);
   --accent-edge: rgba(245, 139, 26, 0.35);
 }
@@ -95,10 +120,26 @@
   --muted: #8b8e96;
   --line: #2b313a;
   --line-strong: #3a414c;
+  /* 3,7:1 sur `--surface`, 4,1:1 sur `--paper` (thème sombre). */
+  --line-field: #727884;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.45);
   --map-land: #2a303a;
   --map-stroke: #14171c;
+  /* Le rouge des erreurs de formulaire et du bouton destructif. Le jeton clair
+     (#9a4b3b) fait 2,68:1 sur `--surface` sombre — WCAG AA échoué sur chaque
+     message d'erreur, mesuré sur /contact et /adhesion en sombre. Celui-ci
+     tient 4,9:1 sur la plus claire des surfaces (`--surface-2`), et le texte
+     `--paper` posé dessus par le bouton destructif reste à 5,9:1. */
+  --bar-5: #d97a66;
+  /* Même raison pour le bleu des badges de type (bibliothèque) et de la
+     catégorie « libre » (baromètre) : 2,66:1 sur `--surface-2` en sombre,
+     5,4:1 avec celui-ci. Les trois autres teintes tiennent déjà (≥ 5:1). */
+  --bar-1: #5fa3c4;
+  /* En sombre, les teintes 2 et 4 tiennent déjà comme texte (≥ 5:1 sur
+     `--surface-2`) : les variantes texte se confondent avec les aplats. */
+  --bar-2-ink: var(--bar-2);
+  --bar-4-ink: var(--bar-4);
 
   --accent: #3a63a6;
   --accent-strong: #4b74b8;
@@ -152,6 +193,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-line-field: var(--line-field);
 
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
@@ -165,6 +207,10 @@
   --color-bar-3: var(--bar-3);
   --color-bar-4: var(--bar-4);
   --color-bar-5: var(--bar-5);
+  --color-bar-2-ink: var(--bar-2-ink);
+  --color-bar-4-ink: var(--bar-4-ink);
+  --color-qr-ink: var(--qr-ink);
+  --color-qr-paper: var(--qr-paper);
 
   --radius-xs: var(--r-xs);
   --radius-sm: var(--r-sm);
@@ -406,5 +452,54 @@
   .dt-doc-table th {
     background: transparent !important;
     font-weight: 600;
+  }
+}
+
+/* ---- entrée du hero de l'accueil (F-05) ----
+   En CSS pour que le premier écran soit visible avant l'hydratation en faible
+   débit — cf. src/components/home/home-hero.tsx. `both` : l'état de départ
+   tient pendant le délai, puis l'état final reste. */
+@keyframes dt-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dt-hero-word {
+  from {
+    transform: translateY(108%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes dt-hero-image {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dt-hero-in {
+  animation: dt-hero-in 0.85s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+.dt-hero-word {
+  animation: dt-hero-word 0.95s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+.dt-hero-image {
+  animation: dt-hero-image 1.3s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dt-hero-in,
+  .dt-hero-word,
+  .dt-hero-image {
+    animation: none;
   }
 }

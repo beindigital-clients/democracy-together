@@ -1,10 +1,14 @@
 import { v } from 'convex/values';
 import { paginationOptsValidator } from 'convex/server';
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { query, mutation, type QueryCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { requireNetworkRole, getCurrentUser, rank } from './lib/rbac';
+import {
+  requireNetworkRole,
+  getCurrentUser,
+  getActiveUserId,
+  rank,
+} from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
@@ -16,8 +20,10 @@ import {
   RATE_LIMITS,
 } from './lib/rateLimit';
 import { trackPublicationStatus } from './lib/counters';
+import { organizationOfAuthor } from './lib/orgMembership';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { normalizeSearchTerm } from './lib/search';
+import { publicationSearchText } from './lib/searchText';
 import {
   matchesPublication,
   sortPublications,
@@ -189,6 +195,34 @@ export const recordPublicationView = mutation({
   },
 });
 
+// Compteur de téléchargements / consultations — mutation PUBLIQUE, appelée au
+// clic sur « Télécharger le PDF » ou « Consulter (DOI) » de la fiche.
+//
+// Mesuré le 27/09 (membre A-8) : AUCUNE mutation n'écrivait `downloads` — le
+// compteur « Télécharg. » affiché n'était que la valeur posée par le seed, et
+// ne bougeait jamais. Même garde que les vues : quota par (bloc d'adresses,
+// publication), dépassement = non compté et non signalé ; no-op sur une
+// publication absente ou non publiée. Le décompte reste sur le document
+// (`downloads`, lu par la liste et la fiche) : un clic est un événement rare
+// — sans commune mesure avec une consultation — et c'est ce champ que le
+// tri « plus téléchargées » et les cartes affichent.
+export const recordPublicationDownload = mutation({
+  args: { slug: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { slug }) => {
+    if (!(await consumePublicationViewQuota(ctx, `dl:${slug}`))) return null;
+
+    const pub = await ctx.db
+      .query('publications')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique();
+    if (!pub || pub.status !== 'published') return null;
+
+    await ctx.db.patch(pub._id, { downloads: pub.downloads + 1 });
+    return null;
+  },
+});
+
 // Publications liées (même thématique) — pour le bloc « Dans la même
 // thématique » du détail. Exclut la publication courante, bornée à `limit`.
 export const relatedByTheme = query({
@@ -314,7 +348,14 @@ export const submitPublication = mutation({
       const typeRejected = meta?.contentType
         ? !ALLOWED_FILE_TYPES.includes(meta.contentType)
         : false;
-      if (!meta || meta.size > MAX_FILE_BYTES || typeRejected) {
+      // Un fichier VIDE n'est pas un document : accepté, il devenait une
+      // publication dont le « PDF » pèse 0 octet (mesuré le 27/09).
+      if (
+        !meta ||
+        meta.size === 0 ||
+        meta.size > MAX_FILE_BYTES ||
+        typeRejected
+      ) {
         throw new Error('INVALID_FILE');
       }
     }
@@ -331,6 +372,10 @@ export const submitPublication = mutation({
     ) {
       slug = `${root}-${n++}`;
     }
+
+    // Organisation du déposant (F-21) : la fiche publique de l'organisation
+    // liste ce que ses comptes publient.
+    const organizationId = await organizationOfAuthor(ctx, user._id);
 
     const now = Date.now();
     const id = await ctx.db.insert('publications', {
@@ -357,6 +402,17 @@ export const submitPublication = mutation({
       createdAt: now,
       ...(args.fileId ? { fileId: args.fileId } : {}),
       ...(args.fileName ? { fileName: args.fileName.slice(0, 200) } : {}),
+      // Recherche globale (chantier diffusion) : meule tenue à l'écriture.
+      // Un dépôt `pending` est indexé mais JAMAIS servi — la recherche fixe
+      // `status: 'published'` dans la lecture d'index.
+      searchText: publicationSearchText({
+        title,
+        authors,
+        abstract,
+        keypoints,
+      }),
+      searchLang: languages[0],
+      ...(organizationId ? { organizationId } : {}),
     });
 
     await trackPublicationStatus(ctx, null, 'pending');
@@ -402,7 +458,7 @@ export const submitPublication = mutation({
 export const listMine = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getActiveUserId(ctx);
     if (!userId) return [];
     const mine = await ctx.db
       .query('publications')
@@ -493,7 +549,13 @@ export const listForReview = query({
   },
   returns: paginatedValidator(reviewItemValidator),
   handler: async (ctx, { status, search, paginationOpts }) => {
-    await requireNetworkRole(ctx, 'moderateur');
+    const viewer = await requireNetworkRole(ctx, 'moderateur');
+    // DOUBLE AVEUGLE (F-43, chantier editorial) : un modérateur peut être le
+    // RELECTEUR d'un manuscrit présent dans cette file. Pour une publication
+    // engagée dans une revue à comité de lecture, l'identité de l'auteur — noms,
+    // adresse, fichier d'origine (ses métadonnées le nomment souvent) — n'est
+    // rendue qu'à l'éditeur, qui pilote la revue.
+    const seesAuthors = rank(viewer.role) >= rank('editeur');
     const opts = clampPageSize(paginationOpts);
     const term = normalizeSearchTerm(search);
     const result = term
@@ -522,32 +584,37 @@ export const listForReview = query({
     return {
       ...result,
       page: await Promise.all(
-        result.page.map(async (p) => ({
-          _id: p._id,
-          title: p.title,
-          slug: p.slug,
-          type: p.type,
-          theme: p.theme,
-          region: p.region,
-          languages: p.languages,
-          access: p.access,
-          year: p.year,
-          abstract: p.abstract,
-          authors: p.authors,
-          status: p.status,
-          submittedAt: p.submittedAt ?? p.createdAt,
-          // Un `draft` AVEC `reviewedAt` est un refus, pas un brouillon jamais
-          // soumis (issue #32) : c'est ce qui rend le bouton « Rouvrir ».
-          reviewedAt: p.reviewedAt ?? null,
-          reviewNotes: p.reviewNotes ?? null,
-          authorEmail:
-            (p.authorUserId ? authors.get(p.authorUserId)?.email : null) ??
-            null,
-          fileName: p.fileName ?? null,
-          fileUrl: p.fileId ? await ctx.storage.getUrl(p.fileId) : null,
-          aiReview: p.aiReview ?? null,
-          autoPublished: p.autoPublished === true,
-        })),
+        result.page.map(async (p) => {
+          const blind = p.reviewStage !== undefined && !seesAuthors;
+          return {
+            _id: p._id,
+            title: p.title,
+            slug: p.slug,
+            type: p.type,
+            theme: p.theme,
+            region: p.region,
+            languages: p.languages,
+            access: p.access,
+            year: p.year,
+            abstract: p.abstract,
+            authors: blind ? [] : p.authors,
+            status: p.status,
+            submittedAt: p.submittedAt ?? p.createdAt,
+            // Un `draft` AVEC `reviewedAt` est un refus, pas un brouillon jamais
+            // soumis (issue #32) : c'est ce qui rend le bouton « Rouvrir ».
+            reviewedAt: p.reviewedAt ?? null,
+            reviewNotes: p.reviewNotes ?? null,
+            authorEmail: blind
+              ? null
+              : ((p.authorUserId ? authors.get(p.authorUserId)?.email : null) ??
+                null),
+            fileName: blind ? null : (p.fileName ?? null),
+            fileUrl:
+              !blind && p.fileId ? await ctx.storage.getUrl(p.fileId) : null,
+            aiReview: p.aiReview ?? null,
+            autoPublished: p.autoPublished === true,
+          };
+        }),
       ),
     };
   },

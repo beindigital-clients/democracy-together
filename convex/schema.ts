@@ -13,6 +13,17 @@ import {
   aiModerationVerdict,
   aiModerationApplied,
 } from './lib/aiModeration';
+import { socialTables } from './lib/tables/social';
+import { paiementsTables } from './lib/tables/paiements';
+import {
+  contentStatusValidator,
+  storedWorkspaceRoleValidator,
+  workspaceVisibilityValidator,
+} from './lib/communaute';
+import { communauteTables } from './lib/tables/communaute';
+import { contenusTables } from './lib/tables/contenus';
+import { comptesTables } from './lib/tables/comptes';
+import { programmesTables } from './lib/tables/programmes';
 
 // Rôles réseau (F-02) — hiérarchie croissante, voir convex/lib/rbac.ts.
 export const networkRole = v.union(
@@ -27,7 +38,10 @@ export const networkRole = v.union(
 // `contentTranslations` tire `./lib/translation`, qui en a besoin aussi). Il
 // reste ré-exporté ici : une dizaine de modules l'importent de `./schema`.
 import { locale } from './lib/locales';
+import { manuscriptStage } from './lib/manuscripts';
+import { editorialTables } from './lib/tables/editorial';
 export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
+import { diffusionTables } from './lib/tables/diffusion';
 
 export default defineSchema({
   // Tables de Convex Auth (users, authSessions, authAccounts, ...).
@@ -45,6 +59,13 @@ export default defineSchema({
     // --- Democracy Together ---
     role: v.optional(networkRole),
     preferredLocale: v.optional(locale),
+    // Suspension (chantier comptes, F-63). Posée sur le compte lui-même et non
+    // dans une table à part : TOUTES les gardes de convex/lib/rbac.ts la
+    // lisent, et elles lisent déjà ce document — la vérifier ne coûte aucune
+    // lecture de plus. Le motif est obligatoire à la suspension.
+    suspendedAt: v.optional(v.number()),
+    suspensionReason: v.optional(v.string()),
+    suspendedBy: v.optional(v.id('users')),
   })
     .index('email', ['email'])
     // `by_role` sert la garde « zéro admin » de l'amorçage (convex/bootstrap.ts) :
@@ -79,10 +100,28 @@ export default defineSchema({
       v.literal('suspended'),
     ),
     createdAt: v.number(),
+    // Meule de recherche PLIÉE (F-06, chantier diffusion) — nom, description,
+    // pays en toutes lettres, sans accents. Tenue à l'écriture
+    // (`organizationSearchText`), remplie pour l'existant par
+    // `searchIndexing.backfill`. Optionnelle : un document qui ne la porte pas
+    // n'est simplement pas trouvé par la recherche globale.
+    searchText: v.optional(v.string()),
+    // Fiche membre (F-21, chantier comptes) : logo dans le stockage Convex
+    // (contenu vérifié avant d'être accepté) et choix de l'organisation de
+    // montrer, ou non, ses membres sur sa page publique.
+    logoFileId: v.optional(v.id('_storage')),
+    showMembers: v.optional(v.boolean()),
+    updatedAt: v.optional(v.number()),
   })
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
-    .index('by_region', ['region']),
+    .index('by_region', ['region'])
+    // Recherche globale : `status` en filtre pour que seules les fiches
+    // actives sortent, DANS la lecture d'index (pas après).
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['status', 'region'],
+    }),
 
   // Rattachement utilisateur <-> organisation (délégation, F-21).
   organizationMemberships: defineTable({
@@ -150,15 +189,10 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
     reviewNotes: v.optional(v.string()),
     // Revue à comité de lecture (F-43) — couche AU-DESSUS de la modération.
-    // Étape optionnelle : 'in_review' (relecteur assigné), 'revision' (retour
-    // à l'auteur), 'reviewed' (avis rendu). Voir convex/peerReview.ts.
-    reviewStage: v.optional(
-      v.union(
-        v.literal('in_review'),
-        v.literal('revision'),
-        v.literal('reviewed'),
-      ),
-    ),
+    // Étape de la machine à états du manuscrit (convex/lib/manuscripts.ts) :
+    // submitted → in_review → revision → resubmitted → accepted / rejected.
+    // `reviewed` est l'étape héritée de la première version (« avis rendu »).
+    reviewStage: v.optional(manuscriptStage),
     // Modération assistée par IA — RÉSUMÉ DÉNORMALISÉ du dernier avis rendu
     // (convex/aiModeration.ts). L'avis complet — signaux, extraits cités,
     // modèle, jetons — vit dans `aiModerationReviews` : la file de modération
@@ -183,12 +217,23 @@ export default defineSchema({
     // Document téléversé (F-32) : fichier dans le stockage Convex + nom d'origine.
     fileId: v.optional(v.id('_storage')),
     fileName: v.optional(v.string()),
+    // Organisation du déposant (F-21, chantier comptes) : posée au dépôt quand
+    // le compte est rattaché à une organisation. C'est ce qui permet à la
+    // fiche publique de lister SES publications.
+    organizationId: v.optional(v.id('organizations')),
     createdAt: v.number(),
+    // Recherche plein texte (F-06/F-34, chantier diffusion) : meule PLIÉE
+    // (titre, auteurs, résumé, points clés) et langue principale — un tableau
+    // (`languages`) ne peut pas servir de filtre d'égalité dans un index de
+    // recherche. Tenues à l'écriture, remplies par `searchIndexing.backfill`.
+    searchText: v.optional(v.string()),
+    searchLang: v.optional(locale),
   })
     .index('by_slug', ['slug'])
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
     .index('by_author', ['authorUserId'])
+    .index('by_organization_and_status', ['organizationId', 'status'])
     // File de revue (F-43, convex/peerReview.ts) : `reviewStage` n'est posé que
     // sur les publications ENGAGÉES dans une revue — une infime minorité de la
     // table. L'index les isole sans lire les autres. Les documents où le champ
@@ -202,6 +247,13 @@ export default defineSchema({
     .searchIndex('search_title', {
       searchField: 'title',
       filterFields: ['status'],
+    })
+    // Recherche PUBLIQUE (palette, /recherche). `status` y est TOUJOURS fixé à
+    // 'published' par la requête : un brouillon ne peut pas sortir, quel que
+    // soit le terme. Les autres filtres sont ceux de la page de résultats.
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['status', 'type', 'theme', 'region', 'searchLang', 'year'],
     }),
 
   // Consultations par publication (F-37) — compteur ISOLÉ du document.
@@ -238,6 +290,11 @@ export default defineSchema({
       v.literal('reject'),
     ),
     comment: v.string(),
+    // Version du manuscrit évaluée (F-43, chantier editorial). Absente sur les
+    // avis antérieurs aux versions : ils portent sur la version 1.
+    version: v.optional(v.number()),
+    // Commentaire CONFIDENTIEL à l'éditeur — jamais montré à l'auteur.
+    commentToEditor: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index('by_publication', ['publicationId'])
@@ -246,6 +303,45 @@ export default defineSchema({
     // publication. L'index rend la garde de `peerReview.submitReview` exacte
     // sans relire toute la liste des avis.
     .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId']),
+
+  // Assignations de relecture (campagne du 27/09, R-01 / A-02). `assignReviewer`
+  // ne faisait que NOTIFIER : rien ne retenait qui avait été désigné sur quoi.
+  // Or la file complète (`getReviewQueue`) est réservée à l'éditeur, alors que
+  // le relecteur est souvent un modérateur : notifié, il n'avait aucun écran
+  // qui lui rende « ce qu'on lui a confié ». Cette table est ce que lit la vue
+  // « Mes relectures » — par l'index `by_reviewer`, sans parcourir les
+  // publications. Une ligne par (publication, relecteur) ; réassigner sur une
+  // revue rouverte met la ligne à jour au lieu d'en créer une seconde.
+  peerReviewAssignments: defineTable({
+    publicationId: v.id('publications'),
+    reviewerUserId: v.id('users'),
+    assignedBy: v.id('users'),
+    assignedAt: v.number(),
+    // --- Chantier editorial (F-43) : tours, échéances, conflits d'intérêts ---
+    // Version que ce relecteur évalue dans le tour en cours.
+    version: v.optional(v.number()),
+    // Échéance de l'avis. Posée tant que l'avis est ATTENDU, effacée quand il
+    // est rendu, que le relecteur se récuse ou que la revue se clôt : l'index
+    // `by_dueAt` ne contient donc que les relectures en souffrance, et la
+    // tâche de relance les lit sans parcourir les assignations closes.
+    dueAt: v.optional(v.number()),
+    remindersSent: v.optional(v.number()),
+    lastReminderAt: v.optional(v.number()),
+    // L'éditeur a été prévenu du retard après la dernière relance.
+    overdueNotifiedAt: v.optional(v.number()),
+    // Déclaration de conflit d'intérêts, préalable à l'accès au manuscrit.
+    conflict: v.optional(
+      v.object({
+        hasConflict: v.boolean(),
+        details: v.optional(v.string()),
+        declaredAt: v.number(),
+      }),
+    ),
+  })
+    .index('by_reviewer', ['reviewerUserId'])
+    .index('by_publication', ['publicationId'])
+    .index('by_publication_and_reviewer', ['publicationId', 'reviewerUserId'])
+    .index('by_dueAt', ['dueAt']),
 
   // Candidatures d'adhésion (F-22) — workflow de validation par un modérateur.
   membershipApplications: defineTable({
@@ -289,17 +385,51 @@ export default defineSchema({
   // Inscriptions à la newsletter (F-18). Newsletter maison : envoi orchestré par
   // Convex via l'adaptateur e-mail (Resend, puis AWS SES). `unsubToken` = lien
   // de désinscription dans chaque envoi.
+  //
+  // DOUBLE OPT-IN (chantier diffusion) : une inscription naît `pending` et ne
+  // reçoit RIEN tant que le lien de confirmation n'a pas été suivi. Le jeton
+  // de confirmation n'est stocké que HACHÉ (SHA-256) : une fuite de la table ne
+  // permet de confirmer personne. `status` absent = abonné HÉRITÉ, antérieur au
+  // double opt-in — il ne reçoit pas les campagnes tant que
+  // `newsletter.migrateLegacySubscribers` ne lui a pas demandé confirmation
+  // (cf. docs/backlog/diffusion.md).
   newsletterSubscriptions: defineTable({
     email: v.string(),
     locale: v.optional(locale),
     unsubToken: v.optional(v.string()),
     createdAt: v.number(),
+    status: v.optional(v.union(v.literal('pending'), v.literal('confirmed'))),
+    confirmTokenHash: v.optional(v.string()),
+    confirmExpiresAt: v.optional(v.number()),
+    // Nombre d'e-mails de confirmation envoyés — le renvoi est BORNÉ.
+    confirmSends: v.optional(v.number()),
+    confirmLastSentAt: v.optional(v.number()),
+    confirmedAt: v.optional(v.number()),
+    // PREUVE DU CONSENTEMENT (RGPD art. 7.1) : quand, depuis quel formulaire,
+    // dans quelle langue, et sous quelle version du texte d'information.
+    consent: v.optional(
+      v.object({
+        at: v.number(),
+        source: v.string(),
+        locale: v.optional(locale),
+        textVersion: v.string(),
+      }),
+    ),
   })
     .index('by_email', ['email'])
-    .index('by_token', ['unsubToken']),
+    .index('by_token', ['unsubToken'])
+    .index('by_confirm_hash', ['confirmTokenHash'])
+    // Destinataires d'une campagne (`confirmed`), purge des attentes expirées
+    // (`pending` + échéance) et migration des héritées (`undefined`).
+    .index('by_status_and_expiry', ['status', 'confirmExpiresAt']),
 
   // Campagnes newsletter (F-65) — composées au back-office, envoyées à tous les
   // abonnés via l'adaptateur e-mail.
+  //
+  // ENVOI EN VOLUME (chantier diffusion) : la campagne est découpée en lots
+  // planifiés, un statut par destinataire dans `newsletterDeliveries`. Les
+  // compteurs ci-dessous sont la PROGRESSION affichée en direct au back-office
+  // (`recipientCount` = envoyés, nom historique conservé).
   newsletterCampaigns: defineTable({
     subject: v.string(),
     body: v.string(),
@@ -314,6 +444,19 @@ export default defineSchema({
     sentAt: v.optional(v.number()),
     recipientCount: v.optional(v.number()),
     failedCount: v.optional(v.number()),
+    // Langue de la version de référence (repli des abonnés sans version dans
+    // leur langue). Absente = français, comme avant le chantier.
+    locale: v.optional(locale),
+    // Versions traduites — cinq langues au plus, donc un tableau borné.
+    variants: v.optional(
+      v.array(v.object({ locale, subject: v.string(), body: v.string() })),
+    ),
+    // Destinataires mis en file (croît pendant la mise en file).
+    totalCount: v.optional(v.number()),
+    skippedCount: v.optional(v.number()),
+    enqueueDone: v.optional(v.boolean()),
+    startedAt: v.optional(v.number()),
+    lastTestAt: v.optional(v.number()),
   }).index('by_status', ['status']),
 
   // Formulaire de contact (F-17).
@@ -326,9 +469,10 @@ export default defineSchema({
     createdAt: v.number(),
   }).index('by_handled', ['handled']),
 
-  // Inscriptions aux événements (F-53) — RSVP en ligne. `eventSlug` = slug neutre
-  // du module Next `events-content.ts` (pas de table événements en base). Index
-  // composite (event, email) : sert le dédoublonnage ET le décompte par event.
+  // Inscriptions aux événements (F-53) — RSVP en ligne. `eventSlug` = slug de
+  // l'événement dans `contentEvents` (chantier « contenus ») : le serveur le
+  // valide contre la table avant d'écrire. Index composite (event, email) :
+  // sert le dédoublonnage ET le décompte par event.
   eventRegistrations: defineTable({
     eventSlug: v.string(),
     name: v.string(),
@@ -336,12 +480,15 @@ export default defineSchema({
     organization: v.optional(v.string()),
     locale: v.optional(locale),
     createdAt: v.number(),
+    // Envoi du lien de visioconférence (chantier « contenus ») : posé quand le
+    // courriel est parti, pour ne jamais l'envoyer deux fois.
+    visioSentAt: v.optional(v.number()),
   }).index('by_event_and_email', ['eventSlug', 'email']),
 
   // Rappels d'événements par e-mail (F-55) — un visiteur (sans compte) demande
-  // à être prévenu avant un événement à venir. `eventSlug` = slug neutre du
-  // module Next `events-content.ts` ; `eventDate` = horodatage UTC du jour de
-  // l'événement (calculé côté appelant). Un cron quotidien envoie les rappels
+  // à être prévenu avant un événement à venir. `eventSlug` = slug d'un
+  // événement publié de `contentEvents` ; `eventDate` = son début (`startsAt`),
+  // CALCULÉ CÔTÉ SERVEUR depuis la table. Un cron quotidien envoie les rappels
   // dont la date approche (sendEmail NO-OP sans clé fournisseur). Index by_sent
   // = file des rappels à traiter ; index composite (event, email) = dédoublonnage.
   eventReminders: defineTable({
@@ -401,14 +548,17 @@ export default defineSchema({
     ),
     reviewedBy: v.optional(v.id('users')),
     reviewedAt: v.optional(v.number()),
+    // Note de décision (campagne du 27/09, A-08) : elle n'existait que dans
+    // les métadonnées d'audit, donc jamais à l'écran de mentorat.
+    reviewNotes: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index('by_status', ['status'])
     .index('by_email', ['email']),
 
   // Tribune démocratique (F-44/F-47/F-50) — espace d'expression modéré. Lecture
-  // publique, écriture réservée aux membres ; modération a posteriori via
-  // signalement. `theme` = un des 5 axes (slugs PUB_THEMES). `authorName` est un
+  // publique, écriture réservée aux membres ; modération A PRIORI par défaut
+  // (F-45), a posteriori sur réglage de l'administrateur, et signalement. `theme` = un des 5 axes (slugs PUB_THEMES). `authorName` est un
   // instantané dénormalisé (évite un join à la lecture du fil).
   tribunePosts: defineTable({
     authorUserId: v.id('users'),
@@ -426,22 +576,81 @@ export default defineSchema({
     // pas, et que le repli de `resolveLocale` (fr) est la bonne réponse pour
     // eux.
     lang: v.optional(locale),
-    status: v.union(v.literal('published'), v.literal('removed')),
+    // `pending` / `rejected` : modération A PRIORI (F-45, chantier
+    // communauté). Un billet `pending` n'est servi qu'à son auteur et aux
+    // modérateurs ; `rejected` porte le motif montré à l'auteur.
+    status: contentStatusValidator,
     commentCount: v.number(),
     createdAt: v.number(),
+    // Recherche globale (chantier diffusion) : meule PLIÉE (titre, auteur,
+    // corps) et année de publication pour le filtre « date ».
+    searchText: v.optional(v.string()),
+    searchYear: v.optional(v.number()),
+    // Dernière modification par l'auteur (billet en attente ou rejeté).
+    updatedAt: v.optional(v.number()),
+    // Décision humaine la plus récente (l'historique complet vit dans
+    // `moderationEvents`) ; `moderatedBy` absent + `autoPublished` = mise en
+    // ligne par l'IA, sans relecture.
+    moderatedBy: v.optional(v.id('users')),
+    moderatedAt: v.optional(v.number()),
+    rejectionReason: v.optional(v.string()),
+    autoPublished: v.optional(v.boolean()),
+    // Résumé du dernier avis de l'IA, pour un badge dans la file.
+    aiReview: v.optional(
+      v.object({
+        verdict: aiModerationVerdict,
+        applied: aiModerationApplied,
+        reason: v.string(),
+        confidence: v.number(),
+        blocking: v.number(),
+        warnings: v.number(),
+        at: v.number(),
+      }),
+    ),
+    // APPROFONDISSEMENT (F-48) : cette contribution de fond prolonge un
+    // billet court.
+    parentPostId: v.optional(v.id('tribunePosts')),
+    // Proposée à la bibliothèque : la publication (en file) qui en est née.
+    libraryPublicationId: v.optional(v.id('publications')),
   })
     .index('by_status', ['status'])
     .index('by_status_and_theme', ['status', 'theme'])
-    .index('by_author', ['authorUserId']),
+    .index('by_author', ['authorUserId'])
+    // Seuls les billets `published` sortent : filtre posé par la requête.
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['status', 'theme', 'lang', 'searchYear'],
+    })
+    .index('by_parent_and_status', ['parentPostId', 'status']),
 
   tribuneComments: defineTable({
     postId: v.id('tribunePosts'),
     authorUserId: v.id('users'),
     authorName: v.string(),
     body: v.string(),
-    status: v.union(v.literal('published'), v.literal('removed')),
+    status: contentStatusValidator,
     createdAt: v.number(),
-  }).index('by_post', ['postId']),
+    moderatedBy: v.optional(v.id('users')),
+    moderatedAt: v.optional(v.number()),
+    rejectionReason: v.optional(v.string()),
+    autoPublished: v.optional(v.boolean()),
+    aiReview: v.optional(
+      v.object({
+        verdict: aiModerationVerdict,
+        applied: aiModerationApplied,
+        reason: v.string(),
+        confidence: v.number(),
+        blocking: v.number(),
+        warnings: v.number(),
+        at: v.number(),
+      }),
+    ),
+  })
+    .index('by_post', ['postId'])
+    // File de modération (commentaires en attente, F-49) et « mes
+    // commentaires » / suppression de compte.
+    .index('by_status', ['status'])
+    .index('by_author', ['authorUserId']),
 
   // Réactions de la Tribune — un seul type, « soutien » (comme un like). Une
   // réaction par membre et par post : unicité via l'index composite
@@ -450,7 +659,10 @@ export default defineSchema({
     postId: v.id('tribunePosts'),
     userId: v.id('users'),
     createdAt: v.number(),
-  }).index('by_post_and_user', ['postId', 'userId']),
+  })
+    .index('by_post_and_user', ['postId', 'userId'])
+    // Suppression / export des données d'un compte.
+    .index('by_user', ['userId']),
 
   // Signalements (F-50) — file de modération a posteriori. `targetId` = id d'un
   // post ou d'un commentaire (stocké en chaîne, type porté par `targetType`).
@@ -461,7 +673,11 @@ export default defineSchema({
     reporterUserId: v.id('users'),
     resolved: v.boolean(),
     createdAt: v.number(),
-  }).index('by_resolved', ['resolved']),
+  })
+    .index('by_resolved', ['resolved'])
+    // Historique d'un contenu (F-49) : ses signalements, sans parcourir la file.
+    .index('by_target', ['targetId'])
+    .index('by_reporter', ['reporterUserId']),
 
   // Appels à projets collaboratifs (F-60) — propositions de projets menés en
   // commun entre membres. La page publique présente le DISPOSITIF (aucun appel
@@ -501,6 +717,12 @@ export default defineSchema({
     ownerName: v.string(),
     memberCount: v.number(),
     createdAt: v.number(),
+    // Ouvert (défaut, incrément 1) ou privé sur invitation.
+    visibility: v.optional(workspaceVisibilityValidator),
+    // Occupation du stockage par les fichiers partagés (toutes versions), et
+    // nombre de fichiers — tenus à l'écriture, lus pour le quota.
+    storageBytes: v.optional(v.number()),
+    fileCount: v.optional(v.number()),
   }).index('by_owner', ['ownerUserId']),
 
   // Appartenance à un espace (F-24). Unicité (espace, utilisateur) via l'index
@@ -509,7 +731,9 @@ export default defineSchema({
     workspaceId: v.id('workspaces'),
     userId: v.id('users'),
     userName: v.string(),
-    role: v.union(v.literal('owner'), v.literal('member')),
+    // animateur / contributeur / lecteur ; `owner` et `member` sont les
+    // valeurs héritées (cf. effectiveWorkspaceRole, convex/lib/communaute.ts).
+    role: storedWorkspaceRoleValidator,
     joinedAt: v.number(),
   })
     .index('by_workspace', ['workspaceId'])
@@ -527,7 +751,9 @@ export default defineSchema({
     authorName: v.string(),
     body: v.string(),
     createdAt: v.number(),
-  }).index('by_workspace', ['workspaceId']),
+  })
+    .index('by_workspace', ['workspaceId'])
+    .index('by_author', ['authorUserId']),
 
   // --- Modération éditoriale assistée par IA (auto-acceptation) -------------
   //
@@ -814,4 +1040,13 @@ export default defineSchema({
     purpose: v.string(),
     createdAt: v.number(),
   }).index('by_email', ['email']),
+
+  ...socialTables,
+  ...paiementsTables,
+  ...diffusionTables,
+  ...communauteTables,
+  ...contenusTables,
+  ...comptesTables,
+  ...programmesTables,
+  ...editorialTables,
 });

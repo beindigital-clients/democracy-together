@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
@@ -10,7 +11,12 @@ import type { RegionMapItem } from '@/components/map/types';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { mapNameForIso } from '@/lib/country-map';
 import { countryName } from '@/lib/orgs';
-import { isDirectoryRegion, isDirectoryTheme } from '@convex/lib/directory';
+import {
+  isCountryCode,
+  isDirectoryRegion,
+  isDirectoryTheme,
+  isLanguageCode,
+} from '@convex/lib/directory';
 import { fetchOrFallback, EMPTY_DIRECTORY_LIST } from '@/lib/convex-fallback';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -27,11 +33,7 @@ export async function generateMetadata({
     description: t('subtitle'),
     alternates: {
       canonical: `${SITE}/${locale}/le-reseau`,
-      languages: {
-        fr: `${SITE}/fr/le-reseau`,
-        en: `${SITE}/en/le-reseau`,
-        'x-default': `${SITE}/fr/le-reseau`,
-      },
+      languages: hreflangFor(`le-reseau`),
     },
   };
 }
@@ -57,12 +59,24 @@ export default async function NetworkPage({
   // plus un bandeau « filtres actifs » que rien ne justifie.
   const region = param(sp.region);
   const theme = param(sp.theme);
+  // Pays et langue (F-19) : des codes ISO, domaine ouvert côté query ; seule
+  // la FORME est vérifiée ici, un `?country=<script>` vaut « pas de filtre ».
+  const country = param(sp.country)?.toLowerCase();
+  const language = param(sp.language)?.toLowerCase();
   const filters = {
     region: region && isDirectoryRegion(region) ? region : undefined,
     theme: theme && isDirectoryTheme(theme) ? theme : undefined,
+    country: country && isCountryCode(country) ? country : undefined,
+    language: language && isLanguageCode(language) ? language : undefined,
     q: param(sp.q),
   };
-  const hasFilters = Boolean(filters.region || filters.theme || filters.q);
+  const hasFilters = Boolean(
+    filters.region ||
+    filters.theme ||
+    filters.country ||
+    filters.language ||
+    filters.q,
+  );
 
   const t = await getTranslations('directory');
   // Backend injoignable -> annuaire vide et carte sans pays, pas un 500 (F-02).
@@ -115,6 +129,7 @@ export default async function NetworkPage({
                 items={memberItems}
                 hint={t('mapHint')}
                 ariaLabel={t('mapTitle')}
+                fallback={t('mapNoScript')}
               />
             </div>
           </Reveal>

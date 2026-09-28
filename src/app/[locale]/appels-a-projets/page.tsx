@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
 import { getProjectsIntro } from '@/lib/projects-content';
 import { PUB_THEMES } from '@/lib/publications';
 import { ProjectForm } from '@/components/projects/project-form';
+import { CallsList } from '@/components/projects/calls-list';
 import { vocabulary } from '@/i18n/vocabulary';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -21,11 +23,7 @@ export async function generateMetadata({
     description: t('metaDescription'),
     alternates: {
       canonical: `${SITE}/${locale}/appels-a-projets`,
-      languages: {
-        fr: `${SITE}/fr/appels-a-projets`,
-        en: `${SITE}/en/appels-a-projets`,
-        'x-default': `${SITE}/fr/appels-a-projets`,
-      },
+      languages: hreflangFor(`appels-a-projets`),
     },
   };
 }
@@ -57,6 +55,20 @@ export default async function ProjectsPage({
           </p>
         </Reveal>
       </header>
+
+      {/* Appels datés (F-60) : ouverts, à venir, archivés. Rendu client — le
+          classement dépend de l'heure du visiteur. */}
+      <section className="mt-12" aria-labelledby="calls-h">
+        <Reveal>
+          <h2 id="calls-h" className="font-display text-2xl leading-tight">
+            {t('callsTitle')}
+          </h2>
+          <p className="mt-3 max-w-[68ch] text-[15px] leading-relaxed text-ink-soft">
+            {t('callsLead')}
+          </p>
+        </Reveal>
+        <CallsList />
+      </section>
 
       {/* Principe du dispositif */}
       <section className="mt-12 max-w-[68ch]" aria-labelledby="principle-h">
@@ -155,6 +167,11 @@ export default async function ProjectsPage({
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
             {t('proposeLead')}
+          </p>
+          {/* Proposition LIBRE, hors appel : conservée telle quelle (cf. la
+              décision en tête de convex/projectCalls.ts). */}
+          <p className="mt-2 text-[14px] leading-relaxed text-muted">
+            {t('outsideCallNote')}
           </p>
           <div className="mt-6">
             <ProjectForm />

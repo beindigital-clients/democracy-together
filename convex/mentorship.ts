@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import {
   action,
   internalMutation,
@@ -7,14 +7,14 @@ import {
   query,
 } from './_generated/server';
 import { internal } from './_generated/api';
-import { isEmail } from './lib/validation';
+import { FIELD_MAX, isEmail } from './lib/validation';
 import {
   enforcePublicFormLimit,
   enforceRateLimit,
   RATE_LIMITS,
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
-import { requireNetworkRole } from './lib/rbac';
+import { getCurrentUser, requireNetworkRole } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { assertTransition, type ReviewMachine } from './lib/reviewState';
@@ -78,8 +78,8 @@ export const storeRequest = internalMutation({
     if (name.length < 2 || name.length > 120) throw new Error('INVALID_NAME');
     if (!isEmail(email)) throw new Error('INVALID_EMAIL');
     if (country.length < 2) throw new Error('INVALID_COUNTRY');
-    if (message.length < 10 || message.length > 4000) {
-      throw new Error('INVALID_MESSAGE');
+    if (message.length < 10 || message.length > FIELD_MAX.body) {
+      throw new ConvexError('INVALID_MESSAGE');
     }
 
     // Plafonds NON FORGEABLES (audit M2) — par IP et global par formulaire :
@@ -117,6 +117,53 @@ export const storeRequest = internalMutation({
   },
 });
 
+// --- Ma demande (membre connecté) -------------------------------------------
+// Le mentorat n'avait AUCUN parcours membre (A-13) : formulaire public d'un
+// côté, file d'appariement de l'autre, et le demandeur n'apprenait rien —
+// ni que sa demande est en attente, ni qu'elle a été appariée ou close.
+// Cette query rend à un compte connecté SES demandes, retrouvées par
+// l'adresse de son compte (vérifiée à la connexion par code) : une par rôle,
+// avec le statut. Un visiteur anonyme ou un compte sans adresse reçoit une
+// liste vide, jamais une erreur — la page /jeunes est publique.
+//
+// Ce qui reste hors de portée ici, et relève d'une fonctionnalité à part :
+// le choix du mentor, le suivi du binôme, la notification du demandeur à
+// l'appariement (aucun `notify`/`sendEmail` dans ce module).
+export const myMentorshipRequest = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id('mentorshipRequests'),
+      role: v.union(v.literal('mentore'), v.literal('mentor')),
+      status: v.union(
+        v.literal('pending'),
+        v.literal('matched'),
+        v.literal('closed'),
+      ),
+      createdAt: v.number(),
+      reviewedAt: v.union(v.number(), v.null()),
+    }),
+  ),
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    const email = user?.email?.trim().toLowerCase();
+    if (!email) return [];
+    const rows = await ctx.db
+      .query('mentorshipRequests')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .collect();
+    return rows
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((m) => ({
+        _id: m._id,
+        role: m.role,
+        status: m.status,
+        createdAt: m.createdAt,
+        reviewedAt: m.reviewedAt ?? null,
+      }));
+  },
+});
+
 // --- Back-office (modérateur et au-dessus) ----------------------------------
 export const listMentorshipRequests = query({
   // Domaine FERMÉ (miroir du schéma) : le back-office ne propose que ces
@@ -146,6 +193,7 @@ export const listMentorshipRequests = query({
         message: m.message,
         status: m.status,
         createdAt: m.createdAt,
+        reviewNotes: m.reviewNotes ?? null,
       }));
   },
 });
@@ -190,6 +238,7 @@ export const reviewMentorshipRequest = mutation({
       status,
       reviewedBy: reviewer._id,
       reviewedAt: Date.now(),
+      reviewNotes: notes?.trim() || undefined,
     });
     await recordAudit(ctx, {
       actorId: reviewer._id,
