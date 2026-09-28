@@ -12,15 +12,16 @@ import { NotificationBell } from './notification-bell';
 import { MessagesBadge } from './messages-badge';
 import { isNavActive, type NavItem } from './nav-links';
 
-// Menu de navigation mobile (F-05) : sous md, la barre ne porte que le logo et
-// ce bouton ; tout le reste (nav, connexion, langue, thème, adhésion) vit ici.
-// Accessible : aria-expanded / aria-controls, fermeture à Échap + clic hors
-// zone, focus envoyé dans le panneau à l'ouverture puis rendu au bouton, scroll
-// du corps verrouillé. Le menu se referme à toute navigation (effet pathname).
-// `connecteAuRendu` n'est ici qu'un RELAIS : le menu mobile ne décide de rien,
-// il transmet aux îlots qui changeaient de largeur (`JoinButton`,
-// `AuthButton`, et la cloche `NotificationBell` posée dans la barre à côté du
-// bouton du menu). Voir `site-header.tsx` pour le pourquoi.
+// Mobile navigation menu (F-05): below md, the bar only carries the logo and
+// this button; everything else (nav, sign-in, language, theme, membership)
+// lives here. Accessible: aria-expanded / aria-controls, closes on Escape +
+// outside click, focus sent into the panel on opening then returned to the
+// button, body scroll locked. The menu closes on any navigation (pathname
+// effect).
+// `connecteAuRendu` is only a RELAY here: the mobile menu decides nothing,
+// it passes it on to the islands that used to change width (`JoinButton`,
+// `AuthButton`, and the `NotificationBell` placed in the bar next to the
+// menu button). See `site-header.tsx` for the why.
 export function MobileNav({
   items,
   connecteAuRendu,
@@ -35,22 +36,22 @@ export function MobileNav({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const navRef = useRef<HTMLElement>(null);
 
-  // Toute navigation referme le menu. `pathname` (next-intl) est dépouillé de la
-  // locale -> on ajoute `locale` aux deps pour aussi fermer sur bascule FR/EN.
+  // Any navigation closes the menu. `pathname` (next-intl) is stripped of the
+  // locale -> we add `locale` to the deps to also close on a FR/EN switch.
   //
-  // LE PREMIER PASSAGE EST SAUTÉ (audit F-13). Un effet à dépendances court
-  // AUSSI au montage : celui-ci posait donc `open = false` juste après
-  // l'hydratation. Un appui qui atterrit dans cette fenêtre — entre le moment
-  // où React attache le gestionnaire et celui où il vide ses effets — est bien
-  // pris, puis annulé : le menu ne s'ouvre pas, et rien ne le signale.
+  // THE FIRST RUN IS SKIPPED (audit F-13). An effect with dependencies ALSO
+  // runs on mount: this one therefore set `open = false` right after
+  // hydration. A tap landing in that window — between the moment React
+  // attaches the handler and the moment it flushes its effects — is indeed
+  // registered, then cancelled: the menu does not open, and nothing signals it.
   //
-  // HONNÊTEMENT : je n'ai PAS reproduit ce scénario. 45 tentatives, processeur
-  // bridé jusqu'à ×6, navigation rendue au plus tôt (`waitUntil: 'commit'`) :
-  // le menu s'est ouvert à chaque fois. Ce correctif n'est donc pas présenté
-  // comme la cause de F-13. Il tient tout seul : un effet qui dit « referme à
-  // chaque NAVIGATION » ne doit pas s'exécuter quand il n'y a pas eu de
-  // navigation, et la fenêtre qu'il ouvrait est d'autant plus large que
-  // l'appareil est lent — c'est-à-dire chez le premier public visé.
+  // HONESTLY: I did NOT reproduce this scenario. 45 attempts, CPU
+  // throttled up to ×6, navigation rendered as early as possible
+  // (`waitUntil: 'commit'`): the menu opened every time. This fix is therefore
+  // not presented as the cause of F-13. It stands on its own: an effect that
+  // says "close on every NAVIGATION" must not run when there has been no
+  // navigation, and the window it opened is all the wider the slower the
+  // device — that is, for the primary target audience.
   const navigationDejaVue = useRef(false);
   useEffect(() => {
     if (!navigationDejaVue.current) {
@@ -68,8 +69,8 @@ export function MobileNav({
         buttonRef.current?.focus();
         return;
       }
-      // Piège à focus : Tab/Shift+Tab bouclent dans le panneau (pas de fuite
-      // vers l'arrière-plan masqué).
+      // Focus trap: Tab/Shift+Tab loop within the panel (no leaking
+      // to the hidden background).
       if (e.key === 'Tab' && navRef.current) {
         const f = navRef.current.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), input, select, [tabindex]:not([tabindex="-1"])',
@@ -102,11 +103,11 @@ export function MobileNav({
 
   return (
     <div className="flex items-center gap-1 min-[1120px]:hidden">
-      {/* La cloche vit dans la BARRE, pas dans le panneau : sur bureau elle
-          est dans l'en-tête, sur mobile un membre n'atteignait ses
-          notifications que par l'URL (mesuré le 27/09, auth A-9). Rendue
-          selon `connecteAuRendu` comme sur bureau, donc déjà là dans le HTML
-          servi — rien ne se décale à l'hydratation. */}
+      {/* The bell lives in the BAR, not in the panel: on desktop it
+          is in the header, on mobile a member could only reach their
+          notifications via the URL (measured on 27/09, auth A-9). Rendered
+          according to `connecteAuRendu` as on desktop, so already present in
+          the served HTML — nothing shifts on hydration. */}
       <MessagesBadge connecteAuRendu={connecteAuRendu} />
       <NotificationBell connecteAuRendu={connecteAuRendu} />
       <button
@@ -182,8 +183,8 @@ export function MobileNav({
             <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
               <AuthButton connecteAuRendu={connecteAuRendu} />
               <div className="flex items-center gap-2">
-                {/* Vers le HAUT : ce panneau défile et le sélecteur est sur sa
-                    dernière ligne — un menu ouvert vers le bas en sortait. */}
+                {/* UPWARDS: this panel scrolls and the switcher is on its
+                    last line — a menu opened downwards overflowed it. */}
                 <LocaleSwitcher placement="up" />
                 <ThemeToggle />
               </div>

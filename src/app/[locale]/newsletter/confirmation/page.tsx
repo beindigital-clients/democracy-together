@@ -7,15 +7,15 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 
-// CONFIRMATION DU DOUBLE OPT-IN (F-18, chantier diffusion).
+// DOUBLE OPT-IN CONFIRMATION (F-18, outreach workstream).
 //
-// Le lien du courriel porte la langue de l'abonné dans son chemin
-// (`/<langue>/newsletter/confirmation?token=…`, cf.
-// convex/lib/newsletterContent.ts) : la page s'affiche donc d'emblée dans sa
-// langue. Le jeton est à usage unique ; la page distingue « confirmé »,
-// « expiré » (se réinscrire renvoie un lien neuf) et « invalide ou déjà
-// utilisé ». Comme pour la désinscription, ce n'est pas un oracle : un jeton
-// de 256 bits n'identifie aucune adresse qu'un tiers pourrait choisir.
+// The e-mail link carries the subscriber's language in its path
+// (`/<langue>/newsletter/confirmation?token=…`, see
+// convex/lib/newsletterContent.ts): the page is thus shown right away in
+// their language. The token is single-use; the page distinguishes
+// "confirmed", "expired" (signing up again sends a fresh link) and "invalid
+// or already used". As with unsubscribing, this is not an oracle: a 256-bit
+// token identifies no address a third party could choose.
 type Status = 'pending' | 'confirmed' | 'expired' | 'invalid' | 'error';
 
 function ConfirmInner() {
@@ -24,9 +24,9 @@ function ConfirmInner() {
   const token = params.get('token') ?? '';
   const confirm = useMutation(api.newsletter.confirm);
   const [status, setStatus] = useState<Status>(token ? 'pending' : 'invalid');
-  // Usage unique CÔTÉ SERVEUR : un second appel (double rendu en
-  // développement, rechargement) répondrait « déjà utilisé » et effacerait
-  // le succès affiché. La page n'appelle donc qu'une fois par jeton.
+  // SERVER-SIDE single use: a second call (double render in
+  // development, reload) would answer "already used" and wipe out
+  // the displayed success. The page therefore calls only once per token.
   const sent = useRef<string | null>(null);
 
   useEffect(() => {

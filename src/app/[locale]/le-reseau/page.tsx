@@ -53,14 +53,14 @@ export default async function NetworkPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const sp = await searchParams;
-  // Même règle que la Tribune : `region` et `theme` sont des domaines fermés
-  // côté query, donc une valeur d'URL hors vocabulaire vaut « pas de filtre ».
-  // `hasFilters` lit les valeurs ASSAINIES : un `?region=xyz` n'affiche donc
-  // plus un bandeau « filtres actifs » que rien ne justifie.
+  // Same rule as the Tribune: `region` and `theme` are closed domains
+  // on the query side, so a URL value outside the vocabulary means "no filter".
+  // `hasFilters` reads the SANITIZED values: a `?region=xyz` therefore no
+  // longer shows an "active filters" banner that nothing justifies.
   const region = param(sp.region);
   const theme = param(sp.theme);
-  // Pays et langue (F-19) : des codes ISO, domaine ouvert côté query ; seule
-  // la FORME est vérifiée ici, un `?country=<script>` vaut « pas de filtre ».
+  // Country and language (F-19): ISO codes, an open domain on the query side;
+  // only the FORM is checked here, a `?country=<script>` means "no filter".
   const country = param(sp.country)?.toLowerCase();
   const language = param(sp.language)?.toLowerCase();
   const filters = {
@@ -79,23 +79,23 @@ export default async function NetworkPage({
   );
 
   const t = await getTranslations('directory');
-  // Backend injoignable -> annuaire vide et carte sans pays, pas un 500 (F-02).
+  // Backend unreachable -> empty directory and map without countries, not a 500 (F-02).
   const { items, facets } = await fetchOrFallback(
     'le-reseau',
     () => fetchQuery(api.organizations.listDirectory, filters),
     EMPTY_DIRECTORY_LIST,
   );
 
-  // Carte des membres (F-19) : un pays mis en avant par pays représenté dans le
-  // réseau (facette `countries`, sur l'ensemble actif, indépendante des filtres).
+  // Members map (F-19): one highlighted country per country represented in the
+  // network (`countries` facet, over the active set, independent of filters).
   const memberItems: RegionMapItem[] = facets.countries.flatMap((f) => {
     const name = mapNameForIso(f.value);
     return name
       ? [
           {
             name,
-            // orange de marque : ressort sur le globe marine (la teinte accent
-            // marine se fondrait dans l'océan).
+            // brand orange: stands out on the navy globe (the navy accent
+            // shade would blend into the ocean).
             fill: '#f58b1a',
             title: countryName(f.value, locale),
             rows: [{ label: t('mapMembers'), value: String(f.count) }],

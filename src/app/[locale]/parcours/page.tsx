@@ -6,8 +6,8 @@ import { PathList } from '@/components/toolbox/toolbox-catalog';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-// Index des parcours d'apprentissage (F-57). Le segment `/parcours` existe
-// pour que `/parcours/<slug>` ait un parent navigable.
+// Index of learning paths (F-57). The `/parcours` segment exists so
+// that `/parcours/<slug>` has a navigable parent.
 export async function generateMetadata({
   params,
 }: {

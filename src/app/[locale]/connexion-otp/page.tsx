@@ -22,8 +22,8 @@ export default function OtpSignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  // L'adresse survit au passage à l'étape du code — et à un échec d'envoi : la
-  // retaper après un refus serveur était la première chose à éviter.
+  // The address survives moving to the code step — and a failed send:
+  // retyping it after a server refusal was the first thing to avoid.
   const { values, field, validate } = useFormFields({ email: '', code: '' });
   const email = values.email.trim();
 
@@ -41,11 +41,11 @@ export default function OtpSignInPage() {
       if (isSendLimited(err)) {
         setError(t('errorSendLimit'));
       } else {
-        // ANTI-ÉNUMÉRATION. Une adresse inconnue faisait lever le serveur
-        // (`NO_SELF_SIGNUP`) et l'écran répondait « une erreur est survenue »
-        // là où une adresse connue passait à l'étape du code : l'écran disait
-        // donc qui a un compte (mesuré le 27/09). On passe à l'étape du code
-        // dans les deux cas ; le sous-titre dit « si un compte existe ».
+        // ANTI-ENUMERATION. An unknown address made the server throw
+        // (`NO_SELF_SIGNUP`) and the screen said "an error occurred"
+        // where a known address moved on to the code step: the screen thus
+        // revealed who has an account (measured on 27/09). We move to the code
+        // step in both cases; the subtitle says "if an account exists".
         setStep('code');
       }
     } finally {
@@ -53,12 +53,12 @@ export default function OtpSignInPage() {
     }
   }
 
-  // RENVOI DU CODE, depuis l'étape du code (auth A-5). Sans ce bouton,
-  // l'utilisateur qui n'a rien reçu rechargeait la page et retapait son
-  // adresse. Même règle anti-énumération que `onEmail` : une adresse inconnue
-  // reçoit le même « si un compte existe » ; seul le plafond d'envoi
-  // (`RATE_LIMITED`, convex/otp.ts) a son propre message — il disait
-  // « réessayez » là où il faut attendre (A-4).
+  // CODE RESEND, from the code step (auth A-5). Without this button,
+  // a user who received nothing reloaded the page and retyped their
+  // address. Same anti-enumeration rule as `onEmail`: an unknown address
+  // gets the same "if an account exists"; only the send cap
+  // (`RATE_LIMITED`, convex/otp.ts) has its own message — it used to say
+  // "try again" where one has to wait (A-4).
   async function onResend() {
     setError(null);
     setNotice(null);
@@ -86,8 +86,8 @@ export default function OtpSignInPage() {
       await signIn('otp-signin', { email, code: values.code });
       redirectAfterAuth();
     } catch (err) {
-      // Compte suspendu : refusé APRÈS la vérification du code, donc sans
-      // rien apprendre à qui ne le possède pas (convex/lib/signIn.ts).
+      // Suspended account: refused AFTER the code is verified, so nothing is
+      // revealed to someone who does not own it (convex/lib/signIn.ts).
       setError(
         isAccountSuspended(err)
           ? tAccounts('suspendedSignIn')

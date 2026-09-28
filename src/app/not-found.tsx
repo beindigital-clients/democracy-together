@@ -1,40 +1,40 @@
 import type { Metadata } from 'next';
 
-// 404 de RACINE — celle que sert une adresse sans route du tout ET que le
-// middleware n'a pas pu réécrire (R-04) : depuis le 27/09, `src/proxy.ts`
-// réécrit tout premier segment inconnu sous un préfixe de langue
-// (`/fr/nimporte-quoi`, `/ar/xyz`) vers `/<locale>/introuvable`, rendue dans
-// le layout de langue ; et un chemin sans préfixe (`/xx`, `/de`) est d'abord
-// redirigé par next-intl vers sa langue. Il ne reste à cette page que ce que
-// le matcher du middleware exclut — les chemins « fichiers » (`/favicon-truc.
-// png`, `/x.y`) — par opposition à la 404 localisée de `[locale]/not-found.
-// tsx`, qui répond aux `notFound()` levés depuis une route existante.
+// ROOT 404 — the one served for an address with no route at all AND that the
+// middleware could not rewrite (R-04): since 27/09, `src/proxy.ts`
+// rewrites any unknown first segment under a language prefix
+// (`/fr/nimporte-quoi`, `/ar/xyz`) to `/<locale>/introuvable`, rendered in
+// the language layout; and a path without a prefix (`/xx`, `/de`) is first
+// redirected by next-intl to its language. All that is left for this page is
+// what the middleware matcher excludes — "file" paths (`/favicon-truc.png`,
+// `/x.y`) — as opposed to the localized 404 of `[locale]/not-found.tsx`,
+// which answers `notFound()` calls thrown from an existing route.
 //
-// POURQUOI DEUX, et pourquoi celle-ci ne peut pas être celle-là (audit F-06).
+// WHY TWO, and why this one cannot be that one (audit F-06).
 //
-// Mesuré sur Next 16.3.5 : une 404 déclenchée par `notFound()` depuis une
-// route qui MATCHE rend un `<body>` sans aucun texte — le contenu n'arrive que
-// par la charge utile RSC, donc uniquement si JavaScript s'exécute. Une 404
-// SANS route correspondante, elle, est bien rendue dans le HTML servi.
-// Trois hypothèses ont été écartées par la mesure avant d'en arriver là : la
-// suspension du composant (une version synchrone donne le même vide), sa
-// place dans l'arborescence (une `not-found` à la racine ne change rien pour
-// le cas `notFound()`), et la coquille du layout (son `<head>` est rendu, son
-// `<body>` non).
+// Measured on Next 16.3.5: a 404 triggered by `notFound()` from a route that
+// MATCHES renders a `<body>` with no text at all — the content only arrives
+// via the RSC payload, hence only if JavaScript runs. A 404 WITHOUT a
+// matching route, on the other hand, is properly rendered in the served HTML.
+// Three hypotheses were ruled out by measurement before arriving at this:
+// suspension of the component (a synchronous version gives the same blank),
+// its place in the tree (a root `not-found` changes nothing for the
+// `notFound()` case), and the layout shell (its `<head>` is rendered, its
+// `<body>` is not).
 //
-// Ce fichier ne corrige donc pas F-06 : il referme l'autre moitié du sujet.
-// Sans lui, une adresse sans route recevait la 404 par défaut de Next — en
-// anglais, sans charte, hors du site. C'est le reproche que l'audit § 5.1
-// faisait déjà, et qui n'avait été traité que pour les `notFound()`.
+// This file therefore does not fix F-06: it closes the other half of the
+// issue. Without it, an address with no route got Next's default 404 — in
+// English, off-brand, outside the site. That is the criticism audit § 5.1
+// already made, and which had only been addressed for `notFound()` calls.
 //
-// BILINGUE, et c'est délibéré : ce fichier vit HORS du segment `[locale]`, il
-// n'a donc aucun contexte de langue — ni `params`, ni next-intl. Deviner
-// d'après l'URL serait faux la moitié du temps (`/xx`, `/favicon-truc`).
-// Afficher les deux langues est la seule réponse honnête.
+// BILINGUAL, and deliberately so: this file lives OUTSIDE the `[locale]`
+// segment, so it has no language context — neither `params` nor next-intl.
+// Guessing from the URL would be wrong half the time (`/xx`, `/favicon-truc`).
+// Showing both languages is the only honest answer.
 //
-// STYLES EN LIGNE : il n'existe pas de layout racine dans ce dépôt
-// (`src/app/[locale]/layout.tsx` en est un de segment), donc `globals.css`
-// n'est pas chargé ici. Une classe Tailwind n'aurait aucun effet.
+// INLINE STYLES: there is no root layout in this repo
+// (`src/app/[locale]/layout.tsx` is a segment layout), so `globals.css`
+// is not loaded here. A Tailwind class would have no effect.
 
 export const metadata: Metadata = {
   title: 'Page introuvable · Democracy Together',

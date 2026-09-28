@@ -10,14 +10,14 @@ import { resolveLocale } from '@/i18n/locale';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 
-// SÉLECTEUR DE MÉDIA (F-64) — réutiliser une image de la médiathèque comme
-// logo, visuel ou vignette, plutôt que de la téléverser à chaque contenu.
+// MEDIA PICKER (F-64) — reuse an image from the media library as a
+// logo, visual or thumbnail, rather than uploading it for every piece of content.
 //
-// Seules les IMAGES sont proposées : un logo PDF ne s'affiche pas. Le texte
-// alternatif vient avec le média — il a été exigé au téléversement, il n'est
-// pas à ressaisir ici. Panneau en ligne (pas de fenêtre modale) : il s'ouvre
-// sous le champ, se parcourt au clavier dans l'ordre du document, et se
-// referme au choix.
+// Only IMAGES are offered: a PDF logo does not display. The alternative
+// text comes with the media item — it was required at upload, it does not
+// need to be re-entered here. Inline panel (no modal dialog): it opens
+// below the field, is browsed by keyboard in document order, and
+// closes on selection.
 export function MediaPicker({
   label,
   value,

@@ -8,19 +8,19 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// Changement de rôle en DEUX TEMPS (issue #38).
+// TWO-STEP role change (issue #38).
 //
-// Le `onChange` du `<Select>` déclenchait la mutation. Sur un portable, faire
-// défiler la page avec le curseur au-dessus d'une liste déroulante en change la
-// valeur : un mouvement de molette rétrogradait donc un modérateur, sans
-// confirmation ni annulation. La garde anti-lockout ne protège que le DERNIER
-// administrateur ; tout le reste passait.
+// The `<Select>`'s `onChange` triggered the mutation. On a laptop, scrolling
+// the page with the cursor over a dropdown changes its value: a mouse-wheel
+// movement thus demoted a moderator, with no confirmation or undo. The
+// anti-lockout guard only protects the LAST administrator; everything else
+// went through.
 //
-// Choisir une valeur ne fait désormais que PRÉPARER le changement : rien ne
-// part tant que « Appliquer » n'a pas été cliqué, puis confirmé dans une boîte
-// qui nomme le compte visé. Le déclenchement accidentel disparaît à la racine
-// (le bouton n'existe pas tant que le brouillon égale le rôle réel), et le
-// second garde-fou couvre le clic volontaire mais erroné.
+// Choosing a value now only PREPARES the change: nothing is sent until
+// "Appliquer" has been clicked, then confirmed in a dialog that names the
+// targeted account. Accidental triggering disappears at the root (the button
+// does not exist while the draft equals the actual role), and the second
+// safeguard covers the deliberate but mistaken click.
 export function RoleSelector({
   name,
   role,
@@ -29,19 +29,19 @@ export function RoleSelector({
   onApply,
   onConfirmation,
 }: {
-  // Ce qui NOMME le compte dans l'étiquette et dans la confirmation
-  // (l'e-mail : c'est la colonne d'identité de cet écran).
+  // What NAMES the account in the label and in the confirmation
+  // (the e-mail: it is this screen's identity column).
   name: string;
   role: NetworkRole;
   locked?: boolean;
   lockedReason?: string;
-  // Rend `true` si le serveur a accepté. Un refus (dernier admin, droits
-  // insuffisants) ramène le sélecteur à la valeur réelle.
+  // Returns `true` if the server accepted. A refusal (last admin, insufficient
+  // rights) brings the selector back to the actual value.
   onApply: (role: NetworkRole) => Promise<boolean>;
-  // Signale l'ouverture et la fermeture de la confirmation. L'écran qui rend
-  // la LISTE en a besoin : cette boîte vit dans une ligne, et une ligne qui
-  // disparaît l'emporte avec elle (cf. `utilisateurs/page.tsx`). Facultatif —
-  // un appelant qui ne rend pas de liste n'a rien à en faire.
+  // Signals the opening and closing of the confirmation. The screen that renders
+  // the LIST needs it: this dialog lives in a row, and a row that
+  // disappears takes it along (see `utilisateurs/page.tsx`). Optional —
+  // a caller that renders no list has no use for it.
   onConfirmation?: (ouverte: boolean) => void;
 }) {
   const t = useTranslations('admin');
@@ -51,13 +51,13 @@ export function RoleSelector({
 
   const value = draft ?? role;
   const changed = draft !== null && draft !== role;
-  // Le verrou (son propre compte) s'expliquait seulement en `title`, donc au
-  // survol : invisible au doigt, non annoncé (campagne du 27/09, C-4). Le
-  // motif est un texte visible, relié au sélecteur par `aria-describedby`.
+  // The lock (one's own account) was only explained in `title`, hence on
+  // hover: invisible to a finger, not announced (27/09 campaign, C-4). The
+  // reason is visible text, linked to the selector via `aria-describedby`.
   const lockedId = useId();
 
-  // Un seul endroit change `confirming`, pour que le signal ne puisse pas se
-  // désynchroniser de l'état.
+  // A single place changes `confirming`, so that the signal cannot fall
+  // out of sync with the state.
   function confirmer(ouverte: boolean) {
     setConfirming(ouverte);
     onConfirmation?.(ouverte);
@@ -68,9 +68,9 @@ export function RoleSelector({
     setPending(true);
     try {
       const ok = await onApply(draft);
-      // En cas de succès le brouillon est CONSERVÉ : la requête Convex rend la
-      // nouvelle valeur dans la foulée, et le remettre à zéro ferait clignoter
-      // l'ancien rôle entre-temps.
+      // On success the draft is KEPT: the Convex query returns the new value
+      // right after, and resetting it would make the old role flicker in the
+      // meantime.
       if (!ok) setDraft(null);
     } finally {
       setPending(false);

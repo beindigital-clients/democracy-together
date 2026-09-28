@@ -8,23 +8,24 @@ import {
 } from '@/lib/article-translation';
 import { TranslateButton } from './translate-button';
 
-// LE BANDEAU QUI DIT AU LECTEUR CE QU'IL LIT.
+// THE BANNER THAT TELLS READERS WHAT THEY ARE READING.
 //
-// Composant SERVEUR : il ne contient aucune interaction, seulement du texte et
-// un lien. Le seul morceau client est `TranslateButton`, monté à l'intérieur —
-// c'est pour cela que le catalogue `translation` traverse la frontière RSC,
-// et pour cela seulement.
+// A SERVER component: it contains no interaction, only text and
+// a link. The only client piece is `TranslateButton`, mounted inside —
+// that is why the `translation` catalogue crosses the RSC boundary,
+// and for that reason only.
 //
-// TROIS ÉTATS, TROIS BANDEAUX DIFFÉRENTS, et aucun quand la langue du contenu
-// est celle du lecteur. Un bandeau qui dirait « cet article est en français »
-// sur un article français à un lecteur français est exactement le genre de
-// bruit qui fait qu'on cesse de lire les bandeaux — y compris celui qui
-// compte.
+// THREE STATES, THREE DIFFERENT BANNERS, and none when the content's
+// language is the reader's. A banner saying "this article is in French"
+// on a French article to a French reader is exactly the kind of
+// noise that makes people stop reading banners — including the one that
+// matters.
 //
-// LE LIEN VERS L'ORIGINAL PASSE PAR L'URL (`?original=1`) et pas par un état
-// local. Trois raisons : la page reste rendue côté serveur, l'adresse de
-// l'original est partageable, et un lecteur sans JavaScript y accède comme les
-// autres — ce qui est l'hypothèse de travail du projet (F-05, faible débit).
+// THE LINK TO THE ORIGINAL GOES THROUGH THE URL (`?original=1`) and not local
+// state. Three reasons: the page stays server-rendered, the URL of the
+// original is shareable, and a reader without JavaScript reaches it like
+// everyone else — which is the project's working assumption (F-05, low
+// bandwidth).
 
 function Frame({
   tone,
@@ -51,9 +52,9 @@ export async function TranslationNotice({
   readerLocale,
   sourceType,
   sourceId,
-  /** Chemin de la page, pour construire le lien « lire l'original ». */
+  /** Page path, to build the "read the original" link. */
   pathname,
-  /** Query string courante, préservée par le lien (filtres, ancres). */
+  /** Current query string, preserved by the link (filters, anchors). */
   search = '',
 }: {
   display: ArticleDisplay;
@@ -97,9 +98,9 @@ export async function TranslationNotice({
         <p className="mt-2">
           <Link
             href={originalHref}
-            // L'intitulé du lien porte la langue de l'original, donc il est
-            // rédigé dans la langue du lecteur : pas de `lang` ici. C'est le
-            // NOM de la langue qui est traduit, pas le lien.
+            // The link text carries the original's language, so it is
+            // written in the reader's language: no `lang` here. It is the language's
+            // NAME that is translated, not the link.
             className="font-medium text-accent-text underline underline-offset-2"
           >
             {t('readOriginal', { language: sourceName })}
@@ -149,7 +150,7 @@ export async function TranslationNotice({
   );
 }
 
-// `textAttrs` vit désormais dans `@/i18n/content-lang` : les LISTES en ont
-// besoin aussi, y compris côté client (RGAA 8.7). Ré-exporté ici pour les
-// fiches qui l'importaient de ce module.
+// `textAttrs` now lives in `@/i18n/content-lang`: LISTS need it
+// too, including client-side (RGAA 8.7). Re-exported here for the
+// detail pages that imported it from this module.
 export { textAttrs } from '@/i18n/content-lang';

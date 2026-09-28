@@ -49,15 +49,15 @@ export default async function TribunePage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const sp = await searchParams;
-  // Le paramètre d'URL est libre, l'argument de la query ne l'est pas : une
-  // valeur hors vocabulaire est ramenée à « pas de filtre » ici, plutôt que
-  // de partir telle quelle et de faire échouer la validation d'arguments.
+  // The URL parameter is free, the query argument is not: a value outside
+  // the vocabulary is mapped to "no filter" here, rather than being sent
+  // as is and failing argument validation.
   const raw = param(sp.theme);
   const theme = raw && isNetworkTheme(raw) ? raw : undefined;
 
   const t = await getTranslations('tribune');
   const tl = await getTranslations('library');
-  // Backend injoignable -> aucun billet, pas un 500 (F-02).
+  // Backend unreachable -> no posts, not a 500 (F-02).
   const posts = await fetchOrFallback(
     'tribune',
     () => fetchQuery(api.tribune.listPosts, { theme }),
@@ -87,11 +87,11 @@ export default async function TribunePage({
         </Reveal>
       </header>
 
-      {/* Code de conduite (F-50) + prise de parole */}
+      {/* Code of conduct (F-50) + posting */}
       <Reveal className="mt-8 grid gap-4 lg:grid-cols-[1.4fr_1fr] lg:items-start">
         <div className="space-y-4">
           <TribuneComposer />
-          {/* Statut de ses propres billets, visible du seul auteur (A-11). */}
+          {/* Status of one's own posts, visible to the author only (A-11). */}
           <MyPosts />
         </div>
         <aside className="rounded-md border border-line bg-surface p-5">
@@ -104,7 +104,7 @@ export default async function TribunePage({
         </aside>
       </Reveal>
 
-      {/* Filtre par thématique */}
+      {/* Filter by theme */}
       <Reveal className="mt-10">
         <div
           role="group"
@@ -142,7 +142,7 @@ export default async function TribunePage({
         </div>
       </Reveal>
 
-      {/* Fil */}
+      {/* Feed */}
       {posts.length === 0 ? (
         <div className="mt-8 rounded-md border border-dashed border-line-strong bg-surface px-6 py-16 text-center">
           <p className="text-ink-soft">{t('empty')}</p>
@@ -168,7 +168,7 @@ export default async function TribunePage({
                     </span>
                   ) : null}
                 </div>
-                {/* Langue de rédaction du billet (RGAA 8.7) : cf. la fiche. */}
+                {/* Writing language of the post (RGAA 8.7): see the detail page. */}
                 <h2
                   {...contentLangAttrs(p.lang, loc)}
                   className="mt-2 font-display text-xl leading-snug"

@@ -13,10 +13,10 @@ import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 import { StatusMessage } from '@/components/a11y/status-message';
 
-// Formulaire d'inscription à un événement (F-53) — îlot client, sur la page de
-// détail. Idempotent côté serveur (réinscription = succès sans doublon). Les
-// libellés viennent du namespace i18n `eventRegister` ; le titre de l'événement
-// est passé en prop pour personnaliser l'intro.
+// Event registration form (F-53) — client island, on the detail page.
+// Idempotent server-side (re-registering = success without duplicate). The
+// labels come from the `eventRegister` i18n namespace; the event title
+// is passed as a prop to personalize the intro.
 export function EventRegisterForm({
   eventSlug,
   eventTitle,
@@ -59,11 +59,11 @@ export function EventRegisterForm({
       });
       setStatus('success');
     } catch (err) {
-      // Événement passé ou inconnu : le serveur refuse désormais (A-03) et le
-      // dit — la fiche ne rend plus ce formulaire, mais une page restée
-      // ouverte pendant que l'événement passait peut encore l'envoyer.
+      // Past or unknown event: the server now refuses (A-03) and says
+      // so — the detail page no longer renders this form, but a page left
+      // open while the event went by can still submit it.
       const closed = err instanceof ConvexError && err.data === 'EVENT_CLOSED';
-      // Capacité atteinte entre l'affichage de la fiche et l'envoi.
+      // Capacity reached between displaying the detail page and submitting.
       const full = err instanceof ConvexError && err.data === 'EVENT_FULL';
       setError(
         isCaptchaFailed(err)

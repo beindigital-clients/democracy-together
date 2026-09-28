@@ -1,12 +1,13 @@
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-// Identité Democracy Together — LOGO FOURNI PAR LE CLIENT, détouré (fond
-// transparent). Deux variantes : l'original (marine) sur fond clair, une version
-// recolorée claire sur fond sombre, où le marine d'origine serait illisible. La
-// bascule se fait via `[data-theme='dark']` (cf. globals.css `.dt-logo-*`),
-// Tailwind `dark:` n'étant pas câblé sur ce sélecteur dans ce projet. Le favicon
-// est le symbole seul (src/app/icon.png). `sizes` borne le poids servi.
+// Democracy Together identity — LOGO SUPPLIED BY THE CLIENT, cut out
+// (transparent background). Two variants: the original (navy) on a light
+// background, a light recoloured version on a dark background, where the
+// original navy would be unreadable. The switch happens via
+// `[data-theme='dark']` (see globals.css `.dt-logo-*`), since Tailwind `dark:`
+// is not wired to that selector in this project. The favicon is the symbol
+// alone (src/app/icon.png). `sizes` caps the served weight.
 const W = 1233;
 const H = 344;
 

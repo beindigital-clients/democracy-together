@@ -13,13 +13,13 @@ import {
   useFailureFeedback,
 } from '@/components/admin/action-feedback';
 
-// ACTIONS DE CYCLE DE VIE SUR UNE LIGNE DU BACK-OFFICE (F-63, chantier
-// comptes) : suspendre (motif obligatoire), réactiver, réinitialiser la 2FA
-// (motif obligatoire, journalisé), supprimer (DEUX TEMPS : confirmer, puis
-// retaper l'adresse — le serveur exige cette adresse).
+// LIFECYCLE ACTIONS ON A BACK-OFFICE ROW (F-63, accounts workstream):
+// suspend (reason required), reactivate, reset 2FA (reason required,
+// logged), delete (TWO STEPS: confirm, then retype the address — the server
+// requires that address).
 //
-// Un seul panneau ouvert à la fois par ligne, et chaque geste passe par une
-// boîte de confirmation qui NOMME le compte (motif de l'issue #38).
+// Only one panel open at a time per row, and each action goes through a
+// confirmation dialog that NAMES the account (reason for issue #38).
 
 export type AccountRow = {
   _id: Id<'users'>;
@@ -40,8 +40,8 @@ export function AccountActions({
 }: {
   row: AccountRow;
   self: boolean;
-  // Signale l'ouverture d'une confirmation : l'écran fige alors la liste,
-  // pour que la ligne — et la boîte avec elle — ne disparaisse pas.
+  // Signals that a confirmation is opening: the screen then freezes the list,
+  // so that the row — and the dialog with it — does not disappear.
   onConfirmation?: (open: boolean) => void;
 }) {
   const t = useTranslations('accounts');
@@ -62,11 +62,11 @@ export function AccountActions({
     setDialogState(next);
   }
 
-  // La liste du back-office se FIGE tant qu'un geste est en cours dans une
-  // ligne — boîte de confirmation, mais aussi panneau ouvert (motif de
-  // suspension, adresse à retaper). Sans cela, la recherche temporisée qui
-  // revient pendant la saisie redessine la liste et emporte le panneau avec
-  // le texte tapé (vu en CI le 28/09 : champ « Motif » détaché du DOM).
+  // The back-office list FREEZES while an action is in progress in a
+  // row — confirmation dialog, but also an open panel (suspension reason,
+  // address to retype). Without this, the debounced search that comes back
+  // during typing redraws the list and takes the panel away along with
+  // the typed text (seen in CI on 28/09: "Motif" field detached from the DOM).
   const open = panel !== null || dialog !== null;
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -284,8 +284,8 @@ export function AccountActions({
         }
         onCancel={() => setDialog(null)}
       />
-      {/* PREMIER TEMPS de la suppression : il ne supprime rien, il ouvre le
-          second (retaper l'adresse). */}
+      {/* FIRST STEP of deletion: it deletes nothing, it opens the
+          second (retype the address). */}
       <ConfirmDialog
         open={dialog === 'delete1'}
         title={t('deleteStep1Title', { name })}

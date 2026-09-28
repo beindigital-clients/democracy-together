@@ -46,11 +46,11 @@ export default function ForgotPasswordPage() {
       if (isSendLimited(err)) {
         setError(t('errorSendLimit'));
       } else {
-        // ANTI-ÉNUMÉRATION, comme sur la connexion par code : une adresse
-        // sans compte mot de passe (`InvalidAccountId`) ne doit pas se
-        // distinguer d'une adresse connue. Le sous-titre de l'étape suivante
-        // dit « si un compte avec mot de passe existe » et renvoie vers la
-        // connexion par code, seul chemin d'un membre invité.
+        // ANTI-ENUMERATION, as with sign-in by code: an address
+        // without a password account (`InvalidAccountId`) must not be
+        // distinguishable from a known address. The next step's subtitle
+        // says "if an account with a password exists" and points to
+        // sign-in by code, the only path for an invited member.
         setStep('reset');
       }
     } finally {
@@ -58,8 +58,8 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  // Renvoi du code depuis l'étape « nouveau mot de passe » (auth A-5) : même
-  // anti-énumération que `onRequest`, même message dédié au plafond (A-4).
+  // Code resend from the "new password" step (auth A-5): same
+  // anti-enumeration as `onRequest`, same dedicated cap message (A-4).
   async function onResend() {
     setError(null);
     setNotice(null);
@@ -79,13 +79,13 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError(null);
     setNotice(null);
-    // Même politique que le serveur (convex/lib/passwordPolicy.ts), appliquée
-    // ICI pour pouvoir DIRE laquelle des deux règles casse. Le refus serveur ne
-    // le permet pas : la route /api/auth de Convex Auth aplatit `ConvexError.data`
-    // en texte de statut HTTP, et le navigateur ne reçoit qu'une erreur nue —
-    // affichée « Code invalide ou expiré », qui désigne le mauvais champ.
-    // (Constaté en E2E, pas déduit.) Le serveur refuse toujours : ce contrôle
-    // ne relâche rien, il explique — et désigne maintenant le champ lui-même.
+    // Same policy as the server (convex/lib/passwordPolicy.ts), applied
+    // HERE so we can SAY which of the two rules fails. The server refusal does
+    // not allow it: Convex Auth's /api/auth route flattens `ConvexError.data`
+    // into HTTP status text, and the browser only gets a bare error —
+    // shown as "Code invalide ou expiré", which points at the wrong field.
+    // (Observed in E2E, not inferred.) The server still refuses: this check
+    // relaxes nothing, it explains — and now points at the field itself.
     if (
       !validate({
         code: (v) => (v.length === 6 ? null : t('errCode')),

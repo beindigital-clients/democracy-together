@@ -6,8 +6,8 @@ import type { PublicOrganization } from '@convex/lib/directory';
 import { vocabulary } from '@/i18n/vocabulary';
 import { contentLangAttrs, ORG_DESCRIPTION_LOCALE } from '@/i18n/content-lang';
 
-// Carte d'un think tank dans l'annuaire (F-19). Toute la carte est cliquable
-// vers la fiche membre (F-21). Composant serveur (rendu SSR, zéro JS).
+// Card for a think tank in the directory (F-19). The whole card links
+// to the member page (F-21). Server component (SSR, zero JS).
 export function OrgCard({
   org,
   locale,

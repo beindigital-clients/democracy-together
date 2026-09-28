@@ -12,12 +12,12 @@ import { formField, isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
 import { StatusMessage } from '@/components/a11y/status-message';
 
-// Rappel d'événement (F-55) — îlot client, sur la page de détail d'un événement
-// À VENIR. Le visiteur (sans compte) laisse son e-mail ; un cron quotidien
-// enverra le rappel quelques jours avant. La date du rappel est celle de
-// l'événement, LUE CÔTÉ SERVEUR dans la table (pentest M-5) : ce formulaire ne
-// l'envoie plus. Idempotent côté serveur (redemander = succès sans doublon).
-// Libellés du namespace i18n `reminder`.
+// Event reminder (F-55) — client island, on the detail page of an UPCOMING
+// event. The visitor (without an account) leaves their e-mail; a daily cron
+// will send the reminder a few days before. The reminder date is the
+// event's, READ SERVER-SIDE from the table (pentest M-5): this form no
+// longer sends it. Idempotent server-side (asking again = success without
+// duplicate). Labels from the `reminder` i18n namespace.
 export function ReminderForm({ eventSlug }: { eventSlug: string }) {
   const t = useTranslations('reminder');
   const locale = useLocale();

@@ -41,9 +41,9 @@ function EyeOffIcon() {
   );
 }
 
-// Champ mot de passe avec bascule afficher/masquer. Contrôle particulier (un
-// bouton se superpose au champ), donc rendu via la coquille `Field` du système
-// commun : libellé, aide, erreur et rattachement ARIA sont les mêmes qu'ailleurs.
+// Password field with a show/hide toggle. A special control (a button
+// overlays the field), hence rendered through the shared system's `Field`
+// shell: label, help text, error and ARIA association are the same as elsewhere.
 export function PasswordField({
   label,
   labelHidden,

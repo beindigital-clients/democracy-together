@@ -22,7 +22,7 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 type ReportView = {
   year: number;
   inaugural: boolean;
-  /** Langue du TEXTE servi (le français quand la langue demandée manque). */
+  /** Language of the served TEXT (French when the requested language is missing). */
   locale: Locale;
   title: string;
   intro: string;
@@ -31,10 +31,10 @@ type ReportView = {
   pdfs: ReportPdfInfo[];
 };
 
-// Une édition administrée (Convex) si la base la connaît ; sinon le contenu
-// codé, à l'identique — mêmes URL, même texte (F-41, migration fidèle). Une
-// année que la base connaît mais ne publie pas est introuvable : le repli
-// codé ne ressuscite pas une édition dépubliée.
+// An administered edition (Convex) if the database knows it; otherwise the
+// hard-coded content, identical — same URLs, same text (F-41, faithful
+// migration). A year the database knows but does not publish is not found:
+// the hard-coded fallback does not resurrect an unpublished edition.
 async function loadReport(
   locale: Locale,
   year: number,

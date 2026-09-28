@@ -16,16 +16,16 @@ import { ArrowBack } from '@/components/ui/arrow';
 import { PersonAvatar } from '@/components/social/person-avatar';
 import { ProfileActions } from '@/components/social/profile-actions';
 
-// PAGE DE PROFIL D'UNE PERSONNE `/membres/<handle>` (chantier « social »).
+// PROFILE PAGE OF A PERSON `/membres/<handle>` ("social" workstream).
 //
-// La VISIBILITÉ est décidée par Convex, avec le jeton de session transmis :
-//  - public  -> page servie à tous, indexable (canonical + hreflang des cinq
-//               langues, fiche `Person`) comme les autres pages publiques ;
-//  - membres -> servie aux seuls membres connectés, en `noindex` ;
-//  - privé   -> 404, pour tout le monde sauf la personne elle-même.
-// Un profil que le lecteur ne peut pas voir rend EXACTEMENT la même 404 qu'un
-// handle qui n'existe pas : la page ne confirme jamais qu'il y a quelqu'un
-// derrière une adresse.
+// VISIBILITY is decided by Convex, with the session token passed along:
+//  - public  -> page served to everyone, indexable (canonical + hreflang for
+//               the five languages, `Person` record) like other public pages;
+//  - members -> served only to signed-in members, as `noindex`;
+//  - private -> 404, for everyone except the person themselves.
+// A profile the reader cannot see renders EXACTLY the same 404 as a handle
+// that does not exist: the page never confirms that someone is behind an
+// address.
 
 type Params = Promise<{ locale: string; handle: string }>;
 
@@ -218,10 +218,10 @@ export default async function PersonPage({ params }: { params: Params }) {
                   <ul className="space-y-1">
                     {links.map((l) => (
                       <li key={l.href}>
-                        {/* Adresse saisie par la personne : validée https à
-                            l'écriture, refiltrée ici (safeHref), et marquée
-                            `nofollow ugc` — un profil n'est pas une ferme de
-                            liens. */}
+                        {/* Address entered by the person: validated as https on
+                            write, re-filtered here (safeHref), and marked
+                            `nofollow ugc` — a profile is not a link
+                            farm. */}
                         <a
                           href={l.href}
                           target="_blank"

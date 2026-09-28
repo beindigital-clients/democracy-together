@@ -2,30 +2,29 @@
 
 import { useEffect } from 'react';
 
-// Après un saut d'ancre, le FOCUS doit suivre le défilement (issue #46) : sinon
-// la tabulation repart du lien cliqué — en bas de page, dans le pied de page —
-// et le lien ne sert à rien au clavier ni au lecteur d'écran.
+// After an anchor jump, FOCUS must follow the scroll (issue #46): otherwise
+// tabbing restarts from the clicked link — at the bottom of the page, in the
+// footer — and the link is useless for keyboard and screen reader users.
 //
-// Le navigateur sait le faire seul : « scroll to the fragment » focalise la
-// cible du fragment, d'où le `tabIndex={-1}` posé sur les sections (une
-// `<section>` nue n'est pas focusable, le focus n'a alors nulle part où aller).
-// Cela couvre le chargement direct de `/a-propos#gouvernance` et le retour
-// arrière.
+// The browser can do it on its own: "scroll to the fragment" focuses the
+// fragment's target, hence the `tabIndex={-1}` set on the sections (a bare
+// `<section>` is not focusable, so focus has nowhere to go).
+// This covers a direct load of `/a-propos#gouvernance` and going back.
 //
-// Mais un lien du pied de page est une navigation CLIENTE, et depuis Next 16 le
-// gestionnaire de défilement de l'App Router (`InnerScrollHandlerNew`, activé
-// par défaut) défile vers l'ancre en « laissant le focus intact ». Vérifié au
-// navigateur : sans ce composant, le focus reste sur le lien du pied de page.
+// But a footer link is a CLIENT navigation, and since Next 16 the App
+// Router's scroll handler (`InnerScrollHandlerNew`, enabled by default)
+// scrolls to the anchor while "leaving focus intact". Checked in the
+// browser: without this component, focus stays on the footer link.
 //
-// Ce composant ne fait donc QUE reposer le focus, et ne défile pas de lui-même
-// (`preventScroll`) : le déplacement reste celui du navigateur, donc soumis à
-// `scroll-behavior`, que globals.css force à `auto` sous
-// `prefers-reduced-motion`. Un `scrollIntoView({ behavior: 'smooth' })` maison
-// contournerait cette préférence — c'est précisément ce qu'il ne faut pas faire.
+// This component therefore ONLY moves focus, and does not scroll by itself
+// (`preventScroll`): the movement stays the browser's, hence subject to
+// `scroll-behavior`, which globals.css forces to `auto` under
+// `prefers-reduced-motion`. A home-made `scrollIntoView({ behavior: 'smooth' })`
+// would bypass that preference — which is precisely what must not be done.
 //
-// Il est monté par la PAGE qui porte les ancres, pas par le layout : il n'agit
-// que sur les cibles de cette page (`focus()` sur un élément non focusable est
-// sans effet) et ne coûte rien aux autres routes.
+// It is mounted by the PAGE that holds the anchors, not by the layout: it only
+// acts on that page's targets (`focus()` on a non-focusable element has
+// no effect) and costs nothing on other routes.
 function focusTarget(hash: string): HTMLElement | null {
   const id = decodeURIComponent(hash.replace(/^#/, ''));
   const el = id ? document.getElementById(id) : null;
@@ -35,22 +34,22 @@ function focusTarget(hash: string): HTMLElement | null {
 
 export function AnchorFocus() {
   useEffect(() => {
-    // Navigation cliente depuis une AUTRE route : la page vient d'être montée
-    // et l'URL porte déjà l'ancre. Au chargement direct, le navigateur a déjà
-    // focalisé la cible — la reposer au même endroit est sans effet.
+    // Client navigation from ANOTHER route: the page has just been mounted
+    // and the URL already carries the anchor. On a direct load, the browser has
+    // already focused the target — focusing it again in the same place does nothing.
     focusTarget(window.location.hash);
 
     const onHistory = () => focusTarget(window.location.hash);
 
-    // Clic sur une ancre de la page COURANTE — le pied de page est aussi rendu
-    // sur `/a-propos`. Le routeur pousse l'URL sans remonter l'arbre : aucun
-    // effet ne se rejoue, et aucun `hashchange` n'est émis puisque Next passe
-    // par `history.pushState`. Il ne reste que le clic lui-même.
+    // Click on an anchor of the CURRENT page — the footer is also rendered
+    // on `/a-propos`. The router pushes the URL without remounting the tree: no
+    // effect re-runs, and no `hashchange` is fired since Next goes through
+    // `history.pushState`. All that remains is the click itself.
     //
-    // En phase de CAPTURE : le `<Link>` de Next annule l'évènement
-    // (`preventDefault`, c'est ainsi qu'il prend la main sur la navigation)
-    // depuis le gestionnaire délégué de React, posé sur `document` — donc avant
-    // nous en phase de bulle, et `defaultPrevented` serait toujours vrai.
+    // In the CAPTURE phase: Next's `<Link>` cancels the event
+    // (`preventDefault`, that is how it takes over navigation) from React's
+    // delegated handler, attached to `document` — so before us in the bubble
+    // phase, and `defaultPrevented` would always be true.
     const onClick = (e: MouseEvent) => {
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
         return;
@@ -62,10 +61,10 @@ export function AnchorFocus() {
 
       const target = focusTarget(link.hash);
 
-      // URL strictement identique : le routeur considère qu'il n'y a rien à
-      // faire et ne défile pas. C'est au lien de tenir sa promesse — par le
-      // défilement du NAVIGATEUR, sans option, donc gouverné par la même règle
-      // `scroll-behavior` que le reste.
+      // Strictly identical URL: the router considers there is nothing to do
+      // and does not scroll. It is up to the link to keep its promise — through
+      // the BROWSER's scrolling, with no options, hence governed by the same
+      // `scroll-behavior` rule as the rest.
       if (target && link.href === window.location.href) target.scrollIntoView();
     };
 

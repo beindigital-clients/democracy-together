@@ -5,15 +5,15 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { PeopleDirectory } from '@/components/social/people-directory';
 
-// Annuaire des PERSONNES (chantier « social ») — réservé aux membres du
-// réseau. Le segment `membres` n'est PAS une zone protégée du middleware
-// (src/lib/protected-routes.ts) : les profils publics `/membres/<handle>`
-// doivent rester lisibles sans compte. Cette page-ci est donc gardée par
-// `AuthGate` côté client, et surtout par Convex, qui ne rend rien à un
-// anonyme ni à un visiteur.
+// Directory of PEOPLE ("social" workstream) — reserved for network
+// members. The `membres` segment is NOT a protected zone of the middleware
+// (src/lib/protected-routes.ts): public profiles `/membres/<handle>`
+// must remain readable without an account. This page is therefore guarded
+// by `AuthGate` on the client, and above all by Convex, which returns
+// nothing to an anonymous user or a visitor.
 //
-// `noindex` : sans session, il n'y a rien à indexer ici. Pas de hreflang
-// pour la même raison (issue #35).
+// `noindex`: without a session, there is nothing to index here. No hreflang
+// for the same reason (issue #35).
 export async function generateMetadata({
   params,
 }: {

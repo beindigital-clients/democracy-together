@@ -1,8 +1,8 @@
 import { setRequestLocale } from 'next-intl/server';
 import { ReceiptByToken } from '@/components/payments/receipt-by-token';
 
-// Lien de reçu envoyé par courriel (F-29) : permet à un donateur SANS compte
-// de retrouver son reçu. Le jeton est le seul sésame — cf.
+// Receipt link sent by e-mail (F-29): lets a donor WITHOUT an account
+// retrieve their receipt. The token is the only key — see
 // convex/payments/member.ts (`receiptByToken`).
 export default async function ReceiptTokenPage({
   params,

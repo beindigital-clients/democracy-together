@@ -4,22 +4,22 @@ import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// REFUS SERVEUR TRADUITS (campagne du 27/09, R-08).
+// TRANSLATED SERVER REFUSALS (27/09 campaign, R-08).
 //
-// Les mutations du back-office refusent par un code — `ALREADY_REVIEWED`,
-// `INVALID_WEBSITE`, `EMAIL_PROVIDER_NOT_CONFIGURED`… — et chaque écran
-// répondait soit par le silence (`catch {}`), soit par un même « Vérifiez vos
-// droits », y compris quand le refus portait sur un champ (site web
-// `javascript:` refusé, m-3) ou sur un état (décision déjà prise ailleurs,
-// m-2). Le modérateur ne savait ni si son clic avait été enregistré, ni quoi
-// corriger.
+// Back-office mutations refuse with a code — `ALREADY_REVIEWED`,
+// `INVALID_WEBSITE`, `EMAIL_PROVIDER_NOT_CONFIGURED`… — and each screen
+// responded either with silence (`catch {}`) or with the same "Vérifiez vos
+// droits", even when the refusal concerned a field (`javascript:` website
+// refused, m-3) or a state (decision already made elsewhere,
+// m-2). The moderator knew neither whether their click had been recorded nor
+// what to fix.
 //
-// Ce module lit le code dans le message d'erreur que Convex renvoie au client
-// (« Uncaught Error: ALREADY_REVIEWED … ») et le rend par une clé de
-// vocabulaire `admin.feedbackErr_<CODE>`, avec le message générique en repli
-// pour un code que l'écran ne connaît pas. La liste est FERMÉE et écrite ici :
-// un code ajouté côté serveur sans son libellé retombe sur le générique, pas
-// sur une clé brute à l'écran.
+// This module reads the code from the error message Convex sends to the client
+// ("Uncaught Error: ALREADY_REVIEWED …") and renders it through a vocabulary
+// key `admin.feedbackErr_<CODE>`, with the generic message as a fallback
+// for a code the screen does not know. The list is CLOSED and written here:
+// a code added server-side without its label falls back to the generic
+// message, not to a raw key on screen.
 
 export const SERVER_ERROR_CODES = [
   'ALREADY_REVIEWED',
@@ -37,13 +37,13 @@ export const SERVER_ERROR_CODES = [
   'INVALID_CAMPAIGN',
   'ALREADY_SENT',
   'EMAIL_PROVIDER_NOT_CONFIGURED',
-  // Newsletter (chantier diffusion) : version traduite dans la langue de
-  // référence, envoi de test sans adresse de compte, relance d'une campagne
-  // encore en cours.
+  // Newsletter (outreach workstream): translated version in the reference
+  // language, test send without an account address, relaunching a campaign
+  // still in progress.
   'VARIANT_IS_REFERENCE',
   'NO_EDITOR_EMAIL',
   'NOT_RETRYABLE',
-  // Contenus éditoriaux et médiathèque (chantier « contenus »).
+  // Editorial content and media library ("contenus" workstream).
   'INVALID_SLUG',
   'SLUG_TAKEN',
   'TITLE_REQUIRED',
@@ -62,7 +62,7 @@ export const SERVER_ERROR_CODES = [
   'MEDIA_IN_USE',
   'INVALID_MEDIA',
   'EVENT_HAS_REGISTRATIONS',
-  // Cycle de vie des comptes et 2FA (chantier comptes).
+  // Account lifecycle and 2FA (accounts workstream).
   'LAST_ADMIN',
   'SELF_ACTION',
   'INVALID_REASON',
@@ -79,7 +79,7 @@ export const SERVER_ERROR_CODES = [
   'TWO_FACTOR_ENROLLMENT_REQUIRED',
   'INVALID_NAME',
   'INVALID_DESCRIPTION',
-  // Revue à comité de lecture (F-43) et rapports annuels (F-41).
+  // Peer review (F-43) and annual reports (F-41).
   'REVIEWER_IS_AUTHOR',
   'CONFLICT_DECLARED',
   'CONFLICT_NOT_DECLARED',
@@ -101,9 +101,9 @@ export const SERVER_ERROR_CODES = [
   'INVALID_PARAGRAPH',
   'INVALID_KEY_FIGURES',
   'INVALID_KEY_FIGURE',
-  // Refus de rôle et de session : `requireNetworkRole` lève en français
-  // (« Accès refusé : rôle « editeur » requis. », « Non authentifié. ») — ils
-  // sont reconnus par leur texte et ramenés à un code, comme les autres.
+  // Role and session refusals: `requireNetworkRole` throws in French
+  // ("Accès refusé : rôle « editeur » requis.", "Non authentifié.") — they
+  // are recognized by their text and mapped to a code, like the others.
   'FORBIDDEN',
   'UNAUTHENTICATED',
 ] as const;
@@ -119,12 +119,12 @@ function messageOf(err: unknown): string {
   return '';
 }
 
-/** Le code de refus porté par une erreur serveur, ou `null` s'il est inconnu. */
+/** The refusal code carried by a server error, or `null` if unknown. */
 export function serverErrorCode(err: unknown): ServerErrorCode | null {
   const message = messageOf(err);
   if (!message) return null;
-  // Les codes d'abord : ils sont en capitales et délimités, un texte libre ne
-  // les contient pas par accident.
+  // Codes first: they are uppercase and delimited, free text does not
+  // contain them by accident.
   for (const code of SERVER_ERROR_CODES) {
     if (code === 'FORBIDDEN' || code === 'UNAUTHENTICATED') continue;
     if (new RegExp(`(^|[^A-Z_])${code}([^A-Z_]|$)`).test(message)) return code;
@@ -135,8 +135,8 @@ export function serverErrorCode(err: unknown): ServerErrorCode | null {
 }
 
 /**
- * Le message à afficher pour un refus serveur, dans la langue de l'écran :
- * le libellé du code s'il est connu, le générique sinon.
+ * The message to display for a server refusal, in the screen's language:
+ * the code's label if known, the generic message otherwise.
  */
 export function useServerErrorMessage(): (err: unknown) => string {
   const t = useTranslations('admin');

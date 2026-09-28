@@ -1,9 +1,9 @@
-// F-52 Agenda — export iCalendar (.ics) d'un événement. Le middleware i18n
-// ignore les chemins contenant un point (« agenda.ics ») : la locale provient
-// donc du segment de chemin, comme pour les endpoints de données du Baromètre
-// (voir `barometre/data/[file]/route.ts`). Renvoie une Response
-// `text/calendar` en pièce jointe. 404 si le slug est inconnu. La logique de
-// génération vit dans `@/lib/ics` (pure et testée).
+// F-52 Calendar — iCalendar (.ics) export of an event. The i18n middleware
+// ignores paths containing a dot ("agenda.ics"): the locale therefore comes
+// from the path segment, as for the Baromètre data endpoints
+// (see `barometre/data/[file]/route.ts`). Returns a `text/calendar`
+// Response as an attachment. 404 if the slug is unknown. The generation
+// logic lives in `@/lib/ics` (pure and tested).
 import { getTranslations } from 'next-intl/server';
 import { resolveLocale } from '@/i18n/locale';
 import { loadEvent } from '@/lib/contenus/load';
@@ -18,7 +18,7 @@ export async function GET(
   const { locale: rawLocale, slug } = await params;
   const locale = resolveLocale(rawLocale);
 
-  // Même source que la fiche : la table, ou le catalogue codé en repli.
+  // Same source as the detail page: the table, or the hard-coded fallback catalogue.
   const detail = await loadEvent(slug, locale);
   if (!detail) {
     return new Response('Not found', {
@@ -35,7 +35,7 @@ export async function GET(
   const url = `${SITE}/${rawLocale}/evenements/${slug}`;
 
   const ics = eventToIcs({
-    // UID stable et global : le slug de l'événement + l'hôte du site.
+    // Stable, globally unique UID: the event slug + the site host.
     uid: `${slug}@democracy-together.org`,
     start: { y: event.y, mo: event.mo, d: event.d },
     title,

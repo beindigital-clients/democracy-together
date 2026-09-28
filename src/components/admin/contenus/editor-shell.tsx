@@ -9,11 +9,11 @@ import {
   useFailureFeedback,
 } from '@/components/admin/action-feedback';
 
-// Briques communes aux six écrans de contenus : le cadre du formulaire
-// d'édition, et l'exécution d'une action avec retour visible (succès annoncé
-// par la région live du back-office, refus traduit par son code serveur).
+// Building blocks shared by the six content screens: the edit form's
+// frame, and running an action with visible feedback (success announced
+// by the back-office live region, refusal translated by its server code).
 
-/** Exécute une mutation, annonce le succès, traduit le refus. */
+/** Runs a mutation, announces success, translates the refusal. */
 export function useRunAction() {
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
@@ -47,7 +47,7 @@ export function EditorShell({
   onClose: () => void;
   pending: boolean;
   children: ReactNode;
-  // Aperçu public, à droite sur grand écran.
+  // Public preview, on the right on large screens.
   aside?: ReactNode;
 }) {
   const t = useTranslations('contentAdmin');
@@ -99,7 +99,7 @@ export function EditorShell({
   );
 }
 
-/** Bouton d'action destructrice, protégé par une confirmation nommée. */
+/** Destructive action button, protected by a named confirmation. */
 export function ConfirmButton({
   label,
   title,
@@ -152,7 +152,7 @@ export function ConfirmButton({
   );
 }
 
-/** Aperçu public d'une carte, dans la langue de saisie. */
+/** Public preview of a card, in the editing language. */
 export function PreviewCard({
   heading,
   fallback,

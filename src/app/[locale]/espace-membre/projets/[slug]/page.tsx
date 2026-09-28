@@ -5,7 +5,7 @@ import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import { CallApplication } from '@/components/projects/call-application';
 import { PAGE } from '@/components/programmes/shared';
 
-// Candidature à un appel (F-60) : brouillon, pièces, dépôt.
+// Application to a call (F-60): draft, attachments, submission.
 function Detail() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;

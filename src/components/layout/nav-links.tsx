@@ -5,15 +5,15 @@ import { Link, usePathname } from '@/i18n/navigation';
 
 export type NavItem = { href: string; key: string };
 
-// Une entrée est active sur sa page ET ses sous-pages (ex. /bibliotheque/<slug>
-// garde « Analyses » actif). `usePathname` (next-intl) est déjà dépouillé de la
-// locale.
+// An entry is active on its page AND its sub-pages (e.g. /bibliotheque/<slug>
+// keeps "Analyses" active). `usePathname` (next-intl) is already stripped of
+// the locale.
 export function isNavActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// Nav principale (desktop) — îlot client pour l'indicateur de page active
-// (soulignement accent + `aria-current="page"`).
+// Main nav (desktop) — client island for the active page indicator
+// (accent underline + `aria-current="page"`).
 export function NavLinks({ items }: { items: readonly NavItem[] }) {
   const t = useTranslations('nav');
   const pathname = usePathname();

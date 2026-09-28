@@ -23,13 +23,12 @@ import { formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
 
-// GESTION DE SON ORGANISATION (F-21, chantier comptes).
+// MANAGING ONE'S ORGANIZATION (F-21, accounts workstream).
 //
-// Le RESPONSABLE propose des modifications de la fiche (relues par un
-// modérateur), gère les rattachements et invite ses collègues ; un simple
-// membre consulte et peut quitter. Le serveur tranche chaque droit
-// (convex/orgAdmin.ts) : cet écran ne fait que ne pas proposer ce qui serait
-// refusé.
+// The MANAGER proposes changes to the entry (reviewed by a moderator),
+// manages affiliations and invites colleagues; a regular member views it
+// and can leave. The server decides every right (convex/orgAdmin.ts):
+// this screen merely avoids offering what would be refused.
 
 const ERRORS = [
   'NOT_ORG_OWNER',
@@ -129,8 +128,8 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
       const { storageId } = (await res.json()) as {
         storageId: Id<'_storage'>;
       };
-      // Le CONTENU est vérifié côté serveur (signature de l'image) : c'est
-      // ce contrôle qui décide, pas le type annoncé par le navigateur.
+      // The CONTENT is checked server-side (image signature): that check is
+      // what decides, not the type announced by the browser.
       const check = await attachLogo({
         orgId: view.org._id,
         fileId: storageId,
@@ -291,7 +290,7 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
         <p className="text-sm text-ink-soft">{t('fieldLogo')}</p>
         <div className="mt-2 flex flex-wrap items-center gap-4">
           {currentLogo && !removeLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL signée du stockage Convex, hors du chargeur d'images de Next
+            // eslint-disable-next-line @next/next/no-img-element -- signed Convex storage URL, outside Next's image loader
             <img
               src={currentLogo}
               alt={t('logoAlt', { org: view.org.name })}
@@ -378,8 +377,8 @@ function MembersSection({ view }: { view: OrgView }) {
       const res = await invite({
         orgId: view.org._id,
         email: email.trim(),
-        // La langue de l'écran de l'invitant, faute de mieux : celle du
-        // collègue n'est pas connue avant sa première connexion.
+        // The inviter's screen language, for lack of anything better: the
+        // colleague's is not known before their first sign-in.
         locale: resolveLocale(locale),
       });
       setEmail('');

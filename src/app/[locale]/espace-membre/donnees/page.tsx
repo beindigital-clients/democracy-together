@@ -14,15 +14,15 @@ import { ArrowBack } from '@/components/ui/arrow';
 import { errorCode } from '@/lib/account-errors';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// MES DONNÉES (chantier comptes, RGPD art. 15, 17 et 20) — manque relevé par
-// l'audit : aucun moyen d'obtenir ses données ni de supprimer son compte sans
-// écrire au secrétariat.
+// MY DATA (accounts workstream, GDPR art. 15, 17 and 20) — gap found by
+// the audit: no way to obtain one's data or delete one's account without
+// writing to the secretariat.
 //
-// L'EXPORT est une lecture ponctuelle (`convex.query`), pas un abonnement : le
-// fichier décrit un instant, il n'a pas à se mettre à jour sous les yeux.
+// The EXPORT is a one-off read (`convex.query`), not a subscription: the
+// file describes a moment in time, it need not update before your eyes.
 //
-// LA SUPPRESSION demande un code envoyé à l'adresse du compte : une session
-// restée ouverte sur un poste partagé ne suffit pas à effacer un compte.
+// DELETION requires a code sent to the account's address: a session
+// left open on a shared computer is not enough to erase an account.
 
 const ERRORS = [
   'INVALID_CODE',
@@ -139,8 +139,8 @@ function DeleteSection({ email }: { email: string }) {
         return;
       }
       setDone(true);
-      // Les sessions sont déjà supprimées côté serveur ; on nettoie le
-      // navigateur et on quitte l'espace membre.
+      // The sessions are already deleted server-side; we clean up the
+      // browser and leave the member area.
       await signOut().catch(() => undefined);
       router.replace('/');
     } catch (err) {

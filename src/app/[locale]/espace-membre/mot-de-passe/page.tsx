@@ -19,53 +19,53 @@ import {
 } from '@convex/lib/passwordPolicy';
 import { StatusMessage } from '@/components/a11y/status-message';
 
-// DÉFINIR (OU CHANGER) SON MOT DE PASSE, CONNECTÉ — R-05 / auth A-3.
+// SETTING (OR CHANGING) ONE'S PASSWORD, SIGNED IN — R-05 / auth A-3.
 //
-// Un membre invité n'a pas de mot de passe : son compte naît d'une validation
-// d'adhésion ou d'une invitation, et l'e-mail d'invitation lui promet « vous
-// pourrez en définir un depuis votre espace membre ». Cet écran n'existait
-// pas (mesuré le 27/09) ; « mot de passe oublié » ne pouvait rien pour lui,
-// puisque `flow: 'reset'` exige un compte mot de passe EXISTANT
-// (`InvalidAccountId` sinon, cf. TESTING.md « Mot de passe des comptes de
-// test »).
+// An invited member has no password: their account is created by a
+// membership approval or an invitation, and the invitation e-mail promises
+// them "vous pourrez en définir un depuis votre espace membre". This screen
+// did not exist (measured on 27/09); "forgot password" could do nothing for
+// them, since `flow: 'reset'` requires an EXISTING password account
+// (`InvalidAccountId` otherwise, see TESTING.md "Mot de passe des comptes de
+// test").
 //
-// LE SEUL CHEMIN OUVERT est celui que suit `provisionPassword` en E2E :
-// `signIn('password', { flow: 'signUp' })` sur l'adresse du compte CONNECTÉ.
-// `createAccount` passe alors par le callback `createOrUpdateUser`
-// (convex/auth.ts -> lib/signIn.ts), qui rend l'identifiant du compte existant
-// — le nouveau moyen de connexion y est relié, rôle et profil intacts (test
-// dans convex/auth-callback.test.ts). Le provider étant configuré avec
-// `verify`, l'inscription n'ouvre pas de session : elle envoie un code, qu'on
-// présente ensuite en `flow: 'email-verification'`.
+// THE ONLY OPEN PATH is the one `provisionPassword` follows in E2E:
+// `signIn('password', { flow: 'signUp' })` on the SIGNED-IN account's address.
+// `createAccount` then goes through the `createOrUpdateUser` callback
+// (convex/auth.ts -> lib/signIn.ts), which returns the existing account's
+// id — the new sign-in method is linked to it, role and profile intact (test
+// in convex/auth-callback.test.ts). Since the provider is configured with
+// `verify`, sign-up does not open a session: it sends a code, which is then
+// presented with `flow: 'email-verification'`.
 //
-// CHANGER un mot de passe déjà posé passe par l'autre porte : `signUp` sur un
-// compte mot de passe existant répond « Account … already exists » (Convex
-// Auth vérifie le secret et refuse s'il diffère). On bascule alors, sans rien
-// demander de plus, sur `flow: 'reset'` puis `reset-verification` avec le
-// nouveau mot de passe — même code à six chiffres, même écran. L'utilisateur
-// ne voit qu'un seul parcours : mot de passe, code, confirmation.
+// CHANGING an already-set password goes through the other door: `signUp` on
+// an existing password account answers "Account … already exists" (Convex
+// Auth checks the secret and refuses if it differs). We then switch, without
+// asking anything more, to `flow: 'reset'` then `reset-verification` with the
+// new password — same six-digit code, same screen. The user only sees a
+// single flow: password, code, confirmation.
 //
-// L'adresse vient du COMPTE CONNECTÉ (`users.current`), jamais d'un champ : on
-// ne pose un mot de passe que sur son propre compte, et le code part à
-// l'adresse du compte — c'est ce qui prouve qu'on la détient.
+// The address comes from the SIGNED-IN ACCOUNT (`users.current`), never from
+// a field: one can only set a password on one's own account, and the code is
+// sent to the account's address — that is what proves one holds it.
 //
-// POURQUOI L'ACTION DIRECTE et non `signIn` de `useAuthActions` (mesuré le
-// 27/09, spec auth-mot-de-passe) : quand l'étape n'ouvre pas de session —
-// `signUp` avec `verify`, `reset`, ou un code faux — `auth:signIn` répond
-// `{ tokens: null }`, et le client Next.js de Convex Auth prend ce « null »
-// pour une déconnexion : il EFFACE les cookies de session (proxy `/api/auth`,
-// « No tokens returned, clearing auth cookies »). Le membre se retrouvait sur
-// « Se connecter » au moment même où il demandait son code. L'action appelée
-// directement ne touche pas aux cookies. Une fois le mot de passe posé et
-// vérifié, on se reconnecte AVEC — par `signIn` cette fois, qui renouvelle la
-// session : c'est aussi la preuve que le mot de passe fonctionne, et, en mode
-// `reset`, la seule session qui survit (les autres sont invalidées).
+// WHY THE DIRECT ACTION and not `signIn` from `useAuthActions` (measured on
+// 27/09, auth-mot-de-passe spec): when the step does not open a session —
+// `signUp` with `verify`, `reset`, or a wrong code — `auth:signIn` returns
+// `{ tokens: null }`, and Convex Auth's Next.js client takes that "null"
+// as a sign-out: it CLEARS the session cookies (`/api/auth` proxy,
+// "No tokens returned, clearing auth cookies"). The member ended up on
+// "Se connecter" at the very moment they were asking for their code. The
+// action called directly does not touch the cookies. Once the password is set
+// and verified, we sign back in WITH it — via `signIn` this time, which renews
+// the session: this is also proof that the password works, and, in `reset`
+// mode, the only session that survives (the others are invalidated).
 type Mode = 'verify' | 'reset';
 
-// Le refus de Convex Auth quand un compte mot de passe existe déjà pour cette
-// adresse (`createAccountFromCredentials` : « Account <id> already exists »).
-// Le message brut traverse `/api/auth` (`{ error: error.message }`) comme les
-// autres refus lus dans `@/lib/auth-errors`.
+// Convex Auth's refusal when a password account already exists for this
+// address (`createAccountFromCredentials`: "Account <id> already exists").
+// The raw message passes through `/api/auth` (`{ error: error.message }`)
+// like the other refusals read in `@/lib/auth-errors`.
 function isAccountAlreadyExists(error: unknown): boolean {
   return error instanceof Error && /already exists/i.test(error.message);
 }
@@ -85,8 +85,8 @@ function PasswordForm({ email }: { email: string }) {
     code: '',
   });
 
-  // Demande le code : `signUp` d'abord, `reset` si un mot de passe existe déjà.
-  // Rend le mode retenu, pour que le renvoi de code reprenne le même chemin.
+  // Requests the code: `signUp` first, `reset` if a password already exists.
+  // Returns the chosen mode, so that resending the code takes the same path.
   async function requestCode(): Promise<Mode> {
     try {
       await authSignIn({
@@ -107,10 +107,10 @@ function PasswordForm({ email }: { email: string }) {
   async function onPassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    // Même politique que le serveur (convex/lib/passwordPolicy.ts), appliquée
-    // ICI pour dire laquelle des règles casse — le refus serveur arrive nu
-    // par /api/auth (cf. mot-de-passe-oublie/page.tsx). Le serveur refuse
-    // toujours ; ce contrôle n'ouvre rien, il explique.
+    // Same policy as the server (convex/lib/passwordPolicy.ts), applied
+    // HERE to say which rule fails — the server refusal arrives bare
+    // via /api/auth (see mot-de-passe-oublie/page.tsx). The server still
+    // refuses; this check opens nothing, it explains.
     if (
       !validate({
         newPassword: (v) => {
@@ -160,7 +160,7 @@ function PasswordForm({ email }: { email: string }) {
     }
     setPending(true);
     try {
-      // Code faux : `{ tokens: null }`, sans erreur — on le dit, session intacte.
+      // Wrong code: `{ tokens: null }`, no error — we say so, session intact.
       const verified = await authSignIn({
         provider: 'password',
         params:
@@ -175,8 +175,8 @@ function PasswordForm({ email }: { email: string }) {
       });
       if (!verified || verified.tokens === null)
         throw new Error('INVALID_CODE');
-      // Reconnexion par le mot de passe qui vient d'être posé : les cookies
-      // suivent la nouvelle session, et le mot de passe est prouvé.
+      // Sign back in with the password that was just set: the cookies
+      // follow the new session, and the password is proven.
       await signIn('password', {
         email,
         password: values.newPassword,
@@ -275,8 +275,8 @@ function PasswordScreen() {
   const t = useTranslations('auth');
   const me = useQuery(api.users.current);
   if (me === undefined) return <AuthGateLoading className="max-w-md" />;
-  // Un compte sans adresse ne peut recevoir aucun code : on le dit plutôt que
-  // de rendre un formulaire qui échouera. (`email` est facultatif en base.)
+  // An account without an address cannot receive any code: we say so rather
+  // than render a form that will fail. (`email` is optional in the database.)
   if (!me?.email) {
     return (
       <AuthCard title={t('passwordTitle')}>

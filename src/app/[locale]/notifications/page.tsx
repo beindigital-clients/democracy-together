@@ -19,7 +19,7 @@ type Notif = {
 
 function NotificationsList() {
   const t = useTranslations('notifications');
-  // next-intl type ses clés ; les titres sont dynamiques (issus de la base).
+  // next-intl types its keys; the titles are dynamic (coming from the database).
   const tt = t as unknown as (
     key: string,
     values?: Record<string, string>,
@@ -45,7 +45,7 @@ function NotificationsList() {
       try {
         await markRead({ notificationId: n._id });
       } catch {
-        /* sans incidence sur la navigation */
+        /* no effect on navigation */
       }
     }
     if (n.link) router.push(n.link);

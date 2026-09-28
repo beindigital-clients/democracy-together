@@ -2,23 +2,23 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-// Métadonnées de la réinitialisation de mot de passe.
+// Metadata for password reset.
 //
-// Ces pages n'en avaient AUCUNE — pas même un titre : l'onglet du navigateur
-// et l'historique affichaient « Democracy Together » pour les trois (audit
-// F-04). La page porte `'use client'`, donc ne peut pas exporter
-// `generateMetadata` : d'où ce layout.
+// These pages had NONE — not even a title: the browser tab and history
+// showed "Democracy Together" for all three (audit F-04). The page is
+// `'use client'`, so it cannot export `generateMetadata`: hence this
+// layout.
 //
-// `noindex` plutôt qu'un canonical : c'est une page de tunnel, elle n'a pas
-// vocation à entrer dans un index, et le dépôt a déjà tranché que le hreflang
-// y serait du bruit (issue #35, cas `/recherche`).
+// `noindex` rather than a canonical: this is a funnel page, it is not meant
+// to be indexed, and the repo already decided that hreflang would be noise
+// there (issue #35, the `/recherche` case).
 //
-// C'est désormais la SEULE protection, et c'est voulu (arbitrage client du
-// 23/09). `robots.txt` interdisait aussi le crawl de cette page ; les deux
-// mesures se neutralisaient, puisqu'un moteur qui respecte le `Disallow` ne
-// vient jamais lire ce `noindex`. Le `Disallow` est parti : le moteur passe,
-// lit la consigne et l'applique. `tests/unit/seo-coherence.test.ts` interdit
-// de reposer l'un sur l'autre.
+// This is now the ONLY protection, and that is intentional (client decision
+// of 23/09). `robots.txt` also disallowed crawling this page; the two
+// measures cancelled each other out, since a crawler that honours the
+// `Disallow` never comes to read this `noindex`. The `Disallow` is gone: the
+// crawler comes by, reads the directive and applies it.
+// `tests/unit/seo-coherence.test.ts` forbids relying on both at once.
 export async function generateMetadata({
   params,
 }: {

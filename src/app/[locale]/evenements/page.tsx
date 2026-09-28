@@ -54,7 +54,7 @@ const FACET_OPTIONS: EventFacetKey[] = [
   'months',
 ];
 
-// « novembre 2026 » : libellé d'une valeur de la facette « mois ».
+// "novembre 2026": label for a value of the "month" facet.
 function monthLabel(ym: string, loc: Locale): string {
   const [y, m] = ym.split('-').map(Number);
   const label = new Intl.DateTimeFormat(intlLocale(loc), {
@@ -79,8 +79,8 @@ export default async function EventsPage({
   const tc = await getTranslations('calendar');
   const ta = await getTranslations('agenda');
   const filters = parseEventFilters(await searchParams);
-  // Agenda : la table `contentEvents`, ou le catalogue codé en repli (table
-  // vide, backend injoignable) — cf. src/lib/contenus/load.ts.
+  // Calendar: the `contentEvents` table, or the hard-coded fallback catalogue
+  // (empty table, backend unreachable) — see src/lib/contenus/load.ts.
   const { items: events } = await loadAgenda(loc);
   const results = filterAndSortEvents(filters, L, events);
   const facets = computeEventFacets(filters, L, events);
@@ -119,7 +119,7 @@ export default async function EventsPage({
 
   return (
     <div>
-      {/* En-tête */}
+      {/* Header */}
       <header className="border-b border-line">
         <div className={`${WRAP} pb-10 pt-12 md:pt-14`}>
           <Reveal>
@@ -170,8 +170,8 @@ export default async function EventsPage({
                 defaultValue={filters.q ?? ''}
                 placeholder={L.hero.searchPlaceholder}
                 aria-label={L.hero.searchPlaceholder}
-                // Étiquette NON visible : `title` la rend lisible au survol et remplit
-                // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+                // NON-visible label: `title` makes it readable on hover and meets one
+                // condition of RGAA 11.1.3 (the placeholder disappears while typing).
                 title={L.hero.searchPlaceholder}
                 className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-2.5 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               />
@@ -186,9 +186,9 @@ export default async function EventsPage({
         </div>
       </header>
 
-      {/* Événement en vedette — le contenu riche codé pour la conférence
-          inaugurale, une carte tirée de la table pour tout autre événement
-          « à la une » ; rien s'il n'y en a pas à venir. */}
+      {/* Featured event — the rich content hard-coded for the inaugural
+          conference, a card drawn from the table for any other "featured"
+          event; nothing if there is no upcoming one. */}
       {featured ? (
         <section className={`${WRAP} py-10`}>
           <Reveal className="grid items-stretch gap-0 overflow-hidden rounded-md border border-line bg-surface md:grid-cols-[1.05fr_1fr]">
@@ -205,8 +205,8 @@ export default async function EventsPage({
               ) : (
                 <Image
                   src="/library/paris.jpg"
-                  // Illustration décorative (RGAA 1.2, audit du 27/09) : le
-                  // titre voisin la nommerait deux fois.
+                  // Decorative illustration (RGAA 1.2, 27/09 audit): the
+                  // neighbouring heading would name it twice.
                   alt=""
                   fill
                   sizes="(max-width: 768px) 100vw, 620px"
@@ -297,7 +297,7 @@ export default async function EventsPage({
         </section>
       ) : null}
 
-      {/* Liste filtrable */}
+      {/* Filterable list */}
       <div
         className={`${WRAP} grid gap-8 pb-16 lg:grid-cols-[260px_1fr] lg:gap-12`}
       >
@@ -325,7 +325,7 @@ export default async function EventsPage({
             ) : null}
           </div>
 
-          {/* Période (segmenté) */}
+          {/* Period (segmented) */}
           <div className="mb-4 inline-flex w-full overflow-hidden rounded-sm border border-line-strong">
             {(['venir', 'passes'] as const).map((p) => (
               <Link
@@ -449,7 +449,7 @@ export default async function EventsPage({
         </section>
       </div>
 
-      {/* Rediffusions */}
+      {/* Replays */}
       <section className="border-t border-line bg-surface">
         <div className={`${WRAP} py-16`}>
           <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">

@@ -2,14 +2,14 @@
 
 /* ============================================================
    Democracy Together — design tokens
-   Portés à l'identique depuis design/rmdl-style-guide.html
-   - Light = :root (univers institutionnel / indigo par défaut)
-   - Univers : [data-universe="jeunes"] -> accent safran
-   - Thème  : [data-theme="dark"]
-   Seul l'accent change entre univers ; l'ossature neutre est partagée.
+   Ported verbatim from design/rmdl-style-guide.html
+   - Light = :root (institutional universe / indigo by default)
+   - Universe: [data-universe="jeunes"] -> saffron accent
+   - Theme:    [data-theme="dark"]
+   Only the accent changes between universes; the neutral skeleton is shared.
    ============================================================ */
 :root {
-  /* neutres / papier / encre */
+  /* neutrals / paper / ink */
   --paper: #f4f2ec;
   --surface: #fbfaf5;
   --surface-2: #efede4;
@@ -18,13 +18,13 @@
   --muted: #646771;
   --line: #d9d6cd;
   --line-strong: #c3bfb3;
-  /* Bordure des CHAMPS de formulaire (RGAA 3.3, WCAG 1.4.11). `--line`
-     (1,4:1 sur la surface) était la seule limite visible d'un champ de
-     saisie — un composant d'interface dont la limite doit atteindre 3:1.
-     3,7:1 sur `--surface`, 3,5:1 sur `--paper` (mesuré à l'audit du 27/09). */
+  /* Border of form FIELDS (RGAA 3.3, WCAG 1.4.11). `--line`
+     (1.4:1 on the surface) was the only visible boundary of an input
+     field — a UI component whose boundary must reach 3:1.
+     3.7:1 on `--surface`, 3.5:1 on `--paper` (measured in the 27/09 audit). */
   --line-field: #858176;
 
-  /* accent — institutionnel (indigo civique) */
+  /* accent — institutional (civic indigo) */
   --accent: #1f3d6e;
   --accent-strong: #16305a;
   --accent-text: #1f3d6e;
@@ -32,27 +32,27 @@
   --accent-tint: rgba(31, 61, 110, 0.08);
   --accent-edge: rgba(31, 61, 110, 0.22);
 
-  /* baromètre — échelle divergente, lisible au daltonisme (jamais rouge/vert seuls) */
+  /* barometer — diverging scale, colour-blind friendly (never red/green alone) */
   --bar-1: #2e6e8e;
   --bar-2: #7ba7b0;
   --bar-3: #e0b85c;
   --bar-4: #cc8748;
   --bar-5: #9a4b3b;
-  /* Variantes TEXTE des teintes 2 et 4 du baromètre. Comme aplats de carte,
-     `--bar-2`/`--bar-4` sont justes ; comme texte de 11 px sur `--surface`,
-     mesuré le 27/09 : 2,51:1 et 2,81:1. Ces deux jetons ne servent qu'aux
-     libellés de catégorie (5,0:1 et 4,7:1), la carte garde sa palette. */
+  /* TEXT variants of barometer shades 2 and 4. As map fills,
+     `--bar-2`/`--bar-4` are fine; as 11 px text on `--surface`,
+     measured on 27/09: 2.51:1 and 2.81:1. These two tokens are only used for
+     category labels (5.0:1 and 4.7:1); the map keeps its palette. */
   --bar-2-ink: #3a7480;
   --bar-4-ink: #a2601f;
 
-  /* carte choroplèthe */
+  /* choropleth map */
   --map-land: #dedad0;
   --map-stroke: #efede4;
 
-  /* QR code d'inscription 2FA (chantier comptes). Noir sur blanc dans LES
-     DEUX thèmes, et c'est voulu : beaucoup d'applications d'authentification
-     ne lisent pas un QR code inversé. Ces deux jetons ne sont donc pas
-     redéfinis sous [data-theme='dark']. */
+  /* 2FA enrolment QR code (accounts workstream). Black on white in BOTH
+     themes, and that is intentional: many authenticator apps do not read
+     an inverted QR code. These two tokens are therefore not redefined
+     under [data-theme='dark']. */
   --qr-ink: #000000;
   --qr-paper: #ffffff;
 
@@ -60,7 +60,7 @@
   --measure: 66ch;
   --max: 1200px;
 
-  /* espacement (base 4px) */
+  /* spacing (4px base) */
   --s1: 4px;
   --s2: 8px;
   --s3: 12px;
@@ -72,45 +72,45 @@
   --s9: 96px;
   --s10: 128px;
 
-  /* rayons */
+  /* radii */
   --r-xs: 2px;
   --r-sm: 4px;
   --r-md: 6px;
   --r-pill: 999px;
 
-  /* élévation (teintée encre, jamais noir pur) */
+  /* elevation (ink-tinted, never pure black) */
   --shadow-1:
     0 1px 2px rgba(22, 25, 31, 0.06), 0 1px 1px rgba(22, 25, 31, 0.04);
   --shadow-2:
     0 2px 8px rgba(22, 25, 31, 0.07), 0 8px 24px rgba(22, 25, 31, 0.06);
 
-  /* familles (next/font expose --font-newsreader / --font-plex-sans / --font-plex-mono) */
+  /* font families (next/font exposes --font-newsreader / --font-plex-sans / --font-plex-mono) */
   --ff-display: var(--font-newsreader), Georgia, 'Times New Roman', serif;
   --ff-body:
     var(--font-plex-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --ff-data: var(--font-plex-mono), ui-monospace, 'SF Mono', monospace;
 }
 
-/* univers jeunes — orange de marque (seul l'accent bascule). Orange = #f58b1a,
-   repris du logo client (ancien ocre #db8a34). accent-text reste un orange foncé
-   pour rester lisible en texte sur fond clair. */
+/* youth universe — brand orange (only the accent switches). Orange = #f58b1a,
+   taken from the client's logo (formerly ochre #db8a34). accent-text stays a
+   dark orange so it remains readable as text on a light background. */
 [data-universe='jeunes'] {
   --accent: #f58b1a;
   --accent-strong: #d4770e;
   --accent-text: #8a4a08;
-  /* TEXTE SOMBRE sur safran, pas le papier. Mesuré le 27/09 (axe, thème
-     clair) : papier #f4f2ec sur safran = 2,18:1, et 1,8 à 2,1 pour les
-     variantes à 80–90 % d'opacité — 32 nœuds sur /, /jeunes et /a-propos.
-     Aucun orange qui reste du safran n'atteint 4,5:1 sous du texte clair ;
-     l'encre, elle, tient 7:1 sur #f58b1a — et c'est déjà ce que fait le thème
-     sombre, où `--paper` est sombre. Ajustement validé par le client (point 5
-     des arbitrages du 23/09). Le safran ne bouge pas. */
+  /* DARK TEXT on saffron, not paper. Measured on 27/09 (axe, light
+     theme): paper #f4f2ec on saffron = 2.18:1, and 1.8 to 2.1 for the
+     80–90% opacity variants — 32 nodes on /, /jeunes and /a-propos.
+     No orange that remains saffron reaches 4.5:1 under light text;
+     ink, on the other hand, holds 7:1 on #f58b1a — and that is already what the
+     dark theme does, where `--paper` is dark. Adjustment approved by the client
+     (point 5 of the 23/09 decisions). The saffron does not change. */
   --accent-contrast: var(--ink);
   --accent-tint: rgba(245, 139, 26, 0.13);
   --accent-edge: rgba(245, 139, 26, 0.35);
 }
 
-/* sombre */
+/* dark */
 [data-theme='dark'] {
   --paper: #14171c;
   --surface: #1c2027;
@@ -120,24 +120,24 @@
   --muted: #8b8e96;
   --line: #2b313a;
   --line-strong: #3a414c;
-  /* 3,7:1 sur `--surface`, 4,1:1 sur `--paper` (thème sombre). */
+  /* 3.7:1 on `--surface`, 4.1:1 on `--paper` (dark theme). */
   --line-field: #727884;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.45);
   --map-land: #2a303a;
   --map-stroke: #14171c;
-  /* Le rouge des erreurs de formulaire et du bouton destructif. Le jeton clair
-     (#9a4b3b) fait 2,68:1 sur `--surface` sombre — WCAG AA échoué sur chaque
-     message d'erreur, mesuré sur /contact et /adhesion en sombre. Celui-ci
-     tient 4,9:1 sur la plus claire des surfaces (`--surface-2`), et le texte
-     `--paper` posé dessus par le bouton destructif reste à 5,9:1. */
+  /* The red of form errors and of the destructive button. The light token
+     (#9a4b3b) is 2.68:1 on dark `--surface` — WCAG AA failed on every
+     error message, measured on /contact and /adhesion in dark mode. This one
+     holds 4.9:1 on the lightest of the surfaces (`--surface-2`), and the
+     `--paper` text placed on it by the destructive button stays at 5.9:1. */
   --bar-5: #d97a66;
-  /* Même raison pour le bleu des badges de type (bibliothèque) et de la
-     catégorie « libre » (baromètre) : 2,66:1 sur `--surface-2` en sombre,
-     5,4:1 avec celui-ci. Les trois autres teintes tiennent déjà (≥ 5:1). */
+  /* Same reason for the blue of the type badges (library) and of the
+     "libre" category (barometer): 2.66:1 on `--surface-2` in dark mode,
+     5.4:1 with this one. The other three shades already pass (≥ 5:1). */
   --bar-1: #5fa3c4;
-  /* En sombre, les teintes 2 et 4 tiennent déjà comme texte (≥ 5:1 sur
-     `--surface-2`) : les variantes texte se confondent avec les aplats. */
+  /* In dark mode, shades 2 and 4 already pass as text (≥ 5:1 on
+     `--surface-2`): the text variants coincide with the fills. */
   --bar-2-ink: var(--bar-2);
   --bar-4-ink: var(--bar-4);
 
@@ -149,15 +149,15 @@
   --accent-edge: rgba(126, 163, 217, 0.3);
 }
 
-/* SÉLECTEUR COMPOSÉ *ET* DESCENDANT, et c'est le second qui sert (audit,
-   contraste). `data-theme` est posé sur <html> (cf. themeInit du layout) tandis
-   que `data-universe="jeunes"` l'est sur un <div> DANS la page — accueil,
-   à-propos, /jeunes. La forme composée exige les deux attributs sur le MÊME
-   élément : elle ne s'appliquait donc jamais, et l'univers safran gardait en
-   sombre ses jetons de thème clair. Conséquence mesurée : `--accent-text`
-   restait à #8a4a08, un orange foncé, sur des fonds sombres — ratio 2,15:1 là
-   où il en faut 4,5. La variante sombre #f8a44b existait depuis le début ; elle
-   n'atteignait simplement pas la page. */
+/* COMPOUND *AND* DESCENDANT SELECTOR, and it is the second that matters
+   (audit, contrast). `data-theme` is set on <html> (see the layout's
+   themeInit) while `data-universe="jeunes"` is set on a <div> INSIDE the
+   page — home, about, /jeunes. The compound form requires both attributes on
+   the SAME element: so it never applied, and the saffron universe kept its
+   light-theme tokens in dark mode. Measured consequence: `--accent-text`
+   stayed at #8a4a08, a dark orange, on dark backgrounds — a 2.15:1 ratio
+   where 4.5 is required. The dark variant #f8a44b had existed from the
+   start; it simply never reached the page. */
 [data-theme='dark'][data-universe='jeunes'],
 [data-theme='dark'] [data-universe='jeunes'] {
   --accent: #f58b1a;
@@ -168,9 +168,9 @@
   --accent-edge: rgba(245, 139, 26, 0.34);
 }
 
-/* Logo (cf. components/layout/logo.tsx) : on sert l'original marine en clair et
-   la variante recolorée en sombre. Bascule manuelle car Tailwind `dark:` n'est
-   pas câblé sur [data-theme] dans ce projet. */
+/* Logo (see components/layout/logo.tsx): we serve the navy original in light
+   mode and the recoloured variant in dark mode. Manual switch because
+   Tailwind `dark:` is not wired to [data-theme] in this project. */
 .dt-logo-dark {
   display: none;
 }
@@ -181,9 +181,9 @@
   display: inline-block;
 }
 
-/* ---- Mapping Tailwind v4 : expose les tokens en utilities ----
-   `inline` => les utilities émettent var(--token), donc elles suivent
-   le basculement thème/univers en CSS pur. */
+/* ---- Tailwind v4 mapping: exposes the tokens as utilities ----
+   `inline` => the utilities emit var(--token), so they follow
+   theme/universe switching in pure CSS. */
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
@@ -229,11 +229,11 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    /* Réserve toujours la gouttière de la barre de défilement : la largeur du
-       contenu — et donc le padding du header collant — ne saute plus quand la
-       scrollbar apparaît/disparaît (scroll d'une page longue sur un système à
-       scrollbars classiques, ou verrou de défilement des modales recherche/menu
-       qui posent overflow:hidden sur le body). */
+    /* Always reserve the scrollbar gutter: the content width — and hence the
+       sticky header's padding — no longer jumps when the scrollbar
+       appears/disappears (scrolling a long page on a system with classic
+       scrollbars, or the scroll lock of the search/menu modals, which set
+       overflow:hidden on the body). */
     scrollbar-gutter: stable;
   }
   body {
@@ -275,78 +275,78 @@
 }
 
 /* ============================================================
-   ARABE ET SENS D'ÉCRITURE (issue #23)
+   ARABIC AND WRITING DIRECTION (issue #23)
    ------------------------------------------------------------
-   Le `dir` est posé sur <html> par le layout, donc SERVI dans le
-   document : les propriétés logiques de Tailwind (ms-, pe-,
-   text-start, border-s…) se résolvent dès la première peinture,
-   sans bascule après hydratation.
+   `dir` is set on <html> by the layout, hence SERVED in the
+   document: Tailwind's logical properties (ms-, pe-,
+   text-start, border-s…) resolve from the very first paint,
+   with no switch after hydration.
 
-   Ce bloc ne traite QUE ce que le sens d'écriture ne règle pas
-   tout seul : la typographie arabe. Tailwind retourne la mise en
-   page ; il ne sait pas qu'une écriture cursive n'admet pas
-   d'interlettrage, ni qu'elle demande plus d'interligne.
+   This block handles ONLY what the writing direction does not
+   settle on its own: Arabic typography. Tailwind flips the
+   layout; it does not know that a cursive script does not allow
+   letter spacing, nor that it needs more line height.
    ============================================================ */
 
-/* Les familles arabes n'existent que sur les pages arabes : le layout
-   n'attache `--font-naskh-arabic` / `--font-plex-sans-arabic` au <html> que
-   pour cette locale (cf. `fontVariables`). Ailleurs, ces `var()` sont vides
-   et la pile passe au terme suivant — aucune page latine ne les réclame. */
+/* The Arabic font families only exist on Arabic pages: the layout
+   attaches `--font-naskh-arabic` / `--font-plex-sans-arabic` to <html> only
+   for this locale (see `fontVariables`). Elsewhere, these `var()`s are empty
+   and the stack falls through to the next entry — no Latin page asks for them. */
 [lang='ar'] {
   --ff-display:
     var(--font-naskh-arabic), 'Noto Naskh Arabic', 'Amiri', Georgia, serif;
   --ff-body:
     var(--font-plex-sans-arabic), 'IBM Plex Sans Arabic', system-ui, sans-serif;
-  /* La donnée reste en Plex Mono — elle porte des CHIFFRES, dessinés par
-     cette famille dans les cinq langues. Le texte arabe qui les accompagne
-     tombe sur Plex Sans Arabic, déclaré juste derrière. */
+  /* Data stays in Plex Mono — it carries DIGITS, drawn by this
+     family in all five languages. The Arabic text accompanying them
+     falls back to Plex Sans Arabic, declared right after. */
   --ff-data:
     var(--font-plex-mono), var(--font-plex-sans-arabic), ui-monospace, monospace;
 
-  /* LARGEUR DE COLONNE. `ch` vaut la largeur du « 0 » de la police courante ;
-     à valeur égale, une colonne de 66ch en naskh est sensiblement plus large
-     qu'en Newsreader, et dépasse la longueur de ligne confortable. 58ch
-     redonne un nombre de signes par ligne équivalent. */
+  /* COLUMN WIDTH. `ch` is the width of the "0" in the current font;
+     at the same value, a 66ch column in naskh is noticeably wider
+     than in Newsreader, and exceeds a comfortable line length. 58ch
+     restores an equivalent number of characters per line. */
   --measure: 58ch;
 }
 
-/* INTERLETTRAGE : REMIS À ZÉRO, et ce n'est pas un réglage esthétique.
-   L'arabe est une écriture CURSIVE — les lettres d'un mot sont liées. Le
-   `letter-spacing: -0.015em` des titres (réglage latin, hérité de la charte)
-   écarte les glyphes et casse visuellement la liaison : le mot se lit comme
-   une suite de lettres détachées. Aucune valeur non nulle n'est correcte ici,
-   pas même positive. */
+/* LETTER SPACING: RESET TO ZERO, and this is not an aesthetic tweak.
+   Arabic is a CURSIVE script — the letters of a word are joined. The
+   headings' `letter-spacing: -0.015em` (a Latin setting, inherited from the
+   style guide) pushes the glyphs apart and visually breaks the joins: the
+   word reads as a series of detached letters. No non-zero value is correct
+   here, not even a positive one. */
 [lang='ar'] h1,
 [lang='ar'] h2,
 [lang='ar'] h3,
 [lang='ar'] h4 {
   letter-spacing: normal;
-  /* Le naskh porte ses diacritiques AU-DESSUS et EN DESSOUS de la ligne. Un
-     interligne de 1.12 — juste pour des capitales latines — fait chevaucher
-     la hamza d'une ligne avec la kasra de la suivante. */
+  /* Naskh carries its diacritics ABOVE and BELOW the line. A line
+     height of 1.12 — fine for Latin capitals — makes one line's hamza
+     overlap with the next line's kasra. */
   line-height: 1.45;
 }
 
 [lang='ar'] body {
-  /* Même raison, sur le corps de texte : l'arabe demande plus d'air vertical
-     que le latin à taille égale. */
+  /* Same reason, for body text: Arabic needs more vertical breathing room
+     than Latin at the same size. */
   line-height: 1.85;
   letter-spacing: normal;
 }
 
-/* Les chiffres restent en chiffres arabes occidentaux (0-9) dans toute
-   l'interface arabe : c'est l'usage dominant de la presse au Maghreb, la zone
-   visée par cette langue, et cela garde les scores du Baromètre comparables
-   d'une langue à l'autre sans retraduire la donnée. */
+/* Digits stay as Western Arabic numerals (0-9) throughout the Arabic
+   interface: it is the dominant usage in the Maghreb press, the region
+   targeted by this language, and it keeps Baromètre scores comparable
+   from one language to another without re-translating the data. */
 [lang='ar'] {
   font-variant-numeric: lining-nums;
 }
 
-/* FLÈCHES DE LECTURE (cf. `src/components/ui/arrow.tsx`). Le glyphe est
-   substitué plutôt que retourné : « ← » est un caractère dessiné, là où un
-   `scaleX(-1)` sur « → » donnerait un miroir aux extrémités approximatives.
-   `::before` porte le contenu pour que la flèche reste inaccessible aux
-   lecteurs d'écran — le libellé du lien dit déjà où il mène. */
+/* READING ARROWS (see `src/components/ui/arrow.tsx`). The glyph is
+   substituted rather than flipped: "←" is a designed character, whereas a
+   `scaleX(-1)` on "→" would give a mirror image with approximate ends.
+   `::before` carries the content so that the arrow stays hidden from
+   screen readers — the link label already says where it leads. */
 .dt-arrow-fwd::before {
   content: '\2192';
 }
@@ -360,22 +360,22 @@
   content: '\2192';
 }
 
-/* ICÔNES DIRECTIONNELLES. Une flèche « suivant » pointe vers la fin de la
-   ligne, pas vers la droite : en arabe, « suivant » est à gauche. Les icônes
-   qui portent ce sens (chevrons de pagination, flèches de lien, fil
-   d'Ariane) reçoivent cette classe et se retournent avec le document.
+/* DIRECTIONAL ICONS. A "next" arrow points to the end of the
+   line, not to the right: in Arabic, "next" is on the left. The icons
+   that carry this meaning (pagination chevrons, link arrows,
+   breadcrumbs) get this class and flip with the document.
 
-   Les icônes NON directionnelles — loupe, croix, horloge, téléchargement,
-   cadenas — ne la reçoivent PAS : les retourner toutes ferait une loupe
-   gauchère et un cadenas à l'envers, ce qui est le défaut le plus courant
-   des mises en RTL faites à la va-vite. */
+   NON-directional icons — magnifier, cross, clock, download,
+   padlock — do NOT get it: flipping them all would give a left-handed
+   magnifier and an upside-down padlock, which is the most common flaw
+   of hastily done RTL adaptations. */
 [dir='rtl'] .dt-flip-rtl {
   transform: scaleX(-1);
 }
 
-/* Le retournement ne doit pas s'appliquer à l'IMPRESSION d'un document dont
-   le texte, lui, reste dans sa langue : la vue document imprimable pose son
-   propre `dir` (cf. `document-view.tsx`), et une icône y est déjà orientée. */
+/* The flip must not apply when PRINTING a document whose text itself
+   stays in its own language: the printable document view sets its
+   own `dir` (see `document-view.tsx`), and an icon is already oriented there. */
 @media print {
   [dir='rtl'] .dt-flip-rtl {
     transform: none;
@@ -383,29 +383,29 @@
 }
 
 /* ============================================================
-   VUE DOCUMENT — mise en forme pour l'impression
+   DOCUMENT VIEW — print layout
    ------------------------------------------------------------
-   Le PDF traduit n'est pas généré côté serveur : aucune
-   bibliothèque PDF JavaScript ne compose l'arabe (forme
-   contextuelle des lettres, algorithme bidirectionnel). Un
-   moteur de navigateur le fait, lui. La vue document est donc
-   une PAGE, et ces règles la rendent imprimable.
+   The translated PDF is not generated server-side: no
+   JavaScript PDF library typesets Arabic (contextual letter
+   forms, bidirectional algorithm). A browser engine, however,
+   does. The document view is therefore a PAGE, and these
+   rules make it printable.
 
-   Elles portent sur ce qu'aucun utilitaire Tailwind n'exprime :
-   la boîte de page (@page), les veuves et orphelines, et les
-   points de coupure.
+   They cover what no Tailwind utility expresses:
+   the page box (@page), widows and orphans, and
+   break points.
    ============================================================ */
 
 @page {
   size: A4;
-  /* Marges d'un document lu à l'écran comme sur papier. Le haut est plus
-     généreux : c'est là que le navigateur imprime son propre en-tête. */
+  /* Margins of a document read on screen as on paper. The top is more
+     generous: that is where the browser prints its own header. */
   margin: 20mm 18mm;
 }
 
 .dt-doc-title {
-  /* Le titre ouvre le document ; rien ne doit s'imprimer entre lui et le
-     premier paragraphe. */
+  /* The title opens the document; nothing must be printed between it and the
+     first paragraph. */
   break-after: avoid;
 }
 
@@ -415,8 +415,8 @@
 }
 
 .dt-doc-p {
-  /* Une ligne seule en bas ou en haut de page est le défaut le plus visible
-     d'un document imprimé, et le seul que le CSS corrige tout seul. */
+  /* A single line at the bottom or top of a page is the most visible flaw
+     of a printed document, and the only one CSS fixes on its own. */
   orphans: 3;
   widows: 3;
 }
@@ -424,8 +424,8 @@
 .dt-doc-figure,
 .dt-doc-table,
 .dt-doc-quote {
-  /* Une figure coupée de sa légende, ou un tableau scindé au milieu d'une
-     ligne, rendent le document inutilisable à l'impression. */
+  /* A figure cut off from its caption, or a table split in the middle of a
+     row, makes the document unusable when printed. */
   break-inside: avoid;
 }
 
@@ -434,31 +434,31 @@
 }
 
 @media print {
-  /* Les liens de navigation n'ont pas de sens sur papier ; ceux du corps du
-     document, si — on les laisse, sans soulignement coloré. */
+  /* Navigation links make no sense on paper; those in the document body
+     do — we keep them, without coloured underlining. */
   .dt-doc a {
     color: inherit;
     text-decoration: none;
   }
-  /* Le tableau garde ses filets à l'impression : sans eux, les cellules se
-     confondent une fois la couleur retirée. */
+  /* The table keeps its rules when printed: without them, the cells
+     blend together once colour is removed. */
   .dt-doc-table table,
   .dt-doc-table th,
   .dt-doc-table td {
     border-color: #999 !important;
   }
-  /* Les aplats de fond sont coûteux à l'impression et souvent désactivés par
-     défaut. L'en-tête de tableau se distingue par sa graisse. */
+  /* Background fills are costly to print and often disabled by
+     default. The table header stands out by its font weight. */
   .dt-doc-table th {
     background: transparent !important;
     font-weight: 600;
   }
 }
 
-/* ---- entrée du hero de l'accueil (F-05) ----
-   En CSS pour que le premier écran soit visible avant l'hydratation en faible
-   débit — cf. src/components/home/home-hero.tsx. `both` : l'état de départ
-   tient pendant le délai, puis l'état final reste. */
+/* ---- home hero entrance (F-05) ----
+   In CSS so that the first screen is visible before hydration on low
+   bandwidth — see src/components/home/home-hero.tsx. `both`: the start state
+   holds during the delay, then the end state remains. */
 @keyframes dt-hero-in {
   from {
     opacity: 0;

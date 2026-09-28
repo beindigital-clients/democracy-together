@@ -13,14 +13,14 @@ import { isEmail } from '@/lib/validation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { useServerErrorMessage } from '@/components/admin/server-error';
 
-// CRÉATION DIRECTE D'UN COMPTE (F-63, chantier comptes).
+// DIRECT ACCOUNT CREATION (F-63, accounts workstream).
 //
-// Remplace l'ancien formulaire d'invitation : le compte est ouvert AUSSITÔT,
-// rattaché si besoin à une organisation (avec son rôle dans celle-ci), et un
-// e-mail d'accueil part dans la langue choisie. Une adresse déjà connue n'est
-// jamais modifiée — ni rôle ni langue : l'accueil est renvoyé et le
-// rattachement ajouté. L'écran dit quand aucun fournisseur d'e-mail n'est
-// configuré, plutôt que d'annoncer un envoi qui n'aura pas lieu.
+// Replaces the old invitation form: the account is opened IMMEDIATELY,
+// linked if needed to an organization (with its role in it), and a
+// welcome e-mail is sent in the chosen language. An already-known address is
+// never modified — neither role nor language: the welcome is resent and the
+// affiliation added. The screen says when no e-mail provider is
+// configured, rather than announcing a send that will not happen.
 type Status = 'idle' | 'pending' | 'created' | 'existing' | 'error';
 
 export function CreateAccountForm() {

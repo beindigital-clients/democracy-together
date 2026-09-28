@@ -38,8 +38,8 @@ export default async function ReportsPage({
   setRequestLocale(locale);
   const t = await getTranslations('reports');
   const loc = resolveLocale(locale);
-  // Éditions administrées (Convex) + éditions codées que la base ne connaît
-  // pas encore (F-41). Base injoignable : le contenu codé reste servi.
+  // Administered editions (Convex) + hard-coded editions the database does not
+  // know yet (F-41). Database unreachable: the hard-coded content is still served.
   const fromDb = await fetchOrFallback(
     'rapports',
     () => fetchQuery(api.annualReports.listPublic, { locale: loc }),

@@ -48,10 +48,10 @@ export default async function LibraryPage({
   const filters = parseFilters(sp);
   const t = await getTranslations('library');
 
-  // Jeton transmis : Convex décide seul du gating « réservé aux membres »
-  // (F-35), ici comme sur la fiche détaillée.
+  // Token passed along: Convex alone decides the "members only" gating
+  // (F-35), here just as on the detail page.
   const token = await convexAuthNextjsToken();
-  // Backend injoignable -> liste et facettes vides, pas un 500 (F-02).
+  // Backend unreachable -> empty list and facets, not a 500 (F-02).
   const { items, facets } = await fetchOrFallback(
     'bibliotheque',
     () =>
@@ -77,7 +77,7 @@ export default async function LibraryPage({
 
   return (
     <div>
-      {/* En-tête de page */}
+      {/* Page header */}
       <header className="border-b border-line">
         <div className={`${WRAP} pb-8 pt-14 md:pt-16`}>
           <Reveal>
@@ -138,8 +138,8 @@ export default async function LibraryPage({
                 defaultValue={filters.q ?? ''}
                 placeholder={t('searchPlaceholder')}
                 aria-label={t('searchPlaceholder')}
-                // Étiquette NON visible : `title` la rend lisible au survol et remplit
-                // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+                // NON-visible label: `title` makes it readable on hover and meets one
+                // condition of RGAA 11.1.3 (the placeholder disappears while typing).
                 title={t('searchPlaceholder')}
                 className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               />
@@ -154,7 +154,7 @@ export default async function LibraryPage({
         </div>
       </header>
 
-      {/* Liste */}
+      {/* List */}
       <div
         className={`${WRAP} grid gap-8 pb-24 pt-10 lg:grid-cols-[264px_1fr] lg:gap-12`}
       >
@@ -163,12 +163,12 @@ export default async function LibraryPage({
         </FacetsCollapse>
 
         <section aria-labelledby="bibliotheque-resultats">
-          {/* Titre de la zone de résultats (RGAA 9.1). Les cartes portent des
-              `<h3>` ; le seul `<h2>` qui les précédait (« Filtrer ») est dans
-              le panneau de filtres, REPLIÉ sur mobile — mesuré à l'audit du
-              27/09 : sur téléphone, les `<h3>` suivaient directement le
-              `<h1>`. Masqué visuellement : le compteur juste dessous tient ce
-              rôle pour l'œil. */}
+          {/* Heading for the results area (RGAA 9.1). The cards carry
+              `<h3>`s; the only `<h2>` that preceded them ("Filtrer") is in
+              the filter panel, COLLAPSED on mobile — measured in the 27/09
+              audit: on phones, the `<h3>`s came straight after the
+              `<h1>`. Visually hidden: the counter just below plays that
+              role for the eye. */}
           <h2 id="bibliotheque-resultats" className="sr-only">
             {t('listLabel')}
           </h2>
@@ -222,9 +222,9 @@ export default async function LibraryPage({
                   key={n}
                   href={buildHref({ ...filters, page: n })}
                   aria-current={n === page ? 'page' : undefined}
-                  // « 2 » seul n'est pas un lien explicite (RGAA 6.1) : le nom
-                  // du repère de navigation ne compte pas comme contexte. Le
-                  // nom dit « Page 2 » et contient le chiffre visible (2.5.3).
+                  // "2" alone is not an explicit link (RGAA 6.1): the name of
+                  // the navigation landmark does not count as context. The
+                  // name says "Page 2" and contains the visible digit (2.5.3).
                   aria-label={t('pageNumber', { n })}
                   className={`inline-flex h-9 min-w-9 items-center justify-center rounded-sm border px-3 text-sm ${
                     n === page

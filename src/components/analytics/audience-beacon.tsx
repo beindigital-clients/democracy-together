@@ -7,22 +7,21 @@ import { usePathname } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
 import { audienceAllowed, isMeasuredPath } from '@/lib/audience';
 
-// BALISE DE MESURE D'AUDIENCE (F-66, chantier diffusion) — ne rend rien.
+// AUDIENCE MEASUREMENT BEACON (F-66, outreach workstream) — renders nothing.
 //
-// Une page vue = un appel à `audience.hit`, avec quatre informations et pas
-// une de plus : le chemin (sans requête ni préfixe de langue : c'est ce que
-// rend `usePathname` de next-intl), la langue, le référent (au PREMIER
-// affichage seulement — ensuite, le référent d'une navigation interne serait
-// notre propre site) et la largeur de fenêtre, que le serveur réduit à une
-// classe. Aucun cookie, aucun
-// identifiant, rien en stockage local.
+// One page view = one call to `audience.hit`, with four pieces of information
+// and not one more: the path (without query or language prefix: that is what
+// next-intl's `usePathname` returns), the language, the referrer (on the FIRST
+// display only — after that, the referrer of an internal navigation would be
+// our own site) and the window width, which the server reduces to a
+// class. No cookie, no identifier, nothing in local storage.
 //
-// Respect de l'opposition À LA SOURCE (`audienceAllowed`) : Do Not Track /
-// GPC, « Essentiels uniquement », ou le réglage de la politique de
-// confidentialité — dans ces cas, rien ne part.
+// Opt-out is honoured AT THE SOURCE (`audienceAllowed`): Do Not Track /
+// GPC, "Essentiels uniquement", or the privacy policy setting — in those
+// cases, nothing is sent.
 //
-// Un échec d'envoi est ignoré : la mesure ne doit jamais rien casser dans la
-// page, ni afficher quoi que ce soit.
+// A send failure is ignored: measurement must never break anything in the
+// page, nor display anything.
 export function AudienceBeacon() {
   const pathname = usePathname();
   const locale = useLocale();
@@ -42,7 +41,7 @@ export function AudienceBeacon() {
       referrer,
       width: window.innerWidth,
     }).catch(() => {
-      /* mesure perdue : sans conséquence pour la page */
+      /* measurement lost: no consequence for the page */
     });
   }, [pathname, locale, hit]);
 

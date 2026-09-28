@@ -6,26 +6,26 @@ import { SEARCH_MIN_LENGTH } from '@convex/lib/search';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 
-// CHAMP DE RECHERCHE DES LISTES DU BACK-OFFICE (issue #49).
+// SEARCH FIELD FOR BACK-OFFICE LISTS (issue #49).
 //
-// La recherche est SERVEUR : ce composant ne filtre rien, il produit le terme
-// que la liste passe en argument à sa query paginée. C'est la contrainte de
-// l'issue, et ce n'est pas un détail d'implémentation — filtrer la page
-// affichée ne chercherait que dans les 25 ou 50 lignes déjà chargées, alors
-// que l'écran existe précisément pour retrouver celles qui n'y sont pas.
+// The search is SERVER-SIDE: this component filters nothing, it produces the
+// term that the list passes as an argument to its paginated query. That is
+// the issue's constraint, and it is not an implementation detail — filtering
+// the displayed page would only search the 25 or 50 rows already loaded,
+// whereas the screen exists precisely to find those that are not there.
 //
-// Deux choses, donc, et deux seulement :
+// Two things, then, and only two:
 //
-//  1. LA FRÉQUENCE. Une frappe = un argument de query = un abonnement Convex.
-//     Sans temporisation, « diop » en ouvrirait quatre dont trois jetés
-//     aussitôt. Le terme n'est remonté qu'une fois la saisie posée.
-//  2. LE PLANCHER. En dessous du minimum serveur, le terme remonte VIDE plutôt
-//     que tel quel : le serveur l'ignorerait de toute façon (lib/search.ts),
-//     mais l'envoyer changerait les arguments — donc rouvrirait un abonnement —
-//     pour exactement le même résultat. Le seuil est importé, pas recopié.
+//  1. FREQUENCY. One keystroke = one query argument = one Convex
+//     subscription. Without debouncing, "diop" would open four, three of them
+//     discarded immediately. The term is only passed up once typing settles.
+//  2. THE FLOOR. Below the server minimum, the term is passed up EMPTY rather
+//     than as is: the server would ignore it anyway (lib/search.ts), but
+//     sending it would change the arguments — and so reopen a subscription —
+//     for exactly the same result. The threshold is imported, not copied.
 const DEBOUNCE_MS = 250;
 
-// Terme effectivement applicable à la liste, à partir de la saisie brute.
+// Term actually applicable to the list, derived from the raw input.
 function applicable(draft: string): string {
   const trimmed = draft.trim();
   return trimmed.length >= SEARCH_MIN_LENGTH ? trimmed : '';
@@ -40,31 +40,31 @@ export function AdminSearch({
 }: {
   label: string;
   placeholder?: string;
-  // Terme actuellement appliqué à la liste (celui que la query reçoit).
+  // Term currently applied to the list (the one the query receives).
   value: string;
   onChange: (term: string) => void;
   className?: string;
 }) {
   const t = useTranslations('admin');
   const [draft, setDraft] = useState(value);
-  // Dernier terme remonté. Sert à deux choses : ne pas réémettre une valeur
-  // identique (un `onChange` de trop rouvre l'abonnement), et distinguer « le
-  // parent a changé le terme de son côté » de « c'est notre propre émission
-  // qui revient ».
+  // Last term passed up. Serves two purposes: not re-emitting an identical
+  // value (one `onChange` too many reopens the subscription), and telling
+  // "the parent changed the term on its side" apart from "our own emission
+  // coming back".
   const emitted = useRef(value);
-  // `onChange` est souvent une closure recréée à chaque rendu. La garder hors
-  // des dépendances de l'effet de temporisation évite que n'importe quel rendu
-  // du parent — une page de résultats qui arrive, par exemple — ne relance le
-  // délai, et donc ne le repousse indéfiniment. La référence est mise à jour
-  // APRÈS le rendu : y écrire pendant est interdit (react-hooks/refs).
+  // `onChange` is often a closure recreated on every render. Keeping it out
+  // of the debounce effect's dependencies prevents any parent render
+  // — an incoming page of results, for example — from restarting the
+  // delay, and thus postponing it indefinitely. The ref is updated
+  // AFTER render: writing to it during render is forbidden (react-hooks/refs).
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // Remise à zéro venue du parent (autre filtre, changement d'écran) : la
-  // saisie suit. Notre propre émission, elle, ne retouche pas le champ — sinon
-  // le texte brut serait réécrit sous les doigts de la personne qui tape.
+  // Reset coming from the parent (another filter, screen change): the
+  // input follows. Our own emission, however, does not touch the field —
+  // otherwise the raw text would be rewritten under the typist's fingers.
   useEffect(() => {
     if (value === emitted.current) return;
     emitted.current = value;
@@ -84,10 +84,10 @@ export function AdminSearch({
   return (
     <div className={`flex items-center gap-2 ${className ?? ''}`}>
       <TextField
-        // Un vrai `<label>` (masqué) plutôt qu'un `aria-label` posé à côté :
-        // c'est le système de champs du dépôt (#41) qui porte le rattachement.
-        // `type="search"` donne au champ son rôle accessible `searchbox`, donc
-        // un nom qui ne dépend pas du seul `placeholder`.
+        // A real (hidden) `<label>` rather than an `aria-label` set alongside:
+        // it is the repo's field system (#41) that carries the association.
+        // `type="search"` gives the field its accessible `searchbox` role, hence
+        // a name that does not rely on the `placeholder` alone.
         label={label}
         labelHidden
         type="search"

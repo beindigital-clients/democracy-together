@@ -6,16 +6,16 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// TABLEAU DE BORD D'AUDIENCE (F-66, chantier diffusion) — écran admin/impact.
+// AUDIENCE DASHBOARD (F-66, outreach workstream) — admin/impact screen.
 //
-// Une seule série par graphique (pages vues), donc une seule teinte — celle
-// d'accent des jetons, en clair comme en sombre — et pas de légende : le
-// titre nomme la série. Chaque barre porte son infobulle (valeur exacte au
-// survol et au focus clavier), et les mêmes chiffres existent en TABLEAU
-// (classements) ou en liste lisible par un lecteur d'écran (courbe par jour).
+// A single series per chart (page views), hence a single shade — the
+// tokens' accent, in light as in dark — and no legend: the title names the
+// series. Each bar carries its tooltip (exact value on hover and on keyboard
+// focus), and the same figures exist as a TABLE (rankings) or as a list
+// readable by a screen reader (daily curve).
 //
-// Le jour de fin est calculé ICI, côté client : une requête Convex ne lit pas
-// l'horloge (elle ne serait pas réévaluée au changement de jour).
+// The end day is computed HERE, client-side: a Convex query does not read
+// the clock (it would not be re-evaluated when the day changes).
 
 type Range = 7 | 30 | 90;
 const RANGES: Range[] = [7, 30, 90];
@@ -41,7 +41,7 @@ function Card({
   );
 }
 
-/** Classement en tableau, avec une barre de magnitude (une teinte). */
+/** Ranking as a table, with a magnitude bar (one shade). */
 function Ranking({
   rows,
   colLabel,
@@ -98,8 +98,8 @@ export function AudienceDashboard() {
   const format = useFormatter();
   const locale = useLocale();
   const [days, setDays] = useState<Range>(30);
-  // Calculé une fois par montage : un écran laissé ouvert après minuit garde
-  // sa période, ce qui vaut mieux qu'un graphique qui glisse tout seul.
+  // Computed once per mount: a screen left open after midnight keeps its
+  // period, which is better than a chart that shifts on its own.
   const [until] = useState(todayUtc);
   const overview = useQuery(api.audience.overview, { until, days });
   const pages = useQuery(api.audience.top, { until, days, dimension: 'page' });

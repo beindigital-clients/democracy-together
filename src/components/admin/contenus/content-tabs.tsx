@@ -5,10 +5,10 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { cn } from '@/lib/utils';
 
-// Sous-navigation de `/admin/contenus` : un écran par type de contenu. La
-// barre du back-office n'a qu'UNE entrée « Contenus » (rang éditeur) ; les six
-// écrans vivent sous ce préfixe, et héritent donc de son rang dans la garde de
-// la coquille (`adminMinRoleForPath`).
+// Sub-navigation of `/admin/contenus`: one screen per content type. The
+// back-office bar has only ONE "Contenus" entry (editor rank); the six
+// screens live under that prefix, and therefore inherit its rank in the
+// shell's guard (`adminMinRoleForPath`).
 export const CONTENT_SECTIONS = [
   { key: 'events', href: '/admin/contenus/evenements' },
   { key: 'replays', href: '/admin/contenus/replays' },

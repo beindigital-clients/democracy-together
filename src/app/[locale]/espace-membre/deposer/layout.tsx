@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-// Titre de page du dépôt de publication (RGAA 8.6) — voir
-// `espace-membre/layout.tsx` pour le constat et la raison du layout. Le titre
-// nomme l'écran PUIS l'espace, comme le fil d'Ariane de la page.
+// Page title for the publication submission (RGAA 8.6) — see
+// `espace-membre/layout.tsx` for the finding and the reason for the layout.
+// The title names the screen THEN the area, like the page's breadcrumb.
 export async function generateMetadata({
   params,
 }: {

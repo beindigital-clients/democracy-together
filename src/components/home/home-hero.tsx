@@ -22,25 +22,26 @@ type Hero = {
   creds: { label: string; value: string }[];
 };
 
-// ENTRÉE EN CSS, PAS EN STYLE INLINE. `initial={{ opacity: 0 }}` de
-// framer-motion est rendu en `style="opacity:0"` dans le HTML servi, et le
-// contenu n'apparaît qu'une fois le script exécuté : mesuré le 27/09 en 3G
-// lente, le premier écran de l'accueil restait vide 11 à 13 secondes, là où la
-// bibliothèque était lisible à 2,5 s. Les keyframes `dt-hero-*` (globals.css)
-// jouent dès l'arrivée de la feuille de style, script ou pas ; la règle
-// <noscript> du layout et `prefers-reduced-motion` les neutralisent. Seul le
-// parallaxe de l'image reste piloté par framer-motion — il n'a rien à cacher.
+// ENTRANCE IN CSS, NOT IN INLINE STYLE. framer-motion's
+// `initial={{ opacity: 0 }}` is rendered as `style="opacity:0"` in the served
+// HTML, and the content only appears once the script has run: measured on
+// 27/09 on slow 3G, the home page's first screen stayed empty for 11 to 13
+// seconds, whereas the library was readable at 2.5 s. The `dt-hero-*`
+// keyframes (globals.css) play as soon as the stylesheet arrives, script or
+// not; the layout's <noscript> rule and `prefers-reduced-motion` neutralize
+// them. Only the image parallax is still driven by framer-motion — it has
+// nothing to hide.
 //
-// Hero cinématique de l'accueil. Entrée SÉQUENTIELLE et fluide (« les uns après
-// les autres, comme une musique ») : eyebrow → titre révélé MOT PAR MOT (chaque
-// mot remonte de derrière sa ligne, effet masque) → accroche → boutons ;
-// l'image arrive en léger zoom-out PUIS suit un parallaxe doux au scroll
-// (profondeur). Tout en TRANSFORM/opacité → safe prefers-reduced-motion
-// (transforms instantanés mais visibles ; parallaxe neutralisé).
+// Cinematic home hero. SEQUENTIAL, fluid entrance ("one after the other,
+// like music"): eyebrow → title revealed WORD BY WORD (each word rises from
+// behind its line, mask effect) → tagline → buttons; the image arrives with
+// a slight zoom-out THEN follows a gentle parallax on scroll (depth).
+// Everything in TRANSFORM/opacity → safe with prefers-reduced-motion
+// (instant but visible transforms; parallax neutralized).
 export function HomeHero({ hero }: { hero: Hero }) {
   const reduce = useReducedMotion();
   const figureRef = useRef<HTMLElement>(null);
-  // Parallaxe : l'image se décale doucement pendant que le hero défile.
+  // Parallax: the image shifts gently while the hero scrolls.
   const { scrollYProgress } = useScroll({
     target: figureRef,
     offset: ['start start', 'end start'],
@@ -68,15 +69,15 @@ export function HomeHero({ hero }: { hero: Hero }) {
             {hero.eyebrow}
           </p>
 
-          {/* Titre révélé mot par mot — chaque mot remonte de derrière la ligne */}
+          {/* Title revealed word by word — each word rises from behind the line */}
           <h1 className="mt-5 max-w-[15ch] font-display text-[clamp(38px,5.6vw,68px)] font-medium leading-[1.06] tracking-[-0.02em]">
             {words.map((w, i) => (
               <Fragment key={`${w}-${i}`}>
-                {/* `overflow-clip` + marge de rognage plutôt que
-                    `overflow-hidden` (RGAA 10.12) : avec l'espacement de texte
-                    élargi, le bas des lettres arabes était rogné de 4 px
-                    (mesuré le 27/09). La marge laisse dépasser les jambages ;
-                    le mot qui monte reste masqué pendant l'animation. */}
+                {/* `overflow-clip` + clip margin rather than
+                    `overflow-hidden` (RGAA 10.12): with increased text
+                    spacing, the bottom of Arabic letters was clipped by 4 px
+                    (measured on 27/09). The margin lets descenders overflow;
+                    the rising word stays masked during the animation. */}
                 <span className="inline-block overflow-clip align-bottom [overflow-clip-margin:0.25em]">
                   <span
                     data-reveal=""
@@ -115,22 +116,22 @@ export function HomeHero({ hero }: { hero: Hero }) {
           </div>
         </div>
 
-        {/* Image : zoom-out + fondu à l'entrée, puis parallaxe doux au scroll. */}
+        {/* Image: zoom-out + fade on entrance, then gentle parallax on scroll. */}
         <div
           data-reveal=""
           className="dt-hero-image order-first lg:order-none"
           style={{ animationDelay: '0.25s' }}
         >
-          {/* Image LÉGENDÉE (RGAA 1.9) : `role="figure"` et un `aria-label`
-              identique à la légende relient les deux pour les aides
-              techniques qui ne rattachent pas `<figcaption>` d'elles-mêmes. */}
+          {/* CAPTIONED image (RGAA 1.9): `role="figure"` and an `aria-label`
+              identical to the caption link the two for assistive
+              technologies that do not associate `<figcaption>` on their own. */}
           <figure
             ref={figureRef}
             role="figure"
             aria-label={hero.visualCaption}
             className="relative aspect-[16/10] overflow-hidden rounded-sm border border-line bg-surface-2 shadow-pop lg:aspect-[4/5]"
           >
-            {/* sur-cadrage pour absorber le décalage du parallaxe (pas de vide) */}
+            {/* over-framing to absorb the parallax offset (no gap) */}
             <motion.div
               data-reveal=""
               className="absolute inset-0 scale-[1.15]"
@@ -152,7 +153,7 @@ export function HomeHero({ hero }: { hero: Hero }) {
         </div>
       </div>
 
-      {/* Bande méta — apparaît en dernier, en cascade douce */}
+      {/* Meta strip — appears last, in a gentle cascade */}
       <div className="mt-16 flex flex-col border-t border-line pt-6 sm:flex-row sm:flex-wrap">
         {hero.creds.map((cred, i) => (
           <div

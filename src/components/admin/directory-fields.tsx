@@ -16,17 +16,17 @@ export type DirectoryDraft = {
   websiteUrl?: string;
 };
 
-// Les langues de travail proposées à la saisie sont celles que le site sert :
-// une même déclaration pour la facette bibliothèque, l'annuaire et le
-// sélecteur de langue. Recopier la liste ici la ferait diverger le jour où une
-// sixième langue arrive.
+// The working languages offered for entry are the ones the site serves:
+// a single declaration for the library facet, the directory and the
+// language switcher. Copying the list here would make it diverge the day a
+// sixth language arrives.
 const LANGS = PUB_LANGS;
 
-// Saisie des champs d'annuaire au moment d'approuver une candidature
-// d'organisation (F-19/F-22). La candidature ne collecte qu'un pays en texte
-// libre, alors que l'annuaire attend un code pays et un vocabulaire fermé de
-// régions et de thématiques : c'est donc au modérateur de compléter, plutôt
-// que de laisser le système deviner et publier une fiche fausse.
+// Entry of directory fields when approving an organization's application
+// (F-19/F-22). The application only collects a country as free text,
+// whereas the directory expects a country code and a closed vocabulary of
+// regions and themes: so it is up to the moderator to complete it, rather
+// than letting the system guess and publish a wrong entry.
 export function DirectoryFields({
   organizationName,
   pending,

@@ -8,22 +8,22 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Badge } from '@/components/ui/badge';
 import { vocabulary } from '@/i18n/vocabulary';
 
-// AVIS DE L'IA DANS LA FILE DE MODÉRATION.
+// AI OPINION IN THE MODERATION QUEUE.
 //
-// Ce composant tient une exigence simple et facile à rater : un modérateur
-// doit pouvoir CONTREDIRE l'avis sans effort. Trois décisions d'affichage en
-// découlent.
+// This component upholds a simple requirement that is easy to miss: a
+// moderator must be able to CONTRADICT the opinion effortlessly. Three
+// display decisions follow from it.
 //
-//  1. LE RÉSUMÉ D'ABORD, LE DÉTAIL SUR DEMANDE. Le badge et une phrase
-//     suffisent à la plupart des lignes ; les signaux ne se chargent que
-//     lorsqu'on les ouvre (`aiModeration.getReview` n'est appelée qu'alors).
-//     C'est aussi ce qui garde la file légère : cent lignes n'appellent pas
-//     cent avis complets.
-//  2. CHAQUE SIGNAL CITE SON EXTRAIT. Un constat sans citation demande de
-//     relire le dépôt entier pour être vérifié — donc ne sera pas vérifié.
-//  3. AUCUN LANGAGE D'AUTORITÉ. « Avis », « signal », « à regarder » ; jamais
-//     « refusé par l'IA ». Ce qui est écrit à l'écran finit par décrire ce que
-//     les gens croient que l'outil fait.
+//  1. SUMMARY FIRST, DETAILS ON DEMAND. The badge and one sentence
+//     suffice for most rows; the signals only load when opened
+//     (`aiModeration.getReview` is only called then).
+//     That is also what keeps the queue light: a hundred rows do not call
+//     a hundred full reviews.
+//  2. EACH SIGNAL QUOTES ITS EXCERPT. A finding without a quote requires
+//     rereading the whole submission to be verified — so it won't be verified.
+//  3. NO LANGUAGE OF AUTHORITY. "Opinion", "signal", "to look at"; never
+//     "rejected by the AI". What is written on screen ends up describing what
+//     people believe the tool does.
 
 type AiSummary = {
   verdict: 'approve' | 'flag' | 'reject' | 'error';
@@ -64,7 +64,7 @@ function AiVerdictBadges({ review }: { review: AiSummary }) {
   );
 }
 
-// Détail d'un avis — chargé seulement à l'ouverture.
+// Details of an opinion — loaded only when opened.
 function AiVerdictDetails({
   publicationId,
 }: {
@@ -78,9 +78,9 @@ function AiVerdictDetails({
   if (review === null)
     return <p className="mt-2 text-xs text-muted">{t('aiNoReview')}</p>;
 
-  // Seuls les constats qui DISENT quelque chose sont listés. Afficher les
-  // vingt « satisfait » d'un barème fourni noierait les deux qui comptent ;
-  // le badge, lui, porte déjà le compte complet.
+  // Only findings that SAY something are listed. Showing the twenty
+  // "satisfied" items of a supplied rubric would drown the two that matter;
+  // the badge already carries the full count.
   const signals = review.findings.filter((f) => f.outcome !== 'pass');
 
   return (

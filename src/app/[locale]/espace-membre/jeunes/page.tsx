@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { YouthSpace } from '@/components/youth/youth-space';
 import { MemberPageHeader, PAGE } from '@/components/programmes/shared';
 
-// Espace Jeunes (F-58) : profil persistant et candidatures aux programmes.
+// Youth area (F-58): persistent profile and applications to programmes.
 function Page() {
   const t = useTranslations('youth');
   return (

@@ -5,10 +5,10 @@ import { Reveal } from '@/components/motion/reveal';
 import { DonationForm } from '@/components/payments/donation-form';
 import { ArrowForward } from '@/components/ui/arrow';
 
-// Cette page est LISTÉE DANS LE SITEMAP (src/app/sitemap.ts), qui déclare pour
-// elle un jeu d'alternates fr/en/x-default. Sans `generateMetadata`, la page
-// elle-même n'annonçait ni adresse canonique ni hreflang : le sitemap disait
-// une chose, la page n'en disait aucune (audit F-04).
+// This page is LISTED IN THE SITEMAP (src/app/sitemap.ts), which declares a
+// set of fr/en/x-default alternates for it. Without `generateMetadata`, the
+// page itself announced neither a canonical URL nor hreflang: the sitemap
+// said one thing, the page said nothing (audit F-04).
 export async function generateMetadata({
   params,
 }: {
@@ -25,9 +25,9 @@ export async function generateMetadata({
 
 const WRAP = 'mx-auto w-full max-w-[1180px] px-4 sm:px-6';
 
-// Don en ligne (F-28). L'en-tête et les engagements sont rendus côté serveur ;
-// le formulaire est un îlot client (prestataires configurés, reCAPTCHA,
-// redirection vers la page de paiement hébergée).
+// Online donation (F-28). The header and the commitments are rendered
+// server-side; the form is a client island (configured providers, reCAPTCHA,
+// redirect to the hosted payment page).
 export default async function DonPage({
   params,
 }: {

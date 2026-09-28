@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-// Page de confirmation du double opt-in : on y arrive par le lien du
-// courriel, jamais par une recherche. Même arbitrage que la page de
-// désinscription voisine (audit F-04, issue #35) : `noindex` mais crawlable,
-// pas de canonical ni de hreflang. La page porte `'use client'` (elle lit un
-// jeton dans l'URL) : ses métadonnées vivent donc ici.
+// Confirmation page for the double opt-in: one arrives via the e-mail
+// link, never via a search. Same decision as the neighbouring
+// unsubscribe page (audit F-04, issue #35): `noindex` but crawlable,
+// no canonical or hreflang. The page is `'use client'` (it reads a
+// token from the URL): so its metadata lives here.
 export async function generateMetadata({
   params,
 }: {

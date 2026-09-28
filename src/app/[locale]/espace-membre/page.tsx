@@ -20,7 +20,7 @@ const STATUS_BADGE: Record<string, string> = {
   draft: 'border-line-strong bg-surface-2 text-muted',
 };
 
-// Tableau « Mes contributions » (F-32) — les dépôts du membre, tous statuts.
+// "Mes contributions" table (F-32) — the member's submissions, all statuses.
 function MyContributions() {
   const t = useTranslations('library');
   const locale = useLocale();
@@ -113,7 +113,7 @@ function MyContributions() {
   );
 }
 
-// Visiteur (auto-inscrit, pas encore membre validé) : invitation à candidater.
+// Visitor (self-registered, not yet an approved member): invitation to apply.
 function BecomeMember() {
   const t = useTranslations('auth');
   return (
@@ -151,12 +151,12 @@ function MemberDashboard() {
         </div>
         <div className="flex items-center justify-between px-4 py-3">
           <dt className="text-sm text-ink-soft">{t('memberRole')}</dt>
-          {/* Le rôle vient de la base (`membre`, `admin`…) : c'est du
-              VOCABULAIRE, traduit par sa clé construite — l'écran rendait la
-              valeur brute, « Role membre » même en anglais (mesuré le 27/09,
-              auth A-7). Les libellés `auth.role_*` sont la copie de
-              `admin.role_*` : l'espace `admin` ne voyage pas jusqu'au
-              navigateur hors back-office (cf. src/i18n/client-namespaces.ts). */}
+          {/* The role comes from the database (`membre`, `admin`…): it is
+              VOCABULARY, translated through its built key — the screen used to
+              render the raw value, "Role membre" even in English (measured on
+              27/09, auth A-7). The `auth.role_*` labels are a copy of
+              `admin.role_*`: the `admin` namespace does not travel to the
+              browser outside the back office (see src/i18n/client-namespaces.ts). */}
           <dd className="text-sm">
             {me?.role ? vocabulary(t, 'role_', me.role) : null}
           </dd>
@@ -178,30 +178,30 @@ function MemberDashboard() {
         >
           {t('workspacesLink')} <ArrowForward />
         </Link>
-        {/* État de ses contributions à la tribune (F-45). */}
+        {/* State of their tribune contributions (F-45). */}
         <Link
           href="/espace-membre/contributions"
           className="inline-block text-sm font-medium text-accent-text hover:underline"
         >
           {t('contributionsLink')} <ArrowForward />
         </Link>
-        {/* L'e-mail d'invitation promet « vous pourrez en définir un depuis
-            votre espace membre » : c'est ici (R-05). */}
+        {/* The invitation e-mail promises "vous pourrez en définir un depuis
+            votre espace membre": this is where (R-05). */}
         <Link
           href="/espace-membre/mot-de-passe"
           className="inline-block text-sm font-medium text-accent-text hover:underline"
         >
           {t('passwordLink')} <ArrowForward />
         </Link>
-        {/* Cotisation, dons et reçus (F-30). */}
+        {/* Membership fee, donations and receipts (F-30). */}
         <Link
           href="/espace-membre/cotisations"
           className="inline-block text-sm font-medium text-accent-text hover:underline"
         >
           {t('paymentsLink')} <ArrowForward />
         </Link>
-        {/* Chantier comptes : double authentification, données personnelles
-            (export, suppression), organisation (F-21). */}
+        {/* Accounts workstream: two-factor authentication, personal data
+            (export, deletion), organization (F-21). */}
         <Link
           href="/espace-membre/securite"
           className="inline-block text-sm font-medium text-accent-text hover:underline"
@@ -220,7 +220,7 @@ function MemberDashboard() {
         >
           {tAccounts('linkData')} <ArrowForward />
         </Link>
-        {/* Suivi des manuscrits soumis au comité de lecture (F-43). */}
+        {/* Tracking of manuscripts submitted to the review committee (F-43). */}
         {member ? (
           <Link
             href="/espace-membre/manuscrits"

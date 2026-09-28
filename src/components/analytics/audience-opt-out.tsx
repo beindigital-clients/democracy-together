@@ -8,14 +8,14 @@ import {
   writeAudienceOptOut,
 } from '@/lib/audience';
 
-// RÉGLAGE D'OPPOSITION À LA MESURE D'AUDIENCE (F-66) — posé dans la politique
-// de confidentialité, là où la mesure est décrite. Case à cocher native : elle
-// est lisible au clavier et au lecteur d'écran sans rien réinventer, et
-// l'état est dit en toutes lettres à côté (pas seulement par la coche).
+// AUDIENCE MEASUREMENT OPT-OUT SETTING (F-66) — placed in the privacy
+// policy, where the measurement is described. Native checkbox: it is
+// usable by keyboard and screen reader without reinventing anything, and
+// the state is spelled out next to it (not only by the tick).
 export function AudienceOptOut() {
   const t = useTranslations('privacy');
-  // `null` avant montage : l'état vit dans le navigateur, le serveur ne le
-  // connaît pas — on ne rend pas un état faux le temps de l'hydratation.
+  // `null` before mount: the state lives in the browser, the server does not
+  // know it — we do not render a wrong state during hydration.
   const [optedOut, setOptedOut] = useState<boolean | null>(null);
   const [dnt, setDnt] = useState(false);
 
@@ -29,7 +29,7 @@ export function AudienceOptOut() {
   const off = optedOut || dnt;
   return (
     <div className="rounded-md border border-line bg-surface p-4">
-      {/* Libellé ENVELOPPANT : toute la ligne (44 px) est la cible du clic. */}
+      {/* WRAPPING label: the whole row (44 px) is the click target. */}
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-ink">
         <input
           type="checkbox"

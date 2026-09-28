@@ -3,12 +3,12 @@ import { DIRECTORY_THEMES, REGIONS } from '@convex/lib/directory';
 import { vocabulary } from '@/i18n/vocabulary';
 import { OrganizationManager } from '@/components/account/organization-manager';
 
-// MON ORGANISATION (F-21, chantier comptes) — rattachements, fiche d'annuaire.
+// MY ORGANIZATION (F-21, accounts workstream) — affiliations, directory entry.
 //
-// Page SERVEUR qui ne fait qu'une chose : traduire le vocabulaire fermé de
-// l'annuaire (régions, thématiques) et le passer à l'écran client. L'espace
-// `directory` reste ainsi hors du catalogue envoyé au navigateur
-// (src/i18n/client-namespaces.ts) : seuls les libellés utiles voyagent.
+// A SERVER page that does only one thing: translate the directory's closed
+// vocabulary (regions, themes) and pass it to the client screen. The
+// `directory` namespace thus stays out of the catalogue sent to the browser
+// (src/i18n/client-namespaces.ts): only the needed labels travel.
 export default async function OrganisationPage({
   params,
 }: {

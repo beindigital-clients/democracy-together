@@ -13,13 +13,13 @@ import {
 } from '@/components/admin/action-feedback';
 import { isAdmin } from '@/lib/roles';
 
-// OBLIGATION DE 2FA POUR L'ENCADREMENT — réglage stocké en base
-// (`securitySettings`), modifiable par un administrateur (chantier comptes).
+// MANDATORY 2FA FOR STAFF — setting stored in the database
+// (`securitySettings`), changeable by an administrator (accounts workstream).
 //
-// DÉSACTIVÉE PAR DÉFAUT parce que le déploiement partagé des E2E crée des
-// comptes administrateur sans appareil ; elle DOIT être activée à la mise en
-// service (docs/backlog/comptes.md). D'où l'avertissement permanent du
-// tableau de bord tant qu'elle ne l'est pas.
+// DISABLED BY DEFAULT because the shared E2E deployment creates
+// administrator accounts without a device; it MUST be enabled at
+// go-live (docs/backlog/comptes.md). Hence the dashboard's permanent
+// warning as long as it is not.
 
 export function TwoFactorPolicyPanel() {
   const t = useTranslations('twoFactor');
@@ -99,8 +99,8 @@ export function TwoFactorPolicyPanel() {
   );
 }
 
-// Avertissement du tableau de bord, pour les seuls administrateurs (la
-// lecture du réglage leur est réservée, et eux seuls peuvent le changer).
+// Dashboard warning, for administrators only (reading the setting is
+// reserved for them, and only they can change it).
 function PolicyWarning() {
   const t = useTranslations('twoFactor');
   const policy = useQuery(api.twoFactor.securityPolicy);

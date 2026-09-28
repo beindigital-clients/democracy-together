@@ -2,17 +2,17 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-// Titre de page de l'espace membre (RGAA 8.6).
+// Page title for the member area (RGAA 8.6).
 //
-// Mesuré à l'audit RGAA du 27/09 : l'onglet, l'historique et la première
-// annonce d'un lecteur d'écran disaient « Democracy Together » — le titre par
-// défaut du site — sur l'espace membre comme sur n'importe quelle page qui
-// n'en déclare pas. La page porte `'use client'`, donc ne peut pas exporter
-// `generateMetadata` : d'où ce layout, sur le modèle de `connexion/layout.tsx`.
-// Les sous-pages (dépôt, mot de passe) déclarent le leur, plus précis.
+// Measured in the 27/09 RGAA audit: the tab, the history and a screen
+// reader's first announcement said "Democracy Together" — the site's
+// default title — on the member area as on any page that does not declare
+// one. The page is `'use client'`, so it cannot export `generateMetadata`:
+// hence this layout, modelled on `connexion/layout.tsx`.
+// The sub-pages (submission, password) declare their own, more specific one.
 //
-// Pas de `robots` ici : `/espace-membre` est déjà interdit au crawl par
-// `robots.txt`, et le dépôt interdit de cumuler les deux mesures
+// No `robots` here: `/espace-membre` is already disallowed for crawling by
+// `robots.txt`, and the repo forbids combining the two measures
 // (`tests/unit/seo-coherence.test.ts`).
 export async function generateMetadata({
   params,

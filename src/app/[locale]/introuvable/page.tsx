@@ -2,21 +2,22 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import LocaleNotFound from '../not-found';
 
-// Page « introuvable » (R-04) — cible de la RÉÉCRITURE du middleware pour
-// tout premier segment inconnu sous un préfixe de langue (`/ar/xyz`,
-// `/fr/nimporte-quoi`) et pour un slug vide (`/fr/le-reseau/%00`), cf.
+// "Not found" page (R-04) — target of the middleware REWRITE for any
+// unknown first segment under a language prefix (`/ar/xyz`,
+// `/fr/nimporte-quoi`) and for an empty slug (`/fr/le-reseau/%00`), see
 // src/lib/not-found-routes.ts.
 //
-// Pourquoi une PAGE et pas `notFound()` : sur Next 16.3.5, un `notFound()`
-// levé depuis une route qui matche rend un corps vide sans JavaScript
-// (mesuré, cf. src/app/not-found.tsx). Une page ordinaire, elle, est rendue
-// dans le HTML servi, dans le layout de langue — en-tête, pied de page,
-// `lang` et `dir` du visiteur. Le statut 404 est posé par le middleware sur
-// la réécriture ; cette page ne le connaît pas et ne l'invente pas.
+// Why a PAGE and not `notFound()`: on Next 16.3.5, a `notFound()` thrown
+// from a matching route renders an empty body without JavaScript
+// (measured, see src/app/not-found.tsx). An ordinary page, on the other hand,
+// is rendered in the served HTML, inside the language layout — header,
+// footer, the visitor's `lang` and `dir`. The 404 status is set by the
+// middleware on the rewrite; this page does not know it and does not make it
+// up.
 //
-// Elle réutilise tel quel le composant de la 404 localisée (`not-found.tsx`)
-// : un seul texte, une seule mise en page pour les deux chemins qui mènent à
-// « cette adresse n'existe pas ».
+// It reuses the localized 404 component (`not-found.tsx`) as is: a single
+// text, a single layout for both paths that lead to "this address does not
+// exist".
 export async function generateMetadata({
   params,
 }: {
@@ -26,7 +27,7 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: 'errors' });
   return {
     title: t('notFoundTitle'),
-    // Jamais indexée : c'est une réponse, pas un contenu.
+    // Never indexed: it is a response, not content.
     robots: { index: false, follow: true },
   };
 }

@@ -6,24 +6,24 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// Bouton « Rejoindre » (→ demande d'adhésion). Masqué lorsque l'utilisateur est
-// déjà connecté : un membre n'a plus à « rejoindre » — le changement de statut se
-// gère dans son espace personnel.
+// "Rejoindre" button (→ membership application). Hidden when the user is
+// already signed in: a member no longer needs to "join" — status changes are
+// handled in their personal area.
 //
-// CE COMPOSANT EST LA CAUSE RACINE DE F-13. Rendre `null` le temps que Convex
-// réponde faisait surgir 94 px dans une grappe ancrée à droite (`ms-auto`,
-// site-header.tsx:41) : la bascule de langue sautait de 104 px VERS LA GAUCHE
-// après le premier rendu, et un appui visant « EN » tombait sur le conteneur.
-// Mesuré : au clic, la cible réelle était un `div`, jamais le bouton.
+// THIS COMPONENT IS THE ROOT CAUSE OF F-13. Rendering `null` while Convex
+// responded made 94 px pop up in a right-anchored cluster (`ms-auto`,
+// site-header.tsx:41): the language switcher jumped 104 px TO THE LEFT
+// after the first render, and a tap aimed at "EN" landed on the container.
+// Measured: on click, the actual target was a `div`, never the button.
 //
-// `connecteAuRendu` vient du SERVEUR (`isAuthenticatedNextjs()`). Quand il est
-// fourni, la variante FINALE est rendue dès le HTML servi : un visiteur anonyme
-// voit le bouton tout de suite, un visiteur connecté ne voit rien du tout — et
-// aucun des deux ne subit de décalage.
+// `connecteAuRendu` comes from the SERVER (`isAuthenticatedNextjs()`). When it
+// is provided, the FINAL variant is rendered in the served HTML: an anonymous
+// visitor sees the button right away, a signed-in visitor sees nothing at all
+// — and neither suffers any shift.
 //
-// Sans lui (appel hérité), on retombe sur `invisible` : la boîte est conservée,
-// donc la largeur exacte dans toutes les langues, sans avoir à la deviner, et
-// l'élément sort du parcours clavier et de l'arbre d'accessibilité.
+// Without it (legacy call), we fall back to `invisible`: the box is kept,
+// hence the exact width in every language, without having to guess it, and
+// the element leaves the keyboard path and the accessibility tree.
 export function JoinButton({
   className,
   onClick,

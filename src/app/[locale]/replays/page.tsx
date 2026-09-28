@@ -37,8 +37,8 @@ export async function generateMetadata({
   };
 }
 
-// Chip de filtre — même forme que l'annuaire : un lien GET, `aria-current`
-// quand actif, donc utilisable sans JavaScript et partageable.
+// Filter chip — same shape as the directory: a GET link, `aria-current`
+// when active, so usable without JavaScript and shareable.
 function Chip({
   href,
   active,
@@ -114,11 +114,11 @@ export default async function ReplaysPage({
   setRequestLocale(locale);
   const loc = resolveLocale(locale);
   const t = await getTranslations('replays');
-  // Replays : la table `contentReplays`, ou le catalogue codé en repli (table
-  // vide, backend injoignable) — cf. src/lib/contenus/load.ts.
+  // Replays: the `contentReplays` table, or the hard-coded fallback catalogue
+  // (empty table, backend unreachable) — see src/lib/contenus/load.ts.
   const { items: all } = await loadReplays(loc);
-  // Filtres type / thématique / langue dans l'URL (communauté A-12). Les
-  // facettes sont comptées sur l'ensemble, la liste sur la sélection.
+  // Type / theme / language filters in the URL (community A-12). The
+  // facets are counted over the whole set, the list over the selection.
   const filters = parseReplayFilters(await searchParams, all);
   const facets = replayFacets(all, loc);
   const replays = filterReplays(all, filters);
@@ -214,9 +214,9 @@ export default async function ReplaysPage({
                   </p>
                 ) : null}
                 {r.embedUrl ? (
-                  // Lecteur intégré : YouTube en domaine « nocookie », Vimeo.
-                  // L'adresse est calculée côté serveur depuis un lien validé
-                  // contre sa plateforme (`validateVideoUrl`).
+                  // Embedded player: YouTube on the "nocookie" domain, Vimeo.
+                  // The URL is computed server-side from a link validated
+                  // against its platform (`validateVideoUrl`).
                   <div className="relative mt-4 aspect-video overflow-hidden rounded-sm border border-line bg-paper">
                     <iframe
                       src={r.embedUrl}

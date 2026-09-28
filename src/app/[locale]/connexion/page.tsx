@@ -26,10 +26,10 @@ export default function ConnexionPage() {
     password: '',
   });
 
-  // Session fermée parce que le compte a été SUSPENDU (chantier comptes) :
-  // la garde des espaces privés déconnecte et renvoie ici avec le motif.
-  // Lu au montage plutôt que par `useSearchParams`, qui imposerait une
-  // frontière Suspense à une page pré-rendue.
+  // Session closed because the account was SUSPENDED (accounts workstream):
+  // the private-area guard signs the user out and sends them here with the
+  // reason. Read on mount rather than via `useSearchParams`, which would
+  // force a Suspense boundary on a prerendered page.
   useEffect(() => {
     if (
       new URLSearchParams(window.location.search).get('motif') === 'suspendu'
@@ -42,9 +42,9 @@ export default function ConnexionPage() {
     e.preventDefault();
     setError(null);
 
-    // Ce qui est vérifiable ICI va au champ : une adresse mal formée, un mot de
-    // passe vide. Le REFUS du serveur, lui, reste global — dire lequel des deux
-    // est faux renseignerait sur l'existence du compte.
+    // What can be checked HERE goes to the field: a malformed address, an
+    // empty password. The server's REFUSAL stays global — saying which of the
+    // two is wrong would reveal whether the account exists.
     if (
       !validate({
         email: (v) => (isEmail(v) ? null : t('errEmail')),
@@ -63,13 +63,13 @@ export default function ConnexionPage() {
       });
       redirectAfterAuth();
     } catch (err) {
-      // Le verrou anti-force-brute de Convex Auth refusait AUSSI le bon mot de
-      // passe, avec le même « incorrect » : l'utilisateur corrigeait un mot de
-      // passe qui était juste (mesuré le 27/09). Le message du serveur
-      // traverse `/api/auth` tel quel : on le lit.
-      // Compte SUSPENDU : le refus n'arrive qu'APRÈS la vérification du mot
-      // de passe (convex/lib/signIn.ts), il ne renseigne donc que son
-      // titulaire — on peut le dire clairement.
+      // Convex Auth's anti-brute-force lock ALSO refused the correct
+      // password, with the same "incorrect": the user kept correcting a password
+      // that was right (measured on 27/09). The server's message
+      // passes through `/api/auth` unchanged: we read it.
+      // SUSPENDED account: the refusal only comes AFTER the password is
+      // verified (convex/lib/signIn.ts), so it only informs its
+      // holder — we can say it plainly.
       setError(
         isAccountSuspended(err)
           ? tAccounts('suspendedSignIn')

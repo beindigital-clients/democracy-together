@@ -6,9 +6,9 @@ import { AuthGate } from '@/components/auth/auth-gate';
 import { ArrowBack } from '@/components/ui/arrow';
 import { MessagesApp } from '@/components/social/messages-app';
 
-// Messagerie privée (chantier « social »). L'écran est entièrement client
-// (temps réel) ; `Suspense` parce qu'il lit l'adresse (`?c=`, `?to=`) par
-// `useSearchParams`.
+// Private messaging ("social" workstream). The screen is entirely
+// client-side (real time); `Suspense` because it reads the URL (`?c=`,
+// `?to=`) via `useSearchParams`.
 export async function generateMetadata({
   params,
 }: {

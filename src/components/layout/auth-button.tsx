@@ -5,17 +5,18 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 
-// `connecteAuRendu` vient du SERVEUR (`isAuthenticatedNextjs()`, lu dans
-// `site-header.tsx`). Tant que Convex n'a pas répondu, c'est lui qui décide de
-// la variante affichée — donc le HTML servi porte DÉJÀ la mise en page finale,
-// et l'en-tête ne se réorganise plus sous le doigt du visiteur (audit F-13).
+// `connecteAuRendu` comes from the SERVER (`isAuthenticatedNextjs()`, read in
+// `site-header.tsx`). Until Convex has responded, it decides which variant
+// is displayed — so the served HTML ALREADY carries the final layout,
+// and the header no longer rearranges itself under the visitor's finger
+// (audit F-13).
 //
-// Sans lui, ce composant rendait un gabarit de 64 px puis le remplaçait par
-// « Connexion » (66 px) ou par « Espace membre · Déconnexion », bien plus
-// large : c'est cette seconde marche qui restait à corriger.
+// Without it, this component rendered a 64 px placeholder then replaced it
+// with "Connexion" (66 px) or with "Espace membre · Déconnexion", much
+// wider: that second step was what remained to fix.
 //
-// La propriété reste FACULTATIVE : un appel sans elle retrouve l'ancien
-// comportement, gabarit compris. Aucun appelant n'est cassé.
+// The prop stays OPTIONAL: a call without it gets the old behaviour back,
+// placeholder included. No caller is broken.
 export function AuthButton({
   connecteAuRendu,
 }: {
@@ -26,14 +27,14 @@ export function AuthButton({
   const router = useRouter();
   const t = useTranslations('auth');
 
-  // LA DÉCONNEXION NAVIGUE ELLE-MÊME (auth A-6). `signOut()` ne fait que vider
-  // les jetons : sur une page privée, c'était la garde `AuthGate` qui, 1,2 s
-  // plus tard, remplaçait la page par le formulaire de connexion — l'URL
-  // restait `/espace-membre` sous ce formulaire, et « Précédent » ressortait
-  // une entrée `/connexion?_rsc=…`, l'URL interne d'un prefetch RSC (mesuré
-  // le 27/09). `replace` vers l'accueil, une route propre, juste après la
-  // sortie : la garde est démontée avant d'avoir à rediriger, et l'historique
-  // ne garde aucune URL qu'on ne peut pas partager.
+  // SIGN-OUT NAVIGATES BY ITSELF (auth A-6). `signOut()` only clears
+  // the tokens: on a private page, it was the `AuthGate` guard that, 1.2 s
+  // later, replaced the page with the sign-in form — the URL
+  // stayed `/espace-membre` under that form, and "Back" brought up
+  // a `/connexion?_rsc=…` entry, the internal URL of an RSC prefetch (measured
+  // on 27/09). `replace` to the home page, a clean route, right after
+  // signing out: the guard is unmounted before it has to redirect, and the
+  // history keeps no URL that cannot be shared.
   async function onSignOut() {
     await signOut();
     router.replace('/');
@@ -41,8 +42,8 @@ export function AuthButton({
 
   const connecte = isLoading ? connecteAuRendu : isAuthenticated;
 
-  // `undefined` = on ne sait pas encore et le serveur ne l'a pas dit : on
-  // réserve la place plutôt que de parier.
+  // `undefined` = we do not know yet and the server has not said: we
+  // reserve the space rather than gamble.
   if (connecte === undefined) {
     return <span aria-hidden className="inline-block h-5 w-16" />;
   }

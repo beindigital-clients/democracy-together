@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-// Titre de page « Mon mot de passe » (RGAA 8.6) — voir
-// `espace-membre/layout.tsx` pour le constat et la raison du layout.
+// Page title "Mon mot de passe" (RGAA 8.6) — see
+// `espace-membre/layout.tsx` for the finding and the reason for the layout.
 export async function generateMetadata({
   params,
 }: {

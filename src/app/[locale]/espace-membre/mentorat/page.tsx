@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { MentoringSpace } from '@/components/mentoring/mentoring-space';
 import { MemberPageHeader, PAGE } from '@/components/programmes/shared';
 
-// « Mon mentorat » (F-59) : profils mentor / mentoré et binômes.
+// "Mon mentorat" (F-59): mentor / mentee profiles and pairs.
 function Page() {
   const t = useTranslations('mentorship');
   return (

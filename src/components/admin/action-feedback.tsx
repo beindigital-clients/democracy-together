@@ -13,30 +13,29 @@ import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { useServerErrorMessage } from '@/components/admin/server-error';
 
-// RETOUR VISIBLE après une action de back-office (issue #38).
+// VISIBLE FEEDBACK after a back-office action (issue #38).
 //
-// Les écrans de modération n'affichaient RIEN après une décision : les
-// gestionnaires avalaient l'erreur serveur en silence (« rôle insuffisant »,
-// « décision déjà prise ») et le succès ne se devinait qu'au départ de la ligne
-// de la file. Le modérateur restait dans le doute sur ce qui venait de se
-// passer — et un refus silencieux se relit comme un clic non enregistré, donc
-// se rejoue.
+// The moderation screens showed NOTHING after a decision: the handlers
+// silently swallowed the server error ("insufficient role", "decision
+// already made") and success could only be guessed from the row leaving the
+// queue. The moderator was left unsure of what had just happened — and a
+// silent refusal reads like an unregistered click, so it gets replayed.
 //
-// Deux régions live STATIQUES, montées une fois pour tout le back-office : une
-// polie (`role="status"`) pour les succès, une assertive (`role="alert"`) pour
-// les échecs. Elles sont déclarées en permanence, vides ou non : une région
-// live ajoutée au DOM en même temps que son texte n'est pas annoncée de façon
-// fiable par les lecteurs d'écran.
+// Two STATIC live regions, mounted once for the whole back office: a
+// polite one (`role="status"`) for successes, an assertive one
+// (`role="alert"`) for failures. They are always declared, empty or not: a
+// live region added to the DOM together with its text is not announced
+// reliably by screen readers.
 //
-// PLUSIEURS MESSAGES À LA FOIS (campagne du 27/09, C-5). Un seul message était
-// retenu : une action rapide après une autre REMPLAÇAIT le précédent, et quand
-// la seconde n'en produisait pas (« Rouvrir », m-5), l'ancien — « rejetée » —
-// restait affiché pendant la réouverture, à lire à l'envers. Les messages
-// s'empilent désormais dans leur région, chacun avec son propre délai. Une
-// seule éviction : un ÉCHEC vide les succès encore affichés. L'alerte
-// interrompt de toute façon la lecture, et laisser « … approuvée. » à côté de
-// « Action non effectuée » ferait douter de laquelle des deux parle du geste
-// qu'on vient de faire.
+// SEVERAL MESSAGES AT ONCE (27/09 campaign, C-5). Only one message was
+// kept: a quick action after another REPLACED the previous one, and when
+// the second produced none ("Rouvrir", m-5), the old one — "rejected" —
+// stayed displayed during the reopening, to be read backwards. Messages
+// now stack in their region, each with its own timeout. A single
+// eviction: a FAILURE clears the successes still displayed. The alert
+// interrupts reading anyway, and leaving "… approved." next to
+// "Action non effectuée" would cast doubt on which of the two refers to the
+// action just performed.
 type Tone = 'success' | 'error';
 type Notify = (message: string, tone?: Tone) => void;
 
@@ -46,9 +45,9 @@ export function useActionFeedback(): Notify {
   return useContext(ActionFeedbackContext);
 }
 
-// Le retour d'un REFUS serveur, traduit par son code (R-08) : à appeler dans
-// le `catch` d'une mutation, à la place d'un `notify(t('feedbackError'))` qui
-// accusait les droits quel que soit le motif.
+// Feedback for a server REFUSAL, translated by its code (R-08): to be called
+// in a mutation's `catch`, instead of a `notify(t('feedbackError'))` that
+// blamed permissions whatever the reason.
 export function useFailureFeedback(): (err: unknown) => void {
   const notify = useActionFeedback();
   const message = useServerErrorMessage();
@@ -59,8 +58,8 @@ export function useFailureFeedback(): (err: unknown) => void {
 }
 
 const DISMISS_MS = 6000;
-// Au-delà, les plus anciens cèdent la place : une pile qui couvre l'écran
-// n'informe plus.
+// Beyond that, the oldest give way: a stack that covers the screen
+// no longer informs.
 const MAX_VISIBLE = 4;
 
 type Item = { id: number; tone: Tone; message: string };
@@ -85,8 +84,8 @@ function Toast({
       }`}
     >
       <span className="wrap-anywhere leading-relaxed">{message}</span>
-      {/* `p-1.5` autour d'une icône de 16 px : 28 px de cible, là où 20 px
-          échappaient au doigt et se coupaient au bord droit (27/09, C-3). */}
+      {/* `p-1.5` around a 16 px icon: a 28 px target, where 20 px
+          escaped the finger and got clipped at the right edge (27/09, C-3). */}
       <button
         type="button"
         onClick={onDismiss}
@@ -114,9 +113,9 @@ export function ActionFeedbackProvider({ children }: { children: ReactNode }) {
 
   const notify = useCallback<Notify>(
     (message, tone = 'success') => {
-      // Identifiant croissant, et non le texte : deux rejets successifs
-      // portent le même message, et sans changement de nœud la région live
-      // n'annoncerait que le premier.
+      // Incrementing id, not the text: two successive rejections
+      // carry the same message, and without a node change the live region
+      // would only announce the first.
       seq.current += 1;
       const id = seq.current;
       setItems((list) => {

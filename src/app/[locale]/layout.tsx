@@ -33,13 +33,13 @@ import {
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
 import '../globals.css';
 
-// Métadonnées par DÉFAUT du site : elles sont servies telles quelles sur toute
-// page dépourvue de `generateMetadata` propre. Statiques, elles décrivaient le
-// site en français jusque sur `/en` — donc dans les résultats de recherche
-// anglais (issue #34). `generateMetadata` les rend dépendantes de la langue.
-// La locale est passée explicitement à `getTranslations` : cette fonction
-// s'exécute hors du rendu, avant tout `setRequestLocale`.
-// Le titre, lui, est un NOM PROPRE : il ne se traduit pas.
+// Site DEFAULT metadata: served as is on any page without its own
+// `generateMetadata`. When static, they described the site in French even on
+// `/en` — hence in English search results (issue #34). `generateMetadata`
+// makes them language-dependent.
+// The locale is passed explicitly to `getTranslations`: this function
+// runs outside rendering, before any `setRequestLocale`.
+// The title, however, is a PROPER NOUN: it is not translated.
 export async function generateMetadata({
   params,
 }: {
@@ -49,28 +49,28 @@ export async function generateMetadata({
   const loc = resolveLocale(locale);
   const t = await getTranslations({ locale: loc, namespace: 'site' });
   return {
-    // Sans `metadataBase`, une image de partage déclarée en chemin relatif
-    // n'est pas résolue en URL absolue — et une URL relative n'est lisible par
-    // aucun réseau social.
+    // Without `metadataBase`, a share image declared as a relative path is
+    // not resolved to an absolute URL — and a relative URL is readable by
+    // no social network.
     metadataBase: new URL(SITE_URL),
     title: {
       default: SITE_NAME,
       template: `%s · ${SITE_NAME}`,
     },
     description: t('description'),
-    // Open Graph et Twitter Card posés ICI plutôt que page par page : les
-    // métadonnées Next se propagent du layout vers les pages, donc les 48
-    // pages en héritent d'un coup — y compris celles qui n'ont pas de
-    // `generateMetadata` propre (F-03).
+    // Open Graph and Twitter Card set HERE rather than page by page: Next
+    // metadata propagates from the layout to the pages, so all 48 pages
+    // inherit it at once — including those without their own
+    // `generateMetadata` (F-03).
     //
-    // `title`, `description` et `url` sont VOLONTAIREMENT absents de ce bloc.
-    // Mesuré : les y poser les FIGE pour tout le site — og:title valait
-    // « Democracy Together » jusque sur /fr/adhesion, et og:url pointait
-    // l'accueil depuis chaque page, ce qu'un agrégateur peut prendre pour
-    // l'adresse canonique et qui replierait tous les partages sur une seule
-    // page. Laissés vides, Next les dérive du titre et de la description
-    // RÉSOLUS de chaque page : /fr/adhesion annonce « Rejoindre le réseau ·
-    // Democracy Together » et sa propre description.
+    // `title`, `description` and `url` are DELIBERATELY absent from this block.
+    // Measured: setting them here FREEZES them for the whole site — og:title was
+    // "Democracy Together" even on /fr/adhesion, and og:url pointed to the
+    // home page from every page, which an aggregator may take for the
+    // canonical URL and which would collapse all shares onto a single
+    // page. Left empty, Next derives them from each page's RESOLVED title and
+    // description: /fr/adhesion announces "Rejoindre le réseau ·
+    // Democracy Together" and its own description.
     openGraph: {
       type: 'website',
       siteName: SITE_NAME,
@@ -87,18 +87,18 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-// Applique le thème avant peinture (anti-flash). Le thème est une préférence
-// visuelle sans enjeu SEO -> localStorage est légitime ici.
-// Sans préférence ENREGISTRÉE, c'est celle du système qui décide
-// (`prefers-color-scheme`) : mesuré le 27/09, un navigateur réglé en sombre
-// arrivait en clair tant qu'il n'avait pas touché à la bascule.
+// Applies the theme before paint (anti-flash). The theme is a visual
+// preference with no SEO stakes -> localStorage is legitimate here.
+// Without a SAVED preference, the system's decides
+// (`prefers-color-scheme`): measured on 27/09, a browser set to dark
+// arrived in light mode until it had touched the toggle.
 const themeInit = `(function(){try{var t=localStorage.getItem('dt-theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
 
-// Filet pour les navigateurs sans JavaScript (F-05, faible débit) : les
-// primitives d'animation posent `opacity:0` en style inline côté serveur. Sans
-// script pour les animer, le contenu reste invisible — mesuré avant correctif :
-// page des mentions légales entièrement blanche. Cette règle ne s'applique
-// QU'EN l'absence de JavaScript, donc les animations restent intactes ailleurs.
+// Safety net for browsers without JavaScript (F-05, low bandwidth): the
+// animation primitives set `opacity:0` as an inline style server-side. With no
+// script to animate them, the content stays invisible — measured before the
+// fix: the legal notice page entirely blank. This rule applies ONLY in the
+// absence of JavaScript, so animations remain intact elsewhere.
 const noScriptReveal = `[data-reveal]{opacity:1 !important;transform:none !important}`;
 
 export default async function LocaleLayout({
@@ -111,15 +111,16 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   setRequestLocale(locale);
-  // Seuls les espaces que des composants CLIENT demandent franchissent la
-  // frontière RSC (F-05) : le reste est lu côté serveur par `getTranslations`
-  // et n'a rien à faire dans le HTML. Le back-office pose les siens dans son
-  // propre layout.
+  // Only the namespaces that CLIENT components ask for cross the RSC
+  // boundary (F-05): the rest is read server-side by `getTranslations`
+  // and has no business in the HTML. The back office sets its own in its
+  // own layout.
   const messages = pickNamespaces(await getMessages(), BASE_CLIENT_NAMESPACES);
-  // `NextIntlClientProvider` rendu directement depuis un composant serveur
-  // hérite seul de la locale et du fuseau. Le passage par `IntlClientProvider`
-  // — nécessaire pour lui poser `getMessageFallback` et `onError`, qui sont des
-  // fonctions — coupe cet héritage : on les transmet donc explicitement.
+  // `NextIntlClientProvider` rendered directly from a server component
+  // inherits the locale and time zone on its own. Going through
+  // `IntlClientProvider` — needed to give it `getMessageFallback` and
+  // `onError`, which are functions — breaks that inheritance: so we pass them
+  // explicitly.
   const timeZone = await getTimeZone();
   const tSite = await getTranslations({
     locale: resolveLocale(locale),
@@ -131,13 +132,13 @@ export default async function LocaleLayout({
     <ConvexAuthNextjsServerProvider>
       <html
         lang={locale}
-        // SENS D'ÉCRITURE SERVI DANS LE HTML, pas posé en JavaScript après
-        // coup. `dir` gouverne l'algorithme bidirectionnel du navigateur et
-        // la résolution de TOUTES les propriétés logiques de la feuille de
-        // style : le poser côté client ferait peindre la page entière à
-        // l'envers avant l'hydratation, puis la retournerait. C'est le même
-        // raisonnement que le gating serveur du middleware — une frontière
-        // franchie dans le document servi, pas dans un effet.
+        // WRITING DIRECTION SERVED IN THE HTML, not set in JavaScript after
+        // the fact. `dir` governs the browser's bidirectional algorithm and
+        // the resolution of ALL the stylesheet's logical properties: setting
+        // it client-side would paint the whole page backwards before
+        // hydration, then flip it. Same reasoning as the middleware's
+        // server-side gating — a boundary crossed in the served document,
+        // not in an effect.
         dir={direction(locale)}
         data-universe="institutionnel"
         suppressHydrationWarning
@@ -148,8 +149,8 @@ export default async function LocaleLayout({
           <noscript>
             <style dangerouslySetInnerHTML={{ __html: noScriptReveal }} />
           </noscript>
-          {/* Données structurées (F-03). Posées dans le HTML SERVI, donc
-              lisibles par un robot qui n'exécute pas JavaScript. */}
+          {/* Structured data (F-03). Placed in the SERVED HTML, hence
+              readable by a crawler that does not run JavaScript. */}
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: jsonLdScript(orgJsonLd) }}
@@ -163,9 +164,9 @@ export default async function LocaleLayout({
           >
             <ConvexClientProvider>
               <MotionProvider>
-                {/* Lien d'évitement (RGAA 12.7) : douze tabulations séparaient
-                    le premier focus du contenu (mesuré le 27/09). Invisible
-                    jusqu'au focus clavier, premier élément focalisable de la
+                {/* Skip link (RGAA 12.7): twelve tab presses separated the
+                    first focus from the content (measured on 27/09). Invisible
+                    until keyboard focus, first focusable element of the
                     page. */}
                 <a
                   href="#contenu"
@@ -179,7 +180,7 @@ export default async function LocaleLayout({
                 </main>
                 <SiteFooter />
                 <CookieConsent />
-                {/* Mesure d'audience first-party, sans cookie (F-66). */}
+                {/* First-party, cookieless audience measurement (F-66). */}
                 <AudienceBeacon />
               </MotionProvider>
             </ConvexClientProvider>

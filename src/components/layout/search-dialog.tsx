@@ -9,18 +9,18 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { hitFlag, hitLangAttrs, hitMeta } from '@/lib/search';
 
-// Recherche en modal (command palette) — évite le saut de page : on ouvre par
-// ⌘K / Ctrl+K ou clic, on cherche en direct (query Convex réactive) et on
-// affiche les résultats dans le panneau. Les contenus couverts en live sont
-// ceux du REGISTRE de recherche Convex (publications, membres, Tribune,
-// experts… — convex/lib/searchSources.ts), rendus section par section sans
-// rien savoir des tables ; « Voir tous les résultats » renvoie vers
-// /recherche, qui ajoute les actualités (Sanity), les filtres et la suite.
+// Search in a modal (command palette) — avoids a page jump: open with
+// ⌘K / Ctrl+K or a click, search live (reactive Convex query) and
+// display the results in the panel. The content covered live is that of
+// the Convex search REGISTRY (publications, members, Tribune,
+// experts… — convex/lib/searchSources.ts), rendered section by section
+// without knowing anything about the tables; "Voir tous les résultats" leads
+// to /recherche, which adds news (Sanity), filters and the rest.
 //
-// A11y calquée sur mobile-nav : role=dialog/aria-modal, Échap, clic hors zone,
-// piège à focus, verrou du scroll, focus rendu au déclencheur à la fermeture.
-// Combobox : focus maintenu dans le champ, option active via
-// aria-activedescendant (les options ne sont pas focalisables).
+// A11y modelled on mobile-nav: role=dialog/aria-modal, Escape, outside
+// click, focus trap, scroll lock, focus returned to the trigger on close.
+// Combobox: focus kept in the input, active option via
+// aria-activedescendant (the options are not focusable).
 
 function useDebounced<T>(value: T, delay: number): T {
   const [v, setV] = useState(value);
@@ -39,11 +39,11 @@ const KBD =
 const optionId = (i: number) => `dt-search-opt-${i}`;
 const LISTBOX_ID = 'dt-search-listbox';
 
-// Une option du `listbox`. Ni lien ni bouton : les enfants d'une option sont
-// présentationnels (ARIA), un élément interactif y serait perdu — c'est ce
-// qu'axe signalait (`nested-interactive`, audit RGAA du 27/09). Le focus reste
-// dans le champ, qui désigne l'option active par `aria-activedescendant` ; la
-// souris la choisit au clic.
+// An option of the `listbox`. Neither link nor button: an option's children
+// are presentational (ARIA), an interactive element there would be lost —
+// that is what axe flagged (`nested-interactive`, RGAA audit of 27/09). Focus
+// stays in the input, which designates the active option via
+// `aria-activedescendant`; the mouse picks it on click.
 function SearchOption({
   index,
   active,
@@ -73,15 +73,15 @@ function SearchOption({
   );
 }
 
-// Délai au-delà duquel une recherche sans réponse est déclarée indisponible.
-// Mesuré le 27/09 (transversal A-4) : backend injoignable, la palette
-// affichait « Recherche… » sans fin — `useQuery` reste `undefined` tant que
-// le client reconnecte en boucle, et rien ne le dit. Huit secondes couvrent
-// largement un aller-retour lent en 3G ; au-delà, c'est une panne.
+// Delay beyond which an unanswered search is declared unavailable.
+// Measured on 27/09 (cross-cutting A-4): backend unreachable, the palette
+// showed "Recherche…" endlessly — `useQuery` stays `undefined` while
+// the client keeps reconnecting in a loop, and nothing says so. Eight seconds
+// comfortably cover a slow 3G round trip; beyond that, it is an outage.
 const UNAVAILABLE_AFTER_MS = 8000;
 
-// `true` quand `pending` dure depuis plus de `delay` ms ; se réarme à chaque
-// nouvelle recherche.
+// `true` when `pending` has lasted more than `delay` ms; re-arms on each
+// new search.
 function useStalled(pending: boolean, delay: number): boolean {
   const [stalled, setStalled] = useState(false);
   useEffect(() => {
@@ -114,13 +114,13 @@ export function SearchDialog() {
     api.search.globalSearch,
     enabled ? { q: dq } : 'skip',
   );
-  // `dq` est dans la clé : le compteur repart à chaque nouvelle recherche,
-  // même si la précédente était déjà en attente.
+  // `dq` is in the key: the timer restarts on each new search,
+  // even if the previous one was already pending.
   const pending = enabled && results === undefined;
   const unavailable = useStalled(pending, UNAVAILABLE_AFTER_MS) && pending;
 
-  // Liste plate (sections dans l'ordre du registre), dans l'ordre d'affichage,
-  // pour la navigation clavier et la résolution de la cible à « Entrée ».
+  // Flat list (sections in registry order), in display order,
+  // for keyboard navigation and resolving the target on "Enter".
   const sections = results?.sections ?? [];
   const hrefs = sections.flatMap((s) => s.hits.map((h) => h.path));
   const total = hrefs.length;
@@ -129,10 +129,10 @@ export function SearchDialog() {
   );
   const hasResults = enabled && results !== undefined && total > 0;
 
-  // Texte de la région live : ce qu'un lecteur d'écran doit apprendre après
-  // une frappe. Rien tant que la saisie est trop courte (l'invite est à
-  // l'écran et le champ la décrit déjà), rien non plus pendant l'attente — une
-  // annonce « Recherche… » à chaque frappe serait du bruit.
+  // Live region text: what a screen reader should learn after
+  // a keystroke. Nothing while the input is too short (the prompt is on
+  // screen and the field already describes it), nothing during the wait
+  // either — a "Recherche…" announcement on every keystroke would be noise.
   const announcement = !enabled
     ? ''
     : results === undefined
@@ -143,12 +143,12 @@ export function SearchDialog() {
         ? t('empty', { q: dq })
         : t('resultsCount', { count: total });
 
-  // Réinitialise l'option active à chaque nouvelle recherche.
+  // Resets the active option on each new search.
   useEffect(() => {
     setActive(0);
   }, [dq]);
 
-  // Garde l'option active visible lors de la navigation au clavier.
+  // Keeps the active option visible during keyboard navigation.
   useEffect(() => {
     if (open && total) {
       document
@@ -168,7 +168,7 @@ export function SearchDialog() {
     triggerRef.current?.focus();
   }, [reset]);
 
-  // Raccourci global ⌘K / Ctrl+K.
+  // Global shortcut ⌘K / Ctrl+K.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -180,7 +180,7 @@ export function SearchDialog() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // Échap + piège à focus + verrou du scroll quand le modal est ouvert.
+  // Escape + focus trap + scroll lock when the modal is open.
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -275,8 +275,8 @@ export function SearchDialog() {
                 onKeyDown={onInputKey}
                 placeholder={t('placeholder')}
                 aria-label={t('placeholder')}
-                // Étiquette NON visible : `title` la rend lisible au survol et remplit
-                // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+                // NON-visible label: `title` makes it readable on hover and meets one
+                // condition of RGAA 11.1.3 (the placeholder disappears while typing).
                 title={t('placeholder')}
                 role="combobox"
                 aria-expanded={hasResults}
@@ -285,34 +285,34 @@ export function SearchDialog() {
                   hasResults ? optionId(active) : undefined
                 }
                 autoComplete="off"
-                // FOCUS VISIBLE (RGAA 10.7). `outline-none` retirait l'indicateur
-                // sans rien mettre à la place — mesuré à l'audit du 27/09 : ni
-                // contour, ni bordure, ni ombre sur le champ qui reçoit le focus
-                // à l'ouverture. Le contour global revient, rentré de 3 px : le
-                // panneau (`overflow-hidden`) rognerait un contour extérieur.
+                // VISIBLE FOCUS (RGAA 10.7). `outline-none` removed the indicator
+                // without putting anything in its place — measured in the 27/09 audit: no
+                // outline, border or shadow on the field that receives focus
+                // on opening. The global outline is back, inset by 3 px: the
+                // panel (`overflow-hidden`) would clip an outer outline.
                 className="h-12 w-full bg-transparent text-[15px] text-ink placeholder:text-muted focus-visible:outline-offset-[-3px]"
               />
             </div>
 
-            {/* ANNONCE DES RÉSULTATS (RGAA 7.5). Région live montée en
-                permanence, vide ou non : une région créée en même temps que son
-                texte n'est pas annoncée de façon fiable. Elle dit ce que la
-                personne ne voit pas — combien de résultats, ou pourquoi aucun —
-                sans déplacer le focus, qui reste dans le champ. */}
+            {/* RESULTS ANNOUNCEMENT (RGAA 7.5). A live region mounted
+                permanently, empty or not: a region created together with its
+                text is not announced reliably. It says what the
+                person does not see — how many results, or why none —
+                without moving focus, which stays in the input. */}
             <p role="status" className="sr-only">
               {announcement}
             </p>
 
-            {/* STRUCTURE ARIA DE LA LISTE (RGAA 7.1). Mesuré à l'audit du 27/09
-                sur la palette ouverte : un `listbox` qui contenait des titres,
-                des listes et un paragraphe, et des options qui contenaient un
-                lien — violations « critiques » ou « graves » d'axe, invisibles
-                aux analyses de page puisque la palette est fermée. Désormais :
-                le `listbox` n'existe que s'il y a des résultats, ne contient que
-                des groupes nommés d'options (un par section du registre), et
-                une option n'est plus un lien (Entrée ou clic naviguent, comme
-                avant). Les messages (invite, attente, aucun résultat) vivent
-                hors de lui. */}
+            {/* ARIA STRUCTURE OF THE LIST (RGAA 7.1). Measured in the 27/09 audit
+                on the open palette: a `listbox` that contained headings,
+                lists and a paragraph, and options that contained a
+                link — axe "critical" or "serious" violations, invisible
+                to page scans since the palette is closed. Now:
+                the `listbox` only exists if there are results, only contains
+                named groups of options (one per registry section), and
+                an option is no longer a link (Enter or click navigate, as
+                before). The messages (prompt, waiting, no results) live
+                outside it. */}
             <div className="max-h-[min(60vh,28rem)] overflow-y-auto p-2">
               {!enabled ? (
                 <p className="px-2 py-7 text-center text-sm text-muted">
@@ -339,7 +339,7 @@ export function SearchDialog() {
                     const label = vocabulary(t, 'section_', section.source);
                     return (
                       <div key={section.source} role="group" aria-label={label}>
-                        {/* Intitulé visuel ; le groupe porte déjà ce nom. */}
+                        {/* Visual heading; the group already carries this name. */}
                         <div
                           aria-hidden="true"
                           className="px-2 pb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted"
@@ -358,7 +358,7 @@ export function SearchDialog() {
                                 onHover={setActive}
                                 onPick={() => navigate(hit.path)}
                               >
-                                {/* Titre dans sa langue de rédaction (RGAA 8.7). */}
+                                {/* Title in its writing language (RGAA 8.7). */}
                                 <span
                                   {...hitLangAttrs(hit, locale)}
                                   className="truncate font-medium text-ink"
@@ -366,7 +366,7 @@ export function SearchDialog() {
                                   {hit.title}
                                 </span>
                                 <span className="ms-auto shrink-0 text-[12px] text-muted">
-                                  {/* Le drapeau double le nom du pays. */}
+                                  {/* The flag duplicates the country name. */}
                                   {flag ? (
                                     <>
                                       <span aria-hidden="true">

@@ -10,10 +10,10 @@ import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { STATUS_PILL } from '@/components/tribune/my-posts';
 
-// MES CONTRIBUTIONS À LA TRIBUNE (F-45) — l'auteur voit l'ÉTAT de chacune :
-// en attente de validation, publiée, rejetée (avec le motif), retirée. Un
-// billet hors ligne s'ouvre ici en aperçu (et se corrige s'il est en attente
-// ou rejeté) ; les invitations à approfondir un billet (F-48) y figurent aussi.
+// MY TRIBUNE CONTRIBUTIONS (F-45) — the author sees the STATE of each:
+// pending review, published, rejected (with the reason), withdrawn. An
+// offline post opens here as a preview (and can be fixed if pending or
+// rejected); invitations to expand on a post (F-48) appear here too.
 function Contributions() {
   const t = useTranslations('tribune');
   const tl = useTranslations('library');

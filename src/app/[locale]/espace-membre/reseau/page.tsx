@@ -7,8 +7,8 @@ import { AuthGate } from '@/components/auth/auth-gate';
 import { ArrowBack } from '@/components/ui/arrow';
 import { NetworkView } from '@/components/social/network-view';
 
-// « Mon réseau » (chantier « social ») : activité des personnes suivies,
-// abonnements, abonnés, organisations suivies.
+// "Mon réseau" ("social" workstream): activity of followed people,
+// following, followers, followed organizations.
 export async function generateMetadata({
   params,
 }: {

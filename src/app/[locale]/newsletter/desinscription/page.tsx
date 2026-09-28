@@ -16,13 +16,13 @@ function UnsubscribeInner() {
     'pending' | 'done' | 'notoken' | 'invalid' | 'error'
   >(token ? 'pending' : 'notoken');
 
-  // Désinscription en un clic depuis le lien de l'e-mail (idempotent côté
-  // serveur). Un jeton qui ne correspond à RIEN — tronqué par un client mail,
-  // déjà consommé, inventé — affichait « vous êtes désinscrit » (mesuré le
-  // 27/09, vitrine O2 / R-09) : l'abonné au lien tronqué le croyait et restait
-  // abonné. Le serveur dit désormais `found`, et la page « lien invalide ou
-  // expiré ». Ce n'est pas un oracle : le jeton est un secret aléatoire, il
-  // n'identifie aucune adresse (cf. convex/newsletter.ts#unsubscribe).
+  // One-click unsubscribe from the e-mail link (idempotent server-side).
+  // A token that matches NOTHING — truncated by a mail client, already
+  // consumed, made up — displayed "you are unsubscribed" (measured on
+  // 27/09, showcase O2 / R-09): the subscriber with the truncated link
+  // believed it and stayed subscribed. The server now says `found`, and the
+  // page "invalid or expired link". This is not an oracle: the token is a
+  // random secret, it identifies no address (see convex/newsletter.ts#unsubscribe).
   useEffect(() => {
     if (!token) return;
     let active = true;
@@ -31,10 +31,10 @@ function UnsubscribeInner() {
         if (active) setStatus(r.found ? 'done' : 'invalid');
       })
       .catch(() => {
-        // Réseau indisponible : la mutation n'a pas répondu. On ne peut ni
-        // confirmer ni infirmer — ni dire que le lien est invalide : il l'est
-        // peut-être pas. On invite à recharger. Sans ce `catch`, le rejet
-        // remontait non géré.
+        // Network unavailable: the mutation did not respond. We can neither
+        // confirm nor deny — nor say the link is invalid: it may well not
+        // be. We invite the user to reload. Without this `catch`, the rejection
+        // bubbled up unhandled.
         if (active) setStatus('error');
       });
     return () => {

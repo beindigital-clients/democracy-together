@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 
-// Habillage des écrans d'authentification (carte centrée + bouton d'envoi).
-// Les CHAMPS, eux, viennent du système commun `@/components/ui/field` : ces
-// écrans n'ont plus leur propre famille de champs (issue #41).
+// Wrapper for the authentication screens (centred card + submit button).
+// The FIELDS themselves come from the shared `@/components/ui/field` system:
+// these screens no longer have their own family of fields (issue #41).
 export function AuthCard({
   title,
   subtitle,

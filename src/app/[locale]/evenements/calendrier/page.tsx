@@ -38,22 +38,22 @@ export async function generateMetadata({
 const WRAP = 'mx-auto w-full max-w-[1240px] px-4 sm:px-6';
 const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
-// Nom du mois localisé (ex. « Novembre 2026 », « November 2026 », « نوفمبر 2026 »).
+// Localized month name (e.g. "Novembre 2026", "November 2026", "نوفمبر 2026").
 //
-// LA LOCALE EST CELLE DE LA PAGE, et non plus « anglais ou français ». Le
-// ternaire précédent (`… === 'en' ? 'en-GB' : 'fr-FR'`) servait des mois
-// FRANÇAIS aux pages espagnole, portugaise et arabe : le calendrier arabe
-// affichait « Septembre 2026 » en tête, y compris dans son `aria-label`.
+// THE LOCALE IS THE PAGE'S, and no longer "English or French". The previous
+// ternary (`… === 'en' ? 'en-GB' : 'fr-FR'`) served FRENCH months to the
+// Spanish, Portuguese and Arabic pages: the Arabic calendar showed
+// "Septembre 2026" at the top, including in its `aria-label`.
 //
-// `intlLocale` — et non la locale brute — parce que c'est lui qui porte les
-// arbitrages régionaux du dépôt : `ar-MA` sert des chiffres arabes occidentaux,
-// pour ne pas mêler deux systèmes de numération à ceux du Baromètre.
+// `intlLocale` — and not the raw locale — because it carries the repo's
+// regional decisions: `ar-MA` serves Western Arabic numerals, so as not to
+// mix two numeral systems with those of the Baromètre.
 function monthTitle(year: number, month: number, loc: Locale): string {
   const label = new Intl.DateTimeFormat(intlLocale(loc), {
     month: 'long',
     year: 'numeric',
   }).format(new Date(year, month - 1, 1));
-  // La capitale initiale est sans effet sur l'arabe, qui n'a pas de casse.
+  // The initial capital has no effect on Arabic, which has no letter case.
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -70,20 +70,20 @@ export default async function CalendrierPage({
   const t = await getTranslations('calendar');
   const L = getEventsLabels(loc);
 
-  // Mois affiché : ?ym=YYYY-MM si valide, sinon le mois courant (page dynamique,
-  // donc on peut lire l'horloge ici — la lib de grille, elle, reste pure).
+  // Displayed month: ?ym=YYYY-MM if valid, otherwise the current month (dynamic
+  // page, so we can read the clock here — the grid lib itself stays pure).
   const now = new Date();
   const ym = parseYm((await searchParams).ym) ?? {
     year: now.getFullYear(),
     month: now.getMonth() + 1,
   };
-  // Agenda : table `contentEvents`, ou catalogue codé en repli.
+  // Calendar: `contentEvents` table, or hard-coded fallback catalogue.
   const { items: events } = await loadAgenda(loc);
   const grid = buildMonthGrid(ym.year, ym.month, events);
   const prev = monthShift(ym.year, ym.month, -1);
   const next = monthShift(ym.year, ym.month, 1);
 
-  // Marqueur « aujourd'hui » (seulement si le mois affiché contient ce jour).
+  // "Today" marker (only if the displayed month contains that day).
   const todayDay =
     now.getFullYear() === ym.year && now.getMonth() + 1 === ym.month
       ? now.getDate()
@@ -95,7 +95,7 @@ export default async function CalendrierPage({
 
   return (
     <div>
-      {/* En-tête */}
+      {/* Header */}
       <header className="border-b border-line">
         <div className={`${WRAP} pb-8 pt-12 md:pt-14`}>
           <Reveal>
@@ -118,7 +118,7 @@ export default async function CalendrierPage({
                   {t('title')}
                 </h1>
               </div>
-              {/* Bascule liste / calendrier */}
+              {/* List / calendar toggle */}
               <div className="inline-flex overflow-hidden rounded-sm border border-line-strong">
                 <Link
                   href="/evenements"
@@ -142,7 +142,7 @@ export default async function CalendrierPage({
       </header>
 
       <div className={`${WRAP} py-10`}>
-        {/* Barre de navigation mensuelle */}
+        {/* Monthly navigation bar */}
         <Reveal className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-baseline gap-3">
             <h2 className="font-display text-2xl md:text-[28px]">
@@ -186,13 +186,13 @@ export default async function CalendrierPage({
           </nav>
         </Reveal>
 
-        {/* Grille calendrier (7 colonnes) */}
+        {/* Calendar grid (7 columns) */}
         <Reveal
           as="section"
           aria-label={monthTitle(ym.year, ym.month, loc)}
           className="overflow-hidden rounded-md border border-line bg-surface"
         >
-          {/* En-têtes des jours */}
+          {/* Day headers */}
           <div className="grid grid-cols-7 border-b border-line bg-paper">
             {WEEKDAY_KEYS.map((key) => (
               <div
@@ -204,7 +204,7 @@ export default async function CalendrierPage({
             ))}
           </div>
 
-          {/* Semaines */}
+          {/* Weeks */}
           <div className="grid grid-cols-7">
             {grid.weeks.flat().map((cell, i) => {
               const isToday = cell.day !== null && cell.day === todayDay;
@@ -253,8 +253,8 @@ export default async function CalendrierPage({
   );
 }
 
-// Pastille-lien d'un événement dans une case du calendrier. La couleur de la
-// barre latérale dépend du type (réutilise la palette accent/muted).
+// Link pill for an event in a calendar cell. The side bar's colour
+// depends on the type (reuses the accent/muted palette).
 const TYPE_BAR: Record<EventData['type'], string> = {
   sommet: 'border-s-accent',
   webinaire: 'border-s-accent-edge',

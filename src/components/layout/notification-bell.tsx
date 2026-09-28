@@ -6,14 +6,14 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
 
-// Cloche de notifications (F-25/F-51) — visible seulement connecté. Le compteur
-// de non-lues est réactif (Convex temps réel) : il s'incrémente en direct quand
-// un modérateur valide une publication / une candidature de l'utilisateur.
-// `connecteAuRendu` vient du SERVEUR (`isAuthenticatedNextjs()`, lu dans
-// `site-header.tsx`) : tant que Convex n'a pas répondu, c'est lui qui décide
-// si la cloche est là. Sans cela, elle APPARAISSAIT après coup chez un visiteur
-// connecté, poussant de 36 px tout ce qui la précède dans une grappe ancrée à
-// droite — la seconde moitié du décalage de F-13, celle du cas connecté.
+// Notification bell (F-25/F-51) — visible only when signed in. The unread
+// counter is reactive (Convex real time): it increments live when a
+// moderator approves one of the user's publications / applications.
+// `connecteAuRendu` comes from the SERVER (`isAuthenticatedNextjs()`, read in
+// `site-header.tsx`): until Convex has responded, it decides whether the
+// bell is there. Without it, the bell APPEARED after the fact for a signed-in
+// visitor, pushing everything before it in a right-anchored cluster by
+// 36 px — the second half of the F-13 shift, the signed-in case.
 export function NotificationBell({
   connecteAuRendu,
 }: {
@@ -22,9 +22,9 @@ export function NotificationBell({
   const { isAuthenticated, isLoading } = useConvexAuth();
   const t = useTranslations('notifications');
   const connecte = isLoading ? (connecteAuRendu ?? false) : isAuthenticated;
-  // Le serveur plafonne le décompte au seuil d'affichage de la pastille et dit
-  // s'il y a plus (`capped`) : il ne relit plus toutes les notifications non
-  // lues d'un compte pour n'en afficher que « 9+ » (issue #8).
+  // The server caps the count at the badge's display threshold and says
+  // whether there are more (`capped`): it no longer rereads all of an
+  // account's unread notifications only to display "9+" (issue #8).
   const unread = useQuery(
     api.notifications.unreadCount,
     connecte ? {} : 'skip',

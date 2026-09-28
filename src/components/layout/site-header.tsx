@@ -21,29 +21,29 @@ const NAV = [
   { href: '/jeunes', key: 'youth' },
 ] as const;
 
-// COMPOSANT ASYNCHRONE, et c'est le cœur du correctif de F-13. L'état
-// d'authentification est lu ICI, au rendu SERVEUR, puis transmis aux trois
-// îlots clients qui changeaient de largeur en cours de route
-// (`NotificationBell`, `AuthButton`, `JoinButton`). Le HTML servi porte donc
-// déjà la mise en page FINALE : plus de grappe qui grandit ou rétrécit une
-// seconde après le premier rendu, donc plus d'appui qui tombe à côté.
+// ASYNC COMPONENT, and this is the heart of the F-13 fix. The
+// authentication state is read HERE, at SERVER render, then passed to the
+// three client islands that used to change width along the way
+// (`NotificationBell`, `AuthButton`, `JoinButton`). The served HTML thus
+// already carries the FINAL layout: no more cluster growing or shrinking a
+// second after the first render, so no more taps landing off target.
 //
-// CE QUE ÇA NE COÛTE PAS : lire le cookie rend la page dynamique, mais ce site
-// l'est déjà entièrement — vérifié dans `prerender-manifest.json`, quatre
-// routes prérendues et aucune page réelle. Le middleware et
-// `ConvexAuthNextjsServerProvider` lisent déjà ce cookie.
+// WHAT IT DOES NOT COST: reading the cookie makes the page dynamic, but this
+// site already is entirely — checked in `prerender-manifest.json`, four
+// prerendered routes and no actual page. The middleware and
+// `ConvexAuthNextjsServerProvider` already read this cookie.
 //
-// `useTranslations` devient `getTranslations` : un composant asynchrone ne peut
-// pas appeler de hook.
+// `useTranslations` becomes `getTranslations`: an async component cannot
+// call a hook.
 //
-// CAS RÉSIDUEL ASSUMÉ : si le cookie dit « connecté » mais que le jeton est
-// expiré, le serveur rend la variante connectée et le client la corrige — un
-// décalage subsiste alors. C'est strictement mieux qu'auparavant, où le
-// décalage était systématique.
+// ACCEPTED RESIDUAL CASE: if the cookie says "signed in" but the token has
+// expired, the server renders the signed-in variant and the client corrects
+// it — a shift then remains. This is strictly better than before, when the
+// shift was systematic.
 export async function SiteHeader() {
-  // Le lien du logo n'a pas de texte : son nom accessible vient entièrement de
-  // cet `aria-label`. Codé en dur en français, il était annoncé « accueil » par
-  // un lecteur d'écran anglais — sur TOUTES les pages du site (issue #34).
+  // The logo link has no text: its accessible name comes entirely from
+  // this `aria-label`. Hard-coded in French, it was announced as "accueil" by
+  // an English screen reader — on EVERY page of the site (issue #34).
   const t = await getTranslations('nav');
   const connecte = await isAuthenticatedNextjs();
 
@@ -59,9 +59,9 @@ export async function SiteHeader() {
         <div className="ms-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 min-[1120px]:flex">
             <SearchDialog />
-            {/* Le thème vit DANS ce menu (« Langue et affichage ») : une
-                bascule de plus chargeait la grappe, et le pied de page, son
-                autre place sur desktop, est à ~5 900 px (transversal A-8). */}
+            {/* The theme lives IN this menu ("Langue et affichage"): one more
+                toggle weighed down the cluster, and the footer, its
+                other place on desktop, is ~5,900 px away (cross-cutting A-8). */}
             <LocaleSwitcher withTheme />
             <MessagesBadge connecteAuRendu={connecte} />
             <NotificationBell connecteAuRendu={connecte} />

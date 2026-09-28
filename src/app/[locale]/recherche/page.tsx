@@ -42,16 +42,16 @@ export async function generateMetadata({
   return {
     title: t('title'),
     description: t('subtitle'),
-    // Page de résultats : on n'indexe pas les pages de recherche — une URL
-    // par requête saisie n'a aucune valeur pour un moteur, et les laisser
-    // entrer dilue l'index du site dans du bruit.
+    // Results page: search pages are not indexed — one URL per typed
+    // query has no value for a search engine, and letting them in dilutes
+    // the site's index with noise.
     //
-    // C'est aussi la réponse à l'absence d'alternates ici (issue #35) : un
-    // `hreflang` est ignoré des moteurs sur une page en `noindex`, l'ajouter
-    // ne serait que du bruit de plus. Le `noindex` EST la déclaration ; le
-    // canonical, dépouillé du `?q=`, regroupe toutes les recherches d'une
-    // locale sur une seule adresse. Retirer `robots` rouvrirait donc les deux
-    // problèmes d'un coup — d'où le test qui le tient (tests/e2e/seo.spec.ts).
+    // This is also the answer to the absence of alternates here (issue #35): an
+    // `hreflang` is ignored by search engines on a `noindex` page, adding it
+    // would just be more noise. The `noindex` IS the declaration; the
+    // canonical, stripped of `?q=`, groups all searches of a locale under a
+    // single URL. Removing `robots` would therefore reopen both problems at
+    // once — hence the test that holds it (tests/e2e/seo.spec.ts).
     robots: { index: false },
     alternates: { canonical: `${SITE}/${locale}/recherche` },
   };
@@ -69,14 +69,14 @@ function isSource(s: string | undefined): s is SearchSourceKey {
   return !!s && (SEARCH_SOURCES as readonly string[]).includes(s);
 }
 
-// Recherche globale (F-06) et plein texte (F-34), sur les INDEX de recherche
-// Convex (convex/search.ts). Deux vues :
-//  - sans `source` : les meilleurs résultats de chaque section du registre,
-//    avec un lien « tous les résultats » par section ;
-//  - avec `source` : une section seule, PAGINÉE par curseur dans l'URL (rendu
-//    serveur, donc sans JavaScript et partageable).
-// Les filtres (type, thème, langue, région, année) sont des égalités portées
-// par l'index ; ils vivent dans l'URL et s'appliquent aux deux vues.
+// Global search (F-06) and full-text search (F-34), over Convex search
+// INDEXES (convex/search.ts). Two views:
+//  - without `source`: the best results from each section of the registry,
+//    with an "all results" link per section;
+//  - with `source`: a single section, PAGINATED by a cursor in the URL
+//    (server-rendered, hence without JavaScript and shareable).
+// The filters (type, theme, language, region, year) are equalities carried
+// by the index; they live in the URL and apply to both views.
 export default async function SearchPage({
   params,
   searchParams,
@@ -111,9 +111,9 @@ export default async function SearchPage({
   let nextCursor: string | null = null;
   let posts: PostCardData[] = [];
 
-  // `undefined` = la requête a ÉCHOUÉ, et se distingue d'un résultat vide :
-  // afficher « aucun résultat » pendant une panne ferait croire au visiteur
-  // que sa recherche ne trouve rien (F-02).
+  // `undefined` = the request FAILED, and is distinct from an empty result:
+  // showing "no results" during an outage would make the visitor believe
+  // their search finds nothing (F-02).
   let indisponible = false;
   if (q.length >= 2) {
     if (source) {
@@ -143,8 +143,8 @@ export default async function SearchPage({
       );
       if (res === undefined) indisponible = true;
       else sections = res.sections;
-      // Les actualités (Sanity) : hors registre Convex, sans filtre — elles
-      // n'apparaissent que dans la vue d'ensemble non filtrée.
+      // News items (Sanity): outside the Convex registry, unfiltered — they
+      // only appear in the unfiltered overview.
       if (!hasFilters(filters)) {
         try {
           const all = await client.fetch<PostCardData[]>(postsQuery, {
@@ -157,7 +157,7 @@ export default async function SearchPage({
             )
             .slice(0, 8);
         } catch {
-          /* Sanity injoignable : on garde les résultats Convex */
+          /* Sanity unreachable: we keep the Convex results */
         }
       }
     }
@@ -184,8 +184,8 @@ export default async function SearchPage({
               defaultValue={q}
               placeholder={t('placeholder')}
               aria-label={t('placeholder')}
-              // Étiquette NON visible : `title` la rend lisible au survol et remplit
-              // une condition de RGAA 11.1.3 (le placeholder disparaît à la saisie).
+              // NON-visible label: `title` makes it readable on hover and meets one
+              // condition of RGAA 11.1.3 (the placeholder disappears while typing).
               title={t('placeholder')}
               autoFocus
             />
@@ -310,7 +310,7 @@ export default async function SearchPage({
                   return (
                     <li key={h.id}>
                       <Link href={h.path} className={ROW}>
-                        {/* Titre dans sa langue de rédaction (RGAA 8.7). */}
+                        {/* Title in its writing language (RGAA 8.7). */}
                         <span
                           {...hitLangAttrs(h, locale)}
                           className="min-w-0 wrap-anywhere font-medium text-ink"
@@ -318,8 +318,8 @@ export default async function SearchPage({
                           {h.title}
                         </span>
                         <span className="text-[13px] text-muted">
-                          {/* Le drapeau double le nom du pays : masqué, sans
-                              quoi il est lu « drapeau : Sénégal, Sénégal ». */}
+                          {/* The flag duplicates the country name: hidden, otherwise
+                              it is read as "drapeau : Sénégal, Sénégal". */}
                           {flag ? (
                             <>
                               <span aria-hidden="true">{flag}</span>{' '}

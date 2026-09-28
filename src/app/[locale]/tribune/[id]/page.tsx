@@ -27,30 +27,30 @@ async function load(id: string) {
       postId: id as Id<'tribunePosts'>,
     });
   } catch {
-    return null; // id malformé
+    return null; // malformed id
   }
 }
 
-// Un billet de Tribune est rédigé dans UNE seule langue par son auteur. Il
-// peut désormais être TRADUIT À LA LECTURE (convex/translation.ts), et cela ne
-// change rien aux deux décisions ci-dessous — au contraire, cela les appuie :
-// une traduction automatique, non relue, affichée sous mention et révocable
-// d'un clic, n'est pas une version linguistique du billet. La déclarer aux
-// moteurs reviendrait à leur promettre un contenu éditorial qui n'existe pas,
-// et à faire indexer une page dont le texte peut changer au prochain modèle.
+// A Tribune post is written in ONE single language by its author. It
+// can now be TRANSLATED ON READ (convex/translation.ts), and that changes
+// nothing about the two decisions below — on the contrary, it supports them:
+// an automatic, unreviewed translation, displayed with a notice and
+// revocable in one click, is not a language version of the post. Declaring
+// it to search engines would promise them editorial content that does not
+// exist, and get a page indexed whose text may change with the next model.
 //
-// D'où deux décisions (issue #35), qui valent l'une pour l'autre :
+// Hence two decisions (issue #35), which stand for each other:
 //
-//  - AUCUN `languages` / hreflang. Un `hreflang="en"` promet une version
-//    anglaise ; sur un billet français, il en désigne une qui n'existe pas et
-//    fait servir un texte français à une requête anglaise. Mieux vaut ne rien
-//    déclarer qu'une fausse traduction — `x-default` compris.
-//  - UN canonical, celui de la langue du billet, ÉMIS À L'IDENTIQUE sous les
-//    deux préfixes. Auparavant chaque locale s'auto-canonicalisait : deux
-//    pages canoniques pour un seul texte, soit du contenu dupliqué.
+//  - NO `languages` / hreflang. An `hreflang="en"` promises an English
+//    version; on a French post, it points to one that does not exist and
+//    serves French text to an English query. Better to declare nothing than
+//    a false translation — `x-default` included.
+//  - ONE canonical, the one for the post's language, EMITTED IDENTICALLY
+//    under both prefixes. Previously each locale self-canonicalized: two
+//    canonical pages for a single text, i.e. duplicate content.
 //
-// `post.lang` manque aux billets antérieurs au champ ; `resolveLocale` les
-// ramène à la langue par défaut, ce que le corpus existant vérifie.
+// `post.lang` is missing from posts older than the field; `resolveLocale`
+// maps them to the default language, which the existing corpus confirms.
 export async function generateMetadata({
   params,
 }: {
@@ -85,11 +85,11 @@ export default async function TribunePostPage({
   const tl = await getTranslations('library');
   const postLang = resolveLocale(post.lang);
 
-  // TRADUCTION À LA LECTURE. Le billet est rédigé dans une seule langue ; quand
-  // ce n'est pas celle de la page, on cherche une traduction en cache et, à
-  // défaut, on propose de la demander. La lecture est TOLÉRANTE À LA PANNE
-  // (`fetchOrFallback`) : Convex injoignable rend un billet sans bandeau, pas
-  // une page en erreur — l'original reste lisible, c'est ce qui compte.
+  // TRANSLATION ON READ. The post is written in a single language; when
+  // it is not the page's, we look for a cached translation and, failing
+  // that, offer to request one. The read is FAULT-TOLERANT
+  // (`fetchOrFallback`): Convex unreachable renders a post without a banner,
+  // not an error page — the original stays readable, that is what matters.
   const sp = await searchParams;
   const wantsOriginal = sp.original === '1';
   const cached =
@@ -106,8 +106,8 @@ export default async function TribunePostPage({
           null,
         );
   const display = resolveArticleDisplay(postLang, loc, cached, wantsOriginal);
-  // Le texte AFFICHÉ et sa langue vont de pair : les dissocier, c'est poser
-  // `lang="fr"` sur un texte arabe au premier refactor.
+  // The DISPLAYED text and its language go together: separating them means
+  // putting `lang="fr"` on Arabic text at the first refactor.
   const shown =
     display.kind === 'translated'
       ? {
@@ -148,9 +148,9 @@ export default async function TribunePostPage({
             {vocabulary(t, 'format_', post.format)}
           </span>
         </div>
-        {/* Le billet n'est pas traduit : quand sa langue diffère de celle de
-            la page, le dire à l'assistance technique, sans quoi un lecteur
-            d'écran lit un texte anglais avec la voix française (issue #35). */}
+        {/* The post is not translated: when its language differs from the
+            page's, tell assistive technology, otherwise a screen reader
+            reads English text with the French voice (issue #35). */}
         <h1
           {...attrs}
           className="mt-3 font-display text-[clamp(26px,3.6vw,40px)] font-medium leading-[1.1] tracking-[-0.015em]"
@@ -166,8 +166,8 @@ export default async function TribunePostPage({
         </div>
       </header>
 
-      {/* APPROFONDISSEMENT (F-48) : la contribution de fond nomme le billet
-          qu'elle prolonge… */}
+      {/* IN-DEPTH FOLLOW-UP (F-48): the in-depth contribution names the post
+          it extends… */}
       {post.parent ? (
         <p className="mt-4 rounded-md border border-accent-edge bg-accent-tint px-4 py-3 text-sm text-ink">
           {t('deepensLabel')}{' '}
@@ -198,7 +198,7 @@ export default async function TribunePostPage({
         {shown.body}
       </div>
 
-      {/* …et le billet court liste les contributions qui le prolongent. */}
+      {/* …and the short post lists the contributions that extend it. */}
       {post.deepenings.length > 0 ? (
         <section
           aria-labelledby="tr-deepenings"
@@ -226,16 +226,16 @@ export default async function TribunePostPage({
         </section>
       ) : null}
 
-      {/* Approfondir / inviter / proposer à la bibliothèque (îlot client,
-          selon les droits que le serveur reconnaît au lecteur). */}
+      {/* Expand / invite / propose to the library (client island,
+          depending on the rights the server grants the reader). */}
       <DeepenPanel postId={post._id} title={post.title} theme={post.theme} />
 
-      {/* Soutien (réaction « like ») */}
+      {/* Support ("like" reaction) */}
       <div className="mt-8 flex items-center">
         <ReactionButton postId={post._id} />
       </div>
 
-      {/* Commentaires */}
+      {/* Comments */}
       <section className="mt-12 border-t border-line pt-8">
         <h2 className="font-display text-2xl">
           {t('commentsCount', { count: post.commentCount })}

@@ -6,8 +6,9 @@ import type { Id } from '@convex/_generated/dataModel';
 import { PairDetail } from '@/components/mentoring/pair-detail';
 import { PAGE } from '@/components/programmes/shared';
 
-// Suivi d'un binôme (F-59). Lisible par ses deux membres et le coordinateur :
-// la garde est côté Convex (`mentoring.getPair`), cette page ne protège rien.
+// Tracking of a mentoring pair (F-59). Readable by its two members and the
+// coordinator: the guard is on the Convex side (`mentoring.getPair`), this
+// page protects nothing.
 function Detail() {
   const params = useParams<{ pairId: string }>();
   const id = params?.pairId;
