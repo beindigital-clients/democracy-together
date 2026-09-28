@@ -81,9 +81,12 @@ test('sélecteur de langue : langue courante lisible fermé, cinq langues dans l
   await expect(declencheur).toContainText('FR');
   await expect(declencheur).toHaveAttribute('aria-expanded', 'false');
 
-  // 2. Ouvert : les cinq langues, l'active cochée.
+  // 2. Ouvert : les cinq langues, l'active cochée — puis, dans l'en-tête
+  // desktop, les deux choix d'apparence (clair / sombre), qui n'ont pas de
+  // `lang` (menu « Langue et affichage »).
   const menu = await ouvrirSelecteurDeLangue(page);
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(5);
+  await expect(menu.locator('[role="menuitemradio"][lang]')).toHaveCount(5);
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(7);
   await expect(
     menu.getByRole('menuitemradio', { name: 'Français' }),
   ).toHaveAttribute('aria-checked', 'true');
