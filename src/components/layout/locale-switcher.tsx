@@ -9,7 +9,8 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { withSearchParams } from '@/i18n/href';
 import { routing, type Locale } from '@/i18n/routing';
 import { LOCALE_ENDONYMS, direction, localeBadge } from '@/i18n/direction';
-import { Check } from 'lucide-react';
+import { Check, Moon, Sun } from 'lucide-react';
+import { useTheme, type Theme } from './theme-toggle';
 
 // Sélecteur de langue — MENU, et non plus bascule segmentée.
 //
@@ -37,8 +38,18 @@ import { Check } from 'lucide-react';
 // les filtres. C'est le motif déjà suivi par les sélecteurs de tri
 // (`SortSelect`, `UrlSortSelect`).
 
+// LANGUE ET AFFICHAGE (28/09). Dans l'en-tête desktop, le menu porte aussi le
+// thème clair/sombre (`withTheme`) : la bascule de 36 px qui le précédait
+// chargeait la grappe de droite (recherche, langue, thème, connexion,
+// adhésion). La ranger ici la garde à UN clic de toute page — elle avait été
+// remise dans l'en-tête parce que, sur desktop, son seul autre emplacement
+// était le pied de page, à quelque 5 900 px (transversal A-8). Le menu mobile
+// et le pied de page gardent leur bascule, qui n'y encombre rien.
+const THEMES: readonly Theme[] = ['light', 'dark'];
+
 export function LocaleSwitcher({
   placement = 'down',
+  withTheme = false,
 }: {
   /**
    * Sens d'ouverture du menu.
@@ -51,6 +62,8 @@ export function LocaleSwitcher({
    * d'ouvrir. Vers le haut, il se déploie dans l'espace libre au-dessus.
    */
   placement?: 'down' | 'up';
+  /** Ajoute la section « Apparence » (clair / sombre) sous les langues. */
+  withTheme?: boolean;
 }) {
   const active = useLocale() as Locale;
   const pathname = usePathname();
@@ -71,6 +84,9 @@ export function LocaleSwitcher({
   const { isAuthenticated } = useConvexAuth();
   const rememberLocale = useMutation(api.users.setPreferredLocale);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
+  const [theme, setTheme] = useTheme();
+  const itemCount = routing.locales.length + (withTheme ? THEMES.length : 0);
+  const label = withTheme ? t('languageAndDisplay') : t('language');
 
   // Fermeture au clic extérieur. `pointerdown` plutôt que `click` : un `click`
   // sur un lien de la page naviguerait avant que le menu se ferme, et le menu
@@ -124,6 +140,14 @@ export function LocaleSwitcher({
     items.current[routing.locales.indexOf(active)]?.focus();
   }, [open, active]);
 
+  function selectTheme(next: Theme) {
+    setOpen(false);
+    setTheme(next);
+    // Le menu se ferme comme après un choix de langue : le focus revient au
+    // déclencheur, faute de quoi il tomberait sur le <body>.
+    root.current?.querySelector('button')?.focus();
+  }
+
   function select(next: Locale) {
     setOpen(false);
     if (next === active) return;
@@ -147,7 +171,7 @@ export function LocaleSwitcher({
   // Le menu est vertical : les flèches HAUT/BAS ne dépendent pas du sens
   // d'écriture, contrairement à GAUCHE/DROITE qu'on n'utilise donc pas ici.
   function onMenuKeyDown(event: React.KeyboardEvent, index: number) {
-    const last = routing.locales.length - 1;
+    const last = itemCount - 1;
     const go = (i: number) => {
       event.preventDefault();
       items.current[i]?.focus();
@@ -186,7 +210,7 @@ export function LocaleSwitcher({
             un utilisateur de commande vocale qui dit « cliquer FR » ne trouvait
             rien, et un lecteur d'écran n'annonçait pas la langue courante.
             Le mot est ajouté en texte masqué, le badge reste le texte visible. */}
-        <span className="sr-only">{t('language')} </span>
+        <span className="sr-only">{label} </span>
         <span
           lang={active}
           className="font-mono text-[11.5px] font-semibold uppercase leading-none"
@@ -216,16 +240,24 @@ export function LocaleSwitcher({
         <div
           id={menuId}
           role="menu"
-          aria-label={t('language')}
+          aria-label={label}
           // `end-0` et non `right-0` : le menu s'aligne sur le bord FINAL de
           // son déclencheur, donc à gauche quand le document est en arabe.
           // C'est précisément ce que les propriétés physiques empêchaient.
-          className={`absolute end-0 z-50 min-w-[10rem] overflow-hidden rounded-sm border border-line-strong bg-surface py-1 shadow-pop ${
+          className={`absolute end-0 z-50 min-w-[11rem] overflow-hidden rounded-sm border border-line-strong bg-surface py-1 shadow-pop ${
             placement === 'up'
               ? 'bottom-[calc(100%+4px)]'
               : 'top-[calc(100%+4px)]'
           }`}
         >
+          {withTheme ? (
+            <div
+              aria-hidden="true"
+              className="px-3 pb-1 pt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
+            >
+              {t('language')}
+            </div>
+          ) : null}
           {routing.locales.map((l, index) => {
             const current = l === active;
             return (
@@ -267,6 +299,51 @@ export function LocaleSwitcher({
               </button>
             );
           })}
+          {withTheme ? (
+            <>
+              <div role="separator" className="my-1 border-t border-line" />
+              <div
+                aria-hidden="true"
+                className="px-3 pb-1 pt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
+              >
+                {t('appearance')}
+              </div>
+              {THEMES.map((value, offset) => {
+                const index = routing.locales.length + offset;
+                const current = value === theme;
+                const Icon = value === 'dark' ? Moon : Sun;
+                return (
+                  <button
+                    key={value}
+                    ref={(node) => {
+                      items.current[index] = node;
+                    }}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={current}
+                    onClick={() => selectTheme(value)}
+                    onKeyDown={(event) => onMenuKeyDown(event, index)}
+                    className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition-colors ${
+                      current
+                        ? 'bg-accent-tint text-accent-text'
+                        : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {current ? (
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : null}
+                      {value === 'dark' ? t('themeDark') : t('themeLight')}
+                    </span>
+                    <Icon
+                      className="h-3.5 w-3.5 text-muted"
+                      aria-hidden="true"
+                    />
+                  </button>
+                );
+              })}
+            </>
+          ) : null}
         </div>
       )}
     </div>

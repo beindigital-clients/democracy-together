@@ -141,8 +141,7 @@ test.describe('arbre d’accessibilité', () => {
           - link "Événements"
           - link "Jeunes"
         - button "Recherche"
-        - button "Langue FR"
-        - button "Changer de thème"
+        - button "Langue et affichage FR"
     `);
     // La page courante est signalée autrement que par la couleur.
     await expect(
@@ -162,12 +161,37 @@ test.describe('arbre d’accessibilité', () => {
     }
   });
 
-  test('bascule de thème : son état est exposé (aria-pressed)', async ({
+  // Sur desktop, le thème se règle dans le menu « Langue et affichage » de
+  // l'en-tête (28/09) : l'état choisi est exposé par `aria-checked`.
+  test('apparence : le choix clair / sombre est exposé (aria-checked)', async ({
+    page,
+  }) => {
+    await page.goto('/fr/a-propos');
+    const bandeau = page.getByRole('banner');
+    await bandeau.getByRole('button', { name: /Langue et affichage/ }).click();
+    const sombre = page
+      .getByRole('menu', { name: 'Langue et affichage' })
+      .getByRole('menuitemradio', { name: 'Sombre' });
+    await expect(sombre).toHaveAttribute('aria-checked', 'false');
+    await sombre.click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    // Le menu s'est refermé et le focus est revenu au déclencheur.
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(
+      bandeau.getByRole('button', { name: /Langue et affichage/ }),
+    ).toBeFocused();
+    await bandeau.getByRole('button', { name: /Langue et affichage/ }).click();
+    await expect(
+      page.getByRole('menuitemradio', { name: 'Sombre' }),
+    ).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('bascule de thème du pied de page : son état est exposé (aria-pressed)', async ({
     page,
   }) => {
     await page.goto('/fr/a-propos');
     const bascule = page
-      .getByRole('banner')
+      .getByRole('contentinfo')
       .getByRole('button', { name: 'Changer de thème' });
     const avant = await bascule.getAttribute('aria-pressed');
     await bascule.click();

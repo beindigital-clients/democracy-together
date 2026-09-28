@@ -5,28 +5,41 @@ import { useTranslations } from 'next-intl';
 
 // Le thème (clair/sombre) est une préférence purement visuelle, sans enjeu SEO :
 // localStorage est ici légitime. Il est appliqué avant peinture par le script
-// inline du layout (anti-flash). Ce composant ne fait que basculer.
-export function ThemeToggle() {
-  const t = useTranslations('nav');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+// inline du layout (anti-flash). Ce module ne fait que le lire et le changer.
+export type Theme = 'light' | 'dark';
+
+/** Thème courant et moyen de le changer. Partagé par la bascule (menu mobile,
+ *  pied de page) et par le menu « Langue et affichage » de l'en-tête. */
+export function useTheme(): [Theme, (next: Theme) => void] {
+  const [theme, setThemeState] = useState<Theme>('light');
 
   useEffect(() => {
     const current =
       document.documentElement.getAttribute('data-theme') === 'dark'
         ? 'dark'
         : 'light';
-    setTheme(current);
+    setThemeState(current);
   }, []);
 
-  function toggle() {
-    const next = theme === 'dark' ? 'light' : 'dark';
+  function setTheme(next: Theme) {
     document.documentElement.setAttribute('data-theme', next);
     try {
       localStorage.setItem('dt-theme', next);
     } catch {
       /* stockage indisponible : on ignore */
     }
-    setTheme(next);
+    setThemeState(next);
+  }
+
+  return [theme, setTheme];
+}
+
+export function ThemeToggle() {
+  const t = useTranslations('nav');
+  const [theme, setTheme] = useTheme();
+
+  function toggle() {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   }
 
   return (
