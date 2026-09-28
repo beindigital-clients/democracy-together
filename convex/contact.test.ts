@@ -4,9 +4,9 @@ import { convexTest } from 'convex-test';
 import schema from './schema';
 import { internal } from './_generated/api';
 
-// La logique de stockage/validation vit dans l'internalMutation `store` ;
-// l'action publique `submit` n'ajoute que la porte reCAPTCHA (testée à part,
-// recaptcha.test.ts). On teste donc ici la mutation interne directement.
+// The storage/validation logic lives in the `store` internalMutation;
+// the public `submit` action only adds the reCAPTCHA gate (tested separately,
+// recaptcha.test.ts). So here we test the internal mutation directly.
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -59,9 +59,9 @@ describe('Contact — submit (F-17)', () => {
     expect(all).toHaveLength(0);
   });
 
-  // Le `trim()` de `store` est la seule barrière qui empêche une soumission de
-  // blancs de franchir les contrôles de longueur — et la seule raison pour
-  // laquelle ce qui est stocké est propre. Les deux moitiés sont vérifiées ici.
+  // `store`'s `trim()` is the only barrier preventing a submission of
+  // whitespace from passing the length checks — and the only reason
+  // what is stored is clean. Both halves are checked here.
   it('neutralise les blancs : rejet si le champ est vide une fois trimé, stockage trimé sinon', async () => {
     const t = convexTest(schema, modules);
     await expect(

@@ -14,10 +14,10 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// F-17 : « Aucun écran admin ni e-mail au secrétariat : les messages restent en
-// base, `contactMessages.handled` n'est jamais mis à jour » (audit § 3.1). Le
-// formulaire de contact écrivait donc dans un trou noir : personne ne pouvait
-// lire ce que les visiteurs envoyaient.
+// F-17: "No admin screen or email to the secretariat: messages stay in
+// the database, `contactMessages.handled` is never updated" (audit § 3.1). The
+// contact form was therefore writing into a black hole: nobody could
+// read what visitors sent.
 
 async function withRole(
   t: ReturnType<typeof convexTest>,
@@ -66,24 +66,24 @@ describe('Messages de contact — lecture réservée au back-office (F-17/F-26)'
 
     const msgs = await asMod.query(api.contact.listMessages, {});
     expect(msgs).toHaveLength(2);
-    expect(msgs[0].subject).toBe('Question presse'); // le plus récent
+    expect(msgs[0].subject).toBe('Question presse'); // the most recent
     expect(msgs[0].name).toBe('Jean Martin');
     expect(msgs[0].handled).toBe(false);
   });
 
-  // RÉGRESSION — égalité de `createdAt`.
+  // REGRESSION — equal `createdAt`.
   //
-  // `listMessages` triait sur `createdAt` seul. Deux messages arrivés dans la
-  // MÊME milliseconde donnent un comparateur à 0 : `Array.sort` conserve alors
-  // l'ordre d'entrée, c'est-à-dire celui de `.collect()` — donc le PLUS ANCIEN
-  // en tête, l'inverse de ce que l'écran annonce. Ce n'est pas théorique : le
-  // seed ci-dessus insère deux messages coup sur coup, et le test « les plus
-  // récents d'abord » échouait dès que la machine était assez rapide pour les
-  // horodater identiquement.
+  // `listMessages` sorted on `createdAt` alone. Two messages arriving in the
+  // SAME millisecond give a comparator result of 0: `Array.sort` then keeps
+  // the input order, i.e. that of `.collect()` — so the OLDEST
+  // first, the opposite of what the screen announces. This is not theoretical: the
+  // seed above inserts two messages back to back, and the "most
+  // recent first" test failed as soon as the machine was fast enough to
+  // timestamp them identically.
   //
-  // Ici l'égalité est FORCÉE, pour que la garde ne dépende pas de la vitesse de
-  // la machine. Le tri doit être un ordre total : `_creationTime` (précision
-  // infra-milliseconde) départage.
+  // Here the tie is FORCED, so that the guard does not depend on the machine's
+  // speed. The sort must be a total order: `_creationTime` (sub-millisecond
+  // precision) breaks the tie.
   it('ordonne du plus récent au plus ancien même à createdAt identique', async () => {
     const t = convexTest(schema, modules);
     const asMod = await withRole(t, 'moderateur', 'mod@test.org');
@@ -151,7 +151,7 @@ describe('Messages de contact — marquage « traité » (F-17)', () => {
       'handled n’était jamais mis à jour avant ce correctif',
     ).toBe(true);
 
-    // réversible : un message rouvert redevient traitable
+    // reversible: a reopened message becomes actionable again
     await asMod.mutation(api.contact.setHandled, {
       messageId: msg._id,
       handled: false,

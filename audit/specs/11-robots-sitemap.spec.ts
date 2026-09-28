@@ -16,7 +16,7 @@ test('sitemap.xml est servi, bien formé, et ses URLs répondent', async ({
   expect(urls.length, 'sitemap vide').toBeGreaterThan(0);
   console.log(`[sitemap] ${urls.length} URLs déclarées`);
 
-  // Échantillon : les 12 premières, pour ne pas transformer l'audit en crawl.
+  // Sample: the first 12, so as not to turn the audit into a crawl.
   const echantillon = urls.slice(0, 12);
   const morts: string[] = [];
   for (const u of echantillon) {

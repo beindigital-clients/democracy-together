@@ -37,12 +37,12 @@ import {
 } from './lib/accountDeletion';
 import { sha256Hex } from './lib/totp';
 
-// CYCLE DE VIE DES COMPTES (chantier comptes, F-63) — création directe,
-// suspension, réactivation, suppression (par un administrateur ou par le
-// titulaire), export des données. Le back-office ne savait qu'inviter.
+// ACCOUNT LIFECYCLE (accounts workstream, F-63) — direct creation,
+// suspension, reactivation, deletion (by an administrator or by the
+// holder), data export. The back office could only invite.
 //
-// Toutes les écritures d'administration sont auditées (F-67) ; les refus
-// portent un CODE, traduit par l'interface (admin.feedbackErr_<CODE>).
+// All administration writes are audited (F-67); refusals
+// carry a CODE, translated by the UI (admin.feedbackErr_<CODE>).
 
 const orgRoleValidator = v.union(v.literal('owner'), v.literal('member'));
 
@@ -52,12 +52,12 @@ const emailModeValidator = v.union(
   v.literal('none'),
 );
 
-// --- Gardes partagées --------------------------------------------------------
+// --- Shared guards -----------------------------------------------------------
 
 /**
- * JAMAIS LE DERNIER ADMINISTRATEUR — même règle que l'amorçage
- * (convex/bootstrap.ts) et que `users.setRole`. Un administrateur SUSPENDU ne
- * compte pas : il ne peut plus rien réattribuer, ce serait un verrouillage.
+ * NEVER THE LAST ADMINISTRATOR — same rule as bootstrapping
+ * (convex/bootstrap.ts) and as `users.setRole`. A SUSPENDED administrator does not
+ * count: they can no longer reassign anything, it would be a lockout.
  */
 export async function assertNotLastActiveAdmin(
   ctx: MutationCtx,
@@ -83,12 +83,12 @@ async function requireTarget(
   return target;
 }
 
-// --- État de la session (garde de l'interface) -------------------------------
+// --- Session state (UI guard) ------------------------------------------------
 
-// L'interface a besoin de savoir POURQUOI une session authentifiée n'obtient
-// rien : suspendue (message et déconnexion), second facteur attendu (écran de
-// saisie du code), inscription 2FA obligatoire (écran de sécurité). Cette
-// query ne donne accès à aucune donnée : seulement l'état.
+// The UI needs to know WHY an authenticated session gets
+// nothing: suspended (message and sign-out), second factor pending (code
+// entry screen), mandatory 2FA enrollment (security screen). This
+// query gives access to no data: only the state.
 export const sessionState = query({
   args: {},
   returns: v.object({
@@ -96,9 +96,9 @@ export const sessionState = query({
       v.literal('anonymous'),
       v.literal('active'),
       v.literal('suspended'),
-      // Suppression en cours (le compte est suspendu le temps du traitement) :
-      // l'écran ne doit pas parler de suspension à qui vient de supprimer
-      // son propre compte.
+      // Deletion in progress (the account is suspended while processing runs):
+      // the screen must not talk about suspension to someone who has just deleted
+      // their own account.
       v.literal('deleting'),
       v.literal('second_factor_required'),
       v.literal('enrollment_required'),
@@ -117,12 +117,12 @@ export const sessionState = query({
   },
 });
 
-// --- Création directe --------------------------------------------------------
+// --- Direct creation ---------------------------------------------------------
 
-// Ouvre un compte au nom de quelqu'un (secrétariat, modérateur, membre d'une
-// organisation). Un compte existant n'est JAMAIS rétrogradé ni modifié : on
-// renvoie l'e-mail d'accueil (sauf compte suspendu) et, si une organisation
-// est choisie, on l'y rattache.
+// Opens an account on someone's behalf (secretariat, moderator, member of an
+// organization). An existing account is NEVER demoted or modified: we
+// resend the welcome email (unless the account is suspended) and, if an organization
+// is chosen, we attach it to it.
 export const createAccount = mutation({
   args: {
     email: v.string(),
@@ -206,9 +206,9 @@ export const createAccount = mutation({
   },
 });
 
-// Envoi dans une ACTION (réseau interdit en mutation). Un échec d'envoi ne
-// remet pas le compte en cause : il existe, et l'e-mail se renvoie en recréant
-// le compte (idempotent) depuis le back-office.
+// Sending happens in an ACTION (network forbidden in a mutation). A send failure does
+// not call the account into question: it exists, and the email is resent by recreating
+// the account (idempotent) from the back office.
 export const sendWelcomeEmail = internalAction({
   args: {
     email: v.string(),
@@ -217,8 +217,8 @@ export const sendWelcomeEmail = internalAction({
   },
   returns: v.null(),
   handler: async (_ctx, { email, locale: loc, organizationName }) => {
-    // Les adresses .test (RFC 6761, E2E) ne reçoivent jamais de vrai
-    // courriel, même avec un fournisseur configuré — même règle que l'OTP.
+    // .test addresses (RFC 6761, E2E) never receive a real
+    // email, even with a configured provider — same rule as the OTP.
     const hasProvider =
       !!process.env.AUTH_RESEND_KEY || !!process.env.AUTH_EMAIL_PROVIDER;
     if (hasProvider && email.endsWith('.test')) return null;
@@ -232,7 +232,7 @@ export const sendWelcomeEmail = internalAction({
   },
 });
 
-// --- Suspension / réactivation ----------------------------------------------
+// --- Suspension / reactivation ----------------------------------------------
 
 export const SUSPENSION_REASON_MIN = 3;
 export const SUSPENSION_REASON_MAX = 500;
@@ -243,9 +243,9 @@ export const suspendAccount = mutation({
   handler: async (ctx, { userId, reason }) => {
     const admin = await requireNetworkRole(ctx, 'admin');
     const motif = reason.trim();
-    // Motif OBLIGATOIRE : une suspension sans raison écrite ne se justifie ni
-    // auprès de la personne, ni devant le bureau, ni au prochain
-    // administrateur qui voudra la lever.
+    // MANDATORY reason: a suspension with no written reason cannot be justified
+    // to the person, nor before the board, nor to the next
+    // administrator who wants to lift it.
     if (
       motif.length < SUSPENSION_REASON_MIN ||
       motif.length > SUSPENSION_REASON_MAX
@@ -264,10 +264,10 @@ export const suspendAccount = mutation({
       suspensionReason: motif,
       suspendedBy: admin._id,
     });
-    // Les sessions ouvertes sont SUPPRIMÉES, jetons de rafraîchissement
-    // compris : le jeton d'accès en cours (1 h au plus) n'ouvre plus rien,
-    // puisque toutes les gardes lisent la suspension, et il ne pourra pas
-    // être renouvelé.
+    // Open sessions are DELETED, refresh tokens
+    // included: the current access token (1 h at most) no longer opens anything,
+    // since every guard reads the suspension, and it cannot be
+    // renewed.
     const sessionsRevoked = await invalidateAllSessions(ctx, userId);
     await recordAudit(ctx, {
       actorId: admin._id,
@@ -288,8 +288,8 @@ export const reactivateAccount = mutation({
     if (target.suspendedAt === undefined) {
       throw new ConvexError('NOT_SUSPENDED');
     }
-    // Un compte en cours de SUPPRESSION porte aussi une suspension : elle ne
-    // se lève pas, la suppression est irréversible.
+    // An account being DELETED also carries a suspension: it cannot
+    // be lifted, deletion is irreversible.
     const deletion = await ctx.db
       .query('accountDeletions')
       .withIndex('by_user', (q) => q.eq('userId', userId))
@@ -309,12 +309,12 @@ export const reactivateAccount = mutation({
   },
 });
 
-// --- Suppression -------------------------------------------------------------
+// --- Deletion ----------------------------------------------------------------
 
 /**
- * Lance la suppression d'un compte. Le compte est aussitôt SUSPENDU (plus
- * aucun accès, plus de connexion) et ses sessions supprimées ; le
- * traitement se poursuit par lots dans `runAccountDeletion`.
+ * Starts the deletion of an account. The account is immediately SUSPENDED (no
+ * more access, no more sign-in) and its sessions deleted; the
+ * processing continues in batches in `runAccountDeletion`.
  */
 async function startDeletion(
   ctx: MutationCtx,
@@ -355,10 +355,10 @@ async function startDeletion(
   return deletionId;
 }
 
-// Suppression par un administrateur — CONFIRMATION EN DEUX TEMPS : l'écran
-// demande d'abord de confirmer, puis de RETAPER l'adresse du compte. Le
-// serveur exige cette adresse : un appel direct à l'API sans elle échoue,
-// l'étape n'est pas qu'un effet d'interface.
+// Deletion by an administrator — TWO-STEP CONFIRMATION: the screen
+// first asks for confirmation, then to RETYPE the account's address. The
+// server requires this address: a direct API call without it fails,
+// the step is not just a UI effect.
 export const deleteAccount = mutation({
   args: { userId: v.id('users'), confirmEmail: v.string() },
   returns: v.object({ deletionId: v.id('accountDeletions') }),
@@ -394,7 +394,7 @@ export const runAccountDeletion = internalMutation({
       return null;
     }
     await deleteUserRow(ctx, job.userId);
-    // L'adresse ne servait qu'au traitement : elle part avec lui.
+    // The address was only needed for processing: it goes with it.
     await ctx.db.patch(deletionId, {
       status: 'done',
       step,
@@ -411,7 +411,7 @@ export const runAccountDeletion = internalMutation({
   },
 });
 
-// --- Libre-service : export et suppression de SES données --------------------
+// --- Self-service: export and deletion of ONE'S OWN data ---------------------
 
 const exportValidator = v.object({
   account: v.object({
@@ -425,12 +425,12 @@ const exportValidator = v.object({
   data: v.record(v.string(), v.any()),
 });
 
-// Droit d'accès et à la portabilité (RGPD art. 15 et 20) — manque relevé par
-// l'audit. Le fichier ne contient QUE ce qui se rattache au compte appelant :
-// chaque module du registre lit par l'identifiant du compte (ou son adresse),
-// jamais par un argument du client. Ni secret 2FA, ni empreinte de mot de
-// passe. La date d'export est posée par le client : une query ne lit pas
-// l'horloge (guidelines Convex).
+// Right of access and to portability (GDPR arts. 15 and 20) — a gap raised by
+// the audit. The file contains ONLY what relates to the calling account:
+// each registry module reads by the account's identifier (or its address),
+// never by a client argument. No 2FA secret, no password
+// hash. The export date is set by the client: a query does not read
+// the clock (Convex guidelines).
 export const exportMyData = query({
   args: {},
   returns: exportValidator,
@@ -451,8 +451,8 @@ export const exportMyData = query({
   },
 });
 
-// Compte appelant, pour une ACTION (qui n'a pas de base) : l'identité de
-// l'action est propagée à cette query, les gardes s'appliquent entières.
+// Calling account, for an ACTION (which has no database): the action's identity
+// is propagated to this query, the guards apply in full.
 export const selfForAction = internalQuery({
   args: {},
   returns: v.object({
@@ -481,7 +481,7 @@ export const storeDeletionCode = internalMutation({
   returns: v.null(),
   handler: async (ctx, { codeHash, devCode }) => {
     const user = await requireUser(ctx);
-    // Anti-abus : chaque demande envoie un courriel.
+    // Anti-abuse: each request sends an email.
     await enforceRateLimit(ctx, {
       key: `deleteCode:${user._id}`,
       max: 5,
@@ -503,8 +503,8 @@ export const storeDeletionCode = internalMutation({
       attempts: 0,
       createdAt: now,
     });
-    // DEV/TEST (AUTH_DEV_OTP) : le code en clair, relu par la spec E2E par
-    // l'oracle existant (`otp:latestDevCode`). Jamais en production.
+    // DEV/TEST (AUTH_DEV_OTP): the plaintext code, read back by the E2E spec via
+    // the existing oracle (`otp:latestDevCode`). Never in production.
     if (devCode && process.env.AUTH_DEV_OTP === 'true' && user.email) {
       await ctx.db.insert('devOtpCodes', {
         email: user.email,
@@ -523,9 +523,9 @@ function randomSixDigits(): string {
   return (a[0] % 1_000_000).toString().padStart(6, '0');
 }
 
-// Étape 1 de la suppression en libre-service : un code est envoyé à
-// l'adresse du compte. Une session volée (poste resté ouvert) ne suffit donc
-// pas à effacer un compte : il faut aussi la boîte aux lettres.
+// Step 1 of self-service deletion: a code is sent to
+// the account's address. A stolen session (a computer left logged in) is therefore not
+// enough to erase an account: you also need the mailbox.
 export const requestAccountDeletion = action({
   args: {},
   returns: v.object({ emailMode: emailModeValidator }),
@@ -539,8 +539,8 @@ export const requestAccountDeletion = action({
     } = await ctx.runQuery(internal.accounts.selfForAction, {});
     if (!self.email) throw new ConvexError('NO_EMAIL');
     const mode = emailProviderStatus().mode;
-    // Refus AVANT de créer un code : sans fournisseur (et hors dev), le code
-    // ne partirait jamais et l'écran attendrait en vain.
+    // Refuse BEFORE creating a code: without a provider (and outside dev), the code
+    // would never go out and the screen would wait in vain.
     if (mode === 'none') throw new ConvexError('EMAIL_PROVIDER_NOT_CONFIGURED');
     const code = randomSixDigits();
     await ctx.runMutation(internal.accounts.storeDeletionCode, {
@@ -579,8 +579,8 @@ type ConfirmResult =
       reason: 'NO_REQUEST' | 'EXPIRED' | 'INVALID_CODE' | 'TOO_MANY_ATTEMPTS';
     };
 
-// Rend un RÉSULTAT au lieu de lever sur un mauvais code : une exception
-// annulerait la transaction, donc le décompte des essais.
+// Returns a RESULT instead of throwing on a wrong code: an exception
+// would roll back the transaction, and with it the attempt count.
 export const consumeDeletionCode = internalMutation({
   args: { codeHash: v.string() },
   returns: confirmResultValidator,
@@ -606,8 +606,8 @@ export const consumeDeletionCode = internalMutation({
       return { ok: false, reason: 'INVALID_CODE' };
     }
     await ctx.db.delete(row._id);
-    // Le dernier administrateur ne peut pas s'effacer lui-même : lève
-    // LAST_ADMIN, que l'écran traduit.
+    // The last administrator cannot erase themselves: throws
+    // LAST_ADMIN, which the screen translates.
     await startDeletion(ctx, user, 'self', user._id);
     return { ok: true };
   },

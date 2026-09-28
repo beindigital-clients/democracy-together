@@ -7,53 +7,53 @@ import { AUDIT } from './lib/auditActions';
 import { normalizeEmail } from './lib/onboarding';
 import { isEmail } from './lib/validation';
 
-// Amorçage de l'administrateur initial (issue #47).
+// Bootstrapping of the initial administrator (issue #47).
 //
-// Le problème : sur un déploiement neuf, AUCUN chemin de production ne créait le
-// premier administrateur. `users.setRole` et `users.inviteUser` exigent un admin
-// déjà connecté, `organizations.reviewApplication` n'accorde que « membre », et
-// `devAdmin.setRoleByEmail` est gardé par AUTH_DEV_OTP — un drapeau qui n'est
-// pas isolé : il ouvre TOUTE la surface de développement (codes OTP écrits en
-// clair dans `devOtpCodes` et relus par un oracle, seeds de démonstration,
-// sept oracles de lecture, envoi d'e-mail qui journalise au lieu d'échouer).
-// L'activer, même quelques minutes en production, annulerait la fermeture de
-// ces oracles (PR #4, P0-4).
+// The problem: on a new deployment, NO production path created the
+// first administrator. `users.setRole` and `users.inviteUser` require an admin
+// already signed in, `organizations.reviewApplication` only grants "membre", and
+// `devAdmin.setRoleByEmail` is guarded by AUTH_DEV_OTP — a flag that is not
+// isolated: it opens the ENTIRE development surface (OTP codes written in
+// plaintext to `devOtpCodes` and read back by an oracle, demo seeds,
+// seven read oracles, email sending that logs instead of failing).
+// Enabling it, even for a few minutes in production, would undo the closing of
+// those oracles (PR #4, P0-4).
 //
-// Cette mutation est donc le chemin d'amorçage de PRODUCTION. Ce qui l'empêche
-// de devenir une porte dérobée permanente :
+// This mutation is therefore the PRODUCTION bootstrap path. What prevents it
+// from becoming a permanent backdoor:
 //
-//  1. `internalMutation` : hors API publique — invocable depuis le serveur ou la
-//     CLI (`npx convex run`), jamais par un client.
-//  2. Garde BOOTSTRAP_ADMIN_EMAIL : sa PROPRE variable d'environnement,
-//     indépendante d'AUTH_DEV_OTP, donc l'amorçage n'ouvre aucune autre
-//     surface. L'adresse passée en argument doit lui correspondre : la variable
-//     dit qui le déploiement autorise, l'argument dit qui l'opérateur visait.
-//     Une faute de frappe est rejetée au lieu de promouvoir un tiers.
-//  3. Garde « zéro admin » : dès qu'un administrateur existe, la mutation est
-//     inopérante. Elle ne sert donc qu'une fois, sur un déploiement neuf. C'est
-//     cette garde — et non le retrait de la variable — qui referme la porte :
-//     la variable peut être retirée juste après l'amorçage, et même laissée par
-//     négligence elle ne rouvre rien.
+//  1. `internalMutation`: outside the public API — invocable from the server or the
+//     CLI (`npx convex run`), never by a client.
+//  2. BOOTSTRAP_ADMIN_EMAIL guard: its OWN environment variable,
+//     independent of AUTH_DEV_OTP, so bootstrapping opens no other
+//     surface. The address passed as an argument must match it: the variable
+//     says whom the deployment authorizes, the argument says whom the operator meant.
+//     A typo is rejected instead of promoting a third party.
+//  3. "Zero admins" guard: as soon as an administrator exists, the mutation is
+//     inoperative. It therefore only works once, on a new deployment. It is
+//     this guard — and not removing the variable — that closes the door:
+//     the variable can be removed right after bootstrapping, and even if left behind through
+//     negligence it reopens nothing.
 //
-// Le rôle n'est pas un paramètre : cette fonction ne sait accorder que
-// « admin ». Toute autre attribution passe par `users.setRole`, auditée et
-// réservée aux administrateurs.
+// The role is not a parameter: this function can only grant
+// "admin". Any other assignment goes through `users.setRole`, audited and
+// reserved to administrators.
 //
-// Procédure documentée dans docs/deploiement.md.
+// Procedure documented in docs/deploiement.md.
 export const bootstrapAdmin = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
-    // --- Garde 1 : le déploiement doit désigner explicitement l'adresse ------
+    // --- Guard 1: the deployment must explicitly designate the address ------
     const configured = process.env.BOOTSTRAP_ADMIN_EMAIL;
     if (!configured) {
       throw new Error(
         'BOOTSTRAP_ADMIN_NOT_CONFIGURED : définir BOOTSTRAP_ADMIN_EMAIL sur le déploiement Convex (npx convex env set BOOTSTRAP_ADMIN_EMAIL …).',
       );
     }
-    // Normalisation identique à celle de la candidature et de la connexion
-    // (minuscules, sans espaces) : sinon le compte créé ici ne serait jamais
-    // retrouvé par le callback `createOrUpdateUser` de convex/auth.ts, et la
-    // comparaison ci-dessous échouerait sur une simple différence de casse.
+    // Same normalization as for the application and sign-in
+    // (lowercase, no spaces): otherwise the account created here would never be
+    // found by the `createOrUpdateUser` callback in convex/auth.ts, and the
+    // comparison below would fail on a mere difference in case.
     const normalized = normalizeEmail(email);
     if (!isEmail(normalized)) throw new Error('INVALID_EMAIL');
     if (normalized !== normalizeEmail(configured)) {
@@ -62,8 +62,8 @@ export const bootstrapAdmin = internalMutation({
       );
     }
 
-    // --- Garde 2 : non rejouable ---------------------------------------------
-    // Un seul administrateur suffit à refermer la porte définitivement.
+    // --- Guard 2: not replayable ---------------------------------------------
+    // A single administrator is enough to close the door for good.
     const existingAdmin = await ctx.db
       .query('users')
       .withIndex('by_role', (q) => q.eq('role', 'admin'))
@@ -74,12 +74,12 @@ export const bootstrapAdmin = internalMutation({
       );
     }
 
-    // UPSERT, pour la même raison que `devAdmin.setRoleByEmail` : depuis la
-    // suppression de l'auto-inscription, aucun chemin ne crée de compte sur un
-    // déploiement neuf, donc un simple `patch` échouerait sur « Utilisateur
-    // introuvable ». Créer la ligne `users` suffit à rendre le compte
-    // connectable — la connexion par code à usage unique fait le reste, sans
-    // qu'aucun code ne soit jamais stocké en base (voir convex/otp.ts).
+    // UPSERT, for the same reason as `devAdmin.setRoleByEmail`: since the
+    // removal of self-signup, no path creates an account on a
+    // new deployment, so a plain `patch` would fail with "Utilisateur
+    // introuvable". Creating the `users` row is enough to make the account
+    // able to sign in — one-time-code sign-in does the rest, without
+    // any code ever being stored in the database (see convex/otp.ts).
     const existing = await ctx.db
       .query('users')
       .withIndex('email', (q) => q.eq('email', normalized))
@@ -100,10 +100,10 @@ export const bootstrapAdmin = internalMutation({
       created = true;
     }
 
-    // Audit (F-67), comme `users.setRole`. Pas d'`actorId` : l'opération vient
-    // de la CLI d'exploitation, pas d'un compte de la plateforme — désigner le
-    // nouvel administrateur comme auteur laisserait croire qu'il s'est promu
-    // lui-même. `via` garde la trace du chemin emprunté.
+    // Audit (F-67), like `users.setRole`. No `actorId`: the operation comes
+    // from the operations CLI, not from a platform account — designating the
+    // new administrator as the author would suggest they promoted
+    // themselves. `via` records the path taken.
     await recordAudit(ctx, {
       action: AUDIT.ADMIN_BOOTSTRAPPED,
       targetId: userId,

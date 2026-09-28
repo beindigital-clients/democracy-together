@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// Le correctif F-05 retire le voile du HTML SERVI. Ce qu'il ne doit pas
-// retirer : l'animation d'entrée au défilement, qui est le sujet même du
-// composant. Ces trois tests tiennent les deux bouts.
+// The F-05 fix removes the veil from the SERVED HTML. What it must not
+// remove: the on-scroll entrance animation, which is the very purpose of the
+// component. These three tests hold both ends.
 
 test('le HTML servi ne masque plus rien', async ({ request }) => {
   const html = await (await request.get('/fr/barometre')).text();
@@ -13,10 +13,10 @@ test('après hydratation, ce qui est HORS écran est bien voilé', async ({
   page,
 }) => {
   await page.goto('/fr/barometre');
-  await page.waitForTimeout(1200); // laisse le montage poser le voile
+  await page.waitForTimeout(1200); // let mounting set the veil
 
   const horsEcran = page.locator('[data-reveal]').last();
-  await horsEcran.evaluate((el) => el.scrollIntoView === undefined); // no-op typé
+  await horsEcran.evaluate((el) => el.scrollIntoView === undefined); // typed no-op
   const opacite = await horsEcran.evaluate(
     (el) => getComputedStyle(el).opacity,
   );
@@ -32,7 +32,7 @@ test('le défilement révèle bien le bloc', async ({ page }) => {
   await page.waitForTimeout(1200);
   const cible = page.locator('[data-reveal]').last();
   await cible.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(1500); // durée de l'animation (0,78 s) + marge
+  await page.waitForTimeout(1500); // animation duration (0.78 s) + margin
   const opacite = await cible.evaluate((el) => getComputedStyle(el).opacity);
   console.log(`[reveal] opacité après défilement : ${opacite}`);
   expect(Number(opacite)).toBe(1);

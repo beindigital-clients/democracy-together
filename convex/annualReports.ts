@@ -23,22 +23,22 @@ import {
 } from './lib/annualReports';
 import { CODED_REPORTS, CODED_REPORT_YEARS } from './lib/annualReportsCoded';
 
-// RAPPORTS ANNUELS (F-41) — modèle de données, administration (rang éditeur)
-// et PDF par langue.
+// ANNUAL REPORTS (F-41) — data model, administration (editor rank)
+// and PDF per language.
 //
-// Les rapports étaient CODÉS dans le dépôt (src/lib/reports-content.ts), sans
-// administration. Ils ont désormais un modèle : une édition par année
-// (`annualReports`), son texte par langue (`annualReportContents`), et le PDF
-// composé pour chaque langue (`annualReportPdfs`). Les pages publiques
-// gardent leurs URL (`/rapports`, `/rapports/<année>`) et retombent sur le
-// contenu codé pour une année que la base ne connaît pas encore : la
-// migration (`importCodedReport`) recopie ce contenu champ pour champ, sans
-// que rien ne change à l'écran.
+// The reports were HARD-CODED in the repo (src/lib/reports-content.ts), with no
+// administration. They now have a model: one edition per year
+// (`annualReports`), its text per language (`annualReportContents`), and the PDF
+// composed for each language (`annualReportPdfs`). The public pages
+// keep their URLs (`/rapports`, `/rapports/<année>`) and fall back on the
+// hard-coded content for a year the database does not know yet: the
+// migration (`importCodedReport`) copies that content field by field, without
+// anything changing on screen.
 //
-// LE PDF est composé par une action Node (convex/reportPdfNode.ts) PLANIFIÉE
-// à chaque écriture du texte : le rédacteur n'a rien à déclencher. Il n'est
-// servi que si l'empreinte du texte dont il est issu est celle du texte
-// courant — un rapport corrigé ne propose jamais un PDF qui le contredit.
+// THE PDF is composed by a Node action (convex/reportPdfNode.ts) SCHEDULED
+// on every write of the text: the writer has nothing to trigger. It is only
+// served if the hash of the text it came from is that of the current
+// text — a corrected report never offers a PDF that contradicts it.
 
 const REPORTS_MAX = 100;
 
@@ -78,7 +78,7 @@ async function pdfFor(
     .unique();
 }
 
-// Le PDF d'une langue n'est « à jour » que s'il porte l'empreinte du texte.
+// A language's PDF is only "up to date" if it carries the text's hash.
 function freshPdf(
   content: Doc<'annualReportContents'> | null,
   pdf: Doc<'annualReportPdfs'> | null,
@@ -107,7 +107,7 @@ async function schedulePdf(
   });
 }
 
-// Écrit (ou réécrit) le texte d'une langue et planifie son PDF.
+// Writes (or rewrites) a language's text and schedules its PDF.
 async function writeContent(
   ctx: MutationCtx,
   report: Doc<'annualReports'>,
@@ -137,7 +137,7 @@ async function writeContent(
   }
 }
 
-// --- Lecture publique ---------------------------------------------------------
+// --- Public reading -----------------------------------------------------------
 
 const pdfInfo = v.object({
   locale,
@@ -156,11 +156,11 @@ const publicReport = v.object({
 });
 
 /**
- * Éditions PUBLIÉES, pour la liste `/rapports` et le plan du site.
+ * PUBLISHED editions, for the `/rapports` list and the sitemap.
  *
- * `knownYears` rend aussi les années présentes en base à l'état de brouillon :
- * une année connue de la base n'est plus servie depuis le contenu codé, même
- * dépubliée — sinon « dépublier » ferait réapparaître l'ancienne version.
+ * `knownYears` also returns the years present in the database as drafts:
+ * a year known to the database is no longer served from the hard-coded content, even
+ * unpublished — otherwise "unpublishing" would bring the old version back.
  */
 export const listPublic = query({
   args: { locale },
@@ -183,7 +183,7 @@ export const listPublic = query({
       .sort((a, b) => b.year - a.year);
     const reports = [];
     for (const r of published) {
-      // Langue demandée, puis français (langue de rédaction du réseau).
+      // Requested language, then French (the network's drafting language).
       const content =
         (await contentFor(ctx, r._id, loc)) ??
         (await contentFor(ctx, r._id, 'fr'));
@@ -201,8 +201,8 @@ export const listPublic = query({
 });
 
 /**
- * Une édition dans une langue. `known` dit si la base connaît l'année —
- * auquel cas la page ne retombe PAS sur le contenu codé.
+ * An edition in one language. `known` says whether the database knows the year —
+ * in which case the page does NOT fall back on the hard-coded content.
  */
 export const getPublic = query({
   args: { year: v.number(), locale },
@@ -218,9 +218,9 @@ export const getPublic = query({
       .query('annualReportContents')
       .withIndex('by_report', (q) => q.eq('reportId', report._id))
       .take(SITE_LOCALES.length);
-    // Langue demandée, sinon le français (langue de rédaction du réseau) :
-    // une édition publiée n'est pas introuvable faute d'une traduction. La
-    // page annonce alors la langue du texte (`locale`).
+    // Requested language, otherwise French (the network's drafting language):
+    // a published edition is not missing for lack of a translation. The
+    // page then announces the text's language (`locale`).
     const content =
       contents.find((c) => c.locale === loc) ??
       contents.find((c) => c.locale === 'fr') ??
@@ -256,9 +256,9 @@ export const getPublic = query({
 });
 
 /**
- * Le PDF À JOUR d'une édition publiée, pour la route de téléchargement du
- * site (`/[locale]/rapports/[année]/rapport.pdf`). L'URL signée du stockage
- * n'est générée que pour une édition publiée.
+ * The UP-TO-DATE PDF of a published edition, for the site's download
+ * route (`/[locale]/rapports/[année]/rapport.pdf`). The signed storage URL
+ * is only generated for a published edition.
  */
 export const getPdf = query({
   args: { year: v.number(), locale },
@@ -290,7 +290,7 @@ export const getPdf = query({
   },
 });
 
-// --- Administration (éditeur+) -----------------------------------------------
+// --- Administration (editor+) ------------------------------------------------
 
 const localeState = v.object({
   locale,
@@ -326,7 +326,7 @@ export const adminList = query({
         locales: v.array(localeState),
       }),
     ),
-    // Éditions codées que la base ne connaît pas encore : à migrer.
+    // Hard-coded editions the database does not know yet: to migrate.
     codedToImport: v.array(v.number()),
   }),
   handler: async (ctx) => {
@@ -414,7 +414,7 @@ export const adminGet = query({
   },
 });
 
-/** Nouvelle édition, en brouillon. Une édition par année. */
+/** New edition, as a draft. One edition per year. */
 export const createReport = mutation({
   args: { year: v.number(), inaugural: v.boolean() },
   returns: v.id('annualReports'),
@@ -444,9 +444,9 @@ export const createReport = mutation({
 });
 
 /**
- * MIGRATION FIDÈLE d'une édition codée : les cinq langues recopiées telles
- * quelles, l'édition PUBLIÉE d'emblée — la page publique ne change pas
- * d'un caractère, elle change seulement de source — et les cinq PDF planifiés.
+ * FAITHFUL MIGRATION of a hard-coded edition: the five languages copied
+ * as-is, the edition PUBLISHED right away — the public page does not change
+ * by a single character, only its source changes — and the five PDFs scheduled.
  */
 export const importCodedReport = mutation({
   args: { year: v.number() },
@@ -472,8 +472,8 @@ export const importCodedReport = mutation({
     for (const loc of SITE_LOCALES) {
       const coded = CODED_REPORTS[loc][year];
       if (!coded) continue;
-      // Pas de `normalizeReportContent` : la migration recopie, elle ne
-      // corrige pas. Le contenu codé est déjà tenu par ses tests.
+      // No `normalizeReportContent`: the migration copies, it does not
+      // correct. The hard-coded content is already held by its tests.
       await writeContent(ctx, report, loc, {
         title: coded.title,
         intro: coded.intro,
@@ -518,10 +518,10 @@ export const saveReportContent = mutation({
 });
 
 /**
- * Publication / dépublication et drapeau « édition inaugurale ». Publier
- * exige le texte français (la langue de rédaction, et le repli de la liste).
- * Changer le drapeau change l'empreinte de TOUTES les langues (il figure sur
- * la page de garde du PDF) : elles sont toutes recomposées.
+ * Publication / unpublication and the "inaugural edition" flag. Publishing
+ * requires the French text (the drafting language, and the list's fallback).
+ * Changing the flag changes the hash of ALL languages (it appears on
+ * the PDF's cover page): they are all recomposed.
  */
 export const updateReportMeta = mutation({
   args: {
@@ -575,7 +575,7 @@ export const updateReportMeta = mutation({
   },
 });
 
-/** Recompose les PDF de toutes les langues (après une mise à jour des polices). */
+/** Recomposes the PDFs of all languages (after a font update). */
 export const regenerateReportPdfs = mutation({
   args: { reportId: v.id('annualReports') },
   returns: v.number(),
@@ -598,7 +598,7 @@ export const regenerateReportPdfs = mutation({
   },
 });
 
-/** Supprime une édition, son texte et ses PDF (le repli codé reprend la main). */
+/** Deletes an edition, its text and its PDFs (the hard-coded fallback takes over). */
 export const deleteReport = mutation({
   args: { reportId: v.id('annualReports') },
   returns: v.null(),
@@ -634,7 +634,7 @@ async function purgeReport(ctx: MutationCtx, reportId: Id<'annualReports'>) {
   await ctx.db.delete(reportId);
 }
 
-// --- Composition du PDF (appelé par convex/reportPdfNode.ts) ------------------
+// --- PDF composition (called by convex/reportPdfNode.ts) ---------------------
 
 export const pdfSource = internalQuery({
   args: { reportId: v.id('annualReports'), locale },
@@ -665,9 +665,9 @@ export const pdfSource = internalQuery({
 });
 
 /**
- * Enregistre un PDF composé. S'il a été composé à partir d'un texte qui a
- * changé ENTRE-TEMPS, il est jeté : la génération planifiée par ce
- * changement le remplacera, et servir l'ancien serait servir un PDF faux.
+ * Stores a composed PDF. If it was composed from a text that
+ * changed IN THE MEANTIME, it is discarded: the generation scheduled by that
+ * change will replace it, and serving the old one would be serving a wrong PDF.
  */
 export const savePdf = internalMutation({
   args: {
@@ -703,7 +703,7 @@ export const savePdf = internalMutation({
   },
 });
 
-/** Toutes les (édition, langue) — pour `reportPdfNode:generateAll`. */
+/** All (edition, language) pairs — for `reportPdfNode:generateAll`. */
 export const allReportLocales = internalQuery({
   args: {},
   returns: v.array(v.object({ reportId: v.id('annualReports'), locale })),
@@ -721,11 +721,11 @@ export const allReportLocales = internalQuery({
   },
 });
 
-// --- Données personnelles (suppression / export de compte) ---------------------
+// --- Personal data (account deletion / export) -------------------------------
 
-// Les éditions ne portent de personne que l'attribution de leur dernière
-// écriture : à la suppression du compte, l'attribution est retirée, le
-// rapport (document de l'association) reste.
+// The only personal data editions carry is the attribution of their last
+// write: on account deletion, the attribution is removed, the
+// report (an association document) stays.
 export async function deleteUserDataReports(
   ctx: MutationCtx,
   userId: Id<'users'>,

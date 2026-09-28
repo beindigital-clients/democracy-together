@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// Diagnostic F-05 : QUEL élément est le LCP, et qu'est-ce qui le retient ?
-// Sans cette réponse, toute « optimisation » est une supposition.
+// F-05 diagnostic: WHICH element is the LCP, and what is holding it back?
+// Without this answer, any "optimization" is a guess.
 const CIBLES = ['/fr/barometre', '/fr'];
 
 for (const route of CIBLES) {
@@ -28,7 +28,7 @@ for (const route of CIBLES) {
           fin: Date.now(),
         });
       } catch {
-        /* réponse disparue */
+        /* response gone */
       }
     });
 

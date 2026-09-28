@@ -28,23 +28,23 @@ import {
 } from '../lib/contenus/media';
 import { mediaKind } from '../lib/tables/contenus';
 
-// MÉDIATHÈQUE (F-64) — images et PDF réutilisables par les autres contenus.
+// MEDIA LIBRARY (F-64) — images and PDFs reusable by other content.
 //
-// PARCOURS DE TÉLÉVERSEMENT, en trois temps :
-//  1. `generateUploadUrl` (éditeur, débit limité) rend une URL de dépôt ;
-//  2. le navigateur y envoie le fichier, le stockage rend un `storageId` ;
-//  3. `finalizeUpload` (action) relit le fichier RÉEL — taille et premiers
-//     octets —, calcule ses dimensions, exige le texte alternatif, puis
-//     l'enregistre. Tout fichier refusé est SUPPRIMÉ du stockage : un dépôt
-//     raté ne laisse pas d'orphelin.
+// UPLOAD FLOW, in three steps:
+//  1. `generateUploadUrl` (editor, rate-limited) returns an upload URL;
+//  2. the browser sends the file to it, storage returns a `storageId`;
+//  3. `finalizeUpload` (action) re-reads the ACTUAL file — size and first
+//     bytes —, computes its dimensions, requires the alt text, then
+//     records it. Any refused file is DELETED from storage: a failed
+//     upload leaves no orphan.
 //
-// Le texte alternatif est OBLIGATOIRE (au moins une langue) et traduisible :
-// une image sans alternative est illisible au lecteur d'écran, et c'est à la
-// médiathèque de le garantir une fois pour toutes plutôt qu'à chaque usage.
+// Alt text is MANDATORY (at least one language) and translatable:
+// an image without an alternative is unreadable to a screen reader, and it is up to the
+// media library to guarantee it once and for all rather than on each use.
 //
-// Un média UTILISÉ (logo de partenaire, visuel d'événement, vignette de
-// replay) ne se supprime pas : la page publique afficherait une image cassée.
-// L'usage se lit par les index `by_*MediaId` des tables qui le référencent.
+// A media item IN USE (partner logo, event visual, replay
+// thumbnail) cannot be deleted: the public page would display a broken image.
+// Usage is read through the `by_*MediaId` indexes of the tables that reference it.
 
 const ALT_MAX = 300;
 const LIST_MAX = 100;
@@ -63,7 +63,7 @@ export const generateUploadUrl = mutation({
   },
 });
 
-// Garde de rang lisible depuis une action (qui n'a pas `ctx.db`).
+// Rank guard readable from an action (which has no `ctx.db`).
 export const _editorId = internalQuery({
   args: {},
   returns: v.id('users'),
@@ -74,7 +74,7 @@ export const _discard = internalMutation({
   args: { storageId: v.id('_storage') },
   returns: v.null(),
   handler: async (ctx, { storageId }) => {
-    // Jamais un fichier déjà enregistré dans la médiathèque.
+    // Never a file already recorded in the media library.
     const known = await ctx.db
       .query('contentMedia')
       .withIndex('by_storageId', (q) => q.eq('storageId', storageId))
@@ -103,8 +103,8 @@ export const _insert = internalMutation({
   },
   returns: v.id('contentMedia'),
   handler: async (ctx, args) => {
-    // Rang revérifié ICI : cette mutation écrit, et l'action qui l'appelle
-    // pourrait un jour être appelée autrement.
+    // Rank re-checked HERE: this mutation writes, and the action calling it
+    // might one day be called differently.
     const user = await requireEditor(ctx);
     const dup = await ctx.db
       .query('contentMedia')
@@ -152,8 +152,8 @@ export const finalizeUpload = action({
 
     const blob = await ctx.storage.get(args.storageId);
     if (!blob) throw new Error('NOT_FOUND');
-    // Le plafond le plus large d'abord : inutile de lire 200 Mo pour les
-    // refuser ensuite.
+    // The widest cap first: no point reading 200 MB only to
+    // refuse them afterwards.
     if (blob.size > MEDIA_MAX_BYTES.pdf) return await reject('FILE_TOO_LARGE');
     const bytes = new Uint8Array(await blob.arrayBuffer());
     const sniffed = sniffMedia(bytes);
@@ -174,7 +174,7 @@ export const finalizeUpload = action({
   },
 });
 
-// --- Usage : qui référence ce média ? ------------------------------------------
+// --- Usage: who references this media item? --------------------------------------
 
 const usageValidator = v.object({
   kind: v.union(v.literal('event'), v.literal('partner'), v.literal('replay')),
@@ -201,7 +201,7 @@ export async function mediaUsage(ctx: QueryCtx, id: Id<'contentMedia'>) {
   return out;
 }
 
-// --- Liste, recherche, sélecteur -------------------------------------------------
+// --- List, search, selector ------------------------------------------------------
 
 const mediaRowValidator = v.object({
   _id: v.id('contentMedia'),
@@ -210,7 +210,7 @@ const mediaRowValidator = v.object({
   size: v.number(),
   filename: v.string(),
   alt: localizedText,
-  // Texte alternatif dans la langue de l'écran (avec repli).
+  // Alt text in the screen's language (with fallback).
   altText: v.string(),
   missing: v.array(localeValidator),
   width: v.union(v.number(), v.null()),
@@ -243,9 +243,9 @@ async function toRow(
 }
 
 /**
- * La médiathèque, la plus récente d'abord, ou le résultat d'une RECHERCHE
- * (nom de fichier et textes alternatifs, toutes langues). `kind` restreint à
- * une nature — le sélecteur de logo ne propose que des images.
+ * The media library, most recent first, or the result of a SEARCH
+ * (file name and alt texts, all languages). `kind` restricts to
+ * one type — the logo selector only offers images.
  */
 export const list = query({
   args: {
@@ -297,8 +297,8 @@ export const updateAlt = mutation({
     const m = await ctx.db.get(id);
     if (!m) throw new Error('NOT_FOUND');
     const clean = cleanText(alt, ALT_MAX);
-    // L'obligation vaut aussi à la modification : on ne vide pas après coup
-    // ce qu'on a exigé au dépôt.
+    // The requirement also applies on modification: what was required on upload
+    // cannot be emptied afterwards.
     if (!hasAnyLocale(clean)) throw new Error('ALT_REQUIRED');
     await ctx.db.patch(id, {
       alt: clean,

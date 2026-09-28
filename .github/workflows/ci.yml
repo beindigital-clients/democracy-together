@@ -1,10 +1,10 @@
 name: CI
 
-# Le dépôt n'avait aucune intégration continue (audit § 6.2) : rien ne
-# garantissait que `main` compile, que les tests passent, ni qu'une dépendance
-# vulnérable n'entre. Ce workflow reproduit exactement ce qu'un contributeur
-# lance en local, sans secret ni service externe — il est donc déterministe et
-# ne peut pas rougir pour une raison d'environnement.
+# The repo had no continuous integration at all (audit § 6.2): nothing
+# guaranteed that `main` compiles, that tests pass, or that no vulnerable
+# dependency gets in. This workflow reproduces exactly what a contributor
+# runs locally, with no secret or external service — so it is deterministic and
+# cannot go red for an environment reason.
 
 on:
   pull_request:
@@ -13,8 +13,8 @@ on:
       - main
   workflow_dispatch:
 
-# Une nouvelle poussée sur une PR annule la précédente : inutile de payer
-# deux fois la même vérification.
+# A new push on a PR cancels the previous one: no point paying
+# twice for the same check.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -30,8 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # pnpm AVANT setup-node : `cache: pnpm` a besoin du binaire pour
-      # localiser le store.
+      # pnpm BEFORE setup-node: `cache: pnpm` needs the binary to
+      # locate the store.
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
@@ -42,10 +42,10 @@ jobs:
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
 
-      # Le tsconfig racine EXCLUT convex/, tests/ et *.test.* : sans les deux
-      # commandes suivantes, 9 578 lignes de backend et l'ensemble des tests ne
-      # seraient typés par aucun script (audit § 6.2). `next build` compile le
-      # backend, mais trop tard pour un retour rapide — et ne regarde jamais
+      # The root tsconfig EXCLUDES convex/, tests/ and *.test.*: without the next
+      # two commands, 9,578 lines of backend and the whole test suite would
+      # be type-checked by no script at all (audit § 6.2). `next build` compiles the
+      # backend, but too late for fast feedback — and never looks at
       # `tests/`.
       - name: Typecheck (application)
         run: pnpm typecheck
@@ -53,39 +53,39 @@ jobs:
       - name: Typecheck (backend Convex)
         run: pnpm typecheck:convex
 
-      # Issue #18 : `test.use({ reducedMotion })` — option inexistante dans le
-      # Playwright épinglé — a vécu des mois dans `globe-touch.spec.ts` parce
-      # qu'AUCUNE commande ne typait `tests/`. Elle était ignorée en silence : le
-      # test passait au vert sans jamais activer `prefers-reduced-motion`. Cette
-      # commande est le garde-fou, et elle appartient à CE workflow : comme les
-      # deux précédentes, elle est déterministe et ne demande aucun secret.
+      # Issue #18: `test.use({ reducedMotion })` — an option that doesn't exist in the
+      # pinned Playwright — lived for months in `globe-touch.spec.ts` because
+      # NO command type-checked `tests/`. It was silently ignored: the
+      # test went green without ever enabling `prefers-reduced-motion`. This
+      # command is the safeguard, and it belongs in THIS workflow: like the
+      # two previous ones, it is deterministic and needs no secret.
       - name: Typecheck (tests)
         run: pnpm typecheck:tests
 
       - name: Tests unitaires
         run: pnpm test
 
-      # Même suite, ORDRE MÉLANGÉ (audit F-01).
+      # Same suite, SHUFFLED ORDER (audit F-01).
       #
-      # `pnpm test` joue les fichiers dans l'ordre de déclaration, toujours le
-      # même : une dépendance d'ordre y reste invisible. Mesuré avant
-      # correctif, la suite était verte ici et rougissait six fois sur dix en
-      # ordre mélangé — jusqu'à douze tests d'un coup. Verte par chance
-      # d'ordonnancement, donc, et deux défauts d'isolation qu'aucune
-      # relecture n'aurait vus : un espion sur `window.localStorage` que
-      # `vi.restoreAllMocks()` ne restaure pas sous happy-dom, et une minuterie
-      # d'`input-otp` qui survivait à son fichier.
+      # `pnpm test` runs files in declaration order, always the
+      # same: an order dependency stays invisible there. Measured before
+      # the fix, the suite was green here and went red six times out of ten in
+      # shuffled order — up to twelve tests at once. Green by scheduling
+      # luck, then, with two isolation defects no review
+      # would have caught: a spy on `window.localStorage` that
+      # `vi.restoreAllMocks()` does not restore under happy-dom, and an
+      # `input-otp` timer that outlived its file.
       #
-      # La graine est TIRÉE À CHAQUE EXÉCUTION : c'est le but — on veut
-      # explorer des ordres, pas en figer un. Vitest imprime la graine employée
-      # en tête de rapport, et `--sequence.seed=<n>` rejoue exactement le même
-      # ordre pour diagnostiquer.
+      # The seed is DRAWN ON EVERY RUN: that is the point — we want to
+      # explore orders, not freeze one. Vitest prints the seed used
+      # at the top of the report, and `--sequence.seed=<n>` replays exactly the same
+      # order for diagnosis.
       - name: Tests unitaires (ordre mélangé)
         run: pnpm exec vitest run --sequence.shuffle
 
-      # Aucune variable d'environnement : le build est vert sans déploiement
-      # Convex ni projet Sanity. Si cela cesse d'être vrai, c'est une
-      # régression à corriger, pas un secret à ajouter ici.
+      # No environment variables: the build is green without a Convex
+      # deployment or Sanity project. If that stops being true, it is a
+      # regression to fix, not a secret to add here.
       - name: Build de production
         run: pnpm build
 
@@ -106,20 +106,20 @@ jobs:
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
 
-      # Job SÉPARÉ de `verify` : lint et typage échouent pour des raisons
-      # différentes et se lisent mieux côte à côte qu'en file. Les deux
-      # tournent en parallèle, le retour n'est donc pas plus lent.
+      # SEPARATE job from `verify`: lint and typing fail for different
+      # reasons and read better side by side than in sequence. Both
+      # run in parallel, so feedback is no slower.
       #
-      # ESLint est configuré en tout-erreur (aucune règle en `warn`) et
-      # `reportUnusedDisableDirectives` est en erreur : une directive
-      # `eslint-disable` devenue inutile fait rougir ce job plutôt que de
-      # rester à dormir dans le code.
+      # ESLint is configured all-error (no rule set to `warn`) and
+      # `reportUnusedDisableDirectives` is an error: an `eslint-disable`
+      # directive that became useless turns this job red rather than
+      # lying dormant in the code.
       - name: ESLint
         run: pnpm lint
 
-      # Le crochet de pré-commit peut être contourné (`--no-verify`, ou un
-      # contributeur qui n'a jamais lancé `pnpm install`). Ce contrôle est le
-      # filet : il échoue si un fichier n'est pas formaté, sans rien réécrire.
+      # The pre-commit hook can be bypassed (`--no-verify`, or a
+      # contributor who never ran `pnpm install`). This check is the
+      # safety net: it fails if a file is not formatted, without rewriting anything.
       - name: Prettier (contrôle, sans écriture)
         run: pnpm format:check
 
@@ -136,27 +136,27 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # Job SÉPARÉ, à dessein : un nouvel avis publié sur une dépendance
-      # transitive peut faire rougir ce job sans qu'une seule ligne ait changé.
-      # L'isoler évite de confondre « le code est cassé » et « le monde a
-      # bougé ». Le seuil `high` est tenable : l'arbre est à 0 avis critique et
-      # 0 avis haut depuis la mise à jour de Next 16.3.5 et les overrides pnpm.
+      # SEPARATE job, on purpose: a new advisory published on a transitive
+      # dependency can turn this job red without a single line having changed.
+      # Isolating it avoids confusing "the code is broken" with "the world has
+      # moved". The `high` threshold is sustainable: the tree has had 0 critical and
+      # 0 high advisories since the Next 16.3.5 upgrade and the pnpm overrides.
       #
-      # ÉTAT AU 21/09/2026 (F-08) — 9 avis ramenés à 1 :
-      #   postcss   remonté à ^8.5.23, override `postcss@8` compris, sans quoi
-      #             @tailwindcss/postcss gardait une copie imbriquée en 8.5.15
-      #             (c'était le seul avis HAUT de l'arbre) ;
-      #   vitest    ^4.1.11 (lui-même et @vitest/mocker) ;
-      #   overrides bornés au majeur, comme les précédents : dompurify@3,
+      # STATUS AS OF 21/09/2026 (F-08) — 9 advisories brought down to 1:
+      #   postcss   bumped to ^8.5.23, including a `postcss@8` override, otherwise
+      #             @tailwindcss/postcss kept a nested copy at 8.5.15
+      #             (it was the only HIGH advisory in the tree);
+      #   vitest    ^4.1.11 (itself and @vitest/mocker);
+      #   overrides bounded to the major, like the previous ones: dompurify@3,
       #             baseline-browser-mapping@2, valibot@1, @sanity/uuid@3.
       #
-      # RESTE UN AVIS, ASSUMÉ : GHSA-w5hq-g745-h8pq (uuid < 11.1.1, modéré),
-      # par le chemin `sanity > @sanity/cli > typeid-js > uuid`. Aucun correctif
-      # amont — typeid-js 1.2.0 est la dernière version publiée et dépend de
-      # `uuid ^10.0.0` ; le seul remède serait un override CROSS-MAJEUR sur un
-      # paquet qu'on ne maîtrise pas. Le chemin est celui de la CLI Sanity, qui
-      # ne s'exécute ni dans le serveur Next ni dans le paquet navigateur, et
-      # l'avis vise `v3/v5/v6` appelés avec un `buf` — typeid-js génère du v7.
-      # À reprendre le jour où typeid-js publie une version sur `uuid >= 11.1.1`.
+      # ONE ADVISORY REMAINS, ACCEPTED: GHSA-w5hq-g745-h8pq (uuid < 11.1.1, moderate),
+      # via the path `sanity > @sanity/cli > typeid-js > uuid`. No upstream
+      # fix — typeid-js 1.2.0 is the latest published version and depends on
+      # `uuid ^10.0.0`; the only remedy would be a CROSS-MAJOR override on a
+      # package we don't control. The path is the Sanity CLI's, which
+      # runs neither in the Next server nor in the browser bundle, and
+      # the advisory targets `v3/v5/v6` called with a `buf` — typeid-js generates v7.
+      # Revisit the day typeid-js publishes a version on `uuid >= 11.1.1`.
       - name: pnpm audit (production, seuil haut)
         run: pnpm audit --prod --audit-level=high

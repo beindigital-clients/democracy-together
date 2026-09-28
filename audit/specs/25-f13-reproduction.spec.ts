@@ -3,80 +3,80 @@ import { test, expect, type Browser } from '@playwright/test';
 const BASE = process.env.AUDIT_BASE_URL ?? 'http://localhost:3000';
 const N = Number(process.env.F13_N ?? 12);
 
-// F-13 — LA CAUSE, ET SA PREUVE.
+// F-13 — THE CAUSE, AND ITS PROOF.
 //
-// Le constat a résisté à cinq campagnes de CI parce qu'il ne s'observait qu'en
-// CI : une défaillance sur 213 tests, jamais la même. Ce fichier l'a d'abord
-// reproduit localement en trente secondes ; il documente désormais SA CAUSE.
+// The finding withstood five CI campaigns because it could only be observed in
+// CI: one failure out of 213 tests, never the same one. This file first
+// reproduced it locally in thirty seconds; it now documents ITS CAUSE.
 //
-// LA CAUSE. `JoinButton` rendait `null` le temps que Convex résolve l'état
-// d'authentification, puis insérait 94 px dans une grappe ancrée à droite
-// (`ml-auto`, site-header.tsx:41). Tout ce qui la précède — bascule de langue,
-// bouton de recherche — sautait de 104 px VERS LA GAUCHE, après le premier
-// rendu. Playwright calcule les coordonnées du clic, puis le dispatche : sous
-// bridage, l'en-tête reflue entre les deux, et le clic part vers une position
-// que le bouton vient de quitter.
+// THE CAUSE. `JoinButton` rendered `null` while Convex resolved the
+// authentication state, then inserted 94 px into a right-anchored cluster
+// (`ml-auto`, site-header.tsx:41). Everything before it — language toggle,
+// search button — jumped 104 px TO THE LEFT, after the first
+// render. Playwright computes the click coordinates, then dispatches it: under
+// throttling, the header reflows in between, and the click goes to a position
+// the button has just left.
 //
-// MESURÉ, PAS DÉDUIT : au moment du clic, la cible réelle était
-// `div.hidden.items-center.gap-2` — le conteneur — et jamais le bouton. Le
-// bouton, lui, portait bien ses props React : il était hydraté et fonctionnel.
-// Ce n'était donc pas un défaut d'hydratation mais un clic qui rate sa cible.
+// MEASURED, NOT INFERRED: at the moment of the click, the actual target was
+// `div.hidden.items-center.gap-2` — the container — and never the button. The
+// button itself did carry its React props: it was hydrated and functional.
+// So it was not a hydration defect but a click missing its target.
 //
-//   bridage   avant      après
+//   throttle  before     after
 //   ×1        40/40      12/12
 //   ×4         0/40      12/12
 //
-// CE QUE ÇA EXPLIQUE, et qui était resté ouvert :
+// WHAT THIS EXPLAINS, and what had remained open:
 //
-//   • pourquoi le PIED DE PAGE répondait au même instant — il ne reflue pas ;
-//   • pourquoi la bascule du MENU MOBILE répondait dès 0 ms — la grappe qui
-//     bouge est `hidden` sous 1120 px ; mesuré, la bascule mobile ne se
-//     déplace pas d'un pixel ;
-//   • pourquoi un geste d'ÉTAT LOCAL et un geste de NAVIGATION mouraient
-//     ENSEMBLE — ils sont voisins dans la grappe qui se déplace ;
-//   • pourquoi un SECOND clic aboutissait — il repart de coordonnées fraîches,
-//     ce qui est exactement ce que font les helpers de `tests/e2e/_panneau.ts` ;
-//   • pourquoi la fenêtre était proportionnelle à la lenteur de la machine —
-//     plus Convex tarde, plus le reflux est tardif ;
-//   • pourquoi RIEN n'apparaissait en console — un clic sur un `div` ne
-//     produit rien.
+//   • why the FOOTER responded at the same instant — it does not reflow;
+//   • why the MOBILE MENU toggle responded from 0 ms — the cluster that
+//     moves is `hidden` below 1120 px; measured, the mobile toggle does not
+//     move by a single pixel;
+//   • why a LOCAL STATE gesture and a NAVIGATION gesture died
+//     TOGETHER — they are neighbors in the cluster that moves;
+//   • why a SECOND click succeeded — it starts from fresh coordinates,
+//     which is exactly what the helpers in `tests/e2e/_panneau.ts` do;
+//   • why the window was proportional to the machine's slowness —
+//     the later Convex responds, the later the reflow;
+//   • why NOTHING appeared in the console — a click on a `div`
+//     produces nothing.
 //
-// CE QUE ÇA VEUT DIRE POUR UN VISITEUR, et c'est le vrai coût : sur un
-// téléphone lent, l'en-tête se réorganise sous le doigt. Le premier appui sur
-// « EN » tombe à côté, sans le moindre retour. Ce n'était jamais un défaut de
-// test.
+// WHAT IT MEANS FOR A VISITOR, and this is the real cost: on a
+// slow phone, the header rearranges itself under the finger. The first tap on
+// "EN" misses, without any feedback. It was never a test
+// defect.
 //
-// LE CORRECTIF : `JoinButton` réserve sa place pendant le chargement
-// (`invisible`, qui conserve la boîte), comme `AuthButton` le faisait déjà.
-// Résiduel mesuré : 2 px — le gabarit d'`AuthButton` (64 px) contre le lien
-// « Connexion » (66 px).
+// THE FIX: `JoinButton` reserves its space while loading
+// (`invisible`, which keeps the box), as `AuthButton` already did.
+// Measured residual: 2 px — the `AuthButton` placeholder (64 px) versus the
+// "Connexion" link (66 px).
 //
-// GARDE DE NON-RÉGRESSION : `tests/e2e/header-stabilite.spec.ts`, jouée en CI.
-// Vue ROUGIR sur le code d'avant (103,9 px) et verte après (2,4 px).
+// NON-REGRESSION GUARD: `tests/e2e/header-stabilite.spec.ts`, run in CI.
+// Seen going RED on the previous code (103.9 px) and green after (2.4 px).
 //
-// CE QUI RESTE : un visiteur CONNECTÉ voit toujours l'en-tête bouger, le
-// gabarit d'`AuthButton` étant bien plus étroit que « Espace membre ·
-// Déconnexion ». Hors du périmètre de ce correctif, et non mesuré ici.
+// WHAT REMAINS: a SIGNED-IN visitor still sees the header move, the
+// `AuthButton` placeholder being much narrower than "Espace membre ·
+// Déconnexion". Outside the scope of this fix, and not measured here.
 //
-// PISTES ÉCARTÉES EN CHEMIN, par la mesure et non par raisonnement. Elles
-// restent consignées : elles disent ce que le constat N'ÉTAIT PAS.
+// LEADS RULED OUT ALONG THE WAY, by measurement and not by reasoning. They
+// stay on record: they say what the finding WAS NOT.
 //
-//   • « le panneau est lent » — à ×4 l'URL ne basculait JAMAIS, même après
-//     20 secondes ;
-//   • `useSearchParams()` — hypothèse testée, réfutée, correctif annulé ;
-//   • le poids de la page ;
-//   • le délai de dispatch — clic d'en-tête à 1037 ms (0/6), clic de pied de
-//     page à 1060 ms (5/5) : le même instant, des résultats opposés ;
-//   • « être rendu par le serveur » — le bouton de thème et l'envoi du
-//     formulaire de contact le sont aussi, et aboutissent dès 0 ms ;
-//   • le remplacement du nœud par React — une marque posée en propriété JS
-//     survit au clic des deux côtés ;
-//   • une erreur d'hydratation — zéro message en console, zéro `pageerror`.
+//   • "the panel is slow" — at ×4 the URL NEVER switched, even after
+//     20 seconds;
+//   • `useSearchParams()` — hypothesis tested, refuted, fix reverted;
+//   • the page weight;
+//   • the dispatch delay — header click at 1037 ms (0/6), footer
+//     click at 1060 ms (5/5): the same instant, opposite results;
+//   • "being server-rendered" — the theme button and the contact form
+//     submission are too, and succeed from 0 ms;
+//   • React replacing the node — a marker set as a JS property
+//     survives the click on both sides;
+//   • a hydration error — zero console messages, zero `pageerror`.
 
-// Le décalage horizontal de la bascule de langue entre la mise en page SERVIE
-// (JavaScript désactivé) et la mise en page ÉTABLIE. C'était 104 px : la cause.
-// Deux états DÉTERMINISTES, donc aucune course avec l'hydratation et aucune
-// sensibilité à la charge — contrairement à un seuil sur des taux.
+// The horizontal offset of the language toggle between the SERVED layout
+// (JavaScript disabled) and the SETTLED layout. It was 104 px: the cause.
+// Two DETERMINISTIC states, so no race with hydration and no
+// sensitivity to load — unlike a threshold on rates.
 async function ecartDeMiseEnPage(browser: Browser): Promise<number> {
   async function abscisse(js: boolean): Promise<number> {
     const ctx = await browser.newContext({
@@ -109,7 +109,7 @@ async function tauxDeReussite(
       const cdp = await ctx.newCDPSession(page);
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: bridage });
     }
-    // `goto()` par défaut : EXACTEMENT ce que font les specs du dépôt.
+    // Default `goto()`: EXACTLY what the repo's specs do.
     await page.goto(`${BASE}/fr`);
     try {
       await page
@@ -119,7 +119,7 @@ async function tauxDeReussite(
       await page.waitForTimeout(1_200);
       if (/\/en$/.test(page.url())) ok++;
     } catch {
-      /* clic impossible : compté comme un échec */
+      /* click impossible: counted as a failure */
     }
     await page.close();
   }
@@ -127,25 +127,25 @@ async function tauxDeReussite(
   return ok;
 }
 
-// UN SEUL PROJET : c'est une mesure de MACHINE, pas de viewport. La rejouer en
-// mobile la doublerait sans rien apprendre — et coûterait deux minutes de plus.
-// AUCUNE ASSERTION SUR LES TAUX, et c'est délibéré — même parti pris que la
-// limite Next mesurée en 36-404.
+// ONE PROJECT ONLY: this is a MACHINE measurement, not a viewport one. Replaying it on
+// mobile would double it without learning anything — and cost two more minutes.
+// NO ASSERTION ON THE RATES, and that is deliberate — same stance as the
+// Next limitation measured in 36-404.
 //
-// La première version assertait le cas au repos (« doit aboutir à chaque
-// fois »). Elle a rougi dès la première campagne complète : la machine était
-// chargée par le reste de la suite, donc le cas « au repos » ne l'était plus.
-// J'allais ajouter au dépôt une porte SENSIBLE À LA CHARGE pour corriger un
-// constat de portes sensibles à la charge. Mesuré, pas raisonné.
+// The first version asserted the idle case ("must succeed every
+// time"). It went red from the first full campaign: the machine was
+// loaded by the rest of the suite, so the "idle" case no longer was.
+// I was about to add a LOAD-SENSITIVE gate to the repo to fix a
+// finding about load-sensitive gates. Measured, not reasoned.
 //
-// On imprime donc les deux taux. Le jour où la cause est trouvée, le second
-// chiffre remonte et se voit dans le rapport — sans qu'un test rouge ait eu à
-// l'annoncer, ce que ce même audit reproche ailleurs.
-// Le second volet du constat, et celui qui a corrigé mon erreur : ce n'est pas
-// LE COMPOSANT. Au même instant, au même viewport, sur la même page, un geste
-// d'ÉTAT LOCAL (ouvrir la palette de recherche) et un geste de NAVIGATION
-// (basculer la langue) échouent tous les deux — puis réussissent tous les deux.
-// Ils meurent et ressuscitent ensemble.
+// So we print both rates. The day the cause is found, the second
+// number goes up and shows in the report — without a red test having had to
+// announce it, which this same audit criticizes elsewhere.
+// The second part of the finding, and the one that corrected my mistake: it is not
+// THE COMPONENT. At the same instant, at the same viewport, on the same page, a
+// LOCAL STATE gesture (opening the search palette) and a NAVIGATION gesture
+// (switching the language) both fail — then both succeed.
+// They die and come back to life together.
 test('F-13 — état local et navigation se comportent pareil', async ({
   browser,
 }, info) => {
@@ -208,10 +208,10 @@ test('F-13 — état local et navigation se comportent pareil', async ({
   console.log(
     `[F-13] à 500 ms — état local ${t500.etat ? 'OK' : '--'} · navigation ${t500.nav ? 'OK' : '--'}`,
   );
-  // Ce qui est asserté n'est pas l'échec (le constat est OUVERT, le faire
-  // rougir en permanence apprendrait à ignorer le rouge) mais le fait que les
-  // deux natures de geste se comportent PAREIL. C'est ce qui disqualifie
-  // « c'est ce composant-là » comme explication.
+  // What is asserted is not the failure (the finding is OPEN; making it
+  // permanently red would teach people to ignore red) but the fact that the
+  // two kinds of gesture behave THE SAME. That is what disqualifies
+  // "it's this particular component" as an explanation.
   expect(t0.etat).toBe(t0.nav);
   expect(t500.etat).toBe(t500.nav);
 });
@@ -219,11 +219,11 @@ test('F-13 — état local et navigation se comportent pareil', async ({
 test('F-13 — la bascule de langue, au repos et sous charge', async ({
   browser,
 }, info) => {
-  // UN SEUL PROJET : c'est une mesure de MACHINE, pas de viewport. La rejouer
-  // en mobile la doublerait sans rien apprendre — et coûterait deux minutes de
-  // plus. La forme au niveau du FICHIER ne reçoit pas `testInfo` dans le
-  // Playwright épinglé ici (1.61) : `info` y était `undefined`, et le test
-  // tombait au lieu d'être ignoré.
+  // ONE PROJECT ONLY: this is a MACHINE measurement, not a viewport one. Replaying it
+  // on mobile would double it without learning anything — and cost two more
+  // minutes. The FILE-level form does not receive `testInfo` in the
+  // Playwright pinned here (1.61): `info` was `undefined` there, and the test
+  // failed instead of being skipped.
   test.skip(info.project.name !== 'desktop', 'mesure de machine, un projet');
   test.setTimeout(600_000);
   const repos = await tauxDeReussite(browser, 1);
@@ -233,10 +233,10 @@ test('F-13 — la bascule de langue, au repos et sous charge', async ({
     `[F-13] bridage ×4 — ${bride}/${N} bascules abouties ` +
       `(0 = le constat se reproduit ; ${N} = il a été corrigé)`,
   );
-  // L'ASSERTION NE PORTE PLUS SUR LES TAUX. La cause étant corrigée, l'écart a
-  // disparu ; un seuil sur ces chiffres serait sensible à la charge — le piège
-  // que ce fichier documente plus haut, et dans lequel sa première version est
-  // tombée. On assertit donc l'invariant DÉTERMINISTE qui a été corrigé.
+  // THE ASSERTION NO LONGER BEARS ON THE RATES. With the cause fixed, the gap has
+  // disappeared; a threshold on these numbers would be load-sensitive — the trap
+  // this file documents above, and into which its first version
+  // fell. So we assert the DETERMINISTIC invariant that was fixed.
   const ecart = await ecartDeMiseEnPage(browser);
   console.log(
     `[F-13] décalage de l'en-tête, servi → établi : ${ecart.toFixed(1)} px ` +
@@ -245,13 +245,13 @@ test('F-13 — la bascule de langue, au repos et sous charge', async ({
   expect(ecart).toBeLessThanOrEqual(8);
 });
 
-// Le TROISIÈME volet, et celui qui déplace le constat : l'en-tête est inerte
-// pendant que le pied de page répond DÉJÀ.
+// The THIRD part, and the one that shifts the finding: the header is inert
+// while the footer ALREADY responds.
 //
-// Le consentement doit être posé pour l'origine réellement servie, sinon le
-// bandeau cookies — `fixed inset-x-0 bottom-0` — intercepte le clic du pied de
-// page et l'on mesure une occlusion en croyant mesurer une hydratation. C'est
-// exactement l'erreur que cette mesure a d'abord commise.
+// Consent must be set for the origin actually served, otherwise the
+// cookie banner — `fixed inset-x-0 bottom-0` — intercepts the footer
+// click and we measure an occlusion while believing we are measuring hydration. That is
+// exactly the mistake this measurement first made.
 const CONSENTI = {
   cookies: [],
   origins: [
@@ -283,15 +283,15 @@ test('F-13 — en-tête et pied de page, au même instant', async ({
       const page = await ctx.newPage();
       const cdp = await ctx.newCDPSession(page);
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-      // Aucune attente : le geste part dès le retour de `goto()`, comme dans
-      // les specs du dépôt.
+      // No wait: the gesture fires as soon as `goto()` returns, as in
+      // the repo's specs.
       await page.goto(`${BASE}/fr`);
       try {
         await page.locator(selecteur).first().click({ timeout: 8_000 });
         await page.waitForTimeout(2_500);
         if (await reussi(page)) ok++;
       } catch {
-        /* clic impossible : compté comme un échec */
+        /* click impossible: counted as a failure */
       }
       await ctx.close();
     }
@@ -310,10 +310,10 @@ test('F-13 — en-tête et pied de page, au même instant', async ({
   console.log(`[F-13] en-tête (bascule de langue) — ${entete}/${M} abouties`);
   console.log(`[F-13] pied de page (bouton thème) — ${pied}/${M} abouties`);
 
-  // On n'assertit PAS que l'en-tête échoue : le jour où la cause est trouvée,
-  // ce test doit virer au vert tout seul, pas rougir. On assertit l'ordre, qui
-  // ne dépend pas de la charge de la machine : le pied de page ne fait jamais
-  // MOINS BIEN que l'en-tête. Si cela s'inversait un jour, c'est un fait neuf
-  // et il mérite de faire rougir.
+  // We do NOT assert that the header fails: the day the cause is found,
+  // this test must turn green on its own, not red. We assert the order, which
+  // does not depend on machine load: the footer never does
+  // WORSE than the header. If that ever reversed, it is a new fact
+  // and it deserves to turn red.
   expect(pied).toBeGreaterThanOrEqual(entete);
 });

@@ -1,7 +1,7 @@
-// Routes publiques qui répondent 200 dans les deux langues sans Convex.
-// Les cinq pages adossées à Convex (bibliotheque, experts, le-reseau,
-// thematiques, tribune) sont exclues : elles répondent 500 ici — c'est un
-// constat à part (F-02), pas une raison de fausser les mesures SEO/a11y.
+// Public routes that respond 200 in both languages without Convex.
+// The five Convex-backed pages (bibliotheque, experts, le-reseau,
+// thematiques, tribune) are excluded: they respond 500 here — that is a
+// separate finding (F-02), not a reason to skew the SEO/a11y measurements.
 export const PUBLIQUES = [
   '',
   '/a-propos',

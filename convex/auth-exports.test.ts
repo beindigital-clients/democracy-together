@@ -2,21 +2,21 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// Garde anti-régression (issue #66).
+// Anti-regression guard (issue #66).
 //
-// `convex/auth.ts` n'exportait pas `isAuthenticated`, obligatoire depuis
-// convex-auth 0.0.76. Conséquence : `convexAuthNextjsMiddleware` (src/proxy.ts)
-// appelait une fonction absente du déploiement à chaque requête vers une route
-// protégée, et TOUTE page authentifiée répondait 500 — espace membre et
-// back-office compris.
+// `convex/auth.ts` did not export `isAuthenticated`, mandatory since
+// convex-auth 0.0.76. Consequence: `convexAuthNextjsMiddleware` (src/proxy.ts)
+// called a function missing from the deployment on every request to a
+// protected route, and EVERY authenticated page responded 500 — member area and
+// back office included.
 //
-// Ce défaut est invisible déconnecté : c'est pourquoi il a traversé l'audit, la
-// revue et 300 tests unitaires. Il a fallu qu'une session existe pour qu'il se
-// manifeste, ce que la suite E2E n'avait jamais atteint.
+// This defect is invisible when signed out: that is why it got through the audit, the
+// review and 300 unit tests. It took a session existing for it to
+// show up, which the E2E suite had never reached.
 //
-// Le fichier touche `process.env` au chargement et reste exclu du glob de tous
-// les fichiers de test : on lit donc sa SOURCE, comme dev-oracles.test.ts le
-// fait pour les oracles DEV.
+// The file touches `process.env` on load and stays excluded from the glob of all
+// test files: we therefore read its SOURCE, as dev-oracles.test.ts
+// does for the DEV oracles.
 const here = fileURLToPath(new URL('.', import.meta.url));
 const source = readFileSync(`${here}auth.ts`, 'utf8');
 

@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 import { PUBLIQUES } from './_routes';
 import { scanA11y } from './_a11y';
 
-// Accessibilité des pages publiques, méthodologie du dépôt (voir `_a11y.ts`).
+// Accessibility of public pages, repo methodology (see `_a11y.ts`).
 //
-// PÉRIMÈTRE : `PUBLIQUES` déborde la liste PAGES de tests/e2e/a11y.spec.ts —
-// c'est l'apport de l'audit. Les pages que la porte du dépôt ne regarde pas
-// (connexion, don, presse, replays, partenaires, calendrier…) sont scannées
-// ici avec exactement le même instrument.
+// SCOPE: `PUBLIQUES` goes beyond the PAGES list of tests/e2e/a11y.spec.ts —
+// that is the audit's contribution. Pages the repo's gate does not look at
+// (sign-in, donation, press, replays, partners, calendar…) are scanned
+// here with exactly the same instrument.
 for (const route of PUBLIQUES) {
   test(`a11y fr${route || '/'}`, async ({ page }) => {
     await page.goto(`/fr${route}`, { waitUntil: 'domcontentloaded' });

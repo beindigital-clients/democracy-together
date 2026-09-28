@@ -7,27 +7,27 @@ import {
   type CounterKey,
 } from './lib/counters';
 
-// Réconciliation des compteurs dénormalisés (issue #8).
+// Reconciliation of denormalized counters (issue #8).
 //
-// À QUOI ÇA SERT. Les compteurs du back-office sont tenus à l'écriture
-// (convex/lib/counters.ts). Deux situations les laissent en retard :
+// WHAT IT IS FOR. Back-office counters are maintained on write
+// (convex/lib/counters.ts). Two situations leave them behind:
 //
-//  1. AMORÇAGE — un déploiement qui existait AVANT ce découpage porte déjà des
-//     utilisateurs, des publications, des abonnés… et aucune ligne `counters`.
-//     `recompute` est le backfill : à jouer UNE FOIS après le déploiement,
+//  1. BOOTSTRAPPING — a deployment that existed BEFORE this split already has
+//     users, publications, subscribers… and no `counters` row.
+//     `recompute` is the backfill: to run ONCE after deployment,
 //     `npx convex run counters:recompute '{}'`.
-//  2. ÉCRITURE DIRECTE — une ligne insérée depuis la console Convex, un script
-//     de reprise, ou `t.run()` dans un test unitaire, ne passe par aucune
-//     mutation et n'incrémente donc rien.
+//  2. DIRECT WRITE — a row inserted from the Convex console, a recovery
+//     script, or `t.run()` in a unit test, goes through no
+//     mutation and therefore increments nothing.
 //
-// internalMutation : HORS API publique, invocable seulement depuis le serveur
-// ou la CLI. Recompter est une opération d'exploitation, pas une lecture.
+// internalMutation: OUTSIDE the public API, invocable only from the server
+// or the CLI. Recounting is an operations task, not a read.
 //
-// BORNE DE TRANSACTION. Recompter, c'est parcourir. Une mutation Convex a une
-// limite de documents lus : le parcours est donc plafonné, et un dépassement
-// ÉCHOUE au lieu d'écrire un compte faux — un tableau de bord qui ment est pire
-// qu'un tableau de bord en erreur. Sur une base volumineuse, recompter clé par
-// clé (`'{"key":"users"}'`) reste dans la limite.
+// TRANSACTION BOUND. Recounting means scanning. A Convex mutation has a
+// limit on documents read: the scan is therefore capped, and exceeding it
+// FAILS instead of writing a wrong count — a dashboard that lies is worse
+// than a dashboard in error. On a large database, recounting key by
+// key (`'{"key":"users"}'`) stays within the limit.
 const SCAN_CAP = 8000;
 
 async function countRows(
@@ -46,8 +46,8 @@ async function countRows(
   return n;
 }
 
-// Recompte UNE clé depuis les tables. Chaque source utilise l'index le plus
-// étroit disponible : on ne lit que les lignes qui comptent.
+// Recounts ONE key from the tables. Each source uses the narrowest
+// available index: we only read the rows that count.
 async function recomputeKey(
   ctx: MutationCtx,
   key: CounterKey,
@@ -95,9 +95,9 @@ async function recomputeKey(
     case COUNTER.EVENT_REGISTRATIONS:
       return await countRows(ctx.db.query('eventRegistrations'), key);
     case COUNTER.NEWSLETTER_SUBSCRIBERS:
-      // Abonnés CONFIRMÉS seulement (double opt-in, chantier diffusion) :
-      // ceux qu'une campagne atteint. Les attentes et les abonnés hérités non
-      // migrés n'en font pas partie.
+      // CONFIRMED subscribers only (double opt-in, distribution workstream):
+      // those a campaign reaches. Pending ones and unmigrated legacy
+      // subscribers are not included.
       return await countRows(
         ctx.db
           .query('newsletterSubscriptions')
@@ -114,10 +114,10 @@ async function recomputeKey(
         key,
       );
     case COUNTER.TRIBUNE_COMMENTS_PUBLISHED: {
-      // `tribuneComments` n'a pas d'index par statut (l'application lit
-      // toujours un fil, jamais « tous les commentaires »). Un index posé pour
-      // la seule réconciliation coûterait à chaque écriture de commentaire :
-      // on parcourt ici, sous le plafond, plutôt que de taxer le chemin chaud.
+      // `tribuneComments` has no status index (the application always reads
+      // a thread, never "all comments"). An index added for
+      // reconciliation alone would cost on every comment write:
+      // we scan here, under the cap, rather than tax the hot path.
       let n = 0;
       let scanned = 0;
       for await (const c of ctx.db.query('tribuneComments')) {

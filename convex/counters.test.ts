@@ -15,10 +15,10 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
-// notifications, signalements) : le mode A POSTERIORI y est réglé
-// explicitement, comme le ferait l'administrateur. La modération a priori —
-// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// These tests cover the PUBLISHED feed and its effects (comments, counters,
+// notifications, reports): POST-MODERATION mode is set there
+// explicitly, as the administrator would. Pre-moderation —
+// the default since the community workstream (F-45) — has its own tests
 // (convex/communaute-moderation.test.ts).
 async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
   await t.run(async (ctx) => {
@@ -37,13 +37,13 @@ async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
   return t;
 }
 
-// Compteurs dénormalisés du back-office (issue #8).
+// Denormalized back-office counters (issue #8).
 //
-// Ce qui est vérifié ici n'est pas « le tableau de bord affiche le bon
-// nombre » — impact.test.ts et admin.test.ts s'en chargent déjà — mais le
-// MÉCANISME : le compteur bouge dans la transaction qui écrit la donnée
-// comptée, il suit les changements de statut dans les deux sens, et la
-// réconciliation rattrape ce qui a été écrit hors mutation.
+// What is checked here is not "the dashboard displays the right
+// number" — impact.test.ts and admin.test.ts already take care of that — but the
+// MECHANISM: the counter moves in the transaction that writes the counted
+// data, it follows status changes in both directions, and
+// reconciliation catches up on what was written outside a mutation.
 
 async function counters(
   t: ReturnType<typeof convexTest>,
@@ -110,8 +110,8 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
         decision: 'approved',
       });
 
-    // La publication a changé de file : le mouvement est décrit d'un seul
-    // tenant (from -> to), pas en deux incréments indépendants.
+    // The publication changed queues: the movement is described in one
+    // piece (from -> to), not as two independent increments.
     const after = await counters(t);
     expect(after['publications.pending']).toBe(0);
     expect(after['publications.published']).toBe(1);
@@ -159,12 +159,12 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'abonne@test.org',
     });
-    // Double opt-in (chantier diffusion) : une ATTENTE ne compte pas — le
-    // compteur est celui des abonnés qu'une campagne atteint.
+    // Double opt-in (distribution workstream): a PENDING one does not count — the
+    // counter is that of the subscribers a campaign reaches.
     expect((await counters(t))['newsletterSubscriptions'] ?? 0).toBe(0);
-    // Le lien du courriel porte un jeton dont seule l'empreinte est en base :
-    // on arme une empreinte connue, puis la confirmation passe par le vrai
-    // chemin public — c'est elle qui incrémente.
+    // The email link carries a token of which only the hash is in the database:
+    // we arm a known hash, then confirmation goes through the real
+    // public path — it is what increments.
     const jeton = 'c'.repeat(64);
     const empreinte = await hashToken(jeton);
     await t.run(async (ctx) => {
@@ -184,8 +184,8 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
 
   it('ne descend jamais sous zéro sur un déploiement non amorcé', async () => {
     const t = convexTest(schema, modules);
-    // Publication posée EN DIRECT, donc jamais comptée — exactement l'état
-    // d'une base qui existait avant les compteurs.
+    // Publication inserted DIRECTLY, so never counted — exactly the state
+    // of a database that existed before the counters.
     const pubId = await t.run((ctx) =>
       ctx.db.insert('publications', pubDoc({ status: 'pending' })),
     );
@@ -201,8 +201,8 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
       });
 
     const after = await counters(t);
-    // Le décrément d'un compteur absent affiche 0, pas -1 : un chiffre faux se
-    // corrige (recompute), un chiffre absurde discrédite l'écran entier.
+    // Decrementing an absent counter displays 0, not -1: a wrong number can be
+    // corrected (recompute), an absurd number discredits the whole screen.
     expect(after['publications.pending']).toBe(0);
     expect(after['publications.published']).toBe(1);
   });
@@ -218,7 +218,7 @@ describe('Compteurs — réconciliation (counters.recompute)', () => {
       await ctx.db.insert('publications', pubDoc({ status: 'pending' }));
     });
 
-    // Rien n'a été compté : aucune mutation n'est passée.
+    // Nothing was counted: no mutation went through.
     expect(await counters(t)).toEqual({});
 
     const { counters: recomputed } = await t.mutation(
@@ -229,8 +229,8 @@ describe('Compteurs — réconciliation (counters.recompute)', () => {
     expect(byKey['users']).toBe(2);
     expect(byKey['publications.published']).toBe(1);
     expect(byKey['publications.pending']).toBe(1);
-    // Toutes les clés du registre sont posées, même à zéro : une clé absente
-    // et une clé à zéro doivent se lire pareil côté tableau de bord.
+    // All registry keys are set, even at zero: an absent key
+    // and a zero key must read the same on the dashboard side.
     expect(byKey['eventRegistrations']).toBe(0);
   });
 
@@ -246,7 +246,7 @@ describe('Compteurs — réconciliation (counters.recompute)', () => {
 
     const after = await counters(t);
     expect(after['users']).toBe(1);
-    // Une clé non demandée n'est pas recalculée.
+    // A key not requested is not recomputed.
     expect(after['eventRegistrations']).toBe(7);
   });
 });

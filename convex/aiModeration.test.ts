@@ -16,19 +16,19 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// MODÉRATION ASSISTÉE PAR IA — orchestration.
+// AI-ASSISTED MODERATION — orchestration.
 //
-// Ce que ce fichier garde, et que les tests purs ne peuvent pas garder : ce
-// qui se passe RÉELLEMENT en base quand le modèle répond — ou ne répond pas.
+// What this file guards, and what pure tests cannot guard: what
+// REALLY happens in the database when the model responds — or does not.
 //
-// La question posée à chaque test est la même : « ce dépôt finit-il en ligne
-// alors qu'il ne devrait pas ? ». Les chemins d'échec sont donc surreprésentés
-// à dessein : c'est là qu'un dispositif d'auto-publication devient dangereux,
-// pas sur le cas nominal.
+// The question asked by each test is the same: "does this submission end up online
+// when it should not?". Failure paths are therefore deliberately
+// overrepresented: that is where an auto-publishing system becomes dangerous,
+// not in the nominal case.
 //
-// La passerelle est SIMULÉE (`fetch` remplacé) : aucun appel réseau ne part
-// d'un test, et la réponse du modèle devient une donnée d'entrée comme une
-// autre — y compris quand elle est absurde.
+// The gateway is MOCKED (`fetch` replaced): no network call leaves
+// a test, and the model's response becomes an input like any
+// other — including when it is absurd.
 
 type Verdict = {
   overall: 'approve' | 'flag' | 'reject';
@@ -42,8 +42,8 @@ type Verdict = {
   }[];
 };
 
-// Réponse conforme de la passerelle : l'avis est une chaîne JSON dans
-// `output_text`, comme le rend l'endpoint `/v1/responses`.
+// Compliant gateway response: the verdict is a JSON string in
+// `output_text`, as returned by the `/v1/responses` endpoint.
 function gatewayResponse(verdict: Verdict) {
   return new Response(
     JSON.stringify({
@@ -54,10 +54,10 @@ function gatewayResponse(verdict: Verdict) {
   );
 }
 
-// Le socle est TOUJOURS évalué : un avis qui l'ignorerait verrait ses quatre
-// critères retomber en « indéterminé », donc bloquants. Les tests qui veulent
-// un avis favorable doivent donc répondre au socle — ce qui est exactement la
-// contrainte que le dispositif impose au modèle.
+// The baseline is ALWAYS evaluated: a verdict that ignored it would see its four
+// criteria fall back to "undetermined", hence blocking. Tests that want
+// a favorable verdict must therefore answer the baseline — which is exactly the
+// constraint the system imposes on the model.
 const BASELINE_KEYS = [
   'socle:injection',
   'socle:illegal',
@@ -177,8 +177,8 @@ describe('Auto-publication — le cas nominal', () => {
     const pub = await t.run((ctx) => ctx.db.get(pubId));
     expect(pub?.status).toBe('published');
     expect(pub?.autoPublished).toBe(true);
-    // Personne n'a relu : le champ qui désigne un relecteur reste VIDE. C'est
-    // ce vide qui empêche l'écran d'attribuer la décision à quelqu'un.
+    // Nobody reviewed: the field designating a reviewer stays EMPTY. It is
+    // this emptiness that prevents the screen from attributing the decision to someone.
     expect(pub?.reviewedBy).toBeUndefined();
     expect(pub?.doi).toBe('10.59000/dt.participation-budgets');
     expect(pub?.aiReview?.applied).toBe('published');
@@ -212,8 +212,8 @@ describe('Auto-publication — le cas nominal', () => {
     await t.action(internal.aiModeration.runReview, { publicationId: pubId });
 
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
-    // « publié par l'IA » doit se distinguer d'« analysé » : c'est le seul
-    // moment où un texte paraît sans qu'un humain l'ait lu.
+    // "published by the AI" must be distinguishable from "analyzed": it is the only
+    // moment a text appears without a human having read it.
     expect(audit.map((a) => a.action)).toContain('publication.ai_published');
   });
 });
@@ -267,14 +267,14 @@ describe('Fail-closed — rien ne publie sur un silence', () => {
 
     await t.action(internal.aiModeration.runReview, { publicationId: pubId });
 
-    // Sans cette garde, une passerelle en panne préviendrait chaque
-    // modérateur pour chaque dépôt — le dispositif ferait de son
-    // indisponibilité une alerte éditoriale.
+    // Without this guard, a broken gateway would notify every
+    // moderator for every submission — the system would turn its
+    // unavailability into an editorial alert.
     expect(
       await t.run((ctx) => ctx.db.query('notifications').collect()),
     ).toEqual([]);
-    // Et l'écran n'affiche pas « n bloquants » pour une analyse qui n'a pas
-    // eu lieu : il n'y a aucun constat, parce qu'aucun n'a été rendu.
+    // And the screen does not display "n blocking" for an analysis that did not
+    // take place: there is no finding, because none was returned.
     const pub = await t.run((ctx) => ctx.db.get(pubId));
     expect(pub?.aiReview?.blocking).toBe(0);
     expect((await latestReview(t, pubId))?.findings).toEqual([]);
@@ -312,8 +312,8 @@ describe('Fail-closed — rien ne publie sur un silence', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect((await t.run((ctx) => ctx.db.get(second)))?.status).toBe('pending');
-    // La trace existe : un plafond mal réglé doit se voir dans le journal, pas
-    // se traduire par une file qui stagne sans explication.
+    // The trace exists: a misconfigured cap must show in the log, not
+    // translate into a queue that stagnates without explanation.
     expect((await latestReview(t, second))?.error).toBe('DAILY_CAP_REACHED');
   });
 });
@@ -438,9 +438,9 @@ describe('Modes', () => {
 
     const pub = await t.run((ctx) => ctx.db.get(pubId));
     expect(pub?.status).toBe('pending');
-    // RIEN n'atteint la file : un badge suffirait à orienter la décision du
-    // modérateur, et l'observation cesserait d'observer. L'avis n'existe que
-    // dans le journal.
+    // NOTHING reaches the queue: a badge would be enough to steer the
+    // moderator's decision, and observation would stop observing. The verdict only exists
+    // in the log.
     expect(pub?.aiReview).toBeUndefined();
     expect((await latestReview(t, pubId))?.applied).toBe('shadow');
     expect(
@@ -479,9 +479,9 @@ describe('Concurrence — le serveur décide, et il décide en dernier', () => {
     await setMode(t, { mode: 'auto' });
     const pubId = await seedPending(t);
 
-    // La décision humaine tombe PENDANT l'appel au modèle : la simuler dans
-    // le `fetch` simulé est le seul moyen d'obtenir l'ordre réel des
-    // événements — analyse lancée, humain tranche, avis appliqué.
+    // The human decision lands DURING the model call: simulating it in
+    // the mocked `fetch` is the only way to get the real order of
+    // events — analysis started, human decides, verdict applied.
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
@@ -508,8 +508,8 @@ describe('Concurrence — le serveur décide, et il décide en dernier', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
-        // L'administrateur coupe le dispositif : c'est l'état au moment de
-        // PUBLIER qui fait foi, pas celui au moment de demander.
+        // The administrator switches the system off: it is the state at the time of
+        // PUBLISHING that counts, not the one at the time of requesting.
         await t.run(async (ctx) => {
           const cfg = await ctx.db.query('aiModerationConfig').first();
           if (cfg) await ctx.db.patch(cfg._id, { mode: 'off' });
@@ -549,8 +549,8 @@ describe('Pièce jointe', () => {
 
   it("un PDF non transmis interdit l'auto-publication", async () => {
     const t = convexTest(schema, modules);
-    // Analyse des pièces jointes désactivée : l'avis ne porte alors que sur
-    // des métadonnées que l'auteur maîtrise entièrement.
+    // Attachment analysis disabled: the verdict then only covers
+    // metadata the author fully controls.
     await setMode(t, { mode: 'auto', analyzeAttachments: false });
     const fileId = await t.run((ctx) =>
       ctx.storage.store(
@@ -596,10 +596,10 @@ describe('Pièce jointe', () => {
 });
 
 describe('Déclenchement à la soumission', () => {
-  // `finishAllScheduledFunctions` avance les minuteries : ces deux tests
-  // vident une FILE de fonctions planifiées (`runAfter(0, …)` les y met à
-  // l'état « en attente », pas « en cours »), là où les autres appellent
-  // l'action directement.
+  // `finishAllScheduledFunctions` advances the timers: these two tests
+  // drain a QUEUE of scheduled functions (`runAfter(0, …)` puts them there in
+  // the "pending" state, not "in progress"), whereas the others call
+  // the action directly.
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -676,8 +676,8 @@ describe('Remise en file d’une publication automatique', () => {
     const pub = await t.run((ctx) => ctx.db.get(pubId));
     expect(pub?.status).toBe('pending');
     expect(pub?.autoPublished).toBe(false);
-    // Sans cet effacement, un `pending` porterait une date de décision et se
-    // lirait comme un dossier déjà tranché.
+    // Without this clearing, a `pending` would carry a decision date and would
+    // read as a case already decided.
     expect(pub?.reviewedAt).toBeUndefined();
 
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
@@ -766,7 +766,7 @@ describe('Droits', () => {
     expect(version).toBe(1);
 
     const settings = await asAdmin.query(api.aiModeration.getSettings, {});
-    // Un slug hors vocabulaire ne peut pas élargir le périmètre.
+    // An out-of-vocabulary slug cannot widen the scope.
     expect(settings.settings.eligibleTypes).toEqual(['note']);
 
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
@@ -778,8 +778,8 @@ describe('Droits', () => {
     const adminId = await seedUser(t, 'admin');
     const asAdmin = t.withIdentity({ subject: `${adminId}|s` });
 
-    // Un appel direct qui poserait 0 ouvrirait l'auto-publication à tout : la
-    // borne vit côté serveur, pas dans le formulaire.
+    // A direct call setting 0 would open auto-publication to everything: the
+    // bound lives server-side, not in the form.
     await asAdmin.mutation(api.aiModeration.updateSettings, {
       mode: 'auto',
       model: 'anthropic/claude-opus-5',
@@ -842,8 +842,8 @@ describe('Barème — traçabilité', () => {
 
     const review = await latestReview(t, pubId);
     const finding = review?.findings.find((f) => f.ruleKey === ruleId);
-    // Le libellé est conservé dans l'avis : c'est pourquoi `ruleKey` est une
-    // chaîne, et non un identifiant qui pointerait dans le vide.
+    // The label is kept in the verdict: that is why `ruleKey` is a
+    // string, and not an identifier that would point into the void.
     expect(finding?.ruleLabel).toBe('Sources vérifiables');
   });
 });

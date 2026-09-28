@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// Garde anti-régression (audit § 4.2 H2 / plan d'action P0-4).
+// Anti-regression guard (audit § 4.2 H2 / action plan P0-4).
 //
-// Ces 8 fonctions ne servent qu'aux tests E2E : elles relisent en clair un code
-// OTP, le corps d'un message de contact, ou permettent d'énumérer des adresses
-// e-mail. Tant qu'elles étaient de simples `query` PUBLIQUES, le seul rempart
-// était la variable d'environnement AUTH_DEV_OTP : si elle fuitait en
-// production, n'importe qui pouvait les appeler — y compris pour lire le
-// dernier code de connexion d'un compte admin.
+// These 8 functions only serve E2E tests: they read back in plaintext an
+// OTP code, the body of a contact message, or allow enumerating email
+// addresses. As long as they were plain PUBLIC `query`s, the only safeguard
+// was the AUTH_DEV_OTP environment variable: if it leaked into
+// production, anyone could call them — including to read the
+// latest sign-in code of an admin account.
 //
-// En `internalQuery`, elles ne sont plus appelables par AUCUN client, quelle que
-// soit la valeur de AUTH_DEV_OTP (défense en profondeur). Ce test lit le code
-// source pour que le jour où l'une d'elles redevient publique, la suite échoue.
+// As `internalQuery`, they can no longer be called by ANY client, whatever
+// the value of AUTH_DEV_OTP (defense in depth). This test reads the source
+// code so that the day one of them becomes public again, the suite fails.
 const ORACLES: Array<[file: string, name: string]> = [
   ['otp.ts', 'latestDevCode'],
   ['contact.ts', 'latestForEmail'],
@@ -23,8 +23,8 @@ const ORACLES: Array<[file: string, name: string]> = [
   ['youth.ts', 'isYouthApplicant'],
   ['mentorship.ts', 'isMentorshipRequested'],
   ['eventReminders.ts', 'isReminderSet'],
-  // Chantier diffusion : état du double opt-in et lien de confirmation lu
-  // par l'E2E (comme `otp.latestDevCode`).
+  // Distribution workstream: double opt-in state and confirmation link read
+  // by the E2E (like `otp.latestDevCode`).
   ['newsletter.ts', 'devUnsubToken'],
   ['newsletter.ts', 'devSubscriptionStatus'],
   ['newsletter.ts', 'devLatestConfirmationLink'],

@@ -18,16 +18,16 @@ const modules = import.meta.glob([
 
 const ADMIN_EMAIL = 'fondateur@dt.test';
 
-// L'amorçage (issue #47) est le SEUL chemin de production vers le premier
-// administrateur. Ses deux gardes sont testées ici parce qu'une régression sur
-// l'une d'elles ne se verrait pas autrement : sans la garde « zéro admin », la
-// mutation resterait rejouable à vie sur un déploiement en service — une porte
-// dérobée ; sans la garde BOOTSTRAP_ADMIN_EMAIL, elle promouvrait n'importe
-// quelle adresse.
+// Bootstrapping (issue #47) is the ONLY production path to the first
+// administrator. Its two guards are tested here because a regression in
+// either would not show otherwise: without the "zero admins" guard, the
+// mutation would remain replayable forever on a live deployment — a
+// backdoor; without the BOOTSTRAP_ADMIN_EMAIL guard, it would promote any
+// address.
 //
-// Convention de ce fichier : on part d'un environnement où NI
-// BOOTSTRAP_ADMIN_EMAIL NI AUTH_DEV_OTP n'est défini — l'état d'un déploiement
-// de production — et chaque test pose seulement ce dont il a besoin.
+// Convention of this file: we start from an environment where NEITHER
+// BOOTSTRAP_ADMIN_EMAIL NOR AUTH_DEV_OTP is defined — the state of a production
+// deployment — and each test sets only what it needs.
 const ENV_KEYS = ['BOOTSTRAP_ADMIN_EMAIL', 'AUTH_DEV_OTP'] as const;
 let saved: Record<string, string | undefined>;
 
@@ -48,8 +48,8 @@ describe("Amorçage de l'administrateur initial (#47)", () => {
     process.env.BOOTSTRAP_ADMIN_EMAIL = ADMIN_EMAIL;
     const t = convexTest(schema, modules);
 
-    // Casse et espaces quelconques : l'adresse est normalisée comme à la
-    // connexion, sinon le compte créé ne serait jamais retrouvé par
+    // Arbitrary case and spaces: the address is normalized as at
+    // sign-in, otherwise the created account would never be found by
     // `createOrUpdateUser` (convex/auth.ts).
     const res = await t.mutation(internal.bootstrap.bootstrapAdmin, {
       email: '  Fondateur@DT.TEST  ',
@@ -62,8 +62,8 @@ describe("Amorçage de l'administrateur initial (#47)", () => {
     expect(user?.role).toBe('admin');
     expect(user?.email).toBe(ADMIN_EMAIL);
 
-    // Audit (F-67) : l'opération laisse une trace, sans acteur — elle vient de
-    // la CLI d'exploitation, pas d'un compte de la plateforme.
+    // Audit (F-67): the operation leaves a trace, with no actor — it comes from
+    // the operations CLI, not from a platform account.
     const entries = await t.run((ctx) => ctx.db.query('auditLog').collect());
     expect(entries).toHaveLength(1);
     expect(entries[0].action).toBe(AUDIT.ADMIN_BOOTSTRAPPED);
@@ -101,14 +101,14 @@ describe("Amorçage de l'administrateur initial (#47)", () => {
 
     await t.mutation(internal.bootstrap.bootstrapAdmin, { email: ADMIN_EMAIL });
 
-    // Second appel, variable toujours en place : la garde « zéro admin » suffit
-    // à refermer la porte. C'est ce qui empêche l'amorçage d'être une porte
-    // dérobée permanente quand la variable est oubliée sur le déploiement.
+    // Second call, variable still in place: the "zero admins" guard is enough
+    // to close the door. This is what prevents bootstrapping from being a permanent
+    // backdoor when the variable is forgotten on the deployment.
     await expect(
       t.mutation(internal.bootstrap.bootstrapAdmin, { email: ADMIN_EMAIL }),
     ).rejects.toThrow(/BOOTSTRAP_ALREADY_DONE/);
 
-    // Rien n'a bougé : un seul compte, un seul enregistrement d'audit.
+    // Nothing has moved: a single account, a single audit record.
     expect(await t.run((ctx) => ctx.db.query('users').collect())).toHaveLength(
       1,
     );
@@ -120,9 +120,9 @@ describe("Amorçage de l'administrateur initial (#47)", () => {
   it('un administrateur venu d’ailleurs ferme aussi l’amorçage', async () => {
     process.env.BOOTSTRAP_ADMIN_EMAIL = ADMIN_EMAIL;
     const t = convexTest(schema, modules);
-    // Admin existant portant une AUTRE adresse : la garde porte sur la présence
-    // d'un administrateur, pas sur celle de l'adresse amorcée — sinon la
-    // mutation resterait un moyen de s'ajouter aux administrateurs en place.
+    // Existing admin with a DIFFERENT address: the guard is about the presence
+    // of an administrator, not that of the bootstrapped address — otherwise the
+    // mutation would remain a way to add oneself to the existing administrators.
     await t.run((ctx) =>
       ctx.db.insert('users', { email: 'deja@dt.test', role: 'admin' }),
     );
@@ -172,14 +172,14 @@ describe("Amorçage de l'administrateur initial (#47)", () => {
     ).rejects.toThrow(/INVALID_EMAIL/);
   });
 
-  // Régression signalée par l'issue : l'amorçage doit être TOTALEMENT
-  // indépendant de la surface de développement. AUTH_DEV_OTP n'est pas un
-  // drapeau isolé — quand il est posé, chaque code de connexion émis est écrit
-  // en clair dans `devOtpCodes` et relu par un oracle. Amorcer un admin ne doit
-  // donc ni exiger ce drapeau ni écrire dans cette table.
+  // Regression reported by the issue: bootstrapping must be TOTALLY
+  // independent of the development surface. AUTH_DEV_OTP is not an
+  // isolated flag — when it is set, every sign-in code issued is written
+  // in plaintext to `devOtpCodes` and read back by an oracle. Bootstrapping an admin must
+  // therefore neither require that flag nor write to that table.
   it('n’exige pas AUTH_DEV_OTP et n’écrit rien dans devOtpCodes', async () => {
     process.env.BOOTSTRAP_ADMIN_EMAIL = ADMIN_EMAIL;
-    // État d'un déploiement de production : le drapeau de dev est absent.
+    // State of a production deployment: the dev flag is absent.
     expect(process.env.AUTH_DEV_OTP).toBeUndefined();
     const t = convexTest(schema, modules);
 
@@ -192,8 +192,8 @@ describe("Amorçage de l'administrateur initial (#47)", () => {
       await t.run((ctx) => ctx.db.query('devOtpCodes').collect()),
     ).toHaveLength(0);
 
-    // Contre-épreuve : l'autre chemin d'attribution de rôle, lui, reste fermé
-    // sans le drapeau. C'est bien l'amorçage qui a changé, pas la garde de dev.
+    // Counter-check: the other role-assignment path stays closed
+    // without the flag. It is indeed bootstrapping that changed, not the dev guard.
     await expect(
       t.mutation(internal.devAdmin.setRoleByEmail, {
         email: 'autre@dt.test',
@@ -202,10 +202,10 @@ describe("Amorçage de l'administrateur initial (#47)", () => {
     ).rejects.toThrow(/AUTH_DEV_OTP/);
   });
 
-  // Si `internalMutation` devenait `mutation`, l'amorçage passerait dans l'API
-  // publique : appelable par n'importe quel client sur la fenêtre où le
-  // déploiement est neuf. Les deux gardes tiendraient, mais la surface n'a
-  // aucune raison d'exister — ce test la verrouille.
+  // If `internalMutation` became `mutation`, bootstrapping would move into the
+  // public API: callable by any client during the window when the
+  // deployment is new. Both guards would hold, but the surface has
+  // no reason to exist — this test locks it down.
   it('reste hors API publique (internalMutation)', () => {
     const registered = bootstrapAdmin as unknown as {
       isMutation?: boolean;

@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
-// Reprise du test d'isolation « sans voile Reveal », avec une méthode dont on
-// VÉRIFIE l'effet. La première version injectait un <style> sur
-// documentElement avant que <head> n'existe ; rien ne prouvait qu'il survivait
-// au rendu de React. Ici la règle est ajoutée à la FEUILLE DE STYLE elle-même,
-// interceptée en vol, et le test refuse de conclure sans l'avoir constatée.
+// Rerun of the "without Reveal veil" isolation test, with a method whose
+// effect we VERIFY. The first version injected a <style> on
+// documentElement before <head> existed; nothing proved it survived
+// React's render. Here the rule is added to the STYLESHEET itself,
+// intercepted in flight, and the test refuses to conclude without having observed it.
 const ROUTE = '/fr/barometre';
 
 async function brider(page: import('@playwright/test').Page) {
@@ -31,21 +31,21 @@ async function lcp(page: import('@playwright/test').Page): Promise<number> {
   );
 }
 
-// Ce test DISAIT l'inverse : il exigeait `opacity:0` dans le HTML servi, ce
-// qui était le diagnostic de F-05 — un élément à opacité nulle n'est pas
-// candidat au LCP, d'où les 12 808 ms sur cette page en 3G lente. Le constat
-// posé et corrigé, l'affirmation est retournée : elle garde maintenant le
-// correctif au lieu de commémorer le défaut. Si quelqu'un remet un voile au
-// rendu serveur, le LCP repart à douze secondes — et ce test rougit d'abord.
+// This test USED TO SAY the opposite: it required `opacity:0` in the served HTML, which
+// was the F-05 diagnosis — a zero-opacity element is not an
+// LCP candidate, hence the 12,808 ms on this page on slow 3G. With the finding
+// established and fixed, the assertion is reversed: it now guards the
+// fix instead of commemorating the defect. If someone puts a veil back in the
+// server render, the LCP goes back to twelve seconds — and this test goes red first.
 //
-// L'autre moitié du contrat est tenue par 35-reveal-integrite.spec.ts :
-// l'animation d'entrée doit TOUJOURS exister. Les deux ensemble interdisent
-// les deux façons de se tromper — reposer le voile, ou supprimer l'animation.
+// The other half of the contract is held by 35-reveal-integrite.spec.ts:
+// the entrance animation must ALWAYS exist. Together, the two forbid
+// both ways of getting it wrong — putting the veil back, or removing the animation.
 test('aucun voile au rendu serveur (garde du correctif F-05)', async ({
   page,
 }) => {
   await page.goto(ROUTE, { waitUntil: 'domcontentloaded' });
-  // Style INLINE que framer-motion écrirait côté serveur, avant hydratation.
+  // INLINE style that framer-motion would write server-side, before hydration.
   const inline = await page
     .locator('[data-reveal]')
     .first()
@@ -57,32 +57,32 @@ test('aucun voile au rendu serveur (garde du correctif F-05)', async ({
   ).not.toContain('opacity:0');
 });
 
-// LA GARDE NE REGARDAIT QU'UNE ROUTE (angle mort 2).
+// THE GUARD ONLY LOOKED AT ONE ROUTE (blind spot 2).
 //
-// `/fr/barometre` était la page du constat F-05, donc celle qu'on a gardée. Le
-// balayage mobile a montré que le correctif ne couvre PAS l'accueil : `/fr`
-// sert encore 7 `opacity:0` dans son HTML. La raison est nette une fois vue —
-// `HomeHero` n'utilise pas `Reveal`. Il pose ses propres `motion.p` avec
-// `initial={{ opacity: 0 }}`, c'est-à-dire exactement le motif que F-05 a
-// retiré partout ailleurs. Corriger `Reveal` ne pouvait donc rien y faire, et
-// une garde sur une seule route ne pouvait pas le dire.
+// `/fr/barometre` was the F-05 finding's page, so the one that was guarded. The
+// mobile sweep showed that the fix does NOT cover the home page: `/fr`
+// still serves 7 `opacity:0` in its HTML. The reason is clear once seen —
+// `HomeHero` does not use `Reveal`. It sets its own `motion.p` with
+// `initial={{ opacity: 0 }}`, i.e. exactly the pattern F-05
+// removed everywhere else. Fixing `Reveal` therefore could do nothing there, and
+// a guard on a single route could not say so.
 //
-// Pourquoi ça ne se voyait pas en desktop : le plus grand élément y est le
-// `<h1>`, révélé mot à mot dès 0,18 s — il peint tôt, et le LCP est bon
-// (312 ms). Sur 412 px de large le `<h1>` rétrécit, le PARAGRAPHE d'accroche
-// devient le plus grand, et lui attend la fin de la séquence du titre :
-// `delay = 0,18 + 6 mots × 0,075 + 0,05`, puis 0,85 s de fondu. Mesuré :
-// opacité nulle jusqu'à 1 153 ms, pleine à 2 011 ms, LCP médian 2 000 ms.
-// Six fois le desktop, sur la plateforme annoncée comme premier usage.
+// Why it didn't show on desktop: the largest element there is the
+// `<h1>`, revealed word by word from 0.18 s — it paints early, and the LCP is good
+// (312 ms). At 412 px wide the `<h1>` shrinks, the tagline PARAGRAPH
+// becomes the largest, and it waits for the end of the title sequence:
+// `delay = 0.18 + 6 words × 0.075 + 0.05`, then a 0.85 s fade. Measured:
+// zero opacity until 1,153 ms, full at 2,011 ms, median LCP 2,000 ms.
+// Six times desktop, on the platform announced as the primary use.
 const ROUTES_SERVIES = ['/fr/barometre', '/fr/a-propos', '/fr'];
 
 for (const route of ROUTES_SERVIES) {
-  // `/fr` est ATTENDU EN ÉCHEC : le correctif demanderait de renoncer au fondu
-  // d'entrée du premier écran de l'accueil, ce que F-05 a assumé pour `Reveal`
-  // mais qui, sur un hero chorégraphié volontairement, est un arbitrage de
-  // produit et non d'ingénierie. Ce marqueur documente le constat sans
-  // maquiller la suite en vert : le jour où l'accueil est corrigé, ce test
-  // passe « de façon inattendue » et demande qu'on le retire.
+  // `/fr` is EXPECTED TO FAIL: the fix would require giving up the entrance
+  // fade of the home page's first screen, which F-05 accepted for `Reveal`
+  // but which, on a deliberately choreographed hero, is a product trade-off
+  // and not an engineering one. This marker documents the finding without
+  // painting the suite green: the day the home page is fixed, this test
+  // passes "unexpectedly" and asks to be removed.
   const attendu = route === '/fr';
   test(`aucun opacity:0 dans le HTML servi de ${route}`, async ({
     request,
@@ -100,8 +100,8 @@ for (const route of ROUTES_SERVIES) {
 
 test('LCP avec le voile retiré — méthode vérifiée', async ({ page }) => {
   await brider(page);
-  // La règle est ajoutée à la feuille de style servie : elle ne peut pas être
-  // perdue au montage de React.
+  // The rule is added to the served stylesheet: it cannot be
+  // lost when React mounts.
   await page.route('**/*.css', async (route) => {
     const res = await route.fetch();
     const css = await res.text();
@@ -112,7 +112,7 @@ test('LCP avec le voile retiré — méthode vérifiée', async ({ page }) => {
   });
   await page.goto(ROUTE, { waitUntil: 'load', timeout: 180_000 });
 
-  // On CONSTATE l'effet avant de mesurer quoi que ce soit.
+  // We OBSERVE the effect before measuring anything.
   const opacite = await page
     .locator('[data-reveal]')
     .first()

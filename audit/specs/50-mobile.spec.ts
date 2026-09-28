@@ -2,34 +2,34 @@ import { test, expect, type Page } from '@playwright/test';
 import { PUBLIQUES } from './_routes';
 import { scanA11y, deroulerLesReveals } from './_a11y';
 
-// ANGLE MORT 2 — le viewport mobile, jamais mesuré.
+// BLIND SPOT 2 — the mobile viewport, never measured.
 //
-// La config d'audit déclarait un projet `mobile` (Pixel 7) depuis le début ; il
-// n'avait jamais été joué. Rejouée telle quelle dessus, la suite passe : 159
-// tests, 0 échec. C'est un résultat, mais il ne dit pas grand-chose —
-// l'essentiel de la suite (SEO, en-têtes, robots, rendu sans JS, i18n) lit des
-// balises et des réponses HTTP, que la largeur de la fenêtre ne change pas.
+// The audit config declared a `mobile` project (Pixel 7) from the start; it
+// had never been run. Replayed as-is on it, the suite passes: 159
+// tests, 0 failures. That is a result, but it doesn't say much —
+// most of the suite (SEO, headers, robots, no-JS rendering, i18n) reads
+// tags and HTTP responses, which the window width does not change.
 //
-// Ce fichier ne porte QUE sur ce qui diffère, et il commence par vérifier
-// l'instrument : une suite verte sur un viewport qu'elle n'avait jamais vu
-// mérite qu'on se demande d'abord si elle l'a vu cette fois.
+// This file covers ONLY what differs, and it starts by checking the
+// instrument: a green suite on a viewport it had never seen
+// deserves asking first whether it saw it this time.
 test.skip(({ isMobile }) => !isMobile, 'projet mobile seulement');
 
 // ---------------------------------------------------------------------------
-// WCAG 2.2, critère 2.5.8 « Taille de cible (minimum) », niveau AA.
+// WCAG 2.2, success criterion 2.5.8 "Target Size (Minimum)", level AA.
 //
-// Une cible fait au moins 24 × 24 px CSS, SAUF si :
-//   — « Espacement » : un cercle de 24 px de diamètre centré sur elle ne
-//     recoupe ni le RECTANGLE d'une autre cible, ni le CERCLE d'une autre
-//     cible sous-dimensionnée ;
-//   — « En ligne » : la cible est dans une phrase ;
-//   — le contrôle est laissé au navigateur, ou la présentation est essentielle.
+// A target is at least 24 × 24 CSS px, UNLESS:
+//   — "Spacing": a 24 px diameter circle centered on it does not
+//     intersect the RECTANGLE of another target, nor the CIRCLE of another
+//     undersized target;
+//   — "Inline": the target is in a sentence;
+//   — the control is left to the browser, or the presentation is essential.
 //
-// L'exception d'espacement n'est pas une formalité : un balayage naïf, qui ne
-// regarde que la taille, rend 568 cibles sur 24 pages ici. Publier ce nombre
-// serait refaire l'erreur que ce rapport dénonce ailleurs — un scan bruyant ne
-// fait pas que surestimer, il CACHE. Une fois la règle réellement appliquée,
-// il en reste zéro.
+// The spacing exception is not a formality: a naive sweep, which only
+// looks at size, returns 568 targets across 24 pages here. Publishing that number
+// would repeat the mistake this report denounces elsewhere — a noisy scan does
+// not just overestimate, it HIDES. Once the rule is actually applied,
+// zero remain.
 function detecteur(page: Page) {
   return page
     .locator('a, button, [role="button"], input:not([type="hidden"]), select')
@@ -39,10 +39,10 @@ function detecteur(page: Page) {
           const r = el.getBoundingClientRect();
           return {
             el,
-            // Centre ET coin. Les confondre décale chaque rectangle d'une
-            // demi-largeur : la première version de ce détecteur annonçait
-            // ainsi une non-conformité à −6 px sur /fr/connexion qui n'existait
-            // pas — mesurée à la main, la distance réelle était de 29 px.
+            // Center AND corner. Mixing them up shifts each rectangle by
+            // half a width: the first version of this detector thus
+            // reported a non-conformity at −6 px on /fr/connexion that did not
+            // exist — measured by hand, the real distance was 29 px.
             cx: r.x + r.width / 2,
             cy: r.y + r.height / 2,
             gauche: r.x,
@@ -72,8 +72,8 @@ function detecteur(page: Page) {
           for (const o of cibles) {
             if (o.el === c.el) continue;
             const petite = o.w < 24 || o.h < 24;
-            // Marge restante avant violation : > 0 = conforme vis-à-vis
-            // de cette voisine-là.
+            // Remaining margin before violation: > 0 = compliant with respect
+            // to that particular neighbor.
             const m = petite
               ? Math.hypot(c.cx - o.cx, c.cy - o.cy) - 24
               : distanceAuRect(c.cx, c.cy, o) - 12;
@@ -104,8 +104,8 @@ test("l'instrument est bien un téléphone", async ({ page }) => {
   }));
   console.log('[mobile] instrument', JSON.stringify(vu));
 
-  // Sans ces quatre-là, tout ce qui suit mesurerait un navigateur de bureau
-  // dans une fenêtre étroite — ce qui n'est pas la même chose.
+  // Without these four, everything that follows would measure a desktop browser
+  // in a narrow window — which is not the same thing.
   expect(vu.largeur, 'largeur de viewport').toBeLessThanOrEqual(480);
   expect(vu.pointeurGrossier, 'media query (pointer: coarse)').toBe(true);
   expect(vu.pointsTactiles, 'points tactiles').toBeGreaterThan(0);
@@ -117,10 +117,10 @@ test('sous 1120 px, le menu est le SEUL chemin de navigation', async ({
 }) => {
   await page.goto('/fr');
 
-  // Si la navigation de bureau restait visible ici, les 24 analyses
-  // d'accessibilité du projet mobile auraient en fait scanné une barre de
-  // bureau — et le panneau mobile n'aurait été vu par personne : ni en desktop
-  // (masqué), ni en mobile (fermé).
+  // If the desktop navigation stayed visible here, the 24 accessibility
+  // analyses of the mobile project would in fact have scanned a desktop
+  // bar — and the mobile panel would have been seen by no one: neither on desktop
+  // (hidden), nor on mobile (closed).
   const menu = page.locator('button[aria-controls="mobile-nav"]');
   await expect(menu).toBeVisible();
   await expect(page.locator('#mobile-nav')).toHaveCount(0);
@@ -155,9 +155,9 @@ test("a11y du menu mobile OUVERT — l'écran que personne n'avait scanné", asy
 
 test('le détecteur 2.5.8 sait ÉCHOUER (non-vacuité)', async ({ page }) => {
   await page.goto('/fr');
-  // Deux cibles de 16 px posées à 10 px l'une de l'autre : non conformes des
-  // deux façons possibles (trop petites ET trop proches). Un détecteur qui les
-  // laisse passer ne mesure rien, et son zéro ne vaut rien.
+  // Two 16 px targets placed 10 px from each other: non-compliant in
+  // both possible ways (too small AND too close). A detector that
+  // lets them through measures nothing, and its zero is worthless.
   await page.evaluate(() => {
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;left:8px;top:300px;z-index:99999';

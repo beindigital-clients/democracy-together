@@ -18,12 +18,12 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Rapports annuels (F-41) : modèle de données, administration (éditeur+),
-// migration fidèle du contenu codé, et PDF servi seulement s'il correspond
-// au texte courant.
+// Annual reports (F-41): data model, administration (editor+),
+// faithful migration of the hard-coded content, and PDF served only if it matches
+// the current text.
 //
-// Horloge simulée : chaque écriture du texte PLANIFIE la composition du PDF
-// (action Node). Les tests qui la veulent la lancent à la main.
+// Fake clock: every write of the text SCHEDULES the PDF composition
+// (Node action). Tests that want it run it by hand.
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(Date.UTC(2026, 8, 27, 10));
@@ -99,12 +99,12 @@ describe('Rapports annuels — administration (F-41)', () => {
       }),
     ).rejects.toThrow('INVALID_YEAR');
 
-    // Brouillon : invisible, et l'année n'est plus servie par le repli codé.
+    // Draft: invisible, and the year is no longer served by the hard-coded fallback.
     expect(
       await t.query(api.annualReports.getPublic, { year: 2027, locale: 'fr' }),
     ).toEqual({ known: true, report: null });
 
-    // Publier sans texte français : refusé.
+    // Publishing without French text: refused.
     await expect(
       ed.as.mutation(api.annualReports.updateReportMeta, {
         reportId: id,
@@ -125,14 +125,14 @@ describe('Rapports annuels — administration (F-41)', () => {
       locale: 'fr',
       ...CONTENT,
     });
-    // Le paragraphe vide est retiré, pas compté comme une faute.
+    // The empty paragraph is removed, not counted as an error.
     const stored = await t.run((ctx) =>
       ctx.db.query('annualReportContents').collect(),
     );
     expect(stored[0].chapters[0].body).toEqual([
       'Le réseau compte ses premiers membres.',
     ]);
-    // Le PDF est planifié à l'écriture.
+    // The PDF is scheduled on write.
     expect(await scheduledPdfJobs(t)).toHaveLength(1);
 
     await ed.as.mutation(api.annualReports.updateReportMeta, {
@@ -149,7 +149,7 @@ describe('Rapports annuels — administration (F-41)', () => {
       availableLocales: ['fr'],
       pdfs: [],
     });
-    // Langue sans texte : le texte français est servi, et dit sa langue.
+    // Language without text: the French text is served, and states its language.
     expect(
       (await t.query(api.annualReports.getPublic, { year: 2027, locale: 'ar' }))
         .report?.locale,
@@ -169,7 +169,7 @@ describe('Rapports annuels — administration (F-41)', () => {
     expect(
       (await ed.as.query(api.annualReports.adminList, {})).codedToImport,
     ).toEqual([2026]);
-    // Avant migration : la base ne connaît pas l'année (repli codé).
+    // Before migration: the database doesn't know the year (hard-coded fallback).
     expect(
       await t.query(api.annualReports.getPublic, { year: 2026, locale: 'fr' }),
     ).toEqual({ known: false, report: null });
@@ -255,10 +255,10 @@ describe('Rapports annuels — PDF servi seulement s’il correspond au texte (F
       year: 2026,
       locale: 'fr',
     });
-    // La page française annonce aussi le PDF arabe (autres langues).
+    // The French page also announces the Arabic PDF (other languages).
     expect(page.report?.pdfs.map((p) => p.locale)).toEqual(['ar']);
 
-    // Le texte arabe est corrigé : l'ancien PDF ne correspond plus.
+    // The Arabic text is corrected: the old PDF no longer matches.
     const coded = CODED_REPORTS.ar[2026];
     await ed.as.mutation(api.annualReports.saveReportContent, {
       reportId,
@@ -309,7 +309,7 @@ describe('Rapports annuels — PDF servi seulement s’il correspond au texte (F
       inaugural: false,
     });
     expect((await scheduledPdfJobs(t)).length - before).toBe(5);
-    // L'empreinte a changé avec le drapeau : le PDF arabe est périmé.
+    // The hash changed with the flag: the Arabic PDF is stale.
     expect(
       await t.query(api.annualReports.getPdf, { year: 2026, locale: 'ar' }),
     ).toBeNull();

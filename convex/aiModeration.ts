@@ -57,35 +57,35 @@ import {
   type AiRule,
 } from './lib/aiModeration';
 
-// MODÉRATION ÉDITORIALE ASSISTÉE PAR IA — orchestration.
+// AI-ASSISTED EDITORIAL MODERATION — orchestration.
 //
-// Le dispositif en une phrase : à la soumission d'un dépôt (F-32), une action
-// interne fait analyser le document par un modèle via la passerelle Vercel,
-// puis une mutation décide — en relisant l'état courant — de publier ou de
-// laisser la main à un humain.
+// The system in one sentence: when a submission is made (F-32), an internal
+// action has the document analyzed by a model via the Vercel gateway,
+// then a mutation decides — by re-reading the current state — whether to publish or
+// hand over to a human.
 //
-// TROIS INVARIANTS, tenus par le code et couverts par convex/aiModeration.test.ts :
+// THREE INVARIANTS, upheld by the code and covered by convex/aiModeration.test.ts:
 //
-//  1. RIEN N'EST PUBLIÉ SUR UN SILENCE. Clé absente, passerelle injoignable,
-//     réponse illisible, plafond de coût atteint : le dépôt reste `pending`.
-//     C'est le fail-closed de `lib/recaptcha.ts`, appliqué à une décision de
-//     publication — l'absence d'avis n'est jamais un avis favorable.
-//  2. LE MODÈLE PROPOSE, LE SERVEUR DÉCIDE. `applyVerdict` relit le mode, le
-//     périmètre, le seuil ET l'état de la publication DANS LA TRANSACTION qui
-//     écrit. Un avis « conforme » ne publie rien si l'administrateur a éteint
-//     le dispositif entre-temps, ou si un modérateur a déjà tranché.
-//  3. TOUT EST TRAÇABLE. Chaque analyse écrit une ligne `aiModerationReviews`
-//     — y compris celles qui échouent, sans quoi le journal ferait paraître le
-//     dispositif plus fiable qu'il n'est — et chaque mise en ligne automatique
-//     écrit une entrée d'audit à elle.
+//  1. NOTHING IS PUBLISHED ON SILENCE. Missing key, unreachable gateway,
+//     unreadable response, cost cap reached: the submission stays `pending`.
+//     This is the fail-closed of `lib/recaptcha.ts`, applied to a publication
+//     decision — the absence of a verdict is never a favorable verdict.
+//  2. THE MODEL PROPOSES, THE SERVER DECIDES. `applyVerdict` re-reads the mode, the
+//     scope, the threshold AND the publication's state IN THE TRANSACTION that
+//     writes. A "compliant" verdict publishes nothing if the administrator switched off
+//     the system in the meantime, or if a moderator has already decided.
+//  3. EVERYTHING IS TRACEABLE. Each analysis writes an `aiModerationReviews` row
+//     — including those that fail, otherwise the log would make the
+//     system look more reliable than it is — and each automatic publication
+//     writes its own audit entry.
 //
-// Le découpage query/action/mutation n'est pas un choix de style : une
-// mutation Convex n'a pas `fetch`, et une action n'a pas de transaction. D'où
-// trois temps — lire le contexte (internalQuery), appeler le modèle
-// (internalAction), appliquer (internalMutation) — et d'où, aussi, la
-// nécessité de revérifier en temps 3 ce qui était vrai en temps 1.
+// The query/action/mutation split is not a style choice: a
+// Convex mutation has no `fetch`, and an action has no transaction. Hence
+// three steps — read the context (internalQuery), call the model
+// (internalAction), apply (internalMutation) — and hence, too, the
+// need to re-check at step 3 what was true at step 1.
 
-// --- Réglages : lecture ------------------------------------------------------
+// --- Settings: read ----------------------------------------------------------
 
 const SETTINGS_KEY = 'default' as const;
 
@@ -98,9 +98,9 @@ async function loadConfigDoc(
     .unique();
 }
 
-// Réglages effectifs. Un déploiement qui n'a jamais ouvert le panneau n'a pas
-// de ligne : il obtient DEFAULT_SETTINGS, donc `mode: 'off'`. La
-// fonctionnalité déployée est inerte tant que personne ne l'a armée.
+// Effective settings. A deployment that has never opened the panel has no
+// row: it gets DEFAULT_SETTINGS, hence `mode: 'off'`. The
+// deployed feature is inert until someone has armed it.
 export async function loadSettings(
   ctx: QueryCtx,
 ): Promise<AiModerationSettings> {
@@ -120,7 +120,7 @@ export async function loadSettings(
   };
 }
 
-// Barème de l'administrateur, règles actives seulement, dans son ordre.
+// The administrator's scale, active rules only, in its order.
 export async function loadEnabledRules(ctx: QueryCtx): Promise<AiRule[]> {
   const rows = await ctx.db
     .query('aiModerationRules')
@@ -129,8 +129,8 @@ export async function loadEnabledRules(ctx: QueryCtx): Promise<AiRule[]> {
   return rows
     .filter((r) => r.enabled)
     .map((r) => ({
-      // La clé du critère est son identifiant, tel quel : c'est ce qui permet
-      // à un avis de nommer la règle qui l'a produit après sa suppression.
+      // The criterion key is its identifier, as-is: this is what allows
+      // a verdict to name the rule that produced it after the rule's deletion.
       key: r._id,
       label: r.label,
       description: r.description,
@@ -138,7 +138,7 @@ export async function loadEnabledRules(ctx: QueryCtx): Promise<AiRule[]> {
     }));
 }
 
-// --- Validateurs de retour ---------------------------------------------------
+// --- Return validators -------------------------------------------------------
 
 export const ruleValidator = v.object({
   key: v.string(),
@@ -209,11 +209,11 @@ function projectReview(doc: Doc<'aiModerationReviews'>) {
   };
 }
 
-// Forme de TRANSIT des réglages : ce que traversent une frontière de
-// validateur Convex (`v.union(v.string(), v.null())`, pas d'`undefined`).
-// `fromWire` la reconvertit en réglages applicatifs — sans quoi un
-// `fallbackModel` absent voyagerait en `null` et cesserait d'être un
-// « pas de repli » pour devenir un modèle nommé « null ».
+// TRANSIT shape of the settings: what crosses a Convex
+// validator boundary (`v.union(v.string(), v.null())`, no `undefined`).
+// `fromWire` converts it back into application settings — otherwise an
+// absent `fallbackModel` would travel as `null` and stop being a
+// "no fallback" to become a model named "null".
 export type WireSettings = {
   mode: AiMode;
   model: string;
@@ -257,16 +257,16 @@ export function settingsOut(s: AiModerationSettings): WireSettings {
   };
 }
 
-// --- Panneau d'administration : lecture --------------------------------------
+// --- Administration panel: read ----------------------------------------------
 
-// Réglages + barème + socle + état de la clé. Réservé à l'administrateur :
-// c'est l'écran qui décide de ce qui se publie sans relecture.
+// Settings + scale + baseline + key status. Reserved to the administrator:
+// it is the screen that decides what gets published without review.
 //
-// `configured` dit si la clé de passerelle est posée sur le déploiement. C'est
-// une information SERVEUR — la clé ne sort jamais, seul son existence est
-// rapportée — et elle évite le scénario où l'on arme le mode `auto` sur un
-// déploiement qui ne peut appeler personne, pour ne le découvrir qu'au
-// premier dépôt resté en file sans explication.
+// `configured` says whether the gateway key is set on the deployment. It is
+// SERVER information — the key never leaves, only its existence is
+// reported — and it avoids the scenario where `auto` mode is armed on a
+// deployment that cannot call anyone, only to discover it at the
+// first submission left in the queue without explanation.
 export const getSettings = query({
   args: {},
   returns: v.object({
@@ -313,9 +313,9 @@ export const getSettings = query({
       })),
       baseline: BASELINE_RULES.map((r) => ({ ...r })),
       configured: isGatewayConfigured(),
-      // `tribune` s'ajoute aux types de la bibliothèque : cocher cette case est
-      // le SEUL moyen d'ouvrir l'auto-acceptation aux billets de la Tribune
-      // (convex/communityModeration.ts). Décochée, l'IA n'y fait que proposer.
+      // `tribune` is added to the library types: checking this box is
+      // the ONLY way to open auto-acceptance to Tribune posts
+      // (convex/communityModeration.ts). Unchecked, the AI only proposes there.
       availableTypes: [...PUB_TYPES, TRIBUNE_AI_SCOPE],
       stats: {
         analyzed: counts[COUNTER.AI_REVIEWS],
@@ -326,18 +326,18 @@ export const getSettings = query({
   },
 });
 
-// --- Panneau d'administration : écriture -------------------------------------
+// --- Administration panel: write ---------------------------------------------
 
 function clampNumber(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
-// Écrit les réglages et incrémente la version.
+// Writes the settings and increments the version.
 //
-// Les bornes sont appliquées ICI, pas seulement dans le formulaire : l'écran
-// n'est qu'un confort, et un seuil de confiance à 0 posé par un appel direct
-// ouvrirait l'auto-publication à tout.
+// Bounds are enforced HERE, not only in the form: the screen
+// is just a convenience, and a confidence threshold of 0 set by a direct call
+// would open auto-publication to everything.
 export const updateSettings = mutation({
   args: {
     mode: aiModerationMode,
@@ -361,9 +361,9 @@ export const updateSettings = mutation({
     if (fallbackModel && fallbackModel.length > 120)
       throw new Error('INVALID_MODEL');
 
-    // Périmètre : seuls les types du vocabulaire fermé sont retenus. Un slug
-    // inconnu ne peut donc pas élargir l'auto-publication à des dépôts que le
-    // panneau ne montre pas.
+    // Scope: only types from the closed vocabulary are kept. An unknown
+    // slug therefore cannot widen auto-publication to submissions the
+    // panel does not show.
     const eligibleTypes = [
       ...new Set(
         args.eligibleTypes.filter(
@@ -414,9 +414,9 @@ export const updateSettings = mutation({
       });
     }
 
-    // Le mode est la seule valeur qui change ce que la plateforme fait sans
-    // humain : il est nommé dans l'audit, pas noyé dans un « réglages
-    // modifiés ».
+    // The mode is the only value that changes what the platform does without a
+    // human: it is named in the audit, not buried in a "settings
+    // modified".
     await recordAudit(ctx, {
       actorId: admin._id,
       action: AUDIT.AI_MODERATION_CONFIGURED,
@@ -432,9 +432,9 @@ export const updateSettings = mutation({
   },
 });
 
-// Incrémente la version des réglages après une modification du barème : un
-// avis rendu doit pouvoir être rapporté à l'état EXACT du barème qui l'a
-// produit, et une règle ajoutée change ce barème autant qu'un seuil déplacé.
+// Increments the settings version after a change to the scale: a
+// returned verdict must be traceable to the EXACT state of the scale that
+// produced it, and an added rule changes that scale as much as a moved threshold.
 async function bumpConfigVersion(ctx: MutationCtx, actorId: Id<'users'>) {
   const existing = await loadConfigDoc(ctx);
   if (existing) {
@@ -474,9 +474,9 @@ export const upsertRule = mutation({
       .trim()
       .slice(0, SETTINGS_BOUNDS.ruleDescriptionMaxLength);
     if (label.length < 3) throw new Error('INVALID_RULE_LABEL');
-    // Un critère sans énoncé ne s'évalue pas : c'est la description, et elle
-    // seule, qui est soumise au modèle. Un libellé n'est qu'une étiquette
-    // d'écran.
+    // A criterion without a statement cannot be evaluated: it is the description, and it
+    // alone, that is submitted to the model. A label is just a screen
+    // tag.
     if (description.length < 10) throw new Error('INVALID_RULE_DESCRIPTION');
 
     const now = Date.now();
@@ -500,8 +500,8 @@ export const upsertRule = mutation({
       return { ruleId: args.ruleId };
     }
 
-    // Plafond du barème : au-delà, le prompt grossit sans que la qualité de
-    // l'arbitrage suive, et le coût par dépôt monte pour rien.
+    // Cap on the scale: beyond it, the prompt grows without the quality of the
+    // judgment following, and the cost per submission rises for nothing.
     const count = (
       await ctx.db
         .query('aiModerationRules')
@@ -540,9 +540,9 @@ export const deleteRule = mutation({
     if (!existing) throw new Error('NOT_FOUND');
     await ctx.db.delete(ruleId);
     await bumpConfigVersion(ctx, admin._id);
-    // Les avis déjà rendus gardent le libellé de la règle supprimée : c'est
-    // pourquoi `findings.ruleKey` est une chaîne et non un `v.id`. Un barème
-    // qui évolue ne doit pas rendre illisibles les décisions passées.
+    // Verdicts already returned keep the label of the deleted rule: that is
+    // why `findings.ruleKey` is a string and not a `v.id`. A scale
+    // that evolves must not make past decisions unreadable.
     await recordAudit(ctx, {
       actorId: admin._id,
       action: AUDIT.AI_MODERATION_RULE_CHANGED,
@@ -553,15 +553,15 @@ export const deleteRule = mutation({
   },
 });
 
-// --- Lecture des avis (file de modération et journal) ------------------------
+// --- Reading verdicts (moderation queue and log) -----------------------------
 
 export const getReview = query({
   args: { publicationId: v.id('publications') },
   returns: v.union(reviewValidator, v.null()),
   handler: async (ctx, { publicationId }) => {
     await requireNetworkRole(ctx, 'moderateur');
-    // Le DERNIER avis : une publication rouverte, ou analysée à la demande,
-    // en porte plusieurs, et c'est le plus récent qui décrit l'état courant.
+    // The LATEST verdict: a reopened publication, or one analyzed on demand,
+    // carries several, and it is the most recent that describes the current state.
     const latest = await ctx.db
       .query('aiModerationReviews')
       .withIndex('by_publication', (q) => q.eq('publicationId', publicationId))
@@ -602,14 +602,14 @@ export const listReviews = query({
   },
 });
 
-// --- Déclenchement manuel ----------------------------------------------------
+// --- Manual trigger ----------------------------------------------------------
 
-// « Analyser ce dépôt » depuis la file de modération (modérateur+).
+// "Analyze this submission" from the moderation queue (moderator+).
 //
-// Utile dans deux cas que le déclenchement automatique ne couvre pas : un
-// dépôt arrivé alors que le dispositif était éteint, et un dépôt qu'on veut
-// réexaminer après avoir durci le barème. Le mode `off` reste respecté — on
-// ne rallume pas le dispositif par un bouton.
+// Useful in two cases the automatic trigger does not cover: a
+// submission that arrived while the system was off, and a submission to
+// re-examine after tightening the scale. `off` mode is still respected — you
+// don't turn the system back on with a button.
 export const requestReview = mutation({
   args: { publicationId: v.id('publications') },
   returns: v.object({ scheduled: v.boolean() }),
@@ -617,9 +617,9 @@ export const requestReview = mutation({
     const staff = await requireNetworkRole(ctx, 'moderateur');
     const pub = await ctx.db.get(publicationId);
     if (!pub) throw new Error('NOT_FOUND');
-    // Un dépôt déjà tranché n'a plus rien à gagner à une analyse, et
-    // `reviewContext` l'écarterait de toute façon. Le dire ICI évite
-    // d'annoncer au modérateur une analyse dont aucun avis ne sortira.
+    // A submission already decided has nothing more to gain from an analysis, and
+    // `reviewContext` would discard it anyway. Saying so HERE avoids
+    // announcing to the moderator an analysis from which no verdict will come.
     if (pub.status !== 'pending') return { scheduled: false };
     const settings = await loadSettings(ctx);
     if (settings.mode === 'off') return { scheduled: false };
@@ -631,7 +631,7 @@ export const requestReview = mutation({
   },
 });
 
-// --- Orchestration : temps 1, lire le contexte -------------------------------
+// --- Orchestration: step 1, read the context ---------------------------------
 
 const contextValidator = v.union(
   v.null(),
@@ -664,8 +664,8 @@ const contextValidator = v.union(
   }),
 );
 
-// Forme lue par l'action. Écrite à la main plutôt qu'inférée : l'action et la
-// query vivant dans le même fichier, l'inférence y serait circulaire.
+// Shape read by the action. Written by hand rather than inferred: the action and the
+// query living in the same file, inference would be circular there.
 type ReviewContext = {
   document: AiDocument & { fileName: string | null };
   file: { id: Id<'_storage'>; size: number; contentType: string | null } | null;
@@ -678,15 +678,15 @@ export const reviewContext = internalQuery({
   returns: contextValidator,
   handler: async (ctx, { publicationId }) => {
     const pub = await ctx.db.get(publicationId);
-    // Un dépôt déjà tranché n'a plus à être analysé : l'analyse coûte un appel
-    // et ne peut plus rien changer.
+    // A submission already decided no longer needs analysis: the analysis costs a call
+    // and can no longer change anything.
     if (!pub || pub.status !== 'pending') return null;
     const settings = await loadSettings(ctx);
     if (settings.mode === 'off') return null;
 
-    // Les métadonnées du blob viennent de la table système, jamais du client
-    // (même défiance que `submitPublication`) : c'est la taille RÉELLE qui
-    // décide si le fichier part chez le modèle.
+    // The blob's metadata comes from the system table, never from the client
+    // (same distrust as `submitPublication`): it is the REAL size that
+    // decides whether the file goes to the model.
     const meta = pub.fileId ? await ctx.db.system.get(pub.fileId) : null;
 
     return {
@@ -717,9 +717,9 @@ export const reviewContext = internalQuery({
   },
 });
 
-// Réserve un appel sur le quota quotidien. Consomme le jeton DANS une
-// transaction, avant l'appel : deux dépôts simultanés ne peuvent pas passer
-// tous les deux par le dernier jeton.
+// Reserves a call against the daily quota. Consumes the token IN a
+// transaction, before the call: two simultaneous submissions cannot both
+// get through on the last token.
 export const reserveCall = internalMutation({
   args: {},
   returns: v.boolean(),
@@ -733,7 +733,7 @@ export const reserveCall = internalMutation({
   },
 });
 
-// --- Orchestration : temps 3, appliquer --------------------------------------
+// --- Orchestration: step 3, apply --------------------------------------------
 
 export const applyVerdict = internalMutation({
   args: {
@@ -755,19 +755,19 @@ export const applyVerdict = internalMutation({
   returns: v.object({ applied: aiModerationApplied, reason: v.string() }),
   handler: async (ctx, args) => {
     const pub = await ctx.db.get(args.publicationId);
-    // La publication a disparu entre l'analyse et son application : on
-    // n'écrit pas un avis orphelin dont la ligne de journal ne pourrait plus
-    // nommer sa cible.
+    // The publication disappeared between the analysis and its application: we
+    // do not write an orphan verdict whose log line could no longer
+    // name its target.
     if (!pub)
       return {
         applied: 'superseded' as const,
         reason: APPLY_REASONS.ALREADY_DECIDED,
       };
 
-    // Les réglages sont RELUS ici, dans la transaction qui écrit. Entre le
-    // déclenchement et maintenant, un administrateur a pu éteindre le
-    // dispositif, resserrer le périmètre ou monter le seuil : c'est l'état au
-    // moment de PUBLIER qui fait foi, pas celui au moment de demander.
+    // Settings are RE-READ here, in the transaction that writes. Between the
+    // trigger and now, an administrator may have switched off the
+    // system, narrowed the scope or raised the threshold: it is the state at the
+    // time of PUBLISHING that counts, not the one at the time of requesting.
     const settings = await loadSettings(ctx);
     const decision = decideApplication({
       mode: settings.mode,
@@ -781,14 +781,14 @@ export const applyVerdict = internalMutation({
       attachmentAnalyzed: args.attachmentAnalyzed,
     });
 
-    // Un modérateur a tranché pendant l'analyse. La décision humaine gagne,
-    // sans discussion : l'avis est conservé pour le journal, il n'est pas
-    // appliqué.
+    // A moderator decided during the analysis. The human decision wins,
+    // no discussion: the verdict is kept for the log, it is not
+    // applied.
     //
-    // C'est la même garde que l'arête `pending -> published` de la machine de
-    // `publications.ts` (assertTransition). Elle est écrite ici en condition
-    // et non en `throw` parce qu'un refus de transition n'est pas, dans ce
-    // contexte, une erreur à remonter : c'est une ISSUE à journaliser.
+    // This is the same guard as the `pending -> published` edge of the
+    // `publications.ts` state machine (assertTransition). It is written here as a condition
+    // and not as a `throw` because a transition refusal is not, in this
+    // context, an error to propagate: it is an OUTCOME to log.
     const superseded = pub.status !== 'pending';
     const applied = superseded ? ('superseded' as const) : decision.applied;
     const reason = superseded ? APPLY_REASONS.ALREADY_DECIDED : decision.reason;
@@ -801,26 +801,26 @@ export const applyVerdict = internalMutation({
         status: 'published',
         publishedAt: pub.publishedAt || now,
         doi: pub.doi || `10.59000/dt.${pub.slug}`,
-        // `reviewedBy` reste VIDE : personne n'a relu. C'est ce vide, lu avec
-        // `autoPublished`, qui permet à la file d'afficher « publiée sans
-        // relecture humaine » plutôt que d'attribuer la décision à quelqu'un.
+        // `reviewedBy` stays EMPTY: nobody reviewed. It is this emptiness, read with
+        // `autoPublished`, that lets the queue display "published without
+        // human review" rather than attributing the decision to someone.
         reviewedAt: now,
         autoPublished: true,
       });
       await trackPublicationStatus(ctx, pub.status, 'published');
     }
 
-    // Résumé dénormalisé — écrit dès que le dispositif est VISIBLE. La file
-    // doit pouvoir dire « analysé, mis en attente pour telle raison » plutôt
-    // que rester muette.
+    // Denormalized summary — written as soon as the system is VISIBLE. The queue
+    // must be able to say "analyzed, put on hold for such-and-such reason" rather
+    // than stay silent.
     //
-    // Sauf en mode observation, et c'est toute la définition de ce mode :
-    // l'analyse tourne, le journal la garde, mais RIEN n'atteint la file. Un
-    // badge posé ici suffirait à orienter la décision du modérateur, et
-    // l'observation cesserait d'observer — elle influencerait ce qu'elle
-    // mesure, ce qui la rend inutile comme étape de calibrage. L'avis complet
-    // reste lisible dans le journal de /admin/moderation-ia, qui est
-    // l'endroit où on le relit pour régler le barème.
+    // Except in observation mode, and that is the whole definition of that mode:
+    // the analysis runs, the log keeps it, but NOTHING reaches the queue. A
+    // badge set here would be enough to steer the moderator's decision, and
+    // observation would stop observing — it would influence what it
+    // measures, which makes it useless as a calibration step. The full verdict
+    // stays readable in the /admin/moderation-ia log, which is
+    // where it is reread to tune the scale.
     if (applied !== 'shadow') {
       await ctx.db.patch(args.publicationId, {
         aiReview: {
@@ -860,8 +860,8 @@ export const applyVerdict = internalMutation({
     if (applied === 'escalated')
       await bumpCounter(ctx, COUNTER.AI_REVIEWS_ESCALATED, 1);
 
-    // L'auteur apprend la mise en ligne par le MÊME message que pour une
-    // approbation humaine : de son point de vue, sa publication est en ligne.
+    // The author learns of the publication through the SAME message as for a human
+    // approval: from their point of view, their publication is online.
     if (applied === 'published' && pub.authorUserId) {
       await notify(ctx, {
         userId: pub.authorUserId,
@@ -872,10 +872,10 @@ export const applyVerdict = internalMutation({
       });
     }
 
-    // « Faire intervenir l'administrateur » : un signal BLOQUANT sort le
-    // dossier du rythme normal de la file et va chercher quelqu'un. Les
-    // signaux d'avertissement, eux, attendent leur tour — notifier sur tout
-    // reviendrait à ne notifier sur rien.
+    // "Bring in the administrator": a BLOCKING signal takes the
+    // case out of the queue's normal pace and goes to fetch someone. The
+    // warning signals, for their part, wait their turn — notifying on everything
+    // would amount to notifying on nothing.
     if (shouldAlertStaff(applied, args.verdict, args.findings)) {
       await alertStaff(ctx, pub.title, args.publicationId);
     }
@@ -904,9 +904,9 @@ export const applyVerdict = internalMutation({
   },
 });
 
-// Prévient le staff (modérateur et au-dessus). Même lecture indexée que le
-// sélecteur de relecteurs (peerReview.listStaffUsers) : on ne parcourt pas la
-// table `users` pour en garder quelques comptes.
+// Notifies staff (moderator and above). Same indexed read as the
+// reviewer selector (peerReview.listStaffUsers): we do not scan the
+// `users` table to keep a few accounts from it.
 const STAFF_ROLES = ['moderateur', 'editeur', 'admin'] as const;
 const STAFF_PER_ROLE_MAX = 200;
 
@@ -934,11 +934,11 @@ async function alertStaff(
   }
 }
 
-// --- Orchestration : temps 2, l'appel ----------------------------------------
+// --- Orchestration: step 2, the call -----------------------------------------
 
-// Jetons de sortie. L'avis est structuré et borné (résumé court, un constat
-// par critère) : de quoi laisser respirer un barème fourni sans payer une
-// dissertation.
+// Output tokens. The verdict is structured and bounded (short summary, one finding
+// per criterion): enough to give a detailed scale room without paying for an
+// essay.
 const MAX_OUTPUT_TOKENS = 4000;
 
 export type AnalysisOutcome = {
@@ -952,11 +952,11 @@ export type AnalysisOutcome = {
   error?: string;
 };
 
-// Analyse un document : construit le barème, appelle la passerelle (avec un
-// repli si un modèle de secours est réglé), normalise la réponse.
+// Analyzes a document: builds the scale, calls the gateway (with a
+// fallback if a backup model is configured), normalizes the response.
 //
-// Ne lève jamais. Tout échec devient un avis `error` — journalisable, et qui
-// laisse le dépôt en file par construction (cf. `decideApplication`).
+// Never throws. Every failure becomes an `error` verdict — loggable, and which
+// leaves the submission in the queue by construction (see `decideApplication`).
 export async function analyse(
   document: AiDocument,
   settings: AiModerationSettings,
@@ -992,8 +992,8 @@ export async function analyse(
     if (!result.ok) {
       lastError = result.code;
       lastDetail = result.detail;
-      // Une clé absente ne se rattrape pas en changeant de modèle : le repli
-      // ne sert que les pannes propres à un modèle.
+      // A missing key cannot be recovered by switching models: the fallback
+      // only serves failures specific to a model.
       if (result.code === GATEWAY_ERRORS.NOT_CONFIGURED) break;
       continue;
     }
@@ -1014,13 +1014,13 @@ export async function analyse(
     };
   }
 
-  // Aucun constat : le modèle n'en a rendu aucun, et on n'en invente pas.
+  // No findings: the model returned none, and we don't invent any.
   //
-  // Le remplir de « indéterminé » aurait paru plus complet ; ce serait faux à
-  // deux titres. L'écran afficherait « n bloquants » pour une analyse qui n'a
-  // pas eu lieu, et le résumé dénormalisé de la publication porterait ce
-  // décompte. Ce qui s'est passé tient dans deux champs — verdict `error` et
-  // le code d'échec — et c'est ce que le journal doit montrer.
+  // Filling it with "undetermined" would have looked more complete; it would be wrong on
+  // two counts. The screen would display "n blocking" for an analysis that did not
+  // take place, and the publication's denormalized summary would carry that
+  // count. What happened fits in two fields — `error` verdict and
+  // the failure code — and that is what the log must show.
   return {
     verdict: 'error',
     confidence: 0,
@@ -1031,10 +1031,10 @@ export async function analyse(
   };
 }
 
-// Télécharge et encode la pièce jointe, si les réglages et sa taille le
-// permettent. Rend `null` dans tous les autres cas — et ce `null` fait ensuite
-// barrage à l'auto-publication (`ATTACHMENT_NOT_READ`), il n'est jamais
-// silencieux.
+// Downloads and encodes the attachment, if the settings and its size
+// allow it. Returns `null` in every other case — and that `null` then
+// blocks auto-publication (`ATTACHMENT_NOT_READ`), it is never
+// silent.
 async function loadAttachment(
   ctx: { storage: { get: (id: Id<'_storage'>) => Promise<Blob | null> } },
   file: { id: Id<'_storage'>; size: number; contentType: string | null } | null,
@@ -1052,11 +1052,11 @@ async function loadAttachment(
   };
 }
 
-// L'ACTION planifiée à la soumission (et par le bouton « analyser »).
+// The ACTION scheduled on submission (and by the "analyze" button).
 //
-// `internalAction` : elle n'est pas appelable depuis un client. Elle n'écrit
-// rien elle-même — elle lit, appelle, et confie l'écriture à `applyVerdict`,
-// qui est transactionnelle.
+// `internalAction`: it cannot be called from a client. It writes
+// nothing itself — it reads, calls, and delegates the write to `applyVerdict`,
+// which is transactional.
 export const runReview = internalAction({
   args: {
     publicationId: v.id('publications'),
@@ -1064,14 +1064,14 @@ export const runReview = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, { publicationId, triggeredBy }) => {
-    // Annotation explicite : `ctx.runQuery` sur une fonction du MÊME fichier
-    // rend l'inférence circulaire (guidelines Convex du dépôt).
+    // Explicit annotation: `ctx.runQuery` on a function in the SAME file
+    // makes inference circular (the repo's Convex guidelines).
     const context: ReviewContext = await ctx.runQuery(
       internal.aiModeration.reviewContext,
       { publicationId },
     );
-    // Dispositif éteint, dépôt déjà tranché ou disparu : rien à faire, et rien
-    // à journaliser — aucune analyse n'a été tentée.
+    // System off, submission already decided or gone: nothing to do, and nothing
+    // to log — no analysis was attempted.
     if (!context) return null;
 
     const settings = fromWire(context.settings);
@@ -1083,9 +1083,9 @@ export const runReview = internalAction({
       context.document.fileName,
     );
 
-    // Le quota est consommé AVANT l'appel. Dépassé, on écrit tout de même un
-    // avis en échec : sans cette trace, un plafond mal réglé ferait stagner la
-    // file sans que rien n'en dise la cause.
+    // The quota is consumed BEFORE the call. When exceeded, we still write a
+    // failed verdict: without this trace, a misconfigured cap would make the
+    // queue stagnate with nothing saying why.
     const started = Date.now();
     const allowed: boolean = await ctx.runMutation(
       internal.aiModeration.reserveCall,
@@ -1132,9 +1132,9 @@ export const runReview = internalAction({
   },
 });
 
-// --- Banc d'essai ------------------------------------------------------------
+// --- Test bench --------------------------------------------------------------
 
-// Contexte du banc d'essai : le barème courant, sans publication.
+// Test-bench context: the current scale, with no publication.
 export const testContext = internalQuery({
   args: {},
   returns: v.object({
@@ -1142,8 +1142,8 @@ export const testContext = internalQuery({
     rules: v.array(ruleValidator),
   }),
   handler: async (ctx) => {
-    // L'appelant est un administrateur authentifié : `ctx.runQuery` depuis une
-    // action propage son identité, donc la garde de rôle tient ici aussi.
+    // The caller is an authenticated administrator: `ctx.runQuery` from an
+    // action propagates their identity, so the role guard holds here too.
     await requireNetworkRole(ctx, 'admin');
     return {
       settings: settingsOut(await loadSettings(ctx)),
@@ -1152,17 +1152,17 @@ export const testContext = internalQuery({
   },
 });
 
-// Éprouver le barème sur un texte, SANS RIEN ÉCRIRE.
+// Try the scale on a text, WITHOUT WRITING ANYTHING.
 //
-// C'est l'outil qui rend le réglage praticable : un administrateur qui rédige
-// un critère veut savoir ce qu'il déclenche avant de le laisser décider de
-// vraies publications. Aucune ligne d'avis, aucun compteur, aucune
-// notification — seul le quota quotidien est consommé, parce que l'appel, lui,
-// est bien réel.
+// This is the tool that makes tuning practical: an administrator drafting
+// a criterion wants to know what it triggers before letting it decide on
+// real publications. No verdict row, no counter, no
+// notification — only the daily quota is consumed, because the call itself
+// is very real.
 //
-// Le mode n'entre pas en jeu : on montre l'avis brut, et ce que le dispositif
-// EN FERAIT si le mode était `auto`. Le second est la question que
-// l'administrateur se pose vraiment.
+// The mode does not come into play: we show the raw verdict, and what the system
+// WOULD DO WITH IT if the mode were `auto`. The latter is the question the
+// administrator is really asking.
 export const testRuleset = action({
   args: {
     title: v.string(),
@@ -1226,9 +1226,9 @@ export const testRuleset = action({
       false,
     );
 
-    // Ce que le dispositif ferait, mode `auto` supposé : la question du
-    // réglage n'est pas « le modèle est-il content ? » mais « ce dépôt
-    // passerait-il tout seul ? ».
+    // What the system would do, assuming `auto` mode: the tuning
+    // question is not "is the model happy?" but "would this submission
+    // go through on its own?".
     const decision = decideApplication({
       mode: 'auto',
       verdict: outcome.verdict,

@@ -23,13 +23,13 @@ import {
 } from '../lib/contenus/validate';
 import { publishStatus } from '../lib/tables/contenus';
 
-// PARTENAIRES (F-14) — logo tiré de la médiathèque, lien, ordre d'affichage.
+// PARTNERS (F-14) — logo taken from the media library, link, display order.
 //
-// Le catalogue codé décrivait des CATÉGORIES de partenariat (ce que chaque
-// type de partenaire apporte et reçoit), sans nommer d'organisation ni
-// inventer de logo. La table reprend ces cinq catégories telles quelles
-// (migration) et accueille aussi des partenaires nommés : une fiche porte un
-// nom, et peut porter un logo, un lien et les quatre textes de catégorie.
+// The hard-coded catalog described partnership CATEGORIES (what each
+// type of partner brings and receives), without naming any organization or
+// inventing a logo. The table carries over these five categories as-is
+// (migration) and also accommodates named partners: a record carries a
+// name, and can carry a logo, a link and the four category texts.
 
 const PARTNERS_MAX = 200;
 
@@ -67,7 +67,7 @@ export const listPublic = query({
   },
 });
 
-// --- Édition (rang éditeur) ------------------------------------------------------
+// --- Editing (editor rank) -------------------------------------------------------
 
 const editableFields = {
   name: localizedText,
@@ -164,7 +164,7 @@ export const save = mutation({
     if (!hasAnyLocale(name)) throw new Error('TITLE_REQUIRED');
     if (input.logoMediaId) {
       const logo = await ctx.db.get(input.logoMediaId);
-      // Un logo est une IMAGE : un PDF de la médiathèque ne s'affiche pas.
+      // A logo is an IMAGE: a PDF from the media library cannot be displayed.
       if (!logo || logo.kind !== 'image') throw new Error('INVALID_MEDIA');
     }
     const fields = {
@@ -195,7 +195,7 @@ export const save = mutation({
     const newSlug = (slug ?? '').trim();
     if (!isContentSlug(newSlug)) throw new Error('INVALID_SLUG');
     if (await findBySlug(ctx, newSlug)) throw new Error('SLUG_TAKEN');
-    // Nouvelle fiche en fin de liste.
+    // New record at the end of the list.
     const all = await ctx.db.query('contentPartners').take(PARTNERS_MAX);
     const order = all.reduce((m, p) => Math.max(m, p.order), 0) + 1;
     const newId = await ctx.db.insert('contentPartners', {
@@ -239,9 +239,9 @@ export const setStatus = mutation({
 });
 
 /**
- * Monter ou descendre une fiche d'un rang. Échange des deux `order` : deux
- * écritures, dans la même transaction — l'ordre ne peut pas se retrouver
- * dupliqué à mi-chemin.
+ * Move a record up or down one rank. Swaps the two `order` values: two
+ * writes, in the same transaction — the order cannot end up
+ * duplicated halfway through.
  */
 export const move = mutation({
   args: {
@@ -260,7 +260,7 @@ export const move = mutation({
     if (j < 0 || j >= all.length) return null;
     const a = all[i];
     const b = all[j];
-    // Ordres égaux (données anciennes) : on renumérote avant d'échanger.
+    // Equal orders (old data): we renumber before swapping.
     const orderA = a.order === b.order ? j : b.order;
     const orderB = a.order === b.order ? i : a.order;
     await ctx.db.patch(a._id, { order: orderA });

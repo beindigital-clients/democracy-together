@@ -21,11 +21,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// MODÉRATION A PRIORI DE LA TRIBUNE (F-45), FILE UNIFIÉE ET HISTORIQUE
-// (F-49), APPROFONDISSEMENT (F-48) — chantier communauté.
+// PRE-MODERATION OF THE TRIBUNE (F-45), UNIFIED QUEUE AND HISTORY
+// (F-49), FOLLOW-UP CONTRIBUTIONS (F-48) — community workstream.
 //
-// Le mode par défaut est A PRIORI pour les billets : ce fichier ne règle rien
-// avant de publier, et c'est précisément ce qu'il vérifie.
+// The default mode is PRE-MODERATION for posts: this file configures nothing
+// before publishing, and that is precisely what it checks.
 
 type T = ReturnType<typeof convexTest>;
 
@@ -95,20 +95,20 @@ describe('Modération a priori — un billet soumis attend la décision (F-45)',
     const doc = await t.run((ctx) => ctx.db.get(postId));
     expect(doc?.status).toBe('pending');
 
-    // Public (anonyme) : ni dans le fil, ni en fiche.
+    // Public (anonymous): neither in the feed nor on the detail page.
     expect(await t.query(api.tribune.listPosts, {})).toEqual([]);
     expect(await t.query(api.tribune.getPost, { postId })).toBeNull();
-    // Un autre membre non plus, ni par l'aperçu d'auteur.
+    // Another member neither, not even through the author preview.
     expect(await other.as.query(api.tribune.getOwnPost, { postId })).toBeNull();
 
-    // L'auteur voit l'état, et relit son texte.
+    // The author sees the state, and rereads their text.
     const mine = await author.as.query(api.tribune.myPosts, {});
     expect(mine.map((p) => [p._id, p.status])).toEqual([[postId, 'pending']]);
     const own = await author.as.query(api.tribune.getOwnPost, { postId });
     expect(own?.body).toBe(POST.body);
     expect(own?.status).toBe('pending');
 
-    // Le compteur public ne bouge pas tant que rien n'est en ligne.
+    // The public counter does not move as long as nothing is online.
     const counter = await t.run((ctx) =>
       ctx.db
         .query('counters')
@@ -126,7 +126,7 @@ describe('Modération a priori — un billet soumis attend la décision (F-45)',
       targetId: postId,
       decision: 'approve' as const,
     };
-    // Ni l'auteur, ni un autre membre, ni un anonyme.
+    // Neither the author, nor another member, nor an anonymous user.
     await expect(
       author.as.mutation(api.communityModeration.decide, args),
     ).rejects.toThrow(/rôle « moderateur » requis/);
@@ -136,7 +136,7 @@ describe('Modération a priori — un billet soumis attend la décision (F-45)',
     await expect(
       t.mutation(api.communityModeration.decide, args),
     ).rejects.toThrow();
-    // La file non plus ne s'ouvre pas à eux.
+    // The queue does not open to them either.
     await expect(
       author.as.query(api.communityModeration.listQueue, { tab: 'pending' }),
     ).rejects.toThrow();
@@ -185,8 +185,8 @@ describe('Modération a priori — un billet soumis attend la décision (F-45)',
     );
     expect(await t.query(api.tribune.getPost, { postId })).toBeNull();
 
-    // Un billet rejeté ne se « valide » pas deux fois par erreur de
-    // transition : rejeter un rejeté est refusé.
+    // A rejected post is not "approved" twice through a transition
+    // error: rejecting a rejected post is refused.
     await expectCode(
       mod.as.mutation(api.communityModeration.decide, {
         targetType: 'post',
@@ -266,7 +266,7 @@ describe('Modération a priori — un billet soumis attend la décision (F-45)',
   });
 });
 
-// Utilitaire : un modérateur dans un environnement déjà créé.
+// Helper: a moderator in an already created environment.
 async function setup_mod(t: T) {
   return { mod: await user(t, 'mod2@test.org', 'moderateur', 'Mod 2') };
 }
@@ -314,7 +314,7 @@ describe('Réglage du mode (administrateur)', () => {
     const before = await t.query(api.tribune.getPost, { postId });
     expect(before?.comments).toEqual([]);
     expect(before?.commentCount).toBe(0);
-    // L'auteur du billet n'est pas encore prévenu.
+    // The post's author is not notified yet.
     const notifsBefore = await t.run((ctx) =>
       ctx.db
         .query('notifications')
@@ -417,7 +417,7 @@ describe('File unifiée — onglets et filtres (F-49)', () => {
   });
 });
 
-// --- Pré-tri par l'IA -----------------------------------------------------------
+// --- AI pre-screening ------------------------------------------------------------
 
 const BASELINE_KEYS = [
   'socle:injection',
@@ -643,7 +643,7 @@ describe('Historique complet et ordonné (F-49)', () => {
       reason: 'Signalement fondé.',
     });
 
-    // Non-modérateur : pas d'accès à l'historique.
+    // Non-moderator: no access to the history.
     await expect(
       author.as.query(api.communityModeration.getItem, {
         targetType: 'post',
@@ -673,7 +673,7 @@ describe('Historique complet et ordonné (F-49)', () => {
     expect(item?.status).toBe('removed');
     expect(item?.rejectionReason).toBe('Signalement fondé.');
 
-    // Chaque décision est AUSSI au journal d'audit (convex/journal.ts).
+    // Each decision is ALSO in the audit log (convex/journal.ts).
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
     expect(audit.map((a) => a.action)).toEqual(
       expect.arrayContaining([
@@ -702,7 +702,7 @@ describe('Approfondissement — du billet court à la contribution de fond (F-48
 
     const childId = await author.as.mutation(api.tribune.createPost, {
       ...POST,
-      // L'axe est celui du billet prolongé, quoi qu'on envoie.
+      // The axis is that of the extended post, whatever is sent.
       theme: 'etat-de-droit',
       format: 'fond',
       title: 'Les transitions, en profondeur',
@@ -712,7 +712,7 @@ describe('Approfondissement — du billet court à la contribution de fond (F-48
     const child = await t.run((ctx) => ctx.db.get(childId));
     expect(child?.status).toBe('pending');
     expect(child?.theme).toBe('transitions');
-    // Soumise à modération : rien de public avant validation.
+    // Submitted to moderation: nothing public before approval.
     expect(
       (await t.query(api.tribune.getPost, { postId: parentId }))?.deepenings,
     ).toEqual([]);
@@ -757,7 +757,7 @@ describe('Approfondissement — du billet court à la contribution de fond (F-48
       }),
       'NOT_DEEPENABLE',
     );
-    // Une contribution de fond ne s'approfondit pas elle-même.
+    // A substantive contribution does not follow up on itself.
     await approve(mod, pendingId);
     const fondId = await author.as.mutation(api.tribune.createPost, {
       ...deep,
@@ -905,7 +905,7 @@ describe('Données d’un compte — suppression et export (chantier communauté
       comments: await ctx.db.query('tribuneComments').collect(),
     }));
     expect(remaining).toEqual({ reactions: [], reports: [], comments: [] });
-    // Les actes de modération POSÉS PAR un compte restent, anonymisés.
+    // Moderation acts PERFORMED BY an account remain, anonymized.
     await t.run((ctx) => deleteUserDataCommunaute(ctx, mod.id));
     const acts = await t.run((ctx) =>
       ctx.db
@@ -975,7 +975,7 @@ describe('Aide E2E — validation de billets de test (garde AUTH_DEV_OTP)', () =
   });
 });
 
-// Garde de bornes : une contribution de fond respecte les bornes F-46.
+// Bounds guard: a substantive contribution respects the F-46 bounds.
 describe('Approfondissement — bornes du format long (F-46)', () => {
   it('une contribution de fond trop courte est refusée', async () => {
     const { author, mod } = await setup();

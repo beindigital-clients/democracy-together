@@ -15,11 +15,11 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Pagination : `listUsers` prend `paginationOpts` depuis l'issue #8, et
-// `listApplications` depuis l'issue #49 — c'était la dernière liste du
-// back-office à charger sa table entière. Une page large suffit ici : ce qui
-// est vérifié n'est pas le découpage (cf. pagination.test.ts) mais le RBAC et
-// le contenu.
+// Pagination: `listUsers` takes `paginationOpts` since issue #8, and
+// `listApplications` since issue #49 — it was the last back-office list
+// to load its whole table. A wide page is enough here: what
+// is checked is not the slicing (see pagination.test.ts) but RBAC and
+// the content.
 const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
 
 describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
@@ -73,11 +73,11 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
       country: 'FR',
     });
 
-    // Les compteurs du tableau de bord sont tenus À L'ÉCRITURE (issue #8) :
-    // `storeApplication` les incrémente, mais l'insertion directe du compte
-    // admin ci-dessus passe à côté des mutations. `counters.recompute` est
-    // précisément la réconciliation prévue pour ce cas — et pour l'amorçage
-    // d'un déploiement qui existait avant les compteurs.
+    // Dashboard counters are maintained ON WRITE (issue #8):
+    // `storeApplication` increments them, but the direct insertion of the
+    // admin account above bypasses the mutations. `counters.recompute` is
+    // precisely the reconciliation intended for this case — and for bootstrapping
+    // a deployment that existed before the counters.
     await t.mutation(internal.counters.recompute, {});
 
     const stats = await t
@@ -97,23 +97,23 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
   });
 });
 
-// Le back-office affichait « membre » pour un compte SANS rôle explicite,
-// alors que le RBAC serveur traite l'absence de rôle comme « visiteur »
-// (issue #27). L'écran où l'administrateur décide qui a accès à quoi lui
-// annonçait donc un droit de dépôt que le serveur refuse — et comme le
-// <Select> de /admin/utilisateurs est contrôlé sur cette valeur, ne rien
-// toucher laissait le compte sans rôle sans que l'écart se voie.
+// The back office displayed "membre" for an account WITHOUT an explicit role,
+// whereas server RBAC treats the absence of a role as "visiteur"
+// (issue #27). The screen where the administrator decides who has access to what thus
+// announced a submission right that the server refuses — and since the
+// <Select> of /admin/utilisateurs is controlled on this value, touching
+// nothing left the account without a role without the gap showing.
 //
-// Le cas subsiste sur l'existant : depuis la PR #4 `reviewApplication` et
-// `inviteUser` posent toujours un rôle, mais les comptes créés avant ne
-// portent pas de colonne `role`.
+// The case persists on existing data: since PR #4 `reviewApplication` and
+// `inviteUser` always set a role, but accounts created before do not
+// carry a `role` column.
 describe('Back-office — rôle affiché (F-63)', () => {
   it('listUsers : un compte sans rôle remonte « visiteur », pas « membre »', async () => {
     const t = convexTest(schema, modules);
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );
-    // Compte hérité : aucune colonne `role`.
+    // Legacy account: no `role` column.
     await t.run((ctx) => ctx.db.insert('users', { email: 'ancien@test.org' }));
 
     const { page: users } = await t
@@ -122,8 +122,8 @@ describe('Back-office — rôle affiché (F-63)', () => {
 
     const legacy = users.find((u) => u.email === 'ancien@test.org');
     expect(legacy?.role).toBe('visiteur');
-    // …et c'est bien la dérivation partagée qui est affichée, pas un littéral
-    // recopié : si la valeur par défaut bouge, les deux bougent ensemble.
+    // …and it is indeed the shared derivation that is displayed, not a copied
+    // literal: if the default value moves, both move together.
     expect(legacy?.role).toBe(effectiveRole(undefined));
     expect(legacy?.role).toBe(DEFAULT_ROLE);
   });
@@ -137,9 +137,9 @@ describe('Back-office — rôle affiché (F-63)', () => {
       ctx.db.insert('users', { email: 'ancien@test.org' }),
     );
 
-    // Ce que « visiteur » signifie concrètement : la Tribune refuse la plume
-    // (requireNetworkRole(ctx, 'membre')) — arguments valides, donc c'est bien
-    // la garde de rôle qui rejette, pas la validation des champs.
+    // What "visiteur" concretely means: the Tribune refuses the pen
+    // (requireNetworkRole(ctx, 'membre')) — valid arguments, so it is indeed
+    // the role guard that rejects, not field validation.
     await expect(
       t
         .withIdentity({ subject: `${legacyId}|s` })
@@ -152,7 +152,7 @@ describe('Back-office — rôle affiché (F-63)', () => {
         }),
     ).rejects.toThrow(/rôle/);
 
-    // …et c'est exactement ce que le back-office affiche désormais.
+    // …and that is exactly what the back office now displays.
     const { page: users } = await t
       .withIdentity({ subject: `${adminId}|s` })
       .query(api.admin.listUsers, PAGE);
@@ -162,21 +162,21 @@ describe('Back-office — rôle affiché (F-63)', () => {
   });
 });
 
-// LE COMPTE QUE L'APPROBATION VA ÉLEVER (pentest M-6, resté « non vérifié »).
+// THE ACCOUNT THAT APPROVAL WILL ELEVATE (pentest M-6, left "unverified").
 //
-// Le rejeu confirme le mécanisme décrit : approuver une candidature n'accorde
-// pas un rôle à `contactEmail` — adresse saisie librement dans un formulaire
-// public — mais au compte CONNECTÉ qui a déposé la demande. Les deux sont
-// indépendants. Ce n'est pas un défaut : sans cette liaison, un membre ne
-// récupérerait jamais son adhésion. Le défaut était que la file de modération
-// ne portait AUCUN champ désignant ce compte : le modérateur jugeait un nom
-// d'organisation plausible et élevait, sans le voir, un compte quelconque.
+// The replay confirms the described mechanism: approving an application does not grant
+// a role to `contactEmail` — an address freely typed into a public
+// form — but to the SIGNED-IN account that submitted the request. The two are
+// independent. This is not a defect: without this link, a member would
+// never get their membership. The defect was that the moderation queue
+// carried NO field designating this account: the moderator judged a plausible
+// organization name and elevated, without seeing it, an arbitrary account.
 //
-// Les deux premiers tiennent ce que l'écran DIT avant la décision — le champ
-// n'existait pas, ils échouent sur le code d'avant. Le troisième fixe ce que
-// la décision FAIT : il passait déjà, et c'est le but — il empêche qu'on
-// « corrige » M-6 en déliant la candidature de son déposant, ce qui priverait
-// les membres de leur adhésion pour faire taire un symptôme.
+// The first two hold what the screen SAYS before the decision — the field
+// did not exist, they fail on the previous code. The third pins what
+// the decision DOES: it already passed, and that is the point — it prevents anyone
+// "fixing" M-6 by unlinking the application from its submitter, which would deprive
+// members of their membership to silence a symptom.
 describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)', () => {
   async function candidatureDeposeePar(
     t: ReturnType<typeof convexTest>,
@@ -212,8 +212,8 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
       .withIdentity({ subject: `${modId}|s` })
       .query(api.admin.listApplications, { ...PAGE, status: 'pending' });
 
-    // NON-VACUITÉ : la candidature est bien liée en base — sans quoi le test
-    // vérifierait seulement qu'un champ nul est nul.
+    // NON-VACUITY: the application is indeed linked in the database — otherwise the test
+    // would only check that a null field is null.
     const enBase = await t.run((ctx) =>
       ctx.db.query('membershipApplications').first(),
     );
@@ -222,8 +222,8 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
     expect(page).toHaveLength(1);
     expect(page[0].applicantEmail).toBe('attaquant@mail-jetable.test');
     expect(page[0].applicantRole).toBe('visiteur');
-    // C'est l'écart qui se voit : l'adresse de façade reste affichée telle
-    // quelle, et l'écran signale qu'elle n'est pas celle du compte.
+    // This is the gap that shows: the front-facing address stays displayed
+    // as-is, and the screen flags that it is not the account's.
     expect(page[0].contactEmail).toBe('contact@institut-x.org');
     expect(page[0].applicantEmail).not.toBe(page[0].contactEmail);
   });
@@ -233,7 +233,7 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
-    // Déposée sans session : le formulaire d'adhésion est ouvert.
+    // Submitted without a session: the membership form is open.
     await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
       organizationName: 'Institut Y',
@@ -245,8 +245,8 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
       .withIdentity({ subject: `${modId}|s` })
       .query(api.admin.listApplications, { ...PAGE, status: 'pending' });
 
-    // Rien à élever : le champ ne doit surtout pas se REPLIER sur
-    // `contactEmail`, ce qui ferait croire à un compte qui n'existe pas.
+    // Nothing to elevate: the field must above all not FALL BACK to
+    // `contactEmail`, which would suggest an account that does not exist.
     expect(page[0].applicantEmail).toBeNull();
     expect(page[0].applicantRole).toBeNull();
   });
@@ -278,8 +278,8 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
         },
       });
 
-    // Ce que la décision a fait, en une phrase : c'est le compte du déposant
-    // qui devient membre, et aucun compte n'est créé pour l'adresse affichée.
+    // What the decision did, in one sentence: it is the submitter's account
+    // that becomes a member, and no account is created for the displayed address.
     expect(await t.run((ctx) => ctx.db.get(deposant))).toMatchObject({
       role: 'membre',
     });

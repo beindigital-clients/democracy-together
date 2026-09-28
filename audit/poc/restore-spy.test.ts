@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// PoC d'audit : `vi.restoreAllMocks()` restaure-t-il un espion posé sur
-// l'INSTANCE window.localStorage sous happy-dom ?
+// Audit PoC: does `vi.restoreAllMocks()` restore a spy set on
+// the window.localStorage INSTANCE under happy-dom?
 import { describe, it, expect, afterEach, vi } from 'vitest';
 
 afterEach(() => {
@@ -16,7 +16,7 @@ describe('restauration des espions localStorage', () => {
   });
 
   it('B — après afterEach, localStorage doit refonctionner', () => {
-    // Si ceci lève, restoreAllMocks n'a PAS restauré : la fuite est prouvée.
+    // If this throws, restoreAllMocks did NOT restore: the leak is proven.
     expect(() => window.localStorage.getItem('x')).not.toThrow();
   });
 });

@@ -1,20 +1,20 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Ce que les correctifs F-07 et « zone défilante » doivent PRODUIRE — pas ce
-// qu'ils posent dans le balisage.
+// What the F-07 and "scrollable region" fixes must PRODUCE — not what
+// they put in the markup.
 //
-// La distinction n'est pas rhétorique. La règle axe
-// `scrollable-region-focusable` se satisfait d'un `tabindex` : elle ne vérifie
-// jamais qu'on atteint réellement les colonnes hors écran. Un `tabindex` sur
-// un conteneur qui ne défile pas la contenterait tout autant. Ces tests-ci
-// appuient sur la touche et regardent le contenu bouger.
+// The distinction is not rhetorical. The axe rule
+// `scrollable-region-focusable` is satisfied by a `tabindex`: it never
+// checks that the off-screen columns are actually reachable. A `tabindex` on
+// a container that doesn't scroll would satisfy it just as well. These tests
+// press the key and watch the content move.
 //
-// La suite 20-a11y garde par ailleurs l'absence de violation ; les deux se
-// complètent et ne se remplacent pas.
+// The 20-a11y suite separately guards the absence of violations; the two
+// complement each other and do not replace each other.
 
 const MOBILE = { width: 390, height: 844 };
 
-/** Les tableaux ne débordent qu'en petit écran : c'est là qu'est le défaut. */
+/** Tables only overflow on small screens: that is where the defect is. */
 async function enPetitEcran(page: Page, route: string) {
   await page.setViewportSize(MOBILE);
   await page.goto(route);
@@ -32,13 +32,13 @@ for (const route of ['/fr/barometre', '/fr/adhesion']) {
     let debordantes = 0;
     for (let i = 0; i < nombre; i++) {
       const zone = zones.nth(i);
-      // Un arrêt de tabulation sans nom vaut à peine mieux qu'une zone close.
+      // A tab stop with no name is barely better than a closed region.
       await expect(zone).toHaveAttribute('aria-label', /\S/);
 
       const deborde = await zone.evaluate(
         (el) => el.scrollWidth - el.clientWidth,
       );
-      if (deborde <= 0) continue; // ce tableau-là tient : rien à atteindre
+      if (deborde <= 0) continue; // this particular table fits: nothing to reach
       debordantes++;
 
       await zone.focus();
@@ -64,9 +64,9 @@ for (const route of ['/fr/barometre', '/fr/adhesion']) {
   });
 }
 
-// F-07 — un lien noyé dans une phrase doit se distinguer AUTREMENT que par la
-// couleur (WCAG 1.4.1). Le survol ne compte pas : il n'existe ni au clavier,
-// ni au toucher, ni pour qui ne distingue pas la teinte employée.
+// F-07 — a link buried in a sentence must stand out OTHER than by
+// color (WCAG 1.4.1). Hover does not count: it does not exist with the keyboard,
+// nor on touch, nor for anyone who cannot distinguish the hue used.
 for (const route of ['/fr/connexion', '/fr/connexion-otp']) {
   test(`${route} : le lien dans la phrase est souligné sans survol`, async ({
     page,
@@ -74,8 +74,8 @@ for (const route of ['/fr/connexion', '/fr/connexion-otp']) {
     await page.goto(route);
     const lien = page.locator('p a[href$="adhesion"]');
     await expect(lien).toHaveCount(1);
-    // Style CALCULÉ, au repos : une classe `underline` présente dans le
-    // balisage ne prouverait pas qu'elle s'applique.
+    // COMPUTED style, at rest: an `underline` class present in the
+    // markup would not prove that it applies.
     const decoration = await lien.evaluate(
       (el) => getComputedStyle(el).textDecorationLine,
     );

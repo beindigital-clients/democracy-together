@@ -8,16 +8,16 @@ import { effectiveWorkspaceRole } from './lib/communaute';
 import { normalizeEmail } from './lib/onboarding';
 import { removeFileCascade } from './workspaceFiles';
 
-// DONNÉES D'UN COMPTE — chantier communauté (espaces collaboratifs, Tribune,
-// modération). Deux fonctions SIMPLES (pas des fonctions Convex) : la
-// suppression de compte et l'export RGPD les appellent dans leur propre
-// transaction, après avoir établi elles-mêmes qui parle. Elles ne lisent donc
-// jamais `ctx.auth` : `userId` est une donnée qu'on leur confie, pas une
-// identité qu'elles vérifient.
+// AN ACCOUNT'S DATA — community workstream (collaborative spaces, Tribune,
+// moderation). Two PLAIN functions (not Convex functions): account
+// deletion and the GDPR export call them in their own
+// transaction, after having established themselves who is speaking. They therefore never
+// read `ctx.auth`: `userId` is data entrusted to them, not an
+// identity they verify.
 //
-// Bornes : chaque lecture est plafonnée (un compte réel porte quelques
-// dizaines de contenus). Au-delà, la fonction rend `complete: false` et
-// l'appelant la rejoue dans une nouvelle transaction.
+// Bounds: each read is capped (a real account carries a few
+// dozen items). Beyond that, the function returns `complete: false` and
+// the caller replays it in a new transaction.
 
 const BATCH = 500;
 
@@ -35,8 +35,8 @@ export type CommunauteDeletionReport = {
   reports: number;
 };
 
-// Supprime un ESPACE entier : notes, fichiers (et blobs), invitations,
-// appartenances. Appelé quand son dernier membre disparaît.
+// Deletes an entire SPACE: notes, files (and blobs), invitations,
+// memberships. Called when its last member disappears.
 async function deleteWorkspaceCascade(
   ctx: MutationCtx,
   workspaceId: Id<'workspaces'>,
@@ -73,10 +73,10 @@ async function deleteWorkspaceCascade(
   await ctx.db.delete(workspaceId);
 }
 
-// Supprime un billet et tout ce qui s'y rattache (commentaires, réactions,
-// signalements, historique, invitations à approfondir). Les contributions de
-// fond d'AUTRES auteurs qui le prolongeaient restent en ligne : elles perdent
-// leur lien, pas leur existence.
+// Deletes a post and everything attached to it (comments, reactions,
+// reports, history, follow-up invitations). Substantive contributions
+// by OTHER authors that extended it stay online: they lose
+// their link, not their existence.
 async function deletePostCascade(ctx: MutationCtx, post: Doc<'tribunePosts'>) {
   const comments = await ctx.db
     .query('tribuneComments')
@@ -119,8 +119,8 @@ async function deletePostCascade(ctx: MutationCtx, post: Doc<'tribunePosts'>) {
   await ctx.db.delete(post._id);
 }
 
-// Signalements et historique d'un contenu supprimé : ils décrivaient un
-// contenu qui n'existe plus.
+// Reports and history of a deleted item: they described
+// content that no longer exists.
 async function deleteTargetTrail(
   ctx: MutationCtx,
   targetType: 'post' | 'comment',
@@ -160,10 +160,10 @@ export async function deleteUserDataCommunaute(
   const user = await ctx.db.get(userId);
   const email = user?.email ? normalizeEmail(user.email) : null;
 
-  // 1. ESPACES. L'appartenance part ; un espace dont l'utilisateur était le
-  // dernier membre part avec elle ; un espace qui garde des membres passe à
-  // un autre animateur (le plus ancien, ou à défaut le plus ancien membre,
-  // promu) — un espace sans animateur ne se gère plus.
+  // 1. SPACES. The membership goes; a space of which the user was the
+  // last member goes with it; a space that keeps members passes to
+  // another facilitator (the oldest one, or failing that the oldest member,
+  // promoted) — a space without a facilitator can no longer be managed.
   const memberships = await ctx.db
     .query('workspaceMembers')
     .withIndex('by_user', (q) => q.eq('userId', userId))
@@ -202,8 +202,8 @@ export async function deleteUserDataCommunaute(
     }
     await ctx.db.patch(ws._id, patch);
   }
-  // Un espace dont il était « titulaire » sans y être membre (données
-  // incohérentes) ne doit pas garder un identifiant orphelin.
+  // A space of which they were "owner" without being a member (inconsistent
+  // data) must not keep an orphan identifier.
   const owned = await ctx.db
     .query('workspaces')
     .withIndex('by_owner', (q) => q.eq('ownerUserId', userId))
@@ -213,8 +213,8 @@ export async function deleteUserDataCommunaute(
     report.workspacesDeleted++;
   }
 
-  // 2. NOTES et VERSIONS de fichiers qu'il a déposées. Une version retirée
-  // d'un fichier qui en garde d'autres laisse le fichier en place.
+  // 2. NOTES and file VERSIONS they uploaded. A removed version
+  // of a file that keeps others leaves the file in place.
   const notes = await ctx.db
     .query('workspaceNotes')
     .withIndex('by_author', (q) => q.eq('authorUserId', userId))
@@ -265,7 +265,7 @@ export async function deleteUserDataCommunaute(
     }
   }
 
-  // 3. INVITATIONS émises par lui, ou qui lui étaient adressées.
+  // 3. INVITATIONS issued by them, or addressed to them.
   const sent = await ctx.db
     .query('workspaceInvitations')
     .withIndex('by_inviter', (q) => q.eq('invitedBy', userId))
@@ -312,8 +312,8 @@ export async function deleteUserDataCommunaute(
     report.invitations++;
   }
 
-  // 4. TRIBUNE : ses billets (et ce qui s'y rattache), ses commentaires, ses
-  // réactions, ses signalements.
+  // 4. TRIBUNE: their posts (and what is attached to them), their comments, their
+  // reactions, their reports.
   const posts = await ctx.db
     .query('tribunePosts')
     .withIndex('by_author', (q) => q.eq('authorUserId', userId))
@@ -355,8 +355,8 @@ export async function deleteUserDataCommunaute(
     report.reports++;
   }
 
-  // 5. HISTORIQUE DE MODÉRATION : les actes qu'il a posés sur les contenus
-  // d'AUTRES restent — la décision a eu lieu — mais ne le nomment plus.
+  // 5. MODERATION HISTORY: the acts they performed on OTHERS' content
+  // remain — the decision took place — but no longer name them.
   const acts = await ctx.db
     .query('moderationEvents')
     .withIndex('by_actor', (q) => q.eq('actorId', userId))
@@ -377,9 +377,9 @@ export async function deleteUserDataCommunaute(
   return report;
 }
 
-// EXPORT (droit d'accès, RGPD art. 15) — ce que le chantier communauté
-// conserve de ce compte, sous une forme lisible. Pas de `storageId` ni d'URL :
-// l'export décrit les fichiers, il ne les rouvre pas.
+// EXPORT (right of access, GDPR art. 15) — what the community workstream
+// keeps about this account, in a readable form. No `storageId` or URL:
+// the export describes the files, it does not reopen them.
 export async function exportUserDataCommunaute(
   ctx: QueryCtx,
   userId: Id<'users'>,
