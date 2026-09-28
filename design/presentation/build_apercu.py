@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-# Aperçu maquettes Democracy Together : couverture A4 + une capture ENTIÈRE par page PDF
-# (chaque page a une hauteur sur-mesure calée sur la proportion de la capture).
+# Democracy Together mockup preview: A4 cover + one FULL screenshot per PDF page
+# (each page has a custom height matched to the screenshot's aspect ratio).
 import os, math, html
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FULL = os.path.join(HERE, "img", "full")
 
-# Mise en page (mm)
-PAGE_W   = 210          # largeur de page
-MARGIN_X = 10           # marge latérale -> largeur image
+# Layout (mm)
+PAGE_W   = 210          # page width
+MARGIN_X = 10           # side margin -> image width
 IMG_W    = PAGE_W - 2 * MARGIN_X
-TOP      = 16           # bandeau (11) + filet + respiration
-BOTTOM   = 8            # marge basse
+TOP      = 16           # header bar (11) + rule + breathing room
+BOTTOM   = 8            # bottom margin
 
-# Hiérarchie : sections (parcours du site) -> pages.  (fichier, titre)
+# Hierarchy: sections (site journey) -> pages.  (file, title)
 GROUPS = [
     ("Découverte & institutionnel", [
         ("accueil.png",       "Accueil"),
@@ -42,7 +42,7 @@ GROUPS = [
     ]),
 ]
 
-# Aplatissement + numérotation séquentielle 01..N (chaque page porte sa section)
+# Flattening + sequential numbering 01..N (each page carries its section)
 built = []   # (code, title, rel, page_h, section)
 n = 0
 for section, pages in GROUPS:
@@ -68,13 +68,13 @@ stripe = (f'<div class="stripe"><span style="background:{INDIGO}"></span>'
           f'<span style="background:{SAFRAN}"></span>'
           f'<span style="background:{TEAL}"></span></div>')
 
-# @page nommées (une taille par capture)
+# Named @page rules (one size per screenshot)
 page_rules = [f"@page cover {{ size: A4; margin:0 }}"]
 for i, (code, title, rel, page_h, section) in enumerate(built):
     page_rules.append(f"@page p{i} {{ size: {PAGE_W}mm {page_h}mm; margin:0 }}")
 page_rules = "\n".join(page_rules)
 
-# Sommaire groupé par section
+# Table of contents grouped by section
 toc_blocks = []
 idx = 0
 for s_no, (section, pages) in enumerate(GROUPS, 1):
@@ -104,7 +104,7 @@ cover = f"""
 </section>
 """
 
-# Pages : une capture entière par page
+# Pages: one full screenshot per page
 shots = []
 for i, (code, title, rel, page_h, section) in enumerate(built):
     shots.append(f"""
@@ -118,7 +118,7 @@ for i, (code, title, rel, page_h, section) in enumerate(built):
 </section>
 """)
 
-# CSS classes pp{i} -> page p{i} (+ hauteur explicite, sinon le conteneur s'effondre)
+# CSS classes pp{i} -> page p{i} (+ explicit height, otherwise the container collapses)
 pp_css = "\n".join(
     f".pp{i}{{page:p{i};height:{page_h}mm}}"
     for i, (_, _, _, page_h, _) in enumerate(built)

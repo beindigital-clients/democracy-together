@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
-/* ===== TOKENS (design system Democracy Together, repris verbatim) ===== */
+/* ===== TOKENS (Democracy Together design system, copied verbatim) ===== */
 :root{
   --paper:#F4F2EC; --surface:#FBFAF5; --surface-2:#EFEDE4;
   --ink:#16191F; --ink-soft:#454953; --muted:#646771;
@@ -46,7 +46,7 @@ img{max-width:100%;display:block}
 .lead{font-size:18px;color:var(--ink-soft)}
 .meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 
-/* boutons / tags (repris verbatim) */
+/* buttons / tags (copied verbatim) */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-size:14.5px;font-weight:600;line-height:1;padding:11px 18px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s}
 .btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--accent);color:var(--accent-contrast)}
@@ -59,7 +59,7 @@ img{max-width:100%;display:block}
 .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line)}
 .tag-accent{background:var(--accent-tint);color:var(--accent-text);border-color:var(--accent-edge)}
 
-/* ===== TOP BAR (barre supérieure, sticky) ===== */
+/* ===== TOP BAR (sticky) ===== */
 .top{position:sticky;top:0;z-index:70;height:64px;display:flex;align-items:center;gap:var(--s4);padding:0 var(--s5);background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto}
 .brand .name{font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.03em;color:var(--ink)}
@@ -90,7 +90,7 @@ img{max-width:100%;display:block}
 .dropdown .sep{height:1px;background:var(--line);margin:6px 0}
 @media(max-width:760px){.top .gsearch{display:none}.usertrig .un{display:none}.brand .space{display:none}}
 
-/* ===== LAYOUT (sidebar + contenu) ===== */
+/* ===== LAYOUT (sidebar + content) ===== */
 .shell{display:grid;grid-template-columns:248px 1fr;gap:var(--s7);max-width:var(--max);margin:0 auto;padding:var(--s6) var(--s5) var(--s8)}
 .side{align-self:start;position:sticky;top:88px}
 .side .grp{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:0 10px var(--s2)}
@@ -104,7 +104,7 @@ img{max-width:100%;display:block}
 .side .btn{width:100%}
 .side-foot{margin-top:var(--s5);padding-top:var(--s4);border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
 
-/* ===== CARTES & COMPOSANTS ===== */
+/* ===== CARDS & COMPONENTS ===== */
 .card-like{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:var(--shadow-1)}
 .card-pad{padding:var(--s5)}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s4);margin-bottom:var(--s4)}
@@ -113,12 +113,12 @@ img{max-width:100%;display:block}
 .sec-h a{font-size:13px;text-decoration:none}
 .sec-h a:hover{text-decoration:underline}
 
-/* en-tête contenu */
+/* content header */
 .greet{margin-bottom:var(--s6)}
 .greet h1{font-size:clamp(28px,3.4vw,38px)}
 .greet .day{margin-top:6px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-transform:capitalize}
 
-/* carte adhésion */
+/* membership card */
 .memb{display:grid;grid-template-columns:1fr auto;gap:var(--s5);align-items:center;border-left:3px solid var(--bar-1)}
 .memb .lbl{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
 .memb .st{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:var(--s4)}
@@ -130,7 +130,7 @@ img{max-width:100%;display:block}
 .bar > i{display:block;height:100%;background:var(--bar-1);border-radius:var(--r-pill)}
 .bar-note{margin-top:7px;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
 
-/* badges de statut */
+/* status badges */
 .badge{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:var(--r-pill);border:1px solid var(--line);white-space:nowrap}
 .badge.ok{color:var(--bar-1);border-color:color-mix(in srgb,var(--bar-1) 45%,transparent);background:color-mix(in srgb,var(--bar-1) 9%,transparent)}
 .badge.rev{color:var(--bar-4);border-color:color-mix(in srgb,var(--bar-4) 48%,transparent);background:color-mix(in srgb,var(--bar-4) 10%,transparent)}
@@ -144,10 +144,10 @@ img{max-width:100%;display:block}
 .kpi .delta{font-family:var(--font-mono);font-size:11px;margin-top:6px;color:var(--bar-1)}
 @media(max-width:680px){.kpis{grid-template-columns:repeat(2,1fr)}}
 
-/* colonnes */
+/* columns */
 .cols{display:grid;grid-template-columns:1.65fr 1fr;gap:var(--s5);align-items:start}
 
-/* tableau contributions */
+/* contributions table */
 .tbl{width:100%;border-collapse:collapse}
 .tbl thead th{text-align:left;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500;padding:0 var(--s3) var(--s3);border-bottom:1px solid var(--line)}
 .tbl td{padding:var(--s3);border-bottom:1px solid var(--line);vertical-align:middle;font-size:14px}
@@ -162,13 +162,13 @@ img{max-width:100%;display:block}
 .tbl .go:hover{text-decoration:underline}
 @media(max-width:520px){.tbl .hide-sm{display:none}}
 
-/* appels à contributions */
+/* calls for contributions */
 .calls{display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s5)}
 .call{display:flex;gap:var(--s4);align-items:center;justify-content:space-between;padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--paper)}
 .call .ci .t{font-size:14.5px;font-weight:600;color:var(--ink)}
 .call .ci .d{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:.03em}
 
-/* fil d'activité */
+/* activity feed */
 .feed{display:flex;flex-direction:column}
 .feed li{display:flex;gap:11px;padding:var(--s3) 0;border-bottom:1px solid var(--line);list-style:none}
 .feed li:last-child{border-bottom:0;padding-bottom:0}
@@ -180,7 +180,7 @@ img{max-width:100%;display:block}
 .feed .fc b{color:var(--ink);font-weight:600}
 .feed .ft{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);margin-top:3px;letter-spacing:.03em}
 
-/* prochains événements */
+/* upcoming events */
 .evt{display:flex;gap:var(--s4);padding:var(--s3) 0;border-bottom:1px solid var(--line)}
 .evt:last-child{border-bottom:0}
 .evt .date{flex:0 0 auto;width:50px;text-align:center;font-family:var(--font-mono)}
@@ -190,7 +190,7 @@ img{max-width:100%;display:block}
 .evt .ei .w{font-size:12.5px;color:var(--muted);margin-top:3px}
 .evt .ei .w span{color:var(--ink-soft)}
 
-/* actions rapides */
+/* quick actions */
 .quick{display:flex;flex-direction:column;gap:var(--s2)}
 .quick a{display:flex;align-items:center;gap:11px;padding:11px var(--s4);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--paper);text-decoration:none;color:var(--ink);font-size:14px;font-weight:500}
 .quick a:hover{border-color:var(--accent-edge);background:var(--accent-tint)}
@@ -199,7 +199,7 @@ img{max-width:100%;display:block}
 
 .stack{display:flex;flex-direction:column;gap:var(--s5)}
 
-/* bandeau compléter le profil */
+/* complete-your-profile banner */
 .complete{margin-top:var(--s6);display:flex;align-items:center;gap:var(--s5);padding:var(--s5);border:1px solid var(--accent-edge);border-radius:var(--r-sm);background:var(--accent-tint)}
 .complete .ic{flex:0 0 auto;width:46px;height:46px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center;background:var(--surface);color:var(--accent-text);border:1px solid var(--accent-edge)}
 .complete .ct{flex:1}
@@ -210,7 +210,7 @@ img{max-width:100%;display:block}
 .complete .pr .track > i{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill)}
 .complete .pr .pct{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--accent-text)}
 
-/* pied de page minimal */
+/* minimal footer */
 .foot{border-top:1px solid var(--line);margin-top:var(--s8)}
 .foot .fb{max-width:var(--max);margin:0 auto;padding:var(--s5);display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
 .foot .fb a{color:var(--muted);text-decoration:none}
@@ -232,7 +232,7 @@ img{max-width:100%;display:block}
 </head>
 <body>
 
-<!-- ===== BARRE SUPÉRIEURE ===== -->
+<!-- ===== TOP BAR ===== -->
 <header class="top">
   <a class="brand" href="rmdl-accueil.html" aria-label="Democracy Together, accueil">
     <svg class="seal" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15.5" stroke="var(--accent)" stroke-width="1.5"/><path d="M2.5 17 H31.5" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/><circle cx="11" cy="11" r="2.4" fill="var(--accent)"/><circle cx="23" cy="22" r="2.4" fill="var(--accent)"/><line x1="11" y1="11" x2="23" y2="22" stroke="var(--accent)" stroke-width="1.2"/></svg>
@@ -322,16 +322,16 @@ img{max-width:100%;display:block}
     </div>
   </aside>
 
-  <!-- CONTENU PRINCIPAL -->
+  <!-- MAIN CONTENT -->
   <main>
 
-    <!-- a. En-tête -->
+    <!-- a. Header -->
     <div class="greet">
       <h1>Bonjour, Aminata</h1>
       <div class="day">Mardi 25 juin 2026</div>
     </div>
 
-    <!-- b. Carte statut d'adhésion -->
+    <!-- b. Membership status card -->
     <section class="card-like card-pad memb" aria-label="Statut d'adhésion">
       <div>
         <div class="lbl">Statut d'adhésion</div>
@@ -365,7 +365,7 @@ img{max-width:100%;display:block}
       </div>
     </section>
 
-    <!-- c. Ligne de KPI -->
+    <!-- c. KPI row -->
     <section class="kpis" aria-label="Mes statistiques">
       <div class="card-like kpi">
         <div class="k">12</div>
@@ -389,13 +389,13 @@ img{max-width:100%;display:block}
       </div>
     </section>
 
-    <!-- d. Deux colonnes -->
+    <!-- d. Two columns -->
     <div class="cols">
 
-      <!-- Colonne large -->
+      <!-- Wide column -->
       <div class="stack">
 
-        <!-- Mes contributions récentes -->
+        <!-- My recent contributions -->
         <section class="card-like card-pad" aria-label="Mes contributions récentes">
           <div class="sec-h">
             <h2>Mes contributions récentes</h2>
@@ -466,7 +466,7 @@ img{max-width:100%;display:block}
           </table>
         </section>
 
-        <!-- Appels à contributions -->
+        <!-- Calls for contributions -->
         <section class="card-like card-pad" aria-label="Appels à contributions">
           <div class="sec-h">
             <h3>Appels à contributions</h3>
@@ -499,10 +499,10 @@ img{max-width:100%;display:block}
 
       </div>
 
-      <!-- Colonne étroite -->
+      <!-- Narrow column -->
       <div class="stack">
 
-        <!-- Activité récente -->
+        <!-- Recent activity -->
         <section class="card-like card-pad" aria-label="Activité récente">
           <div class="sec-h">
             <h3>Activité récente</h3>
@@ -548,7 +548,7 @@ img{max-width:100%;display:block}
           </ul>
         </section>
 
-        <!-- Prochains événements -->
+        <!-- Upcoming events -->
         <section class="card-like card-pad" aria-label="Prochains événements">
           <div class="sec-h">
             <h3>Prochains événements</h3>
@@ -577,7 +577,7 @@ img{max-width:100%;display:block}
           </div>
         </section>
 
-        <!-- Actions rapides -->
+        <!-- Quick actions -->
         <section class="card-like card-pad" aria-label="Actions rapides">
           <div class="sec-h"><h3>Actions rapides</h3></div>
           <nav class="quick">
@@ -602,7 +602,7 @@ img{max-width:100%;display:block}
       </div>
     </div>
 
-    <!-- e. Bandeau compléter le profil -->
+    <!-- e. Complete-your-profile banner -->
     <section class="complete" aria-label="Complétez votre profil">
       <span class="ic" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
@@ -621,7 +621,7 @@ img{max-width:100%;display:block}
   </main>
 </div>
 
-<!-- ===== PIED DE PAGE MINIMAL ===== -->
+<!-- ===== MINIMAL FOOTER ===== -->
 <footer class="foot">
   <div class="fb">
     <span>Democracy Together</span>
@@ -636,13 +636,13 @@ img{max-width:100%;display:block}
 
 <script>
 (function(){
-  // Bascule de thème (même script que les autres pages)
+  // Theme toggle (same script as the other pages)
   document.getElementById('themeBtn').addEventListener('click',function(){
     var r=document.documentElement;
     r.setAttribute('data-theme', r.getAttribute('data-theme')==='dark'?'light':'dark');
   });
 
-  // Menu déroulant du compte
+  // Account dropdown menu
   var ub=document.getElementById('userBtn'), dd=document.getElementById('userDrop');
   function closeMenu(){dd.classList.remove('open');ub.setAttribute('aria-expanded','false');}
   ub.addEventListener('click',function(e){

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
-/* ===== TOKENS (design system Democracy Together, repris verbatim) ===== */
+/* ===== TOKENS (Democracy Together design system, copied verbatim) ===== */
 :root{
   --paper:#F4F2EC; --surface:#FBFAF5; --surface-2:#EFEDE4;
   --ink:#16191F; --ink-soft:#454953; --muted:#646771;
@@ -52,7 +52,7 @@ img{max-width:100%;display:block}
 .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 
-/* ===== BOUTONS / TAGS (repris verbatim) ===== */
+/* ===== BUTTONS / TAGS (copied verbatim) ===== */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-size:15px;font-weight:600;line-height:1;padding:13px 22px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,border-color .15s}
 .btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--accent);color:var(--accent-contrast)}
@@ -64,7 +64,7 @@ img{max-width:100%;display:block}
 .tag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line)}
 .tag-accent{background:var(--accent-tint);color:var(--accent-text);border-color:var(--accent-edge)}
 
-/* ===== NAV (repris verbatim) ===== */
+/* ===== NAV (copied verbatim) ===== */
 .nav{position:sticky;top:0;z-index:60;height:72px;display:flex;align-items:center;gap:var(--s6);padding:0 var(--s5);background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line)}
 .nav .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.03em;color:var(--ink);text-decoration:none}
 .seal{width:30px;height:30px;flex:0 0 auto}
@@ -81,14 +81,14 @@ img{max-width:100%;display:block}
 .burger{display:none;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:8px 11px;cursor:pointer;color:var(--ink)}
 @media(max-width:980px){.nav .links{display:none}.burger{display:inline-flex}.nav .links.open{display:flex;position:absolute;top:72px;left:0;right:0;flex-direction:column;background:var(--paper);border-bottom:1px solid var(--line);padding:var(--s4) var(--s5);gap:var(--s4)}}
 
-/* ===== FIL D'ARIANE ===== */
+/* ===== BREADCRUMB ===== */
 .crumb-bar{border-bottom:1px solid var(--line);background:var(--surface)}
 .crumb{font-size:13px;color:var(--muted);padding:var(--s4) 0}
 .crumb a{color:var(--muted);text-decoration:none}
 .crumb a:hover{color:var(--ink)}
 .crumb span[aria-current]{color:var(--ink)}
 
-/* ===== HERO ÉVÉNEMENT ===== */
+/* ===== EVENT HERO ===== */
 .ev-hero{padding:var(--s8) 0 var(--s7)}
 .ev-hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--s8);align-items:center}
 .badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--s4)}
@@ -108,7 +108,7 @@ img{max-width:100%;display:block}
 @media(max-width:900px){.ev-hero-grid{grid-template-columns:1fr;gap:var(--s6)}.ev-visual{aspect-ratio:16/10;order:-1}}
 @media(max-width:560px){.factbar{grid-template-columns:1fr;border-top:0}.factbar div{border-left:0;border-top:1px solid var(--line);padding:var(--s3) 0}}
 
-/* ===== CORPS : 2 COLONNES ===== */
+/* ===== BODY: 2 COLUMNS ===== */
 .body-grid{display:grid;grid-template-columns:1fr 360px;gap:var(--s8);padding:var(--s8) 0 var(--s9);align-items:start}
 @media(max-width:980px){.body-grid{grid-template-columns:1fr;gap:var(--s7)}}
 
@@ -118,7 +118,7 @@ img{max-width:100%;display:block}
 .block .intro{font-size:17px;color:var(--ink-soft);max-width:62ch}
 .block p + p{margin-top:var(--s4)}
 
-/* Programme (timeline) */
+/* Program (timeline) */
 .prog{margin-top:var(--s5);border-top:1px solid var(--line)}
 .slot{display:grid;grid-template-columns:118px 1fr;gap:var(--s5);padding:var(--s5) 0;border-bottom:1px solid var(--line);align-items:start}
 .slot .time{font-family:var(--font-mono);font-size:13px;color:var(--accent-text);padding-top:2px}
@@ -133,7 +133,7 @@ img{max-width:100%;display:block}
 .slot .kind.k-tr{color:var(--bar-5);border-color:color-mix(in srgb,var(--bar-5) 45%,transparent)}
 @media(max-width:560px){.slot{grid-template-columns:1fr;gap:var(--s2)}}
 
-/* Intervenants */
+/* Speakers */
 .speakers{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s4);margin-top:var(--s5)}
 .spk{display:flex;gap:var(--s4);align-items:flex-start;padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface)}
 .spk .ava{width:56px;height:56px;border-radius:var(--r-pill);object-fit:cover;flex:0 0 auto;background:var(--surface-2)}
@@ -143,7 +143,7 @@ img{max-width:100%;display:block}
 .spk .badge-fond{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-text);margin-top:6px;display:inline-block}
 @media(max-width:560px){.speakers{grid-template-columns:1fr}}
 
-/* Infos pratiques */
+/* Practical info */
 .facts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s4);margin-top:var(--s5)}
 .fact{border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s5);background:var(--surface)}
 .fact .ic{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-text);margin-bottom:8px}
@@ -151,7 +151,7 @@ img{max-width:100%;display:block}
 .fact p{font-size:14px;color:var(--ink-soft)}
 @media(max-width:560px){.facts-grid{grid-template-columns:1fr}}
 
-/* ===== BARRE LATÉRALE COLLANTE ===== */
+/* ===== STICKY SIDEBAR ===== */
 .side{position:sticky;top:88px;display:flex;flex-direction:column;gap:var(--s4)}
 .ticket{border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);box-shadow:var(--shadow-1);overflow:hidden}
 .ticket .th{padding:var(--s5) var(--s5) var(--s4);border-bottom:1px solid var(--line)}
@@ -187,7 +187,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
 .side-actions{display:flex;gap:var(--s3)}
 .side-actions .btn{flex:1}
 
-/* ===== REPLAYS / RESSOURCES ===== */
+/* ===== REPLAYS / RESOURCES ===== */
 .replays{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .replays .inner{padding:var(--s8) 0}
 .res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s4);margin-top:var(--s6)}
@@ -197,7 +197,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
 .res p{font-size:13.5px;color:var(--ink-soft)}
 @media(max-width:760px){.res-grid{grid-template-columns:1fr}}
 
-/* ===== ÉVÉNEMENTS LIÉS ===== */
+/* ===== RELATED EVENTS ===== */
 .related{padding:var(--s9) 0}
 .rel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s5);margin-top:var(--s6)}
 .rcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--shadow-1);text-decoration:none;color:inherit;transition:box-shadow .18s,transform .18s,border-color .18s}
@@ -209,7 +209,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
 .rcard .rmore{margin-top:auto;padding-top:var(--s4);font-size:13px;color:var(--accent-text);font-weight:600}
 @media(max-width:760px){.rel-grid{grid-template-columns:1fr}}
 
-/* ===== FOOTER (repris verbatim) ===== */
+/* ===== FOOTER (copied verbatim) ===== */
 .foot{background:var(--ink);color:#cfd2d8}
 [data-theme="dark"] .foot{background:#0E1116}
 .foot a{color:#cfd2d8;text-decoration:none;font-size:14px}
@@ -251,7 +251,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
   </div>
 </nav>
 
-<!-- =================== FIL D'ARIANE =================== -->
+<!-- =================== BREADCRUMB =================== -->
 <div class="crumb-bar">
   <div class="wrap">
     <nav class="crumb" aria-label="Fil d'Ariane">
@@ -260,7 +260,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
   </div>
 </div>
 
-<!-- =================== HERO ÉVÉNEMENT =================== -->
+<!-- =================== EVENT HERO =================== -->
 <header class="ev-hero wrap">
   <div class="ev-hero-grid reveal">
     <div>
@@ -290,14 +290,14 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
   </div>
 </header>
 
-<!-- =================== CORPS 2 COLONNES =================== -->
+<!-- =================== 2-COLUMN BODY =================== -->
 <main class="wrap">
   <div class="body-grid">
 
-    <!-- ----- COLONNE PRINCIPALE ----- -->
+    <!-- ----- MAIN COLUMN ----- -->
     <div>
 
-      <!-- Présentation -->
+      <!-- Overview -->
       <section class="block reveal" id="presentation">
         <h2>La journée</h2>
         <p class="intro">La conférence inaugurale marque la naissance officielle de Democracy Together. Pendant une journée, le réseau présente sa raison d'être, ses premiers travaux et sa méthode : relier des think tanks d'Afrique et d'Europe pour produire une pensée démocratique partagée et citable.</p>
@@ -305,7 +305,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
         <p>L'événement réunit environ 280 participants attendus (donnée d'illustration), avec une diffusion en direct pour les membres ne pouvant se déplacer.</p>
       </section>
 
-      <!-- Programme -->
+      <!-- Program -->
       <section class="block reveal" id="programme">
         <h2>Programme détaillé</h2>
         <p class="intro">Horaires de Paris (CET). Programme prévisionnel, susceptible d'ajustements jusqu'à l'ouverture.</p>
@@ -408,7 +408,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
         </div>
       </section>
 
-      <!-- Intervenants -->
+      <!-- Speakers -->
       <section class="block reveal" id="intervenants">
         <h2>Intervenants</h2>
         <p class="intro">Programmation en cours. Fondateurs et premiers intervenants confirmés ci-dessous (liste indicative).</p>
@@ -468,7 +468,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
         </div>
       </section>
 
-      <!-- Infos pratiques -->
+      <!-- Practical info -->
       <section class="block reveal" id="infos">
         <h2>Infos pratiques</h2>
         <div class="facts-grid">
@@ -507,7 +507,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
 
     </div>
 
-    <!-- ----- BARRE LATÉRALE COLLANTE ----- -->
+    <!-- ----- STICKY SIDEBAR ----- -->
     <aside class="side" aria-label="Inscription">
 
       <form class="ticket" id="billetterie" novalidate>
@@ -583,7 +583,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
   </div>
 </main>
 
-<!-- =================== REPLAYS / RESSOURCES =================== -->
+<!-- =================== REPLAYS / RESOURCES =================== -->
 <section class="replays">
   <div class="wrap inner reveal">
     <p class="eyebrow">Après l'événement</p>
@@ -609,7 +609,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
   </div>
 </section>
 
-<!-- =================== ÉVÉNEMENTS LIÉS =================== -->
+<!-- =================== RELATED EVENTS =================== -->
 <section class="related wrap">
   <div class="reveal">
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s5);flex-wrap:wrap">
@@ -693,7 +693,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
 </script>
 
 <script>
-/* ===== Billetterie : tarif + quantité -> total (données d'illustration) ===== */
+/* ===== Ticketing: rate + quantity -> total (illustrative data) ===== */
 (function(){
   var MAX=10, MIN=1, qty=1;
   var tiers=document.querySelectorAll('input[name="tier"]');
@@ -728,7 +728,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
     alert('Réservation (maquette) : ' + qty + ' place(s) « ' + label + ' », total ' + montant + '. Données d\'illustration, aucun paiement réel.');
   });
 
-  /* Ajouter au calendrier : génère un fichier .ics local */
+  /* Add to calendar: generates a local .ics file */
   document.getElementById('calBtn').addEventListener('click', function(){
     var ics=[
       'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Democracy Together//Conference inaugurale//FR',
@@ -747,7 +747,7 @@ legend{font-family:var(--font-sans);font-size:12px;text-transform:uppercase;lett
     URL.revokeObjectURL(url);
   });
 
-  /* Partager : Web Share API avec repli copie du lien */
+  /* Share: Web Share API with copy-link fallback */
   document.getElementById('shareBtn').addEventListener('click', function(){
     var data={ title:'Conférence inaugurale de Democracy Together', text:'Sommet de lancement de Democracy Together, Paris, 14 novembre 2026.', url:location.href };
     if(navigator.share){ navigator.share(data).catch(function(){}); }
