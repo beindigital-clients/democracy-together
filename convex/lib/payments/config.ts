@@ -2,32 +2,32 @@ import { CURRENCIES, type Currency } from './amounts';
 import type { ProviderId } from './validators';
 import type { SiteLocale } from '../locales';
 
-// CONFIGURATION DES PAIEMENTS — tout vient des variables d'environnement du
-// déploiement Convex, jamais du code. Sans clé, aucun prestataire n'est
-// proposé : l'interface le DIT (pas de bouton mort) et propose le virement ou
-// le contact. Même principe que l'e-mail (convex/email.ts) et reCAPTCHA
-// (convex/lib/recaptcha.ts) : une configuration absente est un refus propre.
+// PAYMENT CONFIGURATION — everything comes from the Convex deployment's
+// environment variables, never from code. Without a key, no provider is
+// offered: the interface SAYS so (no dead button) and offers bank transfer or
+// the contact form. Same principle as e-mail (convex/email.ts) and reCAPTCHA
+// (convex/lib/recaptcha.ts): a missing configuration is a clean refusal.
 
-// --- Prestataire factice ------------------------------------------------------
+// --- Fake provider ------------------------------------------------------------
 //
-// Le prestataire factice simule le paiement ET le webhook de bout en bout : il
-// sert aux E2E et au développement, sans compte chez personne. Il crée de
-// VRAIES transactions et de VRAIS reçus numérotés : sur un déploiement de
-// production, il permettrait de fabriquer des reçus pour de l'argent jamais
-// reçu. D'où une garde à trois conditions, sur le modèle d'`AUTH_DEV_OTP`
-// (convex/otp.ts, convex/devAdmin.ts) :
+// The fake provider simulates the payment AND the webhook end to end: it
+// serves E2E tests and development, with no account anywhere. It creates
+// REAL transactions and REAL numbered receipts: on a production deployment,
+// it would make it possible to issue receipts for money never received.
+// Hence a three-condition guard, modelled on `AUTH_DEV_OTP`
+// (convex/otp.ts, convex/devAdmin.ts):
 //
-//  1. `PAYMENTS_FAKE_PROVIDER` vaut EXACTEMENT `1` — une valeur posée de
-//     travers (`true`, `yes`) n'active rien ;
-//  2. `AUTH_DEV_OTP` vaut `true` — le marqueur de dev/préversion du dépôt, que
-//     la doc de déploiement interdit en production ;
-//  3. aucun INDICATEUR DE PRODUCTION n'est présent : une clé Stripe live
-//     (`sk_live_…`/`rk_live_…`). Un déploiement qui
-//     encaisse de l'argent réel ne simule pas de paiement, même si les deux
-//     premiers drapeaux y ont fui.
+//  1. `PAYMENTS_FAKE_PROVIDER` is EXACTLY `1` — a sloppily set value
+//     (`true`, `yes`) activates nothing;
+//  2. `AUTH_DEV_OTP` is `true` — the repo's dev/preview marker, which the
+//     deployment docs forbid in production;
+//  3. no PRODUCTION INDICATOR is present: a live Stripe key
+//     (`sk_live_…`/`rk_live_…`). A deployment that
+//     collects real money does not simulate payments, even if the first two
+//     flags leaked into it.
 //
-// Drapeau posé mais garde refusée : état `refused`, bruyant dans les journaux,
-// et le prestataire reste coupé.
+// Flag set but guard refused: `refused` state, loud in the logs, and the
+// provider stays off.
 export type FakeProviderState = 'off' | 'active' | 'refused';
 
 export function productionIndicators(): string[] {
@@ -57,16 +57,16 @@ export function fakeProviderState(): FakeProviderState {
   return 'active';
 }
 
-// Secret HMAC des webhooks factices. Une valeur par défaut est acceptable ICI
-// et seulement ici : le prestataire factice n'existe que derrière la garde
-// ci-dessus, et le secret ne protège aucun argent réel.
+// HMAC secret for fake webhooks. A default value is acceptable HERE and only
+// here: the fake provider only exists behind the guard above, and the secret
+// protects no real money.
 export function fakeWebhookSecret(): string {
   return (
     process.env.PAYMENTS_FAKE_WEBHOOK_SECRET || 'dt-fake-provider-dev-secret'
   );
 }
 
-// --- Prestataires réels -------------------------------------------------------
+// --- Real providers -----------------------------------------------------------
 
 export function stripeConfigured(): boolean {
   return !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET;
@@ -81,33 +81,33 @@ export function isProviderEnabled(provider: ProviderId): boolean {
   }
 }
 
-// Prestataire retenu pour une devise. Stripe règle TOUTES les devises du site
-// (euro et dollar) avec le même compte. Un prestataire réel configuré
-// l'emporte sur le factice, pour qu'un développeur qui teste ses clés de test
-// Stripe ne passe pas par la simulation. Une devise que Stripe ne couvrirait
-// pas (franc CFA réglé par un prestataire africain, plus tard) se brancherait
-// ici, avec son adaptateur (convex/lib/payments/registry.ts).
+// Provider chosen for a currency. Stripe settles ALL the site's currencies
+// (euro and dollar) with the same account. A configured real provider takes
+// precedence over the fake one, so that a developer testing their Stripe test
+// keys does not go through the simulation. A currency Stripe would not cover
+// (CFA franc settled by an African provider, later) would plug in here, with
+// its adapter (convex/lib/payments/registry.ts).
 export function providerForCurrency(currency: Currency): ProviderId | null {
   if (CURRENCIES.includes(currency) && stripeConfigured()) return 'stripe';
   if (fakeProviderState() === 'active') return 'fake';
   return null;
 }
 
-// --- Adresses -----------------------------------------------------------------
+// --- Addresses ----------------------------------------------------------------
 
 export function siteUrl(): string {
   return (process.env.SITE_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
 }
 
-// Adresse publique des actions HTTP Convex (routes de webhook) : fournie par
-// la plateforme sur chaque déploiement.
+// Public address of the Convex HTTP actions (webhook routes): provided by the
+// platform on every deployment.
 export function convexSiteUrl(): string {
   return (process.env.CONVEX_SITE_URL ?? '').replace(/\/+$/, '');
 }
 
 export type ReturnOutcome = 'succes' | 'annule';
 
-/** Chemin (sans hôte) de la page de retour de paiement. */
+/** Path (without host) of the payment return page. */
 export function returnPath(
   locale: SiteLocale,
   ref: string,
@@ -128,12 +128,12 @@ export function receiptLinkUrl(locale: SiteLocale, token: string): string {
   return `${siteUrl()}/${locale}/paiement/recu/${token}`;
 }
 
-// --- Mentions de l'association (reçus) ----------------------------------------
+// --- Association details (receipts) -------------------------------------------
 //
-// Les informations légales ne sont pas encore fournies par l'association
-// (docs/infos-legales-client.md : siège, représentant légal, RNA/SIRET). Elles
-// ne sont JAMAIS inventées : sans variable, le reçu porte le même marqueur que
-// les mentions légales du site (src/lib/legal-content.ts).
+// The legal information has not yet been provided by the association
+// (docs/infos-legales-client.md: head office, legal representative, RNA/SIRET).
+// It is NEVER invented: without a variable, the receipt carries the same
+// marker as the site's legal notice (src/lib/legal-content.ts).
 export const LEGAL_TODO = '[à compléter avant mise en ligne]';
 
 export type AssociationInfo = {
@@ -143,9 +143,9 @@ export type AssociationInfo = {
   rna: string;
   siret: string | null;
   representative: string;
-  // Le régime du mécénat (reçu fiscal, art. 200 et 238 bis du CGI) suppose un
-  // rescrit que l'association n'a pas (RMDL-cadrage-technique.md, risques
-  // juridiques). Tant qu'il n'est pas confirmé, le reçu le dit.
+  // The patronage scheme (tax receipt, art. 200 and 238 bis of the CGI) requires
+  // a tax ruling the association does not have (RMDL-cadrage-technique.md, legal
+  // risks). Until it is confirmed, the receipt says so.
   taxReceiptEligible: boolean;
 };
 
@@ -163,9 +163,9 @@ export function associationInfo(): AssociationInfo {
   };
 }
 
-// Coordonnées de virement, proposées quand aucun prestataire n'est disponible.
-// Absentes des informations légales fournies à ce jour : sans IBAN configuré,
-// l'interface renvoie vers le formulaire de contact.
+// Bank transfer details, offered when no provider is available. Missing from
+// the legal information provided so far: without a configured IBAN, the
+// interface points to the contact form.
 export type BankTransferInfo = {
   holder: string;
   iban: string;

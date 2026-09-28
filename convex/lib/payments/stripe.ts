@@ -11,21 +11,21 @@ import {
 import type { SiteLocale } from '../locales';
 import { CURRENCIES, isCurrency, type Currency } from './amounts';
 
-// ADAPTATEUR STRIPE — euro et dollar des États-Unis, avec le même compte.
+// STRIPE ADAPTER — euro and US dollar, with the same account.
 //
-// API REST par `fetch`, sans SDK : le SDK Node imposerait `"use node"` (donc un
-// fichier d'actions à part et un runtime plus lent à démarrer) pour trois
-// appels. Stripe Checkout HÉBERGÉ : aucune donnée de carte ne transite par le
-// site, ce qui garde le périmètre PCI-DSS au minimum (SAQ A).
+// REST API via `fetch`, no SDK: the Node SDK would require `"use node"` (hence
+// a separate actions file and a runtime slower to start) for three calls.
+// HOSTED Stripe Checkout: no card data passes through the site, which keeps
+// the PCI-DSS scope to a minimum (SAQ A).
 //
-// Abonnements : `mode=subscription` avec un prix mensuel créé à la volée
-// (`price_data.recurring`) — pas de catalogue de produits à maintenir chez
-// Stripe pour un montant de don libre.
+// Subscriptions: `mode=subscription` with a monthly price created on the fly
+// (`price_data.recurring`) — no product catalogue to maintain at Stripe for
+// a free donation amount.
 
 const API = 'https://api.stripe.com/v1';
 
-// Tolérance de l'horodatage signé (recommandation Stripe : 5 minutes). Au-delà,
-// une requête signée capturée ne peut plus être rejouée.
+// Tolerance for the signed timestamp (Stripe recommendation: 5 minutes).
+// Beyond that, a captured signed request can no longer be replayed.
 export const STRIPE_SIGNATURE_TOLERANCE_S = 300;
 
 const STRIPE_LOCALES: Record<SiteLocale, string> = {
@@ -33,7 +33,7 @@ const STRIPE_LOCALES: Record<SiteLocale, string> = {
   en: 'en',
   es: 'es',
   pt: 'pt',
-  // Stripe Checkout n'a pas d'interface arabe : `auto` suit le navigateur.
+  // Stripe Checkout has no Arabic interface: `auto` follows the browser.
   ar: 'auto',
 };
 
@@ -54,8 +54,8 @@ async function stripeRequest(
     Authorization: `Bearer ${secretKey()}`,
   };
   if (params) headers['Content-Type'] = 'application/x-www-form-urlencoded';
-  // Clé d'idempotence Stripe : un nouvel essai après une coupure réseau
-  // rend la MÊME session au lieu d'en ouvrir une seconde.
+  // Stripe idempotency key: a retry after a network drop returns the SAME
+  // session instead of opening a second one.
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
   const res = await fetch(`${API}${path}`, {
     method,
@@ -73,12 +73,12 @@ async function stripeRequest(
   return body;
 }
 
-// --- Lecture tolérante des objets Stripe -------------------------------------
+// --- Lenient reading of Stripe objects ---------------------------------------
 //
-// Les champs ont bougé d'une version d'API à l'autre (2025 : `invoice.
-// subscription` est passé sous `invoice.parent.subscription_details`). On lit
-// les deux formes plutôt que d'épingler une version : le compte Stripe de
-// l'association peut être sur l'une ou l'autre.
+// Fields have moved from one API version to another (2025: `invoice.
+// subscription` moved under `invoice.parent.subscription_details`). We read
+// both shapes rather than pinning a version: the association's Stripe account
+// may be on either one.
 
 type Obj = Record<string, unknown>;
 
@@ -89,7 +89,7 @@ function str(o: unknown, ...path: string[]): string | undefined {
     cur = (cur as Obj)[k];
   }
   if (typeof cur === 'string') return cur;
-  // Champ « expansible » : un objet portant son `id`.
+  // "Expandable" field: an object carrying its `id`.
   if (cur && typeof cur === 'object' && typeof (cur as Obj).id === 'string') {
     return (cur as Obj).id as string;
   }
@@ -105,14 +105,14 @@ function num(o: unknown, ...path: string[]): number | undefined {
   return typeof cur === 'number' ? cur : undefined;
 }
 
-// Une devise inconnue du site (compte Stripe réglé dans une autre devise par
-// erreur) n'est pas enregistrée : le grand livre ne sait pas la totaliser.
+// A currency unknown to the site (Stripe account settled in another currency
+// by mistake) is not recorded: the ledger cannot total it.
 function currencyOf(o: Obj): Currency | null {
   const c = str(o, 'currency')?.toUpperCase();
   return isCurrency(c) ? c : null;
 }
 
-/** Session Checkout payée en mode paiement → paiement réussi. */
+/** Checkout session paid in payment mode → successful payment. */
 export function eventsFromCheckoutSession(
   session: Obj,
   paidAt: number,
@@ -143,8 +143,8 @@ export function eventsFromCheckoutSession(
         ]
       : [];
   }
-  // Moyens de paiement différés (SEPA…) : la session est `complete` mais
-  // l'argent n'est pas là. On attend `async_payment_succeeded`.
+  // Delayed payment methods (SEPA…): the session is `complete` but the money
+  // is not there. We wait for `async_payment_succeeded`.
   if (paymentStatus !== 'paid') return [];
   const amount = num(session, 'amount_total');
   const currency = currencyOf(session);
@@ -162,7 +162,7 @@ export function eventsFromCheckoutSession(
   ];
 }
 
-/** Facture d'abonnement payée → une échéance de don mensuel. */
+/** Paid subscription invoice → one monthly donation instalment. */
 export function eventsFromInvoice(
   invoice: Obj,
   paidAt: number,
@@ -192,7 +192,7 @@ export function eventsFromInvoice(
   ];
 }
 
-/** Traduit un événement Stripe DÉJÀ AUTHENTIFIÉ. */
+/** Translates an ALREADY AUTHENTICATED Stripe event. */
 export function translateStripeEvent(event: Obj): NormalizedEvent[] {
   const type = str(event, 'type') ?? '';
   const object = ((event.data as Obj | undefined)?.object ?? {}) as Obj;
@@ -221,8 +221,8 @@ export function translateStripeEvent(event: Obj): NormalizedEvent[] {
         : [];
     }
     case 'charge.refunded': {
-      // Remboursement TOTAL uniquement : un remboursement partiel ne change
-      // pas le statut de la transaction (il se traite à la main).
+      // FULL refund only: a partial refund does not change the transaction status
+      // (it is handled manually).
       if (object.refunded !== true) return [];
       const pi = str(object, 'payment_intent');
       const invoice = str(object, 'invoice');
@@ -240,9 +240,9 @@ export function translateStripeEvent(event: Obj): NormalizedEvent[] {
 }
 
 /**
- * Vérifie l'en-tête `Stripe-Signature` (schéma v1) : HMAC-SHA256 du secret de
- * webhook sur `${t}.${corps brut}`, et horodatage dans la tolérance.
- * Exportée pour les tests (valeur `now` injectable).
+ * Verifies the `Stripe-Signature` header (v1 scheme): HMAC-SHA256 of the
+ * webhook secret over `${t}.${raw body}`, and timestamp within tolerance.
+ * Exported for tests (injectable `now` value).
  */
 export async function verifyStripeSignature(
   rawBody: string,
@@ -266,8 +266,8 @@ export async function verifyStripeSignature(
     return { ok: false, reason: 'timestamp-out-of-tolerance' };
   }
   const expected = await hmacSha256Hex(secret, `${timestamp}.${rawBody}`);
-  // Plusieurs `v1` coexistent pendant une rotation de secret : un seul doit
-  // correspondre.
+  // Several `v1` values coexist during a secret rotation: only one needs to
+  // match.
   if (!signatures.some((s) => timingSafeEqual(s, expected))) {
     return { ok: false, reason: 'bad-signature' };
   }
@@ -295,8 +295,8 @@ export const stripeAdapter: PaymentAdapter = {
     p.set('line_items[0][price_data][product_data][name]', req.description);
     if (req.recurring) {
       p.set('line_items[0][price_data][recurring][interval]', 'month');
-      // Recopiée sur l'abonnement : chaque facture mensuelle retrouve ainsi sa
-      // demande d'origine, même si elle arrive avant `checkout.session.completed`.
+      // Copied onto the subscription: each monthly invoice can thus find its
+      // original request, even if it arrives before `checkout.session.completed`.
       p.set('subscription_data[metadata][checkoutRef]', req.ref);
     } else {
       p.set('payment_intent_data[metadata][checkoutRef]', req.ref);
@@ -345,8 +345,8 @@ export const stripeAdapter: PaymentAdapter = {
       `/checkout/sessions/${encodeURIComponent(sessionId)}`,
     );
     const events = eventsFromCheckoutSession(session, Date.now());
-    // Abonnement : la première échéance est une FACTURE. On la relit pour
-    // produire le même événement (même clé d'idempotence) que `invoice.paid`.
+    // Subscription: the first instalment is an INVOICE. We re-read it to produce
+    // the same event (same idempotency key) as `invoice.paid`.
     const invoiceId = str(session, 'invoice');
     if (str(session, 'mode') === 'subscription' && invoiceId) {
       const invoice = await stripeRequest(
@@ -368,8 +368,8 @@ export const stripeAdapter: PaymentAdapter = {
   },
 
   async refund(target: RefundTarget) {
-    // Remboursement par l'intention de paiement ; une échéance d'abonnement
-    // dont Stripe ne nous a pas donné l'intention ne se rembourse pas d'ici.
+    // Refund via the payment intent; a subscription instalment for which Stripe
+    // did not give us the intent cannot be refunded from here.
     if (!target.providerRef) return false;
     const p = new URLSearchParams();
     p.set('payment_intent', target.providerRef);

@@ -3,9 +3,9 @@ import type { PaymentAdapter } from './types';
 import { stripeAdapter } from './stripe';
 import { fakeAdapter } from './fake';
 
-// Registre des adaptateurs. Ajouter un prestataire (un PSP africain pour le
-// franc CFA, Mollie…) = écrire un adaptateur conforme à `PaymentAdapter`, l'inscrire ici
-// et dans `providerIdValidator`, puis lui ouvrir une route de webhook.
+// Adapter registry. Adding a provider (an African PSP for the CFA franc,
+// Mollie…) = write an adapter conforming to `PaymentAdapter`, register it here
+// and in `providerIdValidator`, then open a webhook route for it.
 const ADAPTERS: Record<ProviderId, PaymentAdapter> = {
   stripe: stripeAdapter,
   fake: fakeAdapter,

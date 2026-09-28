@@ -4,9 +4,9 @@ import { convexTest } from 'convex-test';
 import schema from './schema';
 import { internal } from './_generated/api';
 
-// L'action publique `submitApplication` ajoute la porte reCAPTCHA puis délègue
-// à `storeApplication` (internalMutation) où vivent validation, rate-limit et
-// liaison user. On teste cette mutation interne directement.
+// The public `submitApplication` action adds the reCAPTCHA gate then
+// delegates to `storeApplication` (internalMutation), where validation, rate
+// limiting and user linking live. We test that internal mutation directly.
 
 const modules = import.meta.glob([
   './**/*.ts',

@@ -1,29 +1,28 @@
-// Mots de passe à usage unique basés sur le temps — RFC 6238 (TOTP) sur
-// RFC 4226 (HOTP), HMAC-SHA1, 6 chiffres, pas de 30 s : les paramètres que
-// TOUTES les applications d'authentification comprennent (Google
-// Authenticator, Aegis, FreeOTP, 1Password…). En changer un, c'est perdre
-// une partie d'entre elles — d'où des constantes et non des réglages.
+// Time-based one-time passwords — RFC 6238 (TOTP) on top of RFC 4226 (HOTP),
+// HMAC-SHA1, 6 digits, 30 s step: the parameters ALL authenticator apps
+// understand (Google Authenticator, Aegis, FreeOTP, 1Password…). Changing one
+// means losing some of them — hence constants and not settings.
 //
-// Module PUR, sans dépendance : Web Crypto (`crypto.subtle`) seulement. Il
-// tourne donc à l'identique dans une action Convex, dans Node (la spec E2E
-// calcule le code avec CETTE fonction, pas avec une copie) et dans le
-// navigateur. Les tests rejouent les vecteurs de l'annexe B de la RFC 6238.
+// PURE module, no dependency: Web Crypto (`crypto.subtle`) only. It therefore
+// runs identically in a Convex action, in Node (the E2E spec computes the
+// code with THIS function, not a copy) and in the browser. The tests replay
+// the vectors from appendix B of RFC 6238.
 //
-// Ce module ne lit ni l'heure ni le hasard lui-même : l'appelant les fournit.
-// C'est ce qui rend les vecteurs de la RFC rejouables tels quels.
+// This module reads neither the time nor randomness itself: the caller
+// provides them. That is what makes the RFC vectors replayable as is.
 
 export const TOTP_PERIOD_SECONDS = 30;
 export const TOTP_DIGITS = 6;
-// Tolérance d'horloge : le pas courant et UN pas de part et d'autre (±30 s).
-// Au-delà, un code intercepté vit plus longtemps ; en deçà, un téléphone dont
-// l'horloge dérive de quelques secondes échoue au mauvais moment.
+// Clock tolerance: the current step and ONE step on either side (±30 s).
+// Beyond that, an intercepted code lives longer; below that, a phone whose
+// clock drifts by a few seconds fails at the wrong moment.
 export const TOTP_WINDOW = 1;
-// 160 bits : la taille de sortie de SHA-1, recommandée par la RFC 4226 § 4.
+// 160 bits: the output size of SHA-1, recommended by RFC 4226 § 4.
 export const TOTP_SECRET_BYTES = 20;
 
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-/** Base32 RFC 4648, sans remplissage — la forme attendue par `otpauth://`. */
+/** Base32 RFC 4648, without padding — the form expected by `otpauth://`. */
 export function base32Encode(bytes: Uint8Array): string {
   let bits = 0;
   let value = 0;
@@ -40,7 +39,7 @@ export function base32Encode(bytes: Uint8Array): string {
   return out;
 }
 
-/** Décode du Base32 ; tolère espaces, tirets, minuscules et remplissage. */
+/** Decodes Base32; tolerates spaces, hyphens, lowercase and padding. */
 export function base32Decode(input: string): Uint8Array {
   const clean = input.toUpperCase().replace(/[\s=-]/g, '');
   let bits = 0;
@@ -59,7 +58,7 @@ export function base32Decode(input: string): Uint8Array {
   return new Uint8Array(out);
 }
 
-/** Pas de temps (compteur) pour un instant donné en millisecondes. */
+/** Time step (counter) for a given instant in milliseconds. */
 export function timeStep(
   nowMs: number,
   periodSeconds: number = TOTP_PERIOD_SECONDS,
@@ -67,10 +66,9 @@ export function timeStep(
   return Math.floor(nowMs / 1000 / periodSeconds);
 }
 
-// Compteur sur 8 octets gros-boutiste (RFC 4226 § 5.1). Les opérations
-// binaires de JavaScript sont sur 32 bits : la moitié haute se calcule par
-// division pour rester juste au-delà de 2^32 (le vecteur de l'an 2603 de la
-// RFC en a besoin).
+// 8-byte big-endian counter (RFC 4226 § 5.1). JavaScript bitwise operations
+// are 32-bit: the high half is computed by division to stay correct beyond
+// 2^32 (the RFC's year-2603 vector needs it).
 function counterBytes(counter: number): Uint8Array {
   const buf = new Uint8Array(8);
   const high = Math.floor(counter / 0x1_0000_0000);
@@ -80,7 +78,7 @@ function counterBytes(counter: number): Uint8Array {
   return buf;
 }
 
-/** HOTP (RFC 4226) : HMAC-SHA1 puis troncature dynamique. */
+/** HOTP (RFC 4226): HMAC-SHA1 then dynamic truncation. */
 export async function hotp(
   key: Uint8Array,
   counter: number,
@@ -109,7 +107,7 @@ export async function hotp(
   return (binary % 10 ** digits).toString().padStart(digits, '0');
 }
 
-/** TOTP (RFC 6238) pour l'instant `nowMs`. */
+/** TOTP (RFC 6238) for the instant `nowMs`. */
 export async function totp(
   key: Uint8Array,
   nowMs: number,
@@ -122,7 +120,7 @@ export async function totp(
   );
 }
 
-/** Comparaison en temps constant de deux chaînes de même alphabet. */
+/** Constant-time comparison of two strings over the same alphabet. */
 export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -130,18 +128,18 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Garde la seule forme admise d'un code saisi : six chiffres. */
+/** Keeps the only accepted form of an entered code: six digits. */
 export function normalizeTotpCode(input: string): string | null {
   const digits = input.replace(/[\s-]/g, '');
   return /^\d{6}$/.test(digits) ? digits : null;
 }
 
 /**
- * Le pas de temps auquel `code` correspond, ou `null`.
+ * The time step `code` matches, or `null`.
  *
- * `afterStep` interdit le REJEU : un pas inférieur ou égal au dernier pas
- * accepté pour ce compte est refusé, même si le code est juste. Sans cela, un
- * code lu par-dessus l'épaule resterait bon jusqu'à 90 s.
+ * `afterStep` prevents REPLAY: a step lower than or equal to the last step
+ * accepted for this account is refused, even if the code is correct. Without
+ * this, a code read over someone's shoulder would stay valid for up to 90 s.
  */
 export async function matchTotpStep(
   key: Uint8Array,
@@ -154,8 +152,8 @@ export async function matchTotpStep(
   const current = timeStep(nowMs);
   const window = options.window ?? TOTP_WINDOW;
   let found: number | null = null;
-  // Toute la fenêtre est calculée même après une correspondance : le temps de
-  // réponse ne dit pas à quel pas le code correspondait.
+  // The whole window is computed even after a match: the response time does not
+  // reveal which step the code matched.
   for (let step = current - window; step <= current + window; step++) {
     const candidate = await hotp(key, step);
     if (timingSafeEqual(candidate, normalized) && found === null) {
@@ -170,9 +168,9 @@ export async function matchTotpStep(
 }
 
 /**
- * URI d'inscription (format « Key Uri » de Google Authenticator), celle que
- * porte le QR code. L'émetteur est répété en paramètre : certaines
- * applications ne lisent que lui.
+ * Enrolment URI (Google Authenticator "Key Uri" format), the one carried by
+ * the QR code. The issuer is repeated as a parameter: some apps only read
+ * that.
  */
 export function otpauthUri({
   secretBase32,
@@ -194,26 +192,25 @@ export function otpauthUri({
   return `otpauth://totp/${label}?${params.toString()}`;
 }
 
-// --- Codes de secours --------------------------------------------------------
+// --- Backup codes ------------------------------------------------------------
 //
-// Dix codes de dix caractères, alphabet sans caractères ambigus (ni 0/O, ni
-// 1/I/L) : ils se recopient à la main, souvent depuis un papier. 32^10 ≈ 2^50
-// par code — hors de portée d'un essai en ligne limité en débit.
+// Ten codes of ten characters, with an alphabet free of ambiguous characters
+// (no 0/O, no 1/I/L): they are copied by hand, often from paper. 32^10 ≈ 2^50
+// per code — out of reach of rate-limited online guessing.
 
 const BACKUP_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 10;
 
 /**
- * Génère les codes de secours à partir d'octets aléatoires fournis.
+ * Generates backup codes from the supplied random bytes.
  *
- * TIRAGE SANS BIAIS (alerte CodeQL du 27/09) : un octet vaut 0 à 255, et 256
- * n'est pas multiple de 31 — un simple `% 31` favorise les neuf premiers
- * symboles. On REJETTE donc les octets ≥ 248 (plus grand multiple de 31
- * sous 256) : chaque octet retenu donne un symbole uniforme. Il faut par
- * conséquent plus d'octets que de symboles ; `BACKUP_RANDOM_BYTES` en fournit
- * le double, et l'épuisement (probabilité négligeable) lève une erreur plutôt
- * que de produire un code plus court.
+ * UNBIASED DRAW (CodeQL alert of 27/09): a byte is 0 to 255, and 256 is not a
+ * multiple of 31 — a plain `% 31` favours the first nine symbols. We therefore
+ * REJECT bytes ≥ 248 (largest multiple of 31 below 256): each kept byte
+ * yields a uniform symbol. Consequently more bytes than symbols are needed;
+ * `BACKUP_RANDOM_BYTES` supplies twice as many, and running out (negligible
+ * probability) throws an error rather than producing a shorter code.
  */
 export function backupCodesFromBytes(random: Uint8Array): string[] {
   const alphabetSize = BACKUP_ALPHABET.length;
@@ -235,10 +232,10 @@ export function backupCodesFromBytes(random: Uint8Array): string[] {
   return codes;
 }
 
-/** Octets aléatoires à fournir : le double des symboles, pour le rejet. */
+/** Random bytes to supply: twice the symbols, to allow for rejection. */
 export const BACKUP_RANDOM_BYTES = BACKUP_CODE_COUNT * BACKUP_CODE_LENGTH * 2;
 
-/** Forme canonique d'un code de secours saisi, ou `null`. */
+/** Canonical form of an entered backup code, or `null`. */
 export function normalizeBackupCode(input: string): string | null {
   const clean = input.toUpperCase().replace(/[\s-]/g, '');
   if (clean.length !== BACKUP_CODE_LENGTH) return null;
@@ -248,7 +245,7 @@ export function normalizeBackupCode(input: string): string | null {
   return clean;
 }
 
-/** Empreinte SHA-256 en hexadécimal. */
+/** SHA-256 hash in hexadecimal. */
 export async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest(
     'SHA-256',

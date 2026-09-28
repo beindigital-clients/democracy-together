@@ -1,9 +1,9 @@
-// Primitives cryptographiques des paiements — Web Crypto uniquement.
+// Cryptographic primitives for payments — Web Crypto only.
 //
-// Web Crypto existe dans le runtime Convex par défaut (V8), dans les actions
-// HTTP et dans l'environnement de test edge-runtime : aucun `"use node"`, aucun
-// SDK de prestataire. C'est ce qui permet de vérifier une signature de webhook
-// dans l'action HTTP elle-même.
+// Web Crypto exists in the default Convex runtime (V8), in HTTP actions and in
+// the edge-runtime test environment: no `"use node"`, no provider SDK. That is
+// what makes it possible to verify a webhook signature inside the HTTP action
+// itself.
 
 const encoder = new TextEncoder();
 
@@ -28,12 +28,12 @@ export async function hmacSha256Hex(
 }
 
 /**
- * Comparaison à temps constant de deux chaînes.
+ * Constant-time comparison of two strings.
  *
- * Une comparaison `===` s'arrête au premier caractère différent : le temps de
- * réponse dit alors combien de caractères d'une signature forgée sont justes,
- * et la signature se devine octet par octet. La longueur, elle, n'est pas un
- * secret (une signature hexadécimale a toujours la même).
+ * A `===` comparison stops at the first differing character: the response
+ * time then reveals how many characters of a forged signature are correct,
+ * and the signature can be guessed byte by byte. The length, however, is not
+ * a secret (a hex signature always has the same one).
  */
 export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -44,7 +44,7 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Jeton aléatoire hexadécimal (référence de paiement, lien de reçu). */
+/** Random hex token (payment reference, receipt link). */
 export function randomToken(bytes = 16): string {
   const a = new Uint8Array(bytes);
   crypto.getRandomValues(a);

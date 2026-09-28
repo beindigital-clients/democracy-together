@@ -14,16 +14,15 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Blocage n°1 de l'audit (§ 1, F-01 + F-22) : depuis la suppression de
-// l'auto-inscription, approuver une candidature n'élevait que les comptes DÉJÀ
-// existants. Un think tank approuvé qui n'avait jamais créé de compte ne
-// pouvait donc JAMAIS se connecter (la connexion par code refuse un e-mail
-// inconnu, cf. le callback createOrUpdateUser de convex/auth.ts), et sa fiche
-// n'apparaissait jamais dans l'annuaire (l'approbation ne créait aucune
-// organisation).
+// Audit blocker no. 1 (§ 1, F-01 + F-22): since self-registration was
+// removed, approving an application only promoted ALREADY existing accounts.
+// An approved think tank that had never created an account could therefore
+// NEVER sign in (code sign-in refuses an unknown e-mail, see the
+// createOrUpdateUser callback in convex/auth.ts), and its profile never
+// appeared in the directory (approval created no organisation).
 //
-// L'approbation doit désormais : créer le compte, créer l'organisation, créer
-// le rattachement, et notifier le candidat.
+// Approval must now: create the account, create the organisation, create the
+// affiliation, and notify the applicant.
 
 const DIRECTORY = {
   countryCode: 'SN',
@@ -176,9 +175,10 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
       directory: DIRECTORY,
     });
 
-    // `status` ne sort plus de l'annuaire public (issue #30) : on le vérifie
-    // en base. La VISIBILITÉ, elle, est prouvée par `listDirectory` lui-même,
-    // qui ne liste que les fiches actives — y figurer, c'est être active.
+    // `status` no longer comes out of the public directory (issue #30): we check
+    // it in the database. VISIBILITY, on the other hand, is proven by
+    // `listDirectory` itself, which only lists active profiles — appearing there
+    // means being active.
     const stored = await t.run((ctx) =>
       ctx.db.query('organizations').collect(),
     );
@@ -192,7 +192,7 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
     expect(items[0].region).toBe('afrique-ouest');
     expect(items[0].themes).toEqual(['gouvernance', 'elections']);
 
-    // la fiche publique répond sur son slug
+    // the public profile responds on its slug
     const fiche = await t.query(api.organizations.getBySlug, {
       slug: items[0].slug,
     });
@@ -245,11 +245,11 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
     const orgs = await t.run((ctx) => ctx.db.query('organizations').collect());
     expect(orgs).toHaveLength(1);
     expect(orgs[0].status).toBe('pending');
-    // …et l'annuaire public reste vide
+    // …and the public directory stays empty
     expect(
       (await t.query(api.organizations.listDirectory, {})).items,
     ).toHaveLength(0);
-    // mais le COMPTE est bien créé : le blocage de connexion est levé
+    // but the ACCOUNT is indeed created: the sign-in blocker is lifted
     const users = await t.run((ctx) => ctx.db.query('users').collect());
     expect(users.some((u) => u.email === 'contact@institut-sahel.org')).toBe(
       true,
@@ -311,9 +311,9 @@ describe("Approbation d'adhésion — idempotence et machine à états", () => {
       decision: 'approved',
       directory: DIRECTORY,
     });
-    // rejouer la même décision, ou la renverser, doit être refusé : l'audit
-    // (M6) relevait qu'une candidature approuvée pouvait repasser « rejetée »
-    // sans retirer le rôle accordé.
+    // replaying the same decision, or reversing it, must be refused: the audit
+    // (M6) found that an approved application could go back to "rejected"
+    // without removing the granted role.
     await expect(
       mod.as.mutation(api.organizations.reviewApplication, {
         applicationId,
@@ -333,7 +333,7 @@ describe("Approbation d'adhésion — idempotence et machine à états", () => {
 describe("Approbation d'adhésion — invitation à se connecter", () => {
   it('planifie un e-mail d’invitation au candidat', async () => {
     const prevDev = process.env.AUTH_DEV_OTP;
-    process.env.AUTH_DEV_OTP = 'true'; // no-op d'envoi assumé en test
+    process.env.AUTH_DEV_OTP = 'true'; // sending no-op, accepted in tests
     vi.useFakeTimers();
     try {
       const t = convexTest(schema, modules);
@@ -346,7 +346,7 @@ describe("Approbation d'adhésion — invitation à se connecter", () => {
         directory: DIRECTORY,
       });
 
-      // l'envoi est planifié dans une ACTION (jamais de fetch en mutation)
+      // sending is scheduled in an ACTION (never fetch in a mutation)
       await t.finishAllScheduledFunctions(vi.runAllTimers);
 
       const app = await t.run((ctx) => ctx.db.get(applicationId));
@@ -432,14 +432,14 @@ describe('Invitation manuelle par un admin (F-63)', () => {
   });
 });
 
-// ADRESSE DE SITE D'UNE FICHE (pentest M-9, côté écriture).
+// WEBSITE ADDRESS OF A PROFILE (pentest M-9, write side).
 //
-// `websiteUrl` n'était contraint que par `v.string()`, et la fiche publique le
-// posait tel quel dans un `href`. Le filtre de rendu
-// (src/lib/safe-href.ts + tests/unit/portable-text-liens.test.tsx) garde le
-// dernier mot — il couvre les fiches enregistrées avant cette validation —
-// mais accepter la charge utile en base pour ne la retenir qu'à l'affichage
-// reviendrait à la stocker en attendant le prochain écran qui oubliera.
+// `websiteUrl` was only constrained by `v.string()`, and the public profile
+// put it as is in an `href`. The render filter
+// (src/lib/safe-href.ts + tests/unit/portable-text-liens.test.tsx) has the
+// last word — it covers profiles saved before this validation — but
+// accepting the payload in the database only to stop it at display time
+// would amount to storing it while waiting for the next screen that forgets.
 describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)", () => {
   it('refuse un schéma non http(s), et ne crée alors NI compte NI organisation', async () => {
     const t = convexTest(schema, modules);
@@ -451,8 +451,8 @@ describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)
       'vbscript:msgbox(1)',
       'institut-sahel.org', // saisie sans schéma : incomplète, pas un lien
     ].entries()) {
-      // Une adresse par candidature : une seule candidature en attente par
-      // adresse depuis R-09, et les quatre restent `pending` ici.
+      // One address per application: only one pending application per address
+      // since R-09, and all four stay `pending` here.
       const applicationId = await applicationFrom(t, {
         organizationName: `Institut ${websiteUrl.slice(0, 8)}`,
         contactEmail: `contact-${i}@institut-sahel.org`,
@@ -467,7 +467,7 @@ describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)
       ).rejects.toThrow('INVALID_WEBSITE');
     }
 
-    // La décision n'a pas été prise à moitié : rien n'est passé.
+    // The decision was not half-made: nothing went through.
     expect(
       await t.run((ctx) => ctx.db.query('organizations').collect()),
     ).toHaveLength(0);

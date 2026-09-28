@@ -1,15 +1,15 @@
 import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
-// Chantier « comptes » (F-63 cycle de vie, F-21 fiche membre, 2FA).
+// "Accounts" workstream (F-63 lifecycle, F-21 member profile, 2FA).
 //
-// Tables PROPRES au chantier. Les champs ajoutés à des tables existantes
+// Tables SPECIFIC to the workstream. Fields added to existing tables
 // (`users.suspendedAt`, `organizations.logoFileId`, `publications.organizationId`…)
-// vivent, eux, en place dans convex/schema.ts.
+// live in place in convex/schema.ts.
 
-// Champs publics d'une fiche d'annuaire tels qu'un responsable les propose.
-// Même vocabulaire que la fiche (`organizations`), plus `showMembers` : c'est
-// l'organisation qui décide si sa page publique nomme ses membres.
+// Public fields of a directory profile as proposed by a manager. Same
+// vocabulary as the profile (`organizations`), plus `showMembers`: the
+// organisation decides whether its public page names its members.
 export const organizationRevisionFields = v.object({
   name: v.string(),
   description: v.optional(v.string()),
@@ -22,22 +22,21 @@ export const organizationRevisionFields = v.object({
 });
 
 export const comptesTables = {
-  // --- Double authentification (TOTP, RFC 6238) ----------------------------
+  // --- Two-factor authentication (TOTP, RFC 6238) --------------------------
   //
-  // UNE ligne par compte. Le secret n'est JAMAIS stocké en clair : il est
-  // chiffré en AES-GCM avec la clé d'environnement TWO_FACTOR_ENCRYPTION_KEY
-  // (convex/lib/secretBox.ts). `keyId` dit avec quelle clé : `env` en
-  // production, `dev` sur un déploiement de test sans clé (AUTH_DEV_OTP) — un
-  // secret chiffré avec la clé de développement est REFUSÉ dès que le
-  // déploiement porte une vraie clé, il ne peut donc pas survivre à une mise
-  // en service par inadvertance.
+  // ONE row per account. The secret is NEVER stored in plaintext: it is
+  // encrypted with AES-GCM using the TWO_FACTOR_ENCRYPTION_KEY environment key
+  // (convex/lib/secretBox.ts). `keyId` says which key: `env` in production,
+  // `dev` on a test deployment without a key (AUTH_DEV_OTP) — a secret
+  // encrypted with the development key is REFUSED as soon as the deployment
+  // carries a real key, so it cannot survive an inadvertent go-live.
   //
-  // `lastUsedStep` : pas de temps (compteur RFC 6238) du dernier code accepté.
-  // Un code n'est valable que pour un pas STRICTEMENT supérieur — c'est ce qui
-  // interdit de rejouer, dans sa fenêtre de 30 s, un code intercepté.
+  // `lastUsedStep`: time step (RFC 6238 counter) of the last accepted code.
+  // A code is only valid for a STRICTLY greater step — that is what prevents
+  // replaying an intercepted code within its 30 s window.
   //
-  // Les codes de secours sont des EMPREINTES (SHA-256), dix au plus : liste
-  // bornée par construction, d'où un tableau plutôt qu'une table.
+  // Backup codes are HASHES (SHA-256), ten at most: a list bounded by
+  // construction, hence an array rather than a table.
   twoFactorCredentials: defineTable({
     userId: v.id('users'),
     status: v.union(v.literal('pending'), v.literal('active')),
@@ -52,10 +51,9 @@ export const comptesTables = {
     activatedAt: v.optional(v.number()),
   }).index('by_user', ['userId']),
 
-  // Preuve de second facteur, LIÉE À UNE SESSION Convex Auth
-  // (`getAuthSessionId`). Une nouvelle connexion ouvre une nouvelle session,
-  // donc une session sans preuve : c'est ce qui oblige chaque connexion à
-  // présenter le code, et pas seulement la première.
+  // Second-factor proof, BOUND TO A Convex Auth SESSION (`getAuthSessionId`).
+  // A new sign-in opens a new session, hence a session without proof: that is
+  // what forces every sign-in to present the code, not just the first one.
   twoFactorSessionProofs: defineTable({
     sessionId: v.id('authSessions'),
     userId: v.id('users'),
@@ -65,11 +63,11 @@ export const comptesTables = {
     .index('by_session', ['sessionId'])
     .index('by_user', ['userId']),
 
-  // Réglages de sécurité — SINGLETON (`key` vaut toujours 'default'), même
-  // motif que `aiModerationConfig`. Absent = valeurs par défaut
-  // (convex/lib/accountAccess.ts) : 2FA NON obligatoire, parce que le serveur
-  // E2E partagé crée des comptes administrateurs qui n'ont pas d'appareil.
-  // docs/backlog/comptes.md : À ACTIVER À LA MISE EN SERVICE.
+  // Security settings — SINGLETON (`key` is always 'default'), same pattern as
+  // `aiModerationConfig`. Absent = default values
+  // (convex/lib/accountAccess.ts): 2FA NOT mandatory, because the shared E2E
+  // server creates administrator accounts that have no device.
+  // docs/backlog/comptes.md: TO ENABLE AT GO-LIVE.
   securitySettings: defineTable({
     key: v.literal('default'),
     twoFactorRequiredForStaff: v.boolean(),
@@ -77,9 +75,9 @@ export const comptesTables = {
     updatedAt: v.number(),
   }).index('by_key', ['key']),
 
-  // Code de reconfirmation par e-mail d'une action irréversible demandée par
-  // le titulaire lui-même (suppression de son compte). EMPREINTE seulement,
-  // expiration courte, essais comptés.
+  // E-mail reconfirmation code for an irreversible action requested by the
+  // account holder themselves (deleting their account). HASH only, short
+  // expiry, attempts counted.
   accountConfirmationCodes: defineTable({
     userId: v.id('users'),
     purpose: v.literal('delete_account'),
@@ -89,21 +87,21 @@ export const comptesTables = {
     createdAt: v.number(),
   }).index('by_user_and_purpose', ['userId', 'purpose']),
 
-  // Suppressions de compte EN COURS ou terminées (convex/lib/accountDeletion.ts).
-  // La suppression est découpée en lots (une mutation Convex est bornée) :
-  // cette ligne tient la reprise. Elle ne garde AUCUNE donnée personnelle —
-  // ni adresse ni nom — seulement l'identifiant du compte disparu, qui ne
-  // désigne plus personne une fois la ligne `users` supprimée.
+  // Account deletions IN PROGRESS or finished (convex/lib/accountDeletion.ts).
+  // Deletion is split into batches (a Convex mutation is bounded): this row
+  // holds the resume point. It keeps NO personal data — neither address nor
+  // name — only the identifier of the deleted account, which no longer
+  // designates anyone once the `users` row is deleted.
   accountDeletions: defineTable({
     userId: v.id('users'),
     via: v.union(v.literal('admin'), v.literal('self')),
     requestedBy: v.optional(v.id('users')),
     status: v.union(v.literal('running'), v.literal('done')),
-    // Étape courante dans le registre ordonné des modules.
+    // Current step in the ordered registry of modules.
     step: v.number(),
-    // Adresse du compte, gardée LE TEMPS du traitement seulement : plusieurs
-    // tables se rattachent par l'adresse (newsletter, rappels…). Effacée à la
-    // dernière étape.
+    // The account's address, kept ONLY FOR THE DURATION of processing: several
+    // tables are linked by address (newsletter, reminders…). Erased at the last
+    // step.
     email: v.optional(v.string()),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
@@ -111,10 +109,10 @@ export const comptesTables = {
     .index('by_user', ['userId'])
     .index('by_status', ['status']),
 
-  // Révisions de fiche d'annuaire proposées par le RESPONSABLE d'une
-  // organisation (F-21). Soumises à validation d'un modérateur : la fiche
-  // publique parle au nom du réseau (cf. docs/backlog/comptes.md). La fiche en
-  // ligne reste servie telle quelle pendant la revue.
+  // Directory profile revisions proposed by an organisation's MANAGER (F-21).
+  // Subject to a moderator's approval: the public profile speaks on behalf of
+  // the network (see docs/backlog/comptes.md). The live profile keeps being
+  // served as is during the review.
   organizationRevisions: defineTable({
     orgId: v.id('organizations'),
     submittedBy: v.id('users'),
@@ -125,8 +123,8 @@ export const comptesTables = {
       v.literal('superseded'),
     ),
     fields: organizationRevisionFields,
-    // Logo proposé : fichier du stockage Convex dont le CONTENU a été vérifié
-    // (signature PNG / JPEG / WebP, taille) par `orgAdmin.attachLogo`.
+    // Proposed logo: a Convex storage file whose CONTENT has been verified
+    // (PNG / JPEG / WebP signature, size) by `orgAdmin.attachLogo`.
     logoFileId: v.optional(v.id('_storage')),
     removeLogo: v.optional(v.boolean()),
     submittedAt: v.number(),
@@ -138,9 +136,9 @@ export const comptesTables = {
     .index('by_status', ['status'])
     .index('by_submitter', ['submittedBy']),
 
-  // Logos téléversés et VÉRIFIÉS, en attente d'être joints à une révision.
-  // Un fichier n'entre dans une révision qu'en passant par cette table : le
-  // client ne peut pas désigner n'importe quel identifiant de stockage.
+  // Uploaded and VERIFIED logos, waiting to be attached to a revision.
+  // A file only enters a revision by going through this table: the client
+  // cannot designate an arbitrary storage identifier.
   organizationLogoUploads: defineTable({
     orgId: v.id('organizations'),
     uploadedBy: v.id('users'),

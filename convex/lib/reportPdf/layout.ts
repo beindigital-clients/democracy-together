@@ -1,49 +1,50 @@
-// MISE EN LIGNE BIDIRECTIONNELLE du PDF des rapports annuels (F-41).
+// BIDIRECTIONAL LINE LAYOUT of the annual report PDF (F-41).
 //
-// Module PUR : il ne connaît ni pdfkit ni les polices, seulement une fonction
-// de mesure. C'est ce qui le rend testable sans générer de PDF, et ce qui
-// garde la décision « où va chaque mot » à un seul endroit.
+// PURE module: it knows neither pdfkit nor fonts, only a measuring function.
+// That is what makes it testable without generating a PDF, and what keeps the
+// "where does each word go" decision in one place.
 //
-// CE QUE FAIT LA BIBLIOTHÈQUE, ET CE QU'ELLE NE FAIT PAS. pdfkit délègue la
-// composition d'un mot à fontkit, qui applique les tables OpenType de la
-// police : c'est là que l'arabe prend ses formes contextuelles (initiale,
-// médiane, finale) et ses ligatures (lam-alif). Un mot arabe passé seul à
-// pdfkit sort donc correctement lié. Ce que ni l'une ni l'autre ne fait,
-// c'est l'ORDRE des mots d'une ligne mixte : fontkit retourne la chaîne
-// entière quand elle est de droite à gauche — chiffres et noms latins compris,
-// « 2026 » devenant « 6202 » — et pdfkit, en découpant ses espaces, les
-// replace au mauvais endroit (mesuré : « تقرير النشاط » sortait collé,
-// l'espace rejeté en tête de ligne).
+// WHAT THE LIBRARY DOES, AND WHAT IT DOES NOT. pdfkit delegates shaping a
+// word to fontkit, which applies the font's OpenType tables: that is where
+// Arabic gets its contextual forms (initial, medial, final) and its ligatures
+// (lam-alif). An Arabic word passed alone to pdfkit therefore comes out
+// correctly joined. What neither of them does is the ORDER of words in a
+// mixed line: fontkit reverses the whole string when it is right-to-left —
+// digits and Latin names included, "2026" becoming "6202" — and pdfkit, when
+// splitting its spaces, puts them back in the wrong place (measured:
+// "تقرير النشاط" came out glued together, the space pushed to the start of
+// the line).
 //
-// D'où ce module : une version par MOTS de l'algorithme bidirectionnel
-// Unicode (UAX #9), suffisante pour de la prose — chaque mot reçoit une
-// direction forte (arabe → droite-à-gauche, latin ou chiffre →
-// gauche-à-droite), les signes neutres prennent celle de leurs voisins quand
-// ils l'encadrent et celle du paragraphe sinon, et une suite de mots de même
-// direction forme une « course » posée d'un bloc. Les signes appariés
-// (parenthèses, guillemets) d'une course droite-à-gauche sont mis en miroir
-// (règle L4). Ce que ce découpage ne couvre pas — un mot mêlant les deux
-// écritures SANS espace, les incrustations imbriquées — n'apparaît pas dans un
-// rapport d'activité ; c'est écrit dans docs/backlog/editorial.md.
+// Hence this module: a WORD-level version of the Unicode bidirectional
+// algorithm (UAX #9), sufficient for prose — each word gets a strong
+// direction (Arabic → right-to-left, Latin or digit → left-to-right), neutral
+// characters take that of their neighbours when those surround them and that
+// of the paragraph otherwise, and a sequence of words with the same direction
+// forms a "run" placed as a block. Paired characters (parentheses, quotation
+// marks) in a right-to-left run are mirrored (rule L4). What this splitting
+// does not cover — a word mixing both scripts WITHOUT a space, nested
+// embeddings — does not occur in an activity report; it is documented in
+// docs/backlog/editorial.md.
 
 export type Direction = 'ltr' | 'rtl';
 
 export type Token = {
   text: string;
-  /** Direction résolue du mot. */
+  /** Resolved direction of the word. */
   dir: Direction;
-  /** Un espace le sépare-t-il du mot LOGIQUEMENT précédent ? */
+  /** Does a space separate it from the LOGICALLY previous word? */
   spaceBefore: boolean;
 };
 
-// Écritures de droite à gauche servies par le site : l'arabe (blocs de base,
-// supplément, étendu-A, formes de présentation A et B). L'hébreu n'est pas
-// une langue du site, mais un nom propre hébreu dans un rapport arabe serait
-// mal posé sans lui : il est compté.
+// Right-to-left scripts served by the site: Arabic (basic, supplement,
+// extended-A blocks, presentation forms A and B). Hebrew is not a site
+// language, but a Hebrew proper noun in an Arabic report would be misplaced
+// without it: it is counted.
 const RTL_CHAR =
   /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/u;
 const STRONG_LTR = /[\p{L}\p{N}]/u;
-// Tout ce qui n'est ni lettre ni chiffre : ponctuation, tirets, symboles.
+// Everything that is neither a letter nor a digit: punctuation, dashes,
+// symbols.
 const NEUTRAL = /[^\p{L}\p{N}]/u;
 
 function strongDir(text: string): Direction | null {
@@ -52,11 +53,11 @@ function strongDir(text: string): Direction | null {
   return null;
 }
 
-// Coupe un mot (sans espace) en [ponctuation de tête][cœur][ponctuation de
-// queue]. « Together: » donne « Together » et « : », pour que le deux-points
-// se place selon le texte qui l'entoure et non selon le mot latin qu'il
-// suit. La ponctuation INTERNE (« CC-BY », « 2026-2027 », « l'Afrique »)
-// reste dans le cœur.
+// Splits a word (without spaces) into [leading punctuation][core][trailing
+// punctuation]. "Together:" gives "Together" and ":", so that the colon is
+// placed according to the surrounding text and not the Latin word it
+// follows. INTERNAL punctuation ("CC-BY", "2026-2027", "l'Afrique") stays in
+// the core.
 function splitWord(word: string): string[] {
   const chars = [...word];
   let start = 0;
@@ -71,7 +72,7 @@ function splitWord(word: string): string[] {
   return out;
 }
 
-// Paires en miroir (Unicode BidiMirroring, sous-ensemble utile en prose).
+// Mirrored pairs (Unicode BidiMirroring, subset useful in prose).
 const MIRROR: Record<string, string> = {
   '(': ')',
   ')': '(',
@@ -92,10 +93,10 @@ export function mirror(text: string): string {
 }
 
 /**
- * Découpe un paragraphe en mots dont la direction est résolue.
+ * Splits a paragraph into words with a resolved direction.
  *
- * Les neutres entre deux mots de même direction la prennent ; les autres
- * prennent celle du paragraphe (règles N1/N2 de l'UAX #9, au grain du mot).
+ * Neutrals between two words of the same direction take it; the others take
+ * the paragraph's (rules N1/N2 of UAX #9, at word granularity).
  */
 export function tokenize(text: string, base: Direction): Token[] {
   const raw: { text: string; strong: Direction | null; space: boolean }[] = [];
@@ -134,12 +135,12 @@ export type Measure = (text: string) => number;
 const NO_BREAK_BEFORE = /^[:;!?»›%]+$/u;
 
 /**
- * Découpe les mots en lignes de largeur maximale `width` (glouton).
+ * Splits words into lines of maximum width `width` (greedy).
  *
- * On ne coupe QU'À UN ESPACE : la ponctuation détachée par `tokenize` reste
- * collée au mot qu'elle suit. Sans cette règle, la virgule arabe d'une fin de
- * ligne partait seule en tête de la ligne suivante (mesuré sur le rapport
- * 2026 : « ، والأزمات العالمية »).
+ * We break ONLY AT A SPACE: punctuation detached by `tokenize` stays attached
+ * to the word it follows. Without this rule, the Arabic comma at the end of a
+ * line went alone to the start of the next line (measured on the 2026
+ * report: "، والأزمات العالمية").
  */
 export function breakLines(
   tokens: Token[],
@@ -147,8 +148,8 @@ export function breakLines(
   measure: Measure,
   spaceWidth: number,
 ): Token[][] {
-  // Un mot plus large que la ligne (adresse, identifiant) est coupé au
-  // caractère : c'est le `wrap-anywhere` du site, transposé au papier.
+  // A word wider than the line (address, identifier) is broken at the
+  // character: it is the site's `wrap-anywhere`, transposed to paper.
   const pieces: Token[] = [];
   for (const tok of tokens) {
     if (measure(tok.text) <= width) {
@@ -162,7 +163,7 @@ export function breakLines(
         pieces.push({
           ...tok,
           text: chunk,
-          // Les morceaux d'un mot coupé sont des points de coupure permis.
+          // The pieces of a broken word are allowed break points.
           spaceBefore: first ? tok.spaceBefore : true,
         });
         first = false;
@@ -178,9 +179,9 @@ export function breakLines(
       });
   }
 
-  // Groupes insécables : un mot et la ponctuation qui lui est collée — et, en
-  // typographie française, la ponctuation haute précédée d'une espace (« : »,
-  // « ; », « ! », « ? », « » ») : elle ne commence jamais une ligne.
+  // Non-breaking groups: a word and the punctuation attached to it — and, in
+  // French typography, high punctuation preceded by a space (":", ";", "!",
+  // "?", "»"): it never starts a line.
   const groups: Token[][] = [];
   for (const tok of pieces) {
     const last = groups[groups.length - 1];
@@ -218,24 +219,23 @@ export function breakLines(
 export type Placed = {
   text: string;
   dir: Direction;
-  /** Abscisse du bord GAUCHE du morceau, relative au début de la zone. */
+  /** X-coordinate of the chunk's LEFT edge, relative to the start of the area. */
   x: number;
   width: number;
 };
 
 /**
- * Place les mots d'une ligne dans l'ordre VISUEL.
+ * Places a line's words in VISUAL order.
  *
- * Les mots consécutifs de même direction forment une course. Dans un
- * paragraphe de droite à gauche, les courses se posent de droite à gauche
- * dans l'ordre logique ; à l'intérieur d'une course gauche-à-droite, les mots
- * gardent leur ordre de lecture. Le miroir dans l'autre sens.
+ * Consecutive words with the same direction form a run. In a right-to-left
+ * paragraph, runs are laid out right to left in logical order; within a
+ * left-to-right run, words keep their reading order. The mirror image the
+ * other way round.
  *
- * Une course gauche-à-droite est rendue D'UN SEUL MORCEAU, espaces compris :
- * pdfkit sait poser une chaîne latine, et un morceau par course plutôt que par
- * mot garde l'extraction du texte intacte. Une course droite-à-gauche est
- * rendue mot par mot : c'est la seule façon d'éviter le retournement de toute
- * la chaîne par fontkit.
+ * A left-to-right run is rendered as A SINGLE CHUNK, spaces included: pdfkit
+ * can lay out a Latin string, and one chunk per run rather than per word
+ * keeps text extraction intact. A right-to-left run is rendered word by word:
+ * it is the only way to avoid fontkit reversing the whole string.
  */
 export function placeLine(
   line: Token[],
@@ -252,9 +252,8 @@ export function placeLine(
     else runs.push({ dir: tok.dir, tokens: [tok] });
   }
 
-  // Morceaux d'une course, dans l'ordre logique, avec l'espace qui les
-  // précède. Une course LTR est fusionnée en un morceau par suite de mots
-  // séparés d'espaces.
+  // Chunks of a run, in logical order, with the space preceding them. An LTR
+  // run is merged into one chunk per sequence of space-separated words.
   type Piece = { text: string; width: number; gapBefore: number };
   const piecesOf = (run: Run, first: boolean): Piece[] => {
     if (run.dir === 'ltr') {
@@ -297,8 +296,8 @@ export function placeLine(
         placed.push({ text: p.text, dir: 'ltr', x: cursor, width: p.width });
         cursor += p.width;
       } else {
-        // Course droite-à-gauche dans un paragraphe latin : bloc posé à la
-        // suite, mots rangés de droite à gauche À L'INTÉRIEUR du bloc.
+        // Right-to-left run in a Latin paragraph: block placed after the previous
+        // one, words arranged right to left WITHIN the block.
         const total = pieces.reduce(
           (s, p, i) => s + p.width + (i > 0 ? p.gapBefore : 0),
           0,
@@ -316,7 +315,7 @@ export function placeLine(
   return placed;
 }
 
-/** Texte LOGIQUE d'une ligne — ce que porte `/ActualText` (accessibilité). */
+/** LOGICAL text of a line — what `/ActualText` carries (accessibility). */
 export function logicalText(line: Token[]): string {
   return line
     .map((t, i) => (i > 0 && t.spaceBefore ? ' ' : '') + t.text)

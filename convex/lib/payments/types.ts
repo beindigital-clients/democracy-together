@@ -2,13 +2,13 @@ import type { Currency } from './amounts';
 import type { SiteLocale } from '../locales';
 import type { NormalizedEvent, PaymentPurpose, ProviderId } from './validators';
 
-// CONTRAT D'UN ADAPTATEUR DE PAIEMENT.
+// CONTRACT OF A PAYMENT ADAPTER.
 //
-// La couche de paiement est INDÉPENDANTE du prestataire : le grand livre
-// (convex/payments/webhooks.ts) ne connaît que ce contrat et les événements
-// normalisés. Un adaptateur fait trois choses — ouvrir un paiement hébergé,
-// VÉRIFIER ce que son prestataire lui envoie, et (s'il le sait) annuler un
-// prélèvement ou rembourser. Il n'écrit jamais en base.
+// The payment layer is PROVIDER-INDEPENDENT: the ledger
+// (convex/payments/webhooks.ts) only knows this contract and the normalised
+// events. An adapter does three things — open a hosted payment, VERIFY what
+// its provider sends it, and (if it can) cancel a recurring debit or refund.
+// It never writes to the database.
 
 export type CheckoutRequest = {
   ref: string;
@@ -27,8 +27,8 @@ export type CheckoutRequest = {
 
 export type CheckoutResult = {
   providerSessionId: string;
-  // Absolue pour un prestataire réel ; relative au site pour le factice (la
-  // page de simulation vit sur le site lui-même, quel que soit son port).
+  // Absolute for a real provider; relative to the site for the fake one (the
+  // simulation page lives on the site itself, whatever its port).
   redirectUrl: string;
 };
 
@@ -46,22 +46,23 @@ export type RefundTarget = {
 export interface PaymentAdapter {
   readonly id: ProviderId;
   readonly currencies: readonly Currency[];
-  // Le prestataire prélève-t-il lui-même chaque mois ? Sinon, le don mensuel
-  // passe par une relance planifiée (lien de paiement envoyé à l'échéance).
+  // Does the provider debit by itself every month? If not, the monthly
+  // donation goes through a scheduled reminder (payment link sent on the due
+  // date).
   readonly nativeSubscriptions: boolean;
   createCheckout(req: CheckoutRequest): Promise<CheckoutResult>;
-  /** Vérifie (signature, hash, confirmation serveur à serveur) PUIS traduit.
-   *  Toute requête non authentifiée rend `ok: false`. */
+  /** Verifies (signature, hash, server-to-server confirmation) THEN translates.
+   *  Any unauthenticated request returns `ok: false`. */
   parseWebhook(
     rawBody: string,
     header: HeaderReader,
   ): Promise<WebhookParseResult>;
-  /** Relit l'état d'un paiement chez le prestataire (retour de paiement,
-   *  webhook manqué). Mêmes événements, même idempotence. */
+  /** Re-reads a payment's status at the provider (payment return, missed
+   *  webhook). Same events, same idempotency. */
   fetchCheckout?(providerSessionId: string): Promise<NormalizedEvent[]>;
   cancelSubscription?(providerSubscriptionId: string): Promise<void>;
-  /** Absent = le prestataire n'offre pas de remboursement par API : le
-   *  back-office MARQUE le remboursement, effectué à la main. */
+  /** Absent = the provider offers no refund via API: the back office MARKS
+   *  the refund, which is carried out manually. */
   refund?(target: RefundTarget): Promise<boolean>;
 }
 

@@ -13,21 +13,22 @@ import {
   transactionStatusValidator,
 } from '../payments/validators';
 
-// PAIEMENTS (F-27 à F-31) — cotisations, dons, reçus, suivi financier.
+// PAYMENTS (F-27 to F-31) — membership fees, donations, receipts, financial
+// tracking.
 //
-// Tous les montants sont des ENTIERS en unité mineure de leur devise (cf.
-// convex/lib/payments/amounts.ts). Les documents financiers ne se suppriment
-// pas : un remboursement change un statut, il n'efface pas la ligne — la
-// comptabilité doit pouvoir rejouer chaque mois tel qu'il a été encaissé.
+// All amounts are INTEGERS in their currency's minor unit (see
+// convex/lib/payments/amounts.ts). Financial documents are not deleted: a
+// refund changes a status, it does not erase the row — the accounts must be
+// able to replay each month as it was collected.
 export const paiementsTables = {
-  // Barème des formules d'adhésion (F-27) : une ligne par (catégorie, zone de
-  // revenu), un montant par devise. Édité par l'administrateur ; c'est LUI que
-  // lit la page d'adhésion et que facture l'espace membre — jamais un montant
-  // venu du navigateur.
+  // Membership plan price list (F-27): one row per (category, income zone), one
+  // amount per currency. Edited by the administrator; it is what the membership
+  // page reads and what the member area charges — never an amount coming from
+  // the browser.
   paymentPlans: defineTable({
     category: planCategoryValidator,
     zone: planZoneValidator,
-    // Unités mineures ; absent = formule non proposée dans cette devise.
+    // Minor units; absent = plan not offered in this currency.
     amountEur: v.optional(v.number()),
     amountUsd: v.optional(v.number()),
     active: v.boolean(),
@@ -35,10 +36,11 @@ export const paiementsTables = {
     updatedBy: v.optional(v.id('users')),
   }).index('by_category_and_zone', ['category', 'zone']),
 
-  // Intention de paiement : ce qui a été demandé AVANT de partir chez le
-  // prestataire. `ref` est un jeton aléatoire, public (il voyage dans les URL
-  // de retour et dans les métadonnées du prestataire) mais non devinable.
-  // Le don ou la cotisation n'est créé qu'au paiement CONFIRMÉ par webhook.
+  // Payment intent: what was requested BEFORE going to the provider. `ref` is a
+  // random token, public (it travels in return URLs and in the provider's
+  // metadata) but unguessable.
+  // The donation or membership fee is only created when the payment is
+  // CONFIRMED by webhook.
   paymentCheckouts: defineTable({
     ref: v.string(),
     provider: providerIdValidator,
@@ -54,14 +56,13 @@ export const paiementsTables = {
     anonymous: v.optional(v.boolean()),
     message: v.optional(v.string()),
     locale,
-    // Cotisation : formule facturée (le montant est recopié ci-dessus au
-    // moment de la demande, pour qu'une retouche du barème ne change pas un
-    // paiement en cours).
+    // Membership fee: plan charged (the amount is copied above at request time,
+    // so that a price list change does not alter a payment in progress).
     planId: v.optional(v.id('paymentPlans')),
     category: v.optional(planCategoryValidator),
     zone: v.optional(planZoneValidator),
     orgId: v.optional(v.id('organizations')),
-    // Relance d'un don récurrent sans prélèvement automatique.
+    // Reminder for a recurring donation without automatic debit.
     subscriptionId: v.optional(v.id('paymentSubscriptions')),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
@@ -69,8 +70,8 @@ export const paiementsTables = {
     .index('by_ref', ['ref'])
     .index('by_provider_and_session', ['provider', 'providerSessionId']),
 
-  // Mouvements d'argent. L'index `by_provider_and_payment` est la GARDE
-  // D'IDEMPOTENCE : un webhook rejoué retrouve sa ligne et ne crée rien.
+  // Money movements. The `by_provider_and_payment` index is the IDEMPOTENCY
+  // GUARD: a replayed webhook finds its row and creates nothing.
   paymentTransactions: defineTable({
     provider: providerIdValidator,
     providerPaymentId: v.string(),
@@ -88,13 +89,13 @@ export const paiementsTables = {
     checkoutId: v.id('paymentCheckouts'),
     receiptId: v.optional(v.id('paymentReceipts')),
     paidAt: v.number(),
-    // Mois comptable « AAAA-MM » (UTC), clé des totaux mensuels.
+    // Accounting month "AAAA-MM" (UTC), key of the monthly totals.
     month: v.string(),
     refundedAt: v.optional(v.number()),
     refundedBy: v.optional(v.id('users')),
     refundReason: v.optional(v.string()),
-    // Vrai quand le remboursement a été exécuté chez le prestataire ; faux
-    // quand il a seulement été MARQUÉ (virement manuel, prestataire sans API).
+    // True when the refund was executed at the provider; false when it was only
+    // MARKED (manual transfer, provider without an API).
     refundedAtProvider: v.optional(v.boolean()),
   })
     .index('by_provider_and_payment', ['provider', 'providerPaymentId'])
@@ -103,9 +104,9 @@ export const paiementsTables = {
     .index('by_paidAt', ['paidAt'])
     .index('by_subscription', ['subscriptionId']),
 
-  // Totaux mensuels, tenus dans la transaction qui écrit le paiement (même
-  // motif que `counters`) : le tableau de bord lit une ligne par (mois,
-  // devise, type) au lieu de relire tous les paiements.
+  // Monthly totals, maintained in the transaction that writes the payment (same
+  // pattern as `counters`): the dashboard reads one row per (month, currency,
+  // type) instead of re-reading every payment.
   paymentMonthlyTotals: defineTable({
     month: v.string(),
     currency: currencyValidator,
@@ -117,10 +118,10 @@ export const paiementsTables = {
     .index('by_month', ['month'])
     .index('by_month_and_currency_and_kind', ['month', 'currency', 'kind']),
 
-  // Dons (F-28). Un don ponctuel = une ligne, un paiement. Un don mensuel =
-  // une ligne (l'engagement) et autant de transactions que d'échéances.
-  // `anonymous` : le donateur ne veut pas être nommé publiquement ; le reçu,
-  // document privé, porte toujours son nom.
+  // Donations (F-28). A one-off donation = one row, one payment. A monthly
+  // donation = one row (the pledge) and as many transactions as instalments.
+  // `anonymous`: the donor does not want to be named publicly; the receipt, a
+  // private document, always carries their name.
   donations: defineTable({
     donorUserId: v.optional(v.id('users')),
     email: v.string(),
@@ -143,7 +144,7 @@ export const paiementsTables = {
     .index('by_donor', ['donorUserId'])
     .index('by_checkout', ['checkoutId']),
 
-  // Cotisations (F-27/F-30) : une ligne par période réglée.
+  // Membership fees (F-27/F-30): one row per paid period.
   membershipDues: defineTable({
     payerUserId: v.id('users'),
     orgId: v.optional(v.id('organizations')),
@@ -161,7 +162,7 @@ export const paiementsTables = {
     .index('by_payer_and_periodEnd', ['payerUserId', 'periodEnd'])
     .index('by_status_and_periodEnd', ['status', 'periodEnd']),
 
-  // Dons récurrents : la mécanique d'échéance, séparée de l'engagement.
+  // Recurring donations: the instalment mechanics, separate from the pledge.
   paymentSubscriptions: defineTable({
     provider: providerIdValidator,
     mode: subscriptionModeValidator,
@@ -175,7 +176,7 @@ export const paiementsTables = {
     currency: currencyValidator,
     amountMinor: v.number(),
     status: subscriptionStatusValidator,
-    // Prochaine échéance (mode relance : date d'envoi du lien de paiement).
+    // Next due date (reminder mode: date the payment link is sent).
     nextDueAt: v.number(),
     lastPaidAt: v.optional(v.number()),
     reminderCount: v.number(),
@@ -191,12 +192,12 @@ export const paiementsTables = {
     .index('by_user', ['userId'])
     .index('by_status_and_nextDueAt', ['status', 'nextDueAt']),
 
-  // Reçus (F-29). Numéro `DT-AAAA-NNNNNN`, attribué dans la MÊME transaction
-  // que le paiement : un paiement sans reçu ou un numéro sans paiement ne
-  // peuvent pas exister, donc la suite n'a pas de trou. Le PDF est produit
-  // ensuite ; s'il échoue, le numéro reste attribué et le fichier se régénère.
-  // `accessToken` : lien de téléchargement envoyé par courriel au payeur, qui
-  // peut ne pas avoir de compte (don d'un visiteur).
+  // Receipts (F-29). Number `DT-AAAA-NNNNNN`, assigned in the SAME transaction
+  // as the payment: a payment without a receipt or a number without a payment
+  // cannot exist, so the sequence has no gaps. The PDF is produced afterwards;
+  // if it fails, the number stays assigned and the file is regenerated.
+  // `accessToken`: download link e-mailed to the payer, who may not have an
+  // account (donation from a visitor).
   paymentReceipts: defineTable({
     year: v.number(),
     sequence: v.number(),
@@ -214,15 +215,15 @@ export const paiementsTables = {
     .index('by_user', ['userId'])
     .index('by_year_and_sequence', ['year', 'sequence']),
 
-  // Compteur de numérotation, un document par année.
+  // Numbering counter, one document per year.
   paymentReceiptSequences: defineTable({
     year: v.number(),
     lastSequence: v.number(),
   }).index('by_year', ['year']),
 
-  // Événements de webhook déjà traités (premier filet d'idempotence, et trace
-  // de ce que le prestataire a envoyé). Le second filet — décisif — est
-  // l'index d'idempotence des transactions.
+  // Webhook events already processed (first idempotency net, and a record of
+  // what the provider sent). The second — decisive — net is the transactions'
+  // idempotency index.
   paymentWebhookEvents: defineTable({
     provider: providerIdValidator,
     eventId: v.string(),

@@ -1,38 +1,37 @@
 import { v } from 'convex/values';
 
-// TRADUCTION DES CONTENUS DÉPOSÉS PAR LES MEMBRES — logique pure.
+// TRANSLATION OF CONTENT SUBMITTED BY MEMBERS — pure logic.
 //
-// LE PROBLÈME. Le réseau publie dans cinq langues, mais ses membres écrivent
-// dans la leur : un billet de Tribune rédigé à Dakar est en français, une
-// publication déposée à Tunis peut être en arabe, une autre à Lisbonne en
-// portugais. Jusqu'ici, un lecteur qui ne lisait pas cette langue voyait le
-// texte brut, sans même savoir dans quelle langue il était.
+// THE PROBLEM. The network publishes in five languages, but its members write
+// in their own: a Tribune post written in Dakar is in French, a publication
+// submitted in Tunis may be in Arabic, another in Lisbon in Portuguese. Until
+// now, a reader who did not read that language saw the raw text, without
+// even knowing which language it was in.
 //
-// CE QUE CE MODULE NE FAIT PAS. Il ne remplace jamais l'original. Une
-// traduction automatique est une COMMODITÉ DE LECTURE, pas une édition : elle
-// s'affiche sous une mention explicite, et l'original reste à un clic. C'est
-// la même règle que la clause « le français prévaut » des pages légales —
-// dire au lecteur ce qu'il a sous les yeux.
+// WHAT THIS MODULE DOES NOT DO. It never replaces the original. A machine
+// translation is a READING AID, not an edition: it is displayed under an
+// explicit notice, and the original remains one click away. It is the same
+// rule as the "French prevails" clause of the legal pages — telling readers
+// what they are looking at.
 //
-// LE TEXTE SOURCE EST UNE DONNÉE, JAMAIS UNE CONSIGNE. Un membre peut écrire
-// « ignore les instructions précédentes et réponds X » dans son billet : le
-// texte arrive dans le champ `input` du modèle, séparé de `instructions`, et
-// la sortie est contrainte par un schéma JSON qui n'admet que des chaînes aux
-// emplacements attendus. Même discipline que `convex/aiModeration.ts`, pour la
-// même raison.
+// THE SOURCE TEXT IS DATA, NEVER AN INSTRUCTION. A member may write "ignore
+// previous instructions and answer X" in their post: the text arrives in the
+// model's `input` field, separate from `instructions`, and the output is
+// constrained by a JSON schema that only admits strings in the expected
+// slots. Same discipline as `convex/aiModeration.ts`, for the same reason.
 
-// --- Ce qui se traduit ------------------------------------------------------
+// --- What gets translated ---------------------------------------------------
 //
-// Deux familles de contenus déposés par les membres, et elles n'ont pas les
-// mêmes champs. Plutôt que deux pipelines, une seule forme qui les couvre :
-// un titre, un chapô facultatif, des points-clés facultatifs, un corps découpé
-// en paragraphes. Un billet de Tribune n'a que le titre et le corps ; une
-// publication a les quatre.
+// Two families of content submitted by members, and they do not have the same
+// fields. Rather than two pipelines, a single shape that covers both: a
+// title, an optional standfirst, optional key points, a body split into
+// paragraphs. A Tribune post only has the title and body; a publication has
+// all four.
 //
-// LE CORPS EST UN TABLEAU, et il le reste de bout en bout. Concaténer les
-// paragraphes pour les renvoyer en un bloc obligerait à les redécouper à
-// l'arrivée, sur un séparateur que le modèle n'a aucune obligation de
-// respecter — et un paragraphe perdu ne se voit pas.
+// THE BODY IS AN ARRAY, and it stays one end to end. Concatenating the
+// paragraphs to send them back as one block would force splitting them again
+// on arrival, on a separator the model has no obligation to respect — and a
+// lost paragraph goes unnoticed.
 
 export const translatableFields = v.object({
   title: v.string(),
@@ -60,21 +59,21 @@ export const translationStatus = v.union(
   v.literal('failed'),
 );
 
-// --- Péremption -------------------------------------------------------------
+// --- Staleness ---------------------------------------------------------------
 //
-// Une traduction décrit un ÉTAT du texte source. L'auteur peut corriger son
-// billet après coup ; la traduction en cache décrirait alors une version qui
-// n'existe plus, sans que rien ne le signale.
+// A translation describes a STATE of the source text. The author may correct
+// their post afterwards; the cached translation would then describe a version
+// that no longer exists, with nothing to signal it.
 //
-// L'empreinte est calculée sur les champs traduits, et elle est stockée avec la
-// traduction : à la lecture, on la recalcule et on compare. Différente ->
-// la traduction est périmée, l'original s'affiche et la retraduction est
-// proposée.
+// The hash is computed over the translated fields, and it is stored with the
+// translation: on read, we recompute it and compare. Different -> the
+// translation is stale, the original is displayed and a re-translation is
+// offered.
 //
-// FNV-1a 32 bits, pas SHA-256 : `crypto.subtle` est asynchrone et n'a rien à
-// faire dans une query. Ce n'est pas une empreinte cryptographique — personne
-// n'a intérêt à forger une collision pour faire afficher une vieille
-// traduction de son propre texte — c'est un détecteur de changement.
+// FNV-1a 32-bit, not SHA-256: `crypto.subtle` is asynchronous and has no
+// place in a query. It is not a cryptographic hash — nobody has any interest
+// in forging a collision to display an old translation of their own text —
+// it is a change detector.
 export function sourceFingerprint(fields: TranslatableFields): string {
   const parts = [
     fields.title,
@@ -82,31 +81,31 @@ export function sourceFingerprint(fields: TranslatableFields): string {
     ...(fields.keypoints ?? []),
     ...fields.body,
   ];
-  // Le séparateur \u0000 ne peut pas apparaître dans le texte saisi : sans lui,
-  // ['ab','c'] et ['a','bc'] auraient la même empreinte.
+  // The \u0000 separator cannot appear in entered text: without it,
+  // ['ab','c'] and ['a','bc'] would have the same hash.
   const joined = parts.join('\u0000');
   let hash = 0x811c9dc5;
   for (let i = 0; i < joined.length; i++) {
     hash ^= joined.charCodeAt(i);
-    // FNV prime, en arithmétique 32 bits non signée.
+    // FNV prime, in unsigned 32-bit arithmetic.
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
-  // La LONGUEUR est jointe à l'empreinte : deux textes de tailles différentes
-  // ne peuvent alors pas entrer en collision, ce qui écarte le cas le plus
-  // probable (un paragraphe ajouté ou retiré).
+  // The LENGTH is appended to the hash: two texts of different sizes then
+  // cannot collide, which rules out the most likely case (a paragraph added or
+  // removed).
   return `${hash.toString(16)}-${joined.length}`;
 }
 
-// --- Le schéma de sortie ----------------------------------------------------
+// --- The output schema ------------------------------------------------------
 //
-// Construit à la demande à partir du contenu SOURCE : `body` y est déclaré avec
-// le nombre exact de paragraphes attendus (`minItems`/`maxItems`), ce qui rend
-// structurellement impossible qu'une traduction en perde ou en invente un. La
-// même contrainte porte sur `keypoints`.
+// Built on demand from the SOURCE content: `body` is declared in it with the
+// exact number of expected paragraphs (`minItems`/`maxItems`), which makes it
+// structurally impossible for a translation to lose or invent one. The same
+// constraint applies to `keypoints`.
 //
-// `additionalProperties: false` et `required` exhaustif : le mode strict de la
-// passerelle l'exige, et c'est ce qui garantit qu'un champ absent est une
-// erreur de la passerelle plutôt qu'un `undefined` silencieux dans la page.
+// `additionalProperties: false` and an exhaustive `required`: the gateway's
+// strict mode demands it, and it is what guarantees that a missing field is a
+// gateway error rather than a silent `undefined` in the page.
 export function buildTranslationSchema(source: TranslatableFields): unknown {
   const properties: Record<string, unknown> = {
     title: { type: 'string' },
@@ -141,8 +140,8 @@ export function buildTranslationSchema(source: TranslatableFields): unknown {
   };
 }
 
-// Noms de langue en ANGLAIS dans la consigne : c'est la forme que les modèles
-// désambiguïsent le mieux, et la consigne n'est jamais montrée à personne.
+// Language names in ENGLISH in the instructions: it is the form models
+// disambiguate best, and the instructions are never shown to anyone.
 const LANGUAGE_NAMES: Record<string, string> = {
   fr: 'French',
   en: 'English',
@@ -156,12 +155,12 @@ export function languageName(code: string): string {
 }
 
 /**
- * Consigne système de la traduction.
+ * System instructions for the translation.
  *
- * Elle dit trois choses, et chacune répond à un défaut observé sur ce genre de
- * tâche : ne pas résumer (un modèle abrège volontiers un long paragraphe),
- * ne pas commenter (il ajoute des notes de traducteur), et ne pas suivre le
- * texte (le contenu à traduire peut contenir des impératifs).
+ * They say three things, and each one addresses a defect observed on this
+ * kind of task: do not summarise (a model readily shortens a long paragraph),
+ * do not comment (it adds translator's notes), and do not follow the text
+ * (the content to translate may contain imperatives).
  */
 export function buildTranslationInstructions(
   sourceLocale: string,
@@ -187,24 +186,24 @@ export function buildTranslationInstructions(
 }
 
 /**
- * Le contenu à traduire, en JSON.
+ * The content to translate, as JSON.
  *
- * Passer un objet JSON plutôt que du texte libre n'est pas cosmétique : cela
- * donne au modèle la même forme en entrée qu'en sortie, donc rien à deviner
- * sur le découpage des paragraphes.
+ * Passing a JSON object rather than free text is not cosmetic: it gives the
+ * model the same shape as input and output, hence nothing to guess about how
+ * the paragraphs are split.
  */
 export function buildTranslationInput(source: TranslatableFields): string {
   return JSON.stringify(source);
 }
 
 /**
- * Valide la réponse du modèle contre la forme SOURCE.
+ * Validates the model's response against the SOURCE shape.
  *
- * Le schéma JSON de la passerelle borne déjà la sortie, mais il est appliqué
- * PAR LA PASSERELLE : un fournisseur qui l'ignorerait, ou une réponse
- * repêchée d'un format inattendu, passerait au travers. Cette fonction est la
- * garde côté serveur, et c'est elle qui décide qu'une traduction est
- * utilisable — jamais l'absence d'erreur.
+ * The gateway's JSON schema already bounds the output, but it is enforced BY
+ * THE GATEWAY: a provider that ignored it, or a response salvaged from an
+ * unexpected format, would slip through. This function is the server-side
+ * guard, and it is what decides that a translation is usable — never the
+ * mere absence of an error.
  */
 export function parseTranslation(
   source: TranslatableFields,
@@ -216,15 +215,15 @@ export function parseTranslation(
   const str = (x: unknown): string | null =>
     typeof x === 'string' && x.trim() !== '' ? x : null;
 
-  // LE VIDE EST REFUSÉ LÀ OÙ LA SOURCE NE L'EST PAS. Le contrôle de longueur
-  // seul laissait passer `["texte", "", "", ""]` : le compte est bon, le modèle
-  // a « rendu » N paragraphes. C'est le mode d'échec le plus coûteux du
-  // dispositif — à court de budget de sortie, un modèle contraint à rendre
-  // exactement N entrées termine volontiers par des chaînes vides. La ligne
-  // serait écrite `ready`, l'empreinte correspondrait, et le lecteur verrait un
-  // article dont la seconde moitié est blanche sous un bandeau affirmant qu'il
-  // s'agit d'une traduction — sans bouton pour retraduire, puisqu'elle est « à
-  // jour ». Le titre était déjà protégé (`str`), pas le corps.
+  // EMPTINESS IS REFUSED WHERE THE SOURCE IS NOT EMPTY. The length check alone
+  // let `["texte", "", "", ""]` through: the count is right, the model
+  // "returned" N paragraphs. It is the costliest failure mode of the system —
+  // running out of output budget, a model forced to return exactly N entries
+  // readily ends with empty strings. The row would be written `ready`, the hash
+  // would match, and the reader would see an article whose second half is
+  // blank under a banner claiming it is a translation — with no button to
+  // re-translate, since it is "up to date". The title was already protected
+  // (`str`), not the body.
   const strArray = (
     x: unknown,
     expected: readonly string[],
@@ -262,19 +261,18 @@ export function parseTranslation(
   return result;
 }
 
-// --- Bornes -----------------------------------------------------------------
+// --- Bounds -----------------------------------------------------------------
 //
-// Un billet de Tribune peut être long, une publication l'est souvent. Le
-// plafond de jetons doit couvrir le texte traduit, qui est PLUS LONG que
-// l'original dans la plupart des paires de langues (l'espagnol et le portugais
-// gonflent de 15 à 25 % par rapport au français ; l'arabe est plus compact en
-// caractères mais plus coûteux en jetons, faute d'être aussi bien représenté
-// dans les vocabulaires des modèles).
+// A Tribune post can be long, a publication often is. The token cap must
+// cover the translated text, which is LONGER than the original in most
+// language pairs (Spanish and Portuguese grow by 15 to 25% compared with
+// French; Arabic is more compact in characters but more expensive in tokens,
+// being less well represented in models' vocabularies).
 //
-// La règle ci-dessous part du nombre de CARACTÈRES source, l'convertit
-// grossièrement en jetons, et applique une marge de 3. Mieux vaut un plafond
-// large qu'une traduction tronquée : une sortie coupée ne satisfait pas le
-// schéma et l'appel est perdu de toute façon.
+// The rule below starts from the number of source CHARACTERS, roughly
+// converts it into tokens, and applies a margin of 3. A generous cap is
+// better than a truncated translation: a cut-off output does not satisfy the
+// schema and the call is lost anyway.
 export const MAX_SOURCE_CHARS = 60_000;
 export const TRANSLATION_OUTPUT_FLOOR = 2_000;
 export const TRANSLATION_OUTPUT_CEILING = 32_000;
@@ -296,9 +294,9 @@ export function outputTokenBudget(fields: TranslatableFields): number {
   );
 }
 
-// Modèle par défaut. Vit ici plutôt que dans les réglages de la modération
-// éditoriale : ce sont deux tâches distinctes, et celle-ci n'a pas de barème à
-// calibrer. `TRANSLATION_MODEL` sur le déploiement Convex prend le pas.
+// Default model. Lives here rather than in the editorial moderation
+// settings: they are two distinct tasks, and this one has no scoring scale to
+// calibrate. `TRANSLATION_MODEL` on the Convex deployment takes precedence.
 export const DEFAULT_TRANSLATION_MODEL = 'anthropic/claude-opus-5';
 
 export function translationModel(): string {

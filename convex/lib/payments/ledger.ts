@@ -13,12 +13,12 @@ import { randomToken } from './crypto';
 import { getAdapter } from './registry';
 import type { NormalizedEvent, PaymentPurpose, ProviderId } from './validators';
 
-// LE GRAND LIVRE — seul endroit qui écrit un paiement.
+// THE LEDGER — the only place that writes a payment.
 //
-// Tous les chemins y mènent : webhook Stripe, webhook factice,
-// relecture au retour de paiement. Chaque fonction s'exécute DANS la
-// transaction de la mutation appelante : le paiement, le don ou la cotisation,
-// les totaux mensuels et le numéro de reçu sont écrits ensemble ou pas du tout.
+// Every path leads here: Stripe webhook, fake webhook, re-check on payment
+// return. Each function runs INSIDE the calling mutation's transaction: the
+// payment, the donation or the membership fee, the monthly totals and the
+// receipt number are written together or not at all.
 
 type PaymentSucceeded = Extract<NormalizedEvent, { kind: 'payment_succeeded' }>;
 
@@ -34,7 +34,7 @@ export type ApplyResult =
         | 'invalid_checkout';
     };
 
-// --- Totaux mensuels -----------------------------------------------------------
+// --- Monthly totals -----------------------------------------------------------
 
 export async function bumpMonthlyTotals(
   ctx: MutationCtx,
@@ -66,20 +66,20 @@ export async function bumpMonthlyTotals(
   });
 }
 
-// --- Reçus : numérotation continue ----------------------------------------------
+// --- Receipts: continuous numbering ---------------------------------------------
 
 export function receiptNumber(year: number, sequence: number): string {
   return `DT-${year}-${String(sequence).padStart(6, '0')}`;
 }
 
 /**
- * Attribue le numéro suivant de l'année et crée le reçu.
+ * Assigns the year's next number and creates the receipt.
  *
- * SANS TROU, par construction : le compteur de l'année est lu et incrémenté
- * dans la transaction qui écrit le paiement. Deux paiements simultanés lisent
- * le même compteur, et Convex (contrôle de concurrence optimiste) rejoue l'un
- * des deux après l'autre — jamais deux fois le même numéro, jamais un numéro
- * consommé par une transaction annulée.
+ * GAPLESS, by construction: the year's counter is read and incremented in the
+ * transaction that writes the payment. Two simultaneous payments read the
+ * same counter, and Convex (optimistic concurrency control) replays one of
+ * them after the other — never the same number twice, never a number consumed
+ * by a rolled-back transaction.
  */
 export async function allocateReceipt(
   ctx: MutationCtx,
@@ -114,7 +114,7 @@ export async function allocateReceipt(
   });
 }
 
-// --- Lecture des références ----------------------------------------------------
+// --- Reference lookup ----------------------------------------------------------
 
 export async function checkoutByRef(
   ctx: MutationCtx,
@@ -179,16 +179,16 @@ async function createSubscription(
   return (await ctx.db.get(id))!;
 }
 
-// --- Paiement confirmé ------------------------------------------------------------
+// --- Confirmed payment ------------------------------------------------------------
 
 export async function applyPaymentSucceeded(
   ctx: MutationCtx,
   provider: ProviderId,
   evt: PaymentSucceeded,
 ): Promise<ApplyResult> {
-  // 1. IDEMPOTENCE. Un webhook rejoué (le prestataire renvoie tant qu'il n'a
-  //    pas eu de 2xx, ou deux événements décrivent le même paiement) retrouve
-  //    sa ligne et s'arrête là : ni second paiement, ni second reçu.
+  // 1. IDEMPOTENCY. A replayed webhook (the provider resends until it gets a
+  //    2xx, or two events describe the same payment) finds its row and stops
+  //    there: no second payment, no second receipt.
   const existing = await ctx.db
     .query('paymentTransactions')
     .withIndex('by_provider_and_payment', (q) =>
@@ -197,7 +197,7 @@ export async function applyPaymentSucceeded(
     .first();
   if (existing) return { status: 'duplicate', transactionId: existing._id };
 
-  // 2. La demande d'origine : par sa référence, ou par l'abonnement.
+  // 2. The original request: by its reference, or by the subscription.
   let checkout = evt.checkoutRef
     ? await checkoutByRef(ctx, evt.checkoutRef)
     : null;
@@ -208,10 +208,10 @@ export async function applyPaymentSucceeded(
   if (!checkout) return { status: 'unknown_checkout' };
   if (checkout.provider !== provider) return { status: 'provider_mismatch' };
 
-  // 3. Le montant ENCAISSÉ doit être le montant DEMANDÉ. Un événement qui
-  //    annonce autre chose (manipulation de la page du prestataire, erreur
-  //    d'intégration) n'ouvre ni reçu ni cotisation : il est journalisé et
-  //    traité à la main.
+  // 3. The amount COLLECTED must be the amount REQUESTED. An event announcing
+  //    something else (tampering with the provider's page, integration error)
+  //    opens neither a receipt nor a membership: it is logged and handled
+  //    manually.
   if (
     evt.currency !== checkout.currency ||
     evt.amountMinor !== checkout.amountMinor
@@ -222,8 +222,8 @@ export async function applyPaymentSucceeded(
     return { status: 'amount_mismatch' };
   }
   if (!checkout.recurring && checkout.status === 'completed') {
-    // Une demande ponctuelle se règle une fois. Un second identifiant de
-    // paiement pour elle est une anomalie, pas un second don.
+    // A one-off request is settled once. A second payment identifier for it is
+    // an anomaly, not a second donation.
     console.error(
       `[payments] second paiement pour la demande ponctuelle ${checkout.ref}`,
     );
@@ -275,8 +275,8 @@ export async function applyPaymentSucceeded(
       } else {
         donationId = sub.donationId;
       }
-      // Échéance suivante ancrée sur la précédente (pas sur le jour où l'on a
-      // payé en retard), sauf si ce retard l'a déjà dépassée.
+      // Next due date anchored on the previous one (not on the day a late payment
+      // was made), unless that delay has already passed it.
       let nextDueAt =
         sub.lastPaidAt === undefined
           ? sub.nextDueAt
@@ -287,8 +287,8 @@ export async function applyPaymentSucceeded(
         lastPaidAt: paidAt,
         nextDueAt,
         reminderCount: 0,
-        // Une relance restée impayée puis réglée réactive l'engagement ; un
-        // engagement ARRÊTÉ par le donateur ne se rallume pas.
+        // A reminder that went unpaid and was then settled reactivates the pledge; a
+        // pledge STOPPED by the donor does not restart.
         ...(sub.status === 'past_due' ? { status: 'active' as const } : {}),
       });
       subscriptionId = sub._id;
@@ -338,8 +338,8 @@ export async function applyPaymentSucceeded(
 
   let periodEnd: number | undefined;
   if (duesPlan) {
-    // Renouvellement anticipé : la nouvelle période commence à la fin de
-    // celle en cours, pour que payer en avance ne fasse rien perdre.
+    // Early renewal: the new period starts at the end of the current one, so
+    // that paying in advance loses nothing.
     const latest = await ctx.db
       .query('membershipDues')
       .withIndex('by_payer_and_periodEnd', (q) =>
@@ -410,10 +410,10 @@ export async function applyPaymentSucceeded(
     });
   }
 
-  // Le PDF (et le courriel qui l'annonce) sont produits hors transaction : une
-  // action peut échouer et se relancer sans toucher au paiement enregistré.
-  // Seule la COMPOSITION est planifiée (action Node, pour les polices
-  // Unicode) ; le numéro vient d'être attribué ci-dessus, dans la transaction.
+  // The PDF (and the e-mail announcing it) are produced outside the
+  // transaction: an action can fail and retry without touching the recorded
+  // payment. Only the COMPOSITION is scheduled (Node action, for the Unicode
+  // fonts); the number was just assigned above, in the transaction.
   await ctx.scheduler.runAfter(0, internal.payments.receiptsNode.generate, {
     receiptId,
   });
@@ -421,7 +421,7 @@ export async function applyPaymentSucceeded(
   return { status: 'recorded', transactionId };
 }
 
-// --- Autres événements --------------------------------------------------------------
+// --- Other events ------------------------------------------------------------------
 
 export async function applyCheckoutClosed(
   ctx: MutationCtx,
@@ -442,8 +442,8 @@ export async function applyCheckoutClosed(
       .first();
   }
   if (!checkout || checkout.provider !== provider) return;
-  // Une demande payée ne redevient jamais « annulée » : l'ordre d'arrivée des
-  // webhooks n'est pas garanti.
+  // A paid request never goes back to "cancelled": the arrival order of
+  // webhooks is not guaranteed.
   if (checkout.status === 'created' || checkout.status === 'open') {
     await ctx.db.patch(checkout._id, { status: evt.outcome });
   }
@@ -503,9 +503,9 @@ export async function applySubscriptionCancelled(
 }
 
 /**
- * Passe une transaction en « remboursée ». Idempotent : une transaction déjà
- * remboursée n'est pas décomptée deux fois (remboursement marqué au
- * back-office PUIS webhook `charge.refunded` du prestataire, par exemple).
+ * Marks a transaction as "refunded". Idempotent: an already refunded
+ * transaction is not deducted twice (refund marked in the back office THEN
+ * the provider's `charge.refunded` webhook, for example).
  */
 export async function applyRefund(
   ctx: MutationCtx,
@@ -520,8 +520,8 @@ export async function applyRefund(
     ...(opts.reason ? { refundReason: opts.reason } : {}),
     refundedAtProvider: opts.atProvider,
   });
-  // Le remboursement est imputé au MOIS DE L'ENCAISSEMENT : le tableau de bord
-  // présente alors, pour chaque mois, ce qui en est resté acquis.
+  // The refund is charged to the MONTH OF COLLECTION: the dashboard then shows,
+  // for each month, what remained acquired from it.
   await bumpMonthlyTotals(
     ctx,
     { month: tx.month, currency: tx.currency, kind: tx.kind },
@@ -564,16 +564,16 @@ export async function applyRefundEvent(
   if (tx) await applyRefund(ctx, tx, { atProvider: true });
 }
 
-// --- Suppression de compte ----------------------------------------------------------
+// --- Account deletion ---------------------------------------------------------------
 //
-// Les pièces comptables NE SE SUPPRIMENT PAS avec le compte : l'association
-// doit conserver ses justificatifs (obligation légale de conservation — c'est
-// l'exception de l'art. 17-3-b du RGPD). Ce qui disparaît, c'est le LIEN au
-// compte : transactions, dons, reçus et engagements sont détachés du
-// `userId`, les engagements récurrents actifs sont arrêtés, et le message
-// libre d'un don (donnée non comptable) est effacé. Les cotisations, qui
-// exigent un payeur, sont conservées telles quelles jusqu'à la purge du compte
-// lui-même par l'appelant ; elles ne portent aucune donnée au-delà de l'id.
+// Accounting records are NOT DELETED with the account: the association must
+// keep its supporting documents (legal retention obligation — this is the
+// art. 17-3-b GDPR exception). What disappears is the LINK to the account:
+// transactions, donations, receipts and pledges are detached from the
+// `userId`, active recurring pledges are stopped, and the free-text message
+// of a donation (non-accounting data) is erased. Membership fees, which
+// require a payer, are kept as is until the account itself is purged by the
+// caller; they carry no data beyond the id.
 const DELETE_BATCH = 200;
 
 export async function deleteUserDataPaiements(

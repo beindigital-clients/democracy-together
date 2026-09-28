@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { PDFDocument, PDFName, PDFString } from 'pdf-lib';
 import { anonymizePdf } from './pdfAnonymize';
 
-// Double aveugle (F-43) : la copie remise au relecteur ne doit porter le nom
-// de l'auteur dans AUCUNE métadonnée — dictionnaire d'information, XMP,
-// annotations, ni dans une ancienne révision restée dans le fichier.
+// Double-blind review (F-43): the copy handed to the reviewer must not carry
+// the author's name in ANY metadata — info dictionary, XMP, annotations, nor
+// in an old revision left in the file.
 
 const AUTHOR = 'Jeanne Autrice';
 
@@ -18,13 +18,13 @@ async function manuscriptWithIdentity(): Promise<Uint8Array> {
   doc.setProducer('Word 16');
   doc.setSubject(`Article de ${AUTHOR}`);
   doc.setKeywords([AUTHOR]);
-  // Métadonnées XMP, comme les écrit un traitement de texte.
+  // XMP metadata, as a word processor writes it.
   const xmp = doc.context.stream(
     `<x:xmpmeta xmlns:x="adobe:ns:meta/"><dc:creator>${AUTHOR}</dc:creator></x:xmpmeta>`,
     { Type: 'Metadata', Subtype: 'XML' },
   );
   doc.catalog.set(PDFName.of('Metadata'), doc.context.register(xmp));
-  // Un commentaire signé.
+  // A signed comment.
   const annot = doc.context.obj({
     Type: 'Annot',
     Subtype: 'Text',
@@ -36,8 +36,8 @@ async function manuscriptWithIdentity(): Promise<Uint8Array> {
     PDFName.of('Annots'),
     doc.context.obj([doc.context.register(annot)]),
   );
-  // Une ancienne révision orpheline qui garde le nom : un dictionnaire
-  // d'information que plus rien ne référence.
+  // An old orphaned revision that keeps the name: an info dictionary that
+  // nothing references any more.
   doc.context.register(doc.context.obj({ Author: PDFString.of(AUTHOR) }));
   return await doc.save({ useObjectStreams: false });
 }
@@ -65,8 +65,8 @@ describe('Anonymisation des métadonnées PDF (F-43)', () => {
       ]),
     );
 
-    // Le nom n'est plus NULLE PART dans le fichier (flux non compressés :
-    // la recherche d'octets suffit).
+    // The name is NOWHERE in the file any more (uncompressed streams: a byte
+    // search is enough).
     expect(latin1(res.bytes)).not.toContain(AUTHOR);
     expect(latin1(res.bytes)).not.toContain('Jeanne');
 
@@ -75,7 +75,7 @@ describe('Anonymisation des métadonnées PDF (F-43)', () => {
     expect(reread.getCreator()).toBeUndefined();
     expect(reread.getTitle()).toBe('Titre neutre');
     expect(reread.catalog.get(PDFName.of('Metadata'))).toBeUndefined();
-    // Le contenu des pages est intact.
+    // The page content is intact.
     expect(reread.getPageCount()).toBe(1);
   });
 

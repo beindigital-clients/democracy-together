@@ -2,11 +2,11 @@ import { escapeHtml, shell, subject, type Phrase } from '../emailContent';
 import { intlTag, type SiteLocale } from '../locales';
 import { fromMinor, type Currency } from './amounts';
 
-// COURRIELS DE PAIEMENT (F-28/F-29) — dans la langue du payeur, sur la coque
-// commune des courriels transactionnels (convex/lib/emailContent.ts). Le REÇU,
-// lui, est en français : c'est un document comptable (cf. receiptPdf.ts).
+// PAYMENT E-MAILS (F-28/F-29) — in the payer's language, on the shared shell
+// of transactional e-mails (convex/lib/emailContent.ts). The RECEIPT, however,
+// is in French: it is an accounting document (see receiptPdf.ts).
 
-/** Montant formaté dans la langue du destinataire. */
+/** Amount formatted in the recipient's language. */
 export function formatAmountFor(
   minor: number,
   currency: Currency,
@@ -22,7 +22,7 @@ export function formatAmountFor(
 const BUTTON =
   'display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600';
 
-// --- Confirmation de paiement -------------------------------------------------
+// --- Payment confirmation -----------------------------------------------------
 
 const CONFIRM_SUBJECT: Record<'donation' | 'dues', Phrase> = {
   donation: {
@@ -114,7 +114,7 @@ export function paymentConfirmationEmail(args: {
   };
 }
 
-// --- Relance d'échéance (don mensuel sans prélèvement automatique) ------------
+// --- Instalment reminder (monthly donation without automatic debit) ---------
 
 const REMINDER_SUBJECT: Phrase = {
   fr: 'Votre don mensuel : échéance à régler',
@@ -164,7 +164,7 @@ export function recurringReminderEmail(args: {
   return { subject: subject(REMINDER_SUBJECT, loc), html: shell(loc, body) };
 }
 
-// --- Arrêt d'un don mensuel ---------------------------------------------------
+// --- Stopping a monthly donation ----------------------------------------------
 
 const CANCEL_SUBJECT: Phrase = {
   fr: 'Votre don mensuel est arrêté',

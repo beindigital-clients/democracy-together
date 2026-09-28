@@ -7,18 +7,19 @@ import { renderReportPdf, type ReportPdfInput } from './render';
 import { CODED_REPORTS } from '../annualReportsCoded';
 import { SITE_LOCALES, type SiteLocale } from '../locales';
 
-// GÉNÉRATION DU PDF DES RAPPORTS (F-41). Ce que ces tests tiennent :
-//  - le PDF S'OUVRE (pdf.js le lit sans erreur) ;
-//  - le nombre de pages lu est celui que le générateur annonce (et que la
-//    page du site affiche à côté du bouton) ;
-//  - le titre est dans les métadonnées ET dans le texte extrait ;
-//  - l'ARABE EXTRAIT EST LIÉ : chaque lettre employée à plusieurs positions
-//    d'un mot est dessinée par plusieurs glyphes distincts (formes initiale,
-//    médiane, finale), et les mots se relisent d'un seul tenant.
+// REPORT PDF GENERATION (F-41). What these tests guarantee:
+//  - the PDF OPENS (pdf.js reads it without error);
+//  - the page count read is the one the generator announces (and that the
+//    site page displays next to the button);
+//  - the title is in the metadata AND in the extracted text;
+//  - EXTRACTED ARABIC IS JOINED: each letter used in several positions of a
+//    word is drawn with several distinct glyphs (initial, medial, final
+//    forms), and words read back in one piece.
 //
-// Pour INSPECTER les PDF produits : `REPORT_PDF_OUT=/chemin pnpm exec vitest
-// run convex/lib/reportPdf/render.test.ts` les écrit dans ce dossier, un par
-// langue (c'est la commande de mesure citée dans docs/backlog/editorial.md).
+// To INSPECT the generated PDFs: `REPORT_PDF_OUT=/path pnpm exec vitest
+// run convex/lib/reportPdf/render.test.ts` writes them to that directory, one
+// per language (this is the measurement command cited in
+// docs/backlog/editorial.md).
 
 const OUT = process.env.REPORT_PDF_OUT;
 
@@ -36,7 +37,7 @@ function inputFor(locale: SiteLocale): ReportPdfInput {
 }
 
 async function open(bytes: Uint8Array) {
-  // pdf.js détache le tampon qu'on lui passe : on lui donne une copie.
+  // pdf.js detaches the buffer it is given: we pass it a copy.
   return pdfjs.getDocument({
     data: bytes.slice(),
     isEvalSupported: false,
@@ -54,9 +55,9 @@ async function allText(doc: pdfjs.PDFDocumentProxy): Promise<string> {
   return out.join('\n');
 }
 
-// Glyphes dessinés, avec leur code de caractère (CID) et le texte Unicode que
-// le PDF leur associe (/ToUnicode). Une lettre arabe mise en forme
-// contextuellement apparaît sous PLUSIEURS CID ; posée isolée, sous un seul.
+// Drawn glyphs, with their character code (CID) and the Unicode text the PDF
+// associates with them (/ToUnicode). A contextually shaped Arabic letter
+// appears under SEVERAL CIDs; set in isolation, under only one.
 async function glyphForms(
   doc: pdfjs.PDFDocumentProxy,
 ): Promise<Map<string, Set<number>>> {
@@ -80,8 +81,8 @@ async function glyphForms(
   return forms;
 }
 
-// Composer un PDF prend de quelques centaines de millisecondes à quelques
-// secondes quand toute la suite tourne en parallèle : délai élargi.
+// Composing a PDF takes from a few hundred milliseconds to a few seconds when
+// the whole suite runs in parallel: extended timeout.
 describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
   it.each(SITE_LOCALES)(
     '%s : s’ouvre, annonce le bon nombre de pages, porte titre et langue',
@@ -104,12 +105,12 @@ describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
       expect(info.Author).toBe('Democracy Together');
       expect(info.Language).toBe(locale);
 
-      // Balisage : le catalogue déclare un PDF marqué, et l'arbre de
-      // structure existe (lu par pdf.js page par page).
+      // Tagging: the catalogue declares a marked PDF, and the structure tree
+      // exists (read by pdf.js page by page).
       const tree = await (await doc.getPage(1)).getStructTree();
       expect(tree?.children.length).toBeGreaterThan(0);
 
-      // Le titre se relit dans le texte extrait (espaces normalisés).
+      // The title reads back in the extracted text (normalised spaces).
       const text = (await allText(doc)).replace(/\s+/g, ' ');
       const firstWord = input.title.split(' ')[0];
       expect(text).toContain(firstWord);
@@ -122,11 +123,10 @@ describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
     const { bytes } = await renderReportPdf(input);
     const doc = await open(bytes);
 
-    // 1. Formes contextuelles. ب (beh), ت (teh), ن (noon), م (meem), ي (yeh)
-    //    apparaissent dans le rapport en début, milieu et fin de mot : une
-    //    composition correcte les dessine avec au moins trois glyphes
-    //    différents chacun ; une composition « lettre par lettre » n'en
-    //    utiliserait qu'un.
+    // 1. Contextual forms. ب (beh), ت (teh), ن (noon), م (meem), ي (yeh)
+    //    appear in the report at the start, middle and end of words: correct
+    //    shaping draws them with at least three different glyphs each; a
+    //    "letter by letter" composition would use only one.
     const forms = await glyphForms(doc);
     for (const letter of ['ب', 'ت', 'ن', 'م', 'ي']) {
       expect(
@@ -134,26 +134,24 @@ describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
         `formes de ${letter}`,
       ).toBeGreaterThanOrEqual(3);
     }
-    // Et, globalement, la majorité des lettres arabes employées ont plus
-    // d'une forme.
+    // And, overall, most of the Arabic letters used have more than one form.
     const arabic = [...forms.entries()].filter(([u]) => /^[ء-ي]$/u.test(u));
     const joined = arabic.filter(([, cids]) => cids.size > 1);
     expect(joined.length / arabic.length).toBeGreaterThan(0.6);
 
-    // 2. Texte extrait : les mots du titre se relisent d'un seul tenant, dans
-    //    l'ordre logique — pas une suite de lettres séparées, pas un mot
-    //    retourné.
+    // 2. Extracted text: the title's words read back in one piece, in logical
+    //    order — not a sequence of separate letters, not a reversed word.
     const text = await allText(doc);
     expect(text).toContain('تقرير');
     expect(text).toContain('النشاط');
     expect(text).not.toMatch(/ت ق ر ي ر/u);
     expect(text).not.toContain('ريرقت');
-    // Ligatures : lam-alif (obligatoire) et ligatures de la police se
-    // relisent dans l'ordre logique (cf. `visualOrderLigatures`).
+    // Ligatures: lam-alif (mandatory) and the font's ligatures read back in
+    // logical order (see `visualOrderLigatures`).
     expect(text).toContain('الإصدار');
     expect(text).toContain('المشتركة');
     expect(text).toContain('بين');
-    // Le chiffre de l'année n'est pas retourné par le sens de lecture.
+    // The year's digits are not reversed by the reading direction.
     expect(text).toContain('2026');
     expect(text).not.toContain('6202');
     await doc.destroy();

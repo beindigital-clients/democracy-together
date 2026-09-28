@@ -9,11 +9,11 @@ import {
   type AccessState,
 } from './accountAccess';
 
-// Hiérarchie des rôles réseau (F-02). Le vocabulaire, le rang et la valeur par
-// défaut vivent dans ./roles.ts — module pur, partagé avec l'UI, pour que la
-// décision « pas de rôle = visiteur » ne soit écrite qu'à un seul endroit.
-// Un rôle accorde aussi les droits des rôles inférieurs :
-// requireNetworkRole(ctx, "moderateur") accepte moderateur, editeur et admin.
+// Hierarchy of network roles (F-02). The vocabulary, rank and default value
+// live in ./roles.ts — a pure module, shared with the UI, so that the
+// decision "no role = visitor" is written in one place only.
+// A role also grants the rights of lower roles:
+// requireNetworkRole(ctx, "moderateur") accepts moderateur, editeur and admin.
 export {
   ROLE_ORDER,
   DEFAULT_ROLE,
@@ -24,14 +24,14 @@ export {
 export type { NetworkRole } from './roles';
 export type { AccessState } from './accountAccess';
 
-// ÉTAT DU COMPTE (chantier comptes). Toutes les gardes ci-dessous passent par
-// `evaluateAccess` : un compte SUSPENDU, une session qui n'a pas présenté son
-// second facteur, ou un compte d'encadrement tenu d'inscrire une 2FA qu'il n'a
-// pas encore n'obtiennent RIEN de réservé — ni lecture, ni écriture. C'est ici
-// et non dans chaque module, pour qu'aucune garde ne puisse l'oublier.
+// ACCOUNT STATE (accounts workstream). All guards below go through
+// `evaluateAccess`: a SUSPENDED account, a session that has not presented its
+// second factor, or a staff account required to enrol a 2FA it does not have
+// yet gets NOTHING restricted — neither reads nor writes. It lives here and
+// not in each module, so that no guard can forget it.
 
-// Codes de refus, lus par l'interface (écrans traduits) : `ConvexError`, dont
-// la donnée traverse jusqu'au client même en production.
+// Refusal codes, read by the interface (translated screens): `ConvexError`,
+// whose data reaches the client even in production.
 export const ACCESS_ERROR: Record<Exclude<AccessState, 'active'>, string> = {
   suspended: 'ACCOUNT_SUSPENDED',
   second_factor_required: 'TWO_FACTOR_REQUIRED',
@@ -39,11 +39,11 @@ export const ACCESS_ERROR: Record<Exclude<AccessState, 'active'>, string> = {
 };
 
 /**
- * Le compte de la session, SANS juger son état (suspension, 2FA).
+ * The session's account, WITHOUT judging its state (suspension, 2FA).
  *
- * Réservé aux écrans qui servent précisément à SORTIR de ces états : saisie du
- * code TOTP, inscription d'un appareil, état de session. Tout le reste passe
- * par `getCurrentUser` / `requireUser`.
+ * Reserved for the screens whose very purpose is to GET OUT of those states:
+ * TOTP code entry, device enrolment, session state. Everything else goes
+ * through `getCurrentUser` / `requireUser`.
  */
 export async function getSessionUser(
   ctx: QueryCtx | MutationCtx,
@@ -53,7 +53,7 @@ export async function getSessionUser(
   return await ctx.db.get(userId);
 }
 
-/** État d'accès de la session courante, ou `null` si anonyme. */
+/** Access state of the current session, or `null` if anonymous. */
 export async function getAccessState(
   ctx: QueryCtx | MutationCtx,
 ): Promise<{ user: Doc<'users'>; state: AccessState } | null> {
@@ -63,9 +63,9 @@ export async function getAccessState(
   return { user, state };
 }
 
-// Utilisateur courant — `null` si anonyme OU si son état lui refuse l'accès :
-// une query publique qui personnalise sa réponse (« mes notifications »)
-// le traite alors comme un visiteur.
+// Current user — `null` if anonymous OR if their state denies them access:
+// a public query that personalises its response ("my notifications") then
+// treats them as a visitor.
 export async function getCurrentUser(
   ctx: QueryCtx | MutationCtx,
 ): Promise<Doc<'users'> | null> {
@@ -73,7 +73,7 @@ export async function getCurrentUser(
   return access && access.state === 'active' ? access.user : null;
 }
 
-/** Identifiant du compte courant s'il a accès, sinon `null`. */
+/** Identifier of the current account if it has access, otherwise `null`. */
 export async function getActiveUserId(
   ctx: QueryCtx | MutationCtx,
 ): Promise<Id<'users'> | null> {
@@ -92,9 +92,9 @@ export async function requireUser(
 }
 
 /**
- * Compte de la session, non suspendu — son second facteur PEUT manquer.
+ * The session's account, not suspended — its second factor MAY be missing.
  *
- * Pour les seules fonctions qui permettent de le présenter ou de l'inscrire.
+ * Only for the functions that allow presenting or enrolling it.
  */
 export async function requireSessionUser(
   ctx: QueryCtx | MutationCtx,
@@ -107,8 +107,8 @@ export async function requireSessionUser(
   return access;
 }
 
-// Défense en profondeur : à appeler en tête de chaque mutation sensible,
-// même si l'UI masque déjà le bouton.
+// Defence in depth: call at the top of every sensitive mutation, even if the
+// UI already hides the button.
 export async function requireNetworkRole(
   ctx: QueryCtx | MutationCtx,
   min: NetworkRole,
@@ -121,14 +121,14 @@ export async function requireNetworkRole(
 }
 
 /**
- * Relit un compte désigné par son identifiant (déjà résolu par une action) et
- * le refuse s'il n'a pas accès.
+ * Re-reads an account designated by its identifier (already resolved by an
+ * action) and refuses it if it does not have access.
  *
- * Les actions (`documents.prepareDocument`, `translation.request`) résolvent
- * l'appelant puis passent son identifiant à une query interne. L'identité de
- * l'action est propagée à cette query : quand elle désigne le même compte, la
- * session est jugée entière (2FA comprise) ; sinon — appel interne sans
- * identité —, seule la suspension est vérifiable.
+ * Actions (`documents.prepareDocument`, `translation.request`) resolve the
+ * caller then pass its identifier to an internal query. The action's identity
+ * is propagated to that query: when it designates the same account, the
+ * session is judged in full (2FA included); otherwise — internal call without
+ * identity —, only suspension can be checked.
  */
 export async function getActiveUserById(
   ctx: QueryCtx | MutationCtx,

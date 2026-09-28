@@ -3,26 +3,25 @@ import { v } from 'convex/values';
 import { locale } from '../locales';
 import { localizedList, localizedText } from '../contenus/i18n';
 
-// CONTENUS ÉDITORIAUX GÉRÉS DEPUIS LE BACK-OFFICE (F-52, F-54, F-62, F-64).
+// EDITORIAL CONTENT MANAGED FROM THE BACK OFFICE (F-52, F-54, F-62, F-64).
 //
-// Événements, replays, partenaires, presse et thématiques étaient CODÉS dans le
-// dépôt : ajouter un webinaire demandait un développeur et un déploiement. Ils
-// vivent désormais ici, édités au rang « éditeur » (`/admin/contenus`), et le
-// contenu codé reste le REPLI des pages publiques tant qu'une table est vide
-// ou que le backend ne répond pas (`src/lib/contenus/`).
+// Events, replays, partners, press and themes used to be HARD-CODED in the
+// repo: adding a webinar required a developer and a deployment. They now live
+// here, edited at the "editor" level (`/admin/contenus`), and the hard-coded
+// content remains the FALLBACK for public pages as long as a table is empty
+// or the backend does not respond (`src/lib/contenus/`).
 //
-// CONVENTIONS COMMUNES
-//  - Les textes affichés sont TRADUISIBLES (`localizedText`, cinq clés
-//    optionnelles) : une langue manquante retombe sur le français, et le
-//    back-office la signale.
-//  - Le statut `draft` n'est JAMAIS servi par une requête publique : les index
-//    publics commencent par `status`, et les requêtes lisent la plage
-//    `published` (et `cancelled` pour l'agenda, qui l'annonce).
-//  - Les images viennent de la médiathèque (`contentMedia`) par identifiant ;
-//    chaque table qui en référence porte un index sur ce champ, pour que la
-//    suppression d'un média utilisé soit refusée en une lecture d'index.
-//  - `updatedAt`/`updatedBy` : la trace courante ; l'historique complet est
-//    dans le journal d'audit (une entrée par action).
+// SHARED CONVENTIONS
+//  - Displayed texts are TRANSLATABLE (`localizedText`, five optional keys):
+//    a missing language falls back to French, and the back office flags it.
+//  - The `draft` status is NEVER served by a public query: public indexes
+//    start with `status`, and queries read the `published` range (and
+//    `cancelled` for the events calendar, which announces it).
+//  - Images come from the media library (`contentMedia`) by identifier; each
+//    table that references them carries an index on that field, so that
+//    deleting a media item in use is refused with a single index read.
+//  - `updatedAt`/`updatedBy`: the current trace; the full history is in the
+//    audit log (one entry per action).
 
 export const eventType = v.union(
   v.literal('sommet'),
@@ -56,43 +55,43 @@ export const videoKind = v.union(
 export const mediaKind = v.union(v.literal('image'), v.literal('pdf'));
 
 export const contenusTables = {
-  // Agenda (F-52) : sommet, webinaires, ateliers.
+  // Events (F-52): summit, webinars, workshops.
   contentEvents: defineTable({
-    // Adresse publique `/evenements/<slug>` — stable, jamais modifiée après
-    // création (un lien partagé ne casse pas).
+    // Public address `/evenements/<slug>` — stable, never changed after creation
+    // (a shared link does not break).
     slug: v.string(),
     type: eventType,
     region: eventRegion,
     format: eventFormat,
-    // Axe du réseau (`NETWORK_THEMES`) ou `vie-reseau`.
+    // Network axis (`NETWORK_THEMES`) or `vie-reseau`.
     theme: v.string(),
     langs: v.array(locale),
     title: localizedText,
-    // Chapô de la fiche (optionnel : la fiche a un texte de repli).
+    // Profile standfirst (optional: the page has a fallback text).
     summary: v.optional(localizedText),
-    // Lieu affiché (« Dakar », « En ligne »…), traduisible.
+    // Displayed venue ("Dakar", "En ligne"…), translatable.
     place: localizedText,
-    // Clé de lieu du catalogue codé, gardée pour la fidélité de la migration.
+    // Venue key from the hard-coded catalogue, kept for migration fidelity.
     cityKey: v.optional(v.string()),
-    // Saisie telle qu'annoncée (jour, heure facultative, fuseau du lieu)…
+    // Input as announced (day, optional time, venue timezone)…
     startDate: v.string(),
     startTime: v.optional(v.string()),
     endDate: v.optional(v.string()),
     endTime: v.optional(v.string()),
     timezone: v.string(),
-    // …et les deux instants UTC qui en dérivent (cf. lib/contenus/time.ts),
-    // recalculés à chaque enregistrement.
+    // …and the two UTC instants derived from it (see lib/contenus/time.ts),
+    // recomputed on every save.
     startsAt: v.number(),
     endsAt: v.number(),
-    // Lien de visioconférence : RÉSERVÉ AUX INSCRITS. Aucune requête publique
-    // ne le renvoie ; seule `myVisioAccess` le rend, à un compte inscrit.
+    // Video-conference link: RESERVED FOR REGISTRANTS. No public query returns
+    // it; only `myVisioAccess` returns it, to a registered account.
     visioUrl: v.optional(v.string()),
-    // Nombre de places ; absent = sans limite.
+    // Number of seats; absent = unlimited.
     capacity: v.optional(v.number()),
     status: eventStatus,
     featured: v.optional(v.boolean()),
     imageMediaId: v.optional(v.id('contentMedia')),
-    // Durée annoncée (minutes) — reprise du catalogue pour les rediffusions.
+    // Announced duration (minutes) — taken from the catalogue for replays.
     durationMin: v.optional(v.number()),
     updatedAt: v.number(),
     updatedBy: v.optional(v.id('users')),
@@ -102,19 +101,19 @@ export const contenusTables = {
     .index('by_status_and_startsAt', ['status', 'startsAt'])
     .index('by_imageMediaId', ['imageMediaId']),
 
-  // Replays (F-54) : lien vidéo YouTube / Vimeo / fichier, rattachés ou non à
-  // un événement.
+  // Replays (F-54): YouTube / Vimeo / file video link, attached or not to an
+  // event.
   contentReplays: defineTable({
     slug: v.string(),
     title: localizedText,
     description: v.optional(localizedText),
     eventId: v.optional(v.id('contentEvents')),
-    // Slug de l'événement, dénormalisé : la carte publique pointe sa fiche
-    // sans relire l'événement.
+    // Event slug, denormalised: the public card points to its page without
+    // re-reading the event.
     eventSlug: v.optional(v.string()),
     eventType: v.optional(eventType),
-    // Absent = « enregistrement bientôt disponible » (état honnête repris du
-    // catalogue, qui n'avait aucune vidéo).
+    // Absent = "recording available soon" (honest state carried over from the
+    // catalogue, which had no video).
     videoKind: v.optional(videoKind),
     videoUrl: v.optional(v.string()),
     themes: v.array(v.string()),
@@ -131,7 +130,7 @@ export const contenusTables = {
     .index('by_eventId', ['eventId'])
     .index('by_posterMediaId', ['posterMediaId']),
 
-  // Partenaires (F-14) : logo depuis la médiathèque, lien, ordre.
+  // Partners (F-14): logo from the media library, link, order.
   contentPartners: defineTable({
     slug: v.string(),
     name: localizedText,
@@ -150,8 +149,8 @@ export const contenusTables = {
     .index('by_status_and_order', ['status', 'order'])
     .index('by_logoMediaId', ['logoMediaId']),
 
-  // Revue de presse (F-16) : article, média, date, langue, lien. Le titre est
-  // celui de l'article, dans SA langue — il ne se traduit pas.
+  // Press review (F-16): article, outlet, date, language, link. The title is
+  // the article's, in ITS language — it is not translated.
   contentPress: defineTable({
     title: v.string(),
     outlet: v.string(),
@@ -164,15 +163,15 @@ export const contenusTables = {
     updatedBy: v.optional(v.id('users')),
   }).index('by_status_and_publishedOn', ['status', 'publishedOn']),
 
-  // Thématiques (F-36) : slug stable (axe du réseau), titres et synthèses
-  // traduits, ordre d'affichage.
+  // Themes (F-36): stable slug (network axis), translated titles and
+  // summaries, display order.
   contentThemes: defineTable({
     slug: v.string(),
     title: localizedText,
     lead: localizedText,
     stance: v.optional(localizedList),
     questions: v.optional(localizedList),
-    // Sous-dimension du baromètre (D1…D5).
+    // Barometer sub-dimension (D1…D5).
     dimension: v.optional(v.string()),
     order: v.number(),
     status: publishStatus,
@@ -182,9 +181,9 @@ export const contenusTables = {
     .index('by_slug', ['slug'])
     .index('by_status_and_order', ['status', 'order']),
 
-  // Médiathèque (F-64). Le fichier est dans le stockage Convex ; ce document
-  // porte ce qu'on en a VÉRIFIÉ (nature réelle, taille, dimensions) et son
-  // texte alternatif, obligatoire et traduisible.
+  // Media library (F-64). The file is in Convex storage; this document carries
+  // what we VERIFIED about it (actual type, size, dimensions) and its
+  // alternative text, mandatory and translatable.
   contentMedia: defineTable({
     storageId: v.id('_storage'),
     kind: mediaKind,
@@ -194,7 +193,7 @@ export const contenusTables = {
     alt: localizedText,
     width: v.optional(v.number()),
     height: v.optional(v.number()),
-    // Nom de fichier + textes alternatifs, concaténés pour la recherche.
+    // File name + alternative texts, concatenated for search.
     searchText: v.string(),
     uploadedBy: v.optional(v.id('users')),
     createdAt: v.number(),

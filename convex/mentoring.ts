@@ -30,28 +30,29 @@ import {
   type PairStatus,
 } from './lib/programmes';
 
-// Mentorat : profils, appariement suggéré, suivi des binômes (F-59).
+// Mentoring: profiles, suggested matching, pair follow-up (F-59).
 //
-// Le parcours, dans l'ordre où il se vit :
-//  1. chacun tient un PROFIL (mentor ou mentoré) : thèmes, langues, région,
-//     fuseau, disponibilité, objectifs ;
-//  2. le COORDINATEUR (modérateur et au-dessus) lit, pour un mentoré, les
-//     mentors suggérés avec un score EXPLIQUÉ (convex/lib/programmes.ts) et
-//     confirme un appariement ;
-//  3. le binôme n'existe qu'une fois ACCEPTÉ PAR LES DEUX parties — personne
-//     n'est engagé dans un accompagnement qu'il n'a pas choisi ;
-//  4. le binôme se suit : objectifs, séances (notes privées au binôme),
-//     jalons, statut, bilan de fin ; le coordinateur est alerté quand aucune
-//     séance n'a été journalisée depuis quatre semaines (cron quotidien).
+// The journey, in the order it is lived:
+//  1. everyone maintains a PROFILE (mentor or mentee): themes, languages,
+//     region, timezone, availability, goals;
+//  2. the COORDINATOR (moderator and above) reads, for a mentee, the
+//     suggested mentors with an EXPLAINED score (convex/lib/programmes.ts)
+//     and confirms a match;
+//  3. the pair only exists once ACCEPTED BY BOTH parties — nobody is
+//     committed to a mentorship they did not choose;
+//  4. the pair is followed up: goals, sessions (notes private to the pair),
+//     milestones, status, final review; the coordinator is alerted when no
+//     session has been logged for four weeks (daily cron).
 //
-// Les demandes anonymes de /jeunes (convex/mentorship.ts) restent la porte
-// d'entrée de qui n'a pas de compte ; ce module est la suite, pour les comptes.
+// Anonymous requests from /jeunes (convex/mentorship.ts) remain the entry
+// point for those without an account; this module is the next step, for
+// accounts.
 
 const HOUR = 60 * 60 * 1000;
 const WRITE_LIMIT = { max: 60, windowMs: HOUR };
 
-// Un binôme « en cours » occupe le mentor et le mentoré : proposé (place
-// réservée en attendant les réponses), actif, ou en pause.
+// An "ongoing" pair occupies the mentor and the mentee: proposed (slot
+// reserved while awaiting answers), active, or paused.
 const OPEN_STATUSES: readonly PairStatus[] = ['proposed', 'active', 'paused'];
 
 const reasonValidator = v.any();
@@ -103,8 +104,8 @@ async function computeScore(
   });
 }
 
-// Qui lit un binôme : ses deux membres, et le coordinateur. Tout autre compte
-// reçoit NOT_FOUND — la même réponse qu'un identifiant inexistant.
+// Who reads a pair: its two members, and the coordinator. Any other account
+// gets NOT_FOUND — the same response as a non-existent identifier.
 async function pairAccess(
   ctx: QueryCtx | MutationCtx,
   pairId: Id<'mentorPairs'>,
@@ -137,8 +138,8 @@ async function requireMember(
   side: 'mentor' | 'mentore';
 }> {
   const access = await pairAccess(ctx, pairId);
-  // Le coordinateur SUIT le binôme, il ne le tient pas : séances, jalons,
-  // objectifs et bilan sont écrits par ses deux membres.
+  // The coordinator FOLLOWS the pair, they do not run it: sessions, milestones,
+  // goals and review are written by its two members.
   if (!access.side) throw new ConvexError('NOT_FOUND');
   await enforceRateLimit(ctx, {
     key: `mentoring:${access.user._id}`,
@@ -190,7 +191,7 @@ const pairSummaryValidator = v.object({
   lastSessionAt: v.union(v.number(), v.null()),
 });
 
-// --- Espace membre ----------------------------------------------------------
+// --- Member area ------------------------------------------------------------
 
 export const myMentoring = query({
   args: {},
@@ -263,8 +264,8 @@ export const saveMentorProfile = mutation({
   returns: v.id('mentorProfiles'),
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    // Mentorer engage le réseau : réservé aux membres validés. Être
-    // accompagné est ouvert à tout compte.
+    // Mentoring commits the network: reserved for validated members. Being
+    // mentored is open to any account.
     if (args.role === 'mentor' && rank(user.role) < rank('membre'))
       throw new ConvexError('MEMBER_REQUIRED');
     const displayName = args.displayName.trim();
@@ -373,7 +374,7 @@ const sessionValidator = v.object({
   _id: v.id('mentorSessions'),
   date: v.number(),
   durationMinutes: v.number(),
-  // `null` pour le coordinateur : les notes sont privées au binôme.
+  // `null` for the coordinator: the notes are private to the pair.
   notes: v.union(v.string(), v.null()),
 });
 
@@ -396,8 +397,8 @@ export const getPair = query({
     status: pairStatusValidator,
     mentorName: v.string(),
     menteeName: v.string(),
-    // L'adresse de l'autre n'est donnée qu'aux membres d'un binôme ACCEPTÉ :
-    // c'est l'acceptation qui vaut consentement à être contacté.
+    // The other person's address is only given to members of an ACCEPTED pair:
+    // acceptance is what constitutes consent to be contacted.
     counterpartEmail: v.union(v.string(), v.null()),
     mentorAccepted: v.boolean(),
     menteeAccepted: v.boolean(),
@@ -494,8 +495,8 @@ export const logSession = mutation({
   returns: v.id('mentorSessions'),
   handler: async (ctx, { pairId, date, durationMinutes, notes }) => {
     const { user, pair } = await requireMember(ctx, pairId);
-    // On journalise ce qui s'est tenu : pendant le binôme, pas avant son
-    // début ni dans le futur (une heure de marge pour les fuseaux).
+    // We log what took place: during the pair, not before its start nor in the
+    // future (one hour of slack for timezones).
     if (pair.status !== 'active' && pair.status !== 'paused')
       throw new ConvexError('PAIR_NOT_ACTIVE');
     const now = Date.now();
@@ -570,9 +571,8 @@ export const setMilestoneDone = mutation({
   },
 });
 
-// Statut du binôme : ses membres ET le coordinateur peuvent le mettre en
-// pause, le reprendre ou le terminer. « Terminé » est définitif : on ne
-// ressuscite pas un binôme, on en propose un nouveau.
+// Pair status: its members AND the coordinator can pause, resume or end it.
+// "Ended" is final: a pair is not resurrected, a new one is proposed.
 const STATUS_TRANSITIONS: Partial<Record<PairStatus, readonly PairStatus[]>> = {
   active: ['paused', 'ended'],
   paused: ['active', 'ended'],
@@ -623,7 +623,7 @@ export const submitFinalReview = mutation({
   },
 });
 
-// --- Coordination (modérateur et au-dessus) ---------------------------------
+// --- Coordination (moderator and above) -------------------------------------
 
 const suggestionValidator = v.object({
   mentorProfileId: v.id('mentorProfiles'),
@@ -633,8 +633,8 @@ const suggestionValidator = v.object({
 });
 
 export const coordinationOverview = query({
-  // `now` vient du client : une query ne lit pas l'horloge (elle ne serait
-  // pas réévaluée quand le temps passe). L'écran le rafraîchit à la minute.
+  // `now` comes from the client: a query does not read the clock (it would not
+  // be re-evaluated as time passes). The screen refreshes it every minute.
   args: { now: v.number() },
   returns: v.object({
     unmatchedMentees: v.array(profileValidator),
@@ -695,8 +695,8 @@ export const coordinationOverview = query({
         score: p.score,
         proposedAt: p.proposedAt,
         lastSessionAt: p.lastSessionAt ?? null,
-        // Même règle que le cron, sans la mémoire de l'alerte : l'écran dit
-        // l'état, le cron décide s'il faut prévenir.
+        // Same rule as the cron, without the alert memory: the screen shows the
+        // state, the cron decides whether to notify.
         inactive: isPairInactive({ ...p, inactivityAlertAt: undefined }, now),
       });
     }
@@ -720,7 +720,7 @@ export const suggestMentors = query({
       .take(200);
     const scored = [];
     for (const mentor of mentors) {
-      // On ne s'accompagne pas soi-même.
+      // One does not mentor oneself.
       if (mentor.userId === mentee.userId) continue;
       scored.push({
         id: mentor._id as string,
@@ -754,8 +754,8 @@ export const proposePair = mutation({
     if (mentor.userId === mentee.userId) throw new ConvexError('SAME_PERSON');
     if (await openPairForMentee(ctx, menteeProfileId))
       throw new ConvexError('ALREADY_PAIRED');
-    // Le score est RECALCULÉ ici, jamais reçu du client : ce qui est figé
-    // sur le binôme est ce que le serveur a constaté au moment de décider.
+    // The score is RECOMPUTED here, never received from the client: what is
+    // frozen on the pair is what the server observed at decision time.
     const score = await computeScore(ctx, mentee, mentor);
     if (!score.eligible) throw new ConvexError('MENTOR_FULL');
 
@@ -790,7 +790,7 @@ export const proposePair = mutation({
   },
 });
 
-// --- Alerte d'inactivité (cron quotidien, convex/crons.ts) ------------------
+// --- Inactivity alert (daily cron, convex/crons.ts) -------------------------
 export const checkInactivity = internalMutation({
   args: {},
   returns: v.number(),
@@ -804,9 +804,8 @@ export const checkInactivity = internalMutation({
     for (const pair of active) {
       if (!isPairInactive(pair, now)) continue;
       await ctx.db.patch(pair._id, { inactivityAlertAt: now });
-      // Le coordinateur qui a confirmé le binôme est prévenu ; s'il n'existe
-      // plus, ce sont les administrateurs — une alerte sans destinataire
-      // n'alerte personne.
+      // The coordinator who confirmed the pair is notified; if they no longer
+      // exist, the administrators are — an alert with no recipient alerts nobody.
       const recipients: Id<'users'>[] = [];
       if (pair.proposedBy && (await ctx.db.get(pair.proposedBy))) {
         recipients.push(pair.proposedBy);

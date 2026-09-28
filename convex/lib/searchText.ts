@@ -1,25 +1,23 @@
-// CHAMP DE RECHERCHE « PLIÉ » (F-06 / F-34) — logique pure, partagée par les
-// mutations qui écrivent les contenus, la migration de remplissage et les
-// requêtes de recherche.
+// "FOLDED" SEARCH FIELD (F-06 / F-34) — pure logic, shared by the mutations
+// that write content, the backfill migration and the search queries.
 //
-// POURQUOI UN CHAMP DÉDIÉ. L'index plein texte de Convex découpe en mots et
-// ignore la casse, mais PAS les accents : « democratie » ne trouve pas
-// « démocratie » (mesuré le 27/09 sur la palette, et c'est ce qui avait fait
-// passer la bibliothèque au repli `fold`). On indexe donc une copie du texte
-// déjà repliée — minuscules, sans diacritiques, ponctuation remplacée par des
-// espaces — et on replie la requête de la même façon avant de la passer à
-// `q.search`. Les deux côtés passant par la même fonction, ils ne peuvent pas
-// diverger.
+// WHY A DEDICATED FIELD. Convex's full-text index splits into words and
+// ignores case, but NOT accents: "democratie" does not find "démocratie"
+// (measured on 27/09 on the palette, and it is what had moved the library to
+// the `fold` fallback). We therefore index an already folded copy of the text
+// — lowercase, without diacritics, punctuation replaced by spaces — and fold
+// the query the same way before passing it to `q.search`. Since both sides go
+// through the same function, they cannot diverge.
 //
-// POURQUOI LA PONCTUATION DEVIENT UN ESPACE. « démocratie, » doit donner le mot
-// « democratie » et non « democratie, » : l'appariement se fait mot à mot (et
-// par préfixe sur le dernier terme de la requête). Les lettres de toutes les
-// écritures (\p{L}, dont l'arabe) et les chiffres sont conservés.
+// WHY PUNCTUATION BECOMES A SPACE. "démocratie," must give the word
+// "democratie" and not "democratie,": matching is done word by word (and by
+// prefix on the last query term). Letters of all scripts (\p{L}, including
+// Arabic) and digits are kept.
 
-// Plafond du texte indexé. Un billet « fond » peut atteindre plusieurs milliers
-// de caractères ; au-delà de 8 000, la pertinence ne gagne plus rien et chaque
-// écriture paie la réindexation du texte entier. Le titre et le résumé sont en
-// tête de la meule : ce sont eux qui survivent à la coupe.
+// Cap on indexed text. An "in-depth" post can reach several thousand
+// characters; beyond 8,000, relevance gains nothing more and every write pays
+// for reindexing the whole text. The title and summary are at the head of
+// the haystack: they are what survives the cut.
 export const SEARCH_TEXT_MAX = 8000;
 
 export function foldForSearch(raw: string): string {
@@ -37,7 +35,7 @@ export function foldForSearch(raw: string): string {
   );
 }
 
-/** Meule repliée et bornée, prête à être stockée dans `searchText`. */
+/** Folded and bounded haystack, ready to be stored in `searchText`. */
 export function buildSearchText(parts: Array<string | undefined>): string {
   return foldForSearch(parts.filter(Boolean).join(' ')).slice(
     0,
@@ -45,12 +43,12 @@ export function buildSearchText(parts: Array<string | undefined>): string {
   );
 }
 
-// --- Meules par table --------------------------------------------------------
-// Chaque table cherchable expose UNE fonction qui dit ce qui se cherche. Elle
-// est appelée à l'écriture (insertion, correction du texte) et par la
-// migration `searchIndexing.backfill`. Ajouter un champ ici sans relancer la
-// migration laisse les anciens documents sur l'ancienne meule : la migration
-// est idempotente, elle se relance sans risque.
+// --- Haystacks per table -----------------------------------------------------
+// Each searchable table exposes ONE function that says what is searchable. It
+// is called on write (insert, text correction) and by the
+// `searchIndexing.backfill` migration. Adding a field here without rerunning
+// the migration leaves old documents on the old haystack: the migration is
+// idempotent, it can be rerun safely.
 
 export function publicationSearchText(p: {
   title: string;
@@ -66,9 +64,9 @@ export function publicationSearchText(p: {
   ]);
 }
 
-// Le pays est cherchable par son NOM dans les langues du site (« Kenya »
-// trouve la fiche `KE`) : `countryTerms` vient de l'annuaire, qui le faisait
-// déjà en mémoire. Le calcul se fait une fois, à l'écriture.
+// The country is searchable by its NAME in the site's languages ("Kenya"
+// finds the `KE` profile): `countryTerms` comes from the directory, which
+// already did this in memory. The computation happens once, on write.
 export function organizationSearchText(
   o: { name: string; description?: string; country: string },
   countryTerms: (code: string) => string,
@@ -84,13 +82,13 @@ export function tribuneSearchText(p: {
   return buildSearchText([p.title, p.authorName, p.body]);
 }
 
-/** Année (UTC) d'un horodatage — filtre « date » des contenus datés au jour. */
+/** Year (UTC) of a timestamp — "date" filter for day-dated content. */
 export function yearOf(ms: number): number {
   return new Date(ms).getUTCFullYear();
 }
 
-// Terme de requête : même repli que la meule, borné. `null` = pas de recherche
-// (moins de deux caractères utiles, comme la palette et le back-office).
+// Query term: same folding as the haystack, bounded. `null` = no search
+// (fewer than two useful characters, like the palette and the back office).
 export const QUERY_MIN = 2;
 export const QUERY_MAX = 100;
 

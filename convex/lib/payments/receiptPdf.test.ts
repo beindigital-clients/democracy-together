@@ -5,18 +5,18 @@ import { join } from 'node:path';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { buildReceiptPdf, type ReceiptData } from './receiptPdf';
 
-// REÇU PDF (F-29) — noms dans toutes les écritures. Ce que ces tests tiennent :
-//  - le reçu S'OUVRE (pdf.js le lit sans erreur), sur une page ;
-//  - un nom arabe se relit dans le texte extrait, ENTIER et dans l'ordre de
-//    lecture, et ses lettres sont LIÉES (formes contextuelles, pas la forme
-//    isolée) ; un nom vietnamien, grec ou cyrillique se relit tel quel ;
-//  - un reçu latin porte EXACTEMENT le texte du reçu pdf-lib qu'il remplace
-//    (référence relevée sur l'ancien générateur le 27/09) : numéro, montant,
-//    mentions.
+// PDF RECEIPT (F-29) — names in every script. What these tests guarantee:
+//  - the receipt OPENS (pdf.js reads it without error), on one page;
+//  - an Arabic name reads back in the extracted text, WHOLE and in reading
+//    order, and its letters are JOINED (contextual forms, not the isolated
+//    form); a Vietnamese, Greek or Cyrillic name reads back as is;
+//  - a Latin-script receipt carries EXACTLY the text of the pdf-lib receipt it
+//    replaces (reference captured from the old generator on 27/09): number,
+//    amount, notices.
 //
-// Pour INSPECTER les reçus produits : `RECEIPT_PDF_OUT=/chemin pnpm exec
-// vitest run convex/lib/payments/receiptPdf.test.ts` les écrit dans ce
-// dossier (commande de mesure citée dans docs/backlog/paiements.md § 7).
+// To INSPECT the generated receipts: `RECEIPT_PDF_OUT=/path pnpm exec
+// vitest run convex/lib/payments/receiptPdf.test.ts` writes them to that
+// directory (measurement command cited in docs/backlog/paiements.md § 7).
 
 const OUT = process.env.RECEIPT_PDF_OUT;
 
@@ -57,7 +57,7 @@ async function render(data: ReceiptData, file: string) {
     writeFileSync(join(OUT, file), bytes);
   }
   expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
-  // pdf.js détache le tampon qu'on lui passe : on lui donne une copie.
+  // pdf.js detaches the buffer it is given: we pass it a copy.
   const doc = await pdfjs.getDocument({
     data: bytes.slice(),
     isEvalSupported: false,
@@ -65,14 +65,14 @@ async function render(data: ReceiptData, file: string) {
   }).promise;
   expect(doc.numPages).toBe(1);
   const page = await doc.getPage(1);
-  // Texte tel que pdf.js le restitue (copier-coller de Firefox) : ses
-  // propres espaces entre les morceaux, une espace à chaque fin de ligne.
+  // Text as pdf.js returns it (Firefox copy-paste): its own spaces between
+  // chunks, a space at the end of each line.
   const items = (await page.getTextContent()).items.map((it) =>
     'str' in it ? it.str + (it.hasEOL ? ' ' : '') : '',
   );
-  // Glyphes dessinés, dans l'ordre du flux : texte Unicode associé
-  // (/ToUnicode) et code de caractère (CID) — une lettre arabe mise en forme
-  // contextuellement est dessinée par un autre glyphe que sa forme isolée.
+  // Drawn glyphs, in stream order: associated Unicode text (/ToUnicode) and
+  // character code (CID) — a contextually shaped Arabic letter is drawn with a
+  // different glyph from its isolated form.
   const ops = await page.getOperatorList();
   const glyphs: { unicode: string; cid: number }[] = [];
   ops.fnArray.forEach((fn, k) => {
@@ -96,8 +96,8 @@ async function render(data: ReceiptData, file: string) {
   };
 }
 
-// Texte extrait du reçu produit par l'ANCIEN générateur (pdf-lib, Helvetica)
-// pour `receipt()`, ligne par ligne : la référence de non-régression.
+// Text extracted from the receipt produced by the OLD generator (pdf-lib,
+// Helvetica) for `receipt()`, line by line: the non-regression reference.
 const LATIN_REFERENCE = [
   'Democracy Together',
   'Association régie par la loi du 1er juillet 1901',
@@ -122,8 +122,8 @@ const LATIN_REFERENCE = [
   'et 238 bis du Code général des impôts).',
 ].join(' ');
 
-// Composer un PDF (polices décodées, sous-ensembles) prend quelques centaines
-// de millisecondes, davantage quand toute la suite tourne en parallèle.
+// Composing a PDF (decoded fonts, subsets) takes a few hundred milliseconds,
+// more when the whole suite runs in parallel.
 describe(
   'Reçu PDF (F-29) : noms dans toutes les écritures',
   { timeout: 60_000 },
@@ -168,7 +168,7 @@ describe(
           currency: 'USD',
           period: null,
           planLabel: null,
-          // Même éligible au mécénat : un reçu fiscal chiffre le don en euros.
+          // Even if eligible for patronage: a tax receipt states the donation in euros.
           association: { ...ASSOCIATION, taxReceiptEligible: true },
         }),
         'recu-dollars.pdf',
@@ -186,23 +186,22 @@ describe(
       const { text, glyphs } = await render(
         receipt({
           payerName: 'عائشة ديوب',
-          // Les mêmes lettres, ISOLÉES, dans un autre champ en gras du même
-          // reçu : c'est la forme qu'elles prendraient sans mise en forme
-          // contextuelle.
+          // The same letters, ISOLATED, in another bold field of the same receipt:
+          // this is the form they would take without contextual shaping.
           planLabel: 'ع ئ ش ي',
         }),
         'recu-arabe.pdf',
       );
       expect(text).toContain('Reçu de عائشة ديوب (jl.dupre@exemple.org)');
       expect(text).not.toContain('?');
-      // Ni mot retourné, ni lettres détachées.
+      // No reversed word, no detached letters.
       expect(text).not.toContain('ةشئاع');
       expect(text).not.toContain('بويد');
       expect(text).not.toMatch(/ع ا ئ ش ة/u);
 
-      // Formes contextuelles : dans « عائشة », ع est initiale, ئ initiale
-      // (après ا, qui ne se lie pas à gauche), ش médiane ; dans « ديوب », ي est
-      // initiale. Chacune est dessinée par un autre glyphe que sa forme isolée.
+      // Contextual forms: in "عائشة", ع is initial, ئ initial (after ا, which does
+      // not join to the left), ش medial; in "ديوب", ي is initial. Each one is
+      // drawn with a different glyph from its isolated form.
       const cids = (letter: string) =>
         new Set(glyphs.filter((g) => g.unicode === letter).map((g) => g.cid));
       for (const letter of ['ع', 'ئ', 'ش', 'ي']) {
@@ -212,7 +211,7 @@ describe(
 
     it.each([
       ['vietnamien', 'Nguyễn Thị Ánh'],
-      // Saisi décomposé (lettre + accents combinants) : recomposé à l'impression.
+      // Entered decomposed (letter + combining accents): recomposed when printed.
       ['vietnamien décomposé', 'Nguyễn Thị Ánh'.normalize('NFD')],
       ['grec', 'Ελένη Παπαδοπούλου'],
       ['cyrillique', 'Иван Ёлкин'],
