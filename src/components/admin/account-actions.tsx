@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
@@ -60,8 +60,20 @@ export function AccountActions({
 
   function setDialog(next: Dialog) {
     setDialogState(next);
-    onConfirmation?.(next !== null);
   }
+
+  // La liste du back-office se FIGE tant qu'un geste est en cours dans une
+  // ligne — boîte de confirmation, mais aussi panneau ouvert (motif de
+  // suspension, adresse à retaper). Sans cela, la recherche temporisée qui
+  // revient pendant la saisie redessine la liste et emporte le panneau avec
+  // le texte tapé (vu en CI le 28/09 : champ « Motif » détaché du DOM).
+  const open = panel !== null || dialog !== null;
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open === wasOpen.current) return;
+    wasOpen.current = open;
+    onConfirmation?.(open);
+  }, [open, onConfirmation]);
 
   async function run(fn: () => Promise<unknown>, success: string) {
     setPending(true);
