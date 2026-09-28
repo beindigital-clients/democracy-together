@@ -23,20 +23,27 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- END:nextjs-agent-rules -->
 
 
-<!-- Hors blocs gérés par l'outillage : ne pas déplacer à l'intérieur. -->
+<!-- Outside the tool-managed blocks: do not move inside them. -->
 
-## Compétences d'agents — une seule copie
+## Language — English only
 
-`.claude/skills/` est la **copie unique** des skills Convex (30 fichiers).
-`.agents/skills` est un **lien symbolique** qui pointe dessus : les deux
-conventions restent donc résolvables, sans versionner deux fois le même
-contenu (issue #19).
+Every comment in this project is written in **English**: code comments
+(`//`, `/* */`, JSDoc, JSX, `#` in config/shell/YAML), commit messages, pull
+request titles and descriptions, and comments or reviews on GitHub. Product
+copy stays localized (`messages/*.json`, French UI text, test titles quoting
+it); only the prose written for developers must be English.
 
-⚠️ `npx convex ai-files install` écrit les deux arborescences et **remplacera le
-lien par un dossier réel**. Après l'avoir lancé, rétablir le lien :
+## Agent skills — a single copy
+
+`.claude/skills/` is the **single copy** of the Convex skills (30 files).
+`.agents/skills` is a **symbolic link** pointing to it: both conventions stay
+resolvable without committing the same content twice (issue #19).
+
+⚠️ `npx convex ai-files install` writes both trees and **will replace the link
+with a real folder**. After running it, restore the link:
 
 ```bash
 rm -rf .agents/skills && ln -s ../.claude/skills .agents/skills
 ```
 
-Le verrou de versions reste `skills-lock.json`, inchangé.
+The version lock remains `skills-lock.json`, unchanged.

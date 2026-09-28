@@ -11,3 +11,9 @@ Convex agent skills for common tasks can be installed by running
 `npx convex ai-files install`.
 
 <!-- convex-ai-end -->
+
+## Language — English only
+
+Every comment in this project is written in **English**: code comments,
+commit messages, pull request titles and descriptions, and GitHub comments and
+reviews. Only product copy (`messages/*.json`, UI text) stays localized.
