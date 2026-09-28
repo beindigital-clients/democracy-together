@@ -292,25 +292,6 @@ test.describe('dialogues et menus', () => {
       await expect(bouton).toHaveAttribute('aria-expanded', 'false');
     });
   });
-
-  test('globe : la rotation automatique s’arrête au clavier (RGAA 13.8)', async ({
-    page,
-  }) => {
-    await page.goto('/fr/barometre');
-    await tabulerJusqua(page, /rotation du globe/);
-    const avant = await page.evaluate(() =>
-      document.activeElement?.getAttribute('aria-label'),
-    );
-    await page.keyboard.press('Enter');
-    const apres = await page.evaluate(() =>
-      document.activeElement?.getAttribute('aria-label'),
-    );
-    expect(apres).not.toBe(avant);
-    expect([avant, apres].sort()).toEqual([
-      'Lancer la rotation du globe',
-      'Mettre en pause la rotation du globe',
-    ]);
-  });
 });
 
 // ---------------------------------------------------------------------------

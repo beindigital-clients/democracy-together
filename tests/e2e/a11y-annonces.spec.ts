@@ -223,16 +223,6 @@ test.describe('arbre d’accessibilité', () => {
     // Non-conformities, content not evaluated, contact, remedies: LISTS.
     expect(await main.getByRole('list').count()).toBeGreaterThanOrEqual(4);
   });
-
-  test('globe : un bouton nommé arrête la rotation (RGAA 13.8)', async ({
-    page,
-  }) => {
-    await page.goto('/fr/barometre');
-    const bouton = page.getByRole('button', {
-      name: /(Mettre en pause|Lancer) la rotation du globe/,
-    });
-    await expect(bouton).toBeVisible({ timeout: 15_000 });
-  });
 });
 
 // ---------------------------------------------------------------------------

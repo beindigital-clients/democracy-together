@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { Pause, Play } from 'lucide-react';
 import { geoOrthographic, geoPath, geoContains, geoGraticule10 } from 'd3-geo';
 import { feature } from 'topojson-client';
 
@@ -55,24 +53,19 @@ export function RegionGlobe({
   const [region, setRegion] = useState<Region>('all');
   const [selected, setSelected] = useState<RegionMapItem | null>(null);
 
-  // CONTROLLABLE AUTO-ROTATION (RGAA 13.8, WCAG 2.2.2). The globe spins
-  // on its own, endlessly: moving content lasting more than five seconds, started
-  // without user action, must be stoppable AND restartable. Honouring
-  // `prefers-reduced-motion` is not enough — it is a system setting that
-  // most people bothered by motion don't know about, and
-  // that the 27/09 audit measured as the ONLY way to stop the globe. The
-  // button below is that way; the system preference only decides
-  // the initial state (stopped when it asks for less motion).
-  const [rotating, setRotating] = useState(false);
+  // AUTO-ROTATION. The globe spins on its own until the user interacts with
+  // it: hovering a country or dragging stops it. There is deliberately no
+  // pause button (client decision, 28/09): it weighed on the visual. The
+  // system `prefers-reduced-motion` preference keeps it still from the start.
+  // Trade-off accepted knowingly: RGAA 13.8 / WCAG 2.2.2 ask for a control
+  // that stops continuous motion, usable with the keyboard; without the
+  // button, the criterion is non-compliant again (see the accessibility
+  // statement and docs/rgaa/audit-2026-09.md).
   const rotatingRef = useRef(false);
   useEffect(() => {
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setRotating(!reduce);
+    rotatingRef.current = !matchMedia('(prefers-reduced-motion: reduce)')
+      .matches;
   }, []);
-  useEffect(() => {
-    rotatingRef.current = rotating;
-  }, [rotating]);
-  const t = useTranslations('accessibility');
 
   const regionRef = useRef<Region>('all');
   // Writing a ref DURING render breaks concurrent rendering. `regionRef` is only
@@ -344,22 +337,6 @@ export function RegionGlobe({
         aria-hidden="true"
         className="absolute inset-0 block h-full w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
       />
-      {/* The label STATES the action ("mettre en pause" / "lancer") rather
-          than an `aria-pressed` on a fixed name: that is what a screen reader
-          announces, and what a voice-control user must say. */}
-      <button
-        type="button"
-        onClick={() => setRotating((v) => !v)}
-        aria-label={rotating ? t('globePause') : t('globePlay')}
-        title={rotating ? t('globePause') : t('globePlay')}
-        className="absolute bottom-1 end-1 grid h-11 w-11 place-items-center rounded-full border border-line-strong bg-surface/90 text-ink shadow-card transition-colors hover:bg-surface"
-      >
-        {rotating ? (
-          <Pause className="h-4 w-4" aria-hidden="true" />
-        ) : (
-          <Play className="h-4 w-4" aria-hidden="true" />
-        )}
-      </button>
     </div>
   );
 

@@ -15,7 +15,8 @@
   3.3, 5.4, 5.6, 6.1, 7.1, 7.5, 8.6, 8.7, 8.10, 9.1, 10.7, 10.11, 11.1, 11.6,
   11.13, 13.5, 13.8 — détail et fichiers au § 5 de l’audit. Les plus
   structurants :
-  - globe : bouton pause/lecture de la rotation (13.8) ;
+  - globe : bouton pause/lecture de la rotation (13.8) — retiré le 28/09 à la
+    demande du client ; 13.8 redevient non conforme ;
   - palette de recherche : structure ARIA valide, nombre de résultats annoncé,
     focus visible, champ titré (7.1, 7.5, 10.7, 11.1) ;
   - `StatusMessage` (`src/components/a11y/status-message.tsx`) : la

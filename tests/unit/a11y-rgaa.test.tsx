@@ -3,7 +3,6 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
-import ar from '@/messages/ar.json';
 import { StatusMessage } from '@/components/a11y/status-message';
 import { contentLangAttrs, textAttrs } from '@/i18n/content-lang';
 import { adminScreenKey } from '@/components/admin/admin-nav';
@@ -109,7 +108,7 @@ describe('titre de page du back-office (RGAA 8.6)', () => {
   });
 });
 
-describe('globe : rotation automatique contrôlable (RGAA 13.8)', () => {
+describe('globe : rotation automatique sans bouton pause', () => {
   const items = [
     {
       name: 'Senegal',
@@ -120,35 +119,22 @@ describe('globe : rotation automatique contrôlable (RGAA 13.8)', () => {
     },
   ];
 
-  it('un bouton nommé met en pause puis relance la rotation', () => {
+  // Client decision (28/09): the pause button weighed on the globe and was
+  // removed; hovering or dragging stops the rotation, and the system
+  // reduced-motion preference keeps it still. RGAA 13.8 is non-compliant
+  // again as a result (accessibility statement).
+  it('aucune commande de rotation n’est affichée sur le globe', () => {
     render(
       <NextIntlClientProvider locale="fr" messages={fr}>
         <RegionGlobe
           items={items}
           hint="Survolez un pays"
           ariaLabel="Régions"
+          variant="compact"
         />
       </NextIntlClientProvider>,
     );
-    // happy-dom does not request reduced motion: the rotation starts.
-    const pause = screen.getByRole('button', {
-      name: 'Mettre en pause la rotation du globe',
-    });
-    fireEvent.click(pause);
-    expect(
-      screen.getByRole('button', { name: 'Lancer la rotation du globe' }),
-    ).toBeTruthy();
-  });
-
-  it('le libellé est traduit (arabe)', () => {
-    render(
-      <NextIntlClientProvider locale="ar" messages={ar}>
-        <RegionGlobe items={items} hint="—" ariaLabel="—" variant="compact" />
-      </NextIntlClientProvider>,
-    );
-    expect(
-      screen.getByRole('button', { name: ar.accessibility.globePause }),
-    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /rotation/i })).toBeNull();
   });
 });
 

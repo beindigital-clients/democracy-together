@@ -3403,9 +3403,5 @@
     "revisionSubmit": "تقديم النسخة المنقحة",
     "revisionSent": "قُدّمت النسخة {version}: أُبلغ المحرر.",
     "fileSelected": "الملف المختار: {name}"
-  },
-  "accessibility": {
-    "globePause": "إيقاف دوران الكرة الأرضية مؤقتاً",
-    "globePlay": "تشغيل دوران الكرة الأرضية"
   }
 }

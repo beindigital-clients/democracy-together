@@ -753,7 +753,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Accessibilité',
       title: 'Déclaration d’accessibilité',
       updatedLabel: 'Dernière mise à jour',
-      updated: '27 septembre 2026',
+      updated: '28 septembre 2026',
       homeLabel: 'Accueil',
       intro:
         'Democracy Together s’engage à rendre son site accessible conformément à l’article 47 de la loi n° 2005-102 du 11 février 2005. La présente déclaration d’accessibilité s’applique au site Democracy Together, dans toutes ses versions linguistiques.',
@@ -768,13 +768,13 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Résultats des tests',
           body: [
             'L’audit de conformité réalisé le 27 septembre 2026 sur un échantillon de 19 pages révèle que 72,6 % des critères du RGAA 4.1.2 applicables sont respectés : 53 critères conformes, 20 non conformes, 33 non applicables. Le taux moyen de conformité par page est de 88,5 %.',
-            'Des corrections portant sur les 20 critères non conformes ont été intégrées au site depuis l’audit. Elles seront vérifiées par un contre-audit, à l’issue duquel cette déclaration sera mise à jour avec le taux mesuré.',
+            'Des corrections portant sur 19 des 20 critères non conformes ont été intégrées au site depuis l’audit. Elles seront vérifiées par un contre-audit, à l’issue duquel cette déclaration sera mise à jour avec le taux mesuré. Le critère 13.8 (globe en rotation) reste non conforme.',
           ],
         },
         {
           heading: 'Contenus non accessibles — non-conformités',
           body: [
-            'Relevées lors de l’audit du 27 septembre 2026 (corrections intégrées, en attente de vérification par le contre-audit) :',
+            'Relevées lors de l’audit du 27 septembre 2026 (corrections intégrées, sauf pour le critère 13.8, en attente de vérification par le contre-audit) :',
           ],
           items: [
             'des photographies d’illustration portaient une alternative textuelle inutile (critère 1.2) et deux images légendées n’étaient pas reliées à leur légende (1.9) ;',
@@ -789,7 +789,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
             'la page d’une publication défilait horizontalement sur un écran de 320 pixels de large (10.11) ;',
             'des champs de recherche n’avaient pas d’étiquette visible (11.1), un groupe de boutons radio n’avait pas de légende restituée (11.6) et le champ « Pays » de deux formulaires n’indiquait pas sa finalité (11.13) ;',
             'des compteurs n’étaient signalés que par un symbole (13.5) ;',
-            'le globe interactif tournait en continu sans moyen de l’arrêter (13.8).',
+            'le globe interactif tourne en continu sans commande permettant de l’arrêter au clavier ; seul le réglage « réduire les animations » du système le maintient immobile, et le survol ou la manipulation d’un pays le suspend (13.8, non corrigé).',
           ],
         },
         {
@@ -863,7 +863,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Accessibility',
       title: 'Accessibility statement',
       updatedLabel: 'Last updated',
-      updated: 'September 27, 2026',
+      updated: 'September 28, 2026',
       homeLabel: 'Home',
       intro:
         'Democracy Together is committed to making its website accessible in accordance with Article 47 of French Act No. 2005-102 of 11 February 2005. This accessibility statement applies to the Democracy Together website in all its language versions.',
@@ -878,13 +878,13 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Test results',
           body: [
             'The compliance audit carried out on 27 September 2026 on a sample of 19 pages shows that 72.6% of the applicable RGAA 4.1.2 criteria are met: 53 criteria compliant, 20 non-compliant, 33 not applicable. The average compliance rate per page is 88.5%.',
-            'Fixes addressing the 20 non-compliant criteria have been integrated into the site since the audit. They will be verified by a follow-up audit, after which this statement will be updated with the measured rate.',
+            'Fixes addressing 19 of the 20 non-compliant criteria have been integrated into the site since the audit. They will be verified by a follow-up audit, after which this statement will be updated with the measured rate. Criterion 13.8 (rotating globe) remains non-compliant.',
           ],
         },
         {
           heading: 'Non-accessible content — non-compliances',
           body: [
-            'Found during the audit of 27 September 2026 (fixes integrated, pending verification by the follow-up audit):',
+            'Found during the audit of 27 September 2026 (fixes integrated except for criterion 13.8, pending verification by the follow-up audit):',
           ],
           items: [
             'illustrative photographs carried a needless text alternative (criterion 1.2) and two captioned images were not linked to their caption (1.9);',
@@ -899,7 +899,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
             'a publication page scrolled horizontally on a 320-pixel-wide screen (10.11);',
             'search fields had no visible label (11.1), a radio button group had no conveyed legend (11.6) and the “Country” field of two forms did not state its purpose (11.13);',
             'some counters were indicated by a symbol alone (13.5);',
-            'the interactive globe rotated continuously with no way to stop it (13.8).',
+            'the interactive globe rotates continuously with no control to stop it from the keyboard; only the system “reduce motion” setting keeps it still, and hovering or dragging a country pauses it (13.8, not fixed).',
           ],
         },
         {
@@ -979,7 +979,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Accesibilidad',
       title: 'Declaración de accesibilidad',
       updatedLabel: 'Última actualización',
-      updated: '27 de septiembre de 2026',
+      updated: '28 de septiembre de 2026',
       homeLabel: 'Inicio',
       intro:
         'Democracy Together se compromete a hacer accesible su sitio conforme al artículo 47 de la ley francesa n.º 2005-102, de 11 de febrero de 2005. La presente declaración de accesibilidad se aplica al sitio Democracy Together en todas sus versiones lingüísticas.',
@@ -994,13 +994,13 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Resultados de las pruebas',
           body: [
             'La auditoría de conformidad realizada el 27 de septiembre de 2026 sobre una muestra de 19 páginas revela que se cumple el 72,6 % de los criterios aplicables del RGAA 4.1.2: 53 criterios conformes, 20 no conformes y 33 no aplicables. La tasa media de conformidad por página es del 88,5 %.',
-            'Desde la auditoría se han integrado en el sitio correcciones para los 20 criterios no conformes. Se comprobarán en una auditoría de control, tras la cual esta declaración se actualizará con la tasa medida.',
+            'Desde la auditoría se han integrado en el sitio correcciones para 19 de los 20 criterios no conformes. Se comprobarán en una auditoría de control, tras la cual esta declaración se actualizará con la tasa medida. El criterio 13.8 (globo en rotación) sigue sin ser conforme.',
           ],
         },
         {
           heading: 'Contenidos no accesibles — incumplimientos',
           body: [
-            'Detectados en la auditoría del 27 de septiembre de 2026 (correcciones integradas, pendientes de verificación en la auditoría de control):',
+            'Detectados en la auditoría del 27 de septiembre de 2026 (correcciones integradas salvo para el criterio 13.8, pendientes de verificación en la auditoría de control):',
           ],
           items: [
             'algunas fotografías ilustrativas tenían una alternativa textual innecesaria (criterio 1.2) y dos imágenes con leyenda no estaban vinculadas a ella (1.9);',
@@ -1015,7 +1015,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
             'la página de una publicación se desplazaba horizontalmente en una pantalla de 320 píxeles de ancho (10.11);',
             'algunos campos de búsqueda no tenían etiqueta visible (11.1), un grupo de botones de opción no tenía leyenda transmitida (11.6) y el campo «País» de dos formularios no indicaba su finalidad (11.13);',
             'algunos contadores solo se indicaban con un símbolo (13.5);',
-            'el globo interactivo giraba continuamente sin forma de detenerlo (13.8).',
+            'el globo interactivo gira continuamente sin ningún control para detenerlo con el teclado; solo el ajuste del sistema «reducir movimiento» lo mantiene inmóvil, y pasar el cursor por un país o arrastrarlo lo detiene (13.8, no corregido).',
           ],
         },
         {
@@ -1095,7 +1095,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Acessibilidade',
       title: 'Declaração de acessibilidade',
       updatedLabel: 'Última atualização',
-      updated: '27 de setembro de 2026',
+      updated: '28 de setembro de 2026',
       homeLabel: 'Início',
       intro:
         'A Democracy Together compromete-se a tornar o seu sítio acessível em conformidade com o artigo 47.º da lei francesa n.º 2005-102, de 11 de fevereiro de 2005. A presente declaração de acessibilidade aplica-se ao sítio Democracy Together em todas as suas versões linguísticas.',
@@ -1110,13 +1110,13 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Resultados dos testes',
           body: [
             'A auditoria de conformidade realizada a 27 de setembro de 2026 sobre uma amostra de 19 páginas revela que 72,6 % dos critérios aplicáveis do RGAA 4.1.2 são respeitados: 53 critérios conformes, 20 não conformes e 33 não aplicáveis. A taxa média de conformidade por página é de 88,5 %.',
-            'Desde a auditoria, foram integradas no sítio correções para os 20 critérios não conformes. Serão verificadas numa auditoria de controlo, após a qual esta declaração será atualizada com a taxa medida.',
+            'Desde a auditoria, foram integradas no sítio correções para 19 dos 20 critérios não conformes. Serão verificadas numa auditoria de controlo, após a qual esta declaração será atualizada com a taxa medida. O critério 13.8 (globo em rotação) continua não conforme.',
           ],
         },
         {
           heading: 'Conteúdos não acessíveis — não conformidades',
           body: [
-            'Detetadas na auditoria de 27 de setembro de 2026 (correções integradas, a aguardar verificação na auditoria de controlo):',
+            'Detetadas na auditoria de 27 de setembro de 2026 (correções integradas, exceto para o critério 13.8, a aguardar verificação na auditoria de controlo):',
           ],
           items: [
             'algumas fotografias ilustrativas tinham uma alternativa textual desnecessária (critério 1.2) e duas imagens legendadas não estavam ligadas à respetiva legenda (1.9);',
@@ -1131,7 +1131,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
             'a página de uma publicação deslocava-se na horizontal num ecrã com 320 píxeis de largura (10.11);',
             'alguns campos de pesquisa não tinham etiqueta visível (11.1), um grupo de botões de opção não tinha legenda transmitida (11.6) e o campo «País» de dois formulários não indicava a sua finalidade (11.13);',
             'alguns contadores só eram indicados por um símbolo (13.5);',
-            'o globo interativo rodava continuamente sem forma de o parar (13.8).',
+            'o globo interativo roda continuamente sem nenhum controlo para o parar com o teclado; só a definição do sistema «reduzir movimento» o mantém imóvel, e passar o cursor por um país ou arrastá-lo suspende-o (13.8, não corrigido).',
           ],
         },
         {
@@ -1211,7 +1211,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'إتاحة الوصول',
       title: 'تصريح بشأن إتاحة الوصول',
       updatedLabel: 'آخر تحديث',
-      updated: '27 سبتمبر 2026',
+      updated: '28 سبتمبر 2026',
       homeLabel: 'الرئيسية',
       intro:
         'تلتزم Democracy Together بجعل موقعها متاحاً للجميع عملاً بالمادة 47 من القانون الفرنسي رقم 2005-102 الصادر في 11 فبراير 2005. ويسري هذا التصريح على موقع Democracy Together بجميع نسخه اللغوية.',
@@ -1226,13 +1226,13 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'نتائج الاختبارات',
           body: [
             'كشف تدقيق المطابقة المُنجَز في 27 سبتمبر 2026 على عيّنة من 19 صفحة أن 72,6 % من معايير RGAA 4.1.2 المنطبقة مستوفاة: 53 معياراً مطابقاً، و20 غير مطابق، و33 غير منطبق. ويبلغ متوسط نسبة المطابقة لكل صفحة 88,5 %.',
-            'أُدمِجت في الموقع منذ التدقيق تصحيحات تخصّ المعايير العشرين غير المطابقة. وسيتحقَّق منها تدقيقٌ لاحق، يُحدَّث هذا التصريح بعده بالنسبة المقيسة.',
+            'أُدمِجت في الموقع منذ التدقيق تصحيحات تخصّ 19 من المعايير العشرين غير المطابقة. وسيتحقَّق منها تدقيقٌ لاحق، يُحدَّث هذا التصريح بعده بالنسبة المقيسة. ويبقى المعيار 13.8 (الكرة الأرضية الدوّارة) غير مطابق.',
           ],
         },
         {
           heading: 'المحتويات غير المتاحة — حالات عدم المطابقة',
           body: [
-            'رُصدت خلال تدقيق 27 سبتمبر 2026 (والتصحيحات مُدمَجة في انتظار التحقق منها في التدقيق اللاحق):',
+            'رُصدت خلال تدقيق 27 سبتمبر 2026 (والتصحيحات مُدمَجة، باستثناء المعيار 13.8، في انتظار التحقق منها في التدقيق اللاحق):',
           ],
           items: [
             'حملت صور توضيحية بديلاً نصياً لا حاجة إليه (المعيار 1.2)، ولم تكن صورتان مرفقتان بتعليق مربوطتين بتعليقهما (1.9)؛',
@@ -1247,7 +1247,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
             'كانت صفحة أحد المنشورات تتطلّب تمريراً أفقياً على شاشة عرضها 320 بكسلاً (10.11)؛',
             'لم يكن لبعض حقول البحث عنوان مرئي (11.1)، ولم يكن لمجموعة من أزرار الاختيار وسيلة إيضاح تُنقَل (11.6)، ولم يكن حقل «البلد» في استمارتين يُبيِّن غرضه (11.13)؛',
             'كانت بعض العدّادات تُبيَّن برمز وحده (13.5)؛',
-            'كانت الكرة الأرضية التفاعلية تدور باستمرار دون وسيلة لإيقافها (13.8).',
+            'تدور الكرة الأرضية التفاعلية باستمرار دون أداة لإيقافها بلوحة المفاتيح؛ ولا يُبقيها ثابتة إلا إعداد النظام «تقليل الحركة»، ويوقفها تمرير المؤشر فوق بلد أو سحبه (13.8، غير مصحَّح).',
           ],
         },
         {
