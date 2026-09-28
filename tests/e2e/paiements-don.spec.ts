@@ -126,9 +126,18 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
   // lente) faisait retomber la requête sur la page d'accueil du site : on
   // attend qu'il ait quitté la page vide.
   await expect.poll(() => pdf.url()).not.toBe('about:blank');
+  // L'onglet doit pointer vers le FICHIER (stockage Convex) : si ce n'est pas
+  // le cas, l'échec dit où il a atterri plutôt qu'un « <!DOC » muet.
+  expect(pdf.url(), `onglet du reçu : ${pdf.url()}`).toMatch(
+    /\/api\/storage\//,
+  );
   const reponse = await request.get(pdf.url());
   expect(reponse.ok()).toBe(true);
-  expect((await reponse.body()).subarray(0, 5).toString()).toBe('%PDF-');
+  const corps = await reponse.body();
+  expect(
+    corps.subarray(0, 5).toString(),
+    `${pdf.url()} — ${reponse.headers()['content-type']} — ${corps.subarray(0, 120).toString()}`,
+  ).toBe('%PDF-');
   await pdf.close();
 
   // Back-office : la transaction, retrouvée par son numéro de reçu.

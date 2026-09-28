@@ -13,6 +13,14 @@ import { SESSIONS } from './_sessions';
 
 test.use({ locale: 'fr-FR' });
 test.use({ storageState: SESSIONS.comptes.state });
+// Les deux tests du fichier tiennent la MÊME session : chacun réenregistre
+// l'état qu'il laisse (jeton de rafraîchissement échangé), et ils ne tournent
+// pas en parallèle — sinon le second présente un jeton déjà échangé et se
+// réveille sur « Se connecter » (vu en CI le 28/09).
+test.describe.configure({ mode: 'serial' });
+test.afterEach(async ({ context }) => {
+  await context.storageState({ path: SESSIONS.comptes.state });
+});
 
 async function signInWithOtp(page: Page, email: string) {
   await page.goto('/fr/connexion-otp');
