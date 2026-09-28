@@ -1,207 +1,194 @@
-import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
 import {
   countryFlag,
   countryName,
   languageName,
+  type DirectoryFacetParam,
   type DirectoryFilters as Filters,
+  type Facet,
   type Facets,
 } from '@/lib/orgs';
 import { vocabulary } from '@/i18n/vocabulary';
-import { Check } from 'lucide-react';
+import { DirectorySearch } from './directory-search';
+import { FacetMenu, type FacetOption } from './facet-menu';
 
-// Builds the directory URL with one filter changed, preserving the
-// others (undefined = remove the filter). next-intl adds the locale prefix.
-function buildHref(filters: Filters, patch: Partial<Filters>): string {
-  const next = { ...filters, ...patch };
-  const sp = new URLSearchParams();
-  if (next.region) sp.set('region', next.region);
-  if (next.theme) sp.set('theme', next.theme);
-  if (next.country) sp.set('country', next.country);
-  if (next.language) sp.set('language', next.language);
-  if (next.q) sp.set('q', next.q);
-  const qs = sp.toString();
-  return qs ? `/le-reseau?${qs}` : '/le-reseau';
-}
+type FacetGroup = {
+  param: DirectoryFacetParam;
+  label: string;
+  allLabel: string;
+  options: FacetOption[];
+};
 
-function Chip({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'true' : undefined}
-      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? 'border-accent-edge bg-accent-tint text-accent-text'
-          : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
-      }`}
-    >
-      {/* The active filter was signalled by colour alone (RGAA 3.1):
-          a tick also conveys it to those who cannot tell colours apart. */}
-      {active ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
-      {children}
-    </Link>
-  );
-}
-
-// Directory filters (F-19): full-text search + the four requested facets
-// — region, theme, country, language (the last two were missing,
-// measured on 27/09). Everything is rendered server-side; each filter is a
-// link (GET), so it works without JavaScript and stays shareable / indexable.
-// Countries and languages are ISO codes rendered by `Intl.DisplayNames` in
-// the page's language; the chips carry the lowercase code in the URL.
+// Directory filters (F-19): ONE bar — the full-text search, then the four
+// requested facets (region, theme, country, language), each folded into a
+// menu (`FacetMenu`). It replaces four rows of always-expanded chips that
+// pushed the list below the fold.
+//
+// Each choice is still a URL (GET): shareable, and "Back" undoes it.
+// WITHOUT JavaScript the menus cannot open: they are hidden
+// (`noscript:hidden`) and a form of native selects, served in a
+// `<noscript>`, takes over — same URL, same server.
 export function DirectoryFilters({
   facets,
   filters,
+  total,
 }: {
   facets: Facets;
   filters: Filters;
+  total: number;
 }) {
   const t = useTranslations('directory');
   const locale = useLocale();
+  const collator = new Intl.Collator(locale);
+
+  // Options sorted by LABEL, no longer by frequency: in a menu, people look
+  // for a name they know. The member count stays displayed next to it. A
+  // valid URL value may match no member (`?region=europe-est`): it is added,
+  // at zero, so the button shows the filter that empties the list instead of
+  // hiding it.
+  function optionsOf(
+    list: Facet[],
+    toOption: (facet: Facet) => FacetOption,
+    selected: string | undefined,
+  ): FacetOption[] {
+    const options = list.map(toOption);
+    if (selected && !options.some((o) => o.value === selected)) {
+      options.push(toOption({ value: selected, count: 0 }));
+    }
+    return options.sort((a, b) => collator.compare(a.label, b.label));
+  }
+
+  const groups: FacetGroup[] = [
+    {
+      param: 'region',
+      label: t('filterRegion'),
+      allLabel: t('allRegions'),
+      options: optionsOf(
+        facets.regions,
+        (f) => ({
+          value: f.value,
+          label: vocabulary(t, 'regions.', f.value),
+          count: f.count,
+        }),
+        filters.region,
+      ),
+    },
+    {
+      param: 'theme',
+      label: t('filterTheme'),
+      allLabel: t('allThemes'),
+      options: optionsOf(
+        facets.themes,
+        (f) => ({
+          value: f.value,
+          label: vocabulary(t, 'themes.', f.value),
+          count: f.count,
+        }),
+        filters.theme,
+      ),
+    },
+    {
+      // Lowercase ISO codes in the URL, names rendered by
+      // `Intl.DisplayNames` in the page's language.
+      param: 'country',
+      label: t('filterCountry'),
+      allLabel: t('allCountries'),
+      options: optionsOf(
+        facets.countries,
+        (f) => ({
+          value: f.value.toLowerCase(),
+          label: countryName(f.value, locale),
+          count: f.count,
+          flag: countryFlag(f.value),
+        }),
+        filters.country,
+      ),
+    },
+    {
+      param: 'language',
+      label: t('filterLanguage'),
+      allLabel: t('allLanguages'),
+      options: optionsOf(
+        facets.languages,
+        (f) => ({
+          value: f.value.toLowerCase(),
+          // "anglais" mid-sentence, "Anglais" at the start of a menu item.
+          label: capitalize(languageName(f.value, locale), locale),
+          count: f.count,
+        }),
+        filters.language,
+      ),
+    },
+  ];
+  // Backend unreachable: no facets, hence no empty menu to open.
+  const visible = groups.filter((g) => g.options.length > 0);
 
   return (
-    <div className="space-y-5">
-      <form role="search" className="flex max-w-md gap-2">
-        {filters.region ? (
-          <input type="hidden" name="region" value={filters.region} />
-        ) : null}
-        {filters.theme ? (
-          <input type="hidden" name="theme" value={filters.theme} />
-        ) : null}
-        {filters.country ? (
-          <input type="hidden" name="country" value={filters.country} />
-        ) : null}
-        {filters.language ? (
-          <input type="hidden" name="language" value={filters.language} />
-        ) : null}
-        <Input
-          type="search"
-          name="q"
-          defaultValue={filters.q ?? ''}
+    <div>
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+        <DirectorySearch
+          filters={filters}
           placeholder={t('searchPlaceholder')}
-          aria-label={t('searchPlaceholder')}
-          // NON-visible label: `title` makes it readable on hover and meets one
-          // condition of RGAA 11.1.3 (the placeholder disappears while typing).
-          title={t('searchPlaceholder')}
+          cta={t('searchCta')}
         />
-        <Button type="submit" variant="outline" className="shrink-0">
-          {t('searchCta')}
-        </Button>
-      </form>
-
-      <fieldset>
-        <legend className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-          {t('filterRegion')}
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          <Chip
-            href={buildHref(filters, { region: undefined })}
-            active={!filters.region}
+        {visible.length ? (
+          <div
+            role="group"
+            aria-label={t('filtersLabel')}
+            className="flex flex-wrap gap-2 noscript:hidden"
           >
-            {t('all')}
-          </Chip>
-          {facets.regions.map((r) => (
-            <Chip
-              key={r.value}
-              href={buildHref(filters, { region: r.value })}
-              active={filters.region === r.value}
-            >
-              {vocabulary(t, 'regions.', r.value)}
-              <span className="text-muted">{r.count}</span>
-            </Chip>
-          ))}
-        </div>
-      </fieldset>
+            {visible.map((g) => (
+              <FacetMenu
+                key={g.param}
+                param={g.param}
+                label={g.label}
+                allLabel={g.allLabel}
+                total={total}
+                options={g.options}
+                filters={filters}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
 
-      <fieldset>
-        <legend className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-          {t('filterTheme')}
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          <Chip
-            href={buildHref(filters, { theme: undefined })}
-            active={!filters.theme}
-          >
-            {t('all')}
-          </Chip>
-          {facets.themes.map((th) => (
-            <Chip
-              key={th.value}
-              href={buildHref(filters, { theme: th.value })}
-              active={filters.theme === th.value}
-            >
-              {vocabulary(t, 'themes.', th.value)}
-              <span className="text-muted">{th.count}</span>
-            </Chip>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-          {t('filterCountry')}
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          <Chip
-            href={buildHref(filters, { country: undefined })}
-            active={!filters.country}
-          >
-            {t('all')}
-          </Chip>
-          {facets.countries.map((c) => {
-            const code = c.value.toLowerCase();
-            return (
-              <Chip
-                key={c.value}
-                href={buildHref(filters, { country: code })}
-                active={filters.country?.toLowerCase() === code}
-              >
-                <span aria-hidden="true">{countryFlag(c.value)}</span>
-                {countryName(c.value, locale)}
-                <span className="text-muted">{c.count}</span>
-              </Chip>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-          {t('filterLanguage')}
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          <Chip
-            href={buildHref(filters, { language: undefined })}
-            active={!filters.language}
-          >
-            {t('all')}
-          </Chip>
-          {facets.languages.map((l) => {
-            const code = l.value.toLowerCase();
-            return (
-              <Chip
-                key={l.value}
-                href={buildHref(filters, { language: code })}
-                active={filters.language?.toLowerCase() === code}
-              >
-                {languageName(l.value, locale)}
-                <span className="text-muted">{l.count}</span>
-              </Chip>
-            );
-          })}
-        </div>
-      </fieldset>
+      {visible.length ? (
+        <noscript>
+          <form className="mt-4 flex flex-wrap items-end gap-3">
+            {filters.q ? (
+              <input type="hidden" name="q" value={filters.q} />
+            ) : null}
+            {visible.map((g) => (
+              <label key={g.param} className="flex flex-col gap-1.5">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+                  {g.label}
+                </span>
+                <Select
+                  name={g.param}
+                  defaultValue={filters[g.param] ?? ''}
+                  className="h-10"
+                >
+                  <option value="">{g.allLabel}</option>
+                  {g.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {`${o.label} (${o.count})`}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            ))}
+            <Button type="submit" variant="outline" className="h-10 py-0">
+              {t('filtersApply')}
+            </Button>
+          </form>
+        </noscript>
+      ) : null}
     </div>
   );
+}
+
+function capitalize(label: string, locale: string): string {
+  return label.charAt(0).toLocaleUpperCase(locale) + label.slice(1);
 }
