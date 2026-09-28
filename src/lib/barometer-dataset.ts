@@ -199,7 +199,7 @@ export function geometriesJSON(): string {
   );
 }
 
-// --- Codebook (texte brut, lisible) ----------------------------------------
+// --- Codebook (plain text, readable) ---------------------------------------
 /**
  * A codebook sentence, in all five languages.
  *

@@ -26,7 +26,7 @@ export const editorialTables = {
     publishedAt: v.optional(v.number()),
   })
     .index('by_year', ['year'])
-    // Liste publique : les éditions publiées, par année.
+    // Public list: published editions, by year.
     .index('by_status_and_year', ['status', 'year']),
 
   // Text of an edition in ONE language. `contentHash` is the hash of that text

@@ -94,8 +94,8 @@ describe('Reçu PDF — texte', () => {
     expect(formatAmountFr(2500000, 'USD')).toBe('25 000,00 $ US');
     expect(formatAmountFr(500, 'EUR')).toBe('5,00 €');
   });
-  // Les noms hors Latin-1 (arabe, vietnamien…) : convex/lib/payments/
-  // receiptPdf.test.ts, depuis que le reçu embarque ses polices (27/09).
+  // Names outside Latin-1 (Arabic, Vietnamese…): see convex/lib/payments/
+  // receiptPdf.test.ts, since the receipt embeds its fonts (27/09).
 });
 
 describe('Montants à l’écran', () => {

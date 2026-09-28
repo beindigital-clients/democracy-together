@@ -26,7 +26,7 @@ export function parseConvexRunOutput<T>(out: string): T | null {
       try {
         return JSON.parse(candidate) as T;
       } catch {
-        /* pas un JSON complet : on essaie un bloc plus court */
+        /* not a complete JSON: try a shorter block */
       }
     }
   }

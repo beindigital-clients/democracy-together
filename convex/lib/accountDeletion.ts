@@ -104,7 +104,7 @@ async function deleteStorage(ctx: MutationCtx, id: Id<'_storage'>) {
   try {
     await ctx.storage.delete(id);
   } catch {
-    // Fichier déjà absent : la suppression du document continue.
+    // File already gone: deleting the document carries on.
   }
 }
 

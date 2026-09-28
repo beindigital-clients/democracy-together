@@ -54,8 +54,8 @@ export async function revealAll(page: Page): Promise<void> {
       { timeout: 8_000, polling: 100 },
     )
     .catch(() => {
-      // Un élément resté masqué exprès n'est pas une raison d'échouer ici :
-      // l'analyse axe tranchera.
+      // An element deliberately left hidden is no reason to fail here:
+      // the axe analysis will decide.
     });
 }
 

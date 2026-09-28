@@ -140,7 +140,7 @@ export const deleteTestPublications = internalMutation({
         try {
           await ctx.storage.delete(p.fileId);
         } catch {
-          /* fichier déjà absent : on poursuit la suppression du document */
+          /* file already gone: carry on deleting the document */
         }
       }
       // The views row follows the publication: otherwise a future
@@ -175,7 +175,7 @@ export const deleteTestPublications = internalMutation({
           try {
             await ctx.storage.delete(img.storageId);
           } catch {
-            /* fichier déjà absent : on poursuit */
+            /* file already gone: carry on */
           }
         }
         const renditions = await ctx.db

@@ -38,7 +38,7 @@ const INVALIDES = [
   'membre@exemple.org autre@exemple.org', // two addresses stuck together
   'prenom nom@example.org', // space in the local part
   'membre@exem ple.org', // space in the domain
-  'membre@.org', // domaine vide avant le point
+  'membre@.org', // empty domain before the dot
 ];
 
 describe('isEmail — le filtre de tous les formulaires', () => {

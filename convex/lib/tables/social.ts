@@ -44,9 +44,9 @@ export const socialTables = {
   })
     .index('by_userId', ['userId'])
     .index('by_handle', ['handle'])
-    // Une photo n'appartient qu'à UN profil : sans ce contrôle, rattacher
-    // l'identifiant de stockage d'autrui ferait effacer SA photo le jour où
-    // l'on changerait la sienne.
+    // A photo belongs to ONE profile only: without this check, attaching someone
+    // else's storage identifier would delete THEIR photo the day one changed
+    // one's own.
     .index('by_photoId', ['photoId'])
     .index('by_listed_and_nameKey', ['listed', 'nameKey'])
     .searchIndex('search_text', {

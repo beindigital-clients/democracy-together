@@ -340,7 +340,7 @@ export async function provisionPassword(
     });
     return;
   } catch {
-    /* pas encore de compte mot de passe pour cette adresse : on le crée */
+    /* no password account for this address yet: create it */
   }
 
   await convex().action(api.auth.signIn, {

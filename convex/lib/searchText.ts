@@ -26,9 +26,9 @@ export function foldForSearch(raw: string): string {
       .normalize('NFD')
       .replace(/[̀-ͯ]/g, '')
       .toLowerCase()
-      // Apostrophes et traits d'union JOIGNENT des mots (« d'ivoire »,
-      // « peer-review ») : on les coupe comme le reste, pour que « ivoire »
-      // et « review » soient des mots à part entière.
+      // Apostrophes and hyphens JOIN words ("d'ivoire", "peer-review"):
+      // split on them like everything else, so that "ivoire" and "review"
+      // are words in their own right.
       .replace(/[^\p{L}\p{N}]+/gu, ' ')
       .replace(/\s+/g, ' ')
       .trim()

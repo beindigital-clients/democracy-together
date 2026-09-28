@@ -61,9 +61,9 @@ export const communauteTables = {
     .index('by_file_and_version', ['fileId', 'version'])
     .index('by_workspace', ['workspaceId'])
     .index('by_author', ['authorUserId'])
-    // Un même blob ne sert qu'une version : sans cette garde, l'identifiant
-    // d'un fichier d'un autre espace (lu dans une URL) pourrait être
-    // « rattaché » à un espace où l'on est animateur, et servi à ses membres.
+    // A given blob serves only one version: without this guard, the identifier
+    // of a file from another workspace (read from a URL) could be "attached"
+    // to a workspace where one is a facilitator, and served to its members.
     .index('by_storage', ['storageId']),
 
   // INVITATIONS to a space. The invitee is designated by their ADDRESS: the

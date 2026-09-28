@@ -243,7 +243,7 @@ async function capturer(
       localStorage.setItem('dt-theme', valeur);
       localStorage.setItem('dt-cookie-consent', 'essential');
     } catch {
-      /* origine opaque (about:blank) : sans objet */
+      /* opaque origin (about:blank): not applicable */
     }
   }, theme.valeur);
 

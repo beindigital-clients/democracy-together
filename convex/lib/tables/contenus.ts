@@ -97,7 +97,7 @@ export const contenusTables = {
     updatedBy: v.optional(v.id('users')),
   })
     .index('by_slug', ['slug'])
-    // Agenda public : les publiés (et annulés) par date.
+    // Public agenda: published (and cancelled) events by date.
     .index('by_status_and_startsAt', ['status', 'startsAt'])
     .index('by_imageMediaId', ['imageMediaId']),
 

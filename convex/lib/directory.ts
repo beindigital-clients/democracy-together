@@ -92,8 +92,8 @@ export function fold(s: string): string {
     s
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
-      // Apostrophe typographique (« Côte d’Ivoire » dans les données ICU) et
-      // apostrophe droite du clavier : un seul signe.
+      // Typographic apostrophe ("Côte d’Ivoire" in the ICU data) and the
+      // keyboard's straight apostrophe: a single character.
       .replace(/[\u2019\u2018]/g, "'")
       .trim()
       .toLowerCase()
@@ -121,7 +121,7 @@ export function countryTerms(code: string): string {
       }).of(cc);
       if (n && n !== cc) names.add(fold(n));
     } catch {
-      // ICU absent ou code hors norme : le code seul reste cherchable.
+      // ICU missing or non-standard code: the code alone stays searchable.
     }
   }
   const terms = [...names].join(' ');

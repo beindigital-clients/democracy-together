@@ -17,7 +17,7 @@ export type CalendarCell<E extends EventData = EventData> = {
 export type MonthGrid<E extends EventData = EventData> = {
   year: number;
   month: number; // 1-12
-  weeks: CalendarCell<E>[][]; // 6 lignes × 7 colonnes (lundi → dimanche)
+  weeks: CalendarCell<E>[][]; // 6 rows × 7 columns (Monday → Sunday)
 };
 
 const WEEKS = 6;

@@ -225,7 +225,7 @@ export const listDocumentLocales = query({
       .withIndex('by_publication_and_locale', (q) =>
         q.eq('publicationId', pub._id),
       )
-      // Au plus une version par langue servie : la borne est structurelle.
+      // At most one version per served language: the bound is structural.
       .take(8);
 
     return [

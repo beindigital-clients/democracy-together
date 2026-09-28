@@ -17,7 +17,7 @@ export type PartnerCategory = {
   title: string;
   summary: string;
   gives: string; // what this partner brings to the network
-  gets: string; // ce que le réseau lui apporte en retour
+  gets: string; // what the network gives this partner in return
 };
 
 // Neutral slugs (shared fr/en), display order.

@@ -449,7 +449,7 @@ describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)
       'javascript:alert(1)',
       'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
       'vbscript:msgbox(1)',
-      'institut-sahel.org', // saisie sans schéma : incomplète, pas un lien
+      'institut-sahel.org', // entered without a scheme: incomplete, not a link
     ].entries()) {
       // One address per application: only one pending application per address
       // since R-09, and all four stay `pending` here.

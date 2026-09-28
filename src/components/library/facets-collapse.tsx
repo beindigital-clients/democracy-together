@@ -30,7 +30,7 @@ export function FacetsCollapse({
   return (
     <aside aria-label={t('filter')} className="lg:sticky lg:top-24">
       <div className="mb-4 flex items-center justify-between gap-3">
-        {/* < lg : bouton repliable */}
+        {/* < lg: collapsible button */}
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -59,7 +59,7 @@ export function FacetsCollapse({
             />
           </svg>
         </button>
-        {/* lg : titre statique */}
+        {/* lg: static heading */}
         <h2 className="hidden font-display text-lg lg:block">{t('filter')}</h2>
 
         {hasActiveFilters(filters) ? (

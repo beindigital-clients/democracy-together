@@ -240,7 +240,7 @@ describe('Rappels événements — sendDueReminders (F-55)', () => {
           .filter((q) => q.eq(q.field('email'), 'soon@dt.test'))
           .unique(),
       );
-      expect(row?.sent).toBe(false); // …mais PAS marqué envoyé
+      expect(row?.sent).toBe(false); // …but NOT marked as sent
     } finally {
       if (prevDev === undefined) delete process.env.AUTH_DEV_OTP;
       else process.env.AUTH_DEV_OTP = prevDev;
