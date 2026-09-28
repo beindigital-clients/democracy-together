@@ -120,23 +120,21 @@ test('don ponctuel : prestataire factice → reçu dans l’espace membre → tr
   expect(numero).toMatch(/^DT-\d{4}-\d{6}$/);
 
   // Le reçu s'ouvre et c'est un PDF.
-  const [pdf] = await Promise.all([context.waitForEvent('page'), recu.click()]);
-  // L'onglet naît sur « about:blank » puis navigue vers l'URL signée du
-  // stockage. Lire son adresse trop tôt (vu en CI le 27/09, machine plus
-  // lente) faisait retomber la requête sur la page d'accueil du site : on
-  // attend qu'il ait quitté la page vide.
-  await expect.poll(() => pdf.url()).not.toBe('about:blank');
-  // L'onglet doit pointer vers le FICHIER (stockage Convex) : si ce n'est pas
-  // le cas, l'échec dit où il a atterri plutôt qu'un « <!DOC » muet.
-  expect(pdf.url(), `onglet du reçu : ${pdf.url()}`).toMatch(
-    /\/api\/storage\//,
-  );
-  const reponse = await request.get(pdf.url());
+  // On capture la REQUÊTE vers le fichier plutôt que l'adresse de l'onglet :
+  // la Chromium sans interface de la CI TÉLÉCHARGE un PDF au lieu de
+  // l'afficher, et l'onglet ouvert reste sans adresse (vu le 28/09), alors
+  // que la Chromium locale l'affiche. La requête, elle, part dans les deux cas.
+  const [fichier, pdf] = await Promise.all([
+    context.waitForEvent('request', (r) => r.url().includes('/api/storage/')),
+    context.waitForEvent('page'),
+    recu.click(),
+  ]);
+  const reponse = await request.get(fichier.url());
   expect(reponse.ok()).toBe(true);
   const corps = await reponse.body();
   expect(
     corps.subarray(0, 5).toString(),
-    `${pdf.url()} — ${reponse.headers()['content-type']} — ${corps.subarray(0, 120).toString()}`,
+    `${fichier.url()} — ${reponse.headers()['content-type']} — ${corps.subarray(0, 120).toString()}`,
   ).toBe('%PDF-');
   await pdf.close();
 
