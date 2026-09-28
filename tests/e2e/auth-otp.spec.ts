@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { getOtp, provisionUser } from './_helpers';
 
-// Connexion sans mot de passe par code à usage unique (passwordless). (F-01)
+// Passwordless sign-in with a one-time code. (F-01)
 //
-// Le compte est PROVISIONNÉ d'abord. Ce test attendait auparavant que le code
-// crée le compte au passage — c'était vrai avant la suppression de
-// l'auto-inscription, ça ne l'est plus : le callback `createOrUpdateUser`
-// refuse désormais toute adresse inconnue (`NO_SELF_SIGNUP`). Le test ne
-// pouvait donc plus passer, et son intitulé décrivait un comportement que le
-// produit n'a plus. Ce qu'il vérifie reste entier : sur un compte existant, un
-// code à usage unique suffit à ouvrir une session, sans mot de passe.
+// The account is PROVISIONED first. This test used to expect the code
+// to create the account along the way — that was true before
+// self-registration was removed, it no longer is: the `createOrUpdateUser` callback
+// now refuses any unknown address (`NO_SELF_SIGNUP`). The test
+// could therefore no longer pass, and its title described a behavior the
+// product no longer has. What it checks remains intact: on an existing account, a
+// one-time code is enough to open a session, without a password.
 test('connexion par code (passwordless) sur un compte existant', async ({
   page,
 }) => {

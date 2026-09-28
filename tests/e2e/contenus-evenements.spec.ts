@@ -6,22 +6,22 @@ import {
 } from './_helpers';
 import { SESSIONS } from './_sessions';
 
-// CHANTIER « CONTENUS » — F-52, F-54, F-62 : le parcours principal de l'agenda.
+// "CONTENUS" WORKSTREAM — F-52, F-54, F-62: the agenda's main journey.
 //
-//   1. un ÉDITEUR crée un événement depuis le back-office (brouillon), le
-//      publie ;
-//   2. l'événement apparaît dans l'agenda PUBLIC (liste et fiche), sans que
-//      son lien de visioconférence figure dans la page ;
-//   3. un MEMBRE s'y inscrit, et le lien de visioconférence lui est alors
-//      révélé — à lui seul.
+//   1. an EDITOR creates an event from the back office (draft), then
+//      publishes it;
+//   2. the event appears in the PUBLIC agenda (list and page), without
+//      its videoconference link appearing in the page;
+//   3. a MEMBER registers for it, and the videoconference link is then
+//      revealed to them — to them alone.
 //
-// Les étapes s'enchaînent sur la même donnée : le fichier est SÉRIEL. Chaque
-// rôle a sa session dédiée (cf. `_sessions.ts`), réécrite après chaque test
-// pour que le jeton de rafraîchissement ne soit jamais rejoué.
+// The steps chain on the same data: the file is SERIAL. Each
+// role has its dedicated session (see `_sessions.ts`), rewritten after each test
+// so that the refresh token is never replayed.
 //
-// L'événement est daté de 2030 : il ne tombe dans aucun mois que
-// `calendrier.spec.ts` compte, et reste « à venir » quel que soit le jour de
-// l'exécution. Son slug porte le préfixe `e2e-` que le ménage de fin retire.
+// The event is dated 2030: it falls in none of the months that
+// `calendrier.spec.ts` counts, and stays "upcoming" whatever the day of
+// the run. Its slug carries the `e2e-` prefix that the final cleanup removes.
 
 test.use({ locale: 'fr-FR' });
 test.describe.configure({ mode: 'serial' });
@@ -33,8 +33,8 @@ const PLACE = 'En ligne (E2E)';
 const VISIO = `https://visio.example.org/e2e-${stamp}`;
 
 test.beforeAll(async () => {
-  // L'agenda doit porter le contenu codé AVANT qu'un premier événement créé ne
-  // fasse basculer les pages publiques du repli codé vers la table.
+  // The agenda must carry the hard-coded content BEFORE a first created event
+  // switches the public pages from the hard-coded fallback to the table.
   await importCodedContent();
 });
 
@@ -64,7 +64,7 @@ test.describe('éditeur', () => {
     await editor
       .getByLabel('Chapô (présentation courte)')
       .fill('Un webinaire créé depuis le back-office par la suite E2E.');
-    // La traduction anglaise, pour vérifier l'indicateur de langue.
+    // The English translation, to check the language indicator.
     await editor.getByRole('button', { name: /Anglais/ }).click();
     await editor
       .getByLabel('Titre', { exact: true })
@@ -81,10 +81,10 @@ test.describe('éditeur', () => {
     await expect(page.getByText(`« ${TITLE} » enregistré.`)).toBeVisible();
     const row = page.getByRole('row').filter({ hasText: TITLE });
     await expect(row).toContainText('Brouillon');
-    // Traduit en fr et en : les trois autres langues sont signalées.
+    // Translated into fr and en: the three other languages are flagged.
     await expect(row).toContainText('À traduire');
 
-    // Un brouillon n'est PAS public.
+    // A draft is NOT public.
     const draft = await page.request.get(`/fr/evenements/${SLUG}`);
     expect(draft.status()).toBe(404);
 
@@ -92,17 +92,17 @@ test.describe('éditeur', () => {
     await expect(page.getByText(`« ${TITLE} » publié.`)).toBeVisible();
     await expect(row).toContainText('Publié');
 
-    // Agenda public : la liste (recherche sur le titre) puis la fiche.
+    // Public agenda: the list (search on the title) then the page.
     await page.goto(`/fr/evenements?q=${stamp}`);
     await expect(page.getByRole('link', { name: TITLE })).toBeVisible();
     await page.getByRole('link', { name: TITLE }).click();
     await expect(page).toHaveURL(new RegExp(`/fr/evenements/${SLUG}$`));
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(TITLE);
     await expect(page.getByText(PLACE).first()).toBeVisible();
-    // Le lien de visioconférence n'est dans AUCUNE page publique.
+    // The videoconference link is in NO public page.
     expect(await page.content()).not.toContain(VISIO);
 
-    // La version anglaise sert le titre anglais.
+    // The English version serves the English title.
     await page.goto(`/en/evenements/${SLUG}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       `E2E webinar ${stamp}`,
@@ -121,7 +121,7 @@ test.describe('membre', () => {
   }) => {
     await page.goto(`/fr/evenements/${SLUG}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(TITLE);
-    // Connecté mais pas encore inscrit : pas de lien.
+    // Signed in but not yet registered: no link.
     await expect(
       page.getByRole('link', { name: 'Rejoindre la visioconférence' }),
     ).toHaveCount(0);
@@ -134,10 +134,10 @@ test.describe('membre', () => {
       .click();
     await expect(page.getByText(/Inscription confirmée/)).toBeVisible();
 
-    // L'inscription est bien stockée, contre la table des événements.
+    // The registration is indeed stored, against the events table.
     expect(isEventRegistered(SLUG, SESSIONS.contenusMembre.email)).toBe(true);
 
-    // La requête est réactive : le lien apparaît sans recharger la page.
+    // The query is reactive: the link appears without reloading the page.
     const join = page.getByRole('link', {
       name: 'Rejoindre la visioconférence',
     });

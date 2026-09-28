@@ -1,15 +1,15 @@
 import { SITE_URL } from '@/lib/seo';
 
-// Fiche `Person` (schema.org) d'un profil PUBLIC `/membres/<handle>`.
+// `Person` entry (schema.org) for a PUBLIC `/membres/<handle>` profile.
 //
-// Même principe que `organizationJsonLd` : on ne déclare que ce que la page
-// montre. Pas d'adresse, pas d'e-mail, pas de date de naissance — la page
-// n'en a pas. La photo n'est PAS déclarée non plus : son URL est signée par le
-// stockage et n'a pas vocation à être reprise par un moteur comme image
-// canonique de la personne.
+// Same principle as `organizationJsonLd`: we only declare what the page
+// shows. No address, no email, no date of birth — the page has none. The
+// photo is NOT declared either: its URL is signed by the storage and is not
+// meant to be picked up by a search engine as the person's canonical
+// image.
 //
-// N'est posée que sur un profil INDEXABLE (visibilité publique) : un profil
-// réservé aux membres ne se décrit pas aux moteurs.
+// Only set on an INDEXABLE profile (public visibility): a members-only
+// profile is not described to search engines.
 export function personJsonLd(input: {
   locale: string;
   handle: string;
@@ -41,7 +41,7 @@ export function personJsonLd(input: {
   };
 }
 
-// Description de partage : la fonction, puis le début de la biographie.
+// Sharing description: the job title, then the start of the biography.
 export function profileDescription(p: {
   jobTitle: string | null;
   bio: string | null;

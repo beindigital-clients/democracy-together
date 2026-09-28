@@ -4,24 +4,24 @@ import { SESSIONS } from './_sessions';
 
 test.use({ locale: 'fr-FR' });
 
-// RECHERCHE ET FILTRES DU BACK-OFFICE (issue #49) — bout en bout, contre le
-// vrai Convex.
+// BACK-OFFICE SEARCH AND FILTERS (issue #49) — end to end, against the
+// real Convex.
 //
-// Pourquoi ce parcours ne double pas les tests unitaires : `convex-test`
-// implémente les index plein texte avec sa propre tokenisation (préfixes de
-// mots découpés sur les espaces), là où Convex découpe aussi sur la ponctuation
-// et classe par pertinence. Le seul endroit où la VRAIE recherche est exercée,
-// c'est ici — sur un déploiement Convex, à travers l'écran.
+// Why this journey does not duplicate the unit tests: `convex-test`
+// implements full-text indexes with its own tokenization (word prefixes
+// split on spaces), whereas Convex also splits on punctuation
+// and ranks by relevance. The only place where the REAL search is exercised
+// is here — on a Convex deployment, through the screen.
 //
-// Les données sont horodatées par exécution : le déploiement de dev vit
-// longtemps et porte déjà des comptes et des candidatures. Un terme unique est
-// ce qui rend « la ligne apparaît SEULE » vérifiable ailleurs que sur une base
-// vide.
+// The data is timestamped per run: the dev deployment lives
+// long and already carries accounts and applications. A unique term is
+// what makes "the row appears ALONE" verifiable elsewhere than on an empty
+// database.
 //
-// SESSION DÉDIÉE (cf. _sessions.ts) : ce fichier écrit une donnée puis la
-// cherche, donc il tient sa session d'un bout à l'autre. La partager avec un
-// autre fichier l'a fait mourir en CI — deux contextes, un seul jeton de
-// rafraîchissement — et le dernier parcours s'est réveillé sur /connexion.
+// DEDICATED SESSION (see _sessions.ts): this file writes some data then
+// searches for it, so it holds its session from one end to the other. Sharing it with
+// another file killed it in CI — two contexts, a single refresh
+// token — and the last journey woke up on /connexion.
 
 const stamp = () => Date.now().toString(36);
 
@@ -29,20 +29,20 @@ async function search(page: Page, label: string, term: string) {
   await page.getByRole('searchbox', { name: label }).fill(term);
 }
 
-// Le champ est TEMPORISÉ et la recherche est faite par le serveur : entre la
-// frappe et la liste restreinte, il s'écoule un délai puis un aller-retour
-// Convex. Toute vérification de ce qui reste affiché doit donc être une
-// assertion qui RÉESSAIE — `allTextContents()` lit une fois, et lit la liste
-// d'avant. Ces deux aides ne rendent la main que lorsque plus aucune ligne ne
-// contredit le filtre, et qu'il en reste au moins une.
+// The field is DEBOUNCED and the search is done by the server: between
+// typing and the narrowed list, there is a delay then a Convex round
+// trip. Any check of what remains displayed must therefore be an
+// assertion that RETRIES — `allTextContents()` reads once, and reads the list
+// from before. These two helpers only return once no row
+// contradicts the filter any more, and at least one remains.
 async function onlyRowsMatching(cells: Locator, expected: string | RegExp) {
   await expect(cells.filter({ hasNotText: expected })).toHaveCount(0);
   await expect(cells.first()).toBeVisible();
 }
 
-// L'écran du back-office est monté derrière deux requêtes (session, puis
-// liste) : cliquer sur `goto` sans attendre son titre, c'est viser un bouton
-// que le rendu peut encore remplacer — « element was detached from the DOM ».
+// The back-office screen is mounted behind two queries (session, then
+// list): clicking right after `goto` without waiting for its title means aiming at a button
+// the rendering may still replace — "element was detached from the DOM".
 async function openScreen(page: Page, path: string, heading: string) {
   await page.goto(path);
   await expect(
@@ -50,15 +50,15 @@ async function openScreen(page: Page, path: string, heading: string) {
   ).toBeVisible();
 }
 
-// LE JETON DE RAFRAÎCHISSEMENT TOURNE — IL FAUT LE RÉÉCRIRE. Même mécanisme
-// que dans `admin-confirmations.spec.ts`, et même symptôme : chaque test part
-// d'un contexte NEUF rechargé depuis le même fichier d'état, le premier qui
-// s'en sert fait tourner le jeton, et au-delà de la fenêtre de tolérance
-// Convex Auth voit un rejeu et coupe la session. Ce fichier a CINQ parcours :
-// le dernier démarre loin de l'ouverture de la session, et c'est lui qui est
-// tombé deux fois sur l'écran de connexion. Réécrire l'état après chaque test
-// fait repartir le suivant du jeton courant. La session dédiée du fichier rend
-// l'écriture sûre : aucun autre fichier ne lit cet état pendant l'exécution.
+// THE REFRESH TOKEN ROTATES — IT MUST BE REWRITTEN. Same mechanism
+// as in `admin-confirmations.spec.ts`, and same symptom: each test starts
+// from a NEW context reloaded from the same state file, the first one that
+// uses it rotates the token, and beyond the tolerance window
+// Convex Auth sees a replay and cuts the session. This file has FIVE journeys:
+// the last one starts long after the session was opened, and it is the one that
+// landed twice on the sign-in screen. Rewriting the state after each test
+// makes the next one start from the current token. The file's dedicated session makes
+// the write safe: no other file reads this state during the run.
 test.afterEach(async ({ context }) => {
   await context.storageState({ path: SESSIONS.adminRecherche.state });
 });
@@ -69,25 +69,25 @@ test.describe('recherche des listes (session dédiée)', () => {
   test('utilisateurs : un fragment d’adresse fait apparaître le compte SEUL (F-63)', async ({
     page,
   }) => {
-    // Le local-part est un seul bloc alphanumérique : le terme cherché est donc
-    // un mot entier pour l'index, quelle que soit la façon dont il découpe la
-    // ponctuation d'une adresse.
+    // The local part is a single alphanumeric block: the searched term is therefore
+    // a whole word for the index, however it splits the
+    // punctuation of an address.
     const token = `recherche${stamp()}`;
     const email = `${token}@democracytogether.test`;
     await provisionUser(email);
 
     await openScreen(page, '/fr/admin/utilisateurs', 'Utilisateurs');
-    // Sans recherche, la liste est paginée : rien ne garantit que le compte
-    // tout juste créé soit dans la première page — c'est précisément ce que la
-    // recherche sert à retrouver.
+    // Without a search, the list is paginated: nothing guarantees that the account
+    // just created is on the first page — that is precisely what the
+    // search is for finding.
     await search(page, 'Rechercher un utilisateur', token);
 
     const rows = page.getByRole('row').filter({ hasText: token });
     await expect(rows).toHaveCount(1);
-    // SEUL : la table ne contient plus que l'en-tête et cette ligne.
+    // ALONE: the table now contains only the header and this row.
     await expect(page.getByRole('row')).toHaveCount(2);
 
-    // Effacer rend la liste : la recherche n'a rien perdu en route.
+    // Clearing restores the list: the search lost nothing along the way.
     await page.getByRole('button', { name: 'Effacer' }).click();
     await expect(page.getByRole('row').nth(2)).toBeVisible();
   });
@@ -97,25 +97,25 @@ test.describe('recherche des listes (session dédiée)', () => {
   }) => {
     const token = `roles${stamp()}`;
     const email = `${token}@democracytogether.test`;
-    // Le rôle est DEMANDÉ explicitement : `provisionUser` crée un « visiteur »
-    // par défaut, et un test qui filtre sur « membre » doit dire de quel compte
-    // il parle plutôt que d'hériter d'un défaut.
+    // The role is REQUESTED explicitly: `provisionUser` creates a "visiteur"
+    // by default, and a test filtering on "membre" must say which account
+    // it is talking about rather than inherit a default.
     await provisionUser(email, 'membre');
 
     await openScreen(page, '/fr/admin/utilisateurs', 'Utilisateurs');
     await search(page, 'Rechercher un utilisateur', token);
     await expect(page.getByText(email)).toBeVisible();
 
-    // Le compte est membre : filtrer sur « Éditeur » doit le faire disparaître,
-    // alors que la recherche, elle, continue de correspondre. C'est ce qui
-    // montre que les deux conditions sont appliquées ensemble, côté serveur.
+    // The account is a member: filtering on "Éditeur" must make it disappear,
+    // while the search, for its part, keeps matching. That is what
+    // shows that both conditions are applied together, server-side.
     await page.getByLabel('Filtrer par rôle').selectOption('editeur');
     await expect(page.getByText(email)).toHaveCount(0);
     await expect(
       page.getByText('Aucun résultat pour cette recherche.'),
     ).toBeVisible();
 
-    // …et sur son propre rôle, il revient.
+    // …and on its own role, it comes back.
     await page.getByLabel('Filtrer par rôle').selectOption('membre');
     await expect(page.getByText(email)).toBeVisible();
   });
@@ -134,16 +134,16 @@ test.describe('recherche des listes (session dédiée)', () => {
     await openScreen(page, '/fr/admin/candidatures', 'Candidatures');
     await search(page, 'Rechercher une candidature', token);
 
-    // Liste NOMMÉE : la navigation groupée rend elle aussi des `<li>`, un
-    // `getByRole('listitem')` non cadré compterait ses quatorze entrées.
+    // NAMED list: the grouped navigation also renders `<li>`s, an
+    // unscoped `getByRole('listitem')` would count its fourteen entries.
     const queue = page
       .getByRole('list', { name: 'Liste des candidatures' })
       .getByRole('listitem');
     await expect(queue.filter({ hasText: token })).toHaveCount(1);
     await expect(queue).toHaveCount(1);
 
-    // Un terme qui ne correspond à rien le DIT, au lieu d'afficher une file
-    // vide qu'on prendrait pour « plus rien à modérer ».
+    // A term that matches nothing SAYS so, instead of showing an empty
+    // queue that one would take for "nothing left to moderate".
     await search(page, 'Rechercher une candidature', 'zzz-aucune-candidature');
     await expect(
       page.getByText('Aucun résultat pour cette recherche.'),
@@ -153,10 +153,10 @@ test.describe('recherche des listes (session dédiée)', () => {
   test('journal : recherche par action, puis filtre sur l’acteur d’une ligne (F-67)', async ({
     page,
   }) => {
-    // On produit une entrée d'audit par le produit lui-même : changer un rôle
-    // écrit `user.role_changed`, signée par la session admin courante. Rien
-    // n'est inséré à la main, donc ce que le journal montre est bien ce que le
-    // back-office écrit.
+    // We produce an audit entry through the product itself: changing a role
+    // writes `user.role_changed`, signed by the current admin session. Nothing
+    // is inserted by hand, so what the log shows is indeed what the
+    // back office writes.
     const token = `journal${stamp()}`;
     const email = `${token}@democracytogether.test`;
     await provisionUser(email);
@@ -164,16 +164,16 @@ test.describe('recherche des listes (session dédiée)', () => {
     await openScreen(page, '/fr/admin/utilisateurs', 'Utilisateurs');
     await search(page, 'Rechercher un utilisateur', token);
 
-    // Le changement de rôle se fait en DEUX TEMPS depuis l'issue #38 : choisir
-    // ne prépare que le brouillon, « Appliquer » ouvre la confirmation.
+    // The role change happens in TWO STEPS since issue #38: choosing
+    // only prepares the draft, "Appliquer" opens the confirmation.
     const row = page.getByRole('row').filter({ hasText: token });
     await expect(row).toHaveCount(1);
     await row.getByLabel(`Rôle ${email}`).selectOption('moderateur');
     await row.getByRole('button', { name: 'Appliquer' }).click();
-    // On ATTEND le dialogue avant de viser son bouton, comme le fait
-    // `admin-confirmations.spec.ts`. Viser directement mélange deux échecs
-    // sous un même message : « la confirmation ne s'est pas ouverte » et « le
-    // bouton n'était pas cliquable ». Le second a coûté une campagne.
+    // We WAIT for the dialog before aiming at its button, as
+    // `admin-confirmations.spec.ts` does. Aiming directly mixes two failures
+    // under the same message: "the confirmation did not open" and "the
+    // button was not clickable". The second cost a campaign.
     const confirmation = page.getByRole('dialog', {
       name: `Changer le rôle de ${email} ?`,
     });
@@ -183,20 +183,20 @@ test.describe('recherche des listes (session dédiée)', () => {
 
     await openScreen(page, '/fr/admin/journal', "Journal d'activité");
 
-    // Recherche par famille d'action : l'index découpe le slug pointé, donc
-    // « user » remonte `user.role_changed` (et `user.invited`).
+    // Search by action family: the index splits the dotted slug, so
+    // "user" brings up `user.role_changed` (and `user.invited`).
     await search(page, 'Rechercher une action', 'user');
     const actionCells = page.locator('tbody tr td:nth-child(2)');
     await onlyRowsMatching(actionCells, /^user\./);
 
-    // Filtre par acteur : on le prend là où il est affiché, en cliquant
-    // l'acteur d'une ligne.
+    // Filter by actor: we take it where it is displayed, by clicking
+    // a row's actor.
     //
-    // L'acteur visé est CONNU — c'est la session qui vient de changer le rôle,
-    // donc l'entrée créée à l'instant. Lire à la place l'acteur « de la
-    // première ligne » ouvrirait une course : le journal est alimenté en
-    // parallèle par les autres parcours, et la ligne de tête peut changer
-    // entre la lecture et le clic.
+    // The targeted actor is KNOWN — it is the session that just changed the role,
+    // hence the entry just created. Reading instead the actor "of the
+    // first row" would open a race: the log is fed in
+    // parallel by the other journeys, and the top row may change
+    // between the read and the click.
     await page.getByRole('button', { name: 'Effacer' }).click();
     const actor = SESSIONS.adminRecherche.email;
     const actorCells = page.locator('tbody tr td:nth-child(3)');
@@ -205,15 +205,15 @@ test.describe('recherche des listes (session dédiée)', () => {
       .first()
       .click();
 
-    // L'étiquette NOMME ce qui est filtré — sans elle, une liste restreinte
-    // serait indistinguable d'un journal presque vide. `exact` : les boutons
-    // du tableau portent la même chaîne en `aria-label`, mais pas en texte.
+    // The label NAMES what is filtered — without it, a narrowed list
+    // would be indistinguishable from an almost empty log. `exact`: the table's
+    // buttons carry the same string as `aria-label`, but not as text.
     await expect(
       page.getByText(`Acteur : ${actor}`, { exact: true }),
     ).toBeVisible();
     await onlyRowsMatching(actorCells, actor);
 
-    // Et on peut y renoncer.
+    // And it can be dismissed.
     await page
       .getByRole('button', { name: "Retirer le filtre d'acteur" })
       .click();
@@ -225,14 +225,14 @@ test.describe('recherche des listes (session dédiée)', () => {
   test('publications : recherche par titre dans la file de modération (F-32)', async ({
     page,
   }) => {
-    // Cette file dépend des seeds (`seedPublications`, cf. TESTING.md) : on ne
-    // suppose donc pas une ligne précise, on vérifie la PROPRIÉTÉ — tout ce qui
-    // reste affiché correspond au terme, et un terme absent le dit.
+    // This queue depends on the seeds (`seedPublications`, see TESTING.md): we
+    // therefore do not assume a specific row, we check the PROPERTY — everything that
+    // remains displayed matches the term, and an absent term says so.
     await openScreen(page, '/fr/admin/publications', 'Publications');
-    // Le titre paraît avant la première page de la file : cliquer à cet
-    // instant, c'est viser un bouton que le rendu suivant remplace (« element
-    // was detached from the DOM »). On attend donc que la file ait tranché —
-    // une liste, ou le message de file vide.
+    // The title appears before the queue's first page: clicking at that
+    // moment means aiming at a button the next render replaces ("element
+    // was detached from the DOM"). So we wait for the queue to have settled —
+    // a list, or the empty-queue message.
     const queue = page
       .getByRole('list', { name: 'Liste des publications à modérer' })
       .getByRole('listitem');
@@ -252,9 +252,9 @@ test.describe('recherche des listes (session dédiée)', () => {
     await page.getByRole('button', { name: 'Effacer' }).click();
     const firstTitle = queue.first().getByRole('heading');
     await expect(firstTitle).toBeVisible();
-    // Un MOT ENTIER du premier titre, assez long pour être discriminant : un
-    // terme court (« l' » d'une élision, par exemple) correspondrait par
-    // préfixe à presque tout, et l'assertion ci-dessous ne prouverait rien.
+    // A WHOLE WORD of the first title, long enough to be discriminating: a
+    // short term (the "l'" of an elision, for example) would match almost
+    // everything by prefix, and the assertion below would prove nothing.
     const word = (await firstTitle.innerText())
       .split(/[^\p{L}\p{N}]+/u)
       .find((w) => w.length >= 5);

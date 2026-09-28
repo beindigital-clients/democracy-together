@@ -1,21 +1,21 @@
-// Replays de webinaires (F-54).
+// Webinar replays (F-54).
 //
-// DEUX SOURCES (chantier « contenus ») : la table `contentReplays`, éditée au
-// back-office — lien YouTube, Vimeo ou fichier vidéo, événement lié —, et le
-// catalogue codé ci-dessous, servi en REPLI tant que la table est vide ou le
-// backend injoignable (`fromConvexReplays` / `getReplays`, même forme).
+// TWO SOURCES ("contenus" workstream): the `contentReplays` table, edited in
+// the back office — YouTube, Vimeo or video file link, linked event —, and
+// the catalog hard-coded below, served as a FALLBACK while the table is empty
+// or the backend unreachable (`fromConvexReplays` / `getReplays`, same shape).
 //
-// Repli : page LEAN dérivée des événements PASSÉS.
-// AUCUNE fausse vidéo : on ne fait que lister les événements `upcoming:false`
-// (avec leur `durationMin`), triés par date DÉCROISSANTE, et on affiche un
-// encart honnête « Enregistrement bientôt disponible ». Les libellés (titres,
-// types, thématiques, langues) viennent de `getEventsLabels(locale)` — pas de
+// Fallback: a LEAN page derived from PAST events.
+// NO fake video: we only list the `upcoming:false` events (with their
+// `durationMin`), sorted by DESCENDING date, and show an honest
+// "Enregistrement bientôt disponible" notice. The labels (titles, types,
+// themes, languages) come from `getEventsLabels(locale)` — no
 // duplication.
 //
-// FILTRES (communauté A-12, 27/09) : la page n'en proposait aucun, alors que
-// la liste des événements en a. Type, thématique et langue sont des clés
-// NEUTRES portées par l'URL (`?type=webinaire&theme=participation&lang=fr`),
-// comme l'annuaire : rendu serveur, liens GET, partageable, sans JavaScript.
+// FILTERS (community A-12, 27/09): the page offered none, whereas the event
+// list does. Type, theme and language are NEUTRAL keys carried by the URL
+// (`?type=webinaire&theme=participation&lang=fr`), like the directory:
+// server rendering, GET links, shareable, no JavaScript.
 
 import type { FunctionReturnType } from 'convex/server';
 import type { api } from '@convex/_generated/api';
@@ -36,10 +36,10 @@ export type Replay = {
   y: number;
   mo: number;
   d: number;
-  // Fiche de l'événement d'origine (lien « voir l'événement »), s'il y en a.
+  // Page of the originating event ("voir l'événement" link), if there is one.
   eventSlug?: string | null;
-  // Vidéo : lecteur intégré (YouTube « nocookie », Vimeo) ou fichier. Absente
-  // = « enregistrement bientôt disponible ».
+  // Video: embedded player (YouTube "nocookie", Vimeo) or file. Absent
+  // = "enregistrement bientôt disponible".
   videoKind?: 'youtube' | 'vimeo' | 'file' | null;
   videoUrl?: string | null;
   embedUrl?: string | null;
@@ -50,7 +50,7 @@ export type ConvexReplays = FunctionReturnType<
   typeof api.contenus.replays.listPublic
 >;
 
-/** Replays de la table, sous la forme que la page lit. */
+/** Replays from the table, in the shape the page reads. */
 export function fromConvexReplays(
   rows: ConvexReplays,
   locale: Locale,
@@ -87,8 +87,8 @@ export type ReplayFilters = {
   lang?: string;
 };
 
-// Liste des événements passés (`upcoming === false`), du plus récent au plus
-// ancien (date décroissante), avec libellés localisés prêts à afficher.
+// List of past events (`upcoming === false`), from most recent to oldest
+// (descending date), with localized labels ready to display.
 export function getReplays(locale: Locale): Replay[] {
   const labels = getEventsLabels(locale);
   return EVENTS.filter((e) => e.upcoming === false)
@@ -115,10 +115,10 @@ function param(value: string | string[] | undefined): string | undefined {
   return v && v.trim() ? v.trim().toLowerCase() : undefined;
 }
 
-// Filtres lus depuis l'URL, ASSAINIS contre les valeurs réellement portées
-// par les replays : un `?type=zzz` vaut « pas de filtre » (même règle que
-// l'annuaire et la bibliothèque), et n'apparaît donc jamais comme une chip
-// active fantôme.
+// Filters read from the URL, SANITIZED against the values actually carried
+// by the replays: a `?type=zzz` counts as "no filter" (same rule as the
+// directory and the library), and so never shows up as a phantom active
+// chip.
 export function parseReplayFilters(
   sp: Record<string, string | string[] | undefined>,
   replays: Replay[],
@@ -135,7 +135,7 @@ export function parseReplayFilters(
   };
 }
 
-// Combinaison en ET des trois filtres.
+// AND combination of the three filters.
 export function filterReplays(replays: Replay[], f: ReplayFilters): Replay[] {
   return replays.filter(
     (r) =>
@@ -151,9 +151,9 @@ export function hasReplayFilters(f: ReplayFilters): boolean {
 
 export type ReplayFacet = { value: string; label: string; count: number };
 
-// Facettes = valeurs présentes dans l'ensemble des replays, avec leur nombre
-// d'occurrences, dans l'ordre de première apparition (la liste est déjà triée
-// par date). Ne propose que des filtres qui donnent des résultats.
+// Facets = values present across all replays, with their number of
+// occurrences, in order of first appearance (the list is already sorted
+// by date). Only offers filters that yield results.
 export function replayFacets(
   replays: Replay[],
   locale: Locale,
@@ -184,8 +184,8 @@ export function replayFacets(
   };
 }
 
-// URL de la page avec un filtre modifié, les autres préservés (`undefined`
-// retire le filtre). next-intl ajoute le préfixe de langue.
+// Page URL with one filter changed, the others preserved (`undefined`
+// removes the filter). next-intl adds the locale prefix.
 export function replaysHref(
   filters: ReplayFilters,
   patch: Partial<ReplayFilters>,

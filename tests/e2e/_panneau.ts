@@ -1,43 +1,43 @@
 import { expect, type Locator } from '@playwright/test';
 
-// POURQUOI UN SECOND CLIC A-T-IL ÉTÉ NÉCESSAIRE ? Le compteur seul ne le dit
-// pas, et c'est ce qui a coûté le plus de temps sur F-13.
+// WHY WAS A SECOND CLICK NEEDED? The counter alone does not say, and
+// that is what cost the most time on F-13.
 //
-// Une cause est établie et corrigée : l'en-tête se décalait de 104 px quand
-// l'authentification se résolvait, et le clic tombait à côté du bouton
-// (`join-button.tsx`). Mais la campagne qui a suivi ce correctif portait
-// TOUJOURS des lignes `[F-13]` : il reste donc au moins un autre mécanisme, et
-// il ne se produit pas sur la machine d'audit.
+// One cause is established and fixed: the header shifted by 104 px when
+// authentication resolved, and the click landed next to the button
+// (`join-button.tsx`). But the campaign that followed this fix STILL
+// carried `[F-13]` lines: so there is at least one other mechanism left, and
+// it does not occur on the audit machine.
 //
-// Ce mouchard note la position du déclencheur AVANT chaque clic. Si un second
-// clic est nécessaire, le journal dit s'il s'était déplacé entre les deux —
-// soit « c'est encore un décalage », soit « c'est autre chose », sans avoir à
-// attendre une campagne de plus pour poser la question.
+// This probe records the trigger's position BEFORE each click. If a second
+// click is needed, the log says whether it had moved in between —
+// either "it is a shift again", or "it is something else", without having to
+// wait for one more campaign to ask the question.
 //
-// SA PREMIÈRE CAMPAGNE N'A RIEN DIT : `boundingBox()` rendait `null` et le
-// verdict restait vide. Corrigé ci-dessous — il parle maintenant même quand il
-// échoue. À surveiller aussi : mesurer avant chaque clic ajoute un
-// aller-retour, donc du temps. Sur cette même campagne le nombre de clics
-// absorbés est passé de quatre à deux ; UNE campagne ne permet pas de dire si
-// c'est la sonde qui a déplacé le résultat ou la variance ordinaire. À ne pas
-// trancher avant d'en avoir plusieurs.
+// ITS FIRST CAMPAIGN SAID NOTHING: `boundingBox()` returned `null` and the
+// verdict stayed empty. Fixed below — it now speaks even when it
+// fails. Also to watch: measuring before each click adds a round
+// trip, hence time. On that same campaign the number of absorbed clicks
+// went from four to two; ONE campaign does not tell whether it was the
+// probe that moved the result or ordinary variance. Not to be
+// decided before having several.
 class Mouchard {
   private precedente: { x: number; y: number; nul: boolean } | null = null;
   private urlPrecedente: string | null = null;
   private constat = " — (le mouchard n'a pas pu comparer)";
 
-  // `getBoundingClientRect` via `evaluate`, et NON `boundingBox()` : ce dernier
-  // rend `null` dès qu'il juge l'élément non visible, et la première campagne
-  // instrumentée n'a alors RIEN imprimé. Un mouchard muet est exactement le
-  // mode de défaillance que ce constat traque : il dit désormais toujours
-  // quelque chose, y compris son propre échec.
+  // `getBoundingClientRect` via `evaluate`, and NOT `boundingBox()`: the latter
+  // returns `null` as soon as it deems the element not visible, and the first
+  // instrumented campaign then printed NOTHING. A silent probe is exactly the
+  // failure mode this finding is tracking: it now always says
+  // something, including its own failure.
   //
-  // L'URL EST RELEVÉE AUSSI, et c'est ce qui sépare un clic PERDU d'un clic
-  // ÉMIS PENDANT UNE NAVIGATION. Première campagne parlante : `home.spec.ts`
-  // annonçait « déplacé de -998×-20 px » — trop pour un reflux d'en-tête, mais
-  // exactement ce qu'on mesure sur un document déjà en train de changer. Si
-  // l'URL a bougé entre les deux clics, le premier avait porté et le compteur
-  // surestime ; si elle n'a pas bougé, le clic s'est bien perdu.
+  // THE URL IS RECORDED TOO, and that is what separates a LOST click from a
+  // click FIRED DURING A NAVIGATION. First telling campaign: `home.spec.ts`
+  // reported "déplacé de -998×-20 px" — too much for a header reflow, but
+  // exactly what one measures on a document already changing. If
+  // the URL moved between the two clicks, the first one had landed and the counter
+  // overestimates; if it did not move, the click was indeed lost.
   async avantClic(declencheur: Locator): Promise<void> {
     const url = declencheur.page().url();
     const b = await declencheur
@@ -47,10 +47,10 @@ class Mouchard {
         return {
           x: Math.round(r.x),
           y: Math.round(r.y),
-          // Un rectangle NUL n'est pas une position : c'est un élément masqué
-          // (`display:none`) ou détaché. Sans cette distinction le mouchard
-          // annonce un « déplacement » de la taille de la page, qui n'a jamais
-          // eu lieu — c'est ce qu'il a fait sur `-998×-20 px`.
+          // A ZERO rectangle is not a position: it is a hidden
+          // (`display:none`) or detached element. Without this distinction the probe
+          // reports a "shift" the size of the page, which never
+          // happened — that is what it did with `-998×-20 px`.
           nul: r.width === 0 && r.height === 0,
         };
       })
@@ -82,24 +82,24 @@ class Mouchard {
   }
 }
 
-// Ouvrir un panneau qui se monte AU CLIC, sans masquer une panne (audit F-13).
+// Opening a panel that mounts ON CLICK, without masking a failure (audit F-13).
 //
-// POURQUOI CE HELPER EXISTE. `declencheur.click()` suivi de
-// `expect(panneau).toBeVisible()` ne peut échouer que d'une seule façon : le
-// clic n'a produit AUCUN changement d'état. L'assertion, elle, réessaie — un
-// panneau simplement lent la satisfait. C'est pourtant ce que la CI a observé
-// trois fois, sur trois panneaux différents (dialogue de confirmation, palette
-// de recherche, menu mobile), jamais deux fois le même, sans cause racine
-// établie à ce jour.
+// WHY THIS HELPER EXISTS. `declencheur.click()` followed by
+// `expect(panneau).toBeVisible()` can fail in only one way: the
+// click produced NO state change. The assertion retries — a panel that is
+// merely slow satisfies it. Yet that is what CI observed
+// three times, on three different panels (confirmation dialog, search
+// palette, mobile menu), never twice the same, with no root cause
+// established to date.
 //
-// CE QU'IL FAIT, ET CE QU'IL NE FAIT PAS. Il re-clique UNIQUEMENT tant que le
-// panneau est fermé : jamais deux fois sur une bascule déjà ouverte, qui se
-// refermerait. Et il IMPRIME le nombre d'essais. Un second clic nécessaire
-// reste donc visible dans le journal de la CI : le symptôme est absorbé pour
-// que la porte cesse de rougir au hasard, il n'est pas effacé. Le jour où ces
-// lignes se multiplient, c'est le constat lui-même qui remonte.
+// WHAT IT DOES, AND WHAT IT DOES NOT. It re-clicks ONLY while the
+// panel is closed: never twice on an already open toggle, which would
+// close again. And it PRINTS the number of attempts. A necessary second click
+// thus stays visible in the CI log: the symptom is absorbed so that
+// the gate stops turning red at random, it is not erased. The day these
+// lines multiply, it is the finding itself that resurfaces.
 //
-// Si le panneau ne s'ouvre JAMAIS, le test échoue comme avant.
+// If the panel NEVER opens, the test fails as before.
 export async function ouvrirPanneau(
   declencheur: Locator,
   panneau: Locator,
@@ -123,21 +123,21 @@ export async function ouvrirPanneau(
   }
 }
 
-// Même symptôme, effet NON localisable (audit F-13, 4e occurrence).
+// Same symptom, NON-localizable effect (audit F-13, 4th occurrence).
 //
-// La CI du 21/09 a rendu `home.spec.ts:25` instable : clic sur « EN » dans la
-// bannière, puis l'URL reste sur `/fr` — treize sondages. Ce n'est PAS un
-// panneau qui s'ouvre, et cela élargit la famille : ce que les occurrences
-// partagent n'est pas « un panneau », c'est un CLIC DONT L'EFFET NE SE PRODUIT
-// JAMAIS. Trois des quatre ont d'ailleurs la même forme — `page.goto()` suivi
-// immédiatement d'un clic.
+// The CI run of 21/09 made `home.spec.ts:25` flaky: click on "EN" in the
+// banner, then the URL stays on `/fr` — thirteen polls. It is NOT a
+// panel opening, and that widens the family: what the occurrences
+// share is not "a panel", it is a CLICK WHOSE EFFECT NEVER
+// HAPPENS. Three of the four have the same shape, by the way — `page.goto()` followed
+// immediately by a click.
 //
-// L'effet attendu est ici une URL, pas un élément : d'où un prédicat. Les
-// mêmes garde-fous s'appliquent — on ne re-clique que tant que l'effet ne
-// s'est PAS produit, et le nombre d'essais est imprimé.
+// The expected effect here is a URL, not an element: hence a predicate. The
+// same safeguards apply — we only re-click while the effect has NOT
+// happened, and the number of attempts is printed.
 //
-// À RÉSERVER aux gestes IDEMPOTENTS : re-cliquer « EN » quand on est déjà en
-// anglais ne fait rien. Sur une bascule, utiliser `ouvrirPanneau`.
+// RESERVE FOR IDEMPOTENT gestures: re-clicking "EN" when already in
+// English does nothing. On a toggle, use `ouvrirPanneau`.
 export async function cliquerJusqua(
   declencheur: Locator,
   effetObtenu: () => Promise<boolean>,
@@ -150,17 +150,17 @@ export async function cliquerJusqua(
       await mouchard.avantClic(declencheur);
       essais += 1;
       await declencheur.click();
-      // LAISSER À L'EFFET LE TEMPS DE SE PRODUIRE avant d'envisager un second
-      // clic. Sans cette attente, une NAVIGATION EN VOL était comptée comme un
-      // clic perdu : `page.url()` ne reflète la nouvelle adresse qu'une fois
-      // celle-ci validée, si bien que le prédicat restait faux et qu'on
-      // recliquait — sur le document suivant, qui n'avait pas encore fait sa
-      // mise en page. C'est la signature « déplacé de -998×-20 px » relevée en
-      // CI : un rectangle nul, pas un déplacement.
+      // GIVE THE EFFECT TIME TO HAPPEN before considering a second
+      // click. Without this wait, an IN-FLIGHT NAVIGATION was counted as a
+      // lost click: `page.url()` only reflects the new address once it
+      // is committed, so the predicate stayed false and we
+      // clicked again — on the next document, which had not yet done its
+      // layout. That is the "déplacé de -998×-20 px" signature recorded in
+      // CI: a zero rectangle, not a shift.
       //
-      // Un clic RÉELLEMENT perdu, lui, ne produit jamais l'effet : il épuise
-      // cette attente, puis les 20 secondes de `toPass`, et le test échoue
-      // comme avant. On ne masque rien — on cesse de compter faux.
+      // A click that is REALLY lost never produces the effect: it exhausts
+      // this wait, then the 20 seconds of `toPass`, and the test fails
+      // as before. We mask nothing — we stop miscounting.
       const limite = Date.now() + 1_500;
       while (Date.now() < limite && !(await effetObtenu())) {
         await declencheur.page().waitForTimeout(50);

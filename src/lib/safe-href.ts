@@ -1,42 +1,42 @@
-// Filtre de SCHÉMA sur les URL que ce dépôt n'écrit pas (pentest M-9).
+// SCHEME filter on URLs this repo does not write (pentest M-9).
 //
-// Deux sources alimentent des `href` venus d'ailleurs : les liens du texte
-// riche Sanity (annotation `link`, saisie dans le CMS) et l'adresse de site
-// d'une fiche d'annuaire, renseignée à l'adhésion puis publiée. Le pentest
-// décrivait le cas `javascript:` ; le rejeu montre que c'est le MOINS grave
-// des trois, et que le garde-fou sur lequel on aurait pu se reposer ne couvre
-// que celui-là :
+// Two sources feed `href`s coming from elsewhere: links in Sanity rich text
+// (`link` annotation, entered in the CMS) and the website address of a
+// directory entry, filled in at membership and then published. The pentest
+// described the `javascript:` case; the replay shows it is the LEAST severe
+// of the three, and that the safeguard we could have relied on only covers
+// that one:
 //
-//   javascript:alert(1)       React 19 le neutralise LUI-MÊME — il réécrit
-//                             l'attribut en `javascript:throw new Error(…)` et
-//                             journalise un avertissement. Vérifié, toutes
-//                             casses et avec espace de tête.
-//   data:text/html;base64,…   passe TEL QUEL. Une page HTML complète, d'origine
-//                             opaque, ouverte depuis un clic sur le site.
-//   vbscript:msgbox(1)        passe tel quel.
+//   javascript:alert(1)       React 19 neutralizes it ITSELF — it rewrites
+//                             the attribute to `javascript:throw new Error(…)` and
+//                             logs a warning. Verified, in every letter case
+//                             and with leading whitespace.
+//   data:text/html;base64,…   goes through AS IS. A full HTML page, with an
+//                             opaque origin, opened from a click on the site.
+//   vbscript:msgbox(1)        goes through as is.
 //
-// D'où une liste blanche plutôt qu'une liste noire : ce qui n'est pas
-// explicitement autorisé est refusé, y compris le schéma qu'on inventera après
-// cette relecture.
+// Hence an allowlist rather than a denylist: whatever is not explicitly
+// allowed is refused, including the scheme someone will invent after
+// this review.
 export const SCHEMAS_AUTORISES = ['http:', 'https:', 'mailto:'] as const;
 
-// Base fictive servant à RÉSOUDRE les URL relatives. `/fr/actualites`,
-// `#section` ou `?page=2` sont des liens légitimes dans un texte riche : sans
-// base, `new URL` les rejetterait tous.
+// Dummy base used to RESOLVE relative URLs. `/fr/actualites`,
+// `#section` or `?page=2` are legitimate links in rich text: without a
+// base, `new URL` would reject them all.
 const BASE_RELATIVE = 'https://relative.invalid';
 
 /**
- * L'URL si son schéma est autorisé, `undefined` sinon — au lieu d'un `href`
- * vide, qui ferait un lien mort au lieu d'un texte simple.
+ * The URL if its scheme is allowed, `undefined` otherwise — instead of an
+ * empty `href`, which would make a dead link instead of plain text.
  *
- * POURQUOI `new URL` PLUTÔT QU'UN `startsWith`. L'analyseur d'URL du standard
- * WHATWG — celui de `new URL`, et celui que le navigateur applique à
- * l'attribut `href` — retire les tabulations et les retours à la ligne, ignore
- * les caractères de contrôle de tête, et met le schéma en minuscules. Un test
- * de préfixe écrit à la main laisserait passer `JaVaScRiPt:`, `java\tscript:`
- * et ` javascript:` ; ici les trois arrivent normalisés au moment de la
- * comparaison. La chaîne RENDUE est celle qui a été analysée, donc le
- * navigateur lira exactement ce que cette fonction a validé.
+ * WHY `new URL` RATHER THAN A `startsWith`. The WHATWG standard URL parser —
+ * the one behind `new URL`, and the one the browser applies to the `href`
+ * attribute — strips tabs and line breaks, ignores leading control
+ * characters, and lowercases the scheme. A hand-written prefix test would
+ * let `JaVaScRiPt:`, `java\tscript:` and ` javascript:` through; here all
+ * three arrive normalized at comparison time. The RENDERED string is the one
+ * that was parsed, so the browser will read exactly what this function
+ * validated.
  */
 export function safeHref(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;

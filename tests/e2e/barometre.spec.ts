@@ -10,23 +10,23 @@ test('baromètre : toutes les sections de la maquette (F-30)', async ({
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Baromètre',
   );
-  // KPI illustration
+  // Illustrative KPIs
   await expect(page.getByText('pays couverts (illustration)')).toBeVisible();
-  // Carte : tuiles + légende (5 niveaux)
+  // Map: tiles + legend (5 levels)
   await expect(
     page.getByRole('heading', { name: "L'indice, pays par pays" }),
   ).toBeVisible();
   await expect(page.getByText('Libre', { exact: true }).first()).toBeVisible();
-  // Classement : tête de tableau + 1re ligne (Belgique)
+  // Ranking: table header + 1st row (Belgique)
   await expect(
     page.getByRole('heading', { name: "Classement de l'indice composite" }),
   ).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Belgique' })).toBeVisible();
-  // Fiches pays
+  // Country profiles
   await expect(page.getByRole('heading', { name: 'France' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Sénégal' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Tunisie' })).toBeVisible();
-  // Sous-dimensions (5) + méthodologie + datasets + contrib
+  // Sub-dimensions (5) + methodology + datasets + contrib
   await expect(
     page.getByRole('heading', {
       name: 'Cinq sous-dimensions, alignées sur nos axes',
@@ -43,7 +43,7 @@ test('baromètre : toutes les sections de la maquette (F-30)', async ({
     page.getByRole('link', { name: 'Contribuer aux données' }),
   ).toBeVisible();
 
-  // Le CTA de contribution mène à l'adhésion
+  // The contribution CTA leads to membership
   await page.getByRole('link', { name: 'Contribuer aux données' }).click();
   await expect(page).toHaveURL(/\/fr\/adhesion$/);
 });

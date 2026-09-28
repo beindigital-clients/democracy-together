@@ -5,12 +5,12 @@ test('connexion : lien OTP reformulé + champ mot de passe affichable/masquable'
 }) => {
   await page.goto('/fr/connexion');
 
-  // libellé du lien passwordless revu
+  // revised passwordless link label
   await expect(
     page.getByRole('link', { name: 'Se connecter sans mot de passe' }),
   ).toBeVisible();
 
-  // bascule afficher / masquer
+  // show / hide toggle
   const pwd = page.getByLabel('Mot de passe', { exact: true });
   await pwd.fill('secret1234');
   await expect(pwd).toHaveAttribute('type', 'password');

@@ -3,13 +3,13 @@ import { revealAll, attendreAucuneViolationGrave } from './_a11y';
 
 test.use({ locale: 'fr-FR' });
 
-// Les instruments (déroulement des Reveal, tags WCAG, règles différées,
-// résumé des violations) vivent dans `_a11y.ts` depuis que les specs
-// mobiles en ont besoin elles aussi : deux copies auraient divergé.
+// The instruments (unrolling the Reveals, WCAG tags, deferred rules,
+// violation summary) live in `_a11y.ts` since the mobile specs
+// need them too: two copies would have diverged.
 
-// F-08 — Accessibilité : scan axe (WCAG 2.0/2.1 A & AA) des pages publiques
-// clés. On bloque sur les violations à impact « serious » ou « critical » (les
-// plus pénalisantes) ; le détail des nœuds est affiché en cas d'échec.
+// F-08 — Accessibility: axe scan (WCAG 2.0/2.1 A & AA) of the key public
+// pages. We block on violations with "serious" or "critical" impact (the
+// most penalizing); node details are shown on failure.
 const PAGES = [
   '/fr',
   '/fr/a-propos',
@@ -43,7 +43,7 @@ for (const path of PAGES) {
   });
 }
 
-// Le bandeau de consentement (état vierge) doit aussi être accessible.
+// The consent banner (blank state) must also be accessible.
 test.describe('a11y : bandeau de consentement (F-08)', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -57,11 +57,11 @@ test.describe('a11y : bandeau de consentement (F-08)', () => {
   });
 });
 
-// THÈME SOMBRE (lot 3 du 27/09) : la palette sombre a ses propres encres
-// (`--bar-5`, `--bar-1`, `--accent-contrast`…) ; `color-contrast` étant
-// revenu dans le gate, on le mesure aussi là où les données et les univers
-// colorés s'affichent. Sans `dt-theme` en stockage, le thème suit
-// `prefers-color-scheme` (cf. `themeInit` dans le layout de langue).
+// DARK THEME (batch 3 of 27/09): the dark palette has its own inks
+// (`--bar-5`, `--bar-1`, `--accent-contrast`…); since `color-contrast` is
+// back in the gate, we also measure it where the data and the colored
+// universes are displayed. Without `dt-theme` in storage, the theme follows
+// `prefers-color-scheme` (see `themeInit` in the locale layout).
 const PAGES_SOMBRE = [
   '/fr',
   '/fr/jeunes',

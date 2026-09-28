@@ -1,16 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { SESSIONS } from './_sessions';
 
-// F-26 — Back-office : les 13 écrans, atteints par la barre d'onglets.
-// Jusqu'ici un seul était parcouru ; les 12 autres pouvaient tomber (requête
-// renommée, garde de rôle trop stricte, page blanche) sans qu'aucun test ne
-// bronche. Ce fichier couvre l'accès et le rendu ; les écrans qui ÉCRIVENT sont
-// exercés bout en bout dans `admin-moderation.spec.ts`,
-// `admin.spec.ts` (candidatures) et `library-submit.spec.ts` (publications).
+// F-26 — Back office: the 13 screens, reached through the tab bar.
+// Until now only one was visited; the other 12 could break (renamed
+// query, overly strict role guard, blank page) without any test
+// flinching. This file covers access and rendering; the screens that WRITE are
+// exercised end to end in `admin-moderation.spec.ts`,
+// `admin.spec.ts` (applications) and `library-submit.spec.ts` (publications).
 test.use({ locale: 'fr-FR' });
 
-// `nav` = libellé de l'onglet, `h1` = titre propre de l'écran (les deux
-// diffèrent souvent), `min` = rôle minimal auquel l'onglet est proposé.
+// `nav` = tab label, `h1` = the screen's own title (the two
+// often differ), `min` = minimal role to which the tab is offered.
 const SCREENS = [
   {
     path: '/fr/admin',
@@ -60,8 +60,8 @@ const SCREENS = [
     h1: 'Propositions de projets',
     min: 'moderateur',
   },
-  // Vue du RELECTEUR (campagne du 27/09, A-02) : ouverte au rang modérateur,
-  // elle ne rend que ses assignations — la file complète reste à l'éditeur.
+  // REVIEWER view (campaign of 27/09, A-02): open at moderator rank,
+  // it only renders their assignments — the full queue stays with the editor.
   {
     path: '/fr/admin/mes-relectures',
     nav: 'Mes relectures',
@@ -128,7 +128,7 @@ test.describe('parcours des onglets (session admin partagée)', () => {
       await expect(
         page.getByRole('heading', { level: 1, name: screen.h1 }),
       ).toBeVisible();
-      // l'onglet courant est signalé (et lui seul)
+      // the current tab is indicated (and only it)
       await expect(
         tabs.getByRole('link', {
           name: `${screen.nav} (Administration)`,
@@ -159,13 +159,13 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
       if (screen.min === 'moderateur') {
         await expect(tab).toBeVisible();
       } else {
-        await expect(tab).toHaveCount(0); // entrée non proposée
+        await expect(tab).toHaveCount(0); // entry not offered
       }
     }
 
-    // La navigation est GROUPÉE PAR DOMAINE (issue #49), et le découpage par
-    // domaine coïncide avec le découpage par rôle : les deux groupes réservés
-    // disparaissent ENTIERS, sans laisser un titre sans contenu.
+    // Navigation is GROUPED BY DOMAIN (issue #49), and the split by
+    // domain coincides with the split by role: the two reserved groups
+    // disappear ENTIRELY, without leaving a heading with no content.
     for (const group of ['Pilotage', 'Modération', 'Programmes']) {
       await expect(tabs.getByRole('list', { name: group })).toBeVisible();
     }
@@ -174,12 +174,12 @@ test.describe('cloisonnement par rôle (session modérateur partagée)', () => {
     }
     await expect(tabs.getByRole('list')).toHaveCount(3);
 
-    // Défense en profondeur : l'URL saisie à la main ne suffit pas non plus.
-    // La COQUILLE refuse l'écran (403, rang lu dans la table de navigation)
-    // avant de le monter, donc avant toute requête — c'est ce qui manquait à
-    // /admin/revue et /admin/newsletter, qui tombaient sur la page d'erreur
-    // pour un modérateur (exploration du 27/09). La requête Convex refuserait
-    // aussi ; elle n'est plus posée.
+    // Defense in depth: a URL typed by hand is not enough either.
+    // The SHELL refuses the screen (403, rank read from the navigation table)
+    // before mounting it, hence before any query — that is what was missing for
+    // /admin/revue and /admin/newsletter, which landed on the error page
+    // for a moderator (exploration of 27/09). The Convex query would refuse
+    // too; it is no longer issued.
     for (const path of [
       '/fr/admin/utilisateurs',
       '/fr/admin/revue',

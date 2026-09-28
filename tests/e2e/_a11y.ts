@@ -1,32 +1,32 @@
 import { expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-// INSTRUMENTS D'ACCESSIBILITÉ, en un seul endroit.
+// ACCESSIBILITY INSTRUMENTS, in a single place.
 //
-// Ils vivaient dans `a11y.spec.ts`, donc hors de portée des specs mobiles. Les
-// recopier aurait donné deux méthodologies qui divergent en silence — c'est
-// exactement ce que l'audit a constaté entre sa propre suite et celle du dépôt
-// (une analyse sans dérouler les `Reveal` annonçait des centaines de fausses
-// violations de contraste). Un instrument ne vaut que s'il est le même partout.
+// They used to live in `a11y.spec.ts`, hence out of reach of the mobile specs.
+// Copying them would have produced two methodologies silently diverging — that
+// is exactly what the audit found between its own suite and the repo's
+// (an analysis without unrolling the `Reveal`s reported hundreds of false
+// contrast violations). An instrument is only worth anything if it is the same everywhere.
 
 export const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
-// `color-contrast` FAIT PARTIE DU GATE depuis le lot 3 du 27/09. La règle
-// avait été différée parce que les écarts restants tenaient à la palette de
-// marque (univers safran des Jeunes, couleurs data-viz bar-2/bar-4 en petit
-// texte). Ils ont été résolus sans quitter la maquette : le texte sur safran
-// prend l'encre (`--accent-contrast`), les barres de données ont une teinte
-// « encre » dédiée pour le texte (`--bar-2-ink`, `--bar-4-ink`), et les plus
-// petites tailles sont montées à 11 px. Mesuré à zéro violation, clair et
-// sombre, sur les pages du spec `a11y`. La liste reste là pour qu'une règle à
-// différer un jour le soit AU MÊME ENDROIT pour toutes les specs — avec sa
-// raison écrite ici.
+// `color-contrast` IS PART OF THE GATE since batch 3 of 27/09. The rule
+// had been deferred because the remaining gaps came from the brand palette
+// (saffron universe of the Youth hub, data-viz colors bar-2/bar-4 in small
+// text). They were resolved without leaving the mockup: text on saffron
+// takes the ink (`--accent-contrast`), the data bars have a dedicated "ink"
+// shade for text (`--bar-2-ink`, `--bar-4-ink`), and the smallest
+// sizes were raised to 11 px. Measured at zero violations, light and
+// dark, on the pages of the `a11y` spec. The list stays here so that a rule
+// deferred some day is deferred IN THE SAME PLACE for all specs — with its
+// reason written here.
 export const DEFERRED_RULES: string[] = [];
 
-// Les contenus animés (Reveal `whileInView`) démarrent à opacity:0 : axe lirait
-// une couleur de texte fondue (faux positif de contraste). On parcourt la page
-// (les reveals sont `once:true`) pour les amener à leur état final, puis on
-// laisse les animations se terminer avant l'analyse.
+// Animated content (Reveal `whileInView`) starts at opacity:0: axe would read
+// a faded text color (contrast false positive). We scroll through the page
+// (reveals are `once:true`) to bring them to their final state, then let
+// the animations finish before the analysis.
 export async function revealAll(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const step = window.innerHeight;
@@ -37,11 +37,11 @@ export async function revealAll(page: Page): Promise<void> {
     }
     window.scrollTo(0, 0);
   });
-  // Une liste révélée en cascade (`staggerChildren` 0,1 s) finit d'autant plus
-  // tard qu'elle est longue : 24 billets de Tribune → ~3 s. Une attente fixe
-  // laissait axe mesurer les derniers encore à demi transparents (vu le 28/09
-  // sur une base locale chargée). On attend donc que chaque élément révélé
-  // ET affiché soit opaque, dans une limite.
+  // A list revealed in cascade (`staggerChildren` 0.1 s) finishes later the
+  // longer it is: 24 Tribune posts → ~3 s. A fixed wait let axe measure the
+  // last ones while still half transparent (seen on 28/09 on a loaded local
+  // database). So we wait until every revealed AND displayed element is
+  // opaque, within a limit.
   await page
     .waitForFunction(
       () =>
@@ -65,7 +65,7 @@ export function scan(page: Page) {
 
 type Violations = Awaited<ReturnType<AxeBuilder['analyze']>>['violations'];
 
-// Liste plate « règle [impact] cible » -> diff d'échec lisible.
+// Flat "rule [impact] target" list -> readable failure diff.
 export function summarize(violations: Violations): string[] {
   return violations
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
@@ -82,22 +82,22 @@ export type CibleFautive = {
 };
 
 /**
- * WCAG 2.2, critère 2.5.8 « Taille de cible (minimum) », niveau AA.
+ * WCAG 2.2, success criterion 2.5.8 "Target Size (Minimum)", level AA.
  *
- * Une cible fait au moins 24 × 24 px CSS, SAUF si un cercle de 24 px de
- * diamètre centré sur elle ne recoupe ni le RECTANGLE d'une autre cible, ni le
- * CERCLE d'une autre cible sous-dimensionnée (exception « espacement »).
+ * A target is at least 24 × 24 CSS px, UNLESS a 24 px diameter circle
+ * centered on it intersects neither the RECTANGLE of another target, nor the
+ * CIRCLE of another undersized target ("spacing" exception).
  *
- * L'exception n'est pas une formalité : sans elle, un balayage des 24 pages
- * publiques rend 568 cibles « fautives » — et un scan bruyant ne fait pas que
- * surestimer, il cache. Avec elle, il en reste zéro.
+ * The exception is no formality: without it, a sweep of the 24 public pages
+ * yields 568 "faulty" targets — and a noisy scan does not just overestimate,
+ * it hides. With it, zero remain.
  *
- * ATTENTION en relisant : la distance se calcule du CENTRE de la cible au
- * RECTANGLE de la voisine. Confondre le centre et le coin décale chaque
- * rectangle d'une demi-largeur — la première version de ce détecteur annonçait
- * ainsi une non-conformité sur `/fr/connexion` qui n'existait pas.
- * `tests/e2e/mobile/a11y-menu.spec.ts` lui injecte un témoin pour qu'il ne
- * puisse pas rendre zéro par construction.
+ * CAREFUL when reviewing: the distance is computed from the target's CENTER
+ * to the neighbor's RECTANGLE. Confusing the center and the corner shifts
+ * each rectangle by half a width — the first version of this detector thus
+ * reported a non-conformity on `/fr/connexion` that did not exist.
+ * `tests/e2e/mobile/a11y-menu.spec.ts` injects a control case into it so it
+ * cannot return zero by construction.
  */
 export function ciblesTropPetites(
   page: Page,
@@ -160,22 +160,22 @@ export function ciblesTropPetites(
     });
 }
 
-/** Scan complet d'une page ouverte : échoue sur « serious »/« critical ». */
+/** Full scan of an open page: fails on "serious"/"critical". */
 export async function attendreAucuneViolationGrave(page: Page, quoi: string) {
   const { violations } = await scan(page).analyze();
   expect(summarize(violations), quoi).toEqual([]);
 }
 
 // ---------------------------------------------------------------------------
-// INSTRUMENTS DE L'AUDIT RGAA (F-08, 27/09) — clavier, focus, affichage.
+// RGAA AUDIT INSTRUMENTS (F-08, 27/09) — keyboard, focus, display.
 //
-// Ce sont ceux qui ont produit la grille `docs/rgaa/grille.csv` : les specs
-// `a11y-clavier`, `a11y-annonces` et `a11y-affichage` les rejouent pour que
-// les constats de l'audit restent vrais — ou que leur régression se voie.
+// These are the ones that produced the `docs/rgaa/grille.csv` grid: the
+// `a11y-clavier`, `a11y-annonces` and `a11y-affichage` specs replay them so
+// that the audit findings stay true — or that their regression shows.
 
-/** Neutralise les transitions : un style de focus lu pendant son fondu
- *  mesure l'état de DÉPART (mesuré : bordure de champ lue grise alors
- *  qu'elle passait au bleu). */
+/** Neutralizes transitions: a focus style read during its fade
+ *  measures the STARTING state (measured: a field border read as gray
+ *  while it was turning blue). */
 export async function sansTransitions(page: Page): Promise<void> {
   await page.addStyleTag({
     content: '*,*::before,*::after{transition:none!important}',
@@ -183,26 +183,26 @@ export async function sansTransitions(page: Page): Promise<void> {
 }
 
 export type ArretClavier = {
-  /** `null` : le focus est revenu sur le document (fin de la séquence). */
+  /** `null`: focus went back to the document (end of the sequence). */
   nom: string | null;
   balise: string;
-  /** Élément focalisé mais invisible (1 px, masqué, opacité nulle…). */
+  /** Element focused but invisible (1 px, hidden, zero opacity…). */
   cache: boolean;
-  /** Ce qui change entre l'état focalisé et l'état non focalisé. */
+  /** What changes between the focused and the unfocused state. */
   indicateur: string[];
-  /** Déjà focalisé plus tôt dans la séquence. */
+  /** Already focused earlier in the sequence. */
   repete: boolean;
 };
 
 /**
- * Indicateur de focus de l'élément ACTIF : ce qui distingue son état focalisé
- * de son état non focalisé (RGAA 10.7) — un contour, une ombre, un
- * soulignement, un fond ou une bordure qui change. Vide = focus invisible.
+ * Focus indicator of the ACTIVE element: what distinguishes its focused state
+ * from its unfocused state (RGAA 10.7) — an outline, a shadow, an
+ * underline, a background or a border that changes. Empty = invisible focus.
  *
- * Le composant focalisable peut être MASQUÉ (bouton radio `sr-only` dont la
- * pastille porte le style) : on lit alors le premier ancêtre visible, qui est
- * ce que la personne voit. Un élément focalisé qui reste invisible est signalé
- * par `cache`.
+ * The focusable component may be HIDDEN (an `sr-only` radio button whose
+ * dot carries the style): we then read the first visible ancestor, which is
+ * what the person sees. A focused element that stays invisible is flagged
+ * by `cache`.
  */
 export function lireIndicateurDeFocus(page: Page): Promise<ArretClavier> {
   return page.evaluate(() => {
@@ -282,10 +282,10 @@ export function lireIndicateurDeFocus(page: Page): Promise<ArretClavier> {
 }
 
 /**
- * Parcourt la page à la TOUCHE TABULATION seule, depuis le haut, jusqu'à ce
- * que le focus revienne au document (fin de séquence) ou qu'un élément déjà
- * vu revienne (boucle). Une séquence qui boucle sans jamais rendre la main est
- * un PIÈGE AU CLAVIER (RGAA 12.9).
+ * Walks the page with the TAB KEY alone, from the top, until focus returns
+ * to the document (end of sequence) or an already-seen element comes back
+ * (loop). A sequence that loops without ever giving control back is a
+ * KEYBOARD TRAP (RGAA 12.9).
  */
 export async function parcourirAuClavier(
   page: Page,
@@ -306,7 +306,7 @@ export async function parcourirAuClavier(
   return { arrets, finAtteinte: false };
 }
 
-/** Largeur de page qui dépasse la fenêtre (RGAA 10.11) — 0 si aucune. */
+/** Page width overflowing the window (RGAA 10.11) — 0 if none. */
 export function debordementHorizontal(page: Page): Promise<number> {
   return page.evaluate(
     () =>
@@ -316,10 +316,10 @@ export function debordementHorizontal(page: Page): Promise<number> {
 }
 
 /**
- * Zoom du TEXTE seul à 200 % (RGAA 10.4), à la manière du « zoom texte
- * seulement » de Firefox : chaque taille de police calculée est doublée, les
- * interlignes en pixels aussi. Chromium n'a pas d'équivalent natif — le zoom
- * de PAGE, lui, se teste par une fenêtre deux fois plus étroite.
+ * TEXT-only zoom at 200 % (RGAA 10.4), like Firefox's "zoom text
+ * only": every computed font size is doubled, and so are pixel line
+ * heights. Chromium has no native equivalent — PAGE zoom, for its part, is
+ * tested with a window half as wide.
  */
 export async function zoomerLeTexte(page: Page, facteur = 2): Promise<void> {
   await page.evaluate((f) => {
@@ -342,7 +342,7 @@ export async function zoomerLeTexte(page: Page, facteur = 2): Promise<void> {
   }, facteur);
 }
 
-/** Espacement du texte redéfini par l'utilisateur (RGAA 10.12). */
+/** Text spacing overridden by the user (RGAA 10.12). */
 export async function espacerLeTexte(page: Page): Promise<void> {
   await page.addStyleTag({
     content:
@@ -351,11 +351,11 @@ export async function espacerLeTexte(page: Page): Promise<void> {
 }
 
 /**
- * Textes ROGNÉS par un ancêtre `overflow: hidden|clip` dans le contenu
- * principal : ce que 10.4 et 10.12 appellent une perte de contenu. Hors champ :
- * les troncatures VOULUES (points de suspension, `line-clamp` — le texte entier
- * est sur la page de destination) et le contenu masqué (replié dans un
- * `<details>`, `sr-only`, `aria-hidden`).
+ * Texts CLIPPED by an `overflow: hidden|clip` ancestor in the main
+ * content: what 10.4 and 10.12 call a loss of content. Out of scope:
+ * INTENDED truncations (ellipsis, `line-clamp` — the full text is on the
+ * destination page) and hidden content (collapsed in a `<details>`,
+ * `sr-only`, `aria-hidden`).
  */
 export function textesRognes(page: Page): Promise<string[]> {
   return page.evaluate(() => {
@@ -386,9 +386,9 @@ export function textesRognes(page: Page): Promise<string[]> {
         ) {
           break;
         }
-        // Conteneur DÉFILANT (tableau dans sa `ScrollableRegion`) : le texte
-        // n'est pas perdu, il s'atteint en faisant défiler — c'est
-        // l'exception prévue par 10.11 pour les tableaux de données.
+        // SCROLLING container (table in its `ScrollableRegion`): the text
+        // is not lost, it is reached by scrolling — this is the exception
+        // 10.11 provides for data tables.
         if (/(auto|scroll)/.test(`${s.overflowX} ${s.overflowY}`)) break;
         if (/(hidden|clip)/.test(`${s.overflowX} ${s.overflowY}`)) {
           const ra = a.getBoundingClientRect();

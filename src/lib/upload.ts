@@ -1,24 +1,24 @@
-// TÉLÉVERSEMENT AVEC PROGRESSION (issue #37)
+// UPLOAD WITH PROGRESS (issue #37)
 //
-// `fetch` n'expose PAS la progression d'ENVOI : son corps sortant n'est pas
-// observable (seule la RÉCEPTION l'est, via le flux de la réponse). Pour dire à
-// quelqu'un où en est l'envoi de son PDF de 20 Mo, il n'existe qu'une voie dans
-// le navigateur — `XMLHttpRequest.upload.onprogress`. C'est la seule raison
-// pour laquelle ce module existe : ailleurs, le projet appelle `fetch`.
+// `fetch` does NOT expose UPLOAD progress: its outgoing body is not
+// observable (only DOWNLOAD is, through the response stream). To tell
+// someone how far along the upload of their 20 MB PDF is, there is only one
+// way in the browser — `XMLHttpRequest.upload.onprogress`. That is the only
+// reason this module exists: elsewhere, the project calls `fetch`.
 //
-// Sans ce retour, un envoi de plusieurs minutes sur une connexion à faible
-// débit — l'hypothèse centrale du projet — est indiscernable d'un blocage.
+// Without this feedback, an upload lasting several minutes on a low-bandwidth
+// connection — the project's central assumption — is indistinguishable from a hang.
 
-// Message porté par l'erreur en cas d'échec, quelle qu'en soit la cause (réseau
-// coupé, statut non 2xx, réponse illisible). L'appelant n'a pas à distinguer :
-// il n'y a qu'une chose à proposer, réessayer.
+// Message carried by the error on failure, whatever the cause (network
+// down, non-2xx status, unreadable response). The caller does not need to
+// distinguish: there is only one thing to offer, retrying.
 export const UPLOAD_FAILED = 'upload-failed';
 
 export type UploadProgress = {
   loaded: number;
-  // `null` quand la taille totale est inconnue (`lengthComputable` faux) :
-  // l'interface doit alors montrer une progression indéterminée plutôt qu'un
-  // pourcentage inventé.
+  // `null` when the total size is unknown (`lengthComputable` false):
+  // the UI must then show indeterminate progress rather than an
+  // invented percentage.
   total: number | null;
   percent: number | null;
 };

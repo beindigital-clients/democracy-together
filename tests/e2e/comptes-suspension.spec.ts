@@ -2,21 +2,21 @@ import { test, expect, type Page } from '@playwright/test';
 import { chercherUtilisateur, getOtp } from './_helpers';
 import { SESSIONS } from './_sessions';
 
-// CYCLE DE VIE D'UN COMPTE (chantier comptes, F-63) — par l'interface :
-// l'administrateur CRÉE un compte, ce compte se connecte, l'administrateur le
-// SUSPEND (motif obligatoire) : sa session ouverte est fermée et une nouvelle
-// connexion est refusée avec un message clair. Puis l'administrateur le
-// SUPPRIME, en deux temps.
+// LIFECYCLE OF AN ACCOUNT ("comptes" workstream, F-63) — through the UI:
+// the administrator CREATES an account, that account signs in, the administrator
+// SUSPENDS it (reason required): its open session is closed and a new
+// sign-in is refused with a clear message. Then the administrator
+// DELETES it, in two steps.
 //
-// Session dédiée (`comptes`) : le fichier tient la session administrateur
-// d'un bout à l'autre (cf. _sessions.ts).
+// Dedicated session (`comptes`): the file holds the administrator session
+// from one end to the other (see _sessions.ts).
 
 test.use({ locale: 'fr-FR' });
 test.use({ storageState: SESSIONS.comptes.state });
-// Les deux tests du fichier tiennent la MÊME session : chacun réenregistre
-// l'état qu'il laisse (jeton de rafraîchissement échangé), et ils ne tournent
-// pas en parallèle — sinon le second présente un jeton déjà échangé et se
-// réveille sur « Se connecter » (vu en CI le 28/09).
+// The file's two tests hold the SAME session: each one saves again
+// the state it leaves (refresh token exchanged), and they do not run
+// in parallel — otherwise the second presents an already exchanged token and
+// wakes up on "Se connecter" (seen in CI on 28/09).
 test.describe.configure({ mode: 'serial' });
 test.afterEach(async ({ context }) => {
   await context.storageState({ path: SESSIONS.comptes.state });
@@ -39,7 +39,7 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
 }) => {
   const email = `e2e_comptes_${Date.now()}@democracytogether.test`;
 
-  // 1. CRÉATION DIRECTE depuis le back-office.
+  // 1. DIRECT CREATION from the back office.
   await page.goto('/fr/admin/utilisateurs');
   const form = page.locator('form').filter({
     has: page.getByRole('heading', { name: 'Créer un compte' }),
@@ -49,7 +49,7 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
   await form.getByRole('button', { name: 'Créer le compte' }).click();
   await expect(form.getByRole('status')).toContainText('Compte créé');
 
-  // 2. Le compte se connecte (contexte séparé : un autre navigateur).
+  // 2. The account signs in (separate context: another browser).
   const userContext = await browser.newContext({
     storageState: { cookies: [], origins: [] },
   });
@@ -60,7 +60,7 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
     userPage.getByRole('button', { name: 'Déconnexion' }),
   ).toBeVisible({ timeout: 15_000 });
 
-  // 3. SUSPENSION, motif obligatoire, confirmation qui nomme le compte.
+  // 3. SUSPENSION, reason required, confirmation naming the account.
   await page.reload();
   await chercherUtilisateur(page, email);
   const row = page.getByRole('row').filter({ hasText: email });
@@ -82,18 +82,18 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
   await expect(row.getByText('Suspendu', { exact: true })).toBeVisible();
   await expect(row).toContainText('usurpation signalée');
 
-  // 4. La session OUVERTE du compte est fermée : il ne retrouve plus son
-  //    espace membre.
+  // 4. The account's OPEN session is closed: it can no longer reach its
+  //    member area.
   await userPage.goto('/fr/espace-membre');
   await expect(userPage).toHaveURL(/\/connexion/, { timeout: 20_000 });
 
-  // 5. Une NOUVELLE connexion est refusée, avec un message clair.
+  // 5. A NEW sign-in is refused, with a clear message.
   await signInWithOtp(userPage, email);
   await expect(userPage.getByText('Ce compte est suspendu.')).toBeVisible();
   await expect(userPage).not.toHaveURL(/\/espace-membre/);
   await userContext.close();
 
-  // 6. SUPPRESSION EN DEUX TEMPS : confirmer, puis retaper l'adresse.
+  // 6. TWO-STEP DELETION: confirm, then retype the address.
   await row.getByRole('button', { name: `Supprimer ${email}` }).click();
   const step1 = page.getByRole('dialog', {
     name: `Supprimer le compte ${email} ?`,
@@ -110,7 +110,7 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
       .getByRole('status')
       .filter({ hasText: `Suppression de ${email} lancée.` }),
   ).toBeVisible();
-  // Le traitement se termine par la suppression de la ligne `users`.
+  // The processing ends with the deletion of the `users` row.
   await expect(page.getByRole('row').filter({ hasText: email })).toHaveCount(
     0,
     { timeout: 20_000 },
@@ -120,8 +120,8 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
 test('le tableau de bord avertit tant que la 2FA n’est pas obligatoire', async ({
   page,
 }) => {
-  // Réglage par défaut du déploiement partagé : désactivé (cf.
-  // docs/backlog/comptes.md). L'avertissement doit donc être là.
+  // Default setting of the shared deployment: disabled (see
+  // docs/backlog/comptes.md). The warning must therefore be there.
   await page.goto('/fr/admin');
   await expect(
     page.getByText(

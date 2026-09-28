@@ -3,28 +3,28 @@ import { SESSIONS } from './_sessions';
 
 test.use({ locale: 'fr-FR' });
 
-// NAVIGATION DU BACK-OFFICE (issue #49) — la forme, mesurée.
+// BACK-OFFICE NAVIGATION (issue #49) — the shape, measured.
 //
-// Le critère de l'issue est littéralement géométrique : « la navigation reste
-// lisible sans défilement horizontal ». Ce n'est pas vérifiable par un test de
-// composant (happy-dom ne met pas en page) ni par `toBeVisible()`, qui est vrai
-// d'un lien hors écran dans un conteneur à défilement — c'était exactement
-// l'état d'avant. Il faut un vrai navigateur et une vraie largeur.
+// The issue's criterion is literally geometric: "the navigation stays
+// readable without horizontal scrolling". This cannot be checked by a
+// component test (happy-dom does no layout) nor by `toBeVisible()`, which is true
+// of an off-screen link inside a scrolling container — that was exactly
+// the previous state. It takes a real browser and a real width.
 //
-// POURQUOI CE FICHIER N'EST PAS DANS `tests/e2e/mobile/`. La convention du
-// dépôt (TESTING.md) y place les parcours dont le viewport ET le tactile
-// viennent du projet `mobile-chromium`. Or ce projet ne dépend pas de `setup` :
-// il n'a pas les sessions partagées, et le back-office exige une session
-// admin. Ce qui est mesuré ici est une largeur, pas un geste — le viewport est
-// donc posé par le fichier, et la session vient du projet `chromium`.
+// WHY THIS FILE IS NOT IN `tests/e2e/mobile/`. The repo's convention
+// (TESTING.md) puts there the journeys whose viewport AND touch input
+// come from the `mobile-chromium` project. But that project does not depend on `setup`:
+// it does not have the shared sessions, and the back office requires an admin
+// session. What is measured here is a width, not a gesture — the viewport is
+// therefore set by the file, and the session comes from the `chromium` project.
 
 const PHONE = { width: 412, height: 839 };
 
-// Les quatorze entrées de l'issue, telles qu'elles s'affichent, plus la
-// quinzième arrivée depuis (« Modération IA »), la seizième (« Mes
-// relectures », vue du relecteur — campagne du 27/09, A-02) et la
-// dix-septième (« File de modération » de la tribune, chantier communauté),
-// puis la dix-huitième (« Organisations », relecture des fiches — chantier comptes).
+// The issue's fourteen entries, as they are displayed, plus the
+// fifteenth added since ("Modération IA"), the sixteenth ("Mes
+// relectures", the reviewer's view — campaign of 27/09, A-02) and the
+// seventeenth (the Tribune's "File de modération", "communauté" workstream),
+// then the eighteenth ("Organisations", review of entries — "comptes" workstream).
 const ALL_ITEMS = [
   'Tableau de bord',
   'Impact',
@@ -59,7 +59,7 @@ function nav(page: Page): Locator {
   return page.getByRole('navigation', { name: 'Administration' });
 }
 
-// Aucune entrée hors écran, et aucun conteneur qui défile latéralement.
+// No off-screen entry, and no container scrolling sideways.
 async function fitsOnScreen(page: Page, width: number) {
   const bar = nav(page);
 
@@ -96,9 +96,9 @@ async function fitsOnScreen(page: Page, width: number) {
   expect(page_.scroll).toBeLessThanOrEqual(page_.client + 1);
 }
 
-// Même précaution que `admin-recherche.spec.ts` et `admin-confirmations` : le
-// jeton de rafraîchissement tourne au premier test, on réécrit donc l'état
-// pour que les suivants ne repartent pas d'un jeton consommé.
+// Same precaution as `admin-recherche.spec.ts` and `admin-confirmations`: the
+// refresh token rotates on the first test, so we rewrite the state
+// so that the following ones do not start again from a consumed token.
 test.afterEach(async ({ context }) => {
   await context.storageState({ path: SESSIONS.adminNav.state });
 });
@@ -121,8 +121,8 @@ test.describe('navigation du back-office sur téléphone (session dédiée)', ()
   }) => {
     await page.goto('/fr/admin');
     for (const group of GROUPS) {
-      // Le titre de groupe nomme sa liste (`aria-labelledby`) : c'est ce qui
-      // rend le regroupement perceptible autrement que visuellement.
+      // The group heading names its list (`aria-labelledby`): that is what
+      // makes the grouping perceivable other than visually.
       await expect(nav(page).getByRole('list', { name: group })).toBeVisible();
     }
   });
@@ -141,10 +141,10 @@ test.describe('navigation du back-office en large (session dédiée)', () => {
     ).toBeVisible();
     await fitsOnScreen(page, viewport!.width);
 
-    // Les trois acquis que l'issue porte au crédit de l'existant, et qui
-    // devaient survivre à la refonte : le nom de la navigation, l'entrée
-    // courante signalée — et elle seule —, et le tableau de bord qui ne
-    // s'allume pas sur une sous-route.
+    // The three strengths the issue credits the existing version with, and which
+    // had to survive the redesign: the navigation's name, the current entry
+    // indicated — and only it —, and the dashboard not lighting up
+    // on a sub-route.
     const current = nav(page).locator('a[aria-current="page"]');
     await expect(current).toHaveCount(1);
     await expect(current).toHaveText('Journal');
@@ -157,7 +157,7 @@ test.describe('navigation du back-office en large (session dédiée)', () => {
   });
 });
 
-// Le REPLI PAR RÔLE — un modérateur ne reçoit que ses trois groupes — est
-// vérifié dans `admin-ecrans.spec.ts`, qui tient déjà la session modérateur et
-// dont le cloisonnement par rôle est le sujet. Le poser ici ferait de ce
-// fichier un TROISIÈME sur cette session, ce que `_sessions.ts` proscrit.
+// The FALLBACK BY ROLE — a moderator only gets their three groups — is
+// checked in `admin-ecrans.spec.ts`, which already holds the moderator session and
+// whose subject is role partitioning. Putting it here would make this
+// file a THIRD one on that session, which `_sessions.ts` forbids.

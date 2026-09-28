@@ -3,29 +3,29 @@ import { cliquerJusqua } from './_panneau';
 
 test.use({ locale: 'fr-FR' });
 
-// F-12 — `/fr/evenements/calendrier` n'était citée par AUCUNE spec E2E.
+// F-12 — `/fr/evenements/calendrier` was referenced by NO E2E spec.
 //
-// CE QUI REND CETTE ROUTE DÉTERMINISTE. Depuis le chantier « contenus », ses
-// événements viennent de la table `contentEvents`, ou du catalogue codé
-// (`convex/lib/contenus/coded/events.ts`) en repli. La CI importe ce catalogue
-// tel quel (`contenus/migration:importCodedContent`, mêmes dates) : un mois
-// donné a donc les mêmes événements, aux mêmes jours, dans les deux cas. Les
-// specs qui CRÉENT des événements (`contenus-*.spec.ts`) les datent de 2030,
-// hors des mois comptés ici.
+// WHAT MAKES THIS ROUTE DETERMINISTIC. Since the "contenus" workstream, its
+// events come from the `contentEvents` table, or from the hard-coded catalog
+// (`convex/lib/contenus/coded/events.ts`) as a fallback. CI imports that catalog
+// as is (`contenus/migration:importCodedContent`, same dates): a given
+// month therefore has the same events, on the same days, in both cases. The
+// specs that CREATE events (`contenus-*.spec.ts`) date them in 2030,
+// outside the months counted here.
 //
-// Le mois affiché est piloté par `?ym=YYYY-MM`, jamais par l'horloge : toutes
-// les assertions ci-dessous sont déterministes. Le seul test qui touche à
-// l'horloge (repli du paramètre illisible) ne compare que deux pages entre
-// elles, sans nommer de date.
+// The displayed month is driven by `?ym=YYYY-MM`, never by the clock: all
+// the assertions below are deterministic. The only test that touches
+// the clock (fallback for an unreadable parameter) only compares two pages with
+// each other, without naming a date.
 //
-// CE QUE `buildMonthGrid` FAIT DÉJÀ VÉRIFIER PAR L'UNITAIRE : la forme de la
-// grille, les cases de remplissage, le passage d'année. Ce fichier ne les
-// rejoue pas. Il vérifie ce que l'unitaire ne peut pas voir — que la page
-// RENDUE place bien l'événement dans la case du bon jour, et que la navigation
-// mensuelle emmène là où elle dit.
+// WHAT `buildMonthGrid` ALREADY HAS VERIFIED BY THE UNIT TEST: the shape of the
+// grid, the filler cells, the year rollover. This file does not
+// replay them. It checks what the unit test cannot see — that the RENDERED
+// page does put the event in the right day's cell, and that the monthly
+// navigation leads where it says.
 
-// Novembre 2026, tel que `EVENTS` le porte. Trois événements, trois jours
-// distincts : une erreur d'un jour dans le rendu de la grille se voit.
+// November 2026, as `EVENTS` carries it. Three events, three distinct
+// days: an off-by-one-day error in the grid rendering shows.
 const NOVEMBRE_2026 = [
   { jour: 5, titre: 'Webinaire : désinformation et confiance civique' },
   { jour: 14, titre: 'Conférence inaugurale de Democracy Together' },
@@ -35,23 +35,23 @@ const NOVEMBRE_2026 = [
   },
 ];
 
-// Juillet 2026 : aucun événement. `EVENTS` n'en porte qu'en 3, 4, 5, 6, 9, 10,
-// 11 et 12 — le mois vide est donc un fait du dépôt, pas une supposition.
+// July 2026: no events. `EVENTS` only carries some in 3, 4, 5, 6, 9, 10,
+// 11 and 12 — the empty month is therefore a fact of the repo, not an assumption.
 const MOIS_VIDE = '2026-07';
 
-// Les pastilles d'événement, et elles seules : les liens du fil d'Ariane et de
-// la bascule « Vue liste » pointent `/fr/evenements` (sans barre finale), ceux
-// de la navigation mensuelle contiennent `calendrier`. Sélection par ADRESSE
-// plutôt que par classe : la mise en page peut bouger, l'adresse d'une fiche
-// d'événement est un contrat.
+// The event chips, and only them: the breadcrumb links and the
+// "Vue liste" toggle point to `/fr/evenements` (no trailing slash), those
+// of the monthly navigation contain `calendrier`. Selection by ADDRESS
+// rather than by class: the layout may move, the address of an event page
+// is a contract.
 const PASTILLES = 'a[href^="/fr/evenements/"]:not([href*="calendrier"])';
 
-// Jour de la case qui contient cet événement.
+// Day of the cell containing this event.
 //
-// On remonte jusqu'à l'enfant direct de la grille à sept colonnes — c'est la
-// définition d'une case — plutôt que jusqu'à une classe utilitaire, qui n'est
-// qu'un détail de mise en page. Le premier `span` de la case est la pastille
-// du numéro de jour : elle précède la liste des événements dans le balisage.
+// We go up to the direct child of the seven-column grid — that is the
+// definition of a cell — rather than to a utility class, which is
+// only a layout detail. The cell's first `span` is the day-number
+// chip: it precedes the event list in the markup.
 async function jourDeLaCase(page: Page, titre: string): Promise<number | null> {
   return page.getByRole('link', { name: titre }).evaluate((el) => {
     const case_ = el.closest('.grid-cols-7 > div');
@@ -75,8 +75,8 @@ test('calendrier : novembre 2026 place ses trois événements au bon jour (F-12)
   ).toBeVisible();
   await expect(titreDuMois(page)).toHaveText('Novembre 2026');
 
-  // Le compteur du mois, et le nombre réel de pastilles. Les deux, parce
-  // qu'un compteur juste sur une grille vide serait un mensonge cohérent.
+  // The month's counter, and the actual number of chips. Both, because
+  // a correct counter on an empty grid would be a consistent lie.
   await expect(page.getByText('3 événements')).toBeVisible();
   await expect(page.locator(PASTILLES)).toHaveCount(3);
 
@@ -91,11 +91,11 @@ test('calendrier : novembre 2026 place ses trois événements au bon jour (F-12)
 
   await expect(page.getByText('Aucun événement ce mois-ci.')).toHaveCount(0);
 
-  // La grille est un repère NOMMÉ. La page écrivait déjà ce nom, mais
-  // `Reveal` ne relayait pas `aria-label` : constaté sur le HTML servi, le
-  // `<section>` ne portait que `data-reveal`, `class` et `style`, donc aucun
-  // nom accessible — et un `<section>` anonyme n'est pas un repère `region`.
-  // Cette assertion rougit sur le code d'avant le correctif de `reveal.tsx`.
+  // The grid is a NAMED landmark. The page already wrote this name, but
+  // `Reveal` did not pass `aria-label` through: observed on the served HTML, the
+  // `<section>` only carried `data-reveal`, `class` and `style`, hence no
+  // accessible name — and an anonymous `<section>` is not a `region` landmark.
+  // This assertion goes red on the code from before the `reveal.tsx` fix.
   await expect(
     page.getByRole('region', { name: 'Novembre 2026' }),
   ).toBeVisible();
@@ -112,11 +112,11 @@ test('calendrier : un mois sans événement le dit, et la grille est vraiment vi
     page.getByText('Aucun événement', { exact: true }),
   ).toBeVisible();
 
-  // Le message et la grille doivent dire la même chose : c'est le couple qui
-  // a du sens, pas le message seul.
+  // The message and the grid must say the same thing: it is the pair that
+  // makes sense, not the message alone.
   await expect(page.locator(PASTILLES)).toHaveCount(0);
 
-  // Les sept en-têtes de jours restent là : un mois vide reste un calendrier.
+  // The seven day headers stay: an empty month is still a calendar.
   for (const jour of ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']) {
     await expect(page.getByText(jour, { exact: true })).toBeVisible();
   }
@@ -131,22 +131,22 @@ test('calendrier : la navigation mensuelle emmène où elle annonce (F-12)', asy
   const suivant = page.getByRole('link', { name: 'Mois suivant' });
   const precedent = page.getByRole('link', { name: 'Mois précédent' });
 
-  // `rel` déclare la relation aux robots comme aux lecteurs d'écran : c'est
-  // dans le code, donc c'est vérifiable.
+  // `rel` declares the relationship to robots as well as to screen readers: it is
+  // in the code, so it is verifiable.
   await expect(suivant).toHaveAttribute('rel', 'next');
   await expect(precedent).toHaveAttribute('rel', 'prev');
 
-  // Geste adjacent à une navigation : passé par le helper durci en F-13, qui
-  // attend l'effet avant d'envisager un second clic et journalise ce qu'il
-  // constate. Le prédicat porte sur le TITRE rendu, pas sur l'adresse —
-  // `page.url()` bascule avant que le document suivant ne soit en place.
+  // Gesture adjacent to a navigation: goes through the helper hardened in F-13, which
+  // waits for the effect before considering a second click and logs what it
+  // observes. The predicate is on the rendered TITLE, not on the address —
+  // `page.url()` switches before the next document is in place.
   await cliquerJusqua(
     suivant,
     async () => (await titreDuMois(page).textContent()) === 'Décembre 2026',
     'calendrier : mois suivant',
   );
   await expect(page).toHaveURL(/ym=2026-12/);
-  await expect(page.locator(PASTILLES)).toHaveCount(3); // 3, 10 et 16 décembre
+  await expect(page.locator(PASTILLES)).toHaveCount(3); // December 3, 10 and 16
 
   await cliquerJusqua(
     page.getByRole('link', { name: 'Mois précédent' }),
@@ -180,10 +180,10 @@ test('calendrier : une pastille ouvre la fiche de son événement (F-12)', async
 test('calendrier : un paramètre ym illisible retombe sur le mois courant (F-12)', async ({
   page,
 }) => {
-  // `parseYm` rend `null` sur une valeur mal formée, et la page retombe alors
-  // sur le mois courant. Ce test ne nomme AUCUNE date : il compare la page
-  // fautive à la page sans paramètre, qui a le même repli. Il resterait donc
-  // vrai dans six mois — un test daté serait une panne programmée.
+  // `parseYm` returns `null` on a malformed value, and the page then falls back
+  // to the current month. This test names NO date: it compares the faulty
+  // page to the page without a parameter, which has the same fallback. It would therefore
+  // still be true in six months — a dated test would be a scheduled failure.
   const reponse = await page.goto('/fr/evenements/calendrier?ym=pas-une-date');
   expect(
     reponse?.status(),
@@ -195,6 +195,6 @@ test('calendrier : un paramètre ym illisible retombe sur le mois courant (F-12)
   const moisParDefaut = await titreDuMois(page).textContent();
 
   expect(moisFautif).toBe(moisParDefaut);
-  // Non vacant : on a bien lu un mois, pas deux chaînes vides.
+  // Non-vacuous: we did read a month, not two empty strings.
   expect(moisFautif).toMatch(/\p{Lu}\p{L}+\s\d{4}/u);
 });

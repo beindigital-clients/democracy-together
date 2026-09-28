@@ -2,13 +2,13 @@ import { countryFlag, countryName } from '@/lib/orgs';
 import { vocabulary, type VocabularyTranslator } from '@/i18n/vocabulary';
 import { contentLangAttrs } from '@/i18n/content-lang';
 
-// RÉSULTATS DE LA RECHERCHE GLOBALE — rendu partagé par la palette et la page
-// /recherche (F-06 / F-34, chantier diffusion).
+// GLOBAL SEARCH RESULTS — rendering shared by the palette and the
+// /recherche page (F-06 / F-34, "diffusion" workstream).
 //
-// Le serveur rend des résultats UNIFORMES (`convex/lib/searchSources.ts`) :
-// chemin, titre, facettes en slugs. L'interface n'a donc rien à savoir d'une
-// table ; une source ajoutée au registre s'affiche sans code ici, avec pour
-// seule exigence son libellé `search.section_<clé>`.
+// The server returns UNIFORM results (`convex/lib/searchSources.ts`):
+// path, title, facets as slugs. The UI therefore needs to know nothing about
+// a table; a source added to the registry is displayed without any code here,
+// its only requirement being its `search.section_<clé>` label.
 
 export type SearchHitLike = {
   source: string;
@@ -26,7 +26,7 @@ type PluralTranslator = (
   values: { count: number },
 ) => string;
 
-/** Petite mention à droite d'un résultat (type, pays, thème, nombre…). */
+/** Small note on the right of a result (type, country, theme, count…). */
 export function hitMeta(
   hit: SearchHitLike,
   ctx: {
@@ -39,7 +39,7 @@ export function hitMeta(
     return vocabulary(ctx.library, 'types.', hit.kind);
   }
   if (hit.source === 'organizations' && hit.country) {
-    // Le drapeau est rendu À PART (`hitFlag`), masqué aux aides techniques.
+    // The flag is rendered SEPARATELY (`hitFlag`), hidden from assistive technologies.
     return countryName(hit.country, ctx.locale);
   }
   if (hit.source === 'tribune' && hit.theme) {
@@ -52,9 +52,9 @@ export function hitMeta(
 }
 
 /**
- * Drapeau d'un résultat, à rendre dans un `aria-hidden` à côté de `hitMeta` :
- * il double le nom du pays, et une synthèse vocale le lirait « drapeau :
- * Sénégal, Sénégal » (audit RGAA du 27/09).
+ * Flag of a result, to be rendered in an `aria-hidden` next to `hitMeta`:
+ * it duplicates the country name, and a screen reader would read it as
+ * "drapeau : Sénégal, Sénégal" (RGAA audit of 27/09).
  */
 export function hitFlag(hit: SearchHitLike): string {
   return hit.source === 'organizations' && hit.country
@@ -63,11 +63,11 @@ export function hitFlag(hit: SearchHitLike): string {
 }
 
 /**
- * `lang`/`dir` du TITRE d'un résultat (RGAA 8.7) : un titre anglais dans une
- * page arabe doit être lu par la voix anglaise et composé de gauche à droite.
- * Seuls les résultats qui ont une langue de rédaction (publications, billets)
- * en portent une ; un nom de membre ou d'expert est un nom propre, sans langue
- * à déclarer — on n'y pose donc rien.
+ * `lang`/`dir` of a result's TITLE (RGAA 8.7): an English title in an
+ * Arabic page must be read by the English voice and laid out left to right.
+ * Only results that have a writing language (publications, posts) carry
+ * one; a member's or expert's name is a proper noun, with no language
+ * to declare — so we set nothing on it.
  */
 export function hitLangAttrs(
   hit: SearchHitLike,
@@ -76,10 +76,10 @@ export function hitLangAttrs(
   return hit.lang ? contentLangAttrs(hit.lang, pageLocale) : {};
 }
 
-// Filtres de la page de résultats, lus dans l'URL et ASSAINIS : une valeur
-// hors forme vaut « pas de filtre » (jamais une erreur d'argument sur une page
-// publique). Les domaines fermés sont vérifiés côté serveur par l'index — une
-// valeur inconnue ne trouve simplement rien.
+// Filters of the results page, read from the URL and SANITIZED: a malformed
+// value counts as "no filter" (never an argument error on a public page).
+// Closed domains are checked server-side by the index — an unknown value
+// simply finds nothing.
 export type SearchFiltersParams = {
   type?: string;
   theme?: string;
@@ -113,7 +113,7 @@ export function hasFilters(f: SearchFiltersParams): boolean {
   return Object.values(f).some((v) => v !== undefined);
 }
 
-/** Paramètres d'URL d'une recherche (terme, filtres, source, curseur). */
+/** URL parameters of a search (term, filters, source, cursor). */
 export function searchHref(
   q: string,
   f: SearchFiltersParams,

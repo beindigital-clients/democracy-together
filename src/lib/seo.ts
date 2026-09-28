@@ -1,33 +1,33 @@
 import { routing } from '@/i18n/routing';
 import type { EventFormat } from '@/lib/events-content';
 
-// Métadonnées de partage et données structurées (audit F-03).
+// Sharing metadata and structured data (audit F-03).
 //
-// Mesuré avant correctif : sur les 48 pages publiques (24 routes × 2 langues),
-// ZÉRO balise Open Graph, zéro Twitter Card, zéro JSON-LD. Un lien partagé sur
-// une messagerie ou un réseau social apparaissait nu — pas de titre, pas de
-// description, pas d'image. Pour un réseau dont l'objet est la diffusion
-// d'analyses, et dont le canal de partage principal sur la zone visée est la
-// messagerie, c'est une perte à chaque partage.
+// Measured before the fix: across the 48 public pages (24 routes × 2 languages),
+// ZERO Open Graph tags, zero Twitter Cards, zero JSON-LD. A link shared in a
+// messaging app or on a social network appeared bare — no title, no
+// description, no image. For a network whose purpose is disseminating
+// analyses, and whose main sharing channel in the target region is
+// messaging, that is a loss on every share.
 
-// NOM PROPRE : il ne se traduit pas (même règle que le `title` du layout).
+// PROPER NOUN: it is not translated (same rule as the layout's `title`).
 export const SITE_NAME = 'Democracy Together';
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-// Open Graph attend une étiquette de langue territorialisée (`fr_FR`), pas un
-// code ISO court (`fr`). Une valeur absente vaut mieux qu'une valeur inventée :
-// on ne devine pas le territoire d'une locale qu'on ne connaît pas.
+// Open Graph expects a territorialized language tag (`fr_FR`), not a short
+// ISO code (`fr`). A missing value is better than an invented one:
+// we do not guess the territory of a locale we do not know.
 const OG_LOCALES: Record<string, string> = {
   fr: 'fr_FR',
   en: 'en_US',
-  // Les territoires retenus sont ceux du public visé par chaque langue, pas
-  // les plus peuplés : l'Espagne et le Portugal pour les diasporas et les
-  // partenaires européens du réseau, l'Égypte pour l'arabe — le dialecte
-  // écrit de la presse maghrébine et levantine partage l'arabe standard
-  // moderne, et `ar_EG` est l'étiquette que les plateformes reconnaissent le
-  // plus largement pour cette variante.
+  // The territories chosen are those of each language's target audience, not
+  // the most populous: Spain and Portugal for the diasporas and the
+  // network's European partners, Egypt for Arabic — the written dialect of
+  // the Maghrebi and Levantine press shares Modern Standard Arabic, and
+  // `ar_EG` is the tag platforms most widely recognize for this
+  // variant.
   es: 'es_ES',
   pt: 'pt_PT',
   ar: 'ar_EG',
@@ -38,8 +38,8 @@ export function openGraphLocale(locale: string): string | undefined {
 }
 
 /**
- * Les autres langues du site, au format attendu par `openGraph.alternateLocale`.
- * Sert à déclarer que la même page existe ailleurs, sans la répéter.
+ * The site's other languages, in the format expected by `openGraph.alternateLocale`.
+ * Used to declare that the same page exists elsewhere, without repeating it.
  */
 export function alternateOpenGraphLocales(locale: string): string[] {
   return routing.locales
@@ -49,25 +49,25 @@ export function alternateOpenGraphLocales(locale: string): string[] {
 }
 
 /**
- * Bloc `alternates` d'une page indexable : adresse canonique + hreflang.
+ * `alternates` block of an indexable page: canonical address + hreflang.
  *
- * La forme reprend EXACTEMENT celle que `src/app/sitemap.ts` déclare pour la
- * même page (fr, en, x-default) — son en-tête dit que les alternates du
- * sitemap sont « cohérents avec les canonicals posés par les
- * generateMetadata ». Deux écritures séparées de la même règle finissent par
- * diverger ; celle-ci est la seule.
+ * The shape follows EXACTLY the one `src/app/sitemap.ts` declares for the
+ * same page (fr, en, x-default) — its header says the sitemap alternates
+ * are "cohérents avec les canonicals posés par les generateMetadata". Two
+ * separate writings of the same rule end up diverging; this one is the
+ * only one.
  *
- * À NE PAS employer sur une page en `noindex` : un moteur y ignore le
- * hreflang, et le dépôt a tranché (issue #35) que l'ajouter ne serait que du
- * bruit. `/recherche` et les billets de Tribune en sont les cas testés.
+ * NOT to be used on a `noindex` page: a search engine ignores hreflang
+ * there, and the repo decided (issue #35) that adding it would only be
+ * noise. `/recherche` and Tribune posts are the tested cases.
  */
-// Le hreflang de TOUTES les langues du site, pour un chemin sans préfixe.
+// The hreflang of ALL the site's languages, for a path without prefix.
 //
-// Mesuré le 27/09 : 26 pages déclaraient `fr`, `en` et `x-default` en dur,
-// alors que le site est servi en cinq langues et que le sitemap, lui, en
-// déclare six alternates. Une page en es/pt/ar qui ne se déclare pas comme
-// alternate passe pour un doublon. Le catalogue des langues est celui du
-// routage : une sixième langue s'ajoute ici sans toucher aux pages.
+// Measured on 27/09: 26 pages hard-coded `fr`, `en` and `x-default`,
+// whereas the site is served in five languages and the sitemap, for its
+// part, declares six alternates. A page in es/pt/ar that does not declare
+// itself as an alternate passes for a duplicate. The language catalog is the
+// routing one: a sixth language is added here without touching the pages.
 export function hreflangFor(path: string): Record<string, string> {
   const suffix = path ? `/${path}` : '';
   const languages: Record<string, string> = {
@@ -86,22 +86,22 @@ export function alternatesFor(locale: string, path: string) {
 }
 
 /**
- * Identifiant du nœud `Organization` posé par le layout, sur toutes les pages.
+ * Identifier of the `Organization` node set by the layout, on every page.
  *
- * Les fiches de page (`Article`, `Event`) le RÉFÉRENCENT au lieu de recopier
- * l'organisation : deux copies d'une même entité finissent par diverger, et
- * schema.org prévoit exactement ce renvoi. Il n'est résoluble que parce que le
- * layout pose sa fiche sur chaque page — ce que la spec d'audit vérifie, sur
- * le HTML servi, plutôt que de s'y fier.
+ * Page entries (`Article`, `Event`) REFERENCE it instead of copying the
+ * organization: two copies of the same entity end up diverging, and
+ * schema.org provides exactly this reference. It is only resolvable because
+ * the layout sets its entry on every page — which the audit spec checks, on
+ * the served HTML, rather than relying on it.
  */
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 
 /**
- * Fiche `Organization` (schema.org), posée une fois pour tout le site.
+ * `Organization` entry (schema.org), set once for the whole site.
  *
- * Volontairement minimale : on ne déclare que ce dont le dépôt dispose
- * réellement. Une adresse postale ou un profil social inventés seraient une
- * donnée fausse servie aux moteurs, ce qui est pire que leur absence.
+ * Deliberately minimal: we only declare what the repo actually has. An
+ * invented postal address or social profile would be false data served to
+ * search engines, which is worse than their absence.
  */
 export function organizationJsonLd(description: string) {
   return {
@@ -116,73 +116,74 @@ export function organizationJsonLd(description: string) {
 }
 
 /**
- * Sérialise un objet JSON-LD pour le poser dans `<script type="…ld+json">`.
+ * Serializes a JSON-LD object to put it in `<script type="…ld+json">`.
  *
- * `JSON.stringify` seul NE SUFFIT PAS dès que la valeur contient du texte
- * qu'on ne contrôle pas. Un analyseur HTML ferme un `<script>` sur la première
- * séquence `</script` qu'il rencontre, SANS regarder si elle est entre
- * guillemets JSON : un titre d'actualité saisi dans le CMS et valant
- * `Fin</script><img src=x onerror=alert(1)>` sortirait du bloc et rendrait sa
- * balise. C'est la même famille que M-9 (§ 4ter du rapport d'audit), sur une
- * autre surface — et c'est cette fonction, et non la vigilance de l'appelant,
- * qui la ferme.
+ * `JSON.stringify` alone is NOT ENOUGH as soon as the value contains text
+ * we do not control. An HTML parser closes a `<script>` on the first
+ * `</script` sequence it meets, WITHOUT checking whether it is inside JSON
+ * quotes: a news title entered in the CMS with the value
+ * `Fin</script><img src=x onerror=alert(1)>` would break out of the block and
+ * render its tag. It is the same family as M-9 (§ 4ter of the audit report),
+ * on another surface — and it is this function, not the caller's vigilance,
+ * that closes it.
  *
- * `\u003c` est un échappement JSON parfaitement légal : `JSON.parse` le
- * relit en `<`, donc un moteur reçoit la donnée intacte. On échappe TOUS les `<`
- * plutôt que la seule séquence `</script` — c'est moins fin et strictement
- * plus sûr.
+ * `<` is a perfectly legal JSON escape: `JSON.parse` reads it back as
+ * `<`, so a search engine receives the data intact. We escape ALL `<`s
+ * rather than only the `</script` sequence — less precise and strictly
+ * safer.
  */
 export function jsonLdScript(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c');
 }
 
-// Modes de participation schema.org, par format d'événement du dépôt. La table
-// est exhaustive par construction : `Record<EventFormat, …>` fait échouer la
-// compilation si un format est ajouté sans son mode.
+// schema.org attendance modes, per event format of the repo. The table
+// is exhaustive by construction: `Record<EventFormat, …>` fails compilation
+// if a format is added without its mode.
 const ATTENDANCE_MODE: Record<EventFormat, string> = {
   presentiel: 'https://schema.org/OfflineEventAttendanceMode',
   'en-ligne': 'https://schema.org/OnlineEventAttendanceMode',
   hybride: 'https://schema.org/MixedEventAttendanceMode',
 };
 
-/** Une date « jour entier » en `YYYY-MM-DD`, zéro-paddée. `mo` va de 1 à 12. */
+/** An "all-day" date as `YYYY-MM-DD`, zero-padded. `mo` goes from 1 to 12. */
 export function isoDay({ y, mo, d }: { y: number; mo: number; d: number }) {
   return `${String(y).padStart(4, '0')}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 export type EventJsonLdInput = {
-  /** Titre affiché, déjà traduit. */
+  /** Displayed title, already translated. */
   name: string;
   slug: string;
   locale: string;
-  /** Chapô affiché sur la page — pas celui de la page de liste. */
+  /** Standfirst shown on the page — not the one from the list page. */
   description?: string;
-  /** Jour de l'événement, en composantes. */
+  /** Day of the event, as components. */
   start: { y: number; mo: number; d: number };
   format: EventFormat;
-  /** Ville affichée, déjà traduite. Ignorée pour un événement en ligne. */
+  /** Displayed city, already translated. Ignored for an online event. */
   placeName: string;
-  /** Langues de l'événement, en codes BCP 47 courts. */
+  /** Languages of the event, as short BCP 47 codes. */
   inLanguage?: string[];
 };
 
 /**
- * Fiche `Event` d'une page de détail d'événement.
+ * `Event` entry for an event detail page.
  *
- * Trois champs que Google recommande sont VOLONTAIREMENT absents, et chacun
- * pour une raison mesurable sur la page :
+ * Three fields Google recommends are DELIBERATELY absent, each one for a
+ * reason that can be measured on the page:
  *
- *  - `image` : la page sert `/library/paris.jpg` pour TOUS les événements, y
- *    compris ceux de Dakar, et sa propre légende dit « Image d'illustration ».
- *    La déclarer comme image de l'événement servirait une donnée fausse.
- *  - `offers` : les tarifs de la conférence sont fictifs (l'en-tête de
- *    `events-content.ts` le dit) et le bouton « réserver » mène à l'adhésion,
- *    pas à une billetterie. Annoncer un billet achetable serait un mensonge.
- *  - `performer` : les intervenants relèvent du même jeu de données
- *    d'illustration.
+ *  - `image`: the page serves `/library/paris.jpg` for ALL events, including
+ *    those in Dakar, and its own caption says "Image d'illustration".
+ *    Declaring it as the event's image would serve false data.
+ *  - `offers`: the conference prices are fictitious (the header of
+ *    `events-content.ts` says so) and the "réserver" button leads to
+ *    membership, not to a ticket office. Advertising a purchasable ticket
+ *    would be a lie.
+ *  - `performer`: the speakers belong to the same illustrative
+ *    dataset.
  *
- * Le principe est celui de `organizationJsonLd` : on ne déclare que ce que la
- * page montre réellement.
+ * The principle is that of `organizationJsonLd`: we only declare what the
+ * page actually shows.
  */
 export function eventJsonLd(input: EventJsonLdInput) {
   const url = `${SITE_URL}/${input.locale}/evenements/${input.slug}`;
@@ -192,10 +193,10 @@ export function eventJsonLd(input: EventJsonLdInput) {
     address: { '@type': 'PostalAddress', addressLocality: input.placeName },
   };
   const virtual = { '@type': 'VirtualLocation', url };
-  // `endDate` de schema.org est INCLUSIVE — contrairement au `DTEND` d'un
-  // iCalendar « journée entière », qui désigne le lendemain (cf. `nextDay`
-  // dans `src/lib/ics.ts`). Reprendre la date de fin de l'ICS donnerait ici un
-  // événement de deux jours.
+  // schema.org's `endDate` is INCLUSIVE — unlike the `DTEND` of an
+  // "all-day" iCalendar event, which denotes the next day (see `nextDay`
+  // in `src/lib/ics.ts`). Reusing the ICS end date here would yield a
+  // two-day event.
   const day = isoDay(input.start);
 
   return {
@@ -222,30 +223,30 @@ export function eventJsonLd(input: EventJsonLdInput) {
 export type ArticleJsonLdInput = {
   headline: string;
   slug: string;
-  /** Préfixe d'URL de la page — la langue du billet peut en différer. */
+  /** URL prefix of the page — the post's language may differ from it. */
   locale: string;
   description?: string;
-  /** Date ISO servie par le CMS. */
+  /** ISO date served by the CMS. */
   datePublished: string;
   inLanguage?: string;
 };
 
 /**
- * Fiche `Article` d'une page d'actualité.
+ * `Article` entry for a news page.
  *
- * `author` est absent : le schéma Sanity du dépôt n'a pas de champ auteur
- * (`sanity/schemaTypes/documents/post.ts`). L'inventer — « Democracy
- * Together » en guise de personne — serait une donnée fausse ; l'éditeur
- * responsable est déjà déclaré par `publisher`.
+ * `author` is absent: the repo's Sanity schema has no author field
+ * (`sanity/schemaTypes/documents/post.ts`). Inventing one — "Democracy
+ * Together" posing as a person — would be false data; the responsible
+ * publisher is already declared by `publisher`.
  *
- * `image` est absent aussi, et c'est le cas intéressant : la requête
- * `postBySlugQuery` PROJETTE bien `coverUrl`, mais la page ne rend pas cette
- * image. Une fiche doit décrire ce que la page montre ; déclarer une image
- * absente du rendu, c'est décrire une autre page.
+ * `image` is absent too, and that is the interesting case: the
+ * `postBySlugQuery` query does PROJECT `coverUrl`, but the page does not
+ * render that image. An entry must describe what the page shows; declaring
+ * an image absent from the rendering means describing another page.
  *
- * À NE POSER QUE SUR LE RENDU RÉUSSI. Le rendu dégradé (Sanity injoignable)
- * porte déjà un `noindex` et n'affiche aucun article : une fiche y décrirait
- * un contenu que la page ne sert pas.
+ * TO BE SET ONLY ON A SUCCESSFUL RENDER. The degraded render (Sanity
+ * unreachable) already carries a `noindex` and shows no article: an entry
+ * there would describe content the page does not serve.
  */
 export function articleJsonLd(input: ArticleJsonLdInput) {
   const url = `${SITE_URL}/${input.locale}/actualites/${input.slug}`;

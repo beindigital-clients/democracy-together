@@ -1,20 +1,20 @@
 import { routing } from '@/i18n/routing';
 
-// Gating serveur des zones privées (audit § 5.1).
+// Server-side gating of private areas (audit § 5.1).
 //
-// Le constat : /admin/*, /espace-membre, /espaces et /notifications renvoyaient
-// un HTML 200 avec « Chargement… », puis redirigeaient en JavaScript après
-// 1,2 seconde. Les DONNÉES restaient protégées — le RBAC serveur de Convex
-// tient — mais côté HTTP il n'y avait ni 401 ni 403, une page blanche sans
-// JavaScript, et un clignotement visible à chaque visite.
+// The finding: /admin/*, /espace-membre, /espaces and /notifications returned
+// a 200 HTML page with "Chargement…", then redirected in JavaScript after
+// 1.2 seconds. The DATA stayed protected — Convex's server-side RBAC holds —
+// but at the HTTP level there was neither a 401 nor a 403, a blank page
+// without JavaScript, and a visible flash on every visit.
 //
-// La décision de gating vit ici, en fonctions PURES : elle s'exécute dans le
-// middleware (donc sur le runtime edge, sans accès au DOM ni à la base) et
-// c'est le seul moyen de la tester sans démarrer Next.
+// The gating decision lives here, as PURE functions: it runs in the
+// middleware (hence on the edge runtime, with no access to the DOM or the
+// database) and this is the only way to test it without starting Next.
 
-// Premier segment des routes réservées à un compte connecté. Le contrôle de
-// RÔLE (admin, modérateur…) reste côté Convex : le middleware ne sait rien des
-// rôles, il ne tranche que « connecté ou non ».
+// First segment of the routes reserved for a signed-in account. The ROLE
+// check (admin, moderator…) stays on the Convex side: the middleware knows
+// nothing about roles, it only decides "signed in or not".
 export const PROTECTED_SEGMENTS = [
   'admin',
   'espace-membre',
@@ -24,9 +24,9 @@ export const PROTECTED_SEGMENTS = [
 
 const LOCALES: readonly string[] = routing.locales;
 
-// Découpe un chemin en langue éventuelle + reste. Le middleware s'exécute
-// AVANT la redirection de langue de next-intl : une requête peut arriver avec
-// ou sans préfixe, et les deux doivent être gardées.
+// Splits a path into an optional locale + the rest. The middleware runs
+// BEFORE next-intl's locale redirect: a request may arrive with or without
+// a prefix, and both must be guarded.
 function splitLocale(pathname: string): {
   locale: string | null;
   rest: string;
@@ -42,14 +42,14 @@ export function isProtectedPath(pathname: string): boolean {
   const { rest } = splitLocale(pathname);
   if (!rest) return false;
   const first = rest.split('/')[0];
-  // Comparaison sur le SEGMENT entier, jamais sur un préfixe de chaîne :
-  // sinon /administration ou /espaces-verts seraient verrouillées par erreur.
+  // Compare on the whole SEGMENT, never on a string prefix:
+  // otherwise /administration or /espaces-verts would be locked by mistake.
   return (PROTECTED_SEGMENTS as readonly string[]).includes(first);
 }
 
-// Cible de redirection d'un visiteur non connecté. On conserve la langue de la
-// page demandée : renvoyer un anglophone sur /fr/connexion serait un
-// changement de langue non sollicité.
+// Redirect target for a signed-out visitor. We keep the locale of the
+// requested page: sending an English speaker to /fr/connexion would be an
+// unrequested language switch.
 export function signInPathFor(pathname: string): string {
   const { locale } = splitLocale(pathname);
   return `/${locale ?? routing.defaultLocale}/connexion`;

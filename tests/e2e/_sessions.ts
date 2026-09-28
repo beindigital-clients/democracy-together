@@ -1,52 +1,52 @@
-// « Fichier de login » — des sessions pré-ouvertes, une par rôle (issue #66).
+// "Login file" — pre-opened sessions, one per role (issue #66).
 //
-// POURQUOI. Chaque spec de back-office rejouait un parcours de connexion
-// complet avant d'aborder son vrai sujet : provisionnement du compte, création
-// du mot de passe, lecture du code, écran de connexion. C'est long, répété
-// quinze fois, et surtout c'est quinze occasions d'échouer pour une raison qui
-// n'est pas celle qu'on teste — les quinze specs mortes à la même ligne, sur un
-// helper de mot de passe qui ne pouvait pas fonctionner, en sont la
-// démonstration.
+// WHY. Every back-office spec replayed a full sign-in journey before
+// getting to its real subject: account provisioning, password
+// creation, reading the code, sign-in screen. It is long, repeated
+// fifteen times, and above all it is fifteen chances to fail for a reason that
+// is not the one being tested — the fifteen specs dead at the same line, on a
+// password helper that could not work, are the
+// demonstration.
 //
-// Playwright répond à cela par l'état de navigation sauvegardé : la session est
-// ouverte UNE fois, dans un projet `setup` qui s'exécute avant les autres, et
-// chaque spec repart du fichier produit. Une spec de back-office commence
-// désormais connectée, au rôle qu'elle demande.
+// Playwright answers this with saved browser state: the session is
+// opened ONCE, in a `setup` project that runs before the others, and
+// each spec starts again from the produced file. A back-office spec now
+// starts signed in, with the role it asks for.
 //
-// CE QUI N'EST PAS COURT-CIRCUITÉ. Les parcours d'AUTHENTIFICATION eux-mêmes —
-// `auth.spec`, `auth-negative`, `auth-reset`, `auth-otp`, `en-journey` — passent
-// toujours par l'interface : s'y connecter EST leur sujet. Un fichier de
-// session y ôterait ce qu'elles vérifient.
+// WHAT IS NOT SHORT-CIRCUITED. The AUTHENTICATION journeys themselves —
+// `auth.spec`, `auth-negative`, `auth-reset`, `auth-otp`, `en-journey` — still go
+// through the UI: signing in IS their subject. A session file
+// would take away what they check.
 //
-// ADRESSES STABLES. Une préversion CI naît vide, mais un déploiement de dev
-// vit longtemps : les comptes sont donc réutilisés d'une exécution à l'autre.
-// C'est sans danger — `provisionUser` fait un upsert, et `provisionPassword`
-// relie le même mot de passe à un compte qui l'a déjà (vérifié : un second
-// `signUp` avec le même secret aboutit, il ne crée pas de doublon).
+// STABLE ADDRESSES. A CI preview is born empty, but a dev deployment
+// lives long: accounts are therefore reused from one run to the next.
+// This is harmless — `provisionUser` does an upsert, and `provisionPassword`
+// links the same password to an account that already has it (verified: a second
+// `signUp` with the same secret succeeds, it does not create a duplicate).
 
-// UN COMPTE, DEUX FICHIERS EN MÊME TEMPS : LA SESSION MEURT. Playwright
-// exécute les FICHIERS en parallèle — `fullyParallel: false` ne sérialise que
-// l'intérieur d'un fichier. Deux contextes repartis du même état présentent
-// donc le MÊME jeton de rafraîchissement ; Convex Auth le fait tourner à
-// chaque renouvellement, si bien que le second passage ressemble à un rejeu et
-// que la session est invalidée. Le symptôme n'est pas un test lent mais un
-// test qui se réveille sur /connexion, au milieu de son parcours — et jamais
-// le même d'une exécution à l'autre.
+// ONE ACCOUNT, TWO FILES AT THE SAME TIME: THE SESSION DIES. Playwright
+// runs FILES in parallel — `fullyParallel: false` only serializes the
+// inside of a file. Two contexts started from the same state thus present
+// the SAME refresh token; Convex Auth rotates it on
+// each renewal, so the second pass looks like a replay and
+// the session is invalidated. The symptom is not a slow test but a
+// test that wakes up on /connexion, in the middle of its journey — and never
+// the same one from one run to the next.
 //
-// Constaté sur l'issue #38 : en ajoutant un TROISIÈME fichier sur la session
-// modérateur (et un troisième sur la session admin), `admin-moderation` puis
-// `admin.spec` sont tombés sur l'écran de connexion, en alternance. D'où la
-// règle tenue ici : quand un fichier de spec tient une session longtemps (il
-// écrit une donnée, puis la modère), il prend sa PROPRE session plutôt que de
-// s'ajouter à la file d'attente d'un compte partagé.
+// Observed on issue #38: when adding a THIRD file on the moderator
+// session (and a third on the admin session), `admin-moderation` then
+// `admin.spec` landed on the sign-in screen, alternately. Hence the
+// rule held here: when a spec file holds a session for a long time (it
+// writes some data, then moderates it), it takes its OWN session rather than
+// joining the queue of a shared account.
 //
-// Le rôle n'est donc plus la clé : une session dédiée porte le rôle dont elle
-// a besoin, et son entrée dit à quel fichier elle appartient.
+// The role is therefore no longer the key: a dedicated session carries the role it
+// needs, and its entry says which file it belongs to.
 
 export const SESSION_PASSWORD = 'session-e2e-partagee-2026';
 
-// Même vocabulaire que `convex/lib/roles`, redéclaré ici comme dans
-// `_helpers.ts` : ces fichiers ne dépendent que de Playwright.
+// Same vocabulary as `convex/lib/roles`, redeclared here as in
+// `_helpers.ts`: these files depend only on Playwright.
 type NetworkRole = 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 export type SessionKey =
@@ -109,42 +109,42 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/admin.json',
     role: 'admin',
   },
-  // Session dédiée à `admin-confirmations.spec.ts` (issue #38). Ses quatre
-  // parcours écrivent la donnée PUIS la modèrent : ils tiennent une session de
-  // bout en bout, et les gardes du back-office étant hiérarchiques, un seul
-  // compte de rang administrateur suffit aux deux bouts.
+  // Session dedicated to `admin-confirmations.spec.ts` (issue #38). Its four
+  // journeys write the data THEN moderate it: they hold a session from
+  // end to end, and since the back-office guards are hierarchical, a single
+  // administrator-rank account is enough for both ends.
   confirmations: {
     email: 'e2e_session_confirmations@democracytogether.test',
     state: 'tests/e2e/.auth/confirmations.json',
     role: 'admin',
   },
-  // Session dédiée à `dev-browser.spec.ts` (issue #50). Elle est tenue d'un
-  // bout à l'autre du projet `dev-browser`, donc longtemps : la règle
-  // ci-dessus s'applique. Rang administrateur, parce que ce fichier capture le
-  // back-office ET l'espace membre — les gardes étant hiérarchiques, un seul
-  // compte couvre les deux écrans, et une seule connexion de plus est payée.
+  // Session dedicated to `dev-browser.spec.ts` (issue #50). It is held from
+  // one end of the `dev-browser` project to the other, hence for a long time: the rule
+  // above applies. Administrator rank, because this file captures the
+  // back office AND the member area — since the guards are hierarchical, a single
+  // account covers both screens, and only one extra sign-in is paid for.
   devBrowser: {
     email: 'e2e_session_dev_browser@democracytogether.test',
     state: 'tests/e2e/.auth/dev-browser.json',
     role: 'admin',
   },
-  // Les deux fichiers de l'issue #49 prennent CHACUN la leur. La règle
-  // ci-dessus n'énonce pas un seuil de trois fichiers : elle décrit un
-  // mécanisme qui mord dès que DEUX contextes présentent le même jeton de
-  // rafraîchissement, et l'issue #38 raconte seulement le moment où il s'est
-  // vu. Playwright exécutant les FICHIERS en parallèle, deux fichiers sur un
-  // compte suffisent à l'armer.
+  // The two files of issue #49 EACH take their own. The rule
+  // above does not state a threshold of three files: it describes a
+  // mechanism that bites as soon as TWO contexts present the same refresh
+  // token, and issue #38 only tells of the moment it became
+  // visible. Since Playwright runs FILES in parallel, two files on one
+  // account are enough to arm it.
   //
-  // À noter, parce que la confusion a coûté une campagne de CI : ce n'était
-  // PAS la cause de l'échec de `admin-recherche` (il est tombé pareil avec sa
-  // session à lui). Ce fichier a cinq parcours, donc cinq contextes tirés du
-  // même état, et c'est le dernier qui se réveillait sur l'écran de connexion
-  // — le cas INTRA-fichier, que `admin-confirmations.spec.ts` corrige en
-  // réécrivant l'état après chaque test. Les deux précautions sont distinctes,
-  // et les deux sont nécessaires ici.
+  // Worth noting, because the confusion cost a CI campaign: this was
+  // NOT the cause of the `admin-recherche` failure (it failed the same way with its
+  // own session). That file has five journeys, hence five contexts drawn from the
+  // same state, and it was the last one that woke up on the sign-in screen
+  // — the INTRA-file case, which `admin-confirmations.spec.ts` fixes by
+  // rewriting the state after each test. The two precautions are distinct,
+  // and both are needed here.
   //
-  // Rang administrateur pour les deux : les écrans exercés (utilisateurs,
-  // journal) sont précisément ceux que ce rang réserve.
+  // Administrator rank for both: the screens exercised (users,
+  // log) are precisely the ones this rank reserves.
   adminNav: {
     email: 'e2e_session_admin_nav@democracytogether.test',
     state: 'tests/e2e/.auth/admin-nav.json',
@@ -155,83 +155,83 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/admin-recherche.json',
     role: 'admin',
   },
-  // Session dédiée à `header-stabilite.spec.ts` (audit F-13, cas CONNECTÉ).
-  // Elle applique la règle ci-dessus : un fichier, sa session. Le rang le plus
-  // bas suffit — ce qui est mesuré est la largeur de l'en-tête d'un visiteur
-  // connecté, pas un écran réservé.
+  // Session dedicated to `header-stabilite.spec.ts` (audit F-13, SIGNED-IN case).
+  // It applies the rule above: one file, its own session. The lowest rank
+  // is enough — what is measured is the header width for a signed-in
+  // visitor, not a reserved screen.
   enTete: {
     email: 'e2e_session_en_tete@democracytogether.test',
     state: 'tests/e2e/.auth/en-tete.json',
     role: 'membre',
   },
-  // Session dédiée à `admin-contact.spec.ts` (audit F-12). Ce fichier écrit un
-  // message par le formulaire PUBLIC puis le traite depuis le back-office : il
-  // tient donc sa session d'un bout à l'autre, exactement le cas que la règle
-  // ci-dessus vise.
+  // Session dedicated to `admin-contact.spec.ts` (audit F-12). This file writes a
+  // message through the PUBLIC form then handles it from the back office: it
+  // therefore holds its session from end to end, exactly the case the rule
+  // above targets.
   //
-  // Rang MODÉRATEUR, et pas plus : c'est ce qu'exigent `contact.listMessages`
-  // et `contact.setHandled`. Prendre un administrateur « pour être tranquille »
-  // ferait passer le test même le jour où la garde serait relevée par erreur —
-  // le rang minimal est ce qui rend l'écran vérifié.
+  // MODERATOR rank, and no more: that is what `contact.listMessages`
+  // and `contact.setHandled` require. Taking an administrator "to be safe"
+  // would make the test pass even the day the guard was raised by mistake —
+  // the minimal rank is what makes the screen verified.
   adminContact: {
     email: 'e2e_session_admin_contact@democracytogether.test',
     state: 'tests/e2e/.auth/admin-contact.json',
     role: 'moderateur',
   },
-  // Session dédiée à `admin-moderation.spec.ts`.
+  // Session dedicated to `admin-moderation.spec.ts`.
   //
-  // CE FICHIER PARTAGEAIT `moderateur` AVEC `admin-ecrans.spec.ts`, et il
-  // l'annonçait lui-même — son `describe` s'intitulait « session modérateur
-  // PARTAGÉE ». C'est exactement ce que la règle ci-dessus proscrit, et le
-  // symptôme décrit s'est produit : en CI, le test s'est réveillé sur
-  // `/connexion` au milieu de son parcours, l'instantané d'échec montrant la
-  // page de connexion et le bouton « Approuver » détaché du DOM.
+  // THIS FILE SHARED `moderateur` WITH `admin-ecrans.spec.ts`, and it
+  // said so itself — its `describe` was titled "session modérateur
+  // PARTAGÉE". That is exactly what the rule above forbids, and the
+  // described symptom occurred: in CI, the test woke up on
+  // `/connexion` in the middle of its journey, the failure snapshot showing the
+  // sign-in page and the "Approuver" button detached from the DOM.
   //
-  // Il écrit la candidature par le chemin public PUIS la modère : il tient
-  // donc sa session d'un bout à l'autre. Rang modérateur, celui qu'il exerce.
+  // It writes the application through the public path THEN moderates it: it
+  // therefore holds its session from end to end. Moderator rank, the one it exercises.
   adminModeration: {
     email: 'e2e_session_admin_moderation@democracytogether.test',
     state: 'tests/e2e/.auth/admin-moderation.json',
     role: 'moderateur',
   },
-  // Session dédiée à `admin-moderation-ia.spec.ts` (F-32, auto-acceptation).
+  // Session dedicated to `admin-moderation-ia.spec.ts` (F-32, auto-acceptance).
   //
-  // Elle règle le dispositif PUIS dépose PUIS relit la file et le journal :
-  // elle tient donc sa session d'un bout à l'autre, le cas que la règle
-  // ci-dessus vise. Rang ADMINISTRATEUR, parce que c'est le rang qu'exige
-  // `/admin/moderation-ia` — et les gardes étant hiérarchiques, le même
-  // compte dépose depuis l'espace membre, ce qui évite un second compte dans
-  // le fichier.
+  // It configures the mechanism THEN submits THEN re-reads the queue and the log:
+  // it therefore holds its session from end to end, the case the rule
+  // above targets. ADMINISTRATOR rank, because that is the rank
+  // `/admin/moderation-ia` requires — and since the guards are hierarchical, the same
+  // account submits from the member area, which avoids a second account in
+  // the file.
   adminModerationIa: {
     email: 'e2e_session_admin_moderation_ia@democracytogether.test',
     state: 'tests/e2e/.auth/admin-moderation-ia.json',
     role: 'admin',
   },
-  // Session dédiée à `paiements-don.spec.ts` (F-28 à F-31). Le fichier donne
-  // PUIS relit son reçu dans l'espace membre PUIS retrouve la transaction au
-  // back-office : il tient sa session d'un bout à l'autre. Rang
-  // ADMINISTRATEUR, celui qu'exige /admin/finances — les gardes étant
-  // hiérarchiques, le même compte donne et consulte son espace membre.
+  // Session dedicated to `paiements-don.spec.ts` (F-28 to F-31). The file donates
+  // THEN re-reads its receipt in the member area THEN finds the transaction in the
+  // back office: it holds its session from end to end. ADMINISTRATOR
+  // rank, the one /admin/finances requires — since the guards are
+  // hierarchical, the same account donates and views its member area.
   paiements: {
     email: 'e2e_session_paiements@democracytogether.test',
     state: 'tests/e2e/.auth/paiements.json',
     role: 'admin',
   },
-  // Session dédiée à `diffusion-newsletter.spec.ts` (chantier diffusion) :
-  // inscription publique, confirmation par le lien du courriel, PUIS
-  // vérification au back-office — la session est tenue d'un bout à l'autre.
-  // Rang ÉDITEUR, celui qu'exige `newsletter.listSubscribers`.
+  // Session dedicated to `diffusion-newsletter.spec.ts` ("diffusion" workstream):
+  // public subscription, confirmation via the email link, THEN
+  // verification in the back office — the session is held from end to end.
+  // EDITOR rank, the one `newsletter.listSubscribers` requires.
   diffusion: {
     email: 'e2e_session_diffusion@democracytogether.test',
     state: 'tests/e2e/.auth/diffusion.json',
     role: 'editeur',
   },
-  // Sessions dédiées aux specs `contenus-*.spec.ts` (chantier « contenus »).
-  // Chacune crée un contenu puis le publie puis le relit côté public : elles
-  // tiennent leur session d'un bout à l'autre. Rang ÉDITEUR, celui qu'exige
-  // `requireEditor` — un administrateur ferait passer le test même le jour où
-  // la garde serait relevée par erreur. Le MEMBRE inscrit à l'événement a la
-  // sienne : c'est son adresse qui lui ouvre le lien de visioconférence.
+  // Sessions dedicated to the `contenus-*.spec.ts` specs ("contenus" workstream).
+  // Each one creates some content then publishes it then re-reads it on the public side: they
+  // hold their session from end to end. EDITOR rank, the one
+  // `requireEditor` requires — an administrator would make the test pass even the day
+  // the guard was raised by mistake. The MEMBER registered for the event has
+  // their own: it is their address that opens the videoconference link for them.
   contenusEvenements: {
     email: 'e2e_session_contenus_evenements@democracytogether.test',
     state: 'tests/e2e/.auth/contenus-evenements.json',
@@ -247,23 +247,23 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/contenus-medias.json',
     role: 'editeur',
   },
-  // Session dédiée à `comptes-suspension.spec.ts` (chantier comptes, F-63).
-  // Le fichier crée un compte, le fait se connecter, le suspend puis le
-  // supprime : il tient la session d'un bout à l'autre, le cas que la règle
-  // ci-dessus vise. Rang ADMINISTRATEUR, celui qu'exigent la création, la
-  // suspension et la suppression.
+  // Session dedicated to `comptes-suspension.spec.ts` ("comptes" workstream, F-63).
+  // The file creates an account, has it sign in, suspends it then
+  // deletes it: it holds the session from end to end, the case the rule
+  // above targets. ADMINISTRATOR rank, the one required by creation,
+  // suspension and deletion.
   comptes: {
     email: 'e2e_session_comptes@democracytogether.test',
     state: 'tests/e2e/.auth/comptes.json',
     role: 'admin',
   },
-  // Chantier « programmes » (F-56 à F-60). Chaque fichier `programmes-*`
-  // enchaîne PLUSIEURS personnes sur un même parcours (qui publie, qui
-  // candidate, qui évalue ; qui coordonne, qui mentore, qui est mentoré) et
-  // tient chacune de bout en bout : une session par personne ET par fichier,
-  // selon la règle ci-dessus. Les rangs sont les rangs MINIMAUX exercés —
-  // modérateur pour publier un appel et coordonner (gardes `moderateur`),
-  // éditeur pour la boîte à outils, membre pour candidater, évaluer, mentorer.
+  // "programmes" workstream (F-56 to F-60). Each `programmes-*` file
+  // chains SEVERAL people on the same journey (who publishes, who
+  // applies, who evaluates; who coordinates, who mentors, who is mentored) and
+  // holds each of them from end to end: one session per person AND per file,
+  // per the rule above. The ranks are the MINIMAL ranks exercised —
+  // moderator to publish a call and coordinate (`moderateur` guards),
+  // editor for the toolbox, member to apply, evaluate, mentor.
   progAppelsAdmin: {
     email: 'e2e_session_prog_appels_admin@democracytogether.test',
     state: 'tests/e2e/.auth/prog-appels-admin.json',
@@ -304,18 +304,18 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/prog-parcours-membre.json',
     role: 'membre',
   },
-  // Chantier editorial (F-41 / F-43). `editorial-rapports.spec.ts` migre
-  // l'édition codée depuis l'administration puis télécharge ses PDF : rang
-  // ÉDITEUR, celui qu'exige `annualReports.*`.
+  // Editorial workstream (F-41 / F-43). `editorial-rapports.spec.ts` migrates
+  // the hard-coded edition from the administration then downloads its PDFs:
+  // EDITOR rank, the one `annualReports.*` requires.
   editorialRapports: {
     email: 'e2e_session_editorial_rapports@democracytogether.test',
     state: 'tests/e2e/.auth/editorial-rapports.json',
     role: 'editeur',
   },
-  // `editorial-revue.spec.ts` fait jouer QUATRE personnes en double aveugle :
-  // l'autrice (membre), l'éditeur, et deux relecteurs de rang modérateur —
-  // le rang minimal que la revue exige d'un relecteur. Chacun tient sa
-  // session d'un bout à l'autre du parcours, dans son propre contexte.
+  // `editorial-revue.spec.ts` involves FOUR people in double-blind review:
+  // the author (member), the editor, and two moderator-rank reviewers —
+  // the minimal rank the review requires of a reviewer. Each one holds their
+  // session from one end of the journey to the other, in their own context.
   editorialAuteur: {
     email: 'e2e_session_editorial_auteur@democracytogether.test',
     state: 'tests/e2e/.auth/editorial-auteur.json',
@@ -336,13 +336,13 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/editorial-relecteur2.json',
     role: 'moderateur',
   },
-  // Sessions des specs d'accessibilité (F-08, audit RGAA) : `a11y-clavier`,
-  // `a11y-annonces` et `a11y-affichage` parcourent l'espace membre et un écran
-  // du back-office. Une session PAR FICHIER, selon la règle ci-dessus ; chacun
-  // réécrit son état après chaque test (`test.afterEach`), comme
-  // `admin-confirmations`, pour ne jamais repartir d'un jeton consommé. Rang
-  // administrateur : les gardes étant hiérarchiques, un compte couvre l'espace
-  // membre ET `/admin/utilisateurs`.
+  // Sessions of the accessibility specs (F-08, RGAA audit): `a11y-clavier`,
+  // `a11y-annonces` and `a11y-affichage` go through the member area and a
+  // back-office screen. One session PER FILE, per the rule above; each one
+  // rewrites its state after each test (`test.afterEach`), like
+  // `admin-confirmations`, so as never to start again from a consumed token.
+  // Administrator rank: since the guards are hierarchical, one account covers the member
+  // area AND `/admin/utilisateurs`.
   a11yClavier: {
     email: 'e2e_session_a11y_clavier@democracytogether.test',
     state: 'tests/e2e/.auth/a11y-clavier.json',

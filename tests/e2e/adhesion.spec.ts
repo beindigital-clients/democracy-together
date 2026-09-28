@@ -7,7 +7,7 @@ test('adhésion : sections maquette + estimateur solidaire (F-20)', async ({
 }) => {
   await page.goto('/fr/adhesion');
 
-  // En-tête conservé + pills
+  // Header kept + pills
   await expect(
     page.getByRole('heading', { level: 1, name: 'Rejoindre le réseau' }),
   ).toBeVisible();
@@ -15,21 +15,21 @@ test('adhésion : sections maquette + estimateur solidaire (F-20)', async ({
     page.getByText('Cotisation solidaire', { exact: true }),
   ).toBeVisible();
 
-  // Intro + estimateur
+  // Intro + estimator
   await expect(
     page.getByRole('heading', { name: "Choisir un type d'adhésion" }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Estimateur de tarif solidaire' }),
   ).toBeVisible();
-  // défaut : organisation, revenu élevé -> 1 200 EUR (paiement EUR uniquement)
-  // (séparateur de milliers FR = U+202F ; \s le couvre)
+  // default: organization, high income -> 1,200 EUR (EUR payment only)
+  // (FR thousands separator = U+202F; \s covers it)
   await expect(page.getByText(/^1\s?200$/)).toBeVisible();
-  // bascule revenu faible (org, low) -> 1200 * 0.25 = 300 EUR
+  // switch to low income (org, low) -> 1200 * 0.25 = 300 EUR
   await page.getByText('Revenu modeste').click();
   await expect(page.getByText(/^300$/)).toBeVisible();
 
-  // Comparatif + FAQ
+  // Comparison + FAQ
   await expect(
     page.getByRole('heading', { name: 'Ce qui est inclus, par type' }),
   ).toBeVisible();
@@ -39,7 +39,7 @@ test('adhésion : sections maquette + estimateur solidaire (F-20)', async ({
   await expect(
     page.getByRole('heading', { name: 'Questions fréquentes' }),
   ).toBeVisible();
-  // FAQ : déplier la première question
+  // FAQ: expand the first question
   await page.getByText('Comment fonctionne la cotisation solidaire ?').click();
   await expect(
     page.getByText(/contribuent à la hauteur de leurs moyens/),

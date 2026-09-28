@@ -3,19 +3,20 @@ import { geoMercator, geoPath, geoCentroid } from 'd3-geo';
 import { feature } from 'topojson-client';
 import worldTopo from 'world-atlas/countries-110m.json';
 
-// Géométrie de la carte régionale (Afrique-Europe) partagée par le Baromètre et
-// l'annuaire. Calculé CÔTÉ SERVEUR uniquement : ni d3-geo ni le TopoJSON monde
-// (~107 Ko) ne partent dans le bundle client — seules les chaînes `d` SVG des
-// pays gardés sont passées en props. On garde les pays dont le CENTROÏDE tombe
-// dans la zone Afrique+Europe (exclut Amériques, Groenland, Asie, Antarctique),
-// puis on ajuste la projection Mercator exactement à ces pays (cadrage auto).
+// Geometry of the regional map (Africa-Europe) shared by the Barometer and the
+// directory. Computed SERVER-SIDE only: neither d3-geo nor the world TopoJSON
+// (~107 KB) ends up in the client bundle — only the SVG `d` strings of the
+// kept countries are passed as props. We keep the countries whose CENTROID
+// falls within the Africa+Europe zone (excludes the Americas, Greenland,
+// Asia, Antarctica), then fit the Mercator projection exactly to those
+// countries (auto framing).
 
 export const MAP_W = 680;
 export const MAP_H = 760;
 
 export type MapShape = { name: string; d: string };
 
-// Zone Afrique + Europe par centroïde : lon -26..52, lat -37..73.
+// Africa + Europe zone by centroid: lon -26..52, lat -37..73.
 function inRegion(f: any): boolean {
   const [lon, lat] = geoCentroid(f);
   return lon >= -26 && lon <= 52 && lat >= -37 && lat <= 73;

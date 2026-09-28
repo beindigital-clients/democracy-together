@@ -1,58 +1,58 @@
 import { type Locator, type Page } from '@playwright/test';
 import { ouvrirPanneau } from './_panneau';
 
-// LE SÉLECTEUR DE LANGUE EST UN MENU, et quatre specs le pilotaient par sa
-// forme précédente : une rangée segmentée où chaque langue était un bouton
-// TOUJOURS présent dans le document (`header button[lang="en"]`, un
-// `role="group"` nommé « Langue », l'active marquée `aria-pressed`).
+// THE LANGUAGE SWITCHER IS A MENU, and four specs drove it through its
+// previous form: a segmented row where each language was a button ALWAYS
+// present in the document (`header button[lang="en"]`, a
+// `role="group"` named "Langue", the active one marked `aria-pressed`).
 //
-// À cinq langues cette rangée ne tient plus dans la barre, et « العربية » n'a
-// pas de forme courte à deux lettres : le composant est devenu un déclencheur
-// qui ouvre un menu. Conséquence pour les tests, et c'est toute la raison de ce
-// fichier : LES LANGUES N'EXISTENT PLUS TANT QUE LE MENU EST FERMÉ. Un
-// `page.locator('header button[lang="en"]').click()` n'attend plus un élément
-// lent, il attend un élément qui ne viendra jamais.
+// With five languages this row no longer fits in the bar, and "العربية" has
+// no two-letter short form: the component became a trigger that opens a
+// menu. Consequence for the tests, and it is the whole reason for this
+// file: THE LANGUAGES DO NOT EXIST WHILE THE MENU IS CLOSED. A
+// `page.locator('header button[lang="en"]').click()` no longer waits for a
+// slow element, it waits for an element that will never come.
 //
-// Les deux repères de la nouvelle forme sont rassemblés ici pour que la
-// prochaine évolution du composant se règle à un seul endroit, et non dans
-// quatre fichiers qui avaient chacun recopié le même sélecteur.
+// The two anchors of the new form are gathered here so that the next
+// change to the component is dealt with in a single place, and not in
+// four files that had each copied the same selector.
 //
-// POURQUOI CES REPÈRES-LÀ.
+// WHY THESE ANCHORS.
 //
-// Le déclencheur est désigné par `aria-haspopup="menu"` — le seul du bandeau,
-// la palette de recherche annonçant `aria-haspopup="dialog"`. Surtout, ce
-// n'est pas un libellé : le nom accessible du bouton est TRADUIT (« Langue »,
-// « Language », « اللغة »), et une spec qui traverse les langues ne peut pas
-// s'y accrocher. Là où c'est le libellé lui-même qui est en jeu — l'anglais de
-// `en-journey.spec.ts`, qui existe pour attraper une chaîne restée en
-// français —, les specs visent le nom accessible en clair, délibérément.
+// The trigger is identified by `aria-haspopup="menu"` — the only one in the
+// header bar, the search palette announcing `aria-haspopup="dialog"`. Above all,
+// it is not a label: the button's accessible name is TRANSLATED ("Langue",
+// "Language", "اللغة"), and a spec that goes across languages cannot
+// hook onto it. Where the label itself is at stake — the English of
+// `en-journey.spec.ts`, which exists to catch a string left in
+// French —, the specs target the plain accessible name, deliberately.
 //
-// Les entrées gardent l'attribut `lang` que les specs visaient déjà. Leur
-// libellé est un ENDONYME (« Español », pas « Espagnol »), donc identique dans
-// les cinq langues et utilisable tel quel ; `lang` reste néanmoins le repère
-// le plus court, et celui qui ne bougera pas si un endonyme est corrigé.
+// The entries keep the `lang` attribute the specs already targeted. Their
+// label is an ENDONYM ("Español", not "Espagnol"), hence identical in
+// all five languages and usable as is; `lang` nevertheless remains the
+// shortest anchor, and the one that will not move if an endonym is corrected.
 
-// LA PORTÉE EST EXPLICITE parce qu'il y a DEUX sélecteurs dans le document.
-// Le menu mobile en monte un second quand il est déployé, et la grappe desktop
-// ne disparaît pas pour autant : sous 1120 px elle est `hidden`, donc toujours
-// présente mais ni visible ni cliquable. Un sélecteur non qualifié tomberait
-// dessus et la spec échouerait sur un élément masqué, ce qui ne dit rien.
-// D'où `racine` : les specs du panneau mobile passent `#mobile-nav`.
+// THE SCOPE IS EXPLICIT because there are TWO switchers in the document.
+// The mobile menu mounts a second one when expanded, and the desktop cluster
+// does not disappear for all that: below 1120 px it is `hidden`, hence still
+// present but neither visible nor clickable. An unqualified selector would
+// land on it and the spec would fail on a hidden element, which says nothing.
+// Hence `racine`: the mobile panel specs pass `#mobile-nav`.
 function dans(page: Page, racine?: Locator): Locator {
   return racine ?? page.locator('header');
 }
 
-/** Le bouton qui ouvre le menu des langues. Par défaut celui du bandeau. */
+/** The button that opens the language menu. By default, the header bar one. */
 export function declencheurLangue(page: Page, racine?: Locator): Locator {
   return dans(page, racine).locator('button[aria-haspopup="menu"]').first();
 }
 
-/** Le menu déployé. Absent du document tant qu'il n'est pas ouvert. */
+/** The expanded menu. Absent from the document while it is not open. */
 export function menuLangue(page: Page, racine?: Locator): Locator {
   return dans(page, racine).locator('[role="menu"]').first();
 }
 
-/** L'entrée d'une langue dans le menu OUVERT. */
+/** A language's entry in the OPEN menu. */
 export function choixLangue(
   page: Page,
   locale: string,
@@ -62,20 +62,20 @@ export function choixLangue(
 }
 
 /**
- * Ouvre le menu des langues, et rend le menu.
+ * Opens the language menu, and returns the menu.
  *
- * `ouvrirPanneau` plutôt qu'un clic nu, pour deux raisons qui se cumulent.
+ * `ouvrirPanneau` rather than a bare click, for two reasons that add up.
  *
- * D'abord parce que ce clic suit immédiatement un `page.goto()` dans presque
- * toutes les specs qui l'emploient : c'est exactement la forme que l'audit
- * F-13 a mesurée comme perdant son effet (trois de ses quatre occurrences).
- * L'ancienne rangée segmentée exposait le même geste, et les specs le
- * protégeaient déjà — cette protection ne doit pas disparaître au passage.
+ * First because this click immediately follows a `page.goto()` in almost
+ * every spec that uses it: that is exactly the shape the F-13 audit
+ * measured as losing its effect (three of its four occurrences).
+ * The old segmented row exposed the same gesture, and the specs already
+ * protected it — that protection must not disappear along the way.
  *
- * Ensuite parce que le déclencheur est une BASCULE : un second clic sur un
- * menu déjà ouvert le REFERMERAIT. C'est le cas pour lequel `ouvrirPanneau` a
- * été écrit — il ne re-clique que tant que le panneau est fermé, et imprime le
- * nombre d'essais —, là où `cliquerJusqua` s'adresse aux gestes idempotents.
+ * Then because the trigger is a TOGGLE: a second click on an already open
+ * menu would CLOSE it. That is the case `ouvrirPanneau` was written
+ * for — it only re-clicks while the panel is closed, and prints the
+ * number of attempts —, whereas `cliquerJusqua` is meant for idempotent gestures.
  */
 export async function ouvrirSelecteurDeLangue(
   page: Page,

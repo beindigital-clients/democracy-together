@@ -18,7 +18,7 @@ describe('Replays de webinaires (F-54)', () => {
       const replays = getReplays(loc);
       expect(replays.length).toBe(pastSlugs.size);
       expect(replays.length).toBeGreaterThan(0);
-      // Aucun événement à venir ne doit fuiter dans la liste.
+      // No upcoming event must leak into the list.
       const upcomingSlugs = new Set(
         EVENTS.filter((e) => e.upcoming === true).map((e) => e.slug),
       );
@@ -33,9 +33,9 @@ describe('Replays de webinaires (F-54)', () => {
     for (const loc of ['fr', 'en'] as const) {
       const replays = getReplays(loc);
       const whens = replays.map((r) => r.y * 10000 + r.mo * 100 + r.d);
-      // Strictement décroissant (dates distinctes dans le jeu de données).
+      // Strictly decreasing (distinct dates in the dataset).
       expect(whens).toEqual([...whens].sort((a, b) => b - a));
-      // Cohérent avec whenOf de la source.
+      // Consistent with the source's whenOf.
       const byWhen = EVENTS.filter((e) => e.upcoming === false)
         .slice()
         .sort((a, b) => whenOf(b) - whenOf(a))
@@ -113,7 +113,7 @@ describe('Replays — filtres type / thématique / langue (communauté A-12)', (
         for (const f of group) {
           expect(f.count).toBeGreaterThan(0);
           expect(f.label.length).toBeGreaterThan(0);
-          // Chaque facette proposée donne au moins un résultat.
+          // Every facet offered yields at least one result.
         }
       }
       for (const f of facets.themes) {

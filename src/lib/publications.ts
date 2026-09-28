@@ -1,9 +1,9 @@
 import { intlLocale } from '@/i18n/locale';
-// Bibliothèque (F-32/F-34) — helpers d'affichage côté Next : libellés via i18n
-// (namespace `library`), formatage de date, parsing des filtres depuis l'URL et
-// construction des citations (APA / BibTeX / RIS). Le vocabulaire de slugs
-// miroite celui de convex/lib/publications.ts — garder les deux synchrones,
-// SAUF les thématiques, désormais importées de leur déclaration unique.
+// Library (F-32/F-34) — Next-side display helpers: labels via i18n
+// (`library` namespace), date formatting, parsing filters from the URL and
+// building citations (APA / BibTeX / RIS). The slug vocabulary mirrors
+// convex/lib/publications.ts — keep both in sync, EXCEPT the themes, which
+// are now imported from their single declaration.
 
 export const PUB_TYPES = [
   'rapport',
@@ -12,14 +12,14 @@ export const PUB_TYPES = [
   'note',
   'dataset',
 ] as const;
-// Les 5 axes du réseau ne sont PLUS recopiés ici : ils viennent de la
-// déclaration unique, côté Convex (issue #30). L'alias `@convex` résout les
-// modules purs de convex/lib depuis Next comme depuis Vitest — c'est déjà ce
-// que fait le formulaire d'annuaire du back-office.
+// The network's 5 themes are NO LONGER copied here: they come from the
+// single declaration, on the Convex side (issue #30). The `@convex` alias
+// resolves the pure modules of convex/lib from Next as well as from Vitest —
+// the back-office directory form already does this.
 export { NETWORK_THEMES as PUB_THEMES } from '@convex/lib/themes';
 export const PUB_REGIONS = ['afrique', 'europe', 'mondial'] as const;
-// Même motif que PUB_THEMES juste au-dessus : la liste des langues n'est plus
-// recopiée ici, elle vient de sa déclaration unique côté Convex (issue #30).
+// Same pattern as PUB_THEMES just above: the language list is no longer
+// copied here, it comes from its single declaration on the Convex side (issue #30).
 export { PUB_LANGS } from '@convex/lib/publications';
 export const PUB_ACCESS = ['open', 'members'] as const;
 export const PUB_SORTS = ['recent', 'cited', 'az'] as const;
@@ -33,7 +33,7 @@ export const FACET_KEYS = [
 ] as const;
 export type FacetKey = (typeof FACET_KEYS)[number];
 
-// Filtres lus depuis l'URL : une chaîne CSV par facette -> tableau de valeurs.
+// Filters read from the URL: one CSV string per facet -> array of values.
 export type LibraryFilters = {
   themes: string[];
   types: string[];
@@ -56,7 +56,7 @@ function csv(value: string | string[] | undefined): string[] {
     .filter(Boolean);
 }
 
-// Parse les searchParams de /bibliotheque en un objet de filtres normalisé.
+// Parses the searchParams of /bibliotheque into a normalized filters object.
 export function parseFilters(
   sp: Record<string, string | string[] | undefined>,
 ): LibraryFilters {
@@ -80,7 +80,7 @@ export function parseFilters(
   };
 }
 
-// Mappe une clé de facette interne -> nom du paramètre d'URL (singulier).
+// Maps an internal facet key -> URL parameter name (singular).
 const FACET_PARAM: Record<FacetKey, string> = {
   themes: 'theme',
   types: 'type',
@@ -89,9 +89,9 @@ const FACET_PARAM: Record<FacetKey, string> = {
   access: 'access',
 };
 
-// Construit l'URL de la bibliothèque avec une valeur de facette basculée
-// (ajoutée si absente, retirée si présente). Préserve les autres filtres ;
-// remet la pagination à 1. next-intl ajoute le préfixe de locale.
+// Builds the library URL with one facet value toggled
+// (added if absent, removed if present). Preserves the other filters;
+// resets pagination to 1. next-intl adds the locale prefix.
 export function toggleHref(
   filters: LibraryFilters,
   key: FacetKey,
@@ -128,7 +128,7 @@ export function hasActiveFilters(f: LibraryFilters): boolean {
   );
 }
 
-// Mois + année dans la langue courante ("Mai 2026" / "May 2026").
+// Month + year in the current language ("Mai 2026" / "May 2026").
 export function formatMonthYear(ts: number, locale: string): string {
   const s = new Intl.DateTimeFormat(intlLocale(locale), {
     month: 'short',
@@ -138,7 +138,7 @@ export function formatMonthYear(ts: number, locale: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// Date longue ("15 mai 2026" / "May 15, 2026").
+// Long date ("15 mai 2026" / "May 15, 2026").
 export function formatLongDate(ts: number, locale: string): string {
   return new Intl.DateTimeFormat(intlLocale(locale), {
     day: 'numeric',
@@ -148,13 +148,13 @@ export function formatLongDate(ts: number, locale: string): string {
   }).format(ts);
 }
 
-// --- Liste d'auteurs ---------------------------------------------------------
-// « A, B et C » en français, « A, B, and C » en anglais : la conjonction n'est
-// pas la seule chose qui change — l'anglais prend aussi une virgule avant le
-// dernier élément. Cette règle-là ne s'écrit pas à la main : le code qui la
-// devinait par un ternaire sur la locale (issue #34) tenait au mieux pour deux
-// langues, et se trompait déjà sur l'une des deux. `Intl.ListFormat` la tient
-// pour toutes, y compris celles que le site n'a pas encore.
+// --- Author list -------------------------------------------------------------
+// "A, B et C" in French, "A, B, and C" in English: the conjunction is not
+// the only thing that changes — English also takes a comma before the last
+// item. That rule cannot be written by hand: the code that guessed it with a
+// ternary on the locale (issue #34) held for two languages at best, and was
+// already wrong for one of them. `Intl.ListFormat` handles it for all of
+// them, including those the site does not have yet.
 
 function authorListFormat(locale: string): Intl.ListFormat {
   return new Intl.ListFormat(intlLocale(locale), {
@@ -163,15 +163,15 @@ function authorListFormat(locale: string): Intl.ListFormat {
   });
 }
 
-// Liste d'auteurs en une seule chaîne — pour les citations.
+// Author list as a single string — for citations.
 export function formatAuthorList(names: string[], locale: string): string {
   return authorListFormat(locale).format(names);
 }
 
-// Même liste, découpée : les segments `element` sont les noms, les segments
-// `literal` les séparateurs que la langue impose. La fiche publication met les
-// NOMS en gras et laisse les séparateurs en texte courant — d'où le besoin des
-// parties plutôt que de la chaîne assemblée.
+// Same list, split up: the `element` segments are the names, the `literal`
+// segments the separators the language imposes. The publication page puts the
+// NAMES in bold and leaves the separators as plain text — hence the need for
+// the parts rather than the assembled string.
 export function formatAuthorParts(
   names: string[],
   locale: string,
@@ -180,9 +180,9 @@ export function formatAuthorParts(
 }
 
 // --- Citations ---------------------------------------------------------------
-// Auteurs stockés "Prénom Nom" (ou nom d'organisation). On détecte les
-// organisations pour ne pas les inverser, et on formate les personnes en
-// "Nom, P." (APA) ou "Nom, Prénom" (BibTeX/RIS).
+// Authors stored as "First Last" (or an organization name). We detect
+// organizations so as not to invert them, and format people as
+// "Last, F." (APA) or "Last, First" (BibTeX/RIS).
 
 type Author = { name: string; role?: string };
 type CitablePub = {
@@ -243,8 +243,8 @@ export type Citations = { apa: string; bibtex: string; ris: string };
 
 export function buildCitations(pub: CitablePub, locale: string): Citations {
   const names = pub.authors.map((a) => a.name);
-  // La ponctuation de la liste vient de la langue de LECTURE de la fiche, pas
-  // de celle de la publication : c'est la phrase qui entoure la citation.
+  // The list punctuation comes from the language the page is READ in, not
+  // from the publication's language: it is the sentence around the citation.
   const apa = `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. ${PUBLISHER}. https://doi.org/${pub.doi}`;
 
   const entry = pub.type === 'dataset' ? 'misc' : 'techreport';

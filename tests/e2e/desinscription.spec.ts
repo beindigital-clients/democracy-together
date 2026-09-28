@@ -3,30 +3,30 @@ import { isNewsletterSubscribed, newsletterUnsubToken } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
-// F-12 — `/fr/newsletter/desinscription` n'était citée par AUCUNE spec E2E.
+// F-12 — `/fr/newsletter/desinscription` was referenced by NO E2E spec.
 //
-// POURQUOI ELLE NE L'ÉTAIT PAS, et ce qu'il a fallu ajouter. Cette page
-// n'existe qu'au bout d'un JETON : c'est le lien du pied de l'e-mail de
-// campagne. Or aucun oracle de lecture ne rendait ce jeton — `isSubscribed`
-// ne rend qu'un booléen. Sans lui, on ne pouvait tester que les branches
-// d'ÉCHEC, c'est-à-dire tout sauf la désinscription. D'où
-// `newsletter:devUnsubToken`, `internalQuery` gardée par AUTH_DEV_OTP, sur le
-// modèle exact de `isSubscribed` et `contact:latestForEmail` — hors API
-// publique, appelée par la CLI Convex en contexte de confiance. Ce n'est PAS
-// l'oracle public refermé en F-09, qui répondait à n'importe qui.
+// WHY IT WAS NOT, and what had to be added. This page
+// only exists at the end of a TOKEN: it is the link in the campaign email
+// footer. Yet no read oracle returned this token — `isSubscribed`
+// only returns a boolean. Without it, only the FAILURE branches could be
+// tested, that is, everything except unsubscribing. Hence
+// `newsletter:devUnsubToken`, an `internalQuery` guarded by AUTH_DEV_OTP, on the
+// exact model of `isSubscribed` and `contact:latestForEmail` — outside the public
+// API, called by the Convex CLI in a trusted context. It is NOT
+// the public oracle closed in F-09, which answered anyone.
 //
-// CE QUI EST VÉRIFIÉ, ET QUI NE L'EST PAS PAR LE MESSAGE À L'ÉCRAN. Depuis
-// R-09, la page ne confirme que si le serveur a TROUVÉ le jeton (`found`) ;
-// mais c'est toujours la BASE qu'on relit : le message dit ce que le serveur
-// a répondu, pas ce qu'il a fait.
+// WHAT IS CHECKED, AND WHAT THE ON-SCREEN MESSAGE DOES NOT CHECK. Since
+// R-09, the page only confirms if the server FOUND the token (`found`);
+// but it is still the DATABASE that we re-read: the message says what the server
+// answered, not what it did.
 
 test('désinscription : le lien de l’e-mail retire vraiment l’abonné (F-12)', async ({
   page,
 }) => {
   const email = `e2e_unsub_${Date.now()}@democracytogether.test`;
 
-  // On s'inscrit par le FORMULAIRE public : c'est le chemin qui produit le
-  // jeton, et le seul que vive un abonné réel.
+  // We subscribe through the public FORM: it is the path that produces the
+  // token, and the only one a real subscriber goes through.
   await page.goto('/fr/newsletter');
   await page.getByLabel('Votre adresse e-mail').fill(email);
   await page.getByRole('button', { name: "S'inscrire" }).click();
@@ -34,8 +34,8 @@ test('désinscription : le lien de l’e-mail retire vraiment l’abonné (F-12)
     page.getByText(/Un e-mail de confirmation vient de vous être envoyé/),
   ).toBeVisible();
 
-  // NON-VACUITÉ : si l'inscription n'avait pas eu lieu, tout ce qui suit
-  // passerait à vide — on « désinscrirait » quelqu'un qui n'est pas là.
+  // NON-VACUITY: if the subscription had not happened, everything that follows
+  // would pass vacuously — we would "unsubscribe" someone who is not there.
   expect(
     isNewsletterSubscribed(email),
     "l'inscription préalable n'a pas eu lieu : le test suivant serait vide",
@@ -54,7 +54,7 @@ test('désinscription : le lien de l’e-mail retire vraiment l’abonné (F-12)
     ),
   ).toBeVisible();
 
-  // LE FAIT, pas l'affichage.
+  // THE FACT, not the display.
   await expect
     .poll(() => isNewsletterSubscribed(email), {
       message: "l'abonné est toujours en base après la désinscription",
@@ -62,8 +62,8 @@ test('désinscription : le lien de l’e-mail retire vraiment l’abonné (F-12)
     })
     .toBe(false);
 
-  // Le retour à l'accueil est la seule issue offerte : une page sans sortie
-  // laisse l'abonné sur un cul-de-sac.
+  // Going back to the home page is the only way out offered: a page with no exit
+  // leaves the subscriber in a dead end.
   await expect(
     page.getByRole('link', { name: "Retour à l'accueil" }),
   ).toHaveAttribute('href', '/fr');
@@ -89,9 +89,9 @@ test('désinscription : sans jeton, la page le dit au lieu de faire semblant (F-
 test('désinscription : un jeton inconnu ne retire personne, et le dit (F-12, R-09)', async ({
   page,
 }) => {
-  // Un abonné témoin, qui doit SURVIVRE au passage d'un jeton inventé. Sans
-  // lui, ce test ne distinguerait pas « le jeton inconnu n'a rien fait » de
-  // « le jeton inconnu a tout supprimé ».
+  // A control subscriber, who must SURVIVE an invented token going through. Without
+  // them, this test could not tell "the unknown token did nothing" from
+  // "the unknown token deleted everything".
   const temoin = `e2e_unsub_temoin_${Date.now()}@democracytogether.test`;
   await page.goto('/fr/newsletter');
   await page.getByLabel('Votre adresse e-mail').fill(temoin);
@@ -105,12 +105,12 @@ test('désinscription : un jeton inconnu ne retire personne, et le dit (F-12, R-
     '/fr/newsletter/desinscription?token=0000000000000000jeton-inexistant',
   );
 
-  // « Lien invalide ou expiré », et NON la confirmation : un abonné dont le
-  // lien a été tronqué par son client mail croyait s'être désinscrit et
-  // restait abonné (mesuré le 27/09, vitrine O2). Ce n'est pas l'oracle
-  // refermé en F-09 : celui-là répondait à une ADRESSE choisie ; ici le jeton
-  // est un secret aléatoire de 128 bits, qui n'identifie personne — le
-  // distinguer d'un jeton inventé ne renseigne sur aucun abonné.
+  // "Lien invalide ou expiré", and NOT the confirmation: a subscriber whose
+  // link had been truncated by their mail client believed they had unsubscribed and
+  // remained subscribed (measured on 27/09, showcase O2). This is not the oracle
+  // closed in F-09: that one answered for a chosen ADDRESS; here the token
+  // is a random 128-bit secret, which identifies no one — telling it
+  // apart from an invented token reveals nothing about any subscriber.
   await expect(
     page.getByText('Lien de désinscription invalide ou expiré.'),
   ).toBeVisible();
@@ -119,7 +119,7 @@ test('désinscription : un jeton inconnu ne retire personne, et le dit (F-12, R-
     'un jeton inconnu ne doit pas annoncer une désinscription',
   ).toHaveCount(0);
 
-  // Et le témoin est toujours là.
+  // And the control is still there.
   expect(
     isNewsletterSubscribed(temoin),
     'un jeton inconnu a retiré un abonné qui ne lui correspondait pas',

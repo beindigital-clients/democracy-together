@@ -22,7 +22,7 @@ describe('Rapports annuels (F-41)', () => {
         expect(r.chapters.every((s) => s.heading && s.body.length >= 1)).toBe(
           true,
         );
-        // AUCUNE métrique inventée : les chiffres clés codés sont vides.
+        // NO invented metrics: the hard-coded key figures are empty.
         expect(r.keyFigures).toEqual([]);
       }
     }

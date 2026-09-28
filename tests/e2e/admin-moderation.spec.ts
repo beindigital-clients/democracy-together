@@ -8,32 +8,32 @@ import {
 } from './_helpers';
 import { SESSIONS } from './_sessions';
 
-// Les écrans de back-office qui ÉCRIVENT, bout en bout : une donnée réelle
-// arrive par le chemin public, le staff la traite depuis l'écran, et l'effet
-// est vérifié sur la file (elle en sort, et réapparaît avec le bon statut).
-// Un « la page répond » ne dirait rien de la mutation, qui est justement ce
-// qui casse.
+// The back-office screens that WRITE, end to end: real data
+// arrives through the public path, staff handle it from the screen, and the effect
+// is checked on the queue (it leaves it, and reappears with the right status).
+// A "the page responds" would say nothing about the mutation, which is precisely what
+// breaks.
 //
-// Déjà couverts ailleurs : candidatures d'adhésion (`admin.spec.ts`) et
+// Already covered elsewhere: membership applications (`admin.spec.ts`) and
 // publications (`library-submit.spec.ts`).
 test.use({ locale: 'fr-FR' });
 
-// Le jeton de rafraîchissement tourne au premier test : on réécrit l'état pour
-// que les suivants ne repartent pas d'un jeton consommé (même précaution que
-// `admin-nav`, `admin-recherche`, `admin-confirmations` et `admin-contact`).
+// The refresh token rotates on the first test: we rewrite the state so that
+// the following ones do not start again from a consumed token (same precaution as
+// `admin-nav`, `admin-recherche`, `admin-confirmations` and `admin-contact`).
 test.afterEach(async ({ context }) => {
   await context.storageState({ path: SESSIONS.adminModeration.state });
 });
 
 test.describe('file des candidatures jeunes (session dédiée)', () => {
-  // SESSION DÉDIÉE, et ce ne l'était pas : ce bloc partageait `moderateur`
-  // avec `admin-ecrans.spec.ts`. Playwright exécute les FICHIERS en parallèle,
-  // donc deux contextes présentaient le même jeton de rafraîchissement —
-  // Convex Auth le fait tourner à chaque renouvellement, le second passage
-  // ressemble à un rejeu, et la session meurt. Constaté en CI : l'instantané
-  // d'échec est la page de connexion, et « Approuver » se détache du DOM au
-  // milieu du parcours. C'est le mécanisme que `_sessions.ts` décrit depuis
-  // l'issue #38 ; ce fichier y échappait encore.
+  // DEDICATED SESSION, which it was not: this block shared `moderateur`
+  // with `admin-ecrans.spec.ts`. Playwright runs FILES in parallel,
+  // so two contexts presented the same refresh token —
+  // Convex Auth rotates it on each renewal, the second pass
+  // looks like a replay, and the session dies. Observed in CI: the failure
+  // snapshot is the sign-in page, and "Approuver" detaches from the DOM in the
+  // middle of the journey. That is the mechanism `_sessions.ts` has described since
+  // issue #38; this file still escaped it.
   test.use({ storageState: SESSIONS.adminModeration.state });
 
   test('back-office : un modérateur approuve une candidature jeune (F-58/F-26)', async ({
@@ -42,8 +42,8 @@ test.describe('file des candidatures jeunes (session dédiée)', () => {
     const stamp = Date.now();
     const applicant = `Awa Jeunesse E2E ${stamp}`;
 
-    // Candidature déposée par le chemin public (action ouverte, comme le
-    // formulaire de /jeunes).
+    // Application submitted through the public path (open action, like the
+    // /jeunes form).
     await applyYouth({
       name: applicant,
       email: `e2e_youth_bo_${stamp}@democracytogether.test`,
@@ -57,18 +57,18 @@ test.describe('file des candidatures jeunes (session dédiée)', () => {
     const row = page.getByRole('listitem').filter({ hasText: applicant });
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: 'Approuver' }).click();
-    await expect(row).toHaveCount(0); // quitte la file « En attente »
+    await expect(row).toHaveCount(0); // leaves the "En attente" queue
 
     await page.getByRole('button', { name: 'Toutes' }).click();
     const decided = page.getByRole('listitem').filter({ hasText: applicant });
     await expect(decided).toBeVisible();
     await expect(decided.getByText('Approuvée')).toBeVisible();
 
-    // Une décision prise ne se retranche pas (issue #9) : l'écran n'offre plus
-    // « Rejeter », mais « Rouvrir » — la transition arrière NOMMÉE, qui
-    // renvoie la candidature dans la file au lieu d'écraser la décision
-    // précédente. Le serveur tient la même règle si on appelle la mutation
-    // directement (cf. convex/youth.test.ts).
+    // A decision taken cannot be undone (issue #9): the screen no longer offers
+    // "Rejeter", but "Rouvrir" — the NAMED backward transition, which
+    // sends the application back into the queue instead of overwriting the previous
+    // decision. The server holds the same rule if the mutation is called
+    // directly (see convex/youth.test.ts).
     await expect(decided.getByRole('button', { name: 'Rejeter' })).toHaveCount(
       0,
     );
@@ -86,8 +86,8 @@ test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)
   const stamp = Date.now();
   const projectTitle = `Observatoire commun E2E ${stamp}`;
 
-  // 1. Un MEMBRE propose depuis la page publique (le formulaire est réservé
-  // aux membres : c'est aussi une vérification du gate).
+  // 1. A MEMBER submits a proposal from the public page (the form is reserved
+  // for members: this is also a check of the gate).
   const email = `e2e_prj_${stamp}@democracytogether.test`;
   await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'membre');
@@ -103,7 +103,7 @@ test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)
   await page.getByRole('button', { name: 'Envoyer la proposition' }).click();
   await expect(page.getByText('Proposition envoyée. Merci !')).toBeVisible();
 
-  // 2. Le staff la traite depuis le back-office.
+  // 2. Staff handle it from the back office.
   await elevateRole(email, 'moderateur');
   await page.goto('/fr/admin/projets');
 
@@ -125,7 +125,7 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
   const postTitle = `Prise de parole E2E ${stamp}`;
   const email = `e2e_sig_${stamp}@democracytogether.test`;
 
-  // 1. Un membre publie sur la tribune...
+  // 1. A member posts on the Tribune...
   await signUpAndVerify(page, email, E2E_PASSWORD);
   await elevateRole(email, 'membre');
   await page.goto('/fr/tribune');
@@ -140,15 +140,15 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
     .fill(
       'Un court billet de test E2E sur la participation citoyenne et ses limites.',
     );
-  // Modération A PRIORI (F-45) : soumis, le billet attend sa validation —
-  // donnée ici — avant d'apparaître dans le fil public.
+  // PRE-moderation (F-45): once submitted, the post awaits approval —
+  // given here — before appearing in the public feed.
   await composer
     .getByRole('button', { name: 'Soumettre à la modération' })
     .click();
   await expect(page.getByText(/soumise à la modération/)).toBeVisible();
   await approveTribunePosts(postTitle);
 
-  // 2. ...puis signale le contenu depuis la fiche (tout compte authentifié peut).
+  // 2. ...then reports the content from its page (any authenticated account can).
   await page.goto('/fr/tribune');
   await page
     .locator('a[href*="/tribune/"]')
@@ -159,7 +159,7 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
   await page.getByRole('button', { name: 'Signaler' }).first().click();
   await expect(page.getByText('Signalé')).toBeVisible();
 
-  // 3. Le signalement arrive dans la file de modération et en sort une fois traité.
+  // 3. The report arrives in the moderation queue and leaves it once handled.
   await elevateRole(email, 'moderateur');
   await page.goto('/fr/admin/signalements');
 
@@ -167,7 +167,7 @@ test('back-office : un modérateur traite un signalement de la tribune (F-50/F-2
   await expect(row).toBeVisible();
   await row.getByRole('button', { name: 'Ignorer' }).click();
   await expect(row).toHaveCount(0);
-  // la prise de parole reste publiée : « Ignorer » ne retire pas le contenu
+  // the post stays published: "Ignorer" does not remove the content
   await page.goto('/fr/tribune');
   await expect(
     page.getByRole('link').filter({ hasText: postTitle }).first(),

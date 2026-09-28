@@ -1,16 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 import { E2E_PASSWORD, provisionUser, signUpAndVerify } from './_helpers';
 
-// ESPACES COLLABORATIFS — invitations et fichiers partagés (F-24, chantier
-// communauté), bout en bout :
-//   1. une animatrice crée un espace PRIVÉ et invite un membre par adresse ;
-//   2. l'invité voit l'invitation, l'accepte, entre dans l'espace ;
-//   3. il y dépose un fichier, qui apparaît avec sa version, son auteur et sa
-//      date ;
-//   4. un membre du réseau étranger à l'espace ne le trouve pas.
+// COLLABORATIVE SPACES — invitations and shared files (F-24, "communauté"
+// workstream), end to end:
+//   1. a facilitator creates a PRIVATE space and invites a member by address;
+//   2. the invitee sees the invitation, accepts it, enters the space;
+//   3. they upload a file there, which appears with its version, its author and its
+//      date;
+//   4. a network member outside the space cannot find it.
 //
-// Comptes NEUFS à chaque exécution (adresses horodatées) : le fichier tient
-// ses sessions de bout en bout, il n'emprunte aucune session partagée.
+// NEW accounts on every run (timestamped addresses): the file holds
+// its sessions end to end, it borrows no shared session.
 test.use({ locale: 'fr-FR' });
 
 async function signOut(page: Page) {
@@ -18,8 +18,8 @@ async function signOut(page: Page) {
   await expect(page).toHaveURL(/\/fr$/);
 }
 
-// Un vrai PDF minimal : le serveur vérifie la SIGNATURE des octets, pas
-// seulement l'extension.
+// A real minimal PDF: the server checks the byte SIGNATURE, not
+// just the extension.
 const PDF = Buffer.from(
   '%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n',
 );
@@ -32,12 +32,12 @@ test('l’animatrice invite, l’invité accepte et dépose un fichier', async (
   const guestEmail = `e2e_ws_guest_${stamp}@democracytogether.test`;
   const outsiderEmail = `e2e_ws_out_${stamp}@democracytogether.test`;
   const title = `Espace privé E2E ${stamp}`;
-  // Le compte invité EXISTE (membre du réseau) avant l'invitation : c'est ce
-  // qui lui vaut une notification. L'écran, lui, répond pareil dans les deux
-  // cas.
+  // The invited account EXISTS (network member) before the invitation: that is
+  // what earns it a notification. The screen, for its part, responds the same in both
+  // cases.
   await provisionUser(guestEmail, 'membre');
 
-  // 1. L'animatrice crée l'espace privé et invite.
+  // 1. The facilitator creates the private space and invites.
   await signUpAndVerify(page, animEmail, E2E_PASSWORD, 'membre');
   await page.goto('/fr/espaces');
   await page.getByRole('button', { name: 'Créer un espace' }).click();
@@ -70,7 +70,7 @@ test('l’animatrice invite, l’invité accepte et dépose un fichier', async (
   await expect(page.getByText(guestEmail).first()).toBeVisible();
   await signOut(page);
 
-  // 2. L'invité accepte depuis la liste des espaces.
+  // 2. The invitee accepts from the list of spaces.
   await signUpAndVerify(page, guestEmail, E2E_PASSWORD, 'membre');
   await page.goto('/fr/espaces');
   const invitations = page.getByRole('region', { name: 'Vos invitations' });
@@ -81,7 +81,7 @@ test('l’animatrice invite, l’invité accepte et dépose un fichier', async (
   await expect(page).toHaveURL(new RegExp(`${workspaceUrl}$`));
   await expect(page.getByText('Votre rôle : Contributeur·rice')).toBeVisible();
 
-  // 3. Il dépose un fichier : il apparaît avec version, auteur et date.
+  // 3. They upload a file: it appears with version, author and date.
   await page.getByTestId('ws-file-input').setInputFiles({
     name: 'note-commune.pdf',
     mimeType: 'application/pdf',
@@ -95,7 +95,7 @@ test('l’animatrice invite, l’invité accepte et dépose un fichier', async (
     files.getByRole('button', { name: 'Télécharger « note-commune.pdf »' }),
   ).toBeVisible();
 
-  // Un fichier dont les octets mentent est refusé, et l'écran le dit.
+  // A file whose bytes lie is refused, and the screen says so.
   await page.getByTestId('ws-file-input').setInputFiles({
     name: 'faux.pdf',
     mimeType: 'application/pdf',
@@ -106,8 +106,8 @@ test('l’animatrice invite, l’invité accepte et dépose un fichier', async (
   ).toBeVisible();
   await signOut(page);
 
-  // 4. Un membre du réseau étranger à l'espace ne le voit ni en liste, ni
-  // par son adresse.
+  // 4. A network member outside the space sees it neither in the list, nor
+  // through its address.
   await signUpAndVerify(page, outsiderEmail, E2E_PASSWORD, 'membre');
   await page.goto('/fr/espaces');
   await expect(page.getByRole('link').filter({ hasText: title })).toHaveCount(
