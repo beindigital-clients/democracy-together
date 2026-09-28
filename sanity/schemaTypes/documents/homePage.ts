@@ -1,9 +1,9 @@
 import { defineField, defineType } from 'sanity';
 
-// Page d'accueil (F-10) — singleton éditorial PAR LANGUE (un document `homePage`
-// par langue). Schéma structuré mirroir de `HomeContent` (src/lib/home-content)
-// + le hero. L'équipe édite chaque champ dans le Studio ; le rendu reste
-// identique, avec fallback local par section si rien n'est publié.
+// Home page (F-10) — editorial singleton PER LANGUAGE (one `homePage` document
+// per language). Structured schema mirroring `HomeContent` (src/lib/home-content)
+// + the hero. The team edits each field in the Studio; the rendering stays
+// identical, with a local per-section fallback if nothing is published.
 
 const str = (name: string, title: string) =>
   defineField({ name, title, type: 'string' });
@@ -12,7 +12,7 @@ const txt = (name: string, title: string, rows = 3) =>
 const strList = (name: string, title: string) =>
   defineField({ name, title, type: 'array', of: [{ type: 'string' }] });
 
-// Tableau d'objets anonymes { ...fields } avec aperçu sur `title`.
+// Array of anonymous objects { ...fields } with a preview on `title`.
 const objList = (
   name: string,
   title: string,

@@ -40,8 +40,8 @@ type AdminResource = FunctionReturnType<
 >[number];
 type AdminPath = FunctionReturnType<typeof api.toolbox.adminListPaths>[number];
 
-// Boîte à outils et parcours (F-56, F-57) — rang ÉDITEUR, comme les autres
-// contenus éditoriaux.
+// Toolbox and learning paths (F-56, F-57) — EDITOR rank, like the other
+// editorial content.
 export default function AdminToolbox() {
   const t = useTranslations('toolbox');
   const [tab, setTab] = useState<'resources' | 'paths'>('resources');

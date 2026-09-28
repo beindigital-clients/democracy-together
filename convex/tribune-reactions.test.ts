@@ -15,7 +15,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Insère un membre et renvoie son id (helper).
+// Inserts a member and returns its id (helper).
 async function seedMember(
   t: ReturnType<typeof convexTest>,
   email: string,
@@ -24,7 +24,7 @@ async function seedMember(
   return await t.run((ctx) => ctx.db.insert('users', { role, email }));
 }
 
-// Insère un post publié et renvoie son id (helper).
+// Inserts a published post and returns its id (helper).
 async function seedPost(
   t: ReturnType<typeof convexTest>,
   authorUserId: Id<'users'>,
@@ -51,21 +51,21 @@ describe('Tribune — réactions « soutien »', () => {
     const postId = await seedPost(t, author);
     const asAuthor = t.withIdentity({ subject: `${author}|s` });
 
-    // Ajout
+    // Add
     const r1 = await asAuthor.mutation(api.tribune.toggleReaction, { postId });
     expect(r1.reacted).toBe(true);
     let state = await asAuthor.query(api.tribune.reactionState, { postId });
     expect(state.count).toBe(1);
     expect(state.mine).toBe(true);
 
-    // Re-toggle = retrait (revient à 0)
+    // Re-toggle = removal (back to 0)
     const r2 = await asAuthor.mutation(api.tribune.toggleReaction, { postId });
     expect(r2.reacted).toBe(false);
     state = await asAuthor.query(api.tribune.reactionState, { postId });
     expect(state.count).toBe(0);
     expect(state.mine).toBe(false);
 
-    // Une seule ligne en base au plus à tout moment pour ce couple.
+    // At most a single row in the database at any time for this pair.
     const rows = await t.run((ctx) =>
       ctx.db.query('tribuneReactions').collect(),
     );
@@ -88,7 +88,7 @@ describe('Tribune — réactions « soutien »', () => {
     expect(s1.count).toBe(2);
     expect(s1.mine).toBe(true);
 
-    // Un 3e membre n'ayant pas réagi voit count=2 mais mine=false.
+    // A 3rd member who has not reacted sees count=2 but mine=false.
     const m3 = await seedMember(t, 'm3@test.org');
     const s3 = await t
       .withIdentity({ subject: `${m3}|s` })
@@ -124,12 +124,12 @@ describe('Tribune — réactions « soutien »', () => {
     const author = await seedMember(t, 'a3@test.org');
     const postId = await seedPost(t, author);
 
-    // Anonyme
+    // Anonymous
     await expect(
       t.mutation(api.tribune.toggleReaction, { postId }),
     ).rejects.toThrow();
 
-    // Visiteur (compte sans rôle membre)
+    // Visitor (account without member role)
     const visitor = await seedMember(t, 'v@test.org', 'visiteur');
     await expect(
       t
@@ -137,7 +137,7 @@ describe('Tribune — réactions « soutien »', () => {
         .mutation(api.tribune.toggleReaction, { postId }),
     ).rejects.toThrow();
 
-    // Aucune réaction créée.
+    // No reaction created.
     const rows = await t.run((ctx) =>
       ctx.db.query('tribuneReactions').collect(),
     );
@@ -151,7 +151,7 @@ describe('Tribune — réactions « soutien »', () => {
     const asAuthor = t.withIdentity({ subject: `${author}|s` });
     await asAuthor.mutation(api.tribune.toggleReaction, { postId });
 
-    // Lecture anonyme : voit le décompte, mais mine=false (pas de throw).
+    // Anonymous read: sees the count, but mine=false (no throw).
     const anon = await t.query(api.tribune.reactionState, { postId });
     expect(anon.count).toBe(1);
     expect(anon.mine).toBe(false);

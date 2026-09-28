@@ -30,18 +30,18 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  // `undefined` = la requête a ÉCHOUÉ ; `null` = l'article n'existe pas.
-  // Les confondre ferait traiter une panne comme une absence (F-02).
+  // `undefined` = the request FAILED; `null` = the article does not exist.
+  // Conflating them would treat an outage as an absence (F-02).
   const post = await fetchOrFallback<Article | null | undefined>(
     'actualites/[slug]:metadata',
     () => client.fetch<Article | null>(postBySlugQuery, { slug }),
     undefined,
   );
   if (post === undefined) {
-    // Rendu DÉGRADÉ : on interdit l'indexation. Sans cela, un moteur qui passe
-    // pendant la panne remplacerait l'article par le panneau « indisponible »
-    // dans son index — c'est la seule objection sérieuse au repli en 200, et
-    // elle se traite ici. `follow` reste vrai : les liens gardent leur valeur.
+    // DEGRADED rendering: we forbid indexing. Otherwise, a search engine passing by
+    // during the outage would replace the article with the "indisponible" panel
+    // in its index — that is the only serious objection to the 200 fallback, and
+    // it is handled here. `follow` stays true: the links keep their value.
     return { robots: { index: false, follow: true } };
   }
   if (!post) return {};
@@ -61,23 +61,23 @@ export default async function ArticlePage({
   setRequestLocale(locale);
   const t = await getTranslations('news');
 
-  // TROIS issues, et elles ne se confondent pas (audit § 5.1, F-02, F-10) :
-  //  - article absent      -> 404 localisée ;
-  //  - Sanity indisponible -> 200 + panneau « momentanément indisponible » ;
-  //  - article présent     -> l'article.
+  // THREE outcomes, and they must not be conflated (audit § 5.1, F-02, F-10):
+  //  - article missing     -> localized 404;
+  //  - Sanity unavailable  -> 200 + "momentanément indisponible" panel;
+  //  - article present     -> the article.
   //
-  // Convertir une panne en 404 resterait un mensonge — l'article existe
-  // peut-être, et un 404 indexé coûterait son référencement. Mais la version
-  // précédente relançait l'erreur pour atteindre `error.tsx`, et c'est ce que
-  // F-10 a mesuré : `error.tsx` est un composant CLIENT, son contenu n'est pas
-  // dans le HTML servi. Résultat, 500 avec ZÉRO caractère — page blanche pour
-  // qui n'exécute pas JavaScript, quand la même panne sur /fr/bibliotheque/…
-  // rendait 671 caractères lisibles. Deux backends, deux comportements, et le
-  // pire des deux sur la seule page adossée à Sanity.
+  // Converting an outage into a 404 would remain a lie — the article may
+  // exist, and an indexed 404 would cost it its ranking. But the previous
+  // version rethrew the error to reach `error.tsx`, and that is what
+  // F-10 measured: `error.tsx` is a CLIENT component, its content is not
+  // in the served HTML. Result: 500 with ZERO characters — a blank page for
+  // anyone not running JavaScript, whereas the same outage on /fr/bibliotheque/…
+  // rendered 671 readable characters. Two backends, two behaviors, and the
+  // worse of the two on the only page backed by Sanity.
   //
-  // L'objection SEO au 200 (un moteur indexant le panneau à la place de
-  // l'article) est traitée dans `generateMetadata` par un `noindex` posé sur le
-  // seul rendu dégradé.
+  // The SEO objection to the 200 (a search engine indexing the panel instead of
+  // the article) is handled in `generateMetadata` by a `noindex` set on the
+  // degraded rendering only.
   const post = await fetchOrFallback<Article | null | undefined>(
     'actualites/[slug]',
     () => client.fetch<Article | null>(postBySlugQuery, { slug }),
@@ -103,13 +103,13 @@ export default async function ArticlePage({
     dateStyle: 'long',
   });
 
-  // Fiche `Article` (F-03, P1 n° 4 du plan d'action), posée SEULEMENT ICI :
-  // le rendu dégradé ci-dessus n'affiche aucun article et porte déjà un
-  // `noindex` — une fiche y décrirait un contenu que la page ne sert pas.
+  // `Article` structured data (F-03, P1 no. 4 of the action plan), set ONLY HERE:
+  // the degraded rendering above displays no article and already carries a
+  // `noindex` — structured data there would describe content the page does not serve.
   //
-  // `post.title` et `post.excerpt` viennent du CMS : leur sérialisation passe
-  // par `jsonLdScript`, qui empêche un titre contenant `</script>` de sortir
-  // du bloc.
+  // `post.title` and `post.excerpt` come from the CMS: their serialization goes
+  // through `jsonLdScript`, which prevents a title containing `</script>` from escaping
+  // the block.
   const fiche = articleJsonLd({
     headline: post.title,
     slug,

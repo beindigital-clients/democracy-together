@@ -1,15 +1,15 @@
 import { defineField, defineType } from 'sanity';
 
-// Page À propos (F-11 vision/mission, F-12 fondateurs & gouvernance) — singleton
-// éditorial PAR LANGUE (un document `aboutPage` par langue). Schéma structuré
-// mirroir de `AboutContent` (src/lib/about-content.ts) : l'équipe édite chaque
-// champ texte dans le Studio, le rendu reste identique. Le code conserve un
-// fallback local si aucun document n'est publié.
+// About page (F-11 vision/mission, F-12 founders & governance) — editorial
+// singleton PER LANGUAGE (one `aboutPage` document per language). Structured schema
+// mirroring `AboutContent` (src/lib/about-content.ts): the team edits each
+// text field in the Studio, the rendering stays identical. The code keeps a
+// local fallback if no document is published.
 
 const text = (name: string, title: string, rows = 3) =>
   defineField({ name, title, type: 'text', rows });
 
-// Objet { eyebrow, title?, intro? } réutilisé par plusieurs sections.
+// Object { eyebrow, title?, intro? } reused by several sections.
 const heading = (extra: ReturnType<typeof defineField>[] = []) => [
   defineField({ name: 'eyebrow', title: 'Surtitre', type: 'string' }),
   ...extra,

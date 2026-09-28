@@ -17,7 +17,7 @@ import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { ArrowForward } from '@/components/ui/arrow';
 
-// Couleurs de remplissage de la carte par catégorie (1 = plus libre … 5).
+// Map fill colors by category (1 = most free … 5).
 const CAT_FILL = [
   'var(--color-bar-1)',
   'var(--color-bar-2)',
@@ -88,9 +88,9 @@ export default async function BarometrePage({
   const c = getBarometerContent(loc);
   const tBar = await getTranslations('barometer');
   const catLabel = (cat: 1 | 2 | 3 | 4 | 5) => c.legend[cat - 1].label;
-  // Libellés de catégorie EN TEXTE : les teintes 2 et 4 de la palette sont
-  // faites pour la carte, pas pour du 11 px sur fond clair (2,5:1 et 2,8:1
-  // mesurés le 27/09) — leurs variantes `-ink` de globals.css tiennent 4,5:1.
+  // Category labels AS TEXT: palette shades 2 and 4 are
+  // made for the map, not for 11 px text on a light background (2.5:1 and 2.8:1
+  // measured on 27/09) — their `-ink` variants in globals.css achieve 4.5:1.
   const catText = (cat: 1 | 2 | 3 | 4 | 5) =>
     cat === 2
       ? 'text-bar-2-ink'
@@ -98,10 +98,10 @@ export default async function BarometrePage({
         ? 'text-bar-4-ink'
         : CAT_TEXT[cat - 1];
 
-  // F-40 — câblage des téléchargements réels (route /[locale]/barometre/data/*).
-  // Une entrée par ligne du tableau « Jeux de données » (même ordre). `formats`
-  // mappe chaque badge de format vers un fichier réel ; les formats non produits
-  // (XLSX) restent de simples badges. Données d'illustration (cf. en-tête).
+  // F-40 — wiring of the real downloads (route /[locale]/barometre/data/*).
+  // One entry per row of the "Jeux de données" table (same order). `formats`
+  // maps each format badge to a real file; formats not produced
+  // (XLSX) remain plain badges. Illustrative data (cf. header).
   const dataBase = `/${locale}/barometre/data`;
   const dataRows: { primary: string; formats: Record<string, string> }[] = [
     {
@@ -145,7 +145,7 @@ export default async function BarometrePage({
 
   return (
     <div>
-      {/* En-tête */}
+      {/* Header */}
       <header className="border-b border-line">
         <div className={`${WRAP} pb-12 pt-12 md:pt-16`}>
           <Reveal>
@@ -202,9 +202,9 @@ export default async function BarometrePage({
         </div>
       </header>
 
-      {/* Carte interactive (F-30) — choroplèthe Afrique-Europe (d3-geo, tracés
-          calculés côté serveur). Survol/tap d'un pays -> détail ; chips de
-          filtre par région. La donnée reste accessible dans la table en dessous. */}
+      {/* Interactive map (F-30) — Africa-Europe choropleth (d3-geo, paths
+          computed server-side). Hover/tap on a country -> detail; filter chips
+          by region. The data stays accessible in the table below. */}
       <section id="carte" className={`${WRAP} scroll-mt-20 py-14`}>
         <Reveal className="mb-6">
           <h2 className="font-display text-[clamp(26px,3vw,34px)]">
@@ -252,7 +252,7 @@ export default async function BarometrePage({
         </Reveal>
       </section>
 
-      {/* Classement */}
+      {/* Ranking */}
       <section
         id="classement"
         className="scroll-mt-20 border-y border-line bg-surface"
@@ -332,7 +332,7 @@ export default async function BarometrePage({
         </div>
       </section>
 
-      {/* Fiches pays */}
+      {/* Country profiles */}
       <section className={`${WRAP} py-16`}>
         <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -398,7 +398,7 @@ export default async function BarometrePage({
         </RevealGroup>
       </section>
 
-      {/* Sous-dimensions */}
+      {/* Sub-dimensions */}
       <section
         id="dimensions"
         className="scroll-mt-20 border-y border-line bg-surface"
@@ -443,7 +443,7 @@ export default async function BarometrePage({
         </div>
       </section>
 
-      {/* Méthodologie */}
+      {/* Methodology */}
       <section id="methodologie" className={`${WRAP} scroll-mt-20 py-16`}>
         <Reveal className="mb-8">
           <p className={EYEBROW}>{c.methodology.eyebrow}</p>
@@ -521,8 +521,8 @@ export default async function BarometrePage({
           <Reveal className="overflow-hidden rounded-sm border border-line bg-paper">
             <ScrollableRegion label={c.datasets.title}>
               <table className="w-full border-collapse text-start text-sm">
-                {/* Titre du tableau (RGAA 5.4) : le `<h2>` au-dessus le nomme
-                    pour l'œil, rien ne le reliait au tableau. */}
+                {/* Table caption (RGAA 5.4): the `<h2>` above names it
+                    for the eye, nothing tied it to the table. */}
                 <caption className="sr-only">{c.datasets.title}</caption>
                 <thead>
                   <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
@@ -553,10 +553,10 @@ export default async function BarometrePage({
                         key={d.doi}
                         className="border-b border-line align-top last:border-0"
                       >
-                        {/* En-tête de LIGNE (RGAA 5.6 et 6.1) : c'est lui qui
-                            donne leur contexte aux liens « CSV » de la ligne —
-                            sans lui, trois liens « CSV » vers deux fichiers
-                            différents ne se distinguaient pas. */}
+                        {/* ROW header (RGAA 5.6 and 6.1): it is what
+                            gives the row's "CSV" links their context —
+                            without it, three "CSV" links to two different
+                            files could not be told apart. */}
                         <th
                           scope="row"
                           className="px-4 py-3.5 text-start font-normal"
@@ -621,7 +621,7 @@ export default async function BarometrePage({
         </div>
       </section>
 
-      {/* Bande contribution */}
+      {/* Contribution band */}
       <section className="bg-accent text-accent-contrast">
         <div className={`${WRAP} py-16`}>
           <Reveal className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">

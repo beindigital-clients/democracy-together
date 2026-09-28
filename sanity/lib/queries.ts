@@ -1,6 +1,6 @@
 import { groq } from 'next-sanity';
 
-// Projections explicites + paramètres ($) — jamais d'interpolation directe.
+// Explicit projections + parameters ($) — never direct interpolation.
 
 export const postsQuery = groq`*[_type == "post" && defined(slug.current) && language == $language]
   | order(publishedAt desc) {
@@ -24,8 +24,8 @@ export const postBySlugQuery = groq`*[_type == "post" && slug.current == $slug][
     seo
   }`;
 
-// Page À propos (F-11/F-12) — projection explicite vers la forme AboutContent
-// (on retire les _key/_type des tableaux). Un document par langue.
+// About page (F-11/F-12) — explicit projection to the AboutContent shape
+// (we strip the _key/_type from arrays). One document per language.
 export const aboutPageQuery = groq`*[_type == "aboutPage" && language == $language][0]{
   hero{ eyebrow, title, lead },
   vision{ eyebrow, statement, attribution },
@@ -43,8 +43,8 @@ export const aboutPageQuery = groq`*[_type == "aboutPage" && language == $langua
   cta{ title, body, primary, secondary }
 }`;
 
-// Page d'accueil (F-10) — projection explicite vers la forme HomeContent (on
-// retire les _key des tableaux). Un document par langue.
+// Home page (F-10) — explicit projection to the HomeContent shape (we
+// strip the _key from arrays). One document per language.
 export const homePageQuery = groq`*[_type == "homePage" && language == $language][0]{
   hero{ eyebrow, title, lead, ctaPrimary, ctaSecondary, visualLabel, visualCaption, creds[]{ label, value } },
   mission{ title, cta, cells[]{ ix, title, body }, barometer{ label, title, body } },

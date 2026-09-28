@@ -16,30 +16,30 @@ import { DocumentBlocks } from '@/components/library/document-blocks';
 import { DocumentLanguagePicker } from '@/components/library/document-language-picker';
 import { PrintButton } from '@/components/reports/print-button';
 
-// VUE DOCUMENT — le PDF joint, reconstruit dans la langue du lecteur.
+// DOCUMENT VIEW — the attached PDF, rebuilt in the reader's language.
 //
-// CE QUE CETTE PAGE EST, ET POURQUOI ELLE N'EST PAS UN PDF.
+// WHAT THIS PAGE IS, AND WHY IT IS NOT A PDF.
 //
-// Le besoin : qu'un rapport déposé en français soit lisible et téléchargeable
-// en arabe, en espagnol ou en portugais, images comprises. La voie évidente —
-// générer un PDF côté serveur — se heurte à un mur qu'aucune bibliothèque
-// JavaScript ne franchit : la composition de l'arabe. L'écriture arabe demande
-// la forme CONTEXTUELLE des lettres (une même lettre a jusqu'à quatre dessins
-// selon sa place dans le mot) et l'algorithme BIDIRECTIONNEL d'Unicode. Ni
-// pdf-lib ni jsPDF ne les implémentent : le texte en sortirait en lettres
-// détachées et dans le mauvais ordre. Un moteur de navigateur, lui, les fait
-// sans erreur, dans les cinq langues.
+// The need: that a report submitted in French be readable and downloadable
+// in Arabic, Spanish or Portuguese, images included. The obvious path —
+// generating a PDF server-side — hits a wall that no JavaScript
+// library gets past: Arabic typesetting. Arabic script requires
+// the CONTEXTUAL form of letters (the same letter has up to four shapes
+// depending on its position in the word) and Unicode's BIDIRECTIONAL algorithm. Neither
+// pdf-lib nor jsPDF implements them: the text would come out as disconnected
+// letters and in the wrong order. A browser engine, on the other hand, handles them
+// without error, in all five languages.
 //
-// Cette page est donc un DOCUMENT MIS EN FORME POUR L'IMPRESSION, que le
-// lecteur enregistre en PDF par la fonction de son navigateur. C'est déjà le
-// choix fait pour les rapports annuels (F-41, `src/components/reports/
-// print-button.tsx` : « Pas de génération PDF serveur : robuste, sans
-// dépendance ») — ici, il est en plus le seul qui rende l'arabe correctement.
+// This page is therefore a DOCUMENT FORMATTED FOR PRINTING, which the
+// reader saves as a PDF via their browser's feature. That was already the
+// choice made for the annual reports (F-41, `src/components/reports/
+// print-button.tsx`: "No server-side PDF generation: robust, no
+// dependency") — here, it is moreover the only one that renders Arabic correctly.
 //
-// `noindex` : le document reprend intégralement un PDF déjà indexable par son
-// URL de stockage, et ses versions traduites sont des traductions automatiques.
-// Les faire indexer multiplierait par cinq un contenu que le réseau n'a pas
-// relu, et concurrencerait la fiche de publication sur ses propres termes.
+// `noindex`: the document fully reproduces a PDF already indexable through its
+// storage URL, and its translated versions are machine translations.
+// Having them indexed would multiply by five content the network has not
+// reviewed, and would compete with the publication page on its own terms.
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -48,11 +48,11 @@ export const metadata: Metadata = {
 const WRAP = 'mx-auto w-full max-w-[820px] px-4 sm:px-6';
 
 /**
- * La langue demandée pour le document.
+ * The language requested for the document.
  *
- * `?lang=` prime, et le repli est la langue de l'APPLICATION — c'est la
- * demande explicite : « par défaut, ce sera la langue du système, celle qu'ils
- * ont choisie dans l'application ».
+ * `?lang=` takes precedence, and the fallback is the APPLICATION's language — that is the
+ * explicit request: "by default, it will be the system language, the one they
+ * chose in the application".
  */
 function requestedLocale(
   raw: string | string[] | undefined,
@@ -77,9 +77,9 @@ export default async function DocumentPage({
   const t = await getTranslations('translation');
   const tl = await getTranslations('library');
 
-  // Le jeton de session part avec la requête : c'est Convex qui décide si le
-  // lecteur a le droit de voir le texte intégral d'une publication réservée.
-  // Le gating n'est jamais côté client (F-35).
+  // The session token goes with the request: Convex decides whether the
+  // reader is allowed to see the full text of a restricted publication.
+  // Gating is never client-side (F-35).
   const token = await convexAuthNextjsToken();
   const doc = await fetchOrFallback(
     'bibliotheque/[slug]/document',
@@ -91,10 +91,10 @@ export default async function DocumentPage({
       ),
     null,
   );
-  // `null` : publication inconnue, sans document joint, ou réservée à des
-  // membres dont le lecteur n'est pas. Les trois donnent la même réponse — une
-  // 404 —, et c'est voulu : dire « ce document existe mais vous n'y avez pas
-  // droit » renseignerait sur le contenu de la bibliothèque réservée.
+  // `null`: unknown publication, without an attached document, or restricted to
+  // members the reader is not one of. All three give the same response — a
+  // 404 —, and this is intended: saying "this document exists but you are not
+  // entitled to it" would reveal information about the restricted library's content.
   if (!doc) notFound();
 
   const ready = await fetchOrFallback(
@@ -139,10 +139,10 @@ export default async function DocumentPage({
             ) : null}
           </div>
 
-          {/* Le bandeau est VOLONTAIREMENT visible à l'impression : un document
-              enregistré puis transmis doit continuer à dire d'où il vient et
-              qu'il n'a pas été relu. C'est la seule chose de cette page qui
-              survive au `print:hidden` général. */}
+          {/* The banner is DELIBERATELY visible when printing: a document
+              saved then passed on must keep saying where it comes from and
+              that it has not been reviewed. It is the only thing on this page that
+              survives the general `print:hidden`. */}
           {isTranslated ? (
             <aside className="mt-8 rounded-sm border border-accent-edge bg-accent-tint px-4 py-3 text-[13px] text-ink-soft print:border-line print:bg-transparent">
               <p>{t('docNotice', { language: sourceName })}</p>

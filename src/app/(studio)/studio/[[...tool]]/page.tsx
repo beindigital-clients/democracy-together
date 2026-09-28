@@ -3,21 +3,21 @@
 import dynamic from 'next/dynamic';
 import { projectId } from '../../../../../sanity/env';
 
-// Le Studio Sanity appelle React.createContext au niveau module : incompatible
-// avec le rendu serveur. On le charge donc uniquement côté client (ssr:false),
-// pour qu'il ne soit jamais évalué pendant le prérendu.
+// The Sanity Studio calls React.createContext at module level: incompatible
+// with server rendering. We therefore load it client-side only (ssr:false),
+// so that it is never evaluated during prerendering.
 const StudioClient = dynamic(() => import('./studio-client'), { ssr: false });
 
-// STUDIO NON CONFIGURÉ (transversal A-13, R-16). `sanity/env.ts` replie
-// `projectId` sur « placeholder » pour que le Studio s'importe sans projet ;
-// mais monté avec ce faux identifiant, il tentait de joindre
-// placeholder.api.sanity.io en boucle et laissait une page blanche avec un
-// spinner infini (mesuré le 27/09 : 9 × ERR_TUNNEL_CONNECTION_FAILED). Ici,
-// on ne monte le Studio QUE si un projet est renseigné ; sinon, une page qui
-// dit quoi faire. Texte en dur et styles en ligne : ce groupe de routes vit
-// HORS du segment [locale] (pas de next-intl, pas de globals.css), comme la
-// 404 racine. Le Studio reste exclu de la CSP (next.config.ts) : cette page
-// n'y change rien.
+// STUDIO NOT CONFIGURED (cross-cutting A-13, R-16). `sanity/env.ts` falls back
+// `projectId` to "placeholder" so that the Studio can be imported without a project;
+// but mounted with this fake identifier, it tried to reach
+// placeholder.api.sanity.io in a loop and left a blank page with an
+// endless spinner (measured on 27/09: 9 × ERR_TUNNEL_CONNECTION_FAILED). Here,
+// we mount the Studio ONLY if a project is set; otherwise, a page that
+// says what to do. Hard-coded text and inline styles: this route group lives
+// OUTSIDE the [locale] segment (no next-intl, no globals.css), like the
+// root 404. The Studio remains excluded from the CSP (next.config.ts): this page
+// changes nothing there.
 const PAGE: React.CSSProperties = {
   minHeight: '100dvh',
   display: 'flex',

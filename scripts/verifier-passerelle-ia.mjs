@@ -1,25 +1,25 @@
-// Vérification de bout en bout de la passerelle IA — LE SEUL TEST QUI DEMANDE
-// UN APPEL RÉEL, et que la CI ne peut donc pas jouer.
+// End-to-end check of the AI gateway — THE ONLY TEST THAT REQUIRES
+// A REAL CALL, and which CI therefore cannot run.
 //
 //   AI_GATEWAY_API_KEY=vck_xxx node scripts/verifier-passerelle-ia.mjs
 //
-// POURQUOI CE SCRIPT EXISTE. La suite de tests couvre tout le dispositif de
-// modération assistée (convex/aiModeration.test.ts, .scenario.test.ts,
-// tests/unit/ai-moderation.test.ts) avec un `fetch` simulé : elle prouve la
-// chaîne AUTOUR du modèle — le barème, la décision, les transitions, ce qu'un
-// visiteur voit — mais pas que Vercel accepte notre corps de requête. Cette
-// dernière question n'a qu'une réponse honnête : l'envoyer.
+// WHY THIS SCRIPT EXISTS. The test suite covers the whole assisted
+// moderation mechanism (convex/aiModeration.test.ts, .scenario.test.ts,
+// tests/unit/ai-moderation.test.ts) with a mocked `fetch`: it proves the
+// chain AROUND the model — the rubric, the decision, the transitions, what a
+// visitor sees — but not that Vercel accepts our request body. That
+// last question has only one honest answer: send it.
 //
-// Ce que le script vérifie, dans l'ordre où ça casse en général :
-//   1. la clé est acceptée ;
-//   2. le modèle demandé existe au catalogue ;
-//   3. `text.format.json_schema` contraint bien la sortie ;
-//   4. la réponse se lit avec le même code que la production (`output_text`
-//      ou le parcours de `output[]`) ;
-//   5. le barème est réellement appliqué : on soumet un texte fautif et on
-//      attend le signal correspondant.
+// What the script checks, in the order in which things usually break:
+//   1. the key is accepted;
+//   2. the requested model exists in the catalog;
+//   3. `text.format.json_schema` does constrain the output;
+//   4. the response is read with the same code as production (`output_text`
+//      or walking `output[]`);
+//   5. the rubric is actually applied: we submit a faulty text and
+//      expect the corresponding signal.
 //
-// Il n'écrit RIEN : ni en base, ni sur le déploiement. Il coûte deux appels.
+// It writes NOTHING: neither to the database nor to the deployment. It costs two calls.
 
 const URL = 'https://ai-gateway.vercel.sh/v1/responses';
 const MODEL = process.env.AI_MODEL ?? 'anthropic/claude-opus-5';
@@ -34,10 +34,10 @@ if (!KEY) {
   process.exit(1);
 }
 
-// Barème réduit au socle, dans la forme exacte que construit
-// `convex/lib/aiModeration.ts`. Volontairement recopié plutôt qu'importé :
-// ce script doit pouvoir tourner sans compilation TypeScript, et un décalage
-// avec le vrai socle n'invaliderait pas ce qu'il mesure (le transport).
+// Rubric reduced to the core, in the exact shape built by
+// `convex/lib/aiModeration.ts`. Deliberately copied rather than imported:
+// this script must be able to run without TypeScript compilation, and a drift
+// from the real core would not invalidate what it measures (the transport).
 const RULES = [
   {
     key: 'socle:injection',
@@ -93,8 +93,8 @@ function document(texte) {
   return `<<<DEBUT_DOCUMENT_SOUMIS>>>\n${texte}\n<<<FIN_DOCUMENT_SOUMIS>>>`;
 }
 
-// Même lecture que `convex/lib/aiGateway.ts` : `output_text` d'abord, puis le
-// parcours de `output[]`. Si ce script lit la réponse, la production la lira.
+// Same reading as `convex/lib/aiGateway.ts`: `output_text` first, then
+// walking `output[]`. If this script reads the response, production will read it.
 function extractText(body) {
   if (typeof body?.output_text === 'string' && body.output_text.trim()) {
     return body.output_text;
@@ -174,9 +174,9 @@ function ligne(ok, texte) {
 
 let toutVa = true;
 
-// Un échec de transport — hôte injoignable, clé refusée, modèle inconnu — est
-// une information, pas un plantage : on l'imprime tel quel. Une trace de pile
-// Node ne dit rien de plus à qui lance ce script pour savoir si sa clé marche.
+// A transport failure — unreachable host, rejected key, unknown model — is
+// information, not a crash: we print it as is. A Node stack
+// trace tells nothing more to whoever runs this script to find out whether their key works.
 function abandonner(erreur) {
   console.error(`\n  ✗ ${erreur instanceof Error ? erreur.message : erreur}`);
   console.error(
@@ -185,7 +185,7 @@ function abandonner(erreur) {
   process.exit(1);
 }
 
-// --- 1. Un dépôt anodin : le transport et le contrat de sortie --------------
+// --- 1. A harmless submission: the transport and the output contract --------------
 console.log(`\nModèle : ${MODEL}\n`);
 console.log('1. Dépôt anodin — transport, schéma, lecture de la réponse');
 try {
@@ -217,11 +217,11 @@ try {
   abandonner(erreur);
 }
 
-// --- 2. Un dépôt fautif : le barème est-il RÉELLEMENT appliqué ? ------------
+// --- 2. A faulty submission: is the rubric ACTUALLY applied? ------------
 //
-// Le test précédent prouverait un modèle qui répond « approve » à tout. Ici on
-// soumet un texte qui déclenche deux critères du socle à la fois : une
-// accusation nominative non sourcée, et une consigne adressée au relecteur.
+// The previous test would pass for a model that answers "approve" to everything. Here we
+// submit a text that triggers two core criteria at once: an
+// unsourced accusation against a named person, and an instruction addressed to the reviewer.
 console.log('\n2. Dépôt fautif — le barème est-il appliqué ?');
 try {
   const { avis } = await analyser(

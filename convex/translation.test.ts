@@ -12,11 +12,11 @@ import {
 } from './lib/translation';
 import { splitParagraphs } from './translation';
 
-// Ce fichier tient la logique PURE de la traduction : ce qui décide qu'une
-// réponse du modèle est utilisable, et ce qui décide qu'une traduction en cache
-// est périmée. Les deux se trompent en silence si on ne les vérifie pas — une
-// traduction amputée d'un paragraphe s'affiche comme une traduction, et une
-// empreinte qui ne bouge pas fait servir un texte que l'auteur a corrigé.
+// This file holds the PURE translation logic: what decides that a
+// model response is usable, and what decides that a cached translation
+// is stale. Both fail silently if they are not tested — a
+// translation missing a paragraph displays as a translation, and a
+// fingerprint that does not change serves a text the author has corrected.
 
 const SOURCE: TranslatableFields = {
   title: 'Gouvernance numérique',
@@ -50,8 +50,8 @@ describe('Empreinte du texte source — détecter une modification', () => {
   });
 
   it('distingue un découpage différent du même texte', () => {
-    // Sans séparateur entre les segments, ['ab','c'] et ['a','bc'] auraient la
-    // même empreinte — et un billet re-paragraphé passerait pour inchangé.
+    // Without a separator between segments, ['ab','c'] and ['a','bc'] would have
+    // the same fingerprint — and a re-paragraphed post would pass as unchanged.
     expect(sourceFingerprint({ title: 't', body: ['ab', 'c'] })).not.toBe(
       sourceFingerprint({ title: 't', body: ['a', 'bc'] }),
     );
@@ -61,8 +61,8 @@ describe('Empreinte du texte source — détecter une modification', () => {
     expect(sourceFingerprint({ title: 't', body: ['x'] })).toBe(
       sourceFingerprint({ title: 't', body: ['x'], abstract: '' }),
     );
-    // Ci-dessus : identiques, et c'est acceptable — un résumé vide et un résumé
-    // absent produisent le même texte à l'écran. Ci-dessous : différents.
+    // Above: identical, and that is acceptable — an empty summary and an absent
+    // summary produce the same on-screen text. Below: different.
     expect(sourceFingerprint({ title: 't', body: ['x'] })).not.toBe(
       sourceFingerprint({ title: 't', body: ['x'], abstract: 'a' }),
     );
@@ -116,10 +116,10 @@ describe('Validation de la réponse — la garde est côté serveur', () => {
   });
 
   it('REFUSE une traduction amputée d’un paragraphe', () => {
-    // Le défaut le plus coûteux du dispositif, et le plus discret : la page
-    // afficherait un article tronqué sous un bandeau affirmant qu'il est
-    // traduit. Le schéma de la passerelle l'interdit déjà ; cette garde ne
-    // dépend pas de la passerelle.
+    // The costliest defect of the mechanism, and the most discreet: the page
+    // would display a truncated article under a banner claiming it is
+    // translated. The gateway schema already forbids it; this guard does not
+    // depend on the gateway.
     expect(
       parseTranslation(SOURCE, { ...good, body: good.body.slice(0, 2) }),
     ).toBeNull();
@@ -139,15 +139,15 @@ describe('Validation de la réponse — la garde est côté serveur', () => {
   });
 
   it('refuse un paragraphe VIDE là où la source n’est pas vide', () => {
-    // Le contrôle de longueur seul laissait passer `["texte", "", ""]` : le
-    // compte est bon, le modèle a « rendu » N paragraphes. C'est le mode
-    // d'échec attendu quand le budget de sortie s'épuise — contraint à rendre
-    // exactement N entrées, un modèle à court de jetons termine par des chaînes
-    // vides. La ligne aurait été écrite `ready`, l'empreinte aurait
-    // correspondu, et le lecteur aurait vu la seconde moitié de l'article en
-    // blanc sous un bandeau affirmant qu'il s'agit d'une traduction — sans
-    // bouton pour retraduire, puisqu'elle est « à jour ». Le titre était
-    // protégé depuis le début ; le corps ne l'était pas.
+    // The length check alone let `["texte", "", ""]` through: the
+    // count is right, the model "returned" N paragraphs. It is the expected
+    // failure mode when the output budget runs out — forced to return
+    // exactly N entries, a model short of tokens ends with empty
+    // strings. The row would have been written `ready`, the fingerprint would have
+    // matched, and the reader would have seen the second half of the article
+    // blank under a banner claiming it is a translation — with no
+    // button to retranslate, since it is "up to date". The title was
+    // protected from the start; the body was not.
     expect(
       parseTranslation(SOURCE, { ...good, body: [good.body[0], '', ''] }),
     ).toBeNull();
@@ -203,9 +203,9 @@ describe('Consigne au modèle — le texte source est une donnée', () => {
   });
 
   it('demande des chiffres occidentaux pour l’arabe, et seulement pour lui', () => {
-    // Le reste du site écrit ses nombres en chiffres occidentaux (cf.
-    // `intlLocale`) : une traduction en chiffres arabo-indiens mêlerait deux
-    // systèmes dans la même page.
+    // The rest of the site writes its numbers in Western digits (cf.
+    // `intlLocale`): a translation in Eastern Arabic digits would mix two
+    // systems on the same page.
     expect(buildTranslationInstructions('fr', 'ar')).toContain(
       'Western Arabic numerals',
     );
@@ -253,8 +253,8 @@ describe('Découpage d’un billet de Tribune en paragraphes', () => {
   });
 
   it('rend un paragraphe unique pour un texte sans ligne vide', () => {
-    // Renvoyer un tableau vide ferait un schéma `minItems: 0` — et perdrait le
-    // texte sans que rien ne le signale.
+    // Returning an empty array would produce a `minItems: 0` schema — and would lose the
+    // text without anything flagging it.
     expect(splitParagraphs('Un seul bloc de texte.')).toEqual([
       'Un seul bloc de texte.',
     ]);

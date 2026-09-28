@@ -28,8 +28,8 @@ export default function AdminMentorship() {
   const reopen = useMutation(api.mentorship.reopenMentorshipRequest);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  // Retour d'action (27/09, m-2 / A-08) : apparier, clôturer et rouvrir ne
-  // disaient rien, et la note d'appariement n'était jamais rendue.
+  // Action feedback (27/09, m-2 / A-08): pairing, closing and reopening said
+  // nothing, and the pairing note was never rendered.
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
 
@@ -67,10 +67,10 @@ export default function AdminMentorship() {
     }
   }
 
-  // Revenir sur une décision demande de ROUVRIR la demande (issue #9) : le
-  // serveur refuse qu'on la retranche directement — un appariement clos ne
-  // redevient pas « apparié » sur un second clic —, et la réouverture laisse
-  // sa propre trace au journal.
+  // Going back on a decision requires REOPENING the request (issue #9): the
+  // server refuses to have it re-decided directly — a closed pairing does not
+  // become "apparié" again on a second click —, and reopening leaves
+  // its own trace in the log.
   async function reopenRequest(id: string, name: string) {
     setBusy(id);
     try {

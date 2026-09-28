@@ -1,41 +1,41 @@
 import { createClient } from 'next-sanity';
 import { apiVersion, dataset, projectId } from '../env';
 
-// UNE LECTURE QUI NE REVIENT PAS NE DOIT PAS TENIR LA PAGE.
+// A READ THAT DOES NOT COME BACK MUST NOT HOLD UP THE PAGE.
 //
-// Les sept appels publics à ce client, répartis sur six modules, replient tous sur du contenu local
-// quand la requête ÉCHOUE — c'est le travail de F-02 et de `fetchOrFallback`,
-// et il est complet. Mais un `catch` ne s'exécute qu'une fois la requête
-// TERMINÉE. Tant qu'elle ne l'est pas, le rendu serveur attend, et le repli le
-// mieux écrit du monde ne sert à rien.
+// The seven public calls to this client, spread across six modules, all fall back to local content
+// when the request FAILS — that is the work of F-02 and `fetchOrFallback`,
+// and it is complete. But a `catch` only runs once the request has
+// FINISHED. As long as it has not, server rendering waits, and the best-written
+// fallback in the world is of no use.
 //
-// Mesuré sur le serveur de production, hôte Sanity acceptant la connexion sans
-// jamais répondre : `/fr` a mis 13,9 s — et rendu 200, par le repli, après
-// coup. Sans que rien ne soit journalisé, le `catch` de `src/lib/home.ts`
-// étant muet.
+// Measured on the production server, with a Sanity host accepting the connection without
+// ever responding: `/fr` took 13.9 s — and rendered 200, via the fallback, after
+// the fact. Without anything being logged, since the `catch` in `src/lib/home.ts`
+// is silent.
 //
-// POURQUOI `timeout` NE SUFFIT PAS. Le client REJOUE une requête échouée, et le
-// délai se paie une fois par tentative : mesuré, `timeout: 3000` seul rejette
-// après 21,4 s, pas 3. Les réessais sont donc coupés. Ils ne rendraient service
-// que si la panne était plus brève que le délai, et ils coûtent leur durée à
-// CHAQUE page tant qu'elle dure — alors que le repli local est complet et
-// immédiat. Mieux vaut le contenu local en 2,5 s que le contenu Sanity en 21.
+// WHY `timeout` IS NOT ENOUGH. The client RETRIES a failed request, and the
+// delay is paid once per attempt: measured, `timeout: 3000` alone rejects
+// after 21.4 s, not 3. Retries are therefore disabled. They would only help
+// if the outage were shorter than the delay, and they cost their duration on
+// EVERY page for as long as it lasts — whereas the local fallback is complete and
+// immediate. Better the local content in 2.5 s than the Sanity content in 21.
 //
-// La borne vaut ~50 fois la latence nominale du CDN Sanity (quelques dizaines
-// de millisecondes) : elle ne peut pas se déclencher sur une lecture saine.
+// The bound is ~50 times the nominal latency of the Sanity CDN (a few tens
+// of milliseconds): it cannot trigger on a healthy read.
 //
-// Le Studio n'est PAS concerné : il monte `sanity.config` et non ce client. Les
-// opérations longues de l'éditeur gardent donc leur comportement.
+// The Studio is NOT affected: it mounts `sanity.config` and not this client. The
+// editor's long operations therefore keep their behavior.
 export const SANITY_READ_TIMEOUT_MS = 2_500;
 
-// Exportées pour que la garde puisse construire un client AVEC CES OPTIONS-LÀ
-// et le pointer sur un serveur muet, plutôt que de réécrire une configuration
-// qui divergerait de celle-ci sans que rien ne le signale.
+// Exported so that the guard can build a client WITH THESE VERY OPTIONS
+// and point it at a silent server, rather than rewriting a configuration
+// that would diverge from this one without anything flagging it.
 export const clientOptions = {
   projectId,
   dataset,
   apiVersion,
-  // Lectures publiques (CDN, rapide). Pour le mode brouillon : useCdn:false + token.
+  // Public reads (CDN, fast). For draft mode: useCdn:false + token.
   useCdn: true,
   timeout: SANITY_READ_TIMEOUT_MS,
   maxRetries: 0,

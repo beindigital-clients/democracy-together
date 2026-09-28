@@ -27,8 +27,8 @@ type AdminReport = FunctionReturnType<
 type Draft = {
   title: string;
   intro: string;
-  // Paragraphes d'un chapitre séparés par une ligne vide : c'est ainsi qu'on
-  // écrit de la prose dans une zone de texte, et c'est ce que le PDF rend.
+  // Paragraphs of a chapter separated by a blank line: that is how one
+  // writes prose in a text area, and that is what the PDF renders.
   chapters: { heading: string; body: string }[];
   keyFigures: { value: string; label: string }[];
 };
@@ -51,8 +51,8 @@ function useSizeFormat() {
   return (bytes: number) => kb.format(Math.max(1, Math.round(bytes / 1024)));
 }
 
-// Éditeur d'une langue d'une édition. Les bornes affichées sont celles que le
-// serveur applique (`REPORT_BOUNDS`, même module).
+// Editor for one language of an edition. The bounds displayed are those the
+// server applies (`REPORT_BOUNDS`, same module).
 function ContentEditor({
   reportId,
   locale,
@@ -496,10 +496,10 @@ function ReportCard({ report }: { report: AdminReport }) {
   );
 }
 
-// RAPPORTS ANNUELS (F-41) — administration, rang éditeur (la garde est côté
-// Convex : `requireNetworkRole(ctx, 'editeur')`). Migration des éditions
-// codées, création, rédaction par langue, publication ; le PDF de chaque
-// langue est recomposé automatiquement à chaque enregistrement.
+// ANNUAL REPORTS (F-41) — administration, editor rank (the guard is on the
+// Convex side: `requireNetworkRole(ctx, 'editeur')`). Migration of the hard-coded
+// editions, creation, per-language drafting, publication; each
+// language's PDF is automatically recomposed on every save.
 export default function AdminReports() {
   const t = useTranslations('reports');
   const ta = useTranslations('admin');

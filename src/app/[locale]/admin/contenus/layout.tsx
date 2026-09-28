@@ -2,10 +2,10 @@ import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { ContentTabs } from '@/components/admin/contenus/content-tabs';
 
-// GESTION AUTONOME DES CONTENUS (F-62) — coquille commune des six écrans.
-// Le rang « éditeur » est posé par la navigation du back-office
-// (`admin-nav.tsx`, groupe « Édition ») et, surtout, par chaque fonction
-// Convex appelée (`requireEditor`) : cette coquille n'autorise rien.
+// SELF-SERVICE CONTENT MANAGEMENT (F-62) — shared shell of the six screens.
+// The "éditeur" rank is enforced by the back-office navigation
+// (`admin-nav.tsx`, "Édition" group) and, above all, by each Convex
+// function called (`requireEditor`): this shell authorizes nothing.
 export default async function ContenusLayout({
   children,
 }: {

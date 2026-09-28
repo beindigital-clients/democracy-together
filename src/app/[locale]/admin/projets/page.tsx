@@ -16,7 +16,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 import { ProgrammeAdminLink } from '@/components/programmes/admin-links';
 
-// File de revue des propositions de projets collaboratifs (F-60). Modérateur+.
+// Review queue for collaborative project proposals (F-60). Moderator+.
 export default function AdminProjects() {
   const t = useTranslations('admin');
   const tl = useTranslations('library');
@@ -29,7 +29,7 @@ export default function AdminProjects() {
   const reopen = useMutation(api.projects.reopenProjectProposal);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  // Retour d'action (27/09, m-2 / m-5) : décider et rouvrir restaient muets.
+  // Action feedback (27/09, m-2 / m-5): deciding and reopening stayed silent.
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
 
@@ -67,9 +67,9 @@ export default function AdminProjects() {
     }
   }
 
-  // Revenir sur une décision demande de ROUVRIR la proposition (issue #9) : le
-  // serveur refuse qu'on la retranche directement, et la réouverture laisse sa
-  // propre trace au journal.
+  // Going back on a decision requires REOPENING the proposal (issue #9): the
+  // server refuses to have it re-decided directly, and reopening leaves its
+  // own trace in the log.
   async function reopenProposal(id: string, title: string) {
     setBusy(id);
     try {

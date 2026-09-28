@@ -3,10 +3,10 @@ import { DIRECTORY_THEMES, REGIONS } from '@convex/lib/directory';
 import { vocabulary } from '@/i18n/vocabulary';
 import { OrgRevisionQueue } from '@/components/admin/org-revision-queue';
 
-// FICHES DES ORGANISATIONS (F-21, chantier comptes) — relecture des
-// révisions proposées par les responsables. Page serveur pour la même raison
-// que /espace-membre/organisation : traduire ici le vocabulaire de l'annuaire
-// sans envoyer l'espace `directory` au navigateur.
+// ORGANIZATION ENTRIES (F-21, accounts workstream) — review of the
+// revisions proposed by the managers. Server page for the same reason
+// as /espace-membre/organisation: translate the directory vocabulary here
+// without sending the `directory` namespace to the browser.
 export default async function AdminOrganisationsPage({
   params,
 }: {

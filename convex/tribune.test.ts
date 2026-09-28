@@ -15,10 +15,10 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Ces tests portent sur le fil PUBLIÉ et ses effets (commentaires, compteurs,
-// notifications, signalements) : le mode A POSTERIORI y est réglé
-// explicitement, comme le ferait l'administrateur. La modération a priori —
-// le défaut depuis le chantier communauté (F-45) — a ses propres tests
+// These tests cover the PUBLISHED feed and its effects (comments, counters,
+// notifications, reports): POST-moderation mode is set
+// explicitly, as the administrator would. Pre-moderation —
+// the default since the community workstream (F-45) — has its own tests
 // (convex/communaute-moderation.test.ts).
 async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
   await t.run(async (ctx) => {
@@ -51,8 +51,8 @@ async function member(
 const POST = {
   theme: 'transitions',
   format: 'court' as const,
-  // Langue de rédaction, déclarée par l'auteur (issue #35) : argument requis,
-  // pas de repli implicite — c'est elle qui fixe le canonical de la fiche.
+  // Writing language, declared by the author (issue #35): required argument,
+  // no implicit fallback — it is what sets the entry's canonical.
   lang: 'fr' as const,
   title: 'Sur les transitions',
   body: 'Une contribution courte mais valable.',
@@ -62,10 +62,10 @@ describe('Tribune — écriture (F-44)', () => {
   it('réserve la prise de parole aux membres, valide les champs', async () => {
     const t = await aPosteriori(convexTest(schema, modules));
 
-    // anonyme refusé
+    // anonymous rejected
     await expect(t.mutation(api.tribune.createPost, POST)).rejects.toThrow();
 
-    // visiteur refusé
+    // visitor rejected
     const vId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
@@ -76,7 +76,7 @@ describe('Tribune — écriture (F-44)', () => {
     ).rejects.toThrow();
 
     const { as } = await member(t, 'm@test.org', 'Awa Diop');
-    // thème invalide / titre trop court / format fond trop court
+    // invalid theme / title too short / long-form format too short
     await expect(
       as.mutation(api.tribune.createPost, { ...POST, theme: 'inconnu' }),
     ).rejects.toThrow();
@@ -91,7 +91,7 @@ describe('Tribune — écriture (F-44)', () => {
       }),
     ).rejects.toThrow();
 
-    // succès -> publié, nom d'auteur instantané
+    // success -> published, instant author name
     const id = await as.mutation(api.tribune.createPost, POST);
     const doc = await t.run((ctx) => ctx.db.get(id));
     expect(doc?.status).toBe('published');
@@ -100,15 +100,15 @@ describe('Tribune — écriture (F-44)', () => {
 });
 
 describe('Tribune — langue de rédaction (issue #35)', () => {
-  // Un billet est écrit dans UNE langue et n'est jamais traduit : c'est elle,
-  // et non le préfixe d'URL visité, qui décide du canonical de la fiche. Elle
-  // doit donc survivre à l'aller-retour écriture -> lecture.
+  // A post is written in ONE language and is never translated: it is that language,
+  // and not the visited URL prefix, that decides the entry's canonical. It
+  // must therefore survive the write -> read round trip.
   it('conserve la langue déclarée et la ressert au détail', async () => {
     const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org', 'Awa Diop');
 
-    // Rédigé en anglais — le cas que la langue de l'interface aurait deviné
-    // de travers pour un membre qui navigue en français.
+    // Written in English — the case the interface language would have guessed
+    // wrong for a member browsing in French.
     const id = await as.mutation(api.tribune.createPost, {
       ...POST,
       lang: 'en',
@@ -123,10 +123,10 @@ describe('Tribune — langue de rédaction (issue #35)', () => {
     const t = await aPosteriori(convexTest(schema, modules));
     const { as } = await member(t, 'm@test.org');
 
-    // Le cast exerce ce qu'un client non typé peut émettre : le validateur
-    // d'arguments refuse, il ne replie pas en silence sur la langue par défaut
-    // — sans quoi un billet se retrouverait canonicalisé dans une langue qui
-    // n'est pas la sienne.
+    // The cast exercises what an untyped client can send: the argument
+    // validator rejects it, it does not silently fall back to the default language
+    // — otherwise a post would end up canonicalized in a language that
+    // is not its own.
     await expect(
       as.mutation(api.tribune.createPost, {
         ...POST,
@@ -140,8 +140,8 @@ describe('Tribune — langue de rédaction (issue #35)', () => {
     const authorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'ancien@test.org' }),
     );
-    // Exactement la forme d'une ligne écrite avant l'ajout du champ : c'est ce
-    // qui justifie `v.optional` en base plutôt qu'une migration.
+    // Exactly the shape of a row written before the field was added: this is what
+    // justifies `v.optional` in the database rather than a migration.
     const id = await t.run((ctx) =>
       ctx.db.insert('tribunePosts', {
         authorUserId: authorId,
@@ -158,8 +158,8 @@ describe('Tribune — langue de rédaction (issue #35)', () => {
 
     const post = await t.query(api.tribune.getPost, { postId: id });
     expect(post).not.toBeNull();
-    // Absence assumée : le repli sur la langue par défaut appartient à
-    // `resolveLocale`, côté Next, seul endroit du projet à le décider.
+    // Intended absence: the fallback to the default language belongs to
+    // `resolveLocale`, on the Next side, the only place in the project that decides it.
     expect(post?.lang).toBeUndefined();
   });
 });
@@ -177,20 +177,20 @@ describe('Tribune — fil & commentaires (F-47)', () => {
       title: 'Autre sujet',
     });
 
-    // filtre par thème
+    // filter by theme
     const trans = await t.query(api.tribune.listPosts, {
       theme: 'transitions',
     });
     expect(trans).toHaveLength(1);
     expect(trans[0].title).toBe('Sur les transitions');
-    // sans filtre : les deux
+    // without filter: both
     expect((await t.query(api.tribune.listPosts, {})).length).toBe(2);
-    // La langue de rédaction sort dans le FIL (audit RGAA du 27/09, 8.7) : la
-    // page pose `lang` sur le titre et l'extrait d'un billet qui n'est pas
-    // dans la langue de la page.
+    // The writing language comes out in the FEED (RGAA audit of 27/09, 8.7): the
+    // page sets `lang` on the title and excerpt of a post that is not
+    // in the page's language.
     expect(trans[0].lang).toBe('fr');
 
-    // un autre membre commente -> compteur +1, notif à l'auteur
+    // another member comments -> counter +1, notification to the author
     await commenter.as.mutation(api.tribune.addComment, {
       postId: id,
       body: 'Bien vu, mais…',
@@ -203,7 +203,7 @@ describe('Tribune — fil & commentaires (F-47)', () => {
     const notifs = await author.as.query(api.notifications.myNotifications, {});
     expect(notifs.some((n) => n.titleKey === 'tribuneComment')).toBe(true);
 
-    // commenter son propre post ne se notifie pas
+    // commenting on one's own post does not notify
     await author.as.mutation(api.tribune.addComment, {
       postId: id,
       body: 'Je précise…',
@@ -221,13 +221,13 @@ describe('Tribune — signalement & modération (F-50)', () => {
     const author = await member(t, 'author@test.org', 'Auteur');
     const id = await author.as.mutation(api.tribune.createPost, POST);
 
-    // un membre signale le post
+    // a member reports the post
     await author.as.mutation(api.tribune.reportContent, {
       targetType: 'post',
       targetId: id,
     });
 
-    // la file est réservée aux modérateurs
+    // the queue is reserved for moderators
     await expect(t.query(api.tribune.listReports, {})).rejects.toThrow();
     await expect(
       author.as.query(api.tribune.listReports, {}),
@@ -242,7 +242,7 @@ describe('Tribune — signalement & modération (F-50)', () => {
     expect(reports).toHaveLength(1);
     expect(reports[0].excerpt).toBe('Sur les transitions');
 
-    // retirer -> post masqué du fil + file vidée
+    // remove -> post hidden from the feed + queue emptied
     await asMod.mutation(api.tribune.resolveReport, {
       reportId: reports[0]._id,
       action: 'remove',
@@ -253,10 +253,10 @@ describe('Tribune — signalement & modération (F-50)', () => {
   });
 });
 
-// F-46 / campagne du 27/09 (A-05) : la longueur d'un billet est bornée PAR
-// FORMAT — une « Brève » à 10 000 caractères, une « Analyse » à 20 000 — et
-// le refus porte un code lisible par le composer (`ConvexError`), au lieu du
-// « La publication a échoué » générique mesuré avec 21 000 caractères.
+// F-46 / 27/09 campaign (A-05): a post's length is bounded PER
+// FORMAT — a "Brève" at 10,000 characters, an "Analyse" at 20,000 — and
+// the refusal carries a code readable by the composer (`ConvexError`), instead of the
+// generic "La publication a échoué" measured with 21,000 characters.
 describe('Tribune — longueur calibrée par format (F-46, A-05)', () => {
   it('refuse une Brève de plus de 10 000 caractères, accepte l’Analyse équivalente', async () => {
     const t = await aPosteriori(convexTest(schema, modules));
@@ -267,7 +267,7 @@ describe('Tribune — longueur calibrée par format (F-46, A-05)', () => {
       as.mutation(api.tribune.createPost, { ...POST, format: 'court', body }),
     ).rejects.toMatchObject({ data: 'BODY_TOO_LONG' });
 
-    // Le même texte tient dans une Analyse (≤ 20 000).
+    // The same text fits in an Analyse (≤ 20,000).
     const id = await as.mutation(api.tribune.createPost, {
       ...POST,
       format: 'fond',
@@ -302,8 +302,8 @@ describe('Tribune — longueur calibrée par format (F-46, A-05)', () => {
   });
 });
 
-// A-06 : un commentaire d'un caractère ou de 4 001 caractères était refusé en
-// silence — le formulaire ne recevait aucun code exploitable.
+// A-06: a one-character or 4,001-character comment was rejected
+// silently — the form received no usable code.
 describe('Tribune — commentaire refusé avec un code lisible (A-06)', () => {
   it('trop court et trop long portent INVALID_COMMENT dans `data`', async () => {
     const t = await aPosteriori(convexTest(schema, modules));
@@ -314,7 +314,7 @@ describe('Tribune — commentaire refusé avec un code lisible (A-06)', () => {
         as.mutation(api.tribune.addComment, { postId, body }),
       ).rejects.toMatchObject({ data: 'INVALID_COMMENT' });
     }
-    // La borne exacte passe.
+    // The exact bound passes.
     await as.mutation(api.tribune.addComment, {
       postId,
       body: 'b'.repeat(TRIBUNE_COMMENT.max),
@@ -323,8 +323,8 @@ describe('Tribune — commentaire refusé avec un code lisible (A-06)', () => {
   });
 });
 
-// A-11 : l'auteur ne voyait jamais le statut de ses billets. `myPosts` rend
-// les siens — publiés ET retirés — et seulement les siens.
+// A-11: the author never saw the status of their posts. `myPosts` returns
+// theirs — published AND withdrawn — and only theirs.
 describe('Tribune — mes billets et leur statut (A-11)', () => {
   it('rend les billets de l’appelant avec leur statut, et rien aux autres', async () => {
     const t = await aPosteriori(convexTest(schema, modules));
@@ -346,11 +346,11 @@ describe('Tribune — mes billets et leur statut (A-11)', () => {
       ]),
     );
     expect(mine).toHaveLength(2);
-    // Le billet retiré n'apparaît plus dans le fil public…
+    // The withdrawn post no longer appears in the public feed…
     expect(
       (await t.query(api.tribune.listPosts, {})).map((p) => p._id),
     ).not.toContain(removed);
-    // …et Bob ne voit que le sien.
+    // …and Bob only sees his own.
     const bobs = await bob.as.query(api.tribune.myPosts, {});
     expect(bobs.map((p) => p.title)).toEqual(['De Bob']);
   });

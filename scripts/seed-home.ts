@@ -1,11 +1,11 @@
 import { getCliClient } from 'sanity/cli';
 import { homeFallback } from '../src/lib/home-content';
 
-// Seed de la page d'accueil (F-10) via la session CLI authentifiée :
+// Seed of the home page (F-10) via the authenticated CLI session:
 //   npx sanity exec scripts/seed-home.ts --with-user-token
-// Idempotent (createOrReplace sur _id `homePage-fr`/`-en`). Contenu issu du
-// repli LOCAL (homeFallback) — aucune fabrication. Seuls les tableaux d'OBJETS
-// reçoivent un `_key` (les tableaux de chaînes n'en ont pas besoin).
+// Idempotent (createOrReplace on _ids `homePage-fr`/`-en`). Content taken from the
+// LOCAL fallback (homeFallback) — nothing fabricated. Only arrays of OBJECTS
+// receive a `_key` (arrays of strings do not need one).
 const client = getCliClient();
 
 type Obj = Record<string, unknown>;

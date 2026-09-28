@@ -45,8 +45,8 @@ type AdminCall = FunctionReturnType<
   typeof api.projectCalls.adminListCalls
 >[number];
 
-// Appels à projets datés (F-60) — rang modérateur : rédaction, publication,
-// évaluateurs, classement et décisions.
+// Dated calls for projects (F-60) — moderator rank: drafting, publication,
+// evaluators, ranking and decisions.
 export default function AdminProjectCalls() {
   const t = useTranslations('projects');
   const calls = useQuery(api.projectCalls.adminListCalls);

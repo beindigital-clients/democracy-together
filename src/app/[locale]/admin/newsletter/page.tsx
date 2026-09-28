@@ -29,12 +29,12 @@ type Campaign = FunctionReturnType<typeof api.newsletter.listCampaigns>[number];
 type EmailStatus = FunctionReturnType<typeof api.newsletter.emailStatus>;
 type SiteLocale = (typeof routing.locales)[number];
 
-// Bornes du brouillon — les mêmes que `createCampaign` (INVALID_CAMPAIGN).
+// Draft bounds — the same as `createCampaign` (INVALID_CAMPAIGN).
 const SUBJECT_MIN = 3;
 const BODY_MIN = 10;
 const PAGE = 20;
 
-/** Nom d'une langue du site, dans la langue de l'écran. */
+/** Name of a site language, in the screen's language. */
 function useLanguageName(): (code: string) => string {
   const locale = useLocale();
   return useMemo(() => {
@@ -48,11 +48,11 @@ function useLanguageName(): (code: string) => string {
   }, [locale]);
 }
 
-// L'ÉTAT DU FOURNISSEUR D'E-MAIL, EN TÊTE (campagne du 27/09, R-07 / m-4).
-// Une campagne partait « Envoyée · 3 envoyés » sans qu'aucun fournisseur
-// n'existe (envoi simulé de dev), et en production elle aurait fini « Erreur »
-// sans un mot. Même principe que /admin/moderation-ia pour sa clé : l'état
-// s'annonce AVANT de composer, et l'envoi est refusé quand rien ne partira.
+// THE EMAIL PROVIDER STATE, AT THE TOP (27/09 campaign, R-07 / m-4).
+// A campaign went out as "Envoyée · 3 envoyés" without any provider
+// existing (simulated dev sending), and in production it would have ended as "Erreur"
+// without a word. Same principle as /admin/moderation-ia for its key: the state
+// is announced BEFORE composing, and sending is refused when nothing will go out.
 function EmailStatusBanner({ status }: { status: EmailStatus | undefined }) {
   const t = useTranslations('admin');
   const tn = useTranslations('newsletter');
@@ -86,7 +86,7 @@ function EmailStatusBanner({ status }: { status: EmailStatus | undefined }) {
   );
 }
 
-// --- Abonnés -----------------------------------------------------------------
+// --- Subscribers -----------------------------------------------------------------
 
 function SubscriberStats() {
   const tn = useTranslations('newsletter');
@@ -255,7 +255,7 @@ function SubscriberList() {
   );
 }
 
-// --- Versions traduites d'un brouillon --------------------------------------
+// --- Translated versions of a draft --------------------------------------
 
 function VariantsEditor({ campaign }: { campaign: Campaign }) {
   const tn = useTranslations('newsletter');
@@ -395,7 +395,7 @@ function VariantsEditor({ campaign }: { campaign: Campaign }) {
   );
 }
 
-// --- Progression d'un envoi --------------------------------------------------
+// --- Send progress --------------------------------------------------
 
 function DeliveryProgress({ campaign }: { campaign: Campaign }) {
   const tn = useTranslations('newsletter');
@@ -449,8 +449,8 @@ function CampaignRow({
 }: {
   campaign: Campaign;
   subscribers: number;
-  // `false` sans fournisseur : le bouton reste, désactivé et expliqué, plutôt
-  // que de disparaître sans raison.
+  // `false` without a provider: the button stays, disabled and explained, rather
+  // than disappearing for no reason.
   canSend: boolean;
 }) {
   const t = useTranslations('admin');
@@ -465,9 +465,9 @@ function CampaignRow({
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
 
-  // L'envoi est IRRÉVERSIBLE et touche tous les abonnés confirmés : il passe
-  // par une confirmation qui nomme la campagne et le nombre de destinataires
-  // (motif de l'issue #38), puis annonce son départ.
+  // Sending is IRREVERSIBLE and reaches all confirmed subscribers: it goes
+  // through a confirmation that names the campaign and the number of recipients
+  // (the issue #38 pattern), then announces its departure.
   async function onSend() {
     setPending(true);
     try {
@@ -646,8 +646,8 @@ export default function AdminNewsletter() {
 
   async function onCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // Le garde sortait en silence (m-4) : l'objet de 2 caractères ou le
-    // message de 5 ne produisait ni message ni refus visible.
+    // The guard returned silently (m-4): a 2-character subject or a
+    // 5-character message produced neither a message nor a visible refusal.
     if (subject.trim().length < SUBJECT_MIN || body.trim().length < BODY_MIN) {
       setError(t('nlTooShort'));
       return;

@@ -30,10 +30,10 @@ import {
   useRunAction,
 } from '@/components/admin/contenus/editor-shell';
 
-// REPLAYS — ÉDITION (F-54, F-62). Lien YouTube, Vimeo ou fichier vidéo,
-// validé côté serveur contre sa plateforme ; événement lié ; thèmes ; langues.
-// Un replay sans vidéo reste publiable : la page publique dit alors
-// « enregistrement bientôt disponible ».
+// REPLAYS — EDITING (F-54, F-62). YouTube, Vimeo or video file link,
+// validated server-side against its platform; linked event; themes; languages.
+// A replay without a video remains publishable: the public page then says
+// "enregistrement bientôt disponible".
 
 type VideoKind = '' | 'youtube' | 'vimeo' | 'file';
 type Draft = {

@@ -31,11 +31,11 @@ import {
   useRunAction,
 } from '@/components/admin/contenus/editor-shell';
 
-// AGENDA — ÉDITION (F-52, F-62). Créer, modifier, publier, dépublier, annuler
-// un événement ; les INSCRIPTIONS restent sur `/admin/evenements` (rang
-// modérateur), où chaque événement porte son export CSV. Aucune donnée n'est
-// dupliquée entre les deux écrans : celui-ci édite l'événement, l'autre lit
-// ses inscrits.
+// AGENDA — EDITING (F-52, F-62). Create, edit, publish, unpublish, cancel
+// an event; REGISTRATIONS stay on `/admin/evenements` (moderator
+// rank), where each event carries its CSV export. No data is
+// duplicated between the two screens: this one edits the event, the other reads
+// its registrants.
 
 type EventType = 'sommet' | 'webinaire' | 'atelier';
 type EventRegion = 'afrique' | 'europe' | 'en-ligne';
@@ -85,7 +85,7 @@ const EMPTY: Draft = {
   imageMediaId: undefined,
 };
 
-// Fuseaux proposés (liste ouverte : tout fuseau IANA est accepté).
+// Offered time zones (open list: any IANA time zone is accepted).
 const TIMEZONES = [
   'Europe/Paris',
   'Europe/Brussels',
@@ -132,7 +132,7 @@ export default function AdminContentEvents() {
     editing && editing !== 'new' ? { id: editing } : 'skip',
   );
 
-  // Chargement de la fiche à éditer dans le brouillon du formulaire.
+  // Loading the entry to edit into the form draft.
   useEffect(() => {
     if (!current) return;
     setDraft({

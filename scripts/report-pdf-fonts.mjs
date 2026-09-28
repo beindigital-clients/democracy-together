@@ -1,26 +1,26 @@
-// Régénère les polices EMBARQUÉES du PDF des rapports annuels (F-41).
+// Regenerates the EMBEDDED fonts of the annual reports PDF (F-41).
 //
 //   node scripts/report-pdf-fonts.mjs
 //
-// POURQUOI DES POLICES DANS LE DÉPÔT. Le PDF est composé dans une action
-// Convex (runtime Node) : elle n'a ni accès au dossier `public/` du site, ni
-// aux polices système, et ne doit dépendre d'aucun service au moment de
-// générer. Les polices voyagent donc AVEC le code, encodées en base64 dans des
-// modules TypeScript que le bundler Convex embarque comme n'importe quelle
-// constante.
+// WHY FONTS IN THE REPO. The PDF is composed in a Convex action
+// (Node runtime): it has access neither to the site's `public/` folder, nor
+// to system fonts, and must not depend on any service at
+// generation time. The fonts therefore travel WITH the code, base64-encoded in
+// TypeScript modules that the Convex bundler embeds like any other
+// constant.
 //
-// POURQUOI CES FAMILLES. Ce sont celles du site (src/app/globals.css) :
-// Newsreader pour les titres latins, IBM Plex Sans pour le texte, IBM Plex
-// Sans Arabic pour l'arabe. Plex Sans Arabic a été préférée à Noto Naskh
-// Arabic (la police de titre arabe du site) après MESURE : Naskh attache ses
-// lettres par positionnement cursif (décalages verticaux), ce qui découpe
-// chaque mot en dizaines d'opérateurs de texte et rend l'extraction du texte
-// illisible ; Plex Sans Arabic se lie sur la ligne de base
+// WHY THESE FAMILIES. They are the site's (src/app/globals.css):
+// Newsreader for Latin headings, IBM Plex Sans for body text, IBM Plex
+// Sans Arabic for Arabic. Plex Sans Arabic was preferred over Noto Naskh
+// Arabic (the site's Arabic heading font) after MEASUREMENT: Naskh joins its
+// letters by cursive positioning (vertical offsets), which splits
+// each word into dozens of text operators and makes text extraction
+// unreadable; Plex Sans Arabic joins on the baseline
 // (docs/backlog/editorial.md § Mesure).
 //
-// Source : l'API Google Fonts, qui sert du TrueType statique quand l'agent
-// utilisateur ne revendique pas WOFF2. Licence : SIL Open Font License 1.1
-// (embarquement et redistribution autorisés).
+// Source: the Google Fonts API, which serves static TrueType when the user
+// agent does not claim WOFF2. License: SIL Open Font License 1.1
+// (embedding and redistribution allowed).
 import { writeFileSync, mkdirSync } from 'node:fs';
 
 const FONTS = [
@@ -38,7 +38,7 @@ for (const font of FONTS) {
   const css = await (
     await fetch(
       `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font.family)}:wght@${font.weight}`,
-      // Un agent sans prétention WOFF2 : l'API répond en TrueType.
+      // A user agent with no WOFF2 claim: the API responds with TrueType.
       { headers: { 'user-agent': 'report-pdf-fonts' } },
     )
   ).text();
@@ -46,9 +46,9 @@ for (const font of FONTS) {
   if (!url)
     throw new Error(`Pas de TrueType pour ${font.family} ${font.weight}`);
   const bytes = Buffer.from(await (await fetch(url)).arrayBuffer());
-  // `'use node'` : ces modules ne servent qu'à l'action Node qui compose le
-  // PDF ; sans la directive, Convex les embarquerait aussi dans le runtime
-  // des requêtes et mutations, où ils n'ont rien à faire.
+  // `'use node'`: these modules only serve the Node action that composes the
+  // PDF; without the directive, Convex would also embed them in the runtime
+  // of queries and mutations, where they have no business.
   const body =
     `'use node';\n\n` +
     `// GÉNÉRÉ par scripts/report-pdf-fonts.mjs — ne pas éditer.\n` +

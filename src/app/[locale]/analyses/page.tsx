@@ -1,7 +1,7 @@
 import { redirect } from '@/i18n/navigation';
 
-// « Analyses » est l'entrée de nav historique vers la bibliothèque (F-32).
-// On redirige l'ancienne URL pour préserver les liens existants.
+// "Analyses" is the historical nav entry to the library (F-32).
+// We redirect the old URL to preserve existing links.
 export default async function AnalysesPage({
   params,
 }: {

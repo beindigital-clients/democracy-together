@@ -56,13 +56,13 @@ import {
 } from '../lib/socialAccess';
 import { exportUserDataSocial, socialExportValidator } from './account';
 
-// PROFILS DE PERSONNES (chantier « social ») : édition de son profil, photo,
-// préférences, page publique `/membres/<handle>` et annuaire des personnes.
+// PEOPLE PROFILES ("social" workstream): editing one's profile, photo,
+// preferences, public page `/membres/<handle>` and people directory.
 //
-// Règle d'or de ce module : un profil que le lecteur n'a pas le droit de voir
-// est INDISCERNABLE d'un profil qui n'existe pas. Toutes les lectures
-// renvoient `null` (ou n'incluent pas la ligne) dans les deux cas — jamais un
-// « profil privé » qui confirmerait qu'il y a quelqu'un derrière le handle.
+// Golden rule of this module: a profile the reader is not allowed to see
+// is INDISTINGUISHABLE from a profile that does not exist. All reads
+// return `null` (or omit the row) in both cases — never a
+// "private profile" that would confirm there is someone behind the handle.
 
 const linkValidator = v.object({ kind: linkKindValidator, url: v.string() });
 const orgValidator = v.union(
@@ -70,7 +70,7 @@ const orgValidator = v.union(
   v.null(),
 );
 
-// --- Mon profil (édition) ------------------------------------------------------
+// --- My profile (editing) ------------------------------------------------------
 
 const myProfileValidator = v.object({
   exists: v.boolean(),
@@ -92,8 +92,8 @@ const myProfileValidator = v.object({
   followingCount: v.number(),
   organization: orgValidator,
   preferredLocale: v.union(locale, v.null()),
-  // Le courriel « nouveau message » ne peut partir que si un fournisseur est
-  // configuré : l'écran l'annonce au lieu de laisser cocher une promesse.
+  // The "new message" email can only be sent if a provider is
+  // configured: the screen says so instead of letting users tick a promise.
   emailAvailable: v.boolean(),
 });
 
@@ -157,9 +157,9 @@ export const getMine = query({
   },
 });
 
-// Codes d'erreur de `saveProfile` — `ConvexError` : le code traverse jusqu'au
-// navigateur (le message d'un `Error` nu est masqué en production), et
-// l'écran rattache chaque refus au champ qui l'a causé.
+// `saveProfile` error codes — `ConvexError`: the code travels all the way to the
+// browser (a bare `Error` message is masked in production), and
+// the screen ties each refusal to the field that caused it.
 function refuse(code: string): never {
   throw new ConvexError(code);
 }
@@ -173,7 +173,7 @@ function cleanOptional(value: string, max: number, code: string) {
 export const saveProfile = mutation({
   args: {
     displayName: v.string(),
-    // Vide : dérivé du nom à la création, inchangé ensuite.
+    // Empty: derived from the name at creation, unchanged afterwards.
     handle: v.string(),
     bio: v.string(),
     jobTitle: v.string(),
@@ -240,9 +240,9 @@ export const saveProfile = mutation({
 
     const existing = await profileByUserId(ctx, user._id);
 
-    // Handle : choisi, ou dérivé du nom à la CRÉATION seulement. Un handle
-    // n'est jamais recalculé quand le nom change — un lien partagé doit
-    // continuer de mener au même profil.
+    // Handle: chosen, or derived from the name at CREATION only. A handle
+    // is never recomputed when the name changes — a shared link must
+    // keep leading to the same profile.
     const requested = normalizeHandle(args.handle);
     let handle: string;
     if (requested) {
@@ -289,9 +289,9 @@ export const saveProfile = mutation({
   },
 });
 
-// Premier handle libre à partir d'une base dérivée : `base`, `base-2`…
-// Borné : au-delà, un suffixe tiré de l'horloge tranche (collision
-// pratiquement impossible, et la personne peut toujours en choisir un).
+// First free handle from a derived base: `base`, `base-2`…
+// Bounded: beyond that, a clock-based suffix settles it (collision
+// practically impossible, and the person can always choose one).
 async function freeHandle(ctx: QueryCtx, base: string): Promise<string> {
   for (let n = 1; n <= 30; n++) {
     const candidate = n === 1 ? base : `${base}-${n}`;
@@ -308,8 +308,8 @@ export const generatePhotoUploadUrl = mutation({
   returns: v.string(),
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    // La photo s'attache à un profil existant : pas d'URL de téléversement
-    // pour un compte qui n'en a pas (le stockage n'est pas une décharge).
+    // The photo attaches to an existing profile: no upload URL
+    // for an account that has none (storage is not a dumping ground).
     if (!(await profileByUserId(ctx, user._id))) {
       throw new ConvexError('PROFILE_REQUIRED');
     }
@@ -321,23 +321,23 @@ export const generatePhotoUploadUrl = mutation({
   },
 });
 
-// Vérification de la photo DANS UNE ACTION : seule une action peut relire les
-// octets du stockage (`ctx.storage.get`). Trois contrôles, tous nécessaires :
-//  1. la taille réelle (bornée : coût et déni de service) ;
-//  2. le type DÉCLARÉ au téléversement, qui est celui avec lequel le stockage
-//     servira le fichier — il doit être une image matricielle autorisée ;
-//  3. le CONTENU réel (signature des premiers octets), qui doit correspondre
-//     au type déclaré. Un HTML ou un SVG renommé en `.png` échoue ici.
-// Un fichier refusé est EFFACÉ du stockage aussitôt : il n'est référencé par
-// rien, et le laisser serait un stockage gratuit pour qui sait téléverser.
+// Photo verification IN AN ACTION: only an action can re-read the
+// bytes from storage (`ctx.storage.get`). Three checks, all necessary:
+//  1. the actual size (bounded: cost and denial of service);
+//  2. the type DECLARED at upload, which is the one storage
+//     will serve the file with — it must be an allowed raster image;
+//  3. the actual CONTENT (signature of the first bytes), which must match
+//     the declared type. An HTML or SVG renamed to `.png` fails here.
+// A rejected file is DELETED from storage immediately: nothing references it,
+// and leaving it would be free storage for anyone who knows how to upload.
 export const setPhoto = action({
   args: { storageId: v.id('_storage') },
   returns: v.object({ ok: v.literal(true) }),
   handler: async (ctx, { storageId }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('UNAUTHENTICATED');
-    // Compte suspendu (chantier comptes) : l'action n'a pas de base, la
-    // garde complète est rejouée par la query qui connaît l'état du compte.
+    // Suspended account (accounts workstream): the action has no database, the
+    // full guard is replayed by the query that knows the account state.
     await ctx.runQuery(internal.accounts.selfForAction, {});
 
     const meta: { size: number; contentType: string | null } | null =
@@ -349,8 +349,8 @@ export const setPhoto = action({
     };
     if (!meta || !blob) throw new ConvexError('INVALID_PHOTO');
     if (meta.size === 0 || meta.size > PHOTO_MAX_BYTES) return await reject();
-    // Type déclaré : celui que le stockage a relevé à l'envoi (et avec lequel
-    // il servira le fichier) ; à défaut, celui que porte le blob relu.
+    // Declared type: the one storage recorded at upload (and with which
+    // it will serve the file); failing that, the one carried by the re-read blob.
     const declared = meta.contentType ?? blob.type ?? '';
     if (!(PHOTO_TYPES as readonly string[]).includes(declared)) {
       return await reject();
@@ -417,7 +417,7 @@ export const removePhoto = mutation({
   },
 });
 
-// --- Page publique `/membres/<handle>` ------------------------------------------
+// --- Public page `/membres/<handle>` ------------------------------------------
 
 export const publicProfileValidator = v.object({
   handle: v.string(),
@@ -432,14 +432,14 @@ export const publicProfileValidator = v.object({
   organization: orgValidator,
   followerCount: v.number(),
   followingCount: v.number(),
-  // La page ne s'indexe que si ce drapeau est vrai (visibilité publique d'un
-  // membre du réseau). Une page « membres » est servie en `noindex`.
+  // The page is indexed only if this flag is true (public visibility of a
+  // network member). A "membres" page is served as `noindex`.
   indexable: v.boolean(),
   updatedAt: v.number(),
 });
 
-// Projection EXPLICITE (jamais `{ ...profile }`) : `userId`, les préférences,
-// `mutedNotificationTypes`, `messagePolicy`, `photoId` ne sortent pas.
+// EXPLICIT projection (never `{ ...profile }`): `userId`, preferences,
+// `mutedNotificationTypes`, `messagePolicy`, `photoId` do not leave.
 async function projectPublic(
   ctx: QueryCtx,
   p: Doc<'memberProfiles'>,
@@ -477,9 +477,9 @@ export const getByHandle = query({
   },
 });
 
-// Relation du lecteur CONNECTÉ avec un profil qu'il peut voir : boutons
-// suivre / écrire / bloquer. `null` pour un anonyme ou un profil invisible —
-// même réponse que pour un handle inconnu.
+// Relationship of the SIGNED-IN reader with a profile they can see: buttons
+// follow / write / block. `null` for an anonymous user or an invisible profile —
+// same response as for an unknown handle.
 export const relationship = query({
   args: { handle: v.string() },
   returns: v.union(
@@ -530,11 +530,11 @@ export const relationship = query({
   },
 });
 
-// --- Annuaire des personnes (membres connectés) --------------------------------
+// --- People directory (signed-in members) --------------------------------
 
-// Nombre de lignes candidates lues au plus pour une page d'annuaire. Les
-// filtres thème et langue portent sur des TABLEAUX, qu'un index Convex ne
-// sait pas filtrer : on lit un lot borné de profils listés, puis on filtre.
+// Maximum number of candidate rows read for a directory page. The
+// theme and language filters apply to ARRAYS, which a Convex index cannot
+// filter: we read a bounded batch of listed profiles, then filter.
 const PEOPLE_SCAN_MAX = 400;
 
 export const search = query({
@@ -546,14 +546,14 @@ export const search = query({
   },
   returns: v.object({
     items: v.array(personCardValidator),
-    // Vrai quand il y avait plus de résultats que la page n'en montre :
-    // l'écran invite alors à affiner.
+    // True when there were more results than the page shows:
+    // the screen then invites the user to refine.
     truncated: v.boolean(),
   }),
   handler: async (ctx, args) => {
     const viewer = await loadViewer(ctx);
-    // Annuaire RÉSERVÉ aux membres du réseau : un anonyme ou un visiteur
-    // reçoit une liste vide, pas une erreur (la page est montée côté client).
+    // Directory RESERVED for network members: an anonymous user or a visitor
+    // receives an empty list, not an error (the page is mounted client-side).
     if (!viewer?.isMember) return { items: [], truncated: false };
 
     const q = fold((args.q ?? '').slice(0, 100));
@@ -574,8 +574,8 @@ export const search = query({
     const items = [];
     let truncated = candidates.length === PEOPLE_SCAN_MAX;
     for (const p of candidates) {
-      // `listed` est déjà dans l'index ; on revérifie la visibilité réelle
-      // (rôle du propriétaire, blocage) : c'est la même décision que la page.
+      // `listed` is already in the index; we re-check actual visibility
+      // (owner's role, blocking): it is the same decision as the page.
       if (p.visibility === 'private') continue;
       if (args.theme && !p.themes.includes(args.theme)) continue;
       if (args.language && !p.languages.includes(args.language)) continue;
@@ -591,9 +591,9 @@ export const search = query({
   },
 });
 
-// Dans l'annuaire, le blocage cache dans LES DEUX SENS (on ne retombe pas
-// sur la personne qu'on a bloquée en parcourant la liste). La page de profil,
-// elle, reste ouverte à celui qui a bloqué, pour qu'il puisse débloquer.
+// In the directory, blocking hides in BOTH DIRECTIONS (you do not run into
+// the person you blocked while browsing the list). The profile page,
+// however, stays open to the one who blocked, so they can unblock.
 async function visibleInDirectory(
   ctx: QueryCtx,
   viewer: NonNullable<Viewer>,
@@ -604,8 +604,8 @@ async function visibleInDirectory(
   return !(await isBlockedEitherWay(ctx, viewer.userId, p.userId));
 }
 
-// Handles des profils PUBLICS, pour le sitemap. Seuls les profils que la
-// visibilité rend indexables y figurent ; la liste est bornée.
+// Handles of PUBLIC profiles, for the sitemap. Only profiles that
+// visibility makes indexable are included; the list is bounded.
 const SITEMAP_MAX = 1000;
 
 export const listPublicHandles = query({
@@ -627,7 +627,7 @@ export const listPublicHandles = query({
   },
 });
 
-// --- Export RGPD (droit d'accès, depuis l'espace membre) -------------------------
+// --- GDPR export (right of access, from the member area) -------------------------
 
 export const exportMine = query({
   args: {},

@@ -13,13 +13,13 @@ import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { useRunAction } from '@/components/admin/contenus/editor-shell';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 
-// INSCRIPTIONS AUX ÉVÉNEMENTS (F-53) — rang modérateur.
+// EVENT REGISTRATIONS (F-53) — moderator rank.
 //
-// Intégré au chantier « contenus » sans être dupliqué : les événements
-// s'ÉDITENT sous `/admin/contenus/evenements` (rang éditeur) ; ici on LIT leurs
-// inscrits. Le titre de chaque événement vient désormais de la table (dans la
-// langue de l'écran), et chaque groupe porte son export CSV — une mutation
-// journalisée, puisque des données personnelles quittent le système.
+// Integrated into the "content" workstream without being duplicated: events
+// are EDITED under `/admin/contenus/evenements` (editor rank); here we READ their
+// registrants. Each event's title now comes from the table (in the
+// screen's language), and each group carries its CSV export — a logged
+// mutation, since personal data leaves the system.
 export default function AdminEvents() {
   const t = useTranslations('admin');
   const tc = useTranslations('contentAdmin');
@@ -31,8 +31,8 @@ export default function AdminEvents() {
   const { run } = useRunAction();
   const notify = useActionFeedback();
 
-  // Regroupe les inscriptions par événement (la liste arrive triée par date
-  // décroissante : l'ordre des groupes suit l'inscription la plus récente).
+  // Groups registrations by event (the list arrives sorted by descending
+  // date: the order of groups follows the most recent registration).
   const groups = useMemo(() => {
     const map = new Map<string, NonNullable<typeof regs>>();
     for (const r of regs ?? []) {
@@ -118,7 +118,7 @@ export default function AdminEvents() {
                     <table className="w-full border-collapse text-start text-sm">
                       <thead>
                         <tr className="border-b border-line text-[12px] uppercase tracking-[0.04em] text-muted">
-                          {/* Première colonne figée au défilement (27/09, C-1). */}
+                          {/* First column pinned while scrolling (27/09, C-1). */}
                           <th
                             scope="col"
                             className="sticky start-0 z-[1] bg-paper px-4 py-2.5 font-medium"

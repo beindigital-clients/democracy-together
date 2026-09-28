@@ -4,23 +4,23 @@ import { convexCspOrigins } from './src/lib/convex-origins';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-// Content-Security-Policy (sécurité — défense en profondeur). 'unsafe-inline'
-// reste nécessaire (script d'init du thème + scripts inline de Next ; styles
-// inline de framer-motion / Tailwind). connect-src ouvre Convex (https + wss,
-// sync temps réel + stockage) et Sanity. reCAPTCHA v3 (anti-spam formulaires
-// publics) charge son script depuis www.google.com / www.gstatic.com, ouvre une
-// iframe invisible (frame-src) et un XHR de scoring (connect-src) vers Google.
-// Le Studio `/studio` est EXCLU de la CSP (app cliente lourde, susceptible
-// d'avoir besoin d'eval) — voir headers().
+// Content-Security-Policy (security — defense in depth). 'unsafe-inline'
+// remains necessary (theme init script + Next inline scripts; inline
+// styles from framer-motion / Tailwind). connect-src opens Convex (https + wss,
+// real-time sync + storage) and Sanity. reCAPTCHA v3 (anti-spam for public
+// forms) loads its script from www.google.com / www.gstatic.com, opens an
+// invisible iframe (frame-src) and a scoring XHR (connect-src) to Google.
+// The `/studio` Studio is EXCLUDED from the CSP (heavy client app, likely
+// to need eval) — see headers().
 //
-// La CSP est TOUJOURS posée (cohérence dev/prod + testable), mais RELÂCHÉE en
-// développement : React et Turbopack (Fast Refresh / HMR) exigent `eval()` et
-// un websocket de rechargement. `'unsafe-eval'` et `ws://localhost` ne sont
-// ajoutés QU'en dev — la CSP de PROD reste stricte (React n'eval jamais en prod).
+// The CSP is ALWAYS set (dev/prod consistency + testable), but RELAXED in
+// development: React and Turbopack (Fast Refresh / HMR) require `eval()` and
+// a reload websocket. `'unsafe-eval'` and `ws://localhost` are
+// added ONLY in dev — the PROD CSP remains strict (React never evals in prod).
 const isDev = process.env.NODE_ENV !== 'production';
-// Déploiement Convex hors cloud (auto-hébergé, ou local avec `npx convex dev
-// --local`) : son origine n'est pas couverte par `*.convex.cloud`, et sans elle
-// la CSP coupe le websocket de sync en silence. Vide pour un `*.convex.cloud`.
+// Non-cloud Convex deployment (self-hosted, or local with `npx convex dev
+// --local`): its origin is not covered by `*.convex.cloud`, and without it
+// the CSP silently cuts the sync websocket. Empty for a `*.convex.cloud`.
 const convexOrigins = convexCspOrigins(process.env.NEXT_PUBLIC_CONVEX_URL);
 const extra = (origins: string[]) =>
   origins.length ? ` ${origins.join(' ')}` : '';
@@ -30,31 +30,31 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'self'",
   "form-action 'self'",
-  // `*.convex.cloud` EST NÉCESSAIRE ICI, et pas seulement dans `connect-src` :
-  // les illustrations extraites des PDF joints sont servies depuis le stockage
-  // Convex (`ctx.storage.getUrl()` -> https://<déploiement>.convex.cloud/api/
-  // storage/<id>) et rendues par la vue document. Sans cette origine, le
-  // navigateur refuse CHAQUE image du document traduit — c'est-à-dire ce que la
-  // fonctionnalité existe pour préserver — et le lecteur n'obtient que des
-  // icônes cassées, qu'il enregistre telles quelles dans son PDF.
+  // `*.convex.cloud` IS NEEDED HERE, and not only in `connect-src`:
+  // the illustrations extracted from attached PDFs are served from Convex
+  // storage (`ctx.storage.getUrl()` -> https://<deployment>.convex.cloud/api/
+  // storage/<id>) and rendered by the document view. Without this origin, the
+  // browser blocks EVERY image of the translated document — that is, what the
+  // feature exists to preserve — and the reader only gets
+  // broken icons, which they save as is into their PDF.
   `img-src 'self' data: blob: https://cdn.sanity.io https://*.convex.cloud${extra(convexOrigins.img)}`,
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
-  // Replays (F-54, chantier « contenus ») : lecteurs YouTube — domaine
-  // « nocookie », sans traceur avant lecture — et Vimeo. Seules ces deux
-  // origines : l'adresse intégrée est recalculée côté serveur à partir d'un
-  // lien validé contre sa plateforme, jamais recopiée telle que saisie.
+  // Replays (F-54, "content" workstream): YouTube players — the
+  // "nocookie" domain, with no tracker before playback — and Vimeo. Only these two
+  // origins: the embed address is recomputed server-side from a
+  // link validated against its platform, never copied as entered.
   "frame-src 'self' https://www.google.com https://www.youtube-nocookie.com https://player.vimeo.com",
-  // Replays en FICHIER vidéo (mp4, webm…) hébergés hors du site : https
-  // uniquement, contrôlé à la saisie (`validateVideoUrl`).
+  // Replays as a video FILE (mp4, webm…) hosted off-site: https
+  // only, checked on entry (`validateVideoUrl`).
   "media-src 'self' https:",
   `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.sanity.io wss://*.sanity.io https://www.google.com${extra(convexOrigins.connect)}${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join('; ');
 
-// En-têtes sans risque, appliqués partout (y compris /studio).
+// Risk-free headers, applied everywhere (including /studio).
 const baseSecurityHeaders = [
   {
     key: 'Strict-Transport-Security',
@@ -71,9 +71,9 @@ const baseSecurityHeaders = [
   },
 ];
 
-// Démo / préprod : empêcher l'indexation tant que ce n'est pas le site final
-// (variable `DEMO_NOINDEX` posée sur le déploiement de démo, à retirer au
-// lancement réel).
+// Demo / pre-prod: prevent indexing as long as this is not the final site
+// (`DEMO_NOINDEX` variable set on the demo deployment, to be removed at the
+// real launch).
 if (process.env.DEMO_NOINDEX) {
   baseSecurityHeaders.push({
     key: 'X-Robots-Tag',
@@ -83,8 +83,8 @@ if (process.env.DEMO_NOINDEX) {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // `X-Powered-By: Next.js` n'apprend rien à l'utilisateur et quelque chose à
-  // l'attaquant (relevé le 27/09, en-têtes de sécurité).
+  // `X-Powered-By: Next.js` tells the user nothing and tells the
+  // attacker something (noted on 27/09, security headers).
   poweredByHeader: false,
   // Images: documentary photos (Sanity CDN) + placeholders.
   images: {
@@ -92,10 +92,10 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      // En-têtes de base (sans risque) sur toutes les routes.
+      // Base (risk-free) headers on all routes.
       { source: '/:path*', headers: baseSecurityHeaders },
-      // CSP partout SAUF le Studio Sanity (négatif lookahead, même style que le
-      // matcher du proxy). Toujours posée ; relâchée en dev (voir `csp`).
+      // CSP everywhere EXCEPT the Sanity Studio (negative lookahead, same style as the
+      // proxy matcher). Always set; relaxed in dev (see `csp`).
       {
         source: '/((?!studio).*)',
         headers: [{ key: 'Content-Security-Policy', value: csp }],

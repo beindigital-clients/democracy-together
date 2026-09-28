@@ -15,16 +15,16 @@ import {
   viewerCanSee,
 } from '../lib/socialAccess';
 
-// SUIVI de personnes (et d'organisations), compteurs, listes, et fil
-// d'activité des personnes suivies.
+// FOLLOWING people (and organizations), counters, lists, and the activity
+// feed of followed people.
 //
-// Suivre suppose de VOIR : on ne suit que quelqu'un dont le profil nous est
-// visible, et le refus est le même que pour un profil inexistant
-// (`NOT_FOUND`) — sans quoi `follow` deviendrait un oracle d'existence des
-// profils privés.
+// Following requires SEEING: you can only follow someone whose profile is
+// visible to you, and the refusal is the same as for a nonexistent profile
+// (`NOT_FOUND`) — otherwise `follow` would become an existence oracle for
+// private profiles.
 
-// Ajuste un compteur dénormalisé sans jamais passer sous zéro (une
-// réconciliation manuelle reste possible sans produire de valeur absurde).
+// Adjusts a denormalized counter without ever going below zero (a
+// manual reconciliation remains possible without producing an absurd value).
 async function bump(
   ctx: MutationCtx,
   profile: Doc<'memberProfiles'> | null,
@@ -37,8 +37,8 @@ async function bump(
   });
 }
 
-// Supprime un lien de suivi et tient les deux compteurs. Partagé avec le
-// blocage et la suppression de compte.
+// Deletes a follow link and maintains both counters. Shared with
+// blocking and account deletion.
 export async function removeFollow(
   ctx: MutationCtx,
   followerId: Id<'users'>,
@@ -64,8 +64,8 @@ export const follow = mutation({
     const viewer = await requireSocialMember(ctx);
     if (userId === viewer.userId) throw new ConvexError('SELF');
     const me = await profileByUserId(ctx, viewer.userId);
-    // Un profil est exigé pour suivre : la personne suivie est notifiée, et
-    // doit pouvoir savoir QUI la suit.
+    // A profile is required to follow: the followed person is notified, and
+    // must be able to know WHO follows them.
     if (!me) throw new ConvexError('PROFILE_REQUIRED');
     const target = await profileByUserId(ctx, userId);
     if (!target || !(await viewerCanSee(ctx, viewer, target))) {
@@ -88,7 +88,7 @@ export const follow = mutation({
     });
     await bump(ctx, me, 'followingCount', 1);
     await bump(ctx, target, 'followerCount', 1);
-    // Respecte les préférences : `notify` ne crée rien si le type est coupé.
+    // Respects preferences: `notify` creates nothing if the type is muted.
     await notify(ctx, {
       userId,
       type: SOCIAL_NOTIF.FOLLOW,
@@ -111,14 +111,14 @@ export const unfollow = mutation({
   },
 });
 
-// --- Mes abonnements / mes abonnés ---------------------------------------------
+// --- My following / my followers ---------------------------------------------
 
 const LIST_MAX = 200;
 
 const networkListValidator = v.object({
   items: v.array(personCardValidator),
-  // Personnes du lien qui ne sont pas montrées (profil devenu privé,
-  // blocage) : comptées, jamais nommées.
+  // People in the link who are not shown (profile made private,
+  // blocking): counted, never named.
   hidden: v.number(),
 });
 
@@ -170,7 +170,7 @@ export const myNetwork = query({
   },
 });
 
-// --- Organisations -----------------------------------------------------------
+// --- Organizations -----------------------------------------------------------
 
 export const orgFollowState = query({
   args: { orgId: v.id('organizations') },
@@ -197,7 +197,7 @@ export const setOrgFollow = mutation({
   handler: async (ctx, { orgId, follow: wanted }) => {
     const viewer = await requireSocialMember(ctx);
     const org = await ctx.db.get(orgId);
-    // Seule une fiche ACTIVE de l'annuaire se suit — la même que le public voit.
+    // Only an ACTIVE directory entry can be followed — the same one the public sees.
     if (!org || org.status !== 'active') throw new ConvexError('NOT_FOUND');
     const row = await ctx.db
       .query('orgFollows')
@@ -243,15 +243,15 @@ export const myFollowedOrganizations = query({
   },
 });
 
-// --- Fil d'activité des personnes suivies ---------------------------------------
+// --- Activity feed of followed people ---------------------------------------
 //
-// Construit à partir des SEULS événements publics existants : publications
-// PUBLIÉES de la bibliothèque et billets de Tribune PUBLIÉS. Un dépôt en
-// attente, un brouillon renvoyé à l'auteur, un billet retiré ne figurent
-// jamais — le filtre de statut est posé ici, pas confié à l'écran.
+// Built ONLY from existing public events: PUBLISHED library
+// publications and PUBLISHED Tribune posts. A pending submission,
+// a draft sent back to the author, a withdrawn post never
+// appear — the status filter is applied here, not left to the screen.
 //
-// Coût borné : au plus `FEED_FOLLOWEES` personnes suivies, `FEED_PER_SOURCE`
-// éléments par source et par personne.
+// Bounded cost: at most `FEED_FOLLOWEES` followed people, `FEED_PER_SOURCE`
+// items per source and per person.
 const FEED_FOLLOWEES = 100;
 const FEED_PER_SOURCE = 5;
 const FEED_MAX = 30;
@@ -286,8 +286,8 @@ export const activityFeed = query({
     }> = [];
     for (const { followeeId } of rows) {
       const p = await profileByUserId(ctx, followeeId);
-      // Personne devenue invisible (profil privé, blocage) : son activité
-      // sort du fil avec elle.
+      // Person who became invisible (private profile, blocking): their activity
+      // leaves the feed with them.
       if (!p || !(await viewerCanSee(ctx, viewer, p))) continue;
       if (await isBlockedEitherWay(ctx, viewer.userId, followeeId)) continue;
       const author = { handle: p.handle, displayName: p.displayName };

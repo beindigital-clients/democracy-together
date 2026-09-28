@@ -28,14 +28,14 @@ import {
   useFailureFeedback,
 } from '@/components/admin/action-feedback';
 
-// MÉDIATHÈQUE (F-64) — téléverser, décrire, rechercher, réutiliser.
+// MEDIA LIBRARY (F-64) — upload, describe, search, reuse.
 //
-// Le fichier part DIRECTEMENT dans le stockage Convex (URL de dépôt signée),
-// puis `finalizeUpload` en relit le contenu réel : un fichier dont les octets
-// ne sont ni une image ni un PDF est refusé ET effacé. Le texte alternatif est
-// exigé au dépôt (au moins une langue) — sans lui, le bouton reste inactif et
-// le serveur refuse de toute façon. Un média utilisé par un contenu ne se
-// supprime pas : la liste dit par qui il est utilisé.
+// The file goes DIRECTLY into Convex storage (signed upload URL),
+// then `finalizeUpload` re-reads its actual content: a file whose bytes
+// are neither an image nor a PDF is rejected AND deleted. Alt text is
+// required at upload (at least one language) — without it, the button stays disabled and
+// the server refuses anyway. A media item used by a piece of content cannot be
+// deleted: the list says what uses it.
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,application/pdf';
 
@@ -191,8 +191,8 @@ function UploadForm() {
       setAlt({});
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
-      // Refus serveur (type réel, taille, texte alternatif) : message traduit
-      // par son code ; échec réseau : invitation à réessayer.
+      // Server refusal (actual type, size, alt text): message translated
+      // from its code; network failure: invitation to retry.
       fail(err);
       setError(t('md_uploadFailed'));
     } finally {

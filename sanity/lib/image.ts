@@ -3,7 +3,7 @@ import { client } from './client';
 
 const builder = imageUrlBuilder(client);
 
-// Toujours .auto('format') (WebP/AVIF) + dimensions plafonnées en composant.
+// Always .auto('format') (WebP/AVIF) + dimensions capped by the component.
 export function urlForImage(source: SanityImageSource) {
   return builder.image(source).auto('format').fit('max');
 }

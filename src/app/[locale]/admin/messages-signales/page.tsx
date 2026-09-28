@@ -11,14 +11,14 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { intlLocale } from '@/i18n/locale';
 
-// FILE DES MESSAGES PRIVÉS SIGNALÉS (chantier « social ») — modérateur et
-// au-dessus (`social.messages.listReports` le vérifie côté Convex).
+// QUEUE OF REPORTED PRIVATE MESSAGES ("social" workstream) — moderator and
+// above (`social.messages.listReports` checks it on the Convex side).
 //
-// Même modèle que la file de la Tribune (/admin/signalements), avec une
-// différence de fond : le modérateur ne lit QUE le message transmis par la
-// personne qui l'a reçu, jamais le reste de la conversation — Convex ne lui
-// en donne pas les moyens. « Retirer » vide le message pour ses deux
-// participants ; la décision est journalisée, sans le contenu.
+// Same model as the Tribune queue (/admin/signalements), with one
+// fundamental difference: the moderator reads ONLY the message forwarded by the
+// person who received it, never the rest of the conversation — Convex does not give
+// them the means to. "Retirer" empties the message for both
+// participants; the decision is logged, without the content.
 export default function AdminMessageReports() {
   const t = useTranslations('messages');
   const locale = useLocale();

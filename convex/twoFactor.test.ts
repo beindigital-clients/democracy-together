@@ -34,7 +34,7 @@ async function createUser(t: T, email: string, role: Role) {
   return await t.run((ctx) => ctx.db.insert('users', { email, role }));
 }
 
-/** Une NOUVELLE session pour ce compte — une nouvelle connexion. */
+/** A NEW session for this account — a new sign-in. */
 async function newSession(t: T, userId: Id<'users'>) {
   const sessionId = await t.run((ctx) =>
     ctx.db.insert('authSessions', {
@@ -45,7 +45,7 @@ async function newSession(t: T, userId: Id<'users'>) {
   return t.withIdentity({ subject: `${userId}|${sessionId}` });
 }
 
-/** Inscrit un appareil ; rend le secret et les codes de secours. */
+/** Enrolls a device; returns the secret and the backup codes. */
 async function enroll(t: T, userId: Id<'users'>) {
   const as = await newSession(t, userId);
   const { secret, uri } = await as.action(api.twoFactor.beginEnrollment, {});
@@ -66,13 +66,13 @@ describe('2FA — inscription', () => {
 
     const { secret } = await as.action(api.twoFactor.beginEnrollment, {});
     expect((await as.query(api.twoFactor.status, {})).pending).toBe(true);
-    // En attente : ne bloque personne.
+    // Pending: blocks no one.
     expect(await as.query(api.users.current, {})).not.toBeNull();
 
     const bad = await as.action(api.twoFactor.confirmEnrollment, {
       code: '000000',
     });
-    // (1 chance sur un million que 000000 soit juste.)
+    // (1 chance in a million that 000000 is correct.)
     expect(bad.ok).toBe(false);
 
     const res = await as.action(api.twoFactor.confirmEnrollment, {
@@ -89,14 +89,14 @@ describe('2FA — inscription', () => {
     );
     expect(row?.status).toBe('active');
     expect(row?.keyId).toBe('env');
-    // Le secret n'est jamais en clair, les codes de secours sont hachés.
+    // The secret is never in plaintext, the backup codes are hashed.
     expect(JSON.stringify(row)).not.toContain(secret);
     if (res.ok) {
       for (const code of res.backupCodes) {
         expect(JSON.stringify(row)).not.toContain(code.replace('-', ''));
       }
     }
-    // La session qui vient de s'inscrire garde l'accès.
+    // The session that just enrolled keeps access.
     expect(await as.query(api.users.current, {})).not.toBeNull();
   });
 
@@ -130,7 +130,7 @@ describe('2FA — preuve liée à la session', () => {
       'TWO_FACTOR_REQUIRED',
     );
 
-    // Le pas suivant : l'inscription a consommé le pas courant.
+    // The next step: enrollment consumed the current step.
     const next = await hotp(key, timeStep(Date.now()) + 1);
     expect(await fresh.action(api.twoFactor.verify, { code: next })).toEqual({
       ok: true,
@@ -138,7 +138,7 @@ describe('2FA — preuve liée à la session', () => {
     expect(await fresh.query(api.users.current, {})).not.toBeNull();
     await fresh.query(api.admin.dashboardStats, {});
 
-    // Une AUTRE session du même compte n'hérite pas de la preuve.
+    // ANOTHER session of the same account does not inherit the proof.
     const other = await newSession(t, userId);
     expect(await other.query(api.users.current, {})).toBeNull();
   });
@@ -153,7 +153,7 @@ describe('2FA — preuve liée à la session', () => {
     expect(await s1.action(api.twoFactor.verify, { code })).toEqual({
       ok: true,
     });
-    // Même code, autre session, toujours dans la fenêtre de ±30 s.
+    // Same code, other session, still within the ±30 s window.
     const s2 = await newSession(t, userId);
     expect(await s2.action(api.twoFactor.verify, { code })).toEqual({
       ok: false,
@@ -169,7 +169,7 @@ describe('2FA — preuve liée à la session', () => {
     const [first] = backupCodes;
 
     const s1 = await newSession(t, userId);
-    // Saisi en minuscules, sans tiret : la forme est normalisée.
+    // Typed in lowercase, without a hyphen: the format is normalized.
     expect(
       await s1.action(api.twoFactor.verify, {
         code: first.replace('-', '').toLowerCase(),
@@ -191,7 +191,7 @@ describe('2FA — preuve liée à la session', () => {
     const userId = await createUser(t, 'm@test.org', 'membre');
     await enroll(t, userId);
     const s = await newSession(t, userId);
-    // L'inscription a consommé un essai (confirmation) sur six.
+    // Enrollment consumed one attempt (confirmation) out of six.
     for (let i = 0; i < 5; i++) {
       await s.action(api.twoFactor.verify, { code: 'AAAAA-AAAAA' });
     }
@@ -215,7 +215,7 @@ describe('2FA — obligation pour l’encadrement (réglage en base)', () => {
       twoFactorRequiredForStaff: false,
       keyStatus: 'configured',
     });
-    // Garde-fou : l'administrateur doit d'abord avoir SA 2FA.
+    // Safeguard: the administrator must first have THEIR OWN 2FA.
     await expect(
       admin0.mutation(api.twoFactor.setSecurityPolicy, {
         twoFactorRequiredForStaff: true,
@@ -233,13 +233,13 @@ describe('2FA — obligation pour l’encadrement (réglage en base)', () => {
     await expect(mod.query(api.admin.dashboardStats, {})).rejects.toThrow(
       'TWO_FACTOR_ENROLLMENT_REQUIRED',
     );
-    // Un simple membre n'est pas concerné.
+    // A plain member is not concerned.
     expect(await member.query(api.users.current, {})).not.toBeNull();
-    // Le modérateur peut s'inscrire (les écrans de 2FA restent ouverts)…
+    // The moderator can enroll (the 2FA screens remain open)…
     expect((await mod.query(api.twoFactor.status, {})).required).toBe(true);
     const { as: modEnrolled, key: modKey } = await enroll(t, modId);
     expect(await modEnrolled.query(api.users.current, {})).not.toBeNull();
-    // … et, inscrit, ne peut plus retirer sa 2FA tant que le réglage tient.
+    // … and, once enrolled, can no longer remove their 2FA while the setting holds.
     await expect(
       modEnrolled.action(api.twoFactor.disable, {
         code: await hotp(modKey, timeStep(Date.now()) + 1),

@@ -41,21 +41,21 @@ import {
 } from '../lib/socialAccess';
 import { removeFollow } from './follows';
 
-// MESSAGERIE PRIVÉE 1:1, temps réel (les queries Convex sont réactives : la
-// liste, le fil et la pastille d'en-tête se mettent à jour sans recharger).
+// PRIVATE 1:1 MESSAGING, real time (Convex queries are reactive: the
+// list, the thread and the header badge update without reloading).
 //
-// Trois règles tiennent tout le module :
-//  1. seuls les DEUX participants lisent une conversation. Un tiers — fût-il
-//     administrateur — reçoit `null`, exactement comme pour un identifiant
-//     inexistant. La modération ne voit qu'un message SIGNALÉ, transmis par
-//     la personne qui le signale ;
-//  2. aucun contenu de message ne sort de ce module ailleurs que vers ses
-//     participants : ni journal d'audit, ni notification, ni courriel (« nouveau
-//     message de X », sans plus), ni `console.log` ;
-//  3. le réglage « qui peut m'écrire » et le blocage sont vérifiés À CHAQUE
-//     envoi, pas seulement à l'ouverture de la conversation.
+// Three rules hold the whole module together:
+//  1. only the TWO participants read a conversation. A third party — even an
+//     administrator — receives `null`, exactly as for a nonexistent
+//     identifier. Moderation only sees a REPORTED message, forwarded by
+//     the person who reports it;
+//  2. no message content leaves this module other than to its
+//     participants: no audit log, no notification, no email ("nouveau
+//     message de X", nothing more), no `console.log`;
+//  3. the "who can write to me" setting and blocking are checked ON EVERY
+//     send, not only when the conversation is opened.
 
-// --- Faits et décision ---------------------------------------------------------
+// --- Facts and decision ---------------------------------------------------------
 
 async function membersOf(ctx: QueryCtx, conversationId: Id<'conversations'>) {
   return await ctx.db
@@ -87,7 +87,7 @@ async function writeRefusal(
     senderIsMember: sender.isMember,
     recipientIsMember: await userIsMember(ctx, recipientId),
     blockedEitherWay: await isBlockedEitherWay(ctx, sender.userId, recipientId),
-    // Sans profil (supprimé), personne ne peut plus écrire à ce compte.
+    // Without a profile (deleted), no one can write to this account anymore.
     recipientPolicy: recipientProfile?.messagePolicy ?? 'nobody',
     recipientFollowsSender: await isFollowing(ctx, recipientId, sender.userId),
     recipientHasWritten: recipientMember?.hasWritten ?? false,
@@ -136,8 +136,8 @@ async function insertMessage(
     hidden: false,
   });
 
-  // Notification in-app au PASSAGE à « non lu » seulement : une rafale de
-  // dix messages ne sonne qu'une fois. Le titre ne porte que le nom.
+  // In-app notification only on the TRANSITION to "unread": a burst of
+  // ten messages rings only once. The title carries only the name.
   if (!other.hasUnread) {
     await notify(ctx, {
       userId: other.userId,
@@ -148,9 +148,9 @@ async function insertMessage(
     });
   }
 
-  // Courriel « nouveau message de X » : opt-in, au plus un par conversation
-  // et par demi-heure, et seulement si un fournisseur existe — sinon l'envoi
-  // échouerait en production (fail-closed de `sendEmail`).
+  // "nouveau message de X" email: opt-in, at most one per conversation
+  // per half hour, and only if a provider exists — otherwise sending
+  // would fail in production (fail-closed `sendEmail`).
   const otherProfile = await profileByUserId(ctx, other.userId);
   if (
     otherProfile?.messageEmail &&
@@ -172,10 +172,10 @@ async function insertMessage(
   return messageId;
 }
 
-// --- Envoi -------------------------------------------------------------------
+// --- Sending -------------------------------------------------------------------
 
-// Premier message à une personne (depuis son profil). Réutilise la
-// conversation existante s'il y en a une : une seule conversation par couple.
+// First message to a person (from their profile). Reuses the
+// existing conversation if there is one: only one conversation per pair.
 export const startConversation = mutation({
   args: { userId: v.id('users'), body: v.string() },
   returns: v.id('conversations'),
@@ -185,8 +185,8 @@ export const startConversation = mutation({
     if (!me) throw new ConvexError('PROFILE_REQUIRED');
     const text = cleanBody(body);
     const target = await profileByUserId(ctx, userId);
-    // Un profil invisible est un profil inexistant : même refus, pour que
-    // `startConversation` ne devienne pas un oracle des profils privés.
+    // An invisible profile is a nonexistent profile: same refusal, so that
+    // `startConversation` does not become an oracle for private profiles.
     if (!target || !(await viewerCanSee(ctx, viewer, target))) {
       throw new ConvexError('NOT_FOUND');
     }
@@ -320,18 +320,18 @@ export const emailTarget = internalQuery({
   handler: async (ctx, { recipientId }) => {
     const user = await ctx.db.get(recipientId);
     const profile = await profileByUserId(ctx, recipientId);
-    // Préférence relue au moment de l'envoi : désactivée entre-temps, rien ne part.
+    // Preference re-read at send time: if disabled in the meantime, nothing is sent.
     if (!user?.email || !profile?.messageEmail) return null;
     return { email: user.email, locale: user.preferredLocale ?? 'fr' };
   },
 });
 
-// --- Lecture -----------------------------------------------------------------
+// --- Reading -----------------------------------------------------------------
 
 const participantValidator = v.object({
   displayName: v.string(),
-  // `null` quand le profil n'est plus visible du lecteur (devenu privé,
-  // supprimé) : le nom reste, le lien vers le profil et la photo non.
+  // `null` when the profile is no longer visible to the reader (made private,
+  // deleted): the name remains, the profile link and photo do not.
   handle: v.union(v.string(), v.null()),
   photoUrl: v.union(v.string(), v.null()),
 });
@@ -358,8 +358,8 @@ async function participant(
   };
 }
 
-// Le message est-il dans MA copie ? (ni supprimé par moi, ni antérieur à mon
-// effacement de la conversation)
+// Is the message in MY copy? (neither deleted by me, nor older than my
+// clearing of the conversation)
 function inMyCopy(
   m: Doc<'directMessages'>,
   mine: Doc<'conversationMembers'>,
@@ -454,9 +454,9 @@ export const getConversation = query({
           createdAt: v.number(),
         }),
       ),
-      // Les plus anciens ne sont pas servis au-delà de THREAD_MAX.
+      // The oldest ones are not served beyond THREAD_MAX.
       truncated: v.boolean(),
-      // Pourquoi l'on ne peut pas (ou plus) répondre ; `null` = on peut.
+      // Why one cannot (or can no longer) reply; `null` = one can.
       refusal: v.union(
         v.literal('SELF'),
         v.literal('NOT_MEMBER'),
@@ -476,7 +476,7 @@ export const getConversation = query({
       conversationId,
       viewer.userId,
     );
-    // Un tiers — y compris un administrateur — ne lit JAMAIS une conversation.
+    // A third party — including an administrator — NEVER reads a conversation.
     if (!mine || !other) return null;
     const rows = await ctx.db
       .query('directMessages')
@@ -508,8 +508,8 @@ export const getConversation = query({
   },
 });
 
-// Pastille de l'en-tête : nombre de CONVERSATIONS non lues, plafonné comme
-// celui de la cloche (lecture bornée, coût constant).
+// Header badge: number of unread CONVERSATIONS, capped like
+// the bell's (bounded read, constant cost).
 export const UNREAD_CONVERSATIONS_CAP = 9;
 
 export const unreadSummary = query({
@@ -539,7 +539,7 @@ export const markRead = mutation({
     if (!viewer) throw new Error('UNAUTHENTICATED');
     const { mine } = await myMembership(ctx, conversationId, viewer.userId);
     if (!mine) throw new ConvexError('NOT_FOUND');
-    // Pas d'écriture inutile : l'écran appelle `markRead` à chaque rendu du fil.
+    // No needless write: the screen calls `markRead` on every render of the thread.
     if (mine.hasUnread || mine.unreadCount > 0) {
       await ctx.db.patch(mine._id, {
         unreadCount: 0,
@@ -551,7 +551,7 @@ export const markRead = mutation({
   },
 });
 
-// --- Suppression de sa copie ------------------------------------------------------
+// --- Deleting one's copy ------------------------------------------------------
 
 export const deleteMessage = mutation({
   args: { messageId: v.id('directMessages') },
@@ -568,9 +568,9 @@ export const deleteMessage = mutation({
     );
     if (!mine) throw new ConvexError('NOT_FOUND');
     const hiddenFor = [...new Set([...m.hiddenFor, viewer.userId])];
-    // Les deux copies supprimées : le message n'existe plus pour personne, il
-    // est effacé. Un signalement ouvert en garde la transmission
-    // (`bodySnapshot`) jusqu'à sa résolution.
+    // Both copies deleted: the message no longer exists for anyone, it
+    // is erased. An open report keeps the forwarded copy
+    // (`bodySnapshot`) until it is resolved.
     if (!other || hiddenFor.includes(other.userId)) {
       await ctx.db.delete(messageId);
     } else {
@@ -601,8 +601,8 @@ export const deleteConversation = mutation({
   },
 });
 
-// Efface les messages que PLUS PERSONNE ne peut lire : antérieurs aux deux
-// effacements de la conversation. Par lots, et relancée tant qu'il en reste.
+// Erases the messages that NO ONE can read anymore: older than both
+// clearings of the conversation. In batches, and re-run as long as some remain.
 const PURGE_BATCH = 200;
 
 export const purgeCleared = internalMutation({
@@ -631,7 +631,7 @@ export const purgeCleared = internalMutation({
   },
 });
 
-// --- Blocage -----------------------------------------------------------------
+// --- Blocking -----------------------------------------------------------------
 
 export const block = mutation({
   args: { userId: v.id('users') },
@@ -650,8 +650,8 @@ export const block = mutation({
       blockedId: userId,
       createdAt: Date.now(),
     });
-    // Le blocage défait le suivi dans les deux sens : on ne continue pas de
-    // recevoir l'activité de quelqu'un qu'on a bloqué, ni de la lui montrer.
+    // Blocking undoes following in both directions: you do not keep
+    // receiving the activity of someone you blocked, nor showing yours to them.
     await removeFollow(ctx, viewer.userId, userId);
     await removeFollow(ctx, userId, viewer.userId);
     return null;
@@ -702,7 +702,7 @@ export const myBlocks = query({
   },
 });
 
-// --- Signalement -------------------------------------------------------------
+// --- Reporting -------------------------------------------------------------
 
 export const reportMessage = mutation({
   args: { messageId: v.id('directMessages'), reason: v.optional(v.string()) },
@@ -713,7 +713,7 @@ export const reportMessage = mutation({
     const m = await ctx.db.get(messageId);
     if (!m) throw new ConvexError('NOT_FOUND');
     const { mine } = await myMembership(ctx, m.conversationId, viewer.userId);
-    // Seul un participant signale — et seulement un message qu'il a reçu.
+    // Only a participant can report — and only a message they received.
     if (!mine) throw new ConvexError('NOT_FOUND');
     if (m.senderId === viewer.userId) throw new ConvexError('OWN_MESSAGE');
     const text = reason?.trim() ?? '';
@@ -730,7 +730,7 @@ export const reportMessage = mutation({
       )
       .filter((q) => q.eq(q.field('resolved'), false))
       .first();
-    // Idempotent : un second signalement du même message ne double pas la file.
+    // Idempotent: a second report of the same message does not double the queue.
     if (existing) return null;
     await ctx.db.insert('messageReports', {
       messageId,
@@ -746,7 +746,7 @@ export const reportMessage = mutation({
   },
 });
 
-// --- Back-office : file des signalements (modérateur et au-dessus) ---------------
+// --- Back office: report queue (moderator and above) ---------------
 
 const REPORTS_MAX = 200;
 
@@ -777,9 +777,9 @@ export const listReports = query({
       const message = await ctx.db.get(r.messageId);
       out.push({
         _id: r._id,
-        // Le modérateur lit la TRANSMISSION faite au moment du signalement,
-        // pas le message vivant : il ne voit que ce que la personne a choisi
-        // de lui montrer, et rien d'autre de la conversation.
+        // The moderator reads the FORWARDED COPY made at report time,
+        // not the live message: they only see what the person chose
+        // to show them, and nothing else of the conversation.
         excerpt: r.bodySnapshot ?? '',
         reason: r.reason ?? null,
         reportedName: p?.displayName ?? user?.name?.trim() ?? '',
@@ -808,9 +808,9 @@ export const resolveReport = mutation({
         await ctx.db.patch(m._id, { removed: true, body: '' });
       }
     }
-    // Tous les signalements OUVERTS du même message sont tranchés d'un coup
-    // (plusieurs personnes ne peuvent pas le signaler — seul le destinataire
-    // le lit —, mais un même destinataire peut y revenir après résolution).
+    // All OPEN reports of the same message are decided at once
+    // (several people cannot report it — only the recipient
+    // reads it —, but the same recipient can come back to it after resolution).
     const siblings = await ctx.db
       .query('messageReports')
       .withIndex('by_resolved', (q) => q.eq('resolved', false))
@@ -818,14 +818,14 @@ export const resolveReport = mutation({
       .take(50);
     const resolution = action === 'remove' ? 'removed' : 'dismissed';
     for (const r of [report, ...siblings.filter((s) => s._id !== report._id)]) {
-      // Minimisation : la transmission n'a plus d'usage une fois tranchée.
+      // Minimization: the forwarded copy has no further use once decided.
       await ctx.db.patch(r._id, {
         resolved: true,
         resolution,
         bodySnapshot: undefined,
       });
     }
-    // Le journal dit QUI a tranché QUOI — jamais le contenu du message.
+    // The log says WHO decided WHAT — never the message content.
     await recordAudit(ctx, {
       actorId: mod._id,
       action: AUDIT.MESSAGE_REPORT_RESOLVED,

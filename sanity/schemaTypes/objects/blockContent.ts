@@ -1,6 +1,6 @@
 import { defineArrayMember, defineType } from 'sanity';
 
-// Texte riche en Portable Text (jamais de HTML collé). Rendu via @portabletext/react.
+// Rich text in Portable Text (never pasted HTML). Rendered via @portabletext/react.
 export const blockContent = defineType({
   name: 'blockContent',
   title: 'Contenu',
@@ -14,14 +14,14 @@ export const blockContent = defineType({
             name: 'link',
             type: 'object',
             title: 'Lien',
-            // SCHÉMA CONTRAINT À LA SAISIE (pentest M-9). Le type `url` de
-            // Sanity accepte par défaut plus que ce qu'un lien d'article a à
-            // contenir ; `scheme` ferme la liste. C'est la première des deux
-            // barrières. La seconde est le rendu
-            // (src/components/news/portable-text.tsx), et c'est elle qui garde
-            // le dernier mot : le contenu DÉJÀ publié n'est pas revalidé, et
-            // un document peut entrer par l'API sans jamais passer par ce
-            // formulaire.
+            // SCHEMA CONSTRAINED AT ENTRY (pentest M-9). Sanity's `url` type
+            // accepts by default more than an article link needs to
+            // contain; `scheme` closes the list. This is the first of two
+            // barriers. The second is the rendering
+            // (src/components/news/portable-text.tsx), and it is the one that has
+            // the final say: ALREADY published content is not revalidated, and
+            // a document can come in through the API without ever going through this
+            // form.
             fields: [
               {
                 name: 'href',

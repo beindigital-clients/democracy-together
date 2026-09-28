@@ -32,25 +32,25 @@ import {
 } from './lib/totp';
 import { openSecret, sealSecret, secretKeyStatus } from './lib/secretBox';
 
-// DOUBLE AUTHENTIFICATION (TOTP, RFC 6238) — chantier comptes.
+// TWO-FACTOR AUTHENTICATION (TOTP, RFC 6238) — accounts workstream.
 //
-// PARTAGE DU TRAVAIL. La cryptographie (tirage du secret, chiffrement,
-// HMAC-SHA1, empreintes) se fait dans des ACTIONS : Web Crypto et un hasard
-// non déterministe y sont garantis. Les décisions qui doivent être ATOMIQUES
-// — « ce pas de temps n'a jamais servi », « ce code de secours n'a jamais
-// servi », « la preuve est attachée à CETTE session » — se prennent dans des
-// mutations internes, sérialisées par Convex : deux envois simultanés du même
-// code ne passent pas tous les deux.
+// DIVISION OF LABOR. Cryptography (secret generation, encryption,
+// HMAC-SHA1, hashes) happens in ACTIONS: Web Crypto and non-deterministic
+// randomness are guaranteed there. Decisions that must be ATOMIC
+// — "this time step has never been used", "this backup code has never
+// been used", "the proof is attached to THIS session" — are made in
+// internal mutations, serialized by Convex: two simultaneous submissions of the same
+// code do not both succeed.
 //
-// LA PREUVE EST LIÉE À LA SESSION (`getAuthSessionId`). Une fois la 2FA
-// active, une nouvelle connexion ouvre une session sans preuve, et toutes les
-// gardes (convex/lib/rbac.ts) la refusent jusqu'à la saisie du code.
+// THE PROOF IS BOUND TO THE SESSION (`getAuthSessionId`). Once 2FA is
+// active, a new sign-in opens a session without proof, and all the
+// guards (convex/lib/rbac.ts) reject it until the code is entered.
 
 const ISSUER = 'Democracy Together';
 
-// Essais de code par compte : 6 par quart d'heure. Avec une fenêtre de trois
-// codes valides sur un million, c'est ~0,17 % de chances par jour pour un
-// attaquant qui a DÉJÀ le mot de passe — le rôle d'un second facteur.
+// Code attempts per account: 6 per quarter hour. With a window of three
+// valid codes out of a million, that is ~0.17% chance per day for an
+// attacker who ALREADY has the password — the role of a second factor.
 const VERIFY_LIMIT = { max: 6, windowMs: 15 * 60 * 1000 };
 
 type Factor = { step: number } | { backupHash: string };
@@ -86,8 +86,8 @@ async function credentialOf(
 }
 
 /**
- * Consomme un facteur de façon ATOMIQUE : un pas de temps strictement
- * postérieur au dernier accepté, ou un code de secours encore inutilisé.
+ * Consumes a factor ATOMICALLY: a time step strictly
+ * later than the last accepted one, or a still-unused backup code.
  */
 async function consumeFactor(
   ctx: MutationCtx,
@@ -131,8 +131,8 @@ async function recordProof(
       verifiedAt: Date.now(),
     });
   }
-  // Ménage : les preuves de sessions fermées depuis (déconnexion, expiration)
-  // ne servent plus à rien.
+  // Cleanup: proofs of sessions closed since (sign-out, expiry)
+  // are no longer of any use.
   const older = await ctx.db
     .query('twoFactorSessionProofs')
     .withIndex('by_user', (q) => q.eq('userId', userId))
@@ -154,7 +154,7 @@ async function removeCredential(ctx: MutationCtx, userId: Id<'users'>) {
   for (const proof of proofs) await ctx.db.delete(proof._id);
 }
 
-// --- Lecture -----------------------------------------------------------------
+// --- Reading -----------------------------------------------------------------
 
 export const status = query({
   args: {},
@@ -162,9 +162,9 @@ export const status = query({
     enabled: v.boolean(),
     pending: v.boolean(),
     backupCodesRemaining: v.number(),
-    // La 2FA est OBLIGATOIRE pour ce compte (réglage + rôle).
+    // 2FA is MANDATORY for this account (setting + role).
     required: v.boolean(),
-    // Cette session a présenté son second facteur.
+    // This session has presented its second factor.
     sessionVerified: v.boolean(),
     keyStatus: v.union(
       v.literal('configured'),
@@ -194,7 +194,7 @@ export const status = query({
   },
 });
 
-// Contexte d'une action : compte, secret chiffré, dernier pas utilisé.
+// Context of an action: account, encrypted secret, last step used.
 export const loadForAction = internalQuery({
   args: {},
   returns: v.object({
@@ -246,7 +246,7 @@ export const consumeAttempt = internalMutation({
   },
 });
 
-// --- Inscription d'un appareil ----------------------------------------------
+// --- Device enrollment ----------------------------------------------
 
 export const storePending = internalMutation({
   args: {
@@ -273,9 +273,9 @@ export const storePending = internalMutation({
   },
 });
 
-// Étape 1 : un secret NEUF, montré une seule fois (QR code + saisie manuelle).
-// Il n'est actif qu'après la confirmation d'un premier code : un secret mal
-// recopié ne verrouille personne dehors.
+// Step 1: a FRESH secret, shown only once (QR code + manual entry).
+// It becomes active only after a first code is confirmed: a badly
+// copied secret locks no one out.
 export const beginEnrollment = action({
   args: {},
   returns: v.object({ secret: v.string(), uri: v.string() }),
@@ -323,8 +323,8 @@ export const activate = internalMutation({
       activatedAt: Date.now(),
       backupCodes: backupHashes.map((hash) => ({ hash })),
     });
-    // Le code qui vient d'être saisi VAUT preuve pour la session courante :
-    // inscrire son appareil ne doit pas déconnecter.
+    // The code just entered COUNTS as proof for the current session:
+    // enrolling one's device must not sign one out.
     await recordProof(ctx, user._id, 'totp');
     await recordAudit(ctx, {
       actorId: user._id,
@@ -348,9 +348,9 @@ async function freshBackupCodes(): Promise<{
   return { codes, hashes };
 }
 
-// Étape 2 : le premier code confirme que l'appareil a bien enregistré le
-// secret. Les codes de secours sont rendus EN CLAIR une seule fois ; seules
-// leurs empreintes restent en base.
+// Step 2: the first code confirms that the device has correctly stored the
+// secret. The backup codes are returned IN PLAINTEXT only once; only
+// their hashes remain in the database.
 export const confirmEnrollment = action({
   args: { code: v.string() },
   returns: v.union(
@@ -389,9 +389,9 @@ export const confirmEnrollment = action({
   },
 });
 
-// --- Vérification d'une session ----------------------------------------------
+// --- Session verification ----------------------------------------------
 
-/** Détermine le facteur présenté : code TOTP (6 chiffres) ou code de secours. */
+/** Determines the factor presented: TOTP code (6 digits) or backup code. */
 async function resolveFactor(
   input: string,
   credential: {
@@ -409,7 +409,7 @@ async function resolveFactor(
       afterStep: credential.lastUsedStep ?? undefined,
     });
     if (step !== null) return { step };
-    // Juste, mais déjà utilisé : on le dit, l'utilisateur attendra le suivant.
+    // Correct, but already used: we say so, the user will wait for the next one.
     const replay = await matchTotpStep(secret, input, now);
     return replay !== null ? 'REPLAYED' : null;
   }
@@ -433,7 +433,7 @@ export const recordVerification = internalMutation({
   },
 });
 
-// Saisie du code après connexion. Accepte un code TOTP ou un code de secours.
+// Code entry after sign-in. Accepts a TOTP code or a backup code.
 export const verify = action({
   args: { code: v.string() },
   returns: verifyResultValidator,
@@ -461,7 +461,7 @@ export const verify = action({
   },
 });
 
-// --- Désactivation, nouveaux codes de secours --------------------------------
+// --- Deactivation, new backup codes --------------------------------
 
 export const disableAfterVerification = internalMutation({
   args: { factor: factorValidator },
@@ -469,8 +469,8 @@ export const disableAfterVerification = internalMutation({
   handler: async (ctx, { factor }): Promise<VerifyResult> => {
     const { user, state } = await requireSessionUser(ctx);
     if (state !== 'active') throw new ConvexError('TWO_FACTOR_REQUIRED');
-    // Rôle soumis à l'obligation : se retirer la 2FA reviendrait à
-    // contourner le réglage de l'administrateur.
+    // Role subject to the requirement: removing one's 2FA would amount to
+    // bypassing the administrator's setting.
     const policy = await readSecurityPolicy(ctx);
     if (policy.twoFactorRequiredForStaff && roleRequiresTwoFactor(user.role)) {
       throw new ConvexError('TWO_FACTOR_REQUIRED_BY_POLICY');
@@ -491,8 +491,8 @@ export const disableAfterVerification = internalMutation({
   },
 });
 
-// Désactiver exige un code valide : une session laissée ouverte ne suffit
-// pas à retirer le second facteur.
+// Disabling requires a valid code: a session left open is not
+// enough to remove the second factor.
 export const disable = action({
   args: { code: v.string() },
   returns: verifyResultValidator,
@@ -580,12 +580,12 @@ export const regenerateBackupCodes = action({
 
 // --- Administration ----------------------------------------------------------
 
-// Réinitialisation par un administrateur — la voie de reprise d'un compte dont
-// le titulaire a perdu son appareil ET ses codes de secours
-// (docs/backlog/comptes.md). Journalisée avec son motif. L'appareil, les
-// codes de secours et les preuves de session sont retirés : le titulaire se
-// reconnecte sans second facteur, puis en inscrit un nouveau — obligatoirement
-// si son rôle y est soumis.
+// Reset by an administrator — the recovery path for an account whose
+// holder has lost their device AND their backup codes
+// (docs/backlog/comptes.md). Logged with its reason. The device, the
+// backup codes and the session proofs are removed: the holder
+// signs in again without a second factor, then enrolls a new one — mandatorily
+// if their role is subject to it.
 export const resetForUser = mutation({
   args: { userId: v.id('users'), reason: v.string() },
   returns: v.null(),
@@ -611,12 +611,12 @@ export const resetForUser = mutation({
   },
 });
 
-// DERNIER RECOURS : le SEUL administrateur a perdu son appareil et ses codes
-// de secours, alors que la 2FA est obligatoire — plus personne ne peut
-// appeler `resetForUser`. `internalMutation` : hors API publique, invocable
-// par la seule CLI d'exploitation (`npx convex run`, clé de déploiement),
-// comme l'amorçage de l'administrateur (convex/bootstrap.ts). Journalisée sans
-// acteur, `via: 'cli'`. Procédure : docs/backlog/comptes.md.
+// LAST RESORT: the ONLY administrator has lost their device and their backup
+// codes, while 2FA is mandatory — no one can
+// call `resetForUser` anymore. `internalMutation`: outside the public API, invocable
+// only by the operations CLI (`npx convex run`, deployment key),
+// like the administrator bootstrap (convex/bootstrap.ts). Logged without
+// an actor, `via: 'cli'`. Procedure: docs/backlog/comptes.md.
 export const resetByOperator = internalMutation({
   args: { email: v.string(), reason: v.string() },
   returns: v.object({ reset: v.boolean() }),
@@ -659,12 +659,12 @@ export const securityPolicy = query({
   },
 });
 
-// Obligation de 2FA pour les rôles modérateur et plus. Deux garde-fous avant
-// de l'ACTIVER, pour ne verrouiller personne dehors :
-//  - la clé de chiffrement doit être configurée (sinon personne ne pourrait
-//    s'inscrire) ;
-//  - l'administrateur qui l'active doit avoir SA 2FA active (sinon il se
-//    retrouverait lui-même bloqué au prochain écran).
+// 2FA requirement for moderator roles and above. Two safeguards before
+// ENABLING it, so as to lock no one out:
+//  - the encryption key must be configured (otherwise no one could
+//    enroll);
+//  - the administrator enabling it must have THEIR 2FA active (otherwise they
+//    would find themselves blocked at the next screen).
 export const setSecurityPolicy = mutation({
   args: { twoFactorRequiredForStaff: v.boolean() },
   returns: v.null(),

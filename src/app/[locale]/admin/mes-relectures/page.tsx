@@ -28,8 +28,8 @@ type Assignment = FunctionReturnType<
   typeof api.peerReview.myAssignments
 >[number];
 
-// Instant d'ouverture de l'écran (lu au chargement du module, pas pendant le
-// rendu) : sert à signaler une échéance dépassée.
+// Moment the screen was opened (read when the module loads, not during
+// render): used to flag an overdue deadline.
 const OPENED_AT = Date.now();
 
 function useDateFormat() {
@@ -42,8 +42,8 @@ function useDateFormat() {
   return (ms: number) => fmt.format(ms);
 }
 
-// Déclaration de conflit d'intérêts : PRÉALABLE à tout le reste. Le serveur
-// ne rend le fichier et n'accepte l'avis qu'une fois la déclaration faite.
+// Conflict of interest declaration: a PREREQUISITE for everything else. The server
+// only returns the file and accepts the review once the declaration is made.
 function ConflictForm({
   publicationId,
 }: {
@@ -210,9 +210,9 @@ function ReviewForm({
   );
 }
 
-// Le manuscrit tel que le voit son relecteur : version évaluée, ce qui a
-// changé depuis la précédente, lettre de réponse, fichier ANONYMISÉ. Rien
-// n'y nomme l'auteur — c'est le serveur qui le garantit (convex/peerReview.ts).
+// The manuscript as its reviewer sees it: version under review, what has
+// changed since the previous one, response letter, ANONYMIZED file. Nothing
+// in it names the author — the server guarantees it (convex/peerReview.ts).
 function AssignmentDetail({ item }: { item: Assignment }) {
   const t = useTranslations('admin');
   const tp = useTranslations('peerReview');
@@ -358,10 +358,10 @@ function AssignmentDetail({ item }: { item: Assignment }) {
   );
 }
 
-// MES RELECTURES (campagne du 27/09, A-02 ; F-43 chantier editorial). Ouverte
-// au rang modérateur, elle ne rend QUE les assignations du compte connecté
-// (`myAssignments` lit l'identité dans la session). La file complète, les
-// désignations et les décisions restent dans « Comité de lecture ».
+// MY REVIEWS (27/09 campaign, A-02; F-43 editorial workstream). Open
+// to moderator rank, it returns ONLY the signed-in account's assignments
+// (`myAssignments` reads the identity from the session). The full queue, the
+// assignments and the decisions stay in "Comité de lecture".
 export default function AdminMyReviews() {
   const t = useTranslations('admin');
   const tp = useTranslations('peerReview');

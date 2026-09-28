@@ -5,8 +5,8 @@ import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { AudienceDashboard } from '@/components/admin/audience-dashboard';
 
-// Mesure d'impact & statistiques (F-66) — back-office. Grille de cartes
-// (chiffre + libellé), même style que le tableau de bord (admin/page.tsx).
+// Impact measurement & statistics (F-66) — back office. Grid of cards
+// (figure + label), same style as the dashboard (admin/page.tsx).
 export default function AdminImpact() {
   const t = useTranslations('admin');
   const stats = useQuery(api.impact.impactStats);
@@ -81,7 +81,7 @@ export default function AdminImpact() {
         ))}
       </div>
 
-      {/* Mesure d'audience web first-party (F-66, chantier diffusion). */}
+      {/* First-party web audience measurement (F-66, diffusion workstream). */}
       <AudienceDashboard />
     </div>
   );

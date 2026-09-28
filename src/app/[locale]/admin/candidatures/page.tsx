@@ -25,7 +25,7 @@ type Application = FunctionReturnType<
   typeof api.admin.listApplications
 >['page'][number];
 
-// Taille de page. Le serveur la replafonne : elle est indicative.
+// Page size. The server re-caps it: it is indicative.
 const PAGE_SIZE = 25;
 
 function ApplicationRow({ app }: { app: Application }) {
@@ -35,13 +35,13 @@ function ApplicationRow({ app }: { app: Application }) {
   const fail = useFailureFeedback();
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
-  // Approuver une ORGANISATION ouvre la saisie de la fiche annuaire : c'est à
-  // ce moment que l'organisation est créée (F-19/F-22).
+  // Approving an ORGANIZATION opens the directory entry form: that is
+  // when the organization is created (F-19/F-22).
   const [showDirectory, setShowDirectory] = useState(false);
-  // REJET : décision DÉFINITIVE depuis la machine à états (#9) —
-  // `reviewApplication` lève `ALREADY_REVIEWED` si l'on tente de la rejouer.
-  // Un clic de travers ne se rattrapant plus, il passe par une confirmation
-  // qui nomme la candidature visée (issue #38).
+  // REJECTION: a FINAL decision since the state machine (#9) —
+  // `reviewApplication` throws `ALREADY_REVIEWED` if one tries to replay it.
+  // Since a misclick can no longer be undone, it goes through a confirmation
+  // that names the targeted application (issue #38).
   const [confirmingReject, setConfirmingReject] = useState(false);
 
   async function decide(
@@ -67,10 +67,10 @@ function ApplicationRow({ app }: { app: Application }) {
         ),
       );
     } catch (err) {
-      // Action refusée côté serveur : la file reste inchangée — et l'écran
-      // dit POURQUOI (27/09, m-3). Un site `javascript:` refusé
-      // (`INVALID_WEBSITE`) accusait « vos droits » : le modérateur ne savait
-      // pas quel champ corriger.
+      // Action refused server-side: the queue stays unchanged — and the screen
+      // says WHY (27/09, m-3). A rejected `javascript:` website
+      // (`INVALID_WEBSITE`) blamed "vos droits": the moderator did not know
+      // which field to fix.
       fail(err);
     } finally {
       setPending(false);
@@ -90,13 +90,13 @@ function ApplicationRow({ app }: { app: Application }) {
           <p className="mt-1 text-sm text-ink-soft">
             {app.contactEmail} · {app.country}
           </p>
-          {/* LE COMPTE QUI SERA ÉLEVÉ (pentest M-6). Approuver n'accorde pas un
-              rôle à l'adresse de contact ci-dessus — saisie librement dans le
-              formulaire — mais au compte CONNECTÉ qui a déposé la demande. Les
-              deux sont indépendants, et le modérateur décidait sans le voir.
-              Quand ils DIFFÈRENT, c'est dit explicitement : c'est la signature
-              de l'abus décrit au pentest, et ce n'est pas au modérateur de
-              comparer deux adresses de tête. */}
+          {/* THE ACCOUNT THAT WILL BE ELEVATED (pentest M-6). Approving does not grant a
+              role to the contact address above — freely entered in the
+              form — but to the SIGNED-IN account that submitted the request. The
+              two are independent, and the moderator was deciding without seeing it.
+              When they DIFFER, it is stated explicitly: it is the signature
+              of the abuse described in the pentest, and it is not up to the moderator to
+              compare two addresses from memory. */}
           {app.applicantEmail ? (
             <p
               className={`mt-1 text-sm ${
@@ -194,11 +194,11 @@ export default function AdminApplications() {
   const t = useTranslations('admin');
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [search, setSearch] = useState('');
-  // PAGINÉE (issue #8, complétée ici) et CHERCHABLE (issue #49) : la liste
-  // chargeait la table `membershipApplications` entière puis la triait en
-  // mémoire. La recherche porte sur le nom d'organisation — c'est par lui
-  // qu'une candidature se retrouve — et elle est faite par le serveur, donc
-  // elle atteint les lignes qui ne sont pas dans la page affichée.
+  // PAGINATED (issue #8, completed here) and SEARCHABLE (issue #49): the list
+  // loaded the entire `membershipApplications` table then sorted it in
+  // memory. The search covers the organization name — that is how
+  // an application is found — and it is performed by the server, so
+  // it reaches rows that are not in the displayed page.
   const {
     results: apps,
     status,
@@ -249,10 +249,10 @@ export default function AdminApplications() {
           {search ? t('noResults') : t('noApplications')}
         </p>
       ) : (
-        // La navigation groupée de l'issue #49 rend elle aussi des `<li>` :
-        // NOMMER cette liste (comme le fait déjà l'annuaire, la bibliothèque et
-        // les actualités) est ce qui permet de la désigner sans ambiguïté — pour
-        // une technologie d'assistance comme pour un test.
+        // The grouped navigation from issue #49 also renders `<li>`s:
+        // NAMING this list (as the directory, the library and
+        // the news already do) is what allows it to be referred to unambiguously — for
+        // assistive technology as well as for a test.
         <ul aria-label={t('applicationsListLabel')} className="mt-6 space-y-3">
           {apps.map((a) => (
             <ApplicationRow key={a._id} app={a} />

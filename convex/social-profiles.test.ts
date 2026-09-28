@@ -5,10 +5,10 @@ import schema from './schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 
-// La Tribune est modérée A PRIORI par défaut (chantier communauté, F-45) : un
-// billet créé attend une validation. Ces tests portent sur ce qui se passe
-// APRÈS publication ; ils posent donc le mode a posteriori, comme le réglage
-// que l'administrateur peut choisir.
+// The Tribune is PRE-moderated by default (community workstream, F-45): a
+// newly created post awaits approval. These tests cover what happens
+// AFTER publication; they therefore set post-moderation mode, like the setting
+// the administrator can choose.
 async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
@@ -35,9 +35,9 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Profils de personnes (chantier « social ») : visibilité, énumération,
-// photo, préférences de notification. Chaque refus est vérifié par le
-// chemin que prendrait un tiers — anonyme, visiteur, autre membre.
+// People profiles ("social" workstream): visibility, enumeration,
+// photo, notification preferences. Each refusal is checked through the
+// path a third party would take — anonymous, visitor, another member.
 
 type T = ReturnType<typeof convexTest>;
 
@@ -89,7 +89,7 @@ describe('Profil — visibilité', () => {
     const pub = await t.query(api.social.profiles.getByHandle, { handle });
     expect(pub?.displayName).toBe('Awa Diallo');
     expect(pub?.indexable).toBe(true);
-    // Projection fermée : ni identifiant de compte, ni préférences.
+    // Closed projection: neither account identifier nor preferences.
     for (const k of [
       'userId',
       'mutedNotificationTypes',
@@ -123,13 +123,13 @@ describe('Profil — visibilité', () => {
     expect(
       await b.as.query(api.social.profiles.relationship, { handle }),
     ).toBeNull();
-    // Même réponse qu'un handle qui n'existe pas.
+    // Same response as a handle that does not exist.
     expect(
       await b.as.query(api.social.profiles.getByHandle, {
         handle: 'personne-inexistante',
       }),
     ).toBeNull();
-    // Le propriétaire, lui, se voit.
+    // The owner, however, can see themselves.
     expect(
       (await a.as.query(api.social.profiles.getByHandle, { handle }))
         ?.displayName,

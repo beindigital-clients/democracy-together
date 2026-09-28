@@ -45,12 +45,12 @@ export default async function MembershipPage({
 
   return (
     <div>
-      {/* En-tête */}
+      {/* Header */}
       <header className="border-b border-line">
         <div className={`${WRAP} pb-10 pt-12 md:pt-14`}>
           <Reveal>
             <p className={EYEBROW}>{t('eyebrow')}</p>
-            {/* h1 "Rejoindre le réseau" — conservé (cf. membership.spec) */}
+            {/* h1 "Rejoindre le réseau" — kept (cf. membership.spec) */}
             <h1 className="mt-3 font-display text-[clamp(32px,4.4vw,52px)] font-medium leading-[1.05] tracking-[-0.02em]">
               {t('title')}
             </h1>
@@ -75,7 +75,7 @@ export default async function MembershipPage({
         </div>
       </header>
 
-      {/* Type d'adhésion + formulaire (F-22) */}
+      {/* Membership type + form (F-22) */}
       <section id="types" className={`${WRAP} scroll-mt-20 py-14`}>
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <Reveal>
@@ -108,7 +108,7 @@ export default async function MembershipPage({
         </div>
       </section>
 
-      {/* Estimateur solidaire */}
+      {/* Solidarity estimator */}
       <section
         id="estimateur"
         className="scroll-mt-20 border-y border-line bg-surface"
@@ -129,7 +129,7 @@ export default async function MembershipPage({
         </div>
       </section>
 
-      {/* Comparatif */}
+      {/* Comparison */}
       <section id="comparatif" className={`${WRAP} scroll-mt-20 py-14`}>
         <Reveal className="mb-6 max-w-[62ch]">
           <p className={EYEBROW}>{c.comparison.eyebrow}</p>
@@ -204,7 +204,7 @@ export default async function MembershipPage({
         </Reveal>
       </section>
 
-      {/* Don */}
+      {/* Donation */}
       <section
         id="don"
         className="scroll-mt-20 border-y border-line bg-surface"

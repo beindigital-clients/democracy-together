@@ -36,7 +36,7 @@ describe('Jeunes — candidature (F-58)', () => {
     expect(all[0].email).toBe('awa@example.org');
     expect(all[0].status).toBe('pending');
 
-    // une 2e candidature en attente avec le même e-mail = dédoublonnée
+    // a 2nd pending application with the same email = deduplicated
     const r2 = await t.mutation(internal.youth.storeApplication, {
       ...APP,
       email: 'awa@example.org',
@@ -47,7 +47,7 @@ describe('Jeunes — candidature (F-58)', () => {
         .length,
     ).toBe(1);
 
-    // invalides
+    // invalid
     await expect(
       t.mutation(internal.youth.storeApplication, {
         ...APP,
@@ -72,7 +72,7 @@ describe('Jeunes — back-office (F-58)', () => {
       email: 'a@test.org',
     });
 
-    // anonyme + visiteur refusés
+    // anonymous + visitor rejected
     await expect(
       t.query(api.youth.listYouthApplications, {}),
     ).rejects.toThrow();
@@ -85,7 +85,7 @@ describe('Jeunes — back-office (F-58)', () => {
         .query(api.youth.listYouthApplications, {}),
     ).rejects.toThrow();
 
-    // modérateur : liste + revue
+    // moderator: list + review
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
@@ -109,7 +109,7 @@ describe('Jeunes — back-office (F-58)', () => {
 });
 
 describe('Jeunes — machine à états de la revue (issue #9)', () => {
-  // Une candidature en attente + un modérateur.
+  // A pending application + a moderator.
   async function setup() {
     const t = convexTest(schema, modules);
     await t.mutation(internal.youth.storeApplication, {
@@ -146,7 +146,7 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
       notes: 'Profil pertinent.',
     });
 
-    // rejeu (double clic) puis inversion (l'autre bouton) : les deux refusés
+    // replay (double click) then reversal (the other button): both rejected
     for (const decision of ['approved', 'rejected'] as const) {
       await expect(
         asMod.mutation(api.youth.reviewYouthApplication, {
@@ -156,10 +156,10 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
       ).rejects.toThrow('ALREADY_REVIEWED');
     }
 
-    // La candidature est intacte, et le journal ne porte qu'UNE décision : le
-    // throw annule la transaction, ligne d'audit comprise. C'est tout l'enjeu
-    // — un historique qui empile des décisions contradictoires ne dit plus
-    // laquelle fait foi.
+    // The application is intact, and the log holds only ONE decision: the
+    // throw cancels the transaction, audit row included. That is the whole point
+    // — a history that piles up contradictory decisions no longer says
+    // which one is authoritative.
     const doc = await t.run((ctx) => ctx.db.get(applicationId));
     expect(doc?.status).toBe('approved');
     expect(doc?.reviewNotes).toBe('Profil pertinent.');
@@ -174,7 +174,7 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
       notes: 'Erreur de bouton.',
     });
 
-    // réservée au staff
+    // reserved for staff
     const vId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'v@test.org' }),
     );
@@ -188,8 +188,8 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
     expect(await t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
       status: 'pending',
     });
-    // Le compteur « en attente » la recompte (issue #8) : sans cet appel dans
-    // la mutation, le tableau de bord afficherait une file vide.
+    // The "pending" counter counts it again (issue #8): without this call in
+    // the mutation, the dashboard would display an empty queue.
     const pending = await t.run((ctx) =>
       ctx.db
         .query('counters')
@@ -198,20 +198,20 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
     );
     expect(pending?.value).toBe(1);
 
-    // le retour en arrière a SON action d'audit : dans le journal, on le
-    // distingue d'une seconde revue.
+    // going back has ITS OWN audit action: in the log, it is
+    // distinguished from a second review.
     const reopened = await auditOf(t, 'youth.reopened');
     expect(reopened).toHaveLength(1);
     expect(reopened[0].actorId).toBe(modId);
     expect(reopened[0].metadata).toMatchObject({ from: 'rejected' });
 
-    // rouvrir deux fois de suite n'a pas de sens : la candidature est déjà
-    // dans la file.
+    // reopening twice in a row makes no sense: the application is already
+    // in the queue.
     await expect(
       asMod.mutation(api.youth.reopenYouthApplication, { applicationId }),
     ).rejects.toThrow('INVALID_TRANSITION');
 
-    // et la décision redevient possible, une fois.
+    // and the decision becomes possible again, once.
     await asMod.mutation(api.youth.reviewYouthApplication, {
       applicationId,
       decision: 'approved',
@@ -222,9 +222,9 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
   });
 });
 
-// A-04 : une motivation de 5 000 caractères était refusée sous « L'envoi a
-// échoué » — le code ne traversait pas. Il traverse (`data`), et la borne est
-// celle que le formulaire affiche (`FIELD_MAX.body`).
+// A-04: a 5,000-character motivation was rejected under "L'envoi a
+// échoué" — the code did not travel through. It now does (`data`), and the bound is
+// the one the form displays (`FIELD_MAX.body`).
 describe('Jeunes — refus de longueur lisible par le formulaire (A-04)', () => {
   it('INVALID_MOTIVATION porte son code dans `data`, la borne exacte passe', async () => {
     const t = convexTest(schema, modules);

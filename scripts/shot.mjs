@@ -15,7 +15,7 @@ for (let i = 0; i < args.length; i += 2) {
   const path = args[i];
   const out = args[i + 1];
   await page.goto(base + path, { waitUntil: 'networkidle' });
-  // Défile pour déclencher les reveals (once:true) avant la capture pleine page.
+  // Scrolls to trigger the reveals (once:true) before the full-page screenshot.
   const h = await page.evaluate(() => document.body.scrollHeight);
   for (let y = 0; y < h; y += 600) {
     await page.evaluate((yy) => window.scrollTo(0, yy), y);

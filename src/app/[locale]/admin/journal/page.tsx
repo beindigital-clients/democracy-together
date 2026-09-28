@@ -15,9 +15,9 @@ import { intlLocale } from '@/i18n/locale';
 
 type Row = FunctionReturnType<typeof api.journal.listAuditLog>['page'][number];
 
-// Échappement RFC 4180 : un champ qui contient un guillemet, une virgule, un
-// retour à la ligne (CR ou LF) est entouré de guillemets ; les guillemets
-// internes sont doublés.
+// RFC 4180 escaping: a field containing a double quote, a comma, a
+// line break (CR or LF) is wrapped in double quotes; internal double quotes
+// are doubled.
 function csvField(value: string): string {
   if (/[",\r\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
@@ -26,41 +26,41 @@ function csvField(value: string): string {
 }
 
 function rowsToCsv(headers: string[], rows: string[][]): string {
-  // Lignes séparées par CRLF (RFC 4180).
+  // Lines separated by CRLF (RFC 4180).
   return [headers, ...rows]
     .map((cols) => cols.map(csvField).join(','))
     .join('\r\n');
 }
 
-// Taille de page du journal. Le serveur la replafonne : elle est indicative.
+// Log page size. The server re-caps it: it is indicative.
 const PAGE_SIZE = 50;
 
-// Journal d'activité & export (F-67) — back-office, ADMINISTRATEURS uniquement.
-// Tableau des actions sensibles (date, action, acteur, cible) + export CSV
-// construit côté client et téléchargé via Blob + URL.createObjectURL.
+// Activity log & export (F-67) — back office, ADMINISTRATORS only.
+// Table of sensitive actions (date, action, actor, target) + CSV export
+// built client-side and downloaded via Blob + URL.createObjectURL.
 export default function AdminJournal() {
   const t = useTranslations('admin');
   const locale = useLocale();
   const me = useQuery(api.users.current);
-  // CHERCHABLE ET FILTRABLE PAR ACTEUR (issue #49) — les deux côté serveur.
+  // SEARCHABLE AND FILTERABLE BY ACTOR (issue #49) — both server-side.
   //
-  // La recherche porte sur l'action : le slug pointé est découpé par l'index
-  // plein texte, donc « publication » remonte la famille entière. Le filtre
-  // par acteur, lui, ne se choisit pas dans un menu déroulant : les acteurs
-  // ne sont pas tous du staff (un membre déposant écrit
-  // `publication.submitted`), et énumérer ceux présents dans le journal
-  // demanderait de le parcourir — la lecture que l'issue #8 a supprimée. On le
-  // prend donc LÀ OÙ IL EST DÉJÀ AFFICHÉ : chaque ligne rend son acteur
-  // cliquable, ce qui répond exactement à « tout ce que cette personne a fait ».
+  // The search covers the action: the dotted slug is split by the full-text
+  // index, so "publication" brings up the whole family. The actor filter,
+  // however, is not chosen from a dropdown menu: actors
+  // are not all staff (a member submitting writes
+  // `publication.submitted`), and enumerating those present in the log
+  // would require walking it — the read that issue #8 removed. We therefore
+  // take it WHERE IT IS ALREADY DISPLAYED: each row makes its actor
+  // clickable, which answers exactly "everything this person has done".
   const [search, setSearch] = useState('');
   const [actor, setActor] = useState<{
     id: Id<'users'>;
     label: string;
   } | null>(null);
-  // PAGINÉ (issue #8) : le journal est la table qui grossit le plus vite du
-  // produit — une ligne par action sensible. L'export CSV porte sur ce qui est
-  // chargé : charger la suite l'élargit d'autant, et les filtres actifs le
-  // restreignent d'autant.
+  // PAGINATED (issue #8): the log is the fastest-growing table in the
+  // product — one row per sensitive action. The CSV export covers what is
+  // loaded: loading more widens it accordingly, and active filters
+  // narrow it accordingly.
   const {
     results: entries,
     status,
@@ -96,7 +96,7 @@ export default function AdminJournal() {
     ]);
     const csv = rowsToCsv(headers, data);
 
-    // BOM UTF-8 pour qu'Excel lise correctement les accents.
+    // UTF-8 BOM so that Excel reads accented characters correctly.
     const blob = new Blob(['﻿', csv], {
       type: 'text/csv;charset=utf-8',
     });
@@ -132,9 +132,9 @@ export default function AdminJournal() {
         className="mt-4"
       />
 
-      {/* Filtre d'acteur actif : une étiquette qui NOMME ce qui est filtré et
-          porte de quoi y renoncer — sans elle, une liste restreinte par un clic
-          dans le tableau serait indistinguable d'un journal presque vide. */}
+      {/* Active actor filter: a tag that NAMES what is filtered and
+          carries a way to drop it — without it, a list narrowed by a click
+          in the table would be indistinguishable from an almost empty log. */}
       {actor ? (
         <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
           <span className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-xs font-medium text-accent-text">
@@ -161,7 +161,7 @@ export default function AdminJournal() {
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-line text-start font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-                {/* Première colonne figée au défilement (27/09, C-1). */}
+                {/* First column pinned while scrolling (27/09, C-1). */}
                 <th className="sticky start-0 z-[1] bg-paper py-2 pe-4 font-normal">
                   {t('jrDate')}
                 </th>

@@ -19,10 +19,10 @@ export default function AdminReports() {
   const resolve = useMutation(api.tribune.resolveReport);
   const notify = useActionFeedback();
   const [busy, setBusy] = useState<string | null>(null);
-  // « Retirer » dépublie le contenu pour tout le monde : il passe par une
-  // confirmation qui nomme la cible — le type ET l'extrait signalé, puisque
-  // c'est la seule chose qui distingue deux lignes de cette file (issue #38).
-  // « Ignorer » ne détruit rien et reste au premier clic.
+  // "Retirer" unpublishes the content for everyone: it goes through a
+  // confirmation that names the target — the type AND the reported excerpt, since
+  // that is the only thing that distinguishes two rows in this queue (issue #38).
+  // "Ignorer" destroys nothing and stays a single click.
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const fmt = (ms: number) =>
@@ -45,9 +45,9 @@ export default function AdminReports() {
         ),
       );
     } catch {
-      // Refus serveur (rôle insuffisant, signalement déjà traité) : dit à
-      // l'écran plutôt qu'avalé, sinon le modérateur ne sait pas si son clic
-      // a porté.
+      // Server refusal (insufficient role, report already handled): shown on
+      // screen rather than swallowed, otherwise the moderator does not know whether their click
+      // took effect.
       notify(t('feedbackError'), 'error');
     } finally {
       setBusy(null);

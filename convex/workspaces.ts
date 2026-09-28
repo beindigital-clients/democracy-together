@@ -23,23 +23,23 @@ import {
   type WorkspaceRole,
 } from './lib/communaute';
 
-// Espaces de travail collaboratifs (F-24). Lecture de la fiche (titre,
-// description, participants) réservée aux membres du réseau (membre+) ; les
-// NOTES et les FICHIERS — lecture comme écriture — sont réservés aux membres
-// DE L'ESPACE (workspaceMembers). `theme` = un des 5 axes du réseau (miroir de
-// PUB_THEMES, src/lib/publications.ts — garder synchrone).
+// Collaborative workspaces (F-24). Reading the entry (title,
+// description, participants) is reserved for network members (member+); the
+// NOTES and FILES — read and write — are reserved for members
+// OF THE WORKSPACE (workspaceMembers). `theme` = one of the network's 5 axes (mirror of
+// PUB_THEMES, src/lib/publications.ts — keep in sync).
 //
-// Chantier communauté : trois rôles dans un espace (animateur / contributeur /
-// lecteur, cf. convex/lib/communaute.ts), des espaces PRIVÉS sur invitation,
-// les invitations expirantes, le retrait d'un membre. Les fichiers partagés
-// vivent dans convex/workspaceFiles.ts.
+// Community workstream: three roles in a workspace (facilitator / contributor /
+// reader, cf. convex/lib/communaute.ts), PRIVATE invitation-only workspaces,
+// expiring invitations, removal of a member. Shared files
+// live in convex/workspaceFiles.ts.
 
-// Nom affiché d'un membre dans un espace (animateur, participant, auteur de
-// note). Les comptes créés par invitation ou par approbation d'adhésion n'ont
-// pas de `name` — seulement une adresse : tous s'affichaient « Membre », donc
-// indiscernables entre eux (mesuré le 27/09, membre A-11). Repli sur la partie
-// locale de l'adresse, qui identifie sans exposer le domaine complet ; le
-// libellé générique ne reste que pour un compte sans nom NI adresse.
+// Display name of a member in a workspace (facilitator, participant, note
+// author). Accounts created by invitation or by membership approval have
+// no `name` — only an address: they were all displayed as "Membre", hence
+// indistinguishable from each other (measured on 27/09, member A-11). Fallback to the
+// local part of the address, which identifies without exposing the full domain; the
+// generic label remains only for an account with neither name NOR address.
 export function memberName(user: Doc<'users'>): string {
   const name = user.name?.trim();
   if (name) return name;
@@ -47,7 +47,7 @@ export function memberName(user: Doc<'users'>): string {
   return local || 'Membre';
 }
 
-// Appartenance (espace, utilisateur) — unicité via l'index composite.
+// Membership (workspace, user) — uniqueness via the composite index.
 export async function membershipOf(
   ctx: QueryCtx | MutationCtx,
   workspaceId: Id<'workspaces'>,
@@ -61,7 +61,7 @@ export async function membershipOf(
     .unique();
 }
 
-// Rôle de l'utilisateur dans l'espace, ou null s'il n'en est pas membre.
+// The user's role in the workspace, or null if they are not a member.
 export async function workspaceRoleOf(
   ctx: QueryCtx | MutationCtx,
   workspaceId: Id<'workspaces'>,
@@ -71,9 +71,9 @@ export async function workspaceRoleOf(
   return m ? effectiveWorkspaceRole(m.role) : null;
 }
 
-// Garde commune : membre du réseau, espace existant, rôle minimal DANS
-// l'espace. C'est ici, et nulle part ailleurs, que se décide qui lit et qui
-// écrit — l'interface ne masque que ce que le serveur refuserait.
+// Shared guard: network member, existing workspace, minimum role WITHIN
+// the workspace. It is here, and nowhere else, that who reads and who
+// writes is decided — the interface only hides what the server would refuse.
 export async function requireWorkspaceRole(
   ctx: QueryCtx | MutationCtx,
   workspaceId: Id<'workspaces'>,
@@ -103,16 +103,16 @@ async function membersOf(ctx: QueryCtx, workspaceId: Id<'workspaces'>) {
     .take(MEMBERS_MAX);
 }
 
-// Nombre d'animateurs d'un espace. Un espace sans animateur ne se gère plus :
-// ni invitation, ni retrait, ni suppression de fichier d'autrui. D'où la
-// garde qui empêche le DERNIER animateur de partir ou d'être rétrogradé.
+// Number of facilitators in a workspace. A workspace without a facilitator can no longer be managed:
+// no invitation, no removal, no deletion of someone else's file. Hence the
+// guard that prevents the LAST facilitator from leaving or being demoted.
 async function animatorCount(ctx: QueryCtx, workspaceId: Id<'workspaces'>) {
   const members = await membersOf(ctx, workspaceId);
   return members.filter((m) => effectiveWorkspaceRole(m.role) === 'animateur')
     .length;
 }
 
-// Invitation en cours (non expirée ou non) pour une adresse dans un espace.
+// Pending invitation (expired or not) for an address in a workspace.
 async function pendingInvitationFor(
   ctx: QueryCtx,
   workspaceId: Id<'workspaces'>,
@@ -127,10 +127,10 @@ async function pendingInvitationFor(
   return rows.find((r) => r.workspaceId === workspaceId) ?? null;
 }
 
-// L'utilisateur a-t-il une invitation EN ATTENTE pour cet espace ? (par son
-// compte ou par son adresse). Sert à laisser un invité lire la fiche d'un
-// espace privé pour décider d'accepter — la fiche, pas les notes ni les
-// fichiers.
+// Does the user have a PENDING invitation for this workspace? (via their
+// account or via their address). Used to let an invitee read the entry of a
+// private workspace to decide whether to accept — the entry, not the notes or the
+// files.
 async function hasPendingInvitation(
   ctx: QueryCtx,
   workspaceId: Id<'workspaces'>,
@@ -153,14 +153,14 @@ async function hasPendingInvitation(
   );
 }
 
-// --- Écriture (membre réseau et au-dessus) ----------------------------------
+// --- Writing (network member and above) ----------------------------------
 export const createWorkspace = mutation({
   args: {
     title: v.string(),
     theme: v.string(),
     description: v.string(),
-    // Optionnel : un appel de l'incrément 1 (sans le champ) crée un espace
-    // ouvert, comme avant.
+    // Optional: a call from increment 1 (without the field) creates an
+    // open workspace, as before.
     visibility: v.optional(workspaceVisibilityValidator),
   },
   returns: v.id('workspaces'),
@@ -194,7 +194,7 @@ export const createWorkspace = mutation({
       storageBytes: 0,
       fileCount: 0,
     });
-    // Le créateur devient automatiquement animateur de l'espace.
+    // The creator automatically becomes the workspace's facilitator.
     await ctx.db.insert('workspaceMembers', {
       workspaceId,
       userId: user._id,
@@ -206,8 +206,8 @@ export const createWorkspace = mutation({
   },
 });
 
-// Rejoindre un espace OUVERT (contributeur). Un espace privé ne se rejoint
-// que par une invitation acceptée.
+// Join an OPEN workspace (contributor). A private workspace can only be joined
+// through an accepted invitation.
 export const joinWorkspace = mutation({
   args: { workspaceId: v.id('workspaces') },
   returns: v.object({ joined: v.boolean() }),
@@ -217,7 +217,7 @@ export const joinWorkspace = mutation({
     if (!workspace) throw new Error('NOT_FOUND');
 
     const existing = await membershipOf(ctx, workspaceId, user._id);
-    if (existing) return { joined: true }; // déjà membre : idempotent
+    if (existing) return { joined: true }; // already a member: idempotent
 
     if (effectiveVisibility(workspace.visibility) === 'private') {
       throw new ConvexError('INVITATION_REQUIRED');
@@ -237,8 +237,8 @@ export const joinWorkspace = mutation({
   },
 });
 
-// Quitter l'espace. Le DERNIER animateur ne le peut pas : il doit d'abord
-// confier l'animation à un autre membre (sans quoi l'espace ne se gère plus).
+// Leave the workspace. The LAST facilitator cannot: they must first
+// hand facilitation over to another member (otherwise the workspace can no longer be managed).
 export const leaveWorkspace = mutation({
   args: { workspaceId: v.id('workspaces') },
   returns: v.object({ joined: v.boolean() }),
@@ -248,7 +248,7 @@ export const leaveWorkspace = mutation({
     if (!workspace) throw new Error('NOT_FOUND');
 
     const existing = await membershipOf(ctx, workspaceId, user._id);
-    if (!existing) return { joined: false }; // pas membre : idempotent
+    if (!existing) return { joined: false }; // not a member: idempotent
 
     if (
       effectiveWorkspaceRole(existing.role) === 'animateur' &&
@@ -260,8 +260,8 @@ export const leaveWorkspace = mutation({
     await ctx.db.delete(existing._id);
     await ctx.db.patch(workspaceId, {
       memberCount: Math.max(0, workspace.memberCount - 1),
-      // L'animateur « titulaire » affiché sur la fiche part : le titre passe
-      // au plus ancien animateur restant.
+      // The "lead" facilitator displayed on the entry leaves: the title passes
+      // to the oldest remaining facilitator.
       ...(workspace.ownerUserId === user._id
         ? await nextOwner(ctx, workspaceId, user._id)
         : {}),
@@ -270,7 +270,7 @@ export const leaveWorkspace = mutation({
   },
 });
 
-// Le plus ancien animateur restant (hors `excluded`), pour la fiche.
+// The oldest remaining facilitator (excluding `excluded`), for the entry.
 async function nextOwner(
   ctx: QueryCtx,
   workspaceId: Id<'workspaces'>,
@@ -296,8 +296,8 @@ export const addNote = mutation({
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace) throw new Error('NOT_FOUND');
 
-    // Écriture réservée aux membres DE L'ESPACE, et parmi eux à ceux qui
-    // écrivent : un lecteur lit le fil, il n'y dépose rien.
+    // Writing reserved for members OF THE WORKSPACE, and among them for those who
+    // write: a reader reads the thread, they post nothing there.
     const membership = await membershipOf(ctx, workspaceId, user._id);
     if (!membership) throw new Error('NOT_A_MEMBER');
     if (
@@ -325,8 +325,8 @@ export const addNote = mutation({
   },
 });
 
-// Visibilité de l'espace (animateur). Passer un espace en privé ne retire
-// personne : ce sont les FUTURES entrées qui passent par invitation.
+// Workspace visibility (facilitator). Making a workspace private removes
+// no one: it is FUTURE entries that go through invitation.
 export const setVisibility = mutation({
   args: {
     workspaceId: v.id('workspaces'),
@@ -342,15 +342,15 @@ export const setVisibility = mutation({
 
 // --- Invitations -------------------------------------------------------------
 
-// Inviter un membre du réseau, par son ADRESSE ou depuis la liste des
-// personnes avec qui l'on partage déjà un espace (`userId`).
+// Invite a network member, by their ADDRESS or from the list of
+// people with whom one already shares a workspace (`userId`).
 //
-// PAS D'ORACLE D'EXISTENCE. La réponse est la même, que l'adresse
-// corresponde à un compte ou non : sans cette précaution, le formulaire
-// d'invitation deviendrait un moyen de tester qui est inscrit sur la
-// plateforme. L'invitation est rattachée au compte s'il existe (et il est
-// notifié) ; sinon elle attend, et vaudra si ce compte naît et devient membre
-// avant l'échéance.
+// NO EXISTENCE ORACLE. The response is the same whether or not the address
+// matches an account: without this precaution, the invitation
+// form would become a way to test who is registered on the
+// platform. The invitation is attached to the account if it exists (and it is
+// notified); otherwise it waits, and will apply if that account is created and becomes a member
+// before the deadline.
 export const inviteMember = mutation({
   args: {
     workspaceId: v.id('workspaces'),
@@ -369,9 +369,9 @@ export const inviteMember = mutation({
     let email: string;
     let invitee: Doc<'users'> | null;
     if (args.userId) {
-      // Depuis la liste : seule une personne de `inviteCandidates` peut être
-      // désignée ainsi. Un identifiant quelconque ne sert pas à découvrir
-      // l'adresse d'un compte.
+      // From the list: only a person from `inviteCandidates` can be
+      // designated this way. An arbitrary identifier cannot be used to discover
+      // an account's address.
       invitee = await ctx.db.get(args.userId);
       if (
         !invitee?.email ||
@@ -398,16 +398,16 @@ export const inviteMember = mutation({
       ...RATE_LIMITS.workspaceInvite,
     });
 
-    // Déjà membre : rien à faire, et la même réponse (l'animateur voit la
-    // liste des membres, il n'apprend rien ici).
+    // Already a member: nothing to do, and the same response (the facilitator sees the
+    // member list, they learn nothing here).
     if (invitee && (await membershipOf(ctx, workspace._id, invitee._id))) {
       return { ok: true };
     }
 
     const now = Date.now();
-    // Seul un compte MEMBRE DU RÉSEAU est rattaché et notifié : un visiteur
-    // ne peut pas entrer dans un espace, l'inviter reviendrait à lui envoyer
-    // une porte qu'il ne peut pas franchir.
+    // Only a NETWORK MEMBER account is attached and notified: a visitor
+    // cannot enter a workspace, inviting them would amount to sending them
+    // a door they cannot walk through.
     const invitedUserId =
       invitee && roleRank(invitee.role) >= roleRank('membre')
         ? invitee._id
@@ -415,7 +415,7 @@ export const inviteMember = mutation({
 
     const existing = await pendingInvitationFor(ctx, workspace._id, email);
     if (existing) {
-      // Réinviter renouvelle l'échéance et met le rôle à jour : idempotent.
+      // Re-inviting renews the deadline and updates the role: idempotent.
       await ctx.db.patch(existing._id, {
         role: args.role,
         expiresAt: now + INVITATION_TTL_MS,
@@ -448,7 +448,7 @@ export const inviteMember = mutation({
   },
 });
 
-// Deux comptes partagent-ils au moins un espace ?
+// Do two accounts share at least one workspace?
 async function sharesWorkspace(
   ctx: QueryCtx,
   a: Id<'users'>,
@@ -464,10 +464,10 @@ async function sharesWorkspace(
   return false;
 }
 
-// « Inviter depuis une liste » : les membres du réseau avec qui l'animateur
-// partage DÉJÀ un espace, et qui ne sont pas dans celui-ci. La liste ne
-// dévoile donc personne que l'animateur ne voit déjà dans ses espaces — un
-// annuaire des personnes du réseau est un autre chantier (profils).
+// "Invite from a list": the network members with whom the facilitator
+// ALREADY shares a workspace, and who are not in this one. The list therefore
+// reveals no one the facilitator does not already see in their workspaces — a
+// directory of the network's people is another workstream (profiles).
 const CANDIDATES_MAX = 50;
 
 export const inviteCandidates = query({
@@ -498,10 +498,10 @@ export const inviteCandidates = query({
   },
 });
 
-// Invitations adressées à l'utilisateur courant (par son compte ou son
-// adresse), en attente. `expiresAt` est rendu tel quel : c'est l'écran qui dit
-// « expirée » (une query ne lit pas l'horloge), et c'est `respondInvitation`
-// qui refuse.
+// Invitations addressed to the current user (via their account or their
+// address), pending. `expiresAt` is returned as is: it is the screen that says
+// "expirée" (a query does not read the clock), and it is `respondInvitation`
+// that refuses.
 const invitationForMeValidator = v.object({
   _id: v.id('workspaceInvitations'),
   workspaceId: v.id('workspaces'),
@@ -559,8 +559,8 @@ async function invitationsForUser(ctx: QueryCtx, user: Doc<'users'>) {
   });
 }
 
-// Accepter ou refuser. Une invitation ÉCHUE est refusée : l'animateur doit en
-// émettre une nouvelle (ce qui renouvelle l'échéance).
+// Accept or decline. An EXPIRED invitation is refused: the facilitator must
+// issue a new one (which renews the deadline).
 export const respondInvitation = mutation({
   args: { invitationId: v.id('workspaceInvitations'), accept: v.boolean() },
   returns: v.object({ workspaceId: v.id('workspaces') }),
@@ -629,7 +629,7 @@ export const revokeInvitation = mutation({
   },
 });
 
-// --- Membres : rôle et retrait (animateur) ----------------------------------
+// --- Members: role and removal (facilitator) ----------------------------------
 
 export const setMemberRole = mutation({
   args: { memberId: v.id('workspaceMembers'), role: workspaceRoleValidator },
@@ -662,9 +662,9 @@ export const setMemberRole = mutation({
   },
 });
 
-// Retirer un membre (animateur). Journalisé : c'est une action sur autrui.
-// On ne se retire pas soi-même par ici (c'est « quitter »), et l'on ne retire
-// pas le dernier animateur.
+// Remove a member (facilitator). Logged: it is an action on someone else.
+// One does not remove oneself through here (that is "quitter"), and one does not remove
+// the last facilitator.
 export const removeMember = mutation({
   args: { memberId: v.id('workspaceMembers') },
   returns: v.null(),
@@ -707,10 +707,10 @@ export const removeMember = mutation({
   },
 });
 
-// --- Lecture (membre réseau et au-dessus) -----------------------------------
+// --- Reading (network member and above) -----------------------------------
 
-// Bornes de lecture de la liste : les espaces les plus récents, et les
-// appartenances de l'utilisateur courant. Aucune des deux n'était bornée.
+// Read bounds for the list: the most recent workspaces, and the
+// current user's memberships. Neither was bounded.
 const WORKSPACES_MAX = 100;
 const MY_MEMBERSHIPS_MAX = 500;
 
@@ -735,13 +735,13 @@ export const listWorkspaces = query({
       .order('desc')
       .take(WORKSPACES_MAX);
 
-    // Espaces dont l'utilisateur courant est membre (drapeau `mine`).
+    // Workspaces of which the current user is a member (`mine` flag).
     //
-    // L'appartenance était résolue ESPACE PAR ESPACE via l'index composite
-    // (workspaceId, userId) : un aller-retour par ligne affichée, alors qu'un
-    // membre n'appartient qu'à une poignée d'espaces. L'index `by_user` lit ses
-    // appartenances en UNE requête, d'où le drapeau se déduit sans relire la
-    // base (issue #8).
+    // Membership was resolved WORKSPACE BY WORKSPACE via the composite index
+    // (workspaceId, userId): one round trip per displayed row, whereas a
+    // member belongs to only a handful of workspaces. The `by_user` index reads their
+    // memberships in ONE query, from which the flag is derived without re-reading the
+    // database (issue #8).
     const myMemberships = new Set<string>(
       (
         await ctx.db
@@ -753,8 +753,8 @@ export const listWorkspaces = query({
 
     return (
       workspaces
-        // Un espace PRIVÉ n'apparaît qu'à ses membres. Ses invités le voient
-        // dans « Mes invitations », pas dans la liste.
+        // A PRIVATE workspace appears only to its members. Its invitees see it
+        // in "Mes invitations", not in the list.
         .filter(
           (w) =>
             effectiveVisibility(w.visibility) === 'open' ||
@@ -787,8 +787,8 @@ const workspaceDetailValidator = v.object({
   isMember: v.boolean(),
   isOwner: v.boolean(),
   myRole: v.union(workspaceRoleValidator, v.null()),
-  // Seul animateur restant : l'écran explique pourquoi « quitter » est
-  // indisponible au lieu de laisser le serveur refuser.
+  // Only remaining facilitator: the screen explains why "quitter" is
+  // unavailable instead of letting the server refuse.
   isLastAnimator: v.boolean(),
   storageBytes: v.number(),
   quotaBytes: v.number(),
@@ -809,7 +809,7 @@ const workspaceDetailValidator = v.object({
       createdAt: v.number(),
     }),
   ),
-  // Invitations en cours — pour les animateurs seulement (vide sinon).
+  // Pending invitations — for facilitators only (empty otherwise).
   invitations: v.array(
     v.object({
       _id: v.id('workspaceInvitations'),
@@ -823,11 +823,11 @@ const workspaceDetailValidator = v.object({
 });
 
 export const getWorkspace = query({
-  // `v.string()` et non `v.id('workspaces')` : l'identifiant vient de l'URL
-  // (/espaces/<id>), donc de n'importe qui. Avec `v.id`, `/espaces/zzz` ou un
-  // identifiant d'une AUTRE table faisaient lever la validation d'arguments
-  // avant le handler, et la page tombait sur « Une erreur est survenue » là où
-  // un identifiant inconnu doit dire « introuvable » (mesuré le 27/09).
+  // `v.string()` and not `v.id('workspaces')`: the identifier comes from the URL
+  // (/espaces/<id>), hence from anyone. With `v.id`, `/espaces/zzz` or an
+  // identifier from ANOTHER table made argument validation throw
+  // before the handler, and the page fell on "Une erreur est survenue" where
+  // an unknown identifier must say "introuvable" (measured on 27/09).
   args: { workspaceId: v.string() },
   returns: v.union(workspaceDetailValidator, v.null()),
   handler: async (ctx, args) => {
@@ -843,10 +843,10 @@ export const getWorkspace = query({
     const isMember = myRole !== null;
     const visibility = effectiveVisibility(workspace.visibility);
 
-    // ESPACE PRIVÉ : n'existe, pour un non-membre, que s'il y est invité — et
-    // alors seulement sa fiche (titre, description, participants) pour
-    // décider d'accepter. Sinon « introuvable », comme un identifiant inconnu :
-    // un espace privé ne se laisse pas découvrir par son adresse.
+    // PRIVATE WORKSPACE: exists, for a non-member, only if they are invited to it — and
+    // then only its entry (title, description, participants) to
+    // decide whether to accept. Otherwise "introuvable", like an unknown identifier:
+    // a private workspace cannot be discovered through its address.
     if (
       visibility === 'private' &&
       !isMember &&
@@ -855,13 +855,13 @@ export const getWorkspace = query({
       return null;
     }
 
-    // LES NOTES NE SORTENT QUE POUR LES MEMBRES DE L'ESPACE. Tout membre du
-    // réseau lisait le fil complet d'un espace qu'il n'avait pas rejoint
-    // (mesuré le 27/09, membre A-6 / R-11) : l'écriture était réservée aux
-    // membres de l'espace, pas la lecture. Titre, description et participants
-    // restent visibles — c'est ce qu'il faut pour décider de rejoindre ; le
-    // fil, lui, ne se lit qu'une fois dedans. Un tableau vide plutôt qu'un
-    // refus : la page dit « rejoignez l'espace pour lire les notes ».
+    // NOTES ARE RETURNED ONLY TO MEMBERS OF THE WORKSPACE. Any network
+    // member could read the full thread of a workspace they had not joined
+    // (measured on 27/09, member A-6 / R-11): writing was reserved for
+    // workspace members, reading was not. Title, description and participants
+    // remain visible — that is what is needed to decide whether to join; the
+    // thread, however, can only be read once inside. An empty array rather than a
+    // refusal: the page says "rejoignez l'espace pour lire les notes".
     const notes = isMember
       ? await ctx.db
           .query('workspaceNotes')

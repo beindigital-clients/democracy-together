@@ -27,32 +27,32 @@ import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { isAdmin } from '@/lib/roles';
 
-// PANNEAU DE LA MODÉRATION ASSISTÉE PAR IA (administrateur).
+// AI-ASSISTED MODERATION PANEL (administrator).
 //
-// C'est l'écran depuis lequel on décide que des textes paraîtront sans qu'un
-// humain les ait lus. Il est donc organisé autour de cette décision, et pas
-// autour de la structure des données :
+// This is the screen from which one decides that texts will be published without a
+// human having read them. It is therefore organized around that decision, and not
+// around the data structure:
 //
-//  1. l'ÉTAT D'ABORD — clé de passerelle posée ou non, et ce que le mode
-//     courant implique. Armer l'auto-publication sur un déploiement sans clé
-//     est l'erreur la plus facile à commettre et la plus longue à
-//     diagnostiquer : elle est dite avant tout le reste ;
-//  2. le BARÈME ENSUITE, avec son socle affiché en lecture seule. Voir ce
-//     qu'on ne peut pas retirer fait partie de savoir ce qu'on règle ;
-//  3. le BANC D'ESSAI, parce qu'un critère se rédige par essais successifs.
-//     Sans lui, la seule façon d'éprouver une formulation serait d'attendre
-//     un vrai dépôt ;
-//  4. le JOURNAL, qui est la réponse à « qu'est-ce que ça a fait, en vrai ».
+//  1. the STATE FIRST — gateway key set or not, and what the current
+//     mode implies. Arming auto-publication on a deployment without a key
+//     is the easiest mistake to make and the longest to
+//     diagnose: it is stated before everything else;
+//  2. the RUBRIC NEXT, with its core displayed read-only. Seeing what
+//     cannot be removed is part of knowing what one is configuring;
+//  3. the TEST BENCH, because a criterion is drafted through successive trials.
+//     Without it, the only way to test a wording would be to wait for
+//     a real submission;
+//  4. the LOG, which is the answer to "what did it actually do".
 //
-// Le formulaire est un brouillon local, envoyé sur demande : une modification
-// de seuil ne doit pas prendre effet à la frappe, entre deux chiffres.
+// The form is a local draft, sent on demand: a threshold
+// change must not take effect on a keystroke, between two digits.
 
 const PAGE_SIZE = 20;
 
 type Settings = FunctionReturnType<typeof api.aiModeration.getSettings>;
 type TestResult = FunctionReturnType<typeof api.aiModeration.testRuleset>;
 
-// --- Réglages ----------------------------------------------------------------
+// --- Settings ----------------------------------------------------------------
 
 function SettingsForm({ data }: { data: Settings }) {
   const t = useTranslations('admin');
@@ -63,10 +63,10 @@ function SettingsForm({ data }: { data: Settings }) {
   const [form, setForm] = useState(data.settings);
   const [pending, setPending] = useState(false);
 
-  // Les réglages sont réactifs (Convex) : une écriture faite ailleurs — autre
-  // onglet, autre administrateur — doit reprendre la main sur le brouillon,
-  // sinon l'écran propose d'enregistrer une version périmée. On se recale sur
-  // la version, pas sur l'objet : c'est elle qui change à chaque écriture.
+  // The settings are reactive (Convex): a write made elsewhere — another
+  // tab, another administrator — must take over the draft,
+  // otherwise the screen offers to save a stale version. We resync on
+  // the version, not on the object: it is the version that changes on every write.
   useEffect(() => {
     setForm(data.settings);
   }, [data.settings]);
@@ -126,8 +126,8 @@ function SettingsForm({ data }: { data: Settings }) {
         ))}
       </SelectField>
 
-      {/* Avertissement porté par le mode lui-même, et non relégué à la
-          documentation : c'est au moment de choisir « auto » qu'il sert. */}
+      {/* Warning carried by the mode itself, and not relegated to the
+          documentation: it is at the moment of choosing "auto" that it matters. */}
       {form.mode === 'auto' ? (
         <p
           role="status"
@@ -248,7 +248,7 @@ function SettingsForm({ data }: { data: Settings }) {
   );
 }
 
-// --- Barème ------------------------------------------------------------------
+// --- Rubric ------------------------------------------------------------------
 
 type RuleDraft = {
   ruleId?: Id<'aiModerationRules'>;
@@ -405,9 +405,9 @@ function RuleRow({ rule }: { rule: Settings['rules'][number] }) {
         </Badge>
         <span className="font-medium">{rule.label}</span>
         {rule.enabled ? null : (
-          // Le critère au repos le DIT. Ces deux clés-ci disaient « Actif :
-          // Toutes » — le libellé du champ suivi de celui d'un filtre de
-          // liste, qui se lisait comme l'inverse de l'état affiché.
+          // The idle criterion SAYS so. These two keys used to say "Actif :
+          // Toutes" — the field label followed by that of a list
+          // filter, which read as the opposite of the displayed state.
           <span className="text-xs text-muted">{t('aiRuleDisabled')}</span>
         )}
       </div>
@@ -492,7 +492,7 @@ function Ruleset({ data }: { data: Settings }) {
   );
 }
 
-// --- Banc d'essai ------------------------------------------------------------
+// --- Test bench ------------------------------------------------------------
 
 function TestBench() {
   const t = useTranslations('admin');
@@ -512,7 +512,7 @@ function TestBench() {
         await run({ title, abstract, ...(body.trim() ? { body } : {}) }),
       );
     } catch {
-      /* refusé côté serveur (rôle) : l'écran n'insiste pas */
+      /* refused server-side (role): the screen does not insist */
     } finally {
       setPending(false);
     }
@@ -620,7 +620,7 @@ function TestBench() {
   );
 }
 
-// --- Journal -----------------------------------------------------------------
+// --- Log -----------------------------------------------------------------
 
 function DecisionLog() {
   const t = useTranslations('admin');
@@ -653,8 +653,8 @@ function DecisionLog() {
                   >
                     {vocabulary(t, 'aiApplied_', review.applied)}
                   </Badge>
-                  {/* Titre absent = dépôt supprimé : le dire, plutôt que
-                      d'afficher l'identifiant brut (27/09, m-7). */}
+                  {/* Missing title = deleted submission: say so, rather than
+                      display the raw identifier (27/09, m-7). */}
                   <span
                     className={
                       review.publicationTitle
@@ -688,14 +688,14 @@ function DecisionLog() {
   );
 }
 
-// --- Écran -------------------------------------------------------------------
+// --- Screen -------------------------------------------------------------------
 
 export default function AdminAiModeration() {
   const t = useTranslations('admin');
   const me = useQuery(api.users.current);
-  // Le rôle est lu AVANT les réglages : `getSettings` refuse un non-admin
-  // côté serveur, et une query qui lève rend l'écran, pas un message. Même
-  // garde qu'à /admin/utilisateurs — l'autorisation réelle reste serveur.
+  // The role is read BEFORE the settings: `getSettings` rejects a non-admin
+  // server-side, and a query that throws renders the error screen, not a message. Same
+  // guard as at /admin/utilisateurs — the real authorization stays server-side.
   const admin = isAdmin(me?.role);
   const data = useQuery(api.aiModeration.getSettings, admin ? {} : 'skip');
 
@@ -729,9 +729,9 @@ export default function AdminAiModeration() {
       <h1 className="font-display text-3xl">{t('aiTitle')}</h1>
       <p className="mt-2 max-w-[72ch] text-ink-soft">{t('aiIntro')}</p>
 
-      {/* L'état de la clé passe AVANT les réglages : régler un dispositif qui
-          ne peut appeler personne est la façon la plus coûteuse de découvrir
-          qu'il manque une variable d'environnement. */}
+      {/* The key state comes BEFORE the settings: configuring a mechanism that
+          cannot call anyone is the costliest way to discover
+          that an environment variable is missing. */}
       <p
         role="status"
         className={`mt-4 rounded-sm border p-3 text-sm ${
@@ -743,10 +743,10 @@ export default function AdminAiModeration() {
         {data.configured ? t('aiConfiguredOk') : t('aiNotConfigured')}
       </p>
 
-      {/* Les trois libellés sont écrits en entier plutôt que parcourus en
-          `.map()` : la garde de l'issue #33 refuse une clé construite à
-          l'exécution, et `vocabulary()` ne convient pas ici — ce ne sont pas
-          des termes venus de la base, mais trois titres fixes. */}
+      {/* The three labels are written out in full rather than iterated with
+          `.map()`: the issue #33 guard rejects a key built at
+          runtime, and `vocabulary()` does not fit here — these are not
+          terms coming from the database, but three fixed headings. */}
       <dl className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-sm border border-line p-3">
           <dt className="text-xs text-muted">{t('aiStatsAnalyzed')}</dt>

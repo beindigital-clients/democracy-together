@@ -27,8 +27,8 @@ import {
   useRunAction,
 } from '@/components/admin/contenus/editor-shell';
 
-// PARTENAIRES — ÉDITION (F-14, F-62). Nom et textes traduits, logo choisi dans
-// la médiathèque (F-64), lien, ordre d'affichage (monter / descendre).
+// PARTNERS — EDITING (F-14, F-62). Name and translated texts, logo chosen from
+// the media library (F-64), link, display order (move up / move down).
 
 type Draft = {
   slug: string;

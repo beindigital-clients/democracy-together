@@ -2,10 +2,10 @@ import { internalMutation } from './_generated/server';
 import { trackPublicationStatus } from './lib/counters';
 import { publicationSearchText } from './lib/searchText';
 
-// DEV/TEST UNIQUEMENT (garde AUTH_DEV_OTP) : peuple la bibliothèque (F-32/F-34)
-// avec les publications de démonstration de la maquette. Idempotent (ignore un
-// slug déjà présent), donc rejouable. Données illustratives : titres et auteurs
-// fictifs, aucune affirmation sur des travaux ou des personnes réelles.
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): populates the library (F-32/F-34)
+// with the mockup's demo publications. Idempotent (skips a
+// slug already present), so re-runnable. Illustrative data: fictitious titles and
+// authors, no claims about real works or people.
 
 type SeedPub = {
   slug: string;
@@ -418,8 +418,8 @@ const PUBS: SeedPub[] = [
   },
 ];
 
-// internalMutation : NON joignable depuis un client (défense en profondeur, cf.
-// seed.seedDirectory). Invoquée via `npx convex run seedPublications:seedPublications`.
+// internalMutation: NOT reachable from a client (defense in depth, cf.
+// seed.seedDirectory). Invoked via `npx convex run seedPublications:seedPublications`.
 export const seedPublications = internalMutation({
   args: {},
   handler: async (ctx) => {
