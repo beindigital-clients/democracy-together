@@ -604,8 +604,16 @@ describe('Pré-tri par l’IA — le modèle propose, un humain décide', () => 
 describe('Historique complet et ordonné (F-49)', () => {
   beforeEach(() => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'vck_test');
+    // `createPost` and `updatePost` schedule their own AI review
+    // (`runAfter(0)`), which convex-test fires on a real `setTimeout`: it
+    // could land before `getItem` and add a second "ai_review" entry — a
+    // race seen in CI. Faking `setTimeout` alone keeps those scheduled runs
+    // parked, so the only review is the explicit one below; `Date` stays
+    // real, so the timestamps keep their order.
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
