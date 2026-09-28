@@ -4,12 +4,17 @@
   // reducedMotion })` — option inexistante dans l'API Playwright épinglée — a
   // pu rester invisible (issue #18) : le test tournait, mais pas dans les
   // conditions qu'il annonçait. Lancé par `pnpm typecheck:tests`, en CI.
+  //
+  // `audit/` (specs Playwright de l'audit) est typé ICI et non par le tsconfig
+  // racine : ses specs importent des helpers de `tests/`, que `.vercelignore`
+  // retire de l'envoi. Typé avec l'application, il faisait échouer le build
+  // Vercel (« Cannot find module '../../tests/e2e/_panneau' », 28/09).
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
     "incremental": false,
     "types": ["node"]
   },
-  "include": ["tests/**/*.ts", "playwright.config.ts"],
+  "include": ["tests/**/*.ts", "audit/**/*.ts", "playwright.config.ts"],
   "exclude": ["node_modules"]
 }
