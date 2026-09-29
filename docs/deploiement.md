@@ -27,6 +27,57 @@ déploiement de production naît vide, sans compte ni donnée. D'ici là, les
 avertissements « jamais en production » du § 1.1 valent déjà : ce déploiement de
 développement sert l'application réelle.
 
+### État au 29/09/2026
+
+Le build Vercel ne lance que `next build` : il ne pousse jamais Convex. Le
+déploiement exécutait donc encore les fonctions du 26/09, sans `payments/` ni
+`contenus/`, d'où l'erreur 500 de `/fr/adhesion` et les « Could not find public
+function » des pages Événements. Remise à niveau du 29/09 :
+
+- **Code poussé** : `main@1c3a11a`, par `npx convex dev --once`. Tout nouveau
+  code Convex se pousse à la main de la même façon. Un `npx convex dev` lancé
+  depuis une branche plus ancienne écraserait ce déploiement.
+- **Données supprimées** : deux fiches `youthProfiles` créées par les tests E2E
+  le 02/07, dans un format antérieur à l'historique git, bloquaient le schéma.
+  Rien d'autre n'a été touché. Deux tables hors schéma restent en base, sans
+  effet : `payments` (deux dons Stripe de test, expirés) et `introRequests`
+  (vide).
+- **Commandes du § 10.3 jouées**, sans `--prod` : `importCodedContent`
+  (14 événements, 4 rediffusions, 5 partenaires, 5 thématiques),
+  `searchIndexing:backfill`, `counters:recompute` sur `newsletterSubscriptions`
+  et `orgAdmin:backfillPublicationOrganizations`.
+- **Commande non jouée** : `newsletter:migrateLegacySubscribers`. Elle écrit
+  aux 40 abonnés hérités pour leur demander une confirmation, et relève d'une
+  décision à part. En attendant, le compteur d'abonnés affiche 0.
+
+Variables du déploiement Convex à cette date :
+
+| Variable | État | Avant la mise en ligne |
+|---|---|---|
+| `AUTH_DEV_OTP`, `RECAPTCHA_DISABLED` | posées : le mode développement est assumé | à retirer (§ 1.1), après avoir posé `RECAPTCHA_SECRET_KEY` |
+| `PAYMENTS_BANK_IBAN`, `PAYMENTS_BANK_BIC`, `PAYMENTS_BANK_HOLDER`, `PAYMENTS_BANK_NAME` | **valeurs fictives** : titulaire « COMPTE FICTIF », code banque inexistant | remplacer par les coordonnées bancaires du client |
+| `ASSOCIATION_ADDRESS`, `ASSOCIATION_RNA`, `ASSOCIATION_SIRET`, `ASSOCIATION_REPRESENTATIVE` | **valeurs fictives** : mention « fictif » ou « test », identifiants à zéro | remplacer par les informations légales du client |
+| `TWO_FACTOR_ENCRYPTION_KEY` | vraie clé aléatoire de 32 octets | **la garder** sur ce déploiement : en changer oblige chaque compte à réactiver sa double authentification |
+| `ASSOCIATION_TAX_RECEIPT_ELIGIBLE` | non posée, donc `false` | `true` seulement une fois le rescrit fiscal obtenu |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | clés de **test** | clés live, webhook déclaré sur `<CONVEX_SITE_URL>/payments/webhook/stripe` (§ 10.2) |
+| `RECAPTCHA_SECRET_KEY` | absente | compte Google reCAPTCHA v3, en paire avec `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` sur Vercel |
+| `AI_GATEWAY_API_KEY` | absente | compte Vercel AI Gateway ; facultative (§ 1.5) |
+| `NEWSLETTER_UNSUBSCRIBE_MAILTO` | absente | vraie boîte de l'association ; facultative |
+
+`ASSOCIATION_NAME`, `ASSOCIATION_LEGAL_FORM`, `NEWSLETTER_BATCH_SIZE`,
+`NEWSLETTER_RATE_PER_MINUTE`, `AUDIENCE_RETENTION_DAYS`,
+`AUDIENCE_MAX_HITS_PER_MINUTE` et `TRANSLATION_MODEL` gardent les valeurs par
+défaut du code.
+
+> ⛔ **Ne recopiez pas cet environnement vers la production.** Un
+> `npx convex env list > .env.convex` rejoué sur le déploiement de production y
+> porterait les valeurs fictives et les drapeaux de développement.
+
+Restent à faire dans le back-office : importer l'édition 2026 des rapports,
+initialiser le barème (`payments/plans:publicPlans` renvoie une liste vide
+d'ici là) et rendre la double authentification obligatoire pour les
+administrateurs. La liste complète est au § 10.3.
+
 ---
 
 ## 0. Avant de commencer
