@@ -115,13 +115,19 @@ export default function ForgotPasswordPage() {
     setPending(true);
     try {
       const verdict = await checkCode({ email, code: values.code });
-      if (verdict === 'valid') goTo('reset');
-      else
+      if (verdict === 'valid') {
+        goTo('reset');
+      } else {
+        // A refused code is cleared. Left in place, the six boxes stayed
+        // full and focusing them put the caret on the LAST one: typing the
+        // next code only replaced its last digit.
+        setValue('code', '');
         setError(
           verdict === 'tooManyAttempts'
             ? t('errorTooManyAttempts')
             : t('errorCode'),
         );
+      }
     } catch {
       setError(t('errorGeneric'));
     } finally {

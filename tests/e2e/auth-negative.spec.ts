@@ -146,6 +146,9 @@ test('mot de passe oublié : un code faux est refusé avant le choix du mot de p
   await expect(
     page.getByLabel('Nouveau mot de passe', { exact: true }),
   ).toHaveCount(0);
+  // The refused code is cleared: kept, it left the caret on the last box,
+  // and the next code only replaced its last digit (seen in CI).
+  await expect(page.getByLabel('Code de vérification')).toHaveValue('');
 
   // A wrong attempt does not burn the pending code: the right one still
   // opens the password screen.
