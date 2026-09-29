@@ -98,8 +98,13 @@ function otpProvider(id: string, purpose: OtpPurpose) {
   });
 }
 
+// Id of the reset provider, as stored on each code it issues. Exported for
+// `passwordReset.checkCode`, which must recognise these codes: `Email()`
+// keeps the id in `options`, and the object's own `id` reads "email".
+export const RESET_PROVIDER_ID = 'otp-reset';
+
 export const emailVerification = otpProvider('otp-verify', 'verification');
-export const passwordReset = otpProvider('otp-reset', 'reset');
+export const passwordReset = otpProvider(RESET_PROVIDER_ID, 'reset');
 export const emailOtpSignIn = otpProvider('otp-signin', 'signin');
 
 // Cap on emailed code sends (anti-abuse). internalMutation: called

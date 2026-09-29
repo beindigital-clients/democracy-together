@@ -3,7 +3,7 @@ import {
   signUpAndVerify,
   provisionUser,
   provisionPassword,
-  getOtp,
+  reachNewPasswordStep,
   E2E_PASSWORD,
 } from './_helpers';
 
@@ -67,14 +67,7 @@ test('définition du mot de passe : saisies non concordantes refusées', async (
   // `flow: 'reset'` throws `InvalidAccountId` and the screen does not appear (#66).
   await provisionPassword(email, 'motdepassedepart1');
 
-  await page.goto('/fr/mot-de-passe-oublie');
-  await page.getByLabel('E-mail').fill(email);
-  await page.getByRole('button', { name: 'Envoyer le code' }).click();
-
-  await expect(
-    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
-  ).toBeVisible();
-  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await reachNewPasswordStep(page, email);
   await page
     .getByLabel('Nouveau mot de passe', { exact: true })
     .fill(E2E_PASSWORD);

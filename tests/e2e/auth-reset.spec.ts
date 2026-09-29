@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { getOtp, signUpAndVerify } from './_helpers';
 
 // Forgot password: reset by code, then sign in with the new password. (F-01)
+// One question per screen: address, then code, then new password.
 test('mot de passe oublié -> réinitialisation -> connexion', async ({
   page,
 }) => {
@@ -18,13 +19,24 @@ test('mot de passe oublié -> réinitialisation -> connexion', async ({
   await page.goto('/fr/mot-de-passe-oublie');
   await page.getByLabel('E-mail').fill(email);
   await page.getByRole('button', { name: 'Envoyer le code' }).click();
+
+  // the code, on its own: no password field yet
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel('Nouveau mot de passe', { exact: true }),
+  ).toHaveCount(0);
+  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
+
+  // then the new password
   await expect(
     page.getByRole('heading', { name: 'Nouveau mot de passe' }),
   ).toBeVisible();
-
-  // enter code + new password
-  await page.getByLabel('Code de vérification').fill(await getOtp(email));
-  await page.getByLabel('Nouveau mot de passe').fill('nouveaumotdepasse2');
+  await page
+    .getByLabel('Nouveau mot de passe', { exact: true })
+    .fill('nouveaumotdepasse2');
   await page.getByLabel('Confirmer le mot de passe').fill('nouveaumotdepasse2');
   await page
     .getByRole('button', { name: 'Réinitialiser le mot de passe' })
