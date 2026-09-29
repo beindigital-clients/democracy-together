@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { isTooManyAttempts } from '@/lib/auth-errors';
 import { isAccountSuspended } from '@/lib/account-errors';
 import { isEmail } from '@/lib/validation';
+import { normalizeEmail } from '@convex/lib/onboarding';
 
 export default function ConnexionPage() {
   const t = useTranslations('auth');
@@ -57,7 +58,9 @@ export default function ConnexionPage() {
     setPending(true);
     try {
       await signIn('password', {
-        email: values.email.trim(),
+        // As accounts store it (lowercase): an address typed with a
+        // capital letter found no account.
+        email: normalizeEmail(values.email),
         password: values.password,
         flow: 'signIn',
       });

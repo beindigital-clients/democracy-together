@@ -13,7 +13,9 @@ import { isHttpUrl } from './validation';
 // Address normalization: it is the junction point between the application
 // (typed by hand, arbitrary case and spaces) and sign-in (which
 // will look up the address as the auth provider presents it). A
-// divergence here, and the approved member never finds their account.
+// divergence here, and the approved member never finds their account. The
+// sign-in screens (connexion, connexion-otp, mot-de-passe-oublie) apply this
+// very function to what is typed.
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }

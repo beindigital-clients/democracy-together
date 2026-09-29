@@ -14,6 +14,7 @@ import { OtpField } from '@/components/auth/otp-field';
 import { isSendLimited } from '@/lib/auth-errors';
 import { isAccountSuspended } from '@/lib/account-errors';
 import { isEmail } from '@/lib/validation';
+import { normalizeEmail } from '@convex/lib/onboarding';
 import {
   PASSWORD_MIN_LENGTH,
   passwordRefusal,
@@ -46,7 +47,9 @@ export default function ForgotPasswordPage() {
     newPassword: '',
     confirmPassword: '',
   });
-  const email = values.email.trim();
+  // Sent as accounts store it (lowercase): an address typed with a capital
+  // letter found no account, and the code never came.
+  const email = normalizeEmail(values.email);
 
   // A screen opens without the previous one's messages.
   function goTo(next: Step, message: string | null = null) {

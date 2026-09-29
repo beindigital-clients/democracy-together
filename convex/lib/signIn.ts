@@ -39,7 +39,11 @@ export async function resolveSignInUserId(
   // normalise here, that would widen what the callback accepts. Accounts are
   // created with an already normalised address — invitation (F-63),
   // membership approval (F-22) and admin bootstrap all go through
-  // `normalizeEmail()`, precisely so that this read finds them.
+  // `normalizeEmail()`, precisely so that this read finds them. The sign-in
+  // screens send the typed address through the same function; the server
+  // cannot do it for them: Convex Auth keys its code-verification failure
+  // counter on the address exactly as sent, so matched case-insensitively,
+  // each spelling of one address would get its own budget of guesses.
   //
   // `.first()` and not `.unique()`: if two rows shared an address, the old
   // `find()` returned the oldest; the index, which orders ties by
