@@ -354,6 +354,25 @@ export async function provisionPassword(
   });
 }
 
+// Walks "forgot password" up to its LAST screen: the address, then the code
+// read back from the deployment, each on its own screen. Same assumption as
+// below: the account already has a password.
+export async function reachNewPasswordStep(page: Page, email: string) {
+  await page.goto('/fr/mot-de-passe-oublie');
+  await page.getByLabel('E-mail').fill(email);
+  await page.getByRole('button', { name: 'Envoyer le code' }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
+  ).toBeVisible();
+}
+
 // Resets an EXISTING password through the "forgot password" flow.
 // It therefore assumes an account that already has a password (see
 // `provisionPassword`): that is the subject of `auth-reset.spec.ts`, and the
@@ -363,14 +382,7 @@ export async function setPasswordViaReset(
   email: string,
   password: string,
 ) {
-  await page.goto('/fr/mot-de-passe-oublie');
-  await page.getByLabel('E-mail').fill(email);
-  await page.getByRole('button', { name: 'Envoyer le code' }).click();
-
-  await expect(
-    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
-  ).toBeVisible();
-  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await reachNewPasswordStep(page, email);
   await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(password);
   await page.getByLabel('Confirmer le mot de passe').fill(password);
   await page

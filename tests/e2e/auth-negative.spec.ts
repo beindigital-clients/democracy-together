@@ -3,6 +3,7 @@ import {
   signUpAndVerify,
   provisionUser,
   provisionPassword,
+  reachNewPasswordStep,
   getOtp,
   E2E_PASSWORD,
 } from './_helpers';
@@ -96,14 +97,7 @@ test('changement de mot de passe : un mot de passe trop courant est refusé', as
   await provisionUser(email);
   await provisionPassword(email, E2E_PASSWORD);
 
-  await page.goto('/fr/mot-de-passe-oublie');
-  await page.getByLabel('E-mail').fill(email);
-  await page.getByRole('button', { name: 'Envoyer le code' }).click();
-
-  await expect(
-    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
-  ).toBeVisible();
-  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await reachNewPasswordStep(page, email);
   // 13 characters: length alone would not have stopped it, and the code is
   // valid — it is indeed the policy that refuses.
   await page
@@ -120,4 +114,47 @@ test('changement de mot de passe : un mot de passe trop courant est refusé', as
     page.getByText('Ce mot de passe est trop courant'),
   ).toBeVisible();
   await expect(page).not.toHaveURL(/\/espace-membre$/);
+});
+
+// "Forgot password" checks the code ON ITS OWN SCREEN. On the former single
+// form, a wrong code only surfaced after the new password had been typed
+// twice; it must now be refused before any password field appears — and
+// without costing the right code its chance.
+test('mot de passe oublié : un code faux est refusé avant le choix du mot de passe', async ({
+  page,
+}) => {
+  const email = `e2e_resetcode_${Date.now()}@democracytogether.test`;
+  await provisionUser(email);
+  await provisionPassword(email, E2E_PASSWORD);
+
+  await page.goto('/fr/mot-de-passe-oublie');
+  await page.getByLabel('E-mail').fill(email);
+  await page.getByRole('button', { name: 'Envoyer le code' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+
+  const code = await getOtp(email);
+  const wrong = String((Number(code) + 1) % 1_000_000).padStart(6, '0');
+  await page.getByLabel('Code de vérification').fill(wrong);
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
+
+  await expect(page.getByText('Code invalide ou expiré.')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel('Nouveau mot de passe', { exact: true }),
+  ).toHaveCount(0);
+  // The refused code is cleared: kept, it left the caret on the last box,
+  // and the next code only replaced its last digit (seen in CI).
+  await expect(page.getByLabel('Code de vérification')).toHaveValue('');
+
+  // A wrong attempt does not burn the pending code: the right one still
+  // opens the password screen.
+  await page.getByLabel('Code de vérification').fill(code);
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
+  ).toBeVisible();
 });

@@ -134,6 +134,7 @@ import type * as notifications from "../notifications.js";
 import type * as orgAdmin from "../orgAdmin.js";
 import type * as organizations from "../organizations.js";
 import type * as otp from "../otp.js";
+import type * as passwordReset from "../passwordReset.js";
 import type * as payments_checkout from "../payments/checkout.js";
 import type * as payments_fake from "../payments/fake.js";
 import type * as payments_finances from "../payments/finances.js";
@@ -301,6 +302,7 @@ declare const fullApi: ApiFromModules<{
   orgAdmin: typeof orgAdmin;
   organizations: typeof organizations;
   otp: typeof otp;
+  passwordReset: typeof passwordReset;
   "payments/checkout": typeof payments_checkout;
   "payments/fake": typeof payments_fake;
   "payments/finances": typeof payments_finances;

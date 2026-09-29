@@ -11,6 +11,7 @@ import { OtpField } from '@/components/auth/otp-field';
 import { isSendLimited, isTooManyAttempts } from '@/lib/auth-errors';
 import { isAccountSuspended } from '@/lib/account-errors';
 import { isEmail } from '@/lib/validation';
+import { normalizeEmail } from '@convex/lib/onboarding';
 
 export default function OtpSignInPage() {
   const t = useTranslations('auth');
@@ -25,7 +26,9 @@ export default function OtpSignInPage() {
   // The address survives moving to the code step — and a failed send:
   // retyping it after a server refusal was the first thing to avoid.
   const { values, field, validate } = useFormFields({ email: '', code: '' });
-  const email = values.email.trim();
+  // Sent as accounts store it (lowercase): an address typed with a capital
+  // letter found no account, and the code never came.
+  const email = normalizeEmail(values.email);
 
   async function onEmail(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

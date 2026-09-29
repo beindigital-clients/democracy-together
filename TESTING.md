@@ -41,6 +41,13 @@ crochet se contourne (`--no-verify`).
   `vi.stubEnv('SITE_URL', …)` : sans cette variable, la pose d'un mot de passe
   crée bien le compte mais l'action lève sur l'envoi du code de vérification.
   `auth.config.ts` et `http.ts`, eux, restent dehors.
+- Même exception pour `password-reset.test.ts` : `passwordReset.checkCode`
+  rejoue des vérifications que Convex Auth n'exporte pas, et seul un code émis
+  par le VRAI parcours « mot de passe oublié » prouve qu'elles concordent avec
+  la bibliothèque (empreinte, fournisseur, compte, compteur d'échecs partagé).
+  Une réinitialisation réussie ouvre une session, donc signe un jeton : le
+  fichier génère une clé RSA jetable pour `JWT_PRIVATE_KEY`, et pose
+  `CONVEX_SITE_URL` pour l'émetteur.
 - L'exclusion d'`auth.ts` ne masque plus sa DÉCISION : le corps du callback
   `createOrUpdateUser` vit dans `convex/lib/signIn.ts`, testable tel quel
   (`convex/auth-callback.test.ts`, refus `NO_SELF_SIGNUP` compris). C'est le

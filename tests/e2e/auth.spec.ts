@@ -3,6 +3,7 @@ import {
   signUpAndVerify,
   provisionUser,
   provisionPassword,
+  reachNewPasswordStep,
   getOtp,
   E2E_PASSWORD,
 } from './_helpers';
@@ -67,14 +68,7 @@ test('définition du mot de passe : saisies non concordantes refusées', async (
   // `flow: 'reset'` throws `InvalidAccountId` and the screen does not appear (#66).
   await provisionPassword(email, 'motdepassedepart1');
 
-  await page.goto('/fr/mot-de-passe-oublie');
-  await page.getByLabel('E-mail').fill(email);
-  await page.getByRole('button', { name: 'Envoyer le code' }).click();
-
-  await expect(
-    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
-  ).toBeVisible();
-  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await reachNewPasswordStep(page, email);
   await page
     .getByLabel('Nouveau mot de passe', { exact: true })
     .fill(E2E_PASSWORD);
@@ -87,6 +81,60 @@ test('définition du mot de passe : saisies non concordantes refusées', async (
     page.getByText('Les mots de passe ne correspondent pas'),
   ).toBeVisible();
   // still at the entry step: the reset did not happen
+  await expect(
+    page.getByRole('heading', { name: 'Nouveau mot de passe' }),
+  ).toBeVisible();
+});
+
+// Accounts store their address in lowercase (`normalizeEmail`), and the
+// screens used to send it as typed: one capital letter — a phone keyboard
+// adds one on its own — and the password was "incorrect", while the code by
+// e-mail never came. The same capitalized address, on the three screens.
+test('une adresse saisie avec des majuscules est reconnue par les trois écrans', async ({
+  page,
+}) => {
+  const email = `e2e_casse_${Date.now()}@democracytogether.test`;
+  const typed =
+    email.charAt(0).toUpperCase() +
+    email.slice(1).replace('@democracytogether', '@DemocracyTogether');
+  await provisionUser(email);
+  await provisionPassword(email, E2E_PASSWORD);
+
+  // Password sign-in.
+  await page.goto('/fr/connexion');
+  await page.getByLabel('E-mail').fill(typed);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Se connecter' }).click();
+  await expect(page).toHaveURL(/\/espace-membre$/);
+  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await expect(
+    page.getByRole('link', { name: 'Connexion' }).first(),
+  ).toBeVisible();
+
+  // Sign-in by code: the code goes to the account's (lowercase) address.
+  await page.goto('/fr/connexion-otp');
+  await page.getByLabel('E-mail').fill(typed);
+  await page.getByRole('button', { name: 'Recevoir un code' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await page.getByRole('button', { name: 'Se connecter' }).click();
+  await expect(page).toHaveURL(/\/espace-membre$/);
+  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await expect(
+    page.getByRole('link', { name: 'Connexion' }).first(),
+  ).toBeVisible();
+
+  // Forgot password, up to the new-password screen.
+  await page.goto('/fr/mot-de-passe-oublie');
+  await page.getByLabel('E-mail').fill(typed);
+  await page.getByRole('button', { name: 'Envoyer le code' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Saisissez le code' }),
+  ).toBeVisible();
+  await page.getByLabel('Code de vérification').fill(await getOtp(email));
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Nouveau mot de passe' }),
   ).toBeVisible();
