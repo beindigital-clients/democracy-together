@@ -75,10 +75,23 @@ function UsersTable() {
   // Only one dialog at a time: the overlay covers the screen and intercepts
   // clicks, so a boolean is enough where a counter would only serve to
   // describe an impossible situation.
+  //
+  // KEEP THE LAST PAGE ON SCREEN WHILE THE NEXT ONE LOADS. The freeze only
+  // covers an OPEN dialog; the gesture that leads to it did not. Choosing a
+  // role then tabbing to "Appliquer" takes a few seconds, and the debounced
+  // search could land in between: `LoadingFirstPage` swapped the table for
+  // "Chargement…", every `RoleSelector` unmounted, and the prepared role
+  // was lost — no "Appliquer" button any more, nothing said why (seen in
+  // CI, a11y-clavier.spec.ts). The rows of the last settled page therefore
+  // stay mounted, keyed by account, until the new page replaces them; the
+  // table is marked `aria-busy` meanwhile. Only the very first load, with
+  // nothing to show yet, still says "Chargement…".
+  const chargement = status === 'LoadingFirstPage';
+  const connues = useConnu(chargement ? undefined : users);
   const [gel, setGel] = useState<typeof users | null>(null);
-  const lignes = gel ?? users;
+  const lignes = gel ?? connues ?? [];
   function signalerConfirmation(ouverte: boolean) {
-    setGel(ouverte ? users : null);
+    setGel(ouverte ? (connues ?? users) : null);
   }
 
   // Called from `RoleSelector`, hence AFTER "Appliquer" then confirmation
@@ -134,7 +147,7 @@ function UsersTable() {
         </SelectField>
       </div>
 
-      {(status === 'LoadingFirstPage' && gel === null) || !me ? (
+      {(gel === null && connues === undefined) || !me ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : lignes.length === 0 ? (
         <p className="mt-6 text-ink-soft">
@@ -142,7 +155,10 @@ function UsersTable() {
         </p>
       ) : (
         <ScrollableRegion label={t('users')} className="mt-6">
-          <table className="w-full min-w-[860px] text-sm">
+          <table
+            aria-busy={chargement || undefined}
+            className="w-full min-w-[860px] text-sm"
+          >
             {/* Table caption (RGAA 5.4): the screen's `<h1>` names it for
                 the eye; the caption ties it to the table for speech synthesis. */}
             <caption className="sr-only">{t('users')}</caption>
