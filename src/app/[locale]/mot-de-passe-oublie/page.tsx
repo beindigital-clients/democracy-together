@@ -3,9 +3,10 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
+import { resolveLocale } from '@/i18n/locale';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
 import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
@@ -33,9 +34,12 @@ type Step = 'request' | 'code' | 'reset';
 
 export default function ForgotPasswordPage() {
   const t = useTranslations('auth');
+  const tNav = useTranslations('nav');
   const tAccounts = useTranslations('accounts');
+  const locale = resolveLocale(useLocale());
   const { signIn } = useAuthActions();
   const checkCode = useMutation(api.passwordReset.checkCode);
+  const requestNotice = useMutation(api.accountNotices.requestNotice);
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<Step>('request');
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +62,13 @@ export default function ForgotPasswordPage() {
     setNotice(null);
   }
 
+  // What this screen must not say — no account, or an account without a
+  // password — goes by e-mail to the address itself: the server decides, and
+  // answers nothing (convex/accountNotices.ts).
+  function askForNotice() {
+    requestNotice({ email, purpose: 'reset', locale }).catch(() => {});
+  }
+
   async function onRequest(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -75,8 +86,10 @@ export default function ForgotPasswordPage() {
         // ANTI-ENUMERATION, as with sign-in by code: an address
         // without a password account (`InvalidAccountId`) must not be
         // distinguishable from a known address. The code step's subtitle
-        // says "if an account with a password exists" and points to
-        // sign-in by code, the only path for an invited member.
+        // says "if an account with a password exists"; the address's owner
+        // learns which case applies by e-mail (and, for an invited member,
+        // that sign-in by code is the way in).
+        askForNotice();
         goTo('code');
       }
     } finally {
@@ -94,8 +107,12 @@ export default function ForgotPasswordPage() {
       await signIn('password', { email, flow: 'reset' });
       setNotice(t('resendDone'));
     } catch (err) {
-      if (isSendLimited(err)) setError(t('errorSendLimit'));
-      else setNotice(t('resendDone'));
+      if (isSendLimited(err)) {
+        setError(t('errorSendLimit'));
+      } else {
+        askForNotice();
+        setNotice(t('resendDone'));
+      }
     } finally {
       setPending(false);
     }
@@ -261,6 +278,16 @@ export default function ForgotPasswordPage() {
             {t('changeEmail')}
           </button>
         </div>
+        <p className="mt-6 text-sm text-ink-soft">{t('codeHelp')}</p>
+        <p className="mt-3 text-sm text-ink-soft">
+          {t('noAccount')}{' '}
+          <Link
+            href="/adhesion"
+            className="text-accent-text underline underline-offset-2"
+          >
+            {tNav('join')}
+          </Link>
+        </p>
       </AuthCard>
     );
   }
