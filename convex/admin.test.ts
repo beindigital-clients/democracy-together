@@ -1,5 +1,5 @@
 // @vitest-environment edge-runtime
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
@@ -15,6 +15,26 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// The mutations under test schedule e-mails with `runAfter(0)` — receipt,
+// staff alert, decline, sign-in invitation — which run once the test lets go
+// of the event loop. Left alone, a send logs after its test has ended, and a
+// log landing during the file's teardown fails the whole Vitest run (see
+// convex/newsletter.test.ts). Each instance is drained before its test ends.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+afterEach(async () => {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 // Pagination: `listUsers` takes `paginationOpts` since issue #8, and
 // `listApplications` since issue #49 — it was the last back-office list
 // to load its whole table. A wide page is enough here: what
@@ -24,7 +44,7 @@ const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
 
 describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
   it('dashboard+candidatures = modérateur+ ; utilisateurs = admin', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const membreId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
     );
@@ -56,7 +76,7 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
   });
 
   it('dashboardStats compte les candidatures en attente (F-61)', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );
@@ -109,7 +129,7 @@ describe('Back-office — RBAC des queries (F-26/F-61/F-63)', () => {
 // carry a `role` column.
 describe('Back-office — rôle affiché (F-63)', () => {
   it('listUsers : un compte sans rôle remonte « visiteur », pas « membre »', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );
@@ -129,7 +149,7 @@ describe('Back-office — rôle affiché (F-63)', () => {
   });
 
   it("le compte sans rôle est bien refusé par le serveur : l'écran ne ment plus", async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
     );
@@ -198,7 +218,7 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
   }
 
   it('listApplications expose le compte déposant, et sa DISCORDANCE avec le contact', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
@@ -229,7 +249,7 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
   });
 
   it('une candidature anonyme remonte un compte NUL, pas le contact', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
@@ -252,7 +272,7 @@ describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)
   });
 
   it("approuver élève le compte déposant — pas l'adresse de contact", async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );

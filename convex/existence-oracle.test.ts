@@ -31,6 +31,7 @@ const modules = import.meta.glob([
 // which only takes a single call.
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
 });
 
@@ -44,6 +45,12 @@ function harnais() {
   // can go out. Without a provider, the property tested here
   // would not be reached.
   vi.stubEnv('AUTH_DEV_OTP', 'true');
+  // The newsletter sign-up schedules its confirmation e-mail. On real timers
+  // that send outlived the test: it ran once `afterEach` had removed the
+  // variables above, and logged its failure while vitest was closing the
+  // worker (EnvironmentTeardownError). Fake timers hold it until the test
+  // drains it with `finishAllScheduledFunctions`.
+  vi.useFakeTimers();
   return convexTest(schema, modules);
 }
 
@@ -129,6 +136,7 @@ describe('F-09 — aucun formulaire public ne révèle qu’une adresse est conn
       // door on a distinction reintroduced under another name.
       expect(JSON.stringify(second)).toBe(JSON.stringify(premier));
       expect(premier).toEqual({ ok: true });
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
     });
 
     it(`${nom} : la déduplication continue de fonctionner`, async () => {
@@ -140,6 +148,7 @@ describe('F-09 — aucun formulaire public ne révèle qu’une adresse est conn
       // database: the internal mutation still distinguishes the two cases.
       const lignes = await t.run((ctx) => ctx.db.query(table).collect());
       expect(lignes).toHaveLength(1);
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
     });
   }
 });

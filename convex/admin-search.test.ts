@@ -431,15 +431,12 @@ describe('Candidatures — pagination et recherche (issues #8 et #49)', () => {
     const as = await seedAdmin(t);
 
     const res = await as.query(api.admin.listApplications, PAGE());
-    // The review note is meant for staff: it comes out. The workflow's
-    // internal onboarding fields do not.
+    // The review note is meant for staff: it comes out. So does the moment the
+    // sign-in invitation left — the queue shows it, and offers to send it
+    // again. The workflow's other internal fields do not.
     expect(res.page[0].reviewNotes).toBe('Note de revue');
-    for (const field of [
-      'invitedAt',
-      'createdOrgId',
-      'reviewedBy',
-      '_creationTime',
-    ]) {
+    expect(res.page[0].invitedAt).toBe(2);
+    for (const field of ['createdOrgId', 'reviewedBy', '_creationTime']) {
       expect(Object.keys(res.page[0])).not.toContain(field);
     }
   });

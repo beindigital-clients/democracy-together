@@ -23,7 +23,10 @@ type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 // The invitation schedules a welcome email: in development mode it is
 // logged instead of failing for lack of a provider.
 beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
 
 async function user(t: T, email: string, role: Role, name?: string) {
   const id = await t.run((ctx) =>
@@ -219,6 +222,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
 
 describe('Rattachements', () => {
   it('le responsable invite un collègue ; jamais le dernier responsable retiré', async () => {
+    vi.useFakeTimers();
     const t = convexTest(schema, modules);
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre');
@@ -278,6 +282,9 @@ describe('Rattachements', () => {
       userId: owner.id,
     });
     expect(await owner.as.query(api.orgAdmin.myOrganizations, {})).toEqual([]);
+    // The invitation scheduled a welcome e-mail: send it before the test ends,
+    // not after, when AUTH_DEV_OTP is no longer set.
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('un simple membre ne voit pas les adresses de ses collègues', async () => {

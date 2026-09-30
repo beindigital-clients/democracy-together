@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:convex": "tsc -p convex --noEmit",
     "typecheck:tests": "tsc -p tsconfig.tests.json",
+    "verify": "node scripts/verify.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

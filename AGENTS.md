@@ -33,6 +33,16 @@ request titles and descriptions, and comments or reviews on GitHub. Product
 copy stays localized (`messages/*.json`, French UI text, test titles quoting
 it); only the prose written for developers must be English.
 
+## Before pushing — `pnpm verify`
+
+`git push` first runs the husky `pre-push` hook: `pnpm verify`, the three
+typechecks and the unit tests in parallel (about a minute), and the push is
+cancelled if one of them fails. Give the push command a timeout of at least
+five minutes. When the push is refused, fix what failed, commit, and push
+again: never bypass the hook with `--no-verify`. In Claude Code on the web,
+the hook only exists once the dependencies are installed, which
+`.claude/hooks/session-start.sh` does when the session starts.
+
 ## Agent skills — a single copy
 
 `.claude/skills/` is the **single copy** of the Convex skills (30 files).

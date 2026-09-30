@@ -1,4 +1,5 @@
-import { escapeHtml, shell, subject, type Phrase } from '../emailContent';
+import { escapeHtml, plain, subject, type Phrase } from '../emailContent';
+import { emailDocument, emailKit } from '../emailLayout';
 import { intlTag, type SiteLocale } from '../locales';
 import { fromMinor, type Currency } from './amounts';
 
@@ -19,10 +20,23 @@ export function formatAmountFor(
   }).format(fromMinor(minor, currency));
 }
 
-const BUTTON =
-  'display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600';
-
 // --- Payment confirmation -----------------------------------------------------
+
+const AMOUNT_LABEL: Phrase = {
+  fr: 'Montant',
+  en: 'Amount',
+  es: 'Importe',
+  pt: 'Montante',
+  ar: 'المبلغ',
+};
+
+const RECEIPT_LABEL: Phrase = {
+  fr: 'Reçu n°',
+  en: 'Receipt no.',
+  es: 'Recibo n.º',
+  pt: 'Recibo n.º',
+  ar: 'رقم الإيصال',
+};
 
 const CONFIRM_SUBJECT: Record<'donation' | 'dues', Phrase> = {
   donation: {
@@ -66,14 +80,6 @@ const CONFIRM_RECURRING: Phrase = {
   ar: 'هذا تبرّع شهري: يمكنكم إيقافه في أي وقت من فضاء العضو أو بالرد على هذه الرسالة.',
 };
 
-const CONFIRM_RECEIPT: Phrase = {
-  fr: 'Votre reçu n° {number} est disponible :',
-  en: 'Your receipt no. {number} is available:',
-  es: 'Su recibo n.º {number} está disponible:',
-  pt: 'O seu recibo n.º {number} está disponível:',
-  ar: 'إيصالكم رقم {number} متاح:',
-};
-
 const CONFIRM_CTA: Phrase = {
   fr: 'Télécharger le reçu',
   en: 'Download the receipt',
@@ -103,14 +109,26 @@ export function paymentConfirmationEmail(args: {
   const amount = escapeHtml(
     formatAmountFor(args.amountMinor, args.currency, loc),
   );
-  const body = `<p>${CONFIRM_LEAD[args.kind][loc].replace('{amount}', amount)}</p>
-    ${args.recurring ? `<p>${CONFIRM_RECURRING[loc]}</p>` : ''}
-    <p>${CONFIRM_RECEIPT[loc].replace('{number}', escapeHtml(args.receiptNumber))}</p>
-    <p><a href="${escapeHtml(args.receiptUrl)}" style="${BUTTON}">${CONFIRM_CTA[loc]}</a></p>
-    <p style="color:#646771;font-size:13px">${CONFIRM_NOTE[loc]}</p>`;
+  const lead = CONFIRM_LEAD[args.kind][loc].replace('{amount}', amount);
+  const number = escapeHtml(args.receiptNumber);
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(lead) +
+    kit.details([
+      { label: AMOUNT_LABEL[loc], value: amount },
+      { label: RECEIPT_LABEL[loc], value: number },
+    ]) +
+    (args.recurring ? kit.paragraph(CONFIRM_RECURRING[loc]) : '') +
+    kit.button(args.receiptUrl, CONFIRM_CTA[loc]) +
+    kit.note(CONFIRM_NOTE[loc]);
   return {
     subject: subject(CONFIRM_SUBJECT[args.kind], loc),
-    html: shell(loc, body),
+    html: emailDocument({
+      loc,
+      title: CONFIRM_SUBJECT[args.kind][loc],
+      preheader: plain(lead),
+      body,
+    }),
   };
 }
 
@@ -158,10 +176,22 @@ export function recurringReminderEmail(args: {
   const amount = escapeHtml(
     formatAmountFor(args.amountMinor, args.currency, loc),
   );
-  const body = `<p>${REMINDER_LEAD[loc].replace('{amount}', amount)}</p>
-    <p><a href="${escapeHtml(args.payUrl)}" style="${BUTTON}">${REMINDER_CTA[loc]}</a></p>
-    <p style="color:#646771;font-size:13px">${REMINDER_STOP[loc]}</p>`;
-  return { subject: subject(REMINDER_SUBJECT, loc), html: shell(loc, body) };
+  const lead = REMINDER_LEAD[loc].replace('{amount}', amount);
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(lead) +
+    kit.button(args.payUrl, REMINDER_CTA[loc]) +
+    kit.fallback(args.payUrl) +
+    kit.note(REMINDER_STOP[loc]);
+  return {
+    subject: subject(REMINDER_SUBJECT, loc),
+    html: emailDocument({
+      loc,
+      title: REMINDER_SUBJECT[loc],
+      preheader: plain(lead),
+      body,
+    }),
+  };
 }
 
 // --- Stopping a monthly donation ----------------------------------------------
@@ -191,8 +221,14 @@ export function recurringCancelledEmail(args: {
   const amount = escapeHtml(
     formatAmountFor(args.amountMinor, args.currency, loc),
   );
+  const lead = CANCEL_LEAD[loc].replace('{amount}', amount);
   return {
     subject: subject(CANCEL_SUBJECT, loc),
-    html: shell(loc, `<p>${CANCEL_LEAD[loc].replace('{amount}', amount)}</p>`),
+    html: emailDocument({
+      loc,
+      title: CANCEL_SUBJECT[loc],
+      preheader: plain(lead),
+      body: emailKit(loc).paragraph(lead),
+    }),
   };
 }

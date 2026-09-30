@@ -1,5 +1,5 @@
 // @vitest-environment edge-runtime
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
@@ -159,6 +159,16 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'abonne@test.org',
     });
+    // The subscription scheduled the confirmation e-mail (`runAfter(0)`). It
+    // runs NOW, before the known hash is armed below: left to run later, it
+    // would overwrite that hash with its own, and log after the test has
+    // ended (see newsletter.test.ts). Fake timers for this call only.
+    vi.useFakeTimers();
+    try {
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+    } finally {
+      vi.useRealTimers();
+    }
     // Double opt-in (distribution workstream): a PENDING one does not count — the
     // counter is that of the subscribers a campaign reaches.
     expect((await counters(t))['newsletterSubscriptions'] ?? 0).toBe(0);

@@ -26,6 +26,24 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
 import { Check } from 'lucide-react';
 import { StatusMessage } from '@/components/a11y/status-message';
+import { Link } from '@/i18n/navigation';
+import { ArrowForward } from '@/components/ui/arrow';
+
+// One step of "what happens next", on the confirmation: the applicant has no
+// account yet, so e-mail is their only channel — they must know to watch it.
+function NextStep({ n, children }: { n: number; children: string }) {
+  return (
+    <li className="flex gap-3 text-[15px] leading-relaxed text-ink-soft">
+      <span
+        aria-hidden="true"
+        className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-accent-edge font-mono text-xs text-accent-text"
+      >
+        {n}
+      </span>
+      <span>{children}</span>
+    </li>
+  );
+}
 
 type ApplicantType = 'organisation' | 'individu';
 
@@ -100,14 +118,53 @@ export function MembershipForm() {
   return (
     <div className="rounded-md border border-line bg-surface p-6 shadow-card sm:p-8">
       {status === 'success' ? (
-        <StatusMessage className="py-6">
-          <h2 className="font-display text-2xl text-ink">
-            {t('successTitle')}
-          </h2>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-ink-soft">
-            {t('successBody')}
-          </p>
-        </StatusMessage>
+        <div className="py-2">
+          {/* What the screen reader reads on arrival (focus is moved here):
+              the outcome and the address the confirmation goes to — shown
+              on its own line, left to right, so a typo is caught now rather
+              than never. */}
+          <StatusMessage>
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-text"
+              >
+                <Check className="h-5 w-5" />
+              </span>
+              <h2 className="font-display text-2xl text-ink">
+                {t('successTitle')}
+              </h2>
+            </div>
+            <p className="mt-4 max-w-[52ch] leading-relaxed text-ink-soft">
+              {t('successBody')}
+            </p>
+            <p
+              dir="ltr"
+              className="mt-1 break-all font-mono text-sm font-medium text-ink"
+            >
+              {values.contactEmail.trim()}
+            </p>
+            <p className="mt-2 max-w-[52ch] text-sm text-muted">
+              {t('successSpam')}
+            </p>
+          </StatusMessage>
+
+          <h3 className="mt-7 font-display text-lg text-ink">
+            {t('nextTitle')}
+          </h3>
+          <ol className="mt-3 space-y-3">
+            <NextStep n={1}>{t('nextReview')}</NextStep>
+            <NextStep n={2}>{t('nextAnswer')}</NextStep>
+            <NextStep n={3}>{t('nextAccess')}</NextStep>
+          </ol>
+
+          <Link
+            href="/le-reseau"
+            className="mt-7 inline-block py-1 text-sm font-medium text-accent-text hover:underline"
+          >
+            {t('successExplore')} <ArrowForward />
+          </Link>
+        </div>
       ) : (
         <form onSubmit={onSubmit} noValidate className="space-y-5">
           <fieldset>
@@ -145,9 +202,11 @@ export function MembershipForm() {
             </div>
           </fieldset>
 
+          {/* Autofill follows the label: a researcher's own name, not an
+              organisation's. */}
           <TextField
             label={type === 'organisation' ? t('orgName') : t('personName')}
-            autoComplete="organization"
+            autoComplete={type === 'organisation' ? 'organization' : 'name'}
             required
             {...field('organizationName')}
           />

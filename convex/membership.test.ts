@@ -1,5 +1,5 @@
 // @vitest-environment edge-runtime
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { internal } from './_generated/api';
@@ -18,6 +18,26 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// The mutations under test schedule e-mails with `runAfter(0)` — receipt,
+// staff alert, decline, sign-in invitation — which run once the test lets go
+// of the event loop. Left alone, a send logs after its test has ended, and a
+// log landing during the file's teardown fails the whole Vitest run (see
+// convex/newsletter.test.ts). Each instance is drained before its test ends.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+afterEach(async () => {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 const valid = {
   type: 'organisation' as const,
   organizationName: 'Institut Démo',
@@ -27,7 +47,7 @@ const valid = {
 
 describe('Adhésion — submitApplication validation (F-22)', () => {
   it('rejette nom court, e-mail invalide et pays court', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await expect(
       t.mutation(internal.organizations.storeApplication, {
         ...valid,
@@ -52,7 +72,7 @@ describe('Adhésion — submitApplication validation (F-22)', () => {
   });
 
   it('accepte une candidature valide, la marque pending et trime', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(internal.organizations.storeApplication, {
       type: 'individu',
       organizationName: '  Awa Diop  ',
@@ -72,7 +92,7 @@ describe('Adhésion — submitApplication validation (F-22)', () => {
   });
 
   it('lie applicantUserId quand l utilisateur est connecté, sinon non (F-22)', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const userId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'membre', email: 'connecte@test.org' }),
     );

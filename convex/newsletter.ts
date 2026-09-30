@@ -913,7 +913,12 @@ export const _deliverTest = internalAction({
           subject: testSubject(version.subject, version.locale),
           // Dummy token: a test's unsubscribe link must not
           // unsubscribe anyone.
-          html: campaignHtml(version.body, 'test', version.locale),
+          html: campaignHtml(
+            version.body,
+            'test',
+            version.locale,
+            version.subject,
+          ),
           headers: listUnsubscribeHeaders('test', version.locale),
         });
       } catch (err) {
@@ -1301,7 +1306,12 @@ export const _processBatch = internalAction({
       return {
         to: r.email,
         subject: version.subject,
-        html: campaignHtml(version.body, r.unsubToken, version.locale),
+        html: campaignHtml(
+          version.body,
+          r.unsubToken,
+          version.locale,
+          version.subject,
+        ),
         headers: listUnsubscribeHeaders(r.unsubToken, version.locale),
       };
     });

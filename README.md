@@ -92,9 +92,11 @@ pnpm typecheck && pnpm typecheck:convex && pnpm typecheck:tests
 ```
 
 Qualité : `pnpm lint`, `pnpm format:check` (crochet de pré-commit husky +
-lint-staged). La CI (`.github/workflows/ci.yml`) rejoue typage, tests, build,
-lint et `pnpm audit` ; les E2E tournent sur une préversion Convex dédiée par
-pull request (`.github/workflows/e2e.yml`).
+lint-staged). **Avant chaque push**, le crochet `pre-push` lance `pnpm verify`
+(typage et tests unitaires, en parallèle, environ une minute) et annule le push
+si l'un échoue. La CI (`.github/workflows/ci.yml`) rejoue ensuite typage,
+tests, build, lint et `pnpm audit` ; les E2E tournent sur une préversion Convex
+dédiée par pull request (`.github/workflows/e2e.yml`).
 
 ## Secrets (Infisical)
 
@@ -231,7 +233,7 @@ sanity/              schémas, client (CMS éditorial)
 tests/
   unit/              tests hors Convex (Vitest)
   e2e/               parcours Playwright (+ e2e/mobile/ pour le projet mobile)
-scripts/             seeds Sanity · capture d'écran (shot.mjs)
+scripts/             seeds Sanity · capture d'écran (shot.mjs) · pnpm verify (verify.mjs)
 public/              images servies telles quelles (brand/, library/)
 docs/                audit, pentest, roadmap, déploiement
 design/              maquettes HTML de référence (11 écrans) — voir note ci-dessous

@@ -30,6 +30,31 @@ S'y ajoutent `pnpm lint` (ESLint en tout-erreur, aucune règle en `warn`) et
 + lint-staged les joue en local ; le job `lint` de `ci.yml` est le filet, car le
 crochet se contourne (`--no-verify`).
 
+### Avant le push — `pnpm verify`
+
+Le crochet husky `pre-push` (`.husky/pre-push`) lance `pnpm verify`
+(`scripts/verify.mjs`) avant chaque `git push` : les trois commandes de typage
+ci-dessus et `pnpm test`, **en parallèle** — une minute environ, contre deux en
+série. Si l'une échoue, le push est **annulé**, et seule la sortie des
+vérifications en échec s'affiche. La même commande se lance à la main, à tout
+moment : `pnpm verify`.
+
+Restent à la CI seule, à dessein : le lint et le formatage (le crochet de
+pré-commit les joue déjà sur chaque fichier indexé), le build (une minute de
+plus, et il réécrit `.next/` sous un `pnpm dev` ouvert), l'ordre mélangé et
+`pnpm audit`.
+
+- La vérification porte sur l'**arbre de travail**, pas sur les commits
+  poussés : commitez tout avant de pousser. Le crochet le signale quand les
+  deux diffèrent.
+- Un push qui ne fait que supprimer une branche, ou qui n'a rien à envoyer, ne
+  lance rien.
+- Contournement : `git push --no-verify` (ou `HUSKY=0`). La CI rejoue tout
+  après le push : c'est elle, le filet.
+- Sessions Claude Code sur le web : le crochet de démarrage
+  (`.claude/hooks/session-start.sh`) installe les dépendances, donc husky. Sans
+  lui, une session cloud pousserait sans aucune vérification.
+
 ## Unitaire — `pnpm test`
 - Watch : `pnpm test:watch`.
 - Backend Convex : `convex-test` en environnement **edge-runtime** (annotation `// @vitest-environment edge-runtime` en tête de fichier).

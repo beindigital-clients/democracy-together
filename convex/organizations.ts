@@ -6,16 +6,18 @@ import {
   internalQuery,
   mutation,
   query,
+  type MutationCtx,
 } from './_generated/server';
 import { internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
-import { locale } from './lib/locales';
+import type { Doc, Id } from './_generated/dataModel';
+import { locale, type SiteLocale } from './lib/locales';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole, getActiveUserId, rank } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import {
   COUNTER,
   bumpCounter,
+  readCounter,
   trackMembershipApplicationStatus,
   trackOrganizationStatus,
 } from './lib/counters';
@@ -31,20 +33,33 @@ import {
   publicOrganizationValidator,
   countryTerms,
 } from './lib/directory';
-import { isEmail, FIELD_MAX } from './lib/validation';
+import { isEmail, isReservedEmail, FIELD_MAX } from './lib/validation';
 import {
+  consumeRateLimit,
   enforcePublicFormLimit,
   enforceRateLimit,
   RATE_LIMITS,
 } from './lib/rateLimit';
 import { slugify } from './lib/slug';
 import { organizationSearchText } from './lib/searchText';
-import { sendEmail } from './email';
+import { emailProviderStatus, sendEmail } from './email';
 import {
   normalizeEmail,
   validateDirectoryFields,
   invitationEmail,
 } from './lib/onboarding';
+import {
+  applicationDeclinedEmail,
+  applicationReceivedEmail,
+  staffApplicationAlertEmail,
+} from './lib/membershipEmails';
+
+const applicantType = v.union(v.literal('organisation'), v.literal('individu'));
+
+const HOUR = 60 * 60 * 1000;
+
+// Where a notification about the queue leads staff.
+const APPLICATIONS_QUEUE = '/admin/candidatures';
 
 // Public directory of think tanks (F-19): filtered list + facets computed
 // over all active members (so as to offer only useful filters).
@@ -203,9 +218,98 @@ export const storeApplication = internalMutation({
       ...(userId ? { applicantUserId: userId } : {}),
     });
     await trackMembershipApplicationStatus(ctx, null, 'pending');
+
+    // WHO HEARS OF IT. Until now, nobody: staff found an application only by
+    // opening the back office, and the applicant got nothing past the
+    // screen's "Candidature reçue". Both go out from here, in the
+    // application's transaction — an application refused above (caps,
+    // duplicate) alerts no one.
+    await alertStaffOfApplication(ctx, {
+      organizationName,
+      type: args.type,
+      country,
+    });
+    if (!isReservedEmail(contactEmail)) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.organizations.sendApplicationReceipt,
+        {
+          email: normalizeEmail(contactEmail),
+          locale: args.locale ?? 'fr',
+        },
+      );
+    }
     return applicationId;
   },
 });
+
+// --- Telling staff that an application is waiting ---------------------------
+//
+// Every rank that can decide an application (`reviewApplication` opens at
+// moderator) gets it in the bell, with a link to the queue; those who have
+// not turned the alert off also get it by e-mail — that is how an
+// administrator who does not live in the back office hears of it the same
+// day. Read per role through the `by_role` index and bounded: staff is a
+// handful of accounts.
+const STAFF_ROLES = ['moderateur', 'editeur', 'admin'] as const;
+const STAFF_PER_ROLE_MAX = 50;
+
+// E-MAIL alerts to staff, all applications together. The form is public:
+// flooded — 100 submissions an hour pass its global cap — it would bury
+// every staff inbox. Past this cap the e-mails stop; the bell and the
+// dashboard counter keep counting.
+export const STAFF_ALERT_EMAIL_LIMIT = { max: 10, windowMs: HOUR };
+
+async function alertStaffOfApplication(
+  ctx: MutationCtx,
+  application: {
+    organizationName: string;
+    type: Doc<'membershipApplications'>['type'];
+    country: string;
+  },
+): Promise<void> {
+  const recipients: { email: string; locale: SiteLocale }[] = [];
+  for (const role of STAFF_ROLES) {
+    const staff = await ctx.db
+      .query('users')
+      .withIndex('by_role', (q) => q.eq('role', role))
+      .take(STAFF_PER_ROLE_MAX);
+    for (const member of staff) {
+      // A suspended account (or one being deleted) reads nothing: no alert.
+      if (member.suspendedAt !== undefined) continue;
+      // `false` when the alert is turned off in the profile: then neither
+      // the bell nor the e-mail.
+      const notified = await notify(ctx, {
+        userId: member._id,
+        type: 'membership_application',
+        titleKey: 'membershipApplicationReceived',
+        params: { name: application.organizationName },
+        link: APPLICATIONS_QUEUE,
+      });
+      if (notified && member.email && !isReservedEmail(member.email)) {
+        recipients.push({
+          email: member.email,
+          locale: member.preferredLocale ?? 'fr',
+        });
+      }
+    }
+  }
+  if (recipients.length === 0) return;
+  const underCap = await consumeRateLimit(ctx, {
+    key: 'staffAlert:membershipApplication',
+    ...STAFF_ALERT_EMAIL_LIMIT,
+  });
+  if (!underCap) return;
+  await ctx.scheduler.runAfter(
+    0,
+    internal.organizations.sendStaffApplicationAlert,
+    {
+      recipients,
+      ...application,
+      pending: await readCounter(ctx, COUNTER.MEMBERSHIP_APPLICATIONS_PENDING),
+    },
+  );
+}
 
 // DEV/TEST only (AUTH_DEV_OTP guard): reads back the latest application for an
 // address, so the E2E can check the actual storage (see otp.latestDevCode).
@@ -284,6 +388,18 @@ export const reviewApplication = mutation({
           titleKey: 'membershipRejected',
           link: '/adhesion',
         });
+      }
+      // The form promised "nous reviendrons vers vous par e-mail". The
+      // notification above only reaches an applicant who HAS an account —
+      // hardly anyone, self-registration being closed: the others never
+      // heard back. The moderator's note is internal and does not travel.
+      const contact = normalizeEmail(application.contactEmail);
+      if (!isReservedEmail(contact)) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.organizations.sendApplicationDecline,
+          { email: contact, locale: application.locale ?? 'fr' },
+        );
       }
       await recordAudit(ctx, {
         actorId: reviewer._id,
@@ -407,13 +523,14 @@ export const reviewApplication = mutation({
 
     // The email goes out in a scheduled ACTION (never fetch in a mutation).
     // Its failure does not undo the approval: the account already exists, and
-    // the invitation can be resent from the back-office.
+    // the invitation can be resent from the back-office
+    // (`resendMembershipInvitation`).
     await ctx.scheduler.runAfter(
       0,
       internal.organizations.sendMembershipInvitation,
       {
         applicationId,
-        email,
+        email: invitationRecipient(user, email),
         organizationName: application.organizationName,
         // Language recorded when the application was submitted. Missing on
         // applications predating this field: the fallback stays French.
@@ -422,6 +539,85 @@ export const reviewApplication = mutation({
     );
 
     return { userCreated, organizationId };
+  },
+});
+
+// Where the sign-in invitation goes: the address of the account approval
+// ELEVATED. Nearly always the contact address — approval creates the account
+// from it. But an application submitted while signed in elevates THAT account
+// (pentest M-6), and the e-mail says "request a code at this address": sent to
+// a contact address that has no account, it pointed at a sign-in that cannot
+// succeed, while the account that can sign in was never told.
+function invitationRecipient(
+  user: Doc<'users'> | null,
+  contact: string,
+): string {
+  return user?.email ? normalizeEmail(user.email) : contact;
+}
+
+// Sending the invitation AGAIN (F-01/F-22), from the queue. The first one can
+// fail — provider down, a filter, a mailbox full — while the account exists:
+// the member was approved and cannot know it. The screen shows whether it went
+// out (`invitedAt`); this lets the moderator act on it. Capped per
+// application, so that an impatient click does not flood an inbox.
+export const INVITATION_RESEND_LIMIT = { max: 3, windowMs: HOUR };
+
+export const resendMembershipInvitation = mutation({
+  args: { applicationId: v.id('membershipApplications') },
+  returns: v.object({
+    email: v.string(),
+    // Same signal as account creation: the screen warns when nothing can
+    // leave (no provider) instead of announcing a sent e-mail.
+    emailMode: v.union(
+      v.literal('configured'),
+      v.literal('simulated'),
+      v.literal('none'),
+    ),
+  }),
+  handler: async (ctx, { applicationId }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const application = await ctx.db.get(applicationId);
+    if (!application) throw new Error('NOT_FOUND');
+    // Only an approved application has an account to sign in to.
+    if (application.status !== 'approved') {
+      throw new Error('INVALID_TRANSITION');
+    }
+
+    const contact = normalizeEmail(application.contactEmail);
+    const account = application.applicantUserId
+      ? await ctx.db.get(application.applicantUserId)
+      : await ctx.db
+          .query('users')
+          .withIndex('email', (q) => q.eq('email', contact))
+          .first();
+    // The account was deleted since: "your account is active" would be false.
+    if (!account) throw new Error('NOT_FOUND');
+    // Nor to a suspended one — the rule of account creation (accounts.ts).
+    if (account.suspendedAt !== undefined) throw new Error('MEMBER_SUSPENDED');
+
+    const allowed = await consumeRateLimit(ctx, {
+      key: `membershipInvitation:${applicationId}`,
+      ...INVITATION_RESEND_LIMIT,
+    });
+    if (!allowed) throw new Error('RATE_LIMITED');
+
+    const email = invitationRecipient(account, contact);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.organizations.sendMembershipInvitation,
+      {
+        applicationId,
+        email,
+        organizationName: application.organizationName,
+        locale: application.locale ?? 'fr',
+      },
+    );
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.MEMBERSHIP_INVITATION_RESENT,
+      targetId: applicationId,
+    });
+    return { email, emailMode: emailProviderStatus().mode };
   },
 });
 
@@ -455,5 +651,70 @@ export const markInvited = internalMutation({
   args: { applicationId: v.id('membershipApplications') },
   handler: async (ctx, { applicationId }) => {
     await ctx.db.patch(applicationId, { invitedAt: Date.now() });
+  },
+});
+
+// The applicant's two other e-mails, in ACTIONS for the same reason. A failed
+// send is logged by the scheduler and not retried: the application itself is
+// saved, and the decision stays in force.
+export const sendApplicationReceipt = internalAction({
+  args: { email: v.string(), locale },
+  returns: v.null(),
+  handler: async (_ctx, { email, locale: loc }) => {
+    const { subject, html } = applicationReceivedEmail({
+      siteUrl: process.env.SITE_URL ?? 'http://localhost:3000',
+      locale: loc,
+    });
+    await sendEmail({ to: email, subject, html });
+    return null;
+  },
+});
+
+export const sendApplicationDecline = internalAction({
+  args: { email: v.string(), locale },
+  returns: v.null(),
+  handler: async (_ctx, { email, locale: loc }) => {
+    const { subject, html } = applicationDeclinedEmail({
+      siteUrl: process.env.SITE_URL ?? 'http://localhost:3000',
+      locale: loc,
+    });
+    await sendEmail({ to: email, subject, html });
+    return null;
+  },
+});
+
+// One e-mail per staff member, each in their own language. One failure (a
+// full mailbox, a provider hiccup) does not deprive the others of the alert;
+// the log counts the failures without adding the addresses.
+export const sendStaffApplicationAlert = internalAction({
+  args: {
+    recipients: v.array(v.object({ email: v.string(), locale })),
+    organizationName: v.string(),
+    type: applicantType,
+    country: v.string(),
+    pending: v.number(),
+  },
+  returns: v.null(),
+  handler: async (_ctx, { recipients, ...application }) => {
+    const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000';
+    const failures: string[] = [];
+    for (const recipient of recipients) {
+      const { subject, html } = staffApplicationAlertEmail({
+        ...application,
+        siteUrl,
+        locale: recipient.locale,
+      });
+      try {
+        await sendEmail({ to: recipient.email, subject, html });
+      } catch (err) {
+        failures.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+    if (failures.length > 0) {
+      console.error(
+        `Membership application staff alert: ${failures.length}/${recipients.length} not sent (${failures[0]})`,
+      );
+    }
+    return null;
   },
 });

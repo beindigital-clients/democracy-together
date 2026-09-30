@@ -297,6 +297,9 @@ export const NOTIFICATION_PREF_TYPES = [
   'publication_rejected',
   'membership_approved',
   'membership_rejected',
+  // Staff: a new membership application waits in the queue. Turning it off
+  // silences the e-mail alert too (convex/organizations.ts).
+  'membership_application',
   'tribune_comment',
   'tribune_thread',
   'peer_review_assigned',

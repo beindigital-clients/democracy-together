@@ -1,5 +1,5 @@
 // @vitest-environment edge-runtime
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
@@ -14,6 +14,26 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// The mutations under test schedule e-mails with `runAfter(0)` — receipt,
+// staff alert, decline, sign-in invitation — which run once the test lets go
+// of the event loop. Left alone, a send logs after its test has ended, and a
+// log landing during the file's teardown fails the whole Vitest run (see
+// convex/newsletter.test.ts). Each instance is drained before its test ends.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+afterEach(async () => {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 const base = {
   status: 'active' as const,
   createdAt: 0,
@@ -23,7 +43,7 @@ const base = {
 
 describe('Annuaire — listDirectory (F-19)', () => {
   it('liste les actifs, filtre, calcule les facettes et trie par nom', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run(async (ctx) => {
       await ctx.db.insert('organizations', {
         ...base,
@@ -90,7 +110,7 @@ describe('Annuaire — listDirectory (F-19)', () => {
   });
 
   it('expose la fiche par slug (F-21)', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run(async (ctx) => {
       await ctx.db.insert('organizations', {
         ...base,
@@ -121,7 +141,7 @@ describe('Adhésion — une seule candidature en attente par adresse (R-09)', ()
   };
 
   it('refuse la seconde candidature pending, quelle que soit la casse de l’adresse', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(internal.organizations.storeApplication, candidature);
 
     // `.data` and not the message: it is what travels through the public action
@@ -139,7 +159,7 @@ describe('Adhésion — une seule candidature en attente par adresse (R-09)', ()
   });
 
   it('accepte une nouvelle candidature une fois la précédente tranchée', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
     );
@@ -163,7 +183,7 @@ describe('Adhésion — une seule candidature en attente par adresse (R-09)', ()
   });
 
   it('deux adresses différentes ne se bloquent pas', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(internal.organizations.storeApplication, candidature);
     await t.mutation(internal.organizations.storeApplication, {
       ...candidature,

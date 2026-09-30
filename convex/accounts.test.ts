@@ -482,6 +482,7 @@ describe('Suppression en libre-service (code par e-mail)', () => {
 
 describe('Création directe par un administrateur', () => {
   it('crée le compte, le rattache à une organisation et planifie l’accueil', async () => {
+    vi.useFakeTimers();
     const t = convexTest(schema, modules);
     const admin = await account(t, 'admin@test.org', 'admin');
     const orgId = await t.run((ctx) =>
@@ -531,6 +532,7 @@ describe('Création directe par un administrateur', () => {
     });
     expect(again).toMatchObject({ created: false, userId: res.userId });
     expect((await t.run((ctx) => ctx.db.get(res.userId)))?.role).toBe('membre');
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('refuse un non-administrateur et une adresse invalide', async () => {

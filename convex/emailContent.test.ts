@@ -1,10 +1,29 @@
 import { describe, it, expect } from 'vitest';
 import {
   eventReminderEmail,
+  eventVisioEmail,
   invitationEmail,
   otpEmail,
   type OtpPurpose,
 } from './lib/emailContent';
+import {
+  accountDeletionCodeEmail,
+  accountWelcomeEmail,
+  passwordlessAccountEmail,
+  unknownAccountEmail,
+} from './lib/accountEmails';
+import {
+  applicationDeclinedEmail,
+  applicationReceivedEmail,
+  staffApplicationAlertEmail,
+} from './lib/membershipEmails';
+import { confirmationEmail } from './lib/newsletterContent';
+import { newMessageEmail } from './lib/socialEmail';
+import {
+  paymentConfirmationEmail,
+  recurringCancelledEmail,
+  recurringReminderEmail,
+} from './lib/payments/emails';
 import { SITE_LOCALES, type SiteLocale } from './lib/locales';
 
 // E-MAILS ARE THE ONLY PRODUCT TEXT THAT NO PAGE RENDERS, hence the
@@ -45,6 +64,91 @@ function tous(
         locale: loc,
       }),
     },
+    {
+      nom: 'visio',
+      ...eventVisioEmail({
+        eventSlug: 'sommet-2026',
+        eventTitle: 'Summit 2026',
+        eventDate: Date.UTC(2026, 8, 24, 9),
+        timeZone: 'Africa/Dakar',
+        visioUrl: 'https://meet.exemple.test/abc',
+        siteUrl: SITE,
+        locale: loc,
+      }),
+    },
+    {
+      nom: 'bienvenue',
+      ...accountWelcomeEmail({
+        siteUrl: SITE,
+        locale: loc,
+        organizationName: 'Institut X',
+      }),
+    },
+    {
+      nom: 'candidature:reçue',
+      ...applicationReceivedEmail({ siteUrl: SITE, locale: loc }),
+    },
+    {
+      nom: 'candidature:refusée',
+      ...applicationDeclinedEmail({ siteUrl: SITE, locale: loc }),
+    },
+    {
+      nom: 'candidature:alerte-équipe',
+      ...staffApplicationAlertEmail({
+        siteUrl: SITE,
+        locale: loc,
+        organizationName: 'Institut X',
+        type: 'organisation',
+        country: 'Sénégal',
+        pending: 3,
+      }),
+    },
+    {
+      nom: 'suppression',
+      ...accountDeletionCodeEmail({ code: '123456', locale: loc }),
+    },
+    {
+      nom: 'avis:sans-compte',
+      ...unknownAccountEmail({ siteUrl: SITE, locale: loc, purpose: 'reset' }),
+    },
+    {
+      nom: 'avis:sans-mot-de-passe',
+      ...passwordlessAccountEmail({ siteUrl: SITE, locale: loc }),
+    },
+    { nom: 'lettre:confirmation', ...confirmationEmail('tok', loc) },
+    {
+      nom: 'message',
+      ...newMessageEmail({ senderName: 'Aminata', siteUrl: SITE, locale: loc }),
+    },
+    {
+      nom: 'paiement',
+      ...paymentConfirmationEmail({
+        kind: 'donation',
+        recurring: true,
+        amountMinor: 5000,
+        currency: 'EUR',
+        receiptNumber: 'R-1',
+        receiptUrl: `${SITE}/recu`,
+        locale: loc,
+      }),
+    },
+    {
+      nom: 'don:échéance',
+      ...recurringReminderEmail({
+        amountMinor: 5000,
+        currency: 'EUR',
+        payUrl: `${SITE}/payer`,
+        locale: loc,
+      }),
+    },
+    {
+      nom: 'don:arrêt',
+      ...recurringCancelledEmail({
+        amountMinor: 5000,
+        currency: 'EUR',
+        locale: loc,
+      }),
+    },
   ];
 }
 
@@ -67,7 +171,7 @@ describe('Courriels transactionnels — les cinq langues sont servies', () => {
         expect(html.trim(), `${nom} : corps vide`).not.toBe('');
         // A forgotten placeholder is this module's silent failure mode.
         expect(html, `${nom} : placeholder non substitué`).not.toMatch(
-          /\{(org|date)\}/,
+          /\{(org|date|title|amount|number|name)\}/,
         );
       }
     },
