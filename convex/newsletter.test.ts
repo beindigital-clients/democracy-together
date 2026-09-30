@@ -18,6 +18,24 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// `recordSubscription` schedules the confirmation e-mail (`runAfter(0)`), and
+// nothing in the tests below waits for it. Left alone, that send outlives its
+// test: it fails for want of a provider and logs AFTER the test has ended.
+// When the log lands during the file's teardown, Vitest fails the whole run
+// ("EnvironmentTeardownError: Closing rpc while onUserConsoleLog was
+// pending": main red twice on 28/09, a push refused by the pre-push hook on
+// 30/09). Every test that subscribes someone therefore lets the send finish
+// before it ends. Fake timers are needed for this call only: convex-test also
+// drains what was scheduled under real timers, once its time has passed.
+async function letScheduledSendsFinish(t: ReturnType<typeof convexTest>) {
+  vi.useFakeTimers();
+  try {
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 describe('Newsletter — subscribe (F-18)', () => {
   it('inscrit (normalise), dédupe, rejette une adresse invalide', async () => {
     const t = convexTest(schema, modules);
@@ -50,6 +68,7 @@ describe('Newsletter — subscribe (F-18)', () => {
         email: 'pas-un-email',
       }),
     ).rejects.toThrow();
+    await letScheduledSendsFinish(t);
   });
 });
 
@@ -84,6 +103,7 @@ describe('Newsletter — désinscription par jeton', () => {
     expect(await t.mutation(api.newsletter.unsubscribe, { token: '' })).toEqual(
       { ok: false, found: false },
     );
+    await letScheduledSendsFinish(t);
   });
 
   it('un jeton inconnu ne retire personne et le dit (R-09)', async () => {
@@ -100,6 +120,7 @@ describe('Newsletter — désinscription par jeton', () => {
     expect(
       await t.run((ctx) => ctx.db.query('newsletterSubscriptions').collect()),
     ).toHaveLength(1);
+    await letScheduledSendsFinish(t);
   });
 });
 
