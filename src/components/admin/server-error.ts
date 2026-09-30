@@ -79,6 +79,10 @@ export const SERVER_ERROR_CODES = [
   'TWO_FACTOR_ENROLLMENT_REQUIRED',
   'INVALID_NAME',
   'INVALID_DESCRIPTION',
+  // Membership applications (F-22): sending an approved member's sign-in
+  // invitation again — capped per application, never to a suspended account.
+  'RATE_LIMITED',
+  'MEMBER_SUSPENDED',
   // Peer review (F-43) and annual reports (F-41).
   'REVIEWER_IS_AUTHOR',
   'CONFLICT_DECLARED',

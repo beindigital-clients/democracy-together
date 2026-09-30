@@ -1,5 +1,5 @@
 // @vitest-environment edge-runtime
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
@@ -13,6 +13,26 @@ const modules = import.meta.glob([
   '!./auth.config.ts',
   '!./http.ts',
 ]);
+
+// The mutations under test schedule e-mails with `runAfter(0)` — receipt,
+// staff alert, decline, sign-in invitation — which run once the test lets go
+// of the event loop. Left alone, a send logs after its test has ended, and a
+// log landing during the file's teardown fails the whole Vitest run (see
+// convex/newsletter.test.ts). Each instance is drained before its test ends.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+afterEach(async () => {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+});
 
 // Audit blocker no. 1 (§ 1, F-01 + F-22): since self-registration was
 // removed, approving an application only promoted ALREADY existing accounts.
@@ -54,7 +74,7 @@ async function applicationFrom(
 
 describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
   it('crée un compte « membre » pour un candidat qui n’en avait aucun', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t);
 
@@ -71,7 +91,7 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
   });
 
   it("normalise l'e-mail en minuscules (sinon la connexion ne retrouve pas le compte)", async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t, {
       contactEmail: '  MAJUSCULES@Example.ORG ',
@@ -88,7 +108,7 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
   });
 
   it('réutilise un compte existant au lieu d’en créer un doublon', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const existing = await t.run((ctx) =>
       ctx.db.insert('users', { email: 'contact@institut-sahel.org' }),
@@ -115,7 +135,7 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
   });
 
   it('ne rétrograde JAMAIS un rôle supérieur', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     await t.run((ctx) =>
       ctx.db.insert('users', {
@@ -143,7 +163,7 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
   });
 
   it('un refus ne crée NI compte NI organisation', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t);
 
@@ -165,7 +185,7 @@ describe("Approbation d'adhésion — création du compte (F-01/F-22)", () => {
 
 describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () => {
   it("crée l'organisation ACTIVE et la rend visible dans l'annuaire public", async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t);
 
@@ -200,7 +220,7 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
   });
 
   it('rattache le compte à l’organisation en tant que propriétaire', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t);
 
@@ -233,7 +253,7 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
   });
 
   it("sans champs d'annuaire, l'organisation est créée en « pending » (jamais publiée à moitié)", async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t);
 
@@ -257,7 +277,7 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
   });
 
   it('une candidature « individu » ne crée pas d’organisation, mais crée le compte', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t, {
       type: 'individu',
@@ -278,7 +298,7 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
   });
 
   it('slug unique : deux organisations homonymes ne se écrasent pas', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const a1 = await applicationFrom(t, { contactEmail: 'a@sahel.org' });
     const a2 = await applicationFrom(t, { contactEmail: 'b@sahel.org' });
@@ -302,7 +322,7 @@ describe("Approbation d'adhésion — entrée dans l'annuaire (F-19/F-22)", () =
 
 describe("Approbation d'adhésion — idempotence et machine à états", () => {
   it('refuse de rejouer une décision déjà prise (pas de doublons)', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t);
 
@@ -336,7 +356,7 @@ describe("Approbation d'adhésion — invitation à se connecter", () => {
     process.env.AUTH_DEV_OTP = 'true'; // sending no-op, accepted in tests
     vi.useFakeTimers();
     try {
-      const t = convexTest(schema, modules);
+      const t = newConvexTest();
       const mod = await moderator(t);
       const applicationId = await applicationFrom(t);
 
@@ -363,7 +383,7 @@ describe("Approbation d'adhésion — invitation à se connecter", () => {
 
 describe('Invitation manuelle par un admin (F-63)', () => {
   it('crée un compte et le rend connectable, avec audit', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'a@test.org' }),
     );
@@ -385,7 +405,7 @@ describe('Invitation manuelle par un admin (F-63)', () => {
   });
 
   it('réinvite un compte existant sans le dupliquer ni changer son rôle', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const adminId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'admin', email: 'a@test.org' }),
     );
@@ -408,7 +428,7 @@ describe('Invitation manuelle par un admin (F-63)', () => {
   });
 
   it('refuse un non-admin et une adresse invalide', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const modId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'moderateur', email: 'm@test.org' }),
     );
@@ -442,7 +462,7 @@ describe('Invitation manuelle par un admin (F-63)', () => {
 // would amount to storing it while waiting for the next screen that forgets.
 describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)", () => {
   it('refuse un schéma non http(s), et ne crée alors NI compte NI organisation', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
 
     for (const [i, websiteUrl] of [
@@ -478,7 +498,7 @@ describe("Approbation d'adhésion — schéma de l'adresse de site (pentest M-9)
   });
 
   it('accepte http et https — sinon ce test ne mesurerait rien', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await moderator(t);
     const applicationId = await applicationFrom(t);
 

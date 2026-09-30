@@ -227,12 +227,23 @@ export function isAdminNavItemActive(href: string, pathname: string): boolean {
   return href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
 }
 
+// WORK WAITING, per entry (membership applications, publications, contact
+// messages). A moderator used to learn of a new application only by opening
+// the dashboard; the menu they use on every screen now says where something
+// waits. The count is a DESCRIPTION of the link, not part of its name: the
+// name stays "Candidatures (Administration)" — what the entry is, whatever
+// the queue holds — and the pill itself is hidden from assistive technology,
+// which reads the description instead.
+export type AdminNavCounts = Partial<Record<string, number>>;
+
 export function AdminNav({
   role,
   pathname,
+  counts = {},
 }: {
   role: NetworkRole;
   pathname: string;
+  counts?: AdminNavCounts;
 }) {
   const t = useTranslations('admin');
   return (
@@ -260,6 +271,8 @@ export function AdminNav({
             >
               {group.items.map(({ href, key }) => {
                 const active = isAdminNavItemActive(href, pathname);
+                const waiting = counts[key] ?? 0;
+                const countId = `admin-nav-count-${key}`;
                 return (
                   <li key={key}>
                     <Link
@@ -273,14 +286,28 @@ export function AdminNav({
                       // context in the RGAA sense). The name starts with the visible
                       // text (WCAG 2.5.3) and states the targeted area.
                       aria-label={`${t(key)} (${t('title')})`}
-                      className={`block rounded-sm px-2.5 py-1.5 text-sm transition-colors ${
+                      aria-describedby={waiting > 0 ? countId : undefined}
+                      className={`flex items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors ${
                         active
                           ? 'bg-accent-tint font-medium text-accent-text'
                           : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
                       }`}
                     >
                       {t(key)}
+                      {waiting > 0 ? (
+                        <span
+                          aria-hidden="true"
+                          className="min-w-[1.25rem] rounded-full bg-accent px-1.5 text-center font-mono text-[11px] font-semibold leading-5 text-accent-contrast"
+                        >
+                          {waiting > 99 ? '99+' : waiting}
+                        </span>
+                      ) : null}
                     </Link>
+                    {waiting > 0 ? (
+                      <span id={countId} className="sr-only">
+                        {t('navWaiting', { count: waiting })}
+                      </span>
+                    ) : null}
                   </li>
                 );
               })}

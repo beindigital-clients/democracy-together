@@ -8,6 +8,8 @@ export const AUDIT = {
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',
   MEMBERSHIP_REVIEWED: 'membership.reviewed',
+  // A moderator sending an approved member's sign-in invitation again.
+  MEMBERSHIP_INVITATION_RESENT: 'membership.invitation_resent',
   PUBLICATION_SUBMITTED: 'publication.submitted',
   PUBLICATION_REVIEWED: 'publication.reviewed',
   TRIBUNE_MODERATED: 'tribune.moderated',

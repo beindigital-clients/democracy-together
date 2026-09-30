@@ -68,6 +68,7 @@ import type * as lib_emailContent from "../lib/emailContent.js";
 import type * as lib_fileCheck from "../lib/fileCheck.js";
 import type * as lib_locales from "../lib/locales.js";
 import type * as lib_manuscripts from "../lib/manuscripts.js";
+import type * as lib_membershipEmails from "../lib/membershipEmails.js";
 import type * as lib_moderationHistory from "../lib/moderationHistory.js";
 import type * as lib_newsletterContent from "../lib/newsletterContent.js";
 import type * as lib_newsletterDelivery from "../lib/newsletterDelivery.js";
@@ -237,6 +238,7 @@ declare const fullApi: ApiFromModules<{
   "lib/fileCheck": typeof lib_fileCheck;
   "lib/locales": typeof lib_locales;
   "lib/manuscripts": typeof lib_manuscripts;
+  "lib/membershipEmails": typeof lib_membershipEmails;
   "lib/moderationHistory": typeof lib_moderationHistory;
   "lib/newsletterContent": typeof lib_newsletterContent;
   "lib/newsletterDelivery": typeof lib_newsletterDelivery;
