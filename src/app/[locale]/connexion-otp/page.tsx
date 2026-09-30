@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
+import { resolveLocale } from '@/i18n/locale';
 import { useRedirectAfterAuth } from '@/components/auth/redirect-after-auth';
 import { AuthCard, SubmitButton } from '@/components/auth/form';
 import { FormError, TextField, useFormFields } from '@/components/ui/field';
@@ -17,7 +20,9 @@ export default function OtpSignInPage() {
   const t = useTranslations('auth');
   const tNav = useTranslations('nav');
   const tAccounts = useTranslations('accounts');
+  const locale = resolveLocale(useLocale());
   const { signIn } = useAuthActions();
+  const requestNotice = useMutation(api.accountNotices.requestNotice);
   const redirectAfterAuth = useRedirectAfterAuth();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +34,13 @@ export default function OtpSignInPage() {
   // Sent as accounts store it (lowercase): an address typed with a capital
   // letter found no account, and the code never came.
   const email = normalizeEmail(values.email);
+
+  // What this screen must not say — whether an account exists — goes by
+  // e-mail to the address itself: the server decides, and answers nothing
+  // (convex/accountNotices.ts). A failure here changes nothing on screen.
+  function askForNotice() {
+    requestNotice({ email, purpose: 'signin', locale }).catch(() => {});
+  }
 
   async function onEmail(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,7 +60,9 @@ export default function OtpSignInPage() {
         // (`NO_SELF_SIGNUP`) and the screen said "an error occurred"
         // where a known address moved on to the code step: the screen thus
         // revealed who has an account (measured on 27/09). We move to the code
-        // step in both cases; the subtitle says "if an account exists".
+        // step in both cases; the subtitle says "if an account exists", and
+        // an address without one is told so by e-mail.
+        askForNotice();
         setStep('code');
       }
     } finally {
@@ -70,8 +84,12 @@ export default function OtpSignInPage() {
       await signIn('otp-signin', { email });
       setNotice(t('resendDone'));
     } catch (err) {
-      if (isSendLimited(err)) setError(t('errorSendLimit'));
-      else setNotice(t('resendDone'));
+      if (isSendLimited(err)) {
+        setError(t('errorSendLimit'));
+      } else {
+        askForNotice();
+        setNotice(t('resendDone'));
+      }
     } finally {
       setPending(false);
     }
@@ -126,6 +144,16 @@ export default function OtpSignInPage() {
         >
           {t('resendCode')}
         </button>
+        <p className="mt-6 text-sm text-ink-soft">{t('codeHelp')}</p>
+        <p className="mt-3 text-sm text-ink-soft">
+          {t('noAccount')}{' '}
+          <Link
+            href="/adhesion"
+            className="text-accent-text underline underline-offset-2"
+          >
+            {tNav('join')}
+          </Link>
+        </p>
       </AuthCard>
     );
   }
