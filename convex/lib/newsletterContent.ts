@@ -1,4 +1,5 @@
-import { escapeHtml, shell } from './emailContent';
+import { escapeHtml } from './emailContent';
+import { emailDocument, emailKit, siteOrigin } from './emailLayout';
 import type { SiteLocale } from './locales';
 
 // NEWSLETTER E-MAILS, IN THE FIVE LANGUAGES (F-18 / F-65).
@@ -13,7 +14,7 @@ type Phrase = Record<SiteLocale, string>;
 const BRAND = 'Democracy Together';
 
 export function siteUrl(): string {
-  return process.env.SITE_URL ?? 'https://democracy-together.vercel.app';
+  return siteOrigin();
 }
 
 // --- Sign-up confirmation (double opt-in) ------------------------------------
@@ -77,13 +78,21 @@ export function confirmationEmail(
   legacy = false,
 ): { subject: string; html: string; url: string } {
   const url = confirmationUrl(token, loc);
-  const body = `<p>${(legacy ? CONFIRM_LEGACY_INTRO : CONFIRM_INTRO)[loc]}</p>
-    <p style="margin:28px 0;text-align:center"><a href="${escapeHtml(url)}" style="background:#1f3d6e;color:#ffffff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600">${CONFIRM_CTA[loc]}</a></p>
-    <p dir="ltr" style="font-size:12px;color:#646771;word-break:break-all">${escapeHtml(url)}</p>
-    <p style="color:#646771;font-size:13px">${(legacy ? CONFIRM_LEGACY_EXPIRY : CONFIRM_EXPIRY)[loc]}</p>`;
+  const intro = (legacy ? CONFIRM_LEGACY_INTRO : CONFIRM_INTRO)[loc];
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(intro) +
+    kit.button(url, CONFIRM_CTA[loc]) +
+    kit.fallback(url) +
+    kit.note((legacy ? CONFIRM_LEGACY_EXPIRY : CONFIRM_EXPIRY)[loc]);
   return {
     subject: `${CONFIRM_SUBJECT[loc]} · ${BRAND}`,
-    html: shell(loc, body),
+    html: emailDocument({
+      loc,
+      title: CONFIRM_SUBJECT[loc],
+      preheader: intro,
+      body,
+    }),
     url,
   };
 }
@@ -157,23 +166,29 @@ export function listUnsubscribeHeaders(
   return headers;
 }
 
-/** HTML body of a campaign for one recipient. */
+/**
+ * HTML of a campaign for one recipient. The campaign's subject is its
+ * heading; the first paragraph, its preheader.
+ */
 export function campaignHtml(
   body: string,
   token: string,
   loc: SiteLocale,
+  title: string,
 ): string {
-  const paragraphs = body
-    .split(/\n{2,}/)
-    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`)
+  const kit = emailKit(loc);
+  const blocks = body.split(/\n{2,}/);
+  const paragraphs = blocks
+    .map((p) => kit.paragraph(escapeHtml(p).replace(/\n/g, '<br/>')))
     .join('');
   const unsub = unsubscribePageUrl(token, loc);
-  return shell(
+  return emailDocument({
     loc,
-    `${paragraphs}
-    <hr style="border:none;border-top:1px solid #d9d6cd;margin:24px 0"/>
-    <p style="color:#646771;font-size:12px">${FOOTER[loc]} <a href="${escapeHtml(unsub)}">${UNSUBSCRIBE[loc]}</a>.</p>`,
-  );
+    title,
+    preheader: blocks[0]?.replace(/\s+/g, ' ').trim() ?? '',
+    body: paragraphs,
+    reason: `${FOOTER[loc]} ${kit.link(unsub, UNSUBSCRIBE[loc])}.`,
+  });
 }
 
 export function testSubject(subject: string, loc: SiteLocale): string {

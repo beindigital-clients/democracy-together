@@ -1,4 +1,15 @@
-import { type SiteLocale, intlTag, isRtlLocale } from './locales';
+import { type SiteLocale, intlTag } from './locales';
+import {
+  emailDocument,
+  emailKit,
+  escapeHtml,
+  stripTags,
+  type Phrase,
+} from './emailLayout';
+
+// The layout lives in emailLayout.ts; these two stay importable from here,
+// where every template already takes them.
+export { escapeHtml, type Phrase };
 
 // TRANSACTIONAL E-MAILS, IN THE FIVE LANGUAGES.
 //
@@ -25,13 +36,11 @@ import { type SiteLocale, intlTag, isRtlLocale } from './locales';
 // (`EMAIL_PROVIDER_NOT_CONFIGURED`…) are not here: they are addressed to
 // the operator, not the recipient.
 
-export type Phrase = Record<SiteLocale, string>;
-
-// --- Shared shell -----------------------------------------------------------
+// --- Shared pieces ------------------------------------------------------------
 
 const BRAND = 'Democracy Together';
 
-const GREETING: Phrase = {
+export const GREETING: Phrase = {
   fr: 'Bonjour,',
   en: 'Hello,',
   es: 'Hola:',
@@ -39,36 +48,21 @@ const GREETING: Phrase = {
   ar: 'مرحباً،',
 };
 
-/**
- * HTML envelope of an e-mail.
- *
- * `dir` AND `text-align` are set together, and it is not redundant:
- * many e-mail clients (Outlook first and foremost) do not align text
- * based on `dir` alone. Without both, an Arabic e-mail displays ragged-left
- * — the final punctuation on the wrong side of each sentence.
- *
- * Styles are INLINE because an e-mail client does not run an external
- * stylesheet: it is a constraint of the format, not an oversight.
- */
-export function shell(loc: SiteLocale, inner: string): string {
-  const rtl = isRtlLocale(loc);
-  return `<div lang="${loc}" dir="${rtl ? 'rtl' : 'ltr'}" style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;color:#16191f;text-align:${rtl ? 'right' : 'left'}">
-    <h2 style="font-family:Georgia,serif;color:#1f3d6e">${BRAND}</h2>
-    ${inner}
-  </div>`;
-}
-
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 /** Subject suffixed with the brand, like the current e-mails. */
 export function subject(p: Phrase, loc: SiteLocale): string {
   return `${p[loc]} · ${BRAND}`;
+}
+
+/**
+ * Plain text of a phrase that carries markup, for a preheader (which the
+ * layout escapes again).
+ */
+export function plain(html: string): string {
+  return stripTags(html)
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&');
 }
 
 // --- One-time code -----------------------------------------------------------
@@ -137,15 +131,20 @@ export function otpEmail(
   purpose: OtpPurpose,
   loc: SiteLocale,
 ): { subject: string; html: string } {
-  // `dir="ltr"` ON THE CODE, even in Arabic: it is a sequence of digits to be read
-  // left to right, and the letter spacing makes it fragile under the
-  // bidirectional algorithm if it inherits the paragraph's direction.
-  const body = `<p>${OTP_INTRO[purpose][loc]}</p>
-    <p dir="ltr" style="font-size:30px;letter-spacing:8px;font-weight:600;font-family:monospace;text-align:center">${escapeHtml(code)}</p>
-    <p style="color:#646771;font-size:13px">${OTP_EXPIRY[loc]}</p>`;
+  // The code block reads left to right even in Arabic (see emailKit.code).
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(OTP_INTRO[purpose][loc]) +
+    kit.code(code) +
+    kit.note(OTP_EXPIRY[loc]);
   return {
     subject: subject(OTP_SUBJECT[purpose], loc),
-    html: shell(loc, body),
+    html: emailDocument({
+      loc,
+      title: OTP_SUBJECT[purpose][loc],
+      preheader: OTP_INTRO[purpose][loc],
+      body,
+    }),
   };
 }
 
@@ -232,18 +231,25 @@ export function invitationEmail(args: {
       )
     : INVITE_INTRO_ACCOUNT[loc];
 
-  const body = `<p>${GREETING[loc]}</p>
-    <p>${intro}</p>
-    <p>${INVITE_HOWTO[loc]}</p>
-    <p><a href="${signInUrl}" style="display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600">${INVITE_CTA[loc]}</a></p>
-    <p style="color:#646771;font-size:13px">${INVITE_NOTE[loc]}</p>`;
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(GREETING[loc]) +
+    kit.paragraph(intro) +
+    kit.paragraph(INVITE_HOWTO[loc]) +
+    kit.button(signInUrl, INVITE_CTA[loc]) +
+    kit.fallback(signInUrl) +
+    kit.signature() +
+    kit.note(INVITE_NOTE[loc]);
+  const heading = approuve ? INVITE_SUBJECT_APPROVED : INVITE_SUBJECT_ACCOUNT;
 
   return {
-    subject: subject(
-      approuve ? INVITE_SUBJECT_APPROVED : INVITE_SUBJECT_ACCOUNT,
+    subject: subject(heading, loc),
+    html: emailDocument({
       loc,
-    ),
-    html: shell(loc, body),
+      title: heading[loc],
+      preheader: plain(intro),
+      body,
+    }),
   };
 }
 
@@ -272,6 +278,14 @@ const REMINDER_WHEN: Phrase = {
   es: 'Se celebra el <strong>{date}</strong>. Consulte la información práctica y confirme su asistencia:',
   pt: 'Realiza-se a <strong>{date}</strong>. Consulte as informações práticas e confirme a sua presença:',
   ar: 'تُقام في <strong>{date}</strong>. اطّلعوا على المعلومات العملية وأكّدوا حضوركم:',
+};
+
+const REMINDER_CTA: Phrase = {
+  fr: 'Voir l’événement',
+  en: 'View the event',
+  es: 'Ver el evento',
+  pt: 'Ver o evento',
+  ar: 'عرض الفعالية',
 };
 
 const REMINDER_FOOTER: Phrase = {
@@ -308,13 +322,23 @@ export function eventReminderEmail(args: {
     timeZone: args.timeZone ?? 'UTC',
   }).format(args.eventDate);
 
-  const body = `<p>${REMINDER_LEAD[loc]}</p>
-    <p>${REMINDER_WHEN[loc].replace('{date}', escapeHtml(when))}</p>
-    <p><a href="${url}">${escapeHtml(url)}</a></p>
-    <hr style="border:none;border-top:1px solid #d9d6cd;margin:24px 0"/>
-    <p style="color:#646771;font-size:12px">${REMINDER_FOOTER[loc]}</p>`;
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(REMINDER_LEAD[loc]) +
+    kit.paragraph(REMINDER_WHEN[loc].replace('{date}', escapeHtml(when))) +
+    kit.button(url, REMINDER_CTA[loc]) +
+    kit.fallback(url);
 
-  return { subject: subject(REMINDER_SUBJECT, loc), html: shell(loc, body) };
+  return {
+    subject: subject(REMINDER_SUBJECT, loc),
+    html: emailDocument({
+      loc,
+      title: REMINDER_SUBJECT[loc],
+      preheader: REMINDER_LEAD[loc],
+      body,
+      reason: REMINDER_FOOTER[loc],
+    }),
+  };
 }
 
 // --- Videoconference link (F-54) ---------------------------------------------
@@ -334,6 +358,14 @@ const VISIO_LEAD: Phrase = {
   es: 'Está inscrito/a en <strong>{title}</strong>, el <strong>{date}</strong>. Este es el enlace para unirse a la sesión en línea:',
   pt: 'Está inscrito/a em <strong>{title}</strong>, a <strong>{date}</strong>. Eis a ligação para participar na sessão em linha:',
   ar: 'أنتم مسجَّلون في <strong>{title}</strong> بتاريخ <strong>{date}</strong>. إليكم رابط الانضمام إلى الجلسة عن بُعد:',
+};
+
+const VISIO_CTA: Phrase = {
+  fr: 'Rejoindre la séance en ligne',
+  en: 'Join the online session',
+  es: 'Unirse a la sesión en línea',
+  pt: 'Participar na sessão em linha',
+  ar: 'الانضمام إلى الجلسة عن بُعد',
 };
 
 const VISIO_PRIVATE: Phrase = {
@@ -380,13 +412,22 @@ export function eventVisioEmail(args: {
   const lead = VISIO_LEAD[loc]
     .replace('{title}', escapeHtml(args.eventTitle))
     .replace('{date}', escapeHtml(when));
-  const link = escapeHtml(args.visioUrl);
-  const body = `<p>${GREETING[loc]}</p>
-    <p>${lead}</p>
-    <p><a href="${link}" style="display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600">${link}</a></p>
-    <p>${VISIO_PRIVATE[loc]}</p>
-    <p><a href="${page}">${escapeHtml(page)}</a></p>
-    <hr style="border:none;border-top:1px solid #d9d6cd;margin:24px 0"/>
-    <p style="color:#646771;font-size:12px">${VISIO_FOOTER[loc]}</p>`;
-  return { subject: subject(VISIO_SUBJECT, loc), html: shell(loc, body) };
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(GREETING[loc]) +
+    kit.paragraph(lead) +
+    kit.button(args.visioUrl, VISIO_CTA[loc]) +
+    kit.fallback(args.visioUrl) +
+    kit.paragraph(`${VISIO_PRIVATE[loc]} ${kit.link(page, escapeHtml(page))}`) +
+    kit.signature();
+  return {
+    subject: subject(VISIO_SUBJECT, loc),
+    html: emailDocument({
+      loc,
+      title: VISIO_SUBJECT[loc],
+      preheader: plain(lead),
+      body,
+      reason: VISIO_FOOTER[loc],
+    }),
+  };
 }
