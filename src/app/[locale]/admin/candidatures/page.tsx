@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation, usePaginatedQuery } from 'convex/react';
+import { useMutation, usePaginatedQuery, useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { FunctionReturnType } from 'convex/server';
 import { api } from '@convex/_generated/api';
@@ -25,6 +25,8 @@ import { intlLocale } from '@/i18n/locale';
 type Application = FunctionReturnType<
   typeof api.admin.listApplications
 >['page'][number];
+
+type ReopenImpact = FunctionReturnType<typeof api.organizations.reopenImpact>;
 
 // Page size. The server re-caps it: it is indicative.
 const PAGE_SIZE = 25;
@@ -58,23 +60,84 @@ function useApplicationDates(now: number) {
   }, [locale, now]);
 }
 
+// What putting an APPROVAL back under review takes back, as the server will
+// do it (convex/lib/membershipGrant.ts) — read when the dialog opens, never
+// guessed by the screen: whether the member account loses its role, whether
+// the directory entry leaves the directory, and who keeps their role anyway.
+function ReopenImpactText({ impact }: { impact: ReopenImpact | undefined }) {
+  const t = useTranslations('admin');
+  if (impact === undefined) return <p>{t('loading')}</p>;
+  const items: string[] = [];
+  if (impact?.member) {
+    const email = impact.member.email ?? '—';
+    items.push(
+      impact.member.losesRole
+        ? t('confirmReopenAppRoleLost', { email })
+        : t('confirmReopenAppRoleKept', {
+            email,
+            role: vocabulary(t, 'role_', impact.member.role),
+          }),
+    );
+  }
+  if (impact?.organization) {
+    items.push(t('confirmReopenAppOrg', { org: impact.organization.name }));
+  }
+  if (impact && impact.colleaguesTotal > 0) {
+    const named = impact.colleagues.filter((e): e is string => e !== null);
+    items.push(
+      t('confirmReopenAppColleagues', {
+        count: impact.colleaguesTotal,
+        emails:
+          named.join(', ') + (impact.colleaguesTotal > named.length ? '…' : ''),
+      }),
+    );
+  }
+  return (
+    <>
+      {items.length > 0 ? (
+        <>
+          <p>{t('confirmReopenAppIntro')}</p>
+          <ul className="mt-2 list-disc space-y-1 ps-5">
+            {items.map((item) => (
+              <li key={item} className="wrap-anywhere">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      <p className="mt-2">{t('confirmReopenAppNotice')}</p>
+    </>
+  );
+}
+
 function ApplicationRow({ app, now }: { app: Application; now: number }) {
   const t = useTranslations('admin');
   const dates = useApplicationDates(now);
   const review = useMutation(api.organizations.reviewApplication);
+  const reopen = useMutation(api.organizations.reopenApplication);
   const resend = useMutation(api.organizations.resendMembershipInvitation);
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
   // Approving an ORGANIZATION opens the directory entry form: that is
-  // when the organization is created (F-19/F-22).
+  // when the organization is created (F-19/F-22). Unless an earlier approval
+  // created it: approving again brings that entry back as it was.
   const [showDirectory, setShowDirectory] = useState(false);
-  // REJECTION: a FINAL decision since the state machine (#9) —
-  // `reviewApplication` throws `ALREADY_REVIEWED` if one tries to replay it.
-  // Since a misclick can no longer be undone, it goes through a confirmation
-  // that names the targeted application (issue #38).
+  const hasProfile =
+    app.type === 'organisation' && app.organizationStatus !== null;
+  // REJECTION goes through a confirmation that names the targeted
+  // application (issue #38): the applicant is told by e-mail at once. It can
+  // be gone back on — put back under review — but that e-mail has left.
   const [confirmingReject, setConfirmingReject] = useState(false);
+  // Putting an APPROVAL back under review takes back what it granted: the
+  // confirmation says what, read from the server only once it opens.
+  const [confirmingReopen, setConfirmingReopen] = useState(false);
+  const impact = useQuery(
+    api.organizations.reopenImpact,
+    confirmingReopen ? { applicationId: app._id } : 'skip',
+  );
   const waitedLong =
     app.status === 'pending' && now - app.submittedAt >= LONG_WAIT_MS;
 
@@ -123,6 +186,30 @@ function ApplicationRow({ app, now }: { app: Application; now: number }) {
       } else {
         notify(t('feedbackInviteResent', { email: res.email }));
       }
+    } catch (err) {
+      fail(err);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  // Going back on a decision (issue #9): the application returns to the
+  // queue, to be decided again — a rejected one rescued, an approved one
+  // reconsidered. The feedback says what the server actually took back.
+  async function reopenApplication() {
+    setPending(true);
+    try {
+      const res = await reopen({ applicationId: app._id });
+      setConfirmingReopen(false);
+      notify(
+        [
+          t('feedbackAppReopened', { name: app.organizationName }),
+          res.roleWithdrawn ? t('feedbackAppRoleWithdrawn') : null,
+          res.organizationSuspended ? t('feedbackAppOrgSuspended') : null,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
     } catch (err) {
       fail(err);
     } finally {
@@ -211,47 +298,69 @@ function ApplicationRow({ app, now }: { app: Application; now: number }) {
       ) : null}
 
       {app.status === 'pending' ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {/* INTERNAL, and said so: the applicant is now told of the
-              decision by e-mail, and could have believed the note went
-              with it. */}
-          <Input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={t('appInternalNotePlaceholder')}
-            aria-label={`${t('appInternalNotePlaceholder')} ${app.organizationName}`}
-            className="max-w-xs"
-          />
-          <Button
-            onClick={() =>
-              app.type === 'organisation'
-                ? setShowDirectory(true)
-                : decide('approved')
-            }
-            disabled={pending}
-          >
-            {t('approve')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setConfirmingReject(true)}
-            disabled={pending}
-          >
-            {t('reject')}
-          </Button>
+        <>
+          {/* Back under review: the previous decision, and its note, stay
+              in sight while the new one is being made. */}
+          {app.reopenedAt !== null ? (
+            <div className="mt-3 space-y-1 text-xs text-muted">
+              <p>
+                {t('appReopenedOn', {
+                  date: dates.day(app.reopenedAt),
+                  previous: app.reopenedFrom ?? 'rejected',
+                })}
+              </p>
+              {app.reviewNotes ? (
+                <p className="wrap-anywhere">
+                  {t('appPreviousNote', { note: app.reviewNotes })}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {/* INTERNAL, and said so: the applicant is now told of the
+                decision by e-mail, and could have believed the note went
+                with it. */}
+            <Input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t('appInternalNotePlaceholder')}
+              aria-label={`${t('appInternalNotePlaceholder')} ${app.organizationName}`}
+              className="max-w-xs"
+            />
+            <Button
+              onClick={() =>
+                app.type === 'organisation' && !hasProfile
+                  ? setShowDirectory(true)
+                  : decide('approved')
+              }
+              disabled={pending}
+            >
+              {t('approve')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmingReject(true)}
+              disabled={pending}
+            >
+              {t('reject')}
+            </Button>
 
-          <ConfirmDialog
-            open={confirmingReject}
-            title={t('confirmRejectAppTitle', { name: app.organizationName })}
-            description={t('confirmRejectAppBody')}
-            confirmLabel={t('confirmRejectAppConfirm')}
-            cancelLabel={t('confirmCancel')}
-            destructive
-            pending={pending}
-            onConfirm={() => decide('rejected')}
-            onCancel={() => setConfirmingReject(false)}
-          />
-        </div>
+            <ConfirmDialog
+              open={confirmingReject}
+              title={t('confirmRejectAppTitle', { name: app.organizationName })}
+              description={t('confirmRejectAppBody')}
+              confirmLabel={t('confirmRejectAppConfirm')}
+              cancelLabel={t('confirmCancel')}
+              destructive
+              pending={pending}
+              onConfirm={() => decide('rejected')}
+              onCancel={() => setConfirmingReject(false)}
+            />
+          </div>
+          {hasProfile ? (
+            <p className="mt-2 text-xs text-muted">{t('appProfileKept')}</p>
+          ) : null}
+        </>
       ) : (
         <div className="mt-3 space-y-1 text-xs text-muted">
           {app.reviewedAt ? (
@@ -276,6 +385,37 @@ function ApplicationRow({ app, now }: { app: Application; now: number }) {
           >
             {app.invitedAt ? t('appInviteResend') : t('appInviteSend')}
           </Button>
+        </div>
+      ) : null}
+
+      {/* Going back on the decision (issue #9). A rejection is rescued in
+          one click — nothing to take back. An approval is reconsidered
+          through a confirmation, since it withdraws what it granted. */}
+      {app.status !== 'pending' ? (
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              app.status === 'approved'
+                ? setConfirmingReopen(true)
+                : reopenApplication()
+            }
+            disabled={pending}
+          >
+            {t('appReopen')}
+          </Button>
+          <ConfirmDialog
+            open={confirmingReopen}
+            title={t('confirmReopenAppTitle', { name: app.organizationName })}
+            description={<ReopenImpactText impact={impact} />}
+            confirmLabel={t('confirmReopenAppConfirm')}
+            cancelLabel={t('confirmCancel')}
+            destructive
+            pending={pending}
+            onConfirm={reopenApplication}
+            onCancel={() => setConfirmingReopen(false)}
+          />
         </div>
       ) : null}
 
