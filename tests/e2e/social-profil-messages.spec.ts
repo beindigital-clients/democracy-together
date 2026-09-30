@@ -178,7 +178,9 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   // Enter sends (Shift+Enter would only break the line).
   await composerB.press('Enter');
   await expect(composerB).toHaveValue('');
-  const recu = pageA.locator('li', { hasText: 'Entrée envoie' }).last();
+  const recu = pageA
+    .locator('li', { hasText: 'Entrée envoie' })
+    .filter({ hasNotText: 'Réponse citée' });
   await expect(recu).toBeVisible({ timeout: 20_000 });
   await expect(pageA.getByText(`${NOM_B} écrit…`)).toHaveCount(0);
 
@@ -205,7 +207,10 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   ).toBeVisible({ timeout: 20_000 });
 
   // B corrects their own message; A sees the new text, marked "modifié".
-  const mien = pageB.locator('li', { hasText: 'Entrée envoie' }).last();
+  // The reply quotes this message: skip the bubble that only cites it.
+  const mien = pageB
+    .locator('li', { hasText: 'Entrée envoie' })
+    .filter({ hasNotText: 'Réponse citée' });
   await mien.hover();
   await mien.getByRole('button', { name: "Plus d'actions" }).click();
   await pageB.getByRole('menuitem', { name: 'Modifier' }).click();
@@ -214,7 +219,7 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   await composerB.press('Enter');
   const corrige = pageA
     .locator('li', { hasText: 'Entrée envoie, corrigé' })
-    .last();
+    .filter({ hasNotText: 'Réponse citée' });
   await expect(corrige).toBeVisible({ timeout: 20_000 });
   await expect(corrige.getByText('modifié', { exact: true })).toBeVisible();
 

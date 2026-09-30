@@ -965,7 +965,10 @@ function Bubble({
             {time}
           </time>
           {status ? (
-            <span>· {status === 'seen' ? t('seen') : t('sent')}</span>
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{status === 'seen' ? t('seen') : t('sent')}</span>
+            </>
           ) : null}
         </p>
       ) : null}
