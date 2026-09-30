@@ -372,9 +372,25 @@ export default defineSchema({
     // resending the invitation without duplicating the account or the directory profile.
     invitedAt: v.optional(v.number()),
     createdOrgId: v.optional(v.id('organizations')),
+    // WHAT THE APPROVAL GRANTED, so that going back on it takes back exactly
+    // that (`organizations.reopenApplication`): the account it made a member,
+    // and whether that account owes it its `membre` role — created by the
+    // approval, or raised from visitor. An account that was already a member
+    // keeps its role. Missing on applications approved before this record.
+    memberUserId: v.optional(v.id('users')),
+    roleRaised: v.optional(v.boolean()),
+    // The last time a decision was put back under review, and which one: the
+    // queue shows it next to the application waiting for its new decision.
+    reopenedAt: v.optional(v.number()),
+    reopenedFrom: v.optional(
+      v.union(v.literal('approved'), v.literal('rejected')),
+    ),
   })
     .index('by_status', ['status'])
     .index('by_applicant', ['applicantUserId'])
+    // "Does this account owe its membership to another application?" — asked
+    // before a reversal withdraws a role (lib/membershipGrant.ts).
+    .index('by_member', ['memberUserId'])
     // Applications queue search (issue #49): the
     // organization's name — that is how an application is found.
     .searchIndex('search_organizationName', {

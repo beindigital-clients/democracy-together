@@ -22,6 +22,9 @@ export const AUDIT = {
   // log would show "… .reviewed" twice in a row and we would not know
   // which of the two passes reopened the file.
   PUBLICATION_REOPENED: 'publication.reopened',
+  // A membership decision put back under review. From an approval, it also
+  // takes back what the approval granted: its metadata says what.
+  MEMBERSHIP_REOPENED: 'membership.reopened',
   YOUTH_REOPENED: 'youth.reopened',
   MENTORSHIP_REOPENED: 'mentorship.reopened',
   PROJECT_REOPENED: 'project.reopened',

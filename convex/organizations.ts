@@ -10,10 +10,22 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
+import { networkRole } from './schema';
 import { locale, type SiteLocale } from './lib/locales';
 import { enforceRecaptcha } from './lib/recaptcha';
-import { requireNetworkRole, getActiveUserId, rank } from './lib/rbac';
+import {
+  requireNetworkRole,
+  getActiveUserId,
+  rank,
+  effectiveRole,
+} from './lib/rbac';
 import { recordAudit } from './lib/audit';
+import { assertTransition, type ReviewMachine } from './lib/reviewState';
+import {
+  accountToElevate,
+  approvedMember,
+  planWithdrawal,
+} from './lib/membershipGrant';
 import {
   COUNTER,
   bumpCounter,
@@ -47,6 +59,7 @@ import {
   normalizeEmail,
   validateDirectoryFields,
   invitationEmail,
+  type DirectoryFields,
 } from './lib/onboarding';
 import {
   applicationDeclinedEmail,
@@ -146,6 +159,27 @@ export const submitApplication = action({
 // duplicate would be visible to the moderator anyway.
 const PENDING_APPLICATIONS_MAX = 500;
 
+// ONLY ONE PENDING APPLICATION PER ADDRESS — checked when an application is
+// submitted, and when a decided one is put back under review. The pending
+// queue is short by construction (it is emptied by hand, by a moderator):
+// reading it through the `by_status` index stays bounded, with no extra index
+// on the address. The comparison is normalized the way approval will do it
+// (`normalizeEmail`): "Contact@X.org" and "contact@x.org" are the same person.
+async function hasPendingApplication(
+  ctx: MutationCtx,
+  contactEmail: string,
+  except?: Id<'membershipApplications'>,
+): Promise<boolean> {
+  const wanted = normalizeEmail(contactEmail);
+  const pending = await ctx.db
+    .query('membershipApplications')
+    .withIndex('by_status', (q) => q.eq('status', 'pending'))
+    .take(PENDING_APPLICATIONS_MAX);
+  return pending.some(
+    (a) => a._id !== except && normalizeEmail(a.contactEmail) === wanted,
+  );
+}
+
 export const storeApplication = internalMutation({
   args: {
     type: v.union(v.literal('organisation'), v.literal('individu')),
@@ -189,19 +223,9 @@ export const storeApplication = internalMutation({
     // ONLY ONE PENDING APPLICATION PER ADDRESS. Two submissions — a late double
     // click, a second attempt after a doubt — produced two `pending` rows
     // that the back-office saw twice (measured on 27/09, showcase
-    // O3 / R-09). The pending applications queue is short by
-    // construction (it is emptied by hand, by a moderator): reading it through
-    // the `by_status` index stays bounded, with no extra index on
-    // the address. The comparison is normalized the way approval will do it
-    // (`normalizeEmail`): "Contact@X.org" and "contact@x.org" are the
-    // same person. `ConvexError`: `data` travels through the action to the
+    // O3 / R-09). `ConvexError`: `data` travels through the action to the
     // form, which can say "an application is already in progress".
-    const wanted = normalizeEmail(contactEmail);
-    const pending = await ctx.db
-      .query('membershipApplications')
-      .withIndex('by_status', (q) => q.eq('status', 'pending'))
-      .take(PENDING_APPLICATIONS_MAX);
-    if (pending.some((a) => normalizeEmail(a.contactEmail) === wanted)) {
+    if (await hasPendingApplication(ctx, contactEmail)) {
       throw new ConvexError('DUPLICATE_APPLICATION');
     }
 
@@ -333,6 +357,29 @@ export const latestApplicationForEmail = internalQuery({
   },
 });
 
+// --- State machine for the membership review (audit M6 · issue #9) ---------
+//
+//   pending ──reviewApplication──► approved | rejected
+//   approved | rejected ──reopenApplication──► pending
+//
+// A decision is not replayed, nor reversed by a click on the other button:
+// re-approving created duplicate accounts and profiles, and "rejecting" an
+// approved application left the granted role in place. Going back on a
+// decision — rescuing a rejected application, putting an approved one back
+// under review — is the named transition `reopenApplication`: recorded under
+// `membership.reopened`, and, from an approval, taking back what the approval
+// granted (lib/membershipGrant.ts).
+const MEMBERSHIP_REVIEW: ReviewMachine<
+  Doc<'membershipApplications'>['status']
+> = {
+  transitions: {
+    pending: ['approved', 'rejected'],
+    approved: ['pending'],
+    rejected: ['pending'],
+  },
+  decided: ['approved', 'rejected'],
+};
+
 // Approval of an application (F-22 / F-26) — moderator and above, audited.
 //
 // This is where the audit's blocker #1 lay: approval merely
@@ -367,9 +414,8 @@ export const reviewApplication = mutation({
     const application = await ctx.db.get(applicationId);
     if (!application) throw new Error('NOT_FOUND');
     // State machine (audit M6): an application already decided is not
-    // replayed. Without this, re-approving created duplicate accounts and profiles, and
-    // "rejecting" after approval left the granted role in place.
-    if (application.status !== 'pending') throw new Error('ALREADY_REVIEWED');
+    // replayed — `ALREADY_REVIEWED`. Going back on it is `reopenApplication`.
+    assertTransition(application.status, decision, MEMBERSHIP_REVIEW);
 
     const now = Date.now();
     await ctx.db.patch(applicationId, {
@@ -381,9 +427,14 @@ export const reviewApplication = mutation({
     await trackMembershipApplicationStatus(ctx, application.status, decision);
 
     if (decision === 'rejected') {
-      if (application.applicantUserId) {
+      // The account the decision concerns: the one that submitted the
+      // application or — an approval put back under review, then turned
+      // down — the one that approval had made a member, which must hear that
+      // it no longer is. Deleted since: nobody to tell in the application.
+      const concerned = application.applicantUserId ?? application.memberUserId;
+      if (concerned && (await ctx.db.get(concerned))) {
         await notify(ctx, {
-          userId: application.applicantUserId,
+          userId: concerned,
           type: 'membership_rejected',
           titleKey: 'membershipRejected',
           link: '/adhesion',
@@ -414,23 +465,17 @@ export const reviewApplication = mutation({
     // Normalized exactly as sign-in will do it, otherwise the approved member
     // will never find their account.
     const email = normalizeEmail(application.contactEmail);
-    const linked = application.applicantUserId
-      ? await ctx.db.get(application.applicantUserId)
-      : null;
-    const byEmail = linked
-      ? null
-      : await ctx.db
-          .query('users')
-          .withIndex('email', (q) => q.eq('email', email))
-          .first();
-
-    let user = linked ?? byEmail;
+    let user = await accountToElevate(ctx, application);
     let userCreated = false;
+    // Whether THIS approval gives the account its `membre` role: what a
+    // reversal may take back (lib/membershipGrant.ts).
+    let roleRaised = false;
     if (!user) {
       const id = await ctx.db.insert('users', { email, role: 'membre' });
       await bumpCounter(ctx, COUNTER.USERS, 1);
       user = (await ctx.db.get(id))!;
       userCreated = true;
+      roleRaised = true;
       await recordAudit(ctx, {
         actorId: reviewer._id,
         action: AUDIT.USER_INVITED,
@@ -440,6 +485,7 @@ export const reviewApplication = mutation({
     } else if (rank(user.role) < rank('membre')) {
       // We NEVER overwrite a higher role.
       await ctx.db.patch(user._id, { role: 'membre' });
+      roleRaised = true;
       await recordAudit(ctx, {
         actorId: reviewer._id,
         action: AUDIT.USER_ROLE_CHANGED,
@@ -447,64 +493,38 @@ export const reviewApplication = mutation({
         metadata: { role: 'membre', via: 'membership' },
       });
     }
+    await ctx.db.patch(applicationId, { memberUserId: user._id, roleRaised });
 
     // --- 2) The ORGANIZATION and 3) the LINK ---------------------------------
     let organizationId: Id<'organizations'> | null = null;
+    let organizationReinstated = false;
     if (application.type === 'organisation') {
       const fields = directory ? validateDirectoryFields(directory) : null;
       if (fields && !fields.ok) throw new Error(fields.reason);
       const d = fields && fields.ok ? fields.value : null;
-
-      // Unique slug (incremental suffix), as for publications.
-      const root = slugify(application.organizationName);
-      let slug = root;
-      let n = 2;
-      while (
-        await ctx.db
-          .query('organizations')
-          .withIndex('by_slug', (q) => q.eq('slug', slug))
-          .first()
-      ) {
-        slug = `${root}-${n++}`;
+      // An approval put back under review, then approved again: the profile
+      // it created comes back — not a second one next to it.
+      const previous = application.createdOrgId
+        ? await ctx.db.get(application.createdOrgId)
+        : null;
+      if (previous) {
+        organizationId = await reinstateOrganization(
+          ctx,
+          previous,
+          d,
+          user._id,
+          now,
+        );
+        organizationReinstated = true;
+      } else {
+        organizationId = await createOrganization(ctx, {
+          application,
+          fields: d,
+          ownerId: user._id,
+          reviewerId: reviewer._id,
+          now,
+        });
       }
-
-      organizationId = await ctx.db.insert('organizations', {
-        name: application.organizationName,
-        slug,
-        // Without directory fields, the profile stays 'pending': better a
-        // profile to be completed than a false public profile.
-        country: d?.countryCode ?? application.country,
-        region: d?.region ?? '',
-        languages: d?.languages ?? [],
-        themes: d?.themes ?? [],
-        ...(d?.description ? { description: d.description } : {}),
-        ...(d?.websiteUrl ? { websiteUrl: d.websiteUrl } : {}),
-        status: d ? 'active' : 'pending',
-        createdAt: now,
-        // Global search (diffusion workstream): haystack maintained on write.
-        searchText: organizationSearchText(
-          {
-            name: application.organizationName,
-            description: d?.description,
-            country: d?.countryCode ?? application.country,
-          },
-          countryTerms,
-        ),
-      });
-      await trackOrganizationStatus(ctx, null, d ? 'active' : 'pending');
-      await ctx.db.insert('organizationMemberships', {
-        userId: user._id,
-        orgId: organizationId,
-        orgRole: 'owner',
-        createdAt: now,
-      });
-      await ctx.db.patch(applicationId, { createdOrgId: organizationId });
-      await recordAudit(ctx, {
-        actorId: reviewer._id,
-        action: AUDIT.ORGANIZATION_CREATED,
-        targetId: organizationId,
-        metadata: { slug, status: d ? 'active' : 'pending' },
-      });
     }
 
     await notify(ctx, {
@@ -518,7 +538,10 @@ export const reviewApplication = mutation({
       actorId: reviewer._id,
       action: AUDIT.MEMBERSHIP_REVIEWED,
       targetId: applicationId,
-      metadata: { decision },
+      metadata: {
+        decision,
+        ...(organizationReinstated ? { organizationReinstated: true } : {}),
+      },
     });
 
     // The email goes out in a scheduled ACTION (never fetch in a mutation).
@@ -539,6 +562,293 @@ export const reviewApplication = mutation({
     );
 
     return { userCreated, organizationId };
+  },
+});
+
+// The organization of an approved application, created with its manager's
+// link. Without directory fields, the profile stays 'pending': better a
+// profile to be completed than a false public profile.
+async function createOrganization(
+  ctx: MutationCtx,
+  {
+    application,
+    fields: d,
+    ownerId,
+    reviewerId,
+    now,
+  }: {
+    application: Doc<'membershipApplications'>;
+    fields: DirectoryFields | null;
+    ownerId: Id<'users'>;
+    reviewerId: Id<'users'>;
+    now: number;
+  },
+): Promise<Id<'organizations'>> {
+  // Unique slug (incremental suffix), as for publications.
+  const root = slugify(application.organizationName);
+  let slug = root;
+  let n = 2;
+  while (
+    await ctx.db
+      .query('organizations')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .first()
+  ) {
+    slug = `${root}-${n++}`;
+  }
+
+  const organizationId = await ctx.db.insert('organizations', {
+    name: application.organizationName,
+    slug,
+    country: d?.countryCode ?? application.country,
+    region: d?.region ?? '',
+    languages: d?.languages ?? [],
+    themes: d?.themes ?? [],
+    ...(d?.description ? { description: d.description } : {}),
+    ...(d?.websiteUrl ? { websiteUrl: d.websiteUrl } : {}),
+    status: d ? 'active' : 'pending',
+    createdAt: now,
+    // Global search (diffusion workstream): haystack maintained on write.
+    searchText: organizationSearchText(
+      {
+        name: application.organizationName,
+        description: d?.description,
+        country: d?.countryCode ?? application.country,
+      },
+      countryTerms,
+    ),
+  });
+  await trackOrganizationStatus(ctx, null, d ? 'active' : 'pending');
+  await ctx.db.insert('organizationMemberships', {
+    userId: ownerId,
+    orgId: organizationId,
+    orgRole: 'owner',
+    createdAt: now,
+  });
+  await ctx.db.patch(application._id, { createdOrgId: organizationId });
+  await recordAudit(ctx, {
+    actorId: reviewerId,
+    action: AUDIT.ORGANIZATION_CREATED,
+    targetId: organizationId,
+    metadata: { slug, status: d ? 'active' : 'pending' },
+  });
+  return organizationId;
+}
+
+// The profile an earlier approval created, back from its suspension (see
+// `reopenApplication`): same slug, and what its manager changed through
+// revisions in the meantime is kept. Directory fields entered now replace its
+// own; without them, it returns to the directory if it is complete, and
+// stays "to be completed" otherwise — exactly as a first approval would.
+async function reinstateOrganization(
+  ctx: MutationCtx,
+  org: Doc<'organizations'>,
+  fields: DirectoryFields | null,
+  ownerId: Id<'users'>,
+  now: number,
+): Promise<Id<'organizations'>> {
+  const complete =
+    fields !== null ||
+    validateDirectoryFields({
+      countryCode: org.country,
+      region: org.region,
+      themes: org.themes,
+      languages: org.languages,
+    }).ok;
+  const status = complete ? 'active' : 'pending';
+  await ctx.db.patch(org._id, {
+    status,
+    ...(fields
+      ? {
+          country: fields.countryCode,
+          region: fields.region,
+          themes: fields.themes,
+          languages: fields.languages,
+          ...(fields.description ? { description: fields.description } : {}),
+          ...(fields.websiteUrl ? { websiteUrl: fields.websiteUrl } : {}),
+          searchText: organizationSearchText(
+            {
+              name: org.name,
+              description: fields.description ?? org.description,
+              country: fields.countryCode,
+            },
+            countryTerms,
+          ),
+          updatedAt: now,
+        }
+      : {}),
+  });
+  await trackOrganizationStatus(ctx, org.status, status);
+  // Its manager's link: removed in the meantime, or never made for this
+  // account (the first one was deleted since, and approval opened another).
+  const link = await ctx.db
+    .query('organizationMemberships')
+    .withIndex('by_org_user', (q) =>
+      q.eq('orgId', org._id).eq('userId', ownerId),
+    )
+    .first();
+  if (!link) {
+    await ctx.db.insert('organizationMemberships', {
+      userId: ownerId,
+      orgId: org._id,
+      orgRole: 'owner',
+      createdAt: now,
+    });
+  }
+  return org._id;
+}
+
+// Putting a decision back under review (F-22 / F-26) — moderator and above,
+// like the decision itself: whoever can grant a membership can correct it.
+//
+// The application returns to the queue, where it is decided again with
+// `reviewApplication`: a rejected application can be rescued and approved, an
+// approved one reconsidered and rejected. Going back on an APPROVAL does not
+// wait for the new decision to take back what it granted: while the
+// application is pending, its applicant is not a member — the approval was
+// the only thing that said so. See lib/membershipGrant.ts for what is
+// withdrawn, and what is deliberately left in place.
+//
+// Nobody is told at this point: the applicant hears of the NEW decision, by
+// the usual e-mail — an invitation, or a decline.
+export const reopenApplication = mutation({
+  args: { applicationId: v.id('membershipApplications') },
+  returns: v.object({
+    roleWithdrawn: v.boolean(),
+    organizationSuspended: v.boolean(),
+  }),
+  handler: async (ctx, { applicationId }) => {
+    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const application = await ctx.db.get(applicationId);
+    if (!application) throw new Error('NOT_FOUND');
+    const from = application.status;
+    assertTransition(from, 'pending', MEMBERSHIP_REVIEW);
+    // Turned down, the applicant may have applied again since: rescuing the
+    // old application would put two of theirs in the queue — and approving
+    // both, two profiles. The newer one is the one to decide.
+    if (
+      await hasPendingApplication(ctx, application.contactEmail, applicationId)
+    ) {
+      throw new ConvexError('DUPLICATE_APPLICATION');
+    }
+
+    let roleWithdrawn = false;
+    let organizationSuspended = false;
+    if (from === 'approved') {
+      const plan = await planWithdrawal(ctx, application);
+      if (plan.member && plan.withdrawRole) {
+        await ctx.db.patch(plan.member._id, { role: 'visiteur' });
+        await recordAudit(ctx, {
+          actorId: reviewer._id,
+          action: AUDIT.USER_ROLE_CHANGED,
+          targetId: plan.member._id,
+          metadata: { role: 'visiteur', via: 'membership' },
+        });
+        roleWithdrawn = true;
+      }
+      if (plan.organization) {
+        await ctx.db.patch(plan.organization._id, { status: 'suspended' });
+        await trackOrganizationStatus(
+          ctx,
+          plan.organization.status,
+          'suspended',
+        );
+        organizationSuspended = true;
+      }
+    }
+
+    await ctx.db.patch(applicationId, {
+      status: 'pending',
+      reopenedAt: Date.now(),
+      reopenedFrom: from === 'approved' ? 'approved' : 'rejected',
+      // The invitation belonged to the approval: the queue must not show it
+      // as sent when the next approval's one has not left yet.
+      invitedAt: undefined,
+    });
+    await trackMembershipApplicationStatus(ctx, from, 'pending');
+    await recordAudit(ctx, {
+      actorId: reviewer._id,
+      action: AUDIT.MEMBERSHIP_REOPENED,
+      targetId: applicationId,
+      metadata: {
+        from,
+        roleWithdrawn,
+        ...(organizationSuspended
+          ? { organizationSuspended: application.createdOrgId }
+          : {}),
+      },
+    });
+    return { roleWithdrawn, organizationSuspended };
+  },
+});
+
+// What putting an APPROVED application back under review would take back —
+// read by the confirmation, before the moderator commits to it. Same reading
+// as the mutation (`planWithdrawal`). `null`: nothing to take back — the
+// application is not, or no longer, approved.
+const COLLEAGUES_SHOWN = 5;
+const COLLEAGUES_READ_MAX = 60;
+
+export const reopenImpact = query({
+  args: { applicationId: v.id('membershipApplications') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      // The account the approval made a member (`null`: deleted since), and
+      // whether it loses its `membre` role.
+      member: v.union(
+        v.null(),
+        v.object({
+          email: v.union(v.string(), v.null()),
+          role: networkRole,
+          losesRole: v.boolean(),
+        }),
+      ),
+      // The profile that leaves the directory (`null`: none).
+      organization: v.union(v.null(), v.object({ name: v.string() })),
+      // The OTHER accounts attached to that profile that are members: they
+      // keep their role — the first few named, all counted.
+      colleagues: v.array(v.union(v.string(), v.null())),
+      colleaguesTotal: v.number(),
+    }),
+  ),
+  handler: async (ctx, { applicationId }) => {
+    await requireNetworkRole(ctx, 'moderateur');
+    const application = await ctx.db.get(applicationId);
+    if (!application || application.status !== 'approved') return null;
+    const plan = await planWithdrawal(ctx, application);
+
+    const colleagues: (string | null)[] = [];
+    let colleaguesTotal = 0;
+    const org = plan.organization;
+    if (org) {
+      const links = await ctx.db
+        .query('organizationMemberships')
+        .withIndex('by_org', (q) => q.eq('orgId', org._id))
+        .take(COLLEAGUES_READ_MAX);
+      for (const link of links) {
+        if (link.userId === plan.member?._id) continue;
+        const account = await ctx.db.get(link.userId);
+        if (!account || effectiveRole(account.role) !== 'membre') continue;
+        colleaguesTotal++;
+        if (colleagues.length < COLLEAGUES_SHOWN) {
+          colleagues.push(account.email ?? null);
+        }
+      }
+    }
+
+    return {
+      member: plan.member
+        ? {
+            email: plan.member.email ?? null,
+            role: effectiveRole(plan.member.role),
+            losesRole: plan.withdrawRole,
+          }
+        : null,
+      organization: org ? { name: org.name } : null,
+      colleagues,
+      colleaguesTotal,
+    };
   },
 });
 
@@ -584,12 +894,7 @@ export const resendMembershipInvitation = mutation({
     }
 
     const contact = normalizeEmail(application.contactEmail);
-    const account = application.applicantUserId
-      ? await ctx.db.get(application.applicantUserId)
-      : await ctx.db
-          .query('users')
-          .withIndex('email', (q) => q.eq('email', contact))
-          .first();
+    const account = await approvedMember(ctx, application);
     // The account was deleted since: "your account is active" would be false.
     if (!account) throw new Error('NOT_FOUND');
     // Nor to a suspended one — the rule of account creation (accounts.ts).
