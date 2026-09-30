@@ -709,13 +709,17 @@ async function reinstateOrganization(
 // the only thing that said so. See lib/membershipGrant.ts for what is
 // withdrawn, and what is deliberately left in place.
 //
-// Nobody is told at this point: the applicant hears of the NEW decision, by
-// the usual e-mail — an invitation, or a decline.
+// The account the decision concerned hears of it in the app: told of the
+// first decision, it would otherwise see it undone without a word — a member
+// losing their access, an applicant whose refusal no longer holds. An
+// applicant without an account learns nothing now, and hears of the NEW
+// decision by the usual e-mail — an invitation, or a decline.
 export const reopenApplication = mutation({
   args: { applicationId: v.id('membershipApplications') },
   returns: v.object({
     roleWithdrawn: v.boolean(),
     organizationSuspended: v.boolean(),
+    accountNotified: v.boolean(),
   }),
   handler: async (ctx, { applicationId }) => {
     const reviewer = await requireNetworkRole(ctx, 'moderateur');
@@ -734,8 +738,12 @@ export const reopenApplication = mutation({
 
     let roleWithdrawn = false;
     let organizationSuspended = false;
+    // The account the decision concerned: the one the approval made a member
+    // or, for a refusal, the one told of it (see `reviewApplication`).
+    let concerned: Id<'users'> | null;
     if (from === 'approved') {
       const plan = await planWithdrawal(ctx, application);
+      concerned = plan.member?._id ?? null;
       if (plan.member && plan.withdrawRole) {
         await ctx.db.patch(plan.member._id, { role: 'visiteur' });
         await recordAudit(ctx, {
@@ -755,6 +763,9 @@ export const reopenApplication = mutation({
         );
         organizationSuspended = true;
       }
+    } else {
+      const told = application.applicantUserId ?? application.memberUserId;
+      concerned = told && (await ctx.db.get(told)) ? told : null;
     }
 
     await ctx.db.patch(applicationId, {
@@ -766,6 +777,14 @@ export const reopenApplication = mutation({
       invitedAt: undefined,
     });
     await trackMembershipApplicationStatus(ctx, from, 'pending');
+    const accountNotified = concerned
+      ? await notify(ctx, {
+          userId: concerned,
+          type: 'membership_reopened',
+          titleKey: 'membershipReopened',
+          link: '/adhesion',
+        })
+      : false;
     await recordAudit(ctx, {
       actorId: reviewer._id,
       action: AUDIT.MEMBERSHIP_REOPENED,
@@ -778,7 +797,7 @@ export const reopenApplication = mutation({
           : {}),
       },
     });
-    return { roleWithdrawn, organizationSuspended };
+    return { roleWithdrawn, organizationSuspended, accountNotified };
   },
 });
 

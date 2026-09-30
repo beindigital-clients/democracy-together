@@ -63,7 +63,8 @@ function useApplicationDates(now: number) {
 // What putting an APPROVAL back under review takes back, as the server will
 // do it (convex/lib/membershipGrant.ts) — read when the dialog opens, never
 // guessed by the screen: whether the member account loses its role, whether
-// the directory entry leaves the directory, and who keeps their role anyway.
+// the directory entry leaves the directory, who keeps their role anyway, and
+// who is told.
 function ReopenImpactText({ impact }: { impact: ReopenImpact | undefined }) {
   const t = useTranslations('admin');
   if (impact === undefined) return <p>{t('loading')}</p>;
@@ -106,7 +107,13 @@ function ReopenImpactText({ impact }: { impact: ReopenImpact | undefined }) {
           </ul>
         </>
       ) : null}
-      <p className="mt-2">{t('confirmReopenAppNotice')}</p>
+      {/* The member account hears of it in the app; without one — deleted
+          since — nobody is told before the new decision. */}
+      <p className="mt-2 wrap-anywhere">
+        {impact?.member
+          ? t('confirmReopenAppNotify', { email: impact.member.email ?? '—' })
+          : t('confirmReopenAppNotice')}
+      </p>
     </>
   );
 }
@@ -195,7 +202,8 @@ function ApplicationRow({ app, now }: { app: Application; now: number }) {
 
   // Going back on a decision (issue #9): the application returns to the
   // queue, to be decided again — a rejected one rescued, an approved one
-  // reconsidered. The feedback says what the server actually took back.
+  // reconsidered. The feedback says what the server actually took back, and
+  // whether the applicant's account was told.
   async function reopenApplication() {
     setPending(true);
     try {
@@ -206,6 +214,7 @@ function ApplicationRow({ app, now }: { app: Application; now: number }) {
           t('feedbackAppReopened', { name: app.organizationName }),
           res.roleWithdrawn ? t('feedbackAppRoleWithdrawn') : null,
           res.organizationSuspended ? t('feedbackAppOrgSuspended') : null,
+          res.accountNotified ? t('feedbackAppNotified') : null,
         ]
           .filter(Boolean)
           .join(' '),

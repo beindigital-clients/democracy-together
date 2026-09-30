@@ -323,7 +323,11 @@ describe('Équipe — revenir sur une décision', () => {
   }
 
   it('une candidature rejetée se repêche en un clic', async () => {
-    convex.result = { roleWithdrawn: false, organizationSuspended: false };
+    convex.result = {
+      roleWithdrawn: false,
+      organizationSuspended: false,
+      accountNotified: false,
+    };
     queue([
       {
         ...decided,
@@ -363,7 +367,11 @@ describe('Équipe — revenir sur une décision', () => {
       colleagues: ['collegue@institut.org'],
       colleaguesTotal: 1,
     });
-    convex.result = { roleWithdrawn: true, organizationSuspended: true };
+    convex.result = {
+      roleWithdrawn: true,
+      organizationSuspended: true,
+      accountNotified: true,
+    };
     queue([
       {
         ...decided,
@@ -389,6 +397,10 @@ describe('Équipe — revenir sur une décision', () => {
       'la fiche « Institut Validé » sort de l’annuaire, et son responsable ne peut plus la modifier ni y inviter de collègues ;',
       'un autre compte rattaché à la fiche garde son rôle de membre : collegue@institut.org — revoyez-le au besoin dans Utilisateurs.',
     ]);
+    // And who is told: the member account, in the app.
+    expect(dialog.textContent).toContain(
+      'Le compte contact@institut.org est prévenu que la candidature est de nouveau à l’étude',
+    );
     // Nothing happens before the confirmation.
     expect(convex.calls).toHaveLength(0);
 
@@ -399,7 +411,7 @@ describe('Équipe — revenir sur une décision', () => {
     expect(convex.calls[0].args).toEqual({ applicationId: 'a1' });
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toBe(
-        'Candidature de Institut Validé remise en étude. Son compte n’a plus le rôle de membre. Sa fiche est retirée de l’annuaire.',
+        'Candidature de Institut Validé remise en étude. Son compte n’a plus le rôle de membre. Sa fiche est retirée de l’annuaire. Le candidat en est prévenu dans son espace.',
       ),
     );
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -439,6 +451,36 @@ describe('Équipe — revenir sur une décision', () => {
     ).toEqual([
       'le compte directrice@institut.org garde son rôle (Éditeur) : il ne le tient pas de cette seule approbation ;',
     ]);
+  });
+
+  it('sans compte à prévenir, la confirmation dit que personne ne l’est', () => {
+    // The account the approval opened was deleted since.
+    convex.queries.set('organizations:reopenImpact', {
+      member: null,
+      organization: null,
+      colleagues: [],
+      colleaguesTotal: 0,
+    });
+    queue([
+      {
+        ...decided,
+        _id: 'a3',
+        type: 'individu',
+        organizationName: 'Compte disparu',
+        status: 'approved',
+        applicantEmail: null,
+        applicantRole: null,
+        organizationStatus: null,
+      },
+    ]);
+    fireEvent.click(
+      within(screen.getByRole('listitem')).getByRole('button', {
+        name: 'Remettre en étude',
+      }),
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.textContent).toContain('Personne n’est prévenu maintenant');
+    expect(dialog.textContent).not.toContain('est prévenu que la candidature');
   });
 
   it('remise en étude : la décision précédente reste lisible, et la fiche existante n’est pas ressaisie', async () => {

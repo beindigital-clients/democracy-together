@@ -171,6 +171,9 @@ test('revenir sur une décision d’adhésion : un refus repêché, une approbat
   await expect(dialog).toContainText(
     `le compte ${contactEmail} perd son rôle de membre`,
   );
+  await expect(dialog).toContainText(
+    `Le compte ${contactEmail} est prévenu que la candidature est de nouveau à l’étude`,
+  );
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(row.getByText('Approuvée', { exact: true })).toBeVisible();
@@ -179,6 +182,9 @@ test('revenir sur une décision d’adhésion : un refus repêché, une approbat
   await dialog.getByRole('button', { name: 'Remettre en étude' }).click();
   await expect(page.getByRole('status')).toContainText(
     'Son compte n’a plus le rôle de membre.',
+  );
+  await expect(page.getByRole('status')).toContainText(
+    'Le candidat en est prévenu dans son espace.',
   );
   await expect(row.getByText('En attente')).toBeVisible();
   await expect(row.getByText(/elle avait été approuvée\.$/)).toBeVisible();

@@ -161,6 +161,8 @@ describe('Repêcher une candidature rejetée', () => {
     expect(await reopen(mod, applicationId)).toEqual({
       roleWithdrawn: false,
       organizationSuspended: false,
+      // Anonymous applicant: no account to tell before the new decision.
+      accountNotified: false,
     });
 
     const reopened = await application(t, applicationId);
@@ -188,6 +190,34 @@ describe('Repêcher une candidature rejetée', () => {
     expect(orgs[0].status).toBe('active');
     expect(await all(t, 'organizationMemberships')).toHaveLength(1);
     expect(await scheduled(t, 'sendMembershipInvitation')).toHaveLength(1);
+  });
+
+  it('le compte qui avait déposé la candidature en est prévenu', async () => {
+    const t = newConvexTest();
+    const mod = await moderator(t);
+    const applicant = await account(t, {
+      role: 'visiteur',
+      email: 'chercheuse@univ-dakar.sn',
+    });
+    const applicationId = await apply(
+      t,
+      { contactEmail: 'chercheuse@univ-dakar.sn' },
+      applicant,
+    );
+    await decide(mod, applicationId, 'rejected');
+
+    expect((await reopen(mod, applicationId)).accountNotified).toBe(true);
+    const told = await t.run((ctx) =>
+      ctx.db
+        .query('notifications')
+        .withIndex('by_user_and_read', (q) => q.eq('userId', applicant.id))
+        .collect(),
+    );
+    // Told of the refusal, then that it no longer holds.
+    expect(told.map((n) => n.titleKey)).toEqual([
+      'membershipRejected',
+      'membershipReopened',
+    ]);
   });
 
   it('refuse de rouvrir ce qui attend déjà une décision', async () => {
@@ -254,10 +284,22 @@ describe('Remettre en étude une candidature approuvée', () => {
     expect(await reopen(mod, applicationId)).toEqual({
       roleWithdrawn: true,
       organizationSuspended: true,
+      accountNotified: true,
     });
 
-    // While it is under review, the applicant is no member.
+    // While it is under review, the applicant is no member — and the account
+    // told of the approval hears that it is being reconsidered.
     expect((await userByEmail(t, CONTACT))?.role).toBe('visiteur');
+    const told = await t.run((ctx) =>
+      ctx.db
+        .query('notifications')
+        .withIndex('by_user_and_read', (q) => q.eq('userId', member._id))
+        .collect(),
+    );
+    expect(told.map((n) => [n.titleKey, n.link])).toEqual([
+      ['membershipApproved', '/espace-membre'],
+      ['membershipReopened', '/adhesion'],
+    ]);
     expect((await t.run((ctx) => ctx.db.get(org._id)))?.status).toBe(
       'suspended',
     );
@@ -399,6 +441,7 @@ describe('Remettre en étude une candidature approuvée', () => {
     expect(await reopen(mod, applicationId)).toEqual({
       roleWithdrawn: true,
       organizationSuspended: false,
+      accountNotified: true,
     });
     expect((await userByEmail(t, 'awa@univ-dakar.sn'))?.role).toBe('visiteur');
     await decide(mod, applicationId, 'approved');
@@ -530,6 +573,7 @@ describe('La confirmation annonce ce que fait le serveur', () => {
     expect(await reopen(mod, applicationId)).toEqual({
       roleWithdrawn: true,
       organizationSuspended: true,
+      accountNotified: true,
     });
     expect((await userByEmail(t, 'collegue@institut-sahel.org'))?.role).toBe(
       'membre',
