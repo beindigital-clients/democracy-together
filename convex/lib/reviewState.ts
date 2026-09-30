@@ -32,15 +32,39 @@ export type ReviewMachine<S extends string> = {
   readonly decided: readonly S[];
 };
 
+type Refusal = 'ALREADY_REVIEWED' | 'INVALID_TRANSITION';
+
+function refusalFrom<S extends string>(
+  from: S,
+  machine: ReviewMachine<S>,
+): Refusal {
+  return machine.decided.includes(from)
+    ? 'ALREADY_REVIEWED'
+    : 'INVALID_TRANSITION';
+}
+
 // The error matching the STARTING state — usable as is for guards that are
 // not a state change (submitting a review opinion).
 export function reviewStateError<S extends string>(
   from: S,
   machine: ReviewMachine<S>,
 ): Error {
-  return new Error(
-    machine.decided.includes(from) ? 'ALREADY_REVIEWED' : 'INVALID_TRANSITION',
-  );
+  return new Error(refusalFrom(from, machine));
+}
+
+// The refusal for going from `from` to `to`, or `null` when the machine allows
+// it. `assertTransition` throws it as an `Error`. A module whose refusals
+// reach the client as `ConvexError` data (convex/projectCalls.ts) throws it
+// that way instead: Convex redacts a plain `Error`'s message in production,
+// not a `ConvexError`'s data.
+export function transitionRefusal<S extends string>(
+  from: S,
+  to: S,
+  machine: ReviewMachine<S>,
+): Refusal | null {
+  return (machine.transitions[from] ?? []).includes(to)
+    ? null
+    : refusalFrom(from, machine);
 }
 
 export function assertTransition<S extends string>(
@@ -48,6 +72,7 @@ export function assertTransition<S extends string>(
   to: S,
   machine: ReviewMachine<S>,
 ): void {
-  if ((machine.transitions[from] ?? []).includes(to)) return;
-  throw reviewStateError(from, machine);
+  if (transitionRefusal(from, to, machine)) {
+    throw reviewStateError(from, machine);
+  }
 }

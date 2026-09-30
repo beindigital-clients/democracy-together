@@ -122,6 +122,9 @@ export const AUDIT = {
   PROJECT_CALL_SAVED: 'projectCall.saved',
   PROJECT_CALL_EVALUATORS: 'projectCall.evaluators',
   PROJECT_CALL_DECIDED: 'projectCall.decided',
+  // A decision put back under review: its own action, like the other
+  // reopenings, so the log never reads as two contradictory decisions.
+  PROJECT_CALL_REOPENED: 'projectCall.reopened',
   TOOLBOX_RESOURCE_SAVED: 'toolbox.resource_saved',
   TOOLBOX_PATH_SAVED: 'toolbox.path_saved',
   // Annual reports (F-41, editorial workstream). The migration of the coded

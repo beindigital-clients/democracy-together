@@ -168,8 +168,14 @@
     "decide_waitlisted": "قائمة الانتظار",
     "decide_rejected": "عدم الاختيار",
     "decisionConfirmTitle": "{decision}: «{title}»؟",
-    "decisionConfirmBody": "يُشعَر صاحب المشروع بالقرار، والاختيار أو الرفض نهائي.",
+    "decisionConfirmBody": "يُشعَر صاحب المشروع بالقرار، ويمكنكم التراجع عنه بإعادة الملف إلى الدراسة.",
     "decisionDone": "«{title}»: {decision}. تم إشعار صاحب المشروع.",
+    "reopen": "إعادة إلى الدراسة",
+    "reopenConfirmTitle": "إعادة «{title}» إلى الدراسة؟",
+    "reopenConfirmBody": "يعود الملف إلى الملفات التي تنتظر قرارًا، ويمكن لمقيّميه تقييمه من جديد. يُشعَر صاحب المشروع بأن ملفه أُعيد إلى الدراسة، وسيُشعَر بالقرار الجديد.",
+    "reopenDone": "أُعيد «{title}» إلى الدراسة. تم إشعار صاحب المشروع.",
+    "reopenedOn": "أُعيد إلى الدراسة في {date}: كان قد {previous, select, selected {اختير} waitlisted {وُضع في قائمة الانتظار} other {لم يُختر}}.",
+    "previousDecisionNote": "ملاحظة القرار السابق:",
     "callTitleField": "عنوان الدعوة"
   },
   "youthApply": {
@@ -519,6 +525,7 @@
     "projectCallSelected": "الدعوة «{title}»: اختير مشروعكم.",
     "projectCallWaitlisted": "الدعوة «{title}»: مشروعكم في قائمة الانتظار.",
     "projectCallRejected": "الدعوة «{title}»: لم يُختر مشروعكم.",
+    "projectCallReopened": "الدعوة «{title}»: أُعيد ملفكم إلى الدراسة.",
     "peerReviewRevisionRequested": "تطلب لجنة التحكيم مراجعة «{title}».",
     "peerReviewAccepted": "قُبل «{title}» ونُشر في المكتبة.",
     "peerReviewRejected": "لم تقبل لجنة التحكيم «{title}».",

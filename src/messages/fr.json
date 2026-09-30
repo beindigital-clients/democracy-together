@@ -168,8 +168,14 @@
     "decide_waitlisted": "Liste d’attente",
     "decide_rejected": "Ne pas retenir",
     "decisionConfirmTitle": "{decision} : « {title} » ?",
-    "decisionConfirmBody": "Le porteur est notifié de la décision. Une sélection ou un refus est définitif.",
+    "decisionConfirmBody": "Le porteur est notifié de la décision. Vous pourrez revenir dessus en remettant le dossier en étude.",
     "decisionDone": "« {title} » : {decision}. Le porteur est notifié.",
+    "reopen": "Remettre en étude",
+    "reopenConfirmTitle": "Remettre en étude « {title} » ?",
+    "reopenConfirmBody": "Le dossier revient parmi ceux à décider, et ses évaluateurs peuvent de nouveau le noter. Le porteur est notifié que son dossier est de nouveau à l’étude ; il sera notifié de la nouvelle décision.",
+    "reopenDone": "« {title} » est de nouveau à l’étude. Le porteur est notifié.",
+    "reopenedOn": "Remis en étude le {date} : il avait été {previous, select, selected {sélectionné} waitlisted {placé sur liste d’attente} other {non retenu}}.",
+    "previousDecisionNote": "Note de la décision précédente :",
     "callTitleField": "Titre de l’appel"
   },
   "youthApply": {
@@ -519,6 +525,7 @@
     "projectCallSelected": "Appel « {title} » : votre projet est sélectionné.",
     "projectCallWaitlisted": "Appel « {title} » : votre projet est sur liste d’attente.",
     "projectCallRejected": "Appel « {title} » : votre projet n’a pas été retenu.",
+    "projectCallReopened": "Appel « {title} » : votre dossier est de nouveau à l’étude.",
     "peerReviewRevisionRequested": "Le comité de lecture demande une révision de « {title} ».",
     "peerReviewAccepted": "« {title} » est accepté et publié dans la bibliothèque.",
     "peerReviewRejected": "« {title} » n'est pas retenu par le comité de lecture.",

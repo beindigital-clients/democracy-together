@@ -168,8 +168,14 @@
     "decide_waitlisted": "Lista de espera",
     "decide_rejected": "Não selecionar",
     "decisionConfirmTitle": "{decision}: «{title}»?",
-    "decisionConfirmBody": "O candidato é notificado da decisão. Uma seleção ou uma recusa é definitiva.",
+    "decisionConfirmBody": "O candidato é notificado da decisão. Poderá voltar atrás devolvendo a candidatura a análise.",
     "decisionDone": "«{title}»: {decision}. O candidato foi notificado.",
+    "reopen": "Voltar a analisar",
+    "reopenConfirmTitle": "Voltar a analisar «{title}»?",
+    "reopenConfirmBody": "A candidatura volta a estar entre as que aguardam decisão, e os seus avaliadores podem voltar a classificá-la. O candidato é notificado de que a sua candidatura voltou a ser analisada, e será notificado da nova decisão.",
+    "reopenDone": "«{title}» voltou a ser analisada. O candidato foi notificado.",
+    "reopenedOn": "Devolvida a análise em {date}: tinha sido {previous, select, selected {selecionada} waitlisted {colocada em lista de espera} other {não selecionada}}.",
+    "previousDecisionNote": "Nota da decisão anterior:",
     "callTitleField": "Título do concurso"
   },
   "youthApply": {
@@ -519,6 +525,7 @@
     "projectCallSelected": "Concurso «{title}»: o seu projeto foi selecionado.",
     "projectCallWaitlisted": "Concurso «{title}»: o seu projeto está em lista de espera.",
     "projectCallRejected": "Concurso «{title}»: o seu projeto não foi selecionado.",
+    "projectCallReopened": "Concurso «{title}»: a sua candidatura voltou a ser analisada.",
     "peerReviewRevisionRequested": "O comité de revisão pede uma revisão de «{title}».",
     "peerReviewAccepted": "«{title}» foi aceite e publicado na biblioteca.",
     "peerReviewRejected": "«{title}» não foi aceite pelo comité de revisão.",

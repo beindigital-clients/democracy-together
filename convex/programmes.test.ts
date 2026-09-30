@@ -910,13 +910,14 @@ describe('Appels à projets (F-60)', () => {
       applicationId: appA,
       decision: 'waitlisted',
     });
-    // The waiting list can still switch; a selection cannot.
+    // The waiting list can still switch; a selection cannot — it is put back
+    // under review first (`reopenCallApplication`, tested below).
     await expect(
       admin.as.mutation(api.projectCalls.decideCallApplication, {
         applicationId: appB,
         decision: 'rejected',
       }),
-    ).rejects.toMatchObject({ data: 'INVALID_TRANSITION' });
+    ).rejects.toMatchObject({ data: 'ALREADY_REVIEWED' });
     const notesB = await t.run((ctx) =>
       ctx.db
         .query('notifications')
@@ -971,6 +972,182 @@ describe('Appels à projets (F-60)', () => {
         ],
       }),
     ).rejects.toMatchObject({ data: 'CONFLICT_OWN' });
+  });
+
+  // Going back on a decision (issue #9): a selection or a refusal used to be
+  // final. It is now put back under review — a named transition, notified to
+  // the applicant and logged — then decided again.
+  it('revenir sur une décision : remise en étude notifiée, tracée, puis nouvelle décision', async () => {
+    const t = convexTest(schema, modules);
+    const admin = await user(t, 'moderateur', 'Moda');
+    const porteurA = await user(t, 'membre', 'Porteur A');
+    const porteurB = await user(t, 'membre', 'Porteur B');
+    const porteurC = await user(t, 'membre', 'Porteur C');
+    const porteurD = await user(t, 'membre', 'Porteur D');
+    const evalX = await user(t, 'membre', 'Eval X');
+    const callId = await publishedCall(t, admin, {
+      opensAt: Date.now() - DAY,
+      closesAt: Date.now() + DAY,
+    });
+    const draft = async (p: Awaited<ReturnType<typeof user>>, title: string) =>
+      await p.as.mutation(api.projectCalls.saveCallApplication, {
+        callId,
+        title,
+        summary: 'Un projet de recherche-action sur la participation.',
+        language: 'fr',
+      });
+    const submit = async (
+      p: Awaited<ReturnType<typeof user>>,
+      title: string,
+    ) => {
+      const id = await draft(p, title);
+      await p.as.action(api.projectCalls.attachDocument, {
+        applicationId: id,
+        docKey: 'budget',
+        storageId: await store(t, PDF),
+        fileName: 'budget.pdf',
+      });
+      await p.as.mutation(api.projectCalls.submitCallApplication, {
+        applicationId: id,
+      });
+      return id;
+    };
+    const appA = await submit(porteurA, 'Projet A');
+    const appB = await submit(porteurB, 'Projet B');
+    const appC = await submit(porteurC, 'Projet C');
+    const appD = await draft(porteurD, 'Projet D');
+    await admin.as.mutation(api.projectCalls.addEvaluator, {
+      callId,
+      email: 'eval.x@test.org',
+    });
+    const decide = (
+      applicationId: Id<'projectCallApplications'>,
+      decision: 'selected' | 'waitlisted' | 'rejected',
+      note?: string,
+    ) =>
+      admin.as.mutation(api.projectCalls.decideCallApplication, {
+        applicationId,
+        decision,
+        ...(note ? { note } : {}),
+      });
+    const reopen = (applicationId: Id<'projectCallApplications'>) =>
+      admin.as.mutation(api.projectCalls.reopenCallApplication, {
+        applicationId,
+      });
+    const titleKeys = async (userId: Id<'users'>) =>
+      (
+        await t.run((ctx) =>
+          ctx.db
+            .query('notifications')
+            .withIndex('by_user_and_read', (q) => q.eq('userId', userId))
+            .collect(),
+        )
+      ).map((n) => n.titleKey);
+
+    await decide(appA, 'selected', 'Félicitations.');
+    await decide(appB, 'rejected');
+    await decide(appC, 'waitlisted');
+
+    // Staff only, like the decision.
+    await expect(
+      porteurA.as.mutation(api.projectCalls.reopenCallApplication, {
+        applicationId: appA,
+      }),
+    ).rejects.toThrow(/Accès refusé/);
+
+    // 1. A selection put back under review: the applicant is told, the log
+    // says it, and the decision is no longer in the applicant's view.
+    await reopen(appA);
+    const reopened = await t.run((ctx) => ctx.db.get(appA));
+    expect(reopened).toMatchObject({
+      status: 'submitted',
+      reopenedFrom: 'selected',
+    });
+    expect(reopened?.reopenedAt).toBeTypeOf('number');
+    expect(await titleKeys(porteurA.id)).toEqual([
+      'projectCallSelected',
+      'projectCallReopened',
+    ]);
+    const log = await t.run((ctx) => ctx.db.query('auditLog').collect());
+    expect(log.filter((l) => l.action === 'projectCall.reopened')).toEqual([
+      expect.objectContaining({
+        actorId: admin.id,
+        targetId: appA,
+        metadata: { from: 'selected', callId },
+      }),
+    ]);
+    const [mineA] = await porteurA.as.query(
+      api.projectCalls.myCallApplications,
+      {},
+    );
+    expect(mineA).toMatchObject({
+      status: 'submitted',
+      decidedAt: null,
+      decisionNote: null,
+    });
+    // Staff keep the previous decision and its note in sight.
+    const ranking = await admin.as.query(api.projectCalls.callRanking, {
+      callId,
+    });
+    expect(ranking.find((r) => r._id === appA)).toMatchObject({
+      status: 'submitted',
+      reopenedFrom: 'selected',
+      decisionNote: 'Félicitations.',
+    });
+    expect(
+      ranking.find((r) => r._id === appC)?.reopenedFrom,
+      'jamais remis en étude',
+    ).toBeNull();
+    // Its evaluators can score it again.
+    await evalX.as.mutation(api.projectCalls.submitEvaluation, {
+      applicationId: appA,
+      conflict: false,
+      scores: [
+        { criterionKey: 'pertinence', score: 3 },
+        { criterionKey: 'faisabilite', score: 3 },
+      ],
+    });
+    // A second click replays nothing.
+    await expect(reopen(appA)).rejects.toMatchObject({
+      data: 'INVALID_TRANSITION',
+    });
+    // Decided again: the new decision replaces the previous one and its note.
+    await decide(appA, 'rejected');
+    const redecided = await t.run((ctx) => ctx.db.get(appA));
+    expect(redecided?.status).toBe('rejected');
+    expect(redecided?.decisionNote).toBeUndefined();
+
+    // 2. A refusal rescued, then selected.
+    await reopen(appB);
+    await decide(appB, 'selected');
+    expect(await titleKeys(porteurB.id)).toEqual([
+      'projectCallRejected',
+      'projectCallReopened',
+      'projectCallSelected',
+    ]);
+
+    // 3. The waiting list: reopened too, like any decision.
+    await reopen(appC);
+    expect(await t.run((ctx) => ctx.db.get(appC))).toMatchObject({
+      status: 'submitted',
+      reopenedFrom: 'waitlisted',
+    });
+
+    // 4. Nothing to reopen: a draft, and an application its author withdrew.
+    await expect(reopen(appD)).rejects.toMatchObject({
+      data: 'INVALID_TRANSITION',
+    });
+    await porteurC.as.mutation(api.projectCalls.withdrawCallApplication, {
+      applicationId: appC,
+    });
+    await expect(reopen(appC)).rejects.toMatchObject({
+      data: 'INVALID_TRANSITION',
+    });
+    // Three reopenings (A, B, C): the refused attempts wrote nothing.
+    const reopenings = (
+      await t.run((ctx) => ctx.db.query('auditLog').collect())
+    ).filter((l) => l.action === 'projectCall.reopened');
+    expect(reopenings.map((l) => l.targetId)).toEqual([appA, appB, appC]);
   });
 });
 

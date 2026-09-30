@@ -33,6 +33,7 @@ import {
   CheckGroup,
   StatusPill,
   statusTone,
+  useDateFormat,
   useProgrammeError,
 } from '@/components/programmes/shared';
 import {
@@ -268,8 +269,10 @@ function Evaluators({ call }: { call: AdminCall }) {
 
 function Ranking({ callId }: { callId: Id<'projectCalls'> }) {
   const t = useTranslations('projects');
+  const fmt = useDateFormat();
   const rows = useQuery(api.projectCalls.callRanking, { callId });
   const decide = useMutation(api.projectCalls.decideCallApplication);
+  const reopen = useMutation(api.projectCalls.reopenCallApplication);
   const notify = useActionFeedback();
   const errorMessage = useProgrammeError();
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -277,6 +280,12 @@ function Ranking({ callId }: { callId: Id<'projectCalls'> }) {
     id: Id<'projectCallApplications'>;
     title: string;
     decision: CallDecision;
+  } | null>(null);
+  // Going back on a decision (issue #9): the applicant was notified of it,
+  // and is notified of this too — hence a confirmation that names the project.
+  const [reopening, setReopening] = useState<{
+    id: Id<'projectCallApplications'>;
+    title: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
   if (rows === undefined)
@@ -322,9 +331,22 @@ function Ranking({ callId }: { callId: Id<'projectCalls'> }) {
                 ))}
               </ul>
             ) : null}
+            {/* Back under review: the previous decision, and its note,
+                stay in sight while the new one is being made. */}
+            {r.status === 'submitted' && r.reopenedFrom !== null ? (
+              <p className="mt-1 text-[13px] text-muted">
+                {t('reopenedOn', {
+                  date: fmt(r.reopenedAt ?? 0),
+                  previous: r.reopenedFrom,
+                })}
+              </p>
+            ) : null}
             {r.decisionNote ? (
               <p className="mt-1 wrap-anywhere text-[13px] text-muted">
-                {t('decisionNote')} {r.decisionNote}
+                {r.status === 'submitted'
+                  ? t('previousDecisionNote')
+                  : t('decisionNote')}{' '}
+                {r.decisionNote}
               </p>
             ) : null}
             {r.status === 'submitted' || r.status === 'waitlisted' ? (
@@ -355,6 +377,20 @@ function Ranking({ callId }: { callId: Id<'projectCalls'> }) {
                       {vocabulary(t, 'decide_', d)}
                     </Button>
                   ))}
+              </div>
+            ) : null}
+            {r.status === 'selected' ||
+            r.status === 'waitlisted' ||
+            r.status === 'rejected' ? (
+              <div className="mt-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => setReopening({ id: r._id, title: r.title })}
+                >
+                  {t('reopen')}
+                </Button>
               </div>
             ) : null}
           </li>
@@ -398,6 +434,30 @@ function Ranking({ callId }: { callId: Id<'projectCalls'> }) {
           }
         }}
         onCancel={() => setPending(null)}
+      />
+      <ConfirmDialog
+        open={reopening !== null}
+        title={
+          reopening ? t('reopenConfirmTitle', { title: reopening.title }) : ''
+        }
+        description={t('reopenConfirmBody')}
+        confirmLabel={t('reopen')}
+        cancelLabel={t('cancel')}
+        pending={busy}
+        onConfirm={async () => {
+          if (!reopening) return;
+          setBusy(true);
+          try {
+            await reopen({ applicationId: reopening.id });
+            notify(t('reopenDone', { title: reopening.title }));
+            setReopening(null);
+          } catch (err) {
+            notify(errorMessage(err), 'error');
+          } finally {
+            setBusy(false);
+          }
+        }}
+        onCancel={() => setReopening(null)}
       />
     </div>
   );
