@@ -1,5 +1,5 @@
 // @vitest-environment edge-runtime
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
@@ -180,6 +180,46 @@ describe('Espaces — notes réservées aux membres de l’espace (F-24)', () =>
     expect(detail?.notes[1].authorName).toBe('Extérieur');
     expect(detail?.isMember).toBe(true);
     expect(detail?.members).toHaveLength(2);
+  });
+});
+
+describe('Espaces — notes posted in the same millisecond (F-24)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Two members can post in the same millisecond, so `createdAt` alone does
+  // not order the thread. Ties used to come back newest first.
+  it('keeps posting order when notes share the same createdAt', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.UTC(2026, 8, 30, 10, 0, 0));
+    const t = convexTest(schema, modules);
+    const owner = await member(t, 'owner@test.org', 'Owner');
+    const other = await member(t, 'other@test.org', 'Other');
+    const id = await owner.as.mutation(api.workspaces.createWorkspace, WS);
+    await other.as.mutation(api.workspaces.joinWorkspace, { workspaceId: id });
+
+    for (const [author, body] of [
+      [owner, 'First note.'],
+      [other, 'Second note.'],
+      [owner, 'Third note.'],
+    ] as const) {
+      await author.as.mutation(api.workspaces.addNote, {
+        workspaceId: id,
+        body,
+      });
+    }
+
+    const detail = await owner.as.query(api.workspaces.getWorkspace, {
+      workspaceId: id,
+    });
+    // The frozen clock really produced a tie.
+    expect(new Set(detail?.notes.map((n) => n.createdAt)).size).toBe(1);
+    expect(detail?.notes.map((n) => n.body)).toEqual([
+      'First note.',
+      'Second note.',
+      'Third note.',
+    ]);
   });
 });
 

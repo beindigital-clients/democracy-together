@@ -753,6 +753,9 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index('by_workspace', ['workspaceId'])
+    // Thread order. Convex appends `_creationTime` to every index, so notes
+    // posted in the same millisecond keep their posting order.
+    .index('by_workspace_and_createdAt', ['workspaceId', 'createdAt'])
     .index('by_author', ['authorUserId']),
 
   // --- AI-assisted editorial moderation (auto-acceptance) -------------------
