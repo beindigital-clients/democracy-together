@@ -179,6 +179,7 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   await composerB.press('Enter');
   await expect(composerB).toHaveValue('');
   const recu = pageA
+    .getByRole('log')
     .locator('li', { hasText: 'Entrée envoie' })
     .filter({ hasNotText: 'Réponse citée' });
   await expect(recu).toBeVisible({ timeout: 20_000 });
@@ -191,7 +192,10 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   const composerA = pageA.getByLabel('Votre message');
   await composerA.fill('Réponse citée');
   await composerA.press('Enter');
-  const reponse = pageB.locator('li', { hasText: 'Réponse citée' }).last();
+  const reponse = pageB
+    .getByRole('log')
+    .locator('li', { hasText: 'Réponse citée' })
+    .last();
   await expect(reponse).toBeVisible({ timeout: 20_000 });
   await expect(reponse.getByText('En réponse à vous')).toBeVisible();
 
@@ -201,6 +205,7 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   await pageB.getByRole('menuitem', { name: '👍' }).click();
   await expect(
     pageA
+      .getByRole('log')
       .locator('li', { hasText: 'Réponse citée' })
       .last()
       .getByRole('button', { name: 'Réactions : 👍' }),
@@ -209,6 +214,7 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   // B corrects their own message; A sees the new text, marked "modifié".
   // The reply quotes this message: skip the bubble that only cites it.
   const mien = pageB
+    .getByRole('log')
     .locator('li', { hasText: 'Entrée envoie' })
     .filter({ hasNotText: 'Réponse citée' });
   await mien.hover();
@@ -218,6 +224,7 @@ test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modificati
   await composerB.fill('Entrée envoie, corrigé');
   await composerB.press('Enter');
   const corrige = pageA
+    .getByRole('log')
     .locator('li', { hasText: 'Entrée envoie, corrigé' })
     .filter({ hasNotText: 'Réponse citée' });
   await expect(corrige).toBeVisible({ timeout: 20_000 });
