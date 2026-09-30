@@ -14,7 +14,7 @@ import {
 import { locale } from './lib/locales';
 import { normalizeEmail } from './lib/onboarding';
 import { callerIpBucket, consumeRateLimit } from './lib/rateLimit';
-import { EMAIL_MAX_LENGTH, isEmail } from './lib/validation';
+import { EMAIL_MAX_LENGTH, isEmail, isReservedEmail } from './lib/validation';
 
 // WHAT AN ADDRESS WITHOUT AN ACCOUNT IS TOLD (sign-in by code, forgot
 // password).
@@ -45,17 +45,6 @@ export const NOTICE_LIMITS = {
   perIp: { max: 20, windowMs: HOUR },
   global: { max: 200, windowMs: HOUR },
 } as const;
-
-// Domains reserved by RFC 2606 and RFC 6761: no mailbox behind them. The E2E
-// and the production smoke tests use them; a notice there would only bounce
-// and hurt the sender's reputation.
-function isReservedAddress(email: string): boolean {
-  const domain = email.slice(email.lastIndexOf('@') + 1);
-  return (
-    /(^|\.)(test|example|invalid|localhost)$/.test(domain) ||
-    /(^|\.)example\.(com|net|org)$/.test(domain)
-  );
-}
 
 // What the address gets, or `null` when the code itself went out. The reads
 // are those of the two flows: `users` by exact address, as the sign-in
@@ -89,7 +78,7 @@ export const requestNotice = mutation({
     if (
       email.length > EMAIL_MAX_LENGTH ||
       !isEmail(email) ||
-      isReservedAddress(email)
+      isReservedEmail(email)
     ) {
       return null;
     }

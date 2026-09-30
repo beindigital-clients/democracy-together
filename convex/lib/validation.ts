@@ -19,6 +19,19 @@ export function isEmail(value: string): boolean {
   return v.length <= EMAIL_MAX_LENGTH && EMAIL_RE.test(v);
 }
 
+// Domains reserved by RFC 2606 and RFC 6761: no mailbox behind them. The E2E
+// and the production smoke tests use them; an e-mail there would only bounce
+// and hurt the sender's reputation. Every e-mail the platform sends on its
+// own initiative to an address typed into a public form checks this first.
+export function isReservedEmail(email: string): boolean {
+  const address = email.trim().toLowerCase();
+  const domain = address.slice(address.lastIndexOf('@') + 1);
+  return (
+    /(^|\.)(test|example|invalid|localhost)$/.test(domain) ||
+    /(^|\.)example\.(com|net|org)$/.test(domain)
+  );
+}
+
 // Bounds for FREE-TEXT fields of public forms (pentest M-2, "flooding" item:
 // "no max length on contact, storeApplication […] up to ~1 MB per
 // submission"). The values are the ones the pentest itself proposed —

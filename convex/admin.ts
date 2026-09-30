@@ -70,6 +70,12 @@ const applicationValidator = v.object({
   ),
   reviewNotes: v.union(v.string(), v.null()),
   submittedAt: v.number(),
+  // When the decision was taken, and when the approved member's sign-in
+  // invitation actually left (`null`: not yet, or its send failed). The queue
+  // shows both: an approved member whose invitation never went out cannot
+  // know they were approved, and the screen offers to send it again.
+  reviewedAt: v.union(v.number(), v.null()),
+  invitedAt: v.union(v.number(), v.null()),
   // THE ACCOUNT THAT WILL BE ELEVATED (pentest M-6). Approving an application does not grant
   // a role to `contactEmail`: it grants it to the SIGNED-IN account that submitted
   // the request, and these two addresses are independent — one is typed
@@ -146,6 +152,8 @@ export const listApplications = query({
             status: a.status,
             reviewNotes: a.reviewNotes ?? null,
             submittedAt: a.submittedAt,
+            reviewedAt: a.reviewedAt ?? null,
+            invitedAt: a.invitedAt ?? null,
             applicantEmail: applicant?.email ?? null,
             applicantRole: applicant?.role ?? null,
           };

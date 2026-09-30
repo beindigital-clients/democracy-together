@@ -12,6 +12,11 @@ import {
   passwordlessAccountEmail,
   unknownAccountEmail,
 } from './lib/accountEmails';
+import {
+  applicationDeclinedEmail,
+  applicationReceivedEmail,
+  staffApplicationAlertEmail,
+} from './lib/membershipEmails';
 import { confirmationEmail } from './lib/newsletterContent';
 import { newMessageEmail } from './lib/socialEmail';
 import {
@@ -77,6 +82,25 @@ function tous(
         siteUrl: SITE,
         locale: loc,
         organizationName: 'Institut X',
+      }),
+    },
+    {
+      nom: 'candidature:reçue',
+      ...applicationReceivedEmail({ siteUrl: SITE, locale: loc }),
+    },
+    {
+      nom: 'candidature:refusée',
+      ...applicationDeclinedEmail({ siteUrl: SITE, locale: loc }),
+    },
+    {
+      nom: 'candidature:alerte-équipe',
+      ...staffApplicationAlertEmail({
+        siteUrl: SITE,
+        locale: loc,
+        organizationName: 'Institut X',
+        type: 'organisation',
+        country: 'Sénégal',
+        pending: 3,
       }),
     },
     {
