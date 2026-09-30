@@ -11,12 +11,26 @@ export default function AdminDashboard() {
   const t = useTranslations('admin');
   const stats = useQuery(api.admin.dashboardStats);
 
+  // A counter of work WAITING opens its queue: the number is what catches
+  // the eye, it was the one thing on the screen that led nowhere.
   const cards = [
-    { key: 'statPending', value: stats?.pendingApplications, accent: true },
-    { key: 'statPubPending', value: stats?.pendingPublications, accent: true },
-    { key: 'statMembers', value: stats?.activeMembers, accent: false },
-    { key: 'statUsers', value: stats?.totalUsers, accent: false },
-    { key: 'statContacts', value: stats?.unhandledContacts, accent: false },
+    {
+      key: 'statPending',
+      value: stats?.pendingApplications,
+      href: '/admin/candidatures',
+    },
+    {
+      key: 'statPubPending',
+      value: stats?.pendingPublications,
+      href: '/admin/publications',
+    },
+    { key: 'statMembers', value: stats?.activeMembers, href: null },
+    { key: 'statUsers', value: stats?.totalUsers, href: null },
+    {
+      key: 'statContacts',
+      value: stats?.unhandledContacts,
+      href: '/admin/contact',
+    },
   ] as const;
 
   return (
@@ -27,27 +41,43 @@ export default function AdminDashboard() {
       <TwoFactorPolicyWarning />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => (
-          <div
-            key={c.key}
-            className={`rounded-md border p-5 ${
-              c.accent
-                ? 'border-accent-edge bg-accent-tint'
-                : 'border-line bg-surface'
-            }`}
-          >
-            <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-              {t(c.key)}
-            </p>
-            <p
-              className={`mt-2 font-display text-3xl ${
-                c.accent ? 'text-accent-text' : 'text-ink'
-              }`}
+        {cards.map((c) => {
+          // Highlighted only when something actually waits: an accent on an
+          // empty queue calls for an action there is no need to take.
+          const waiting = c.href !== null && (c.value ?? 0) > 0;
+          const body = (
+            <>
+              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                {t(c.key)}
+              </p>
+              <p
+                className={`mt-2 font-display text-3xl ${
+                  waiting ? 'text-accent-text' : 'text-ink'
+                }`}
+              >
+                {c.value ?? '—'}
+              </p>
+            </>
+          );
+          const frame = `rounded-md border p-5 ${
+            waiting
+              ? 'border-accent-edge bg-accent-tint'
+              : 'border-line bg-surface'
+          }`;
+          return c.href ? (
+            <Link
+              key={c.key}
+              href={c.href}
+              className={`${frame} block transition-colors hover:border-accent-edge focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-text`}
             >
-              {c.value ?? '—'}
-            </p>
-          </div>
-        ))}
+              {body}
+            </Link>
+          ) : (
+            <div key={c.key} className={frame}>
+              {body}
+            </div>
+          );
+        })}
       </div>
 
       {/* `py-1` on the links: 20 px finger target, measured on 27/09 (C-3). */}

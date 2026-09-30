@@ -64,6 +64,14 @@ function useAdminDocumentTitle(pathname: string, loading: boolean) {
 function Gate({ children }: { children: ReactNode }) {
   const me = useQuery(api.users.current);
   const pathname = usePathname();
+  // The dashboard's own counters (denormalized: a few indexed reads), shared
+  // with the dashboard page when it is open. They put the work waiting next
+  // to each queue in the menu — reactive, so a new application shows up
+  // while the moderator is on another screen.
+  const stats = useQuery(
+    api.admin.dashboardStats,
+    isStaff(me?.role) ? {} : 'skip',
+  );
   useAdminDocumentTitle(pathname, me === undefined);
   if (me === undefined) return <AuthGateLoading className="max-w-[1100px]" />;
   if (!isStaff(me?.role)) return <AccessDenied />;
@@ -86,7 +94,15 @@ function Gate({ children }: { children: ReactNode }) {
     <ActionFeedbackProvider>
       <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
         <div className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-10">
-          <AdminNav role={effectiveRole(me?.role)} pathname={pathname} />
+          <AdminNav
+            role={effectiveRole(me?.role)}
+            pathname={pathname}
+            counts={{
+              applications: stats?.pendingApplications,
+              publications: stats?.pendingPublications,
+              contactMessages: stats?.unhandledContacts,
+            }}
+          />
           <div className="mt-8 lg:mt-0">{children}</div>
         </div>
       </div>
