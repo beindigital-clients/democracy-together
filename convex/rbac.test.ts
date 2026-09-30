@@ -1,5 +1,5 @@
 // @vitest-environment edge-runtime
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
@@ -18,6 +18,26 @@ const modules = import.meta.glob([
   '!./auth.config.ts',
   '!./http.ts',
 ]);
+
+// The mutations under test schedule e-mails with `runAfter(0)` — receipt,
+// staff alert, decline, sign-in invitation — which run once the test lets go
+// of the event loop. Left alone, a send logs after its test has ended, and a
+// log landing during the file's teardown fails the whole Vitest run (see
+// convex/newsletter.test.ts). Each instance is drained before its test ends.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+afterEach(async () => {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+});
 
 describe('RBAC — hiérarchie des rôles (F-02)', () => {
   it('ordonne les rôles et traite undefined comme « visiteur » (modèle B)', () => {
@@ -49,7 +69,7 @@ describe('RBAC — hiérarchie des rôles (F-02)', () => {
 
 describe('Adhésion — candidature + validation (F-22 / F-26)', () => {
   it('crée une candidature en attente, refuse un membre, accepte un modérateur, audite', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
 
     const appId = await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
@@ -96,7 +116,7 @@ describe('Adhésion — candidature + validation (F-22 / F-26)', () => {
 
 describe('Attribution de rôle (F-63) — admin seulement', () => {
   it('refuse un éditeur, accepte un admin', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const editorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'editeur', email: 'ed@test.org' }),
     );
@@ -125,7 +145,7 @@ describe('Attribution de rôle (F-63) — admin seulement', () => {
 
 describe('RBAC — héritage des rôles & rejet anonyme (F-02)', () => {
   it('éditeur hérite de la modération ; anonyme et visiteur sont refusés', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const appId = await t.mutation(internal.organizations.storeApplication, {
       type: 'organisation',
       organizationName: 'Institut X',
@@ -170,7 +190,7 @@ describe('RBAC — héritage des rôles & rejet anonyme (F-02)', () => {
 
 describe('Adhésion — approbation accorde le rôle membre (modèle B)', () => {
   it('approuver une candidature liée à un compte le passe « membre »', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const visitorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'cand@test.org' }),
     );
@@ -196,7 +216,7 @@ describe('Adhésion — approbation accorde le rôle membre (modèle B)', () => 
   });
 
   it('rejeter n’accorde aucun rôle', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const visitorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'visiteur', email: 'cand2@test.org' }),
     );

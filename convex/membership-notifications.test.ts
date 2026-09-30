@@ -35,12 +35,29 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Every e-mail here is scheduled with `runAfter(0)` and runs once the test
+// lets go of the event loop: left alone, it logs after its test has ended,
+// and a log landing during the file's teardown fails the whole Vitest run (see
+// convex/newsletter.test.ts). Each instance is drained before its test ends —
+// before the environment is unstubbed, so that the sends still simulate.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest(): T {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+
 // Without a provider, `sendEmail` only simulates in development mode.
 beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
-afterEach(() => {
-  vi.unstubAllEnvs();
-  vi.useRealTimers();
-  vi.restoreAllMocks();
+afterEach(async () => {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  }
 });
 
 type T = TestConvex<typeof schema>;
@@ -93,7 +110,7 @@ async function notificationsOf(t: T, userId: Id<'users'>) {
 
 describe('Nouvelle candidature — l’équipe est prévenue', () => {
   it('modérateur, éditeur et admin reçoivent une notification qui mène à la file ; pas les autres', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const staff = [
       await account(t, { role: 'moderateur', email: 'mod@dt.org' }),
       await account(t, { role: 'editeur', email: 'ed@dt.org' }),
@@ -123,7 +140,7 @@ describe('Nouvelle candidature — l’équipe est prévenue', () => {
   });
 
   it('l’alerte part aussi par e-mail, une fois, dans la langue de chacun', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await account(t, {
       role: 'moderateur',
       email: 'mod@dt.org',
@@ -148,7 +165,7 @@ describe('Nouvelle candidature — l’équipe est prévenue', () => {
   });
 
   it('un compte suspendu n’est pas prévenu ; une adresse réservée n’est pas écrite', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const suspended = await account(t, {
       role: 'admin',
       email: 'ancien@dt.org',
@@ -168,7 +185,7 @@ describe('Nouvelle candidature — l’équipe est prévenue', () => {
   });
 
   it('désactivée dans le profil, l’alerte ne sonne pas et ne part pas par e-mail', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await account(t, { role: 'moderateur', email: 'mod@dt.org' });
     await mod.as.mutation(api.social.profiles.saveProfile, {
       displayName: 'Modératrice',
@@ -196,7 +213,7 @@ describe('Nouvelle candidature — l’équipe est prévenue', () => {
   });
 
   it(`au-delà de ${STAFF_ALERT_EMAIL_LIMIT.max} par heure, les e-mails s’arrêtent ; la cloche continue`, async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, { role: 'admin', email: 'admin@dt.org' });
     const total = STAFF_ALERT_EMAIL_LIMIT.max + 2;
     for (let i = 0; i < total; i++) {
@@ -212,7 +229,7 @@ describe('Nouvelle candidature — l’équipe est prévenue', () => {
   });
 
   it('une candidature refusée (doublon) ne prévient personne', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, { role: 'admin', email: 'admin@dt.org' });
     await apply(t);
     await expect(
@@ -227,7 +244,7 @@ describe('Nouvelle candidature — l’équipe est prévenue', () => {
   it('l’alerte planifiée part vers chaque membre de l’équipe, dans sa langue', async () => {
     vi.useFakeTimers();
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await account(t, {
       role: 'moderateur',
       email: 'mod@dt.org',
@@ -258,7 +275,7 @@ describe('Nouvelle candidature — l’équipe est prévenue', () => {
 
 describe('Nouvelle candidature — le candidat reçoit un accusé de réception', () => {
   it('planifié vers l’adresse normalisée, dans la langue du formulaire, sans rien de ce qu’il a saisi', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await apply(t, { locale: 'pt' });
     // Only the address and the language: the name, the country or the
     // presentation typed into a public form never reach an inbox from here.
@@ -268,7 +285,7 @@ describe('Nouvelle candidature — le candidat reçoit un accusé de réception'
   });
 
   it('une adresse réservée (tests, exemples) n’en reçoit pas', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await apply(t, { contactEmail: 'cand_1@democracytogether.test' });
     await apply(t, { contactEmail: 'someone@example.org' });
     expect(await scheduled(t, 'sendApplicationReceipt')).toEqual([]);
@@ -277,7 +294,7 @@ describe('Nouvelle candidature — le candidat reçoit un accusé de réception'
   it('l’accusé part vraiment, dans sa langue', async () => {
     vi.useFakeTimers();
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await apply(t, { locale: 'es' });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const { subject } = applicationReceivedEmail({
@@ -292,7 +309,7 @@ describe('Nouvelle candidature — le candidat reçoit un accusé de réception'
 
 describe('Décision — le candidat l’apprend par e-mail', () => {
   it('un refus écrit au candidat sans compte, dans sa langue, sans la note interne', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await account(t, { role: 'moderateur', email: 'mod@dt.org' });
     const applicationId = await apply(t, { locale: 'es' });
 
@@ -311,7 +328,7 @@ describe('Décision — le candidat l’apprend par e-mail', () => {
   it('le refus part vraiment', async () => {
     vi.useFakeTimers();
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await account(t, { role: 'moderateur', email: 'mod@dt.org' });
     const applicationId = await apply(t, { locale: 'en' });
     await mod.as.mutation(api.organizations.reviewApplication, {
@@ -329,7 +346,7 @@ describe('Décision — le candidat l’apprend par e-mail', () => {
   });
 
   it('une approbation n’envoie pas de refus, et invite l’adresse de contact', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await account(t, { role: 'moderateur', email: 'mod@dt.org' });
     const applicationId = await apply(t);
     await mod.as.mutation(api.organizations.reviewApplication, {
@@ -343,7 +360,7 @@ describe('Décision — le candidat l’apprend par e-mail', () => {
   });
 
   it('déposée en étant connecté, l’invitation va au compte élevé, pas au contact sans compte', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await account(t, { role: 'moderateur', email: 'mod@dt.org' });
     const applicant = await account(t, {
       role: 'visiteur',
@@ -386,7 +403,7 @@ describe('Renvoyer l’invitation depuis la file', () => {
   }
 
   it('renvoie l’invitation d’une candidature approuvée, et le journal le trace', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const { mod, applicationId } = await approved(t);
 
     const res = await mod.as.mutation(
@@ -417,7 +434,7 @@ describe('Renvoyer l’invitation depuis la file', () => {
   });
 
   it('refusé sur une candidature en attente ou rejetée', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mod = await account(t, { role: 'moderateur', email: 'mod@dt.org' });
     const pending = await apply(t);
     await expect(
@@ -440,7 +457,7 @@ describe('Renvoyer l’invitation depuis la file', () => {
   });
 
   it('refusé à un simple membre', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const { applicationId } = await approved(t);
     const member = await account(t, { role: 'membre', email: 'm@dt.org' });
     await expect(
@@ -452,7 +469,7 @@ describe('Renvoyer l’invitation depuis la file', () => {
   });
 
   it('refusé quand le compte est suspendu ou n’existe plus', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const { mod, applicationId } = await approved(t);
     const member = await t.run((ctx) =>
       ctx.db
@@ -477,7 +494,7 @@ describe('Renvoyer l’invitation depuis la file', () => {
   });
 
   it(`au plus ${INVITATION_RESEND_LIMIT.max} renvois par heure et par candidature`, async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const { mod, applicationId } = await approved(t);
     for (let i = 0; i < INVITATION_RESEND_LIMIT.max; i++) {
       await mod.as.mutation(api.organizations.resendMembershipInvitation, {
@@ -498,7 +515,7 @@ describe('Renvoyer l’invitation depuis la file', () => {
 describe('La file montre la date de décision et celle de l’invitation', () => {
   it('reviewedAt et invitedAt sortent de listApplications', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, { role: 'admin', email: 'admin@dt.org' });
     const applicationId = await apply(t);
     await admin.as.mutation(api.organizations.reviewApplication, {
