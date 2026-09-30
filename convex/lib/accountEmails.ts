@@ -1,5 +1,6 @@
 import type { SiteLocale } from './locales';
-import { escapeHtml, shell, subject, type Phrase } from './emailContent';
+import { escapeHtml, subject, type Phrase } from './emailContent';
+import { emailDocument, emailKit } from './emailLayout';
 
 // E-mails of the "comptes" workstream, in the five languages — same discipline
 // as lib/emailContent.ts (each sentence is a `Record<SiteLocale, string>`:
@@ -72,16 +73,30 @@ export function accountWelcomeEmail(args: {
 }): { subject: string; html: string } {
   const loc = args.locale;
   const signInUrl = `${args.siteUrl.replace(/\/+$/, '')}/${loc}/connexion-otp`;
+  const kit = emailKit(loc);
   const org = args.organizationName
-    ? `<p>${WELCOME_ORG[loc].replace('{org}', escapeHtml(args.organizationName))}</p>`
+    ? kit.paragraph(
+        WELCOME_ORG[loc].replace('{org}', escapeHtml(args.organizationName)),
+      )
     : '';
-  const body = `<p>${GREETING[loc]}</p>
-    <p>${WELCOME_INTRO[loc]}</p>
-    ${org}
-    <p>${WELCOME_HOWTO[loc]}</p>
-    <p><a href="${signInUrl}" style="display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600">${WELCOME_CTA[loc]}</a></p>
-    <p style="color:#646771;font-size:13px">${WELCOME_NOTE[loc]}</p>`;
-  return { subject: subject(WELCOME_SUBJECT, loc), html: shell(loc, body) };
+  const body =
+    kit.paragraph(GREETING[loc]) +
+    kit.paragraph(WELCOME_INTRO[loc]) +
+    org +
+    kit.paragraph(WELCOME_HOWTO[loc]) +
+    kit.button(signInUrl, WELCOME_CTA[loc]) +
+    kit.fallback(signInUrl) +
+    kit.signature() +
+    kit.note(WELCOME_NOTE[loc]);
+  return {
+    subject: subject(WELCOME_SUBJECT, loc),
+    html: emailDocument({
+      loc,
+      title: WELCOME_SUBJECT[loc],
+      preheader: WELCOME_INTRO[loc],
+      body,
+    }),
+  };
 }
 
 // --- Reconfirmation of one's own account deletion ----------------------------
@@ -115,11 +130,21 @@ export function accountDeletionCodeEmail(args: {
   locale: SiteLocale;
 }): { subject: string; html: string } {
   const loc = args.locale;
-  const body = `<p>${GREETING[loc]}</p>
-    <p>${DELETE_LEAD[loc]}</p>
-    <p dir="ltr" style="font-size:28px;font-weight:700;letter-spacing:6px;font-family:ui-monospace,monospace">${escapeHtml(args.code)}</p>
-    <p style="color:#646771;font-size:13px">${DELETE_WARNING[loc]}</p>`;
-  return { subject: subject(DELETE_SUBJECT, loc), html: shell(loc, body) };
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(GREETING[loc]) +
+    kit.paragraph(DELETE_LEAD[loc]) +
+    kit.code(args.code) +
+    kit.note(DELETE_WARNING[loc]);
+  return {
+    subject: subject(DELETE_SUBJECT, loc),
+    html: emailDocument({
+      loc,
+      title: DELETE_SUBJECT[loc],
+      preheader: DELETE_LEAD[loc],
+      body,
+    }),
+  };
 }
 
 // --- A code asked for an address that cannot receive one ---------------------
@@ -129,9 +154,6 @@ export function accountDeletionCodeEmail(args: {
 // the inbox, which only the address's owner reads: convex/accountNotices.ts.
 
 export type NoticePurpose = 'signin' | 'reset';
-
-const BUTTON =
-  'display:inline-block;background:#1f3d6e;color:#fff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600';
 
 const NOTICE_NOTE: Phrase = {
   fr: 'Si vous n’êtes pas à l’origine de cette demande, ignorez ce message : il ne donne accès à rien.',
@@ -189,12 +211,23 @@ export function unknownAccountEmail(args: {
 }): { subject: string; html: string } {
   const loc = args.locale;
   const joinUrl = `${args.siteUrl.replace(/\/+$/, '')}/${loc}/adhesion`;
-  const body = `<p>${GREETING[loc]}</p>
-    <p>${UNKNOWN_LEAD[args.purpose][loc]}</p>
-    <p>${UNKNOWN_HOWTO[loc]}</p>
-    <p><a href="${joinUrl}" style="${BUTTON}">${UNKNOWN_CTA[loc]}</a></p>
-    <p style="color:#646771;font-size:13px">${NOTICE_NOTE[loc]}</p>`;
-  return { subject: subject(UNKNOWN_SUBJECT, loc), html: shell(loc, body) };
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(GREETING[loc]) +
+    kit.paragraph(UNKNOWN_LEAD[args.purpose][loc]) +
+    kit.paragraph(UNKNOWN_HOWTO[loc]) +
+    kit.button(joinUrl, UNKNOWN_CTA[loc]) +
+    kit.signature() +
+    kit.note(NOTICE_NOTE[loc]);
+  return {
+    subject: subject(UNKNOWN_SUBJECT, loc),
+    html: emailDocument({
+      loc,
+      title: UNKNOWN_SUBJECT[loc],
+      preheader: UNKNOWN_LEAD[args.purpose][loc],
+      body,
+    }),
+  };
 }
 
 const PASSWORDLESS_SUBJECT: Phrase = {
@@ -227,13 +260,21 @@ export function passwordlessAccountEmail(args: {
 }): { subject: string; html: string } {
   const loc = args.locale;
   const signInUrl = `${args.siteUrl.replace(/\/+$/, '')}/${loc}/connexion-otp`;
-  const body = `<p>${GREETING[loc]}</p>
-    <p>${PASSWORDLESS_LEAD[loc]}</p>
-    <p>${PASSWORDLESS_HOWTO[loc]}</p>
-    <p><a href="${signInUrl}" style="${BUTTON}">${WELCOME_CTA[loc]}</a></p>
-    <p style="color:#646771;font-size:13px">${NOTICE_NOTE[loc]}</p>`;
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(GREETING[loc]) +
+    kit.paragraph(PASSWORDLESS_LEAD[loc]) +
+    kit.paragraph(PASSWORDLESS_HOWTO[loc]) +
+    kit.button(signInUrl, WELCOME_CTA[loc]) +
+    kit.signature() +
+    kit.note(NOTICE_NOTE[loc]);
   return {
     subject: subject(PASSWORDLESS_SUBJECT, loc),
-    html: shell(loc, body),
+    html: emailDocument({
+      loc,
+      title: PASSWORDLESS_SUBJECT[loc],
+      preheader: PASSWORDLESS_LEAD[loc],
+      body,
+    }),
   };
 }

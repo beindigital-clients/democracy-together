@@ -1,5 +1,6 @@
 import { escapeHtml } from './emailContent';
-import { type SiteLocale, isRtlLocale } from './locales';
+import { emailDocument, emailKit } from './emailLayout';
+import type { SiteLocale } from './locales';
 
 // "NEW MESSAGE FROM X" E-MAIL (private messaging).
 //
@@ -52,21 +53,23 @@ export function newMessageEmail(args: {
   locale: SiteLocale;
 }): { subject: string; html: string } {
   const loc = args.locale;
-  const rtl = isRtlLocale(loc);
-  const name = escapeHtml(args.senderName);
   const url = `${args.siteUrl.replace(/\/+$/, '')}/${loc}/espace-membre/messages`;
-  const html = `<div lang="${loc}" dir="${rtl ? 'rtl' : 'ltr'}" style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;color:#16191f;text-align:${rtl ? 'right' : 'left'}">
-    <h2 style="font-family:Georgia,serif;color:#1f3d6e">Democracy Together</h2>
-    <p>${LEAD[loc].replace('{name}', name)}</p>
-    <p><a href="${url}">${CTA[loc]}</a></p>
-    <hr style="border:none;border-top:1px solid #d9d6cd;margin:24px 0"/>
-    <p style="color:#646771;font-size:12px">${FOOTER[loc]}</p>
-  </div>`;
   // The subject is plain text: no HTML escaping, but no line break either
-  // (header injection).
-  const subjectName = args.senderName.replace(/[\r\n]+/g, ' ');
+  // (header injection). The heading and preheader are escaped by the layout.
+  const plainName = args.senderName.replace(/[\r\n]+/g, ' ');
+  const heading = SUBJECT[loc].replace('{name}', plainName);
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(LEAD[loc].replace('{name}', escapeHtml(args.senderName))) +
+    kit.button(url, CTA[loc]);
   return {
-    subject: `${SUBJECT[loc].replace('{name}', subjectName)} · Democracy Together`,
-    html,
+    subject: `${heading} · Democracy Together`,
+    html: emailDocument({
+      loc,
+      title: heading,
+      preheader: LEAD[loc].replace('{name}', plainName),
+      body,
+      reason: FOOTER[loc],
+    }),
   };
 }
