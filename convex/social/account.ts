@@ -91,8 +91,15 @@ export async function deleteUserDataSocial(
       )
       .take(10);
     for (const row of members) await ctx.db.delete(row._id);
+    const typing = await ctx.db
+      .query('conversationTyping')
+      .withIndex('by_conversation_and_userId', (q) =>
+        q.eq('conversationId', conversationId),
+      )
+      .take(10);
+    for (const row of typing) await ctx.db.delete(row._id);
     if (await ctx.db.get(conversationId)) await ctx.db.delete(conversationId);
-    budget -= members.length + 1;
+    budget -= members.length + typing.length + 1;
     if (budget <= 0) return { done: false };
   }
   // A full batch: some may remain, we resume on the next pass.

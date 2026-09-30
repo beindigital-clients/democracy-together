@@ -1,5 +1,9 @@
 import { v, ConvexError } from 'convex/values';
 import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from 'convex/server';
+import {
   internalAction,
   internalMutation,
   internalQuery,
@@ -23,6 +27,9 @@ import {
   REPORT_REASON_MAX,
   SOCIAL_NOTIF,
   SOCIAL_RATE_LIMITS,
+  TYPING_TTL_MS,
+  canEditMessage,
+  isMessageReaction,
   messageRefusal,
   type MessageRefusal,
 } from '../lib/social';
@@ -111,17 +118,32 @@ async function insertMessage(
     other: Doc<'conversationMembers'>;
     senderName: string;
     body: string;
+    replyToId?: Id<'directMessages'>;
   },
 ) {
   const now = Date.now();
   const { conversationId, mine, other } = args;
+  // One can only quote a message of THIS conversation that one still has.
+  if (args.replyToId !== undefined) {
+    const quoted = await ctx.db.get(args.replyToId);
+    if (
+      !quoted ||
+      quoted.conversationId !== conversationId ||
+      !inMyCopy(quoted, mine)
+    ) {
+      throw new ConvexError('NOT_FOUND');
+    }
+  }
   const messageId = await ctx.db.insert('directMessages', {
     conversationId,
     senderId: mine.userId,
     body: args.body,
     createdAt: now,
     hiddenFor: [],
+    replyToId: args.replyToId,
   });
+  // Sending ends "is typing…" at once rather than when the signal expires.
+  await clearTyping(ctx, conversationId, mine.userId);
   await ctx.db.patch(conversationId, { lastMessageAt: now });
   await ctx.db.patch(mine._id, {
     lastMessageAt: now,
@@ -249,6 +271,9 @@ export const startConversation = mutation({
         (await ctx.db.get(
           await ctx.db.insert('conversationMembers', {
             ...base,
+            // The recipient has read nothing yet: `lastReadAt` drives the
+            // sender's "Seen", so it must not start at the first message.
+            lastReadAt: 0,
             userId,
             otherUserId: viewer.userId,
           }),
@@ -268,9 +293,13 @@ export const startConversation = mutation({
 });
 
 export const sendMessage = mutation({
-  args: { conversationId: v.id('conversations'), body: v.string() },
+  args: {
+    conversationId: v.id('conversations'),
+    body: v.string(),
+    replyToId: v.optional(v.id('directMessages')),
+  },
   returns: v.id('directMessages'),
-  handler: async (ctx, { conversationId, body }) => {
+  handler: async (ctx, { conversationId, body, replyToId }) => {
     const viewer = await requireSocialMember(ctx);
     const text = cleanBody(body);
     const { mine, other } = await myMembership(
@@ -293,7 +322,165 @@ export const sendMessage = mutation({
       other,
       senderName: me.displayName,
       body: text,
+      replyToId,
     });
+  },
+});
+
+// Correction of one's own message, within MESSAGE_EDIT_WINDOW_MS. The same
+// checks as a send: a blocked conversation cannot be edited any more.
+export const editMessage = mutation({
+  args: { messageId: v.id('directMessages'), body: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { messageId, body }) => {
+    const viewer = await requireSocialMember(ctx);
+    const text = cleanBody(body);
+    const m = await ctx.db.get(messageId);
+    if (!m) throw new ConvexError('NOT_FOUND');
+    const { mine, other } = await myMembership(
+      ctx,
+      m.conversationId,
+      viewer.userId,
+    );
+    if (!mine || !other || !inMyCopy(m, mine)) {
+      throw new ConvexError('NOT_FOUND');
+    }
+    if (
+      !canEditMessage({
+        fromMe: m.senderId === viewer.userId,
+        removed: m.removed === true,
+        createdAt: m.createdAt,
+        now: Date.now(),
+      })
+    ) {
+      throw new ConvexError('NOT_EDITABLE');
+    }
+    const refusal = await writeRefusal(ctx, viewer, other.userId, other);
+    if (refusal) throw new ConvexError(refusal);
+    if (text === m.body) return null;
+    await enforceRateLimit(ctx, {
+      key: `social:msgEdit:${viewer.userId}`,
+      ...SOCIAL_RATE_LIMITS.messageEdit,
+    });
+    await ctx.db.patch(messageId, { body: text, editedAt: Date.now() });
+    return null;
+  },
+});
+
+// Reaction to a message: `emoji` replaces the viewer's previous one, `null`
+// withdraws it. No notification: a reaction is a nod, not a message.
+export const reactToMessage = mutation({
+  args: {
+    messageId: v.id('directMessages'),
+    emoji: v.union(v.string(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { messageId, emoji }) => {
+    const viewer = await requireSocialMember(ctx);
+    if (emoji !== null && !isMessageReaction(emoji)) {
+      throw new ConvexError('INVALID_REACTION');
+    }
+    const m = await ctx.db.get(messageId);
+    if (!m) throw new ConvexError('NOT_FOUND');
+    const { mine, other } = await myMembership(
+      ctx,
+      m.conversationId,
+      viewer.userId,
+    );
+    if (!mine || !other || !inMyCopy(m, mine) || m.removed) {
+      throw new ConvexError('NOT_FOUND');
+    }
+    const refusal = await writeRefusal(ctx, viewer, other.userId, other);
+    if (refusal) throw new ConvexError(refusal);
+    const others = (m.reactions ?? []).filter(
+      (r) => r.userId !== viewer.userId,
+    );
+    const current = (m.reactions ?? []).find((r) => r.userId === viewer.userId);
+    if ((current?.emoji ?? null) === emoji) return null;
+    await enforceRateLimit(ctx, {
+      key: `social:reaction:${viewer.userId}`,
+      ...SOCIAL_RATE_LIMITS.reaction,
+    });
+    await ctx.db.patch(messageId, {
+      reactions:
+        emoji === null ? others : [...others, { userId: viewer.userId, emoji }],
+    });
+    return null;
+  },
+});
+
+// --- "Is typing…" --------------------------------------------------------------
+
+async function typingRow(
+  ctx: QueryCtx,
+  conversationId: Id<'conversations'>,
+  userId: Id<'users'>,
+) {
+  return await ctx.db
+    .query('conversationTyping')
+    .withIndex('by_conversation_and_userId', (q) =>
+      q.eq('conversationId', conversationId).eq('userId', userId),
+    )
+    .unique();
+}
+
+async function clearTyping(
+  ctx: MutationCtx,
+  conversationId: Id<'conversations'>,
+  userId: Id<'users'>,
+) {
+  const row = await typingRow(ctx, conversationId, userId);
+  if (row) await ctx.db.delete(row._id);
+}
+
+export const setTyping = mutation({
+  args: { conversationId: v.id('conversations'), typing: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, { conversationId, typing }) => {
+    const viewer = await loadViewer(ctx);
+    if (!viewer) throw new Error('UNAUTHENTICATED');
+    const { mine, other } = await myMembership(
+      ctx,
+      conversationId,
+      viewer.userId,
+    );
+    if (!mine || !other) throw new ConvexError('NOT_FOUND');
+    if (!typing) {
+      await clearTyping(ctx, conversationId, viewer.userId);
+      return null;
+    }
+    // Someone who cannot write does not signal that they are writing.
+    if (await writeRefusal(ctx, viewer, other.userId, other)) return null;
+    const until = Date.now() + TYPING_TTL_MS;
+    const row = await typingRow(ctx, conversationId, viewer.userId);
+    if (row) await ctx.db.patch(row._id, { until });
+    else {
+      await ctx.db.insert('conversationTyping', {
+        conversationId,
+        userId: viewer.userId,
+        until,
+      });
+    }
+    return null;
+  },
+});
+
+// Until when the OTHER participant is shown as typing (`null`: not typing).
+// The screen compares `until` with its own clock.
+export const typingState = query({
+  args: { conversationId: v.id('conversations') },
+  returns: v.union(v.object({ until: v.number() }), v.null()),
+  handler: async (ctx, { conversationId }) => {
+    const viewer = await loadViewer(ctx);
+    if (!viewer) return null;
+    const { mine, other } = await myMembership(
+      ctx,
+      conversationId,
+      viewer.userId,
+    );
+    if (!mine || !other) return null;
+    const row = await typingRow(ctx, conversationId, other.userId);
+    return row ? { until: row.until } : null;
   },
 });
 
@@ -435,8 +622,9 @@ export const listConversations = query({
   },
 });
 
-const THREAD_MAX = 200;
-
+// The conversation's HEADER: who, what one may still do, and how far the
+// other person has read. The messages themselves are paginated
+// (`listMessages`), newest first.
 export const getConversation = query({
   args: { conversationId: v.id('conversations') },
   returns: v.union(
@@ -445,17 +633,11 @@ export const getConversation = query({
       otherUserId: v.id('users'),
       other: participantValidator,
       unreadCount: v.number(),
-      messages: v.array(
-        v.object({
-          _id: v.id('directMessages'),
-          fromMe: v.boolean(),
-          body: v.string(),
-          removed: v.boolean(),
-          createdAt: v.number(),
-        }),
-      ),
-      // The oldest ones are not served beyond THREAD_MAX.
-      truncated: v.boolean(),
+      // My messages sent up to this instant have been seen ("Seen").
+      otherLastReadAt: v.number(),
+      // Messages at or before this instant were already read when I opened
+      // the thread: the "new messages" divider goes after them.
+      myLastReadAt: v.number(),
       // Why one cannot (or can no longer) reply; `null` = one can.
       refusal: v.union(
         v.literal('SELF'),
@@ -478,33 +660,109 @@ export const getConversation = query({
     );
     // A third party — including an administrator — NEVER reads a conversation.
     if (!mine || !other) return null;
-    const rows = await ctx.db
-      .query('directMessages')
-      .withIndex('by_conversation', (q) =>
-        q.eq('conversationId', conversationId),
-      )
-      .order('desc')
-      .take(THREAD_MAX);
-    const messages = rows
-      .filter((m) => inMyCopy(m, mine))
-      .reverse()
-      .map((m) => ({
-        _id: m._id,
-        fromMe: m.senderId === viewer.userId,
-        body: m.removed ? '' : m.body,
-        removed: m.removed === true,
-        createdAt: m.createdAt,
-      }));
     return {
       conversationId,
       otherUserId: other.userId,
       other: await participant(ctx, viewer, other.userId),
       unreadCount: mine.unreadCount,
-      messages,
-      truncated: rows.length === THREAD_MAX,
+      otherLastReadAt: other.lastReadAt,
+      myLastReadAt: mine.lastReadAt,
       refusal: await writeRefusal(ctx, viewer, other.userId, other),
       blockedByMe: await isBlocked(ctx, viewer.userId, other.userId),
     };
+  },
+});
+
+const REPLY_EXCERPT_CHARS = 140;
+const MESSAGES_PAGE_MAX = 100;
+
+const messageValidator = v.object({
+  _id: v.id('directMessages'),
+  fromMe: v.boolean(),
+  body: v.string(),
+  removed: v.boolean(),
+  createdAt: v.number(),
+  editedAt: v.union(v.number(), v.null()),
+  // Quoted message, `null` when there is none or it left my copy.
+  replyTo: v.union(
+    v.object({
+      _id: v.id('directMessages'),
+      fromMe: v.boolean(),
+      excerpt: v.string(),
+      removed: v.boolean(),
+    }),
+    v.null(),
+  ),
+  // Who reacted is reduced to "me or the other person": the thread only has
+  // two participants.
+  reactions: v.array(v.object({ emoji: v.string(), mine: v.boolean() })),
+});
+
+// Messages of a conversation, NEWEST FIRST, page by page ("older messages"
+// load as the reader scrolls up). Pages can come back shorter than asked:
+// messages removed from my copy are skipped after the read.
+export const listMessages = query({
+  args: {
+    conversationId: v.id('conversations'),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(messageValidator),
+  handler: async (ctx, { conversationId, paginationOpts }) => {
+    const empty = { page: [], isDone: true, continueCursor: '' };
+    const viewer = await loadViewer(ctx);
+    if (!viewer) return empty;
+    const { mine, other } = await myMembership(
+      ctx,
+      conversationId,
+      viewer.userId,
+    );
+    // Same rule as the header: a third party reads nothing.
+    if (!mine || !other) return empty;
+    const result = await ctx.db
+      .query('directMessages')
+      .withIndex('by_conversation', (q) =>
+        q.eq('conversationId', conversationId),
+      )
+      .order('desc')
+      .paginate({
+        ...paginationOpts,
+        numItems: Math.max(
+          1,
+          Math.min(MESSAGES_PAGE_MAX, paginationOpts.numItems),
+        ),
+      });
+    const page = [];
+    for (const m of result.page) {
+      if (!inMyCopy(m, mine)) continue;
+      let replyTo = null;
+      if (m.replyToId !== undefined) {
+        const q = await ctx.db.get(m.replyToId);
+        if (q && inMyCopy(q, mine)) {
+          replyTo = {
+            _id: q._id,
+            fromMe: q.senderId === viewer.userId,
+            excerpt: q.removed ? '' : q.body.slice(0, REPLY_EXCERPT_CHARS),
+            removed: q.removed === true,
+          };
+        }
+      }
+      page.push({
+        _id: m._id,
+        fromMe: m.senderId === viewer.userId,
+        body: m.removed ? '' : m.body,
+        removed: m.removed === true,
+        createdAt: m.createdAt,
+        editedAt: m.removed ? null : (m.editedAt ?? null),
+        replyTo,
+        reactions: m.removed
+          ? []
+          : (m.reactions ?? []).map((r) => ({
+              emoji: r.emoji,
+              mine: r.userId === viewer.userId,
+            })),
+      });
+    }
+    return { ...result, page };
   },
 });
 
