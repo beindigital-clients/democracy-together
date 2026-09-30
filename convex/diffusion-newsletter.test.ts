@@ -257,6 +257,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
     vi.stubEnv('RECAPTCHA_DISABLED', 'true');
     vi.stubEnv('AUTH_DEV_OTP', 'true');
+    vi.useFakeTimers();
     const t = convexTest(schema, modules);
     await t.run((ctx) =>
       ctx.db.insert('newsletterSubscriptions', {
@@ -278,6 +279,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
       );
     }
     expect(new Set(reponses).size).toBe(1);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('sans fournisseur (production), l’inscription est REFUSÉE — pour toute adresse', async () => {
@@ -294,12 +296,15 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
   });
 
   it('la source déclarée « legacy » par un client est ramenée à « other »', async () => {
+    vi.stubEnv('AUTH_DEV_OTP', 'true');
+    vi.useFakeTimers();
     const t = convexTest(schema, modules);
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'ruse@dt.test',
       source: 'legacy',
     });
     expect((await allSubs(t))[0].consent?.source).toBe('other');
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 });
 

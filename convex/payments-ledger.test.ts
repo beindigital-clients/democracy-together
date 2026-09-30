@@ -140,6 +140,7 @@ describe('Reçus — numérotation continue', () => {
   });
 
   it('la série repart à 1 au changement d’année', async () => {
+    vi.useFakeTimers();
     const t = convexTest(schema, modules);
     const mk = async (ref: string, paidAt: number) => {
       await t.run((ctx) =>
@@ -183,6 +184,7 @@ describe('Reçus — numérotation continue', () => {
       'DT-2027-000001',
       'DT-2027-000002',
     ]);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 });
 
