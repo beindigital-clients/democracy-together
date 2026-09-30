@@ -862,10 +862,16 @@ export const getWorkspace = query({
     // remain visible — that is what is needed to decide whether to join; the
     // thread, however, can only be read once inside. An empty array rather than a
     // refusal: the page says "rejoignez l'espace pour lire les notes".
+    //
+    // The 500 most recent notes, reversed below to read oldest first. The
+    // index breaks `createdAt` ties on `_creationTime`; a JS sort on
+    // `createdAt` alone put notes posted in the same millisecond newest first.
     const notes = isMember
       ? await ctx.db
           .query('workspaceNotes')
-          .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
+          .withIndex('by_workspace_and_createdAt', (q) =>
+            q.eq('workspaceId', workspaceId),
+          )
           .order('desc')
           .take(500)
       : [];
@@ -908,14 +914,12 @@ export const getWorkspace = query({
           joinedAt: m.joinedAt,
           isSelf: m.userId === user._id,
         })),
-      notes: notes
-        .sort((a, b) => a.createdAt - b.createdAt)
-        .map((n) => ({
-          _id: n._id,
-          authorName: n.authorName,
-          body: n.body,
-          createdAt: n.createdAt,
-        })),
+      notes: notes.reverse().map((n) => ({
+        _id: n._id,
+        authorName: n.authorName,
+        body: n.body,
+        createdAt: n.createdAt,
+      })),
       invitations: invitations
         .sort((a, b) => b.createdAt - a.createdAt)
         .map((i) => ({
