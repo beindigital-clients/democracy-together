@@ -42,6 +42,12 @@ jobs:
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
 
+      # The three typechecks and the unit tests below also run BEFORE every
+      # push, in the husky pre-push hook (`pnpm verify`, scripts/verify.mjs).
+      # They run again here: a hook can be skipped (`--no-verify`, a clone
+      # where `pnpm install` never ran), and the shuffled order and the build
+      # run only here.
+      #
       # The root tsconfig EXCLUDES convex/, tests/ and *.test.*: without the next
       # two commands, 9,578 lines of backend and the whole test suite would
       # be type-checked by no script at all (audit § 6.2). `next build` compiles the

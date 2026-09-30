@@ -1,0 +1,40 @@
+# Before every `git push`: does the code WORK? `pnpm verify`
+# (scripts/verify.mjs) runs the three typechecks and the unit tests, and a red
+# result cancels the push: a commit that breaks them never reaches GitHub.
+#
+# CI (.github/workflows/ci.yml) still re-checks everything after the push, and
+# more (lint, build, shuffled order, audit). It stays the safety net: a hook
+# can be skipped (`git push --no-verify`, `HUSKY=0`), and it only exists where
+# `pnpm install` has run (the `prepare` script installs husky).
+#
+# What gets checked is the WORKING TREE, the files on disk, not the pushed
+# commits themselves. The two are the same when everything is committed and
+# HEAD is what gets pushed; the note below says when they are not.
+
+# Git passes one line per pushed ref on stdin:
+#   <local ref> <local object name> <remote ref> <remote object name>
+# A deleted ref comes with an all-zero local object name. A push that only
+# deletes, or that has nothing left to send, carries no code: nothing to
+# verify, and no reason to wait a minute.
+head=$(git rev-parse HEAD)
+pushes_code=false
+pushes_other_than_head=false
+while read -r _local_ref local_oid _remote_ref _remote_oid; do
+  case $local_oid in
+    *[!0]*) ;;
+    *) continue ;;
+  esac
+  pushes_code=true
+  [ "$local_oid" = "$head" ] || pushes_other_than_head=true
+done
+[ "$pushes_code" = true ] || exit 0
+
+if [ "$pushes_other_than_head" = true ] || [ -n "$(git status --porcelain)" ]; then
+  echo "Note : la vérification porte sur l'arbre de travail, qui diffère de ce qui est poussé (modifications non commitées, ou autre chose que HEAD)."
+fi
+
+if ! pnpm run --silent verify; then
+  echo
+  echo "Push annulé : corrigez les erreurs ci-dessus, commitez, puis poussez à nouveau."
+  exit 1
+fi
