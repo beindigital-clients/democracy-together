@@ -105,6 +105,9 @@ export const ADMIN_NAMESPACES = [
   'moderationQueue',
   'contentAdmin',
   'reports',
+  // Region and theme names of the directory entry a moderator completes
+  // when approving an organisation (`components/admin/directory-fields.tsx`).
+  'directory',
 ] as const;
 
 /**

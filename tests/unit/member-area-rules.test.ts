@@ -18,7 +18,11 @@ import {
 } from '@/lib/profile-completion';
 import { memberName } from '@/lib/member-identity';
 import { relativeTime } from '@/lib/relative-time';
-import { COUNTRY_CODES, countryOptions } from '@/lib/countries';
+import {
+  COUNTRY_CODES,
+  countryOptions,
+  guessCountryCode,
+} from '@/lib/countries';
 import {
   draftFrom,
   sameDraft,
@@ -36,66 +40,89 @@ import { notificationKind } from '@/lib/notification-kind';
 const keysOf = (items: readonly { key: string }[]) => items.map((i) => i.key);
 
 describe('Navigation de l’espace membre — ce que chaque rôle se voit proposer', () => {
-  it('un visiteur n’a ni les contributions, ni les appels, ni l’administration', () => {
-    const groups = visibleMemberNavGroups('visiteur');
-    const keys = groups.flatMap((g) => keysOf(g.items));
-    for (const hidden of [
-      'publications',
-      'tribune',
-      'manuscripts',
-      'projects',
-      'evaluations',
-      'admin',
-    ]) {
-      expect(keys).not.toContain(hidden);
-    }
-    // A group left empty disappears with its title.
-    expect(groups.map((g) => g.key)).not.toContain('contributions');
-    expect(groups.map((g) => g.key)).not.toContain('staff');
-    // What every account is offered stays.
-    expect(keys).toEqual(
-      expect.arrayContaining(['dashboard', 'profile', 'messages', 'security']),
+  const offered = (role: string | null) =>
+    visibleMemberNavGroups(role).flatMap((g) => keysOf(g.items));
+
+  // What every signed-in account is offered, whatever its role.
+  const EVERYONE = [
+    'dashboard',
+    'profile',
+    'messages',
+    'notifications',
+    'network',
+    'security',
+    'password',
+    'data',
+  ];
+
+  it('un visiteur : son compte, et les programmes ouverts avant l’adhésion', () => {
+    expect(offered('visiteur').sort()).toEqual(
+      [...EVERYONE, 'youth', 'mentoring', 'learning', 'payments'].sort(),
+    );
+    // Reserved to members: a visitor would only find a closed door.
+    const groups = visibleMemberNavGroups('visiteur').map((g) => g.key);
+    expect(groups).not.toContain('contributions');
+    expect(groups).not.toContain('staff');
+  });
+
+  it('un membre : tout ce que fait un participant du réseau, pas le back-office', () => {
+    expect(offered('membre').sort()).toEqual(
+      [
+        ...EVERYONE,
+        'people',
+        'workspaces',
+        'publications',
+        'tribune',
+        'manuscripts',
+        'projects',
+        'evaluations',
+        'youth',
+        'mentoring',
+        'learning',
+        'payments',
+        'organization',
+      ].sort(),
     );
   });
 
-  it('un membre a ses contributions, pas l’administration', () => {
-    const keys = visibleMemberNavGroups('membre').flatMap((g) =>
-      keysOf(g.items),
-    );
-    expect(keys).toEqual(
-      expect.arrayContaining(['publications', 'tribune', 'manuscripts']),
-    );
-    expect(keys).not.toContain('admin');
-  });
-
-  it('l’équipe (modérateur et au-dessus) a l’entrée du back-office', () => {
+  it('l’équipe : le back-office, le réseau et ce qu’elle publie — ni programmes, ni cotisation', () => {
     for (const role of ['moderateur', 'editeur', 'admin'] as const) {
-      const keys = visibleMemberNavGroups(role).flatMap((g) => keysOf(g.items));
-      expect(keys, role).toContain('admin');
+      expect(offered(role).sort(), role).toEqual(
+        [
+          ...EVERYONE,
+          'admin',
+          'people',
+          'workspaces',
+          'publications',
+          'tribune',
+        ].sort(),
+      );
+      const groups = visibleMemberNavGroups(role).map((g) => g.key);
+      // An administrator does not need a youth space: the programmes are
+      // run from the back office, and their group disappears.
+      expect(groups, role).not.toContain('programmes');
+      // The back office right after the everyday entries: it is where the
+      // team works.
+      expect(groups.indexOf('staff'), role).toBe(1);
     }
   });
 
-  it('un rôle absent ou inconnu vaut visiteur, jamais davantage', () => {
-    expect(visibleMemberNavGroups(null)).toEqual(
-      visibleMemberNavGroups('visiteur'),
-    );
+  it('chaque rôle a un menu, et la même entrée n’est jamais proposée deux fois', () => {
+    for (const role of ROLE_ORDER) {
+      const keys = offered(role);
+      expect(keys.length, role).toBeGreaterThan(EVERYONE.length - 1);
+      expect(new Set(keys).size, role).toBe(keys.length);
+    }
+    const hrefs = MEMBER_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href));
+    expect(new Set(hrefs).size).toBe(hrefs.length);
+  });
+
+  it('un rôle inconnu vaut visiteur ; un rôle illisible n’offre que le compte', () => {
     expect(visibleMemberNavGroups('super-admin')).toEqual(
       visibleMemberNavGroups('visiteur'),
     );
-  });
-
-  it('chaque rôle voit au moins autant d’entrées que le rôle en dessous', () => {
-    const counts = ROLE_ORDER.map(
-      (r) => visibleMemberNavGroups(r).flatMap((g) => g.items).length,
-    );
-    for (let i = 1; i < counts.length; i++) {
-      expect(counts[i]).toBeGreaterThanOrEqual(counts[i - 1]);
-    }
-  });
-
-  it('aucune entrée en double', () => {
-    const hrefs = MEMBER_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href));
-    expect(new Set(hrefs).size).toBe(hrefs.length);
+    // `null`: the column's reads failed. Only what every account has.
+    expect(offered(null).sort()).toEqual([...EVERYONE].sort());
   });
 });
 
@@ -137,9 +164,20 @@ describe('Navigation de l’espace membre — entrée courante', () => {
     expect(
       currentMemberNavItem('/espace-membre/evaluations', 'visiteur'),
     ).toBeNull();
+    expect(currentMemberNavItem('/espace-membre/jeunes', 'admin')).toBeNull();
     expect(
       currentMemberNavItem('/espace-membre/evaluations', 'membre')?.key,
     ).toBe('evaluations');
+  });
+
+  it('les écrans hors de /espace-membre allument leur entrée', () => {
+    expect(currentMemberNavItem('/membres', 'membre')?.key).toBe('people');
+    expect(currentMemberNavItem('/espaces/abc123', 'membre')?.key).toBe(
+      'workspaces',
+    );
+    expect(currentMemberNavItem('/notifications', 'visiteur')?.key).toBe(
+      'notifications',
+    );
   });
 });
 
@@ -148,6 +186,7 @@ describe('Navigation de l’espace membre — libellés dans les cinq langues', 
     dashboard: 'navDashboard',
     profile: 'navProfile',
     messages: 'navMessages',
+    notifications: 'navNotifications',
     network: 'navNetwork',
     people: 'navPeople',
     workspaces: 'navWorkspaces',
@@ -346,6 +385,28 @@ const DRAFT: ProfileDraft = {
   messageEmail: false,
 };
 
+describe('Pays écrit en texte libre (candidature d’adhésion)', () => {
+  const LOCALES = ['fr', 'en', 'es', 'pt', 'ar'] as const;
+
+  it('reconnaît un pays nommé dans l’une des langues du site, ou son code', () => {
+    expect(guessCountryCode('Sénégal', LOCALES)).toBe('SN');
+    expect(guessCountryCode('  senegal ', LOCALES)).toBe('SN');
+    expect(guessCountryCode('Senegal', ['en'])).toBe('SN');
+    expect(guessCountryCode('Côte-d’Ivoire', LOCALES)).toBe('CI');
+    expect(guessCountryCode("cote d'ivoire", LOCALES)).toBe('CI');
+    expect(guessCountryCode('Ghana', LOCALES)).toBe('GH');
+    expect(guessCountryCode('sn', LOCALES)).toBe('SN');
+  });
+
+  it('ne devine jamais : sans correspondance exacte, rien', () => {
+    expect(guessCountryCode('Afrique de l’Ouest', LOCALES)).toBeNull();
+    expect(guessCountryCode('Sénég', LOCALES)).toBeNull();
+    expect(guessCountryCode('ZZ', LOCALES)).toBeNull();
+    expect(guessCountryCode('', LOCALES)).toBeNull();
+    expect(guessCountryCode(undefined, LOCALES)).toBeNull();
+  });
+});
+
 describe('Brouillon du profil — y a-t-il quelque chose à enregistrer ?', () => {
   it('une copie est identique, et indépendante de l’original', () => {
     const copy = draftFrom(DRAFT);
@@ -408,6 +469,11 @@ describe('Notifications — une icône par nature', () => {
     'unknown',
     'unreadMark',
     'seeAll',
+    'pageLead',
+    'filterLabel',
+    'filterAll',
+    'filterUnread',
+    'emptyUnread',
   ]);
   const titles = Object.keys(fr.notifications).filter((k) => !UI_KEYS.has(k));
 

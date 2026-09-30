@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Bell,
   BookUser,
   Building2,
   ClipboardCheck,
@@ -37,6 +38,7 @@ const ICONS: Record<MemberNavKey, LucideIcon> = {
   dashboard: LayoutDashboard,
   profile: UserRound,
   messages: MessagesSquare,
+  notifications: Bell,
   network: UsersRound,
   people: BookUser,
   workspaces: FolderKanban,
@@ -65,6 +67,7 @@ export function useMemberNavLabels(): Record<MemberNavKey, string> {
     dashboard: t('navDashboard'),
     profile: t('navProfile'),
     messages: t('navMessages'),
+    notifications: t('navNotifications'),
     network: t('navNetwork'),
     people: t('navPeople'),
     workspaces: t('navWorkspaces'),
@@ -114,6 +117,7 @@ export function MemberNav({
   role,
   pathname,
   unreadMessages,
+  unreadNotifications,
   className,
   onNavigate,
 }: {
@@ -121,6 +125,7 @@ export function MemberNav({
   role: string | null | undefined;
   pathname: string;
   unreadMessages?: UnreadCount;
+  unreadNotifications?: UnreadCount;
   className?: string;
   onNavigate?: () => void;
 }) {
@@ -154,10 +159,13 @@ export function MemberNav({
               {group.items.map((item) => {
                 const Icon = ICONS[item.key];
                 const active = current?.key === item.key;
-                const unread =
-                  item.key === 'messages' && unreadMessages?.count
+                const counted =
+                  item.key === 'messages'
                     ? unreadMessages
-                    : null;
+                    : item.key === 'notifications'
+                      ? unreadNotifications
+                      : undefined;
+                const unread = counted?.count ? counted : null;
                 return (
                   <li key={item.key}>
                     <Link
@@ -188,9 +196,17 @@ export function MemberNav({
                         {unread ? (
                           <span className="sr-only">
                             {' '}
-                            {unread.capped
-                              ? t('navUnreadMany', { count: unread.count })
-                              : t('navUnread', { count: unread.count })}
+                            {item.key === 'notifications'
+                              ? unread.capped
+                                ? t('navNotificationsUnreadMany', {
+                                    count: unread.count,
+                                  })
+                                : t('navNotificationsUnread', {
+                                    count: unread.count,
+                                  })
+                              : unread.capped
+                                ? t('navUnreadMany', { count: unread.count })
+                                : t('navUnread', { count: unread.count })}
                           </span>
                         ) : null}
                       </span>

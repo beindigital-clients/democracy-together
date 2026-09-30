@@ -52,6 +52,7 @@ export function SelectMenuField({
   onValueChange,
   options,
   emptyLabel,
+  placeholder,
   dir,
   disabled,
 }: FieldShellProps & {
@@ -61,6 +62,8 @@ export function SelectMenuField({
   options: readonly ChoiceOption[];
   // Label of the "empty" choice, listed first; without it, a value is required.
   emptyLabel?: string;
+  // Shown while no value is chosen yet (a required choice with no default).
+  placeholder?: string;
   dir?: 'ltr' | 'rtl';
   disabled?: boolean;
 }) {
@@ -81,7 +84,7 @@ export function SelectMenuField({
           disabled={disabled}
         >
           <SelectMenuTrigger {...control} className={controlClassName}>
-            <SelectMenuValue />
+            <SelectMenuValue placeholder={placeholder} />
           </SelectMenuTrigger>
           <SelectMenuContent>
             {emptyLabel ? (

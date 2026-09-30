@@ -7,7 +7,7 @@ import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
-import { isMember } from '@/lib/roles';
+import { isMember, isStaff } from '@/lib/roles';
 import { memberName } from '@/lib/member-identity';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -96,7 +96,13 @@ export function HeroView({ data, now }: { data: HeroData; now: number }) {
       </div>
 
       <p className="mt-5 max-w-[62ch] text-[15px] leading-relaxed text-ink-soft">
-        {isMember(data.role) ? t('heroLeadMember') : t('heroLeadVisitor')}
+        {/* The team's space is not about membership: its work waits in
+            the block below and in the back office. */}
+        {isStaff(data.role)
+          ? t('heroLeadTeam')
+          : isMember(data.role)
+            ? t('heroLeadMember')
+            : t('heroLeadVisitor')}
       </p>
 
       <div className="mt-5 flex flex-wrap gap-2">

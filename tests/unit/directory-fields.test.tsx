@@ -34,48 +34,56 @@ function setup(overrides: Partial<Parameters<typeof DirectoryFields>[0]> = {}) {
   return { onConfirm, onApproveWithout, onCancel };
 }
 
-function fillValidForm() {
-  fireEvent.change(screen.getByLabelText('Code pays (2 lettres)'), {
-    target: { value: 'sn' },
-  });
-  fireEvent.change(screen.getByLabelText('Région'), {
-    target: { value: 'afrique-ouest' },
-  });
-  fireEvent.click(screen.getByLabelText('gouvernance'));
+// The country is picked from a searchable list, by its name.
+function pickCountry(search: string, name: string) {
+  fireEvent.click(screen.getByRole('combobox', { name: 'Pays' }));
+  fireEvent.change(
+    screen.getByRole('combobox', { name: 'Rechercher un pays' }),
+    { target: { value: search } },
+  );
+  fireEvent.click(screen.getByRole('option', { name }));
 }
+
+// The region from a list of named regions (keyboard opening, as a
+// keyboard user would).
+function pickRegion(name: string) {
+  fireEvent.keyDown(screen.getByRole('combobox', { name: 'Région' }), {
+    key: 'Enter',
+  });
+  fireEvent.click(screen.getByRole('option', { name }));
+}
+
+function fillValidForm() {
+  pickCountry('senegal', 'Sénégal');
+  pickRegion("Afrique de l'Ouest");
+  fireEvent.click(screen.getByLabelText('Gouvernance'));
+}
+
+const confirm = () =>
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Approuver et publier la fiche' }),
+  );
 
 describe("Fiche annuaire à l'approbation", () => {
   it('refuse de publier une fiche incomplète et le dit', () => {
     const { onConfirm } = setup();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Approuver et publier la fiche' }),
-    );
+    confirm();
     expect(onConfirm).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toMatch(
-      /Renseignez un code pays/,
-    );
+    expect(screen.getByRole('alert').textContent).toMatch(/Renseignez un pays/);
   });
 
   it('exige au moins une thématique', () => {
     const { onConfirm } = setup();
-    fireEvent.change(screen.getByLabelText('Code pays (2 lettres)'), {
-      target: { value: 'SN' },
-    });
-    fireEvent.change(screen.getByLabelText('Région'), {
-      target: { value: 'afrique-ouest' },
-    });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Approuver et publier la fiche' }),
-    );
+    pickCountry('SN', 'Sénégal');
+    pickRegion("Afrique de l'Ouest");
+    confirm();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it('transmet une fiche complète, code pays normalisé en majuscules', () => {
+  it('transmet une fiche complète, avec le code du pays choisi par son nom', () => {
     const { onConfirm } = setup();
     fillValidForm();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Approuver et publier la fiche' }),
-    );
+    confirm();
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm.mock.calls[0][0]).toMatchObject({
       countryCode: 'SN',
@@ -83,6 +91,39 @@ describe("Fiche annuaire à l'approbation", () => {
       themes: ['gouvernance'],
       languages: ['fr'],
     });
+  });
+
+  it('le pays écrit par le candidat est présélectionné quand il nomme un pays', () => {
+    const { onConfirm } = setup({ countryText: 'côte d’ivoire' });
+    // What the applicant wrote stays in view.
+    expect(
+      screen.getByText('La candidature indique : « côte d’ivoire ».'),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('combobox', { name: 'Pays' }).textContent,
+    ).toContain('Côte d’Ivoire');
+    pickRegion("Afrique de l'Ouest");
+    fireEvent.click(screen.getByLabelText('Gouvernance'));
+    confirm();
+    expect(onConfirm.mock.calls[0][0].countryCode).toBe('CI');
+  });
+
+  it('un texte qui ne nomme pas un pays ne présélectionne rien', () => {
+    setup({ countryText: 'Afrique' });
+    expect(
+      screen.getByRole('combobox', { name: 'Pays' }).textContent,
+    ).toContain('Choisir un pays');
+  });
+
+  it('régions et thématiques portent leur nom, pas leur identifiant', () => {
+    setup();
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Région' }), {
+      key: 'Enter',
+    });
+    const regions = screen.getAllByRole('option').map((o) => o.textContent);
+    expect(regions).toContain("Afrique de l'Ouest");
+    expect(regions).not.toContain('afrique-ouest');
+    expect(screen.getByLabelText('Élections & intégrité')).toBeTruthy();
   });
 
   it('permet d’approuver SANS publier la fiche (le compte est créé quand même)', () => {
@@ -113,11 +154,9 @@ describe("Fiche annuaire à l'approbation", () => {
   it('les thématiques se cochent et se décochent', () => {
     const { onConfirm } = setup();
     fillValidForm();
-    fireEvent.click(screen.getByLabelText('elections'));
-    fireEvent.click(screen.getByLabelText('gouvernance')); // unchecks
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Approuver et publier la fiche' }),
-    );
+    fireEvent.click(screen.getByLabelText('Élections & intégrité'));
+    fireEvent.click(screen.getByLabelText('Gouvernance')); // unchecks
+    confirm();
     expect(onConfirm.mock.calls[0][0].themes).toEqual(['elections']);
   });
 });

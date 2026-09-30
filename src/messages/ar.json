@@ -526,7 +526,12 @@
     "manuscriptResubmitted": "قُدّمت نسخة منقحة من «{title}».",
     "unknown": "إشعار جديد",
     "unreadMark": "(غير مقروء)",
-    "seeAll": "عرض كل الإشعارات"
+    "seeAll": "عرض كل الإشعارات",
+    "pageLead": "ما جرى حول منشوراتكم وشبكتكم وبرامجكم.",
+    "filterLabel": "عرض",
+    "filterAll": "الكل",
+    "filterUnread": "غير المقروءة ({count})",
+    "emptyUnread": "لا توجد إشعارات غير مقروءة."
   },
   "eventRegister": {
     "intro": "احجزوا مقعدكم في «{event}». سنرسل إليكم المعلومات العملية عبر البريد الإلكتروني.",
@@ -1169,7 +1174,7 @@
     "appNotesPlaceholder": "ملاحظة (اختيارية)",
     "appAccountElevated": "الحساب الذي ستُرفَع صلاحياته:",
     "appAccountDiffers": "مختلف عن عنوان التواصل المصرَّح به",
-    "appAccountNone": "لا حساب مرتبط: الموافقة لن ترفع صلاحيات أي حساب.",
+    "appAccountNone": "لا حساب مرتبط: تُنشئ الموافقة حساب العضو لعنوان الاتصال، أو ترفع صلاحيات الحساب الذي يستخدمه أصلًا.",
     "appInternalNotePlaceholder": "ملاحظة داخلية (اختيارية)",
     "appReceivedOn": "تاريخ الاستلام: {date}",
     "appDecidedOn": "تاريخ القرار: {date}",
@@ -1303,7 +1308,7 @@
     "revRec_reject": "رفض",
     "dirTitle": "بطاقة الدليل",
     "dirHint": "لا يجمع الترشيح سوى بلد في نص حر. أكملوا هذه الحقول لنشر البطاقة في الدليل فور الموافقة.",
-    "dirCountry": "رمز البلد (حرفان)",
+    "dirCountry": "البلد",
     "dirRegion": "المنطقة",
     "dirThemes": "المواضيع",
     "dirLanguages": "اللغات",
@@ -1313,7 +1318,7 @@
     "dirLater": "الموافقة دون نشر البطاقة",
     "dirLaterHint": "يُنشَأ الحساب ويمكن للعضو تسجيل الدخول؛ أما البطاقة فتبقى في انتظار الاستكمال قبل ظهورها في الدليل.",
     "dirCancel": "إلغاء",
-    "dirIncomplete": "أدخلوا رمز بلد ومنطقة وموضوعاً واحداً على الأقل ولغة.",
+    "dirIncomplete": "اختاروا بلدًا ومنطقة وموضوعًا واحدًا على الأقل ولغة.",
     "inviteTitle": "دعوة مستخدم",
     "inviteHint": "يفتح حساباً ويرسل دعوة لتسجيل الدخول برمز. وبدون ذلك، وخارج المصادقة على ترشيح، لا يمكن إنشاء أي حساب.",
     "inviteEmail": "عنوان البريد الإلكتروني",
@@ -1643,7 +1648,10 @@
     "feedbackErr_INVALID_PARAGRAPHS": "يضم كل فصل من فقرة واحدة إلى 40 فقرة.",
     "feedbackErr_INVALID_PARAGRAPH": "تتجاوز إحدى الفقرات 4000 حرف.",
     "feedbackErr_INVALID_KEY_FIGURES": "اثنا عشر رقمًا رئيسيًا على الأكثر.",
-    "feedbackErr_INVALID_KEY_FIGURE": "يحتاج كل رقم رئيسي إلى قيمة ووصف."
+    "feedbackErr_INVALID_KEY_FIGURE": "يحتاج كل رقم رئيسي إلى قيمة ووصف.",
+    "dirCountryPlaceholder": "اختر بلدًا",
+    "dirCountryHint": "يذكر الطلب: «{country}».",
+    "dirRegionPlaceholder": "اختر منطقة"
   },
   "news": {
     "eyebrow": "المستجدات",
@@ -1898,7 +1906,6 @@
     "eyebrow": "الشبكة",
     "title": "فضاءات العمل المشترك",
     "lead": "افتحوا فضاءً حول موضوع، وادعوا أعضاء آخرين من الشبكة، وتقدّموا معاً: وصف مشترك، ولائحة المشاركين، وسلسلة من الملاحظات.",
-    "home": "الرئيسية",
     "membersOnlyTitle": "خاص بالأعضاء",
     "membersOnlyBody": "فضاءات العمل المشترك خاصة بأعضاء الشبكة المصادق عليهم. انضموا للالتحاق بالمجتمع وللعمل المشترك.",
     "membersOnlyCta": "الانضمام إلى الشبكة",
@@ -2270,7 +2277,7 @@
     "navWorkspaces": "فضاءات العمل",
     "navPublications": "منشوراتي",
     "navTribune": "المنبر",
-    "navManuscripts": "لجنة القراءة",
+    "navManuscripts": "مخطوطاتي",
     "navYouth": "فضاء الشباب",
     "navMentoring": "الإرشاد",
     "navLearning": "المسارات والشهادات",
@@ -2370,7 +2377,11 @@
     "progProjectsDesc": "ترشّحاتكم لدعوات المشاريع.",
     "progEvaluationsDesc": "الملفات الموكل إليكم تقييمها.",
     "widgetError": "تعذّر تحميل هذا القسم. أعيدوا تحميل الصفحة للمحاولة مجدداً.",
-    "completionDoneCount": "{done, plural, zero {لم تكتمل أي خطوة من {total}} one {اكتملت خطوة واحدة من {total}} two {اكتملت خطوتان من {total}} few {اكتملت # خطوات من {total}} many {اكتملت # خطوة من {total}} other {اكتملت # خطوة من {total}}}"
+    "completionDoneCount": "{done, plural, zero {لم تكتمل أي خطوة من {total}} one {اكتملت خطوة واحدة من {total}} two {اكتملت خطوتان من {total}} few {اكتملت # خطوات من {total}} many {اكتملت # خطوة من {total}} other {اكتملت # خطوة من {total}}}",
+    "navNotifications": "الإشعارات",
+    "navNotificationsUnread": "{count, plural, zero {(لا إشعارات غير مقروءة)} one {(إشعار واحد غير مقروء)} two {(إشعاران غير مقروءين)} few {(# إشعارات غير مقروءة)} many {(# إشعارًا غير مقروء)} other {(# إشعار غير مقروء)}}",
+    "navNotificationsUnreadMany": "(أكثر من {count} إشعارات غير مقروءة)",
+    "heroLeadTeam": "تجدون هنا مبادلاتكم مع الشبكة، وما ينتظر قرارًا من الفريق، وحسابكم."
   },
   "people": {
     "title": "دليل الأشخاص",

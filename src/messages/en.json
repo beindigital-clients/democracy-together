@@ -526,7 +526,12 @@
     "manuscriptResubmitted": "Revision submitted for “{title}”.",
     "unknown": "New notification",
     "unreadMark": "(unread)",
-    "seeAll": "See all notifications"
+    "seeAll": "See all notifications",
+    "pageLead": "What happened around your publications, your network and your programmes.",
+    "filterLabel": "Show",
+    "filterAll": "All",
+    "filterUnread": "Unread ({count})",
+    "emptyUnread": "No unread notifications."
   },
   "eventRegister": {
     "intro": "Reserve your spot for “{event}”. We'll email you the practical details.",
@@ -1169,7 +1174,7 @@
     "appNotesPlaceholder": "Note (optional)",
     "appAccountElevated": "Account that will be elevated:",
     "appAccountDiffers": "differs from the declared contact address",
-    "appAccountNone": "No linked account: approving will not elevate any account.",
+    "appAccountNone": "No linked account: approving creates the member account of the contact address, or elevates the account that already uses it.",
     "appInternalNotePlaceholder": "Internal note (optional)",
     "appReceivedOn": "Received on {date}",
     "appDecidedOn": "Decided on {date}",
@@ -1303,7 +1308,7 @@
     "revRec_reject": "Reject",
     "dirTitle": "Directory entry",
     "dirHint": "The application only collects a free-text country. Fill these fields to publish the entry in the directory on approval.",
-    "dirCountry": "Country code (2 letters)",
+    "dirCountry": "Country",
     "dirRegion": "Region",
     "dirThemes": "Themes",
     "dirLanguages": "Languages",
@@ -1313,7 +1318,7 @@
     "dirLater": "Approve without publishing the entry",
     "dirLaterHint": "The account is created and the member can sign in; the entry still needs completing before it appears in the directory.",
     "dirCancel": "Cancel",
-    "dirIncomplete": "Provide a country code, a region, at least one theme and one language.",
+    "dirIncomplete": "Provide a country, a region, at least one theme and one language.",
     "inviteTitle": "Invite a user",
     "inviteHint": "Opens an account and sends an invitation to sign in with a code. Without this, no account can be created outside approving an application.",
     "inviteEmail": "Email address",
@@ -1643,7 +1648,10 @@
     "feedbackErr_INVALID_PARAGRAPHS": "Each chapter has 1 to 40 paragraphs.",
     "feedbackErr_INVALID_PARAGRAPH": "A paragraph exceeds 4,000 characters.",
     "feedbackErr_INVALID_KEY_FIGURES": "Twelve key figures at most.",
-    "feedbackErr_INVALID_KEY_FIGURE": "Each key figure needs a value and a label."
+    "feedbackErr_INVALID_KEY_FIGURE": "Each key figure needs a value and a label.",
+    "dirCountryPlaceholder": "Choose a country",
+    "dirCountryHint": "The application says: “{country}”.",
+    "dirRegionPlaceholder": "Choose a region"
   },
   "news": {
     "eyebrow": "News",
@@ -1898,7 +1906,6 @@
     "eyebrow": "Network",
     "title": "Collaborative workspaces",
     "lead": "Open a workspace around a theme, invite other network members and move forward together: a shared description, the list of participants and a notes thread.",
-    "home": "Home",
     "membersOnlyTitle": "Members only",
     "membersOnlyBody": "Collaborative workspaces are reserved for approved network members. Join the network to take part and collaborate.",
     "membersOnlyCta": "Join the network",
@@ -2270,7 +2277,7 @@
     "navWorkspaces": "Workspaces",
     "navPublications": "My publications",
     "navTribune": "Tribune",
-    "navManuscripts": "Review committee",
+    "navManuscripts": "My manuscripts",
     "navYouth": "Youth space",
     "navMentoring": "Mentoring",
     "navLearning": "Learning paths and certificates",
@@ -2370,7 +2377,11 @@
     "progProjectsDesc": "Your applications to calls for projects.",
     "progEvaluationsDesc": "The applications you have been asked to evaluate.",
     "widgetError": "This block could not be loaded. Reload the page to try again.",
-    "completionDoneCount": "{done, plural, one {# of {total} steps done} other {# of {total} steps done}}"
+    "completionDoneCount": "{done, plural, one {# of {total} steps done} other {# of {total} steps done}}",
+    "navNotifications": "Notifications",
+    "navNotificationsUnread": "{count, plural, one {(# unread notification)} other {(# unread notifications)}}",
+    "navNotificationsUnreadMany": "(more than {count} unread notifications)",
+    "heroLeadTeam": "Your conversations with the network, what awaits a decision from the team, and your account, in one place."
   },
   "people": {
     "title": "People directory",

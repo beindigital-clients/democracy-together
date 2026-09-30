@@ -115,6 +115,21 @@ describe('Navigation latérale', () => {
     expect(link.textContent).not.toMatch(/Messages, /);
   });
 
+  it('les notifications non lues : pastille ET phrase lue, comme les messages', () => {
+    mount(
+      <MemberNav
+        role="visiteur"
+        pathname="/notifications"
+        unreadNotifications={{ count: 3, capped: false }}
+      />,
+    );
+    const link = screen.getByRole('link', {
+      name: 'Notifications (3 notifications non lues)',
+    });
+    expect(link.getAttribute('href')).toBe('/fr/notifications');
+    expect(link.getAttribute('aria-current')).toBe('page');
+  });
+
   it('au-delà du plafond, « plus de 9 »', () => {
     mount(
       <MemberNav
@@ -583,6 +598,14 @@ describe('Programmes (bloc)', () => {
         .getByRole('link', { name: /Appels à projets/ })
         .getAttribute('href'),
     ).toBe('/fr/espace-membre/projets');
+  });
+
+  it('l’équipe n’a pas de bloc programmes : elle les pilote depuis le back-office', () => {
+    for (const role of ['moderateur', 'editeur', 'admin']) {
+      const { container } = mount(<ProgrammesGrid role={role} />);
+      expect(container.textContent, role).toBe('');
+      cleanup();
+    }
   });
 });
 

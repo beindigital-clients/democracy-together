@@ -131,12 +131,17 @@ function AccountMenuContent() {
       icon: ShieldCheck,
       label: t('accountSecurity'),
     },
-    {
-      key: 'payments',
-      href: '/espace-membre/cotisations',
-      icon: CreditCard,
-      label: t('accountPayments'),
-    },
+    // Dues and donations: not the team's business (`member-nav.ts`).
+    ...(isStaff(role)
+      ? []
+      : [
+          {
+            key: 'payments',
+            href: '/espace-membre/cotisations',
+            icon: CreditCard,
+            label: t('accountPayments'),
+          },
+        ]),
     ...(isStaff(role)
       ? [
           {

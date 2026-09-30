@@ -526,7 +526,12 @@
     "manuscriptResubmitted": "Revisión enviada para «{title}».",
     "unknown": "Nueva notificación",
     "unreadMark": "(sin leer)",
-    "seeAll": "Ver todas las notificaciones"
+    "seeAll": "Ver todas las notificaciones",
+    "pageLead": "Lo que ha pasado en torno a sus publicaciones, su red y sus programas.",
+    "filterLabel": "Mostrar",
+    "filterAll": "Todas",
+    "filterUnread": "Sin leer ({count})",
+    "emptyUnread": "No hay notificaciones sin leer."
   },
   "eventRegister": {
     "intro": "Reserve su plaza para «{event}». Le enviaremos la información práctica por correo electrónico.",
@@ -1169,7 +1174,7 @@
     "appNotesPlaceholder": "Nota (opcional)",
     "appAccountElevated": "Cuenta que se elevará:",
     "appAccountDiffers": "distinta de la dirección de contacto declarada",
-    "appAccountNone": "Ninguna cuenta vinculada: la aprobación no elevará ninguna cuenta.",
+    "appAccountNone": "Ninguna cuenta vinculada: la aprobación crea la cuenta de miembro de la dirección de contacto, o eleva la que ya la usa.",
     "appInternalNotePlaceholder": "Nota interna (opcional)",
     "appReceivedOn": "Recibida el {date}",
     "appDecidedOn": "Decidida el {date}",
@@ -1303,7 +1308,7 @@
     "revRec_reject": "Rechazar",
     "dirTitle": "Ficha de directorio",
     "dirHint": "La candidatura solo recoge un país en texto libre. Complete estos campos para publicar la ficha en el directorio en cuanto se apruebe.",
-    "dirCountry": "Código de país (2 letras)",
+    "dirCountry": "País",
     "dirRegion": "Región",
     "dirThemes": "Temáticas",
     "dirLanguages": "Idiomas",
@@ -1313,7 +1318,7 @@
     "dirLater": "Aprobar sin publicar la ficha",
     "dirLaterHint": "La cuenta se crea y el miembro puede conectarse; la ficha queda pendiente de completar antes de aparecer en el directorio.",
     "dirCancel": "Cancelar",
-    "dirIncomplete": "Indique un código de país, una región, al menos una temática y un idioma.",
+    "dirIncomplete": "Indique un país, una región, al menos una temática y un idioma.",
     "inviteTitle": "Invitar a un usuario",
     "inviteHint": "Abre una cuenta y envía una invitación para conectarse mediante código. Sin esto, y fuera de la validación de una candidatura, no puede crearse ninguna cuenta.",
     "inviteEmail": "Dirección de correo electrónico",
@@ -1643,7 +1648,10 @@
     "feedbackErr_INVALID_PARAGRAPHS": "Cada capítulo tiene de 1 a 40 párrafos.",
     "feedbackErr_INVALID_PARAGRAPH": "Un párrafo supera los 4000 caracteres.",
     "feedbackErr_INVALID_KEY_FIGURES": "Doce cifras clave como máximo.",
-    "feedbackErr_INVALID_KEY_FIGURE": "Cada cifra clave necesita un valor y una etiqueta."
+    "feedbackErr_INVALID_KEY_FIGURE": "Cada cifra clave necesita un valor y una etiqueta.",
+    "dirCountryPlaceholder": "Elegir un país",
+    "dirCountryHint": "La candidatura indica: «{country}».",
+    "dirRegionPlaceholder": "Elegir una región"
   },
   "news": {
     "eyebrow": "Actualidad",
@@ -1898,7 +1906,6 @@
     "eyebrow": "Red",
     "title": "Espacios de trabajo colaborativos",
     "lead": "Abra un espacio en torno a un tema, invite a otros miembros de la red y avancen juntos: descripción compartida, lista de participantes e hilo de notas.",
-    "home": "Inicio",
     "membersOnlyTitle": "Reservado a los miembros",
     "membersOnlyBody": "Los espacios de trabajo colaborativos están reservados a los miembros validados de la red. Adhiérase para unirse a la comunidad y colaborar.",
     "membersOnlyCta": "Adherirse a la red",
@@ -2270,7 +2277,7 @@
     "navWorkspaces": "Espacios de trabajo",
     "navPublications": "Mis publicaciones",
     "navTribune": "Tribuna",
-    "navManuscripts": "Comité de lectura",
+    "navManuscripts": "Mis manuscritos",
     "navYouth": "Espacio Jóvenes",
     "navMentoring": "Mentoría",
     "navLearning": "Itinerarios y certificados",
@@ -2370,7 +2377,11 @@
     "progProjectsDesc": "Sus candidaturas a las convocatorias de proyectos.",
     "progEvaluationsDesc": "Los expedientes cuya evaluación se le ha confiado.",
     "widgetError": "No se ha podido cargar este bloque. Recargue la página para volver a intentarlo.",
-    "completionDoneCount": "{done, plural, one {# paso de {total} completado} other {# pasos de {total} completados}}"
+    "completionDoneCount": "{done, plural, one {# paso de {total} completado} other {# pasos de {total} completados}}",
+    "navNotifications": "Notificaciones",
+    "navNotificationsUnread": "{count, plural, one {(# notificación sin leer)} other {(# notificaciones sin leer)}}",
+    "navNotificationsUnreadMany": "(más de {count} notificaciones sin leer)",
+    "heroLeadTeam": "Aquí encontrará sus intercambios con la red, lo que espera una decisión del equipo y su cuenta."
   },
   "people": {
     "title": "Directorio de personas",

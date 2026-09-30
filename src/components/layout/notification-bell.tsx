@@ -2,32 +2,18 @@
 
 import { useState } from 'react';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import {
-  BadgeCheck,
-  Bell,
-  Building2,
-  CreditCard,
-  FileText,
-  FolderKanban,
-  GraduationCap,
-  Megaphone,
-  MessageSquare,
-  NotebookPen,
-  UserPlus,
-  type LucideIcon,
-} from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Bell } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
-import { relativeTime } from '@/lib/relative-time';
-import {
-  notificationKind,
-  type NotificationKind,
-} from '@/lib/notification-kind';
 import { cn } from '@/lib/utils';
 import { useNow } from '@/hooks/use-now';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  NotificationRow,
+  useOpenNotification,
+  type Notif,
+} from '@/components/notifications/notification-row';
 import {
   Popover,
   PopoverContent,
@@ -52,30 +38,6 @@ const PREVIEW = 6;
 const ICON =
   'relative inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink';
 
-// One icon per kind of notification: the list is scanned by its icons first.
-const KIND_ICON: Record<NotificationKind, LucideIcon> = {
-  follow: UserPlus,
-  message: MessageSquare,
-  publication: FileText,
-  review: NotebookPen,
-  tribune: Megaphone,
-  membership: BadgeCheck,
-  payment: CreditCard,
-  workspace: FolderKanban,
-  organization: Building2,
-  programme: GraduationCap,
-  other: Bell,
-};
-
-type Notif = {
-  _id: Id<'notifications'>;
-  titleKey: string;
-  params: Record<string, string>;
-  link: string | null;
-  read: boolean;
-  createdAt: number;
-};
-
 function Badge({ n, capped }: { n: number; capped: boolean }) {
   if (n <= 0) return null;
   return (
@@ -88,32 +50,12 @@ function Badge({ n, capped }: { n: number; capped: boolean }) {
 // The latest notifications, in a panel under the bell.
 function NotificationsPanel({ onDone }: { onDone: () => void }) {
   const t = useTranslations('notifications');
-  // The titles come from the database (`titleKey`): known keys only, the
-  // others fall back to a neutral label rather than a raw key.
-  const tt = t as unknown as (
-    key: string,
-    values?: Record<string, string>,
-  ) => string;
-  const locale = useLocale();
-  const router = useRouter();
   const now = useNow();
   const items = useQuery(api.notifications.myNotifications) as
     Notif[] | undefined;
-  const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
+  const open = useOpenNotification(onDone);
   const hasUnread = Boolean(items?.some((n) => !n.read));
-
-  async function open(n: Notif) {
-    if (!n.read) {
-      try {
-        await markRead({ notificationId: n._id });
-      } catch {
-        /* reading state is secondary: navigation goes on */
-      }
-    }
-    onDone();
-    if (n.link) router.push(n.link);
-  }
 
   return (
     <>
@@ -142,60 +84,11 @@ function NotificationsPanel({ onDone }: { onDone: () => void }) {
         </p>
       ) : (
         <ul className="max-h-[min(24rem,60dvh)] overflow-y-auto p-1.5">
-          {items.slice(0, PREVIEW).map((n) => {
-            const Icon = KIND_ICON[notificationKind(n.titleKey)];
-            return (
-              <li key={n._id}>
-                <button
-                  type="button"
-                  onClick={() => void open(n)}
-                  className={cn(
-                    'flex w-full items-start gap-3 rounded-sm px-2.5 py-2.5 text-start transition-colors hover:bg-surface-2',
-                    !n.read && 'bg-accent-tint/60',
-                  )}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'grid h-9 w-9 shrink-0 place-items-center rounded-full',
-                      n.read
-                        ? 'bg-surface-2 text-muted'
-                        : 'bg-accent-tint text-accent-text',
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        'block wrap-anywhere text-sm leading-snug',
-                        n.read ? 'text-ink-soft' : 'font-medium text-ink',
-                      )}
-                    >
-                      {t.has(n.titleKey)
-                        ? tt(n.titleKey, n.params)
-                        : t('unknown')}
-                      {n.read ? null : (
-                        <span className="sr-only"> {t('unreadMark')}</span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block font-mono text-[11px] text-muted">
-                      {relativeTime(n.createdAt, now, locale)}
-                    </span>
-                  </span>
-                  {/* Unread: a dot at the end of the line, as well as the
-                      weight and the tint (RGAA 3.1 — not colour alone). */}
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'mt-3 h-2 w-2 shrink-0 rounded-full',
-                      n.read ? 'bg-transparent' : 'bg-accent',
-                    )}
-                  />
-                </button>
-              </li>
-            );
-          })}
+          {items.slice(0, PREVIEW).map((n) => (
+            <li key={n._id}>
+              <NotificationRow n={n} now={now} onOpen={(x) => void open(x)} />
+            </li>
+          ))}
         </ul>
       )}
       <div className="border-t border-line p-1.5">

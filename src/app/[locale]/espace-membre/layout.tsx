@@ -1,19 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import {
-  getMessages,
-  getTimeZone,
-  getTranslations,
-  setRequestLocale,
-} from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { SITE_NAME } from '@/lib/seo';
-import { MemberShell } from '@/components/member/member-shell';
-import { IntlClientProvider } from '@/components/providers/intl-client-provider';
-import {
-  BASE_CLIENT_NAMESPACES,
-  MEMBER_NAMESPACES,
-  pickNamespaces,
-} from '@/i18n/client-namespaces';
+import { MemberArea } from '@/components/member/member-area';
 
 // Page title for the member area (RGAA 8.6).
 //
@@ -47,14 +36,10 @@ export async function generateMetadata({
   };
 }
 
-// Every member screen renders inside the shared shell (side navigation,
-// identity, mobile menu). The layout persists across navigations between
-// member screens: the column is not re-read nor redrawn from one to the next.
-//
-// The shell's labels (`member` namespace) are added to the browser catalogue
-// HERE, for the member area only — the same arrangement as the back office
-// (`admin/layout.tsx`): a nested provider REPLACES its descendants'
-// catalogue, so it carries the base plus `member`.
+// Every member screen renders inside the shared frame (side navigation,
+// identity, mobile menu: `member-area.tsx`). The layout persists across
+// navigations between member screens: the column is not re-read nor redrawn
+// from one to the next.
 export default async function EspaceMembreLayout({
   children,
   params,
@@ -64,15 +49,5 @@ export default async function EspaceMembreLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const messages = pickNamespaces(await getMessages(), [
-    ...BASE_CLIENT_NAMESPACES,
-    ...MEMBER_NAMESPACES,
-  ]);
-  const timeZone = await getTimeZone();
-
-  return (
-    <IntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
-      <MemberShell>{children}</MemberShell>
-    </IntlClientProvider>
-  );
+  return <MemberArea locale={locale}>{children}</MemberArea>;
 }

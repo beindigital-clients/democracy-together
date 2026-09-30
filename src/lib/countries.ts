@@ -71,3 +71,49 @@ export function countryOptions(
     .map((code) => ({ code, name: displayName(names, code) }))
     .sort((a, b) => collator.compare(a.name, b.name));
 }
+
+// Accents, case, apostrophes and dashes do not count: "Cote d'Ivoire",
+// "côte d’ivoire" and "Côte-d’Ivoire" are the same country.
+function foldName(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[’'`´-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * The code of a country written in free text, as the membership form
+ * collects it ("Sénégal", "senegal", "Senegal", "SN"), looked up in each of
+ * `locales` (the site's languages: an application can be written in any of
+ * them). `null` when nothing matches exactly: a guess must never pick the
+ * wrong country, the moderator chooses then.
+ */
+export function guessCountryCode(
+  text: string | null | undefined,
+  locales: readonly string[],
+): string | null {
+  const needle = foldName(text ?? '');
+  if (!needle) return null;
+  const upper = needle.toUpperCase();
+  if (
+    /^[A-Z]{2}$/.test(upper) &&
+    (COUNTRY_CODES as readonly string[]).includes(upper)
+  ) {
+    return upper;
+  }
+  for (const locale of locales) {
+    let names: Intl.DisplayNames;
+    try {
+      names = new Intl.DisplayNames([locale], { type: 'region' });
+    } catch {
+      continue;
+    }
+    for (const code of COUNTRY_CODES) {
+      if (foldName(displayName(names, code)) === needle) return code;
+    }
+  }
+  return null;
+}

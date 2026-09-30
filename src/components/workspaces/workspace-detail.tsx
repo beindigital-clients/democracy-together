@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
-import { Reveal } from '@/components/motion/reveal';
 import { Button } from '@/components/ui/button';
 import { TextareaField } from '@/components/ui/field';
 import { isMember } from '@/lib/roles';
@@ -114,7 +113,7 @@ export function WorkspaceDetail({
   // same message as on the list.
   if (me !== undefined && !isMember(me?.role)) {
     return (
-      <div className="mx-auto max-w-[760px] px-4 py-16 sm:px-6">
+      <div className="max-w-3xl">
         <section
           id="workspaces-members-only"
           className="rounded-md border border-accent-edge bg-accent-tint p-6"
@@ -134,20 +133,16 @@ export function WorkspaceDetail({
   }
 
   if (data === undefined || me === undefined) {
-    return (
-      <div className="mx-auto max-w-[760px] px-4 py-16 text-ink-soft sm:px-6">
-        {t('loading')}
-      </div>
-    );
+    return <div className="max-w-3xl text-ink-soft">{t('loading')}</div>;
   }
 
   if (data === null) {
     return (
-      <div className="mx-auto max-w-[760px] px-4 py-16 sm:px-6">
+      <div className="max-w-3xl">
         <p className="text-ink-soft">{t('notFound')}</p>
         <Link
           href="/espaces"
-          className="mt-4 inline-block text-sm font-medium text-accent-text hover:underline"
+          className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent-text hover:underline"
         >
           <ArrowBack /> {t('back')}
         </Link>
@@ -184,18 +179,16 @@ export function WorkspaceDetail({
     data.myRole === 'animateur' || data.myRole === 'contributeur';
 
   return (
-    <article className="mx-auto max-w-[820px] px-4 py-12 sm:px-6 md:py-16">
-      <Reveal>
-        <p className="text-[13px] text-muted">
-          <Link href="/" className="text-muted hover:text-ink">
-            {t('home')}
-          </Link>{' '}
-          /{' '}
-          <Link href="/espaces" className="text-muted hover:text-ink">
-            {t('title')}
-          </Link>
-        </p>
-      </Reveal>
+    // Inside the member area's frame: its navigation says where one is, so
+    // the breadcrumb gave way to the way back to the list, as on the other
+    // detail screens of the area.
+    <article className="max-w-3xl">
+      <Link
+        href="/espaces"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent-text hover:underline"
+      >
+        <ArrowBack /> {t('title')}
+      </Link>
 
       <header className="mt-4 border-b border-line pb-6">
         <div className="flex flex-wrap items-center gap-2 text-[12px]">

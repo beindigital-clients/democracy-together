@@ -85,7 +85,7 @@ test('rejeter une candidature : confirmation nommant l’organisation, Échap an
   // 1. The dialog NAMES the targeted application.
   await row.getByRole('button', { name: 'Rejeter', exact: true }).click();
   const dialog = page.getByRole('dialog', {
-    name: `Rejeter la candidature de ${appOrg} ?`,
+    name: `Rejeter la candidature « ${appOrg} » ?`,
   });
   await expect(dialog).toBeVisible();
 
@@ -103,7 +103,7 @@ test('rejeter une candidature : confirmation nommant l’organisation, Échap an
     .getByRole('button', { name: 'Rejeter la candidature' })
     .click();
   await expect(page.getByRole('status')).toContainText(
-    `Candidature de ${appOrg} rejetée.`,
+    `Candidature « ${appOrg} » rejetée.`,
   );
   await expect(row).toHaveCount(0);
 

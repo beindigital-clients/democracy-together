@@ -11,12 +11,13 @@ import { isMember, isStaff } from '@/lib/roles';
 //
 // Kept PURE (no hook, no translation) on purpose, like `admin-nav.tsx`: what
 // decides which entry a role sees, and which entry is current, is testable
-// without a browser (tests/unit/member-nav.test.ts).
+// without a browser (tests/unit/member-area-rules.test.ts).
 
 export type MemberNavKey =
   | 'dashboard'
   | 'profile'
   | 'messages'
+  | 'notifications'
   | 'network'
   | 'people'
   | 'workspaces'
@@ -35,18 +36,34 @@ export type MemberNavKey =
   | 'data'
   | 'admin';
 
-// Who is offered an entry. The server stays the authority (each screen's
-// Convex functions check the role); the navigation only avoids offering a
-// door that would open on a refusal.
-//  - `all`    any signed-in account, visitors included;
-//  - `member` approved members and above (submission, calls, reviews);
-//  - `staff`  moderators and above (the back office).
-export type MemberNavAccess = 'all' | 'member' | 'staff';
+// WHO AN ENTRY IS FOR, by role. The server stays the authority (each
+// screen's Convex functions check the role); the navigation offers each
+// person what their role is for, and nothing that would open on a refusal
+// or on a space meant for someone else.
+//
+//  - `everyone`      every signed-in account: the account itself, messages,
+//                    notifications, the person's own network;
+//  - `members`       approved members AND the team (`membre` and above):
+//                    the people directory, the workspaces, what one
+//                    publishes — the team belongs to the network and
+//                    writes in it too;
+//  - `network`       approved members, NOT the team: what a member does as a
+//                    participant of the network — calls for projects,
+//                    evaluations, the reading committee, the organisation,
+//                    the dues. The team runs these from the back office;
+//  - `participants`  visitors and members, NOT the team: the programmes open
+//                    before membership (youth space, mentoring, learning
+//                    paths) and payments (a visitor is offered membership
+//                    and donations there). An administrator does not need a
+//                    youth space;
+//  - `team`          moderators and above: the back office.
+export type MemberNavAudience =
+  'everyone' | 'members' | 'network' | 'participants' | 'team';
 
 export type MemberNavItem = {
   key: MemberNavKey;
   href: string;
-  access: MemberNavAccess;
+  audience: MemberNavAudience;
 };
 
 export type MemberNavGroupKey =
@@ -59,24 +76,39 @@ export type MemberNavGroup = {
 
 export const MEMBER_HOME = '/espace-membre';
 
+// Order of the groups: where one comes every day first (dashboard,
+// profile, messages, notifications), then — for the team — the back office,
+// their place of work, before the network, what one publishes, the
+// programmes and the account.
 export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
   {
     key: 'main',
     items: [
-      { key: 'dashboard', href: MEMBER_HOME, access: 'all' },
-      { key: 'profile', href: '/espace-membre/profil', access: 'all' },
-      { key: 'messages', href: '/espace-membre/messages', access: 'all' },
+      { key: 'dashboard', href: MEMBER_HOME, audience: 'everyone' },
+      { key: 'profile', href: '/espace-membre/profil', audience: 'everyone' },
+      {
+        key: 'messages',
+        href: '/espace-membre/messages',
+        audience: 'everyone',
+      },
+      // Outside `/espace-membre` (the bell links there), rendered inside the
+      // same frame (`notifications/layout.tsx`).
+      { key: 'notifications', href: '/notifications', audience: 'everyone' },
     ],
+  },
+  {
+    key: 'staff',
+    items: [{ key: 'admin', href: '/admin', audience: 'team' }],
   },
   {
     key: 'network',
     items: [
-      { key: 'network', href: '/espace-membre/reseau', access: 'all' },
-      // Outside `/espace-membre`, and listed anyway: the people directory
-      // and the workspaces are part of what a member does from here, and
-      // they had no other entry than the dashboard's list of links.
-      { key: 'people', href: '/membres', access: 'all' },
-      { key: 'workspaces', href: '/espaces', access: 'all' },
+      { key: 'network', href: '/espace-membre/reseau', audience: 'everyone' },
+      // Outside `/espace-membre` too, and inside the same frame
+      // (`membres/page.tsx`, `espaces/layout.tsx`): both are reserved to
+      // members, a visitor would only find a closed door there.
+      { key: 'people', href: '/membres', audience: 'members' },
+      { key: 'workspaces', href: '/espaces', audience: 'members' },
     ],
   },
   {
@@ -85,72 +117,106 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
       {
         key: 'publications',
         href: '/espace-membre/publications',
-        access: 'member',
+        audience: 'members',
       },
       {
         key: 'tribune',
         href: '/espace-membre/contributions',
-        access: 'member',
+        audience: 'members',
       },
+      // The AUTHOR's side of peer review; reviewers and editors work from
+      // the back office (`/admin/mes-relectures`, `/admin/revue`).
       {
         key: 'manuscripts',
         href: '/espace-membre/manuscrits',
-        access: 'member',
+        audience: 'network',
       },
     ],
   },
   {
     key: 'programmes',
     items: [
-      { key: 'youth', href: '/espace-membre/jeunes', access: 'all' },
-      { key: 'mentoring', href: '/espace-membre/mentorat', access: 'all' },
-      { key: 'learning', href: '/espace-membre/parcours', access: 'all' },
-      { key: 'projects', href: '/espace-membre/projets', access: 'member' },
+      {
+        key: 'projects',
+        href: '/espace-membre/projets',
+        audience: 'network',
+      },
       {
         key: 'evaluations',
         href: '/espace-membre/evaluations',
-        access: 'member',
+        audience: 'network',
+      },
+      { key: 'youth', href: '/espace-membre/jeunes', audience: 'participants' },
+      {
+        key: 'mentoring',
+        href: '/espace-membre/mentorat',
+        audience: 'participants',
+      },
+      {
+        key: 'learning',
+        href: '/espace-membre/parcours',
+        audience: 'participants',
       },
     ],
   },
   {
     key: 'account',
     items: [
-      { key: 'payments', href: '/espace-membre/cotisations', access: 'all' },
+      {
+        key: 'payments',
+        href: '/espace-membre/cotisations',
+        audience: 'participants',
+      },
       {
         key: 'organization',
         href: '/espace-membre/organisation',
-        access: 'all',
+        audience: 'network',
       },
-      { key: 'security', href: '/espace-membre/securite', access: 'all' },
-      { key: 'password', href: '/espace-membre/mot-de-passe', access: 'all' },
-      { key: 'data', href: '/espace-membre/donnees', access: 'all' },
+      {
+        key: 'security',
+        href: '/espace-membre/securite',
+        audience: 'everyone',
+      },
+      {
+        key: 'password',
+        href: '/espace-membre/mot-de-passe',
+        audience: 'everyone',
+      },
+      { key: 'data', href: '/espace-membre/donnees', audience: 'everyone' },
     ],
-  },
-  {
-    key: 'staff',
-    items: [{ key: 'admin', href: '/admin', access: 'staff' }],
   },
 ] as const;
 
-export function canAccess(
-  access: MemberNavAccess,
+// Is an entry offered to this role? An UNKNOWN role (`null`: the column's
+// reads failed) is offered the entries every account has, and only those.
+export function isOfferedTo(
+  audience: MemberNavAudience,
   role: string | null | undefined,
 ): boolean {
-  if (access === 'staff') return isStaff(role);
-  if (access === 'member') return isMember(role);
-  return true;
+  if (!role) return audience === 'everyone';
+  switch (audience) {
+    case 'everyone':
+      return true;
+    case 'members':
+      return isMember(role);
+    case 'network':
+      return isMember(role) && !isStaff(role);
+    case 'participants':
+      return !isStaff(role);
+    case 'team':
+      return isStaff(role);
+  }
 }
 
-// Groups offered to a role. An entry the role cannot open is left out, and
-// a group left empty disappears with its title — the same rule as the back
-// office: never a heading over nothing.
+// Groups offered to a role. An entry the role is not offered is left out,
+// and a group left empty disappears with its title — the same rule as the
+// back office: never a heading over nothing.
 export function visibleMemberNavGroups(
   role: string | null | undefined,
 ): MemberNavGroup[] {
   return MEMBER_NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => canAccess(item.access, role)),
+    items: group.items.filter((item) => isOfferedTo(item.audience, role)),
   })).filter((group) => group.items.length > 0);
 }
 

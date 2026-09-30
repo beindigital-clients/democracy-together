@@ -173,7 +173,10 @@ function ApplicationRow({ app, now }: { app: Application; now: number }) {
               When they DIFFER, it is stated explicitly: it is the signature
               of the abuse described in the pentest, and it is not up to the moderator to
               compare two addresses from memory. */}
-          {app.applicantEmail ? (
+          {/* Said while the decision is to be taken: once decided, the
+              future tense ("will be elevated", "creates") no longer holds,
+              and the invitation line below says what happened. */}
+          {app.status !== 'pending' ? null : app.applicantEmail ? (
             <p
               className={`mt-1 text-sm ${
                 app.applicantEmail === app.contactEmail
@@ -282,6 +285,7 @@ function ApplicationRow({ app, now }: { app: Application; now: number }) {
       {app.status === 'pending' && showDirectory ? (
         <DirectoryFields
           organizationName={app.organizationName}
+          countryText={app.country}
           pending={pending}
           onConfirm={(draft) => decide('approved', draft)}
           onApproveWithout={() => decide('approved')}

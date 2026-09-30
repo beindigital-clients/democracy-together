@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { SESSIONS } from './_sessions';
+import { provisionUser, signInWithCode } from './_helpers';
 
 // THE REDESIGNED MEMBER AREA, through a browser: the shared navigation, the
 // dashboard as a member and as an administrator, the profile editor (live
@@ -11,6 +12,37 @@ import { SESSIONS } from './_sessions';
 
 const nav = (page: Page) =>
   page.getByRole('navigation', { name: 'Mon espace' });
+
+// The entries of the navigation, in order: their label alone, without the
+// unread count spelled out for screen readers nor the badge.
+// `allInnerTexts` does not wait: the column shows a skeleton until the role
+// is read, so its first entry is awaited before the list is read.
+const entries = async (page: Page) => {
+  await expect(
+    nav(page).getByRole('link', { name: 'Tableau de bord' }),
+  ).toBeVisible();
+  return (await nav(page).getByRole('link').allInnerTexts()).map((text) =>
+    text
+      .split('\n')[0]
+      .replace(/\s*\(.*\)\s*$/, '')
+      .trim(),
+  );
+};
+
+// The programmes and the dues: a participant's business, not the team's.
+const PARTICIPANT_ONLY = [
+  'Espace Jeunes',
+  'Mentorat',
+  'Parcours et attestations',
+  'Adhésion et paiements',
+];
+// What a member does as a participant of the network.
+const NETWORK_ONLY = [
+  'Appels à projets',
+  'Évaluations',
+  'Mes manuscrits',
+  'Mon organisation',
+];
 
 test.describe('espace membre — vu par un membre', () => {
   test.use({ storageState: SESSIONS.espaceMembre.state });
@@ -49,6 +81,42 @@ test.describe('espace membre — vu par un membre', () => {
     await expect(
       page.getByRole('link', { name: /Conversations non lues/ }),
     ).toBeVisible();
+  });
+
+  test('le menu d’un membre : ses programmes, ses contributions, son adhésion', async ({
+    page,
+  }) => {
+    await page.goto('/fr/espace-membre');
+    const labels = await entries(page);
+    for (const name of [
+      ...PARTICIPANT_ONLY,
+      ...NETWORK_ONLY,
+      'Annuaire des personnes',
+      'Espaces de travail',
+      'Notifications',
+    ]) {
+      expect(labels, name).toContain(name);
+    }
+    expect(labels).not.toContain('Administration');
+  });
+
+  test('l’annuaire, les espaces de travail et les notifications gardent le menu', async ({
+    page,
+  }) => {
+    await page.goto('/fr/espace-membre');
+    for (const [name, url] of [
+      ['Annuaire des personnes', /\/fr\/membres$/],
+      ['Espaces de travail', /\/fr\/espaces$/],
+      ['Notifications', /\/fr\/notifications$/],
+    ] as const) {
+      await nav(page).getByRole('link', { name, exact: true }).click();
+      await expect(page).toHaveURL(url);
+      // The column is still there, on the entry just followed.
+      await expect(
+        nav(page).getByRole('link', { name, exact: true }),
+      ).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    }
   });
 
   test('navigation : l’entrée courante suit la page, le titre d’onglet aussi', async ({
@@ -196,5 +264,60 @@ test.describe('espace membre — vu par un administrateur', () => {
     ).toBeVisible();
     await bloc.getByRole('link', { name: /Espace d.administration/ }).click();
     await expect(page).toHaveURL(/\/fr\/admin$/);
+  });
+
+  test('le menu de l’équipe : le back-office, sans programmes ni cotisation', async ({
+    page,
+  }) => {
+    await page.goto('/fr/espace-membre');
+    const labels = await entries(page);
+    // The back office right after the everyday entries.
+    expect(labels.slice(0, 5)).toEqual([
+      'Tableau de bord',
+      'Mon profil',
+      'Messages',
+      'Notifications',
+      'Administration',
+    ]);
+    for (const name of [...PARTICIPANT_ONLY, ...NETWORK_ONLY]) {
+      expect(labels, name).not.toContain(name);
+    }
+    for (const name of ['Annuaire des personnes', 'Mes publications']) {
+      expect(labels, name).toContain(name);
+    }
+    // Nor on the dashboard: no programmes block, no dues block.
+    await expect(page.getByRole('region', { name: 'Programmes' })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole('region', { name: 'Mon adhésion' }),
+    ).toHaveCount(0);
+  });
+});
+
+test.describe('espace membre — vu par un visiteur', () => {
+  test('le menu d’un visiteur : son compte et les programmes ouverts à tous', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const email = `e2e_menu_visiteur_${Date.now()}@democracytogether.test`;
+    await provisionUser(email, 'visiteur');
+    await signInWithCode(page, email);
+
+    const labels = await entries(page);
+    for (const name of PARTICIPANT_ONLY) {
+      expect(labels, name).toContain(name);
+    }
+    // Reserved to members: no door that would open on a refusal.
+    for (const name of [
+      ...NETWORK_ONLY,
+      'Annuaire des personnes',
+      'Espaces de travail',
+      'Mes publications',
+      'Tribune',
+      'Administration',
+    ]) {
+      expect(labels, name).not.toContain(name);
+    }
   });
 });

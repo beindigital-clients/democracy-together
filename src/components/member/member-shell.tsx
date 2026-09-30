@@ -87,6 +87,7 @@ function Sidebar() {
   const me = useQuery(api.users.current, skip);
   const profile = useQuery(api.social.profiles.getMine, skip);
   const unread = useQuery(api.social.messages.unreadSummary, skip);
+  const unreadNotifications = useQuery(api.notifications.unreadCount, skip);
   // The mobile menu is open FOR a path: following a link changes the path,
   // which closes it without an effect to write.
   const [openFor, setOpenFor] = useState<string | null>(null);
@@ -154,6 +155,7 @@ function Sidebar() {
           role={me.role}
           pathname={pathname}
           unreadMessages={unread}
+          unreadNotifications={unreadNotifications}
           onNavigate={() => setOpenFor(null)}
           className="rounded-md border border-line bg-surface p-2 lg:border-0 lg:bg-transparent lg:p-0"
         />

@@ -1,10 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { REGIONS, DIRECTORY_THEMES } from '@convex/lib/directory';
+import { routing } from '@/i18n/routing';
+import { vocabulary } from '@/i18n/vocabulary';
+import { directionOf } from '@/i18n/direction';
+import { countryOptions, guessCountryCode } from '@/lib/countries';
+import { languageName } from '@/lib/orgs';
 import { Button } from '@/components/ui/button';
-import { FormError, SelectField, TextField } from '@/components/ui/field';
+import { FormError, TextField } from '@/components/ui/field';
+import { ComboboxField, SelectMenuField } from '@/components/ui/choice-fields';
+import { ChipGroup } from '@/components/social/profile-controls';
 import { PUB_LANGS } from '@/lib/publications';
 
 export type DirectoryDraft = {
@@ -27,21 +34,40 @@ const LANGS = PUB_LANGS;
 // whereas the directory expects a country code and a closed vocabulary of
 // regions and themes: so it is up to the moderator to complete it, rather
 // than letting the system guess and publish a wrong entry.
+//
+// The country is PICKED by name from a searchable list, and pre-selected
+// only when the applicant's text names a country exactly ("Sénégal",
+// "Senegal"). It used to be a two-letter code to type, whose "SN"
+// placeholder read as a value already entered: the approval was then
+// refused as incomplete, without the moderator seeing why. Regions and
+// themes are shown by their names, not their slugs.
 export function DirectoryFields({
   organizationName,
+  countryText,
   pending,
   onConfirm,
   onApproveWithout,
   onCancel,
 }: {
   organizationName: string;
+  // The country as the applicant wrote it.
+  countryText?: string;
   pending: boolean;
   onConfirm: (draft: DirectoryDraft) => void;
   onApproveWithout: () => void;
   onCancel: () => void;
 }) {
   const t = useTranslations('admin');
-  const [countryCode, setCountryCode] = useState('');
+  const td = useTranslations('directory');
+  const tp = useTranslations('profile');
+  const locale = useLocale();
+  const countries = useMemo(
+    () => countryOptions(locale).map((c) => ({ value: c.code, label: c.name })),
+    [locale],
+  );
+  const [countryCode, setCountryCode] = useState(
+    () => guessCountryCode(countryText, [locale, ...routing.locales]) ?? '',
+  );
   const [region, setRegion] = useState('');
   const [themes, setThemes] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>(['fr']);
@@ -69,59 +95,52 @@ export function DirectoryFields({
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <TextField
+        <ComboboxField
           label={t('dirCountry')}
+          hint={
+            countryText ? t('dirCountryHint', { country: countryText }) : null
+          }
           value={countryCode}
-          maxLength={2}
-          onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-          placeholder="SN"
-          controlClassName="max-w-[8rem]"
+          onValueChange={setCountryCode}
+          options={countries}
+          placeholder={t('dirCountryPlaceholder')}
+          searchLabel={tp('countrySearchLabel')}
+          searchPlaceholder={tp('countrySearchPlaceholder')}
+          noResults={tp('countryNoResults')}
         />
-        <SelectField
+        <SelectMenuField
           label={t('dirRegion')}
           value={region}
-          onChange={(e) => setRegion(e.target.value)}
-        >
-          <option value="">—</option>
-          {REGIONS.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setRegion}
+          placeholder={t('dirRegionPlaceholder')}
+          dir={directionOf(locale)}
+          options={REGIONS.map((r) => ({
+            value: r,
+            label: vocabulary(td, 'regions.', r),
+          }))}
+        />
       </div>
 
-      <fieldset className="mt-4">
-        <legend className="text-sm text-ink-soft">{t('dirThemes')}</legend>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-          {DIRECTORY_THEMES.map((th) => (
-            <label key={th} className="flex items-center gap-1.5 text-[13px]">
-              <input
-                type="checkbox"
-                checked={themes.includes(th)}
-                onChange={() => setThemes((prev) => toggle(prev, th))}
-              />
-              {th}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset className="mt-4">
-        <legend className="text-sm text-ink-soft">{t('dirLanguages')}</legend>
-        <div className="mt-2 flex gap-4">
-          {LANGS.map((l) => (
-            <label key={l} className="flex items-center gap-1.5 text-[13px]">
-              <input
-                type="checkbox"
-                checked={languages.includes(l)}
-                onChange={() => setLanguages((prev) => toggle(prev, l))}
-              />
-              {l.toUpperCase()}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <div className="mt-5 space-y-5">
+        <ChipGroup
+          legend={t('dirThemes')}
+          options={DIRECTORY_THEMES.map((th) => ({
+            value: th,
+            label: vocabulary(td, 'themes.', th),
+          }))}
+          value={themes}
+          onToggle={(th) => setThemes((prev) => toggle(prev, th))}
+        />
+        <ChipGroup
+          legend={t('dirLanguages')}
+          options={LANGS.map((l) => ({
+            value: l,
+            label: languageName(l, locale),
+          }))}
+          value={languages}
+          onToggle={(l) => setLanguages((prev) => toggle(prev, l))}
+        />
+      </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <TextField

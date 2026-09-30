@@ -75,7 +75,9 @@ function BecomeMember() {
 //  4. four numbers that call for action (unread) or tell the reach
 //     (followers);
 //  5. the member's own output, next to what happened around them;
-//  6. the account (membership, security) and the programmes.
+//  6. the account (membership, security) and the programmes — the ones the
+//     navigation offers the role; none for the team, who runs them from the
+//     back office.
 export function MemberDashboard() {
   const me = useQuery(api.users.current);
   if (me === undefined) return <AuthGateLoading />;
@@ -118,9 +120,13 @@ export function MemberDashboard() {
               <Block>
                 <TribuneSummary />
               </Block>
-              <Block>
-                <MembershipCard />
-              </Block>
+              {/* Dues are a member's business, not the team's: the same
+                  rule as the navigation's "Adhésion et paiements". */}
+              {staff ? null : (
+                <Block>
+                  <MembershipCard />
+                </Block>
+              )}
             </>
           ) : (
             <Block>

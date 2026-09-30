@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { isMember } from '@/lib/roles';
+import { visibleMemberNavGroups } from '@/lib/member-nav';
 import { ArrowForward } from '@/components/ui/arrow';
 
 type Programme = {
@@ -22,11 +22,16 @@ type Programme = {
 };
 
 // The programmes (F-56 to F-60) as cards: a name, what one finds there, and
-// the whole card as a single target. Calls for projects and evaluations are
-// offered to approved members only — the server refuses them to others.
+// the whole card as a single target.
+//
+// The SAME programmes as the navigation offers the role, in its order
+// (`member-nav.ts`): a visitor gets the youth space, mentoring and the
+// learning paths; a member also gets the calls for projects and the
+// evaluations; the team runs the programmes from the back office and gets
+// no block at all.
 export function ProgrammesGrid({ role }: { role: string }) {
   const t = useTranslations('member');
-  const all: (Programme & { memberOnly?: boolean })[] = [
+  const all: Programme[] = [
     {
       key: 'youth',
       href: '/espace-membre/jeunes',
@@ -54,7 +59,6 @@ export function ProgrammesGrid({ role }: { role: string }) {
       icon: Rocket,
       title: t('navProjects'),
       description: t('progProjectsDesc'),
-      memberOnly: true,
     },
     {
       key: 'evaluations',
@@ -62,10 +66,16 @@ export function ProgrammesGrid({ role }: { role: string }) {
       icon: ClipboardCheck,
       title: t('navEvaluations'),
       description: t('progEvaluationsDesc'),
-      memberOnly: true,
     },
   ];
-  const programmes = all.filter((p) => !p.memberOnly || isMember(role));
+  const offered =
+    visibleMemberNavGroups(role)
+      .find((g) => g.key === 'programmes')
+      ?.items.map((item) => item.key) ?? [];
+  const programmes = offered
+    .map((key) => all.find((p) => p.key === key))
+    .filter((p): p is Programme => p !== undefined);
+  if (programmes.length === 0) return null;
   return (
     <section aria-labelledby="dash-programmes-title">
       <div className="flex flex-wrap items-end justify-between gap-2">
