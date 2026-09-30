@@ -3,6 +3,7 @@ import {
   emailDocument,
   emailKit,
   escapeHtml,
+  stripTags,
   type Phrase,
 } from './emailLayout';
 
@@ -52,10 +53,12 @@ export function subject(p: Phrase, loc: SiteLocale): string {
   return `${p[loc]} · ${BRAND}`;
 }
 
-/** Plain text of a phrase that carries markup, for a preheader. */
+/**
+ * Plain text of a phrase that carries markup, for a preheader (which the
+ * layout escapes again).
+ */
 export function plain(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, '')
+  return stripTags(html)
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')

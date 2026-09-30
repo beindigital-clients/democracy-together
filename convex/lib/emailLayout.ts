@@ -310,21 +310,45 @@ function decodeEntities(s: string): string {
   });
 }
 
+// Tag and comment removal repeat until nothing is left to remove: a single
+// pass can leave behind what it removed (`<scr<b>ipt>` loses `<b>` and
+// becomes `<script>`). This is the form CodeQL recommends for
+// multi-character removals.
+
+/** Text of a markup fragment, every tag removed. */
+export function stripTags(html: string): string {
+  let text = html;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text;
+}
+
+function stripComments(html: string): string {
+  let text = html;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<!--[\s\S]*?-->/g, '');
+  } while (text !== previous);
+  return text;
+}
+
 /**
  * Plain-text version of an e-mail, sent next to the HTML: some readers and
  * filters only look at that part, and a message without it looks more like
  * spam. Links become "label (address)"; the logo link becomes its alt text.
  */
 export function htmlToText(html: string): string {
-  const text = html
-    .replace(/<head[\s\S]*?<\/head>/gi, '')
-    .replace(/<!--[\s\S]*?-->/g, '')
+  const linked = stripComments(html.replace(/<head[\s\S]*?<\/head>/gi, ''))
     .replace(/<div class="dt-preheader"[\s\S]*?<\/div>/gi, '')
     .replace(
       /<a\b[^>]*\bhref="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
       (_whole, href: string, inner: string) => {
         const alt = /<img\b[^>]*\balt="([^"]*)"/i.exec(inner);
-        const label = (alt ? alt[1] : inner.replace(/<[^>]+>/g, '')).trim();
+        const label = (alt ? alt[1] : stripTags(inner)).trim();
         if (!label) return href;
         return decodeEntities(label) === decodeEntities(href)
           ? href
@@ -332,9 +356,8 @@ export function htmlToText(html: string): string {
       },
     )
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|h1|h2|h3|li|tr|table)>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '');
-  return decodeEntities(text)
+    .replace(/<\/(p|h1|h2|h3|li|tr|table)>/gi, '\n\n');
+  return decodeEntities(stripTags(linked))
     .split('\n')
     .map((line) => line.replace(/[ \t\u00a0]+/g, ' ').trim())
     .join('\n')

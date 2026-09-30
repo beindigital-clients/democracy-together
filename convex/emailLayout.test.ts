@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { emailKit, htmlToText } from './lib/emailLayout';
+import { emailKit, htmlToText, stripTags } from './lib/emailLayout';
 import { invitationEmail, otpEmail } from './lib/emailContent';
 import { campaignHtml } from './lib/newsletterContent';
 import { newMessageEmail } from './lib/socialEmail';
@@ -98,6 +98,12 @@ describe('Version texte', () => {
     const intro = 'Voici votre code de connexion à usage unique :';
     const text = htmlToText(otpEmail('123456', 'signin', 'fr').html);
     expect(text.split(intro).length - 1).toBe(1);
+  });
+
+  it('retire les balises jusqu’à la dernière, même imbriquées', () => {
+    // One pass would turn `<scr<b>ipt>` back into `<script>`.
+    expect(stripTags('<scr<b>ipt>x</scr</b>ipt>')).not.toMatch(/<script/i);
+    expect(stripTags('<p>a <b>b</b></p>')).toBe('a b');
   });
 
   it('décode les entités une seule fois', () => {
