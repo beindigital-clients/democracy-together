@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { test as setup, expect, type Browser } from '@playwright/test';
-import { provisionUser, provisionPassword } from './_helpers';
+import { menuCompte, provisionUser, provisionPassword } from './_helpers';
 import { SESSIONS, SESSION_PASSWORD, type SessionKey } from './_sessions';
 
 // `setup` project: opens one session per role and saves it (see _sessions.ts).
@@ -30,7 +30,7 @@ const AUTH_DIR = 'tests/e2e/.auth';
 // exchanged token as long as it is the PARENT of the active token; beyond that, the
 // whole session is invalidated (see _sessions.ts). A file reused from a previous
 // run therefore carries a possibly stale token, while the page, rendered
-// from the still-valid JWT, shows "Déconnexion": the check said
+// from the still-valid JWT, shows the account menu: the check said
 // "usable", and the first spec to use it woke up on
 // `/connexion` (admin-ecrans, moderator session — measured). So we read the
 // exchange's response: null, the state is dead; otherwise we SAVE the state AGAIN
@@ -56,11 +56,7 @@ async function sessionIsUsable(
     // Dead session = redirect to sign-in. We detect it right
     // away rather than waiting for a `toBeVisible` to time out.
     if (/\/connexion/.test(page.url())) return false;
-    await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible(
-      {
-        timeout: 10_000,
-      },
-    );
+    await expect(menuCompte(page)).toBeVisible({ timeout: 10_000 });
     const tokens = ((await (await refresh).json()) as { tokens: unknown })
       .tokens;
     if (tokens === null) return false;
@@ -101,9 +97,7 @@ for (const key of Object.keys(SESSIONS) as SessionKey[]) {
     await expect(page).toHaveURL(/\/espace-membre$/);
     // The URL switches as soon as the client-side redirect happens: we wait for an element that
     // exists ONLY when signed in, otherwise the saved state might contain nothing.
-    await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible(
-      { timeout: 15_000 },
-    );
+    await expect(menuCompte(page)).toBeVisible({ timeout: 15_000 });
 
     mkdirSync(AUTH_DIR, { recursive: true });
     await page.context().storageState({ path: state });

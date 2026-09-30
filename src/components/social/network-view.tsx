@@ -1,17 +1,29 @@
 'use client';
 
 import { useQuery } from 'convex/react';
+import { UsersRound } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { intlLocale } from '@/i18n/locale';
+import { Button } from '@/components/ui/button';
 import { PersonCard, type PersonCardData } from './person-card';
 
 // "Mon réseau": activity feed of followed people, following, followers,
 // followed organizations. The feed only contains PUBLISHED content: the
 // filter is in Convex (`social.follows.activityFeed`), not here.
 
-const H2 = 'font-display text-2xl text-ink';
+const H2 = 'flex items-baseline gap-3 font-display text-2xl text-ink';
+
+// How many people a list holds, beside its title — visible ones plus those
+// whose profile the reader cannot see (counted, never named).
+function Count({ n }: { n: number }) {
+  return (
+    <span className="rounded-pill border border-line-strong px-2 py-0.5 font-mono text-xs tabular-nums text-muted">
+      {n}
+    </span>
+  );
+}
 
 export function NetworkView({
   themeLabels,
@@ -95,6 +107,7 @@ export function NetworkView({
       <section aria-labelledby="reseau-orgs">
         <h2 id="reseau-orgs" className={H2}>
           {t('network.orgs')}
+          {orgs !== undefined ? <Count n={orgs.length} /> : null}
         </h2>
         {orgs === undefined ? null : orgs.length === 0 ? (
           <p className="mt-3 text-sm text-ink-soft">{t('network.orgsEmpty')}</p>
@@ -114,12 +127,12 @@ export function NetworkView({
         )}
       </section>
 
-      <Link
-        href="/membres"
-        className="inline-flex min-h-11 items-center text-sm font-medium text-accent-text hover:underline"
-      >
-        {t('network.browse')}
-      </Link>
+      <Button asChild variant="outline" className="min-h-11">
+        <Link href="/membres">
+          <UsersRound aria-hidden="true" />
+          {t('network.browse')}
+        </Link>
+      </Button>
     </div>
   );
 }
@@ -142,10 +155,15 @@ function PeopleList({
     <section aria-labelledby={id}>
       <h2 id={id} className={H2}>
         {title}
+        {list !== undefined ? (
+          <Count n={list.items.length + list.hidden} />
+        ) : null}
       </h2>
       {list === undefined ? null : list.items.length === 0 &&
         list.hidden === 0 ? (
-        <p className="mt-3 text-sm text-ink-soft">{empty}</p>
+        <p className="mt-3 rounded-md border border-dashed border-line-strong bg-surface p-5 text-sm text-ink-soft">
+          {empty}
+        </p>
       ) : (
         <>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">

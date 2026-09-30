@@ -165,9 +165,10 @@ test('EN : connexion par code puis espace membre (F-01/F-03)', async ({
   await expect(
     page.getByRole('heading', { level: 1, name: 'Member area' }),
   ).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible({
-    timeout: 15_000,
-  });
+  // Signed in, the header carries the account menu, named in English too.
+  await expect(
+    page.getByRole('banner').getByRole('button', { name: 'My account' }),
+  ).toBeVisible({ timeout: 15_000 });
 });
 
 // The three points of issue #34, checked where they show: in the render.

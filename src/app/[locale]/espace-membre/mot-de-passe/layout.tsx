@@ -11,8 +11,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'auth' });
+  // The screen's name only: the member-area template adds the area and the
+  // site after it.
   return {
-    title: `${t('passwordTitle')} · ${t('memberTitle')}`,
+    title: t('passwordTitle'),
   };
 }
 

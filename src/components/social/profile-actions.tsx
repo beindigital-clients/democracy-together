@@ -2,6 +2,13 @@
 
 import { useState } from 'react';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import {
+  Ban,
+  MessageSquare,
+  PenLine,
+  UserRoundCheck,
+  UserRoundPlus,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
@@ -41,7 +48,10 @@ export function ProfileActions({
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-sm text-ink-soft">{t('profile.self')}</p>
         <Button asChild variant="outline" className="min-h-11">
-          <Link href="/espace-membre/profil">{t('profile.edit')}</Link>
+          <Link href="/espace-membre/profil">
+            <PenLine aria-hidden="true" />
+            {t('profile.edit')}
+          </Link>
         </Button>
       </div>
     );
@@ -70,7 +80,7 @@ export function ProfileActions({
     <div>
       <div className="flex flex-wrap items-center gap-2">
         {rel.followsMe ? (
-          <span className="rounded-pill border border-line-strong px-3 py-1 text-xs text-ink-soft">
+          <span className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-xs font-medium text-accent-text">
             {t('actions.followsYou')}
           </span>
         ) : null}
@@ -95,6 +105,7 @@ export function ProfileActions({
                 aria-pressed="true"
                 onClick={() => run(() => unfollow({ userId }))}
               >
+                <UserRoundCheck aria-hidden="true" />
                 {t('actions.unfollow')}
               </Button>
             ) : (
@@ -104,6 +115,7 @@ export function ProfileActions({
                 disabled={busy}
                 onClick={() => run(() => follow({ userId }))}
               >
+                <UserRoundPlus aria-hidden="true" />
                 {t('actions.follow')}
               </Button>
             )}
@@ -115,6 +127,7 @@ export function ProfileActions({
                     : `/espace-membre/messages?to=${encodeURIComponent(handle)}`
                 }
               >
+                <MessageSquare aria-hidden="true" />
                 {rel.conversationId
                   ? t('actions.openConversation')
                   : t('actions.write')}
@@ -127,6 +140,7 @@ export function ProfileActions({
               disabled={busy}
               onClick={() => setConfirmBlock(true)}
             >
+              <Ban aria-hidden="true" />
               {t('actions.block')}
             </Button>
           </>

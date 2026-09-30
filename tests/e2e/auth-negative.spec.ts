@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
 import {
-  signUpAndVerify,
-  provisionUser,
-  provisionPassword,
-  reachNewPasswordStep,
-  getOtp,
   E2E_PASSWORD,
+  getOtp,
+  provisionPassword,
+  provisionUser,
+  reachNewPasswordStep,
+  seDeconnecter,
+  signUpAndVerify,
 } from './_helpers';
 
 test.use({ locale: 'fr-FR' });
@@ -17,7 +18,7 @@ test('connexion : mauvais mot de passe refusé, pas de session (F-01)', async ({
 }) => {
   const email = `e2e_wrongpw_${Date.now()}@democracytogether.test`;
   await signUpAndVerify(page, email, E2E_PASSWORD);
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
 
   await page.goto('/fr/connexion');
   await page.getByLabel('E-mail').fill(email);

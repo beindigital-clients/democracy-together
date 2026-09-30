@@ -107,10 +107,21 @@ export const ADMIN_NAMESPACES = [
   'reports',
 ] as const;
 
+/**
+ * Namespaces that ONLY the member area requests.
+ *
+ * Same reasoning as the back office, one level down: the member-area shell
+ * (side navigation, identity) and its dashboard are mounted on
+ * `/espace-membre` screens only, behind authentication. Their labels are
+ * set by `espace-membre/layout.tsx`, not carried by every public page.
+ */
+export const MEMBER_NAMESPACES = ['member'] as const;
+
 /** All namespaces requested by a client component, wherever it is. */
 export const CLIENT_NAMESPACES = [
   ...BASE_CLIENT_NAMESPACES,
   ...ADMIN_NAMESPACES,
+  ...MEMBER_NAMESPACES,
 ] as const;
 
 /**

@@ -83,7 +83,9 @@ export type SessionKey =
   | 'editorialRelecteur2'
   | 'a11yClavier'
   | 'a11yAnnonces'
-  | 'a11yAffichage';
+  | 'a11yAffichage'
+  | 'espaceMembre'
+  | 'espaceMembreAdmin';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -356,6 +358,19 @@ export const SESSIONS: Record<
   a11yAffichage: {
     email: 'e2e_session_a11y_affichage@democracytogether.test',
     state: 'tests/e2e/.auth/a11y-affichage.json',
+    role: 'admin',
+  },
+  // Sessions of `espace-membre.spec.ts` (member-area redesign): the member's
+  // view and the administrator's view of the same screens. Two accounts,
+  // because the file holds both and rewrites each state after each test.
+  espaceMembre: {
+    email: 'e2e_session_espace_membre@democracytogether.test',
+    state: 'tests/e2e/.auth/espace-membre.json',
+    role: 'membre',
+  },
+  espaceMembreAdmin: {
+    email: 'e2e_session_espace_membre_admin@democracytogether.test',
+    state: 'tests/e2e/.auth/espace-membre-admin.json',
     role: 'admin',
   },
 };

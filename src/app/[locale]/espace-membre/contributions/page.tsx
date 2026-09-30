@@ -9,6 +9,8 @@ import { isMember } from '@/lib/roles';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { STATUS_PILL } from '@/components/tribune/my-posts';
+import { Button } from '@/components/ui/button';
+import { MemberPageHeader } from '@/components/member/page-header';
 
 // MY TRIBUNE CONTRIBUTIONS (F-45) — the author sees the STATE of each:
 // pending review, published, rejected (with the reason), withdrawn. An
@@ -23,7 +25,7 @@ function Contributions() {
   const comments = useQuery(api.tribune.myComments);
   const invites = useQuery(api.tribune.myDeepeningInvites);
 
-  if (me === undefined) return <AuthGateLoading className="max-w-3xl" />;
+  if (me === undefined) return <AuthGateLoading />;
 
   const fmtDate = (ms: number) =>
     new Intl.DateTimeFormat(locale, {
@@ -33,19 +35,18 @@ function Contributions() {
     }).format(ms);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <p className="text-[13px] text-muted">
-        <Link href="/espace-membre" className="text-muted hover:text-ink">
-          {t('memberSpace')}
-        </Link>{' '}
-        / {t('contributionsTitle')}
-      </p>
-      <h1 className="mt-4 font-display text-[clamp(28px,3.4vw,40px)] font-medium leading-tight">
-        {t('contributionsTitle')}
-      </h1>
-      <p className="mt-3 max-w-[60ch] text-ink-soft">
-        {t('contributionsLead')}
-      </p>
+    <div className="max-w-3xl">
+      <MemberPageHeader
+        title={t('contributionsTitle')}
+        lead={t('contributionsLead')}
+        actions={
+          isMember(me?.role) ? (
+            <Button asChild className="min-h-11">
+              <Link href="/tribune">{t('startCta')}</Link>
+            </Button>
+          ) : null
+        }
+      />
 
       {!isMember(me?.role) ? (
         <p className="mt-8 text-ink-soft">{t('membersOnly')}</p>
@@ -173,7 +174,7 @@ function Contributions() {
 
 export default function ContributionsPage() {
   return (
-    <AuthGate className="max-w-3xl">
+    <AuthGate>
       <Contributions />
     </AuthGate>
   );

@@ -8,6 +8,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import type { FunctionReturnType } from 'convex/server';
 import { MANUSCRIPT_BOUNDS } from '@convex/lib/manuscripts';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
+import { MemberPageHeader } from '@/components/member/page-header';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -381,25 +382,17 @@ function SubmitDeposit({
 
 function ManuscriptsPage() {
   const t = useTranslations('peerReview');
-  const ta = useTranslations('auth');
   const me = useQuery(api.users.current);
   const data = useQuery(
     api.peerReview.myManuscripts,
     me && isMember(me.role) ? {} : 'skip',
   );
-  if (me === undefined) return <AuthGateLoading className="max-w-3xl" />;
+  if (me === undefined) return <AuthGateLoading />;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <p className="text-[13px] text-muted">
-        <Link href="/espace-membre" className="text-muted hover:text-ink">
-          {ta('memberTitle')}
-        </Link>{' '}
-        / {t('authorTitle')}
-      </p>
-      <h1 className="mt-4 font-display text-3xl">{t('authorTitle')}</h1>
-      <p className="mt-2 max-w-[62ch] text-ink-soft">{t('authorIntro')}</p>
-      <p className="mt-2 max-w-[62ch] text-sm text-muted">{t('blindAdvice')}</p>
+    <div className="max-w-3xl">
+      <MemberPageHeader title={t('authorTitle')} lead={t('authorIntro')} />
+      <p className="mt-4 max-w-[62ch] text-sm text-muted">{t('blindAdvice')}</p>
 
       {!isMember(me?.role) ? (
         <p className="mt-8 rounded-md border border-accent-edge bg-accent-tint p-6 text-ink-soft">
@@ -462,7 +455,7 @@ function ManuscriptsPage() {
 // they can still send to the committee.
 export default function ManuscriptsRoute() {
   return (
-    <AuthGate className="max-w-md">
+    <AuthGate>
       <ManuscriptsPage />
     </AuthGate>
   );

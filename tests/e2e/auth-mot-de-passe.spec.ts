@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { getOtp, provisionUser, signInWithCode } from './_helpers';
+import {
+  getOtp,
+  menuCompte,
+  provisionUser,
+  seDeconnecter,
+  signInWithCode,
+} from './_helpers';
 
 test.use({ locale: 'fr-FR' });
 
@@ -56,7 +62,7 @@ test('membre invité : définit un mot de passe depuis l’espace membre, puis s
   ).toBeVisible();
 
   // THE PROOF: sign out, then sign in with the password.
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(page).toHaveURL(/\/fr$/);
   await page.goto('/fr/connexion');
   await page.getByLabel('E-mail').fill(email);
@@ -77,7 +83,7 @@ test('déconnexion : navigue vers l’accueil, sans URL interne dans l’histori
   await provisionUser(email);
   await signInWithCode(page, email);
 
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(page).toHaveURL(/\/fr$/);
   await expect(
     page.getByRole('link', { name: 'Connexion' }).first(),
@@ -86,7 +92,5 @@ test('déconnexion : navigue vers l’accueil, sans URL interne dans l’histori
   await page.goBack();
   await expect(page).not.toHaveURL(/_rsc=/);
   // No member content resurfaces from the history.
-  await expect(page.getByRole('button', { name: 'Déconnexion' })).toHaveCount(
-    0,
-  );
+  await expect(menuCompte(page)).toHaveCount(0);
 });

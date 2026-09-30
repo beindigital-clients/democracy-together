@@ -8,6 +8,7 @@ import { JoinButton } from './join-button';
 import { LocaleSwitcher } from './locale-switcher';
 import { ThemeToggle } from './theme-toggle';
 import { AuthButton } from './auth-button';
+import { MobileAccountCard } from './account-menu';
 import { NotificationBell } from './notification-bell';
 import { MessagesBadge } from './messages-badge';
 import { isNavActive, type NavItem } from './nav-links';
@@ -143,6 +144,8 @@ export function MobileNav({
             aria-label={t('menu')}
             className="relative z-10 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-line bg-paper px-4 pb-6 pt-1 shadow-pop"
           >
+            {/* Signed in: the account first — who, and where one goes. */}
+            <MobileAccountCard onNavigate={close} />
             <ul className="flex flex-col">
               {items.map((item) => {
                 const active = isNavActive(pathname, item.href);
@@ -180,7 +183,10 @@ export function MobileNav({
               connecteAuRendu={connecteAuRendu}
             />
 
-            <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
+            {/* Signed in, "Rejoindre" is not there: the list's last rule
+                already closes it, and a second one 20 px below read as an
+                empty row. */}
+            <div className="mt-5 flex items-center justify-between border-t border-line pt-5 [ul+&]:mt-0 [ul+&]:border-t-0">
               <AuthButton connecteAuRendu={connecteAuRendu} />
               <div className="flex items-center gap-2">
                 {/* UPWARDS: this panel scrolls and the switcher is on its

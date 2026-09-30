@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { PROFILE_LANGUAGES, PROFILE_THEMES } from '@convex/lib/social';
 import { languageName } from '@/lib/orgs';
+import { countryOptions } from '@/lib/countries';
+import { directionOf } from '@/i18n/direction';
 import { isMember } from '@/lib/roles';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextField } from '@/components/ui/field';
+import { TextField } from '@/components/ui/field';
+import { ComboboxField, SelectMenuField } from '@/components/ui/choice-fields';
 import { PersonCard } from './person-card';
 
 // PEOPLE DIRECTORY — reserved for network members.
@@ -24,6 +27,7 @@ export function PeopleDirectory({
   themeLabels: Record<string, string>;
 }) {
   const t = useTranslations('people');
+  const tp = useTranslations('profile');
   const locale = useLocale();
   const me = useQuery(api.users.current);
   const [q, setQ] = useState('');
@@ -41,6 +45,10 @@ export function PeopleDirectory({
 
   const member = isMember(me?.role);
   const countryCode = /^[A-Za-z]{2}$/.test(country) ? country : '';
+  const countries = useMemo(
+    () => countryOptions(locale).map((c) => ({ value: c.code, label: c.name })),
+    [locale],
+  );
   const result = useQuery(
     api.social.profiles.search,
     member
@@ -80,37 +88,40 @@ export function PeopleDirectory({
           maxLength={100}
           onChange={(e) => setQ(e.target.value)}
         />
-        <SelectField
+        <SelectMenuField
           label={t('filterTheme')}
           value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-        >
-          <option value="">{t('all')}</option>
-          {PROFILE_THEMES.map((slug) => (
-            <option key={slug} value={slug}>
-              {themeLabels[slug] ?? slug}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
+          onValueChange={setTheme}
+          emptyLabel={t('all')}
+          dir={directionOf(locale)}
+          options={PROFILE_THEMES.map((slug) => ({
+            value: slug,
+            label: themeLabels[slug] ?? slug,
+          }))}
+        />
+        <SelectMenuField
           label={t('filterLanguage')}
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-        >
-          <option value="">{t('all')}</option>
-          {PROFILE_LANGUAGES.map((code) => (
-            <option key={code} value={code}>
-              {languageName(code, locale)}
-            </option>
-          ))}
-        </SelectField>
-        <TextField
+          onValueChange={setLanguage}
+          emptyLabel={t('all')}
+          dir={directionOf(locale)}
+          options={PROFILE_LANGUAGES.map((code) => ({
+            value: code,
+            label: languageName(code, locale),
+          }))}
+        />
+        {/* The country by NAME, searchable — it used to be a two-letter
+            code to type, which nobody knows for most countries. */}
+        <ComboboxField
           label={t('filterCountry')}
           value={country}
-          maxLength={2}
-          dir="ltr"
-          autoCapitalize="characters"
-          onChange={(e) => setCountry(e.target.value.toUpperCase())}
+          onValueChange={setCountry}
+          options={countries}
+          placeholder={t('all')}
+          emptyLabel={t('all')}
+          searchLabel={tp('countrySearchLabel')}
+          searchPlaceholder={tp('countrySearchPlaceholder')}
+          noResults={tp('countryNoResults')}
         />
       </div>
 

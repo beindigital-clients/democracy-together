@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import { Link } from '@/i18n/navigation';
+import { ArrowBack } from '@/components/ui/arrow';
 import { vocabulary } from '@/i18n/vocabulary';
 import { PrintButton } from '@/components/reports/print-button';
 import { useDateFormat } from '@/components/programmes/shared';
@@ -24,15 +25,15 @@ function Certificate({
   const t = useTranslations('toolbox');
   const fmt = useDateFormat();
   const cert = useQuery(api.toolbox.getCertificate, { enrollmentId });
-  if (cert === undefined) return <AuthGateLoading className="max-w-3xl" />;
+  if (cert === undefined) return <AuthGateLoading />;
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <div className="max-w-3xl">
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <Link
           href="/espace-membre/parcours"
-          className="text-sm text-accent-text hover:underline"
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent-text hover:underline"
         >
-          {t('backToLearning')}
+          <ArrowBack /> {t('backToLearning')}
         </Link>
         <span className="flex-1" />
         <PrintButton label={t('print')} />
@@ -74,13 +75,13 @@ function Certificate({
 function Detail() {
   const params = useParams<{ enrollmentId: string }>();
   const id = params?.enrollmentId;
-  if (!id) return <AuthGateLoading className="max-w-3xl" />;
+  if (!id) return <AuthGateLoading />;
   return <Certificate enrollmentId={id as Id<'learningEnrollments'>} />;
 }
 
 export default function CertificatePage() {
   return (
-    <AuthGate className="max-w-3xl">
+    <AuthGate>
       <Detail />
     </AuthGate>
   );

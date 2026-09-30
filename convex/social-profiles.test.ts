@@ -527,3 +527,156 @@ describe('Préférences de notification', () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+// Contributions shown on a profile page (member-area redesign): the same door
+// as the page itself, and only what is already public elsewhere.
+async function contribute(t: T, authorUserId: Id<'users'>) {
+  await t.run(async (ctx) => {
+    const base = {
+      type: 'note' as const,
+      theme: 'gouvernance',
+      region: 'afrique' as const,
+      languages: ['fr' as const],
+      access: 'open' as const,
+      authors: [{ name: 'Awa Diallo' }],
+      year: 2026,
+      abstract: 'Résumé de test suffisamment long.',
+      keypoints: [],
+      body: [],
+      doi: '',
+      downloads: 0,
+      citations: 0,
+      authorUserId,
+      createdAt: 0,
+    };
+    await ctx.db.insert('publications', {
+      ...base,
+      title: 'Publiée ancienne',
+      slug: 'publiee-ancienne',
+      status: 'published',
+      publishedAt: 1_000,
+    });
+    await ctx.db.insert('publications', {
+      ...base,
+      title: 'Publiée récente',
+      slug: 'publiee-recente',
+      status: 'published',
+      publishedAt: 5_000,
+    });
+    await ctx.db.insert('publications', {
+      ...base,
+      title: 'En revue',
+      slug: 'en-revue',
+      status: 'pending',
+      publishedAt: 0,
+    });
+    await ctx.db.insert('publications', {
+      ...base,
+      title: 'Brouillon',
+      slug: 'brouillon',
+      status: 'draft',
+      publishedAt: 0,
+    });
+    const post = {
+      authorUserId,
+      authorName: 'Awa Diallo',
+      theme: 'gouvernance',
+      format: 'court' as const,
+      body: 'Un billet.',
+      commentCount: 0,
+    };
+    await ctx.db.insert('tribunePosts', {
+      ...post,
+      title: 'Billet publié',
+      status: 'published',
+      createdAt: 2_000,
+    });
+    await ctx.db.insert('tribunePosts', {
+      ...post,
+      title: 'Billet en attente',
+      status: 'pending',
+      createdAt: 3_000,
+    });
+    await ctx.db.insert('tribunePosts', {
+      ...post,
+      title: 'Billet rejeté',
+      status: 'rejected',
+      createdAt: 4_000,
+    });
+  });
+}
+
+describe('Profil — contributions publiées', () => {
+  it('profil public : ses seules contributions en ligne, les plus récentes d’abord, lisibles anonymement', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'a@test.org');
+    const { handle } = await saveProfile(a.as, {
+      displayName: 'Awa Diallo',
+      visibility: 'public',
+    });
+    await contribute(t, a.id);
+    const c = await t.query(api.social.profiles.contributions, { handle });
+    expect(c?.publications.map((p) => p.title)).toEqual([
+      'Publiée récente',
+      'Publiée ancienne',
+    ]);
+    expect(c?.tribune.map((p) => p.title)).toEqual(['Billet publié']);
+    // Closed projection: nothing beyond what the page shows.
+    expect(Object.keys(c!.publications[0]).sort()).toEqual([
+      'publishedAt',
+      'slug',
+      'title',
+      'type',
+    ]);
+  });
+
+  it('même porte que la page : privé, réservé aux membres, bloqué, inconnu -> null', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'a@test.org');
+    const b = await person(t, 'b@test.org');
+    const { handle } = await saveProfile(a.as, {
+      displayName: 'Awa Diallo',
+      visibility: 'members',
+    });
+    await contribute(t, a.id);
+    // Members only: an anonymous reader gets what an unknown handle gets.
+    expect(
+      await t.query(api.social.profiles.contributions, { handle }),
+    ).toBeNull();
+    expect(
+      await b.as.query(api.social.profiles.contributions, { handle }),
+    ).not.toBeNull();
+    // Blocked by the owner: invisible to the blocked member.
+    await a.as.mutation(api.social.messages.block, { userId: b.id });
+    expect(
+      await b.as.query(api.social.profiles.contributions, { handle }),
+    ).toBeNull();
+    expect(
+      await b.as.query(api.social.profiles.contributions, {
+        handle: 'personne-inconnue',
+      }),
+    ).toBeNull();
+    // Private: only the person themself.
+    await saveProfile(a.as, {
+      displayName: 'Awa Diallo',
+      handle,
+      visibility: 'private',
+    });
+    expect(
+      (await a.as.query(api.social.profiles.contributions, { handle }))
+        ?.publications,
+    ).toHaveLength(2);
+  });
+
+  it('rien de publié : deux listes vides, pas une erreur', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'a@test.org');
+    const { handle } = await saveProfile(a.as, {
+      displayName: 'Nouvelle Venue',
+      visibility: 'public',
+    });
+    expect(
+      await t.query(api.social.profiles.contributions, { handle }),
+    ).toEqual({ publications: [], tribune: [] });
+  });
+});

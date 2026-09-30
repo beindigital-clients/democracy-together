@@ -82,7 +82,8 @@ test("l'en-tête ne se décale pas entre le rendu serveur et l'état établi (F-
 // from a 64 px placeholder to "Espace membre · Déconnexion", much wider:
 // the header rearranged itself as for an anonymous visitor, but more so.
 // Since `site-header.tsx` reads the auth state during the SERVER render,
-// the served HTML already carries the final variant.
+// the served HTML already carries the final variant — today the ACCOUNT
+// MENU, whose trigger has its final size before its photo arrives.
 //
 // This case is only measurable HERE: the audit environment has no
 // Convex deployment, hence no session. CI, for its part, has one per file.
@@ -103,12 +104,12 @@ test("l'en-tête ne se décale pas non plus pour un visiteur connecté (F-13)", 
     storageState: etat,
   });
   const servi = await abscisseBascule(sansJs, url);
-  // Without JavaScript, only the SERVER render speaks: "Déconnexion" only
-  // appears there if the server did recognize the session.
+  // Without JavaScript, only the SERVER render speaks: the account menu
+  // only appears there if the server did recognize the session.
   await expect(
     servi.page
       .getByRole('banner')
-      .getByRole('button', { name: /déconnexion|sign out/i }),
+      .getByRole('button', { name: /mon compte|my account/i }),
     'la session doit être reconnue au rendu serveur, sinon ce test est vacant',
   ).toBeVisible();
 
@@ -117,7 +118,7 @@ test("l'en-tête ne se décale pas non plus pour un visiteur connecté (F-13)", 
   await expect(
     etabli.page
       .getByRole('banner')
-      .getByRole('link', { name: /espace membre|member space/i }),
+      .getByRole('button', { name: /mon compte|my account/i }),
   ).toBeVisible();
   const xEtabli = (await declencheurLangue(etabli.page).boundingBox())?.x;
 

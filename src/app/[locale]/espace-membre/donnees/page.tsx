@@ -5,12 +5,15 @@ import { useAction, useConvex, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { Link, useRouter } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FormError, TextField } from '@/components/ui/field';
-import { ArrowBack } from '@/components/ui/arrow';
+import {
+  MemberPageBody,
+  MemberPageHeader,
+} from '@/components/member/page-header';
 import { errorCode } from '@/lib/account-errors';
 import { vocabulary } from '@/i18n/vocabulary';
 
@@ -67,7 +70,7 @@ function ExportSection() {
   return (
     <section
       aria-labelledby="export-title"
-      className="mt-8 rounded-md border border-line bg-surface p-5"
+      className="rounded-md border border-line bg-surface p-5 shadow-card sm:p-6"
     >
       <h2 id="export-title" className="font-display text-xl">
         {t('exportTitle')}
@@ -152,7 +155,7 @@ function DeleteSection({ email }: { email: string }) {
   return (
     <section
       aria-labelledby="delete-title"
-      className="mt-8 rounded-md border border-bar-5 bg-surface p-5"
+      className="rounded-md border border-bar-5 bg-surface p-5 shadow-card sm:p-6"
     >
       <h2 id="delete-title" className="font-display text-xl">
         {t('deleteTitle')}
@@ -220,26 +223,19 @@ function DataScreen() {
   const t = useTranslations('accounts');
   const me = useQuery(api.users.current);
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <Link
-        href="/espace-membre"
-        className="inline-flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-muted hover:text-ink"
-      >
-        <ArrowBack /> {t('backToMemberSpace')}
-      </Link>
-      <h1 className="mt-4 font-display text-3xl">{t('dataTitle')}</h1>
-      <p className="mt-2 max-w-[65ch] leading-relaxed text-ink-soft">
-        {t('dataIntro')}
-      </p>
-      <ExportSection />
-      <DeleteSection email={me?.email ?? ''} />
-    </div>
+    <>
+      <MemberPageHeader title={t('dataTitle')} lead={t('dataIntro')} />
+      <MemberPageBody narrow className="space-y-6">
+        <ExportSection />
+        <DeleteSection email={me?.email ?? ''} />
+      </MemberPageBody>
+    </>
   );
 }
 
 export default function DonneesPage() {
   return (
-    <AuthGate className="max-w-md">
+    <AuthGate>
       <DataScreen />
     </AuthGate>
   );

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getOtp, signUpAndVerify } from './_helpers';
+import { getOtp, seDeconnecter, signUpAndVerify } from './_helpers';
 
 // Forgot password: reset by code, then sign in with the new password. (F-01)
 // One question per screen: address, then code, then new password.
@@ -10,7 +10,7 @@ test('mot de passe oublié -> réinitialisation -> connexion', async ({
   await signUpAndVerify(page, email, 'ancienmotdepasse1');
 
   // sign out
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(
     page.getByRole('link', { name: 'Connexion' }).first(),
   ).toBeVisible();
@@ -44,7 +44,7 @@ test('mot de passe oublié -> réinitialisation -> connexion', async ({
   await expect(page).toHaveURL(/\/espace-membre$/);
 
   // sign in again with the NEW password
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await page.goto('/fr/connexion');
   await page.getByLabel('E-mail').fill(email);
   await page

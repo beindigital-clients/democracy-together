@@ -2,6 +2,7 @@
 
 import { useConvexAuth } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
+import { LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 
@@ -48,23 +49,19 @@ export function AuthButton({
     return <span aria-hidden className="inline-block h-5 w-16" />;
   }
 
+  // Signed in, this button only signs out: it now lives in the mobile menu,
+  // whose account card (top of the panel) already leads to the member area.
+  // On desktop, the account menu (`account-menu.tsx`) took its place.
   if (connecte) {
     return (
-      <div className="flex items-center gap-3">
-        <Link
-          href="/espace-membre"
-          className="text-sm text-ink-soft transition-colors hover:text-ink"
-        >
-          {t('memberSpace')}
-        </Link>
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="text-sm text-ink-soft transition-colors hover:text-ink"
-        >
-          {t('signOut')}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onSignOut}
+        className="inline-flex min-h-11 items-center gap-2 text-sm text-ink-soft transition-colors hover:text-ink"
+      >
+        <LogOut aria-hidden="true" className="h-4 w-4" />
+        {t('signOut')}
+      </button>
     );
   }
 

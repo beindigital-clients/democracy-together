@@ -1,0 +1,20 @@
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import { getTranslations } from 'next-intl/server';
+
+// Page title of this member screen (RGAA 8.6): its own name, completed by the
+// member-area template (`espace-membre/layout.tsx`). The page is a client
+// component and cannot declare it itself.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'toolbox' });
+  return { title: t('myLearningTitle') };
+}
+
+export default function LearningLayout({ children }: { children: ReactNode }) {
+  return children;
+}

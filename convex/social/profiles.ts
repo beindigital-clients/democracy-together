@@ -530,6 +530,89 @@ export const relationship = query({
   },
 });
 
+// --- Contributions shown on a profile page -----------------------------------
+
+// What a person has PUBLISHED on the platform, for their profile page: their
+// library publications and their Tribune posts, most recent first.
+//
+// Same door as the page itself: `null` when the reader may not see the
+// profile — exactly the answer for a handle that does not exist. Only
+// published items leave; a draft, a submission under review or a rejected
+// post stays between its author and the moderation. What is listed is
+// already public on its own page (titles are not gated, even for
+// members-only publications: gating hides the content, not the existence,
+// as in the library listing).
+const CONTRIBUTIONS_MAX = 6;
+// Rows read per source to find that many published items: a person's
+// drafts and rejected posts are skipped, within a bounded read.
+const CONTRIBUTIONS_SCAN = 40;
+
+export const contributionsValidator = v.object({
+  publications: v.array(
+    v.object({
+      title: v.string(),
+      slug: v.string(),
+      type: v.string(),
+      publishedAt: v.number(),
+    }),
+  ),
+  tribune: v.array(
+    v.object({
+      _id: v.id('tribunePosts'),
+      title: v.string(),
+      format: v.union(v.literal('court'), v.literal('fond')),
+      createdAt: v.number(),
+    }),
+  ),
+});
+
+export const contributions = query({
+  args: { handle: v.string() },
+  returns: v.union(contributionsValidator, v.null()),
+  handler: async (ctx, { handle }) => {
+    const normalized = normalizeHandle(handle);
+    if (!isValidHandle(normalized)) return null;
+    const p = await profileByHandle(ctx, normalized);
+    if (!p) return null;
+    const viewer = await loadViewer(ctx);
+    if (!(await viewerCanSee(ctx, viewer, p))) return null;
+
+    const pubs = await ctx.db
+      .query('publications')
+      .withIndex('by_author', (q) => q.eq('authorUserId', p.userId))
+      .order('desc')
+      .take(CONTRIBUTIONS_SCAN);
+    const posts = await ctx.db
+      .query('tribunePosts')
+      .withIndex('by_author', (q) => q.eq('authorUserId', p.userId))
+      .order('desc')
+      .take(CONTRIBUTIONS_SCAN);
+
+    return {
+      publications: pubs
+        .filter((pub) => pub.status === 'published')
+        .sort((a, b) => b.publishedAt - a.publishedAt)
+        .slice(0, CONTRIBUTIONS_MAX)
+        .map((pub) => ({
+          title: pub.title,
+          slug: pub.slug,
+          type: pub.type,
+          publishedAt: pub.publishedAt,
+        })),
+      tribune: posts
+        .filter((post) => post.status === 'published')
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, CONTRIBUTIONS_MAX)
+        .map((post) => ({
+          _id: post._id,
+          title: post.title,
+          format: post.format,
+          createdAt: post.createdAt,
+        })),
+    };
+  },
+});
+
 // --- People directory (signed-in members) --------------------------------
 
 // Maximum number of candidate rows read for a directory page. The

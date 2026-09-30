@@ -159,7 +159,7 @@ const CONNECTEES: Capture[] = [
     chemin: '/fr/espace-membre',
     etat: 'connecte',
     regarder:
-      'Tableau « Mes contributions » et pastilles de statut : ce sont des couleurs posées en color-mix, à revoir en sombre.',
+      'Coquille de l’espace membre (colonne de navigation, repliée en menu sur mobile) et tableau de bord : en-tête de bienvenue, bloc Administration, complétude du profil, chiffres, publications et pastilles de statut (couleurs en color-mix, à revoir en sombre).',
   },
   {
     id: 'admin',

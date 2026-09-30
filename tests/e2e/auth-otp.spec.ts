@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getOtp, provisionUser } from './_helpers';
+import { getOtp, menuCompte, provisionUser } from './_helpers';
 
 // Passwordless sign-in with a one-time code. (F-01)
 //
@@ -27,7 +27,7 @@ test('connexion par code (passwordless) sur un compte existant', async ({
   await page.getByRole('button', { name: 'Se connecter' }).click();
 
   await expect(page).toHaveURL(/\/espace-membre$/);
-  await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
+  await expect(menuCompte(page)).toBeVisible({
     timeout: 15_000,
   });
 });

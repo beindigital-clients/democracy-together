@@ -3,7 +3,7 @@ import { isAuthenticatedNextjs } from '@convex-dev/auth/nextjs/server';
 import { Link } from '@/i18n/navigation';
 import { Logo } from './logo';
 import { LocaleSwitcher } from './locale-switcher';
-import { AuthButton } from './auth-button';
+import { AccountMenu } from './account-menu';
 import { JoinButton } from './join-button';
 import { NotificationBell } from './notification-bell';
 import { MessagesBadge } from './messages-badge';
@@ -24,7 +24,7 @@ const NAV = [
 // ASYNC COMPONENT, and this is the heart of the F-13 fix. The
 // authentication state is read HERE, at SERVER render, then passed to the
 // three client islands that used to change width along the way
-// (`NotificationBell`, `AuthButton`, `JoinButton`). The served HTML thus
+// (`NotificationBell`, `AccountMenu`, `JoinButton`). The served HTML thus
 // already carries the FINAL layout: no more cluster growing or shrinking a
 // second after the first render, so no more taps landing off target.
 //
@@ -64,8 +64,10 @@ export async function SiteHeader() {
                 other place on desktop, is ~5,900 px away (cross-cutting A-8). */}
             <LocaleSwitcher withTheme />
             <MessagesBadge connecteAuRendu={connecte} />
-            <NotificationBell connecteAuRendu={connecte} />
-            <AuthButton connecteAuRendu={connecte} />
+            <NotificationBell connecteAuRendu={connecte} variant="popover" />
+            {/* Signed in: the account menu (photo, space, settings, sign
+                out). Signed out: the "Connexion" link, then "Rejoindre". */}
+            <AccountMenu connecteAuRendu={connecte} />
             <JoinButton connecteAuRendu={connecte} />
           </div>
           <MobileNav items={NAV} connecteAuRendu={connecte} />

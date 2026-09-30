@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { getOtp, provisionUser } from './_helpers';
+import { getOtp, menuCompte, provisionUser, seDeconnecter } from './_helpers';
 import { base32Decode, hotp, timeStep } from '../../convex/lib/totp';
 
 // TWO-FACTOR AUTHENTICATION ("comptes" workstream) — end to end, through
@@ -84,11 +84,8 @@ test('un membre active la 2FA ; à la connexion suivante, le code est demandé',
   ).toBeVisible();
 
   // 2. SIGN OUT, then sign in again with an email code.
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
-  await expect(page.getByRole('button', { name: 'Déconnexion' })).toHaveCount(
-    0,
-    { timeout: 15_000 },
-  );
+  await seDeconnecter(page);
+  await expect(menuCompte(page)).toHaveCount(0, { timeout: 15_000 });
   await signInWithOtp(page, email);
 
   // 3. The second factor is REQUIRED: the member area redirects to its entry,
