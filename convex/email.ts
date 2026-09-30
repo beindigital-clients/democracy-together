@@ -1,4 +1,5 @@
 import { otpEmail, type OtpPurpose } from './lib/emailContent';
+import { htmlToText } from './lib/emailLayout';
 import type { SiteLocale } from './lib/locales';
 
 // The type stays exported from here: `convex/otp.ts` imports it, and moving
@@ -36,12 +37,15 @@ export async function sendEmail({
   to,
   subject,
   html,
+  text,
   headers,
   idempotencyKey,
 }: {
   to: string;
   subject: string;
   html: string;
+  // Plain-text part; derived from the HTML when absent (see htmlToText).
+  text?: string;
   // Additional headers (campaign List-Unsubscribe, F-65).
   headers?: Record<string, string>;
   // Provider idempotency key: a send retried with the same key does not
@@ -84,6 +88,7 @@ export async function sendEmail({
         to: [to],
         subject,
         html,
+        text: text ?? htmlToText(html),
         ...(headers ? { headers } : {}),
       }),
     });
@@ -176,6 +181,7 @@ export async function sendEmailBatch(
             to: [m.to],
             subject: m.subject,
             html: m.html,
+            text: htmlToText(m.html),
             ...(m.headers ? { headers: m.headers } : {}),
           })),
         ),

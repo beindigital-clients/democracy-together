@@ -101,6 +101,24 @@ describe('Adaptateur e-mail — branche Resend', () => {
     await expect(sendEmail(MAIL)).rejects.toThrow(/429/);
   });
 
+  it('joint une version texte, tirée du HTML quand l’appelant n’en donne pas', async () => {
+    process.env.AUTH_RESEND_KEY = 're_test';
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await sendEmail({
+      ...MAIL,
+      html: '<p>Bonjour,</p><p><a href="https://exemple.test/fr">Se connecter</a></p>',
+    });
+    await sendEmail({ ...MAIL, text: 'Texte fourni.' });
+    const bodies = (
+      fetchMock.mock.calls as unknown as [string, { body: string }][]
+    ).map(([, init]) => JSON.parse(init.body));
+    expect(bodies[0].text).toBe(
+      'Bonjour,\n\nSe connecter (https://exemple.test/fr)',
+    );
+    expect(bodies[1].text).toBe('Texte fourni.');
+  });
+
   it('AUTH_DEV_OTP ne court-circuite PAS un fournisseur configuré', async () => {
     // The no-op must apply only when there is no provider: if a key
     // exists, we really send, even in dev.
