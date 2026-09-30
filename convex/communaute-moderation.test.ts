@@ -473,8 +473,15 @@ async function setAi(
 describe('Pré-tri par l’IA — le modèle propose, un humain décide', () => {
   beforeEach(() => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'vck_test');
+    // As in the history tests below: `createPost` schedules its own AI review,
+    // and each test runs that review itself, once the gateway is mocked. On a
+    // real `setTimeout` the scheduled copy ran after the test, with the key and
+    // the mock gone, and logged its failure outside any test. Faking
+    // `setTimeout` alone keeps it parked; `Date` stays real.
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });

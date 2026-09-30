@@ -29,8 +29,14 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-// Without a provider, `sendEmail` only simulates in development mode.
-beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
+// Without a provider, `sendEmail` only simulates in development mode. Fake
+// timers hold the scheduled notices until the test drains them: on real timers
+// they were sent after the test, once `afterEach` had removed AUTH_DEV_OTP, and
+// logged that failure outside any test.
+beforeEach(() => {
+  vi.stubEnv('AUTH_DEV_OTP', 'true');
+  vi.useFakeTimers();
+});
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.useRealTimers();
@@ -77,6 +83,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
         locale: 'en',
       },
     ]);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('connexion par code, compte existant : rien, son code est parti', async () => {
@@ -100,6 +107,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
     expect(await notices(t)).toMatchObject([
       { kind: 'noAccount', purpose: 'reset' },
     ]);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('mot de passe oublié, membre invité sans mot de passe : « pas encore de mot de passe »', async () => {
@@ -113,6 +121,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
     expect(await notices(t)).toMatchObject([
       { email: 'invitee@institut-sahel.org', kind: 'noPassword' },
     ]);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('mot de passe oublié, compte avec mot de passe : rien, le code est parti', async () => {
@@ -147,6 +156,7 @@ describe('L’appelant n’apprend rien', () => {
       );
     }
     expect(answers).toEqual([null, null, null, null]);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('au-delà du plafond, toujours null : le refus reste muet', async () => {
@@ -160,6 +170,7 @@ describe('L’appelant n’apprend rien', () => {
         }),
       ).toBeNull();
     }
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 });
 
@@ -193,10 +204,10 @@ describe('Pas de canon à e-mails', () => {
       });
     }
     expect(await notices(t)).toHaveLength(NOTICE_LIMITS.perAddress.max);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
   it('l’avis planifié part vers l’adresse, dans sa langue', async () => {
-    vi.useFakeTimers();
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const t = convexTest(schema, modules);
     await t.mutation(api.accountNotices.requestNotice, {
