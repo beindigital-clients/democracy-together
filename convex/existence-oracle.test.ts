@@ -30,7 +30,28 @@ const modules = import.meta.glob([
 // a targeted check — "is this person registered with you?" —
 // which only takes a single call.
 
-afterEach(() => {
+// A newsletter sign-up schedules its confirmation with `runAfter(0)`.
+// Left alone, it runs once the test lets go of the event loop, after the
+// test has ended, and a log landing during the file's teardown fails the
+// whole Vitest run (see convex/newsletter.test.ts). Each instance is
+// drained before its test ends, before the environment is unstubbed.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+async function drainScheduled() {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+afterEach(async () => {
+  await drainScheduled();
   vi.unstubAllEnvs();
 });
 
@@ -44,7 +65,7 @@ function harnais() {
   // can go out. Without a provider, the property tested here
   // would not be reached.
   vi.stubEnv('AUTH_DEV_OTP', 'true');
-  return convexTest(schema, modules);
+  return newConvexTest();
 }
 
 // Registrations and reminders are validated against the events table

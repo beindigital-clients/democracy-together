@@ -29,6 +29,26 @@ const PAYMENT_ENV = [
   'RECAPTCHA_DISABLED',
 ];
 
+// A settled payment schedules its receipt PDF with `runAfter(0)`.
+// Left alone, it runs once the test lets go of the event loop, after the
+// test has ended, and a log landing during the file's teardown fails the
+// whole Vitest run (see convex/newsletter.test.ts). Each instance is
+// drained before its test ends, before the environment is unstubbed.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+async function drainScheduled() {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 // The whole suite runs with the fake provider ACTIVE: it is what plays
 // the signed webhook, as in E2E.
 beforeEach(() => {
@@ -38,9 +58,9 @@ beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await drainScheduled();
   vi.unstubAllEnvs();
-  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -87,7 +107,7 @@ async function donate(
 describe('Reçus — numérotation continue', () => {
   it('numéros consécutifs, sans trou, même quand un paiement est rejeté entre deux', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await donate(t, { email: 'a@exemple.org' });
     await donate(t, { email: 'b@exemple.org' });
 
@@ -140,7 +160,7 @@ describe('Reçus — numérotation continue', () => {
   });
 
   it('la série repart à 1 au changement d’année', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const mk = async (ref: string, paidAt: number) => {
       await t.run((ctx) =>
         ctx.db.insert('paymentCheckouts', {
@@ -189,7 +209,7 @@ describe('Reçus — numérotation continue', () => {
 describe('Reçus — PDF et accès', () => {
   it('le PDF est produit, et seul son propriétaire (ou un admin) le télécharge', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const owner = await user(t, 'membre', 'proprio@exemple.org');
     const other = await user(t, 'membre', 'autre@exemple.org');
     const admin = await user(t, 'admin', 'admin@exemple.org');
@@ -265,7 +285,7 @@ describe('Reçus — PDF et accès', () => {
 describe('Cotisations (F-27) — barème et période', () => {
   it('le barème est réservé à l’admin ; la cotisation au membre ; le montant vient du barème', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await user(t, 'admin', 'admin@exemple.org');
     const membre = await user(t, 'membre', 'membre@exemple.org');
     const visiteur = await user(t, 'visiteur', 'visiteur@exemple.org');
@@ -374,7 +394,7 @@ describe('Cotisations (F-27) — barème et période', () => {
   });
 
   it('formule désactivée : PLAN_UNAVAILABLE', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await user(t, 'admin', 'admin@exemple.org');
     await admin.as.mutation(api.payments.plans.upsertPlan, {
       category: 'org',
@@ -397,7 +417,7 @@ describe('Cotisations (F-27) — barème et période', () => {
 describe('Back-office (F-31) — remboursement, export, journal', () => {
   it('remboursement marqué : admin seul, idempotent, audité, déduit du mois', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await user(t, 'admin', 'admin@exemple.org');
     const moderateur = await user(t, 'moderateur', 'mod@exemple.org');
     await donate(t);
@@ -479,7 +499,7 @@ describe('Back-office (F-31) — remboursement, export, journal', () => {
 
   it('remboursement chez le prestataire (factice) : exécuté puis inscrit', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await user(t, 'admin', 'admin@exemple.org');
     await donate(t);
     const [tx] = await t.run((ctx) =>
@@ -509,7 +529,7 @@ describe('Back-office (F-31) — remboursement, export, journal', () => {
 describe('Dons mensuels par relance (F-28, prestataire factice)', () => {
   it('échéance → lien envoyé → paiement → échéance suivante ; suspendu après trois relances sans suite', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const donor = await user(t, 'membre', 'mensuel@exemple.org');
     await donate(donor.as, {
       recurring: true,
@@ -582,7 +602,7 @@ describe('Dons mensuels par relance (F-28, prestataire factice)', () => {
 
   it('le donateur arrête son don ; un autre compte ne le peut pas', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const donor = await user(t, 'membre', 'mensuel@exemple.org');
     const other = await user(t, 'membre', 'autre@exemple.org');
     await donate(donor.as, { recurring: true, email: 'mensuel@exemple.org' });
@@ -613,7 +633,7 @@ describe('Dons mensuels par relance (F-28, prestataire factice)', () => {
 describe('Suppression de compte — deleteUserDataPaiements', () => {
   it('détache le compte des pièces comptables sans les supprimer, et arrête les dons mensuels', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const donor = await user(t, 'membre', 'parti@exemple.org');
     await donate(donor.as, { recurring: true, email: 'parti@exemple.org' });
     await t.finishAllScheduledFunctions(vi.runAllTimers);

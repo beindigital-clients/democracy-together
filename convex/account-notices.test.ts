@@ -29,11 +29,31 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
+// Every notice is scheduled with `runAfter(0)` and logs as it simulates.
+// Left alone, it runs once the test lets go of the event loop, after the
+// test has ended, and a log landing during the file's teardown fails the
+// whole Vitest run (see convex/newsletter.test.ts). Each instance is
+// drained before its test ends, before the environment is unstubbed.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+async function drainScheduled() {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 // Without a provider, `sendEmail` only simulates in development mode.
 beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
-afterEach(() => {
+afterEach(async () => {
+  await drainScheduled();
   vi.unstubAllEnvs();
-  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -63,7 +83,7 @@ async function member(t: T, email: string, withPassword: boolean) {
 
 describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
   it('connexion par code, adresse inconnue : « aucun compte », adresse normalisée', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(api.accountNotices.requestNotice, {
       email: '  Inconnue@Institut-Sahel.org ',
       purpose: 'signin',
@@ -80,7 +100,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
   });
 
   it('connexion par code, compte existant : rien, son code est parti', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await member(t, 'membre@institut-sahel.org', false);
     await t.mutation(api.accountNotices.requestNotice, {
       email: 'Membre@institut-sahel.org',
@@ -91,7 +111,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
   });
 
   it('mot de passe oublié, adresse inconnue : « aucun compte »', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(api.accountNotices.requestNotice, {
       email: 'inconnue@institut-sahel.org',
       purpose: 'reset',
@@ -103,7 +123,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
   });
 
   it('mot de passe oublié, membre invité sans mot de passe : « pas encore de mot de passe »', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await member(t, 'invitee@institut-sahel.org', false);
     await t.mutation(api.accountNotices.requestNotice, {
       email: 'invitee@institut-sahel.org',
@@ -116,7 +136,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
   });
 
   it('mot de passe oublié, compte avec mot de passe : rien, le code est parti', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await member(t, 'membre@institut-sahel.org', true);
     await t.mutation(api.accountNotices.requestNotice, {
       email: 'membre@institut-sahel.org',
@@ -129,7 +149,7 @@ describe('Le bon avis, à la bonne adresse, seulement sans code', () => {
 
 describe('L’appelant n’apprend rien', () => {
   it('la réponse est null quelle que soit l’adresse, sans jamais lever', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await member(t, 'membre@institut-sahel.org', true);
     const answers = [];
     for (const email of [
@@ -150,7 +170,7 @@ describe('L’appelant n’apprend rien', () => {
   });
 
   it('au-delà du plafond, toujours null : le refus reste muet', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     for (let i = 0; i <= NOTICE_LIMITS.perAddress.max; i++) {
       expect(
         await t.mutation(api.accountNotices.requestNotice, {
@@ -165,7 +185,7 @@ describe('L’appelant n’apprend rien', () => {
 
 describe('Pas de canon à e-mails', () => {
   it('les domaines réservés (tests, exemples) ne reçoivent jamais d’avis', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     for (const email of [
       'a@democracytogether.test',
       'b@example.com',
@@ -184,7 +204,7 @@ describe('Pas de canon à e-mails', () => {
   });
 
   it(`au plus ${NOTICE_LIMITS.perAddress.max} avis par adresse et par jour`, async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     for (let i = 0; i < NOTICE_LIMITS.perAddress.max + 2; i++) {
       await t.mutation(api.accountNotices.requestNotice, {
         email: 'inconnue@institut-sahel.org',
@@ -198,7 +218,7 @@ describe('Pas de canon à e-mails', () => {
   it('l’avis planifié part vers l’adresse, dans sa langue', async () => {
     vi.useFakeTimers();
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(api.accountNotices.requestNotice, {
       email: 'inconnue@institut-sahel.org',
       purpose: 'reset',

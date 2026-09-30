@@ -27,8 +27,28 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-afterEach(() => {
-  vi.useRealTimers();
+// A sign-up schedules its confirmation with `runAfter(0)`.
+// Left alone, it runs once the test lets go of the event loop, after the
+// test has ended, and a log landing during the file's teardown fails the
+// whole Vitest run (see convex/newsletter.test.ts). Each instance is
+// drained before its test ends, before the environment is unstubbed.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+async function drainScheduled() {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+afterEach(async () => {
+  await drainScheduled();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -76,7 +96,7 @@ describe('Double opt-in — inscription et confirmation', () => {
   it('crée une ATTENTE, envoie le lien, et ne stocke que l’empreinte du jeton', async () => {
     vi.useFakeTimers();
     const sent = resendCapture('awa@example.org');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
 
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'Awa@Example.org',
@@ -139,7 +159,7 @@ describe('Double opt-in — inscription et confirmation', () => {
   });
 
   it('refuse un jeton EXPIRÉ, sans confirmer', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const token = 'a'.repeat(64);
     const hash = await hashToken(token);
     await t.run((ctx) =>
@@ -160,7 +180,7 @@ describe('Double opt-in — inscription et confirmation', () => {
   });
 
   it('refuse un jeton inventé ou mal formé, sans rien toucher', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run((ctx) =>
       ctx.db.insert('newsletterSubscriptions', {
         email: 'temoin@dt.test',
@@ -182,7 +202,7 @@ describe('Double opt-in — inscription et confirmation', () => {
   it('un nouveau lien REMPLACE le précédent : seul le dernier confirme', async () => {
     vi.useFakeTimers();
     const sent = resendCapture('deux@dt.test');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'deux@dt.test',
     });
@@ -208,7 +228,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
   it('se réinscrire en attente renvoie le lien, au plus 3 fois, jamais deux fois en 10 min', async () => {
     vi.useFakeTimers();
     const sent = resendCapture('insiste@dt.test');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const inscrire = () =>
       t.mutation(internal.newsletter.recordSubscription, {
         email: 'insiste@dt.test',
@@ -235,7 +255,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
   it('un abonné CONFIRMÉ qui se réinscrit ne reçoit rien et reste confirmé', async () => {
     vi.useFakeTimers();
     const sent = resendCapture('fidele@dt.test');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run((ctx) =>
       ctx.db.insert('newsletterSubscriptions', {
         email: 'fidele@dt.test',
@@ -257,7 +277,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
     vi.stubEnv('RECAPTCHA_DISABLED', 'true');
     vi.stubEnv('AUTH_DEV_OTP', 'true');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run((ctx) =>
       ctx.db.insert('newsletterSubscriptions', {
         email: 'confirme@dt.test',
@@ -283,7 +303,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
   it('sans fournisseur (production), l’inscription est REFUSÉE — pour toute adresse', async () => {
     vi.stubEnv('RECAPTCHA_SECRET_KEY', '');
     vi.stubEnv('RECAPTCHA_DISABLED', 'true');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await expect(
       t.action(api.newsletter.subscribe, {
         email: 'x@dt.test',
@@ -294,7 +314,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
   });
 
   it('la source déclarée « legacy » par un client est ramenée à « other »', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'ruse@dt.test',
       source: 'legacy',
@@ -305,7 +325,7 @@ describe('Double opt-in — renvoi borné et réinscriptions', () => {
 
 describe('Double opt-in — purge et oracles de développement', () => {
   it('purge les attentes EXPIRÉES, garde les confirmés et les attentes en cours', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run(async (ctx) => {
       await ctx.db.insert('newsletterSubscriptions', {
         email: 'expiree@dt.test',
@@ -338,7 +358,7 @@ describe('Double opt-in — purge et oracles de développement', () => {
     vi.useFakeTimers();
     vi.stubEnv('AUTH_DEV_OTP', 'true');
     vi.stubEnv('SITE_URL', 'https://dt.test');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.mutation(internal.newsletter.recordSubscription, {
       email: 'e2e@dt.test',
       locale: 'ar',
@@ -375,7 +395,7 @@ describe('Double opt-in — purge et oracles de développement', () => {
 
 describe('Migration des abonnés hérités', () => {
   it('les relance (attente de 30 jours, source « legacy ») et refuse sans fournisseur', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run((ctx) =>
       ctx.db.insert('newsletterSubscriptions', {
         email: 'ancien@dt.test',
@@ -409,7 +429,7 @@ describe('Migration des abonnés hérités', () => {
 
 describe('Back-office — liste des abonnés', () => {
   it('réservée aux éditeurs ; montre le statut et la preuve, jamais de jeton', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await t.run((ctx) =>
       ctx.db.insert('newsletterSubscriptions', {
         email: 'vu@dt.test',

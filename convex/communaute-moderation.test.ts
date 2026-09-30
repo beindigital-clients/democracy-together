@@ -27,6 +27,28 @@ const modules = import.meta.glob([
 // The default mode is PRE-MODERATION for posts: this file configures nothing
 // before publishing, and that is precisely what it checks.
 
+// Every post schedules its AI review with `runAfter(0)`. Left alone, the
+// review runs once the test lets go of the event loop, after the test has
+// ended, and a log landing during the file's teardown fails the whole Vitest
+// run (see convex/newsletter.test.ts). Each instance is drained before its
+// test ends: a `describe` that stubs `fetch` or the environment drains in its
+// own `afterEach`, which runs before the file's, so that the review still
+// sees its stubs.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+async function drainScheduled() {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 type T = ReturnType<typeof convexTest>;
 
 async function user(
@@ -67,7 +89,7 @@ async function expectCode(p: Promise<unknown>, expected: string) {
 }
 
 async function setup() {
-  const t = convexTest(schema, modules);
+  const t = newConvexTest();
   const author = await user(t, 'auteur@test.org', 'membre', 'Awa Diop');
   const other = await user(t, 'autre@test.org', 'membre', 'Bakary');
   const mod = await user(t, 'mod@test.org', 'moderateur', 'Modératrice');
@@ -86,6 +108,8 @@ async function approve(
     decision: 'approve',
   });
 }
+
+afterEach(drainScheduled);
 
 describe('Modération a priori — un billet soumis attend la décision (F-45)', () => {
   it('le billet en attente est invisible du public et visible de son auteur', async () => {
@@ -474,7 +498,8 @@ describe('Pré-tri par l’IA — le modèle propose, un humain décide', () => 
   beforeEach(() => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'vck_test');
   });
-  afterEach(() => {
+  afterEach(async () => {
+    await drainScheduled();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
@@ -936,7 +961,7 @@ describe('Données d’un compte — suppression et export (chantier communauté
   });
 
   it('le dernier membre parti, l’espace disparaît avec ses notes', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const solo = await user(t, 'solo@test.org', 'membre', 'Solo');
     const wsId = await solo.as.mutation(api.workspaces.createWorkspace, {
       title: 'Espace solitaire',
@@ -957,7 +982,10 @@ describe('Données d’un compte — suppression et export (chantier communauté
 });
 
 describe('Aide E2E — validation de billets de test (garde AUTH_DEV_OTP)', () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(async () => {
+    await drainScheduled();
+    vi.unstubAllEnvs();
+  });
 
   it('refuse hors développement, valide par marqueur en développement', async () => {
     const { t, author } = await setup();

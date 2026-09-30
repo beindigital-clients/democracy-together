@@ -20,10 +20,33 @@ const modules = import.meta.glob([
 type T = ReturnType<typeof convexTest>;
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
+// An invitation schedules its welcome e-mail with `runAfter(0)`.
+// Left alone, it runs once the test lets go of the event loop, after the
+// test has ended, and a log landing during the file's teardown fails the
+// whole Vitest run (see convex/newsletter.test.ts). Each instance is
+// drained before its test ends, before the environment is unstubbed.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+async function drainScheduled() {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 // The invitation schedules a welcome email: in development mode it is
 // logged instead of failing for lack of a provider.
 beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
-afterEach(() => vi.unstubAllEnvs());
+afterEach(async () => {
+  await drainScheduled();
+  vi.unstubAllEnvs();
+});
 
 async function user(t: T, email: string, role: Role, name?: string) {
   const id = await t.run((ctx) =>
@@ -80,7 +103,7 @@ const FIELDS = {
 
 describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () => {
   it('refuse un simple membre, un responsable d’une AUTRE organisation, et un modérateur', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgA = await org(t, 'a');
     const orgB = await org(t, 'b');
     const owner = await user(t, 'owner@a.org', 'membre');
@@ -136,7 +159,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
   });
 
   it('valide les champs comme l’annuaire (site web, région)', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre');
     await attach(t, orgA, owner.id, 'owner');
@@ -155,7 +178,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
   });
 
   it('publie une fiche « à compléter » à l’approbation de sa première révision', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgP = await org(t, 'p', 'pending');
     const owner = await user(t, 'owner@p.org', 'membre');
     const mod = await user(t, 'mod@test.org', 'moderateur');
@@ -177,7 +200,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
   });
 
   it('refuse un logo qui n’est pas passé par la vérification de contenu', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre');
     await attach(t, orgA, owner.id, 'owner');
@@ -198,7 +221,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
   });
 
   it('accepte un PNG vérifié', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre');
     await attach(t, orgA, owner.id, 'owner');
@@ -219,7 +242,7 @@ describe('Fiche d’organisation — seul le responsable l’édite (F-21)', () 
 
 describe('Rattachements', () => {
   it('le responsable invite un collègue ; jamais le dernier responsable retiré', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre');
     await attach(t, orgA, owner.id, 'owner');
@@ -281,7 +304,7 @@ describe('Rattachements', () => {
   });
 
   it('un simple membre ne voit pas les adresses de ses collègues', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre');
     const member = await user(t, 'member@a.org', 'membre');
@@ -301,7 +324,7 @@ describe('Rattachements', () => {
 
 describe('Organisation ↔ publications ↔ fiche publique', () => {
   it('un dépôt porte l’organisation, que la fiche liste une fois publié', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre', 'Awa Diop');
     const mod = await user(t, 'mod@test.org', 'moderateur');
@@ -340,7 +363,7 @@ describe('Organisation ↔ publications ↔ fiche publique', () => {
   });
 
   it('une organisation non active n’a pas de fiche publique', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await org(t, 'p', 'pending');
     expect(await t.query(api.orgAdmin.publicDetails, { slug: 'p' })).toBe(null);
   });

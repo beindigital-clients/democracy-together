@@ -45,17 +45,37 @@ async function account(
   };
 }
 
+// Invitations and deletions schedule e-mails with `runAfter(0)`.
+// Left alone, it runs once the test lets go of the event loop, after the
+// test has ended, and a log landing during the file's teardown fails the
+// whole Vitest run (see convex/newsletter.test.ts). Each instance is
+// drained before its test ends, before the environment is unstubbed.
+const drains: (() => Promise<void>)[] = [];
+function newConvexTest() {
+  const t = convexTest(schema, modules);
+  drains.push(() => t.finishAllScheduledFunctions(vi.runAllTimers));
+  return t;
+}
+async function drainScheduled() {
+  vi.useFakeTimers();
+  try {
+    for (const drain of drains.splice(0)) await drain();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 // Scheduled emails (welcome, code) are logged in development
 // mode instead of failing for lack of a provider.
 beforeEach(() => vi.stubEnv('AUTH_DEV_OTP', 'true'));
-afterEach(() => {
+afterEach(async () => {
+  await drainScheduled();
   vi.unstubAllEnvs();
-  vi.useRealTimers();
 });
 
 describe('Suspension (F-63)', () => {
   it('bloque TOUTES les gardes et supprime les sessions', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, 'admin@test.org', 'admin');
     const mod = await account(t, 'mod@test.org', 'moderateur');
 
@@ -142,7 +162,7 @@ describe('Suspension (F-63)', () => {
   });
 
   it('refuse un non-administrateur et sa propre suspension', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, 'admin@test.org', 'admin');
     const mod = await account(t, 'mod@test.org', 'moderateur');
     await expect(
@@ -162,7 +182,7 @@ describe('Suspension (F-63)', () => {
 
 describe('Dernier administrateur', () => {
   it('ne peut être ni suspendu ni supprimé — un administrateur suspendu ne compte pas', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const a1 = await account(t, 'a1@test.org', 'admin');
     const a2 = await account(t, 'a2@test.org', 'admin');
     const a3 = await account(t, 'a3@test.org', 'admin');
@@ -200,7 +220,7 @@ describe('Dernier administrateur', () => {
 
   it('refuse la suppression du dernier administrateur, même en libre-service', async () => {
     vi.stubEnv('AUTH_DEV_OTP', 'true');
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const only = await account(t, 'seul@test.org', 'admin');
     await only.as.action(api.accounts.requestAccountDeletion, {});
     const code = await t.run(async (ctx) => {
@@ -221,7 +241,7 @@ describe('Dernier administrateur', () => {
 describe('Suppression par un administrateur', () => {
   it('exige de retaper l’adresse, puis efface, désattribue et journalise', async () => {
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, 'admin@test.org', 'admin');
     const victim = await account(t, 'membre@test.org', 'membre');
 
@@ -356,7 +376,7 @@ describe('Suppression par un administrateur', () => {
   });
 
   it('refuse sa propre suppression par le back-office et un non-admin', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, 'admin@test.org', 'admin');
     const mod = await account(t, 'mod@test.org', 'moderateur');
     await expect(
@@ -376,7 +396,7 @@ describe('Suppression par un administrateur', () => {
 
 describe('Export de ses données (RGPD art. 15/20)', () => {
   it('ne contient QUE les données du compte appelant', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const a = await account(t, 'a@test.org', 'membre');
     const b = await account(t, 'b@test.org', 'membre');
     await t.run(async (ctx) => {
@@ -432,7 +452,7 @@ describe('Export de ses données (RGPD art. 15/20)', () => {
   });
 
   it('refuse un visiteur anonyme', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await expect(t.query(api.accounts.exportMyData, {})).rejects.toThrow();
   });
 });
@@ -441,7 +461,7 @@ describe('Suppression en libre-service (code par e-mail)', () => {
   it('exige le code envoyé, compte les essais, puis supprime', async () => {
     vi.stubEnv('AUTH_DEV_OTP', 'true');
     vi.useFakeTimers();
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     await account(t, 'admin@test.org', 'admin');
     const me = await account(t, 'moi@test.org', 'membre');
 
@@ -482,7 +502,7 @@ describe('Suppression en libre-service (code par e-mail)', () => {
 
 describe('Création directe par un administrateur', () => {
   it('crée le compte, le rattache à une organisation et planifie l’accueil', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, 'admin@test.org', 'admin');
     const orgId = await t.run((ctx) =>
       ctx.db.insert('organizations', {
@@ -534,7 +554,7 @@ describe('Création directe par un administrateur', () => {
   });
 
   it('refuse un non-administrateur et une adresse invalide', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, 'admin@test.org', 'admin');
     const mod = await account(t, 'mod@test.org', 'moderateur');
     await expect(
@@ -554,7 +574,7 @@ describe('Création directe par un administrateur', () => {
 
 describe('Garde interne', () => {
   it('selfForAction refuse un compte suspendu', async () => {
-    const t = convexTest(schema, modules);
+    const t = newConvexTest();
     const admin = await account(t, 'admin@test.org', 'admin');
     const m = await account(t, 'm@test.org', 'membre');
     await admin.as.mutation(api.accounts.suspendAccount, {
