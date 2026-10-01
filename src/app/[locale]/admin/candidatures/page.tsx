@@ -15,6 +15,7 @@ import {
   type DirectoryDraft,
 } from '@/components/admin/directory-fields';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   useActionFeedback,
   useFailureFeedback,
@@ -473,23 +474,22 @@ export default function AdminApplications() {
     <div>
       <h1 className="font-display text-3xl">{t('applications')}</h1>
 
-      <div className="mt-5 flex gap-2">
+      <ToggleGroup
+        type="single"
+        size="sm"
+        value={filter}
+        onValueChange={(v) => {
+          if (v === 'pending' || v === 'all') setFilter(v);
+        }}
+        aria-label={t('filterStatusLabel')}
+        className="mt-5"
+      >
         {(['pending', 'all'] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            aria-pressed={filter === f}
-            className={`rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors ${
-              filter === f
-                ? 'border-accent-edge bg-accent-tint text-accent-text'
-                : 'border-line bg-surface-2 text-ink-soft hover:text-ink'
-            }`}
-          >
+          <ToggleGroupItem key={f} value={f}>
             {t(f === 'pending' ? 'filterPending' : 'filterAll')}
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
 
       <AdminSearch
         label={t('searchApplicationsLabel')}

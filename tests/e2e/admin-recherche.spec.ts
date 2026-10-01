@@ -242,7 +242,7 @@ test.describe('recherche des listes (session dédiée)', () => {
       .or(page.getByText('Aucune publication à modérer.'));
     await expect(settled).toBeVisible();
 
-    await page.getByRole('button', { name: 'Toutes' }).click();
+    await page.getByRole('radio', { name: 'Toutes' }).click();
     await expect(settled).toBeVisible();
 
     await search(page, 'Rechercher une publication', 'zzz-aucun-titre');

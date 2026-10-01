@@ -19,6 +19,7 @@ import { formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // MANAGING ONE'S ORGANIZATION (F-21, accounts workstream).
 //
@@ -608,23 +609,23 @@ function Manager(labels: Labels) {
       ) : (
         <>
           {mine.length > 1 ? (
-            <div
-              role="group"
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={current ?? ''}
+              onValueChange={(v) => {
+                const next = mine.find((o) => o.orgId === v);
+                if (next) setSelected(next.orgId);
+              }}
               aria-label={t('title')}
-              className="mt-4 flex flex-wrap gap-2"
+              className="mt-4"
             >
               {mine.map((o) => (
-                <Button
-                  key={o.orgId}
-                  size="sm"
-                  variant={o.orgId === current ? 'default' : 'outline'}
-                  aria-pressed={o.orgId === current}
-                  onClick={() => setSelected(o.orgId)}
-                >
+                <ToggleGroupItem key={o.orgId} value={o.orgId}>
                   {o.name}
-                </Button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
           ) : null}
           {current ? (
             <OrgPanel key={current} orgId={current} labels={labels} />

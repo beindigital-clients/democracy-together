@@ -8,6 +8,7 @@ import { api } from '@convex/_generated/api';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   MemberPageBody,
   MemberPageHeader,
@@ -18,7 +19,6 @@ import {
   type Notif,
 } from '@/components/notifications/notification-row';
 import { useNow } from '@/hooks/use-now';
-import { cn } from '@/lib/utils';
 
 type Filter = 'all' | 'unread';
 
@@ -37,22 +37,6 @@ function NotificationsScreen() {
   const unread = items?.filter((n) => !n.read).length ?? 0;
   const shown = filter === 'unread' ? items?.filter((n) => !n.read) : items;
 
-  const tab = (value: Filter, label: string) => (
-    <button
-      type="button"
-      aria-pressed={filter === value}
-      onClick={() => setFilter(value)}
-      className={cn(
-        'min-h-10 rounded-pill px-4 text-sm transition-colors',
-        filter === value
-          ? 'bg-accent-tint font-medium text-accent-text'
-          : 'text-ink-soft hover:bg-surface-2 hover:text-ink',
-      )}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <>
       <MemberPageHeader
@@ -67,14 +51,19 @@ function NotificationsScreen() {
         }
       />
       <MemberPageBody narrow>
-        <div
-          role="group"
+        <ToggleGroup
+          type="single"
+          value={filter}
+          onValueChange={(v) => {
+            if (v === 'all' || v === 'unread') setFilter(v);
+          }}
           aria-label={t('filterLabel')}
-          className="inline-flex gap-1 rounded-pill border border-line bg-surface p-1"
         >
-          {tab('all', t('filterAll'))}
-          {tab('unread', t('filterUnread', { count: unread }))}
-        </div>
+          <ToggleGroupItem value="all">{t('filterAll')}</ToggleGroupItem>
+          <ToggleGroupItem value="unread">
+            {t('filterUnread', { count: unread })}
+          </ToggleGroupItem>
+        </ToggleGroup>
 
         {shown === undefined ? (
           <div aria-hidden="true" className="mt-6 space-y-2">

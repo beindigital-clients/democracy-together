@@ -31,6 +31,10 @@ import { ouvrirPanneau } from './_panneau';
 // label is an ENDONYM ("Español", not "Espagnol"), hence identical in
 // all five languages and usable as is; `lang` nevertheless remains the
 // shortest anchor, and the one that will not move if an endonym is corrected.
+// Since the menu became the shadcn `DropdownMenu` (Radix), an entry is a
+// `menuitemradio` element rather than a `<button>`: the anchor is the role
+// plus `lang`. The menu is rendered next to its button, not portalled to
+// <body>, so the scope below still holds.
 
 // THE SCOPE IS EXPLICIT because there are TWO switchers in the document.
 // The mobile menu mounts a second one when expanded, and the desktop cluster
@@ -58,7 +62,9 @@ export function choixLangue(
   locale: string,
   racine?: Locator,
 ): Locator {
-  return dans(page, racine).locator(`button[lang="${locale}"]`).first();
+  return dans(page, racine)
+    .locator(`[role="menuitemradio"][lang="${locale}"]`)
+    .first();
 }
 
 /**

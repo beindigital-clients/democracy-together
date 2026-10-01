@@ -6,6 +6,7 @@ import { feature } from 'topojson-client';
 
 import worldTopo from 'world-atlas/countries-110m.json';
 import type { RegionMapItem } from './types';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const LAND: any[] = (
@@ -366,30 +367,27 @@ export function RegionGlobe({
       </div>
       <div className="flex min-w-0 flex-col gap-4">
         {chips ? (
-          <div
-            role="group"
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={region}
+            onValueChange={(v) => {
+              const next = regions.find((r) => r === v);
+              if (next) setRegion(next);
+            }}
             aria-label={ariaLabel}
-            className="flex flex-wrap gap-2"
           >
-            {regions.map((r) => {
-              const active = region === r;
-              return (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setRegion(r)}
-                  className={`rounded-pill border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-                    active
-                      ? 'border-accent bg-accent text-accent-contrast'
-                      : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
-                  }`}
-                >
-                  {chips[r]}
-                </button>
-              );
-            })}
-          </div>
+            {regions.map((r) => (
+              <ToggleGroupItem
+                key={r}
+                value={r}
+                className="rounded-pill px-3.5 text-[13px]"
+              >
+                {chips[r]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         ) : null}
         <div
           aria-live="polite"

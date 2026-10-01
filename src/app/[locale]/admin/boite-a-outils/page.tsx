@@ -26,6 +26,7 @@ import {
   TextareaField,
 } from '@/components/ui/field';
 import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { uploadWithProgress } from '@/lib/upload';
@@ -45,8 +46,6 @@ type AdminPath = FunctionReturnType<typeof api.toolbox.adminListPaths>[number];
 export default function AdminToolbox() {
   const t = useTranslations('toolbox');
   const [tab, setTab] = useState<'resources' | 'paths'>('resources');
-  const tabClass = (on: boolean) =>
-    `min-h-11 rounded px-3 text-sm ${on ? 'bg-surface-2 text-ink' : 'text-ink-soft'}`;
   return (
     <div>
       <h1 className="font-display text-3xl">{t('adminTitle')}</h1>
@@ -58,28 +57,20 @@ export default function AdminToolbox() {
           {t('adminSeePublic')}
         </Link>
       </p>
-      <div
-        className="mt-4 flex flex-wrap gap-1 rounded-md border border-line p-0.5"
-        role="group"
+      <ToggleGroup
+        type="single"
+        value={tab}
+        onValueChange={(v) => {
+          if (v === 'resources' || v === 'paths') setTab(v);
+        }}
         aria-label={t('adminTitle')}
+        className="mt-4"
       >
-        <button
-          type="button"
-          aria-pressed={tab === 'resources'}
-          className={tabClass(tab === 'resources')}
-          onClick={() => setTab('resources')}
-        >
+        <ToggleGroupItem value="resources">
           {t('resourcesTitle')}
-        </button>
-        <button
-          type="button"
-          aria-pressed={tab === 'paths'}
-          className={tabClass(tab === 'paths')}
-          onClick={() => setTab('paths')}
-        >
-          {t('pathsTitle')}
-        </button>
-      </div>
+        </ToggleGroupItem>
+        <ToggleGroupItem value="paths">{t('pathsTitle')}</ToggleGroupItem>
+      </ToggleGroup>
       {tab === 'resources' ? <Resources /> : <Paths />}
     </div>
   );

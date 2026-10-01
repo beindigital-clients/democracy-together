@@ -62,8 +62,10 @@ function ficheDe(page: Page, sujet: string) {
   return page.getByRole('listitem').filter({ hasText: sujet });
 }
 
+// The filter is a radio group (shadcn ToggleGroup): each choice is a
+// `radio`, the current one `aria-checked`.
 function filtre(page: Page, nom: 'En attente' | 'Toutes') {
-  return page.getByRole('button', { name: nom, exact: true });
+  return page.getByRole('radio', { name: nom, exact: true });
 }
 
 test('admin/contact : un message public traverse la file jusqu’à « traité » (F-12)', async ({
@@ -91,7 +93,7 @@ test('admin/contact : un message public traverse la file jusqu’à « traité �
 
   // --- Under "En attente", the default filter -----------------------------
   await expect(filtre(page, 'En attente')).toHaveAttribute(
-    'aria-pressed',
+    'aria-checked',
     'true',
   );
 
@@ -125,9 +127,9 @@ test('admin/contact : un message public traverse la file jusqu’à « traité �
 
   // --- Under "Toutes", it is there, and marked --------------------------
   await filtre(page, 'Toutes').click();
-  await expect(filtre(page, 'Toutes')).toHaveAttribute('aria-pressed', 'true');
+  await expect(filtre(page, 'Toutes')).toHaveAttribute('aria-checked', 'true');
   await expect(filtre(page, 'En attente')).toHaveAttribute(
-    'aria-pressed',
+    'aria-checked',
     'false',
   );
 

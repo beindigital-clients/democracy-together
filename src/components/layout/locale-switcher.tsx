@@ -1,15 +1,24 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useConvexAuth, useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { useSearchParams } from 'next/navigation';
+import { Moon, Sun } from 'lucide-react';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { withSearchParams } from '@/i18n/href';
 import { routing, type Locale } from '@/i18n/routing';
 import { LOCALE_ENDONYMS, direction, localeBadge } from '@/i18n/direction';
-import { Check, Moon, Sun } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useTheme, type Theme } from './theme-toggle';
 
 // Language switcher — a MENU, no longer a segmented toggle.
@@ -26,6 +35,13 @@ import { useTheme, type Theme } from './theme-toggle';
 // The menu keeps what made the row valuable: the current language
 // stays readable WITHOUT opening (it is on the button), and the choice stays
 // a single click away once open.
+//
+// THE MENU IS THE SHADCN `DropdownMenu` (Radix). It carries what this file
+// used to rewrite by hand in 200 lines: the arrows, Home/End and first-letter
+// typeahead, Escape returning focus to the button, the outside click, the
+// placement that flips at the edge of the screen. What stays here is the
+// site's own: the endonyms, the query string, the account preference, the
+// theme, and three details of the menu's opening listed below.
 //
 // THE LABELS ARE ENDONYMS — "Español", not "Espagnol". Someone
 // looking for their language in an interface they cannot read looks for the
@@ -76,277 +92,185 @@ export function LocaleSwitcher({
   // state, the menu closed and nothing visible happened during the
   // response time. The button therefore carries `aria-busy`.
   const [pending, startTransition] = useTransition();
-  const menuId = useId();
-  const root = useRef<HTMLDivElement>(null);
   // The preference follows the ACCOUNT, not just the tab: it is what the
   // transactional e-mails read, which are composed on the server long after
   // the visit (sign-in code, membership approval). The NEXT_LOCALE cookie
   // is of no help to them — they see no HTTP request.
   const { isAuthenticated } = useConvexAuth();
   const rememberLocale = useMutation(api.users.setPreferredLocale);
-  const items = useRef<(HTMLButtonElement | null)[]>([]);
   const [theme, setTheme] = useTheme();
-  const itemCount = routing.locales.length + (withTheme ? THEMES.length : 0);
   const label = withTheme ? t('languageAndDisplay') : t('language');
+  // THE MENU IS RENDERED INSIDE THIS COMPONENT, not portalled to <body>. In
+  // the mobile menu it must stay inside the panel: the panel loops the focus
+  // over what it CONTAINS, and the menu is measured against its bounds. The
+  // E2E journeys find it there too, next to its button (`_langue.ts`).
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
 
-  // Close on outside click. `pointerdown` rather than `click`: a `click`
-  // on a page link would navigate before the menu closes, and the menu
-  // would stay open on the next page.
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
+  // On opening, focus goes to the CURRENT language — it is the keyboard
+  // user's reference point, and the only position from which the arrows make
+  // sense. Radix would put it on the panel, or on the first entry from the
+  // keyboard. The panel's ref is the moment: it is set as the panel MOUNTS,
+  // before Radix's own autofocus, which leaves a focus already inside the
+  // panel alone. (An effect on `open` ran too early: Radix mounts the panel
+  // one render later.) Stable, so it only runs on mount, not on every render.
+  const focusCurrent = useCallback((panel: HTMLDivElement | null) => {
+    panel
+      ?.querySelector<HTMLElement>(
+        '[role="menuitemradio"][aria-checked="true"]',
+      )
+      ?.focus({ preventScroll: true });
+  }, []);
 
-  // ESCAPE IS LISTENED TO ON THE COMPONENT'S ROOT, NOT ON `document`.
-  // This is a fix, not an implementation detail.
-  //
-  // The mobile menu (`mobile-nav.tsx`) also listens for Escape on `document`
-  // to close itself, and it CONTAINS a language switcher. As long as both
-  // listened in the same place, a single keypress closed the language menu AND
-  // the panel around it — measured: the panel went back to
-  // `aria-expanded="false"`. The expected rule is that of the ARIA APG "menu
-  // button" pattern: Escape closes the INNERMOST layer, and only that one.
-  //
-  // WHY NOT A REACT `onKeyDown` WITH `stopPropagation`. Tried, and to no
-  // effect: in the App Router, React hydrates the DOCUMENT, so its event
-  // delegation is attached to `document` — exactly where the mobile menu
-  // listens. And `stopPropagation` does NOT prevent other listeners on the SAME
-  // node from running. A native listener attached to the component's root, on
-  // the other hand, runs while the event bubbles up, STRICTLY before it reaches
-  // `document`: stopping it there makes it invisible to both.
-  useEffect(() => {
-    if (!open) return;
-    const node = root.current;
-    if (!node) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.stopPropagation();
-      setOpen(false);
-      // Focus MUST return to the trigger: otherwise, Escape leaves it on
-      // the <body> and the next tab press restarts from the top of the document.
-      node.querySelector('button')?.focus();
-    };
-    node.addEventListener('keydown', onKeyDown);
-    return () => node.removeEventListener('keydown', onKeyDown);
-  }, [open]);
-
-  // On opening, focus goes to the current language — it is the keyboard
-  // user's reference point, and the only position from which the arrows make sense.
-  useEffect(() => {
-    if (!open) return;
-    items.current[routing.locales.indexOf(active)]?.focus();
-  }, [open, active]);
-
-  function selectTheme(next: Theme) {
-    setOpen(false);
-    setTheme(next);
-    // The menu closes as after a language choice: focus returns to the
-    // trigger, otherwise it would land on the <body>.
-    root.current?.querySelector('button')?.focus();
-  }
-
-  function select(next: Locale) {
-    setOpen(false);
-    if (next === active) return;
+  function select(next: string) {
+    const locale = routing.locales.find((l) => l === next);
+    if (!locale || locale === active) return;
     // BEST EFFORT, NEVER BLOCKING. Navigation does not depend on this call: if
     // Convex does not respond, the visitor still changes language and the
     // server simply learns nothing. The reverse — waiting for the write before
     // navigating — would make a UI gesture pay for a network round trip.
     if (isAuthenticated) {
-      void rememberLocale({ locale: next }).catch(() => {
+      void rememberLocale({ locale }).catch(() => {
         /* the preference is a convenience, not a requirement */
       });
     }
     startTransition(() => {
       router.replace(withSearchParams(pathname, searchParams.toString()), {
-        locale: next,
+        locale,
       });
     });
   }
 
-  // Arrows, Home and End in the menu (ARIA APG "menu button" pattern).
-  // The menu is vertical: the UP/DOWN arrows do not depend on the writing
-  // direction, unlike LEFT/RIGHT, which are therefore not used here.
-  function onMenuKeyDown(event: React.KeyboardEvent, index: number) {
-    const last = itemCount - 1;
-    const go = (i: number) => {
-      event.preventDefault();
-      items.current[i]?.focus();
-    };
-    if (event.key === 'ArrowDown') go(index === last ? 0 : index + 1);
-    else if (event.key === 'ArrowUp') go(index === 0 ? last : index - 1);
-    else if (event.key === 'Home') go(0);
-    else if (event.key === 'End') go(last);
-  }
-
   return (
-    <div ref={root} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        aria-busy={pending}
-        className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-ink-soft transition-colors hover:text-ink"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          width="15"
-          height="15"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          aria-hidden="true"
+    <div ref={setRoot} className="relative">
+      {/* Not modal: no scroll lock and no hiding the rest of the page for a
+          short list of choices — as the account menu. */}
+      <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+        <DropdownMenuTrigger
+          aria-busy={pending}
+          className="group inline-flex items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-ink-soft transition-colors hover:text-ink"
         >
-          <circle cx="12" cy="12" r="9" />
-          <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" />
-        </svg>
-        {/* ACCESSIBLE NAME = "Langue" + WHAT IS DISPLAYED (RGAA 7.1, WCAG
-            2.5.3). An `aria-label` reduced to "Langue" REPLACED the visible text "FR":
-            a voice-control user saying "click FR" found
-            nothing, and a screen reader did not announce the current language.
-            The word is added as hidden text, the badge stays the visible text. */}
-        <span className="sr-only">{label} </span>
-        <span
-          lang={active}
-          className="font-mono text-[11.5px] font-semibold uppercase leading-none"
-        >
-          {localeBadge(active)}
-        </span>
-        {/* The chevron is not directional in the writing-direction sense: it
-            points DOWN, where the menu opens, in all five languages.
-            It therefore does not carry `dt-flip-rtl`. */}
-        <svg
-          viewBox="0 0 24 24"
-          width="12"
-          height="12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          aria-hidden="true"
-          className={
-            open ? 'rotate-180 transition-transform' : 'transition-transform'
-          }
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-
-      {open && (
-        <div
-          id={menuId}
-          role="menu"
+          <svg
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" />
+          </svg>
+          {/* ACCESSIBLE NAME = "Langue" + WHAT IS DISPLAYED (RGAA 7.1, WCAG
+              2.5.3). An `aria-label` reduced to "Langue" REPLACED the visible text "FR":
+              a voice-control user saying "click FR" found
+              nothing, and a screen reader did not announce the current language.
+              The word is added as hidden text, the badge stays the visible text. */}
+          <span className="sr-only">{label} </span>
+          <span
+            lang={active}
+            className="font-mono text-[11.5px] font-semibold uppercase leading-none"
+          >
+            {localeBadge(active)}
+          </span>
+          {/* The chevron is not directional in the writing-direction sense: it
+              points DOWN, where the menu opens, in all five languages.
+              It therefore does not carry `dt-flip-rtl`. */}
+          <svg
+            viewBox="0 0 24 24"
+            width="12"
+            height="12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+            className="transition-transform group-data-[state=open]:rotate-180"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          ref={focusCurrent}
+          container={root}
+          side={placement === 'up' ? 'top' : 'bottom'}
+          // The END edge of the button: on the left when the document is in
+          // Arabic.
+          align="end"
+          // Named "Langue" / "Langue et affichage", not by the whole button
+          // (which also reads the current language's badge).
+          aria-labelledby={undefined}
           aria-label={label}
-          // `end-0` and not `right-0`: the menu aligns with the END edge of
-          // its trigger, so on the left when the document is in Arabic.
-          // That is precisely what the physical properties prevented.
-          className={`absolute end-0 z-50 min-w-[11rem] overflow-hidden rounded-sm border border-line-strong bg-surface py-1 shadow-pop ${
-            placement === 'up'
-              ? 'bottom-[calc(100%+4px)]'
-              : 'top-[calc(100%+4px)]'
-          }`}
+          className="min-w-[11rem]"
+          // Tab closes the menu and returns focus to the button: Radix blocks
+          // tabbing inside a menu, which otherwise left Escape as the only
+          // keyboard exit (same rule as the directory's facet menus).
+          onKeyDown={(event) => {
+            if (event.key === 'Tab') setOpen(false);
+          }}
         >
           {withTheme ? (
-            <div
-              aria-hidden="true"
-              className="px-3 pb-1 pt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
-            >
+            <DropdownMenuLabel aria-hidden="true">
               {t('language')}
-            </div>
+            </DropdownMenuLabel>
           ) : null}
-          {routing.locales.map((l, index) => {
-            const current = l === active;
-            return (
-              <button
+          <DropdownMenuRadioGroup
+            value={active}
+            onValueChange={select}
+            aria-label={t('language')}
+          >
+            {routing.locales.map((l) => (
+              // Each entry carries ITS OWN writing direction, not the page's:
+              // "العربية" must be laid out right to left even in a French
+              // menu, otherwise the punctuation and neighbouring Latin
+              // characters end up on the wrong side. `textValue`: the
+              // typeahead matches the endonym, not the code after it.
+              <DropdownMenuRadioItem
                 key={l}
-                ref={(node) => {
-                  items.current[index] = node;
-                }}
-                type="button"
-                role="menuitemradio"
-                aria-checked={current}
+                value={l}
                 lang={l}
-                // Each entry carries ITS OWN writing direction, not the
-                // page's: "العربية" must be laid out right to left even
-                // in a French menu, otherwise the punctuation and
-                // neighbouring Latin characters end up on the wrong side.
                 dir={direction(l)}
-                onClick={() => select(l)}
-                onKeyDown={(event) => onMenuKeyDown(event, index)}
-                className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition-colors ${
-                  current
-                    ? 'bg-accent-tint text-accent-text'
-                    : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
-                }`}
+                textValue={LOCALE_ENDONYMS[l]}
               >
-                {/* Current language: tick in addition to the colour (RGAA 3.1). */}
-                <span className="inline-flex items-center gap-1.5">
-                  {current ? (
-                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  ) : null}
-                  {LOCALE_ENDONYMS[l]}
-                </span>
+                <span className="flex-1">{LOCALE_ENDONYMS[l]}</span>
                 <span
                   aria-hidden="true"
                   className="font-mono text-[11px] uppercase text-muted"
                 >
                   {l}
                 </span>
-              </button>
-            );
-          })}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
           {withTheme ? (
             <>
-              <div role="separator" className="my-1 border-t border-line" />
-              <div
-                aria-hidden="true"
-                className="px-3 pb-1 pt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
-              >
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel aria-hidden="true">
                 {t('appearance')}
-              </div>
-              {THEMES.map((value, offset) => {
-                const index = routing.locales.length + offset;
-                const current = value === theme;
-                const Icon = value === 'dark' ? Moon : Sun;
-                return (
-                  <button
-                    key={value}
-                    ref={(node) => {
-                      items.current[index] = node;
-                    }}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={current}
-                    onClick={() => selectTheme(value)}
-                    onKeyDown={(event) => onMenuKeyDown(event, index)}
-                    className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition-colors ${
-                      current
-                        ? 'bg-accent-tint text-accent-text'
-                        : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
-                    }`}
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      {current ? (
-                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                      ) : null}
-                      {value === 'dark' ? t('themeDark') : t('themeLight')}
-                    </span>
-                    <Icon
-                      className="h-3.5 w-3.5 text-muted"
-                      aria-hidden="true"
-                    />
-                  </button>
-                );
-              })}
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={theme}
+                onValueChange={(v) => {
+                  const next = THEMES.find((value) => value === v);
+                  if (next) setTheme(next);
+                }}
+                aria-label={t('appearance')}
+              >
+                {THEMES.map((value) => {
+                  const Icon = value === 'dark' ? Moon : Sun;
+                  return (
+                    <DropdownMenuRadioItem key={value} value={value}>
+                      <span className="flex-1">
+                        {value === 'dark' ? t('themeDark') : t('themeLight')}
+                      </span>
+                      <Icon aria-hidden="true" className="text-muted" />
+                    </DropdownMenuRadioItem>
+                  );
+                })}
+              </DropdownMenuRadioGroup>
             </>
           ) : null}
-        </div>
-      )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

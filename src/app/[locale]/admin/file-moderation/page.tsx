@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TextareaField } from '@/components/ui/field';
 import { SelectField } from '@/components/ui/choice-fields';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { STATUS_PILL } from '@/components/tribune/my-posts';
 import { PUB_THEMES } from '@/lib/publications';
@@ -541,32 +542,30 @@ function ModerationQueue() {
 
       <ModeSettings isAdmin={me?.role === 'admin'} />
 
-      <div
-        role="group"
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={tab}
+        onValueChange={(v) => {
+          const next = TABS.find((k) => k === v);
+          if (next) {
+            setTab(next);
+            setSelected(null);
+          }
+        }}
         aria-label={t('tabsLabel')}
-        className="mt-6 flex flex-wrap gap-2"
+        className="mt-6"
       >
         {TABS.map((k) => {
           const n = tabCount(k);
           return (
-            <Button
-              key={k}
-              type="button"
-              size="sm"
-              variant={tab === k ? 'default' : 'outline'}
-              className="min-h-11"
-              aria-pressed={tab === k}
-              onClick={() => {
-                setTab(k);
-                setSelected(null);
-              }}
-            >
+            <ToggleGroupItem key={k} value={k}>
               {tabLabel(k)}
               {n !== undefined && n > 0 ? ` (${n > 100 ? '100+' : n})` : ''}
-            </Button>
+            </ToggleGroupItem>
           );
         })}
-      </div>
+      </ToggleGroup>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <SelectField

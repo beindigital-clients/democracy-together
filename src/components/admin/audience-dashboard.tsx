@@ -5,6 +5,7 @@ import { useQuery } from 'convex/react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // AUDIENCE DASHBOARD (F-66, outreach workstream) — admin/impact screen.
 //
@@ -141,27 +142,25 @@ export function AudienceDashboard() {
             {t('intro')}
           </p>
         </div>
-        <div role="group" aria-label={t('range')} className="flex gap-1">
+        <ToggleGroup
+          type="single"
+          value={String(days)}
+          onValueChange={(v) => {
+            const next = RANGES.find((r) => String(r) === v);
+            if (next) setDays(next);
+          }}
+          aria-label={t('range')}
+        >
           {RANGES.map((r) => (
-            <button
-              key={r}
-              type="button"
-              aria-pressed={days === r}
-              onClick={() => setDays(r)}
-              className={`min-h-11 rounded-sm border px-3 text-sm transition-colors ${
-                days === r
-                  ? 'border-accent-edge bg-accent-tint text-accent-text'
-                  : 'border-line bg-surface text-ink-soft hover:text-ink'
-              }`}
-            >
+            <ToggleGroupItem key={r} value={String(r)}>
               {r === 7
                 ? t('range_7')
                 : r === 30
                   ? t('range_30')
                   : t('range_90')}
-            </button>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       </div>
 
       {overview === undefined ? (

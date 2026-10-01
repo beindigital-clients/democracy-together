@@ -1180,6 +1180,7 @@
     "quickPublications": "Review publications",
     "filterPending": "Pending",
     "filterAll": "All",
+    "filterStatusLabel": "Filter by status",
     "appType_organisation": "Organisation",
     "appType_individu": "Individual",
     "appNotesPlaceholder": "Note (optional)",

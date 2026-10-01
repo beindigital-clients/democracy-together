@@ -108,7 +108,7 @@ test('rejeter une candidature : confirmation nommant l’organisation, Échap an
   );
   await expect(row).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Toutes' }).click();
+  await page.getByRole('radio', { name: 'Toutes' }).click();
   const decided = page.getByRole('listitem').filter({ hasText: appOrg });
   await expect(decided.getByText('Rejetée')).toBeVisible();
 });
@@ -144,7 +144,7 @@ test('revenir sur une décision d’adhésion : un refus repêché, une approbat
     .click();
   await expect(pendingRow).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Toutes' }).click();
+  await page.getByRole('radio', { name: 'Toutes' }).click();
   const row = queue.getByRole('listitem').filter({ hasText: appOrg });
   await expect(row.getByText('Rejetée')).toBeVisible();
 

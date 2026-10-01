@@ -80,7 +80,7 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     await expect(row).toHaveCount(0);
 
     // under "Toutes" it reappears, with status Approuvée
-    await page.getByRole('button', { name: 'Toutes' }).click();
+    await page.getByRole('radio', { name: 'Toutes' }).click();
     const approved = page.getByRole('listitem').filter({ hasText: appOrg });
     await expect(approved).toBeVisible();
     await expect(approved.getByText('Approuvée')).toBeVisible();

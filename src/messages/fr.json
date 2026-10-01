@@ -1180,6 +1180,7 @@
     "quickPublications": "Traiter les publications",
     "filterPending": "En attente",
     "filterAll": "Toutes",
+    "filterStatusLabel": "Filtrer par statut",
     "appType_organisation": "Organisation",
     "appType_individu": "Individuel",
     "appNotesPlaceholder": "Note (optionnelle)",

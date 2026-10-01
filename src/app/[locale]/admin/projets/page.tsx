@@ -8,6 +8,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   useActionFeedback,
   useFailureFeedback,
@@ -89,22 +90,20 @@ export default function AdminProjects() {
           <h1 className="font-display text-3xl">{t('prjTitle')}</h1>
           <ProgrammeAdminLink kind="calls" />
         </div>
-        <div className="flex gap-1 rounded-md border border-line p-0.5">
-          <button
-            type="button"
-            onClick={() => setPendingOnly(true)}
-            className={`rounded px-3 py-1 text-sm ${pendingOnly ? 'bg-surface-2 text-ink' : 'text-ink-soft'}`}
-          >
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={pendingOnly ? 'pending' : 'all'}
+          onValueChange={(v) => {
+            if (v) setPendingOnly(v === 'pending');
+          }}
+          aria-label={t('filterStatusLabel')}
+        >
+          <ToggleGroupItem value="pending">
             {t('filterPending')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setPendingOnly(false)}
-            className={`rounded px-3 py-1 text-sm ${!pendingOnly ? 'bg-surface-2 text-ink' : 'text-ink-soft'}`}
-          >
-            {t('filterAll')}
-          </button>
-        </div>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="all">{t('filterAll')}</ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {proposals === undefined ? (

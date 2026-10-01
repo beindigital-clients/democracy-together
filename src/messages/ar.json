@@ -1180,6 +1180,7 @@
     "quickPublications": "معالجة المنشورات",
     "filterPending": "في الانتظار",
     "filterAll": "الكل",
+    "filterStatusLabel": "التصفية حسب الحالة",
     "appType_organisation": "منظمة",
     "appType_individu": "فردي",
     "appNotesPlaceholder": "ملاحظة (اختيارية)",

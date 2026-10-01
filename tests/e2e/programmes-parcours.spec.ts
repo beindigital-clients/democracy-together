@@ -65,7 +65,7 @@ test.describe
     ).toBeVisible();
 
     await editeur.page
-      .getByRole('button', { name: 'Parcours d’apprentissage' })
+      .getByRole('radio', { name: 'Parcours d’apprentissage' })
       .click();
     await editeur.page
       .getByRole('button', { name: 'Nouveau parcours' })

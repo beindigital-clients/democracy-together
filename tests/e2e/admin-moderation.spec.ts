@@ -60,7 +60,7 @@ test.describe('file des candidatures jeunes (session dédiée)', () => {
     await row.getByRole('button', { name: 'Approuver' }).click();
     await expect(row).toHaveCount(0); // leaves the "En attente" queue
 
-    await page.getByRole('button', { name: 'Toutes' }).click();
+    await page.getByRole('radio', { name: 'Toutes' }).click();
     const decided = page.getByRole('listitem').filter({ hasText: applicant });
     await expect(decided).toBeVisible();
     await expect(decided.getByText('Approuvée')).toBeVisible();
@@ -116,7 +116,7 @@ test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)
   await row.getByRole('button', { name: 'Accepter' }).click();
   await expect(row).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Toutes' }).click();
+  await page.getByRole('radio', { name: 'Toutes' }).click();
   const decided = page.getByRole('listitem').filter({ hasText: projectTitle });
   await expect(decided).toBeVisible();
   await expect(decided.getByText('Accepté')).toBeVisible();

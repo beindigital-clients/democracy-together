@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { SITE_LOCALES, type SiteLocale } from '@convex/lib/locales';
 import { vocabulary } from '@/i18n/vocabulary';
 import { TextField, TextareaField } from '@/components/ui/field';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 
 // ENTRY OF TRANSLATABLE TEXTS — one language at a time, gaps visible.
@@ -66,41 +67,41 @@ export function LangSwitch({
       <span id={labelId} className="block text-sm text-ink-soft">
         {t('langTabsLabel')}
       </span>
-      <div
-        role="group"
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        spacing={1.5}
+        value={value}
+        onValueChange={(v) => {
+          const next = SITE_LOCALES.find((l) => l === v);
+          if (next) onChange(next);
+        }}
         aria-labelledby={labelId}
-        className="mt-1 flex flex-wrap gap-1.5"
+        className="mt-1"
       >
         {SITE_LOCALES.map((l) => {
           const isMissing = missing.includes(l);
           return (
-            <button
+            <ToggleGroupItem
               key={l}
-              type="button"
-              aria-pressed={value === l}
+              value={l}
               aria-label={
                 isMissing ? t('langMissing', { lang: langName(l) }) : undefined
               }
-              onClick={() => onChange(l)}
-              className={cn(
-                'inline-flex min-h-11 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
-                value === l
-                  ? 'border-accent-edge bg-accent-tint font-semibold text-accent-text'
-                  : 'border-line-strong bg-surface text-ink-soft hover:text-ink',
-              )}
+              className="gap-1.5"
             >
               <span lang={l}>{langName(l)}</span>
               {isMissing ? (
                 // Decorative dot: the information is in `aria-label`.
                 <span
                   aria-hidden="true"
-                  className="inline-block h-2 w-2 rounded-full bg-bar-5"
+                  className="inline-block size-2 rounded-full bg-bar-5"
                 />
               ) : null}
-            </button>
+            </ToggleGroupItem>
           );
         })}
-      </div>
+      </ToggleGroup>
     </div>
   );
 }

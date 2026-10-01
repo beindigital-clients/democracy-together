@@ -43,15 +43,15 @@ function Harness({ initial }: { initial: LText }) {
 }
 
 describe('Contenus — saisie traduisible', () => {
-  it('signale les langues manquantes dans le nom accessible du bouton', () => {
+  it('signale les langues manquantes dans le nom accessible du choix', () => {
     render(<Harness initial={{ fr: 'Bonjour' }} />);
     expect(
       screen
-        .getByRole('button', { name: 'Français' })
-        .getAttribute('aria-pressed'),
+        .getByRole('radio', { name: 'Français' })
+        .getAttribute('aria-checked'),
     ).toBe('true');
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: 'Anglais — traduction manquante',
       }),
     ).toBeTruthy();
@@ -60,7 +60,7 @@ describe('Contenus — saisie traduisible', () => {
   it('saisit dans la langue choisie, sans toucher aux autres', () => {
     render(<Harness initial={{ fr: 'Bonjour' }} />);
     fireEvent.click(
-      screen.getByRole('button', { name: 'Arabe — traduction manquante' }),
+      screen.getByRole('radio', { name: 'Arabe — traduction manquante' }),
     );
     const input = screen.getByLabelText('Titre');
     expect(input.value).toBe('');
@@ -70,8 +70,8 @@ describe('Contenus — saisie traduisible', () => {
     expect(input.required).toBe(false);
     fireEvent.change(input, { target: { value: 'مرحباً' } });
     // Arabic is now translated: its indicator disappears.
-    expect(screen.getByRole('button', { name: 'Arabe' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Français' }));
+    expect(screen.getByRole('radio', { name: 'Arabe' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: 'Français' }));
     expect(screen.getByLabelText('Titre').value).toBe('Bonjour');
   });
 

@@ -66,6 +66,11 @@ export function MobileNav({
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        // ESCAPE CLOSES THE INNERMOST LAYER, and it alone (ARIA APG). The
+        // language menu inside this panel is a Radix menu: it handles Escape
+        // first (capture phase) and marks the event `defaultPrevented`. Without
+        // this check, the same keypress also closed the panel around it.
+        if (e.defaultPrevented) return;
         setOpen(false);
         buttonRef.current?.focus();
         return;
