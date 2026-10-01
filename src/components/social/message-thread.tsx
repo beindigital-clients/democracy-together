@@ -489,13 +489,15 @@ export function MessageThread({
           <div ref={topSentinel} aria-hidden="true" />
           {status === 'CanLoadMore' ? (
             <p className="mb-3 text-center">
-              <button
+              <Button
                 type="button"
-                className="min-h-11 rounded-pill px-4 text-xs text-accent-text hover:bg-accent-tint"
+                variant="ghost"
+                size="xs"
+                className="min-h-11 rounded-full px-4"
                 onClick={loadOlder}
               >
                 {t('loadOlder')}
-              </button>
+              </Button>
             </p>
           ) : status === 'LoadingMore' || status === 'LoadingFirstPage' ? (
             <p role="status" className="mb-3 text-center text-xs text-muted">
@@ -596,9 +598,11 @@ export function MessageThread({
                   {p.failed ? (
                     <span className="text-bar-5">
                       {t('failed')}{' '}
-                      <button
+                      <Button
                         type="button"
-                        className="min-h-8 underline underline-offset-2"
+                        variant="link-inline"
+                        size="inline"
+                        className="min-h-8"
                         onClick={() => {
                           setPending((all) =>
                             all.filter((x) => x.key !== p.key),
@@ -609,7 +613,7 @@ export function MessageThread({
                         }}
                       >
                         {t('retry')}
-                      </button>
+                      </Button>
                     </span>
                   ) : (
                     t('sending')
@@ -640,14 +644,16 @@ export function MessageThread({
         </div>
 
         {!atBottom ? (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => scrollToBottom(true)}
-            className="absolute bottom-3 end-4 inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-line bg-paper px-3 text-sm text-ink shadow-md hover:bg-surface-2"
+            // Floats over the messages: an opaque fill and a shadow.
+            className="absolute bottom-3 end-4 min-h-11 gap-1.5 rounded-full bg-paper px-3 shadow-md"
           >
-            <ArrowDown aria-hidden="true" className="size-4" />
+            <ArrowDown aria-hidden="true" />
             {newBelow > 0 ? t('newBelow', { count: newBelow }) : t('toLatest')}
-          </button>
+          </Button>
         ) : null}
       </div>
 

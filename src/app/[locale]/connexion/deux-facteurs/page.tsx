@@ -11,6 +11,7 @@ import { AuthGateLoading } from '@/components/auth/auth-gate';
 import { FormError, TextField } from '@/components/ui/field';
 import { errorCode } from '@/lib/account-errors';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Button } from '@/components/ui/button';
 
 // SECOND-FACTOR ENTRY AFTER SIGN-IN (accounts workstream, 2FA).
 //
@@ -127,26 +128,30 @@ export default function TwoFactorChallengePage() {
       </form>
 
       <div className="mt-5 flex flex-col items-start gap-1">
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="inline"
           onClick={() => {
             setMode(mode === 'app' ? 'backup' : 'app');
             setCode('');
             setError(null);
           }}
-          className="min-h-11 text-sm text-accent-text hover:underline"
+          className="min-h-11"
         >
           {mode === 'app' ? t('useBackup') : t('useApp')}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="link-muted"
+          size="inline"
           onClick={() =>
             void signOut().finally(() => router.replace('/connexion'))
           }
-          className="min-h-11 text-sm text-ink-soft hover:underline"
+          className="min-h-11"
         >
           {t('signOut')}
-        </button>
+        </Button>
       </div>
       <p className="mt-4 max-w-[60ch] text-[13px] leading-relaxed text-muted">
         {t('lostDevice')}

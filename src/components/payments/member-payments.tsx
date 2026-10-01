@@ -176,9 +176,11 @@ export function ReceiptButton({
   }
   return (
     <span className="inline-flex flex-col">
-      <button
+      <Button
         type="button"
-        className="min-h-11 text-start text-[13px] font-medium text-accent-text hover:underline"
+        variant="link"
+        size="inline"
+        className="min-h-11 justify-start text-[13px]"
         aria-label={t('receiptDownloadNamed', { number })}
         onClick={async () => {
           setError(false);
@@ -197,7 +199,7 @@ export function ReceiptButton({
         }}
       >
         {number}
-      </button>
+      </Button>
       {error ? (
         <span role="alert" className="text-xs text-bar-5">
           {t('receiptError')}

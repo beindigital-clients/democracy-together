@@ -67,13 +67,15 @@ function NotificationsPanel({ onDone }: { onDone: () => void }) {
           {t('title')}
         </p>
         {hasUnread ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={() => void markAllRead({})}
-            className="min-h-9 rounded-sm px-2 text-xs font-medium text-accent-text hover:bg-accent-tint"
+            className="min-h-9"
           >
             {t('markAll')}
-          </button>
+          </Button>
         ) : null}
       </div>
       {items === undefined ? (

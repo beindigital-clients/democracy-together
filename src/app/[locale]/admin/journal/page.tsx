@@ -141,13 +141,15 @@ export default function AdminJournal() {
           <Badge variant="accent">
             {t('jrFilterActor', { actor: actor.label })}
           </Badge>
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="inline"
             onClick={() => setActor(null)}
-            className="text-xs font-medium text-accent-text hover:underline"
+            className="text-xs"
           >
             {t('jrClearActor')}
-          </button>
+          </Button>
         </p>
       ) : null}
 
@@ -184,8 +186,10 @@ export default function AdminJournal() {
                     </td>
                     <td className="py-3 pe-4">
                       {rowActorId ? (
-                        <button
+                        <Button
                           type="button"
+                          variant="link"
+                          size="inline"
                           onClick={() =>
                             setActor({
                               id: rowActorId,
@@ -195,10 +199,10 @@ export default function AdminJournal() {
                           aria-label={t('jrFilterActor', {
                             actor: actorLabel(e),
                           })}
-                          className="inline-block py-1 text-start text-accent-text hover:underline"
+                          className="whitespace-normal py-1 text-start"
                         >
                           {actorLabel(e)}
-                        </button>
+                        </Button>
                       ) : (
                         actorLabel(e)
                       )}

@@ -26,12 +26,22 @@ const buttonVariants = cva(
         subtle:
           'text-ink-soft hover:bg-surface-2 hover:text-ink data-[state=open]:bg-surface-2 data-[state=open]:text-ink',
         link: 'text-accent-text underline-offset-4 hover:underline',
+        // A secondary text action (sign out, report): neutral, same shape.
+        'link-muted':
+          'text-ink-soft underline-offset-4 hover:text-ink hover:underline',
+        // A link INSIDE a sentence ("Échec. Réessayer"): it takes the
+        // sentence's colour and size and stays underlined, so it is not
+        // told apart by colour alone (RGAA 10.6).
+        'link-inline':
+          'text-[length:inherit] font-normal underline underline-offset-2 hover:text-ink',
       },
       size: {
         default: 'px-4 py-2.5 has-[>svg]:px-3',
         xs: 'gap-1 px-2 py-1 text-xs has-[>svg]:px-1.5',
         sm: 'px-3 py-2 text-xs has-[>svg]:px-2.5',
         lg: 'px-6 py-3 has-[>svg]:px-4',
+        // No padding: a text action that sits where a link would.
+        inline: 'p-0 has-[>svg]:p-0',
         icon: 'size-10 p-0',
         'icon-xs': 'size-6 p-0',
         'icon-sm': 'size-8 p-0',

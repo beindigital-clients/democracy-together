@@ -5,6 +5,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
 
 // `connecteAuRendu` comes from the SERVER (`isAuthenticatedNextjs()`, read in
 // `site-header.tsx`). Until Convex has responded, it decides which variant
@@ -54,14 +55,16 @@ export function AuthButton({
   // On desktop, the account menu (`account-menu.tsx`) took its place.
   if (connecte) {
     return (
-      <button
+      <Button
         type="button"
+        variant="link-muted"
+        size="inline"
         onClick={onSignOut}
-        className="inline-flex min-h-11 items-center gap-2 text-sm text-ink-soft transition-colors hover:text-ink"
+        className="min-h-11"
       >
-        <LogOut aria-hidden="true" className="h-4 w-4" />
+        <LogOut aria-hidden="true" />
         {t('signOut')}
-      </button>
+      </Button>
     );
   }
 

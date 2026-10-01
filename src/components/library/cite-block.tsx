@@ -45,18 +45,10 @@ export function CiteBlock({ citations }: { citations: Citations }) {
           {text}
         </pre>
         <div className="mt-4 flex flex-wrap gap-3">
-          <CopyButton
-            text={text}
-            copiedLabel={t('citeCopied')}
-            className="rounded-sm border border-line-strong px-3 py-2 text-sm font-semibold text-ink transition-colors hover:border-accent-edge hover:bg-accent-tint"
-          >
+          <CopyButton text={text} copiedLabel={t('citeCopied')}>
             {t('citeCopy')}
           </CopyButton>
-          <CopyButton
-            text={citations.ris}
-            copiedLabel={t('risCopied')}
-            className="rounded-sm border border-line-strong px-3 py-2 text-sm font-semibold text-ink transition-colors hover:border-accent-edge hover:bg-accent-tint"
-          >
+          <CopyButton text={citations.ris} copiedLabel={t('risCopied')}>
             {t('citeExportRis')}
           </CopyButton>
         </div>

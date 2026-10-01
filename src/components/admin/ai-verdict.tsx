@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Badge } from '@/components/ui/badge';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Button } from '@/components/ui/button';
 
 // AI OPINION IN THE MODERATION QUEUE.
 //
@@ -150,14 +151,16 @@ export function AiVerdictPanel({
           {t('aiVerdictTitle')}
         </span>
         <AiVerdictBadges review={review} />
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="inline"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="text-xs font-medium text-accent-text hover:underline"
+          className="text-xs"
         >
           {open ? t('aiHideDetails') : t('aiShowDetails')}
-        </button>
+        </Button>
       </div>
       <p className="mt-1 text-xs text-muted">
         {vocabulary(t, 'aiReason_', review.reason)}

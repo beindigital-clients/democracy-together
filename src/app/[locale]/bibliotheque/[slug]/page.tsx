@@ -444,7 +444,8 @@ export default async function PublicationPage({
                 <CopyButton
                   text={doiUrl}
                   copiedLabel={td('copied')}
-                  className="ms-auto shrink-0 rounded-[3px] border border-line-strong bg-surface px-2 py-1 text-[11px] font-semibold text-ink-soft"
+                  size="xs"
+                  className="ms-auto"
                 >
                   {td('copy')}
                 </CopyButton>
