@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { useAction } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Button } from '@/components/ui/button';
+import {
+  RadioGroup,
+  RadioGroupChoice,
+  RadioGroupChoiceIndicator,
+} from '@/components/ui/radio-group';
 import {
   FormError,
   TextField,
@@ -24,10 +29,10 @@ function isDuplicateApplication(error: unknown): boolean {
 }
 import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
-import { Check } from 'lucide-react';
 import { StatusMessage } from '@/components/a11y/status-message';
 import { Link } from '@/i18n/navigation';
 import { ArrowForward } from '@/components/ui/arrow';
+import { Check } from 'lucide-react';
 
 // One step of "what happens next", on the confirmation: the applicant has no
 // account yet, so e-mail is their only channel — they must know to watch it.
@@ -60,6 +65,7 @@ export function MembershipForm() {
   const locale = useLocale();
   const executeRecaptcha = useRecaptcha();
   const [type, setType] = useState<ApplicantType>('organisation');
+  const typeLegendId = useId();
   const [status, setStatus] = useState<'idle' | 'pending' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
   const { values, field, validate } = useFormFields({
@@ -168,38 +174,37 @@ export function MembershipForm() {
       ) : (
         <form onSubmit={onSubmit} noValidate className="space-y-5">
           <fieldset>
-            <legend className="text-sm text-ink-soft">{t('typeLabel')}</legend>
-            {/* No ANONYMOUS `role="radiogroup"` here (RGAA 11.6): it
-                sat between the radio buttons and the `<fieldset>`, and the
-                announced group no longer had a name. The `<fieldset>` is enough.
-                The radio button is visually hidden: it is the chip that
-                shows focus (RGAA 10.7) and a check mark that shows the
-                selection without relying on colour alone (RGAA 3.1). */}
-            <div className="mt-2 flex flex-wrap gap-2">
+            <legend id={typeLegendId} className="text-sm text-ink-soft">
+              {t('typeLabel')}
+            </legend>
+            {/* A shadcn `RadioGroup` of chips. Never an ANONYMOUS
+                `role="radiogroup"` (RGAA 11.6): it would sit between the
+                choices and the `<fieldset>`, and the announced group would
+                lose its name — hence `aria-labelledby` on the legend. Each
+                chip IS the radio: it carries the focus outline itself
+                (RGAA 10.7), and a tick shows the choice without relying on
+                colour alone (RGAA 3.1). */}
+            <RadioGroup
+              name="type"
+              value={type}
+              onValueChange={(v) => {
+                const next = types.find((opt) => opt === v);
+                if (next) setType(next);
+              }}
+              aria-labelledby={typeLegendId}
+              className="mt-2 flex flex-wrap gap-2"
+            >
               {types.map((opt) => (
-                <label
+                <RadioGroupChoice
                   key={opt}
-                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
-                    type === opt
-                      ? 'border-accent-edge bg-accent-tint text-accent-text'
-                      : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
-                  }`}
+                  value={opt}
+                  className="rounded-pill px-4 py-1.5"
                 >
-                  <input
-                    type="radio"
-                    name="type"
-                    value={opt}
-                    checked={type === opt}
-                    onChange={() => setType(opt)}
-                    className="sr-only"
-                  />
-                  {type === opt ? (
-                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  ) : null}
+                  <RadioGroupChoiceIndicator />
                   {vocabulary(t, 'type_', opt)}
-                </label>
+                </RadioGroupChoice>
               ))}
-            </div>
+            </RadioGroup>
           </fieldset>
 
           {/* Autofill follows the label: a researcher's own name, not an

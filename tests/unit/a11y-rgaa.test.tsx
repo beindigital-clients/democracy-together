@@ -150,11 +150,12 @@ describe('globe : rotation automatique sans bouton pause', () => {
 
 describe('estimateur solidaire : sélection et focus visibles (RGAA 3.1, 10.7)', () => {
   it('l’option choisie porte une coche, pas seulement une couleur', () => {
-    const { content, container } = renderEstimator();
+    const { content } = renderEstimator();
+    // The cards are the radios themselves (shadcn RadioGroup).
     const coches = () =>
-      [...container.querySelectorAll('label')].filter((l) =>
-        l.querySelector('svg[aria-hidden="true"]'),
-      );
+      screen
+        .getAllByRole('radio')
+        .filter((r) => r.querySelector('svg[aria-hidden="true"]'));
     // One checkmark per group: income and type.
     expect(coches()).toHaveLength(2);
     const autre = screen.getByRole('radio', {
@@ -162,16 +163,18 @@ describe('estimateur solidaire : sélection et focus visibles (RGAA 3.1, 10.7)',
     });
     fireEvent.click(autre);
     expect(coches()).toHaveLength(2);
-    expect(autre.closest('label')?.querySelector('svg')).not.toBeNull();
+    expect(autre.getAttribute('aria-checked')).toBe('true');
+    expect(autre.querySelector('svg')).not.toBeNull();
   });
 
-  it('la carte (et non le bouton radio masqué) porte le style de focus', () => {
-    renderEstimator();
+  it('la carte EST le bouton radio : le contour de focus est le sien', () => {
+    const { content } = renderEstimator();
     const radio = screen.getAllByRole('radio')[0];
-    expect(radio.className).toContain('sr-only');
-    expect(radio.closest('label')?.className).toContain(
-      'has-[:focus-visible]:outline',
-    );
+    // Nothing hidden under a drawing any more: the focused element is the
+    // card itself, which keeps the global outline (RGAA 10.7).
+    expect(radio.className).not.toContain('sr-only');
+    expect(radio.className).not.toContain('outline-none');
+    expect(radio.textContent).toContain(content.incomes[0].desc);
   });
 });
 

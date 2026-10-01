@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // shadcn RadioGroup (Radix), themed on the Democracy Together tokens.
@@ -11,14 +12,41 @@ import { cn } from '@/lib/utils';
 // `DirectionProvider`). Each item goes inside a wrapping `<label>` with its
 // text, as for `Checkbox`. A `name` on the group submits the choice with the
 // enclosing form.
+//
+// THE ARROW CHOOSES, EVEN ON A SHORT PRESS. Radix moves the focus in a
+// timeout and only then checks the radio, and only if the arrow key is STILL
+// DOWN at that moment. A quick tap — a screen reader passing the key on, an
+// automated test — released it first: the focus moved and the choice did not
+// follow, so the radio announced as focused was not the chosen one. The
+// group therefore checks, after an arrow, the radio the focus has reached.
+const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
 function RadioGroup({
   className,
+  onKeyDown,
   ...props
 }: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
   return (
     <RadioGroupPrimitive.Root
       data-slot="radio-group"
       className={cn('grid gap-3', className)}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (!ARROW_KEYS.includes(event.key)) return;
+        const group = event.currentTarget;
+        // Queued after Radix's own focus move, hence run after it.
+        setTimeout(() => {
+          const focused = group.ownerDocument.activeElement;
+          if (
+            focused instanceof HTMLElement &&
+            group.contains(focused) &&
+            focused.getAttribute('role') === 'radio' &&
+            focused.getAttribute('aria-checked') === 'false'
+          ) {
+            focused.click();
+          }
+        });
+      }}
       {...props}
     />
   );
@@ -50,4 +78,49 @@ function RadioGroupItem({
   );
 }
 
-export { RadioGroup, RadioGroupItem };
+// A choice drawn as a CHIP or a CARD rather than a dot (amounts, currencies,
+// an applicant type, an income bracket): the whole surface is the radio — a
+// `button` with the `radio` role, named by its text — so it carries the
+// global focus outline itself (RGAA 10.7), with no hidden input under a
+// drawing. Checked: accent border and tint AND the tick that
+// `RadioGroupChoiceIndicator` places where the caller wants it (RGAA 3.1).
+// The shape is the caller's: `rounded-pill px-4` for a chip, a column for a
+// card with its description.
+function RadioGroupChoice({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadioGroupPrimitive.Item>) {
+  return (
+    <RadioGroupPrimitive.Item
+      data-slot="radio-group-choice"
+      className={cn(
+        'group/choice inline-flex cursor-pointer items-center gap-1.5 rounded-sm border border-line bg-surface-2 text-start text-sm font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-accent-edge data-[state=checked]:bg-accent-tint data-[state=checked]:text-accent-text',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+// The tick of a checked `RadioGroupChoice`: rendered only while checked.
+function RadioGroupChoiceIndicator({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadioGroupPrimitive.Indicator>) {
+  return (
+    <RadioGroupPrimitive.Indicator
+      data-slot="radio-group-choice-indicator"
+      className={cn('inline-flex shrink-0', className)}
+      {...props}
+    >
+      <Check aria-hidden="true" className="size-3.5" />
+    </RadioGroupPrimitive.Indicator>
+  );
+}
+
+export {
+  RadioGroup,
+  RadioGroupChoice,
+  RadioGroupChoiceIndicator,
+  RadioGroupItem,
+};
