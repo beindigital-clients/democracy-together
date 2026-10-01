@@ -321,7 +321,12 @@ test.describe('back-office', () => {
     await liste.focus();
     await page.keyboard.press('ArrowUp');
     await expect(page.getByRole('listbox')).toBeVisible();
+    // The list puts the focus on the CURRENT role once it is placed: a
+    // person sees that highlight before pressing again. Pressed earlier,
+    // the arrow is lost and Enter re-picks "Membre" (measured in CI).
+    await expect(page.getByRole('option', { name: 'Membre' })).toBeFocused();
     await page.keyboard.press('ArrowUp');
+    await expect(page.getByRole('option', { name: 'Visiteur' })).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(liste).toHaveText('Visiteur');
     await expect(liste).toBeFocused();
