@@ -833,7 +833,7 @@
       "uploadPercent": "{percent} %",
       "uploadStarting": "Préparation du fichier…",
       "successTitle": "Soumission reçue",
-      "successBody": "Merci. Votre publication « {title} » est en attente de relecture. Vous la retrouverez dans « Mes contributions ».",
+      "successBody": "Merci. Votre publication « {title} » est en attente de relecture. Vous la retrouverez dans « Mes publications ».",
       "successCta": "Retour à mon espace",
       "submitAnother": "Soumettre une autre publication",
       "errTitle": "Le titre doit faire au moins 4 caractères.",
@@ -920,7 +920,7 @@
     "docSourceLink": "Voir le document d’origine",
     "docFigure": "Illustration {n}",
     "docPageOf": "Page {n}",
-    "docEmpty": "Aucun contenu n’a pu être extrait de ce document."
+    "docPending": "Cette version n’a pas encore été préparée. Choisissez sa langue ci-dessus pour la préparer."
   },
   "nav": {
     "homeLabel": "Democracy Together — accueil",
