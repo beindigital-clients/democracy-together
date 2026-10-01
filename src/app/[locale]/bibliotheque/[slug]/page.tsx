@@ -17,11 +17,12 @@ import { buildCitations, formatLongDate } from '@/lib/publications';
 import { alternatesFor } from '@/lib/seo';
 import { resolveLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
+import { textAttrs } from '@/i18n/content-lang';
+import { ReadingLanguages } from '@/components/i18n/reading-languages';
 import {
-  TranslationNotice,
-  textAttrs,
-} from '@/components/i18n/translation-notice';
-import { resolveArticleDisplay } from '@/lib/article-translation';
+  requestedLanguage,
+  resolveArticleDisplay,
+} from '@/lib/article-translation';
 import {
   fetchOrFallback,
   EMPTY_RELATED_PUBLICATIONS,
@@ -117,36 +118,30 @@ export default async function PublicationPage({
     EMPTY_RELATED_PUBLICATIONS,
   );
 
-  // TRANSLATION ON READ (cf. convex/translation.ts). The writing language
-  // is the FIRST of `languages`; if the reader shares it, no banner.
-  // The cache read is outage-tolerant: a missing translation must
-  // not take down an already loaded entry.
+  // READING LANGUAGE (cf. convex/translation.ts). The publication is
+  // translated into every site language when it goes live; the reader reads
+  // in the page's language unless they pick another (`?lang=`). The writing
+  // language is the FIRST of `languages`. The read is outage-tolerant: a
+  // missing translation must not take down an already loaded entry.
   const sp = await searchParams;
   const loc = resolveLocale(locale);
   const pubLang = resolveLocale(pub.languages[0]);
-  const cached =
-    pubLang === loc
-      ? null
-      : await fetchOrFallback(
-          'bibliotheque/[slug]:traduction',
-          () =>
-            fetchQuery(
-              api.translation.getTranslation,
-              {
-                sourceType: 'publication',
-                sourceId: pub._id,
-                targetLocale: loc,
-              },
-              { token },
-            ),
-          null,
-        );
-  const display = resolveArticleDisplay(
-    pubLang,
-    loc,
-    cached,
-    sp.original === '1',
+  const requested = requestedLanguage(sp, loc, pubLang);
+  const reading = await fetchOrFallback(
+    'bibliotheque/[slug]:traduction',
+    () =>
+      fetchQuery(
+        api.translation.getReading,
+        {
+          sourceType: 'publication',
+          sourceId: pub._id,
+          locale: requested,
+        },
+        { token },
+      ),
+    null,
   );
+  const display = resolveArticleDisplay(pubLang, loc, requested, reading);
   // The displayed text and its language go together. `keypoints` and `body` keep
   // their segmentation: the translation output schema imposes the SAME
   // number of items, which makes the pairing safe.
@@ -157,7 +152,7 @@ export default async function PublicationPage({
           abstract: display.fields.abstract ?? pub.abstract,
           keypoints: display.fields.keypoints ?? pub.keypoints,
           body: display.fields.body,
-          lang: loc,
+          lang: display.locale,
         }
       : {
           title: pub.title,
@@ -258,11 +253,10 @@ export default async function PublicationPage({
         >
           {/* Article */}
           <article className="min-w-0">
-            <TranslationNotice
+            <ReadingLanguages
               display={display}
-              readerLocale={loc}
-              sourceType="publication"
-              sourceId={pub._id}
+              reading={reading}
+              pageLocale={loc}
               pathname={`/bibliotheque/${slug}`}
             />
 

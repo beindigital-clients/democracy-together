@@ -1,8 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   buildTranslationInstructions,
   buildTranslationSchema,
+  isRetryableTranslationError,
+  mergeNewsLocale,
+  newsLocalesToTranslate,
+  newsSource,
   outputTokenBudget,
+  translationDailyCap,
+  translationRetryDelayMs,
+  DEFAULT_TRANSLATION_DAILY_CAP,
   parseTranslation,
   sourceFingerprint,
   sourceLength,
@@ -262,5 +269,104 @@ describe('Découpage d’un billet de Tribune en paragraphes', () => {
 
   it('rend un tableau vide pour un texte vide', () => {
     expect(splitParagraphs('   ')).toEqual([]);
+  });
+});
+
+describe('Tâches de traduction — relances', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('attend de plus en plus longtemps entre deux tentatives', () => {
+    expect(translationRetryDelayMs(1)).toBeLessThan(translationRetryDelayMs(2));
+    // Past the table, the last delay holds: no zero, no undefined.
+    expect(translationRetryDelayMs(5)).toBe(translationRetryDelayMs(2));
+  });
+
+  it('ne relance pas ce qu’une nouvelle tentative ne réparera pas', () => {
+    expect(isRetryableTranslationError('TOO_LONG')).toBe(false);
+    expect(isRetryableTranslationError('AI_GATEWAY_NOT_CONFIGURED')).toBe(
+      false,
+    );
+    expect(isRetryableTranslationError('AI_GATEWAY_HTTP_ERROR')).toBe(true);
+    expect(isRetryableTranslationError('AI_GATEWAY_BAD_RESPONSE')).toBe(true);
+  });
+
+  it('lit le plafond quotidien dans l’environnement, et rejette l’absurde', () => {
+    expect(translationDailyCap()).toBe(DEFAULT_TRANSLATION_DAILY_CAP);
+    vi.stubEnv('TRANSLATION_DAILY_CAP', '50');
+    expect(translationDailyCap()).toBe(50);
+    vi.stubEnv('TRANSLATION_DAILY_CAP', '-3');
+    expect(translationDailyCap()).toBe(DEFAULT_TRANSLATION_DAILY_CAP);
+    vi.stubEnv('TRANSLATION_DAILY_CAP', 'beaucoup');
+    expect(translationDailyCap()).toBe(DEFAULT_TRANSLATION_DAILY_CAP);
+  });
+});
+
+describe('Actualités — langue source et langues à traduire', () => {
+  const NEWS = {
+    title: { fr: 'Sommet', en: 'Summit' },
+    excerpt: { fr: 'Chapô' },
+    body: { fr: ['Un.', '  ', 'Deux.'], en: ['One.'] },
+  };
+
+  it('traduit depuis la première langue remplie, dans l’ordre du repli', () => {
+    expect(newsSource(NEWS)).toEqual({
+      sourceLocale: 'fr',
+      fields: { title: 'Sommet', abstract: 'Chapô', body: ['Un.', 'Deux.'] },
+    });
+    expect(newsSource({ title: { pt: 'Cimeira' } })?.sourceLocale).toBe('pt');
+    expect(newsSource({ title: { fr: '   ' } })).toBeNull();
+  });
+
+  it('ne traduit pas une langue écrite à la main en entier', () => {
+    const complete = {
+      ...NEWS,
+      excerpt: { fr: 'Chapô', en: 'Standfirst' },
+    };
+    expect(newsLocalesToTranslate(complete, 'fr')).toEqual(['es', 'pt', 'ar']);
+  });
+
+  it('traduit une langue dont il manque un champ écrit dans la source', () => {
+    // English has a title and a body, but no standfirst.
+    expect(newsLocalesToTranslate(NEWS, 'fr')).toEqual([
+      'en',
+      'es',
+      'pt',
+      'ar',
+    ]);
+  });
+
+  it('à la lecture, le texte écrit à la main gagne champ par champ', () => {
+    const fallback = {
+      title: 'Sommet',
+      excerpt: 'Chapô',
+      body: ['Un.'],
+      lang: 'fr' as const,
+    };
+    const merged = mergeNewsLocale(
+      NEWS,
+      'en',
+      { title: '[en] Sommet', abstract: '[en] Chapô', body: ['[en] Un.'] },
+      fallback,
+    );
+    expect(merged).toEqual({
+      title: 'Summit',
+      excerpt: '[en] Chapô',
+      body: ['One.'],
+      lang: 'en',
+      machine: true,
+    });
+  });
+
+  it('sans traduction, le repli habituel, sans rien prétendre', () => {
+    const fallback = {
+      title: 'Sommet',
+      excerpt: 'Chapô',
+      body: ['Un.'],
+      lang: 'fr' as const,
+    };
+    expect(mergeNewsLocale(NEWS, 'ar', null, fallback)).toEqual({
+      ...fallback,
+      machine: false,
+    });
   });
 });

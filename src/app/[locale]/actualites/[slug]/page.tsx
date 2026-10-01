@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { vocabulary } from '@/i18n/vocabulary';
 import { loadNewsArticle } from '@/lib/contenus/load';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { formatNewsDate } from '@/components/news/post-card';
@@ -45,6 +46,8 @@ export default async function ArticlePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('news');
+  const tTrad = await getTranslations('translation');
+  const tLib = await getTranslations('library');
 
   // THREE outcomes, and they must not be conflated (audit § 5.1, F-02, F-10):
   //  - article missing      -> localized 404;
@@ -134,6 +137,36 @@ export default async function ArticlePage({
           </p>
         ) : null}
       </header>
+
+      {post.machineFrom ? (
+        // A language the editors left empty, filled by machine translation
+        // when the article was published: the reader is told, and the
+        // original is one link away — the rule of the whole site.
+        <aside className="mt-6 rounded-sm border border-accent-edge bg-accent-tint px-4 py-3 text-[13px] text-ink-soft">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="rounded-pill border border-accent-edge px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
+              {tTrad('badge')}
+            </span>
+            <span>
+              {tTrad('translatedFrom', {
+                language: vocabulary(tLib, 'langs.', post.machineFrom),
+              })}
+            </span>
+          </p>
+          <p className="mt-1.5 text-muted">{tTrad('notReviewed')}</p>
+          <p className="mt-2">
+            <Link
+              href={`/actualites/${slug}`}
+              locale={post.machineFrom}
+              className="font-medium text-accent-text underline underline-offset-2"
+            >
+              {tTrad('readOriginal', {
+                language: vocabulary(tLib, 'langs.', post.machineFrom),
+              })}
+            </Link>
+          </p>
+        </aside>
+      ) : null}
 
       {/* Paragraphs as entered: plain text, rendered as text. */}
       <div lang={lang} className="mt-2">

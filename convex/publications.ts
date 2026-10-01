@@ -24,6 +24,7 @@ import { organizationOfAuthor } from './lib/orgMembership';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { normalizeSearchTerm } from './lib/search';
 import { publicationSearchText } from './lib/searchText';
+import { enqueueTranslations } from './translationJobs';
 import {
   matchesPublication,
   sortPublications,
@@ -711,6 +712,8 @@ export const reviewPublication = mutation({
         reviewedAt: now,
         reviewNotes,
       });
+      // Translated into the other site languages as soon as it is public.
+      await enqueueTranslations(ctx, 'publication', publicationId);
     } else {
       // Lacking a `rejected` status (issue #32), a rejection falls back to `draft`;
       // it is `reviewedAt` that distinguishes it from a never-submitted draft.

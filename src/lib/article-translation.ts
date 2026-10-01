@@ -1,18 +1,21 @@
+import { isSupportedLocale } from '@/i18n/locale';
 import type { Locale } from '@/i18n/routing';
 
 // WHAT DO WE SHOW THE READER? — a pure decision, testable on its own.
 //
-// Content submitted by a member exists in ONE language. The reader asks for
-// another. In between, there may be a cached translation, perhaps
-// stale, perhaps failed. Five states, and the page must display just one
-// — with, in each case, what's needed to understand what is in front of them.
+// Content submitted by a member exists in ONE language, and since
+// 2026-10-01 it is translated into every other site language when it goes
+// live (convex/translationJobs.ts). The reader picks the language they read
+// in; in between, that language's translation may be ready, still being
+// prepared, or have failed. The page must display just one text — with, in
+// each case, what's needed to understand what is in front of them.
 //
 // The rule that governs everything else: THE ORIGINAL NEVER DISAPPEARS. A
 // machine translation is not an edition; it is displayed under an
 // explicit notice, and the original stays one click away. It is the same honesty as
 // the "French prevails" clause of the legal pages.
 //
-// WHY A PURE MODULE, and not an `if` in the page: these five states are
+// WHY A PURE MODULE, and not an `if` in the page: these states are
 // decided twice (Tribune post, publication) and checked once —
 // in `tests/unit/article-translation.test.ts`. The page merely
 // renders the verdict.
@@ -24,87 +27,104 @@ export type TranslationFields = {
   body: string[];
 };
 
-/** What the Convex query `translation.getTranslation` returns. */
-export type CachedTranslation = {
-  status: 'pending' | 'ready' | 'failed';
+export type ReadingVersionStatus =
+  'original' | 'ready' | 'pending' | 'failed' | 'missing';
+
+/** What the Convex query `translation.getReading` returns. */
+export type Reading = {
   sourceLocale: Locale;
-  targetLocale: Locale;
-  fields?: TranslationFields;
-  error?: string;
-  fresh: boolean;
+  versions: { locale: Locale; status: ReadingVersionStatus }[];
+  translation: { fields: TranslationFields } | null;
 } | null;
 
 export type ArticleDisplay =
-  /** The content's language is the reader's: nothing to report. */
+  /** The original, read in its own language's pages: nothing to report. */
   | { kind: 'native' }
-  /** The reader asked for the original, or no translation exists yet. */
-  | {
-      kind: 'original';
-      sourceLocale: Locale;
-      /** An up-to-date translation exists: we can point to it. */
-      translationAvailable: boolean;
-      /** A translation exists but describes a stale version of the text. */
-      stale: boolean;
-      /** The last attempt failed; `errorCode` says why. */
-      errorCode?: string;
-    }
-  /** Translation displayed, original one click away. */
+  /** A translation, original one click away. */
   | {
       kind: 'translated';
       sourceLocale: Locale;
+      locale: Locale;
       fields: TranslationFields;
+    }
+  /** The original, and why it is the original that is shown. */
+  | {
+      kind: 'original';
+      sourceLocale: Locale;
+      /** The language the reader asked for. */
+      requested: Locale;
+      /**
+       * - `chosen`: the reader asked for the original;
+       * - `pending`: the translation is being prepared;
+       * - `failed`: it could not be produced;
+       * - `missing`: there is none (content published before translations
+       *   existed, or edited since).
+       */
+      reason: 'chosen' | 'pending' | 'failed' | 'missing';
     };
+
+/**
+ * The language the reader asked to read in.
+ *
+ * `?lang=xx` names it; `?original=1` (the links of the previous
+ * version of this page) asks for the original. Otherwise, the language of
+ * the page.
+ */
+export function requestedLanguage(
+  params: Record<string, string | string[] | undefined>,
+  pageLocale: Locale,
+  sourceLocale: Locale,
+): Locale {
+  const raw = Array.isArray(params.lang) ? params.lang[0] : params.lang;
+  if (raw && isSupportedLocale(raw)) return raw;
+  if (params.original === '1') return sourceLocale;
+  return pageLocale;
+}
 
 /**
  * Decides what to display.
  *
  * @param sourceLocale writing language of the content
- * @param readerLocale language of the page
- * @param cached       cached translation for `readerLocale`, or null
- * @param wantsOriginal the reader asked for the original (`?original=1`)
+ * @param pageLocale   language of the page
+ * @param requested    language the reader asked for (`requestedLanguage`)
+ * @param reading      `translation.getReading` for `requested`, or null
  */
 export function resolveArticleDisplay(
   sourceLocale: Locale,
-  readerLocale: Locale,
-  cached: CachedTranslation,
-  wantsOriginal: boolean,
+  pageLocale: Locale,
+  requested: Locale,
+  reading: Reading,
 ): ArticleDisplay {
-  // 1. Same language: no banner, no offer. The most frequent case, and
-  //    the one where any notice would be noise.
-  if (sourceLocale === readerLocale) return { kind: 'native' };
+  // 1. The original. On its own language's pages it needs no notice — the
+  //    most frequent case, and the one where any notice would be noise.
+  if (requested === sourceLocale) {
+    return pageLocale === sourceLocale
+      ? { kind: 'native' }
+      : { kind: 'original', sourceLocale, requested, reason: 'chosen' };
+  }
 
-  const usable =
-    cached?.status === 'ready' && cached.fresh && cached.fields !== undefined;
-
-  // 2. The reader explicitly asked for the original. Their choice takes precedence over the
-  //    availability of a translation — that is the whole point of the link.
-  if (wantsOriginal) {
+  // 2. An up-to-date translation: serve it, with a notice.
+  if (reading?.translation) {
     return {
-      kind: 'original',
+      kind: 'translated',
       sourceLocale,
-      translationAvailable: usable,
-      stale: false,
-      // A failure need not be brought up to someone reading the original of their
-      // own accord: they already have what they came for.
-      errorCode: undefined,
+      locale: requested,
+      fields: reading.translation.fields,
     };
   }
 
-  // 3. Up-to-date translation: serve it, with a notice.
-  if (usable) {
-    return { kind: 'translated', sourceLocale, fields: cached.fields! };
-  }
-
-  // 4. and 5. No usable translation. Serve the original, saying
-  //    why: stale (the author corrected their text), failed, or
-  //    simply never requested.
+  // 3. No usable translation. Serve the original, saying why.
+  const status = reading?.versions.find((v) => v.locale === requested)?.status;
   return {
     kind: 'original',
     sourceLocale,
-    translationAvailable: false,
-    stale: cached?.status === 'ready' && !cached.fresh,
-    errorCode:
-      cached?.status === 'failed' ? (cached.error ?? 'UNKNOWN') : undefined,
+    requested,
+    reason:
+      status === 'pending'
+        ? 'pending'
+        : status === 'failed'
+          ? 'failed'
+          : 'missing',
   };
 }
 
