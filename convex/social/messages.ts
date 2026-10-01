@@ -625,8 +625,24 @@ export const listConversations = query({
 // The conversation's HEADER: who, what one may still do, and how far the
 // other person has read. The messages themselves are paginated
 // (`listMessages`), newest first.
+// TRANSITION: the screen deployed before this version reads `messages` and
+// `truncated` here. Convex and the site deploy separately, so the backend
+// keeps serving them to callers that do not pass `headerOnly` until every
+// open tab runs the new screen. Remove once the new screen has shipped.
+const LEGACY_THREAD_MAX = 200;
+const legacyMessageValidator = v.object({
+  _id: v.id('directMessages'),
+  fromMe: v.boolean(),
+  body: v.string(),
+  removed: v.boolean(),
+  createdAt: v.number(),
+});
+
 export const getConversation = query({
-  args: { conversationId: v.id('conversations') },
+  args: {
+    conversationId: v.id('conversations'),
+    headerOnly: v.optional(v.boolean()),
+  },
   returns: v.union(
     v.object({
       conversationId: v.id('conversations'),
@@ -647,10 +663,12 @@ export const getConversation = query({
         v.null(),
       ),
       blockedByMe: v.boolean(),
+      messages: v.optional(v.array(legacyMessageValidator)),
+      truncated: v.optional(v.boolean()),
     }),
     v.null(),
   ),
-  handler: async (ctx, { conversationId }) => {
+  handler: async (ctx, { conversationId, headerOnly }) => {
     const viewer = await loadViewer(ctx);
     if (!viewer) return null;
     const { mine, other } = await myMembership(
@@ -660,7 +678,7 @@ export const getConversation = query({
     );
     // A third party — including an administrator — NEVER reads a conversation.
     if (!mine || !other) return null;
-    return {
+    const header = {
       conversationId,
       otherUserId: other.userId,
       other: await participant(ctx, viewer, other.userId),
@@ -669,6 +687,28 @@ export const getConversation = query({
       myLastReadAt: mine.lastReadAt,
       refusal: await writeRefusal(ctx, viewer, other.userId, other),
       blockedByMe: await isBlocked(ctx, viewer.userId, other.userId),
+    };
+    if (headerOnly) return header;
+    const rows = await ctx.db
+      .query('directMessages')
+      .withIndex('by_conversation', (q) =>
+        q.eq('conversationId', conversationId),
+      )
+      .order('desc')
+      .take(LEGACY_THREAD_MAX);
+    return {
+      ...header,
+      messages: rows
+        .filter((m) => inMyCopy(m, mine))
+        .reverse()
+        .map((m) => ({
+          _id: m._id,
+          fromMe: m.senderId === viewer.userId,
+          body: m.removed ? '' : m.body,
+          removed: m.removed === true,
+          createdAt: m.createdAt,
+        })),
+      truncated: rows.length === LEGACY_THREAD_MAX,
     };
   },
 });

@@ -90,6 +90,7 @@ export function MessageThread({
   const router = useRouter();
   const thread = useQuery(api.social.messages.getConversation, {
     conversationId,
+    headerOnly: true,
   });
   const { results, status, loadMore } = usePaginatedQuery(
     api.social.messages.listMessages,

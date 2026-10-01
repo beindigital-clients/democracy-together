@@ -569,6 +569,27 @@ describe('Messagerie — lu, saisie en cours, réponses, corrections, réactions
     expect(after!.otherLastReadAt).toBeGreaterThanOrEqual(sent.createdAt);
   });
 
+  it('transition : l’ancien écran reçoit encore le fil, le nouveau seulement l’en-tête', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'Ancien écran' },
+    );
+    const legacy = await b.as.query(api.social.messages.getConversation, {
+      conversationId,
+    });
+    expect(legacy?.messages?.map((m) => m.body)).toEqual(['Ancien écran']);
+    expect(legacy?.truncated).toBe(false);
+    const header = await b.as.query(api.social.messages.getConversation, {
+      conversationId,
+      headerOnly: true,
+    });
+    expect(header?.messages).toBeUndefined();
+    expect(header?.truncated).toBeUndefined();
+  });
+
   it('saisie en cours : visible par l’autre seulement, effacée à l’envoi', async () => {
     const t = convexTest(schema, modules);
     const a = await person(t, 'Awa');
