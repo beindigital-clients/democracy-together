@@ -91,6 +91,38 @@ export const PROFILE_BOUNDS = {
 // beyond that, it is a document to share some other way.
 export const MESSAGE_BOUNDS = { min: 1, max: 2000 } as const;
 
+// Reactions: a CLOSED set, like the common messaging apps. One reaction per
+// person per message (choosing another replaces it), so a message carries
+// at most two — the conversation has two participants.
+export const MESSAGE_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
+export type MessageReaction = (typeof MESSAGE_REACTIONS)[number];
+export function isMessageReaction(value: string): value is MessageReaction {
+  return (MESSAGE_REACTIONS as readonly string[]).includes(value);
+}
+
+// A sent message can be corrected for a quarter of an hour, then it is
+// settled. A report keeps the version it forwarded.
+export const MESSAGE_EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+export function canEditMessage(input: {
+  fromMe: boolean;
+  removed: boolean;
+  createdAt: number;
+  now: number;
+}): boolean {
+  return (
+    input.fromMe &&
+    !input.removed &&
+    input.now - input.createdAt <= MESSAGE_EDIT_WINDOW_MS
+  );
+}
+
+// "Is typing…": a signal that expires on its own. The composer renews it at
+// most every TYPING_RENEW_MS while keys are pressed; without renewal it
+// fades after TYPING_TTL_MS (tab closed, network lost).
+export const TYPING_TTL_MS = 6000;
+export const TYPING_RENEW_MS = 3000;
+
 // Reason for a report: short, optional.
 export const REPORT_REASON_MAX = 500;
 
@@ -111,6 +143,10 @@ export const SOCIAL_RATE_LIMITS = {
   // A sustained two-person exchange stays far from 30 messages in 10 minutes; a
   // spamming script reaches it in a few seconds.
   message: { max: 30, windowMs: 10 * MINUTE },
+  // Reactions and corrections are cheaper gestures than a message, but
+  // still writes the other person sees.
+  reaction: { max: 120, windowMs: 10 * MINUTE },
+  messageEdit: { max: 30, windowMs: 10 * MINUTE },
   // Opening conversations with strangers is the spammer's move: a daily cap
   // separate from the message rate.
   newConversation: { max: 20, windowMs: 24 * HOUR },
