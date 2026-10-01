@@ -5,7 +5,7 @@ import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { ROLE_ORDER, isAdmin, type NetworkRole } from '@/lib/roles';
-import { SelectField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { CreateAccountForm } from '@/components/admin/create-account-form';
 import { AccountActions } from '@/components/admin/account-actions';
 import { TwoFactorPolicyPanel } from '@/components/admin/two-factor-policy';
@@ -134,17 +134,16 @@ function UsersTable() {
         <SelectField
           label={t('filterRoleLabel')}
           labelHidden
-          controlClassName="w-auto py-1.5"
+          size="sm"
+          controlClassName="w-auto"
           value={role}
-          onChange={(e) => setRole(e.target.value as NetworkRole | '')}
-        >
-          <option value="">{t('filterRoleAll')}</option>
-          {ROLE_ORDER.map((r) => (
-            <option key={r} value={r}>
-              {vocabulary(t, 'role_', r)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={(v) => setRole(v as NetworkRole | '')}
+          emptyLabel={t('filterRoleAll')}
+          options={ROLE_ORDER.map((r) => ({
+            value: r,
+            label: vocabulary(t, 'role_', r),
+          }))}
+        />
       </div>
 
       {(gel === null && connues === undefined) || !me ? (

@@ -12,11 +12,11 @@ import { PUB_THEMES } from '@/lib/publications';
 import { Button } from '@/components/ui/button';
 import {
   FormError,
-  SelectField,
   TextField,
   TextareaField,
   useFormFields,
 } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { isRateLimited } from '@/lib/errors';
 import { vocabulary } from '@/i18n/vocabulary';
 import { StatusMessage } from '@/components/a11y/status-message';
@@ -140,16 +140,13 @@ export function ProjectForm() {
         id="p-theme"
         required
         {...field('theme')}
-      >
-        <option value="" disabled>
-          {t('themePlaceholder')}
-        </option>
-        {PUB_THEMES.map((s) => (
-          <option key={s} value={s}>
-            {vocabulary(tl, 'themes.', s)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={field('theme').onChange}
+        placeholder={t('themePlaceholder')}
+        options={PUB_THEMES.map((s) => ({
+          value: s,
+          label: vocabulary(tl, 'themes.', s),
+        }))}
+      />
       <TextField
         label={t('fieldTitle')}
         id="p-title"

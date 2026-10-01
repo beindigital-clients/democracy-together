@@ -18,6 +18,7 @@ import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { formatDay, knownPaymentError } from './format';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // FEE SCALE EDITING (F-27) — administrators. One row per (category,
 // zone), one amount per currency; an empty field = plan not offered in
@@ -180,12 +181,10 @@ function PlanRow({ row }: { row: Row }) {
         />
       </td>
       <td className="py-2.5 pe-4">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={active}
-          onChange={(e) => setActive(e.target.checked)}
+          onCheckedChange={(checked) => setActive(checked === true)}
           aria-label={t('planActiveLabel', { plan: label })}
-          className="size-5"
         />
       </td>
       <td className="py-2.5">

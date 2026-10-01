@@ -7,7 +7,8 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { SITE_LOCALES, type SiteLocale } from '@convex/lib/locales';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextField } from '@/components/ui/field';
+import { TextField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import {
   LangSwitch,
   LocalizedInput,
@@ -139,14 +140,12 @@ export default function AdminContentPress() {
             <SelectField
               label={t('pr_lang')}
               value={draft.lang}
-              onChange={(e) => set('lang', e.target.value as SiteLocale)}
-            >
-              {SITE_LOCALES.map((l) => (
-                <option key={l} value={l}>
-                  {langName(l)}
-                </option>
-              ))}
-            </SelectField>
+              onValueChange={(v) => set('lang', v as SiteLocale)}
+              options={SITE_LOCALES.map((l) => ({
+                value: l,
+                label: langName(l),
+              }))}
+            />
             <TextField
               label={t('pr_url')}
               type="url"

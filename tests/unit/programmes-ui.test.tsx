@@ -74,9 +74,10 @@ describe('Groupe de cases', () => {
       />,
     );
     expect(screen.getByRole('group', { name: 'Langues' })).toBeTruthy();
-    const fr = screen.getByLabelText('Français');
-    expect(fr.checked).toBe(true);
-    expect(screen.getByLabelText('Anglais').checked).toBe(false);
+    const checked = (name: string) =>
+      screen.getByRole('checkbox', { name }).getAttribute('aria-checked');
+    expect(checked('Français')).toBe('true');
+    expect(checked('Anglais')).toBe('false');
   });
 });
 

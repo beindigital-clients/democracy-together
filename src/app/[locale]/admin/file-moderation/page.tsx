@@ -14,7 +14,8 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { SelectField, TextareaField } from '@/components/ui/field';
+import { TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { STATUS_PILL } from '@/components/tribune/my-posts';
 import { PUB_THEMES } from '@/lib/publications';
@@ -104,34 +105,32 @@ function ModeSettings({ isAdmin }: { isAdmin: boolean }) {
             label={t('postModeLabel')}
             id="mq-post-mode"
             value={current.postMode}
-            onChange={(e) =>
+            onValueChange={(v) =>
               setDraft({
                 ...current,
-                postMode:
-                  e.target.value === 'a_posteriori'
-                    ? 'a_posteriori'
-                    : 'a_priori',
+                postMode: v === 'a_posteriori' ? 'a_posteriori' : 'a_priori',
               })
             }
-          >
-            <option value="a_priori">{t('modeAPriori')}</option>
-            <option value="a_posteriori">{t('modeAPosteriori')}</option>
-          </SelectField>
+            options={[
+              { value: 'a_priori', label: t('modeAPriori') },
+              { value: 'a_posteriori', label: t('modeAPosteriori') },
+            ]}
+          />
           <SelectField
             label={t('commentModeLabel')}
             id="mq-comment-mode"
             value={current.commentMode}
-            onChange={(e) =>
+            onValueChange={(v) =>
               setDraft({
                 ...current,
-                commentMode:
-                  e.target.value === 'a_priori' ? 'a_priori' : 'a_posteriori',
+                commentMode: v === 'a_priori' ? 'a_priori' : 'a_posteriori',
               })
             }
-          >
-            <option value="a_priori">{t('modeAPriori')}</option>
-            <option value="a_posteriori">{t('modeAPosteriori')}</option>
-          </SelectField>
+            options={[
+              { value: 'a_priori', label: t('modeAPriori') },
+              { value: 'a_posteriori', label: t('modeAPosteriori') },
+            ]}
+          />
           <Button
             type="button"
             className="min-h-11"
@@ -574,47 +573,39 @@ function ModerationQueue() {
           label={t('filterType')}
           id="mq-type"
           value={targetType}
-          onChange={(e) =>
-            setTargetType(
-              e.target.value === 'post' || e.target.value === 'comment'
-                ? e.target.value
-                : '',
-            )
+          onValueChange={(v) =>
+            setTargetType(v === 'post' || v === 'comment' ? v : '')
           }
-        >
-          <option value="">{t('filterAll')}</option>
-          <option value="post">{t('targetPost')}</option>
-          <option value="comment">{t('targetComment')}</option>
-        </SelectField>
+          emptyLabel={t('filterAll')}
+          options={[
+            { value: 'post', label: t('targetPost') },
+            { value: 'comment', label: t('targetComment') },
+          ]}
+        />
         <SelectField
           label={t('filterTheme')}
           id="mq-theme"
           value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-        >
-          <option value="">{t('filterAll')}</option>
-          {PUB_THEMES.map((s) => (
-            <option key={s} value={s}>
-              {vocabulary(tl, 'themes.', s)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setTheme}
+          emptyLabel={t('filterAll')}
+          options={PUB_THEMES.map((s) => ({
+            value: s,
+            label: vocabulary(tl, 'themes.', s),
+          }))}
+        />
         <SelectField
           label={t('filterFormat')}
           id="mq-format"
           value={format}
-          onChange={(e) =>
-            setFormat(
-              e.target.value === 'court' || e.target.value === 'fond'
-                ? e.target.value
-                : '',
-            )
+          onValueChange={(v) =>
+            setFormat(v === 'court' || v === 'fond' ? v : '')
           }
-        >
-          <option value="">{t('filterAll')}</option>
-          <option value="court">{tt('format_court')}</option>
-          <option value="fond">{tt('format_fond')}</option>
-        </SelectField>
+          emptyLabel={t('filterAll')}
+          options={[
+            { value: 'court', label: tt('format_court') },
+            { value: 'fond', label: tt('format_fond') },
+          ]}
+        />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">

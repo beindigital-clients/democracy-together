@@ -1,6 +1,9 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '@/components/ui/native-select';
 import {
   countryFlag,
   countryName,
@@ -28,8 +31,9 @@ type FacetGroup = {
 //
 // Each choice is still a URL (GET): shareable, and "Back" undoes it.
 // WITHOUT JavaScript the menus cannot open: they are hidden
-// (`noscript:hidden`) and a form of native selects, served in a
-// `<noscript>`, takes over — same URL, same server.
+// (`noscript:hidden`) and a form of native selects (shadcn `NativeSelect`,
+// the one place the site keeps them), served in a `<noscript>`, takes over —
+// same URL, same server.
 export function DirectoryFilters({
   facets,
   filters,
@@ -165,18 +169,19 @@ export function DirectoryFilters({
                 <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
                   {g.label}
                 </span>
-                <Select
+                <NativeSelect
                   name={g.param}
                   defaultValue={filters[g.param] ?? ''}
-                  className="h-10"
+                  size="sm"
+                  className="min-h-10"
                 >
-                  <option value="">{g.allLabel}</option>
+                  <NativeSelectOption value="">{g.allLabel}</NativeSelectOption>
                   {g.options.map((o) => (
-                    <option key={o.value} value={o.value}>
+                    <NativeSelectOption key={o.value} value={o.value}>
                       {`${o.label} (${o.count})`}
-                    </option>
+                    </NativeSelectOption>
                   ))}
-                </Select>
+                </NativeSelect>
               </label>
             ))}
             <Button type="submit" variant="outline" className="h-10 py-0">

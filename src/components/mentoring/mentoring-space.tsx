@@ -18,12 +18,8 @@ import {
 import type { SiteLocale } from '@convex/lib/locales';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
-import {
-  FormError,
-  SelectField,
-  TextField,
-  TextareaField,
-} from '@/components/ui/field';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { vocabulary } from '@/i18n/vocabulary';
 import { isMember } from '@/lib/roles';
 import {
@@ -34,6 +30,7 @@ import {
   useDateFormat,
   useProgrammeError,
 } from '@/components/programmes/shared';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Space = NonNullable<FunctionReturnType<typeof api.mentoring.myMentoring>>;
 type Profile = Space['profiles'][number];
@@ -324,17 +321,13 @@ function ProfileForm({
         id={`${idp}-region`}
         required
         value={region}
-        onChange={(e) => setRegion(e.target.value)}
-      >
-        <option value="" disabled>
-          {t('regionPlaceholder')}
-        </option>
-        {PROGRAMME_REGIONS.map((r) => (
-          <option key={r} value={r}>
-            {vocabulary(t, 'regions.', r)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={setRegion}
+        placeholder={t('regionPlaceholder')}
+        options={PROGRAMME_REGIONS.map((r) => ({
+          value: r,
+          label: vocabulary(t, 'regions.', r),
+        }))}
+      />
       <CheckGroup
         className="sm:col-span-2"
         legend={t('themes')}
@@ -359,43 +352,34 @@ function ProfileForm({
         label={t('utcOffset')}
         id={`${idp}-offset`}
         value={offset}
-        onChange={(e) => setOffset(e.target.value)}
-      >
-        <option value="">{t('utcOffsetNone')}</option>
-        {OFFSETS.map((o) => (
-          <option key={o} value={String(o)}>
-            {t('utcOffsetValue', { offset: o >= 0 ? `+${o}` : String(o) })}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={setOffset}
+        emptyLabel={t('utcOffsetNone')}
+        options={OFFSETS.map((o) => ({
+          value: String(o),
+          label: t('utcOffsetValue', { offset: o >= 0 ? `+${o}` : String(o) }),
+        }))}
+      />
       <SelectField
         label={t('availability')}
         id={`${idp}-availability`}
         value={availability}
-        onChange={(e) => setAvailability(e.target.value as Availability)}
-      >
-        {AVAILABILITIES.map((a) => (
-          <option key={a} value={a}>
-            {vocabulary(t, 'availability_', a)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={(v) => setAvailability(v as Availability)}
+        options={AVAILABILITIES.map((a) => ({
+          value: a,
+          label: vocabulary(t, 'availability_', a),
+        }))}
+      />
       {role === 'mentor' ? (
         <SelectField
           label={t('capacity')}
           id={`${idp}-capacity`}
           value={capacity}
-          onChange={(e) => setCapacity(e.target.value)}
-        >
-          {Array.from(
+          onValueChange={setCapacity}
+          options={Array.from(
             { length: PROGRAMME_LIMITS.maxMentorCapacity },
             (_, i) => i + 1,
-          ).map((n) => (
-            <option key={n} value={String(n)}>
-              {n}
-            </option>
-          ))}
-        </SelectField>
+          ).map((n) => ({ value: String(n), label: String(n) }))}
+        />
       ) : null}
       <TextareaField
         label={role === 'mentor' ? t('goalsMentor') : t('goalsMentee')}
@@ -408,11 +392,9 @@ function ProfileForm({
         onChange={(e) => setGoals(e.target.value)}
       />
       <label className="flex min-h-11 items-center gap-3 text-sm text-ink sm:col-span-2">
-        <input
-          type="checkbox"
-          className="h-4 w-4 accent-accent"
+        <Checkbox
           checked={active}
-          onChange={(e) => setActive(e.target.checked)}
+          onCheckedChange={(checked) => setActive(checked === true)}
         />
         {t('activeLabel')}
       </label>

@@ -40,7 +40,7 @@ import {
 import { MemberPageHeader } from '@/components/member/page-header';
 import {
   ComboboxField,
-  SelectMenuField,
+  SelectField,
   foldSearch,
   matchesSearch,
 } from '@/components/ui/choice-fields';
@@ -650,21 +650,21 @@ describe('Contrôles de l’éditeur de profil', () => {
     // The E2E journeys pick these by /^Public/ and /^Membres du réseau/.
     const pub = screen.getByRole('radio', { name: /^Public/ });
     expect(
-      screen.getByRole('radio', {
-        name: /^Membres du réseau/,
-      }).checked,
-    ).toBe(true);
+      screen
+        .getByRole('radio', { name: /^Membres du réseau/ })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
     pub.click();
     expect(onChange).toHaveBeenCalledWith('public');
   });
 
-  it('interrupteur : une case à cocher au rôle « switch »', () => {
+  it('interrupteur : un contrôle au rôle « switch »', () => {
     const onChange = vi.fn();
     mount(
       <SwitchRow label="Nouvel abonné" checked={false} onChange={onChange} />,
     );
     const sw = screen.getByRole('switch', { name: 'Nouvel abonné' });
-    expect((sw as HTMLInputElement).checked).toBe(false);
+    expect(sw.getAttribute('aria-checked')).toBe('false');
     sw.click();
     expect(onChange).toHaveBeenCalledWith(true);
   });
@@ -708,7 +708,7 @@ describe('Champs de choix (shadcn) — liés à leur libellé comme un champ tex
 
   it('liste déroulante : nommée par son libellé, montre le choix courant', () => {
     mount(
-      <SelectMenuField
+      <SelectField
         label="Type de lien"
         value="SN"
         onValueChange={() => {}}
@@ -721,7 +721,7 @@ describe('Champs de choix (shadcn) — liés à leur libellé comme un champ tex
 
   it('liste déroulante : le choix vide a son libellé, et l’erreur est reliée', () => {
     mount(
-      <SelectMenuField
+      <SelectField
         label="Pays"
         value=""
         onValueChange={() => {}}

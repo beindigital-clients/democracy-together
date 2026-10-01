@@ -11,7 +11,6 @@ import {
 } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 // FORM FIELD SYSTEM — a single one, for the whole site (issue #41).
@@ -26,10 +25,11 @@ import { Textarea } from '@/components/ui/textarea';
 // `Field` is the shell: it generates the identifier, associates the label
 // (`htmlFor`/`id`), and describes the control with the help text and the error
 // (`aria-describedby`), marking it invalid (`aria-invalid`) as soon as an
-// error is passed. The common fields (`TextField`, `TextareaField`,
-// `SelectField`) are simple wrappers; special controls (password,
-// one-time code, file) go through the shell itself,
-// which hands them this wiring.
+// error is passed. The common fields (`TextField`, `TextareaField`) are
+// simple wrappers; special controls (password, one-time code, file) go
+// through the shell itself, which hands them this wiring. The choice fields
+// (`SelectField`, `ComboboxField`) live in `choice-fields.tsx`, so that a
+// page with only text fields does not load Radix Select and cmdk.
 //
 // The ARIA and controlled-value slots provided here are now
 // filled, in a single place, by `useFormFields` (bottom of the file): per-field
@@ -81,6 +81,11 @@ function useFieldWiring(
   return { controlId, hintId, errorId, control };
 }
 
+// How the label sits: above the control (forms), or on its line before it
+// (`horizontal`: an inline control above a list, "Sort by [Most recent]").
+// The hint and the error always go below, across the whole line.
+export type FieldOrientation = 'vertical' | 'horizontal';
+
 // Field shell: label, help text, error and ARIA wiring. The control
 // is rendered by the caller, which receives as an argument what it must respond to.
 export function Field({
@@ -90,9 +95,11 @@ export function Field({
   error,
   className,
   id,
+  orientation = 'vertical',
   children,
 }: FieldShellProps & {
   id?: string;
+  orientation?: FieldOrientation;
   children: (control: FieldControlProps) => ReactNode;
 }) {
   const { controlId, hintId, errorId, control } = useFieldWiring(
@@ -100,25 +107,46 @@ export function Field({
     hint,
     error,
   );
+  const horizontal = orientation === 'horizontal';
 
   return (
-    <div className={className}>
+    <div
+      className={cn(
+        horizontal && 'flex flex-wrap items-center gap-x-2 gap-y-1',
+        className,
+      )}
+    >
       <label
         htmlFor={controlId}
-        className={labelHidden ? 'sr-only' : 'block text-sm text-ink-soft'}
+        className={cn(
+          labelHidden ? 'sr-only' : 'text-sm text-ink-soft',
+          !labelHidden && !horizontal && 'block',
+        )}
       >
         {label}
       </label>
-      <div className={labelHidden ? undefined : 'mt-1'}>
+      <div className={labelHidden || horizontal ? undefined : 'mt-1'}>
         {children(control)}
       </div>
       {hint ? (
-        <p id={hintId} className="mt-1 text-xs text-muted">
+        <p
+          id={hintId}
+          className={cn(
+            'text-xs text-muted',
+            horizontal ? 'basis-full' : 'mt-1',
+          )}
+        >
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="mt-1 text-sm text-bar-5">
+        <p
+          id={errorId}
+          className={cn(
+            'text-sm text-bar-5',
+            horizontal ? 'basis-full' : 'mt-1',
+          )}
+        >
           {error}
         </p>
       ) : null}
@@ -180,40 +208,6 @@ export function TextareaField({
   );
 }
 
-export function SelectField({
-  label,
-  labelHidden,
-  hint,
-  error,
-  className,
-  controlClassName,
-  children,
-  ...props
-}: FieldShellProps & ComponentProps<'select'>) {
-  return (
-    <Field
-      label={label}
-      labelHidden={labelHidden}
-      hint={hint}
-      error={error}
-      className={className}
-      id={props.id}
-    >
-      {(control) => (
-        // `py-2.5`: same height as `Input`, so that the fields of a single
-        // grid line up.
-        <Select
-          {...props}
-          {...control}
-          className={cn('w-full py-2.5', controlClassName)}
-        >
-          {children}
-        </Select>
-      )}
-    </Field>
-  );
-}
-
 // Error concerning the entire FORM (send failure, global validation),
 // as opposed to a field's `error` prop. `role="alert"`: the message is
 // announced as soon as it appears, without moving focus.
@@ -251,9 +245,7 @@ export function FormError({
 // value is fine.
 export type FieldRule = (value: string) => string | null;
 
-type ControlChangeEvent = ChangeEvent<
-  HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
->;
+type ControlChangeEvent = ChangeEvent<HTMLInputElement | HTMLTextAreaElement>;
 
 export function useFormFields<K extends string>(initial: Record<K, string>) {
   const [values, setValues] = useState<Record<K, string>>(initial);
@@ -281,8 +273,9 @@ export function useFormFields<K extends string>(initial: Record<K, string>) {
 
   // What a field receives: its value, its message, and what it needs to keep them up to date.
   // `onChange` accepts the event from native controls as well as the bare value
-  // returned by composite controls (the one-time code): a single `field`
-  // serves both, hence a single place where values and messages live.
+  // returned by composite controls (the one-time code, the choice fields — the
+  // latter take it as `onValueChange`): a single `field` serves both, hence a
+  // single place where values and messages live.
   function field(name: K) {
     return {
       name,

@@ -7,6 +7,7 @@ import {
   approveTribunePosts,
 } from './_helpers';
 import { SESSIONS } from './_sessions';
+import { chooseOption } from './_fields';
 
 // SAFEGUARD for the back office's irreversible actions (issue #38).
 //
@@ -323,7 +324,7 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
   // movement over the dropdown changed its value, and that
   // value was sent to the server. We simulate the gesture through its consequence (the
   // value changes) and check that after reloading, nothing was sent.
-  await row.getByLabel(`Rôle ${email}`).selectOption('visiteur');
+  await chooseOption(row.getByLabel(`Rôle ${email}`), 'Visiteur');
   await expect(row.getByRole('button', { name: 'Appliquer' })).toBeVisible();
   await page.reload();
   // Reloading clears the search field — it is local state. Without
@@ -335,12 +336,12 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
       .getByRole('row')
       .filter({ hasText: email })
       .getByLabel(`Rôle ${email}`),
-  ).toHaveValue('membre');
+  ).toHaveText('Membre');
 
   // 2. "Appliquer" opens a confirmation that names the account, and says what
   // changes.
   const row2 = page.getByRole('row').filter({ hasText: email });
-  await row2.getByLabel(`Rôle ${email}`).selectOption('visiteur');
+  await chooseOption(row2.getByLabel(`Rôle ${email}`), 'Visiteur');
   await row2.getByRole('button', { name: 'Appliquer' }).click();
   const dialog = page.getByRole('dialog', {
     name: `Changer le rôle de ${email} ?`,
@@ -362,11 +363,11 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
       .getByRole('row')
       .filter({ hasText: email })
       .getByLabel(`Rôle ${email}`),
-  ).toHaveValue('membre');
+  ).toHaveText('Membre');
 
   // 3. Once confirmed, the switch goes through — with visible feedback.
   const row3 = page.getByRole('row').filter({ hasText: email });
-  await row3.getByLabel(`Rôle ${email}`).selectOption('visiteur');
+  await chooseOption(row3.getByLabel(`Rôle ${email}`), 'Visiteur');
   await row3.getByRole('button', { name: 'Appliquer' }).click();
   await page
     .getByRole('dialog')
@@ -390,5 +391,5 @@ test('le rôle ne change pas sur un simple choix dans la liste : il faut « Appl
       .getByRole('row')
       .filter({ hasText: email })
       .getByLabel(`Rôle ${email}`),
-  ).toHaveValue('visiteur');
+  ).toHaveText('Visiteur');
 });

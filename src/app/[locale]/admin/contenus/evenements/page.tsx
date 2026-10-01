@@ -11,7 +11,9 @@ import { resolveLocale, intlLocale } from '@/i18n/locale';
 import { Link } from '@/i18n/navigation';
 import { getEventsLabels } from '@/lib/events-content';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextField } from '@/components/ui/field';
+import { TextField } from '@/components/ui/field';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
+import { timeZoneChoices } from '@/lib/time-zones';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import {
   LangSwitch,
@@ -30,6 +32,7 @@ import {
   PreviewCard,
   useRunAction,
 } from '@/components/admin/contenus/editor-shell';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // AGENDA — EDITING (F-52, F-62). Create, edit, publish, unpublish, cancel
 // an event; REGISTRATIONS stay on `/admin/evenements` (moderator
@@ -85,7 +88,7 @@ const EMPTY: Draft = {
   imageMediaId: undefined,
 };
 
-// Offered time zones (open list: any IANA time zone is accepted).
+// The usual time zones, listed first (any IANA time zone is accepted).
 const TIMEZONES = [
   'Europe/Paris',
   'Europe/Brussels',
@@ -302,47 +305,36 @@ export default function AdminContentEvents() {
             <SelectField
               label={t('ev_type')}
               value={draft.type}
-              onChange={(e) => set('type', e.target.value as EventType)}
-            >
-              {(['sommet', 'webinaire', 'atelier'] as const).map((v) => (
-                <option key={v} value={v}>
-                  {L.types[v]}
-                </option>
-              ))}
-            </SelectField>
+              onValueChange={(v) => set('type', v as EventType)}
+              options={(['sommet', 'webinaire', 'atelier'] as const).map(
+                (v) => ({ value: v, label: L.types[v] }),
+              )}
+            />
             <SelectField
               label={t('ev_format')}
               value={draft.format}
-              onChange={(e) => set('format', e.target.value as EventFormat)}
-            >
-              {(['presentiel', 'en-ligne', 'hybride'] as const).map((v) => (
-                <option key={v} value={v}>
-                  {L.formats[v]}
-                </option>
-              ))}
-            </SelectField>
+              onValueChange={(v) => set('format', v as EventFormat)}
+              options={(['presentiel', 'en-ligne', 'hybride'] as const).map(
+                (v) => ({ value: v, label: L.formats[v] }),
+              )}
+            />
             <SelectField
               label={t('ev_region')}
               value={draft.region}
-              onChange={(e) => set('region', e.target.value as EventRegion)}
-            >
-              {(['afrique', 'europe', 'en-ligne'] as const).map((v) => (
-                <option key={v} value={v}>
-                  {L.regions[v]}
-                </option>
-              ))}
-            </SelectField>
+              onValueChange={(v) => set('region', v as EventRegion)}
+              options={(['afrique', 'europe', 'en-ligne'] as const).map(
+                (v) => ({ value: v, label: L.regions[v] }),
+              )}
+            />
             <SelectField
               label={t('ev_theme')}
               value={draft.theme}
-              onChange={(e) => set('theme', e.target.value)}
-            >
-              {THEMES.map((v) => (
-                <option key={v} value={v}>
-                  {L.themes[v as keyof typeof L.themes] ?? v}
-                </option>
-              ))}
-            </SelectField>
+              onValueChange={(v) => set('theme', v)}
+              options={THEMES.map((v) => ({
+                value: v,
+                label: L.themes[v as keyof typeof L.themes] ?? v,
+              }))}
+            />
           </div>
 
           <fieldset>
@@ -353,13 +345,12 @@ export default function AdminContentEvents() {
                   key={l}
                   className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-sm"
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={draft.langs.includes(l)}
-                    onChange={(e) =>
+                    onCheckedChange={(checked) =>
                       set(
                         'langs',
-                        e.target.checked
+                        checked === true
                           ? [...draft.langs, l]
                           : draft.langs.filter((x) => x !== l),
                       )
@@ -398,19 +389,23 @@ export default function AdminContentEvents() {
               onChange={(e) => set('endTime', e.target.value)}
             />
           </div>
-          <TextField
+          {/* Every IANA zone, the usual ones first: searchable, so a
+              typo can no longer reach the server. */}
+          <ComboboxField
             label={t('ev_timezone')}
             hint={t('ev_timezoneHint')}
-            list="content-timezones"
             value={draft.timezone}
-            onChange={(e) => set('timezone', e.target.value)}
+            onValueChange={(v) => set('timezone', v)}
             required
+            options={timeZoneChoices(TIMEZONES, draft.timezone).map((tz) => ({
+              value: tz,
+              label: tz,
+            }))}
+            placeholder={t('ev_timezone')}
+            searchLabel={t('ev_timezoneSearchLabel')}
+            searchPlaceholder={t('ev_timezoneSearchPlaceholder')}
+            noResults={t('ev_timezoneNoResults')}
           />
-          <datalist id="content-timezones">
-            {TIMEZONES.map((tz) => (
-              <option key={tz} value={tz} />
-            ))}
-          </datalist>
 
           <TextField
             label={t('ev_visio')}
@@ -440,10 +435,9 @@ export default function AdminContentEvents() {
             />
           </div>
           <label className="inline-flex min-h-11 items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={draft.featured}
-              onChange={(e) => set('featured', e.target.checked)}
+              onCheckedChange={(checked) => set('featured', checked === true)}
             />
             {t('ev_featured')}
           </label>

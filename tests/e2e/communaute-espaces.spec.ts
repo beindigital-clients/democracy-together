@@ -5,6 +5,7 @@ import {
   seDeconnecter,
   signUpAndVerify,
 } from './_helpers';
+import { chooseOption } from './_fields';
 
 // COLLABORATIVE SPACES — invitations and shared files (F-24, "communauté"
 // workstream), end to end:
@@ -47,7 +48,7 @@ test('l’animatrice invite, l’invité accepte et dépose un fichier', async (
   await page.goto('/fr/espaces');
   await page.getByRole('button', { name: 'Créer un espace' }).click();
   await page.getByLabel('Titre').fill(title);
-  await page.getByLabel('Accès').selectOption('private');
+  await chooseOption(page.getByLabel('Accès'), 'Privé, sur invitation');
   await page
     .getByLabel('Description')
     .fill('Un espace privé pour préparer une note commune.');
@@ -58,10 +59,10 @@ test('l’animatrice invite, l’invité accepte et dépose un fichier', async (
   await expect(page.getByText('Privé', { exact: true })).toBeVisible();
 
   await page.getByLabel('Inviter par adresse e-mail').fill(guestEmail);
-  await page
-    .getByLabel('Rôle', { exact: true })
-    .first()
-    .selectOption('contributeur');
+  await chooseOption(
+    page.getByLabel('Rôle', { exact: true }).first(),
+    'Contributeur·rice',
+  );
   await page
     .getByRole('button', { name: 'Inviter', exact: true })
     .first()

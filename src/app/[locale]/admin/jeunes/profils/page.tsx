@@ -16,6 +16,7 @@ import {
   useDateFormat,
   useProgrammeError,
 } from '@/components/programmes/shared';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Review of Youth profiles and their programme applications (F-58) —
 // moderator rank, like the anonymous queue at /admin/jeunes.
@@ -94,11 +95,9 @@ export default function AdminYouthProfiles() {
         </button>
         {tab === 'applications' ? (
           <label className="ms-auto flex min-h-11 items-center gap-2 px-3 text-sm text-ink-soft">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-accent"
+            <Checkbox
               checked={pendingOnly}
-              onChange={(e) => setPendingOnly(e.target.checked)}
+              onCheckedChange={(checked) => setPendingOnly(checked === true)}
             />
             {t('adminPendingOnly')}
           </label>

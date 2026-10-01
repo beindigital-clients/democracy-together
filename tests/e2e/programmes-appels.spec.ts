@@ -1,6 +1,7 @@
 import { test, expect, type Browser } from '@playwright/test';
 import { resetProgrammes } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
+import { chooseOption } from './_fields';
 
 // F-60 — Calls for projects, end to end: a moderator publishes a dated
 // call and assigns a reviewer; a member applies with an attachment;
@@ -60,7 +61,7 @@ test.describe
     await admin.page
       .getByLabel('Présentation de l’appel')
       .fill('Soutenir des projets de recherche-action sur la participation.');
-    await admin.page.getByLabel('Fuseau de référence').selectOption('UTC');
+    await chooseOption(admin.page.getByLabel('Fuseau de référence'), 'UTC');
     await admin.page.getByLabel('Montant du fonds').fill('10000');
     await admin.page.getByLabel('Devise').fill('EUR');
     await admin.page.getByLabel('Ouverture').fill(wall(Date.now() - 3_600_000));
@@ -124,9 +125,7 @@ test.describe
       .getByRole('listitem')
       .filter({ hasText: projectTitle });
     await expect(dossier).toBeVisible();
-    await dossier
-      .getByLabel('Pertinence (poids 1)')
-      .selectOption({ label: '4 / 5' });
+    await chooseOption(dossier.getByLabel('Pertinence (poids 1)'), '4 / 5');
     await dossier.getByRole('button', { name: 'Enregistrer ma note' }).click();
     await expect(dossier.getByText('Note enregistrée.')).toBeVisible();
     await evaluateur.done();

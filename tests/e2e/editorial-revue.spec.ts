@@ -8,6 +8,7 @@ import {
 import { PDFDocument } from 'pdf-lib';
 import { deleteTestPublications } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
+import { chooseOption } from './_fields';
 
 // F-43 — Peer-reviewed journal, full DOUBLE-BLIND flow:
 // manuscript submitted → two reviewers (conflict of interest declared, reviews) →
@@ -75,9 +76,7 @@ async function review(
   await expect(
     item.getByRole('link', { name: /Télécharger le manuscrit anonymisé/ }),
   ).toBeVisible({ timeout: 30_000 });
-  await item
-    .getByLabel('Recommandation')
-    .selectOption({ label: recommendation });
+  await chooseOption(item.getByLabel('Recommandation'), recommendation);
   await item
     .getByLabel("Avis argumenté (transmis anonymement à l'auteur)")
     .fill(comment);
@@ -87,9 +86,10 @@ async function review(
 
 async function assign(editor: Page, title: string, reviewer: SessionKey) {
   const item = card(editor, title);
-  await item
-    .getByLabel('Assigner un relecteur')
-    .selectOption({ label: SESSIONS[reviewer].email });
+  await chooseOption(
+    item.getByLabel('Assigner un relecteur'),
+    SESSIONS[reviewer].email,
+  );
   await item.getByRole('button', { name: 'Assigner', exact: true }).click();
   // The reviewer's row, in the manuscript's reviewer list.
   await expect(
@@ -104,9 +104,7 @@ async function decide(
   reason: string,
 ) {
   const item = card(editor, title);
-  await item
-    .getByLabel('Décision', { exact: true })
-    .selectOption({ label: decision });
+  await chooseOption(item.getByLabel('Décision', { exact: true }), decision);
   await item.getByLabel("Motif, transmis à l'auteur").fill(reason);
   await item.getByRole('button', { name: 'Rendre la décision' }).click();
 }

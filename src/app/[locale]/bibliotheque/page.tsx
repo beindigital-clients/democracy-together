@@ -13,6 +13,8 @@ import { SortSelect } from '@/components/library/sort-select';
 import { parseFilters, buildHref, PAGE_SIZE } from '@/lib/publications';
 import { fetchOrFallback, EMPTY_PUBLICATION_LIST } from '@/lib/convex-fallback';
 import { ArrowBack, ArrowForward } from '@/components/ui/arrow';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -132,7 +134,7 @@ export default async function LibraryPage({
               {filters.sort !== 'recent' ? (
                 <input type="hidden" name="sort" value={filters.sort} />
               ) : null}
-              <input
+              <Input
                 type="search"
                 name="q"
                 defaultValue={filters.q ?? ''}
@@ -141,14 +143,11 @@ export default async function LibraryPage({
                 // NON-visible label: `title` makes it readable on hover and meets one
                 // condition of RGAA 11.1.3 (the placeholder disappears while typing).
                 title={t('searchPlaceholder')}
-                className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="flex-1 px-4 py-3"
               />
-              <button
-                type="submit"
-                className="shrink-0 rounded-sm bg-accent px-5 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-              >
+              <Button type="submit" size="lg" className="shrink-0">
                 {t('searchCta')}
-              </button>
+              </Button>
             </form>
           </Reveal>
         </div>

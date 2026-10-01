@@ -58,7 +58,7 @@ import {
   TextField,
   TextareaField,
 } from '@/components/ui/field';
-import { ComboboxField, SelectMenuField } from '@/components/ui/choice-fields';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { uploadWithProgress, type UploadProgress } from '@/lib/upload';
@@ -71,6 +71,7 @@ import {
   toggleIn,
   type ProfileDraft,
 } from './profile-draft';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // "MON PROFIL" SCREEN (member area): identity, photo, interests, links,
 // privacy, notifications — then language, blocked members, data export.
@@ -719,7 +720,7 @@ function ProfileForm({
                 key={i}
                 className="grid gap-3 rounded-sm border border-line bg-paper/40 p-3 @lg:grid-cols-[10rem_minmax(0,1fr)_auto] @lg:items-end"
               >
-                <SelectMenuField
+                <SelectField
                   label={t('linkKind')}
                   value={link.kind}
                   dir={dir}
@@ -1008,11 +1009,9 @@ function PhotoSection({ me, exists }: { me: Me; exists: boolean }) {
               ) : null}
             </div>
             <label className="-mx-2 flex min-h-11 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-sm text-ink hover:bg-surface-2">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-[var(--accent)]"
+              <Checkbox
                 checked={crop}
-                onChange={() => setCrop((c) => !c)}
+                onCheckedChange={() => setCrop((c) => !c)}
               />
               {t('photoCrop')}
             </label>
@@ -1063,7 +1062,7 @@ function LanguagePreference({ current }: { current: string | null }) {
       <SectionTitle id="profil-langue" icon={Globe} lead={t('languageHint')}>
         {t('sectionPreferences')}
       </SectionTitle>
-      <SelectMenuField
+      <SelectField
         className="max-w-xs"
         label={t('language')}
         value={value}

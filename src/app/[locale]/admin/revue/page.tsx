@@ -14,7 +14,8 @@ import {
   type ManuscriptStage,
 } from '@convex/lib/manuscripts';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextField, TextareaField } from '@/components/ui/field';
+import { TextField, TextareaField } from '@/components/ui/field';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
 import { Badge } from '@/components/ui/badge';
 import { LoadMore } from '@/components/admin/load-more';
 import {
@@ -112,32 +113,34 @@ function OpenReviewPanel({ staff }: { staff: Staff | undefined }) {
         <p className="mt-3 text-sm text-muted">{t('revNoStaff')}</p>
       ) : (
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <SelectField
+          <ComboboxField
             label={t('revOpenPublication')}
             className="min-w-0 flex-1 basis-64"
             value={publicationId}
-            onChange={(e) => setPublicationId(e.target.value)}
-          >
-            <option value="">{t('revOpenPublicationPlaceholder')}</option>
-            {(openable ?? []).map((p) => (
-              <option key={p._id} value={p._id}>
-                {p.title}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField
+            onValueChange={setPublicationId}
+            placeholder={t('revOpenPublicationPlaceholder')}
+            options={(openable ?? []).map((p) => ({
+              value: p._id,
+              label: p.title,
+            }))}
+            searchLabel={t('searchPublicationsLabel')}
+            searchPlaceholder={t('searchPublicationsPlaceholder')}
+            noResults={t('noResults')}
+          />
+          <ComboboxField
             label={t('revAssignLabel')}
             className="min-w-0 flex-1 basis-56"
             value={reviewerId}
-            onChange={(e) => setReviewerId(e.target.value)}
-          >
-            <option value="">{t('revAssignPlaceholder')}</option>
-            {(staff ?? []).map((u) => (
-              <option key={u._id} value={u._id}>
-                {staffName(u)}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={setReviewerId}
+            placeholder={t('revAssignPlaceholder')}
+            options={(staff ?? []).map((u) => ({
+              value: u._id,
+              label: staffName(u),
+            }))}
+            searchLabel={t('revAssignSearchLabel')}
+            searchPlaceholder={t('revAssignSearchPlaceholder')}
+            noResults={t('revAssignNoResults')}
+          />
           <Button
             disabled={busy || !publicationId || !reviewerId}
             onClick={open}
@@ -455,19 +458,20 @@ function ManuscriptCard({
         )}
         {canAssign && staff && staff.length > 0 ? (
           <div className="mt-3 flex flex-wrap items-end gap-2">
-            <SelectField
+            <ComboboxField
               label={t('revAssignLabel')}
               controlClassName="w-auto"
               value={reviewerId}
-              onChange={(e) => setReviewerId(e.target.value)}
-            >
-              <option value="">{t('revAssignPlaceholder')}</option>
-              {staff.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {staffName(u)}
-                </option>
-              ))}
-            </SelectField>
+              onValueChange={setReviewerId}
+              placeholder={t('revAssignPlaceholder')}
+              options={staff.map((u) => ({
+                value: u._id,
+                label: staffName(u),
+              }))}
+              searchLabel={t('revAssignSearchLabel')}
+              searchPlaceholder={t('revAssignSearchPlaceholder')}
+              noResults={t('revAssignNoResults')}
+            />
             <TextField
               type="date"
               label={tp('dueLabel')}
@@ -553,17 +557,13 @@ function ManuscriptCard({
               label={tp('decisionLabel')}
               controlClassName="w-auto"
               value={decision}
-              onChange={(e) =>
-                setDecision(e.target.value as ManuscriptDecision | '')
-              }
-            >
-              <option value="">{tp('decisionPlaceholder')}</option>
-              {decisions.map((d) => (
-                <option key={d} value={d}>
-                  {vocabulary(tp, 'decision_', d)}
-                </option>
-              ))}
-            </SelectField>
+              onValueChange={(v) => setDecision(v as ManuscriptDecision | '')}
+              placeholder={tp('decisionPlaceholder')}
+              options={decisions.map((d) => ({
+                value: d,
+                label: vocabulary(tp, 'decision_', d),
+              }))}
+            />
             <TextareaField
               label={tp('reasonLabel')}
               hint={tp('reasonHint', { min: MANUSCRIPT_BOUNDS.reason.min })}
@@ -630,15 +630,13 @@ export default function AdminReview() {
         className="mt-4"
         controlClassName="w-auto"
         value={stage}
-        onChange={(e) => setStage(e.target.value as ManuscriptStage | '')}
-      >
-        <option value="">{t('revStageAll')}</option>
-        {MANUSCRIPT_STAGES.map((sg) => (
-          <option key={sg} value={sg}>
-            {vocabulary(tp, 'stage_', sg)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={(v) => setStage(v as ManuscriptStage | '')}
+        emptyLabel={t('revStageAll')}
+        options={MANUSCRIPT_STAGES.map((sg) => ({
+          value: sg,
+          label: vocabulary(tp, 'stage_', sg),
+        }))}
+      />
 
       {status === 'LoadingFirstPage' ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>

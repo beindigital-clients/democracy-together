@@ -7,11 +7,10 @@ import { api } from '@convex/_generated/api';
 import { PROFILE_LANGUAGES, PROFILE_THEMES } from '@convex/lib/social';
 import { languageName } from '@/lib/orgs';
 import { countryOptions } from '@/lib/countries';
-import { directionOf } from '@/i18n/direction';
 import { isMember } from '@/lib/roles';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
-import { ComboboxField, SelectMenuField } from '@/components/ui/choice-fields';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
 import { PersonCard } from './person-card';
 
 // PEOPLE DIRECTORY — reserved for network members.
@@ -88,23 +87,21 @@ export function PeopleDirectory({
           maxLength={100}
           onChange={(e) => setQ(e.target.value)}
         />
-        <SelectMenuField
+        <SelectField
           label={t('filterTheme')}
           value={theme}
           onValueChange={setTheme}
           emptyLabel={t('all')}
-          dir={directionOf(locale)}
           options={PROFILE_THEMES.map((slug) => ({
             value: slug,
             label: themeLabels[slug] ?? slug,
           }))}
         />
-        <SelectMenuField
+        <SelectField
           label={t('filterLanguage')}
           value={language}
           onValueChange={setLanguage}
           emptyLabel={t('all')}
-          dir={directionOf(locale)}
           options={PROFILE_LANGUAGES.map((code) => ({
             value: code,
             label: languageName(code, locale),

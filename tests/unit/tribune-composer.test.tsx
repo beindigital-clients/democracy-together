@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
 import { routing } from '@/i18n/routing';
+import { chooseOption, optionLabels } from './_choice';
 
 // Issue #35 — a Tribune post is written in ONE language and is never
 // translated: it is this language, declared here, that will set the page's
@@ -50,21 +51,30 @@ function openComposer(locale: 'fr' | 'en') {
   fireEvent.click(
     screen.getByRole('button', { name: messages.tribune.startCta }),
   );
-  return screen.getByLabelText<HTMLSelectElement>(messages.tribune.fieldLang);
+  return screen.getByLabelText(messages.tribune.fieldLang);
+}
+
+// The format list: "Brève" (court) or "Analyse" (fond).
+function chooseFormat(format: 'court' | 'fond') {
+  chooseOption(
+    screen.getByLabelText(fr.tribune.fieldFormat),
+    fr.tribune[`format_${format}`],
+  );
 }
 
 describe('Composer de la Tribune — langue du billet (#35)', () => {
   it('pré-remplit la langue du billet avec celle de l’interface', () => {
-    expect(openComposer('fr').value).toBe('fr');
+    // The language is shown by its name, in the interface's language.
+    expect(openComposer('fr').textContent).toBe(fr.library.langs.fr);
     cleanup();
-    expect(openComposer('en').value).toBe('en');
+    expect(openComposer('en').textContent).toBe(en.library.langs.en);
   });
 
   it('n’impose pas la langue de l’interface : elle reste modifiable', async () => {
     createPost.mockReset();
     createPost.mockResolvedValue('post1');
     const select = openComposer('fr');
-    fireEvent.change(select, { target: { value: 'en' } });
+    chooseOption(select, fr.library.langs.en);
 
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldTitle), {
       target: { value: 'A contribution in English' },
@@ -87,9 +97,9 @@ describe('Composer de la Tribune — langue du billet (#35)', () => {
     // title claims, and a sixth language must not make this
     // file fail — it must appear in the selector.
     const select = openComposer('fr');
-    expect([...select.options].map((o) => o.value)).toEqual([
-      ...routing.locales,
-    ]);
+    expect(optionLabels(select)).toEqual(
+      routing.locales.map((l) => fr.library.langs[l]),
+    );
   });
 });
 
@@ -126,9 +136,7 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
       message('bodyCount', { count: 11, max: TRIBUNE_BODY.court.max }),
     );
     // "Analyse": the limit goes up to 20,000.
-    fireEvent.change(screen.getByLabelText(fr.tribune.fieldFormat), {
-      target: { value: 'fond' },
-    });
+    chooseFormat('fond');
     expect(compteur()).toBe(
       message('bodyCount', { count: 11, max: TRIBUNE_BODY.fond.max }),
     );
@@ -142,9 +150,7 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
   it('dit que la limite est atteinte, et refuse un texte trop long pour le format', async () => {
     createPost.mockReset();
     openComposer('fr');
-    fireEvent.change(screen.getByLabelText(fr.tribune.fieldFormat), {
-      target: { value: 'fond' },
-    });
+    chooseFormat('fond');
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldTitle), {
       target: { value: 'Une analyse longue' },
     });
@@ -154,9 +160,7 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldBody), {
       target: { value: 'a'.repeat(TRIBUNE_BODY.court.max + 1) },
     });
-    fireEvent.change(screen.getByLabelText(fr.tribune.fieldFormat), {
-      target: { value: 'court' },
-    });
+    chooseFormat('court');
     expect(compteur()).toBe(
       message('bodyLimitReached', { max: TRIBUNE_BODY.court.max }),
     );
@@ -175,9 +179,7 @@ describe('Composer de la Tribune — format calibré (F-46, A-05)', () => {
 describe('Composer de la Tribune — « Annuler » et brouillon (A-09)', () => {
   it('un brouillon court est effacé sans confirmation, format et erreur compris', () => {
     openComposer('fr');
-    fireEvent.change(screen.getByLabelText(fr.tribune.fieldFormat), {
-      target: { value: 'fond' },
-    });
+    chooseFormat('fond');
     fireEvent.change(screen.getByLabelText(fr.tribune.fieldTitle), {
       target: { value: 'Brouillon' },
     });
@@ -194,9 +196,9 @@ describe('Composer de la Tribune — « Annuler » et brouillon (A-09)', () => {
     expect(
       screen.getByLabelText<HTMLTextAreaElement>(fr.tribune.fieldBody).value,
     ).toBe('');
-    expect(
-      screen.getByLabelText<HTMLSelectElement>(fr.tribune.fieldFormat).value,
-    ).toBe('court');
+    expect(screen.getByLabelText(fr.tribune.fieldFormat).textContent).toBe(
+      fr.tribune.format_court,
+    );
   });
 
   it('un brouillon de plus de 50 caractères demande confirmation avant d’être effacé', () => {

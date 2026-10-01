@@ -18,12 +18,8 @@ import {
 } from '@convex/lib/programmes';
 import type { SiteLocale } from '@convex/lib/locales';
 import { Button } from '@/components/ui/button';
-import {
-  FormError,
-  SelectField,
-  TextField,
-  TextareaField,
-} from '@/components/ui/field';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { vocabulary } from '@/i18n/vocabulary';
 import {
   CARD,
@@ -33,6 +29,7 @@ import {
   useDateFormat,
   useProgrammeError,
 } from '@/components/programmes/shared';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Youth space (F-58): persistent profile, linked applications, status.
 export function YouthSpace() {
@@ -178,30 +175,26 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
           label={t('availability')}
           id="yp-availability"
           value={availability}
-          onChange={(e) => setAvailability(e.target.value as Availability)}
-        >
-          {AVAILABILITIES.map((a) => (
-            <option key={a} value={a}>
-              {vocabulary(t, 'availability_', a)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={(v) => setAvailability(v as Availability)}
+          options={AVAILABILITIES.map((a) => ({
+            value: a,
+            label: vocabulary(t, 'availability_', a),
+          }))}
+        />
         <div className="space-y-2 sm:col-span-2">
           <label className="flex min-h-11 items-start gap-3 text-sm text-ink">
-            <input
-              type="checkbox"
-              className="mt-1 h-4 w-4 accent-accent"
+            <Checkbox
+              className="mt-1"
               checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
+              onCheckedChange={(checked) => setConsent(checked === true)}
             />
             <span>{t('consentProcessing')}</span>
           </label>
           <label className="flex min-h-11 items-start gap-3 text-sm text-ink">
-            <input
-              type="checkbox"
-              className="mt-1 h-4 w-4 accent-accent"
+            <Checkbox
+              className="mt-1"
               checked={partner}
-              onChange={(e) => setPartner(e.target.checked)}
+              onCheckedChange={(checked) => setPartner(checked === true)}
             />
             <span>{t('consentPartner')}</span>
           </label>
@@ -266,14 +259,12 @@ function ApplyForm() {
           label={t('programme')}
           id="ya-programme"
           value={programme}
-          onChange={(e) => setProgramme(e.target.value as YouthProgramme)}
-        >
-          {YOUTH_PROGRAMMES.map((p) => (
-            <option key={p} value={p}>
-              {vocabulary(t, 'programme_', p)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={(v) => setProgramme(v as YouthProgramme)}
+          options={YOUTH_PROGRAMMES.map((p) => ({
+            value: p,
+            label: vocabulary(t, 'programme_', p),
+          }))}
+        />
         <TextareaField
           label={t('motivation')}
           id="ya-motivation"

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { chercherUtilisateur, getOtp, menuCompte } from './_helpers';
 import { SESSIONS } from './_sessions';
+import { chooseOption } from './_fields';
 
 // LIFECYCLE OF AN ACCOUNT ("comptes" workstream, F-63) — through the UI:
 // the administrator CREATES an account, that account signs in, the administrator
@@ -45,7 +46,7 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
     has: page.getByRole('heading', { name: 'Créer un compte' }),
   });
   await form.getByLabel('Adresse e-mail').fill(email);
-  await form.getByLabel('Rôle', { exact: true }).selectOption('membre');
+  await chooseOption(form.getByLabel('Rôle', { exact: true }), 'Membre');
   await form.getByRole('button', { name: 'Créer le compte' }).click();
   await expect(form.getByRole('status')).toContainText('Compte créé');
 

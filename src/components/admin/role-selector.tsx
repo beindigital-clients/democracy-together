@@ -3,18 +3,26 @@
 import { useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
 
 // TWO-STEP role change (issue #38).
 //
-// The `<Select>`'s `onChange` triggered the mutation. On a laptop, scrolling
-// the page with the cursor over a dropdown changes its value: a mouse-wheel
-// movement thus demoted a moderator, with no confirmation or undo. The
-// anti-lockout guard only protects the LAST administrator; everything else
-// went through.
+// The native `<select>`'s `onChange` triggered the mutation. On a laptop,
+// scrolling the page with the cursor over a dropdown changed its value: a
+// mouse-wheel movement thus demoted a moderator, with no confirmation or
+// undo. The anti-lockout guard only protects the LAST administrator;
+// everything else went through. (The shadcn select that replaced it ignores
+// the wheel; the two steps stay, for the deliberate but mistaken choice.)
 //
 // Choosing a value now only PREPARES the change: nothing is sent until
 // "Appliquer" has been clicked, then confirmed in a dialog that names the
@@ -83,15 +91,24 @@ export function RoleSelector({
       <Select
         value={value}
         disabled={locked || pending}
-        aria-label={`${t('userRole')} ${name}`}
-        aria-describedby={locked && lockedReason ? lockedId : undefined}
-        onChange={(e) => setDraft(e.target.value as NetworkRole)}
+        onValueChange={(v) => setDraft(v as NetworkRole)}
       >
-        {ROLE_ORDER.map((r) => (
-          <option key={r} value={r}>
-            {vocabulary(t, 'role_', r)}
-          </option>
-        ))}
+        <SelectTrigger
+          size="sm"
+          aria-label={`${t('userRole')} ${name}`}
+          aria-describedby={locked && lockedReason ? lockedId : undefined}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {ROLE_ORDER.map((r) => (
+              <SelectItem key={r} value={r}>
+                {vocabulary(t, 'role_', r)}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
       </Select>
       {locked && lockedReason ? (
         <p id={lockedId} className="basis-full text-xs text-muted">

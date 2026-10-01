@@ -14,6 +14,7 @@ import { fontVariables } from '@/lib/fonts';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { IntlClientProvider } from '@/components/providers/intl-client-provider';
+import { DirectionProvider } from '@/components/ui/direction';
 import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
 import { MotionProvider } from '@/components/motion/motion-provider';
 import { CookieConsent } from '@/components/legal/cookie-consent';
@@ -162,28 +163,33 @@ export default async function LocaleLayout({
             messages={messages}
             timeZone={timeZone}
           >
-            <ConvexClientProvider>
-              <MotionProvider>
-                {/* Skip link (RGAA 12.7): twelve tab presses separated the
+            {/* The same direction as `<html dir>`, for the Radix
+                primitives (selects, menus), which do not read the
+                document's: see `components/ui/direction.tsx`. */}
+            <DirectionProvider dir={direction(locale)}>
+              <ConvexClientProvider>
+                <MotionProvider>
+                  {/* Skip link (RGAA 12.7): twelve tab presses separated the
                     first focus from the content (measured on 27/09). Invisible
                     until keyboard focus, first focusable element of the
                     page. */}
-                <a
-                  href="#contenu"
-                  className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-contrast focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-                >
-                  {tSite('skipToContent')}
-                </a>
-                <SiteHeader />
-                <main id="contenu" className="flex-1">
-                  {children}
-                </main>
-                <SiteFooter />
-                <CookieConsent />
-                {/* First-party, cookieless audience measurement (F-66). */}
-                <AudienceBeacon />
-              </MotionProvider>
-            </ConvexClientProvider>
+                  <a
+                    href="#contenu"
+                    className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-contrast focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+                  >
+                    {tSite('skipToContent')}
+                  </a>
+                  <SiteHeader />
+                  <main id="contenu" className="flex-1">
+                    {children}
+                  </main>
+                  <SiteFooter />
+                  <CookieConsent />
+                  {/* First-party, cookieless audience measurement (F-66). */}
+                  <AudienceBeacon />
+                </MotionProvider>
+              </ConvexClientProvider>
+            </DirectionProvider>
           </IntlClientProvider>
         </body>
       </html>

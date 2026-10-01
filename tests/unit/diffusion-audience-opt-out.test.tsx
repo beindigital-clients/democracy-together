@@ -30,14 +30,14 @@ describe('AudienceOptOut', () => {
     const box = await screen.findByRole('checkbox', {
       name: 'Ne pas mesurer mes visites sur ce navigateur',
     });
-    expect((box as HTMLInputElement).checked).toBe(false);
+    expect(box.getAttribute('aria-checked')).toBe('false');
     expect(audienceAllowed()).toBe(true);
     expect(
       screen.getByText('Vos visites sont comptées de façon anonyme.'),
     ).toBeTruthy();
 
     fireEvent.click(box);
-    expect((box as HTMLInputElement).checked).toBe(true);
+    expect(box.getAttribute('aria-checked')).toBe('true');
     expect(window.localStorage.getItem(AUDIENCE_OPTOUT_KEY)).toBe('1');
     expect(audienceAllowed()).toBe(false);
     expect(

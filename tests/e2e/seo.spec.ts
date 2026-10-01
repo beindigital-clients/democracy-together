@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { SESSIONS } from './_sessions';
 import { approveTribunePosts } from './_helpers';
+import { chooseOption } from './_fields';
 
 // F-07 — SEO: sitemap.xml and robots.txt served at the root (not intercepted
 // by the next-intl proxy, which ignores paths with an extension).
@@ -70,7 +71,7 @@ test.describe('Tribune — un billet n’existe que dans une langue (#35)', () =
       .locator('form')
       .filter({ hasText: 'Votre prise de parole' });
     await composer.getByLabel('Titre', { exact: true }).fill(title);
-    await composer.getByLabel('Langue du billet').selectOption('en');
+    await chooseOption(composer.getByLabel('Langue du billet'), 'Anglais');
     await composer
       .getByLabel('Votre texte')
       .fill(

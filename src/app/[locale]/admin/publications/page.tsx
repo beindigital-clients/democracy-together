@@ -9,7 +9,7 @@ import { Link } from '@/i18n/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { SelectField } from '@/components/ui/field';
+import { ComboboxField } from '@/components/ui/choice-fields';
 import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -246,19 +246,20 @@ function PublicationRow({
           ) : null}
           {editor && pub.status === 'pending' && staff && staff.length > 0 ? (
             <div className="flex flex-wrap items-end gap-2">
-              <SelectField
+              <ComboboxField
                 label={t('revAssignLabel')}
-                controlClassName="w-auto py-2"
+                controlClassName="w-auto"
                 value={reviewerId}
-                onChange={(e) => setReviewerId(e.target.value)}
-              >
-                <option value="">{t('revAssignPlaceholder')}</option>
-                {staff.map((u) => (
-                  <option key={u._id} value={u._id}>
-                    {u.name || u.email || u._id}
-                  </option>
-                ))}
-              </SelectField>
+                onValueChange={setReviewerId}
+                placeholder={t('revAssignPlaceholder')}
+                options={staff.map((u) => ({
+                  value: u._id,
+                  label: u.name || u.email || u._id,
+                }))}
+                searchLabel={t('revAssignSearchLabel')}
+                searchPlaceholder={t('revAssignSearchPlaceholder')}
+                noResults={t('revAssignNoResults')}
+              />
               <Button
                 size="sm"
                 variant="outline"

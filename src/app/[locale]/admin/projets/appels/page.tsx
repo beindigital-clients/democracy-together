@@ -21,12 +21,9 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import {
-  FormError,
-  SelectField,
-  TextField,
-  TextareaField,
-} from '@/components/ui/field';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import { ComboboxField } from '@/components/ui/choice-fields';
+import { timeZoneChoices } from '@/lib/time-zones';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import {
@@ -41,6 +38,7 @@ import {
   useFundFormat,
 } from '@/components/projects/calls-list';
 import { AttachmentLink } from '@/components/projects/evaluations-board';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type AdminCall = FunctionReturnType<
   typeof api.projectCalls.adminListCalls
@@ -611,14 +609,12 @@ function CallEditor({
               />
             ) : (
               <label className="flex min-h-11 items-center gap-2 text-sm text-ink-soft">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-accent"
+                <Checkbox
                   checked={r.required}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     setRows(
                       rows.map((x, j) =>
-                        j === i ? { ...x, required: e.target.checked } : x,
+                        j === i ? { ...x, required: checked === true } : x,
                       ),
                     )
                   }
@@ -687,18 +683,21 @@ function CallEditor({
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
       />
-      <SelectField
+      {/* Every IANA zone, the usual ones first: searchable by city. */}
+      <ComboboxField
         label={t('timeZoneLabel')}
         id="call-tz"
         value={timeZone}
-        onChange={(e) => setTimeZone(e.target.value)}
-      >
-        {[...new Set([timeZone, ...CALL_TIME_ZONES])].map((z) => (
-          <option key={z} value={z}>
-            {z}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={setTimeZone}
+        options={timeZoneChoices(CALL_TIME_ZONES, timeZone).map((z) => ({
+          value: z,
+          label: z,
+        }))}
+        placeholder={t('timeZoneLabel')}
+        searchLabel={t('timeZoneSearchLabel')}
+        searchPlaceholder={t('timeZoneSearchPlaceholder')}
+        noResults={t('timeZoneNoResults')}
+      />
       <div className="grid grid-cols-[1fr_6rem] gap-2">
         <TextField
           label={t('fundAmount')}

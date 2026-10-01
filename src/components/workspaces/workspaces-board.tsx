@@ -7,12 +7,8 @@ import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { MemberPageHeader } from '@/components/member/page-header';
 import { Button } from '@/components/ui/button';
-import {
-  FormError,
-  SelectField,
-  TextField,
-  TextareaField,
-} from '@/components/ui/field';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { isMember } from '@/lib/roles';
 import { PUB_THEMES } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
@@ -107,14 +103,12 @@ function CreateForm() {
           label={t('fieldTheme')}
           id="ws-theme"
           value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-        >
-          {PUB_THEMES.map((s) => (
-            <option key={s} value={s}>
-              {vocabulary(tl, 'themes.', s)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setTheme}
+          options={PUB_THEMES.map((s) => ({
+            value: s,
+            label: vocabulary(tl, 'themes.', s),
+          }))}
+        />
       </div>
 
       <SelectField
@@ -122,13 +116,14 @@ function CreateForm() {
         id="ws-visibility"
         value={visibility}
         hint={t('visibilityHint')}
-        onChange={(e) =>
-          setVisibility(e.target.value === 'private' ? 'private' : 'open')
+        onValueChange={(v) =>
+          setVisibility(v === 'private' ? 'private' : 'open')
         }
-      >
-        <option value="open">{t('visibilityOpen')}</option>
-        <option value="private">{t('visibilityPrivate')}</option>
-      </SelectField>
+        options={[
+          { value: 'open', label: t('visibilityOpen') },
+          { value: 'private', label: t('visibilityPrivate') },
+        ]}
+      />
 
       <TextareaField
         label={t('fieldDescription')}

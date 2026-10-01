@@ -66,8 +66,8 @@ test('filtres et pagination de /recherche (F-34)', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Membres du réseau' }),
   ).toHaveCount(0);
-  await expect(page.getByRole('combobox', { name: 'Type' })).toHaveValue(
-    'rapport',
+  await expect(page.getByRole('combobox', { name: 'Type' })).toHaveText(
+    'Rapport',
   );
 
   // Single-section view: paginated, with a way back to the overview.

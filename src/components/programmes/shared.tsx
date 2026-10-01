@@ -7,6 +7,7 @@ import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { cn } from '@/lib/utils';
 import { MemberPageHeader as SharedMemberPageHeader } from '@/components/member/page-header';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Shared building blocks for the "programmes" screens (F-56 to F-60): translated
 // server rejections, checkbox group, dates.
@@ -93,13 +94,11 @@ export function CheckGroup({
                   : 'border-line bg-surface text-ink-soft hover:border-line-strong',
               )}
             >
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-accent"
+              <Checkbox
                 checked={checked}
-                onChange={(e) =>
+                onCheckedChange={(checked) =>
                   onChange(
-                    e.target.checked
+                    checked === true
                       ? [...value, o.value]
                       : value.filter((x) => x !== o.value),
                   )

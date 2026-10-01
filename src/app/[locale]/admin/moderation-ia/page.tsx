@@ -20,12 +20,14 @@ import {
 } from '@convex/lib/aiModeration';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { SelectField, TextField, TextareaField } from '@/components/ui/field';
+import { TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { LoadMore } from '@/components/admin/load-more';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { isAdmin } from '@/lib/roles';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // AI-ASSISTED MODERATION PANEL (administrator).
 //
@@ -114,17 +116,13 @@ function SettingsForm({ data }: { data: Settings }) {
         label={t('aiModeLabel')}
         hint={vocabulary(t, 'aiModeHint_', form.mode)}
         value={form.mode}
-        onChange={(e) =>
-          setForm((f) => ({ ...f, mode: e.target.value as AiMode }))
-        }
+        onValueChange={(v) => setForm((f) => ({ ...f, mode: v as AiMode }))}
         className="max-w-sm"
-      >
-        {AI_MODES.map((mode) => (
-          <option key={mode} value={mode}>
-            {vocabulary(t, 'aiMode_', mode)}
-          </option>
-        ))}
-      </SelectField>
+        options={AI_MODES.map((mode) => ({
+          value: mode,
+          label: vocabulary(t, 'aiMode_', mode),
+        }))}
+      />
 
       {/* Warning carried by the mode itself, and not relegated to the
           documentation: it is at the moment of choosing "auto" that it matters. */}
@@ -190,11 +188,9 @@ function SettingsForm({ data }: { data: Settings }) {
         <div className="mt-2 flex flex-wrap gap-3">
           {data.availableTypes.map((type) => (
             <label key={type} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={form.eligibleTypes.includes(type)}
-                onChange={() => toggleType(type)}
-                className="size-4 accent-[var(--color-accent-text)]"
+                onCheckedChange={() => toggleType(type)}
               />
               {vocabulary(tl, 'types.', type)}
             </label>
@@ -205,13 +201,11 @@ function SettingsForm({ data }: { data: Settings }) {
 
       <fieldset>
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={form.analyzeAttachments}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, analyzeAttachments: e.target.checked }))
+            onCheckedChange={(checked) =>
+              setForm((f) => ({ ...f, analyzeAttachments: checked === true }))
             }
-            className="size-4 accent-[var(--color-accent-text)]"
           />
           {t('aiAttachmentsLabel')}
         </label>
@@ -325,25 +319,21 @@ function RuleEditor({
           label={t('aiRuleSeverityField')}
           hint={vocabulary(t, 'aiSeverityHint_', form.severity)}
           value={form.severity}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, severity: e.target.value as AiSeverity }))
+          onValueChange={(v) =>
+            setForm((f) => ({ ...f, severity: v as AiSeverity }))
           }
           className="max-w-[18rem]"
-        >
-          {AI_SEVERITIES.map((s) => (
-            <option key={s} value={s}>
-              {vocabulary(t, 'aiSeverity_', s)}
-            </option>
-          ))}
-        </SelectField>
+          options={AI_SEVERITIES.map((s) => ({
+            value: s,
+            label: vocabulary(t, 'aiSeverity_', s),
+          }))}
+        />
         <label className="flex items-center gap-2 pb-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={form.enabled}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, enabled: e.target.checked }))
+            onCheckedChange={(checked) =>
+              setForm((f) => ({ ...f, enabled: checked === true }))
             }
-            className="size-4 accent-[var(--color-accent-text)]"
           />
           {t('aiRuleEnabledField')}
         </label>

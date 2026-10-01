@@ -12,19 +12,19 @@ import { cn } from '@/lib/utils';
 // header, never sliding under it.
 
 function Popover(props: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root {...props} />;
+  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
 }
 
 function PopoverTrigger(
   props: React.ComponentProps<typeof PopoverPrimitive.Trigger>,
 ) {
-  return <PopoverPrimitive.Trigger {...props} />;
+  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
 }
 
 function PopoverAnchor(
   props: React.ComponentProps<typeof PopoverPrimitive.Anchor>,
 ) {
-  return <PopoverPrimitive.Anchor {...props} />;
+  return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />;
 }
 
 // TOP collision padding = the sticky header (64 px) + 16, as for the menus.
@@ -40,6 +40,7 @@ function PopoverContent({
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Content
+        data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}
         collisionPadding={collisionPadding}

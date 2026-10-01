@@ -13,12 +13,14 @@ import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { SelectField, TextField, TextareaField } from '@/components/ui/field';
+import { TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   useActionFeedback,
   useFailureFeedback,
 } from '@/components/admin/action-feedback';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type AdminReport = FunctionReturnType<
   typeof api.annualReports.adminList
@@ -386,15 +388,15 @@ function ReportCard({ report }: { report: AdminReport }) {
             label={t('adminAddLanguage')}
             controlClassName="w-auto"
             value={addLocale}
-            onChange={(e) => setAddLocale(e.target.value as Locale | '')}
-          >
-            <option value="">{t('adminChooseLanguage')}</option>
-            {missing.map((l) => (
-              <option key={l} value={l}>
-                {LOCALE_ENDONYMS[l]}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={(v) => setAddLocale(v as Locale | '')}
+            placeholder={t('adminChooseLanguage')}
+            // Each language by its own name, in its own language.
+            options={missing.map((l) => ({
+              value: l,
+              label: LOCALE_ENDONYMS[l],
+              lang: l,
+            }))}
+          />
           <Button
             size="sm"
             variant="outline"
@@ -584,11 +586,9 @@ export default function AdminReports() {
                 onChange={(e) => setYear(e.target.value)}
               />
               <label className="flex min-h-11 items-center gap-2 text-sm text-ink">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={inaugural}
-                  onChange={(e) => setInaugural(e.target.checked)}
-                  className="h-5 w-5 accent-accent"
+                  onCheckedChange={(checked) => setInaugural(checked === true)}
                 />
                 {t('inaugural')}
               </label>

@@ -11,7 +11,17 @@ import { SolidarityEstimator } from '@/components/membership/solidarity-estimato
 import { getMembershipContent } from '@/lib/membership-content';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '@/components/ui/native-select';
 import { getLegalContent } from '@/lib/legal-content';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -171,12 +181,20 @@ describe('champs de formulaire : focus et limite visibles (RGAA 10.7, 3.3)', () 
       <div>
         <Input aria-label="a" />
         <Textarea aria-label="b" />
-        <Select aria-label="c">
-          <option>x</option>
+        <Select>
+          <SelectTrigger aria-label="c">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="x">x</SelectItem>
+          </SelectContent>
         </Select>
+        <NativeSelect aria-label="d">
+          <NativeSelectOption>x</NativeSelectOption>
+        </NativeSelect>
       </div>,
     );
-    for (const nom of ['a', 'b', 'c']) {
+    for (const nom of ['a', 'b', 'c', 'd']) {
       const el = screen.getByLabelText(nom);
       expect(el.className, nom).not.toContain('outline-none');
       expect(el.className, nom).toContain('border-line-field');

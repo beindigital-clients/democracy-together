@@ -23,6 +23,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { PaymentsUnavailable } from './payments-unavailable';
 import { formatMajor, knownPaymentError } from './format';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // DONATION FORM (F-28) — one-off or monthly, suggested or custom amount,
 // in euros or US dollars depending on the configured providers.
@@ -297,11 +298,10 @@ export function DonationForm() {
       </div>
 
       <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm text-ink-soft">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={anonymous}
-          onChange={(e) => setAnonymous(e.target.checked)}
-          className="mt-0.5 size-5 shrink-0 accent-[var(--color-accent)]"
+          onCheckedChange={(checked) => setAnonymous(checked === true)}
+          className="mt-0.5"
         />
         <span>
           {t('anonymousLabel')}

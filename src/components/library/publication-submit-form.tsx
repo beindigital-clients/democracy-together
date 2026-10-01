@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import {
   Field,
   FormError,
-  SelectField,
   TextField,
   TextareaField,
   useFormFields,
 } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import {
   PUB_TYPES,
@@ -291,36 +291,30 @@ export function PublicationSubmitForm() {
         <SelectField
           label={t('submit.fieldType')}
           value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          {PUB_TYPES.map((opt) => (
-            <option key={opt} value={opt}>
-              {vocabulary(t, 'types.', opt)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setType}
+          options={PUB_TYPES.map((opt) => ({
+            value: opt,
+            label: vocabulary(t, 'types.', opt),
+          }))}
+        />
         <SelectField
           label={t('submit.fieldTheme')}
           value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-        >
-          {PUB_THEMES.map((opt) => (
-            <option key={opt} value={opt}>
-              {vocabulary(t, 'themes.', opt)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setTheme}
+          options={PUB_THEMES.map((opt) => ({
+            value: opt,
+            label: vocabulary(t, 'themes.', opt),
+          }))}
+        />
         <SelectField
           label={t('submit.fieldRegion')}
           value={region}
-          onChange={(e) => setRegion(e.target.value)}
-        >
-          {PUB_REGIONS.map((opt) => (
-            <option key={opt} value={opt}>
-              {vocabulary(t, 'regions.', opt)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setRegion}
+          options={PUB_REGIONS.map((opt) => ({
+            value: opt,
+            label: vocabulary(t, 'regions.', opt),
+          }))}
+        />
         <TextField
           label={t('submit.fieldYear')}
           type="number"

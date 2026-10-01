@@ -11,11 +11,11 @@ import { PUB_THEMES } from '@/lib/publications';
 import { Button } from '@/components/ui/button';
 import {
   FormError,
-  SelectField,
   TextField,
   TextareaField,
   useFormFields,
 } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { useRecaptcha } from '@/lib/recaptcha';
 import { isEmail } from '@/lib/validation';
 import { isCaptchaFailed, isRateLimited } from '@/lib/errors';
@@ -146,14 +146,17 @@ export function YouthApplyForm() {
         maxLength={FIELD_MAX.country}
         {...field('country')}
       />
-      <SelectField label={t('theme')} id="y-theme" {...field('theme')}>
-        <option value="">{t('themeNone')}</option>
-        {PUB_THEMES.map((s) => (
-          <option key={s} value={s}>
-            {vocabulary(tl, 'themes.', s)}
-          </option>
-        ))}
-      </SelectField>
+      <SelectField
+        label={t('theme')}
+        id="y-theme"
+        {...field('theme')}
+        onValueChange={field('theme').onChange}
+        emptyLabel={t('themeNone')}
+        options={PUB_THEMES.map((s) => ({
+          value: s,
+          label: vocabulary(tl, 'themes.', s),
+        }))}
+      />
       <TextareaField
         label={t('motivation')}
         className="sm:col-span-2"

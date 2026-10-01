@@ -315,9 +315,16 @@ test.describe('back-office', () => {
     const liste = ligne.getByLabel(`Rôle ${email}`);
     await expect(liste).toBeVisible();
 
-    // With the keyboard: focus on the list, arrow up ("Visiteur").
+    // With the keyboard: on the list's button, an arrow opens the list on
+    // the current role, the next arrow up reaches "Visiteur", Enter picks it
+    // and gives the focus back to the button.
     await liste.focus();
     await page.keyboard.press('ArrowUp');
+    await expect(page.getByRole('listbox')).toBeVisible();
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('Enter');
+    await expect(liste).toHaveText('Visiteur');
+    await expect(liste).toBeFocused();
     const appliquer = ligne.getByRole('button', { name: 'Appliquer' });
     await expect(appliquer).toBeVisible();
     await page.keyboard.press('Tab');

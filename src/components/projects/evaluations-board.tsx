@@ -9,7 +9,8 @@ import type { Id } from '@convex/_generated/dataModel';
 import { PROGRAMME_LIMITS } from '@convex/lib/programmes';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { FormError, SelectField, TextareaField } from '@/components/ui/field';
+import { FormError, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import {
   CARD,
   StatusPill,
@@ -179,19 +180,13 @@ function EvaluationCard({
             label={t('criterionScore', { label: c.label, weight: c.weight })}
             id={`score-${application._id}-${c.key}`}
             value={scores[c.key] ?? ''}
-            onChange={(e) =>
-              setScores((s) => ({ ...s, [c.key]: e.target.value }))
-            }
-          >
-            <option value="" disabled>
-              {t('scorePlaceholder')}
-            </option>
-            {SCORES.map((n) => (
-              <option key={n} value={String(n)}>
-                {t('scoreValue', { n, max: PROGRAMME_LIMITS.maxScore })}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={(v) => setScores((s) => ({ ...s, [c.key]: v }))}
+            placeholder={t('scorePlaceholder')}
+            options={SCORES.map((n) => ({
+              value: String(n),
+              label: t('scoreValue', { n, max: PROGRAMME_LIMITS.maxScore }),
+            }))}
+          />
         ))}
         <TextareaField
           label={t('evaluationComment')}

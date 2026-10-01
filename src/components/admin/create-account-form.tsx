@@ -7,7 +7,8 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { SITE_LOCALES, type SiteLocale } from '@convex/lib/locales';
 import { Button } from '@/components/ui/button';
-import { FormError, SelectField, TextField } from '@/components/ui/field';
+import { FormError, TextField } from '@/components/ui/field';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
 import { isEmail } from '@/lib/validation';
 import { vocabulary } from '@/i18n/vocabulary';
@@ -91,52 +92,49 @@ export function CreateAccountForm() {
         <SelectField
           label={t('createRole')}
           value={role}
-          onChange={(e) => setRole(e.target.value as NetworkRole)}
+          onValueChange={(v) => setRole(v as NetworkRole)}
           controlClassName="w-auto"
-        >
-          {ROLE_ORDER.map((r) => (
-            <option key={r} value={r}>
-              {vocabulary(tAdmin, 'role_', r)}
-            </option>
-          ))}
-        </SelectField>
+          options={ROLE_ORDER.map((r) => ({
+            value: r,
+            label: vocabulary(tAdmin, 'role_', r),
+          }))}
+        />
         <SelectField
           label={t('createLocale')}
           value={locale}
-          onChange={(e) => setLocale(e.target.value as SiteLocale)}
+          onValueChange={(v) => setLocale(v as SiteLocale)}
           controlClassName="w-auto"
-        >
-          {SITE_LOCALES.map((l) => (
-            <option key={l} value={l}>
-              {l.toUpperCase()}
-            </option>
-          ))}
-        </SelectField>
+          options={SITE_LOCALES.map((l) => ({
+            value: l,
+            label: l.toUpperCase(),
+          }))}
+        />
       </div>
       <div className="mt-3 flex flex-wrap items-end gap-3">
-        <SelectField
+        {/* Every member organisation: searchable, by name. */}
+        <ComboboxField
           label={t('createOrg')}
           value={orgId}
-          onChange={(e) => setOrgId(e.target.value as Id<'organizations'> | '')}
+          onValueChange={(v) => setOrgId(v as Id<'organizations'> | '')}
           controlClassName="max-w-[20rem]"
-        >
-          <option value="">{t('createOrgNone')}</option>
-          {(orgs ?? []).map((o) => (
-            <option key={o._id} value={o._id}>
-              {o.name}
-            </option>
-          ))}
-        </SelectField>
+          placeholder={t('createOrgNone')}
+          emptyLabel={t('createOrgNone')}
+          options={(orgs ?? []).map((o) => ({ value: o._id, label: o.name }))}
+          searchLabel={t('createOrgSearchLabel')}
+          searchPlaceholder={t('createOrgSearchPlaceholder')}
+          noResults={t('createOrgNoResults')}
+        />
         {orgId ? (
           <SelectField
             label={t('createOrgRole')}
             value={orgRole}
-            onChange={(e) => setOrgRole(e.target.value as 'owner' | 'member')}
+            onValueChange={(v) => setOrgRole(v as 'owner' | 'member')}
             controlClassName="w-auto"
-          >
-            <option value="member">{t('orgRole_member')}</option>
-            <option value="owner">{t('orgRole_owner')}</option>
-          </SelectField>
+            options={[
+              { value: 'member', label: t('orgRole_member') },
+              { value: 'owner', label: t('orgRole_owner') },
+            ]}
+          />
         ) : null}
         <Button type="submit" disabled={status === 'pending'}>
           {t('createSubmit')}

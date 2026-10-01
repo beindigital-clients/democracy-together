@@ -27,3 +27,23 @@ export async function expectFieldError(
 export async function expectNoFieldError(field: Locator): Promise<void> {
   await expect(field).not.toHaveAttribute('aria-invalid', 'true');
 }
+
+// CHOOSING IN A SHADCN LIST.
+//
+// The site's selects are no longer native: a button with the `combobox`
+// role opens a list of `option`s — Radix Select, or the searchable cmdk list
+// for the long ones. `selectOption` has nothing to act on; a person clicks the
+// field, then the line they want, by its visible label. The list is portalled
+// to the end of the page: the option is looked up on the page, not inside the
+// locator that holds the field.
+export async function chooseOption(
+  field: Locator,
+  option: string | RegExp,
+): Promise<void> {
+  await field.click();
+  await field
+    .page()
+    .getByRole('option', { name: option, exact: typeof option === 'string' })
+    .click();
+  await expect(field).toHaveAttribute('aria-expanded', 'false');
+}

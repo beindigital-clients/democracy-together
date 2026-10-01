@@ -8,7 +8,12 @@ import type { Id } from '@convex/_generated/dataModel';
 import type { WorkspaceRole } from '@convex/lib/communaute';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { SelectField, TextField } from '@/components/ui/field';
+import { TextField } from '@/components/ui/field';
+import {
+  ComboboxField,
+  SelectField,
+  type ChoiceOption,
+} from '@/components/ui/choice-fields';
 import { intlLocale } from '@/i18n/locale';
 import { useWorkspaceError } from './workspace-errors';
 
@@ -37,15 +42,13 @@ export function useRoleLabel() {
         : t('role_lecteur');
 }
 
-function RoleOptions() {
+// The three roles, in the order they are offered.
+function useRoleOptions(): ChoiceOption[] {
   const label = useRoleLabel();
-  return (
-    <>
-      <option value="contributeur">{label('contributeur')}</option>
-      <option value="lecteur">{label('lecteur')}</option>
-      <option value="animateur">{label('animateur')}</option>
-    </>
-  );
+  return (['contributeur', 'lecteur', 'animateur'] as const).map((role) => ({
+    value: role,
+    label: label(role),
+  }));
 }
 
 // WORKSPACE FACILITATION (F-24): invite (by address or from the list of
@@ -66,6 +69,7 @@ export function WorkspaceManage({
 }) {
   const t = useTranslations('workspaces');
   const roleLabel = useRoleLabel();
+  const roleOptions = useRoleOptions();
   const locale = intlLocale(useLocale());
   const errorMessage = useWorkspaceError();
   const invite = useMutation(api.workspaces.inviteMember);
@@ -218,10 +222,9 @@ export function WorkspaceManage({
           label={t('inviteRole')}
           id="ws-invite-role"
           value={role}
-          onChange={(e) => setRoleChoice(e.target.value as WorkspaceRole)}
-        >
-          <RoleOptions />
-        </SelectField>
+          onValueChange={(v) => setRoleChoice(v as WorkspaceRole)}
+          options={roleOptions}
+        />
         <Button type="submit" className="min-h-11" disabled={busy}>
           {t('inviteSubmit')}
         </Button>
@@ -233,28 +236,29 @@ export function WorkspaceManage({
           onSubmit={onInviteCandidate}
           className="mt-3 grid gap-3 rounded-md border border-line bg-surface p-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end"
         >
-          <SelectField
+          {/* Everyone one shares a workspace with: searchable, by name. */}
+          <ComboboxField
             label={t('inviteFromList')}
             id="ws-invite-candidate"
             value={candidate}
             hint={t('inviteFromListHint')}
-            onChange={(e) => setCandidate(e.target.value)}
-          >
-            <option value="">{t('inviteChoose')}</option>
-            {candidates.map((c) => (
-              <option key={c.userId} value={c.userId}>
-                {c.name}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={setCandidate}
+            placeholder={t('inviteChoose')}
+            options={candidates.map((c) => ({
+              value: c.userId,
+              label: c.name,
+            }))}
+            searchLabel={t('inviteSearchLabel')}
+            searchPlaceholder={t('inviteSearchPlaceholder')}
+            noResults={t('inviteNoResults')}
+          />
           <SelectField
             label={t('inviteRole')}
             id="ws-invite-candidate-role"
             value={candidateRole}
-            onChange={(e) => setCandidateRole(e.target.value as WorkspaceRole)}
-          >
-            <RoleOptions />
-          </SelectField>
+            onValueChange={(v) => setCandidateRole(v as WorkspaceRole)}
+            options={roleOptions}
+          />
           <Button
             type="submit"
             className="min-h-11"
@@ -323,15 +327,14 @@ export function WorkspaceManage({
                   labelHidden
                   id={`ws-role-${m._id}`}
                   value={draft}
-                  onChange={(e) =>
+                  onValueChange={(v) =>
                     setDraftRoles((d) => ({
                       ...d,
-                      [m._id]: e.target.value as WorkspaceRole,
+                      [m._id]: v as WorkspaceRole,
                     }))
                   }
-                >
-                  <RoleOptions />
-                </SelectField>
+                  options={roleOptions}
+                />
                 {/* Choosing is not applying (same pattern as the
                     back-office, issue #38). */}
                 <Button

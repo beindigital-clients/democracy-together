@@ -11,17 +11,14 @@ import { Link } from '@/i18n/navigation';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import {
-  FormError,
-  SelectField,
-  TextField,
-  TextareaField,
-} from '@/components/ui/field';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { MemberPageHeader } from '@/components/member/page-header';
 import { errorCode } from '@/lib/account-errors';
 import { formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // MANAGING ONE'S ORGANIZATION (F-21, accounts workstream).
 //
@@ -233,15 +230,13 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
         <SelectField
           label={t('fieldRegion')}
           value={region}
-          onChange={(e) => setRegion(e.target.value)}
-        >
-          <option value="">—</option>
-          {REGIONS.map((r) => (
-            <option key={r} value={r}>
-              {labels.regionLabels[r] ?? r}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setRegion}
+          emptyLabel="—"
+          options={REGIONS.map((r) => ({
+            value: r,
+            label: labels.regionLabels[r] ?? r,
+          }))}
+        />
         <TextField
           label={t('fieldLanguages')}
           hint={t('fieldLanguagesHint')}
@@ -259,11 +254,9 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
               key={th}
               className="flex min-h-11 items-center gap-2 text-sm"
             >
-              <input
-                type="checkbox"
-                className="h-4 w-4"
+              <Checkbox
                 checked={themes.includes(th)}
-                onChange={() =>
+                onCheckedChange={() =>
                   setThemes((prev) =>
                     prev.includes(th)
                       ? prev.filter((x) => x !== th)
@@ -278,11 +271,9 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
       </fieldset>
 
       <label className="mt-2 flex min-h-11 items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="h-4 w-4"
+        <Checkbox
           checked={showMembers}
-          onChange={(e) => setShowMembers(e.target.checked)}
+          onCheckedChange={(checked) => setShowMembers(checked === true)}
         />
         {t('fieldShowMembers')}
       </label>
@@ -308,13 +299,11 @@ function FicheForm({ view, labels }: { view: OrgView; labels: Labels }) {
           />
           {view.org.logoUrl ? (
             <label className="flex min-h-11 items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
+              <Checkbox
                 checked={removeLogo}
-                onChange={(e) => {
-                  setRemoveLogo(e.target.checked);
-                  if (e.target.checked) setLogo(null);
+                onCheckedChange={(checked) => {
+                  setRemoveLogo(checked === true);
+                  if (checked === true) setLogo(null);
                 }}
               />
               {t('logoRemove')}
