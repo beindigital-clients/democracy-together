@@ -9,6 +9,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import { resolveLocale } from '@/i18n/locale';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
+import { Item, ItemDescription, ItemMedia } from '@/components/ui/item';
 
 // MEDIA PICKER (F-64) — reuse an image from the media library as a
 // logo, visual or thumbnail, rather than uploading it for every piece of content.
@@ -109,32 +110,40 @@ export function MediaPicker({
             <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {list.map((m) => (
                 <li key={m._id}>
-                  <button
-                    type="button"
-                    aria-pressed={value === m._id}
-                    onClick={() => {
-                      onChange(m._id);
-                      setOpen(false);
-                    }}
-                    className="flex h-full min-h-11 w-full flex-col items-center gap-1 rounded-sm border border-line bg-surface p-2 text-center text-[12px] text-ink-soft transition-colors hover:border-ink aria-pressed:border-accent-edge aria-pressed:bg-accent-tint"
+                  <Item
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="h-full min-h-11 w-full flex-col justify-center gap-1 rounded-sm p-2 text-center"
                   >
-                    {m.url ? (
-                      <Image
-                        src={m.url}
-                        alt=""
-                        width={m.width ?? 96}
-                        height={m.height ?? 64}
-                        unoptimized
-                        className="h-12 w-auto max-w-full object-contain"
-                      />
-                    ) : null}
-                    <span className="w-full wrap-anywhere">
-                      <span className="sr-only">
-                        {t('md_select', { name: m.filename })} —{' '}
-                      </span>
-                      {m.altText}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      aria-pressed={value === m._id}
+                      onClick={() => {
+                        onChange(m._id);
+                        setOpen(false);
+                      }}
+                    >
+                      {m.url ? (
+                        <ItemMedia>
+                          <Image
+                            src={m.url}
+                            alt=""
+                            width={m.width ?? 96}
+                            height={m.height ?? 64}
+                            unoptimized
+                            className="h-12 w-auto max-w-full object-contain"
+                          />
+                        </ItemMedia>
+                      ) : null}
+                      <ItemDescription className="line-clamp-none w-full wrap-anywhere text-[12px] text-ink-soft">
+                        <span className="sr-only">
+                          {t('md_select', { name: m.filename })} —{' '}
+                        </span>
+                        {m.altText}
+                      </ItemDescription>
+                    </button>
+                  </Item>
                 </li>
               ))}
             </ul>

@@ -13,6 +13,13 @@ import {
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemTitle,
+} from '@/components/ui/item';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TextareaField } from '@/components/ui/field';
 import { SelectField } from '@/components/ui/choice-fields';
@@ -619,65 +626,69 @@ function ModerationQueue() {
                   selected.targetType === i.targetType;
                 return (
                   <li key={`${i.targetType}:${i.targetId}`}>
-                    <button
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() =>
-                        setSelected({
-                          targetType: i.targetType,
-                          targetId: i.targetId,
-                        })
-                      }
-                      className={`block w-full min-h-11 rounded-md border p-3 text-start transition-colors ${
-                        active
-                          ? 'border-accent bg-accent-tint'
-                          : 'border-line bg-surface hover:border-line-strong'
-                      }`}
+                    <Item
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="min-h-11 w-full gap-1 p-3"
                     >
-                      <span className="flex flex-wrap items-center gap-2 text-[11px]">
-                        <Badge variant="outline" size="label">
-                          {i.targetType === 'post'
-                            ? t('targetPost')
-                            : t('targetComment')}
-                        </Badge>
-                        {i.isDeepening ? (
-                          <span className="font-mono text-muted">
-                            {tt('deepeningBadge')}
-                          </span>
-                        ) : null}
-                        {i.openReports > 0 ? (
-                          <span className="font-mono text-bar-5">
-                            {t('openReports', { count: i.openReports })}
-                          </span>
-                        ) : null}
-                        {i.aiReview ? (
-                          <span className="font-mono text-muted">
-                            {t('aiBadge', {
-                              verdict: vocabulary(
-                                ta,
-                                'aiVerdict_',
-                                i.aiReview.verdict,
-                              ),
-                              blocking: i.aiReview.blocking,
+                      <button
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          setSelected({
+                            targetType: i.targetType,
+                            targetId: i.targetId,
+                          })
+                        }
+                      >
+                        <ItemHeader className="flex-wrap justify-start text-[11px]">
+                          <Badge variant="outline" size="label">
+                            {i.targetType === 'post'
+                              ? t('targetPost')
+                              : t('targetComment')}
+                          </Badge>
+                          {i.isDeepening ? (
+                            <span className="font-mono text-muted">
+                              {tt('deepeningBadge')}
+                            </span>
+                          ) : null}
+                          {i.openReports > 0 ? (
+                            <span className="font-mono text-bar-5">
+                              {t('openReports', { count: i.openReports })}
+                            </span>
+                          ) : null}
+                          {i.aiReview ? (
+                            <span className="font-mono text-muted">
+                              {t('aiBadge', {
+                                verdict: vocabulary(
+                                  ta,
+                                  'aiVerdict_',
+                                  i.aiReview.verdict,
+                                ),
+                                blocking: i.aiReview.blocking,
+                              })}
+                            </span>
+                          ) : null}
+                        </ItemHeader>
+                        <ItemContent className="basis-full gap-0.5">
+                          <ItemTitle className="block wrap-anywhere">
+                            {i.targetType === 'comment'
+                              ? t('commentOn', { title: i.title })
+                              : i.title}
+                          </ItemTitle>
+                          <ItemDescription className="wrap-anywhere text-[13px] text-ink-soft">
+                            {i.excerpt}
+                          </ItemDescription>
+                          <span className="mt-0.5 block font-mono text-[11px] text-muted">
+                            {t('byLine', {
+                              name: i.authorName,
+                              date: fmt(i.createdAt),
                             })}
                           </span>
-                        ) : null}
-                      </span>
-                      <span className="mt-1 block wrap-anywhere font-medium text-ink">
-                        {i.targetType === 'comment'
-                          ? t('commentOn', { title: i.title })
-                          : i.title}
-                      </span>
-                      <span className="mt-0.5 block wrap-anywhere text-[13px] text-ink-soft line-clamp-2">
-                        {i.excerpt}
-                      </span>
-                      <span className="mt-1 block font-mono text-[11px] text-muted">
-                        {t('byLine', {
-                          name: i.authorName,
-                          date: fmt(i.createdAt),
-                        })}
-                      </span>
-                    </button>
+                        </ItemContent>
+                      </button>
+                    </Item>
                   </li>
                 );
               })}
