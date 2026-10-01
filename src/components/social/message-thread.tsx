@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils';
 import { PersonAvatar } from './person-avatar';
 import { MessageComposer, type ComposerContext } from './message-composer';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 // ONE CONVERSATION, the way the common messaging apps show it: bubbles
 // grouped by sender, day dividers, a "new messages" divider, "Seen" under my
@@ -390,13 +391,17 @@ export function MessageThread({
       className="flex h-full min-h-0 flex-col"
     >
       <header className="flex items-center gap-2 border-b border-line px-2 py-2 sm:px-4">
-        <Link
-          href={MESSAGES_BASE}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink md:hidden"
+        <Button
+          asChild
+          variant="subtle"
+          size="icon-lg"
+          className="rounded-full md:hidden"
         >
-          <ArrowBack />
-          <span className="sr-only">{t('back')}</span>
-        </Link>
+          <Link href={MESSAGES_BASE}>
+            <ArrowBack />
+            <span className="sr-only">{t('back')}</span>
+          </Link>
+        </Button>
         <PersonAvatar name={name} photoUrl={thread.other.photoUrl} size={40} />
         <div className="min-w-0 flex-1">
           <h2
@@ -428,13 +433,15 @@ export function MessageThread({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button
               type="button"
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink"
+              variant="subtle"
+              size="icon-lg"
+              className="rounded-full"
               aria-label={t('conversationMenu')}
             >
               <EllipsisVertical aria-hidden="true" className="size-5" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-56">
             {thread.other.handle ? (
@@ -776,13 +783,15 @@ function Bubble({
       {canInteract && !m.removed ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button
               type="button"
-              className="inline-flex size-9 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink"
+              variant="subtle"
+              size="icon-md"
+              className="rounded-full"
               aria-label={t('react')}
             >
-              <SmilePlus aria-hidden="true" className="size-4" />
-            </button>
+              <SmilePlus aria-hidden="true" />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="top"
@@ -808,24 +817,28 @@ function Bubble({
         </DropdownMenu>
       ) : null}
       {canInteract && !m.removed ? (
-        <button
+        <Button
           type="button"
-          className="inline-flex size-9 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink"
+          variant="subtle"
+          size="icon-md"
+          className="rounded-full"
           aria-label={t('reply')}
           onClick={onReply}
         >
           <Reply aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-        </button>
+        </Button>
       ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
+          <Button
             type="button"
-            className="inline-flex size-9 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink"
+            variant="subtle"
+            size="icon-md"
+            className="rounded-full"
             aria-label={t('messageMenu')}
           >
-            <EllipsisVertical aria-hidden="true" className="size-4" />
-          </button>
+            <EllipsisVertical aria-hidden="true" />
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align={me ? 'end' : 'start'} className="min-w-48">
           {!m.removed ? (

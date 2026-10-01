@@ -20,6 +20,11 @@ const buttonVariants = cva(
         outline: 'border border-line-strong text-ink hover:bg-surface-2',
         secondary: 'bg-surface-2 text-ink hover:bg-line',
         ghost: 'text-accent-text hover:bg-accent-tint',
+        // Neutral and frameless: the icon buttons of headers and toolbars
+        // (search, theme, menus, message actions). A menu trigger keeps the
+        // hover look while its menu is open.
+        subtle:
+          'text-ink-soft hover:bg-surface-2 hover:text-ink data-[state=open]:bg-surface-2 data-[state=open]:text-ink',
         link: 'text-accent-text underline-offset-4 hover:underline',
       },
       size: {
@@ -30,6 +35,8 @@ const buttonVariants = cva(
         icon: 'size-10 p-0',
         'icon-xs': 'size-6 p-0',
         'icon-sm': 'size-8 p-0',
+        // 36 px: the icons of the site header.
+        'icon-md': 'size-9 p-0',
         // 44 px: the touch target of the site's toolbars (WCAG 2.5.5).
         'icon-lg': 'size-11 p-0',
       },

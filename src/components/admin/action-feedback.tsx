@@ -12,6 +12,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { useServerErrorMessage } from '@/components/admin/server-error';
+import { Button } from '@/components/ui/button';
 
 // VISIBLE FEEDBACK after a back-office action (issue #38).
 //
@@ -86,14 +87,16 @@ function Toast({
       <span className="wrap-anywhere leading-relaxed">{message}</span>
       {/* `p-1.5` around a 16 px icon: a 28 px target, where 20 px
           escaped the finger and got clipped at the right edge (27/09, C-3). */}
-      <button
+      <Button
         type="button"
+        variant="subtle"
+        size="icon-sm"
         onClick={onDismiss}
         aria-label={dismissLabel}
-        className="-me-2 -mt-1 ms-auto shrink-0 rounded-sm p-1.5 text-muted transition-colors hover:text-ink"
+        className="-me-2 -mt-1 ms-auto"
       >
-        <X className="h-4 w-4" aria-hidden="true" />
-      </button>
+        <X aria-hidden="true" />
+      </Button>
     </div>
   );
 }
