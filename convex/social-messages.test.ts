@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 
 // The Tribune is PRE-moderated by default (community workstream, F-45): a
 // newly created post awaits approval. These tests cover what happens
@@ -39,6 +40,18 @@ const modules = import.meta.glob([
 
 type T = ReturnType<typeof convexTest>;
 type Policy = 'nobody' | 'followed' | 'members';
+
+type Caller = Pick<T, 'query'>;
+
+// The thread as the screen shows it: oldest first (`listMessages` serves the
+// newest first, page by page).
+async function threadOf(as: Caller, conversationId: Id<'conversations'>) {
+  const { page } = await as.query(api.social.messages.listMessages, {
+    conversationId,
+    paginationOpts: { numItems: 100, cursor: null },
+  });
+  return [...page].reverse();
+}
 
 async function person(
   t: T,
@@ -115,7 +128,7 @@ describe('Messagerie — envoi, non-lus, lecture', () => {
       conversationId,
     });
     expect(thread?.unreadCount).toBe(2);
-    expect(thread?.messages.map((m) => m.body)).toEqual([
+    expect((await threadOf(b.as, conversationId)).map((m) => m.body)).toEqual([
       'Bonjour Bob',
       'Tu es là ?',
     ]);
@@ -383,13 +396,17 @@ describe('Messagerie — un tiers ne lit jamais une conversation', () => {
       api.social.messages.startConversation,
       { userId: b.id, body: 'Secret entre nous' },
     );
-    const [msg] = (await a.as.query(api.social.messages.getConversation, {
-      conversationId,
-    }))!.messages;
+    const [msg] = await threadOf(a.as, conversationId);
 
     for (const intruder of [c.as, admin.as, t]) {
       expect(
         await intruder.query(api.social.messages.getConversation, {
+          conversationId,
+        }),
+      ).toBeNull();
+      expect((await threadOf(intruder, conversationId)).length).toBe(0);
+      expect(
+        await intruder.query(api.social.messages.typingState, {
           conversationId,
         }),
       ).toBeNull();
@@ -430,25 +447,10 @@ describe('Messagerie — suppression de sa copie', () => {
       api.social.messages.startConversation,
       { userId: b.id, body: 'À effacer' },
     );
-    const thread = await a.as.query(api.social.messages.getConversation, {
-      conversationId,
-    });
-    const messageId = thread!.messages[0]._id;
+    const messageId = (await threadOf(a.as, conversationId))[0]._id;
     await a.as.mutation(api.social.messages.deleteMessage, { messageId });
-    expect(
-      (
-        await a.as.query(api.social.messages.getConversation, {
-          conversationId,
-        })
-      )?.messages,
-    ).toHaveLength(0);
-    expect(
-      (
-        await b.as.query(api.social.messages.getConversation, {
-          conversationId,
-        })
-      )?.messages,
-    ).toHaveLength(1);
+    expect(await threadOf(a.as, conversationId)).toHaveLength(0);
+    expect(await threadOf(b.as, conversationId)).toHaveLength(1);
     await b.as.mutation(api.social.messages.deleteMessage, { messageId });
     expect(await t.run((ctx) => ctx.db.get(messageId))).toBeNull();
   });
@@ -472,18 +474,14 @@ describe('Messagerie — suppression de sa copie', () => {
       conversationId,
       body: 'Nouveau',
     });
-    const thread = await b.as.query(api.social.messages.getConversation, {
-      conversationId,
-    });
-    expect(thread?.messages.map((m) => m.body)).toEqual(['Nouveau']);
+    expect((await threadOf(b.as, conversationId)).map((m) => m.body)).toEqual([
+      'Nouveau',
+    ]);
     // On A's side, nothing has changed.
-    expect(
-      (
-        await a.as.query(api.social.messages.getConversation, {
-          conversationId,
-        })
-      )?.messages.map((m) => m.body),
-    ).toEqual(['Ancien', 'Nouveau']);
+    expect((await threadOf(a.as, conversationId)).map((m) => m.body)).toEqual([
+      'Ancien',
+      'Nouveau',
+    ]);
   });
 });
 
@@ -501,10 +499,7 @@ describe('Messagerie — signalement et modération', () => {
       conversationId,
       body: 'Autre message non signalé',
     });
-    const thread = await b.as.query(api.social.messages.getConversation, {
-      conversationId,
-    });
-    const messageId = thread!.messages[0]._id;
+    const messageId = (await threadOf(b.as, conversationId))[0]._id;
 
     // You cannot report your own message.
     await expect(
@@ -533,10 +528,8 @@ describe('Messagerie — signalement et modération', () => {
       action: 'remove',
     });
     expect(await mod.as.query(api.social.messages.listReports, {})).toEqual([]);
-    const after = await a.as.query(api.social.messages.getConversation, {
-      conversationId,
-    });
-    expect(after?.messages[0]).toMatchObject({ removed: true, body: '' });
+    const [after] = await threadOf(a.as, conversationId);
+    expect(after).toMatchObject({ removed: true, body: '' });
 
     const audit = await t.run((ctx) =>
       ctx.db
@@ -551,6 +544,266 @@ describe('Messagerie — signalement et modération', () => {
     // Minimization: the forwarded copy is erased once the report is decided.
     const report = await t.run((ctx) => ctx.db.get(queue[0]._id));
     expect(report?.bodySnapshot).toBeUndefined();
+  });
+});
+
+describe('Messagerie — lu, saisie en cours, réponses, corrections, réactions', () => {
+  it('« Vu » : l’instant de lecture de l’autre avance quand il lit', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'Tu as vu ?' },
+    );
+    const [sent] = await threadOf(a.as, conversationId);
+    await new Promise((r) => setTimeout(r, 2));
+    const before = await a.as.query(api.social.messages.getConversation, {
+      conversationId,
+    });
+    expect(before!.otherLastReadAt).toBeLessThan(sent.createdAt);
+    await b.as.mutation(api.social.messages.markRead, { conversationId });
+    const after = await a.as.query(api.social.messages.getConversation, {
+      conversationId,
+    });
+    expect(after!.otherLastReadAt).toBeGreaterThanOrEqual(sent.createdAt);
+  });
+
+  it('transition : l’ancien écran reçoit encore le fil, le nouveau seulement l’en-tête', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'Ancien écran' },
+    );
+    const legacy = await b.as.query(api.social.messages.getConversation, {
+      conversationId,
+    });
+    expect(legacy?.messages?.map((m) => m.body)).toEqual(['Ancien écran']);
+    expect(legacy?.truncated).toBe(false);
+    const header = await b.as.query(api.social.messages.getConversation, {
+      conversationId,
+      headerOnly: true,
+    });
+    expect(header?.messages).toBeUndefined();
+    expect(header?.truncated).toBeUndefined();
+  });
+
+  it('saisie en cours : visible par l’autre seulement, effacée à l’envoi', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'Salut' },
+    );
+    await b.as.mutation(api.social.messages.setTyping, {
+      conversationId,
+      typing: true,
+    });
+    const seen = await a.as.query(api.social.messages.typingState, {
+      conversationId,
+    });
+    expect(seen!.until).toBeGreaterThan(Date.now());
+    // One does not see oneself typing.
+    expect(
+      await b.as.query(api.social.messages.typingState, { conversationId }),
+    ).toBeNull();
+    await b.as.mutation(api.social.messages.sendMessage, {
+      conversationId,
+      body: 'Réponse',
+    });
+    expect(
+      await a.as.query(api.social.messages.typingState, { conversationId }),
+    ).toBeNull();
+
+    await b.as.mutation(api.social.messages.setTyping, {
+      conversationId,
+      typing: true,
+    });
+    await b.as.mutation(api.social.messages.setTyping, {
+      conversationId,
+      typing: false,
+    });
+    expect(
+      await a.as.query(api.social.messages.typingState, { conversationId }),
+    ).toBeNull();
+
+    // Blocked: the signal is no longer written.
+    await a.as.mutation(api.social.messages.block, { userId: b.id });
+    await b.as.mutation(api.social.messages.setTyping, {
+      conversationId,
+      typing: true,
+    });
+    expect(
+      await a.as.query(api.social.messages.typingState, { conversationId }),
+    ).toBeNull();
+  });
+
+  it('répondre à un message : la citation suit la copie de chacun', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const c = await person(t, 'Chloe');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'On se voit jeudi ?' },
+    );
+    const [question] = await threadOf(b.as, conversationId);
+    await b.as.mutation(api.social.messages.sendMessage, {
+      conversationId,
+      body: 'Oui, à 10 h',
+      replyToId: question._id,
+    });
+    const reply = (await threadOf(a.as, conversationId))[1];
+    expect(reply.replyTo).toEqual({
+      _id: question._id,
+      fromMe: true,
+      excerpt: 'On se voit jeudi ?',
+      removed: false,
+    });
+
+    // Quoting a message of ANOTHER conversation is refused.
+    const other = await c.as.mutation(api.social.messages.startConversation, {
+      userId: a.id,
+      body: 'Autre fil',
+    });
+    const [foreign] = await threadOf(c.as, other);
+    await expect(
+      b.as.mutation(api.social.messages.sendMessage, {
+        conversationId,
+        body: 'Intrus',
+        replyToId: foreign._id,
+      }),
+    ).rejects.toThrow(/NOT_FOUND/);
+
+    // A deletes the quoted message from their copy: the quote disappears
+    // for A, not for B.
+    await a.as.mutation(api.social.messages.deleteMessage, {
+      messageId: question._id,
+    });
+    expect((await threadOf(a.as, conversationId))[0].replyTo).toBeNull();
+    expect((await threadOf(b.as, conversationId))[1].replyTo?._id).toBe(
+      question._id,
+    );
+  });
+
+  it('corriger son message : seulement l’expéditeur, dans le quart d’heure', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'Rendez-vous à 10 h' },
+    );
+    const [m] = await threadOf(a.as, conversationId);
+    expect(m.editedAt).toBeNull();
+    await a.as.mutation(api.social.messages.editMessage, {
+      messageId: m._id,
+      body: 'Rendez-vous à 11 h',
+    });
+    const [edited] = await threadOf(b.as, conversationId);
+    expect(edited.body).toBe('Rendez-vous à 11 h');
+    expect(edited.editedAt).not.toBeNull();
+
+    await expect(
+      b.as.mutation(api.social.messages.editMessage, {
+        messageId: m._id,
+        body: 'Détourné',
+      }),
+    ).rejects.toThrow(/NOT_EDITABLE/);
+    await expect(
+      a.as.mutation(api.social.messages.editMessage, {
+        messageId: m._id,
+        body: '   ',
+      }),
+    ).rejects.toThrow(/EMPTY_MESSAGE/);
+
+    await t.run((ctx) =>
+      ctx.db.patch(m._id, { createdAt: Date.now() - 16 * 60 * 1000 }),
+    );
+    await expect(
+      a.as.mutation(api.social.messages.editMessage, {
+        messageId: m._id,
+        body: 'Trop tard',
+      }),
+    ).rejects.toThrow(/NOT_EDITABLE/);
+  });
+
+  it('réactions : une par personne, remplaçable, retirable, vocabulaire fermé', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'Bonne nouvelle !' },
+    );
+    const [m] = await threadOf(b.as, conversationId);
+    await b.as.mutation(api.social.messages.reactToMessage, {
+      messageId: m._id,
+      emoji: '👍',
+    });
+    await b.as.mutation(api.social.messages.reactToMessage, {
+      messageId: m._id,
+      emoji: '❤️',
+    });
+    await a.as.mutation(api.social.messages.reactToMessage, {
+      messageId: m._id,
+      emoji: '😂',
+    });
+    expect((await threadOf(a.as, conversationId))[0].reactions).toEqual([
+      { emoji: '❤️', mine: false },
+      { emoji: '😂', mine: true },
+    ]);
+    await b.as.mutation(api.social.messages.reactToMessage, {
+      messageId: m._id,
+      emoji: null,
+    });
+    expect((await threadOf(b.as, conversationId))[0].reactions).toEqual([
+      { emoji: '😂', mine: false },
+    ]);
+    await expect(
+      b.as.mutation(api.social.messages.reactToMessage, {
+        messageId: m._id,
+        emoji: '💩',
+      }),
+    ).rejects.toThrow(/INVALID_REACTION/);
+
+    await a.as.mutation(api.social.messages.block, { userId: b.id });
+    await expect(
+      b.as.mutation(api.social.messages.reactToMessage, {
+        messageId: m._id,
+        emoji: '👍',
+      }),
+    ).rejects.toThrow(/BLOCKED/);
+  });
+
+  it('fil paginé : du plus récent au plus ancien, page par page', async () => {
+    const t = convexTest(schema, modules);
+    const a = await person(t, 'Awa');
+    const b = await person(t, 'Bob');
+    const conversationId = await a.as.mutation(
+      api.social.messages.startConversation,
+      { userId: b.id, body: 'm1' },
+    );
+    for (const body of ['m2', 'm3', 'm4', 'm5']) {
+      await a.as.mutation(api.social.messages.sendMessage, {
+        conversationId,
+        body,
+      });
+    }
+    const first = await b.as.query(api.social.messages.listMessages, {
+      conversationId,
+      paginationOpts: { numItems: 2, cursor: null },
+    });
+    expect(first.page.map((m) => m.body)).toEqual(['m5', 'm4']);
+    expect(first.isDone).toBe(false);
+    const second = await b.as.query(api.social.messages.listMessages, {
+      conversationId,
+      paginationOpts: { numItems: 3, cursor: first.continueCursor },
+    });
+    expect(second.page.map((m) => m.body)).toEqual(['m3', 'm2', 'm1']);
   });
 });
 
@@ -701,6 +954,10 @@ describe('Compte — suppression et export', () => {
       api.social.messages.startConversation,
       { userId: b.id, body: 'Bonjour' },
     );
+    await b.as.mutation(api.social.messages.setTyping, {
+      conversationId,
+      typing: true,
+    });
 
     let done = false;
     for (let i = 0; i < 10 && !done; i++) {
@@ -730,6 +987,7 @@ describe('Compte — suppression et export', () => {
       blocks: (await ctx.db.query('blocks').collect()).filter(
         (x) => x.blockedId === a.id || x.blockerId === a.id,
       ),
+      typing: await ctx.db.query('conversationTyping').collect(),
     }));
     expect(leftovers).toEqual({
       profile: null,
@@ -738,6 +996,7 @@ describe('Compte — suppression et export', () => {
       messages: [],
       follows: [],
       blocks: [],
+      typing: [],
     });
     expect(
       (await b.as.query(api.social.profiles.getMine, {}))?.followerCount,

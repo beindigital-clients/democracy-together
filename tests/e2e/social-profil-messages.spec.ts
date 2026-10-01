@@ -142,6 +142,98 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await pageB.context().close();
 });
 
+// The messenger gestures, both sides open on the same conversation: "Seen",
+// "is typing…", Enter to send, reply, reaction and correction — each one
+// seen by the OTHER person without reloading.
+test('messagerie : Vu, saisie en cours, Entrée, réponse, réaction, modification', async ({
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const pageA = await membre(browser, EMAIL_A);
+  const pageB = await membre(browser, EMAIL_B);
+  for (const page of [pageA, pageB]) {
+    await page.goto('/fr/espace-membre/messages');
+  }
+  await pageA
+    .getByRole('link', { name: new RegExp(NOM_B) })
+    .first()
+    .click();
+  await pageB
+    .getByRole('link', { name: new RegExp(NOM_A) })
+    .first()
+    .click();
+
+  // A read B's first message in the previous test: B sees "Vu".
+  await expect(pageB.getByText('Vu', { exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
+
+  // B types without sending: A sees "… écrit…".
+  const composerB = pageB.getByLabel('Votre message');
+  await composerB.fill('Entrée envoie');
+  await expect(pageA.getByText(`${NOM_B} écrit…`)).toBeVisible({
+    timeout: 20_000,
+  });
+
+  // Enter sends (Shift+Enter would only break the line).
+  await composerB.press('Enter');
+  await expect(composerB).toHaveValue('');
+  const recu = pageA
+    .getByRole('log')
+    .locator('li', { hasText: 'Entrée envoie' })
+    .filter({ hasNotText: 'Réponse citée' });
+  await expect(recu).toBeVisible({ timeout: 20_000 });
+  await expect(pageA.getByText(`${NOM_B} écrit…`)).toHaveCount(0);
+
+  // A replies to that precise message.
+  await recu.hover();
+  await recu.getByRole('button', { name: 'Répondre' }).click();
+  await expect(pageA.getByText(`Réponse à ${NOM_B}`)).toBeVisible();
+  const composerA = pageA.getByLabel('Votre message');
+  await composerA.fill('Réponse citée');
+  await composerA.press('Enter');
+  const reponse = pageB
+    .getByRole('log')
+    .locator('li', { hasText: 'Réponse citée' })
+    .last();
+  await expect(reponse).toBeVisible({ timeout: 20_000 });
+  await expect(reponse.getByText('En réponse à vous')).toBeVisible();
+
+  // B reacts to it; A sees the reaction.
+  await reponse.hover();
+  await reponse.getByRole('button', { name: 'Réagir' }).click();
+  await pageB.getByRole('menuitem', { name: '👍' }).click();
+  await expect(
+    pageA
+      .getByRole('log')
+      .locator('li', { hasText: 'Réponse citée' })
+      .last()
+      .getByRole('button', { name: 'Réactions : 👍' }),
+  ).toBeVisible({ timeout: 20_000 });
+
+  // B corrects their own message; A sees the new text, marked "modifié".
+  // The reply quotes this message: skip the bubble that only cites it.
+  const mien = pageB
+    .getByRole('log')
+    .locator('li', { hasText: 'Entrée envoie' })
+    .filter({ hasNotText: 'Réponse citée' });
+  await mien.hover();
+  await mien.getByRole('button', { name: "Plus d'actions" }).click();
+  await pageB.getByRole('menuitem', { name: 'Modifier' }).click();
+  await expect(composerB).toHaveValue('Entrée envoie');
+  await composerB.fill('Entrée envoie, corrigé');
+  await composerB.press('Enter');
+  const corrige = pageA
+    .getByRole('log')
+    .locator('li', { hasText: 'Entrée envoie, corrigé' })
+    .filter({ hasNotText: 'Réponse citée' });
+  await expect(corrige).toBeVisible({ timeout: 20_000 });
+  await expect(corrige.getByText('modifié', { exact: true })).toBeVisible();
+
+  await pageA.context().close();
+  await pageB.context().close();
+});
+
 test('un profil passé en privé répond 404, comme une adresse inconnue', async ({
   browser,
 }) => {

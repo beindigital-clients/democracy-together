@@ -127,9 +127,30 @@ export const socialTables = {
     // Removed by moderation following a report: the body is emptied, the row
     // stays so the thread keeps its chronology.
     removed: v.optional(v.boolean()),
+    // Quoted message (reply). Shown only while it is still in the reader's
+    // copy.
+    replyToId: v.optional(v.id('directMessages')),
+    // Last correction by the sender (MESSAGE_EDIT_WINDOW_MS).
+    editedAt: v.optional(v.number()),
+    // At most one reaction per participant, so at most two entries: a
+    // bounded array, not a list that grows.
+    reactions: v.optional(
+      v.array(v.object({ userId: v.id('users'), emoji: v.string() })),
+    ),
   })
     .index('by_conversation', ['conversationId'])
     .index('by_sender', ['senderId']),
+
+  // "Is typing…" signal, one row per participant who typed in a
+  // conversation. High-churn data kept apart from `conversationMembers`, so
+  // that a keystroke does not rerun the conversation list. `until` is an
+  // instant: the reader compares it with its own clock, a query never reads
+  // the time.
+  conversationTyping: defineTable({
+    conversationId: v.id('conversations'),
+    userId: v.id('users'),
+    until: v.number(),
+  }).index('by_conversation_and_userId', ['conversationId', 'userId']),
 
   // Private message reports — back-office queue
   // (/admin/signalements-messages). Same model as `tribuneReports`, with a

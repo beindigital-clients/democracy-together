@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
+  MESSAGE_EDIT_WINDOW_MS,
+  MESSAGE_REACTIONS,
+  canEditMessage,
   canViewProfile,
   deriveHandle,
   isIndexable,
   isValidHandle,
+  isMessageReaction,
   isValidProfileLink,
   messageRefusal,
   sniffImageType,
@@ -156,6 +160,30 @@ describe('sniffImageType', () => {
   it('refuse SVG, HTML, PDF et un fichier vide', () => {
     for (const s of ['<svg ', '<!doctype html>', '%PDF-1.7', '']) {
       expect(sniffImageType(new TextEncoder().encode(s))).toBeNull();
+    }
+  });
+});
+
+describe('canEditMessage', () => {
+  const open = { fromMe: true, removed: false, createdAt: 0, now: 1000 };
+  it('one’s own message, within the window', () => {
+    expect(canEditMessage(open)).toBe(true);
+    expect(canEditMessage({ ...open, now: MESSAGE_EDIT_WINDOW_MS })).toBe(true);
+  });
+  it('refused: someone else’s, removed, or too late', () => {
+    expect(canEditMessage({ ...open, fromMe: false })).toBe(false);
+    expect(canEditMessage({ ...open, removed: true })).toBe(false);
+    expect(canEditMessage({ ...open, now: MESSAGE_EDIT_WINDOW_MS + 1 })).toBe(
+      false,
+    );
+  });
+});
+
+describe('isMessageReaction', () => {
+  it('accepts the closed set only', () => {
+    for (const e of MESSAGE_REACTIONS) expect(isMessageReaction(e)).toBe(true);
+    for (const e of ['', '💩', 'like', '👍👍']) {
+      expect(isMessageReaction(e)).toBe(false);
     }
   });
 });
