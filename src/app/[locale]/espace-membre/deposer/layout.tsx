@@ -4,7 +4,8 @@ import { getTranslations } from 'next-intl/server';
 
 // Page title for the publication submission (RGAA 8.6) — see
 // `espace-membre/layout.tsx` for the finding and the reason for the layout.
-// The title names the screen THEN the area, like the page's breadcrumb.
+// The screen's name only: the member-area template adds the area and the
+// site after it.
 export async function generateMetadata({
   params,
 }: {
@@ -13,7 +14,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'library' });
   return {
-    title: `${t('submit.title')} · ${t('submit.memberSpace')}`,
+    title: t('submit.title'),
   };
 }
 

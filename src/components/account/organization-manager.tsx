@@ -17,7 +17,7 @@ import {
   TextField,
   TextareaField,
 } from '@/components/ui/field';
-import { ArrowBack } from '@/components/ui/arrow';
+import { MemberPageHeader } from '@/components/member/page-header';
 import { errorCode } from '@/lib/account-errors';
 import { formatLongDate } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
@@ -604,14 +604,11 @@ function Manager(labels: Labels) {
   const [selected, setSelected] = useState<Id<'organizations'> | null>(null);
   const current = selected ?? mine?.[0]?.orgId ?? null;
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <Link
-        href="/espace-membre"
-        className="inline-flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-muted hover:text-ink"
-      >
-        <ArrowBack /> {tAccounts('backToMemberSpace')}
-      </Link>
-      <h1 className="mt-4 font-display text-3xl">{t('title')}</h1>
+    <div className="max-w-3xl">
+      <MemberPageHeader
+        title={t('title')}
+        lead={tAccounts('organizationLead')}
+      />
       {mine === undefined ? (
         <p className="mt-6 text-ink-soft">{t('loading')}</p>
       ) : mine.length === 0 ? (
@@ -651,7 +648,7 @@ function Manager(labels: Labels) {
 
 export function OrganizationManager(labels: Labels) {
   return (
-    <AuthGate className="max-w-md">
+    <AuthGate>
       <Manager {...labels} />
     </AuthGate>
   );

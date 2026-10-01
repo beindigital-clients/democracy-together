@@ -6,7 +6,7 @@ import { WorkspacesBoard } from '@/components/workspaces/workspaces-board';
 // member" gating is applied in WorkspacesBoard (dedicated message otherwise).
 export default function EspacesPage() {
   return (
-    <AuthGate className="max-w-[960px]">
+    <AuthGate>
       <WorkspacesBoard />
     </AuthGate>
   );

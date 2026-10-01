@@ -390,6 +390,22 @@ export async function setPasswordViaReset(
     .click();
 }
 
+// THE SIGNED-IN HEADER. Signed in, the header carries the ACCOUNT MENU —
+// the person's photo, named "Mon compte" for screen readers — where the two
+// links "Espace membre · Déconnexion" used to be. It is the marker of a
+// signed-in page (it exists ONLY when signed in), and signing out goes
+// through it, as on any social network: open the menu, pick "Déconnexion".
+//
+// Desktop only: on a phone, the account lives in the mobile menu's panel.
+export function menuCompte(page: Page) {
+  return page.getByRole('banner').getByRole('button', { name: 'Mon compte' });
+}
+
+export async function seDeconnecter(page: Page) {
+  await menuCompte(page).click();
+  await page.getByRole('menuitem', { name: 'Déconnexion' }).click();
+}
+
 // Drop-in replacement for the old fixture: it navigated to
 // /fr/inscription, now redirected to /adhesion, which broke 5 specs
 // (audit § 6.1, commit 8be46bc). Contract preserved: on exit, the account
@@ -426,9 +442,7 @@ export async function signUpAndVerify(
   // anything to display. So we wait for an element that exists ONLY when signed
   // in — otherwise the spec's next navigation heads back to /connexion, and it
   // then looks for a member-area link on the sign-in page.
-  await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(menuCompte(page)).toBeVisible({ timeout: 15_000 });
 }
 
 // FINDING AN ACCOUNT IN `/admin/utilisateurs`, WHATEVER THE VOLUME.

@@ -41,7 +41,7 @@ export function MessagesBadge({
             : t('badgeUnread', { count: n })
           : t('badge')
       }
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
     >
       <MessageSquare className="h-[18px] w-[18px]" aria-hidden="true" />
       {n > 0 ? (

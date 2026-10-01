@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { SITE_NAME } from '@/lib/seo';
+import { MemberArea } from '@/components/member/member-area';
 
 // Page title for the member area (RGAA 8.6).
 //
@@ -14,6 +16,11 @@ import { getTranslations } from 'next-intl/server';
 // No `robots` here: `/espace-membre` is already disallowed for crawling by
 // `robots.txt`, and the repo forbids combining the two measures
 // (`tests/unit/seo-coherence.test.ts`).
+//
+// A TEMPLATE, not a plain string: a plain title here cut the root template
+// off for every sub-page, whose tab then read "Mon profil" alone — no area,
+// no site. Now "Mon profil · Espace membre · Democracy Together"; the home of
+// the area keeps "Espace membre · Democracy Together".
 export async function generateMetadata({
   params,
 }: {
@@ -22,14 +29,25 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'auth' });
   return {
-    title: t('memberTitle'),
+    title: {
+      default: t('memberTitle'),
+      template: `%s · ${t('memberTitle')} · ${SITE_NAME}`,
+    },
   };
 }
 
-export default function EspaceMembreLayout({
+// Every member screen renders inside the shared frame (side navigation,
+// identity, mobile menu: `member-area.tsx`). The layout persists across
+// navigations between member screens: the column is not re-read nor redrawn
+// from one to the next.
+export default async function EspaceMembreLayout({
   children,
+  params,
 }: {
   children: ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
-  return children;
+  const { locale } = await params;
+  setRequestLocale(locale);
+  return <MemberArea locale={locale}>{children}</MemberArea>;
 }

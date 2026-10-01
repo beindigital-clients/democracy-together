@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { chercherUtilisateur, getOtp } from './_helpers';
+import { chercherUtilisateur, getOtp, menuCompte } from './_helpers';
 import { SESSIONS } from './_sessions';
 
 // LIFECYCLE OF AN ACCOUNT ("comptes" workstream, F-63) — through the UI:
@@ -56,9 +56,7 @@ test('l’administrateur crée puis suspend un compte : il ne peut plus se conne
   const userPage = await userContext.newPage();
   await signInWithOtp(userPage, email);
   await expect(userPage).toHaveURL(/\/espace-membre$/);
-  await expect(
-    userPage.getByRole('button', { name: 'Déconnexion' }),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(menuCompte(userPage)).toBeVisible({ timeout: 15_000 });
 
   // 3. SUSPENSION, reason required, confirmation naming the account.
   await page.reload();

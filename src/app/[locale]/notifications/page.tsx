@@ -1,115 +1,117 @@
 'use client';
 
-import { AuthGate } from '@/components/auth/auth-gate';
-import { useQuery, useMutation } from 'convex/react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import { BellOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
-import { useRouter } from '@/i18n/navigation';
+import { AuthGate } from '@/components/auth/auth-gate';
 import { Button } from '@/components/ui/button';
-import { intlLocale } from '@/i18n/locale';
-type Notif = {
-  _id: Id<'notifications'>;
-  titleKey: string;
-  params: Record<string, string>;
-  link: string | null;
-  read: boolean;
-  createdAt: number;
-};
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  MemberPageBody,
+  MemberPageHeader,
+} from '@/components/member/page-header';
+import {
+  NotificationRow,
+  useOpenNotification,
+  type Notif,
+} from '@/components/notifications/notification-row';
+import { useNow } from '@/hooks/use-now';
+import { cn } from '@/lib/utils';
 
-function NotificationsList() {
+type Filter = 'all' | 'unread';
+
+// ALL NOTIFICATIONS — what the bell's panel shows the latest of, in full,
+// with the choice every social network offers: all of them, or only the
+// unread ones.
+function NotificationsScreen() {
   const t = useTranslations('notifications');
-  // next-intl types its keys; the titles are dynamic (coming from the database).
-  const tt = t as unknown as (
-    key: string,
-    values?: Record<string, string>,
-  ) => string;
-  const locale = useLocale();
-  const router = useRouter();
+  const now = useNow();
   const items = useQuery(api.notifications.myNotifications) as
     Notif[] | undefined;
-  const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
+  const open = useOpenNotification();
+  const [filter, setFilter] = useState<Filter>('all');
 
-  const fmt = (ms: number) =>
-    new Intl.DateTimeFormat(intlLocale(locale), {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(ms);
+  const unread = items?.filter((n) => !n.read).length ?? 0;
+  const shown = filter === 'unread' ? items?.filter((n) => !n.read) : items;
 
-  async function open(n: Notif) {
-    if (!n.read) {
-      try {
-        await markRead({ notificationId: n._id });
-      } catch {
-        /* no effect on navigation */
-      }
-    }
-    if (n.link) router.push(n.link);
-  }
-
-  const hasUnread = Boolean(items?.some((n) => !n.read));
+  const tab = (value: Filter, label: string) => (
+    <button
+      type="button"
+      aria-pressed={filter === value}
+      onClick={() => setFilter(value)}
+      className={cn(
+        'min-h-10 rounded-pill px-4 text-sm transition-colors',
+        filter === value
+          ? 'bg-accent-tint font-medium text-accent-text'
+          : 'text-ink-soft hover:bg-surface-2 hover:text-ink',
+      )}
+    >
+      {label}
+    </button>
+  );
 
   return (
-    <div className="mx-auto max-w-[760px] px-4 py-12 sm:px-6 md:py-16">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-display text-[clamp(28px,4vw,40px)]">
-          {t('title')}
-        </h1>
-        {hasUnread ? (
-          <Button variant="outline" size="sm" onClick={() => markAllRead({})}>
-            {t('markAll')}
-          </Button>
-        ) : null}
-      </div>
+    <>
+      <MemberPageHeader
+        title={t('title')}
+        lead={t('pageLead')}
+        actions={
+          unread > 0 ? (
+            <Button variant="outline" onClick={() => void markAllRead({})}>
+              {t('markAll')}
+            </Button>
+          ) : null
+        }
+      />
+      <MemberPageBody narrow>
+        <div
+          role="group"
+          aria-label={t('filterLabel')}
+          className="inline-flex gap-1 rounded-pill border border-line bg-surface p-1"
+        >
+          {tab('all', t('filterAll'))}
+          {tab('unread', t('filterUnread', { count: unread }))}
+        </div>
 
-      {items === undefined ? (
-        <p className="mt-6 text-ink-soft">{t('loading')}</p>
-      ) : items.length === 0 ? (
-        <p className="mt-6 text-ink-soft">{t('empty')}</p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {items.map((n) => (
-            <li key={n._id}>
-              <button
-                type="button"
-                onClick={() => open(n)}
-                className={`flex w-full items-start gap-3 rounded-md border p-4 text-start transition-colors ${
-                  n.read
-                    ? 'border-line bg-surface hover:border-line-strong'
-                    : 'border-accent-edge bg-accent-tint hover:bg-accent-tint/70'
-                }`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                    n.read ? 'bg-transparent' : 'bg-accent'
-                  }`}
+        {shown === undefined ? (
+          <div aria-hidden="true" className="mt-6 space-y-2">
+            <Skeleton className="h-[68px] w-full" />
+            <Skeleton className="h-[68px] w-full" />
+            <Skeleton className="h-[68px] w-full" />
+          </div>
+        ) : shown.length === 0 ? (
+          <div className="mt-6 flex flex-col items-center rounded-md border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
+            <BellOff aria-hidden="true" className="h-6 w-6 text-muted" />
+            <p className="mt-3 text-sm text-ink-soft">
+              {filter === 'unread' ? t('emptyUnread') : t('empty')}
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-6 flex flex-col gap-2">
+            {shown.map((n) => (
+              <li key={n._id}>
+                <NotificationRow
+                  n={n}
+                  now={now}
+                  onOpen={(x) => void open(x)}
+                  comfortable
                 />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] leading-relaxed text-ink">
-                    {tt(n.titleKey, n.params)}
-                  </span>
-                  <span className="mt-1 block font-mono text-[11px] text-muted">
-                    {fmt(n.createdAt)}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </MemberPageBody>
+    </>
   );
 }
 
 export default function NotificationsPage() {
   return (
-    <AuthGate className="max-w-[760px]">
-      <NotificationsList />
+    <AuthGate>
+      <NotificationsScreen />
     </AuthGate>
   );
 }

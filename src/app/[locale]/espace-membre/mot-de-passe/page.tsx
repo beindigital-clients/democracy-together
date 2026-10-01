@@ -1,13 +1,17 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { useAction, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
-import { AuthCard, SubmitButton } from '@/components/auth/form';
+import { SubmitButton } from '@/components/auth/form';
+import {
+  MemberPageBody,
+  MemberPageHeader,
+} from '@/components/member/page-header';
 import { FormError, useFormFields } from '@/components/ui/field';
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
@@ -68,6 +72,42 @@ type Mode = 'verify' | 'reset';
 // like the other refusals read in `@/lib/auth-errors`.
 function isAccountAlreadyExists(error: unknown): boolean {
   return error instanceof Error && /already exists/i.test(error.message);
+}
+
+// The three steps (password, code, done) share the member-area header —
+// "Mon mot de passe" — and change only the card below it: the page stays the
+// same place while the step advances.
+function PasswordPanel({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  const t = useTranslations('auth');
+  return (
+    <>
+      <MemberPageHeader title={t('passwordTitle')} />
+      <MemberPageBody className="max-w-xl">
+        <section
+          aria-labelledby="mdp-etape"
+          className="rounded-md border border-line bg-surface p-5 shadow-card sm:p-7"
+        >
+          <h2 id="mdp-etape" className="font-display text-2xl">
+            {title}
+          </h2>
+          {subtitle ? (
+            <p className="mt-2 wrap-anywhere leading-relaxed text-ink-soft">
+              {subtitle}
+            </p>
+          ) : null}
+          <div className="mt-6">{children}</div>
+        </section>
+      </MemberPageBody>
+    </>
+  );
 }
 
 function PasswordForm({ email }: { email: string }) {
@@ -194,23 +234,23 @@ function PasswordForm({ email }: { email: string }) {
 
   if (step === 'done') {
     return (
-      <AuthCard title={t('passwordDoneTitle')}>
+      <PasswordPanel title={t('passwordDoneTitle')}>
         <StatusMessage as="p" className="wrap-anywhere text-ink-soft">
           {t('passwordDoneBody')}
         </StatusMessage>
         <Link
           href="/espace-membre"
-          className="mt-6 inline-block text-sm font-medium text-accent-text hover:underline"
+          className="mt-6 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent-text hover:underline"
         >
           <ArrowBack /> {t('passwordBack')}
         </Link>
-      </AuthCard>
+      </PasswordPanel>
     );
   }
 
   if (step === 'code') {
     return (
-      <AuthCard
+      <PasswordPanel
         title={t('passwordVerifyTitle')}
         subtitle={t('passwordVerifySubtitle', { email })}
       >
@@ -234,13 +274,13 @@ function PasswordForm({ email }: { email: string }) {
         >
           {t('resendCode')}
         </button>
-      </AuthCard>
+      </PasswordPanel>
     );
   }
 
   return (
-    <AuthCard
-      title={t('passwordTitle')}
+    <PasswordPanel
+      title={t('passwordNewTitle')}
       subtitle={t('passwordSubtitle', { email })}
     >
       <form onSubmit={onPassword} noValidate className="space-y-5">
@@ -261,33 +301,21 @@ function PasswordForm({ email }: { email: string }) {
         <FormError>{error}</FormError>
         <SubmitButton pending={pending}>{t('passwordCta')}</SubmitButton>
       </form>
-      <Link
-        href="/espace-membre"
-        className="mt-6 inline-block text-sm text-accent-text hover:underline"
-      >
-        <ArrowBack /> {t('passwordBack')}
-      </Link>
-    </AuthCard>
+    </PasswordPanel>
   );
 }
 
 function PasswordScreen() {
   const t = useTranslations('auth');
   const me = useQuery(api.users.current);
-  if (me === undefined) return <AuthGateLoading className="max-w-md" />;
+  if (me === undefined) return <AuthGateLoading />;
   // An account without an address cannot receive any code: we say so rather
   // than render a form that will fail. (`email` is optional in the database.)
   if (!me?.email) {
     return (
-      <AuthCard title={t('passwordTitle')}>
+      <PasswordPanel title={t('passwordNewTitle')}>
         <FormError>{t('passwordNoEmail')}</FormError>
-        <Link
-          href="/espace-membre"
-          className="mt-6 inline-block text-sm text-accent-text hover:underline"
-        >
-          <ArrowBack /> {t('passwordBack')}
-        </Link>
-      </AuthCard>
+      </PasswordPanel>
     );
   }
   return <PasswordForm email={me.email} />;
@@ -295,7 +323,7 @@ function PasswordScreen() {
 
 export default function MotDePassePage() {
   return (
-    <AuthGate className="max-w-md">
+    <AuthGate>
       <PasswordScreen />
     </AuthGate>
   );

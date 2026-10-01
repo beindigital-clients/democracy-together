@@ -8,30 +8,16 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { isMember } from '@/lib/roles';
 import { PublicationSubmitForm } from '@/components/library/publication-submit-form';
+import { MemberPageHeader } from '@/components/member/page-header';
 
 function DepositPage() {
   const t = useTranslations('library');
   const me = useQuery(api.users.current);
-  if (me === undefined) return <AuthGateLoading className="max-w-3xl" />;
+  if (me === undefined) return <AuthGateLoading />;
   const member = isMember(me?.role);
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <p className="text-[13px] text-muted">
-        <Link href="/" className="text-muted hover:text-ink">
-          {t('breadcrumbHome')}
-        </Link>{' '}
-        /{' '}
-        <Link href="/espace-membre" className="text-muted hover:text-ink">
-          {t('submit.memberSpace')}
-        </Link>{' '}
-        / {t('submit.title')}
-      </p>
-      <h1 className="mt-4 font-display text-[clamp(28px,3.4vw,40px)] font-medium leading-tight tracking-[-0.015em]">
-        {t('submit.title')}
-      </h1>
-      <p className="mt-3 max-w-[58ch] text-lg leading-relaxed text-ink-soft">
-        {t('submit.lead')}
-      </p>
+    <div className="max-w-3xl">
+      <MemberPageHeader title={t('submit.title')} lead={t('submit.lead')} />
       <div className="mt-8">
         {member ? (
           <PublicationSubmitForm />
@@ -52,7 +38,7 @@ function DepositPage() {
 
 export default function DeposerPage() {
   return (
-    <AuthGate className="max-w-3xl">
+    <AuthGate>
       <DepositPage />
     </AuthGate>
   );

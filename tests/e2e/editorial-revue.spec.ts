@@ -138,8 +138,11 @@ test('F-43 : soumis → deux relecteurs → révision demandée → v2 → accep
   ).toBeVisible();
 
   await author.goto('/fr/espace-membre');
+  // The member-area navigation names the author's screen as the screen
+  // itself does.
   await author
-    .getByRole('link', { name: 'Mes manuscrits (comité de lecture)' })
+    .getByRole('navigation', { name: 'Mon espace' })
+    .getByRole('link', { name: 'Mes manuscrits' })
     .click();
   await expect(author).toHaveURL(/\/espace-membre\/manuscrits$/);
   await card(author, title)

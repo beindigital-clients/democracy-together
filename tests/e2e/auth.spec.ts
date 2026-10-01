@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
 import {
-  signUpAndVerify,
-  provisionUser,
-  provisionPassword,
-  reachNewPasswordStep,
-  getOtp,
   E2E_PASSWORD,
+  getOtp,
+  menuCompte,
+  provisionPassword,
+  provisionUser,
+  reachNewPasswordStep,
+  seDeconnecter,
+  signUpAndVerify,
 } from './_helpers';
 
 // Registration (with OTP email verification) -> sign out -> sign in again. (F-01)
@@ -16,12 +18,12 @@ test('inscription + vérification, déconnexion, reconnexion par mot de passe', 
   const password = E2E_PASSWORD;
 
   await signUpAndVerify(page, email, password);
-  await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
+  await expect(menuCompte(page)).toBeVisible({
     timeout: 15_000,
   });
 
   // sign out
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(
     page.getByRole('link', { name: 'Connexion' }).first(),
   ).toBeVisible();
@@ -32,7 +34,7 @@ test('inscription + vérification, déconnexion, reconnexion par mot de passe', 
   await page.getByLabel('Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
-  await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
+  await expect(menuCompte(page)).toBeVisible({
     timeout: 15_000,
   });
 });
@@ -106,7 +108,7 @@ test('une adresse saisie avec des majuscules est reconnue par les trois écrans'
   await page.getByLabel('Mot de passe', { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(
     page.getByRole('link', { name: 'Connexion' }).first(),
   ).toBeVisible();
@@ -121,7 +123,7 @@ test('une adresse saisie avec des majuscules est reconnue par les trois écrans'
   await page.getByLabel('Code de vérification').fill(await getOtp(email));
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/espace-membre$/);
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(
     page.getByRole('link', { name: 'Connexion' }).first(),
   ).toBeVisible();

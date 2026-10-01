@@ -1,5 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
-import { E2E_PASSWORD, provisionUser, signUpAndVerify } from './_helpers';
+import {
+  E2E_PASSWORD,
+  provisionUser,
+  seDeconnecter,
+  signUpAndVerify,
+} from './_helpers';
 
 // COLLABORATIVE SPACES — invitations and shared files (F-24, "communauté"
 // workstream), end to end:
@@ -14,7 +19,7 @@ import { E2E_PASSWORD, provisionUser, signUpAndVerify } from './_helpers';
 test.use({ locale: 'fr-FR' });
 
 async function signOut(page: Page) {
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(page).toHaveURL(/\/fr$/);
 }
 

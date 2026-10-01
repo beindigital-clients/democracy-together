@@ -85,7 +85,7 @@ test('rejeter une candidature : confirmation nommant l’organisation, Échap an
   // 1. The dialog NAMES the targeted application.
   await row.getByRole('button', { name: 'Rejeter', exact: true }).click();
   const dialog = page.getByRole('dialog', {
-    name: `Rejeter la candidature de ${appOrg} ?`,
+    name: `Rejeter la candidature « ${appOrg} » ?`,
   });
   await expect(dialog).toBeVisible();
 
@@ -103,7 +103,7 @@ test('rejeter une candidature : confirmation nommant l’organisation, Échap an
     .getByRole('button', { name: 'Rejeter la candidature' })
     .click();
   await expect(page.getByRole('status')).toContainText(
-    `Candidature de ${appOrg} rejetée.`,
+    `Candidature « ${appOrg} » rejetée.`,
   );
   await expect(row).toHaveCount(0);
 
@@ -150,7 +150,7 @@ test('revenir sur une décision d’adhésion : un refus repêché, une approbat
   // 1. Rescued: back in the queue at once, the previous decision in sight.
   await row.getByRole('button', { name: 'Remettre en étude' }).click();
   await expect(page.getByRole('status')).toContainText(
-    `Candidature de ${appOrg} remise en étude.`,
+    `Candidature « ${appOrg} » remise en étude.`,
   );
   await expect(row.getByText('En attente')).toBeVisible();
   await expect(row.getByText(/elle avait été rejetée\.$/)).toBeVisible();
@@ -158,7 +158,7 @@ test('revenir sur une décision d’adhésion : un refus repêché, une approbat
   // 2. Decided again — approved, like a first time.
   await row.getByRole('button', { name: 'Approuver' }).click();
   await expect(page.getByRole('status')).toContainText(
-    `Candidature de ${appOrg} approuvée.`,
+    `Candidature « ${appOrg} » approuvée.`,
   );
   await expect(row.getByText('Approuvée', { exact: true })).toBeVisible();
 
@@ -166,7 +166,7 @@ test('revenir sur une décision d’adhésion : un refus repêché, une approbat
   // nothing moves before it is confirmed.
   await row.getByRole('button', { name: 'Remettre en étude' }).click();
   const dialog = page.getByRole('dialog', {
-    name: `Remettre en étude la candidature de ${appOrg} ?`,
+    name: `Remettre en étude la candidature « ${appOrg} » ?`,
   });
   await expect(dialog).toContainText(
     `le compte ${contactEmail} perd son rôle de membre`,

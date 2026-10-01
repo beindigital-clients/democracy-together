@@ -5,7 +5,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
-import { Reveal } from '@/components/motion/reveal';
+import { MemberPageHeader } from '@/components/member/page-header';
 import { Button } from '@/components/ui/button';
 import {
   FormError,
@@ -181,18 +181,14 @@ export function WorkspacesBoard() {
     }).format(ms);
 
   return (
-    <div className="mx-auto max-w-[960px] px-4 py-12 sm:px-6 md:py-16">
-      <Reveal>
-        <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">
-          {t('eyebrow')}
-        </p>
-        <h1 className="mt-2 font-display text-[clamp(28px,4vw,44px)] font-medium leading-[1.05] tracking-[-0.015em]">
-          {t('title')}
-        </h1>
-        <p className="mt-3 max-w-[62ch] text-[17px] leading-relaxed text-ink-soft">
-          {t('lead')}
-        </p>
-      </Reveal>
+    // Inside the member area's frame (`espaces/layout.tsx`), under the same
+    // header as its other screens.
+    <div>
+      <MemberPageHeader
+        eyebrow={t('eyebrow')}
+        title={t('title')}
+        lead={t('lead')}
+      />
 
       {me === undefined ? (
         <p className="mt-10 text-ink-soft">{t('loading')}</p>

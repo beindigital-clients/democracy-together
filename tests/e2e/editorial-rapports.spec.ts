@@ -37,6 +37,12 @@ test('F-41 : migrer l’édition 2026 puis télécharger son PDF en français et
   const importButton = page.getByRole('button', {
     name: "Importer l'édition 2026",
   });
+  const card = page.getByRole('listitem').filter({ hasText: '2026' }).first();
+  // WAIT FOR THE LIST before deciding. `isVisible()` does not wait: read
+  // while the editions were still loading ("Chargement…"), it answered
+  // "no import button", the import was skipped, and the edition was then
+  // looked for in vain. One or the other appears once the list is read.
+  await expect(importButton.or(card).first()).toBeVisible();
   if (await importButton.isVisible()) {
     await importButton.click();
     await expect(
@@ -44,7 +50,6 @@ test('F-41 : migrer l’édition 2026 puis télécharger son PDF en français et
     ).toBeVisible();
   }
   // The edition is administered, published, in five languages.
-  const card = page.getByRole('listitem').filter({ hasText: '2026' }).first();
   await expect(card.getByText('Publiée')).toBeVisible();
   await expect(card.getByRole('cell', { name: 'العربية' })).toBeVisible();
 

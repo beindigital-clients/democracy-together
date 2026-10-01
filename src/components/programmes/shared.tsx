@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { cn } from '@/lib/utils';
-import { Link } from '@/i18n/navigation';
+import { MemberPageHeader as SharedMemberPageHeader } from '@/components/member/page-header';
 
 // Shared building blocks for the "programmes" screens (F-56 to F-60): translated
 // server rejections, checkbox group, dates.
@@ -162,9 +162,14 @@ export function statusTone(status: string): keyof typeof TONES {
 }
 
 export const CARD = 'rounded-md border border-line bg-surface p-5';
-export const PAGE = 'mx-auto max-w-3xl px-4 py-12 sm:px-6';
+// Width of a programme screen INSIDE the member-area shell, which already
+// provides the page margins and the navigation: only the reading width is
+// set here.
+export const PAGE = 'max-w-3xl';
 
-// Header of a member-area screen: breadcrumb, title, standfirst.
+// Header of a member-area screen: the shared one (title, standfirst), under
+// the name the programme screens have always imported. The breadcrumb it
+// used to draw is gone: the member-area navigation says where one is.
 export function MemberPageHeader({
   title,
   lead,
@@ -172,27 +177,5 @@ export function MemberPageHeader({
   title: string;
   lead?: string;
 }) {
-  const t = useTranslations('library');
-  return (
-    <header>
-      <p className="text-[13px] text-muted">
-        <Link href="/" className="text-muted hover:text-ink">
-          {t('breadcrumbHome')}
-        </Link>{' '}
-        /{' '}
-        <Link href="/espace-membre" className="text-muted hover:text-ink">
-          {t('submit.memberSpace')}
-        </Link>{' '}
-        / {title}
-      </p>
-      <h1 className="mt-4 wrap-anywhere font-display text-[clamp(28px,3.4vw,40px)] font-medium leading-tight tracking-[-0.015em]">
-        {title}
-      </h1>
-      {lead ? (
-        <p className="mt-3 max-w-[60ch] text-lg leading-relaxed text-ink-soft">
-          {lead}
-        </p>
-      ) : null}
-    </header>
-  );
+  return <SharedMemberPageHeader title={title} lead={lead} />;
 }

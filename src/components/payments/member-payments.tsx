@@ -14,7 +14,9 @@ import {
 } from '@convex/lib/payments/amounts';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
-import { FormError, SelectField } from '@/components/ui/field';
+import { FormError } from '@/components/ui/field';
+import { SelectMenuField } from '@/components/ui/choice-fields';
+import { directionOf } from '@/i18n/direction';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { resolveLocale } from '@/i18n/locale';
@@ -270,40 +272,37 @@ function DuesPayForm() {
     <div className="mt-5 rounded-md border border-line bg-surface p-5">
       <h3 className="font-display text-lg">{t('duesPayTitle')}</h3>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <SelectField
+        <SelectMenuField
           label={t('planCategory')}
           value={category}
-          onChange={(e) => setCategory(e.target.value as PlanCategory)}
-        >
-          {PLAN_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {vocabulary(t, 'category_', c)}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
+          onValueChange={(v) => setCategory(v as PlanCategory)}
+          dir={directionOf(locale)}
+          options={PLAN_CATEGORIES.map((c) => ({
+            value: c,
+            label: vocabulary(t, 'category_', c),
+          }))}
+        />
+        <SelectMenuField
           label={t('planZone')}
           value={zone}
-          onChange={(e) => setZone(e.target.value as PlanZone)}
-        >
-          {PLAN_ZONES.map((z) => (
-            <option key={z} value={z}>
-              {vocabulary(t, 'zone_', z)}
-            </option>
-          ))}
-        </SelectField>
-        {priced.length > 0 ? (
-          <SelectField
+          onValueChange={(v) => setZone(v as PlanZone)}
+          dir={directionOf(locale)}
+          options={PLAN_ZONES.map((z) => ({
+            value: z,
+            label: vocabulary(t, 'zone_', z),
+          }))}
+        />
+        {priced.length > 0 && currency ? (
+          <SelectMenuField
             label={t('currencyLabel')}
             value={currency}
-            onChange={(e) => setChosen(e.target.value as Currency)}
-          >
-            {priced.map((c) => (
-              <option key={c} value={c}>
-                {vocabulary(t, 'currency_', c)}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={(v) => setChosen(v as Currency)}
+            dir={directionOf(locale)}
+            options={priced.map((c) => ({
+              value: c,
+              label: vocabulary(t, 'currency_', c),
+            }))}
+          />
         ) : null}
       </div>
       {currency && amountMinor != null ? (

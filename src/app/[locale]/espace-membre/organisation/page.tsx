@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { DIRECTORY_THEMES, REGIONS } from '@convex/lib/directory';
 import { vocabulary } from '@/i18n/vocabulary';
@@ -9,6 +10,17 @@ import { OrganizationManager } from '@/components/account/organization-manager';
 // vocabulary (regions, themes) and pass it to the client screen. The
 // `directory` namespace thus stays out of the catalogue sent to the browser
 // (src/i18n/client-namespaces.ts): only the needed labels travel.
+// Page title (RGAA 8.6), completed by the member-area template.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'orgAdmin' });
+  return { title: t('title') };
+}
+
 export default async function OrganisationPage({
   params,
 }: {

@@ -351,7 +351,7 @@ describe('Équipe — revenir sur une décision', () => {
     expect(convex.calls[0].args).toEqual({ applicationId: 'r1' });
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toBe(
-        'Candidature de Institut Écarté remise en étude.',
+        'Candidature « Institut Écarté » remise en étude.',
       ),
     );
   });
@@ -386,7 +386,7 @@ describe('Équipe — revenir sur une décision', () => {
     );
 
     const dialog = screen.getByRole('dialog', {
-      name: 'Remettre en étude la candidature de Institut Validé ?',
+      name: 'Remettre en étude la candidature « Institut Validé » ?',
     });
     expect(
       within(dialog)
@@ -411,7 +411,7 @@ describe('Équipe — revenir sur une décision', () => {
     expect(convex.calls[0].args).toEqual({ applicationId: 'a1' });
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toBe(
-        'Candidature de Institut Validé remise en étude. Son compte n’a plus le rôle de membre. Sa fiche est retirée de l’annuaire. Le candidat en est prévenu dans son espace.',
+        'Candidature « Institut Validé » remise en étude. Son compte n’a plus le rôle de membre. Sa fiche est retirée de l’annuaire. Le candidat en est prévenu dans son espace.',
       ),
     );
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -547,7 +547,7 @@ describe('Équipe — revenir sur une décision', () => {
       }),
     );
     const dialog = screen.getByRole('dialog', {
-      name: 'Rejeter la candidature de Institut Nouveau ?',
+      name: 'Rejeter la candidature « Institut Nouveau » ?',
     });
     expect(dialog.textContent).toContain(
       'Vous pourrez revenir sur ce refus en remettant la candidature en étude.',

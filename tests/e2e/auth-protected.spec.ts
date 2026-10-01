@@ -15,8 +15,10 @@ test('notifications : redirige vers connexion + cloche masquée déconnecté', a
   await page.goto('/fr/notifications');
   await expect(page).toHaveURL(/\/connexion$/);
 
+  // Both forms of the bell: the button that opens the panel (desktop) and
+  // the link to the page (phone).
   await page.goto('/fr');
   await expect(
-    page.locator('header a[aria-label="Notifications"]'),
+    page.locator('header [aria-label^="Notifications"]'),
   ).toHaveCount(0);
 });

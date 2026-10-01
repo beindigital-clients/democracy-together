@@ -96,6 +96,8 @@ test('A publie son profil, B le trouve, le suit et lui écrit ; A voit le non-lu
   await expect(
     pageB.getByRole('button', { name: 'Ne plus suivre' }),
   ).toBeVisible();
+  // The counts follow live: the page was rendered on the server with none.
+  await expect(pageB.getByText(/^1 abonné ·/)).toBeVisible();
 
   await pageB.getByRole('link', { name: 'Écrire' }).click();
   await expect(pageB).toHaveURL(/\/espace-membre\/messages\?to=/);

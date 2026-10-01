@@ -1,5 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
-import { E2E_PASSWORD, approveTribunePosts, signUpAndVerify } from './_helpers';
+import {
+  approveTribunePosts,
+  E2E_PASSWORD,
+  menuCompte,
+  seDeconnecter,
+  signUpAndVerify,
+} from './_helpers';
 
 // TRIBUNE — PRE-moderation, unified queue, in-depth follow-up (F-45, F-48,
 // F-49 — "communauté" workstream), end to end and through the real screens:
@@ -14,7 +20,7 @@ import { E2E_PASSWORD, approveTribunePosts, signUpAndVerify } from './_helpers';
 test.use({ locale: 'fr-FR' });
 
 async function signOut(page: Page) {
-  await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await seDeconnecter(page);
   await expect(page).toHaveURL(/\/fr$/);
 }
 
@@ -23,7 +29,7 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel('E-mail').fill(email);
   await page.getByLabel('Mot de passe', { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page.getByRole('button', { name: 'Déconnexion' })).toBeVisible({
+  await expect(menuCompte(page)).toBeVisible({
     timeout: 15_000,
   });
 }

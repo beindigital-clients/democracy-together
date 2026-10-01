@@ -8,7 +8,7 @@ import { WorkspaceDetail } from '@/components/workspaces/workspace-detail';
 function Detail() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
-  if (!id) return <AuthGateLoading className="max-w-[820px]" />;
+  if (!id) return <AuthGateLoading />;
   return <WorkspaceDetail workspaceId={id as Id<'workspaces'>} />;
 }
 
@@ -16,7 +16,7 @@ function Detail() {
 // required, "network member" gating applied in WorkspaceDetail.
 export default function EspaceDetailPage() {
   return (
-    <AuthGate className="max-w-[820px]">
+    <AuthGate>
       <Detail />
     </AuthGate>
   );

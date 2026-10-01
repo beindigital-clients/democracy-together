@@ -12,6 +12,7 @@ import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import { Button } from '@/components/ui/button';
 import { FormError, TextField, TextareaField } from '@/components/ui/field';
 import { Link } from '@/i18n/navigation';
+import { ArrowBack } from '@/components/ui/arrow';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { isRateLimited } from '@/lib/errors';
@@ -35,10 +36,10 @@ function OwnPost({ postId }: { postId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
-  if (post === undefined) return <AuthGateLoading className="max-w-3xl" />;
+  if (post === undefined) return <AuthGateLoading />;
   if (post === null) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+      <div className="max-w-3xl py-8">
         <p className="text-ink-soft">{t('ownNotFound')}</p>
         <Link
           href="/espace-membre/contributions"
@@ -93,19 +94,13 @@ function OwnPost({ postId }: { postId: string }) {
   }
 
   return (
-    <article className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <p className="text-[13px] text-muted">
-        <Link href="/espace-membre" className="text-muted hover:text-ink">
-          {t('memberSpace')}
-        </Link>{' '}
-        /{' '}
-        <Link
-          href="/espace-membre/contributions"
-          className="text-muted hover:text-ink"
-        >
-          {t('contributionsTitle')}
-        </Link>
-      </p>
+    <article className="max-w-3xl">
+      <Link
+        href="/espace-membre/contributions"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent-text hover:underline"
+      >
+        <ArrowBack /> {t('contributionsTitle')}
+      </Link>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px]">
         <span
           className={`rounded-pill border px-2.5 py-0.5 font-medium ${STATUS_PILL[post.status]}`}
@@ -221,13 +216,13 @@ function OwnPost({ postId }: { postId: string }) {
 function Loader() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
-  if (!id) return <AuthGateLoading className="max-w-3xl" />;
+  if (!id) return <AuthGateLoading />;
   return <OwnPost postId={id} />;
 }
 
 export default function OwnContributionPage() {
   return (
-    <AuthGate className="max-w-3xl">
+    <AuthGate>
       <Loader />
     </AuthGate>
   );
