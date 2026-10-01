@@ -11,12 +11,17 @@ import { MobileNav } from './mobile-nav';
 import { NavLinks } from './nav-links';
 import { SearchDialog } from './search-dialog';
 
+// Grouped in pairs, in the order of the home page: who we are (about,
+// members), what the network produces (analyses, barometer), what is
+// happening (news, events), then the youth programme. "Actualités" used to
+// come third, between the members and the analyses, two entries away from
+// "Événements".
 const NAV = [
   { href: '/a-propos', key: 'about' },
   { href: '/le-reseau', key: 'network' },
-  { href: '/actualites', key: 'news' },
   { href: '/bibliotheque', key: 'analyses' },
   { href: '/barometre', key: 'barometer' },
+  { href: '/actualites', key: 'news' },
   { href: '/evenements', key: 'events' },
   { href: '/jeunes', key: 'youth' },
 ] as const;
