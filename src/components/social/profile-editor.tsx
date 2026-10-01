@@ -72,6 +72,7 @@ import {
   type ProfileDraft,
 } from './profile-draft';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 // "MON PROFIL" SCREEN (member area): identity, photo, interests, links,
 // privacy, notifications — then language, blocked members, data export.
@@ -331,10 +332,10 @@ function ProfilePreview({
               <UserRound className="h-8 w-8" />
             </span>
           )}
-          <span className="mb-1 inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-ink-soft">
-            <VisIcon aria-hidden="true" className="h-3.5 w-3.5" />
+          <Badge size="sm" className="mb-1 gap-1.5">
+            <VisIcon aria-hidden="true" />
             {vocabulary(t, 'visibilityTitles.', draft.visibility)}
-          </span>
+          </Badge>
         </div>
         <h2
           id="profil-apercu"
@@ -367,12 +368,9 @@ function ProfilePreview({
         {draft.themes.length > 0 ? (
           <ul className="mt-3 flex flex-wrap gap-1">
             {draft.themes.map((slug) => (
-              <li
-                key={slug}
-                className="rounded-pill border border-line-strong px-2 py-0.5 text-[11px] text-ink-soft"
-              >
-                {themeLabels[slug] ?? slug}
-              </li>
+              <Badge asChild key={slug} variant="outline" size="sm">
+                <li>{themeLabels[slug] ?? slug}</li>
+              </Badge>
             ))}
           </ul>
         ) : null}

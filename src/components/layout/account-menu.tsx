@@ -23,6 +23,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { isMember, isStaff } from '@/lib/roles';
 import { memberName } from '@/lib/member-identity';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { PersonAvatar } from '@/components/social/person-avatar';
 import {
   DropdownMenu,
@@ -160,9 +161,9 @@ function AccountMenuContent() {
         <e.icon aria-hidden="true" />
         <span className="min-w-0 flex-1">{e.label}</span>
         {e.count ? (
-          <span className="rounded-pill bg-accent px-1.5 font-mono text-[11px] font-semibold leading-5 text-accent-contrast">
+          <Badge variant="solid" size="count">
             {unread?.capped ? `${e.count}+` : e.count}
-          </span>
+          </Badge>
         ) : null}
       </Link>
     </DropdownMenuItem>
@@ -364,9 +365,9 @@ export function MobileAccountCard({ onNavigate }: { onNavigate: () => void }) {
               />
               <span className="min-w-0 flex-1 wrap-anywhere">{l.label}</span>
               {l.count ? (
-                <span className="rounded-pill bg-accent px-1.5 font-mono text-[11px] font-semibold leading-5 text-accent-contrast">
+                <Badge variant="solid" size="count">
                   {unread?.capped ? `${l.count}+` : l.count}
-                </span>
+                </Badge>
               ) : null}
             </Link>
           </li>

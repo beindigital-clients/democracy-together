@@ -4,7 +4,7 @@ import * as React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Check, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { choiceStyle } from '@/components/ui/radio-group';
+import { choiceStyle } from '@/components/ui/choice';
 
 // shadcn Checkbox (Radix), themed on the Democracy Together tokens.
 //

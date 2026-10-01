@@ -6,7 +6,7 @@ import { SITE_LOCALES, type SiteLocale } from '@convex/lib/locales';
 import { vocabulary } from '@/i18n/vocabulary';
 import { TextField, TextareaField } from '@/components/ui/field';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 // ENTRY OF TRANSLATABLE TEXTS — one language at a time, gaps visible.
 //
@@ -215,16 +215,9 @@ export function LocalizedListInput({
 export function StatusBadge({ status }: { status: string }) {
   const t = useTranslations('contentAdmin');
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-pill border px-2.5 py-0.5 text-[12px] font-medium',
-        status === 'published'
-          ? 'border-accent-edge bg-accent-tint text-accent-text'
-          : 'border-line-strong bg-surface-2 text-ink-soft',
-      )}
-    >
+    <Badge variant={status === 'published' ? 'accent' : 'default'}>
       {vocabulary(t, 'status_', status)}
-    </span>
+    </Badge>
   );
 }
 

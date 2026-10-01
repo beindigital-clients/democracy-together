@@ -19,6 +19,7 @@ import {
 import { vocabulary } from '@/i18n/vocabulary';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { useConnu } from '@/hooks/use-connu';
+import { Badge } from '@/components/ui/badge';
 
 // Page size. The server re-caps it: it is indicative.
 const PAGE_SIZE = 50;
@@ -200,23 +201,22 @@ function UsersTable() {
                     {/* Lifecycle (accounts workstream): state, then actions. */}
                     <td className="max-w-[14rem] py-3 pe-4 align-top">
                       <span className="flex flex-wrap gap-1">
-                        <span
-                          className={`rounded-pill border px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] ${
-                            u.suspended || u.deleting
-                              ? 'border-bar-5 text-bar-5'
-                              : 'border-line text-ink-soft'
-                          }`}
+                        <Badge
+                          variant={
+                            u.suspended || u.deleting ? 'bad' : 'default'
+                          }
+                          size="label"
                         >
                           {u.deleting
                             ? ta('statusDeleting')
                             : u.suspended
                               ? ta('statusSuspended')
                               : ta('statusActive')}
-                        </span>
+                        </Badge>
                         {u.twoFactor ? (
-                          <span className="rounded-pill border border-accent-edge px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
+                          <Badge variant="accent" size="label">
                             {ta('badge2fa')}
-                          </span>
+                          </Badge>
                         ) : null}
                       </span>
                       {u.suspensionReason ? (

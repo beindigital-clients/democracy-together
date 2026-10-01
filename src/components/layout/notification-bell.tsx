@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
 import { cn } from '@/lib/utils';
 import { useNow } from '@/hooks/use-now';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   NotificationRow,
@@ -38,12 +39,16 @@ const PREVIEW = 6;
 const ICON =
   'relative inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink';
 
-function Badge({ n, capped }: { n: number; capped: boolean }) {
+function CountBadge({ n, capped }: { n: number; capped: boolean }) {
   if (n <= 0) return null;
   return (
-    <span className="absolute -end-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold leading-none text-accent-contrast">
+    <Badge
+      variant="solid"
+      size="count"
+      className="absolute -end-0.5 -top-0.5 h-4 min-w-4 px-1"
+    >
       {capped ? `${n}+` : n}
-    </span>
+    </Badge>
   );
 }
 
@@ -137,7 +142,7 @@ export function NotificationBell({
     return (
       <Link href="/notifications" aria-label={label} className={ICON}>
         <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
-        <Badge n={n} capped={capped} />
+        <CountBadge n={n} capped={capped} />
       </Link>
     );
   }
@@ -152,7 +157,7 @@ export function NotificationBell({
         )}
       >
         <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
-        <Badge n={n} capped={capped} />
+        <CountBadge n={n} capped={capped} />
       </PopoverTrigger>
       <PopoverContent
         align="end"

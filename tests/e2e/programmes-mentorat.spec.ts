@@ -40,8 +40,8 @@ async function fillProfile(
     'Gouvernance numérique',
     'Lutte anti-corruption',
   ])
-    await form.getByLabel(theme).check();
-  await form.getByLabel('Français').check();
+    await form.getByRole('checkbox', { name: theme, exact: true }).check();
+  await form.getByRole('checkbox', { name: 'Français', exact: true }).check();
   await form
     .getByLabel(goalsLabel)
     .fill('Construire un observatoire local de la participation citoyenne.');

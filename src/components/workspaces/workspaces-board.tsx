@@ -14,6 +14,7 @@ import { PUB_THEMES } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 import { MyInvitations } from './workspace-invitations';
+import { Badge } from '@/components/ui/badge';
 
 // Workspace creation form (network member). Replicates the pattern of the
 // Tribune composer (Input/Textarea fields, native theme select).
@@ -228,18 +229,14 @@ export function WorkspacesBoard() {
                     className="flex h-full flex-col rounded-md border border-line bg-surface p-5 transition-colors hover:border-line-strong"
                   >
                     <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                      <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
+                      <Badge variant="accent">
                         {vocabulary(tl, 'themes.', w.theme)}
-                      </span>
+                      </Badge>
                       {w.visibility === 'private' ? (
-                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
-                          {t('privateBadge')}
-                        </span>
+                        <Badge size="label">{t('privateBadge')}</Badge>
                       ) : null}
                       {w.mine ? (
-                        <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
-                          {t('mineBadge')}
-                        </span>
+                        <Badge size="label">{t('mineBadge')}</Badge>
                       ) : null}
                     </div>
                     <h3 className="mt-3 font-display text-lg leading-snug text-ink">

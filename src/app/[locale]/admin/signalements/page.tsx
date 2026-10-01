@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { ArrowForward } from '@/components/ui/arrow';
 import { intlLocale } from '@/i18n/locale';
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminReports() {
   const t = useTranslations('admin');
@@ -70,9 +71,9 @@ export default function AdminReports() {
               className="rounded-md border border-line bg-surface p-4"
             >
               <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                <span className="rounded-pill border border-line-strong px-2 py-0.5 font-mono uppercase tracking-[0.06em] text-muted">
+                <Badge variant="outline" size="label">
                   {r.targetType === 'post' ? t('repPost') : t('repComment')}
-                </span>
+                </Badge>
                 <span className="font-mono text-muted">{fmt(r.createdAt)}</span>
               </div>
               <p className="mt-2 text-[15px] text-ink">{r.excerpt}</p>

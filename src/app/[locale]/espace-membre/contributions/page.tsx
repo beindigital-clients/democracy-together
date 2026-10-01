@@ -8,7 +8,8 @@ import { Link } from '@/i18n/navigation';
 import { isMember } from '@/lib/roles';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
-import { STATUS_PILL } from '@/components/tribune/my-posts';
+import { STATUS_BADGE } from '@/components/tribune/my-posts';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MemberPageHeader } from '@/components/member/page-header';
 
@@ -116,11 +117,12 @@ function Contributions() {
                         </span>
                       ) : null}
                     </div>
-                    <span
-                      className={`shrink-0 rounded-pill border px-2.5 py-0.5 text-[12px] font-medium ${STATUS_PILL[p.status]}`}
+                    <Badge
+                      variant={STATUS_BADGE[p.status]}
+                      className="shrink-0"
                     >
                       {vocabulary(t, 'status_', p.status)}
-                    </span>
+                    </Badge>
                   </li>
                 ))}
               </ul>
@@ -156,11 +158,12 @@ function Contributions() {
                         </span>
                       ) : null}
                     </div>
-                    <span
-                      className={`shrink-0 rounded-pill border px-2.5 py-0.5 text-[12px] font-medium ${STATUS_PILL[c.status]}`}
+                    <Badge
+                      variant={STATUS_BADGE[c.status]}
+                      className="shrink-0"
                     >
                       {vocabulary(t, 'status_', c.status)}
-                    </span>
+                    </Badge>
                   </li>
                 ))}
               </ul>

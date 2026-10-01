@@ -625,9 +625,9 @@ describe('Contrôles de l’éditeur de profil', () => {
     );
     const group = screen.getByRole('group', { name: 'Thématiques' });
     const boxes = within(group).getAllByRole('checkbox');
-    expect(boxes.map((b) => (b as HTMLInputElement).checked)).toEqual([
-      true,
-      false,
+    expect(boxes.map((b) => b.getAttribute('aria-checked'))).toEqual([
+      'true',
+      'false',
     ]);
     within(group).getByRole('checkbox', { name: 'Climat' }).click();
     expect(onToggle).toHaveBeenCalledWith('climat');

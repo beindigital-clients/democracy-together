@@ -6,7 +6,7 @@ import { BadgeCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
-import { cn } from '@/lib/utils';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDay } from '@/components/payments/format';
@@ -22,12 +22,10 @@ function currentHour(): number {
   return Math.floor(Date.now() / 3_600_000) * 3_600_000;
 }
 
-const TONE: Record<DuesState['status'], string> = {
-  upToDate:
-    'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
-  expired:
-    'border-[color-mix(in_srgb,var(--color-bar-4)_48%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-4)_10%,transparent)] text-bar-4-ink',
-  none: 'border-line-strong bg-surface-2 text-ink-soft',
+const TONE: Record<DuesState['status'], BadgeVariant> = {
+  upToDate: 'good',
+  expired: 'pending',
+  none: 'default',
 };
 
 // Membership block: is the fee paid, until when, and the one link that
@@ -47,18 +45,13 @@ export function MembershipView({ dues }: { dues: DuesState | undefined }) {
       ) : (
         <>
           <p className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                'inline-block rounded-pill border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.06em]',
-                TONE[dues.status],
-              )}
-            >
+            <Badge variant={TONE[dues.status]} size="label">
               {dues.status === 'upToDate'
                 ? t('membershipStatusActive')
                 : dues.status === 'expired'
                   ? t('membershipStatusLate')
                   : t('membershipStatusNone')}
-            </span>
+            </Badge>
           </p>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">
             {dues.status === 'upToDate'

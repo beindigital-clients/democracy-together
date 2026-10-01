@@ -28,6 +28,7 @@ import { intlLocale } from '@/i18n/locale';
 import { formatDay, formatMoney, knownPaymentError } from './format';
 import { ReceiptButton } from './member-payments';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 // FINANCIAL TRACKING (F-31) — administrators' screen. Each block reads its
 // own query: a block that fails (permissions, network) does not take the others down.
@@ -162,17 +163,21 @@ function Dashboard({ now }: { now: number }) {
         {t('dashboardTitle')}
       </h2>
       <ul className="mt-3 flex flex-wrap gap-2 text-xs">
-        <li className="rounded-pill border border-line bg-surface-2 px-3 py-1 text-ink-soft">
-          {data.providers.stripe
-            ? t('providerStripeOn')
-            : t('providerStripeOff')}
-        </li>
-        {data.providers.fake !== 'off' ? (
-          <li className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-accent-text">
-            {data.providers.fake === 'active'
-              ? t('providerFakeOn')
-              : t('providerFakeRefused')}
+        <Badge asChild>
+          <li>
+            {data.providers.stripe
+              ? t('providerStripeOn')
+              : t('providerStripeOff')}
           </li>
+        </Badge>
+        {data.providers.fake !== 'off' ? (
+          <Badge asChild variant="accent">
+            <li>
+              {data.providers.fake === 'active'
+                ? t('providerFakeOn')
+                : t('providerFakeRefused')}
+            </li>
+          </Badge>
         ) : null}
       </ul>
 

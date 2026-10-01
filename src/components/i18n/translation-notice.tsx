@@ -7,6 +7,7 @@ import {
   type ArticleDisplay,
 } from '@/lib/article-translation';
 import { TranslateButton } from './translate-button';
+import { Badge } from '@/components/ui/badge';
 
 // THE BANNER THAT TELLS READERS WHAT THEY ARE READING.
 //
@@ -89,9 +90,9 @@ export async function TranslationNotice({
     return (
       <Frame tone="info">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="rounded-pill border border-accent-edge px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
+          <Badge variant="accent" size="label">
             {t('badge')}
-          </span>
+          </Badge>
           <span>{t('translatedFrom', { language: sourceName })}</span>
         </p>
         <p className="mt-1.5 text-muted">{t('notReviewed')}</p>

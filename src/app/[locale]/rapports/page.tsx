@@ -9,6 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { mergeReportList } from '@/lib/reports-content';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { ArrowForward } from '@/components/ui/arrow';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -70,15 +71,17 @@ export default async function ReportsPage({
               href={`/rapports/${r.year}`}
               className="group flex items-center justify-between gap-4 rounded-sm border border-line bg-surface p-6 transition-colors hover:border-ink"
             >
-              <div>
-                <div className="flex items-center gap-3">
+              {/* `min-w-0` and the wrapping row: at 320 px, the year and its
+                  badge pushed "Lire le rapport" out of the card (RGAA 10.11). */}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="font-mono text-2xl font-semibold text-ink">
                     {r.year}
                   </span>
                   {r.inaugural ? (
-                    <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-text">
+                    <Badge variant="accent" size="label">
                       {t('inaugural')}
-                    </span>
+                    </Badge>
                   ) : null}
                 </div>
                 <h2 className="mt-2 wrap-anywhere font-display text-xl">

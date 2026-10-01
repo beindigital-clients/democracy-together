@@ -14,6 +14,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { isMember } from '@/lib/roles';
 import { dayKey } from '@/lib/message-thread';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { ArrowBack } from '@/components/ui/arrow';
@@ -246,12 +247,16 @@ function ConversationList({
                           <bdi>{c.blocked ? t('blockedPreview') : preview}</bdi>
                         </span>
                         {unread ? (
-                          <span className="inline-flex min-w-5 shrink-0 justify-center rounded-pill bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-accent-contrast">
+                          <Badge
+                            variant="solid"
+                            size="count"
+                            className="shrink-0"
+                          >
                             <span aria-hidden="true">{c.unreadCount}</span>
                             <span className="sr-only">
                               {t('unread', { count: c.unreadCount })}
                             </span>
-                          </span>
+                          </Badge>
                         ) : null}
                       </span>
                     </span>

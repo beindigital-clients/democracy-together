@@ -6,6 +6,7 @@ import { formatMonthYear } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 import { contentLangAttrs } from '@/i18n/content-lang';
+import { Badge } from '@/components/ui/badge';
 
 // The card only receives what the public queries serve — not the
 // full document (issue #30).
@@ -114,20 +115,15 @@ export async function PublicationCard({
           {pub.authors.map((a) => a.name).join(', ')}
         </p>
         <div className="mt-3">
-          <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-1 text-xs font-medium text-accent-text">
-            {vocabulary(t, 'themes.', pub.theme)}
-          </span>
+          <Badge variant="accent">{vocabulary(t, 'themes.', pub.theme)}</Badge>
         </div>
         <div className="mt-auto flex items-center gap-2.5 pt-4">
-          <span
-            className={`rounded-pill border px-2 py-[3px] font-mono text-[11px] uppercase tracking-[0.06em] ${
-              pub.access === 'open'
-                ? 'border-[color-mix(in_srgb,var(--color-bar-1)_40%,transparent)] text-bar-1'
-                : 'border-accent-edge bg-accent-tint text-accent-text'
-            }`}
+          <Badge
+            variant={pub.access === 'open' ? 'good' : 'accent'}
+            size="label"
           >
             {vocabulary(t, 'accessShort.', pub.access)}
-          </span>
+          </Badge>
           <span
             className="inline-flex items-center gap-1 font-mono text-[11px] text-muted"
             title={t('downloads')}

@@ -5,6 +5,7 @@ import { MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
+import { Badge } from '@/components/ui/badge';
 
 // Private messaging badge ("social" workstream), next to the bell,
 // on desktop AND on mobile. Same mechanism as `NotificationBell`:
@@ -45,12 +46,14 @@ export function MessagesBadge({
     >
       <MessageSquare className="h-[18px] w-[18px]" aria-hidden="true" />
       {n > 0 ? (
-        <span
+        <Badge
           data-testid="messages-unread"
-          className="absolute -end-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold leading-none text-accent-contrast"
+          variant="solid"
+          size="count"
+          className="absolute -end-0.5 -top-0.5 h-4 min-w-4 px-1"
         >
           {capped ? `${n}+` : n}
-        </span>
+        </Badge>
       ) : null}
     </Link>
   );

@@ -12,6 +12,7 @@ import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { intlLocale } from '@/i18n/locale';
+import { Badge } from '@/components/ui/badge';
 
 type Row = FunctionReturnType<typeof api.journal.listAuditLog>['page'][number];
 
@@ -137,9 +138,9 @@ export default function AdminJournal() {
           in the table would be indistinguishable from an almost empty log. */}
       {actor ? (
         <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
-          <span className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-xs font-medium text-accent-text">
+          <Badge variant="accent">
             {t('jrFilterActor', { actor: actor.label })}
-          </span>
+          </Badge>
           <button
             type="button"
             onClick={() => setActor(null)}

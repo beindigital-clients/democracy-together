@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PersonAvatar } from '@/components/social/person-avatar';
 import { useNow } from '@/hooks/use-now';
+import { Badge } from '@/components/ui/badge';
 
 export type HeroData = {
   name: string | null;
@@ -76,9 +77,7 @@ export function HeroView({ data, now }: { data: HeroData; now: number }) {
               : t('greetingNoName')}
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-ink-soft">
-            <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 text-xs font-medium text-accent-text">
-              {vocabulary(ta, 'role_', data.role)}
-            </span>
+            <Badge variant="accent">{vocabulary(ta, 'role_', data.role)}</Badge>
             {data.organization ? (
               <Link
                 href={`/le-reseau/${data.organization.slug}`}

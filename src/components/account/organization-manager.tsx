@@ -20,6 +20,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Badge } from '@/components/ui/badge';
 
 // MANAGING ONE'S ORGANIZATION (F-21, accounts workstream).
 //
@@ -410,9 +411,9 @@ function MembersSection({ view }: { view: OrgView }) {
                     {t('memberYou')}
                   </span>
                 ) : null}
-                <span className="ms-2 rounded-pill border border-line px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-soft">
+                <Badge size="label" className="ms-2">
                   {vocabulary(t, 'orgRole_', m.orgRole)}
-                </span>
+                </Badge>
               </span>
               <span className="flex flex-wrap gap-2">
                 {manages && !m.isSelf ? (
@@ -532,9 +533,9 @@ function OrgPanel({
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="font-display text-2xl wrap-anywhere">{view.org.name}</h2>
-        <span className="rounded-pill border border-line-strong px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-soft">
+        <Badge variant="outline" size="label">
           {vocabulary(t, 'status_', view.org.status)}
-        </span>
+        </Badge>
         <span className="text-sm text-ink-soft">
           {vocabulary(t, 'orgRole_', view.myRole)}
         </span>

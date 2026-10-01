@@ -28,6 +28,7 @@ import { ArrowBack } from '@/components/ui/arrow';
 import { PersonAvatar } from '@/components/social/person-avatar';
 import { ProfileActions } from '@/components/social/profile-actions';
 import { ProfileCounts } from '@/components/social/profile-counts';
+import { Badge } from '@/components/ui/badge';
 
 // PROFILE PAGE OF A PERSON `/membres/<handle>` ("social" workstream).
 //
@@ -346,12 +347,9 @@ export default async function PersonPage({ params }: { params: Params }) {
               </h2>
               <ul className="mt-3 flex flex-wrap gap-1.5">
                 {p.themes.map((slug) => (
-                  <li
-                    key={slug}
-                    className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-sm text-accent-text"
-                  >
-                    {vocabulary(td, 'themes.', slug)}
-                  </li>
+                  <Badge asChild key={slug} variant="accent" size="lg">
+                    <li>{vocabulary(td, 'themes.', slug)}</li>
+                  </Badge>
                 ))}
               </ul>
             </section>

@@ -18,7 +18,7 @@ import { TextareaField } from '@/components/ui/field';
 import { SelectField } from '@/components/ui/choice-fields';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useActionFeedback } from '@/components/admin/action-feedback';
-import { STATUS_PILL } from '@/components/tribune/my-posts';
+import { STATUS_BADGE } from '@/components/tribune/my-posts';
 import { PUB_THEMES } from '@/lib/publications';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
@@ -270,11 +270,9 @@ function ItemDetail({ selected }: { selected: Selected }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2 text-[12px]">
-        <span
-          className={`rounded-pill border px-2.5 py-0.5 font-medium ${STATUS_PILL[item.status]}`}
-        >
+        <Badge variant={STATUS_BADGE[item.status]}>
           {vocabulary(tt, 'status_', item.status)}
-        </span>
+        </Badge>
         <Badge>{target}</Badge>
         <span className="font-mono text-muted">
           {vocabulary(tt, 'format_', item.format)}
@@ -637,11 +635,11 @@ function ModerationQueue() {
                       }`}
                     >
                       <span className="flex flex-wrap items-center gap-2 text-[11px]">
-                        <span className="rounded-pill border border-line-strong px-2 py-0.5 font-mono uppercase tracking-[0.06em] text-muted">
+                        <Badge variant="outline" size="label">
                           {i.targetType === 'post'
                             ? t('targetPost')
                             : t('targetComment')}
-                        </span>
+                        </Badge>
                         {i.isDeepening ? (
                           <span className="font-mono text-muted">
                             {tt('deepeningBadge')}

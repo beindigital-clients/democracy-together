@@ -7,7 +7,11 @@ import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { cn } from '@/lib/utils';
 import { MemberPageHeader as SharedMemberPageHeader } from '@/components/member/page-header';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import {
+  CheckboxChoice,
+  CheckboxChoiceIndicator,
+} from '@/components/ui/checkbox';
 
 // Shared building blocks for the "programmes" screens (F-56 to F-60): translated
 // server rejections, checkbox group, dates.
@@ -58,7 +62,8 @@ export function useDateFormat() {
   );
 }
 
-// Checkbox group: `fieldset` + `legend`, each checkbox is a 44 px target.
+// Checkbox group: `fieldset` + `legend`, each choice a 44 px chip that IS
+// the checkbox (shadcn `CheckboxChoice`), ticked when checked.
 export function CheckGroup({
   legend,
   options,
@@ -82,32 +87,23 @@ export function CheckGroup({
     >
       <legend className="text-sm text-ink-soft">{legend}</legend>
       <div className="mt-1 flex flex-wrap gap-2">
-        {options.map((o) => {
-          const checked = value.includes(o.value);
-          return (
-            <label
-              key={o.value}
-              className={cn(
-                'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-pill border px-3 text-sm',
-                checked
-                  ? 'border-accent-edge bg-accent-tint text-accent-text'
-                  : 'border-line bg-surface text-ink-soft hover:border-line-strong',
-              )}
-            >
-              <Checkbox
-                checked={checked}
-                onCheckedChange={(checked) =>
-                  onChange(
-                    checked === true
-                      ? [...value, o.value]
-                      : value.filter((x) => x !== o.value),
-                  )
-                }
-              />
-              {o.label}
-            </label>
-          );
-        })}
+        {options.map((o) => (
+          <CheckboxChoice
+            key={o.value}
+            checked={value.includes(o.value)}
+            onCheckedChange={(checked) =>
+              onChange(
+                checked === true
+                  ? [...value, o.value]
+                  : value.filter((x) => x !== o.value),
+              )
+            }
+            className="min-h-11 rounded-pill px-3"
+          >
+            <CheckboxChoiceIndicator />
+            {o.label}
+          </CheckboxChoice>
+        ))}
       </div>
       {error ? (
         <p id={errorId} className="mt-1 text-sm text-bar-5">
@@ -118,15 +114,14 @@ export function CheckGroup({
   );
 }
 
-// Status badge, using the theme tokens (contrast held in light and
-// dark mode by the bar colours, like the "Mes contributions" table).
+// Status badge: a shadcn `Badge` label on the bar tones, whose contrast
+// holds in light and dark mode (like the "Mes contributions" table).
 const TONES = {
-  neutral: 'border-line-strong bg-surface-2 text-muted',
-  pending:
-    'border-[color-mix(in_srgb,var(--color-bar-4)_48%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-4)_10%,transparent)] text-bar-4',
-  good: 'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
-  bad: 'border-[color-mix(in_srgb,var(--color-bar-5)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-5)_9%,transparent)] text-bar-5',
-} as const;
+  neutral: 'default',
+  pending: 'pending',
+  good: 'good',
+  bad: 'bad',
+} as const satisfies Record<string, BadgeVariant>;
 
 export function StatusPill({
   tone,
@@ -136,14 +131,9 @@ export function StatusPill({
   children: ReactNode;
 }) {
   return (
-    <span
-      className={cn(
-        'inline-block whitespace-nowrap rounded-pill border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.06em]',
-        TONES[tone],
-      )}
-    >
+    <Badge variant={TONES[tone]} size="label" className="whitespace-nowrap">
       {children}
-    </span>
+    </Badge>
   );
 }
 

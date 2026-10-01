@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { Badge } from '@/components/ui/badge';
 import { roleRank, type NetworkRole } from '@/lib/roles';
 
 // BACK-OFFICE NAVIGATION (issue #49).
@@ -295,12 +296,9 @@ export function AdminNav({
                     >
                       {t(key)}
                       {waiting > 0 ? (
-                        <span
-                          aria-hidden="true"
-                          className="min-w-[1.25rem] rounded-full bg-accent px-1.5 text-center font-mono text-[11px] font-semibold leading-5 text-accent-contrast"
-                        >
+                        <Badge aria-hidden="true" variant="solid" size="count">
                           {waiting > 99 ? '99+' : waiting}
-                        </span>
+                        </Badge>
                       ) : null}
                     </Link>
                     {waiting > 0 ? (

@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
-import { cva } from 'class-variance-authority';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { choiceStyle } from '@/components/ui/choice';
 
 // shadcn RadioGroup (Radix), themed on the Democracy Together tokens.
 //
@@ -86,14 +86,8 @@ function RadioGroupItem({
 // drawing. Checked: accent border and tint AND the tick that
 // `RadioGroupChoiceIndicator` places where the caller wants it (RGAA 3.1).
 // The shape is the caller's: `rounded-pill px-4` for a chip, a column for a
-// card with its description.
-//
-// `choiceStyle` is shared with `CheckboxChoice`, its multiple-choice twin,
-// so a form that sets both side by side draws them alike.
-const choiceStyle = cva(
-  'group/choice inline-flex cursor-pointer items-center gap-1.5 rounded-sm border border-line bg-surface-2 text-start text-sm font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-accent-edge data-[state=checked]:bg-accent-tint data-[state=checked]:text-accent-text',
-);
-
+// card with its description. Drawn by `choiceStyle`, shared with
+// `CheckboxChoice` and `ChoiceLink`.
 function RadioGroupChoice({
   className,
   ...props
@@ -128,5 +122,4 @@ export {
   RadioGroupChoice,
   RadioGroupChoiceIndicator,
   RadioGroupItem,
-  choiceStyle,
 };

@@ -26,6 +26,7 @@ import { loadAgenda } from '@/lib/contenus/load';
 import { featuredEvent, type AgendaEvent } from '@/lib/contenus/agenda';
 import { ArrowForward } from '@/components/ui/arrow';
 import type { Locale } from '@/i18n/routing';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -212,11 +213,15 @@ export default async function EventsPage({
                   className="object-cover"
                 />
               )}
-              <span className="absolute start-4 top-4 rounded-pill bg-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-contrast">
+              <Badge
+                variant="solid"
+                size="label"
+                className="absolute start-4 top-4"
+              >
                 {featured.slug === FEATURED_SLUG
                   ? L.featuredBadge
                   : `${ta('featuredBadge')} · ${L.types[featured.type]}`}
-              </span>
+              </Badge>
             </div>
             <div className="p-6 md:p-8">
               {featured.slug === FEATURED_SLUG ? (
@@ -539,9 +544,9 @@ function EventCard({
         <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
           {L.types[event.type]}
           {event.status === 'cancelled' ? (
-            <span className="rounded-pill border border-line-strong bg-surface-2 px-2 py-0.5 text-ink">
+            <Badge variant="outline" size="label">
               {cancelledLabel}
-            </span>
+            </Badge>
           ) : null}
         </div>
         <h3 className="mt-1 font-display text-[18px] leading-snug wrap-anywhere">
@@ -557,9 +562,7 @@ function EventCard({
           <span className="text-muted">· {L.formats[event.format]}</span>
         </div>
         <div className="mt-2">
-          <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 text-[11.5px] font-medium text-accent-text">
-            {L.themes[event.theme] ?? event.theme}
-          </span>
+          <Badge variant="accent">{L.themes[event.theme] ?? event.theme}</Badge>
         </div>
         <div className="mt-auto flex items-center justify-between gap-3 pt-3">
           <Link

@@ -49,6 +49,7 @@ import { buildThreadItems, dayKey } from '@/lib/message-thread';
 import { cn } from '@/lib/utils';
 import { PersonAvatar } from './person-avatar';
 import { MessageComposer, type ComposerContext } from './message-composer';
+import { Badge } from '@/components/ui/badge';
 
 // ONE CONVERSATION, the way the common messaging apps show it: bubbles
 // grouped by sender, day dividers, a "new messages" divider, "Seen" under my
@@ -512,9 +513,9 @@ export function MessageThread({
                     className="my-3 flex justify-center"
                     aria-label={dayLabel(item.at)}
                   >
-                    <span className="rounded-pill bg-surface-2 px-3 py-1 text-[11px] font-medium text-ink-soft first-letter:uppercase">
+                    <Badge size="sm" className="first-letter:uppercase">
                       {dayLabel(item.at)}
-                    </span>
+                    </Badge>
                   </li>
                 );
               }

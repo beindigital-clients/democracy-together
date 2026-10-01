@@ -19,6 +19,7 @@ import { eventJsonLd, jsonLdScript, hreflangFor } from '@/lib/seo';
 import { EventRegisterForm } from '@/components/events/event-register-form';
 import { ReminderForm } from '@/components/events/reminder-form';
 import type { Locale } from '@/i18n/routing';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -146,16 +147,9 @@ export default async function EventDetailPage({
           <div>
             <div className="flex flex-wrap gap-2">
               {d.badges(event).map((b, i) => (
-                <span
-                  key={b}
-                  className={`inline-flex items-center rounded-pill px-3 py-1 text-[12.5px] font-medium ${
-                    i === 0
-                      ? 'border border-accent-edge bg-accent-tint text-accent-text'
-                      : 'border border-line bg-surface-2 text-ink-soft'
-                  }`}
-                >
+                <Badge key={b} variant={i === 0 ? 'accent' : 'default'}>
                   {b}
-                </span>
+                </Badge>
               ))}
             </div>
             <p className="mt-4 font-mono text-xs uppercase tracking-[0.12em] text-muted">
@@ -255,9 +249,13 @@ export default async function EventDetailPage({
               </div>
             ) : (
               <>
-                <span className="absolute start-3 top-3 z-10 rounded-pill bg-ink/85 px-2.5 py-1 font-mono text-[11px] text-paper">
+                <Badge
+                  variant="overlay"
+                  size="label"
+                  className="absolute start-3 top-3 z-10"
+                >
                   {d.visualPin}
-                </span>
+                </Badge>
                 <div className="relative aspect-[4/3]">
                   {/* ILLUSTRATION photo (the same for several pieces of content):
                     decorative, ignored by assistive technologies (RGAA 1.2, 27/09 audit). */}
@@ -376,9 +374,13 @@ export default async function EventDetailPage({
                           {sp.role}
                         </p>
                         {sp.founder ? (
-                          <span className="mt-1.5 inline-block rounded-pill border border-accent-edge bg-accent-tint px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-accent-text">
+                          <Badge
+                            variant="accent"
+                            size="label"
+                            className="mt-1.5"
+                          >
                             {d.founderBadge}
-                          </span>
+                          </Badge>
                         ) : null}
                       </div>
                     </RevealItem>

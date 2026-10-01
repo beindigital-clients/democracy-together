@@ -56,7 +56,7 @@ function pickRegion(name: string) {
 function fillValidForm() {
   pickCountry('senegal', 'Sénégal');
   pickRegion("Afrique de l'Ouest");
-  fireEvent.click(screen.getByLabelText('Gouvernance'));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Gouvernance' }));
 }
 
 const confirm = () =>
@@ -103,7 +103,7 @@ describe("Fiche annuaire à l'approbation", () => {
       screen.getByRole('combobox', { name: 'Pays' }).textContent,
     ).toContain('Côte d’Ivoire');
     pickRegion("Afrique de l'Ouest");
-    fireEvent.click(screen.getByLabelText('Gouvernance'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Gouvernance' }));
     confirm();
     expect(onConfirm.mock.calls[0][0].countryCode).toBe('CI');
   });
@@ -123,7 +123,14 @@ describe("Fiche annuaire à l'approbation", () => {
     const regions = screen.getAllByRole('option').map((o) => o.textContent);
     expect(regions).toContain("Afrique de l'Ouest");
     expect(regions).not.toContain('afrique-ouest');
-    expect(screen.getByLabelText('Élections & intégrité')).toBeTruthy();
+    // `hidden`: the open region list hides the rest of the page from
+    // assistive technologies, the theme chips included.
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Élections & intégrité',
+        hidden: true,
+      }),
+    ).toBeTruthy();
   });
 
   it('permet d’approuver SANS publier la fiche (le compte est créé quand même)', () => {
@@ -154,8 +161,10 @@ describe("Fiche annuaire à l'approbation", () => {
   it('les thématiques se cochent et se décochent', () => {
     const { onConfirm } = setup();
     fillValidForm();
-    fireEvent.click(screen.getByLabelText('Élections & intégrité'));
-    fireEvent.click(screen.getByLabelText('Gouvernance')); // unchecks
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Élections & intégrité' }),
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Gouvernance' })); // unchecks
     confirm();
     expect(onConfirm.mock.calls[0][0].themes).toEqual(['elections']);
   });
