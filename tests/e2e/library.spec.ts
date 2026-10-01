@@ -56,7 +56,7 @@ test('bibliothèque : liste, facettes serveur et détail (F-32/F-34)', async ({
 
   // Citation block: APA by default, BibTeX toggle
   await expect(page.getByText(/Wade, A\..*Vandenberghe/)).toBeVisible();
-  await page.getByRole('button', { name: 'BibTeX' }).click();
+  await page.getByRole('radio', { name: 'BibTeX' }).click();
   await expect(page.getByText('@techreport{dt2026etat')).toBeVisible();
 });
 

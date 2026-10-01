@@ -13,7 +13,7 @@ import type { NewsItem } from '@/lib/news-content';
 import { Link } from '@/i18n/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { SelectField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { Reveal } from '@/components/motion/reveal';
 import { vocabulary } from '@/i18n/vocabulary';
 import { resolveLocale } from '@/i18n/locale';
@@ -193,69 +193,60 @@ export default async function SearchPage({
             <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-accent-text">
               {t('filters')}
             </summary>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <SelectField
                 label={t('filterType')}
                 name="type"
                 defaultValue={filters.type ?? ''}
-              >
-                <option value="">{t('filterAny')}</option>
-                {PUB_TYPES.map((v) => (
-                  <option key={v} value={v}>
-                    {vocabulary(tl, 'types.', v)}
-                  </option>
-                ))}
-              </SelectField>
+                emptyLabel={t('filterAny')}
+                options={PUB_TYPES.map((v) => ({
+                  value: v,
+                  label: vocabulary(tl, 'types.', v),
+                }))}
+              />
               <SelectField
                 label={t('filterTheme')}
                 name="theme"
                 defaultValue={filters.theme ?? ''}
-              >
-                <option value="">{t('filterAny')}</option>
-                {NETWORK_THEMES.map((v) => (
-                  <option key={v} value={v}>
-                    {vocabulary(tl, 'themes.', v)}
-                  </option>
-                ))}
-              </SelectField>
+                emptyLabel={t('filterAny')}
+                options={NETWORK_THEMES.map((v) => ({
+                  value: v,
+                  label: vocabulary(tl, 'themes.', v),
+                }))}
+              />
               <SelectField
                 label={t('filterLang')}
                 name="lang"
                 defaultValue={filters.lang ?? ''}
-              >
-                <option value="">{t('filterAny')}</option>
-                {PUB_LANGS.map((v) => (
-                  <option key={v} value={v}>
-                    {new Intl.DisplayNames([locale], { type: 'language' }).of(
+                emptyLabel={t('filterAny')}
+                options={PUB_LANGS.map((v) => ({
+                  value: v,
+                  label:
+                    new Intl.DisplayNames([locale], { type: 'language' }).of(
                       v,
-                    ) ?? v}
-                  </option>
-                ))}
-              </SelectField>
+                    ) ?? v,
+                }))}
+              />
               <SelectField
                 label={t('filterRegion')}
                 name="region"
                 defaultValue={filters.region ?? ''}
-              >
-                <option value="">{t('filterAny')}</option>
-                {PUB_REGIONS.map((v) => (
-                  <option key={v} value={v}>
-                    {vocabulary(tl, 'regions.', v)}
-                  </option>
-                ))}
-              </SelectField>
+                emptyLabel={t('filterAny')}
+                options={PUB_REGIONS.map((v) => ({
+                  value: v,
+                  label: vocabulary(tl, 'regions.', v),
+                }))}
+              />
               <SelectField
                 label={t('filterYear')}
                 name="year"
                 defaultValue={filters.year ? String(filters.year) : ''}
-              >
-                <option value="">{t('filterAny')}</option>
-                {YEARS.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </SelectField>
+                emptyLabel={t('filterAny')}
+                options={YEARS.map((y) => ({
+                  value: String(y),
+                  label: String(y),
+                }))}
+              />
             </div>
             <p className="mt-2 text-xs text-muted">{t('filterNote')}</p>
             <div className="mt-3 flex flex-wrap gap-3">

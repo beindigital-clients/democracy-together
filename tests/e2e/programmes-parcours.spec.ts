@@ -1,6 +1,7 @@
 import { test, expect, type Browser } from '@playwright/test';
 import { resetProgrammes } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
+import { chooseOption } from './_fields';
 
 // F-56 / F-57 — Toolbox and learning paths, end to end: an editor
 // publishes a resource and a two-step path (a resource, a
@@ -64,7 +65,7 @@ test.describe
     ).toBeVisible();
 
     await editeur.page
-      .getByRole('button', { name: 'Parcours d’apprentissage' })
+      .getByRole('radio', { name: 'Parcours d’apprentissage' })
       .click();
     await editeur.page
       .getByRole('button', { name: 'Nouveau parcours' })
@@ -82,9 +83,10 @@ test.describe
       .filter({ hasText: pathTitle })
       .first();
     await pathRow.getByLabel('Titre de l’étape').fill('Lire le guide');
-    await pathRow
-      .getByLabel('Ressource de la boîte à outils')
-      .selectOption({ label: resourceTitle });
+    await chooseOption(
+      pathRow.getByLabel('Ressource de la boîte à outils'),
+      resourceTitle,
+    );
     await pathRow.getByRole('button', { name: 'Ajouter l’étape' }).click();
     await expect(pathRow.getByText('Lire le guide')).toBeVisible();
     await pathRow.getByLabel('Titre de l’étape').fill('Regarder le replay');

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
+import { chooseOption } from './_choice';
 
 // AN OPEN DIALOG MUST NOT DISAPPEAR UNDER THE CURSOR.
 //
@@ -68,9 +69,7 @@ beforeEach(() => {
 
 // Opens the confirmation via the real path: choose, then "Appliquer".
 function ouvrirLaConfirmation() {
-  fireEvent.change(screen.getByLabelText(`Rôle ${CIBLE}`), {
-    target: { value: 'moderateur' },
-  });
+  chooseOption(screen.getByLabelText(`Rôle ${CIBLE}`), 'Modérateur');
   fireEvent.click(screen.getByRole('button', { name: /Appliquer/ }));
   return screen.getByRole('dialog', {
     name: `Changer le rôle de ${CIBLE} ?`,
@@ -152,9 +151,7 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
     // search lands between choosing a role and pressing "Appliquer". The
     // freeze only covers an OPEN dialog; the rows must not unmount before.
     const { rerender } = afficher();
-    fireEvent.change(screen.getByLabelText(`Rôle ${CIBLE}`), {
-      target: { value: 'moderateur' },
-    });
+    chooseOption(screen.getByLabelText(`Rôle ${CIBLE}`), 'Modérateur');
     expect(screen.getByRole('button', { name: /Appliquer/ })).toBeTruthy();
 
     convex.page = { results: [], status: 'LoadingFirstPage' as never };
@@ -167,7 +164,9 @@ describe('Écran des utilisateurs — un clignotement ne démonte rien', () => {
     // The last settled rows stay, marked busy, and the draft with them.
     expect(screen.queryByText('Chargement…')).toBeNull();
     expect(screen.getByRole('table').getAttribute('aria-busy')).toBe('true');
-    expect(screen.getByLabelText(`Rôle ${CIBLE}`).value).toBe('moderateur');
+    expect(screen.getByLabelText(`Rôle ${CIBLE}`).textContent).toBe(
+      'Modérateur',
+    );
     expect(screen.getByRole('button', { name: /Appliquer/ })).toBeTruthy();
 
     // The new page arrives with the same account: the row, keyed by

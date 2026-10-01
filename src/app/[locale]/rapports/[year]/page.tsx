@@ -16,6 +16,7 @@ import {
   type ReportPdfInfo,
 } from '@/components/reports/report-downloads';
 import { ArrowBack } from '@/components/ui/arrow';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -119,9 +120,9 @@ export default async function ReportPage({
               {t('eyebrow')} · {report.year}
             </p>
             {report.inaugural ? (
-              <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-text">
+              <Badge variant="accent" size="label">
                 {t('inaugural')}
-              </span>
+              </Badge>
             ) : null}
           </div>
           <h1 className="mt-3 wrap-anywhere font-display text-[clamp(30px,4.4vw,48px)] font-medium leading-[1.05] tracking-[-0.02em]">

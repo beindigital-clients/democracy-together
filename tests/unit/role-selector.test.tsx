@@ -10,6 +10,7 @@ import {
 import { NextIntlClientProvider } from 'next-intl';
 import messages from '@/messages/fr.json';
 import { RoleSelector } from '@/components/admin/role-selector';
+import { chooseOption } from './_choice';
 
 afterEach(cleanup);
 
@@ -39,12 +40,19 @@ function setup(
 }
 
 const select = () =>
-  screen.getByLabelText<HTMLSelectElement>(
-    'Rôle moderateur@democracytogether.test',
-  );
+  screen.getByRole<HTMLButtonElement>('combobox', {
+    name: 'Rôle moderateur@democracytogether.test',
+  });
+
+// By the role's label, as it reads in the list.
+const LABELS: Record<string, string> = {
+  membre: 'Membre',
+  moderateur: 'Modérateur',
+  visiteur: 'Visiteur',
+};
 
 function choose(role: string) {
-  fireEvent.change(select(), { target: { value: role } });
+  chooseOption(select(), LABELS[role]);
 }
 
 describe('RoleSelector — choisir n’est pas appliquer (issue #38)', () => {
@@ -112,7 +120,7 @@ describe('RoleSelector — choisir n’est pas appliquer (issue #38)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Changer le rôle' }));
     });
 
-    expect(select().value).toBe('moderateur');
+    expect(select().textContent).toBe('Modérateur');
     expect(screen.queryByRole('button', { name: /Appliquer/ })).toBeNull();
   });
 

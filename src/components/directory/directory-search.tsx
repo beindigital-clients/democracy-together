@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { directoryHref, type DirectoryFilters } from '@/lib/orgs';
 import { useDirectoryNavigation } from './directory-navigation';
+import { Button } from '@/components/ui/button';
 
 // Directory full-text search (F-19). A GET form: without JavaScript it is
 // submitted as is (the hidden inputs keep the active facets). With it, it goes
@@ -62,13 +63,15 @@ export function DirectorySearch({
         title={placeholder}
         className="h-10 py-0 pe-11"
       />
-      <button
+      <Button
         type="submit"
-        className="absolute end-1 top-1 grid size-8 place-items-center rounded-xs text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+        variant="subtle"
+        size="icon-sm"
+        className="absolute end-1 top-1 rounded-xs"
       >
-        <Search className="size-4" aria-hidden="true" />
+        <Search aria-hidden="true" />
         <span className="sr-only">{cta}</span>
-      </button>
+      </Button>
     </form>
   );
 }

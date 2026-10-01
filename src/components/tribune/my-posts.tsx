@@ -8,14 +8,15 @@ import { intlLocale, resolveLocale } from '@/i18n/locale';
 import { Link } from '@/i18n/navigation';
 import { isMember } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
-// Status badge — `globals.css` tokens only (contrast ≥ 4.5:1 in
-// light and dark mode): `bar-5` (rejected), `bar-4` (pending), accent (online).
-export const STATUS_PILL: Record<ContentStatus, string> = {
-  published: 'border-accent-edge bg-accent-tint text-accent-text',
-  pending: 'border-bar-4 text-bar-4',
-  rejected: 'border-bar-5 text-bar-5',
-  removed: 'border-bar-5 text-bar-5',
+// Status badge (shadcn `Badge`): accent once online, the `pending` and `bad`
+// bar tones otherwise (contrast ≥ 4.5:1 in light and dark mode).
+export const STATUS_BADGE: Record<ContentStatus, BadgeVariant> = {
+  published: 'accent',
+  pending: 'pending',
+  rejected: 'bad',
+  removed: 'bad',
 };
 
 // "Mes billets" (A-11, F-45) — client island on /tribune, visible to the
@@ -93,11 +94,9 @@ export function MyPosts() {
                     </span>
                   ) : null}
                 </div>
-                <span
-                  className={`shrink-0 rounded-pill border px-2.5 py-0.5 text-[12px] font-medium ${STATUS_PILL[p.status]}`}
-                >
+                <Badge variant={STATUS_BADGE[p.status]} className="shrink-0">
                   {vocabulary(t, 'status_', p.status)}
-                </span>
+                </Badge>
               </li>
             );
           })}

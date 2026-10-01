@@ -7,6 +7,7 @@ import {
   approveTribunePosts,
 } from './_helpers';
 import { SESSIONS } from './_sessions';
+import { chooseOption } from './_fields';
 
 // The back-office screens that WRITE, end to end: real data
 // arrives through the public path, staff handle it from the screen, and the effect
@@ -59,7 +60,7 @@ test.describe('file des candidatures jeunes (session dédiée)', () => {
     await row.getByRole('button', { name: 'Approuver' }).click();
     await expect(row).toHaveCount(0); // leaves the "En attente" queue
 
-    await page.getByRole('button', { name: 'Toutes' }).click();
+    await page.getByRole('radio', { name: 'Toutes' }).click();
     const decided = page.getByRole('listitem').filter({ hasText: applicant });
     await expect(decided).toBeVisible();
     await expect(decided.getByText('Approuvée')).toBeVisible();
@@ -93,7 +94,10 @@ test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)
   await elevateRole(email, 'membre');
 
   await page.goto('/fr/appels-a-projets');
-  await page.getByLabel('Axe de travail').selectOption('participation');
+  await chooseOption(
+    page.getByLabel('Axe de travail'),
+    'Participation citoyenne',
+  );
   await page.getByLabel('Titre du projet').fill(projectTitle);
   await page
     .getByLabel('Résumé', { exact: true })
@@ -112,7 +116,7 @@ test('back-office : un modérateur accepte une proposition de projet (F-60/F-26)
   await row.getByRole('button', { name: 'Accepter' }).click();
   await expect(row).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Toutes' }).click();
+  await page.getByRole('radio', { name: 'Toutes' }).click();
   const decided = page.getByRole('listitem').filter({ hasText: projectTitle });
   await expect(decided).toBeVisible();
   await expect(decided.getByText('Accepté')).toBeVisible();

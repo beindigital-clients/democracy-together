@@ -10,7 +10,8 @@ import { NETWORK_THEMES } from '@convex/lib/themes';
 import { resolveLocale } from '@/i18n/locale';
 import { getEventsLabels } from '@/lib/events-content';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextField } from '@/components/ui/field';
+import { TextField } from '@/components/ui/field';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import {
   LangSwitch,
@@ -29,6 +30,7 @@ import {
   PreviewCard,
   useRunAction,
 } from '@/components/admin/contenus/editor-shell';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // REPLAYS — EDITING (F-54, F-62). YouTube, Vimeo or video file link,
 // validated server-side against its platform; linked event; themes; languages.
@@ -218,31 +220,33 @@ export default function AdminContentReplays() {
             multiline
             maxLength={4000}
           />
-          <SelectField
+          {/* Every event ever published: searchable, by title or date. */}
+          <ComboboxField
             label={t('rp_event')}
             value={draft.eventId}
-            onChange={(e) =>
-              set('eventId', e.target.value as Id<'contentEvents'> | '')
-            }
-          >
-            <option value="">{t('rp_eventNone')}</option>
-            {(events ?? []).map((ev) => (
-              <option key={ev._id} value={ev._id}>
-                {ev.startDate} · {ev.title}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={(v) => set('eventId', v as Id<'contentEvents'> | '')}
+            placeholder={t('rp_eventNone')}
+            emptyLabel={t('rp_eventNone')}
+            options={(events ?? []).map((ev) => ({
+              value: ev._id,
+              label: `${ev.startDate} · ${ev.title}`,
+            }))}
+            searchLabel={t('rp_eventSearchLabel')}
+            searchPlaceholder={t('rp_eventSearchPlaceholder')}
+            noResults={t('rp_eventNoResults')}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField
               label={t('rp_videoKind')}
               value={draft.videoKind}
-              onChange={(e) => set('videoKind', e.target.value as VideoKind)}
-            >
-              <option value="">{t('rp_video_none')}</option>
-              <option value="youtube">{t('rp_video_youtube')}</option>
-              <option value="vimeo">{t('rp_video_vimeo')}</option>
-              <option value="file">{t('rp_video_file')}</option>
-            </SelectField>
+              onValueChange={(v) => set('videoKind', v as VideoKind)}
+              emptyLabel={t('rp_video_none')}
+              options={[
+                { value: 'youtube', label: t('rp_video_youtube') },
+                { value: 'vimeo', label: t('rp_video_vimeo') },
+                { value: 'file', label: t('rp_video_file') },
+              ]}
+            />
             <TextField
               label={t('rp_recordedOn')}
               type="date"
@@ -277,11 +281,10 @@ export default function AdminContentReplays() {
                   key={th}
                   className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-sm"
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={draft.themes.includes(th)}
-                    onChange={(e) =>
-                      set('themes', toggle(draft.themes, th, e.target.checked))
+                    onCheckedChange={(checked) =>
+                      set('themes', toggle(draft.themes, th, checked === true))
                     }
                   />
                   {L.themes[th as keyof typeof L.themes] ?? th}
@@ -297,11 +300,10 @@ export default function AdminContentReplays() {
                   key={l}
                   className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-sm"
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={draft.langs.includes(l)}
-                    onChange={(e) =>
-                      set('langs', toggle(draft.langs, l, e.target.checked))
+                    onCheckedChange={(checked) =>
+                      set('langs', toggle(draft.langs, l, checked === true))
                     }
                   />
                   {langName(l)}

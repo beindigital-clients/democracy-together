@@ -7,6 +7,7 @@ import {
   readAudienceOptOut,
   writeAudienceOptOut,
 } from '@/lib/audience';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // AUDIENCE MEASUREMENT OPT-OUT SETTING (F-66) — placed in the privacy
 // policy, where the measurement is described. Native checkbox: it is
@@ -31,14 +32,12 @@ export function AudienceOptOut() {
     <div className="rounded-md border border-line bg-surface p-4">
       {/* WRAPPING label: the whole row (44 px) is the click target. */}
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-ink">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={optedOut}
-          onChange={(e) => {
-            writeAudienceOptOut(e.target.checked);
-            setOptedOut(e.target.checked);
+          onCheckedChange={(checked) => {
+            writeAudienceOptOut(checked === true);
+            setOptedOut(checked === true);
           }}
-          className="size-5 shrink-0 accent-[var(--color-accent-text)]"
         />
         <span className="wrap-anywhere">{t('optOutLabel')}</span>
       </label>

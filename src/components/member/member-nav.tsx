@@ -27,6 +27,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import {
   currentMemberNavItem,
   visibleMemberNavGroups,
@@ -211,12 +212,9 @@ export function MemberNav({
                         ) : null}
                       </span>
                       {unread ? (
-                        <span
-                          aria-hidden="true"
-                          className="grid min-h-5 min-w-5 place-items-center rounded-pill bg-accent px-1.5 font-mono text-[11px] font-semibold leading-none text-accent-contrast"
-                        >
+                        <Badge aria-hidden="true" variant="solid" size="count">
                           {unread.capped ? `${unread.count}+` : unread.count}
-                        </span>
+                        </Badge>
                       ) : null}
                     </Link>
                   </li>

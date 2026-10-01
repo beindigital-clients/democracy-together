@@ -28,6 +28,7 @@ import {
 } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import { intlLocale } from '@/i18n/locale';
+import { Badge } from '@/components/ui/badge';
 
 function initials(name: string): string {
   return name
@@ -214,12 +215,12 @@ export default async function PublicationPage({
                 <span className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-muted">
                   {vocabulary(t, 'types.', pub.type)}
                 </span>
-                <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-[12.5px] font-medium text-accent-text">
+                <Badge variant="accent">
                   {vocabulary(t, 'themes.', pub.theme)}
-                </span>
-                <span className="rounded-pill border border-[color-mix(in_srgb,var(--color-bar-1)_40%,transparent)] px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.06em] text-bar-1">
+                </Badge>
+                <Badge variant="good" size="label">
                   {vocabulary(t, 'accessShort.', pub.access)}
-                </span>
+                </Badge>
               </div>
               <h1
                 {...attrs}
@@ -443,7 +444,8 @@ export default async function PublicationPage({
                 <CopyButton
                   text={doiUrl}
                   copiedLabel={td('copied')}
-                  className="ms-auto shrink-0 rounded-[3px] border border-line-strong bg-surface px-2 py-1 text-[11px] font-semibold text-ink-soft"
+                  size="xs"
+                  className="ms-auto"
                 >
                   {td('copy')}
                 </CopyButton>

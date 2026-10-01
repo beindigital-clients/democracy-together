@@ -11,6 +11,13 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNow } from '@/hooks/use-now';
 import { CardLink, DashCard } from './dash-card';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item';
 
 export const ACTIVITY_ITEMS = 5;
 
@@ -71,37 +78,41 @@ function Notifications({
     <ul className="-mx-2 flex flex-col">
       {items.slice(0, ACTIVITY_ITEMS).map((n) => (
         <li key={n._id}>
-          <button
-            type="button"
-            onClick={() => onOpen(n)}
-            className="flex w-full items-start gap-3 rounded-sm px-2 py-2.5 text-start transition-colors hover:bg-surface-2"
+          <Item
+            asChild
+            size="sm"
+            className="w-full flex-nowrap items-start gap-3 rounded-sm px-2 py-2.5"
           >
-            <span
-              aria-hidden="true"
-              className={cn(
-                'mt-[7px] h-2 w-2 shrink-0 rounded-full',
-                n.read ? 'bg-line-strong' : 'bg-accent',
-              )}
-            />
-            <span className="min-w-0 flex-1">
-              <span
-                className={cn(
-                  'block wrap-anywhere text-sm leading-snug',
-                  n.read ? 'text-ink-soft' : 'font-medium text-ink',
-                )}
-              >
-                {tn.has(n.titleKey)
-                  ? tt(n.titleKey, n.params)
-                  : t('activityUnknown')}
-                {n.read ? null : (
-                  <span className="sr-only"> {t('activityUnread')}</span>
-                )}
-              </span>
-              <span className="mt-0.5 block font-mono text-[11px] text-muted">
-                {relativeTime(n.createdAt, now, locale)}
-              </span>
-            </span>
-          </button>
+            <button type="button" onClick={() => onOpen(n)}>
+              <ItemMedia>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-[7px] size-2 rounded-full',
+                    n.read ? 'bg-line-strong' : 'bg-accent',
+                  )}
+                />
+              </ItemMedia>
+              <ItemContent className="gap-0.5">
+                <ItemTitle
+                  className={cn(
+                    'block wrap-anywhere',
+                    n.read && 'font-normal text-ink-soft',
+                  )}
+                >
+                  {tn.has(n.titleKey)
+                    ? tt(n.titleKey, n.params)
+                    : t('activityUnknown')}
+                  {n.read ? null : (
+                    <span className="sr-only"> {t('activityUnread')}</span>
+                  )}
+                </ItemTitle>
+                <ItemDescription className="font-mono text-[11px]">
+                  {relativeTime(n.createdAt, now, locale)}
+                </ItemDescription>
+              </ItemContent>
+            </button>
+          </Item>
         </li>
       ))}
     </ul>
@@ -132,39 +143,44 @@ function NetworkFeed({
       {items.slice(0, ACTIVITY_ITEMS).map((item) => {
         const Icon = item.kind === 'publication' ? FileText : Megaphone;
         return (
-          <li
+          <Item
+            asChild
             key={`${item.kind}-${item.href}`}
-            className="flex items-start gap-3 rounded-sm px-2 py-2.5"
+            size="sm"
+            className="flex-nowrap items-start gap-3 rounded-sm px-2 py-2.5"
           >
-            <Icon
-              aria-hidden="true"
-              className="mt-0.5 h-4 w-4 shrink-0 text-muted"
-            />
-            <span className="min-w-0 flex-1 text-sm leading-snug">
-              <Link
-                href={item.href}
-                className="wrap-anywhere font-medium text-ink hover:text-accent-text hover:underline"
-              >
-                {item.title}
-              </Link>
-              <span className="mt-0.5 block text-xs text-muted">
-                <Link
-                  href={`/membres/${item.author.handle}`}
-                  className="wrap-anywhere hover:text-ink hover:underline"
-                >
-                  {item.author.displayName}
-                </Link>
-                {' · '}
-                {item.kind === 'publication'
-                  ? t('feedPublication')
-                  : t('feedTribune')}
-                {' · '}
-                <span className="font-mono">
-                  {relativeTime(item.at, now, locale)}
-                </span>
-              </span>
-            </span>
-          </li>
+            <li>
+              <ItemMedia>
+                <Icon aria-hidden="true" className="mt-0.5 size-4 text-muted" />
+              </ItemMedia>
+              <ItemContent className="gap-0.5">
+                <ItemTitle className="block">
+                  <Link
+                    href={item.href}
+                    className="wrap-anywhere hover:text-accent-text hover:underline"
+                  >
+                    {item.title}
+                  </Link>
+                </ItemTitle>
+                <ItemDescription className="text-xs">
+                  <Link
+                    href={`/membres/${item.author.handle}`}
+                    className="wrap-anywhere hover:text-ink hover:underline"
+                  >
+                    {item.author.displayName}
+                  </Link>
+                  {' · '}
+                  {item.kind === 'publication'
+                    ? t('feedPublication')
+                    : t('feedTribune')}
+                  {' · '}
+                  <span className="font-mono">
+                    {relativeTime(item.at, now, locale)}
+                  </span>
+                </ItemDescription>
+              </ItemContent>
+            </li>
+          </Item>
         );
       })}
     </ul>

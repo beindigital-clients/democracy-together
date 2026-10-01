@@ -15,8 +15,7 @@ import {
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/ui/field';
-import { SelectMenuField } from '@/components/ui/choice-fields';
-import { directionOf } from '@/i18n/direction';
+import { SelectField } from '@/components/ui/choice-fields';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { resolveLocale } from '@/i18n/locale';
@@ -177,9 +176,11 @@ export function ReceiptButton({
   }
   return (
     <span className="inline-flex flex-col">
-      <button
+      <Button
         type="button"
-        className="min-h-11 text-start text-[13px] font-medium text-accent-text hover:underline"
+        variant="link"
+        size="inline"
+        className="min-h-11 justify-start text-[13px]"
         aria-label={t('receiptDownloadNamed', { number })}
         onClick={async () => {
           setError(false);
@@ -198,7 +199,7 @@ export function ReceiptButton({
         }}
       >
         {number}
-      </button>
+      </Button>
       {error ? (
         <span role="alert" className="text-xs text-bar-5">
           {t('receiptError')}
@@ -272,32 +273,29 @@ function DuesPayForm() {
     <div className="mt-5 rounded-md border border-line bg-surface p-5">
       <h3 className="font-display text-lg">{t('duesPayTitle')}</h3>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <SelectMenuField
+        <SelectField
           label={t('planCategory')}
           value={category}
           onValueChange={(v) => setCategory(v as PlanCategory)}
-          dir={directionOf(locale)}
           options={PLAN_CATEGORIES.map((c) => ({
             value: c,
             label: vocabulary(t, 'category_', c),
           }))}
         />
-        <SelectMenuField
+        <SelectField
           label={t('planZone')}
           value={zone}
           onValueChange={(v) => setZone(v as PlanZone)}
-          dir={directionOf(locale)}
           options={PLAN_ZONES.map((z) => ({
             value: z,
             label: vocabulary(t, 'zone_', z),
           }))}
         />
         {priced.length > 0 && currency ? (
-          <SelectMenuField
+          <SelectField
             label={t('currencyLabel')}
             value={currency}
             onValueChange={(v) => setChosen(v as Currency)}
-            dir={directionOf(locale)}
             options={priced.map((c) => ({
               value: c,
               label: vocabulary(t, 'currency_', c),

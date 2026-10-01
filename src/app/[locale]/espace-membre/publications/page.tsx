@@ -8,10 +8,10 @@ import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { isMember } from '@/lib/roles';
-import { cn } from '@/lib/utils';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   MemberPageBody,
   MemberPageHeader,
@@ -92,44 +92,37 @@ function Publications() {
           </div>
         ) : (
           <>
-            {/* Status filter: a group of toggle buttons, the current one
-                pressed. The count of each status is in its label. */}
-            <div
-              role="group"
+            {/* Status filter: one choice among the statuses (a radio
+                group), the count of each in its label. */}
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={filter}
+              onValueChange={(v) => {
+                if (v === 'all' || STATUSES.some((s) => s === v)) {
+                  setFilter(v as Filter);
+                }
+              }}
               aria-label={t('publicationsFilterLabel')}
-              className="flex flex-wrap gap-2"
             >
               {(['all', ...STATUSES] as const).map((f) => {
-                const on = filter === f;
                 const count = f === 'all' ? (mine?.length ?? 0) : counts[f];
                 return (
-                  <button
+                  <ToggleGroupItem
                     key={f}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => setFilter(f)}
-                    className={cn(
-                      'inline-flex min-h-10 items-center gap-2 rounded-pill border px-3.5 text-sm transition-colors',
-                      on
-                        ? 'border-accent bg-accent text-accent-contrast'
-                        : 'border-line-strong bg-surface text-ink-soft hover:bg-surface-2 hover:text-ink',
-                    )}
+                    value={f}
+                    className="min-h-10 rounded-pill px-3.5"
                   >
                     {f === 'all'
                       ? t('publicationsFilterAll')
                       : vocabulary(tl, 'status.', f)}
-                    <span
-                      className={cn(
-                        'font-mono text-xs tabular-nums',
-                        on ? 'text-accent-contrast' : 'text-muted',
-                      )}
-                    >
+                    <span className="font-mono text-xs font-normal tabular-nums text-muted">
                       {count}
                     </span>
-                  </button>
+                  </ToggleGroupItem>
                 );
               })}
-            </div>
+            </ToggleGroup>
             <p role="status" className="mt-4 text-sm text-muted">
               {t('publicationsCount', { count: shown.length })}
             </p>

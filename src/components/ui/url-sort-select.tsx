@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useRouter, usePathname } from '@/i18n/navigation';
+import { SelectField } from '@/components/ui/choice-fields';
 
 // Generic sort selector, driven by the URL (progressive enhancement): updates
 // the `sort` parameter while preserving the other filters. The list stays
@@ -30,19 +31,13 @@ export function UrlSortSelect({
   }
 
   return (
-    <label className="flex items-center gap-2 text-sm text-muted">
-      {label}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-sm border border-line-field bg-surface px-2.5 py-1.5 text-sm text-ink"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <SelectField
+      label={label}
+      orientation="horizontal"
+      size="sm"
+      value={value}
+      onValueChange={onChange}
+      options={options}
+    />
   );
 }

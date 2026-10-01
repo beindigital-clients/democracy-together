@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { countryFlag, countryName } from '@/lib/orgs';
 import { PersonAvatar } from './person-avatar';
+import { Badge } from '@/components/ui/badge';
 
 export type PersonCardData = {
   handle: string;
@@ -58,12 +59,9 @@ export function PersonCard({
         {person.themes.length > 0 ? (
           <span className="mt-2 flex flex-wrap gap-1">
             {person.themes.slice(0, 3).map((slug) => (
-              <span
-                key={slug}
-                className="rounded-pill border border-line-strong px-2 py-0.5 text-[11px] text-ink-soft"
-              >
+              <Badge key={slug} variant="outline" size="sm">
                 {themeLabels[slug] ?? slug}
-              </span>
+              </Badge>
             ))}
           </span>
         ) : null}

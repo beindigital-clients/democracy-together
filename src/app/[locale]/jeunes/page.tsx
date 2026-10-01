@@ -10,6 +10,7 @@ import { getYouthContent } from '@/lib/youth-content';
 import { YouthApplyForm } from '@/components/youth/youth-apply-form';
 import { MentorshipForm } from '@/components/youth/mentorship-form';
 import { YouthAccountHint } from '@/components/youth/account-hint';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -50,13 +51,13 @@ export default async function JeunesPage({
       <header className={`${WRAP} py-12 md:py-16`}>
         <Reveal className="grid items-center gap-10 lg:grid-cols-[1.1fr_.9fr]">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-[12.5px] font-medium text-accent-text">
+            <Badge variant="accent" className="gap-2">
               <span
-                className="h-2 w-2 rounded-full bg-accent"
+                className="size-2 rounded-full bg-accent"
                 aria-hidden="true"
               />
               {c.hero.chip}
-            </span>
+            </Badge>
             <h1 className="mt-5 max-w-[16ch] font-display text-[clamp(34px,5vw,56px)] font-medium leading-[1.04] tracking-[-0.02em]">
               {c.hero.titlePre}
               <span className="text-accent-text">{c.hero.titleEm}</span>
@@ -81,12 +82,7 @@ export default async function JeunesPage({
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
               {c.hero.badges.map((b) => (
-                <span
-                  key={b}
-                  className="rounded-pill border border-line bg-surface-2 px-3 py-1 text-[12.5px] text-ink-soft"
-                >
-                  {b}
-                </span>
+                <Badge key={b}>{b}</Badge>
               ))}
             </div>
           </div>
@@ -153,9 +149,11 @@ export default async function JeunesPage({
               </p>
               <div className="mt-6 flex flex-wrap gap-2.5">
                 {c.parcours.gam.badges.map((b) => (
-                  <span
+                  <Badge
                     key={b.letter}
-                    className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[13px] ${b.locked ? 'border-line bg-surface-2 text-ink-soft opacity-85' : 'border-accent-edge bg-accent-tint text-accent-text'}`}
+                    variant={b.locked ? 'default' : 'accent'}
+                    size="lg"
+                    className={b.locked ? 'gap-2 opacity-85' : 'gap-2'}
                   >
                     <span
                       className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[11px] font-semibold ${b.locked ? 'bg-line-strong text-paper' : 'bg-accent text-accent-contrast'}`}
@@ -163,7 +161,7 @@ export default async function JeunesPage({
                       {b.letter}
                     </span>
                     {b.label}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </RevealItem>
@@ -184,12 +182,7 @@ export default async function JeunesPage({
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
                 {c.parcours.gam.chips.map((ch) => (
-                  <span
-                    key={ch}
-                    className="rounded-pill border border-line bg-surface-2 px-3 py-1 text-[12.5px] text-ink-soft"
-                  >
-                    {ch}
-                  </span>
+                  <Badge key={ch}>{ch}</Badge>
                 ))}
               </div>
               <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
@@ -309,9 +302,9 @@ export default async function JeunesPage({
                       {m.field}
                     </span>
                   </div>
-                  <span className="shrink-0 rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-1 text-[11px] font-medium text-accent-text">
+                  <Badge variant="accent" size="sm" className="shrink-0">
                     {m.role}
-                  </span>
+                  </Badge>
                 </li>
               ))}
             </ul>

@@ -5,6 +5,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { UrlSortSelect } from '@/components/ui/url-sort-select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { resolveLocale, intlLocale } from '@/i18n/locale';
 import {
   FEATURED_SLUG,
@@ -24,6 +26,7 @@ import { loadAgenda } from '@/lib/contenus/load';
 import { featuredEvent, type AgendaEvent } from '@/lib/contenus/agenda';
 import { ArrowForward } from '@/components/ui/arrow';
 import type { Locale } from '@/i18n/routing';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -164,7 +167,7 @@ export default async function EventsPage({
               {filters.period === 'passes' ? (
                 <input type="hidden" name="period" value="passes" />
               ) : null}
-              <input
+              <Input
                 type="search"
                 name="q"
                 defaultValue={filters.q ?? ''}
@@ -173,14 +176,11 @@ export default async function EventsPage({
                 // NON-visible label: `title` makes it readable on hover and meets one
                 // condition of RGAA 11.1.3 (the placeholder disappears while typing).
                 title={L.hero.searchPlaceholder}
-                className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-4 py-2.5 text-base text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="flex-1 px-4"
               />
-              <button
-                type="submit"
-                className="shrink-0 rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-              >
+              <Button type="submit" className="shrink-0 px-5">
                 {L.hero.searchCta}
-              </button>
+              </Button>
             </form>
           </Reveal>
         </div>
@@ -213,11 +213,15 @@ export default async function EventsPage({
                   className="object-cover"
                 />
               )}
-              <span className="absolute start-4 top-4 rounded-pill bg-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-contrast">
+              <Badge
+                variant="solid"
+                size="label"
+                className="absolute start-4 top-4"
+              >
                 {featured.slug === FEATURED_SLUG
                   ? L.featuredBadge
                   : `${ta('featuredBadge')} · ${L.types[featured.type]}`}
-              </span>
+              </Badge>
             </div>
             <div className="p-6 md:p-8">
               {featured.slug === FEATURED_SLUG ? (
@@ -540,9 +544,9 @@ function EventCard({
         <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
           {L.types[event.type]}
           {event.status === 'cancelled' ? (
-            <span className="rounded-pill border border-line-strong bg-surface-2 px-2 py-0.5 text-ink">
+            <Badge variant="outline" size="label">
               {cancelledLabel}
-            </span>
+            </Badge>
           ) : null}
         </div>
         <h3 className="mt-1 font-display text-[18px] leading-snug wrap-anywhere">
@@ -558,9 +562,7 @@ function EventCard({
           <span className="text-muted">· {L.formats[event.format]}</span>
         </div>
         <div className="mt-2">
-          <span className="inline-flex items-center rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 text-[11.5px] font-medium text-accent-text">
-            {L.themes[event.theme] ?? event.theme}
-          </span>
+          <Badge variant="accent">{L.themes[event.theme] ?? event.theme}</Badge>
         </div>
         <div className="mt-auto flex items-center justify-between gap-3 pt-3">
           <Link

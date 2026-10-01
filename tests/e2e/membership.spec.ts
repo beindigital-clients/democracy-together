@@ -14,7 +14,9 @@ test('adhésion : candidature -> succès + stockage (F-22)', async ({ page }) =>
 
   await page.getByLabel('Nom du think tank').fill('Institut Démo Sahel');
   await page.getByLabel('E-mail de contact').fill(email);
-  await page.getByLabel('Pays').fill('Sénégal');
+  // Exact: the estimator's radio group, "Niveau de revenu du pays", also
+  // contains the word.
+  await page.getByLabel('Pays', { exact: true }).fill('Sénégal');
   await page
     .getByLabel('Présentation (optionnel)')
     .fill('Nous travaillons sur la gouvernance démocratique au Sahel.');
@@ -50,7 +52,7 @@ test('adhésion : chaque champ fautif porte son message (F-22, #37)', async ({
   await page.goto('/fr/adhesion');
   await page.getByLabel('Nom du think tank').fill('X');
   await page.getByLabel('E-mail de contact').fill('pas-un-email');
-  await page.getByLabel('Pays').fill('Sénégal');
+  await page.getByLabel('Pays', { exact: true }).fill('Sénégal');
   await page.getByLabel('Présentation (optionnel)').fill(presentation);
   await page.getByRole('button', { name: 'Envoyer ma candidature' }).click();
 
@@ -62,7 +64,7 @@ test('adhésion : chaque champ fautif porte son message (F-22, #37)', async ({
     /adresse e-mail de contact valide/,
   );
   // The country is correct: it is not flagged.
-  await expectNoFieldError(page.getByLabel('Pays'));
+  await expectNoFieldError(page.getByLabel('Pays', { exact: true }));
   // The first invalid field takes focus.
   await expect(name).toBeFocused();
   // Nothing is lost, the introduction first.

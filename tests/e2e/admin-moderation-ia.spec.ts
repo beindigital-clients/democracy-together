@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { deleteTestPublications } from './_helpers';
 import { SESSIONS } from './_sessions';
 import { ouvrirPanneau } from './_panneau';
+import { chooseOption } from './_fields';
 
 test.use({ locale: 'fr-FR', storageState: SESSIONS.adminModerationIa.state });
 
@@ -67,7 +68,7 @@ test.afterAll(async ({ browser }) => {
   try {
     const page = await context.newPage();
     await page.goto(PANNEAU);
-    await page.getByLabel('Mode', { exact: true }).selectOption('off');
+    await chooseOption(page.getByLabel('Mode', { exact: true }), 'Désactivé');
     await page
       .getByRole('button', { name: 'Enregistrer les réglages' })
       .click();
@@ -157,7 +158,7 @@ test('un critère écrit ici survit au rechargement, et sa suppression aussi (F-
     .fill(
       'Le document cite-t-il ses sources de manière vérifiable ? (critère posé par un test end-to-end)',
     );
-  await page.getByLabel('Sévérité').selectOption('warning');
+  await chooseOption(page.getByLabel('Sévérité'), 'Avertissement');
   await page.getByRole('button', { name: 'Créer le critère' }).click();
 
   const ligne = bareme(page).getByRole('listitem').filter({ hasText: CRITERE });
@@ -206,11 +207,11 @@ test('les réglages tiennent après rechargement, et l’auto-publication s’an
   // saving: arming auto-publish on a shared deployment would make
   // the other specs' submissions appear.
   await expect(avertissement).toHaveCount(0);
-  await mode.selectOption('auto');
+  await chooseOption(mode, 'Auto-publication');
   await expect(avertissement).toBeVisible();
 
   // And it disappears when stepping back down: it is a state, not decoration.
-  await mode.selectOption('assist');
+  await chooseOption(mode, 'Assistance');
   await expect(avertissement).toHaveCount(0);
 
   const seuil = page.getByLabel(/Confiance minimale pour publier/);
@@ -219,7 +220,9 @@ test('les réglages tiennent après rechargement, et l’auto-publication s’an
   await expect(page.getByText(/Réglages enregistrés/)).toBeVisible();
 
   await page.reload();
-  await expect(page.getByLabel('Mode', { exact: true })).toHaveValue('assist');
+  await expect(page.getByLabel('Mode', { exact: true })).toHaveText(
+    'Assistance',
+  );
   await expect(page.getByLabel(/Confiance minimale pour publier/)).toHaveValue(
     '90',
   );
@@ -242,7 +245,7 @@ test('un dépôt analysé reste en file, et le public ne le voit pas (F-32)', as
   // The previous test already set it, but a spec file is not read from
   // top to bottom when a single line fails: we set what this test depends on.
   await page.goto(PANNEAU);
-  await page.getByLabel('Mode', { exact: true }).selectOption('assist');
+  await chooseOption(page.getByLabel('Mode', { exact: true }), 'Assistance');
   await page.getByRole('button', { name: 'Enregistrer les réglages' }).click();
   await expect(page.getByText(/Réglages enregistrés/)).toBeVisible();
 

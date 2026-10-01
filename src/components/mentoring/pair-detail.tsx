@@ -20,6 +20,7 @@ import {
   useDateFormat,
   useProgrammeError,
 } from '@/components/programmes/shared';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Pair = FunctionReturnType<typeof api.mentoring.getPair>;
 
@@ -326,17 +327,15 @@ function Milestones({ pair, editable }: { pair: Pair; editable: boolean }) {
           {pair.milestones.map((m) => (
             <li key={m._id}>
               <label className="flex min-h-11 items-center gap-3 text-[15px] text-ink">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-accent"
+                <Checkbox
                   checked={m.doneAt !== null}
                   disabled={!editable}
-                  onChange={async (e) => {
+                  onCheckedChange={async (checked) => {
                     setError(null);
                     try {
                       await toggle({
                         milestoneId: m._id,
-                        done: e.target.checked,
+                        done: checked === true,
                       });
                     } catch (err) {
                       setError(errorMessage(err));

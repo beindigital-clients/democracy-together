@@ -14,6 +14,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { safeHref } from '@/lib/safe-href';
 import { ResourceLink } from '@/components/toolbox/toolbox-catalog';
 import { useProgrammeError } from '@/components/programmes/shared';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Path = NonNullable<FunctionReturnType<typeof api.toolbox.getPath>>;
 
@@ -125,12 +126,11 @@ export function PathSteps({ path }: { path: Path }) {
                     // The checkbox is INSIDE its label: the whole row is a
                     // 44 px target, and the step title names the checkbox.
                     <label className="flex min-h-11 cursor-pointer items-start gap-3 wrap-anywhere font-medium text-ink">
-                      <input
-                        type="checkbox"
-                        className="mt-1 h-5 w-5 shrink-0 accent-accent"
+                      <Checkbox
+                        className="mt-1"
                         checked={isDone(s._id)}
-                        onChange={async (e) => {
-                          const next = e.target.checked;
+                        onCheckedChange={async (checked) => {
+                          const next = checked === true;
                           setError(null);
                           setPendingSteps((p) => ({ ...p, [s._id]: next }));
                           try {

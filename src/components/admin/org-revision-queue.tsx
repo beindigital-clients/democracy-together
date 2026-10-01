@@ -15,6 +15,7 @@ import {
   useFailureFeedback,
 } from '@/components/admin/action-feedback';
 import { formatLongDate } from '@/lib/publications';
+import { Badge } from '@/components/ui/badge';
 
 // REVIEW OF ORGANIZATION ENTRIES (F-21, accounts workstream).
 //
@@ -51,9 +52,9 @@ function Row({
       >
         {label}
         {changed ? (
-          <span className="ms-2 rounded-pill border border-accent-edge bg-accent-tint px-1.5 font-mono text-[10px] uppercase text-accent-text">
+          <Badge variant="accent" size="label" className="ms-2">
             {t('modChanged')}
-          </span>
+          </Badge>
         ) : null}
       </th>
       <td className="max-w-[18rem] py-2 pe-4 wrap-anywhere text-ink-soft">

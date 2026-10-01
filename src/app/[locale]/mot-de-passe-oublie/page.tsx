@@ -20,6 +20,7 @@ import {
   PASSWORD_MIN_LENGTH,
   passwordRefusal,
 } from '@convex/lib/passwordPolicy';
+import { Button } from '@/components/ui/button';
 
 // ONE QUESTION PER SCREEN: the address, then the code, then the new
 // password. The code and the new password used to share one form, which
@@ -261,22 +262,24 @@ export default function ForgotPasswordPage() {
           <SubmitButton pending={pending}>{t('resetCodeCta')}</SubmitButton>
         </form>
         <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="inline"
             onClick={onResend}
             disabled={pending}
-            className="text-sm text-accent-text hover:underline disabled:opacity-50"
           >
             {t('resendCode')}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="link"
+            size="inline"
             onClick={onChangeEmail}
             disabled={pending}
-            className="text-sm text-accent-text hover:underline disabled:opacity-50"
           >
             {t('changeEmail')}
-          </button>
+          </Button>
         </div>
         <p className="mt-6 text-sm text-ink-soft">{t('codeHelp')}</p>
         <p className="mt-3 text-sm text-ink-soft">

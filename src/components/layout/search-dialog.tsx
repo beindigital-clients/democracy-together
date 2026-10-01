@@ -8,6 +8,7 @@ import { api } from '@convex/_generated/api';
 import { Link, useRouter } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { hitFlag, hitLangAttrs, hitMeta } from '@/lib/search';
+import { Button } from '@/components/ui/button';
 
 // Search in a modal (command palette) — avoids a page jump: open with
 // ⌘K / Ctrl+K or a click, search live (reactive Convex query) and
@@ -235,16 +236,17 @@ export function SearchDialog() {
 
   return (
     <>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
+        variant="subtle"
+        size="icon-md"
         onClick={() => setOpen(true)}
         aria-label={tn('search')}
         aria-haspopup="dialog"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
       >
-        <Search className="h-[18px] w-[18px]" aria-hidden="true" />
-      </button>
+        <Search className="size-[18px]" aria-hidden="true" />
+      </Button>
 
       {open ? (
         <div className="fixed inset-0 z-[60]">

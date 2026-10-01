@@ -26,6 +26,13 @@ import {
 } from '@/lib/notification-kind';
 import { relativeTime } from '@/lib/relative-time';
 import { cn } from '@/lib/utils';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item';
 
 // ONE NOTIFICATION, as the bell's panel and the notifications page both show
 // it: an icon for its kind, its sentence, when it happened, and — unread —
@@ -100,61 +107,57 @@ export function NotificationRow({
   }).format(n.createdAt);
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(n)}
+    // An unread row calls for attention (accent variant); on the page, the
+    // read ones keep a frame (outline), in the bell's panel they have none.
+    <Item
+      asChild
+      variant={n.read ? (comfortable ? 'outline' : 'default') : 'accent'}
+      size={comfortable ? 'default' : 'sm'}
       className={cn(
-        'flex w-full items-start gap-3 text-start transition-colors',
-        comfortable
-          ? 'rounded-md border px-4 py-3.5'
-          : 'rounded-sm px-2.5 py-2.5',
-        n.read
-          ? comfortable
-            ? 'border-line bg-surface hover:border-line-strong hover:bg-surface-2'
-            : 'hover:bg-surface-2'
-          : comfortable
-            ? 'border-accent-edge bg-accent-tint/60 hover:bg-accent-tint'
-            : 'bg-accent-tint/60 hover:bg-accent-tint',
+        'w-full flex-nowrap items-start gap-3',
+        comfortable ? 'px-4 py-3.5' : 'rounded-sm px-2.5 py-2.5',
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          'grid shrink-0 place-items-center rounded-full',
-          comfortable ? 'h-10 w-10' : 'h-9 w-9',
-          n.read
-            ? 'bg-surface-2 text-muted'
-            : 'bg-accent-tint text-accent-text',
-        )}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span
+      <button type="button" onClick={() => onOpen(n)}>
+        <ItemMedia
+          aria-hidden="true"
           className={cn(
-            'block wrap-anywhere leading-snug',
-            comfortable ? 'text-[15px]' : 'text-sm',
-            n.read ? 'text-ink-soft' : 'font-medium text-ink',
+            'rounded-full',
+            comfortable ? 'size-10' : 'size-9',
+            n.read
+              ? 'bg-surface-2 text-muted'
+              : 'bg-accent-tint text-accent-text',
           )}
         >
-          {t.has(n.titleKey) ? tt(n.titleKey, n.params) : t('unknown')}
-          {n.read ? null : <span className="sr-only"> {t('unreadMark')}</span>}
-        </span>
-        <time
-          dateTime={new Date(n.createdAt).toISOString()}
-          title={exact}
-          className="mt-0.5 block font-mono text-[11px] text-muted"
-        >
-          {relativeTime(n.createdAt, now, locale)}
-        </time>
-      </span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          'mt-3 h-2 w-2 shrink-0 rounded-full',
-          n.read ? 'bg-transparent' : 'bg-accent',
-        )}
-      />
-    </button>
+          <Icon className="size-4" />
+        </ItemMedia>
+        <ItemContent className="gap-0.5">
+          <ItemTitle
+            className={cn(
+              'block wrap-anywhere',
+              comfortable && 'text-[15px]',
+              n.read && 'font-normal text-ink-soft',
+            )}
+          >
+            {t.has(n.titleKey) ? tt(n.titleKey, n.params) : t('unknown')}
+            {n.read ? null : (
+              <span className="sr-only"> {t('unreadMark')}</span>
+            )}
+          </ItemTitle>
+          <ItemDescription className="font-mono text-[11px]">
+            <time dateTime={new Date(n.createdAt).toISOString()} title={exact}>
+              {relativeTime(n.createdAt, now, locale)}
+            </time>
+          </ItemDescription>
+        </ItemContent>
+        <span
+          aria-hidden="true"
+          className={cn(
+            'mt-3 size-2 shrink-0 rounded-full',
+            n.read ? 'bg-transparent' : 'bg-accent',
+          )}
+        />
+      </button>
+    </Item>
   );
 }

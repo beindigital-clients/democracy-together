@@ -58,7 +58,7 @@ import {
   TextField,
   TextareaField,
 } from '@/components/ui/field';
-import { ComboboxField, SelectMenuField } from '@/components/ui/choice-fields';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { uploadWithProgress, type UploadProgress } from '@/lib/upload';
@@ -71,6 +71,8 @@ import {
   toggleIn,
   type ProfileDraft,
 } from './profile-draft';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 // "MON PROFIL" SCREEN (member area): identity, photo, interests, links,
 // privacy, notifications — then language, blocked members, data export.
@@ -330,10 +332,10 @@ function ProfilePreview({
               <UserRound className="h-8 w-8" />
             </span>
           )}
-          <span className="mb-1 inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-ink-soft">
-            <VisIcon aria-hidden="true" className="h-3.5 w-3.5" />
+          <Badge size="sm" className="mb-1 gap-1.5">
+            <VisIcon aria-hidden="true" />
             {vocabulary(t, 'visibilityTitles.', draft.visibility)}
-          </span>
+          </Badge>
         </div>
         <h2
           id="profil-apercu"
@@ -366,12 +368,9 @@ function ProfilePreview({
         {draft.themes.length > 0 ? (
           <ul className="mt-3 flex flex-wrap gap-1">
             {draft.themes.map((slug) => (
-              <li
-                key={slug}
-                className="rounded-pill border border-line-strong px-2 py-0.5 text-[11px] text-ink-soft"
-              >
-                {themeLabels[slug] ?? slug}
-              </li>
+              <Badge asChild key={slug} variant="outline" size="sm">
+                <li>{themeLabels[slug] ?? slug}</li>
+              </Badge>
             ))}
           </ul>
         ) : null}
@@ -719,7 +718,7 @@ function ProfileForm({
                 key={i}
                 className="grid gap-3 rounded-sm border border-line bg-paper/40 p-3 @lg:grid-cols-[10rem_minmax(0,1fr)_auto] @lg:items-end"
               >
-                <SelectMenuField
+                <SelectField
                   label={t('linkKind')}
                   value={link.kind}
                   dir={dir}
@@ -1008,11 +1007,9 @@ function PhotoSection({ me, exists }: { me: Me; exists: boolean }) {
               ) : null}
             </div>
             <label className="-mx-2 flex min-h-11 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-sm text-ink hover:bg-surface-2">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-[var(--accent)]"
+              <Checkbox
                 checked={crop}
-                onChange={() => setCrop((c) => !c)}
+                onCheckedChange={() => setCrop((c) => !c)}
               />
               {t('photoCrop')}
             </label>
@@ -1063,7 +1060,7 @@ function LanguagePreference({ current }: { current: string | null }) {
       <SectionTitle id="profil-langue" icon={Globe} lead={t('languageHint')}>
         {t('sectionPreferences')}
       </SectionTitle>
-      <SelectMenuField
+      <SelectField
         className="max-w-xs"
         label={t('language')}
         value={value}

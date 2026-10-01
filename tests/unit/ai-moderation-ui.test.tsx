@@ -4,6 +4,7 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
+import { chooseOption, optionLabels } from './_choice';
 
 // THE AI-ASSISTED MODERATION SCREENS — do they render, and do
 // they tell the truth?
@@ -271,14 +272,14 @@ describe("Panneau d'administration de la modération IA", () => {
   it("l'aide du mode suit le mode choisi, et l'avertissement n'apparaît qu'en auto", () => {
     showPanel();
     const mode = screen.getByLabelText('Mode');
-    expect(mode.value).toBe('off');
+    expect(mode.textContent).toBe('Désactivé');
     expect(screen.getByText(/La file reste entièrement humaine/)).toBeTruthy();
     expect(screen.queryByText(/sans qu'un humain les ait lus/)).toBeNull();
 
-    fireEvent.change(mode, { target: { value: 'shadow' } });
+    chooseOption(mode, 'Observation');
     expect(screen.getByText(/rien ne s'affiche dans la file/)).toBeTruthy();
 
-    fireEvent.change(mode, { target: { value: 'auto' } });
+    chooseOption(mode, 'Auto-publication');
     // The warning is carried by the mode itself, at the moment of
     // choosing it — not relegated to the documentation.
     expect(screen.getByText(/sans qu'un humain les ait lus/)).toBeTruthy();
@@ -287,15 +288,20 @@ describe("Panneau d'administration de la modération IA", () => {
   it('propose les quatre modes et les trois sévérités, traduits', () => {
     showPanel();
     const mode = screen.getByLabelText('Mode');
-    expect(
-      [...mode.querySelectorAll('option')].map((o) => o.textContent),
-    ).toEqual(['Désactivé', 'Observation', 'Assistance', 'Auto-publication']);
+    expect(optionLabels(mode)).toEqual([
+      'Désactivé',
+      'Observation',
+      'Assistance',
+      'Auto-publication',
+    ]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un critère' }));
     const severite = screen.getByLabelText('Sévérité');
-    expect(
-      [...severite.querySelectorAll('option')].map((o) => o.textContent),
-    ).toEqual(['Bloquant', 'Avertissement', 'Information']);
+    expect(optionLabels(severite)).toEqual([
+      'Bloquant',
+      'Avertissement',
+      'Information',
+    ]);
   });
 
   it('le périmètre liste les types de publication, décochés par défaut', () => {
@@ -306,7 +312,11 @@ describe("Panneau d'administration de la modération IA", () => {
     // (`library.types.*`), not from the slug: "note" displays as "Note de
     // synthèse". It is the same dictionary as the moderation queue.
     for (const type of ['Rapport', 'Note de synthèse']) {
-      expect(screen.getByLabelText<HTMLInputElement>(type).checked).toBe(false);
+      expect(
+        screen
+          .getByRole('checkbox', { name: type })
+          .getAttribute('aria-checked'),
+      ).toBe('false');
     }
   });
 
@@ -345,11 +355,12 @@ describe("Panneau d'administration de la modération IA", () => {
     expect(
       screen.getByRole('heading', { name: 'AI-assisted moderation' }),
     ).toBeTruthy();
-    expect(
-      [...screen.getByLabelText('Mode').querySelectorAll('option')].map(
-        (o) => o.textContent,
-      ),
-    ).toEqual(['Disabled', 'Observation', 'Assist', 'Auto-publish']);
+    expect(optionLabels(screen.getByLabelText('Mode'))).toEqual([
+      'Disabled',
+      'Observation',
+      'Assist',
+      'Auto-publish',
+    ]);
     expect(screen.getByText('Inactive')).toBeTruthy();
     expect(screen.getByText('Safety floor')).toBeTruthy();
     expect(screen.getByText('Test bench')).toBeTruthy();

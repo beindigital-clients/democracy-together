@@ -6,6 +6,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { formatLongDate } from '@/lib/publications';
 import { cn } from '@/lib/utils';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
 // The member's library submissions (F-32), all statuses — shared by the
 // dashboard (the latest few) and "Mes publications" (all of them).
@@ -23,15 +24,12 @@ export type MyPublication = {
   reviewNotes: string | null;
 };
 
-// Status badges, with the theme tokens (contrast held in both themes by the
-// barometer shades). The status is WRITTEN in the badge: the colour only
-// repeats it.
-const STATUS_BADGE: Record<string, string> = {
-  published:
-    'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
-  pending:
-    'border-[color-mix(in_srgb,var(--color-bar-4)_48%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-4)_10%,transparent)] text-bar-4-ink',
-  draft: 'border-line-strong bg-surface-2 text-muted',
+// Status badges (shadcn `Badge`, barometer tones whose contrast holds in both
+// themes). The status is WRITTEN in the badge: the colour only repeats it.
+const STATUS_BADGE: Record<string, BadgeVariant> = {
+  published: 'good',
+  pending: 'pending',
+  draft: 'default',
 };
 
 const TH =
@@ -93,14 +91,13 @@ export function PublicationsTable({
                 ) : null}
               </td>
               <td className="px-4 py-3">
-                <span
-                  className={cn(
-                    'inline-block whitespace-nowrap rounded-pill border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.06em]',
-                    STATUS_BADGE[p.status] ?? STATUS_BADGE.draft,
-                  )}
+                <Badge
+                  variant={STATUS_BADGE[p.status] ?? STATUS_BADGE.draft}
+                  size="label"
+                  className="whitespace-nowrap"
                 >
                   {vocabulary(t, 'status.', p.status)}
-                </span>
+                </Badge>
               </td>
               <td className="hidden whitespace-nowrap px-4 py-3 font-mono text-xs text-muted md:table-cell">
                 {formatLongDate(p.submittedAt, locale)}

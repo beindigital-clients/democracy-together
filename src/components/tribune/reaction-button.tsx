@@ -7,6 +7,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { Toggle, toggleVariants } from '@/components/ui/toggle';
 
 // Inline "thumbs up" pictogram (no extra icon dependency).
 // Declared OUTSIDE the component: a function created on each render is a new
@@ -27,8 +28,9 @@ function Thumb() {
 
 // "Support" reaction (like a like) on a post. Client island:
 // reactive count via useQuery(reactionState). Signed out -> link to
-// sign in. Signed in -> toggle button (toggleReaction); the `mine` state
-// drives the label (Soutenir / Soutenu) and the active style.
+// sign in. Signed in -> shadcn `Toggle` (toggleReaction): `aria-pressed`
+// and the active style follow the `mine` state, as does the label
+// (Soutenir / Soutenu).
 export function ReactionButton({ postId }: { postId: string }) {
   const t = useTranslations('tribune');
   const { isAuthenticated } = useConvexAuth();
@@ -46,7 +48,10 @@ export function ReactionButton({ postId }: { postId: string }) {
     return (
       <Link
         href="/connexion"
-        className="inline-flex items-center gap-2 rounded-pill border border-line-strong px-3.5 py-1.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
+        className={cn(
+          toggleVariants({ variant: 'outline', size: 'sm' }),
+          'rounded-pill px-3.5',
+        )}
       >
         <Thumb />
         <span>{t('react')}</span>
@@ -72,17 +77,13 @@ export function ReactionButton({ postId }: { postId: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Toggle
+      variant="outline"
+      size="sm"
+      pressed={mine}
+      onPressedChange={() => void onClick()}
       disabled={pending || state === undefined}
-      aria-pressed={mine}
-      className={cn(
-        'inline-flex items-center gap-2 rounded-pill border px-3.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-60',
-        mine
-          ? 'border-accent-edge bg-accent-tint text-accent-text hover:bg-accent-tint/70'
-          : 'border-line-strong text-ink-soft hover:bg-surface-2 hover:text-ink',
-      )}
+      className="rounded-pill px-3.5"
     >
       <Thumb />
       <span>{mine ? t('reacted') : t('react')}</span>
@@ -92,6 +93,6 @@ export function ReactionButton({ postId }: { postId: string }) {
       <span className="font-mono text-[12px]">
         {t('reactionsCount', { count })}
       </span>
-    </button>
+    </Toggle>
   );
 }

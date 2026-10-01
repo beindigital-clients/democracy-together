@@ -1,6 +1,7 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { resetProgrammes } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
+import { chooseOption } from './_fields';
 
 // F-59 — Mentoring, end to end: a mentor and a mentee maintain their
 // profile; the coordinator reads the suggestions (explained score) and proposes the
@@ -33,14 +34,14 @@ async function fillProfile(
   await card.getByRole('button', { name: 'Créer ce profil' }).click();
   const form = page.getByRole('form', { name: region });
   await form.getByLabel('Nom affiché').fill(name);
-  await form.getByLabel('Région').selectOption({ label: 'Afrique de l’Ouest' });
+  await chooseOption(form.getByLabel('Région'), 'Afrique de l’Ouest');
   for (const theme of [
     'Participation citoyenne',
     'Gouvernance numérique',
     'Lutte anti-corruption',
   ])
-    await form.getByLabel(theme).check();
-  await form.getByLabel('Français').check();
+    await form.getByRole('checkbox', { name: theme, exact: true }).check();
+  await form.getByRole('checkbox', { name: 'Français', exact: true }).check();
   await form
     .getByLabel(goalsLabel)
     .fill('Construire un observatoire local de la participation citoyenne.');
@@ -71,9 +72,10 @@ test.describe
       mentorName,
       'Ce que je peux apporter',
     );
-    await mentorForm
-      .getByLabel('Binômes simultanés acceptés')
-      .selectOption('5');
+    await chooseOption(
+      mentorForm.getByLabel('Binômes simultanés acceptés'),
+      '5',
+    );
     await mentorForm
       .getByRole('button', { name: 'Enregistrer le profil' })
       .click();

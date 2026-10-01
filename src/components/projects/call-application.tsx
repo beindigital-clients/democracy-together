@@ -14,10 +14,10 @@ import { Button } from '@/components/ui/button';
 import {
   Field,
   FormError,
-  SelectField,
   TextField,
   TextareaField,
 } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { vocabulary } from '@/i18n/vocabulary';
 import { uploadWithProgress } from '@/lib/upload';
 import { isMember } from '@/lib/roles';
@@ -212,14 +212,12 @@ function Draft({
           label={t('fieldLanguage')}
           id="ca-language"
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-        >
-          {call.languages.map((l) => (
-            <option key={l} value={l}>
-              {vocabulary(tl, 'langs.', l)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setLanguage}
+          options={call.languages.map((l) => ({
+            value: l,
+            label: vocabulary(tl, 'langs.', l),
+          }))}
+        />
         <FormError>{error}</FormError>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={pending}>

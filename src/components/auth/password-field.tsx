@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Field, type FieldShellProps } from '@/components/ui/field';
+import { Button } from '@/components/ui/button';
 
 function EyeIcon() {
   return (
@@ -16,6 +17,7 @@ function EyeIcon() {
       stroke="currentColor"
       strokeWidth="1.7"
       aria-hidden="true"
+      className="size-[18px]"
     >
       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
       <circle cx="12" cy="12" r="3" />
@@ -33,6 +35,7 @@ function EyeOffIcon() {
       stroke="currentColor"
       strokeWidth="1.7"
       aria-hidden="true"
+      className="size-[18px]"
     >
       <path d="M3 3l18 18" />
       <path d="M10.6 10.6a3 3 0 0 0 4.2 4.2" />
@@ -73,15 +76,17 @@ export function PasswordField({
             type={shown ? 'text' : 'password'}
             className={cn('pe-11', controlClassName)}
           />
-          <button
+          <Button
             type="button"
+            variant="subtle"
+            size="icon-lg"
             onClick={() => setShown((s) => !s)}
             aria-label={shown ? t('hidePassword') : t('showPassword')}
             aria-pressed={shown}
-            className="absolute inset-y-0 end-0 grid w-11 place-items-center rounded-e-sm text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+            className="absolute inset-y-0 end-0 h-auto rounded-s-none rounded-e-sm focus-visible:outline-offset-[-2px]"
           >
             {shown ? <EyeOffIcon /> : <EyeIcon />}
-          </button>
+          </Button>
         </div>
       )}
     </Field>

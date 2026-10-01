@@ -16,6 +16,8 @@ import {
   useDateFormat,
   useProgrammeError,
 } from '@/components/programmes/shared';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // Review of Youth profiles and their programme applications (F-58) —
 // moderator rank, like the anonymous queue at /admin/jeunes.
@@ -60,9 +62,6 @@ export default function AdminYouthProfiles() {
     }
   }
 
-  const tabClass = (on: boolean) =>
-    `min-h-11 rounded px-3 text-sm ${on ? 'bg-surface-2 text-ink' : 'text-ink-soft'}`;
-
   return (
     <div>
       <p className="text-sm">
@@ -71,34 +70,29 @@ export default function AdminYouthProfiles() {
         </Link>
       </p>
       <h1 className="mt-2 font-display text-3xl">{t('adminTitle')}</h1>
-      <div
-        className="mt-4 flex flex-wrap gap-1 rounded-md border border-line p-0.5"
-        role="group"
-        aria-label={t('adminTitle')}
-      >
-        <button
-          type="button"
-          aria-pressed={tab === 'applications'}
-          className={tabClass(tab === 'applications')}
-          onClick={() => setTab('applications')}
+      {/* The view switcher, and the filter of the applications view beside
+          it — outside the radio group, which only holds the two views. */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <ToggleGroup
+          type="single"
+          value={tab}
+          onValueChange={(v) => {
+            if (v === 'applications' || v === 'profiles') setTab(v);
+          }}
+          aria-label={t('adminTitle')}
         >
-          {t('adminTabApplications')}
-        </button>
-        <button
-          type="button"
-          aria-pressed={tab === 'profiles'}
-          className={tabClass(tab === 'profiles')}
-          onClick={() => setTab('profiles')}
-        >
-          {t('adminTabProfiles')}
-        </button>
+          <ToggleGroupItem value="applications">
+            {t('adminTabApplications')}
+          </ToggleGroupItem>
+          <ToggleGroupItem value="profiles">
+            {t('adminTabProfiles')}
+          </ToggleGroupItem>
+        </ToggleGroup>
         {tab === 'applications' ? (
           <label className="ms-auto flex min-h-11 items-center gap-2 px-3 text-sm text-ink-soft">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-accent"
+            <Checkbox
               checked={pendingOnly}
-              onChange={(e) => setPendingOnly(e.target.checked)}
+              onCheckedChange={(checked) => setPendingOnly(checked === true)}
             />
             {t('adminPendingOnly')}
           </label>

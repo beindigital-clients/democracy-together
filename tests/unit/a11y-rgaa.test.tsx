@@ -1,6 +1,12 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  within,
+} from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
 import { StatusMessage } from '@/components/a11y/status-message';
@@ -8,10 +14,21 @@ import { contentLangAttrs, textAttrs } from '@/i18n/content-lang';
 import { adminScreenKey } from '@/components/admin/admin-nav';
 import { RegionGlobe } from '@/components/map/region-globe';
 import { SolidarityEstimator } from '@/components/membership/solidarity-estimator';
+import { PublicationSubmitForm } from '@/components/library/publication-submit-form';
 import { getMembershipContent } from '@/lib/membership-content';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '@/components/ui/native-select';
 import { getLegalContent } from '@/lib/legal-content';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,10 +43,12 @@ afterEach(cleanup);
 // The estimator reads the published rate scale (F-27) via `useQuery`, outside any
 // ConvexProvider here: we simulate an UNPUBLISHED scale, which makes the estimate
 // indicative — the choice cards, the only target, are the same in both
-// cases.
+// cases. The publication form only needs its mutations to exist: nothing is
+// submitted here.
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useQuery: () => undefined,
+  useMutation: () => () => Promise.resolve(null),
 }));
 
 // The estimator translates its payment notices (`payments`): it needs the
@@ -140,11 +159,12 @@ describe('globe : rotation automatique sans bouton pause', () => {
 
 describe('estimateur solidaire : sélection et focus visibles (RGAA 3.1, 10.7)', () => {
   it('l’option choisie porte une coche, pas seulement une couleur', () => {
-    const { content, container } = renderEstimator();
+    const { content } = renderEstimator();
+    // The cards are the radios themselves (shadcn RadioGroup).
     const coches = () =>
-      [...container.querySelectorAll('label')].filter((l) =>
-        l.querySelector('svg[aria-hidden="true"]'),
-      );
+      screen
+        .getAllByRole('radio')
+        .filter((r) => r.querySelector('svg[aria-hidden="true"]'));
     // One checkmark per group: income and type.
     expect(coches()).toHaveLength(2);
     const autre = screen.getByRole('radio', {
@@ -152,16 +172,67 @@ describe('estimateur solidaire : sélection et focus visibles (RGAA 3.1, 10.7)',
     });
     fireEvent.click(autre);
     expect(coches()).toHaveLength(2);
-    expect(autre.closest('label')?.querySelector('svg')).not.toBeNull();
+    expect(autre.getAttribute('aria-checked')).toBe('true');
+    expect(autre.querySelector('svg')).not.toBeNull();
   });
 
-  it('la carte (et non le bouton radio masqué) porte le style de focus', () => {
-    renderEstimator();
+  it('la carte EST le bouton radio : le contour de focus est le sien', () => {
+    const { content } = renderEstimator();
     const radio = screen.getAllByRole('radio')[0];
-    expect(radio.className).toContain('sr-only');
-    expect(radio.closest('label')?.className).toContain(
-      'has-[:focus-visible]:outline',
+    // Nothing hidden under a drawing any more: the focused element is the
+    // card itself, which keeps the global outline (RGAA 10.7).
+    expect(radio.className).not.toContain('sr-only');
+    expect(radio.className).not.toContain('outline-none');
+    expect(radio.textContent).toContain(content.incomes[0].desc);
+  });
+});
+
+describe('dépôt de publication : chaque pastille EST le contrôle (RGAA 3.1, 10.7, 11.5)', () => {
+  function renderSubmitForm() {
+    render(
+      <NextIntlClientProvider locale="fr" messages={fr}>
+        <PublicationSubmitForm />
+      </NextIntlClientProvider>,
     );
+  }
+
+  it('langues : des cases à cocher regroupées sous leur légende, cochées par une coche', () => {
+    renderSubmitForm();
+    const langues = screen.getByRole('group', { name: 'Langues' });
+    const francais = within(langues).getByRole('checkbox', {
+      name: 'Français',
+    });
+    const anglais = within(langues).getByRole('checkbox', { name: 'Anglais' });
+    expect(francais.getAttribute('aria-checked')).toBe('true');
+    expect(francais.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(anglais.getAttribute('aria-checked')).toBe('false');
+    expect(anglais.querySelector('svg')).toBeNull();
+
+    fireEvent.click(anglais);
+    expect(anglais.getAttribute('aria-checked')).toBe('true');
+    expect(anglais.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    fireEvent.click(francais);
+    expect(francais.getAttribute('aria-checked')).toBe('false');
+    // Nothing hidden under a drawing: the focused element is the chip, which
+    // keeps the global outline.
+    expect(anglais.className).not.toContain('sr-only');
+    expect(anglais.className).not.toContain('outline-none');
+  });
+
+  it('accès : un groupe radio nommé par sa légende, une seule pastille cochée', () => {
+    renderSubmitForm();
+    const acces = screen.getByRole('radiogroup', { name: 'Accès' });
+    const ouvert = within(acces).getByRole('radio', { name: 'Accès ouvert' });
+    const membres = within(acces).getByRole('radio', {
+      name: 'Réservé aux membres',
+    });
+    expect(ouvert.getAttribute('aria-checked')).toBe('true');
+    expect(ouvert.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+
+    fireEvent.click(membres);
+    expect(membres.getAttribute('aria-checked')).toBe('true');
+    expect(ouvert.getAttribute('aria-checked')).toBe('false');
+    expect(ouvert.querySelector('svg')).toBeNull();
   });
 });
 
@@ -171,12 +242,20 @@ describe('champs de formulaire : focus et limite visibles (RGAA 10.7, 3.3)', () 
       <div>
         <Input aria-label="a" />
         <Textarea aria-label="b" />
-        <Select aria-label="c">
-          <option>x</option>
+        <Select>
+          <SelectTrigger aria-label="c">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="x">x</SelectItem>
+          </SelectContent>
         </Select>
+        <NativeSelect aria-label="d">
+          <NativeSelectOption>x</NativeSelectOption>
+        </NativeSelect>
       </div>,
     );
-    for (const nom of ['a', 'b', 'c']) {
+    for (const nom of ['a', 'b', 'c', 'd']) {
       const el = screen.getByLabelText(nom);
       expect(el.className, nom).not.toContain('outline-none');
       expect(el.className, nom).toContain('border-line-field');

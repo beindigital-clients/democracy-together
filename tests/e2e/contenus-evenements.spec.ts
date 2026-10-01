@@ -5,6 +5,7 @@ import {
   isEventRegistered,
 } from './_helpers';
 import { SESSIONS } from './_sessions';
+import { chooseOption } from './_fields';
 
 // "CONTENUS" WORKSTREAM — F-52, F-54, F-62: the agenda's main journey.
 //
@@ -64,17 +65,22 @@ test.describe('éditeur', () => {
     await editor
       .getByLabel('Chapô (présentation courte)')
       .fill('Un webinaire créé depuis le back-office par la suite E2E.');
-    // The English translation, to check the language indicator.
-    await editor.getByRole('button', { name: /Anglais/ }).click();
+    // The English translation, to check the language indicator. The
+    // editing languages are a radio group (shadcn ToggleGroup).
+    await editor.getByRole('radio', { name: /Anglais/ }).click();
     await editor
       .getByLabel('Titre', { exact: true })
       .fill(`E2E webinar ${stamp}`);
-    await editor.getByRole('button', { name: /Français/ }).click();
+    await editor.getByRole('radio', { name: /Français/ }).click();
 
     await editor.getByLabel('Date de début').fill('2030-03-15');
     await editor.getByLabel('Heure de début (facultative)').fill('14:00');
     await editor.getByLabel('Heure de fin (facultative)').fill('15:30');
-    await editor.getByLabel('Fuseau horaire du lieu').fill('Europe/Paris');
+    // A searchable list of the IANA zones, no longer a free-text field.
+    await chooseOption(
+      editor.getByLabel('Fuseau horaire du lieu'),
+      'Europe/Paris',
+    );
     await editor.getByLabel('Lien de visioconférence').fill(VISIO);
     await editor.getByRole('button', { name: 'Enregistrer' }).click();
 

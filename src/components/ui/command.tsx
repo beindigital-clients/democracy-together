@@ -20,6 +20,7 @@ function Command({
 }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
     <CommandPrimitive
+      data-slot="command"
       className={cn(
         'flex h-full w-full flex-col overflow-hidden rounded-md bg-surface text-ink',
         className,
@@ -34,11 +35,17 @@ function CommandInput({
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
-    <div className="flex items-center gap-2 border-b border-line px-3">
+    <div
+      data-slot="command-input-wrapper"
+      className="flex items-center gap-2 border-b border-line px-3"
+    >
       <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-muted" />
       <CommandPrimitive.Input
+        data-slot="command-input"
         className={cn(
-          'flex h-11 w-full min-w-0 bg-transparent py-3 text-sm text-ink placeholder:text-muted focus-visible:-outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+          // 16 px below `md`: iOS zooms the page on focusing a field set
+          // smaller, and this one takes focus as soon as the list opens.
+          'flex h-11 w-full min-w-0 bg-transparent py-3 text-base text-ink md:text-sm placeholder:text-muted focus-visible:-outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
           className,
         )}
         {...props}
@@ -53,6 +60,7 @@ function CommandList({
 }: React.ComponentProps<typeof CommandPrimitive.List>) {
   return (
     <CommandPrimitive.List
+      data-slot="command-list"
       // A list that scrolls must be reachable by keyboard
       // (`scrollable-region-focusable`), as for the dropdown menus: the
       // arrows already scroll it from the search field.
@@ -71,6 +79,7 @@ function CommandEmpty(
 ) {
   return (
     <CommandPrimitive.Empty
+      data-slot="command-empty"
       className="px-3 py-6 text-center text-sm text-muted"
       {...props}
     />
@@ -83,6 +92,7 @@ function CommandGroup({
 }: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
+      data-slot="command-group"
       className={cn(
         'text-ink [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.08em] [&_[cmdk-group-heading]]:text-muted',
         className,
@@ -98,6 +108,7 @@ function CommandSeparator({
 }: React.ComponentProps<typeof CommandPrimitive.Separator>) {
   return (
     <CommandPrimitive.Separator
+      data-slot="command-separator"
       className={cn('-mx-1 my-1 h-px bg-line', className)}
       {...props}
     />
@@ -110,6 +121,7 @@ function CommandItem({
 }: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
     <CommandPrimitive.Item
+      data-slot="command-item"
       className={cn(
         'relative flex min-h-10 cursor-pointer select-none items-center gap-2 rounded-xs px-2 py-2 text-sm text-ink-soft data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-surface-2 data-[selected=true]:text-ink [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
         className,

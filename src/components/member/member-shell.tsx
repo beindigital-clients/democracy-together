@@ -119,12 +119,13 @@ function Sidebar() {
 
       {/* Small screens: the navigation folds into this button. The current
           screen is named on it, so the folded menu still says where one is. */}
-      <button
+      <Button
         type="button"
+        variant="outline"
         aria-expanded={open}
         aria-controls={NAV_ID}
         onClick={() => setOpenFor(open ? null : pathname)}
-        className="flex min-h-12 w-full items-center gap-3 rounded-md border border-line-strong bg-surface px-3 py-2 text-start text-sm font-medium text-ink transition-colors hover:bg-surface-2 lg:hidden"
+        className="min-h-12 w-full justify-start gap-3 whitespace-normal rounded-md px-3 py-2 text-start lg:hidden"
       >
         <PersonAvatar
           name={name}
@@ -139,15 +140,15 @@ function Sidebar() {
             </span>
           ) : null}
         </span>
-        <Menu aria-hidden="true" className="h-[18px] w-[18px] text-muted" />
+        <Menu aria-hidden="true" className="size-[18px] text-muted" />
         <ChevronDown
           aria-hidden="true"
           className={cn(
-            'h-4 w-4 text-muted transition-transform',
+            'size-4 text-muted transition-transform',
             open && 'rotate-180',
           )}
         />
-      </button>
+      </Button>
 
       <div className={cn('space-y-5', open ? 'block' : 'hidden lg:block')}>
         <MemberNav

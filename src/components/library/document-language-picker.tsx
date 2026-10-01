@@ -9,6 +9,7 @@ import { routing, type Locale } from '@/i18n/routing';
 import { LOCALE_ENDONYMS, direction } from '@/i18n/direction';
 import { translationErrorSuffix } from '@/lib/article-translation';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Button } from '@/components/ui/button';
 
 // CHOOSING THE DOCUMENT LANGUAGE.
 //
@@ -100,19 +101,19 @@ export function DocumentLanguagePicker({
                   {label}
                 </span>
               ) : (
-                <button
+                // The current language only gets here while busy, hence
+                // disabled: the button needs no "current" look of its own.
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   lang={l}
                   dir={direction(l)}
                   disabled={busy}
                   aria-busy={busy}
                   aria-current={isCurrent ? 'true' : undefined}
                   onClick={() => (isReady ? goTo(l) : void run(l))}
-                  className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[13px] transition-colors disabled:opacity-60 ${
-                    isCurrent
-                      ? 'border-accent-edge bg-accent-tint font-medium text-accent-text'
-                      : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
-                  }`}
+                  className="gap-1.5"
                 >
                   {label}
                   {isReady ? (
@@ -129,7 +130,7 @@ export function DocumentLanguagePicker({
                       ? t('docReady', { language: label })
                       : t('docPrepare', { language: label })}
                   </span>
-                </button>
+                </Button>
               )}
             </li>
           );

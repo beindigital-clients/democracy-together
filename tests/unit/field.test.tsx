@@ -6,12 +6,13 @@ import messages from '@/messages/fr.json';
 import {
   Field,
   FormError,
-  SelectField,
   TextField,
   TextareaField,
 } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { PasswordField } from '@/components/auth/password-field';
 import { OtpField } from '@/components/auth/otp-field';
+import { chooseOption } from './_choice';
 
 // No global setupFiles in this project: without this cleanup, renders
 // accumulate from one test to the next and labels become ambiguous.
@@ -129,17 +130,43 @@ describe('Champ — valeur contrôlée', () => {
       <SelectField
         label="Axe de travail"
         value="gouvernance"
-        onChange={(e) => seen.push(e.target.value)}
-      >
-        <option value="gouvernance">Gouvernance</option>
-        <option value="elections">Élections</option>
-      </SelectField>,
+        onValueChange={(v) => seen.push(v)}
+        options={[
+          { value: 'gouvernance', label: 'Gouvernance' },
+          { value: 'elections', label: 'Élections' },
+        ]}
+      />,
     );
-    const select = screen.getByLabelText<HTMLSelectElement>('Axe de travail');
-    expect(select.tagName).toBe('SELECT');
-    expect(select.value).toBe('gouvernance');
-    fireEvent.change(select, { target: { value: 'elections' } });
+    // The shadcn select: a button named by the field's label, showing the
+    // current choice.
+    const select = screen.getByLabelText('Axe de travail');
+    expect(select.getAttribute('role')).toBe('combobox');
+    expect(select.textContent).toContain('Gouvernance');
+    chooseOption(select, 'Élections');
     expect(seen).toEqual(['elections']);
+  });
+
+  it('liste déroulante : le choix vide est soumis comme une chaîne vide', () => {
+    // A GET form (the search page) reads the value from the URL: the
+    // "any" choice must reach it as `type=`, as a native select sent it —
+    // not as the sentinel Radix needs internally.
+    const { container } = render(
+      <form>
+        <SelectField
+          label="Type"
+          name="type"
+          defaultValue=""
+          emptyLabel="Indifférent"
+          options={[{ value: 'rapport', label: 'Rapport' }]}
+        />
+      </form>,
+    );
+    const form = container.querySelector('form')!;
+    expect(new FormData(form).get('type')).toBe('');
+    chooseOption(screen.getByLabelText('Type'), 'Rapport');
+    expect(new FormData(form).get('type')).toBe('rapport');
+    chooseOption(screen.getByLabelText('Type'), 'Indifférent');
+    expect(new FormData(form).get('type')).toBe('');
   });
 });
 

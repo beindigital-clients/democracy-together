@@ -15,6 +15,7 @@ import { Link } from '@/i18n/navigation';
 import { isRateLimited } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Badge } from '@/components/ui/badge';
 
 // "Follow / message / block" buttons on a profile page. Client island
 // placed in a SERVER (indexable) page: nothing is shown to an anonymous
@@ -80,9 +81,7 @@ export function ProfileActions({
     <div>
       <div className="flex flex-wrap items-center gap-2">
         {rel.followsMe ? (
-          <span className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-xs font-medium text-accent-text">
-            {t('actions.followsYou')}
-          </span>
+          <Badge variant="accent">{t('actions.followsYou')}</Badge>
         ) : null}
         {rel.blockedByMe ? (
           <Button

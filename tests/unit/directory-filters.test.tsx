@@ -215,8 +215,9 @@ describe('Directory — full toolbar', () => {
       expect(fallback).toMatch(new RegExp(`<select[^>]* name="${name}"`));
     }
     expect(fallback).toContain('<input type="hidden" name="q" value="sahel"/>');
-    expect(fallback).toContain(
-      `<option value="afrique-ouest" selected="">Afrique de l'Ouest (3)</option>`,
+    // The option carries the shadcn `NativeSelectOption` attributes too.
+    expect(fallback).toMatch(
+      /<option [^>]*value="afrique-ouest" selected="">Afrique de l'Ouest \(3\)<\/option>/,
     );
   });
 
@@ -237,8 +238,8 @@ describe('Directory — full toolbar', () => {
     // on the menu button…
     expect(out).toContain("Europe de l'Est</span>");
     // … and selected in the fallback form.
-    expect(out).toContain(
-      `<option value="europe-est" selected="">Europe de l'Est (0)</option>`,
+    expect(out).toMatch(
+      /<option [^>]*value="europe-est" selected="">Europe de l'Est \(0\)<\/option>/,
     );
   });
 });

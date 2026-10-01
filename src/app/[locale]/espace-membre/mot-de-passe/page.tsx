@@ -22,6 +22,7 @@ import {
   passwordRefusal,
 } from '@convex/lib/passwordPolicy';
 import { StatusMessage } from '@/components/a11y/status-message';
+import { Button } from '@/components/ui/button';
 
 // SETTING (OR CHANGING) ONE'S PASSWORD, SIGNED IN — R-05 / auth A-3.
 //
@@ -266,14 +267,16 @@ function PasswordForm({ email }: { email: string }) {
             {t('passwordVerifyCta')}
           </SubmitButton>
         </form>
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="inline"
           onClick={onResend}
           disabled={pending}
-          className="mt-4 text-sm text-accent-text hover:underline disabled:opacity-50"
+          className="mt-4"
         >
           {t('resendCode')}
-        </button>
+        </Button>
       </PasswordPanel>
     );
   }

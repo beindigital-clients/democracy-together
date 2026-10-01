@@ -5,12 +5,11 @@ import { useLocale, useTranslations } from 'next-intl';
 import { REGIONS, DIRECTORY_THEMES } from '@convex/lib/directory';
 import { routing } from '@/i18n/routing';
 import { vocabulary } from '@/i18n/vocabulary';
-import { directionOf } from '@/i18n/direction';
 import { countryOptions, guessCountryCode } from '@/lib/countries';
 import { languageName } from '@/lib/orgs';
 import { Button } from '@/components/ui/button';
 import { FormError, TextField } from '@/components/ui/field';
-import { ComboboxField, SelectMenuField } from '@/components/ui/choice-fields';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
 import { ChipGroup } from '@/components/social/profile-controls';
 import { PUB_LANGS } from '@/lib/publications';
 
@@ -108,12 +107,11 @@ export function DirectoryFields({
           searchPlaceholder={tp('countrySearchPlaceholder')}
           noResults={tp('countryNoResults')}
         />
-        <SelectMenuField
+        <SelectField
           label={t('dirRegion')}
           value={region}
           onValueChange={setRegion}
           placeholder={t('dirRegionPlaceholder')}
-          dir={directionOf(locale)}
           options={REGIONS.map((r) => ({
             value: r,
             label: vocabulary(td, 'regions.', r),

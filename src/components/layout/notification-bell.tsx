@@ -6,8 +6,8 @@ import { Bell } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
-import { cn } from '@/lib/utils';
 import { useNow } from '@/hooks/use-now';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   NotificationRow,
@@ -19,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 
 // Notification bell (F-25/F-51) — visible only when signed in. The unread
 // counter is reactive (Convex real time): it increments live when a
@@ -35,15 +36,17 @@ import {
 // the width of the screen would only be a worse page.
 
 const PREVIEW = 6;
-const ICON =
-  'relative inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink';
 
-function Badge({ n, capped }: { n: number; capped: boolean }) {
+function CountBadge({ n, capped }: { n: number; capped: boolean }) {
   if (n <= 0) return null;
   return (
-    <span className="absolute -end-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold leading-none text-accent-contrast">
+    <Badge
+      variant="solid"
+      size="count"
+      className="absolute -end-0.5 -top-0.5 h-4 min-w-4 px-1"
+    >
       {capped ? `${n}+` : n}
-    </span>
+    </Badge>
   );
 }
 
@@ -64,13 +67,15 @@ function NotificationsPanel({ onDone }: { onDone: () => void }) {
           {t('title')}
         </p>
         {hasUnread ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={() => void markAllRead({})}
-            className="min-h-9 rounded-sm px-2 text-xs font-medium text-accent-text hover:bg-accent-tint"
+            className="min-h-9"
           >
             {t('markAll')}
-          </button>
+          </Button>
         ) : null}
       </div>
       {items === undefined ? (
@@ -135,24 +140,32 @@ export function NotificationBell({
 
   if (variant === 'link') {
     return (
-      <Link href="/notifications" aria-label={label} className={ICON}>
-        <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
-        <Badge n={n} capped={capped} />
-      </Link>
+      <Button
+        asChild
+        variant="subtle"
+        size="icon-md"
+        className="relative rounded-full"
+      >
+        <Link href="/notifications" aria-label={label}>
+          <Bell className="size-[18px]" aria-hidden="true" />
+          <CountBadge n={n} capped={capped} />
+        </Link>
+      </Button>
     );
   }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        aria-label={label}
-        className={cn(
-          ICON,
-          'data-[state=open]:bg-surface-2 data-[state=open]:text-ink',
-        )}
-      >
-        <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
-        <Badge n={n} capped={capped} />
+      <PopoverTrigger asChild>
+        <Button
+          variant="subtle"
+          size="icon-md"
+          aria-label={label}
+          className="relative rounded-full"
+        >
+          <Bell className="size-[18px]" aria-hidden="true" />
+          <CountBadge n={n} capped={capped} />
+        </Button>
       </PopoverTrigger>
       <PopoverContent
         align="end"

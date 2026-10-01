@@ -8,6 +8,7 @@ import { useRouter } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 import { translationErrorSuffix } from '@/lib/article-translation';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Button } from '@/components/ui/button';
 
 // THE BUTTON THAT REQUESTS A TRANSLATION.
 //
@@ -74,12 +75,13 @@ export function TranslateButton({
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => void run()}
         disabled={busy}
         aria-busy={busy}
-        className="inline-flex items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-medium text-ink-soft transition-colors hover:text-ink disabled:opacity-60"
       >
         <svg
           viewBox="0 0 24 24"
@@ -89,6 +91,7 @@ export function TranslateButton({
           stroke="currentColor"
           strokeWidth="1.8"
           aria-hidden="true"
+          className="size-3.5"
         >
           <path d="M4 5h10M9 3v2c0 4-2 7-5 8M7 10c0 3 3 5 7 6M14 19l4-9 4 9M16.5 16h5" />
         </svg>
@@ -97,19 +100,20 @@ export function TranslateButton({
           : retranslate
             ? t('retranslate')
             : t('offer', { language })}
-      </button>
+      </Button>
       {errorSuffix ? (
         // `role="status"` and not `alert`: the failure of an offered translation
         // does not interrupt reading the article, which remains whole above.
         <p role="status" className="text-[13px] text-muted">
           {vocabulary(t, 'err', errorSuffix, t('errGeneric'))}{' '}
-          <button
+          <Button
             type="button"
+            variant="link-inline"
+            size="inline"
             onClick={() => void run()}
-            className="underline underline-offset-2 hover:text-ink"
           >
             {t('retry')}
-          </button>
+          </Button>
         </p>
       ) : null}
     </div>

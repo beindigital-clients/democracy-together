@@ -166,12 +166,14 @@ export default async function OrgProfilePage({
               </h2>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {details.members.map((m, i) => (
-                  <li
+                  <Badge
+                    asChild
                     key={`${m.name}-${i}`}
-                    className="wrap-anywhere rounded-pill border border-line bg-surface px-3 py-1 text-sm"
+                    size="lg"
+                    className="wrap-anywhere"
                   >
-                    {m.name}
-                  </li>
+                    <li>{m.name}</li>
+                  </Badge>
                 ))}
               </ul>
             </>

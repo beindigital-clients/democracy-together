@@ -22,10 +22,11 @@ import { Button } from '@/components/ui/button';
 import {
   Field,
   FormError,
-  SelectField,
   TextField,
   TextareaField,
 } from '@/components/ui/field';
+import { ComboboxField, SelectField } from '@/components/ui/choice-fields';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { vocabulary } from '@/i18n/vocabulary';
 import { uploadWithProgress } from '@/lib/upload';
@@ -45,8 +46,6 @@ type AdminPath = FunctionReturnType<typeof api.toolbox.adminListPaths>[number];
 export default function AdminToolbox() {
   const t = useTranslations('toolbox');
   const [tab, setTab] = useState<'resources' | 'paths'>('resources');
-  const tabClass = (on: boolean) =>
-    `min-h-11 rounded px-3 text-sm ${on ? 'bg-surface-2 text-ink' : 'text-ink-soft'}`;
   return (
     <div>
       <h1 className="font-display text-3xl">{t('adminTitle')}</h1>
@@ -58,28 +57,20 @@ export default function AdminToolbox() {
           {t('adminSeePublic')}
         </Link>
       </p>
-      <div
-        className="mt-4 flex flex-wrap gap-1 rounded-md border border-line p-0.5"
-        role="group"
+      <ToggleGroup
+        type="single"
+        value={tab}
+        onValueChange={(v) => {
+          if (v === 'resources' || v === 'paths') setTab(v);
+        }}
         aria-label={t('adminTitle')}
+        className="mt-4"
       >
-        <button
-          type="button"
-          aria-pressed={tab === 'resources'}
-          className={tabClass(tab === 'resources')}
-          onClick={() => setTab('resources')}
-        >
+        <ToggleGroupItem value="resources">
           {t('resourcesTitle')}
-        </button>
-        <button
-          type="button"
-          aria-pressed={tab === 'paths'}
-          className={tabClass(tab === 'paths')}
-          onClick={() => setTab('paths')}
-        >
-          {t('pathsTitle')}
-        </button>
-      </div>
+        </ToggleGroupItem>
+        <ToggleGroupItem value="paths">{t('pathsTitle')}</ToggleGroupItem>
+      </ToggleGroup>
       {tab === 'resources' ? <Resources /> : <Paths />}
     </div>
   );
@@ -266,38 +257,32 @@ function ResourceEditor({
         label={t('filterKind')}
         id="res-kind"
         value={kind}
-        onChange={(e) => setKind(e.target.value as ResourceKind)}
-      >
-        {RESOURCE_KINDS.map((k) => (
-          <option key={k} value={k}>
-            {vocabulary(t, 'kind_', k)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={(v) => setKind(v as ResourceKind)}
+        options={RESOURCE_KINDS.map((k) => ({
+          value: k,
+          label: vocabulary(t, 'kind_', k),
+        }))}
+      />
       <SelectField
         label={t('filterLevel')}
         id="res-level"
         value={level}
-        onChange={(e) => setLevel(e.target.value as Level)}
-      >
-        {LEVELS.map((k) => (
-          <option key={k} value={k}>
-            {vocabulary(t, 'level_', k)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={(v) => setLevel(v as Level)}
+        options={LEVELS.map((k) => ({
+          value: k,
+          label: vocabulary(t, 'level_', k),
+        }))}
+      />
       <SelectField
         label={t('filterLanguage')}
         id="res-lang"
         value={language}
-        onChange={(e) => setLanguage(e.target.value)}
-      >
-        {PROGRAMME_LANGUAGES.map((k) => (
-          <option key={k} value={k}>
-            {vocabulary(tl, 'langs.', k)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={setLanguage}
+        options={PROGRAMME_LANGUAGES.map((k) => ({
+          value: k,
+          label: vocabulary(tl, 'langs.', k),
+        }))}
+      />
       <TextField
         label={t('fieldUrl')}
         id="res-url"
@@ -540,19 +525,19 @@ function PathRow({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        <SelectField
+        {/* The whole toolbox: searchable, by title. */}
+        <ComboboxField
           label={t('stepResource')}
           id={`step-res-${path._id}`}
           value={resourceId}
-          onChange={(e) => setResourceId(e.target.value)}
-        >
-          <option value="">{t('stepNoResource')}</option>
-          {resources.map((r) => (
-            <option key={r._id} value={r._id}>
-              {r.title}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setResourceId}
+          placeholder={t('stepNoResource')}
+          emptyLabel={t('stepNoResource')}
+          options={resources.map((r) => ({ value: r._id, label: r.title }))}
+          searchLabel={t('stepResourceSearchLabel')}
+          searchPlaceholder={t('stepResourceSearchPlaceholder')}
+          noResults={t('stepResourceNoResults')}
+        />
         <TextField
           label={t('stepUrl')}
           id={`step-url-${path._id}`}
@@ -641,26 +626,22 @@ function PathEditor({
         label={t('filterLanguage')}
         id="path-lang"
         value={language}
-        onChange={(e) => setLanguage(e.target.value)}
-      >
-        {PROGRAMME_LANGUAGES.map((k) => (
-          <option key={k} value={k}>
-            {vocabulary(tl, 'langs.', k)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={setLanguage}
+        options={PROGRAMME_LANGUAGES.map((k) => ({
+          value: k,
+          label: vocabulary(tl, 'langs.', k),
+        }))}
+      />
       <SelectField
         label={t('filterLevel')}
         id="path-level"
         value={level}
-        onChange={(e) => setLevel(e.target.value as Level)}
-      >
-        {LEVELS.map((k) => (
-          <option key={k} value={k}>
-            {vocabulary(t, 'level_', k)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={(v) => setLevel(v as Level)}
+        options={LEVELS.map((k) => ({
+          value: k,
+          label: vocabulary(t, 'level_', k),
+        }))}
+      />
       <CheckGroup
         className="sm:col-span-2"
         legend={t('filterTheme')}

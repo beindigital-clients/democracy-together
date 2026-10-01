@@ -5,6 +5,8 @@ import { MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 // Private messaging badge ("social" workstream), next to the bell,
 // on desktop AND on mobile. Same mechanism as `NotificationBell`:
@@ -32,26 +34,34 @@ export function MessagesBadge({
   const capped = unread?.capped ?? false;
 
   return (
-    <Link
-      href="/espace-membre/messages"
-      aria-label={
-        n > 0
-          ? capped
-            ? t('badgeUnreadMany', { count: n })
-            : t('badgeUnread', { count: n })
-          : t('badge')
-      }
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
+    <Button
+      asChild
+      variant="subtle"
+      size="icon-md"
+      className="relative rounded-full"
     >
-      <MessageSquare className="h-[18px] w-[18px]" aria-hidden="true" />
-      {n > 0 ? (
-        <span
-          data-testid="messages-unread"
-          className="absolute -end-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold leading-none text-accent-contrast"
-        >
-          {capped ? `${n}+` : n}
-        </span>
-      ) : null}
-    </Link>
+      <Link
+        href="/espace-membre/messages"
+        aria-label={
+          n > 0
+            ? capped
+              ? t('badgeUnreadMany', { count: n })
+              : t('badgeUnread', { count: n })
+            : t('badge')
+        }
+      >
+        <MessageSquare className="size-[18px]" aria-hidden="true" />
+        {n > 0 ? (
+          <Badge
+            data-testid="messages-unread"
+            variant="solid"
+            size="count"
+            className="absolute -end-0.5 -top-0.5 h-4 min-w-4 px-1"
+          >
+            {capped ? `${n}+` : n}
+          </Badge>
+        ) : null}
+      </Link>
+    </Button>
   );
 }

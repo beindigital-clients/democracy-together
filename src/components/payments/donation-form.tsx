@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { useAction, useQuery } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
@@ -23,6 +23,12 @@ import { resolveLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { PaymentsUnavailable } from './payments-unavailable';
 import { formatMajor, knownPaymentError } from './format';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  RadioGroup,
+  RadioGroupChoice,
+  RadioGroupChoiceIndicator,
+} from '@/components/ui/radio-group';
 
 // DONATION FORM (F-28) — one-off or monthly, suggested or custom amount,
 // in euros or US dollars depending on the configured providers.
@@ -34,11 +40,9 @@ import { formatMajor, knownPaymentError } from './format';
 // No provider: no form, but the alternative (bank transfer, contact).
 
 const MESSAGE_MAX = 500;
-const PILL =
-  'inline-flex min-h-11 cursor-pointer items-center justify-center rounded-pill border px-4 py-2 text-sm font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2';
-const PILL_ON = 'border-accent-edge bg-accent-tint text-accent-text';
-const PILL_OFF =
-  'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink';
+// The choices (currency, frequency, amount) are chips of a shadcn
+// `RadioGroup`: one tab stop per group, the arrows move and choose.
+const CHIP = 'min-h-11 justify-center rounded-pill px-4 py-2';
 
 export function DonationForm() {
   const t = useTranslations('payments');
@@ -49,6 +53,8 @@ export function DonationForm() {
   const executeRecaptcha = useRecaptcha();
 
   const [chosenCurrency, setCurrency] = useState<Currency | null>(null);
+  // Names the three choice groups after their legend (RGAA 11.6).
+  const ids = useId();
   const [recurring, setRecurring] = useState(false);
   const [chosenPreset, setPreset] = useState<number | 'other' | null>(null);
   const [anonymous, setAnonymous] = useState(false);
@@ -174,50 +180,47 @@ export function DonationForm() {
 
       {available.length > 1 ? (
         <fieldset>
-          <legend className="text-sm text-ink-soft">
+          <legend id={`${ids}-currency`} className="text-sm text-ink-soft">
             {t('currencyLabel')}
           </legend>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <RadioGroup
+            name="currency"
+            value={currency}
+            onValueChange={(v) => {
+              const next = available.find((c) => c === v);
+              if (next) switchCurrency(next);
+            }}
+            aria-labelledby={`${ids}-currency`}
+            className="mt-2 flex flex-wrap gap-2"
+          >
             {available.map((c) => (
-              <label
-                key={c}
-                className={`${PILL} ${currency === c ? PILL_ON : PILL_OFF}`}
-              >
-                <input
-                  type="radio"
-                  name="currency"
-                  value={c}
-                  checked={currency === c}
-                  onChange={() => switchCurrency(c)}
-                  className="sr-only"
-                />
+              <RadioGroupChoice key={c} value={c} className={CHIP}>
+                <RadioGroupChoiceIndicator />
                 {vocabulary(t, 'currency_', c)}
-              </label>
+              </RadioGroupChoice>
             ))}
-          </div>
+          </RadioGroup>
         </fieldset>
       ) : null}
 
       <fieldset>
-        <legend className="text-sm text-ink-soft">{t('frequencyLabel')}</legend>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {[false, true].map((r) => (
-            <label
-              key={String(r)}
-              className={`${PILL} ${recurring === r ? PILL_ON : PILL_OFF}`}
-            >
-              <input
-                type="radio"
-                name="frequency"
-                value={r ? 'monthly' : 'once'}
-                checked={recurring === r}
-                onChange={() => setRecurring(r)}
-                className="sr-only"
-              />
-              {r ? t('frequencyMonthly') : t('frequencyOnce')}
-            </label>
+        <legend id={`${ids}-frequency`} className="text-sm text-ink-soft">
+          {t('frequencyLabel')}
+        </legend>
+        <RadioGroup
+          name="frequency"
+          value={recurring ? 'monthly' : 'once'}
+          onValueChange={(v) => setRecurring(v === 'monthly')}
+          aria-labelledby={`${ids}-frequency`}
+          className="mt-2 flex flex-wrap gap-2"
+        >
+          {(['once', 'monthly'] as const).map((f) => (
+            <RadioGroupChoice key={f} value={f} className={CHIP}>
+              <RadioGroupChoiceIndicator />
+              {f === 'monthly' ? t('frequencyMonthly') : t('frequencyOnce')}
+            </RadioGroupChoice>
           ))}
-        </div>
+        </RadioGroup>
         {recurring ? (
           <p className="mt-2 text-xs text-muted">
             {mode.recurringMode === 'native'
@@ -228,38 +231,37 @@ export function DonationForm() {
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm text-ink-soft">{t('amountLabel')}</legend>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <legend id={`${ids}-amount`} className="text-sm text-ink-soft">
+          {t('amountLabel')}
+        </legend>
+        <RadioGroup
+          name="amount"
+          value={String(preset)}
+          onValueChange={(v) => {
+            if (v === 'other') setPreset('other');
+            else {
+              const next = suggested.find((value) => String(value) === v);
+              if (next !== undefined) setPreset(next);
+            }
+          }}
+          aria-labelledby={`${ids}-amount`}
+          className="mt-2 flex flex-wrap gap-2"
+        >
           {suggested.map((value) => (
-            <label
+            <RadioGroupChoice
               key={value}
-              className={`${PILL} ${preset === value ? PILL_ON : PILL_OFF}`}
+              value={String(value)}
+              className={CHIP}
             >
-              <input
-                type="radio"
-                name="amount"
-                value={value}
-                checked={preset === value}
-                onChange={() => setPreset(value)}
-                className="sr-only"
-              />
+              <RadioGroupChoiceIndicator />
               {formatMajor(value, currency, locale)}
-            </label>
+            </RadioGroupChoice>
           ))}
-          <label
-            className={`${PILL} ${preset === 'other' ? PILL_ON : PILL_OFF}`}
-          >
-            <input
-              type="radio"
-              name="amount"
-              value="other"
-              checked={preset === 'other'}
-              onChange={() => setPreset('other')}
-              className="sr-only"
-            />
+          <RadioGroupChoice value="other" className={CHIP}>
+            <RadioGroupChoiceIndicator />
             {t('amountOther')}
-          </label>
-        </div>
+          </RadioGroupChoice>
+        </RadioGroup>
         {preset === 'other' ? (
           <TextField
             className="mt-3 max-w-xs"
@@ -297,11 +299,10 @@ export function DonationForm() {
       </div>
 
       <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm text-ink-soft">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={anonymous}
-          onChange={(e) => setAnonymous(e.target.checked)}
-          className="mt-0.5 size-5 shrink-0 accent-[var(--color-accent)]"
+          onCheckedChange={(checked) => setAnonymous(checked === true)}
+          className="mt-0.5"
         />
         <span>
           {t('anonymousLabel')}

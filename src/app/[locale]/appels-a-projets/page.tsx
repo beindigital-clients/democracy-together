@@ -8,6 +8,7 @@ import { PUB_THEMES } from '@/lib/publications';
 import { ProjectForm } from '@/components/projects/project-form';
 import { CallsList } from '@/components/projects/calls-list';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -97,9 +98,7 @@ export default async function ProjectsPage({
         <RevealGroup as="ul" className="mt-6 flex flex-wrap gap-2">
           {PUB_THEMES.map((s) => (
             <RevealItem as="li" key={s}>
-              <span className="inline-block rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-ink">
-                {vocabulary(tl, 'themes.', s)}
-              </span>
+              <Badge size="lg">{vocabulary(tl, 'themes.', s)}</Badge>
             </RevealItem>
           ))}
         </RevealGroup>

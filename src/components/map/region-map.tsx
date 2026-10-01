@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { MapShape } from '@/lib/region-geo';
 import type { RegionMapItem } from './types';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type Region = 'all' | 'afrique' | 'europe';
 
@@ -112,30 +113,27 @@ export function RegionMap({
 
       <div className="flex flex-col gap-4">
         {chips ? (
-          <div
-            role="group"
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={region}
+            onValueChange={(v) => {
+              const next = regions.find((r) => r === v);
+              if (next) setRegion(next);
+            }}
             aria-label={ariaLabel}
-            className="flex flex-wrap gap-2"
           >
-            {regions.map((r) => {
-              const active = region === r;
-              return (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setRegion(r)}
-                  className={`rounded-pill border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-                    active
-                      ? 'border-accent bg-accent text-accent-contrast'
-                      : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
-                  }`}
-                >
-                  {chips[r]}
-                </button>
-              );
-            })}
-          </div>
+            {regions.map((r) => (
+              <ToggleGroupItem
+                key={r}
+                value={r}
+                className="rounded-pill px-3.5 text-[13px]"
+              >
+                {chips[r]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         ) : null}
 
         <div

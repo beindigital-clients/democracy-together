@@ -17,6 +17,7 @@ import {
 import { monthAbbr } from '@/lib/events-content';
 import { loadReplays } from '@/lib/contenus/load';
 import { ArrowForward } from '@/components/ui/arrow';
+import { ChoiceLink } from '@/components/ui/choice-link';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -35,32 +36,6 @@ export async function generateMetadata({
       languages: hreflangFor(`replays`),
     },
   };
-}
-
-// Filter chip — same shape as the directory: a GET link, `aria-current`
-// when active, so usable without JavaScript and shareable.
-function Chip({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'true' : undefined}
-      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? 'border-accent-edge bg-accent-tint text-accent-text'
-          : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
-      }`}
-    >
-      {children}
-    </Link>
-  );
 }
 
 function FacetGroup({
@@ -82,21 +57,23 @@ function FacetGroup({
         {legend}
       </legend>
       <div className="flex flex-wrap gap-2">
-        <Chip
+        {/* Filter chips: GET links, so the filters work without JavaScript
+            and can be shared. */}
+        <ChoiceLink
           href={replaysHref(filters, { [keyName]: undefined })}
           active={!filters[keyName]}
         >
           {all}
-        </Chip>
+        </ChoiceLink>
         {items.map((f) => (
-          <Chip
+          <ChoiceLink
             key={f.value}
             href={replaysHref(filters, { [keyName]: f.value })}
             active={filters[keyName] === f.value}
           >
             {f.label}
             <span className="text-muted">{f.count}</span>
-          </Chip>
+          </ChoiceLink>
         ))}
       </div>
     </fieldset>

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
 
 // Localized error boundary (audit § 5.1). Without it, a backend outage
 // produced a generic 500, off-brand and in English.
@@ -38,13 +39,9 @@ export default function LocaleError({
         {t('errorBody')}
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => retry()}
-          className="inline-flex items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-        >
+        <Button type="button" size="lg" onClick={() => retry()}>
           {t('errorRetry')}
-        </button>
+        </Button>
         <Link
           href="/"
           className="inline-flex items-center justify-center rounded-sm border border-line-strong px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-accent-tint"

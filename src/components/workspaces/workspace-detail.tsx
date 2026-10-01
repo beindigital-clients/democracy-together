@@ -16,6 +16,7 @@ import { WorkspaceFiles } from './workspace-files';
 import { WorkspaceManage, useRoleLabel } from './workspace-manage';
 import { MyInvitations } from './workspace-invitations';
 import { useWorkspaceError } from './workspace-errors';
+import { Badge } from '@/components/ui/badge';
 
 // Note form (reserved for members OF THE WORKSPACE). Replicates the pattern of
 // the Tribune's CommentForm.
@@ -192,15 +193,15 @@ export function WorkspaceDetail({
 
       <header className="mt-4 border-b border-line pb-6">
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
-          <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
+          <Badge variant="accent">
             {vocabulary(tl, 'themes.', data.theme)}
-          </span>
+          </Badge>
           <span className="font-mono uppercase tracking-[0.06em] text-muted">
             {t('memberCount', { count: data.memberCount })}
           </span>
-          <span className="rounded-pill border border-line-strong bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+          <Badge size="label">
             {data.visibility === 'private' ? t('privateBadge') : t('openBadge')}
-          </span>
+          </Badge>
           {data.myRole ? (
             <span className="font-mono text-[11px] text-muted">
               {t('yourRole', { role: roleLabel(data.myRole) })}
@@ -252,15 +253,14 @@ export function WorkspaceDetail({
         <h2 className="font-display text-2xl">{t('membersTitle')}</h2>
         <ul className="mt-4 flex flex-wrap gap-2">
           {data.members.map((m) => (
-            <li
-              key={m._id}
-              className="flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm"
-            >
-              <span className="wrap-anywhere text-ink">{m.userName}</span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
-                {roleLabel(m.role)}
-              </span>
-            </li>
+            <Badge asChild key={m._id} size="lg" className="gap-2">
+              <li>
+                <span className="wrap-anywhere text-ink">{m.userName}</span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                  {roleLabel(m.role)}
+                </span>
+              </li>
+            </Badge>
           ))}
         </ul>
       </section>

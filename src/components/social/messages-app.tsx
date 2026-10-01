@@ -14,6 +14,7 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { isMember } from '@/lib/roles';
 import { dayKey } from '@/lib/message-thread';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { ArrowBack } from '@/components/ui/arrow';
@@ -143,14 +144,15 @@ function ConversationList({
         <h2 id="messages-liste" className="flex-1 font-display text-xl">
           {t('conversations')}
         </h2>
-        <Link
-          href={`${MESSAGES_BASE}?new=1`}
-          className="inline-flex size-11 items-center justify-center rounded-pill text-accent-text hover:bg-accent-tint"
-          aria-label={t('newMessage')}
-          title={t('newMessage')}
-        >
-          <SquarePen aria-hidden="true" className="size-5" />
-        </Link>
+        <Button asChild variant="ghost" size="icon-lg" className="rounded-full">
+          <Link
+            href={`${MESSAGES_BASE}?new=1`}
+            aria-label={t('newMessage')}
+            title={t('newMessage')}
+          >
+            <SquarePen aria-hidden="true" className="size-5" />
+          </Link>
+        </Button>
       </div>
       {items && items.length > 0 ? (
         <div className="relative px-3 pb-2">
@@ -246,12 +248,16 @@ function ConversationList({
                           <bdi>{c.blocked ? t('blockedPreview') : preview}</bdi>
                         </span>
                         {unread ? (
-                          <span className="inline-flex min-w-5 shrink-0 justify-center rounded-pill bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-accent-contrast">
+                          <Badge
+                            variant="solid"
+                            size="count"
+                            className="shrink-0"
+                          >
                             <span aria-hidden="true">{c.unreadCount}</span>
                             <span className="sr-only">
                               {t('unread', { count: c.unreadCount })}
                             </span>
-                          </span>
+                          </Badge>
                         ) : null}
                       </span>
                     </span>
@@ -286,23 +292,30 @@ function RecipientPicker({ myHandle }: { myHandle: string }) {
       className="flex h-full min-h-0 flex-col"
     >
       <header className="flex items-center gap-2 border-b border-line px-2 py-2 sm:px-4">
-        <Link
-          href={MESSAGES_BASE}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink md:hidden"
+        <Button
+          asChild
+          variant="subtle"
+          size="icon-lg"
+          className="rounded-full md:hidden"
         >
-          <ArrowBack />
-          <span className="sr-only">{t('back')}</span>
-        </Link>
+          <Link href={MESSAGES_BASE}>
+            <ArrowBack />
+            <span className="sr-only">{t('back')}</span>
+          </Link>
+        </Button>
         <h2 id="messages-nouveau" className="flex-1 font-display text-lg">
           {t('newMessage')}
         </h2>
-        <Link
-          href={MESSAGES_BASE}
-          className="hidden size-11 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink md:inline-flex"
-          aria-label={t('cancel')}
+        <Button
+          asChild
+          variant="subtle"
+          size="icon-lg"
+          className="hidden rounded-full md:inline-flex"
         >
-          <X aria-hidden="true" className="size-5" />
-        </Link>
+          <Link href={MESSAGES_BASE} aria-label={t('cancel')}>
+            <X aria-hidden="true" className="size-5" />
+          </Link>
+        </Button>
       </header>
       <div className="flex items-center gap-2 border-b border-line px-4 py-2">
         <span aria-hidden="true" className="text-sm text-muted">
@@ -399,13 +412,17 @@ function NewConversation({
       className="flex h-full min-h-0 flex-col"
     >
       <header className="flex items-center gap-2 border-b border-line px-2 py-2 sm:px-4">
-        <Link
-          href={MESSAGES_BASE}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink md:hidden"
+        <Button
+          asChild
+          variant="subtle"
+          size="icon-lg"
+          className="rounded-full md:hidden"
         >
-          <ArrowBack />
-          <span className="sr-only">{t('back')}</span>
-        </Link>
+          <Link href={MESSAGES_BASE}>
+            <ArrowBack />
+            <span className="sr-only">{t('back')}</span>
+          </Link>
+        </Button>
         <PersonAvatar
           name={profile.displayName}
           photoUrl={profile.photoUrl}

@@ -15,6 +15,7 @@ import { isSendLimited, isTooManyAttempts } from '@/lib/auth-errors';
 import { isAccountSuspended } from '@/lib/account-errors';
 import { isEmail } from '@/lib/validation';
 import { normalizeEmail } from '@convex/lib/onboarding';
+import { Button } from '@/components/ui/button';
 
 export default function OtpSignInPage() {
   const t = useTranslations('auth');
@@ -136,14 +137,16 @@ export default function OtpSignInPage() {
           <FormError>{error}</FormError>
           <SubmitButton pending={pending}>{t('otpVerifyCta')}</SubmitButton>
         </form>
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="inline"
           onClick={onResend}
           disabled={pending}
-          className="mt-4 text-sm text-accent-text hover:underline disabled:opacity-50"
+          className="mt-4"
         >
           {t('resendCode')}
-        </button>
+        </Button>
         <p className="mt-6 text-sm text-ink-soft">{t('codeHelp')}</p>
         <p className="mt-3 text-sm text-ink-soft">
           {t('noAccount')}{' '}

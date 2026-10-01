@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { intlLocale } from '@/i18n/locale';
 import { Button } from '@/components/ui/button';
 import { PersonCard, type PersonCardData } from './person-card';
+import { Badge } from '@/components/ui/badge';
 
 // "Mon réseau": activity feed of followed people, following, followers,
 // followed organizations. The feed only contains PUBLISHED content: the
@@ -19,9 +20,9 @@ const H2 = 'flex items-baseline gap-3 font-display text-2xl text-ink';
 // whose profile the reader cannot see (counted, never named).
 function Count({ n }: { n: number }) {
   return (
-    <span className="rounded-pill border border-line-strong px-2 py-0.5 font-mono text-xs tabular-nums text-muted">
+    <Badge variant="outline" size="count">
       {n}
-    </span>
+    </Badge>
   );
 }
 
@@ -62,11 +63,11 @@ export function NetworkView({
             {feed.map((item) => (
               <li key={`${item.kind}:${item.href}`} className="p-4">
                 <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
-                  <span className="rounded-pill border border-line-strong px-2 py-0.5">
+                  <Badge variant="outline" size="label">
                     {item.kind === 'publication'
                       ? t('network.feedPublication')
                       : t('network.feedTribune')}
-                  </span>
+                  </Badge>
                   <time dateTime={new Date(item.at).toISOString()}>
                     {fmt(item.at)}
                   </time>
@@ -115,12 +116,13 @@ export function NetworkView({
           <ul className="mt-3 flex flex-wrap gap-2">
             {orgs.map((o) => (
               <li key={o.slug}>
-                <Link
-                  href={`/le-reseau/${o.slug}`}
-                  className="inline-flex min-h-11 items-center rounded-pill border border-line-strong px-4 text-sm text-ink hover:bg-surface-2"
+                <Button
+                  asChild
+                  variant="outline"
+                  className="min-h-11 whitespace-normal rounded-pill wrap-anywhere"
                 >
-                  {o.name}
-                </Link>
+                  <Link href={`/le-reseau/${o.slug}`}>{o.name}</Link>
+                </Button>
               </li>
             ))}
           </ul>

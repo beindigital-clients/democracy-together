@@ -80,7 +80,7 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     await expect(row).toHaveCount(0);
 
     // under "Toutes" it reappears, with status Approuvée
-    await page.getByRole('button', { name: 'Toutes' }).click();
+    await page.getByRole('radio', { name: 'Toutes' }).click();
     const approved = page.getByRole('listitem').filter({ hasText: appOrg });
     await expect(approved).toBeVisible();
     await expect(approved.getByText('Approuvée')).toBeVisible();
@@ -122,8 +122,8 @@ test.describe('modération et utilisateurs (session admin partagée)', () => {
     await chercherUtilisateur(page, legacyEmail);
     const roleSelect = page.getByLabel(`Rôle ${legacyEmail}`);
     await expect(roleSelect).toBeVisible();
-    // The VALUE, not just the label: it is what the controlled <Select>
-    // would send back to the server if the administrator confirmed without changing anything.
-    await expect(roleSelect).toHaveValue('visiteur');
+    // The role the controlled select holds — what it would send back to the
+    // server if the administrator confirmed without changing anything.
+    await expect(roleSelect).toHaveText('Visiteur');
   });
 });

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link } from '@/i18n/navigation';
 import { StatusMessage } from '@/components/a11y/status-message';
+import { Button } from '@/components/ui/button';
 
 // Reporting (F-50) — any authenticated account can report a post/comment.
 // Signed out: link to sign in.
@@ -55,13 +56,15 @@ export function ReportButton({
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="link-muted"
+      size="inline"
       onClick={onClick}
       disabled={pending}
-      className="text-[12px] text-muted hover:text-ink hover:underline"
+      className="text-xs"
     >
       {t('report')}
-    </button>
+    </Button>
   );
 }

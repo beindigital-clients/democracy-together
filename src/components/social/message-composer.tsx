@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Field, FormError } from '@/components/ui/field';
+import { Button } from '@/components/ui/button';
 
 // Message composer: grows with its text (up to a few lines, then scrolls),
 // Enter sends, Shift+Enter breaks the line, Escape drops the reply or the
@@ -197,9 +198,12 @@ export function MessageComposer({
               </p>
             ) : null}
           </div>
-          <button
+          <Button
             type="button"
-            className="-m-1 inline-flex size-9 shrink-0 items-center justify-center rounded-pill text-muted hover:bg-line hover:text-ink"
+            variant="subtle"
+            size="icon-md"
+            // On the grey reply box, the hover needs the darker grey.
+            className="-m-1 rounded-full hover:bg-line"
             aria-label={
               context.kind === 'reply' ? t('cancelReply') : t('cancelEdit')
             }
@@ -208,20 +212,22 @@ export function MessageComposer({
               onCancelContext?.();
             }}
           >
-            <X aria-hidden="true" className="size-4" />
-          </button>
+            <X aria-hidden="true" />
+          </Button>
         </div>
       ) : null}
       <div className="flex items-end gap-1.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button
               type="button"
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-muted hover:bg-surface-2 hover:text-ink"
+              variant="subtle"
+              size="icon-lg"
+              className="rounded-full"
               aria-label={t('emoji')}
             >
               <Smile aria-hidden="true" className="size-5" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="top"
@@ -265,17 +271,18 @@ export function MessageComposer({
             />
           )}
         </Field>
-        <button
+        <Button
           type="submit"
+          size="icon-lg"
           disabled={empty}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-pill bg-accent text-accent-contrast transition-opacity hover:bg-accent-strong disabled:opacity-40"
+          className="rounded-full"
           aria-label={context?.kind === 'edit' ? t('saveEdit') : t('send')}
         >
           <SendHorizontal
             aria-hidden="true"
             className="size-5 rtl:-scale-x-100"
           />
-        </button>
+        </Button>
       </div>
       <p
         id={hintId}

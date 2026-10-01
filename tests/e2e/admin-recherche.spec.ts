@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { provisionUser, submitApplication } from './_helpers';
 import { SESSIONS } from './_sessions';
+import { chooseOption } from './_fields';
 
 test.use({ locale: 'fr-FR' });
 
@@ -109,14 +110,14 @@ test.describe('recherche des listes (session dédiée)', () => {
     // The account is a member: filtering on "Éditeur" must make it disappear,
     // while the search, for its part, keeps matching. That is what
     // shows that both conditions are applied together, server-side.
-    await page.getByLabel('Filtrer par rôle').selectOption('editeur');
+    await chooseOption(page.getByLabel('Filtrer par rôle'), 'Éditeur');
     await expect(page.getByText(email)).toHaveCount(0);
     await expect(
       page.getByText('Aucun résultat pour cette recherche.'),
     ).toBeVisible();
 
     // …and on its own role, it comes back.
-    await page.getByLabel('Filtrer par rôle').selectOption('membre');
+    await chooseOption(page.getByLabel('Filtrer par rôle'), 'Membre');
     await expect(page.getByText(email)).toBeVisible();
   });
 
@@ -168,7 +169,7 @@ test.describe('recherche des listes (session dédiée)', () => {
     // only prepares the draft, "Appliquer" opens the confirmation.
     const row = page.getByRole('row').filter({ hasText: token });
     await expect(row).toHaveCount(1);
-    await row.getByLabel(`Rôle ${email}`).selectOption('moderateur');
+    await chooseOption(row.getByLabel(`Rôle ${email}`), 'Modérateur');
     await row.getByRole('button', { name: 'Appliquer' }).click();
     // We WAIT for the dialog before aiming at its button, as
     // `admin-confirmations.spec.ts` does. Aiming directly mixes two failures
@@ -179,7 +180,7 @@ test.describe('recherche des listes (session dédiée)', () => {
     });
     await expect(confirmation).toBeVisible();
     await confirmation.getByRole('button', { name: 'Changer le rôle' }).click();
-    await expect(page.getByLabel(`Rôle ${email}`)).toHaveValue('moderateur');
+    await expect(page.getByLabel(`Rôle ${email}`)).toHaveText('Modérateur');
 
     await openScreen(page, '/fr/admin/journal', "Journal d'activité");
 
@@ -241,7 +242,7 @@ test.describe('recherche des listes (session dédiée)', () => {
       .or(page.getByText('Aucune publication à modérer.'));
     await expect(settled).toBeVisible();
 
-    await page.getByRole('button', { name: 'Toutes' }).click();
+    await page.getByRole('radio', { name: 'Toutes' }).click();
     await expect(settled).toBeVisible();
 
     await search(page, 'Rechercher une publication', 'zzz-aucun-titre');

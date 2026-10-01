@@ -12,6 +12,7 @@ import { MobileAccountCard } from './account-menu';
 import { NotificationBell } from './notification-bell';
 import { MessagesBadge } from './messages-badge';
 import { isNavActive, type NavItem } from './nav-links';
+import { Button } from '@/components/ui/button';
 
 // Mobile navigation menu (F-05): below md, the bar only carries the logo and
 // this button; everything else (nav, sign-in, language, theme, membership)
@@ -66,6 +67,11 @@ export function MobileNav({
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        // ESCAPE CLOSES THE INNERMOST LAYER, and it alone (ARIA APG). The
+        // language menu inside this panel is a Radix menu: it handles Escape
+        // first (capture phase) and marks the event `defaultPrevented`. Without
+        // this check, the same keypress also closed the panel around it.
+        if (e.defaultPrevented) return;
         setOpen(false);
         buttonRef.current?.focus();
         return;
@@ -111,21 +117,22 @@ export function MobileNav({
           the served HTML — nothing shifts on hydration. */}
       <MessagesBadge connecteAuRendu={connecteAuRendu} />
       <NotificationBell connecteAuRendu={connecteAuRendu} />
-      <button
+      <Button
         ref={buttonRef}
         type="button"
+        variant="subtle"
+        size="icon-md"
         aria-expanded={open}
         aria-controls="mobile-nav"
         aria-label={open ? t('closeMenu') : t('openMenu')}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
       >
         {open ? (
-          <X className="h-5 w-5" aria-hidden="true" />
+          <X className="size-5" aria-hidden="true" />
         ) : (
-          <Menu className="h-5 w-5" aria-hidden="true" />
+          <Menu className="size-5" aria-hidden="true" />
         )}
-      </button>
+      </Button>
 
       {open ? (
         <div className="fixed inset-x-0 bottom-0 top-16 z-40">

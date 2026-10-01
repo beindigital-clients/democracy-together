@@ -58,9 +58,9 @@ test.describe('éditeur', () => {
       .getByLabel('Texte de l’article')
       .fill('Premier paragraphe.\n\nSecond paragraphe.');
     // The English title: the article is served in English under its address.
-    await editor.getByRole('button', { name: /Anglais/ }).click();
+    await editor.getByRole('radio', { name: /Anglais/ }).click();
     await editor.getByLabel('Titre', { exact: true }).fill(`E2E news ${stamp}`);
-    await editor.getByRole('button', { name: /Français/ }).click();
+    await editor.getByRole('radio', { name: /Français/ }).click();
     await editor.getByRole('button', { name: 'Enregistrer' }).click();
     await expect(page.getByText(`« ${TITLE} » enregistré.`)).toBeVisible();
 

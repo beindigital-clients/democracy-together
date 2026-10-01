@@ -16,7 +16,8 @@ import { ArrowBack } from '@/components/ui/arrow';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { isRateLimited } from '@/lib/errors';
-import { STATUS_PILL } from '@/components/tribune/my-posts';
+import { STATUS_BADGE } from '@/components/tribune/my-posts';
+import { Badge } from '@/components/ui/badge';
 
 // PREVIEW OF A CONTRIBUTION by its author (F-45) — whatever its state.
 // The public page only serves a live post; here the author rereads a
@@ -102,11 +103,9 @@ function OwnPost({ postId }: { postId: string }) {
         <ArrowBack /> {t('contributionsTitle')}
       </Link>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px]">
-        <span
-          className={`rounded-pill border px-2.5 py-0.5 font-medium ${STATUS_PILL[post.status]}`}
-        >
+        <Badge variant={STATUS_BADGE[post.status]}>
           {vocabulary(t, 'status_', post.status)}
-        </span>
+        </Badge>
         <span className="font-mono text-muted">
           {vocabulary(tl, 'themes.', post.theme)} ·{' '}
           {vocabulary(t, 'format_', post.format)} · {fmtDate(post.createdAt)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
@@ -8,8 +8,10 @@ import type { Id } from '@convex/_generated/dataModel';
 import type { FunctionReturnType } from 'convex/server';
 import { MANUSCRIPT_BOUNDS } from '@convex/lib/manuscripts';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextareaField } from '@/components/ui/field';
+import { TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   useActionFeedback,
   useFailureFeedback,
@@ -54,6 +56,7 @@ function ConflictForm({
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
   const [choice, setChoice] = useState<'clear' | 'conflict' | ''>('');
+  const legendId = useId();
   const [details, setDetails] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -80,28 +83,29 @@ function ConflictForm({
 
   return (
     <fieldset className="mt-4 rounded border border-accent-edge bg-accent-tint p-4">
-      <legend className="px-1 text-sm font-medium text-ink">
+      <legend id={legendId} className="px-1 text-sm font-medium text-ink">
         {tp('conflictTitle')}
       </legend>
       <p className="text-sm text-ink-soft">{tp('conflictIntro')}</p>
-      <div className="mt-3 space-y-2">
+      <RadioGroup
+        name={`conflict-${publicationId}`}
+        aria-labelledby={legendId}
+        value={choice}
+        onValueChange={(v) =>
+          setChoice(v === 'conflict' ? 'conflict' : 'clear')
+        }
+        className="mt-3 gap-2"
+      >
         {(['clear', 'conflict'] as const).map((c) => (
           <label
             key={c}
             className="flex min-h-11 items-center gap-3 text-sm text-ink"
           >
-            <input
-              type="radio"
-              name={`conflict-${publicationId}`}
-              value={c}
-              checked={choice === c}
-              onChange={() => setChoice(c)}
-              className="h-5 w-5 accent-accent"
-            />
+            <RadioGroupItem value={c} />
             {c === 'clear' ? tp('conflictNone') : tp('conflictYes')}
           </label>
         ))}
-      </div>
+      </RadioGroup>
       {choice === 'conflict' ? (
         <TextareaField
           label={tp('conflictDetails')}
@@ -172,14 +176,12 @@ function ReviewForm({
         className="mt-2"
         controlClassName="w-auto"
         value={recommendation}
-        onChange={(e) => setRecommendation(e.target.value as Recommendation)}
-      >
-        {RECOMMENDATIONS.map((rec) => (
-          <option key={rec} value={rec}>
-            {vocabulary(t, 'revRec_', rec)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={(v) => setRecommendation(v as Recommendation)}
+        options={RECOMMENDATIONS.map((rec) => ({
+          value: rec,
+          label: vocabulary(t, 'revRec_', rec),
+        }))}
+      />
       <TextareaField
         label={tp('commentToAuthor')}
         hint={t('revCommentHint')}

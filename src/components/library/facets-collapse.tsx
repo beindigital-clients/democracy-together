@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { Badge } from '@/components/ui/badge';
 import { hasActiveFilters, type LibraryFilters } from '@/lib/publications';
 
 // Responsive wrapper for the facets (F-32). Below `lg`, the (long) filter
@@ -40,9 +41,9 @@ export function FacetsCollapse({
         >
           {t('filter')}
           {activeCount > 0 ? (
-            <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-medium text-accent-contrast">
+            <Badge variant="solid" size="count">
               {activeCount}
-            </span>
+            </Badge>
           ) : null}
           <svg
             viewBox="0 0 24 24"

@@ -139,7 +139,9 @@ describe('Candidat — après « Envoyer ma candidature »', () => {
     expect(
       screen.getByLabelText(/Nom du think tank/).getAttribute('autocomplete'),
     ).toBe('organization');
-    fireEvent.click(screen.getByLabelText('Chercheur / individuel'));
+    fireEvent.click(
+      screen.getByRole('radio', { name: 'Chercheur / individuel' }),
+    );
     expect(
       screen.getByLabelText(/Nom et prénom/).getAttribute('autocomplete'),
     ).toBe('name');

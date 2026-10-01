@@ -35,14 +35,21 @@ function DropdownMenuTrigger(
 // menu therefore stays below its button and scrolls within itself.
 const COLLISION_PADDING = { top: 80, right: 16, bottom: 16, left: 16 };
 
+// `container`: where the panel is rendered, `<body>` by default. A menu
+// living inside another layer that counts what it contains (the mobile
+// menu's focus loop, its bounds) is rendered inside its own component instead
+// — see `locale-switcher.tsx`.
 function DropdownMenuContent({
   className,
   sideOffset = 4,
   collisionPadding = COLLISION_PADDING,
+  container,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Content> & {
+  container?: HTMLElement | null;
+}) {
   return (
-    <DropdownMenuPrimitive.Portal>
+    <DropdownMenuPrimitive.Portal container={container}>
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
         collisionPadding={collisionPadding}

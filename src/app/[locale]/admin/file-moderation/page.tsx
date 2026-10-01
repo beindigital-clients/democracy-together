@@ -13,10 +13,19 @@ import {
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemTitle,
+} from '@/components/ui/item';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { SelectField, TextareaField } from '@/components/ui/field';
+import { TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useActionFeedback } from '@/components/admin/action-feedback';
-import { STATUS_PILL } from '@/components/tribune/my-posts';
+import { STATUS_BADGE } from '@/components/tribune/my-posts';
 import { PUB_THEMES } from '@/lib/publications';
 import { intlLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
@@ -104,34 +113,32 @@ function ModeSettings({ isAdmin }: { isAdmin: boolean }) {
             label={t('postModeLabel')}
             id="mq-post-mode"
             value={current.postMode}
-            onChange={(e) =>
+            onValueChange={(v) =>
               setDraft({
                 ...current,
-                postMode:
-                  e.target.value === 'a_posteriori'
-                    ? 'a_posteriori'
-                    : 'a_priori',
+                postMode: v === 'a_posteriori' ? 'a_posteriori' : 'a_priori',
               })
             }
-          >
-            <option value="a_priori">{t('modeAPriori')}</option>
-            <option value="a_posteriori">{t('modeAPosteriori')}</option>
-          </SelectField>
+            options={[
+              { value: 'a_priori', label: t('modeAPriori') },
+              { value: 'a_posteriori', label: t('modeAPosteriori') },
+            ]}
+          />
           <SelectField
             label={t('commentModeLabel')}
             id="mq-comment-mode"
             value={current.commentMode}
-            onChange={(e) =>
+            onValueChange={(v) =>
               setDraft({
                 ...current,
-                commentMode:
-                  e.target.value === 'a_priori' ? 'a_priori' : 'a_posteriori',
+                commentMode: v === 'a_priori' ? 'a_priori' : 'a_posteriori',
               })
             }
-          >
-            <option value="a_priori">{t('modeAPriori')}</option>
-            <option value="a_posteriori">{t('modeAPosteriori')}</option>
-          </SelectField>
+            options={[
+              { value: 'a_priori', label: t('modeAPriori') },
+              { value: 'a_posteriori', label: t('modeAPosteriori') },
+            ]}
+          />
           <Button
             type="button"
             className="min-h-11"
@@ -270,11 +277,9 @@ function ItemDetail({ selected }: { selected: Selected }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2 text-[12px]">
-        <span
-          className={`rounded-pill border px-2.5 py-0.5 font-medium ${STATUS_PILL[item.status]}`}
-        >
+        <Badge variant={STATUS_BADGE[item.status]}>
           {vocabulary(tt, 'status_', item.status)}
-        </span>
+        </Badge>
         <Badge>{target}</Badge>
         <span className="font-mono text-muted">
           {vocabulary(tt, 'format_', item.format)}
@@ -542,79 +547,69 @@ function ModerationQueue() {
 
       <ModeSettings isAdmin={me?.role === 'admin'} />
 
-      <div
-        role="group"
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={tab}
+        onValueChange={(v) => {
+          const next = TABS.find((k) => k === v);
+          if (next) {
+            setTab(next);
+            setSelected(null);
+          }
+        }}
         aria-label={t('tabsLabel')}
-        className="mt-6 flex flex-wrap gap-2"
+        className="mt-6"
       >
         {TABS.map((k) => {
           const n = tabCount(k);
           return (
-            <Button
-              key={k}
-              type="button"
-              size="sm"
-              variant={tab === k ? 'default' : 'outline'}
-              className="min-h-11"
-              aria-pressed={tab === k}
-              onClick={() => {
-                setTab(k);
-                setSelected(null);
-              }}
-            >
+            <ToggleGroupItem key={k} value={k}>
               {tabLabel(k)}
               {n !== undefined && n > 0 ? ` (${n > 100 ? '100+' : n})` : ''}
-            </Button>
+            </ToggleGroupItem>
           );
         })}
-      </div>
+      </ToggleGroup>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <SelectField
           label={t('filterType')}
           id="mq-type"
           value={targetType}
-          onChange={(e) =>
-            setTargetType(
-              e.target.value === 'post' || e.target.value === 'comment'
-                ? e.target.value
-                : '',
-            )
+          onValueChange={(v) =>
+            setTargetType(v === 'post' || v === 'comment' ? v : '')
           }
-        >
-          <option value="">{t('filterAll')}</option>
-          <option value="post">{t('targetPost')}</option>
-          <option value="comment">{t('targetComment')}</option>
-        </SelectField>
+          emptyLabel={t('filterAll')}
+          options={[
+            { value: 'post', label: t('targetPost') },
+            { value: 'comment', label: t('targetComment') },
+          ]}
+        />
         <SelectField
           label={t('filterTheme')}
           id="mq-theme"
           value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-        >
-          <option value="">{t('filterAll')}</option>
-          {PUB_THEMES.map((s) => (
-            <option key={s} value={s}>
-              {vocabulary(tl, 'themes.', s)}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={setTheme}
+          emptyLabel={t('filterAll')}
+          options={PUB_THEMES.map((s) => ({
+            value: s,
+            label: vocabulary(tl, 'themes.', s),
+          }))}
+        />
         <SelectField
           label={t('filterFormat')}
           id="mq-format"
           value={format}
-          onChange={(e) =>
-            setFormat(
-              e.target.value === 'court' || e.target.value === 'fond'
-                ? e.target.value
-                : '',
-            )
+          onValueChange={(v) =>
+            setFormat(v === 'court' || v === 'fond' ? v : '')
           }
-        >
-          <option value="">{t('filterAll')}</option>
-          <option value="court">{tt('format_court')}</option>
-          <option value="fond">{tt('format_fond')}</option>
-        </SelectField>
+          emptyLabel={t('filterAll')}
+          options={[
+            { value: 'court', label: tt('format_court') },
+            { value: 'fond', label: tt('format_fond') },
+          ]}
+        />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
@@ -631,65 +626,69 @@ function ModerationQueue() {
                   selected.targetType === i.targetType;
                 return (
                   <li key={`${i.targetType}:${i.targetId}`}>
-                    <button
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() =>
-                        setSelected({
-                          targetType: i.targetType,
-                          targetId: i.targetId,
-                        })
-                      }
-                      className={`block w-full min-h-11 rounded-md border p-3 text-start transition-colors ${
-                        active
-                          ? 'border-accent bg-accent-tint'
-                          : 'border-line bg-surface hover:border-line-strong'
-                      }`}
+                    <Item
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="min-h-11 w-full gap-1 p-3"
                     >
-                      <span className="flex flex-wrap items-center gap-2 text-[11px]">
-                        <span className="rounded-pill border border-line-strong px-2 py-0.5 font-mono uppercase tracking-[0.06em] text-muted">
-                          {i.targetType === 'post'
-                            ? t('targetPost')
-                            : t('targetComment')}
-                        </span>
-                        {i.isDeepening ? (
-                          <span className="font-mono text-muted">
-                            {tt('deepeningBadge')}
-                          </span>
-                        ) : null}
-                        {i.openReports > 0 ? (
-                          <span className="font-mono text-bar-5">
-                            {t('openReports', { count: i.openReports })}
-                          </span>
-                        ) : null}
-                        {i.aiReview ? (
-                          <span className="font-mono text-muted">
-                            {t('aiBadge', {
-                              verdict: vocabulary(
-                                ta,
-                                'aiVerdict_',
-                                i.aiReview.verdict,
-                              ),
-                              blocking: i.aiReview.blocking,
+                      <button
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          setSelected({
+                            targetType: i.targetType,
+                            targetId: i.targetId,
+                          })
+                        }
+                      >
+                        <ItemHeader className="flex-wrap justify-start text-[11px]">
+                          <Badge variant="outline" size="label">
+                            {i.targetType === 'post'
+                              ? t('targetPost')
+                              : t('targetComment')}
+                          </Badge>
+                          {i.isDeepening ? (
+                            <span className="font-mono text-muted">
+                              {tt('deepeningBadge')}
+                            </span>
+                          ) : null}
+                          {i.openReports > 0 ? (
+                            <span className="font-mono text-bar-5">
+                              {t('openReports', { count: i.openReports })}
+                            </span>
+                          ) : null}
+                          {i.aiReview ? (
+                            <span className="font-mono text-muted">
+                              {t('aiBadge', {
+                                verdict: vocabulary(
+                                  ta,
+                                  'aiVerdict_',
+                                  i.aiReview.verdict,
+                                ),
+                                blocking: i.aiReview.blocking,
+                              })}
+                            </span>
+                          ) : null}
+                        </ItemHeader>
+                        <ItemContent className="basis-full gap-0.5">
+                          <ItemTitle className="block wrap-anywhere">
+                            {i.targetType === 'comment'
+                              ? t('commentOn', { title: i.title })
+                              : i.title}
+                          </ItemTitle>
+                          <ItemDescription className="wrap-anywhere text-[13px] text-ink-soft">
+                            {i.excerpt}
+                          </ItemDescription>
+                          <span className="mt-0.5 block font-mono text-[11px] text-muted">
+                            {t('byLine', {
+                              name: i.authorName,
+                              date: fmt(i.createdAt),
                             })}
                           </span>
-                        ) : null}
-                      </span>
-                      <span className="mt-1 block wrap-anywhere font-medium text-ink">
-                        {i.targetType === 'comment'
-                          ? t('commentOn', { title: i.title })
-                          : i.title}
-                      </span>
-                      <span className="mt-0.5 block wrap-anywhere text-[13px] text-ink-soft line-clamp-2">
-                        {i.excerpt}
-                      </span>
-                      <span className="mt-1 block font-mono text-[11px] text-muted">
-                        {t('byLine', {
-                          name: i.authorName,
-                          date: fmt(i.createdAt),
-                        })}
-                      </span>
-                    </button>
+                        </ItemContent>
+                      </button>
+                    </Item>
                   </li>
                 );
               })}

@@ -18,7 +18,8 @@ import {
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { SelectField, TextField } from '@/components/ui/field';
+import { TextField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { LoadMore } from '@/components/admin/load-more';
 import { useActionFeedback } from '@/components/admin/action-feedback';
@@ -26,6 +27,8 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 import { formatDay, formatMoney, knownPaymentError } from './format';
 import { ReceiptButton } from './member-payments';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 // FINANCIAL TRACKING (F-31) — administrators' screen. Each block reads its
 // own query: a block that fails (permissions, network) does not take the others down.
@@ -160,17 +163,21 @@ function Dashboard({ now }: { now: number }) {
         {t('dashboardTitle')}
       </h2>
       <ul className="mt-3 flex flex-wrap gap-2 text-xs">
-        <li className="rounded-pill border border-line bg-surface-2 px-3 py-1 text-ink-soft">
-          {data.providers.stripe
-            ? t('providerStripeOn')
-            : t('providerStripeOff')}
-        </li>
-        {data.providers.fake !== 'off' ? (
-          <li className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-accent-text">
-            {data.providers.fake === 'active'
-              ? t('providerFakeOn')
-              : t('providerFakeRefused')}
+        <Badge asChild>
+          <li>
+            {data.providers.stripe
+              ? t('providerStripeOn')
+              : t('providerStripeOff')}
           </li>
+        </Badge>
+        {data.providers.fake !== 'off' ? (
+          <Badge asChild variant="accent">
+            <li>
+              {data.providers.fake === 'active'
+                ? t('providerFakeOn')
+                : t('providerFakeRefused')}
+            </li>
+          </Badge>
         ) : null}
       </ul>
 
@@ -315,46 +322,40 @@ function Transactions() {
         <SelectField
           label={t('colType')}
           value={filters.kind}
-          onChange={(e) => set('kind', e.target.value as Filters['kind'])}
-        >
-          <option value="">{t('filterAll')}</option>
-          <option value="donation">{t('purpose_donation')}</option>
-          <option value="dues">{t('purpose_dues')}</option>
-        </SelectField>
+          onValueChange={(v) => set('kind', v as Filters['kind'])}
+          emptyLabel={t('filterAll')}
+          options={[
+            { value: 'donation', label: t('purpose_donation') },
+            { value: 'dues', label: t('purpose_dues') },
+          ]}
+        />
         <SelectField
           label={t('colCurrency')}
           value={filters.currency}
-          onChange={(e) =>
-            set('currency', e.target.value as Filters['currency'])
-          }
-        >
-          <option value="">{t('filterAll')}</option>
-          {CURRENCIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={(v) => set('currency', v as Filters['currency'])}
+          emptyLabel={t('filterAll')}
+          options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+        />
         <SelectField
           label={t('colStatus')}
           value={filters.status}
-          onChange={(e) => set('status', e.target.value as Filters['status'])}
-        >
-          <option value="">{t('filterAll')}</option>
-          <option value="succeeded">{t('txStatus_succeeded')}</option>
-          <option value="refunded">{t('txStatus_refunded')}</option>
-        </SelectField>
+          onValueChange={(v) => set('status', v as Filters['status'])}
+          emptyLabel={t('filterAll')}
+          options={[
+            { value: 'succeeded', label: t('txStatus_succeeded') },
+            { value: 'refunded', label: t('txStatus_refunded') },
+          ]}
+        />
         <SelectField
           label={t('colProvider')}
           value={filters.provider}
-          onChange={(e) =>
-            set('provider', e.target.value as Filters['provider'])
-          }
-        >
-          <option value="">{t('filterAll')}</option>
-          <option value="stripe">{t('provider_stripe')}</option>
-          <option value="fake">{t('provider_fake')}</option>
-        </SelectField>
+          onValueChange={(v) => set('provider', v as Filters['provider'])}
+          emptyLabel={t('filterAll')}
+          options={[
+            { value: 'stripe', label: t('provider_stripe') },
+            { value: 'fake', label: t('provider_fake') },
+          ]}
+        />
       </div>
 
       {status === 'LoadingFirstPage' ? (
@@ -479,11 +480,12 @@ function Transactions() {
               />
               {target.canRefundAtProvider ? (
                 <label className="flex min-h-11 items-start gap-2 text-sm text-ink-soft">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={viaProvider}
-                    onChange={(e) => setViaProvider(e.target.checked)}
-                    className="mt-0.5 size-5 shrink-0"
+                    onCheckedChange={(checked) =>
+                      setViaProvider(checked === true)
+                    }
+                    className="mt-0.5"
                   />
                   <span>{t('refundViaProvider')}</span>
                 </label>

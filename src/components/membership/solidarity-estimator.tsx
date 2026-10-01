@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
@@ -14,7 +14,11 @@ import {
 } from '@/lib/membership-content';
 import { intlLocale } from '@/i18n/locale';
 import type { Locale } from '@/i18n/routing';
-import { Check } from 'lucide-react';
+import {
+  RadioGroup,
+  RadioGroupChoice,
+  RadioGroupChoiceIndicator,
+} from '@/components/ui/radio-group';
 
 type EstimatorContent = MembershipContent['estimator'];
 
@@ -52,7 +56,7 @@ export function SolidarityEstimator({
   return (
     <div className="grid gap-6 lg:grid-cols-[1.25fr_.9fr]">
       <form aria-label={content.title} className="flex flex-col gap-5">
-        <RadioGroup
+        <ChoiceCards
           legend={`${content.incomeLabel} `}
           hint={content.incomeHint}
           name="income"
@@ -60,7 +64,7 @@ export function SolidarityEstimator({
           options={content.incomes}
           onChange={(v) => setIncome(v as IncomeLevel)}
         />
-        <RadioGroup
+        <ChoiceCards
           legend={content.typeLabel}
           name="etype"
           value={type}
@@ -127,7 +131,11 @@ export function SolidarityEstimator({
   );
 }
 
-function RadioGroup({
+// One choice among a few, each a CARD with its description: the shadcn
+// `RadioGroup`, whose choices are the cards themselves. The arrows move and
+// choose; the focus outline is on the card, which IS the radio (RGAA 10.7),
+// and a tick backs the accent colour of the chosen one (RGAA 3.1).
+function ChoiceCards({
   legend,
   hint,
   name,
@@ -144,54 +152,41 @@ function RadioGroup({
   onChange: (v: string) => void;
   cols?: number;
 }) {
+  const legendId = useId();
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium text-ink">
+      <legend id={legendId} className="mb-2 text-sm font-medium text-ink">
         {legend}
         {hint ? (
           <span className="ms-1 font-normal text-muted">{hint}</span>
         ) : null}
       </legend>
-      <div
-        className={`grid gap-2 ${cols === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}
+      {/* Named after the legend: never an anonymous radio group (RGAA 11.6). */}
+      <RadioGroup
+        name={name}
+        value={value}
+        onValueChange={onChange}
+        aria-labelledby={legendId}
+        className={`gap-2 ${cols === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}
       >
-        {options.map((o) => {
-          const active = value === o.value;
-          return (
-            <label
-              key={o.value}
-              // Focus carried by the card (the radio button is hidden, its
-              // outline would be invisible — RGAA 10.7), selection backed by a
-              // check mark (RGAA 3.1).
-              className={`relative flex cursor-pointer flex-col rounded-sm border px-3.5 py-2.5 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
-                active
-                  ? 'border-accent bg-accent-tint'
-                  : 'border-line-strong bg-surface hover:border-ink'
-              }`}
-            >
-              <input
-                type="radio"
-                name={name}
-                value={o.value}
-                checked={active}
-                onChange={() => onChange(o.value)}
-                className="sr-only"
-              />
-              <span
-                className={`inline-flex items-center gap-1.5 text-sm font-semibold ${active ? 'text-accent-text' : 'text-ink'}`}
-              >
-                {active ? (
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : null}
-                {o.label}
-              </span>
-              {/* `text-ink-soft`, not `text-muted`: on `bg-accent-tint` in
-                  dark mode, muted gives 3.93:1 (measured on 27/09). */}
-              <span className="text-[12px] text-ink-soft">{o.desc}</span>
-            </label>
-          );
-        })}
-      </div>
+        {options.map((o) => (
+          <RadioGroupChoice
+            key={o.value}
+            value={o.value}
+            className="flex-col items-start gap-0 rounded-sm border-line-strong bg-surface px-3.5 py-2.5 hover:border-ink data-[state=checked]:border-accent"
+          >
+            <span className="inline-flex items-center gap-1.5 font-semibold text-ink group-data-[state=checked]/choice:text-accent-text">
+              <RadioGroupChoiceIndicator />
+              {o.label}
+            </span>
+            {/* `text-ink-soft`, not `text-muted`: on `bg-accent-tint` in
+                dark mode, muted gives 3.93:1 (measured on 27/09). */}
+            <span className="text-[12px] font-normal text-ink-soft">
+              {o.desc}
+            </span>
+          </RadioGroupChoice>
+        ))}
+      </RadioGroup>
     </fieldset>
   );
 }

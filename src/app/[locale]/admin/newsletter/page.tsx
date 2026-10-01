@@ -7,12 +7,8 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import type { FunctionReturnType } from 'convex/server';
 import { Button } from '@/components/ui/button';
-import {
-  FormError,
-  SelectField,
-  TextField,
-  TextareaField,
-} from '@/components/ui/field';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -169,19 +165,17 @@ function SubscriberList() {
         <SelectField
           label={tn('adminFilterLabel')}
           value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value as typeof filter);
+          onValueChange={(v) => {
+            setFilter(v as typeof filter);
             setEmail('');
             setDraft('');
           }}
           className="w-48"
-        >
-          {(['all', 'confirmed', 'pending'] as const).map((f) => (
-            <option key={f} value={f}>
-              {vocabulary(tn, 'adminFilter_', f)}
-            </option>
-          ))}
-        </SelectField>
+          options={(['all', 'confirmed', 'pending'] as const).map((f) => ({
+            value: f,
+            label: vocabulary(tn, 'adminFilter_', f),
+          }))}
+        />
         <form
           role="search"
           className="flex flex-wrap items-end gap-2"
@@ -337,14 +331,9 @@ function VariantsEditor({ campaign }: { campaign: Campaign }) {
           <SelectField
             label={tn('adminVariantLocale')}
             value={editing}
-            onChange={(e) => open(e.target.value as SiteLocale)}
-          >
-            {available.map((l) => (
-              <option key={l} value={l}>
-                {lang(l)}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={(v) => open(v as SiteLocale)}
+            options={available.map((l) => ({ value: l, label: lang(l) }))}
+          />
           <TextField
             label={tn('adminVariantLocale') + ' — ' + lang(editing)}
             labelHidden
@@ -688,15 +677,10 @@ export default function AdminNewsletter() {
           label={tn('adminReferenceLocale')}
           hint={tn('adminReferenceLocaleHint')}
           value={reference}
-          onChange={(e) => setReference(e.target.value as SiteLocale)}
+          onValueChange={(v) => setReference(v as SiteLocale)}
           className="max-w-xs"
-        >
-          {routing.locales.map((l) => (
-            <option key={l} value={l}>
-              {lang(l)}
-            </option>
-          ))}
-        </SelectField>
+          options={routing.locales.map((l) => ({ value: l, label: lang(l) }))}
+        />
         <TextField
           label={t('nlSubject')}
           hint={t('nlSubjectHint')}

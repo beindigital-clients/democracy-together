@@ -14,12 +14,8 @@ import { isMember } from '@/lib/roles';
 import { isRateLimited } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import {
-  FormError,
-  SelectField,
-  TextField,
-  TextareaField,
-} from '@/components/ui/field';
+import { FormError, TextField, TextareaField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { Link, useRouter } from '@/i18n/navigation';
 import { vocabulary } from '@/i18n/vocabulary';
 import { ArrowForward } from '@/components/ui/arrow';
@@ -232,14 +228,12 @@ export function TribuneComposer({
             label={t('fieldTheme')}
             id="tr-theme"
             value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-          >
-            {PUB_THEMES.map((s) => (
-              <option key={s} value={s}>
-                {vocabulary(tl, 'themes.', s)}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={setTheme}
+            options={PUB_THEMES.map((s) => ({
+              value: s,
+              label: vocabulary(tl, 'themes.', s),
+            }))}
+          />
           <SelectField
             label={t('fieldFormat')}
             id="tr-format"
@@ -248,11 +242,12 @@ export function TribuneComposer({
               court: TRIBUNE_BODY.court.max,
               fond: TRIBUNE_BODY.fond.max,
             })}
-            onChange={(e) => setFormat(e.target.value as TribuneFormat)}
-          >
-            <option value="court">{t('format_court')}</option>
-            <option value="fond">{t('format_fond')}</option>
-          </SelectField>
+            onValueChange={(v) => setFormat(v as TribuneFormat)}
+            options={[
+              { value: 'court', label: t('format_court') },
+              { value: 'fond', label: t('format_fond') },
+            ]}
+          />
         </div>
       )}
 
@@ -261,14 +256,12 @@ export function TribuneComposer({
         id="tr-lang"
         value={lang}
         hint={t('fieldLangHint')}
-        onChange={(e) => setLang(resolveLocale(e.target.value))}
-      >
-        {routing.locales.map((l) => (
-          <option key={l} value={l}>
-            {vocabulary(tl, 'langs.', l)}
-          </option>
-        ))}
-      </SelectField>
+        onValueChange={(v) => setLang(resolveLocale(v))}
+        options={routing.locales.map((l) => ({
+          value: l,
+          label: vocabulary(tl, 'langs.', l),
+        }))}
+      />
 
       <TextField
         label={t('fieldTitle')}

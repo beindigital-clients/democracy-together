@@ -12,7 +12,7 @@ import {
   RESOURCE_KINDS,
 } from '@convex/lib/programmes';
 import { Link } from '@/i18n/navigation';
-import { SelectField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/choice-fields';
 import { vocabulary } from '@/i18n/vocabulary';
 import { safeHref } from '@/lib/safe-href';
 import { StatusPill } from '@/components/programmes/shared';
@@ -148,15 +148,10 @@ export function ToolboxCatalog() {
             id={f.id}
             label={f.label}
             value={f.value}
-            onChange={(e) => f.set(e.target.value)}
-          >
-            <option value="">{t('filterAll')}</option>
-            {f.options.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={f.set}
+            emptyLabel={t('filterAll')}
+            options={f.options.map(([value, label]) => ({ value, label }))}
+          />
         ))}
       </div>
       {resources === undefined ? (

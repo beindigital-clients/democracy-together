@@ -12,6 +12,7 @@ import {
   useFailureFeedback,
 } from '@/components/admin/action-feedback';
 import { isAdmin } from '@/lib/roles';
+import { Badge } from '@/components/ui/badge';
 
 // MANDATORY 2FA FOR STAFF — setting stored in the database
 // (`securitySettings`), changeable by an administrator (accounts workstream).
@@ -56,15 +57,16 @@ export function TwoFactorPolicyPanel() {
       <p className="mt-1 max-w-[70ch] text-[13px] leading-relaxed text-ink-soft">
         {t('policyHint')}
       </p>
-      <p
-        className={`mt-3 inline-block rounded-pill border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.08em] ${
-          policy.twoFactorRequiredForStaff
-            ? 'border-accent-edge bg-accent-tint text-accent-text'
-            : 'border-bar-5 text-bar-5'
-        }`}
+      <Badge
+        asChild
+        variant={policy.twoFactorRequiredForStaff ? 'accent' : 'bad'}
+        size="label"
+        className="mt-3"
       >
-        {policy.twoFactorRequiredForStaff ? t('policyOn') : t('policyOff')}
-      </p>
+        <p>
+          {policy.twoFactorRequiredForStaff ? t('policyOn') : t('policyOff')}
+        </p>
+      </Badge>
       {policy.keyStatus === 'none' ? (
         <p className="mt-3 max-w-[70ch] text-[13px] text-ink">
           {t('policyKeyMissing')}

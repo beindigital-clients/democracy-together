@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { PUB_SORTS } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
+import { SelectField } from '@/components/ui/choice-fields';
 
 // Library sorting — progressive enhancement: updates the URL's `sort`
 // parameter while preserving active filters. The list stays server-rendered;
@@ -25,19 +26,16 @@ export function SortSelect({ value }: { value: string }) {
   }
 
   return (
-    <label className="flex items-center gap-2 text-sm text-muted">
-      {t('sortLabel')}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-sm border border-line-field bg-surface px-2.5 py-1.5 text-sm text-ink"
-      >
-        {PUB_SORTS.map((s) => (
-          <option key={s} value={s}>
-            {vocabulary(t, 'sort.', s)}
-          </option>
-        ))}
-      </select>
-    </label>
+    <SelectField
+      label={t('sortLabel')}
+      orientation="horizontal"
+      size="sm"
+      value={value}
+      onValueChange={onChange}
+      options={PUB_SORTS.map((s) => ({
+        value: s,
+        label: vocabulary(t, 'sort.', s),
+      }))}
+    />
   );
 }

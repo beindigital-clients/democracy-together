@@ -13,6 +13,8 @@ import { MyPosts } from '@/components/tribune/my-posts';
 import { vocabulary } from '@/i18n/vocabulary';
 import { contentLangAttrs } from '@/i18n/content-lang';
 import { fetchOrFallback, EMPTY_TRIBUNE_POSTS } from '@/lib/convex-fallback';
+import { ChoiceLink } from '@/components/ui/choice-link';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -111,34 +113,18 @@ export default async function TribunePage({
           aria-label={t('filterLabel')}
           className="flex flex-wrap gap-2"
         >
-          <Link
-            href="/tribune"
-            aria-current={!theme ? 'true' : undefined}
-            className={`rounded-pill border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-              !theme
-                ? 'border-accent bg-accent text-accent-contrast'
-                : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
-            }`}
-          >
+          <ChoiceLink href="/tribune" active={!theme}>
             {t('allThemes')}
-          </Link>
-          {PUB_THEMES.map((s) => {
-            const active = theme === s;
-            return (
-              <Link
-                key={s}
-                href={{ pathname: '/tribune', query: { theme: s } }}
-                aria-current={active ? 'true' : undefined}
-                className={`rounded-pill border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-                  active
-                    ? 'border-accent bg-accent text-accent-contrast'
-                    : 'border-line-strong bg-surface text-ink-soft hover:text-ink'
-                }`}
-              >
-                {vocabulary(tl, 'themes.', s)}
-              </Link>
-            );
-          })}
+          </ChoiceLink>
+          {PUB_THEMES.map((s) => (
+            <ChoiceLink
+              key={s}
+              href={{ pathname: '/tribune', query: { theme: s } }}
+              active={theme === s}
+            >
+              {vocabulary(tl, 'themes.', s)}
+            </ChoiceLink>
+          ))}
         </div>
       </Reveal>
 
@@ -156,9 +142,9 @@ export default async function TribunePage({
                 className="block rounded-md border border-line bg-surface p-5 transition-colors hover:border-ink"
               >
                 <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                  <span className="rounded-pill border border-accent-edge bg-accent-tint px-2.5 py-0.5 font-medium text-accent-text">
+                  <Badge variant="accent">
                     {vocabulary(tl, 'themes.', p.theme)}
-                  </span>
+                  </Badge>
                   <span className="font-mono uppercase tracking-[0.06em] text-muted">
                     {vocabulary(t, 'format_', p.format)}
                   </span>

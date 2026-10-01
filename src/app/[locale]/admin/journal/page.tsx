@@ -12,6 +12,7 @@ import { AdminSearch } from '@/components/admin/admin-search';
 import { LoadMore } from '@/components/admin/load-more';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { intlLocale } from '@/i18n/locale';
+import { Badge } from '@/components/ui/badge';
 
 type Row = FunctionReturnType<typeof api.journal.listAuditLog>['page'][number];
 
@@ -137,16 +138,18 @@ export default function AdminJournal() {
           in the table would be indistinguishable from an almost empty log. */}
       {actor ? (
         <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
-          <span className="rounded-pill border border-accent-edge bg-accent-tint px-3 py-1 text-xs font-medium text-accent-text">
+          <Badge variant="accent">
             {t('jrFilterActor', { actor: actor.label })}
-          </span>
-          <button
+          </Badge>
+          <Button
             type="button"
+            variant="link"
+            size="inline"
             onClick={() => setActor(null)}
-            className="text-xs font-medium text-accent-text hover:underline"
+            className="text-xs"
           >
             {t('jrClearActor')}
-          </button>
+          </Button>
         </p>
       ) : null}
 
@@ -183,8 +186,10 @@ export default function AdminJournal() {
                     </td>
                     <td className="py-3 pe-4">
                       {rowActorId ? (
-                        <button
+                        <Button
                           type="button"
+                          variant="link"
+                          size="inline"
                           onClick={() =>
                             setActor({
                               id: rowActorId,
@@ -194,10 +199,10 @@ export default function AdminJournal() {
                           aria-label={t('jrFilterActor', {
                             actor: actorLabel(e),
                           })}
-                          className="inline-block py-1 text-start text-accent-text hover:underline"
+                          className="whitespace-normal py-1 text-start"
                         >
                           {actorLabel(e)}
-                        </button>
+                        </Button>
                       ) : (
                         actorLabel(e)
                       )}

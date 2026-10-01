@@ -9,6 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getMembershipContent } from '@/lib/membership-content';
 import { ScrollableRegion } from '@/components/ui/scrollable-region';
 import { ArrowForward } from '@/components/ui/arrow';
+import { Badge } from '@/components/ui/badge';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -59,16 +60,9 @@ export default async function MembershipPage({
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {c.pills.map((p, i) => (
-                <span
-                  key={p}
-                  className={`rounded-pill border px-3 py-1 text-[12.5px] font-medium ${
-                    i === 0
-                      ? 'border-accent-edge bg-accent-tint text-accent-text'
-                      : 'border-line bg-surface-2 text-ink-soft'
-                  }`}
-                >
+                <Badge key={p} variant={i === 0 ? 'accent' : 'default'}>
                   {p}
-                </span>
+                </Badge>
               ))}
             </div>
           </Reveal>

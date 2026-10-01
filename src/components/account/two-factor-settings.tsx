@@ -9,6 +9,7 @@ import { FormError, TextField } from '@/components/ui/field';
 import { QrCode } from '@/components/account/qr-code';
 import { errorCode } from '@/lib/account-errors';
 import { vocabulary } from '@/i18n/vocabulary';
+import { Badge } from '@/components/ui/badge';
 
 // TWO-FACTOR AUTHENTICATION SETTINGS (accounts workstream) — enrolment by QR
 // code, backup codes, disabling. All the cryptography is server-side
@@ -203,16 +204,13 @@ export function TwoFactorSettings({ email }: { email: string }) {
 
   return (
     <div className="mt-6">
-      <p
-        role="status"
-        className={`inline-block rounded-pill border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.08em] ${
-          status.enabled
-            ? 'border-accent-edge bg-accent-tint text-accent-text'
-            : 'border-line-strong bg-surface-2 text-ink-soft'
-        }`}
+      <Badge
+        asChild
+        variant={status.enabled ? 'accent' : 'default'}
+        size="label"
       >
-        {status.enabled ? t('statusOn') : t('statusOff')}
-      </p>
+        <p role="status">{status.enabled ? t('statusOn') : t('statusOff')}</p>
+      </Badge>
 
       {status.required && !status.enabled ? (
         <p
