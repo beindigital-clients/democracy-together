@@ -57,12 +57,12 @@ function »).
   (#141), `membershipApplications.by_member` (#140),
   `workspaceNotes.by_workspace_and_createdAt` (#134, qui n'avait jamais été
   poussé), et la nouvelle table `contentNews` avec `by_slug` et
-  `by_status_and_publishedOn` (#142). Aucune donnée n'a été touchée.
-- **Commande non jouée** : `npx convex run contenus/migration:importCodedContent '{}'`,
-  demandée par #142 pour copier les trois articles dans `contentNews`. Elle est
-  idempotente (elle crée `news: 3` et ne touche à rien d'autre). Tant que la
-  table est vide, le site sert les trois articles depuis le code, mais l'onglet
-  Actualités du back-office n'a rien à modifier.
+  `by_status_and_publishedOn` (#142). Le push n'a touché à aucune donnée.
+- **Commande jouée** après le push, comme le demande #142 :
+  `npx convex run contenus/migration:importCodedContent '{}'`. Résultat :
+  `news: 3`, et 0 pour les événements, rediffusions, partenaires et
+  thématiques, déjà en base. Les trois articles sont servis par Convex et
+  modifiables dans l'onglet Actualités du back-office.
 
 ### Remise à niveau du 29/09/2026
 
