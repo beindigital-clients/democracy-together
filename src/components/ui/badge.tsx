@@ -13,9 +13,13 @@ import { cn } from '@/lib/utils';
 // - `label`: a data label in monospace capitals (statuses, roles, kinds);
 // - `count`: a number beside a link or a title (unread messages, items
 //   waiting), at least 20 px wide so a single digit stays round.
-// The status tones sit on the bar tokens and hold 4.5:1 in both themes;
-// `pending` uses `bar-4-ink`, as `bar-4` is too light for small text on the
-// light theme.
+// The status tones take the hue of a bar token, with 20 % of `--ink` in the
+// text: darker on the light theme, lighter on the dark one. Measured on
+// 01/10, the plain bar colours on their own 9-10 % tint fell to 3.9:1
+// (pending) and 4.47:1 (good, an axe failure on a library record); mixed,
+// they hold 5:1 on `paper`, `surface` and `surface-2` in both themes
+// (`tests/unit/badge-contrast.test.ts`). `pending` starts from `bar-4-ink`,
+// `bar-4` being too light for small text.
 const badgeVariants = cva(
   'inline-flex w-fit items-center gap-1 rounded-pill border font-medium [&>svg]:pointer-events-none [&>svg]:size-3 [&>svg]:shrink-0',
   {
@@ -27,10 +31,10 @@ const badgeVariants = cva(
         solid: 'border-transparent bg-accent text-accent-contrast',
         // Over a picture, where the page's surfaces are not behind it.
         overlay: 'border-transparent bg-ink/85 text-paper',
-        good: 'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-bar-1',
+        good: 'border-[color-mix(in_srgb,var(--color-bar-1)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-1)_9%,transparent)] text-[color-mix(in_srgb,var(--color-bar-1)_80%,var(--color-ink))]',
         pending:
-          'border-[color-mix(in_srgb,var(--color-bar-4)_48%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-4)_10%,transparent)] text-bar-4-ink',
-        bad: 'border-[color-mix(in_srgb,var(--color-bar-5)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-5)_9%,transparent)] text-bar-5',
+          'border-[color-mix(in_srgb,var(--color-bar-4)_48%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-4)_10%,transparent)] text-[color-mix(in_srgb,var(--color-bar-4-ink)_80%,var(--color-ink))]',
+        bad: 'border-[color-mix(in_srgb,var(--color-bar-5)_45%,transparent)] bg-[color-mix(in_srgb,var(--color-bar-5)_9%,transparent)] text-[color-mix(in_srgb,var(--color-bar-5)_80%,var(--color-ink))]',
       },
       size: {
         default: 'px-3 py-1 text-xs',
