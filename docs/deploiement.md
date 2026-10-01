@@ -95,13 +95,13 @@ Variables du déploiement Convex à cette date :
 | `ASSOCIATION_TAX_RECEIPT_ELIGIBLE` | non posée, donc `false` | `true` seulement une fois le rescrit fiscal obtenu |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | clés de **test** | clés live, webhook déclaré sur `<CONVEX_SITE_URL>/payments/webhook/stripe` (§ 10.2) |
 | `RECAPTCHA_SECRET_KEY` | absente | compte Google reCAPTCHA v3, en paire avec `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` sur Vercel |
-| `AI_GATEWAY_API_KEY` | absente | compte Vercel AI Gateway ; facultative (§ 1.5) |
+| `AI_GATEWAY_API_KEY` | posée le 01/10/2026 (clé Vercel AI Gateway de l'équipe Be in Digital) : traduction active, modération IA encore en mode `off` | rien à changer ; choisir le mode dans `/admin/moderation-ia` (§ 1.5) |
 | `NEWSLETTER_UNSUBSCRIBE_MAILTO` | absente | vraie boîte de l'association ; facultative |
 
 `ASSOCIATION_NAME`, `ASSOCIATION_LEGAL_FORM`, `NEWSLETTER_BATCH_SIZE`,
 `NEWSLETTER_RATE_PER_MINUTE`, `AUDIENCE_RETENTION_DAYS`,
-`AUDIENCE_MAX_HITS_PER_MINUTE` et `TRANSLATION_MODEL` gardent les valeurs par
-défaut du code.
+`AUDIENCE_MAX_HITS_PER_MINUTE`, `TRANSLATION_MODEL` et `TRANSLATION_DAILY_CAP`
+gardent les valeurs par défaut du code.
 
 > ⛔ **Ne recopiez pas cet environnement vers la production.** Un
 > `npx convex env list > .env.convex` rejoué sur le déploiement de production y
@@ -280,6 +280,46 @@ C'est la seule vérification que la CI ne peut pas jouer (elle simule la
 passerelle). Elle contrôle le transport, la sortie contrainte par schéma, la
 lecture de la réponse, puis — sur un texte volontairement fautif — que le
 barème est réellement appliqué.
+
+### 1.6 Traduction à la publication
+
+Un contenu est traduit **une seule fois, au moment où il paraît**, dans les
+quatre autres langues du site (`convex/translationJobs.ts`). Les lecteurs ne
+demandent plus rien : ils choisissent la langue de lecture sur la page
+(« Lire en »), et une traduction sert tous ceux qui suivent.
+
+| Contenu | Quand | Ce qui est traduit |
+|---|---|---|
+| Publication | validation par un modérateur, auto-publication par l'IA, acceptation par le comité de lecture | titre, résumé, points clés, texte |
+| Billet de la Tribune | toute mise en ligne | titre, texte |
+| Actualité | publication, puis chaque modification d'un article publié | seulement les langues laissées vides par l'éditeur ; un texte écrit à la main n'est jamais remplacé |
+
+Variables, toutes sur le **déploiement Convex** :
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `AI_GATEWAY_API_KEY` | absente | la même clé que la modération (§ 1.5). Sans elle, rien n'est traduit et la page le dit |
+| `TRANSLATION_MODEL` | `anthropic/claude-sonnet-5.5` | modèle des traductions (et de la préparation des documents PDF) |
+| `TRANSLATION_DAILY_CAP` | `300` | appels au modèle par 24 heures ; au-delà, les traductions attendent la fenêtre suivante au lieu d'échouer |
+
+Chaque traduction est tentée **trois fois au plus** (relances après 2 puis
+30 minutes), puis marquée en échec : la page sert alors l'original et le
+dit. Un balayage toutes les dix minutes (cron `translation-sweep`) relance ce
+qu'une panne ou le plafond quotidien a laissé en attente.
+
+**Rattrapage des contenus publiés avant la fonction.** Ils ne sont pas
+traduits d'eux-mêmes. La commande s'exécute en deux temps, et le premier
+n'écrit rien et ne coûte rien : il compte, et donne une estimation en jetons.
+
+```bash
+npx convex run translationJobs:backfill '{"dryRun":true}'
+npx convex run translationJobs:backfill '{"dryRun":false}'
+```
+
+Avec Sonnet 5.5 (2 $ par million de jetons en entrée, 10 $ en sortie), le
+coût vaut environ `estimatedInputTokens × 2 + estimatedOutputTokens × 10`,
+divisé par un million. Relancer la commande ne retraduit rien de ce qui l'est
+déjà.
 
 ---
 
