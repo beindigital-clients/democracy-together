@@ -35,9 +35,9 @@ code Convex fusionné dans `main` se pousse donc à la main, sinon le site appel
 des fonctions que le déploiement ne connaît pas encore (« Could not find public
 function »).
 
-- **Code poussé** : `main@eed72b5` (fusion de #139), le 01/10 à 07:45, par
-  `npx convex dev --once`. Le push précédent, `main@71153bd` à 07:41, avait
-  apporté #140 et #141.
+- **Code poussé** : `main@762d233` (fusion de #142), le 01/10 à 14:15, par
+  `npx convex dev --once`. Les pushs du matin avaient apporté #140 et #141
+  (`main@71153bd`, 07:41), puis #139 (`main@eed72b5`, 07:45).
 - **Méthode** : depuis une copie propre de `main`, jamais depuis un dossier de
   travail, qui peut porter une autre branche ou des changements non commités :
 
@@ -53,14 +53,16 @@ function »).
 
   Un `npx convex dev` lancé depuis une branche plus ancienne écraserait ce
   déploiement.
-- **Index ajoutés** par ces deux pushs : `conversationTyping.by_conversation_and_userId`
-  (#141), `membershipApplications.by_member` (#140) et
+- **Index ajoutés** par ces pushs : `conversationTyping.by_conversation_and_userId`
+  (#141), `membershipApplications.by_member` (#140),
   `workspaceNotes.by_workspace_and_createdAt` (#134, qui n'avait jamais été
-  poussé). Aucune donnée n'a été touchée et aucune commande du § 10.3 n'a été
-  rejouée.
-- **Reste à pousser** : tout ce qui a été fusionné après `eed72b5`, à commencer
-  par #142 (retrait de Sanity), qui modifie le code Convex et le schéma
-  `contenus`.
+  poussé), et la nouvelle table `contentNews` avec `by_slug` et
+  `by_status_and_publishedOn` (#142). Aucune donnée n'a été touchée.
+- **Commande non jouée** : `npx convex run contenus/migration:importCodedContent '{}'`,
+  demandée par #142 pour copier les trois articles dans `contentNews`. Elle est
+  idempotente (elle crée `news: 3` et ne touche à rien d'autre). Tant que la
+  table est vide, le site sert les trois articles depuis le code, mais l'onglet
+  Actualités du back-office n'a rien à modifier.
 
 ### Remise à niveau du 29/09/2026
 
