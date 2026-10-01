@@ -28,16 +28,47 @@ déploiement de production naît vide, sans compte ni donnée. D'ici là, les
 avertissements « jamais en production » du § 1.1 valent déjà : ce déploiement de
 développement sert l'application réelle.
 
-### État au 29/09/2026
+### État au 01/10/2026
 
-Le build Vercel ne lance que `next build` : il ne pousse jamais Convex. Le
-déploiement exécutait donc encore les fonctions du 26/09, sans `payments/` ni
+Le build Vercel ne lance que `next build` : il ne pousse jamais Convex. Tout
+code Convex fusionné dans `main` se pousse donc à la main, sinon le site appelle
+des fonctions que le déploiement ne connaît pas encore (« Could not find public
+function »).
+
+- **Code poussé** : `main@eed72b5` (fusion de #139), le 01/10 à 07:45, par
+  `npx convex dev --once`. Le push précédent, `main@71153bd` à 07:41, avait
+  apporté #140 et #141.
+- **Méthode** : depuis une copie propre de `main`, jamais depuis un dossier de
+  travail, qui peut porter une autre branche ou des changements non commités :
+
+  ```bash
+  git fetch origin
+  git worktree add --detach /tmp/dt-convex-push origin/main
+  cd /tmp/dt-convex-push && pnpm install --frozen-lockfile
+  pnpm typecheck:convex
+  CONVEX_DEPLOYMENT=dev:rare-alpaca-677 npx convex dev --once
+  npx convex function-spec     # contrôle : les nouvelles fonctions y figurent
+  cd - && git worktree remove --force /tmp/dt-convex-push
+  ```
+
+  Un `npx convex dev` lancé depuis une branche plus ancienne écraserait ce
+  déploiement.
+- **Index ajoutés** par ces deux pushs : `conversationTyping.by_conversation_and_userId`
+  (#141), `membershipApplications.by_member` (#140) et
+  `workspaceNotes.by_workspace_and_createdAt` (#134, qui n'avait jamais été
+  poussé). Aucune donnée n'a été touchée et aucune commande du § 10.3 n'a été
+  rejouée.
+- **Reste à pousser** : tout ce qui a été fusionné après `eed72b5`, à commencer
+  par #142 (retrait de Sanity), qui modifie le code Convex et le schéma
+  `contenus`.
+
+### Remise à niveau du 29/09/2026
+
+Le déploiement exécutait encore les fonctions du 26/09, sans `payments/` ni
 `contenus/`, d'où l'erreur 500 de `/fr/adhesion` et les « Could not find public
 function » des pages Événements. Remise à niveau du 29/09 :
 
-- **Code poussé** : `main@1c3a11a`, par `npx convex dev --once`. Tout nouveau
-  code Convex se pousse à la main de la même façon. Un `npx convex dev` lancé
-  depuis une branche plus ancienne écraserait ce déploiement.
+- **Code poussé** : `main@1c3a11a`, par `npx convex dev --once`.
 - **Données supprimées** : deux fiches `youthProfiles` créées par les tests E2E
   le 02/07, dans un format antérieur à l'historique git, bloquaient le schéma.
   Rien d'autre n'a été touché. Deux tables hors schéma restent en base, sans
