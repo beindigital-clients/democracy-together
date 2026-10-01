@@ -13,6 +13,7 @@ import {
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
+import { transitionRefusal, type ReviewMachine } from './lib/reviewState';
 import { notify } from './lib/notify';
 import { FIELD_MAX } from './lib/validation';
 import { slugify } from './lib/slug';
@@ -30,6 +31,7 @@ import {
   sniffFileType,
   weightedScore,
   type CallApplicationStatus,
+  type CallDecision,
 } from './lib/programmes';
 
 // Dated calls for projects (F-60): publication, application, evaluation,
@@ -53,7 +55,9 @@ import {
 //  - an assigned evaluator who declares a conflict of interest is EXCLUDED from the
 //    application: they no longer read its content and their score does not count;
 //  - the decision (selected / waiting list / refused) is notified to the
-//    applicant and recorded in the log.
+//    applicant and recorded in the log — and so is going back on it: a
+//    decision is put back under review (`reopenCallApplication`), never
+//    overwritten by a second one.
 
 const HOUR = 60 * 60 * 1000;
 const WRITE_LIMIT = { max: 60, windowMs: HOUR };
@@ -921,6 +925,33 @@ const DECIDED: readonly CallApplicationStatus[] = [
   'rejected',
 ];
 
+function isDecision(status: CallApplicationStatus): status is CallDecision {
+  return DECIDED.includes(status);
+}
+
+// --- State machine for the decision (issue #9) --------------------------------
+//
+//   submitted ──decideCallApplication──► selected | waitlisted | rejected
+//   waitlisted ──decideCallApplication──► selected | rejected
+//   selected | waitlisted | rejected ──reopenCallApplication──► submitted
+//
+// The waiting list moves on without going back — a selected project
+// withdraws, the next one is selected: a continuation, not a reversal. Any
+// other second decision is refused (`ALREADY_REVIEWED`): going back on a
+// decision is the named transition `reopenCallApplication`, notified to the
+// applicant and recorded under `projectCall.reopened`. A draft awaits no
+// decision, and a withdrawn application is its author's own choice: neither
+// is decided, nor reopened (`INVALID_TRANSITION`).
+const CALL_REVIEW: ReviewMachine<CallApplicationStatus> = {
+  transitions: {
+    submitted: ['selected', 'waitlisted', 'rejected'],
+    waitlisted: ['selected', 'rejected', 'submitted'],
+    selected: ['submitted'],
+    rejected: ['submitted'],
+  },
+  decided: DECIDED,
+};
+
 export const callRanking = query({
   args: { callId: v.id('projectCalls') },
   returns: v.array(
@@ -935,6 +966,11 @@ export const callRanking = query({
       applicantName: v.string(),
       status: callApplicationStatusValidator,
       decisionNote: v.union(v.string(), v.null()),
+      // A decision put back under review: when, and which one. While the
+      // application awaits its new decision, `decisionNote` is the previous
+      // decision's.
+      reopenedAt: v.union(v.number(), v.null()),
+      reopenedFrom: v.union(callDecisionValidator, v.null()),
       attachments: v.array(attachmentValidator),
     }),
   ),
@@ -978,6 +1014,8 @@ export const callRanking = query({
         applicantName: a.applicantName,
         status: a.status,
         decisionNote: a.decisionNote ?? null,
+        reopenedAt: a.reopenedAt ?? null,
+        reopenedFrom: a.reopenedFrom ?? null,
         attachments: await attachmentsOf(ctx, a._id),
       });
     }
@@ -986,8 +1024,9 @@ export const callRanking = query({
 });
 
 // Decision: from a submitted application to selected, waiting list or refused;
-// the waiting list can still switch (a selected one withdraws). A
-// selection or a refusal is final — the applicant has been notified of it.
+// the waiting list can still switch (a selected one withdraws). Going back
+// on a selection or a refusal is `reopenCallApplication` below: the
+// applicant, notified of the first decision, is notified of that too.
 export const decideCallApplication = mutation({
   args: {
     applicationId: v.id('projectCallApplications'),
@@ -999,10 +1038,12 @@ export const decideCallApplication = mutation({
     const admin = await requireNetworkRole(ctx, 'moderateur');
     const application = await ctx.db.get(applicationId);
     if (!application) throw new ConvexError('NOT_FOUND');
-    const allowed =
-      application.status === 'submitted' ||
-      (application.status === 'waitlisted' && decision !== 'waitlisted');
-    if (!allowed) throw new ConvexError('INVALID_TRANSITION');
+    const refusal = transitionRefusal(
+      application.status,
+      decision,
+      CALL_REVIEW,
+    );
+    if (refusal) throw new ConvexError(refusal);
     const call = await ctx.db.get(application.callId);
     const text = note?.trim().slice(0, FIELD_MAX.body) || undefined;
     await ctx.db.patch(applicationId, {
@@ -1028,6 +1069,48 @@ export const decideCallApplication = mutation({
       action: AUDIT.PROJECT_CALL_DECIDED,
       targetId: applicationId,
       metadata: { decision, callId: application.callId },
+    });
+    return null;
+  },
+});
+
+// Putting a decision back under review (issue #9) — moderator and above, like
+// the decision itself. The application returns among those to decide, and
+// its evaluators can score it again; the previous decision and its note stay
+// in sight on the ranking, and out of the applicant's view, until the new
+// decision replaces them. The applicant was notified of the first decision,
+// and hears that it is being reconsidered: their space would otherwise show
+// "Déposé" in place of a selection without a word.
+export const reopenCallApplication = mutation({
+  args: { applicationId: v.id('projectCallApplications') },
+  returns: v.null(),
+  handler: async (ctx, { applicationId }) => {
+    const admin = await requireNetworkRole(ctx, 'moderateur');
+    const application = await ctx.db.get(applicationId);
+    if (!application) throw new ConvexError('NOT_FOUND');
+    const from = application.status;
+    const refusal = transitionRefusal(from, 'submitted', CALL_REVIEW);
+    if (refusal) throw new ConvexError(refusal);
+    // The machine only reopens a decision; narrowed here for the record.
+    if (!isDecision(from)) throw new ConvexError('INVALID_TRANSITION');
+    const call = await ctx.db.get(application.callId);
+    await ctx.db.patch(applicationId, {
+      status: 'submitted',
+      reopenedAt: Date.now(),
+      reopenedFrom: from,
+    });
+    await notify(ctx, {
+      userId: application.userId,
+      type: 'projectCall.decision',
+      titleKey: 'projectCallReopened',
+      params: { title: call?.title ?? '' },
+      link: '/espace-membre/projets',
+    });
+    await recordAudit(ctx, {
+      actorId: admin._id,
+      action: AUDIT.PROJECT_CALL_REOPENED,
+      targetId: applicationId,
+      metadata: { from, callId: application.callId },
     });
     return null;
   },

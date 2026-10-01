@@ -333,7 +333,8 @@ describe("Approbation d'adhésion — idempotence et machine à états", () => {
     });
     // replaying the same decision, or reversing it, must be refused: the audit
     // (M6) found that an approved application could go back to "rejected"
-    // without removing the granted role.
+    // without removing the granted role. Going back on a decision is its own
+    // transition, which takes the role back (membership-reopen.test.ts).
     await expect(
       mod.as.mutation(api.organizations.reviewApplication, {
         applicationId,

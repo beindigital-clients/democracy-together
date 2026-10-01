@@ -188,6 +188,9 @@ describe('Équipe — la file des candidatures', () => {
     reviewNotes: null,
     applicantEmail: null,
     applicantRole: null,
+    reopenedAt: null,
+    reopenedFrom: null,
+    organizationStatus: null,
   };
 
   function queue(results: unknown[]) {
@@ -285,5 +288,270 @@ describe('Équipe — la file des candidatures', () => {
         'aucun fournisseur d',
       ),
     );
+  });
+});
+
+// GOING BACK ON A DECISION (issue #9). The rejection dialog said the decision
+// was final, and the queue offered nothing on a decided application. A
+// rejection is now rescued in one click; an approval goes through a
+// confirmation that says what the server will take back.
+describe('Équipe — revenir sur une décision', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const decided = {
+    type: 'organisation' as const,
+    country: 'Sénégal',
+    message: null,
+    reviewNotes: null,
+    applicantEmail: 'contact@institut.org',
+    applicantRole: 'membre' as const,
+    contactEmail: 'contact@institut.org',
+    submittedAt: Date.now() - 5 * DAY,
+    reviewedAt: Date.now() - DAY,
+    invitedAt: Date.now() - DAY,
+    reopenedAt: null,
+    reopenedFrom: null,
+    organizationStatus: 'active' as const,
+  };
+
+  function queue(results: unknown[]) {
+    convex.page = { results, status: 'Exhausted' };
+    return withIntl(
+      <ActionFeedbackProvider>
+        <AdminApplications />
+      </ActionFeedbackProvider>,
+    );
+  }
+
+  it('une candidature rejetée se repêche en un clic', async () => {
+    convex.result = {
+      roleWithdrawn: false,
+      organizationSuspended: false,
+      accountNotified: false,
+    };
+    queue([
+      {
+        ...decided,
+        _id: 'r1',
+        organizationName: 'Institut Écarté',
+        status: 'rejected',
+        applicantEmail: null,
+        applicantRole: null,
+        invitedAt: null,
+        organizationStatus: null,
+      },
+    ]);
+    const row = screen.getByRole('listitem');
+    fireEvent.click(
+      within(row).getByRole('button', { name: 'Remettre en étude' }),
+    );
+
+    // Nothing to take back: no confirmation to get through.
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(convex.calls).toHaveLength(1));
+    expect(convex.calls[0].args).toEqual({ applicationId: 'r1' });
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe(
+        'Candidature de Institut Écarté remise en étude.',
+      ),
+    );
+  });
+
+  it('une candidature approuvée passe par une confirmation qui dit ce qui sera retiré', async () => {
+    convex.queries.set('organizations:reopenImpact', {
+      member: {
+        email: 'contact@institut.org',
+        role: 'membre',
+        losesRole: true,
+      },
+      organization: { name: 'Institut Validé' },
+      colleagues: ['collegue@institut.org'],
+      colleaguesTotal: 1,
+    });
+    convex.result = {
+      roleWithdrawn: true,
+      organizationSuspended: true,
+      accountNotified: true,
+    };
+    queue([
+      {
+        ...decided,
+        _id: 'a1',
+        organizationName: 'Institut Validé',
+        status: 'approved',
+      },
+    ]);
+    const row = screen.getByRole('listitem');
+    fireEvent.click(
+      within(row).getByRole('button', { name: 'Remettre en étude' }),
+    );
+
+    const dialog = screen.getByRole('dialog', {
+      name: 'Remettre en étude la candidature de Institut Validé ?',
+    });
+    expect(
+      within(dialog)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual([
+      'le compte contact@institut.org perd son rôle de membre ;',
+      'la fiche « Institut Validé » sort de l’annuaire, et son responsable ne peut plus la modifier ni y inviter de collègues ;',
+      'un autre compte rattaché à la fiche garde son rôle de membre : collegue@institut.org — revoyez-le au besoin dans Utilisateurs.',
+    ]);
+    // And who is told: the member account, in the app.
+    expect(dialog.textContent).toContain(
+      'Le compte contact@institut.org est prévenu que la candidature est de nouveau à l’étude',
+    );
+    // Nothing happens before the confirmation.
+    expect(convex.calls).toHaveLength(0);
+
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Remettre en étude' }),
+    );
+    await waitFor(() => expect(convex.calls).toHaveLength(1));
+    expect(convex.calls[0].args).toEqual({ applicationId: 'a1' });
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe(
+        'Candidature de Institut Validé remise en étude. Son compte n’a plus le rôle de membre. Sa fiche est retirée de l’annuaire. Le candidat en est prévenu dans son espace.',
+      ),
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('un compte qui ne tient pas son rôle de cette approbation le garde, et l’écran le dit', () => {
+    convex.queries.set('organizations:reopenImpact', {
+      member: {
+        email: 'directrice@institut.org',
+        role: 'editeur',
+        losesRole: false,
+      },
+      organization: null,
+      colleagues: [],
+      colleaguesTotal: 0,
+    });
+    queue([
+      {
+        ...decided,
+        _id: 'a2',
+        type: 'individu',
+        organizationName: 'Awa Diop',
+        status: 'approved',
+        organizationStatus: null,
+      },
+    ]);
+    fireEvent.click(
+      within(screen.getByRole('listitem')).getByRole('button', {
+        name: 'Remettre en étude',
+      }),
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual([
+      'le compte directrice@institut.org garde son rôle (Éditeur) : il ne le tient pas de cette seule approbation ;',
+    ]);
+  });
+
+  it('sans compte à prévenir, la confirmation dit que personne ne l’est', () => {
+    // The account the approval opened was deleted since.
+    convex.queries.set('organizations:reopenImpact', {
+      member: null,
+      organization: null,
+      colleagues: [],
+      colleaguesTotal: 0,
+    });
+    queue([
+      {
+        ...decided,
+        _id: 'a3',
+        type: 'individu',
+        organizationName: 'Compte disparu',
+        status: 'approved',
+        applicantEmail: null,
+        applicantRole: null,
+        organizationStatus: null,
+      },
+    ]);
+    fireEvent.click(
+      within(screen.getByRole('listitem')).getByRole('button', {
+        name: 'Remettre en étude',
+      }),
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.textContent).toContain('Personne n’est prévenu maintenant');
+    expect(dialog.textContent).not.toContain('est prévenu que la candidature');
+  });
+
+  it('remise en étude : la décision précédente reste lisible, et la fiche existante n’est pas ressaisie', async () => {
+    convex.result = { userCreated: false, organizationId: 'o1' };
+    queue([
+      {
+        ...decided,
+        _id: 'p1',
+        organizationName: 'Institut Revu',
+        status: 'pending',
+        reviewNotes: 'Statuts à vérifier.',
+        invitedAt: null,
+        reopenedAt: Date.now() - 60_000,
+        reopenedFrom: 'approved',
+        organizationStatus: 'suspended',
+      },
+    ]);
+    const row = screen.getByRole('listitem');
+    expect(
+      within(row).getByText(
+        /^Remise en étude le .+ : elle avait été approuvée\.$/,
+      ),
+    ).toBeTruthy();
+    expect(
+      within(row).getByText(
+        'Note de la décision précédente : « Statuts à vérifier. »',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(row).getByText(
+        'Approuver rétablit la fiche d’annuaire créée à la première approbation, sans la ressaisir.',
+      ),
+    ).toBeTruthy();
+
+    // The entry exists: approving decides at once, without the entry form.
+    fireEvent.click(within(row).getByRole('button', { name: 'Approuver' }));
+    expect(within(row).queryByRole('heading', { name: 'Fiche annuaire' })).toBe(
+      null,
+    );
+    await waitFor(() => expect(convex.calls).toHaveLength(1));
+    expect(convex.calls[0].args).toEqual({
+      applicationId: 'p1',
+      decision: 'approved',
+    });
+  });
+
+  it('le refus ne se dit plus définitif', () => {
+    queue([
+      {
+        ...decided,
+        _id: 'p2',
+        organizationName: 'Institut Nouveau',
+        status: 'pending',
+        applicantEmail: null,
+        applicantRole: null,
+        reviewedAt: null,
+        invitedAt: null,
+        organizationStatus: null,
+      },
+    ]);
+    fireEvent.click(
+      within(screen.getByRole('listitem')).getByRole('button', {
+        name: 'Rejeter',
+      }),
+    );
+    const dialog = screen.getByRole('dialog', {
+      name: 'Rejeter la candidature de Institut Nouveau ?',
+    });
+    expect(dialog.textContent).toContain(
+      'Vous pourrez revenir sur ce refus en remettant la candidature en étude.',
+    );
+    expect(dialog.textContent).not.toContain('définitive');
   });
 });

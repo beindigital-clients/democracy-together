@@ -32,6 +32,7 @@ import { resolveLocale } from '@/i18n/locale';
 
 const ERRORS = [
   'NOT_ORG_OWNER',
+  'ORG_SUSPENDED',
   'NOT_ORG_MEMBER',
   'LAST_ORG_OWNER',
   'ALREADY_MEMBER',
@@ -348,6 +349,9 @@ function MembersSection({ view }: { view: OrgView }) {
   const setRole = useMutation(api.orgAdmin.setMemberRole);
   const locale = useLocale();
   const owner = view.myRole === 'owner';
+  // A suspended entry is managed by no one (convex/orgAdmin.ts): no
+  // invitation, no change of manager. Leaving, or removing someone, stays.
+  const manages = owner && view.org.status !== 'suspended';
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -421,7 +425,7 @@ function MembersSection({ view }: { view: OrgView }) {
                 </span>
               </span>
               <span className="flex flex-wrap gap-2">
-                {owner && !m.isSelf ? (
+                {manages && !m.isSelf ? (
                   <Button
                     size="sm"
                     variant="outline"
@@ -465,7 +469,7 @@ function MembersSection({ view }: { view: OrgView }) {
         })}
       </ul>
 
-      {owner ? (
+      {manages ? (
         <form onSubmit={onInvite} noValidate className="mt-6">
           <h3 className="font-display text-lg">{t('inviteTitle')}</h3>
           <p className="mt-1 max-w-[65ch] text-sm text-ink-soft">
@@ -554,7 +558,13 @@ function OrgPanel({
         </Link>
       ) : null}
 
-      {view.pendingRevision ? (
+      {/* Suspended when the network went back on its membership approval:
+          said plainly, instead of forms the server would refuse. */}
+      {view.org.status === 'suspended' ? (
+        <p className="mt-4 max-w-[65ch] rounded-md border border-line-strong bg-surface-2 p-3 text-sm text-ink">
+          {t('suspendedNotice')}
+        </p>
+      ) : view.pendingRevision ? (
         <p className="mt-4 max-w-[65ch] rounded-md border border-accent-edge bg-accent-tint p-3 text-sm text-ink">
           {t('pendingNotice', {
             date: formatLongDate(view.pendingRevision.submittedAt, locale),
@@ -575,7 +585,7 @@ function OrgPanel({
         </p>
       ) : null}
 
-      {view.myRole === 'owner' ? (
+      {view.myRole === 'owner' && view.org.status !== 'suspended' ? (
         <FicheForm
           key={view.pendingRevision?._id ?? view.org._id}
           view={view}

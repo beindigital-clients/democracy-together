@@ -80,6 +80,12 @@ async function requireOrgOwner(
   if (!membership || normalizeOrgRole(membership.orgRole) !== 'owner') {
     throw new ConvexError('NOT_ORG_OWNER');
   }
+  // A SUSPENDED organization — its membership approval taken back
+  // (`organizations.reopenApplication`) — is managed by no one: no revision,
+  // no logo, and above all no invitation, which would go on handing the
+  // `membre` role to whoever its manager names. Leaving it, or removing
+  // someone from it, stays possible: that grants nothing.
+  if (org.status === 'suspended') throw new ConvexError('ORG_SUSPENDED');
   return { user, org };
 }
 

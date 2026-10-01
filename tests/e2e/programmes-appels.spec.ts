@@ -4,7 +4,9 @@ import { SESSIONS, type SessionKey } from './_sessions';
 
 // F-60 — Calls for projects, end to end: a moderator publishes a dated
 // call and assigns a reviewer; a member applies with an attachment;
-// the reviewer scores; the moderator selects; the applicant is notified.
+// the reviewer scores; the moderator selects; the applicant is notified;
+// the moderator puts the selection back under review, and the applicant is
+// notified of that too.
 //
 // Three people, three sessions DEDICATED to this file (see _sessions.ts):
 // each is held from start to finish, and its state is rewritten at the end of its
@@ -44,7 +46,8 @@ test.describe
   });
 
   test('parcours complet', async ({ browser }) => {
-    test.setTimeout(180_000);
+    // Seven passes, five browser contexts: the reopening added two.
+    test.setTimeout(240_000);
     const stamp = Date.now();
     const callTitle = `${MARKER} Fonds participation ${stamp}`;
     const projectTitle = `Observatoire citoyen ${stamp}`;
@@ -164,5 +167,52 @@ test.describe
         .getByText('Sélectionné', { exact: true }),
     ).toBeVisible();
     await membre2.done();
+
+    // 6. The moderator goes back on the selection (issue #9): the project is
+    // put back under review, through a confirmation that names it, and the
+    // ranking keeps the previous decision in sight.
+    const admin3 = await as(browser, 'progAppelsAdmin');
+    await admin3.page.goto('/fr/admin/projets/appels');
+    const row3 = admin3.page
+      .getByRole('listitem')
+      .filter({ hasText: callTitle })
+      .first();
+    await row3.getByRole('button', { name: 'Classement et décisions' }).click();
+    const reconsidered = row3
+      .getByRole('listitem')
+      .filter({ hasText: projectTitle });
+    await reconsidered
+      .getByRole('button', { name: 'Remettre en étude' })
+      .click();
+    await admin3.page
+      .getByRole('dialog', {
+        name: `Remettre en étude « ${projectTitle} » ?`,
+      })
+      .getByRole('button', { name: 'Remettre en étude' })
+      .click();
+    await expect(
+      reconsidered.getByText('Déposé', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      reconsidered.getByText(/il avait été sélectionné\.$/),
+    ).toBeVisible();
+    await admin3.done();
+
+    // 7. The applicant hears of it, and their area no longer shows a selection.
+    const membre3 = await as(browser, 'progAppelsMembre');
+    await membre3.page.goto('/fr/notifications');
+    await expect(
+      membre3.page.getByText(
+        `Appel « ${callTitle} » : votre dossier est de nouveau à l’étude.`,
+      ),
+    ).toBeVisible();
+    await membre3.page.goto('/fr/espace-membre/projets');
+    await expect(
+      membre3.page
+        .getByRole('listitem')
+        .filter({ hasText: projectTitle })
+        .getByText('Déposé', { exact: true }),
+    ).toBeVisible();
+    await membre3.done();
   });
 });

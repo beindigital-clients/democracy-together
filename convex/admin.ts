@@ -5,6 +5,7 @@ import { requireNetworkRole, effectiveRole } from './lib/rbac';
 import { COUNTER, readCounters } from './lib/counters';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { normalizeSearchTerm } from './lib/search';
+import { accountToElevate, approvedMember } from './lib/membershipGrant';
 import { networkRole } from './schema';
 
 // Back office (F-26 / F-61 / F-63) — all reads are role-gated
@@ -88,8 +89,27 @@ const applicationValidator = v.object({
   // link, an invited member would never get their membership — but the
   // moderator was deciding blind: the queue carried NO field designating
   // this account. It now does, and the screen flags the mismatch.
+  //
+  // Read the way the decision reads it (lib/membershipGrant.ts): the account
+  // that submitted, otherwise the one of the contact address — which approval
+  // elevates too, and which exists, for instance, once an approval has been
+  // put back under review. On an approved application: the account it made
+  // a member.
   applicantEmail: v.union(v.string(), v.null()),
   applicantRole: v.union(networkRole, v.null()),
+  // A decision put back under review (`organizations.reopenApplication`):
+  // when, and which one — shown next to the application awaiting its new
+  // decision.
+  reopenedAt: v.union(v.number(), v.null()),
+  reopenedFrom: v.union(v.literal('approved'), v.literal('rejected'), v.null()),
+  // The directory profile an earlier approval created, if any. A new approval
+  // brings it back instead of asking for the directory fields again.
+  organizationStatus: v.union(
+    v.literal('active'),
+    v.literal('pending'),
+    v.literal('suspended'),
+    v.null(),
+  ),
 });
 
 export const listApplications = query({
@@ -133,14 +153,18 @@ export const listApplications = query({
             .order('desc')
             .paginate(opts);
 
-    // One read per row of the PAGE (size already bounded by `clampPageSize`)
-    // to resolve the linked account — not a scan.
+    // A few reads per row of the PAGE (size already bounded by
+    // `clampPageSize`) to resolve the account and the profile — not a scan.
     return {
       ...result,
       page: await Promise.all(
         result.page.map(async (a) => {
-          const applicant = a.applicantUserId
-            ? await ctx.db.get(a.applicantUserId)
+          const applicant =
+            a.status === 'approved'
+              ? await approvedMember(ctx, a)
+              : await accountToElevate(ctx, a);
+          const organization = a.createdOrgId
+            ? await ctx.db.get(a.createdOrgId)
             : null;
           return {
             _id: a._id,
@@ -155,7 +179,10 @@ export const listApplications = query({
             reviewedAt: a.reviewedAt ?? null,
             invitedAt: a.invitedAt ?? null,
             applicantEmail: applicant?.email ?? null,
-            applicantRole: applicant?.role ?? null,
+            applicantRole: applicant ? effectiveRole(applicant.role) : null,
+            reopenedAt: a.reopenedAt ?? null,
+            reopenedFrom: a.reopenedFrom ?? null,
+            organizationStatus: organization?.status ?? null,
           };
         }),
       ),
