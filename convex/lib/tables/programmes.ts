@@ -4,6 +4,7 @@ import { locale } from '../locales';
 import {
   availabilityValidator,
   callApplicationStatusValidator,
+  callDecisionValidator,
   levelValidator,
   mentorRoleValidator,
   pairStatusValidator,
@@ -186,6 +187,11 @@ export const programmesTables = {
     decidedAt: v.optional(v.number()),
     decidedBy: v.optional(v.id('users')),
     decisionNote: v.optional(v.string()),
+    // The last time a decision was put back under review
+    // (`projectCalls.reopenCallApplication`), and which one: the ranking shows
+    // it next to the application awaiting its new decision.
+    reopenedAt: v.optional(v.number()),
+    reopenedFrom: v.optional(callDecisionValidator),
   })
     .index('by_call_and_user', ['callId', 'userId'])
     .index('by_call_and_status', ['callId', 'status'])

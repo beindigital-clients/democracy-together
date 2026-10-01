@@ -112,6 +112,84 @@ test('rejeter une candidature : confirmation nommant l’organisation, Échap an
   await expect(decided.getByText('Rejetée')).toBeVisible();
 });
 
+// GOING BACK ON A DECISION (issue #9) — the rejection dialog above used to
+// call it final. A rejection is rescued in one click (nothing to take back),
+// and an approval is put back under review through a confirmation that says
+// what the server withdraws: the `membre` role the approval gave.
+test('revenir sur une décision d’adhésion : un refus repêché, une approbation remise en étude (issue #9)', async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const appOrg = `Institut Repêché E2E ${stamp}`;
+  const contactEmail = `e2e_conf_reprise_${stamp}@democracytogether.test`;
+
+  await submitApplication({
+    type: 'individu',
+    organizationName: appOrg,
+    contactEmail,
+    country: 'Sénégal',
+  });
+
+  await page.goto('/fr/admin/candidatures');
+  // Rows are looked up IN the queue: the confirmation below is a list too.
+  const queue = page.getByRole('list', { name: 'Liste des candidatures' });
+  const pendingRow = queue.getByRole('listitem').filter({ hasText: appOrg });
+  await pendingRow
+    .getByRole('button', { name: 'Rejeter', exact: true })
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Rejeter la candidature' })
+    .click();
+  await expect(pendingRow).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Toutes' }).click();
+  const row = queue.getByRole('listitem').filter({ hasText: appOrg });
+  await expect(row.getByText('Rejetée')).toBeVisible();
+
+  // 1. Rescued: back in the queue at once, the previous decision in sight.
+  await row.getByRole('button', { name: 'Remettre en étude' }).click();
+  await expect(page.getByRole('status')).toContainText(
+    `Candidature « ${appOrg} » remise en étude.`,
+  );
+  await expect(row.getByText('En attente')).toBeVisible();
+  await expect(row.getByText(/elle avait été rejetée\.$/)).toBeVisible();
+
+  // 2. Decided again — approved, like a first time.
+  await row.getByRole('button', { name: 'Approuver' }).click();
+  await expect(page.getByRole('status')).toContainText(
+    `Candidature « ${appOrg} » approuvée.`,
+  );
+  await expect(row.getByText('Approuvée', { exact: true })).toBeVisible();
+
+  // 3. Put back under review: the confirmation names what is taken back, and
+  // nothing moves before it is confirmed.
+  await row.getByRole('button', { name: 'Remettre en étude' }).click();
+  const dialog = page.getByRole('dialog', {
+    name: `Remettre en étude la candidature « ${appOrg} » ?`,
+  });
+  await expect(dialog).toContainText(
+    `le compte ${contactEmail} perd son rôle de membre`,
+  );
+  await expect(dialog).toContainText(
+    `Le compte ${contactEmail} est prévenu que la candidature est de nouveau à l’étude`,
+  );
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(row.getByText('Approuvée', { exact: true })).toBeVisible();
+
+  await row.getByRole('button', { name: 'Remettre en étude' }).click();
+  await dialog.getByRole('button', { name: 'Remettre en étude' }).click();
+  await expect(page.getByRole('status')).toContainText(
+    'Son compte n’a plus le rôle de membre.',
+  );
+  await expect(page.getByRole('status')).toContainText(
+    'Le candidat en est prévenu dans son espace.',
+  );
+  await expect(row.getByText('En attente')).toBeVisible();
+  await expect(row.getByText(/elle avait été approuvée\.$/)).toBeVisible();
+});
+
 test('rejeter une publication : confirmation nommant le titre, annulation sans effet (issue #38)', async ({
   page,
 }) => {

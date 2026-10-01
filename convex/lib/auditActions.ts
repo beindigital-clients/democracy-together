@@ -22,6 +22,9 @@ export const AUDIT = {
   // log would show "… .reviewed" twice in a row and we would not know
   // which of the two passes reopened the file.
   PUBLICATION_REOPENED: 'publication.reopened',
+  // A membership decision put back under review. From an approval, it also
+  // takes back what the approval granted: its metadata says what.
+  MEMBERSHIP_REOPENED: 'membership.reopened',
   YOUTH_REOPENED: 'youth.reopened',
   MENTORSHIP_REOPENED: 'mentorship.reopened',
   PROJECT_REOPENED: 'project.reopened',
@@ -119,6 +122,9 @@ export const AUDIT = {
   PROJECT_CALL_SAVED: 'projectCall.saved',
   PROJECT_CALL_EVALUATORS: 'projectCall.evaluators',
   PROJECT_CALL_DECIDED: 'projectCall.decided',
+  // A decision put back under review: its own action, like the other
+  // reopenings, so the log never reads as two contradictory decisions.
+  PROJECT_CALL_REOPENED: 'projectCall.reopened',
   TOOLBOX_RESOURCE_SAVED: 'toolbox.resource_saved',
   TOOLBOX_PATH_SAVED: 'toolbox.path_saved',
   // Annual reports (F-41, editorial workstream). The migration of the coded
