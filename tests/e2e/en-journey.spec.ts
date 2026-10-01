@@ -113,7 +113,9 @@ test('EN : candidature d’adhésion depuis le formulaire anglais (F-20/F-22)', 
   // Form: English labels (a French `getByLabel` would fail here)
   await page.getByLabel('Think tank name').fill('English Democracy Lab');
   await page.getByLabel('Contact email').fill(email);
-  await page.getByLabel('Country').fill('Ghana');
+  // Exact: the estimator's radio group, "Country income level", also
+  // contains the word.
+  await page.getByLabel('Country', { exact: true }).fill('Ghana');
   await page
     .getByLabel('About you (optional)')
     .fill('We study democratic governance in West Africa.');

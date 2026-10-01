@@ -382,6 +382,23 @@
   }
 }
 
+/* THE HIDDEN INPUT OF A RADIX CHECKBOX, RADIO OR SWITCH. Inside a form,
+   Radix renders a native input right AFTER the control's button (invisible,
+   absolutely positioned) and pulls it back over the button with an inline
+   `translateX(-100%)`. That shift goes LEFT, which only suits left-to-right
+   text. In Arabic it pushed the input out on the left, the side a
+   right-to-left page scrolls to: at 320 px, the full-width income cards of
+   /ar/adhesion made the page scroll sideways by 242 px (RGAA 10.11). The
+   shift is mirrored here, so the input ends on the side a page never scrolls
+   to, as it does in French. `!important` because the shift is an inline
+   style; `[dir='rtl']` rather than `:dir(rtl)`, which the CSS build rewrites
+   as a list of right-to-left LANGUAGES. */
+[dir='rtl']
+  :is(button[role='checkbox'], button[role='radio'], button[role='switch'])
+  + input[aria-hidden='true'] {
+  transform: translateX(100%) !important;
+}
+
 /* ============================================================
    DOCUMENT VIEW — print layout
    ------------------------------------------------------------
