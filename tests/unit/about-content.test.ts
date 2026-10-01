@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { aboutFallback, initials } from '@/lib/about-content';
+import { routing } from '@/i18n/routing';
 
 describe('À propos — contenu (F-11 / F-12)', () => {
   it('fournit FR et EN, fondateurs et axes complets', () => {
@@ -26,6 +27,19 @@ describe('À propos — contenu (F-11 / F-12)', () => {
       expect(blob).not.toContain('démocratie libérale');
       expect(blob).not.toContain('liberal democracy');
       expect(blob).not.toContain('rmdl');
+    }
+  });
+
+  it('présente chaque fondateur, dans chaque langue', () => {
+    const attendu = aboutFallback('fr').founders.people.length;
+    for (const loc of routing.locales) {
+      const people = aboutFallback(loc).founders.people;
+      expect(people, loc).toHaveLength(attendu);
+      for (const p of people) {
+        expect(p.bio, `${loc} · ${p.name}`).not.toMatch(
+          /compléter|completed|completar|استكمال/i,
+        );
+      }
     }
   });
 
