@@ -945,6 +945,43 @@ export default defineSchema({
     // The sweep: pending jobs whose next attempt is due.
     .index('by_status_and_nextAttemptAt', ['status', 'nextAttemptAt']),
 
+  // TRANSLATED PDF OF A PUBLICATION — one row per (publication, language).
+  //
+  // When a publication with an attached PDF goes live, its file is translated
+  // into every other site language, keeping its design (convex/documentJobs.ts,
+  // engine in convex/lib/pdfTranslate). Each row is the job and its result:
+  // `pending` while it runs, `ready` with the translated file in storage,
+  // `failed` with the reason. `fileId` is the SOURCE file it was made from: a
+  // publication whose file is replaced (accepted manuscript version) gets new
+  // translations, and the old ones stop being served.
+  documentTranslations: defineTable({
+    publicationId: v.id('publications'),
+    fileId: v.id('_storage'),
+    sourceLocale: locale,
+    targetLocale: locale,
+    status: translationStatus,
+    // The translated PDF, once `ready`.
+    storageId: v.optional(v.id('_storage')),
+    pages: v.optional(v.number()),
+    size: v.optional(v.number()),
+    model: v.optional(v.string()),
+    error: v.optional(v.string()),
+    // Job state, as in `contentTranslations`.
+    attempts: v.optional(v.number()),
+    nextAttemptAt: v.optional(v.number()),
+    leaseUntil: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_publication_and_locale', ['publicationId', 'targetLocale'])
+    .index('by_status_and_nextAttemptAt', ['status', 'nextAttemptAt']),
+
+  // LEGACY (until 2026-10-01): the document view rebuilt the attached PDF as
+  // HTML, translated on a reader's request. Replaced by the translated PDF
+  // files above; the two tables stay declared so that their rows — and the
+  // images they reference — are still purged with the publication
+  // (lib/accountDeletion.ts, devAdmin.ts) until they are cleared for good.
+  //
   // DOCUMENT EXTRACTED FROM A PDF — one row per publication.
   //
   // Extraction is done ONCE and serves all five languages: it re-reads the

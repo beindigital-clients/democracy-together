@@ -289,6 +289,18 @@ async function deletePublicationCompletely(
     )
     .take(16);
   for (const tr of translations) await ctx.db.delete(tr._id);
+  // Translated PDFs (convex/documentJobs.ts): rows AND files — the files
+  // carry the full text of the publication, in four languages.
+  const translatedFiles = await ctx.db
+    .query('documentTranslations')
+    .withIndex('by_publication_and_locale', (q) =>
+      q.eq('publicationId', pub._id),
+    )
+    .take(8);
+  for (const tf of translatedFiles) {
+    if (tf.storageId) await deleteStorage(ctx, tf.storageId);
+    await ctx.db.delete(tf._id);
+  }
   const extraction = await ctx.db
     .query('documentExtractions')
     .withIndex('by_publication', (q) => q.eq('publicationId', pub._id))

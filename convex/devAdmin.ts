@@ -162,8 +162,26 @@ export const deleteTestPublications = internalMutation({
         .take(8);
       for (const tr of translations) await ctx.db.delete(tr._id);
 
-      // Document extracted from the PDF (convex/documents.ts) and its translated
-      // versions. IMAGES ARE FILES: forgetting them would leave in storage
+      // Translated PDFs (convex/documentJobs.ts): rows and their files.
+      const translatedFiles = await ctx.db
+        .query('documentTranslations')
+        .withIndex('by_publication_and_locale', (q) =>
+          q.eq('publicationId', p._id),
+        )
+        .take(8);
+      for (const tf of translatedFiles) {
+        if (tf.storageId) {
+          try {
+            await ctx.storage.delete(tf.storageId);
+          } catch {
+            /* file already gone: carry on */
+          }
+        }
+        await ctx.db.delete(tf._id);
+      }
+
+      // Legacy document view (until 2026-10-01): the PDF rebuilt as HTML,
+      // and its translated versions. IMAGES ARE FILES: forgetting them would leave in storage
       // illustrations that no row references anymore —
       // a slow leak, the kind you only notice on the bill.
       const extraction = await ctx.db

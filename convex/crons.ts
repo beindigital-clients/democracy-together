@@ -73,5 +73,12 @@ crons.interval(
   internal.translationJobs.sweep,
   {},
 );
+// Same safety net for the translated PDFs (convex/documentJobs.ts).
+crons.interval(
+  'document-translation-sweep',
+  { minutes: 10 },
+  internal.documentJobs.sweepDocuments,
+  {},
+);
 
 export default crons;

@@ -912,19 +912,8 @@
     "errTooLong": "Este documento é demasiado longo para ser traduzido automaticamente.",
     "errForbidden": "Este conteúdo é reservado aos membros da rede.",
     "errGeneric": "O serviço de tradução está momentaneamente indisponível.",
-    "docTitle": "Descarregar noutra língua",
-    "docLead": "O documento é regenerado na língua escolhida: o texto é traduzido, a paginação e as ilustrações são conservadas.",
-    "docPrepare": "Preparar em {language}",
-    "docPreparing": "A preparar o documento…",
-    "docOpen": "Abrir a versão em {language}",
-    "docOriginalFile": "Descarregar o PDF original",
-    "docReady": "Disponível em {language}",
-    "docPrint": "Imprimir / Guardar como PDF",
-    "docNotice": "Documento traduzido automaticamente do {language}. As ilustrações e os quadros provêm do documento original.",
-    "docSourceLink": "Ver o documento original",
-    "docFigure": "Ilustração {n}",
-    "docPageOf": "Página {n}",
-    "docEmpty": "Não foi possível extrair qualquer conteúdo deste documento."
+    "pdfOtherLanguages": "O PDF noutras línguas",
+    "pdfMachine": "PDF traduzido automaticamente do original em {language}, com a paginação conservada."
   },
   "nav": {
     "homeLabel": "Democracy Together — início",

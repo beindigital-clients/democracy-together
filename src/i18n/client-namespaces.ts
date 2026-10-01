@@ -77,10 +77,6 @@ export const BASE_CLIENT_NAMESPACES = [
   // "Programmes" workstream (F-56 to F-60): toolbox and learning paths, Youth
   // profile — client islands on public pages and in the member area.
   'toolbox',
-  // `translation`: the reading-language banner is a SERVER component, but the
-  // document view's language picker (`DocumentLanguagePicker`) calls a Convex
-  // action, hence is necessarily client-side, and reads this namespace.
-  'translation',
   'tribune',
   'twoFactor',
   'workspaces',

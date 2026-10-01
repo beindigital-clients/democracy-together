@@ -912,19 +912,8 @@
     "errTooLong": "This document is too long to be translated automatically.",
     "errForbidden": "This content is reserved for members of the network.",
     "errGeneric": "The translation service is momentarily unavailable.",
-    "docTitle": "Download in another language",
-    "docLead": "The document is rebuilt in the language you choose: the text is translated, the layout and the illustrations are kept.",
-    "docPrepare": "Prepare in {language}",
-    "docPreparing": "Preparing the document…",
-    "docOpen": "Open the {language} version",
-    "docOriginalFile": "Download the original PDF",
-    "docReady": "Available in {language}",
-    "docPrint": "Print / Save as PDF",
-    "docNotice": "Document machine-translated from {language}. Illustrations and tables come from the original document.",
-    "docSourceLink": "See the original document",
-    "docFigure": "Figure {n}",
-    "docPageOf": "Page {n}",
-    "docEmpty": "No content could be extracted from this document."
+    "pdfOtherLanguages": "The PDF in other languages",
+    "pdfMachine": "PDF machine-translated from the original in {language}, layout kept."
   },
   "nav": {
     "homeLabel": "Democracy Together — home",
