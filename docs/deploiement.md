@@ -4,10 +4,11 @@
 > initial puisse déployer**, ce qui n'était possible pour personne jusqu'ici
 > (audit § 3.4).
 >
-> Trois services, déployés séparément : **Convex** (backend, données, auth),
-> **Sanity** (CMS éditorial) et **Vercel** (application Next.js). Ils ne
-> partagent aucun fichier de configuration : chacun porte ses propres variables,
-> et c'est la principale source d'erreur.
+> Deux services, déployés séparément : **Convex** (backend, données, auth,
+> contenus éditoriaux) et **Vercel** (application Next.js). Ils ne partagent
+> aucun fichier de configuration : chacun porte ses propres variables, et c'est
+> la principale source d'erreur. (Sanity, un temps le CMS des actualités, de
+> l'accueil et de l'à-propos, a été retiré le 01/10/2026.)
 
 ## Déploiement en cours
 
@@ -86,7 +87,6 @@ administrateurs. La liste complète est au § 10.3.
 |---|---|
 | Node 22 · pnpm 10.33.2 | version épinglée par `packageManager` dans `package.json` |
 | Accès Convex | droits de déploiement sur le projet de production |
-| Accès Sanity | rôle administrateur sur le projet (sanity.io/manage) |
 | Accès Vercel | droits de déploiement sur le projet |
 | Fournisseur e-mail | compte Resend (ou équivalent) + domaine d'envoi vérifié |
 | reCAPTCHA v3 | paire de clés sur google.com/recaptcha/admin |
@@ -156,16 +156,15 @@ npx convex env list            # contrôle : ni AUTH_DEV_OTP ni RECAPTCHA_DISABL
 |---|---|
 | `NEXT_PUBLIC_CONVEX_URL` | URL du déploiement Convex de production |
 | `NEXT_PUBLIC_SITE_URL` | URL canonique du site (metadata, sitemap, hreflang) |
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` | identifiant du projet Sanity |
-| `NEXT_PUBLIC_SANITY_DATASET` | `production` |
-| `NEXT_PUBLIC_SANITY_API_VERSION` | ex. `2025-01-01` |
-| `SANITY_API_READ_TOKEN` | jeton de lecture (contenus en brouillon / dataset privé) |
 | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | clé **de site** reCAPTCHA (publique, lue par le navigateur) |
 | `DEMO_NOINDEX` | à **définir** tant que ce n'est pas le site final — ajoute `X-Robots-Tag: noindex, nofollow` ; **à retirer au lancement réel** |
 
 Tout ce qui est préfixé `NEXT_PUBLIC_` est **inscrit dans le bundle client** :
 n'y mettez jamais un secret. La clé **secrète** reCAPTCHA va sur Convex (§ 1.1),
 jamais ici.
+
+Les variables `NEXT_PUBLIC_SANITY_*` et `SANITY_API_READ_TOKEN` ne sont plus
+lues depuis le retrait de Sanity : elles peuvent être supprimées du projet.
 
 ### 1.3 Le cas de l'e-mail : échec assumé plutôt que silence
 
@@ -306,27 +305,17 @@ de servir un chiffre faux.
 
 ---
 
-## 3. Déployer Sanity
+## 3. Contenus éditoriaux
 
-Le Studio est **servi par l'application elle-même** sur `/studio`
-(`src/app/(studio)/`, `basePath: '/studio'` dans `sanity.config.ts`) : le
-déployer avec Vercel suffit, il n'y a rien de plus à faire pour y accéder.
+Il n'y a **pas de CMS séparé**. Les actualités, événements, replays,
+partenaires, la revue de presse, les thématiques et la médiathèque vivent dans
+Convex et se modifient dans le back-office (`/admin/contenus`, rang éditeur).
+Le contenu codé s'y recopie par `importCodedContent` (§ 10.3) — idempotent : le
+rejouer n'écrase rien de ce qu'un éditeur a modifié. Les trois actualités y
+sont entrées le 01/10/2026 : sur un déploiement où l'import avait déjà été
+joué, **le rejouer une fois** pour les y ajouter.
 
-À faire **une fois**, dans sanity.io/manage :
-
-1. Dataset en **région EU** (contrainte RGPD du cadrage).
-2. **CORS origins** : ajouter le domaine de production (et celui de préproduction)
-   avec les identifiants autorisés — sans quoi le Studio et les lectures
-   échouent depuis le site déployé.
-3. Jeton de lecture → `SANITY_API_READ_TOKEN` côté Vercel (§ 1.2).
-
-`npx sanity deploy` n'est **pas** nécessaire : il publierait une copie séparée
-du Studio sur `*.sanity.studio`. Ne l'utilisez que si vous voulez explicitement
-ce second point d'entrée ; `sanity.cli.ts` est déjà configuré pour les commandes
-CLI (`npx sanity …`).
-
-Périmètre réel du CMS : **accueil, à-propos, actualités**. Les autres contenus
-(événements, partenaires, presse, thématiques, rapports, jeunes, adhésion,
+L'accueil, l'à-propos et les autres contenus (rapports, jeunes, adhésion,
 baromètre) sont en TypeScript dans `src/lib/*-content.ts` et exigent un
 développeur pour être modifiés.
 
@@ -478,9 +467,9 @@ rapport.
 |---|---|
 | `https://<domaine>/` | redirige vers `/fr` (ou `/en` selon la langue du navigateur) |
 | `npx convex env list` | conforme au § 1.1, **sans `AUTH_DEV_OTP` ni `RECAPTCHA_DISABLED`** |
-| En-têtes HTTP | CSP présente hors `/studio` ; HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` |
+| En-têtes HTTP | CSP présente sur toutes les routes ; HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` |
 | `X-Robots-Tag` | présent tant que `DEMO_NOINDEX` est posée, **absent** au lancement réel |
-| `/studio` | le Studio charge et liste accueil / à-propos / actualités |
+| `/fr/actualites` et `/admin/contenus/actualites` | les articles s'affichent, et le back-office les liste (sinon : import du § 10.3 non joué) |
 | Connexion par code | un e-mail arrive réellement (sinon : § 1.3) |
 | Zone privée (`/admin`) | redirige vers la connexion **avant tout rendu** (gating serveur, `src/proxy.ts`) |
 | Formulaire de contact | soumission acceptée (donc `RECAPTCHA_SECRET_KEY` bien posée, § 1.4), message visible dans le back-office |
@@ -536,7 +525,8 @@ npx convex env list --prod | grep -E '^(AUTH_DEV_OTP|RECAPTCHA_DISABLED|PAYMENTS
 ### 10.3 Commandes à lancer une fois, après le déploiement, dans cet ordre
 
 ```bash
-# Contenus codés recopiés en base (agenda, replays, partenaires, thématiques).
+# Contenus codés recopiés en base (agenda, replays, partenaires, thématiques,
+# actualités).
 # SANS cet import, les inscriptions aux événements sont refusées : le serveur
 # ne valide plus que contre la table (point M-5 de l'audit).
 npx convex run --prod contenus/migration:importCodedContent '{}'
@@ -584,9 +574,9 @@ Puis, dans le back-office :
 - [ ] **Plan de sauvegarde et de restauration** des données Convex (fréquence,
       support, test de restauration). Aujourd'hui : rien d'écrit, rien de testé.
 - [ ] **Procédure de rotation des secrets** (`JWT_PRIVATE_KEY`/`JWKS`,
-      `AUTH_RESEND_KEY`, `RECAPTCHA_SECRET_KEY`, jetons Sanity), et conduite à
+      `AUTH_RESEND_KEY`, `RECAPTCHA_SECRET_KEY`), et conduite à
       tenir en cas de fuite.
 - [ ] **Import / reprise de données** — § 6, bloqué par #48.
 - [ ] **ADR et CHANGELOG** : aucune décision d'architecture n'est tracée.
-- [ ] **Arbitrage RGPD de l'hébergement** : le dataset Sanity est en région EU,
-      mais l'hébergement Convex et Vercel n'est pas arbitré (audit F-09).
+- [ ] **Arbitrage RGPD de l'hébergement** : l'hébergement Convex et Vercel
+      n'est pas arbitré (audit F-09).

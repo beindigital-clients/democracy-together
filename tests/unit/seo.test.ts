@@ -314,7 +314,7 @@ describe('Données structurées — fiche Article', () => {
   });
 
   it('omet le chapô absent plutôt que d’émettre une description vide', () => {
-    // `excerpt` is optional in the Sanity schema.
+    // An article's excerpt is optional (`contentNews`).
     const sansChapo = articleJsonLd({
       headline: 'T',
       slug: 's',
@@ -325,9 +325,8 @@ describe('Données structurées — fiche Article', () => {
   });
 
   it('ne déclare NI auteur, NI image', () => {
-    // The Sanity schema has no author field: inventing one would be
-    // false data. `coverUrl` is indeed projected by the query, but the page
-    // does not render it — an entry describes the page, not the query.
+    // An article has no author field: inventing one would be false data.
+    // Nor an image: an entry describes what the page shows.
     expect(Object.keys(fiche).sort()).toEqual([
       '@context',
       '@type',

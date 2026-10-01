@@ -7,11 +7,9 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // Content-Security-Policy (security — defense in depth). 'unsafe-inline'
 // remains necessary (theme init script + Next inline scripts; inline
 // styles from framer-motion / Tailwind). connect-src opens Convex (https + wss,
-// real-time sync + storage) and Sanity. reCAPTCHA v3 (anti-spam for public
+// real-time sync + storage). reCAPTCHA v3 (anti-spam for public
 // forms) loads its script from www.google.com / www.gstatic.com, opens an
 // invisible iframe (frame-src) and a scoring XHR (connect-src) to Google.
-// The `/studio` Studio is EXCLUDED from the CSP (heavy client app, likely
-// to need eval) — see headers().
 //
 // The CSP is ALWAYS set (dev/prod consistency + testable), but RELAXED in
 // development: React and Turbopack (Fast Refresh / HMR) require `eval()` and
@@ -37,7 +35,7 @@ const csp = [
   // browser blocks EVERY image of the translated document — that is, what the
   // feature exists to preserve — and the reader only gets
   // broken icons, which they save as is into their PDF.
-  `img-src 'self' data: blob: https://cdn.sanity.io https://*.convex.cloud${extra(convexOrigins.img)}`,
+  `img-src 'self' data: blob: https://*.convex.cloud${extra(convexOrigins.img)}`,
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   `script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com${isDev ? " 'unsafe-eval'" : ''}`,
@@ -49,12 +47,12 @@ const csp = [
   // Replays as a video FILE (mp4, webm…) hosted off-site: https
   // only, checked on entry (`validateVideoUrl`).
   "media-src 'self' https:",
-  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.sanity.io wss://*.sanity.io https://www.google.com${extra(convexOrigins.connect)}${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
+  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://www.google.com${extra(convexOrigins.connect)}${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join('; ');
 
-// Risk-free headers, applied everywhere (including /studio).
+// Risk-free headers, applied everywhere.
 const baseSecurityHeaders = [
   {
     key: 'Strict-Transport-Security',
@@ -86,19 +84,16 @@ const nextConfig: NextConfig = {
   // `X-Powered-By: Next.js` tells the user nothing and tells the
   // attacker something (noted on 27/09, security headers).
   poweredByHeader: false,
-  // Images: documentary photos (Sanity CDN) + placeholders.
-  images: {
-    remotePatterns: [{ protocol: 'https', hostname: 'cdn.sanity.io' }],
-  },
   async headers() {
     return [
-      // Base (risk-free) headers on all routes.
-      { source: '/:path*', headers: baseSecurityHeaders },
-      // CSP everywhere EXCEPT the Sanity Studio (negative lookahead, same style as the
-      // proxy matcher). Always set; relaxed in dev (see `csp`).
+      // Base (risk-free) headers and the CSP on all routes. The CSP is
+      // always set; relaxed in dev (see `csp`).
       {
-        source: '/((?!studio).*)',
-        headers: [{ key: 'Content-Security-Policy', value: csp }],
+        source: '/:path*',
+        headers: [
+          ...baseSecurityHeaders,
+          { key: 'Content-Security-Policy', value: csp },
+        ],
       },
     ];
   },

@@ -10,7 +10,7 @@ Plateforme numérique : portail éditorial public + espace membres + back-office
 | Frontend | Next.js 16 (App Router) · React 19 · Tailwind v4 |
 | i18n | next-intl (FR/EN par URL ; pt s'ajoute tel quel, ar demande le RTL — #23) |
 | Application / données / temps réel | Convex (+ Convex Auth) |
-| CMS éditorial | Sanity (Studio monté sur `/studio`) |
+| Contenus éditoriaux | Convex, édités dans le back-office (`/admin/contenus`) |
 | Modération assistée | Vercel AI Gateway (`/v1/responses`, sans SDK) — facultative, éteinte par défaut |
 | Tests | Vitest (+ convex-test) · Playwright |
 
@@ -51,18 +51,25 @@ explicite sur votre déploiement de développement — jamais en production :
 npx convex env set RECAPTCHA_DISABLED true
 ```
 
-### Sanity
+### Contenus éditoriaux
 
-Créer un projet sur sanity.io/manage (dataset en région EU), puis renseigner
-`NEXT_PUBLIC_SANITY_PROJECT_ID` dans `.env.local` (voir `.env.example`).
-Le Studio est servi par l'application elle-même sur `/studio` : il couvre
-l'accueil, la page à-propos et les actualités. Les autres contenus (événements,
-partenaires, presse, thématiques, rapports, jeunes, adhésion, baromètre) vivent
-encore en TypeScript dans `src/lib/*-content.ts`.
+Il n'y a pas de CMS séparé : les actualités, événements, replays, partenaires,
+revue de presse, thématiques et la médiathèque vivent dans Convex et se
+modifient dans le back-office (`/admin/contenus`, rang éditeur). Sur un
+déploiement neuf, le contenu codé s'importe **une fois** (idempotent) :
+
+```bash
+npx convex run contenus/migration:importCodedContent '{}'
+```
+
+Tant qu'une table n'a aucun contenu publié, le site sert ce même contenu codé.
+L'accueil, la page à-propos et les autres contenus (rapports, jeunes, adhésion,
+baromètre) vivent en TypeScript dans `src/lib/*-content.ts`, dans les cinq
+langues.
 
 ### Déploiement
 
-Procédure complète (Convex, Sanity, Vercel, variables de production) :
+Procédure complète (Convex, Vercel, variables de production) :
 **`docs/deploiement.md`**.
 
 Sur un déploiement neuf, le **premier administrateur** s'amorce par une mutation
@@ -167,7 +174,7 @@ politique réseau).
   côté Convex (`requireNetworkRole`), seule barrière qui protège les données.
 - **CSP** et en-têtes de sécurité posés dans `next.config.ts` (HSTS, nosniff,
   `Referrer-Policy`, `Permissions-Policy`…). La CSP est relâchée en développement
-  seulement ; `/studio` en est exclu. `DEMO_NOINDEX` ajoute `X-Robots-Tag` sur les
+  seulement. `DEMO_NOINDEX` ajoute `X-Robots-Tag` sur les
   déploiements de démonstration.
 - **reCAPTCHA v3** sur les sept formulaires publics (contact, adhésion,
   newsletter, événements, rappels, jeunes, mentorat), en **fail-closed** : sans
@@ -219,7 +226,6 @@ vers `src/app/globals.css` (`@theme`) :
 ```
 src/
   app/[locale]/      pages localisées (layout rend <html>, header, footer)
-  app/(studio)/      Studio Sanity monté sur /studio
   components/        header, footer, sections, ui, admin, tribune, map…
   i18n/              routing · request · navigation · locale · vocabulary
   lib/               contenus TypeScript, helpers, routes protégées
@@ -229,11 +235,10 @@ convex/              backend ÉCRIT À LA MAIN : schema, auth, fonctions, crons
   lib/               rbac, audit, rate-limit, reCAPTCHA, validation, slug,
                      aiModeration (barème + décision, pur) · aiGateway (appel)
   _generated/        seul dossier produit par `convex dev` (versionné, cf. supra)
-sanity/              schémas, client (CMS éditorial)
 tests/
   unit/              tests hors Convex (Vitest)
   e2e/               parcours Playwright (+ e2e/mobile/ pour le projet mobile)
-scripts/             seeds Sanity · capture d'écran (shot.mjs) · pnpm verify (verify.mjs)
+scripts/             capture d'écran (shot.mjs) · pnpm verify (verify.mjs)
 public/              images servies telles quelles (brand/, library/)
 docs/                audit, pentest, roadmap, déploiement
 design/              maquettes HTML de référence (11 écrans) — voir note ci-dessous

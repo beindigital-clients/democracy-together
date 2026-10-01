@@ -6,10 +6,11 @@ import { vocabulary } from '@/i18n/vocabulary';
 import { cn } from '@/lib/utils';
 
 // Sub-navigation of `/admin/contenus`: one screen per content type. The
-// back-office bar has only ONE "Contenus" entry (editor rank); the six
+// back-office bar has only ONE "Contenus" entry (editor rank); the seven
 // screens live under that prefix, and therefore inherit its rank in the
 // shell's guard (`adminMinRoleForPath`).
 export const CONTENT_SECTIONS = [
+  { key: 'news', href: '/admin/contenus/actualites' },
   { key: 'events', href: '/admin/contenus/evenements' },
   { key: 'replays', href: '/admin/contenus/replays' },
   { key: 'partners', href: '/admin/contenus/partenaires' },

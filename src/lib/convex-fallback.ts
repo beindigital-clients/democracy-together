@@ -4,11 +4,9 @@ import type { api } from '@convex/_generated/api';
 
 // An unavailable data source must not take down the page.
 //
-// The rule is already set by TESTING.md § "Sources externes" and upheld on the
-// Sanity side: `actualites/page.tsx` wraps its query, logs, and renders its
-// list empty with a 200. On the Convex side it was not — the five pages that
-// call `fetchQuery` during server render let the exception bubble up, and
-// responded 500 (audit F-02). Measured: `/fr/bibliotheque`, `/fr/experts`,
+// The rule is set by TESTING.md § "Sources externes". It was not upheld at
+// first — the five pages that call `fetchQuery` during server render let the
+// exception bubble up, and responded 500 (audit F-02). Measured: `/fr/bibliotheque`, `/fr/experts`,
 // `/fr/le-reseau`, `/fr/thematiques` and `/fr/tribune` went down together, and
 // `sitemap.xml` offered six of these addresses for indexing.
 //
@@ -23,8 +21,7 @@ import type { api } from '@convex/_generated/api';
  *
  * The module's name says "convex" because that is the finding that gave
  * rise to it, but this function knows NOTHING about Convex: it takes a
- * thunk. `actualites/[slug]` uses it for Sanity (F-10). Only the empty
- * shapes exported below are Convex-specific.
+ * thunk. Only the empty shapes exported below are Convex-specific.
  *
  * The argument is a FUNCTION, not a promise: a promise would already be
  * created — hence already running — when entering the `try`, and a synchronous

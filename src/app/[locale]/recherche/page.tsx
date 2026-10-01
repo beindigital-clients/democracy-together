@@ -8,15 +8,15 @@ import {
 } from '@convex/lib/searchSources';
 import { PUB_LANGS, PUB_REGIONS, PUB_TYPES } from '@convex/lib/publications';
 import { NETWORK_THEMES } from '@convex/lib/themes';
-import { client } from '@dt-sanity/lib/client';
-import { postsQuery } from '@dt-sanity/lib/queries';
-import type { PostCardData } from '@/components/news/post-card';
+import { loadNews } from '@/lib/contenus/load';
+import type { NewsItem } from '@/lib/news-content';
 import { Link } from '@/i18n/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SelectField } from '@/components/ui/choice-fields';
 import { Reveal } from '@/components/motion/reveal';
 import { vocabulary } from '@/i18n/vocabulary';
+import { resolveLocale } from '@/i18n/locale';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { DataUnavailable } from '@/components/ui/data-unavailable';
 import {
@@ -109,7 +109,7 @@ export default async function SearchPage({
   };
   let sections: Section[] = [];
   let nextCursor: string | null = null;
-  let posts: PostCardData[] = [];
+  let posts: NewsItem[] = [];
 
   // `undefined` = the request FAILED, and is distinct from an empty result:
   // showing "no results" during an outage would make the visitor believe
@@ -143,22 +143,17 @@ export default async function SearchPage({
       );
       if (res === undefined) indisponible = true;
       else sections = res.sections;
-      // News items (Sanity): outside the Convex registry, unfiltered — they
-      // only appear in the unfiltered overview.
+      // News items: outside the search registry, unfiltered — they only
+      // appear in the unfiltered overview. A few dozen articles: matched
+      // here rather than indexed.
       if (!hasFilters(filters)) {
-        try {
-          const all = await client.fetch<PostCardData[]>(postsQuery, {
-            language: locale,
-          });
-          const needle = q.toLowerCase();
-          posts = all
-            .filter((p) =>
-              `${p.title} ${p.excerpt ?? ''}`.toLowerCase().includes(needle),
-            )
-            .slice(0, 8);
-        } catch {
-          /* Sanity unreachable: we keep the Convex results */
-        }
+        const { items } = await loadNews(resolveLocale(locale));
+        const needle = q.toLowerCase();
+        posts = items
+          .filter((p) =>
+            `${p.title} ${p.excerpt}`.toLowerCase().includes(needle),
+          )
+          .slice(0, 8);
       }
     }
   }
@@ -362,9 +357,12 @@ export default async function SearchPage({
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
                 {posts.map((p) => (
-                  <li key={p._id}>
+                  <li key={p.slug}>
                     <Link href={`/actualites/${p.slug}`} className={ROW}>
-                      <span className="min-w-0 wrap-anywhere font-medium text-ink">
+                      <span
+                        lang={p.lang !== locale ? p.lang : undefined}
+                        className="min-w-0 wrap-anywhere font-medium text-ink"
+                      >
                         {p.title}
                       </span>
                     </Link>

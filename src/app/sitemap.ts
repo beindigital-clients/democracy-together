@@ -1,9 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
-import { client } from '@dt-sanity/lib/client';
 import { routing } from '@/i18n/routing';
-import { loadAgenda, loadThemes } from '@/lib/contenus/load';
+import { loadAgenda, loadNews, loadThemes } from '@/lib/contenus/load';
 import { publicReportYears, REPORT_YEARS } from '@/lib/reports-content';
 
 // Bilingual sitemap (F-07). Each logical page is listed once per locale
@@ -147,25 +146,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* same */
   }
 
-  // News (Sanity) — one URL per language based on the post's `language` field.
-  try {
-    const posts: { slug: string; language: string; _updatedAt?: string }[] =
-      await client.fetch(
-        `*[_type == "post" && defined(slug.current)]{ "slug": slug.current, language, _updatedAt }`,
-      );
-    for (const post of posts) {
-      if (!post.slug) continue;
-      if (!(routing.locales as readonly string[]).includes(post.language)) {
-        continue;
-      }
-      entries.push({
-        url: `${SITE}/${post.language}/actualites/${post.slug}`,
-        lastModified: post._updatedAt ? new Date(post._updatedAt) : undefined,
-        changeFrequency: 'monthly',
-      });
-    }
-  } catch {
-    /* Sanity unreachable: we keep the rest. */
+  // News: one article, one slug, served in every language (with fallback).
+  const { items: news } = await loadNews(routing.defaultLocale);
+  for (const n of news) {
+    entries.push(
+      ...localized(
+        `actualites/${n.slug}`,
+        new Date(`${n.publishedOn}T00:00:00Z`),
+        'monthly',
+      ),
+    );
   }
 
   return entries;

@@ -1,7 +1,7 @@
 // Content of the About page (F-11 vision/mission, F-12 founders &
 // governance), ported 1:1 from the agency mock-up `design/rmdl-a-propos.html`.
-// CONTENT LAYER: static/local today, signature designed to switch
-// to Sanity later (getAboutContent keeps the same return shape).
+// The page is served from this module, in the five languages: its texts are
+// edited here, in the code. Keep this module pure (the tests import it).
 
 import type { Locale } from '@/i18n/routing';
 
@@ -98,7 +98,7 @@ const fr: AboutContent = {
     eyebrow: 'Fondateurs',
     title: 'Celles et ceux qui portent le réseau',
     intro:
-      "Un collectif de scientifiques, de diplomates et d'entrepreneurs réuni autour d'une conviction commune. Certains profils seront complétés à mesure que le réseau se structure.",
+      "Un collectif de scientifiques, de diplomates et d'entrepreneurs réuni autour d'une conviction commune.",
     people: [
       {
         name: 'Abdou Samb',
@@ -122,13 +122,13 @@ const fr: AboutContent = {
       },
       {
         name: 'Michèle Boccoz',
-        role: 'Fondatrice',
-        bio: 'Profil à compléter.',
+        role: 'Diplomate, ancienne ambassadrice',
+        bio: "Diplomate de carrière, ancienne élève de l'ENS et de l'ENA. Ambassadrice de France en Belgique, en Croatie puis aux Philippines, elle a été ambassadrice chargée de la lutte contre le VIH/sida et sous-directrice générale de l'Organisation mondiale de la santé de 2017 à 2020. Elle a auparavant dirigé les affaires internationales de l'Institut Pasteur.",
       },
       {
         name: 'Marie-Laure Salles',
-        role: 'Fondatrice',
-        bio: 'Profil à compléter.',
+        role: 'Sociologue des organisations',
+        bio: "Directrice du Geneva Graduate Institute depuis 2020, première femme à la tête de l'institution depuis sa fondation en 1927. Docteure en sociologie de Harvard, elle a créé et dirigé l'École du management et de l'innovation de Sciences Po après avoir été doyenne du corps professoral de l'ESSEC. Ses travaux portent sur les transformations du capitalisme et la gouvernance transnationale.",
       },
     ],
   },
@@ -305,7 +305,7 @@ const en: AboutContent = {
     eyebrow: 'Founders',
     title: 'The people who carry the network',
     intro:
-      'A collective of scientists, diplomats and entrepreneurs gathered around a shared conviction. Some profiles will be completed as the network takes shape.',
+      'A collective of scientists, diplomats and entrepreneurs gathered around a shared conviction.',
     people: [
       {
         name: 'Abdou Samb',
@@ -329,13 +329,13 @@ const en: AboutContent = {
       },
       {
         name: 'Michèle Boccoz',
-        role: 'Founder',
-        bio: 'Profile to be completed.',
+        role: 'Diplomat, former ambassador',
+        bio: 'Career diplomat and alumna of the ENS and the ENA. Ambassador of France to Belgium, Croatia and then the Philippines, she also served as France’s ambassador for the fight against HIV/AIDS and as Assistant Director-General of the World Health Organization from 2017 to 2020. She previously headed international affairs at the Institut Pasteur.',
       },
       {
         name: 'Marie-Laure Salles',
-        role: 'Founder',
-        bio: 'Profile to be completed.',
+        role: 'Organisational sociologist',
+        bio: 'Director of the Geneva Graduate Institute since 2020, the first woman to lead it since its founding in 1927. A Harvard PhD in sociology, she founded and led the Sciences Po School of Management and Innovation after serving as Dean of the Faculty at ESSEC. Her research focuses on the transformations of capitalism and transnational governance.',
       },
     ],
   },
@@ -471,9 +471,6 @@ const en: AboutContent = {
   },
 };
 
-// Pure LOCAL fallback (no Sanity dependency): used when no `aboutPage`
-// document is published, and as a seed source. The Sanity fetch + fallback
-// lives in `src/lib/about.ts`. Keep this module pure (the tests import it).
 const es: AboutContent = {
   hero: {
     eyebrow: 'Sobre nosotros',
@@ -515,7 +512,7 @@ const es: AboutContent = {
     eyebrow: 'Fundadores',
     title: 'Quienes sostienen la red',
     intro:
-      'Un colectivo de científicos, diplomáticos y emprendedores reunido en torno a una convicción común. Algunos perfiles se completarán a medida que la red se estructure.',
+      'Un colectivo de científicos, diplomáticos y emprendedores reunido en torno a una convicción común.',
     people: [
       {
         name: 'Abdou Samb',
@@ -539,13 +536,13 @@ const es: AboutContent = {
       },
       {
         name: 'Michèle Boccoz',
-        role: 'Fundadora',
-        bio: 'Perfil pendiente de completar.',
+        role: 'Diplomática, antigua embajadora',
+        bio: 'Diplomática de carrera, antigua alumna de la ENS y de la ENA. Embajadora de Francia en Bélgica, en Croacia y después en Filipinas, fue también embajadora encargada de la lucha contra el VIH/sida y subdirectora general de la Organización Mundial de la Salud de 2017 a 2020. Anteriormente dirigió los asuntos internacionales del Instituto Pasteur.',
       },
       {
         name: 'Marie-Laure Salles',
-        role: 'Fundadora',
-        bio: 'Perfil pendiente de completar.',
+        role: 'Socióloga de las organizaciones',
+        bio: 'Directora del Geneva Graduate Institute desde 2020, primera mujer al frente de la institución desde su fundación en 1927. Doctora en sociología por Harvard, creó y dirigió la Escuela de Management e Innovación de Sciences Po tras haber sido decana del profesorado de la ESSEC. Sus trabajos se centran en las transformaciones del capitalismo y la gobernanza transnacional.',
       },
     ],
   },
@@ -721,7 +718,7 @@ const pt: AboutContent = {
     eyebrow: 'Fundadores',
     title: 'Quem sustenta a rede',
     intro:
-      'Um coletivo de cientistas, diplomatas e empreendedores reunido em torno de uma convicção comum. Alguns perfis serão completados à medida que a rede se estruturar.',
+      'Um coletivo de cientistas, diplomatas e empreendedores reunido em torno de uma convicção comum.',
     people: [
       {
         name: 'Abdou Samb',
@@ -745,13 +742,13 @@ const pt: AboutContent = {
       },
       {
         name: 'Michèle Boccoz',
-        role: 'Fundadora',
-        bio: 'Perfil a completar.',
+        role: 'Diplomata, antiga embaixadora',
+        bio: 'Diplomata de carreira, antiga aluna da ENS e da ENA. Embaixadora de França na Bélgica, na Croácia e depois nas Filipinas, foi também embaixadora encarregada da luta contra o VIH/sida e subdiretora-geral da Organização Mundial da Saúde de 2017 a 2020. Anteriormente, dirigiu os assuntos internacionais do Instituto Pasteur.',
       },
       {
         name: 'Marie-Laure Salles',
-        role: 'Fundadora',
-        bio: 'Perfil a completar.',
+        role: 'Socióloga das organizações',
+        bio: 'Diretora do Geneva Graduate Institute desde 2020, é a primeira mulher à frente da instituição desde a sua fundação, em 1927. Doutorada em sociologia por Harvard, criou e dirigiu a Escola de Gestão e Inovação da Sciences Po, depois de ter sido decana do corpo docente da ESSEC. Os seus trabalhos incidem sobre as transformações do capitalismo e a governação transnacional.',
       },
     ],
   },
@@ -926,8 +923,7 @@ const ar: AboutContent = {
   founders: {
     eyebrow: 'المؤسسون',
     title: 'من يحملون الشبكة',
-    intro:
-      'مجموعة من العلماء والدبلوماسيين ورواد الأعمال تجمعهم قناعة مشتركة. وستُستكمل بعض الملفات التعريفية مع تقدّم بناء الشبكة.',
+    intro: 'مجموعة من العلماء والدبلوماسيين ورواد الأعمال تجمعهم قناعة مشتركة.',
     people: [
       {
         name: 'عبدو سامب',
@@ -951,13 +947,13 @@ const ar: AboutContent = {
       },
       {
         name: 'ميشيل بوكوز',
-        role: 'مؤسِّسة',
-        bio: 'ملف تعريفي قيد الاستكمال.',
+        role: 'دبلوماسية وسفيرة سابقة',
+        bio: 'دبلوماسية محترفة، خريجة دار المعلمين العليا (ENS) والمدرسة الوطنية للإدارة (ENA). سفيرة سابقة لفرنسا ببلجيكا ثم بكرواتيا ثم بالفلبين، وشغلت منصب السفيرة المكلفة بمكافحة فيروس نقص المناعة البشرية/الإيدز، ثم منصب المديرة العامة المساعدة لمنظمة الصحة العالمية بين 2017 و2020. وقبل ذلك أدارت الشؤون الدولية في معهد باستور.',
       },
       {
         name: 'ماري-لور سال',
-        role: 'مؤسِّسة',
-        bio: 'ملف تعريفي قيد الاستكمال.',
+        role: 'عالمة اجتماع المنظمات',
+        bio: 'مديرة معهد جنيف للدراسات العليا (Geneva Graduate Institute) منذ 2020، وأول امرأة تتولى إدارته منذ تأسيسه سنة 1927. حاصلة على الدكتوراه في علم الاجتماع من جامعة هارفارد، أسّست مدرسة الإدارة والابتكار في Sciences Po وأدارتها، بعد أن شغلت منصب عميدة هيئة التدريس في ESSEC. تتناول أبحاثها تحولات الرأسمالية والحوكمة العابرة للحدود.',
       },
     ],
   },
@@ -1096,7 +1092,7 @@ const ar: AboutContent = {
 // Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, AboutContent> = { fr, en, es, pt, ar };
 
-export function aboutFallback(locale: Locale): AboutContent {
+export function getAboutContent(locale: Locale): AboutContent {
   return BY_LOCALE[locale];
 }
 

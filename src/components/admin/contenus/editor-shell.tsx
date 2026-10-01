@@ -9,7 +9,7 @@ import {
   useFailureFeedback,
 } from '@/components/admin/action-feedback';
 
-// Building blocks shared by the six content screens: the edit form's
+// Building blocks shared by the seven content screens: the edit form's
 // frame, and running an action with visible feedback (success announced
 // by the back-office live region, refusal translated by its server code).
 

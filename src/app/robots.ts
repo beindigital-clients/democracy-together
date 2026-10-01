@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 import { routing } from '@/i18n/routing';
 
 // robots.txt (F-07): indexing of public pages, exclusion of private zones
-// (back office, member area, auth funnels), the Sanity Studio and the
-// API. Points to the sitemap.
+// (back office, member area, auth funnels) and the API. Points to the
+// sitemap.
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 // Truly PRIVATE segments, one per locale (localePrefix 'always').
@@ -24,7 +24,6 @@ const PRIVATE = ['admin', 'espace-membre', 'espaces', 'inscription'];
 
 export default function robots(): MetadataRoute.Robots {
   const disallow = [
-    '/studio',
     '/api/',
     ...routing.locales.flatMap((l) => PRIVATE.map((p) => `/${l}/${p}`)),
   ];

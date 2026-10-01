@@ -5,7 +5,7 @@ import { localizedList, localizedText } from '../contenus/i18n';
 
 // EDITORIAL CONTENT MANAGED FROM THE BACK OFFICE (F-52, F-54, F-62, F-64).
 //
-// Events, replays, partners, press and themes used to be HARD-CODED in the
+// Events, replays, partners, press, themes and news used to be HARD-CODED in the
 // repo: adding a webinar required a developer and a deployment. They now live
 // here, edited at the "editor" level (`/admin/contenus`), and the hard-coded
 // content remains the FALLBACK for public pages as long as a table is empty
@@ -162,6 +162,22 @@ export const contenusTables = {
     updatedAt: v.number(),
     updatedBy: v.optional(v.id('users')),
   }).index('by_status_and_publishedOn', ['status', 'publishedOn']),
+
+  // News (F-15): the network's articles. One document per article, carrying
+  // its five languages under one slug; the body is a list of paragraphs.
+  contentNews: defineTable({
+    slug: v.string(),
+    title: localizedText,
+    excerpt: v.optional(localizedText),
+    body: v.optional(localizedList),
+    // Publication day, `YYYY-MM-DD`: the date shown, and the list order.
+    publishedOn: v.string(),
+    status: publishStatus,
+    updatedAt: v.number(),
+    updatedBy: v.optional(v.id('users')),
+  })
+    .index('by_slug', ['slug'])
+    .index('by_status_and_publishedOn', ['status', 'publishedOn']),
 
   // Themes (F-36): stable slug (network axis), translated titles and
   // summaries, display order.

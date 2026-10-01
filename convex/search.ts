@@ -26,8 +26,8 @@ import {
 // but in a bounded index read.
 //
 // The sources and their visibility rules live in the REGISTRY
-// (`lib/searchSources.ts`). This module knows no table. News
-// (Sanity) is still searched separately by the /recherche page.
+// (`lib/searchSources.ts`). This module knows no table. News is still
+// searched separately by the /recherche page (`loadNews`).
 
 // Results per source in the palette: enough to choose, not an inventory.
 const LIMIT = 8;

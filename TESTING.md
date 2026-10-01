@@ -187,17 +187,18 @@ puis `email-verification`, ou `reset` quand un mot de passe existe déjà) — l
 helper garde le chemin API parce qu'il provisionne des comptes AVANT toute
 session, et `tests/e2e/auth-mot-de-passe.spec.ts` exerce l'écran.
 
-### Sources externes — le CMS n'est pas toujours là
-Sanity n'est pas configuré en CI : `sanity/env.ts` retombe sur l'identifiant
-`placeholder`, la requête revient en 404, et la page affiche sa liste vide.
-`news.spec.ts` teste donc **les deux chemins**, et c'est la configuration
-réelle qui décide lequel s'exécute — contenu réel si un projet est renseigné,
-dégradation propre sinon. Dans les deux cas la spec vérifie que la page répond
-**200** : une source indisponible ne doit pas emporter la page.
+### Sources externes — elles ne sont pas toujours là
+Une source indisponible ne doit pas emporter la page. Les contenus éditoriaux
+(actualités, agenda, partenaires…) se lisent dans Convex, et retombent sur le
+contenu codé tant que leur table n'a rien de publié ou que le backend ne répond
+pas (`src/lib/contenus/load.ts`) : `news.spec.ts` vérifie donc les mêmes
+articles, quel que soit celui des deux qui a répondu. Le cas de la panne, que
+l'E2E ne sait pas provoquer, est tenu par `tests/unit/actualites-degradation.test.ts`.
 
-La règle (`projectId !== 'placeholder'`) est **importée** du module de
-l'application, jamais recopiée : une divergence ferait silencieusement prendre
-la mauvaise branche. Le chemin retenu est annoté dans le rapport.
+Les clés facultatives (reCAPTCHA, passerelle d'IA, prestataire de paiement)
+suivent une autre règle : la spec lit la configuration réelle — la règle est
+**importée** du module de l'application, jamais recopiée — et exerce le chemin
+correspondant ; le chemin retenu est annoté dans le rapport.
 
 C'est le motif à suivre pour toute dépendance externe : un test qui dépend d'un
 service tiers vérifie aussi ce que voit l'utilisateur quand ce service répond
@@ -394,8 +395,7 @@ Ses assertions sont choisies pour valoir **avec ou sans clé de passerelle** : e
 mode assistance, `decideApplication` rend « renvoyée en file » avant même de
 regarder le verdict, si bien que la ligne du journal dit la même chose que la
 passerelle ait répondu, échoué, ou manqué à l'appel. C'est ce qui rend ce
-fichier jouable en CI, où aucune clé n'est posée — même motif que `news.spec.ts`
-pour Sanity.
+fichier jouable en CI, où aucune clé n'est posée.
 
 Ce qu'il n'exerce PAS, délibérément : le mode **auto-publication**. L'armer sur
 un déploiement partagé ferait paraître les dépôts des autres specs sans

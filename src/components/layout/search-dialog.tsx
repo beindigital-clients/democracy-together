@@ -15,7 +15,7 @@ import { hitFlag, hitLangAttrs, hitMeta } from '@/lib/search';
 // the Convex search REGISTRY (publications, members, Tribune,
 // experts… — convex/lib/searchSources.ts), rendered section by section
 // without knowing anything about the tables; "Voir tous les résultats" leads
-// to /recherche, which adds news (Sanity), filters and the rest.
+// to /recherche, which adds news, filters and the rest.
 //
 // A11y modelled on mobile-nav: role=dialog/aria-modal, Escape, outside
 // click, focus trap, scroll lock, focus returned to the trigger on close.
