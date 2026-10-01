@@ -135,9 +135,9 @@ test.describe('arbre d’accessibilité', () => {
         - navigation:
           - link "À propos"
           - link "Membres"
-          - link "Actualités"
           - link "Analyses"
           - link "Baromètre"
+          - link "Actualités"
           - link "Événements"
           - link "Jeunes"
         - button "Recherche"

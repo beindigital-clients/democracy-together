@@ -18,7 +18,8 @@ export async function requireEditor(ctx: QueryCtx | MutationCtx) {
   return await requireNetworkRole(ctx, 'editeur');
 }
 
-export type ContentKind = 'event' | 'replay' | 'partner' | 'press' | 'theme';
+export type ContentKind =
+  'event' | 'replay' | 'partner' | 'press' | 'theme' | 'news';
 
 /** One log entry per editorial action (cf. `AUDIT.CONTENT_*`). */
 export async function auditContent(

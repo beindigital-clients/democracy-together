@@ -7,12 +7,18 @@ import { codedAgenda, fromConvex, type AgendaEvent } from './agenda';
 import { fromConvexReplays, getReplays, type Replay } from '@/lib/replays';
 import { getPartners } from '@/lib/partners-content';
 import { getThemeSyntheses } from '@/lib/themes-content';
+import {
+  codedNews,
+  codedNewsArticle,
+  type NewsArticle,
+  type NewsItem,
+} from '@/lib/news-content';
 
 // SERVER-SIDE LOADING OF EDITORIAL CONTENT — Convex first, repository as
 // fallback ("contenus" workstream).
 //
-// The rule is that of `convex-fallback.ts` and of the Sanity news: an
-// unavailable source must not take down the page. It is EXTENDED here with one
+// The rule is that of `convex-fallback.ts`: an unavailable source must not
+// take down the page. It is EXTENDED here with one
 // case: an EMPTY table (a deployment where the import of hard-coded content has not yet
 // been run) also serves the hard-coded content — otherwise putting the
 // back-office into production would empty the agenda for the duration of a command. As soon as a table
@@ -179,4 +185,45 @@ export async function loadTheme(
 ): Promise<ThemeView | null> {
   const { items } = await loadThemes(locale);
   return items.find((t) => t.slug === slug) ?? null;
+}
+
+// --- News -------------------------------------------------------------------------
+
+export async function loadNews(locale: Locale): Promise<Loaded<NewsItem[]>> {
+  const rows = await fetchOrFallback(
+    'contenus/actualites',
+    () => fetchQuery(api.contenus.news.listPublic, { locale }),
+    null,
+  );
+  if (rows && rows.length > 0) return { items: rows, source: 'convex' };
+  return { items: codedNews(locale), source: 'code' };
+}
+
+// THREE outcomes, which the article page must not conflate (F-02, F-10):
+// the article, its absence (a localized 404), and an outage that leaves us
+// unable to say (200 + "momentanément indisponible", `noindex`). Turning an
+// outage into a 404 would tell search engines that an existing article is
+// gone. The coded articles answer while the table is empty — and during an
+// outage, for their own slugs.
+export type NewsArticleResult =
+  | { status: 'found'; article: NewsArticle; source: 'convex' | 'code' }
+  | { status: 'missing' }
+  | { status: 'unavailable' };
+
+export async function loadNewsArticle(
+  slug: string,
+  locale: Locale,
+): Promise<NewsArticleResult> {
+  const res = await fetchOrFallback(
+    'contenus/actualite',
+    () => fetchQuery(api.contenus.news.getPublic, { slug, locale }),
+    undefined,
+  );
+  if (res?.article)
+    return { status: 'found', article: res.article, source: 'convex' };
+  // The table holds a published article: it is authoritative, entirely.
+  if (res?.anyPublished) return { status: 'missing' };
+  const coded = codedNewsArticle(slug, locale);
+  if (coded) return { status: 'found', article: coded, source: 'code' };
+  return { status: res === undefined ? 'unavailable' : 'missing' };
 }

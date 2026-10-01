@@ -9,15 +9,9 @@ export default defineConfig({
     // shared between the backend and the UI (directory vocabulary, facets),
     // not only for type imports — those are erased at
     // compile time and therefore never needed to be resolved here.
-    //
-    // `@dt-sanity` was missing: any module depending on it — `sitemap.ts`, the
-    // news article page — failed at IMPORT, hence before any
-    // assertion. That is what forced `seo-coherence.test.ts` to parse the
-    // source text instead of importing the module (F-10).
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@convex': fileURLToPath(new URL('./convex', import.meta.url)),
-      '@dt-sanity': fileURLToPath(new URL('./sanity', import.meta.url)),
     },
   },
   test: {

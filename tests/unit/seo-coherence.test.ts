@@ -3,8 +3,8 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Both lists are READ from the source rather than imported: `sitemap.ts`
-// pulls in the Sanity client and the Convex API, which this test has no reason to
-// mount. The price to pay is a textual analysis — hence the guard
+// pulls in the Convex API and the content loaders, which this test has no
+// reason to mount. The price to pay is a textual analysis — hence the guard
 // assertion below, without which a regular expression that stopped
 // matching would make this file silently empty, hence useless.
 function arrayLiteral(file: string, name: string): string[] {

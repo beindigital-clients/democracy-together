@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Security — HTTP headers (defense in depth). Checks that they are present on
-// public pages, and that the CSP is excluded on the Sanity Studio.
+// public pages.
 test('en-têtes de sécurité sur les pages publiques', async ({ request }) => {
   const res = await request.get('/fr');
   const h = res.headers();
@@ -35,16 +35,6 @@ test('en-têtes de sécurité sur les pages publiques', async ({ request }) => {
     directive('img-src'),
     'illustrations extraites des PDF, servies par le stockage Convex',
   ).toContain('https://*.convex.cloud');
-  expect(directive('img-src'), 'images Sanity').toContain(
-    'https://cdn.sanity.io',
-  );
-});
-
-test('le Studio Sanity garde les en-têtes de base mais est exclu de la CSP', async ({
-  request,
-}) => {
-  const res = await request.get('/studio');
-  const h = res.headers();
-  expect(h['x-content-type-options']).toBe('nosniff');
-  expect(h['content-security-policy']).toBeUndefined();
+  // Sanity is gone (01/10/2026): its origins must not linger in the policy.
+  expect(csp).not.toContain('sanity.io');
 });

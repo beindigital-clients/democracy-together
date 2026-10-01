@@ -200,7 +200,7 @@ jobs:
       # cause of a page responding 500 can be read; the browser only
       # sees "Internal Server Error". This log successively revealed the missing
       # `isAuthenticated` export (every signed-in page returning 500) and then the
-      # "placeholder" Sanity project in CI: it stays.
+      # "placeholder" Sanity project in CI (since removed): it stays.
       - name: Journal du serveur (fin)
         if: failure()
         run: tail -c 6000 server.log || echo "(pas de server.log)"

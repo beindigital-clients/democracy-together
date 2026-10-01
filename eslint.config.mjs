@@ -81,9 +81,9 @@ export default tseslint.config(
   // --- typescript-eslint: what we remove from `recommendedTypeChecked` ------
   {
     rules: {
-      // 61 reports, all at a boundary with untyped third-party code:
+      // 59 reports, all at a boundary with untyped third-party code:
       // world-atlas/topojson/d3-geo (30), test JSON fixtures (21), the
-      // Convex Auth `profile` (4), the Sanity constructors (2). None
+      // Convex Auth `profile` (4). None
       // points to a defect: these rules measure the typing quality of the
       // dependencies, not of this code. `no-explicit-any` remains ACTIVE
       // below: it flags the exact spot where the `any` enters, which

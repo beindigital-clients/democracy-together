@@ -11,7 +11,7 @@ import { SESSIONS } from './_sessions';
 // preview deployment (`PAYMENTS_FAKE_PROVIDER=1` + `AUTH_DEV_OTP=true`, set by
 // e2e.yml). The spec reads the deployment's ACTUAL configuration
 // (`payments.checkout.paymentOptions`, the very query the page reads) and
-// exercises the corresponding path — like `news.spec.ts` for Sanity:
+// exercises the corresponding path:
 //  - a provider is available: full flow;
 //  - none: the page must SAY so and offer an alternative, with no dead
 //    button. The payment flow is then annotated as not run.

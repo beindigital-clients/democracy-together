@@ -24,6 +24,7 @@ export async function deleteUserDataContenus(
     'contentPartners',
     'contentPress',
     'contentThemes',
+    'contentNews',
   ] as const) {
     const rows = await ctx.db.query(table).take(SCAN_MAX);
     for (const row of rows) {

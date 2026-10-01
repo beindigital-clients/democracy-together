@@ -1,8 +1,8 @@
 // SCHEME filter on URLs this repo does not write (pentest M-9).
 //
-// Two sources feed `href`s coming from elsewhere: links in Sanity rich text
-// (`link` annotation, entered in the CMS) and the website address of a
-// directory entry, filled in at membership and then published. The pentest
+// `href`s coming from elsewhere: the website address of a directory entry,
+// filled in at membership and then published, a partner's link and the
+// toolbox resources. The pentest
 // described the `javascript:` case; the replay shows it is the LEAST severe
 // of the three, and that the safeguard we could have relied on only covers
 // that one:
@@ -21,8 +21,8 @@
 export const SCHEMAS_AUTORISES = ['http:', 'https:', 'mailto:'] as const;
 
 // Dummy base used to RESOLVE relative URLs. `/fr/actualites`,
-// `#section` or `?page=2` are legitimate links in rich text: without a
-// base, `new URL` would reject them all.
+// `#section` or `?page=2` are legitimate links: without a base, `new URL`
+// would reject them all.
 const BASE_RELATIVE = 'https://relative.invalid';
 
 /**

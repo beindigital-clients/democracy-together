@@ -34,7 +34,6 @@ test('robots.txt : sitemap déclaré + zones privées interdites (F-07)', async 
   expect(body).toMatch(/Sitemap:\s*https?:\/\/.+\/sitemap\.xml/);
   expect(body).toContain('Disallow: /fr/admin');
   expect(body).toContain('Disallow: /en/espace-membre');
-  expect(body).toContain('Disallow: /studio');
 });
 
 // --- Issue #35: what the page head declares to search engines --------------

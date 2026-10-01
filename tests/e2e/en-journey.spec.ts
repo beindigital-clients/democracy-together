@@ -49,8 +49,8 @@ test('EN : accueil -> bibliothèque -> facette -> fiche de publication (F-03/F-3
   // 1. Hero CTA -> library
   //
   // By DESTINATION, not by label. The hero content comes from
-  // `getHomeContent`, which reads Sanity with a fallback to `home-content.ts`:
-  // the label is therefore editable (F-62), and it has already changed — the
+  // `getHomeContent` (`home-content.ts`): the label is editorial, and it has
+  // already changed — the
   // test expected "Explore the analyses" (a leftover from `messages/en.json`,
   // which no longer feeds the hero) while the page renders "Read the
   // analyses". The destination address, on the other hand, is a structural decision.

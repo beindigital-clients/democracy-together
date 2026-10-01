@@ -1,6 +1,7 @@
 // Home page content (F-10), faithfully ported from the agency mock-up
-// `design/rmdl-accueil.html` (8 sections). Bilingual content layer, ready to
-// switch to Sanity (same return shapes).
+// `design/rmdl-accueil.html` (8 sections). The page is served from this
+// module, in the five languages: its texts are edited here, in the code.
+// Keep this module pure (the tests import it).
 
 import type { Locale } from '@/i18n/routing';
 
@@ -523,9 +524,6 @@ const en: HomeContent = {
   },
 };
 
-// Pure LOCAL fallback (no Sanity dependency): used when no `homePage`
-// document is published, and as a seed source. The Sanity fetch + fallback
-// lives in `src/lib/home.ts`. Keep this module pure (the tests import it).
 const es: HomeContent = {
   hero: {
     eyebrow: 'Democracy Together',
@@ -1218,6 +1216,6 @@ const ar: HomeContent = {
 // Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, HomeContent> = { fr, en, es, pt, ar };
 
-export function homeFallback(locale: Locale): HomeContent {
+export function getHomeContent(locale: Locale): HomeContent {
   return BY_LOCALE[locale];
 }

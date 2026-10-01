@@ -10,6 +10,13 @@
 
 > Remplace la recommandation §1 du `RMDL-cadrage-technique.md` (qui visait PostgreSQL + Strapi/Directus).
 
+> **Révision du 01/10/2026 — Sanity retiré.** Tous les contenus éditoriaux
+> vivent dans **Convex** et se modifient dans le back-office (`/admin/contenus`,
+> rang éditeur) : actualités, événements, replays, partenaires, presse,
+> thématiques, médiathèque. L'accueil et l'à-propos restent dans le code
+> (`src/lib/*-content.ts`). Ce qui suit sur Sanity et la « frontière Convex /
+> Sanity » est conservé comme trace de la décision initiale.
+
 | Couche | Choix |
 |---|---|
 | **Frontend** | Next.js (App Router, SSR/SSG/ISR) + Tailwind + next-intl (FR/EN) |

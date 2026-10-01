@@ -16,8 +16,8 @@ test.use({ locale: 'fr-FR' });
 // page without a form, and the script present wherever a protected form
 // is rendered.
 //
-// Two possible configurations, as for Sanity (TESTING.md § "Sources
-// externes"): without `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` — the CI case — nothing
+// Two possible configurations (TESTING.md § "Sources externes"): without
+// `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` — the CI case — nothing
 // is ever loaded. The rule is IMPORTED from the application module, never
 // copied: a divergence would silently take the wrong branch.
 // The first test holds in both cases: it is the criterion itself.

@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { hreflangFor } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { client } from '@dt-sanity/lib/client';
-import { postsQuery } from '@dt-sanity/lib/queries';
-import { PostCard, type PostCardData } from '@/components/news/post-card';
+import { resolveLocale } from '@/i18n/locale';
+import { loadNews } from '@/lib/contenus/load';
+import { PostCard } from '@/components/news/post-card';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
-import { DataUnavailable } from '@/components/ui/data-unavailable';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -34,23 +33,10 @@ export default async function NewsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('news');
-  // Fallback if Sanity is unavailable (audit § 5.1): the page rendered a generic
-  // 500 for lack of a try/catch, unlike src/lib/home.ts and about.ts
-  // which already fall back. The degradation stays graceful — the rest of the site
-  // keeps working — but the OUTAGE is no longer displayed as an
-  // EMPTY list: measured on 27/09, "Aucune actualité pour le moment" came out
-  // in both cases, whereas the article detail page already distinguishes the two
-  // (F-02 doctrine, `DataUnavailable`). `undefined` = the request failed;
-  // `[]` = the CMS responded and has nothing.
-  let posts: PostCardData[] | undefined;
-  try {
-    posts =
-      (await client.fetch<PostCardData[]>(postsQuery, {
-        language: locale,
-      })) ?? [];
-  } catch (err) {
-    console.error('[actualites] Sanity indisponible :', err);
-  }
+  // The articles of the back office (`contentNews`), or the coded ones while
+  // the table holds no published article or Convex does not answer: the list
+  // is never left empty by an outage (`src/lib/contenus/load.ts`).
+  const { items: posts } = await loadNews(resolveLocale(locale));
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-12 sm:px-6 md:py-16">
@@ -68,9 +54,7 @@ export default async function NewsPage({
         </Reveal>
       </header>
 
-      {posts === undefined ? (
-        <DataUnavailable className="mt-10" />
-      ) : posts.length === 0 ? (
+      {posts.length === 0 ? (
         <Reveal className="mt-10 rounded-md border border-dashed border-line-strong bg-surface px-6 py-16 text-center text-ink-soft">
           {t('empty')}
         </Reveal>
@@ -81,7 +65,7 @@ export default async function NewsPage({
           className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {posts.map((p) => (
-            <RevealItem as="li" key={p._id}>
+            <RevealItem as="li" key={p.slug}>
               <PostCard post={p} locale={locale} headingLevel={2} />
             </RevealItem>
           ))}

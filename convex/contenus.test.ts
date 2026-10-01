@@ -12,6 +12,7 @@ import {
   CODED_EVENT_TITLES,
   CODED_EVENT_CITIES,
 } from './lib/contenus/coded/events';
+import { CODED_NEWS } from './lib/contenus/coded/news';
 import { CODED_PARTNERS, PARTNER_SLUGS } from './lib/contenus/coded/partners';
 import {
   CODED_THEMES,
@@ -63,6 +64,17 @@ function eventInput(overrides: Record<string, unknown> = {}) {
     timezone: 'Europe/Paris',
     visioUrl: 'https://visio.example.org/salle-secrete',
     featured: false,
+    ...overrides,
+  };
+}
+
+function newsInput(overrides: Record<string, unknown> = {}) {
+  return {
+    slug: 'article-test',
+    title: { fr: 'Article de test', en: 'Test article' },
+    excerpt: { fr: 'Un chapô.' },
+    body: { fr: ['Premier paragraphe.', 'Second paragraphe.'] },
+    publishedOn: '2026-09-15',
     ...overrides,
   };
 }
@@ -597,6 +609,132 @@ describe('Contenus — replays, presse, thématiques, ordre', () => {
   });
 });
 
+describe('Contenus — actualités', () => {
+  it('réservées au rang éditeur', async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.mutation(api.contenus.news.save, newsInput()),
+    ).rejects.toThrow();
+    for (const role of ['visiteur', 'membre', 'moderateur'] as const) {
+      const { as } = await withRole(t, role);
+      await expect(
+        as.mutation(api.contenus.news.save, newsInput()),
+      ).rejects.toThrow(/Accès refusé/);
+      await expect(
+        as.query(api.contenus.news.adminList, { locale: 'fr' }),
+      ).rejects.toThrow(/Accès refusé/);
+    }
+    const editor = await withRole(t, 'editeur');
+    expect(
+      await editor.as.mutation(api.contenus.news.save, newsInput()),
+    ).toBeTruthy();
+  });
+
+  it('un brouillon est invisible ; publié, il est servi avec repli de langue', async () => {
+    const t = convexTest(schema, modules);
+    const editor = await withRole(t, 'editeur');
+    const id = await editor.as.mutation(api.contenus.news.save, newsInput());
+
+    expect(
+      await t.query(api.contenus.news.listPublic, { locale: 'fr' }),
+    ).toHaveLength(0);
+    expect(
+      await t.query(api.contenus.news.getPublic, {
+        slug: 'article-test',
+        locale: 'fr',
+      }),
+    ).toEqual({ article: null, anyPublished: false });
+
+    await editor.as.mutation(api.contenus.news.setStatus, {
+      id,
+      status: 'published',
+    });
+    await editor.as.mutation(api.contenus.news.save, {
+      ...newsInput({ slug: 'plus-ancien', publishedOn: '2026-01-10' }),
+    });
+    const older = (
+      await editor.as.query(api.contenus.news.adminList, { locale: 'fr' })
+    ).find((n) => n.slug === 'plus-ancien')!;
+    await editor.as.mutation(api.contenus.news.setStatus, {
+      id: older._id,
+      status: 'published',
+    });
+
+    const en = await t.query(api.contenus.news.listPublic, { locale: 'en' });
+    expect(en.map((n) => n.slug)).toEqual(['article-test', 'plus-ancien']);
+    expect(en[0]).toMatchObject({ title: 'Test article', lang: 'en' });
+    // The body only exists in French: the English page receives it.
+    const { article } = await t.query(api.contenus.news.getPublic, {
+      slug: 'article-test',
+      locale: 'en',
+    });
+    expect(article?.body).toEqual([
+      'Premier paragraphe.',
+      'Second paragraphe.',
+    ]);
+    expect(article?.excerpt).toBe('Un chapô.');
+
+    // A title only in French: served on the Arabic page, marked as French.
+    const [ar] = await t.query(api.contenus.news.listPublic, { locale: 'ar' });
+    expect(ar).toMatchObject({ title: 'Article de test', lang: 'fr' });
+
+    // The table holds a published article: an unknown slug is an absence.
+    expect(
+      await t.query(api.contenus.news.getPublic, {
+        slug: 'inconnu',
+        locale: 'fr',
+      }),
+    ).toEqual({ article: null, anyPublished: true });
+  });
+
+  it('refuse une saisie invalide (titre, date, slug, longueur)', async () => {
+    const t = convexTest(schema, modules);
+    const editor = await withRole(t, 'editeur');
+    const save = (o: Record<string, unknown>) =>
+      editor.as.mutation(api.contenus.news.save, newsInput(o));
+    await expect(save({ title: { fr: '  ' } })).rejects.toThrow(
+      /TITLE_REQUIRED/,
+    );
+    await expect(save({ publishedOn: '2026-02-30' })).rejects.toThrow(
+      /INVALID_DATE/,
+    );
+    await expect(save({ slug: 'Avec Espaces' })).rejects.toThrow(
+      /INVALID_SLUG/,
+    );
+    await expect(
+      save({ body: { fr: Array.from({ length: 6 }, () => 'x'.repeat(3900)) } }),
+    ).rejects.toThrow(/TEXT_TOO_LONG/);
+    await save({});
+    await expect(save({})).rejects.toThrow(/SLUG_TAKEN/);
+  });
+
+  it('le slug est immuable ; suppression journalisée', async () => {
+    const t = convexTest(schema, modules);
+    const editor = await withRole(t, 'editeur');
+    const id = await editor.as.mutation(api.contenus.news.save, newsInput());
+    await editor.as.mutation(api.contenus.news.save, {
+      id,
+      ...newsInput({ slug: 'autre-adresse', title: { fr: 'Titre revu' } }),
+    });
+    const full = await editor.as.query(api.contenus.news.adminGet, { id });
+    expect(full).toMatchObject({
+      slug: 'article-test',
+      title: { fr: 'Titre revu' },
+    });
+
+    await editor.as.mutation(api.contenus.news.remove, { id });
+    expect(await t.run((ctx) => ctx.db.get(id))).toBeNull();
+    const actions = await t.run(async (ctx) =>
+      (await ctx.db.query('auditLog').collect()).map((a) => a.action),
+    );
+    expect(actions).toEqual([
+      AUDIT.CONTENT_CREATED,
+      AUDIT.CONTENT_UPDATED,
+      AUDIT.CONTENT_DELETED,
+    ]);
+  });
+});
+
 describe('Contenus — migration du contenu codé', () => {
   it('est fidèle : mêmes slugs, mêmes textes dans les cinq langues', async () => {
     const t = convexTest(schema, modules);
@@ -609,6 +747,7 @@ describe('Contenus — migration du contenu codé', () => {
       replays: CODED_EVENTS.filter((e) => !e.upcoming).length,
       partners: PARTNER_SLUGS.length,
       themes: THEME_SLUGS.length,
+      news: CODED_NEWS.length,
     });
 
     const events = await t.run((ctx) =>
@@ -664,6 +803,28 @@ describe('Contenus — migration du contenu codé', () => {
         .sort(),
     );
     expect(replays.every((r) => r.videoUrl === null)).toBe(true);
+
+    // News: each article in its five languages, newest first.
+    const news = await t.run((ctx) => ctx.db.query('contentNews').collect());
+    for (const coded of CODED_NEWS) {
+      const row = news.find((n) => n.slug === coded.slug)!;
+      expect(row.status).toBe('published');
+      expect(row.publishedOn).toBe(coded.publishedOn);
+      for (const l of SITE_LOCALES) {
+        expect(row.title[l]).toBe(coded.text[l].title);
+        expect(row.excerpt?.[l]).toBe(coded.text[l].excerpt);
+        expect(row.body?.[l]).toEqual(coded.text[l].body);
+      }
+    }
+    const es = await t.query(api.contenus.news.listPublic, { locale: 'es' });
+    expect(es.map((n) => n.slug)).toEqual(CODED_NEWS.map((n) => n.slug));
+    expect(es[0].title).toBe(CODED_NEWS[0].text.es.title);
+    const ar = await t.query(api.contenus.news.getPublic, {
+      slug: CODED_NEWS[0].slug,
+      locale: 'ar',
+    });
+    expect(ar.article?.body).toEqual(CODED_NEWS[0].text.ar.body);
+    expect(ar.article?.lang).toBe('ar');
   });
 
   it('est idempotente et ne réécrit pas une fiche modifiée', async () => {
@@ -689,7 +850,13 @@ describe('Contenus — migration du contenu codé', () => {
       internal.contenus.migration.importCodedContent,
       {},
     );
-    expect(again).toEqual({ events: 0, replays: 0, partners: 0, themes: 0 });
+    expect(again).toEqual({
+      events: 0,
+      replays: 0,
+      partners: 0,
+      themes: 0,
+      news: 0,
+    });
     const counts = await t.run(async (ctx) => ({
       events: (await ctx.db.query('contentEvents').collect()).length,
       partners: (await ctx.db.query('contentPartners').collect()).length,
