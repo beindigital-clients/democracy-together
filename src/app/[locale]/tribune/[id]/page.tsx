@@ -12,11 +12,12 @@ import { ReportButton } from '@/components/tribune/report-button';
 import { ReactionButton } from '@/components/tribune/reaction-button';
 import { DeepenPanel } from '@/components/tribune/deepen-panel';
 import { vocabulary } from '@/i18n/vocabulary';
+import { textAttrs } from '@/i18n/content-lang';
+import { ReadingLanguages } from '@/components/i18n/reading-languages';
 import {
-  TranslationNotice,
-  textAttrs,
-} from '@/components/i18n/translation-notice';
-import { resolveArticleDisplay } from '@/lib/article-translation';
+  requestedLanguage,
+  resolveArticleDisplay,
+} from '@/lib/article-translation';
 import { fetchOrFallback } from '@/lib/convex-fallback';
 import { Badge } from '@/components/ui/badge';
 
@@ -86,27 +87,25 @@ export default async function TribunePostPage({
   const tl = await getTranslations('library');
   const postLang = resolveLocale(post.lang);
 
-  // TRANSLATION ON READ. The post is written in a single language; when
-  // it is not the page's, we look for a cached translation and, failing
-  // that, offer to request one. The read is FAULT-TOLERANT
-  // (`fetchOrFallback`): Convex unreachable renders a post without a banner,
-  // not an error page — the original stays readable, that is what matters.
+  // READING LANGUAGE. The post is written in a single language, and
+  // translated into the others when it goes live; the reader reads in the
+  // page's language unless they pick another (`?lang=`). The read is
+  // FAULT-TOLERANT (`fetchOrFallback`): Convex unreachable renders a post
+  // without a banner, not an error page — the original stays readable,
+  // that is what matters.
   const sp = await searchParams;
-  const wantsOriginal = sp.original === '1';
-  const cached =
-    postLang === loc
-      ? null
-      : await fetchOrFallback(
-          'tribune/traduction',
-          () =>
-            fetchQuery(api.translation.getTranslation, {
-              sourceType: 'tribunePost',
-              sourceId: id,
-              targetLocale: loc,
-            }),
-          null,
-        );
-  const display = resolveArticleDisplay(postLang, loc, cached, wantsOriginal);
+  const requested = requestedLanguage(sp, loc, postLang);
+  const reading = await fetchOrFallback(
+    'tribune/traduction',
+    () =>
+      fetchQuery(api.translation.getReading, {
+        sourceType: 'tribunePost',
+        sourceId: id,
+        locale: requested,
+      }),
+    null,
+  );
+  const display = resolveArticleDisplay(postLang, loc, requested, reading);
   // The DISPLAYED text and its language go together: separating them means
   // putting `lang="fr"` on Arabic text at the first refactor.
   const shown =
@@ -114,7 +113,7 @@ export default async function TribunePostPage({
       ? {
           title: display.fields.title,
           body: display.fields.body.join('\n\n'),
-          lang: loc,
+          lang: display.locale,
         }
       : { title: post.title, body: post.body, lang: postLang };
   const attrs = textAttrs(shown.lang, loc);
@@ -184,11 +183,10 @@ export default async function TribunePostPage({
         </p>
       ) : null}
 
-      <TranslationNotice
+      <ReadingLanguages
         display={display}
-        readerLocale={loc}
-        sourceType="tribunePost"
-        sourceId={id}
+        reading={reading}
+        pageLocale={loc}
         pathname={`/tribune/${id}`}
       />
 

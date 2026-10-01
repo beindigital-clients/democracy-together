@@ -1,4 +1,5 @@
 import { v } from 'convex/values';
+import type { SiteLocale } from './locales';
 
 // TRANSLATION OF CONTENT SUBMITTED BY MEMBERS — pure logic.
 //
@@ -47,11 +48,15 @@ export type TranslatableFields = {
   body: string[];
 };
 
+// `news` joined on 2026-10-01: a news article is written by editors in
+// several languages, and only the languages they leave EMPTY are machine
+// translated (see `newsLocalesToTranslate` below).
 export const translationSourceType = v.union(
   v.literal('tribunePost'),
   v.literal('publication'),
+  v.literal('news'),
 );
-export type TranslationSourceType = 'tribunePost' | 'publication';
+export type TranslationSourceType = 'tribunePost' | 'publication' | 'news';
 
 export const translationStatus = v.union(
   v.literal('pending'),
@@ -297,8 +302,186 @@ export function outputTokenBudget(fields: TranslatableFields): number {
 // Default model. Lives here rather than in the editorial moderation
 // settings: they are two distinct tasks, and this one has no scoring scale to
 // calibrate. `TRANSLATION_MODEL` on the Convex deployment takes precedence.
-export const DEFAULT_TRANSLATION_MODEL = 'anthropic/claude-opus-5';
+//
+// Sonnet rather than Opus since 2026-10-01: every published item is now
+// translated into four languages, so the price per call counts four times,
+// and translation does not need the judgement editorial moderation does
+// (2/10 $ per million tokens against 5/25 for Opus 5, on the gateway).
+export const DEFAULT_TRANSLATION_MODEL = 'anthropic/claude-sonnet-5.5';
 
 export function translationModel(): string {
   return process.env.TRANSLATION_MODEL || DEFAULT_TRANSLATION_MODEL;
+}
+
+// --- Translation jobs -------------------------------------------------------
+//
+// Content is translated ONCE, when it goes live, into every other site
+// language (convex/translationJobs.ts). Each (content, language) pair is a
+// job carried by its `contentTranslations` row: `pending` until it is
+// written `ready`, or `failed` once retrying is pointless.
+
+/** Attempts before a job is written `failed`. */
+export const TRANSLATION_MAX_ATTEMPTS = 3;
+
+/**
+ * How long a claimed job is reserved for the action running it. Longer than
+ * the gateway timeout (120 s, `lib/aiGateway.ts`): a job is only taken over
+ * once the action that claimed it cannot still be waiting for the model.
+ */
+export const TRANSLATION_LEASE_MS = 5 * 60 * 1000;
+
+// Waits before the 2nd and 3rd attempts. A gateway hiccup clears in
+// minutes; an outage takes longer, hence the second, longer wait.
+const RETRY_DELAYS_MS = [2 * 60 * 1000, 30 * 60 * 1000];
+
+/** Wait before the next attempt, `attempts` having already failed. */
+export function translationRetryDelayMs(attempts: number): number {
+  const index = Math.min(Math.max(attempts, 1), RETRY_DELAYS_MS.length) - 1;
+  return RETRY_DELAYS_MS[index];
+}
+
+/**
+ * Failures that another attempt cannot fix. Retrying a text that is too long,
+ * or a deployment without a gateway key, would only spend the daily cap.
+ */
+const FINAL_ERRORS = new Set([
+  'TOO_LONG',
+  'NOT_FOUND',
+  'AI_GATEWAY_NOT_CONFIGURED',
+]);
+
+export function isRetryableTranslationError(code: string): boolean {
+  return !FINAL_ERRORS.has(code);
+}
+
+/**
+ * Model calls allowed per 24 hours, across all content. A spending guard,
+ * not a quota anyone should reach: a few publications a day cost a few
+ * dozen calls. Above it, jobs wait for the next window instead of failing.
+ */
+export const DEFAULT_TRANSLATION_DAILY_CAP = 300;
+
+export function translationDailyCap(): number {
+  const raw = Number(process.env.TRANSLATION_DAILY_CAP);
+  return Number.isInteger(raw) && raw > 0 ? raw : DEFAULT_TRANSLATION_DAILY_CAP;
+}
+
+// --- News articles ----------------------------------------------------------
+//
+// A news article carries its five languages in one document, typed by
+// editors (`convex/lib/contenus/i18n.ts`). Machine translation only fills
+// what they left empty: a language with a hand-written title is THEIRS, and
+// a translation never overwrites it, not even at read time.
+
+type LocalizedText = Partial<Record<SiteLocale, string>>;
+type LocalizedList = Partial<Record<SiteLocale, string[]>>;
+
+export type NewsTexts = {
+  title: LocalizedText;
+  excerpt?: LocalizedText;
+  body?: LocalizedList;
+};
+
+// Same order as the site's fallback (`FALLBACK_ORDER`, lib/contenus/i18n.ts):
+// French is the network's writing language.
+const NEWS_SOURCE_ORDER: readonly SiteLocale[] = ['fr', 'en', 'es', 'pt', 'ar'];
+
+function filled(s: string | undefined): s is string {
+  return typeof s === 'string' && s.trim().length > 0;
+}
+
+function filledList(list: string[] | undefined): string[] {
+  return (list ?? []).filter(filled);
+}
+
+/**
+ * The language an article is translated FROM, and its fields: the first
+ * language, in fallback order, whose title is filled in.
+ */
+export function newsSource(
+  news: NewsTexts,
+): { sourceLocale: SiteLocale; fields: TranslatableFields } | null {
+  const sourceLocale = NEWS_SOURCE_ORDER.find((l) => filled(news.title[l]));
+  if (!sourceLocale) return null;
+  const excerpt = news.excerpt?.[sourceLocale];
+  return {
+    sourceLocale,
+    fields: {
+      title: news.title[sourceLocale]!,
+      ...(filled(excerpt) ? { abstract: excerpt } : {}),
+      body: filledList(news.body?.[sourceLocale]),
+    },
+  };
+}
+
+/**
+ * Languages where at least one field written in the source language is
+ * missing. A language whose title, excerpt and body are all hand-written
+ * needs no translation.
+ */
+export function newsLocalesToTranslate(
+  news: NewsTexts,
+  sourceLocale: SiteLocale,
+): SiteLocale[] {
+  const source = newsSource(news);
+  if (!source) return [];
+  return NEWS_SOURCE_ORDER.filter((l) => {
+    if (l === sourceLocale) return false;
+    if (!filled(news.title[l])) return true;
+    if (source.fields.abstract !== undefined && !filled(news.excerpt?.[l]))
+      return true;
+    return (
+      source.fields.body.length > 0 && filledList(news.body?.[l]).length === 0
+    );
+  });
+}
+
+/**
+ * What a reader sees of an article in `locale`: each field in the editors'
+ * text when they wrote one, otherwise in the machine translation, otherwise
+ * through the usual fallback. `machine` says whether a translation was used,
+ * so the page can say so.
+ */
+export function mergeNewsLocale(
+  news: NewsTexts,
+  locale: SiteLocale,
+  translated: TranslatableFields | null,
+  fallback: {
+    title: string;
+    excerpt: string;
+    body: string[];
+    lang: SiteLocale;
+  },
+): {
+  title: string;
+  excerpt: string;
+  body: string[];
+  lang: SiteLocale;
+  machine: boolean;
+} {
+  let machine = false;
+  const pick = (own: string | undefined, other: string | undefined) => {
+    if (filled(own)) return own;
+    if (filled(other)) {
+      machine = true;
+      return other;
+    }
+    return undefined;
+  };
+  const title = pick(news.title[locale], translated?.title);
+  const excerpt = pick(news.excerpt?.[locale], translated?.abstract);
+  const ownBody = filledList(news.body?.[locale]);
+  let body = ownBody;
+  if (ownBody.length === 0 && translated && translated.body.length > 0) {
+    body = translated.body;
+    machine = true;
+  }
+  return {
+    title: title ?? fallback.title,
+    excerpt: excerpt ?? fallback.excerpt,
+    body: body.length > 0 ? body : fallback.body,
+    // The page's `lang` follows the title, as it did before translations.
+    lang: title !== undefined ? locale : fallback.lang,
+    machine,
+  };
 }

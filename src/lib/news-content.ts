@@ -16,6 +16,9 @@ export type NewsItem = {
   publishedOn: string;
   // Language of the texts served, for the `lang` attribute.
   lang: Locale;
+  // Part of the text is a MACHINE translation from this language (a
+  // language the editors left empty, convex/contenus/news.ts).
+  machineFrom?: Locale;
 };
 
 export type NewsArticle = NewsItem & { body: string[] };

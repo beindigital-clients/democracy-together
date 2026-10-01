@@ -584,8 +584,9 @@ export default defineSchema({
     title: v.string(),
     body: v.string(),
     // WRITING language of the post (issue #35). A Tribune post is
-    // written in ONE language only and is never translated: both URL
-    // prefixes serve the same text. Without this field, `tribune/[id]` could only
+    // written in ONE language only; its translations (made when it goes
+    // live, convex/translationJobs.ts) are read through `?lang=` on the same
+    // address, which keeps a single canonical page. Without this field, `tribune/[id]` could only
     // set one canonical per locale — two canonical pages for a single
     // piece of content, i.e. duplicate content. Filled in by the author on
     // publication; OPTIONAL because earlier posts do not carry it,
@@ -911,10 +912,11 @@ export default defineSchema({
   // a version that no longer exists, and the page serves the original rather than
   // stale content without saying so.
   //
-  // `status: 'failed'` IS KEPT, and this is not a cleanup oversight:
-  // without a row, the interface could not distinguish "never requested" from
-  // "requested, and the gateway did not respond". The first offers a
-  // button, the second explains and offers to retry.
+  // EACH ROW IS ALSO A JOB (since 2026-10-01). Content is translated once,
+  // when it goes live, into every other language (convex/translationJobs.ts):
+  // the row is written `pending` at that moment, and the job that fills it
+  // keeps its state here — attempts made, when to try again, and who holds
+  // it right now (`leaseUntil`). `failed` is final: retrying would not help.
   contentTranslations: defineTable({
     sourceType: translationSourceType,
     sourceId: v.string(),
@@ -928,14 +930,20 @@ export default defineSchema({
     // Gateway failure code (GATEWAY_ERRORS), displayed translated.
     error: v.optional(v.string()),
     requestedBy: v.optional(v.id('users')),
+    // Job state, only while `pending` (and `attempts` on a final `failed`).
+    attempts: v.optional(v.number()),
+    nextAttemptAt: v.optional(v.number()),
+    leaseUntil: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     // Reading a page: one piece of content, one language. This is the only access path.
     .index('by_source_and_target', ['sourceType', 'sourceId', 'targetLocale'])
-    // Purge of a deleted content's translations (devAdmin), and display of the
-    // languages already available under an article.
-    .index('by_source', ['sourceType', 'sourceId']),
+    // Purge of a deleted content's translations (devAdmin), and the list of
+    // languages offered under an article.
+    .index('by_source', ['sourceType', 'sourceId'])
+    // The sweep: pending jobs whose next attempt is due.
+    .index('by_status_and_nextAttemptAt', ['status', 'nextAttemptAt']),
 
   // DOCUMENT EXTRACTED FROM A PDF — one row per publication.
   //
