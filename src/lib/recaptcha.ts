@@ -29,8 +29,8 @@ const SCRIPT_ID = 'recaptcha-v3';
 
 // Is a site key configured? Without one, no script is loaded and no token is
 // produced (dev / CI / E2E). Exported so that E2E tests make the SAME
-// decision as the browser instead of copying the rule —
-// same pattern as `projectId` on the Sanity side (TESTING.md § "Sources externes").
+// decision as the browser instead of copying the rule (TESTING.md § "Sources
+// externes").
 export const recaptchaConfigured = Boolean(SITE_KEY);
 
 // Upper bound on waiting for the script. Loading starts when the form mounts,

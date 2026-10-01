@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 
-// Localized error boundary (audit § 5.1). Without it, a Convex or Sanity
-// outage produced a generic 500, off-brand and in English.
+// Localized error boundary (audit § 5.1). Without it, a backend outage
+// produced a generic 500, off-brand and in English.
 //
 // NB Next 16: the recovery prop is called `retry` (not `reset` as in
 // earlier versions) — see node_modules/next/dist/docs/01-app/

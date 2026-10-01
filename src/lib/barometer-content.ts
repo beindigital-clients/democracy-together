@@ -4,8 +4,8 @@ import type { Locale } from '@/i18n/routing';
 // `design/rmdl-barometre.html`. ALL values are **illustrative
 // data** (fictitious scores/rankings, explicitly so in the
 // mock-up): no claims about real countries. Bilingual module designed to
-// switch later to a Convex `barometer` table or to Sanity (the country
-// data is editorial, managed by the secretariat). Checked for banned terms.
+// switch later to a Convex `barometer` table (the country data is
+// editorial, managed by the secretariat). Checked for banned terms.
 
 export type Trend = { dir: 'up' | 'down' | 'flat'; value: string };
 export type RankRow = {

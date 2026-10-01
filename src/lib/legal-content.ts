@@ -44,7 +44,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Informations légales',
       title: 'Mentions légales',
       updatedLabel: 'Dernière mise à jour',
-      updated: '27 juin 2026',
+      updated: '1er octobre 2026',
       homeLabel: 'Accueil',
       intro:
         'Conformément à la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l’économie numérique, voici les informations relatives à l’éditeur et à l’hébergement du présent site.',
@@ -72,8 +72,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           body: [
             'La plateforme s’appuie sur les prestataires techniques suivants :',
             'Vercel Inc. — hébergement et diffusion de l’application web.',
-            'Convex, Inc. — backend applicatif (comptes, annuaire, publications) et stockage des fichiers.',
-            'Sanity AS — système de gestion des contenus éditoriaux (espace de rédaction).',
+            'Convex, Inc. — backend applicatif (comptes, annuaire, publications, contenus éditoriaux) et stockage des fichiers.',
             `Les coordonnées légales complètes et les régions d’hébergement des données de ces prestataires sont précisées dans la politique de confidentialité ${TODO_FR} (régions UE à confirmer).`,
           ],
         },
@@ -102,7 +101,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Legal information',
       title: 'Legal notice',
       updatedLabel: 'Last updated',
-      updated: 'June 27, 2026',
+      updated: 'October 1, 2026',
       homeLabel: 'Home',
       intro:
         'In accordance with French Act No. 2004-575 of 21 June 2004 on confidence in the digital economy, the following information identifies the site’s publisher and host.',
@@ -130,8 +129,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           body: [
             'The platform relies on the following technical providers:',
             'Vercel Inc. — hosting and delivery of the web application.',
-            'Convex, Inc. — application backend (accounts, directory, publications) and file storage.',
-            'Sanity AS — editorial content management system.',
+            'Convex, Inc. — application backend (accounts, directory, publications, editorial content) and file storage.',
             `The full legal details and data-hosting regions of these providers are set out in the privacy policy ${TODO_EN} (EU regions to be confirmed).`,
           ],
         },
@@ -160,7 +158,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Información legal',
       title: 'Aviso legal',
       updatedLabel: 'Última actualización',
-      updated: '27 de junio de 2026',
+      updated: '1 de octubre de 2026',
       homeLabel: 'Inicio',
       intro:
         'De conformidad con la ley francesa n.º 2004-575, de 21 de junio de 2004, para la confianza en la economía digital, se facilita a continuación la información relativa al editor y al alojamiento de este sitio.',
@@ -188,8 +186,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           body: [
             'La plataforma se apoya en los siguientes proveedores técnicos:',
             'Vercel Inc. — alojamiento y distribución de la aplicación web.',
-            'Convex, Inc. — backend de la aplicación (cuentas, directorio, publicaciones) y almacenamiento de archivos.',
-            'Sanity AS — sistema de gestión de contenidos editoriales (espacio de redacción).',
+            'Convex, Inc. — backend de la aplicación (cuentas, directorio, publicaciones, contenidos editoriales) y almacenamiento de archivos.',
             `Los datos legales completos y las regiones de alojamiento de los datos de estos proveedores se detallan en la política de privacidad ${TODO_ES} (regiones de la UE por confirmar).`,
           ],
         },
@@ -224,7 +221,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Informação legal',
       title: 'Aviso legal',
       updatedLabel: 'Última atualização',
-      updated: '27 de junho de 2026',
+      updated: '1 de outubro de 2026',
       homeLabel: 'Início',
       intro:
         'Em conformidade com a lei francesa n.º 2004-575, de 21 de junho de 2004, relativa à confiança na economia digital, apresentam-se em seguida as informações relativas ao editor e ao alojamento deste sítio.',
@@ -252,8 +249,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           body: [
             'A plataforma assenta nos seguintes prestadores técnicos:',
             'Vercel Inc. — alojamento e distribuição da aplicação web.',
-            'Convex, Inc. — backend aplicacional (contas, diretório, publicações) e armazenamento de ficheiros.',
-            'Sanity AS — sistema de gestão de conteúdos editoriais (espaço de redação).',
+            'Convex, Inc. — backend aplicacional (contas, diretório, publicações, conteúdos editoriais) e armazenamento de ficheiros.',
             `Os dados legais completos e as regiões de alojamento dos dados destes prestadores são precisados na política de privacidade ${TODO_PT} (regiões da UE por confirmar).`,
           ],
         },
@@ -288,7 +284,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'معلومات قانونية',
       title: 'البيانات القانونية',
       updatedLabel: 'آخر تحديث',
-      updated: '27 يونيو 2026',
+      updated: '1 أكتوبر 2026',
       homeLabel: 'الرئيسية',
       intro:
         'عملاً بالقانون الفرنسي رقم 2004-575 الصادر في 21 يونيو 2004 بشأن الثقة في الاقتصاد الرقمي، تجدون فيما يلي المعلومات المتعلقة بناشر هذا الموقع وباستضافته.',
@@ -316,8 +312,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           body: [
             'تعتمد المنصة على مقدّمي الخدمات التقنية التالية:',
             'Vercel Inc. — استضافة تطبيق الويب وتوزيعه.',
-            'Convex, Inc. — الواجهة الخلفية للتطبيق (الحسابات، الدليل، المنشورات) وتخزين الملفات.',
-            'Sanity AS — نظام إدارة المحتوى التحريري (فضاء التحرير).',
+            'Convex, Inc. — الواجهة الخلفية للتطبيق (الحسابات، الدليل، المنشورات، المحتويات التحريرية) وتخزين الملفات.',
             `تُفصَّل البيانات القانونية الكاملة لهؤلاء المزوّدين ومناطق استضافة البيانات لديهم في سياسة الخصوصية ${TODO_AR} (مناطق الاتحاد الأوروبي في انتظار التأكيد).`,
           ],
         },
@@ -355,7 +350,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Protection des données',
       title: 'Politique de confidentialité',
       updatedLabel: 'Dernière mise à jour',
-      updated: '27 juin 2026',
+      updated: '1er octobre 2026',
       homeLabel: 'Accueil',
       intro:
         'Democracy Together accorde une grande importance à la protection de vos données personnelles. Cette politique explique quelles données nous traitons, pourquoi, et quels sont vos droits au titre du Règlement général sur la protection des données (RGPD).',
@@ -390,7 +385,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Destinataires et sous-traitants',
           body: [
             'Vos données ne sont jamais vendues. Elles sont accessibles à l’équipe habilitée de Democracy Together et à nos sous-traitants techniques, liés par contrat :',
-            'Vercel (hébergement), Convex (backend et stockage), Sanity (contenus éditoriaux), Resend (envoi d’e-mails transactionnels), Zoho (messagerie du domaine).',
+            'Vercel (hébergement), Convex (backend et stockage), Resend (envoi d’e-mails transactionnels), Zoho (messagerie du domaine).',
           ],
         },
         {
@@ -429,7 +424,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Data protection',
       title: 'Privacy policy',
       updatedLabel: 'Last updated',
-      updated: 'June 27, 2026',
+      updated: 'October 1, 2026',
       homeLabel: 'Home',
       intro:
         'Democracy Together takes the protection of your personal data seriously. This policy explains what data we process, why, and what your rights are under the General Data Protection Regulation (GDPR).',
@@ -464,7 +459,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Recipients and processors',
           body: [
             'Your data is never sold. It is accessible to authorised Democracy Together staff and to our contractually bound technical processors:',
-            'Vercel (hosting), Convex (backend and storage), Sanity (editorial content), Resend (transactional email), Zoho (domain mailboxes).',
+            'Vercel (hosting), Convex (backend and storage), Resend (transactional email), Zoho (domain mailboxes).',
           ],
         },
         {
@@ -503,7 +498,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Protección de datos',
       title: 'Política de privacidad',
       updatedLabel: 'Última actualización',
-      updated: '27 de junio de 2026',
+      updated: '1 de octubre de 2026',
       homeLabel: 'Inicio',
       intro:
         'Democracy Together concede una gran importancia a la protección de sus datos personales. Esta política explica qué datos tratamos, con qué finalidad y cuáles son sus derechos en virtud del Reglamento General de Protección de Datos (RGPD).',
@@ -538,7 +533,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Destinatarios y encargados del tratamiento',
           body: [
             'Sus datos nunca se venden. Son accesibles al equipo autorizado de Democracy Together y a nuestros encargados técnicos, vinculados por contrato:',
-            'Vercel (alojamiento), Convex (backend y almacenamiento), Sanity (contenidos editoriales), Resend (envío de correos transaccionales), Zoho (correo del dominio).',
+            'Vercel (alojamiento), Convex (backend y almacenamiento), Resend (envío de correos transaccionales), Zoho (correo del dominio).',
           ],
         },
         {
@@ -583,7 +578,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'Proteção de dados',
       title: 'Política de privacidade',
       updatedLabel: 'Última atualização',
-      updated: '27 de junho de 2026',
+      updated: '1 de outubro de 2026',
       homeLabel: 'Início',
       intro:
         'A Democracy Together atribui grande importância à proteção dos seus dados pessoais. Esta política explica que dados tratamos, com que finalidade, e quais são os seus direitos ao abrigo do Regulamento Geral sobre a Proteção de Dados (RGPD).',
@@ -618,7 +613,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'Destinatários e subcontratantes',
           body: [
             'Os seus dados nunca são vendidos. São acessíveis à equipa habilitada da Democracy Together e aos nossos subcontratantes técnicos, vinculados por contrato:',
-            'Vercel (alojamento), Convex (backend e armazenamento), Sanity (conteúdos editoriais), Resend (envio de mensagens transacionais), Zoho (correio do domínio).',
+            'Vercel (alojamento), Convex (backend e armazenamento), Resend (envio de mensagens transacionais), Zoho (correio do domínio).',
           ],
         },
         {
@@ -663,7 +658,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
       eyebrow: 'حماية المعطيات',
       title: 'سياسة الخصوصية',
       updatedLabel: 'آخر تحديث',
-      updated: '27 يونيو 2026',
+      updated: '1 أكتوبر 2026',
       homeLabel: 'الرئيسية',
       intro:
         'تولي Democracy Together أهمية كبرى لحماية معطياتكم الشخصية. توضّح هذه السياسة ما هي المعطيات التي نعالجها، ولأي غرض، وما هي حقوقكم بموجب النظام الأوروبي العام لحماية المعطيات (RGPD).',
@@ -698,7 +693,7 @@ const CONTENT: Record<LegalKind, Record<Locale, LegalDoc>> = {
           heading: 'المرسَل إليهم والمتعاقدون من الباطن',
           body: [
             'لا تُباع معطياتكم أبداً. وهي متاحة للفريق المخوَّل داخل Democracy Together ولمتعاقدينا التقنيين المرتبطين بعقد:',
-            'Vercel (الاستضافة)، وConvex (الواجهة الخلفية والتخزين)، وSanity (المحتويات التحريرية)، وResend (إرسال الرسائل المعاملاتية)، وZoho (بريد النطاق).',
+            'Vercel (الاستضافة)، وConvex (الواجهة الخلفية والتخزين)، وResend (إرسال الرسائل المعاملاتية)، وZoho (بريد النطاق).',
           ],
         },
         {

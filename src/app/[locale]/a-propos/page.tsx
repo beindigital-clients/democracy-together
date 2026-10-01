@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal';
 import { resolveLocale } from '@/i18n/locale';
 import { AnchorFocus } from '@/components/a11y/anchor-focus';
-import { getAboutContent } from '@/lib/about';
-import { initials } from '@/lib/about-content';
+import { getAboutContent, initials } from '@/lib/about-content';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -17,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = await getAboutContent(resolveLocale(locale));
+  const c = getAboutContent(resolveLocale(locale));
   return {
     title: c.hero.eyebrow,
     description: c.hero.lead,
@@ -75,7 +74,7 @@ export default async function AboutPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const c = await getAboutContent(resolveLocale(locale));
+  const c = getAboutContent(resolveLocale(locale));
 
   return (
     <div>

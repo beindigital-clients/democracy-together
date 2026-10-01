@@ -90,7 +90,7 @@ jobs:
         run: pnpm exec vitest run --sequence.shuffle
 
       # No environment variables: the build is green without a Convex
-      # deployment or Sanity project. If that stops being true, it is a
+      # deployment. If that stops being true, it is a
       # regression to fix, not a secret to add here.
       - name: Build de production
         run: pnpm build
@@ -154,15 +154,10 @@ jobs:
       #             (it was the only HIGH advisory in the tree);
       #   vitest    ^4.1.11 (itself and @vitest/mocker);
       #   overrides bounded to the major, like the previous ones: dompurify@3,
-      #             baseline-browser-mapping@2, valibot@1, @sanity/uuid@3.
+      #             baseline-browser-mapping@2, valibot@1.
       #
-      # ONE ADVISORY REMAINS, ACCEPTED: GHSA-w5hq-g745-h8pq (uuid < 11.1.1, moderate),
-      # via the path `sanity > @sanity/cli > typeid-js > uuid`. No upstream
-      # fix — typeid-js 1.2.0 is the latest published version and depends on
-      # `uuid ^10.0.0`; the only remedy would be a CROSS-MAJOR override on a
-      # package we don't control. The path is the Sanity CLI's, which
-      # runs neither in the Next server nor in the browser bundle, and
-      # the advisory targets `v3/v5/v6` called with a `buf` — typeid-js generates v7.
-      # Revisit the day typeid-js publishes a version on `uuid >= 11.1.1`.
+      # The last one, GHSA-w5hq-g745-h8pq (uuid < 11.1.1, moderate), came in
+      # through the Sanity CLI (`sanity > @sanity/cli > typeid-js > uuid`): it
+      # left with Sanity (01/10/2026).
       - name: pnpm audit (production, seuil haut)
         run: pnpm audit --prod --audit-level=high

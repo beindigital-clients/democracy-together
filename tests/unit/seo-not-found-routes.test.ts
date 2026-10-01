@@ -50,7 +50,6 @@ describe('404 par réécriture — notFoundRewriteFor (R-04)', () => {
     expect(notFoundRewriteFor('/de')).toBeNull();
     expect(notFoundRewriteFor('/')).toBeNull();
     expect(notFoundRewriteFor('/api/auth')).toBeNull();
-    expect(notFoundRewriteFor('/studio')).toBeNull();
     expect(notFoundRewriteFor('/sitemap.xml')).toBeNull();
     expect(notFoundRewriteFor('/icon.png')).toBeNull();
     expect(notFoundRewriteFor('/_next/static/x.js')).toBeNull();

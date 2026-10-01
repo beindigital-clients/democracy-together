@@ -69,8 +69,8 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 
 export const config = {
   matcher: [
-    // pages: everything except api, Next assets, the Sanity Studio and files
-    '/((?!api|_next|_vercel|studio|.*\\..*).*)',
+    // pages: everything except api, Next assets and files
+    '/((?!api|_next|_vercel|.*\\..*).*)',
     // Convex auth route (must go through the middleware, otherwise 404)
     '/api/auth',
   ],

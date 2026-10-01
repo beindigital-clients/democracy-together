@@ -12,7 +12,7 @@ import type { RegionMapItem } from '@/components/map/types';
 import { RegionGlobeLazy } from '@/components/map/region-globe-lazy';
 import { MAP_DATA, getBarometerContent, CAT_BG } from '@/lib/barometer-content';
 import { resolveLocale } from '@/i18n/locale';
-import { getHomeContent } from '@/lib/home';
+import { getHomeContent } from '@/lib/home-content';
 import { ArrowForward } from '@/components/ui/arrow';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -43,7 +43,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const c = await getHomeContent(resolveLocale(locale));
+  const c = getHomeContent(resolveLocale(locale));
   return {
     description: c.hero.lead,
     alternates: {
@@ -65,7 +65,7 @@ export default async function HomePage({
   setRequestLocale(locale);
   const tHome = await getTranslations('home');
   const loc = resolveLocale(locale);
-  const c = await getHomeContent(loc);
+  const c = getHomeContent(loc);
   // Canonical barometer content (legend, legend title, map help text):
   // single source, aligned with the Baromètre page. The teaser used to rewrite
   // these three labels hard-coded, via a ternary on the locale (issue #34).

@@ -1,7 +1,7 @@
 // Content of the About page (F-11 vision/mission, F-12 founders &
 // governance), ported 1:1 from the agency mock-up `design/rmdl-a-propos.html`.
-// CONTENT LAYER: static/local today, signature designed to switch
-// to Sanity later (getAboutContent keeps the same return shape).
+// The page is served from this module, in the five languages: its texts are
+// edited here, in the code. Keep this module pure (the tests import it).
 
 import type { Locale } from '@/i18n/routing';
 
@@ -471,9 +471,6 @@ const en: AboutContent = {
   },
 };
 
-// Pure LOCAL fallback (no Sanity dependency): used when no `aboutPage`
-// document is published, and as a seed source. The Sanity fetch + fallback
-// lives in `src/lib/about.ts`. Keep this module pure (the tests import it).
 const es: AboutContent = {
   hero: {
     eyebrow: 'Sobre nosotros',
@@ -1095,7 +1092,7 @@ const ar: AboutContent = {
 // Exhaustive table by construction (see `projects-content.ts`).
 const BY_LOCALE: Record<Locale, AboutContent> = { fr, en, es, pt, ar };
 
-export function aboutFallback(locale: Locale): AboutContent {
+export function getAboutContent(locale: Locale): AboutContent {
   return BY_LOCALE[locale];
 }
 

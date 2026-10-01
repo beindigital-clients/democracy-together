@@ -72,7 +72,6 @@ describe('isProtectedPath — zones privées', () => {
 
   it('laisse passer les routes techniques', () => {
     expect(isProtectedPath('/api/auth')).toBe(false);
-    expect(isProtectedPath('/studio')).toBe(false);
     expect(isProtectedPath('/sitemap.xml')).toBe(false);
     expect(isProtectedPath('/robots.txt')).toBe(false);
   });

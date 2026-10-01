@@ -20,7 +20,6 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@dt-sanity/*": ["./sanity/*"],
       "@convex/*": ["./convex/*"]
     }
   },
