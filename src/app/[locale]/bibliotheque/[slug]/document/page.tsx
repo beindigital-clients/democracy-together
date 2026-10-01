@@ -197,7 +197,11 @@ export default async function DocumentPage({
               </p>
             </>
           ) : (
-            <p className="text-[15px] text-ink-soft">{t('docEmpty')}</p>
+            // Neither ready nor failed: this version was never prepared (no
+            // extraction for this file, or none in this language). It does not
+            // mean "empty": an extraction without blocks fails instead
+            // (`parseExtraction`), and lands in the branch above.
+            <p className="text-[15px] text-ink-soft">{t('docPending')}</p>
           )}
           {doc.originalUrl ? (
             <p className="mt-3">

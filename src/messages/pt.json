@@ -833,7 +833,7 @@
       "uploadPercent": "{percent} %",
       "uploadStarting": "A preparar o ficheiro…",
       "successTitle": "Submissão recebida",
-      "successBody": "Obrigado. A sua publicação «{title}» aguarda revisão. Encontrá-la-á em «As minhas contribuições».",
+      "successBody": "Obrigado. A sua publicação «{title}» aguarda revisão. Encontrá-la-á em «As minhas publicações».",
       "successCta": "Voltar ao meu espaço",
       "submitAnother": "Submeter outra publicação",
       "errTitle": "O título deve ter pelo menos 4 caracteres.",
@@ -920,7 +920,7 @@
     "docSourceLink": "Ver o documento original",
     "docFigure": "Ilustração {n}",
     "docPageOf": "Página {n}",
-    "docEmpty": "Não foi possível extrair qualquer conteúdo deste documento."
+    "docPending": "Esta versão ainda não foi preparada. Escolha a língua acima para a preparar."
   },
   "nav": {
     "homeLabel": "Democracy Together — início",
