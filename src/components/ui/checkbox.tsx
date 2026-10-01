@@ -4,6 +4,7 @@ import * as React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Check, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { choiceStyle } from '@/components/ui/radio-group';
 
 // shadcn Checkbox (Radix), themed on the Democracy Together tokens.
 //
@@ -43,4 +44,40 @@ function Checkbox({
   );
 }
 
-export { Checkbox };
+// A choice drawn as a CHIP rather than a box (the languages of a
+// publication), the multiple-choice twin of `RadioGroupChoice` and drawn
+// alike: the whole surface is the checkbox — a `button` with the `checkbox`
+// role, named by its text — so it carries the global focus outline itself
+// (RGAA 10.7), with no hidden input under a drawing. Checked: accent border
+// and tint AND the tick of `CheckboxChoiceIndicator` (RGAA 3.1). The chips of
+// one question go in a `<fieldset>` whose `<legend>` names them (RGAA 11.5).
+function CheckboxChoice({
+  className,
+  ...props
+}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+  return (
+    <CheckboxPrimitive.Root
+      data-slot="checkbox-choice"
+      className={cn(choiceStyle(), className)}
+      {...props}
+    />
+  );
+}
+
+// The tick of a checked `CheckboxChoice`: rendered only while checked.
+function CheckboxChoiceIndicator({
+  className,
+  ...props
+}: React.ComponentProps<typeof CheckboxPrimitive.Indicator>) {
+  return (
+    <CheckboxPrimitive.Indicator
+      data-slot="checkbox-choice-indicator"
+      className={cn('inline-flex shrink-0', className)}
+      {...props}
+    >
+      <Check aria-hidden="true" className="size-3.5" />
+    </CheckboxPrimitive.Indicator>
+  );
+}
+
+export { Checkbox, CheckboxChoice, CheckboxChoiceIndicator };

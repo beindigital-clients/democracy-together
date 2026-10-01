@@ -15,6 +15,15 @@ import {
   useFormFields,
 } from '@/components/ui/field';
 import { SelectField } from '@/components/ui/choice-fields';
+import {
+  CheckboxChoice,
+  CheckboxChoiceIndicator,
+} from '@/components/ui/checkbox';
+import {
+  RadioGroup,
+  RadioGroupChoice,
+  RadioGroupChoiceIndicator,
+} from '@/components/ui/radio-group';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import {
   PUB_TYPES,
@@ -26,10 +35,12 @@ import {
 import { isRateLimited } from '@/lib/errors';
 import { UPLOAD_FAILED, uploadWithProgress } from '@/lib/upload';
 import { vocabulary } from '@/i18n/vocabulary';
-import { Check } from 'lucide-react';
 import { StatusMessage } from '@/components/a11y/status-message';
 
 const MAX_FILE_MB = 20;
+// The language and access chips: shadcn `CheckboxChoice` and
+// `RadioGroupChoice`, drawn alike.
+const CHIP = 'rounded-pill px-4 py-1.5';
 
 // The CONTENT, not the extension: a `.txt` renamed `.pdf`, or an empty file,
 // got past the picker (`accept`) and the server, which can only check the
@@ -88,6 +99,7 @@ export function PublicationSubmitForm() {
     file?: string;
   }>({});
   const languagesErrorId = useId();
+  const accessLegendId = useId();
   // The language group has no single control to target: it is the
   // `fieldset` that takes focus (`tabIndex={-1}`), which brings the legend and
   // the message on screen and under the screen reader.
@@ -334,33 +346,21 @@ export function PublicationSubmitForm() {
         <legend className="text-sm text-ink-soft">
           {t('submit.fieldLanguages')}
         </legend>
+        {/* Each chip IS the checkbox (shadcn `CheckboxChoice`): it carries
+            the focus outline itself (RGAA 10.7), and a tick shows the choice
+            without relying on colour alone (RGAA 3.1). */}
         <div className="mt-2 flex flex-wrap gap-2">
-          {PUB_LANGS.map((l) => {
-            const checked = languages.includes(l);
-            return (
-              // Focus on the chip (RGAA 10.7), a check mark in addition to
-              // colour (RGAA 3.1): the checkbox itself is hidden.
-              <label
-                key={l}
-                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
-                  checked
-                    ? 'border-accent-edge bg-accent-tint text-accent-text'
-                    : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggleLang(l)}
-                  className="sr-only"
-                />
-                {checked ? (
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : null}
-                {vocabulary(t, 'langs.', l)}
-              </label>
-            );
-          })}
+          {PUB_LANGS.map((l) => (
+            <CheckboxChoice
+              key={l}
+              checked={languages.includes(l)}
+              onCheckedChange={() => toggleLang(l)}
+              className={CHIP}
+            >
+              <CheckboxChoiceIndicator />
+              {vocabulary(t, 'langs.', l)}
+            </CheckboxChoice>
+          ))}
         </div>
         {groupErrors.languages ? (
           <p id={languagesErrorId} className="mt-1 text-sm text-bar-5">
@@ -370,36 +370,25 @@ export function PublicationSubmitForm() {
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm text-ink-soft">
+        <legend id={accessLegendId} className="text-sm text-ink-soft">
           {t('submit.fieldAccess')}
         </legend>
-        {/* No anonymous `role="radiogroup"`: the `<fieldset>` names the
-            group (RGAA 11.6). */}
-        <div className="mt-2 flex flex-wrap gap-2">
+        {/* Never an ANONYMOUS `role="radiogroup"` (RGAA 11.6): it sits
+            between the chips and the `<fieldset>`, hence `aria-labelledby`
+            on the legend. */}
+        <RadioGroup
+          value={access}
+          onValueChange={setAccess}
+          aria-labelledby={accessLegendId}
+          className="mt-2 flex flex-wrap gap-2"
+        >
           {PUB_ACCESS.map((a) => (
-            <label
-              key={a}
-              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-text ${
-                access === a
-                  ? 'border-accent-edge bg-accent-tint text-accent-text'
-                  : 'border-line bg-surface-2 text-ink-soft hover:border-line-strong hover:text-ink'
-              }`}
-            >
-              <input
-                type="radio"
-                name="access"
-                value={a}
-                checked={access === a}
-                onChange={() => setAccess(a)}
-                className="sr-only"
-              />
-              {access === a ? (
-                <Check className="h-3.5 w-3.5" aria-hidden="true" />
-              ) : null}
+            <RadioGroupChoice key={a} value={a} className={CHIP}>
+              <RadioGroupChoiceIndicator />
               {vocabulary(t, 'access.', a)}
-            </label>
+            </RadioGroupChoice>
           ))}
-        </div>
+        </RadioGroup>
       </fieldset>
 
       <TextareaField

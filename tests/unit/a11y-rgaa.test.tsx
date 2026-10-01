@@ -1,6 +1,12 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  within,
+} from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import fr from '@/messages/fr.json';
 import { StatusMessage } from '@/components/a11y/status-message';
@@ -8,6 +14,7 @@ import { contentLangAttrs, textAttrs } from '@/i18n/content-lang';
 import { adminScreenKey } from '@/components/admin/admin-nav';
 import { RegionGlobe } from '@/components/map/region-globe';
 import { SolidarityEstimator } from '@/components/membership/solidarity-estimator';
+import { PublicationSubmitForm } from '@/components/library/publication-submit-form';
 import { getMembershipContent } from '@/lib/membership-content';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,10 +43,12 @@ afterEach(cleanup);
 // The estimator reads the published rate scale (F-27) via `useQuery`, outside any
 // ConvexProvider here: we simulate an UNPUBLISHED scale, which makes the estimate
 // indicative — the choice cards, the only target, are the same in both
-// cases.
+// cases. The publication form only needs its mutations to exist: nothing is
+// submitted here.
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useQuery: () => undefined,
+  useMutation: () => () => Promise.resolve(null),
 }));
 
 // The estimator translates its payment notices (`payments`): it needs the
@@ -175,6 +184,55 @@ describe('estimateur solidaire : sélection et focus visibles (RGAA 3.1, 10.7)',
     expect(radio.className).not.toContain('sr-only');
     expect(radio.className).not.toContain('outline-none');
     expect(radio.textContent).toContain(content.incomes[0].desc);
+  });
+});
+
+describe('dépôt de publication : chaque pastille EST le contrôle (RGAA 3.1, 10.7, 11.5)', () => {
+  function renderSubmitForm() {
+    render(
+      <NextIntlClientProvider locale="fr" messages={fr}>
+        <PublicationSubmitForm />
+      </NextIntlClientProvider>,
+    );
+  }
+
+  it('langues : des cases à cocher regroupées sous leur légende, cochées par une coche', () => {
+    renderSubmitForm();
+    const langues = screen.getByRole('group', { name: 'Langues' });
+    const francais = within(langues).getByRole('checkbox', {
+      name: 'Français',
+    });
+    const anglais = within(langues).getByRole('checkbox', { name: 'Anglais' });
+    expect(francais.getAttribute('aria-checked')).toBe('true');
+    expect(francais.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(anglais.getAttribute('aria-checked')).toBe('false');
+    expect(anglais.querySelector('svg')).toBeNull();
+
+    fireEvent.click(anglais);
+    expect(anglais.getAttribute('aria-checked')).toBe('true');
+    expect(anglais.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    fireEvent.click(francais);
+    expect(francais.getAttribute('aria-checked')).toBe('false');
+    // Nothing hidden under a drawing: the focused element is the chip, which
+    // keeps the global outline.
+    expect(anglais.className).not.toContain('sr-only');
+    expect(anglais.className).not.toContain('outline-none');
+  });
+
+  it('accès : un groupe radio nommé par sa légende, une seule pastille cochée', () => {
+    renderSubmitForm();
+    const acces = screen.getByRole('radiogroup', { name: 'Accès' });
+    const ouvert = within(acces).getByRole('radio', { name: 'Accès ouvert' });
+    const membres = within(acces).getByRole('radio', {
+      name: 'Réservé aux membres',
+    });
+    expect(ouvert.getAttribute('aria-checked')).toBe('true');
+    expect(ouvert.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+
+    fireEvent.click(membres);
+    expect(membres.getAttribute('aria-checked')).toBe('true');
+    expect(ouvert.getAttribute('aria-checked')).toBe('false');
+    expect(ouvert.querySelector('svg')).toBeNull();
   });
 });
 
