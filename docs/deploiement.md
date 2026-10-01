@@ -28,16 +28,49 @@ déploiement de production naît vide, sans compte ni donnée. D'ici là, les
 avertissements « jamais en production » du § 1.1 valent déjà : ce déploiement de
 développement sert l'application réelle.
 
-### État au 29/09/2026
+### État au 01/10/2026
 
-Le build Vercel ne lance que `next build` : il ne pousse jamais Convex. Le
-déploiement exécutait donc encore les fonctions du 26/09, sans `payments/` ni
+Le build Vercel ne lance que `next build` : il ne pousse jamais Convex. Tout
+code Convex fusionné dans `main` se pousse donc à la main, sinon le site appelle
+des fonctions que le déploiement ne connaît pas encore (« Could not find public
+function »).
+
+- **Code poussé** : `main@762d233` (fusion de #142), le 01/10 à 14:15, par
+  `npx convex dev --once`. Les pushs du matin avaient apporté #140 et #141
+  (`main@71153bd`, 07:41), puis #139 (`main@eed72b5`, 07:45).
+- **Méthode** : depuis une copie propre de `main`, jamais depuis un dossier de
+  travail, qui peut porter une autre branche ou des changements non commités :
+
+  ```bash
+  git fetch origin
+  git worktree add --detach /tmp/dt-convex-push origin/main
+  cd /tmp/dt-convex-push && pnpm install --frozen-lockfile
+  pnpm typecheck:convex
+  CONVEX_DEPLOYMENT=dev:rare-alpaca-677 npx convex dev --once
+  npx convex function-spec     # contrôle : les nouvelles fonctions y figurent
+  cd - && git worktree remove --force /tmp/dt-convex-push
+  ```
+
+  Un `npx convex dev` lancé depuis une branche plus ancienne écraserait ce
+  déploiement.
+- **Index ajoutés** par ces pushs : `conversationTyping.by_conversation_and_userId`
+  (#141), `membershipApplications.by_member` (#140),
+  `workspaceNotes.by_workspace_and_createdAt` (#134, qui n'avait jamais été
+  poussé), et la nouvelle table `contentNews` avec `by_slug` et
+  `by_status_and_publishedOn` (#142). Le push n'a touché à aucune donnée.
+- **Commande jouée** après le push, comme le demande #142 :
+  `npx convex run contenus/migration:importCodedContent '{}'`. Résultat :
+  `news: 3`, et 0 pour les événements, rediffusions, partenaires et
+  thématiques, déjà en base. Les trois articles sont servis par Convex et
+  modifiables dans l'onglet Actualités du back-office.
+
+### Remise à niveau du 29/09/2026
+
+Le déploiement exécutait encore les fonctions du 26/09, sans `payments/` ni
 `contenus/`, d'où l'erreur 500 de `/fr/adhesion` et les « Could not find public
 function » des pages Événements. Remise à niveau du 29/09 :
 
-- **Code poussé** : `main@1c3a11a`, par `npx convex dev --once`. Tout nouveau
-  code Convex se pousse à la main de la même façon. Un `npx convex dev` lancé
-  depuis une branche plus ancienne écraserait ce déploiement.
+- **Code poussé** : `main@1c3a11a`, par `npx convex dev --once`.
 - **Données supprimées** : deux fiches `youthProfiles` créées par les tests E2E
   le 02/07, dans un format antérieur à l'historique git, bloquaient le schéma.
   Rien d'autre n'a été touché. Deux tables hors schéma restent en base, sans
