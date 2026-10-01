@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { ContentTabs } from '@/components/admin/contenus/content-tabs';
 
-// SELF-SERVICE CONTENT MANAGEMENT (F-62) — shared shell of the six screens.
+// SELF-SERVICE CONTENT MANAGEMENT (F-62) — shared shell of the seven screens.
 // The "éditeur" rank is enforced by the back-office navigation
 // (`admin-nav.tsx`, "Édition" group) and, above all, by each Convex
 // function called (`requireEditor`): this shell authorizes nothing.

@@ -67,6 +67,7 @@ export type SessionKey =
   | 'contenusEvenements'
   | 'contenusMembre'
   | 'contenusMedias'
+  | 'contenusActualites'
   | 'comptes'
   | 'progAppelsAdmin'
   | 'progAppelsMembre'
@@ -247,6 +248,13 @@ export const SESSIONS: Record<
   contenusMedias: {
     email: 'e2e_session_contenus_medias@democracytogether.test',
     state: 'tests/e2e/.auth/contenus-medias.json',
+    role: 'editeur',
+  },
+  // Dedicated to `contenus-actualites.spec.ts`: it writes an article, then
+  // publishes it, holding its session from start to finish.
+  contenusActualites: {
+    email: 'e2e_session_contenus_actualites@democracytogether.test',
+    state: 'tests/e2e/.auth/contenus-actualites.json',
     role: 'editeur',
   },
   // Session dedicated to `comptes-suspension.spec.ts` ("comptes" workstream, F-63).

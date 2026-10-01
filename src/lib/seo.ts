@@ -226,7 +226,7 @@ export type ArticleJsonLdInput = {
   /** URL prefix of the page — the post's language may differ from it. */
   locale: string;
   description?: string;
-  /** ISO date served by the CMS. */
+  /** Publication day (`YYYY-MM-DD`, an ISO 8601 date). */
   datePublished: string;
   inLanguage?: string;
 };
@@ -234,17 +234,14 @@ export type ArticleJsonLdInput = {
 /**
  * `Article` entry for a news page.
  *
- * `author` is absent: the repo's Sanity schema has no author field
- * (`sanity/schemaTypes/documents/post.ts`). Inventing one — "Democracy
- * Together" posing as a person — would be false data; the responsible
- * publisher is already declared by `publisher`.
+ * `author` is absent: an article (`contentNews`) has no author field.
+ * Inventing one — "Democracy Together" posing as a person — would be false
+ * data; the responsible publisher is already declared by `publisher`.
  *
- * `image` is absent too, and that is the interesting case: the
- * `postBySlugQuery` query does PROJECT `coverUrl`, but the page does not
- * render that image. An entry must describe what the page shows; declaring
- * an image absent from the rendering means describing another page.
+ * `image` is absent too: an article has no image, and an entry must
+ * describe what the page shows.
  *
- * TO BE SET ONLY ON A SUCCESSFUL RENDER. The degraded render (Sanity
+ * TO BE SET ONLY ON A SUCCESSFUL RENDER. The degraded render (backend
  * unreachable) already carries a `noindex` and shows no article: an entry
  * there would describe content the page does not serve.
  */

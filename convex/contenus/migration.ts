@@ -12,6 +12,7 @@ import {
   CODED_EVENT_TITLES,
   CODED_FEATURED_SLUG,
 } from '../lib/contenus/coded/events';
+import { CODED_NEWS } from '../lib/contenus/coded/news';
 import { CODED_PARTNERS, PARTNER_SLUGS } from '../lib/contenus/coded/partners';
 import {
   CODED_THEMES,
@@ -40,7 +41,9 @@ import {
 //    "coming soon" state carried over as-is;
 //  - 5 partnership categories, published, in catalog order;
 //  - 5 themes (the network's axes), published, with their title (taken from
-//    `library.themes.*`) and their summary.
+//    `library.themes.*`) and their summary;
+//  - 3 news articles, published, in their five languages (they used to live
+//    in Sanity, in French and English only).
 // The press review had no hard-coded content: nothing to import.
 
 function fromLocales(
@@ -175,6 +178,28 @@ async function importThemes(ctx: MutationCtx, now: number) {
   return created;
 }
 
+async function importNews(ctx: MutationCtx, now: number) {
+  let created = 0;
+  for (const n of CODED_NEWS) {
+    const existing = await ctx.db
+      .query('contentNews')
+      .withIndex('by_slug', (q) => q.eq('slug', n.slug))
+      .unique();
+    if (existing) continue;
+    await ctx.db.insert('contentNews', {
+      slug: n.slug,
+      title: fromLocales((l) => n.text[l].title),
+      excerpt: fromLocales((l) => n.text[l].excerpt),
+      body: listFromLocales((l) => n.text[l].body),
+      publishedOn: n.publishedOn,
+      status: 'published',
+      updatedAt: now,
+    });
+    created += 1;
+  }
+  return created;
+}
+
 export const importCodedContent = internalMutation({
   args: {},
   returns: v.object({
@@ -182,16 +207,18 @@ export const importCodedContent = internalMutation({
     replays: v.number(),
     partners: v.number(),
     themes: v.number(),
+    news: v.number(),
   }),
   handler: async (ctx) => {
     const now = Date.now();
     const { events, replays } = await importEvents(ctx, now);
     const partners = await importPartners(ctx, now);
     const themes = await importThemes(ctx, now);
-    const result = { events, replays, partners, themes };
+    const news = await importNews(ctx, now);
+    const result = { events, replays, partners, themes, news };
     // Logged only if it wrote something: a no-op rerun
     // changed nothing, it has nothing to record.
-    if (events + replays + partners + themes > 0) {
+    if (events + replays + partners + themes + news > 0) {
       await recordAudit(ctx, {
         action: AUDIT.CONTENT_IMPORTED,
         targetId: 'coded-content',

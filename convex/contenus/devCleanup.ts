@@ -45,6 +45,7 @@ export const deleteE2eContent = internalMutation({
       'contentReplays',
       'contentPartners',
       'contentThemes',
+      'contentNews',
     ] as const) {
       for (const row of await ctx.db.query(table).take(1000)) {
         if (mine(row.slug)) {
