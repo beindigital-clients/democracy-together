@@ -33,6 +33,7 @@ import {
   type TranslationSourceType,
 } from './lib/translation';
 import { readSource } from './lib/translationSource';
+import { enqueueDocumentTranslations } from './documentJobs';
 
 // TRANSLATING CONTENT WHEN IT GOES LIVE — the jobs.
 //
@@ -168,6 +169,20 @@ export async function enqueueTranslations(
     }
   }
   return scheduled;
+}
+
+/**
+ * Everything a publication's going live triggers in translation: its text
+ * (title, abstract, key points, body) and its attached PDF, into every other
+ * site language. Called by each path that publishes a publication —
+ * moderation, auto-publication, the reading committee.
+ */
+export async function onPublicationPublished(
+  ctx: MutationCtx,
+  publicationId: Id<'publications'>,
+): Promise<void> {
+  await enqueueTranslations(ctx, 'publication', publicationId);
+  await enqueueDocumentTranslations(ctx, publicationId);
 }
 
 /** A job that will not be retried: the row keeps the reason, not a text. */

@@ -912,19 +912,8 @@
     "errTooLong": "هذه الوثيقة أطول من أن تُترجَم آلياً.",
     "errForbidden": "هذا المحتوى خاص بأعضاء الشبكة.",
     "errGeneric": "خدمة الترجمة غير متاحة مؤقتاً.",
-    "docTitle": "التنزيل بلغة أخرى",
-    "docLead": "يُعاد توليد الوثيقة باللغة المختارة: يُترجَم النص، ويُحافَظ على التنسيق وعلى الصور.",
-    "docPrepare": "التحضير بـ{language}",
-    "docPreparing": "جارٍ تحضير الوثيقة…",
-    "docOpen": "فتح النسخة بـ{language}",
-    "docOriginalFile": "تنزيل ملف PDF الأصلي",
-    "docReady": "متاحة بـ{language}",
-    "docPrint": "طباعة / حفظ بصيغة PDF",
-    "docNotice": "وثيقة مترجَمة آلياً عن {language}. الصور والجداول مأخوذة من الوثيقة الأصلية.",
-    "docSourceLink": "الاطلاع على الوثيقة الأصلية",
-    "docFigure": "صورة {n}",
-    "docPageOf": "صفحة {n}",
-    "docEmpty": "تعذّر استخراج أي محتوى من هذه الوثيقة."
+    "pdfOtherLanguages": "ملف PDF بلغات أخرى",
+    "pdfMachine": "ملف PDF مترجَم آلياً عن الأصل بـ{language}، مع الحفاظ على التنسيق."
   },
   "nav": {
     "homeLabel": "Democracy Together — الرئيسية",

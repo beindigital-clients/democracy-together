@@ -17,7 +17,7 @@ import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { enforceRateLimit, RATE_LIMITS } from './lib/rateLimit';
 import { trackPublicationStatus } from './lib/counters';
-import { enqueueTranslations } from './translationJobs';
+import { onPublicationPublished } from './translationJobs';
 import {
   assertLength,
   blindStatus,
@@ -432,8 +432,9 @@ export const decideManuscript = mutation({
           : {}),
       });
       await trackPublicationStatus(ctx, pub.status, 'published');
-      // After the patch: the accepted version's text is the one translated.
-      await enqueueTranslations(ctx, 'publication', publicationId);
+      // After the patch: the accepted version's text and file are the ones
+      // translated.
+      await onPublicationPublished(ctx, publicationId);
       published = true;
     } else if (decision === 'rejected' && pub.status === 'pending') {
       await ctx.db.patch(publicationId, {

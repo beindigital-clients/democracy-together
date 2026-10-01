@@ -348,6 +348,11 @@ const FINAL_ERRORS = new Set([
   'TOO_LONG',
   'NOT_FOUND',
   'AI_GATEWAY_NOT_CONFIGURED',
+  // Documents (convex/documentJobs.ts): the file itself is the problem.
+  'FILE_MISSING',
+  'TOO_LARGE',
+  'NOT_A_PDF',
+  'PDF_UNREADABLE',
 ]);
 
 export function isRetryableTranslationError(code: string): boolean {

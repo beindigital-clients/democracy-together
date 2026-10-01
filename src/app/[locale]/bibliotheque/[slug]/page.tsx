@@ -18,6 +18,7 @@ import { alternatesFor } from '@/lib/seo';
 import { resolveLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import { textAttrs } from '@/i18n/content-lang';
+import { LOCALE_ENDONYMS, direction } from '@/i18n/direction';
 import { ReadingLanguages } from '@/components/i18n/reading-languages';
 import {
   requestedLanguage,
@@ -170,7 +171,34 @@ export default async function PublicationPage({
   // publications without a file displayed "Télécharger le PDF" and
   // opened a DOI record. Without a file, a single "Consulter
   // (DOI)" button, and a note explaining it.
-  const fileHref = pub.fileUrl ?? doiUrl;
+  // THE PDF IN THE READER'S LANGUAGE. The attached file is translated into
+  // every site language when the publication goes live, keeping its design
+  // (convex/documentJobs.ts): the main button opens the version in the
+  // page's language when it is ready, the original otherwise, and the other
+  // versions are listed below it. Outage-tolerant like the rest: without the
+  // list, the original stays one click away.
+  const documentFiles = pub.fileUrl
+    ? await fetchOrFallback(
+        'bibliotheque/[slug]:pdf',
+        () => fetchQuery(api.documents.getDocumentFiles, { slug }, { token }),
+        null,
+      )
+    : null;
+  const readerFile = documentFiles?.files.find(
+    (f) => f.locale === loc && f.status === 'ready' && f.url,
+  );
+  const fileHref = readerFile?.url ?? pub.fileUrl ?? doiUrl;
+  const otherFiles = (documentFiles?.files ?? []).filter(
+    (f) =>
+      f !== readerFile &&
+      // The original is the main button already when no translation is.
+      !(f.status === 'original' && !readerFile) &&
+      (((f.status === 'original' || f.status === 'ready') && f.url) ||
+        f.status === 'pending'),
+  );
+  const pdfSourceName = documentFiles
+    ? vocabulary(t, 'langs.', documentFiles.sourceLocale)
+    : '';
   const langNames = pub.languages
     .map((l) => vocabulary(t, 'langs.', l))
     .join(', ');
@@ -399,17 +427,49 @@ export default async function PublicationPage({
                       {td('noFileNote')}
                     </p>
                   )}
-                  {/* The attached document, rebuilt in the reader's language
-                    (images preserved). Offered ONLY when there is a
-                    file: without a PDF, the document view would have nothing to
-                    show and the link would lead to an empty page. */}
-                  {pub.fileUrl ? (
-                    <Link
-                      href={`/bibliotheque/${slug}/document`}
-                      className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong bg-surface px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-                    >
-                      {tTrad('docTitle')}
-                    </Link>
+                  {readerFile ? (
+                    <p className="text-[12.5px] leading-relaxed text-ink-soft">
+                      {tTrad('pdfMachine', { language: pdfSourceName })}
+                    </p>
+                  ) : null}
+                  {otherFiles.length > 0 ? (
+                    <div className="rounded-sm border border-line bg-surface-2 px-3 py-2.5">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+                        {tTrad('pdfOtherLanguages')}
+                      </p>
+                      <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13.5px]">
+                        {otherFiles.map((f) => {
+                          // The language's own name, marked as such (RGAA
+                          // 8.7); the tags stay in the page's language.
+                          const label = (
+                            <span lang={f.locale} dir={direction(f.locale)}>
+                              {LOCALE_ENDONYMS[f.locale]}
+                            </span>
+                          );
+                          if (f.status === 'pending' || !f.url) {
+                            return (
+                              <li key={f.locale} className="text-muted">
+                                {label} ({tTrad('pendingTag')})
+                              </li>
+                            );
+                          }
+                          return (
+                            <li key={f.locale}>
+                              <DownloadLink
+                                slug={pub.slug}
+                                href={f.url}
+                                className="font-medium text-accent-text underline underline-offset-2"
+                              >
+                                {label}
+                                {f.status === 'original'
+                                  ? ` (${tTrad('originalTag')})`
+                                  : ''}
+                              </DownloadLink>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
                   ) : null}
                   {/* "Lire en ligne" only makes sense with a document: without a
                     file, it would open the same DOI record as the main

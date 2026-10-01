@@ -31,6 +31,7 @@ import type * as contenus_themes from "../contenus/themes.js";
 import type * as counters from "../counters.js";
 import type * as crons from "../crons.js";
 import type * as devAdmin from "../devAdmin.js";
+import type * as documentJobs from "../documentJobs.js";
 import type * as documents from "../documents.js";
 import type * as editorial from "../editorial.js";
 import type * as email from "../email.js";
@@ -214,6 +215,7 @@ declare const fullApi: ApiFromModules<{
   counters: typeof counters;
   crons: typeof crons;
   devAdmin: typeof devAdmin;
+  documentJobs: typeof documentJobs;
   documents: typeof documents;
   editorial: typeof editorial;
   email: typeof email;

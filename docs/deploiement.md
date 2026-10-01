@@ -290,7 +290,7 @@ demandent plus rien : ils choisissent la langue de lecture sur la page
 
 | Contenu | Quand | Ce qui est traduit |
 |---|---|---|
-| Publication | validation par un modérateur, auto-publication par l'IA, acceptation par le comité de lecture | titre, résumé, points clés, texte |
+| Publication | validation par un modérateur, auto-publication par l'IA, acceptation par le comité de lecture | titre, résumé, points clés, texte, **et le PDF joint** |
 | Billet de la Tribune | toute mise en ligne | titre, texte |
 | Actualité | publication, puis chaque modification d'un article publié | seulement les langues laissées vides par l'éditeur ; un texte écrit à la main n'est jamais remplacé |
 
@@ -301,6 +301,7 @@ Variables, toutes sur le **déploiement Convex** :
 | `AI_GATEWAY_API_KEY` | absente | la même clé que la modération (§ 1.5). Sans elle, rien n'est traduit et la page le dit |
 | `TRANSLATION_MODEL` | `anthropic/claude-sonnet-5.5` | modèle des traductions (et de la préparation des documents PDF) |
 | `TRANSLATION_DAILY_CAP` | `300` | appels au modèle par 24 heures ; au-delà, les traductions attendent la fenêtre suivante au lieu d'échouer |
+| `DOCUMENT_TRANSLATION_DAILY_CAP` | `60` | PDF traduits par 24 heures (un par fichier et par langue), même principe |
 
 Chaque traduction est tentée **trois fois au plus** (relances après 2 puis
 30 minutes), puis marquée en échec : la page sert alors l'original et le
@@ -320,6 +321,24 @@ Avec Sonnet 5.5 (2 $ par million de jetons en entrée, 10 $ en sortie), le
 coût vaut environ `estimatedInputTokens × 2 + estimatedOutputTokens × 10`,
 divisé par un million. Relancer la commande ne retraduit rien de ce qui l'est
 déjà.
+
+**Le PDF joint** est traduit à part, en gardant sa mise en page : images,
+couleurs, colonnes et tableaux restent ceux de l'original, seul le texte
+change, dans les polices du site (`convex/lib/pdfTranslate`). Chaque langue
+est une tâche (`convex/documentJobs.ts`), avec les mêmes relances et un
+balayage (`document-translation-sweep`). Ne sont pas traduits : le texte
+contenu dans les images, les PDF scannés, les fichiers de plus de
+80 pages ou de 25 Mo. La page de la publication propose le PDF dans la langue
+du lecteur quand il est prêt, et les autres langues en dessous. Le rattrapage
+des PDF déjà publiés se fait en trois commandes : le nombre de pages d'abord
+(le coût suit les pages, de l'ordre de 0,5 centime par page et par langue
+mesuré sur un rapport mis en page), puis le décompte, puis la mise en file.
+
+```bash
+npx convex run pdfTranslateNode:estimateDocumentBackfill '{}'
+npx convex run documentJobs:backfillDocuments '{"dryRun":true}'
+npx convex run documentJobs:backfillDocuments '{"dryRun":false}'
+```
 
 ---
 
