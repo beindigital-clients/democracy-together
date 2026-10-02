@@ -1,8 +1,10 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
+import type { WithoutSystemFields } from 'convex/server';
 import schema from './schema';
 import { api } from './_generated/api';
+import type { Doc } from './_generated/dataModel';
 import {
   matchesPublication,
   sortPublications,
@@ -27,21 +29,32 @@ const modules = import.meta.glob([
 const PAGE = { paginationOpts: { numItems: 50, cursor: null } };
 
 // --- Helpers ---
+type PublicationDoc = WithoutSystemFields<Doc<'publications'>>;
+
+// Typed by the schema, so that `ctx.db.insert` accepts them as they are; the
+// pure helpers' `PublicationLike` takes the same fields as plain strings.
+const PUB_DEFAULTS = {
+  title: 'Titre',
+  type: 'rapport',
+  theme: 'transitions',
+  region: 'mondial',
+  languages: ['fr'],
+  access: 'open',
+  authors: [{ name: 'A. Auteur' }],
+  year: 2025,
+  publishedAt: 0,
+  downloads: 0,
+  citations: 0,
+} satisfies Partial<PublicationDoc>;
+
 function pub(overrides: Partial<PublicationLike> = {}): PublicationLike {
-  return {
-    title: 'Titre',
-    type: 'rapport',
-    theme: 'transitions',
-    region: 'mondial',
-    languages: ['fr'],
-    access: 'open',
-    authors: [{ name: 'A. Auteur' }],
-    year: 2025,
-    publishedAt: 0,
-    downloads: 0,
-    citations: 0,
-    ...overrides,
-  };
+  return { ...PUB_DEFAULTS, ...overrides };
+}
+
+// `pub()` for `ctx.db.insert`: the overrides are checked against the schema's
+// unions, where `PublicationLike` would widen them to plain strings.
+function pubDoc(overrides: Partial<PublicationDoc> = {}) {
+  return { ...PUB_DEFAULTS, ...overrides };
 }
 
 const docBase = {
@@ -225,7 +238,7 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
     await t.run(async (ctx) => {
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({
+        ...pubDoc({
           title: 'Publié A',
           theme: 'transitions',
           type: 'rapport',
@@ -236,7 +249,7 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
       });
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({
+        ...pubDoc({
           title: 'Publié B',
           theme: 'crises',
           type: 'note',
@@ -247,7 +260,7 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
       });
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Brouillon', theme: 'transitions' }),
+        ...pubDoc({ title: 'Brouillon', theme: 'transitions' }),
         slug: 'pub-draft',
         status: 'draft',
       });
@@ -275,12 +288,12 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
     await t.run(async (ctx) => {
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Visible' }),
+        ...pubDoc({ title: 'Visible' }),
         slug: 'visible',
       });
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Caché' }),
+        ...pubDoc({ title: 'Caché' }),
         slug: 'cache',
         status: 'pending',
       });
@@ -301,12 +314,12 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
     await t.run(async (ctx) => {
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Publiée', downloads: 4 }),
+        ...pubDoc({ title: 'Publiée', downloads: 4 }),
         slug: 'publiee',
       });
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Brouillon', downloads: 4 }),
+        ...pubDoc({ title: 'Brouillon', downloads: 4 }),
         slug: 'brouillon',
         status: 'draft',
       });
@@ -339,13 +352,13 @@ describe('Bibliothèque — queries Convex (F-32/F-34)', () => {
       for (const slug of ['rel-1', 'rel-2', 'rel-3']) {
         await ctx.db.insert('publications', {
           ...docBase,
-          ...pub({ title: slug, theme: 'transitions' }),
+          ...pubDoc({ title: slug, theme: 'transitions' }),
           slug,
         });
       }
       await ctx.db.insert('publications', {
         ...docBase,
-        ...pub({ title: 'Autre thème', theme: 'crises' }),
+        ...pubDoc({ title: 'Autre thème', theme: 'crises' }),
         slug: 'other',
       });
     });
@@ -617,7 +630,7 @@ describe('Modération de publication — machine à états (issue #9)', () => {
     return { t, asMod: t.withIdentity({ subject: `${modId}|s` }), id };
   }
 
-  const reviewedAudit = (t: ReturnType<typeof convexTest>) =>
+  const reviewedAudit = (t: TestConvex<typeof schema>) =>
     t.run((ctx) =>
       ctx.db
         .query('auditLog')

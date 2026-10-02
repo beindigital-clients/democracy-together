@@ -1,9 +1,10 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
+import type { WithoutSystemFields } from 'convex/server';
 import schema from './schema';
 import { api, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { DEFAULT_SETTINGS } from './lib/aiModeration';
 
 const modules = import.meta.glob([
@@ -80,12 +81,12 @@ function cleanVerdict(over: Partial<Verdict> = {}): Verdict {
 }
 
 function mockGateway(verdict: Verdict) {
-  const fetchMock = vi.fn(async () => gatewayResponse(verdict));
+  const fetchMock = vi.fn<typeof fetch>(async () => gatewayResponse(verdict));
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
 
-type Ctx = ReturnType<typeof convexTest>;
+type Ctx = TestConvex<typeof schema>;
 
 async function seedUser(
   t: Ctx,
@@ -131,7 +132,7 @@ async function seedPending(
 
 async function setMode(
   t: Ctx,
-  over: Partial<typeof DEFAULT_SETTINGS> = {},
+  over: Partial<WithoutSystemFields<Doc<'aiModerationConfig'>>> = {},
 ): Promise<void> {
   await t.run(async (ctx) => {
     await ctx.db.insert('aiModerationConfig', {
@@ -421,7 +422,7 @@ describe('Signaux — quand le dispositif va chercher un humain', () => {
 
     await t.action(internal.aiModeration.runReview, { publicationId: pubId });
 
-    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
     expect(body.instructions).not.toContain('Critère retiré');
     expect(body.instructions).toContain('socle:injection');
   });
@@ -539,7 +540,7 @@ describe('Pièce jointe', () => {
 
     await t.action(internal.aiModeration.runReview, { publicationId: pubId });
 
-    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
     const parts = body.input[0].content;
     expect(parts.some((p: { type: string }) => p.type === 'input_file')).toBe(
       true,
@@ -585,7 +586,7 @@ describe('Pièce jointe', () => {
 
     await t.action(internal.aiModeration.runReview, { publicationId: pubId });
 
-    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
     expect(
       body.input[0].content.some(
         (p: { type: string }) => p.type === 'input_file',

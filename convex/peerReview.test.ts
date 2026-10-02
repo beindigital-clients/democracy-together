@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import { PDFDocument } from 'pdf-lib';
 import schema from './schema';
 import { api, internal } from './_generated/api';
@@ -51,7 +51,7 @@ const AUTHOR_EMAIL = 'jeanne.autrice@test.org';
 const AUTHOR_FILE = 'Autrice_manuscrit_final.pdf';
 const AUTHOR_MARKERS = ['Jeanne', 'Autrice', AUTHOR_EMAIL];
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 function pubDoc(over: Record<string, unknown> = {}) {

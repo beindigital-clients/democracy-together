@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import { FIELD_MAX } from './lib/validation';
@@ -16,7 +16,7 @@ const modules = import.meta.glob([
 ]);
 
 async function member(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
   email: string,
   name?: string,
 ) {
@@ -172,7 +172,7 @@ describe('Appels à projets — machine à états de la revue (issue #9)', () =>
     };
   }
 
-  const auditOf = (t: ReturnType<typeof convexTest>, action: string) =>
+  const auditOf = (t: TestConvex<typeof schema>, action: string) =>
     t.run((ctx) =>
       ctx.db
         .query('auditLog')
