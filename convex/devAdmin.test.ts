@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { internal } from './_generated/api';
 import {
@@ -57,7 +57,7 @@ afterEach(() => {
 
 const ADMIN = 'fondateur@dt.test';
 
-const utilisateurs = (t: ReturnType<typeof convexTest>) =>
+const utilisateurs = (t: TestConvex<typeof schema>) =>
   t.run((ctx) => ctx.db.query('users').collect());
 
 describe('setRoleByEmail — le cas de CRÉATION (PR #4)', () => {

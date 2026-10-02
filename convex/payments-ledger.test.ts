@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { NetworkRole } from './lib/roles';
@@ -44,7 +44,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 
 async function user(t: T, role: NetworkRole, email: string) {
   const id = await t.run((ctx) =>

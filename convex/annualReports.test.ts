@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 async function userWithRole(
   t: T,
   role: 'membre' | 'moderateur' | 'editeur' | 'admin',

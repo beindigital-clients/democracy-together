@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -9,7 +9,7 @@ import type { Id } from './_generated/dataModel';
 // newly created post awaits approval. These tests cover what happens
 // AFTER publication; they therefore set post-moderation mode, like the setting
 // the administrator can choose.
-async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
+async function tribuneAPosteriori(t: TestConvex<typeof schema>) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
       role: 'admin',
@@ -38,7 +38,7 @@ const modules = import.meta.glob([
 // Private messaging, follows, activity feed, deletion and export
 // ("social" workstream).
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 type Policy = 'nobody' | 'followed' | 'members';
 
 type Caller = Pick<T, 'query'>;
@@ -577,15 +577,24 @@ describe('Messagerie — lu, saisie en cours, réponses, corrections, réactions
       api.social.messages.startConversation,
       { userId: b.id, body: 'Ancien écran' },
     );
-    const legacy = await b.as.query(api.social.messages.getConversation, {
-      conversationId,
-    });
+    // Typed as the `returns` validator declares it, `messages` and
+    // `truncated` optional: in the handler's inferred union, the header-only
+    // member has no such keys, and reading them there does not compile.
+    type Conversation = {
+      conversationId: Id<'conversations'>;
+      messages?: { body: string }[];
+      truncated?: boolean;
+    } | null;
+    const legacy: Conversation = await b.as.query(
+      api.social.messages.getConversation,
+      { conversationId },
+    );
     expect(legacy?.messages?.map((m) => m.body)).toEqual(['Ancien écran']);
     expect(legacy?.truncated).toBe(false);
-    const header = await b.as.query(api.social.messages.getConversation, {
-      conversationId,
-      headerOnly: true,
-    });
+    const header: Conversation = await b.as.query(
+      api.social.messages.getConversation,
+      { conversationId, headerOnly: true },
+    );
     expect(header?.messages).toBeUndefined();
     expect(header?.truncated).toBeUndefined();
   });

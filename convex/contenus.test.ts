@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
 import { describe, it, expect, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -34,7 +34,7 @@ const modules = import.meta.glob([
 
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
-async function withRole(t: ReturnType<typeof convexTest>, role: Role) {
+async function withRole(t: TestConvex<typeof schema>, role: Role) {
   const id = await t.run((ctx) =>
     ctx.db.insert('users', { role, email: `${role}@test.org` }),
   );
@@ -417,8 +417,8 @@ describe('Contenus — inscription par l’action publique', () => {
 
 describe('Contenus — médiathèque (F-64)', () => {
   async function upload(
-    t: ReturnType<typeof convexTest>,
-    as: ReturnType<ReturnType<typeof convexTest>['withIdentity']>,
+    t: TestConvex<typeof schema>,
+    as: ReturnType<TestConvex<typeof schema>['withIdentity']>,
     bytes: Uint8Array,
     alt: Record<string, string>,
   ) {

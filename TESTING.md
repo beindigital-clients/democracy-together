@@ -23,7 +23,7 @@ de secret Convex :
 |---|---|---|
 | `pnpm typecheck` | l'application (`src/`) | — |
 | `pnpm typecheck:convex` | le backend Convex (`convex/`) | `next build` le compile, mais trop tard pour un retour rapide |
-| `pnpm typecheck:tests` | `tests/` (`tsconfig.tests.json`) | sans elle, une option de test inexistante est acceptée sans bruit et le test s'exécute dans des conditions qu'il n'a pas |
+| `pnpm typecheck:tests` | tous les fichiers de test : `tests/`, `audit/`, `convex/**/*.test.ts`, `src/**/*.test.{ts,tsx}` (`tsconfig.tests.json`) | sans elle, une option de test inexistante est acceptée sans bruit et le test s'exécute dans des conditions qu'il n'a pas. Jusqu'au 02/10/2026, les tests Vitest de `convex/`, de `src/` et les `.tsx` de `tests/unit/` n'étaient que transpilés : un appel par la mauvaise référence (`api` pour une mutation interne) passait inaperçu |
 
 S'y ajoutent `pnpm lint` (ESLint en tout-erreur, aucune règle en `warn`) et
 `pnpm format:check` (Prettier en lecture seule). Le crochet de pré-commit husky

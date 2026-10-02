@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -59,7 +59,7 @@ function enableFake() {
   vi.stubEnv('AUTH_DEV_OTP', 'true');
 }
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 
 async function insertCheckout(
   t: T,

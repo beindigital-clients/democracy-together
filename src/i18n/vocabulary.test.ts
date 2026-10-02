@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { createTranslator } from 'next-intl';
+import { createTranslator, type AbstractIntlMessages } from 'next-intl';
 import { vocabulary, humanizeTerm } from '@/i18n/vocabulary';
 
 // VOCABULARY is the only family of keys that deserves a fallback (issue #33):
@@ -12,7 +12,10 @@ import { vocabulary, humanizeTerm } from '@/i18n/vocabulary';
 // without throwing or logging. A home-made double would only prove that the
 // double behaves the way we wrote it.
 
-const messages = {
+// Typed like the app's messages, loaded from JSON: from a literal, next-intl
+// would accept only that literal's keys, where `vocabulary()` builds its keys
+// at runtime.
+const messages: AbstractIntlMessages = {
   library: {
     themes: { participation: 'Participation citoyenne' },
     empty: 'Aucune publication',
