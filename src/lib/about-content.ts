@@ -61,7 +61,7 @@ const fr: AboutContent = {
   hero: {
     eyebrow: 'À propos',
     title: 'Relier les think tanks qui défendent la démocratie',
-    lead: "Democracy Together est un réseau international de think tanks, d'Afrique et d'Europe, réuni pour agréger les analyses, porter une voix commune et renforcer les capacités au service de la démocratie.",
+    lead: "Democracy Together est un réseau international de think tanks, d'Afrique, d'Europe et au-delà, réuni pour agréger les analyses, porter une voix commune et renforcer les capacités au service de la démocratie.",
   },
   vision: {
     eyebrow: 'Notre vision',
@@ -268,7 +268,7 @@ const en: AboutContent = {
   hero: {
     eyebrow: 'About',
     title: 'Connecting the think tanks that defend democracy',
-    lead: 'Democracy Together is an international network of think tanks, from Africa and Europe, united to aggregate analyses, carry a shared voice and strengthen capacity in the service of democracy.',
+    lead: 'Democracy Together is an international network of think tanks, from Africa, Europe and beyond, united to aggregate analyses, carry a shared voice and strengthen capacity in the service of democracy.',
   },
   vision: {
     eyebrow: 'Our vision',
@@ -475,7 +475,7 @@ const es: AboutContent = {
   hero: {
     eyebrow: 'Sobre nosotros',
     title: 'Conectar a los centros de estudios que defienden la democracia',
-    lead: 'Democracy Together es una red internacional de centros de estudios, de África y de Europa, unida para agregar análisis, defender una voz común y reforzar capacidades al servicio de la democracia.',
+    lead: 'Democracy Together es una red internacional de centros de estudios, de África, de Europa y de más allá, unida para agregar análisis, defender una voz común y reforzar capacidades al servicio de la democracia.',
   },
   vision: {
     eyebrow: 'Nuestra visión',
@@ -681,7 +681,7 @@ const pt: AboutContent = {
   hero: {
     eyebrow: 'Sobre nós',
     title: 'Ligar os centros de estudos que defendem a democracia',
-    lead: 'A Democracy Together é uma rede internacional de centros de estudos, de África e da Europa, reunida para agregar análises, defender uma voz comum e reforçar capacidades ao serviço da democracia.',
+    lead: 'A Democracy Together é uma rede internacional de centros de estudos, de África, da Europa e mais além, reunida para agregar análises, defender uma voz comum e reforçar capacidades ao serviço da democracia.',
   },
   vision: {
     eyebrow: 'A nossa visão',
@@ -887,7 +887,7 @@ const ar: AboutContent = {
   hero: {
     eyebrow: 'من نحن',
     title: 'الربط بين مراكز الدراسات المدافعة عن الديمقراطية',
-    lead: 'Democracy Together شبكة دولية من مراكز الدراسات، من أفريقيا وأوروبا، اجتمعت لتجميع التحليلات، وحمل صوت مشترك، وتعزيز القدرات في خدمة الديمقراطية.',
+    lead: 'Democracy Together شبكة دولية من مراكز الدراسات، من أفريقيا وأوروبا وما وراءهما، اجتمعت لتجميع التحليلات، وحمل صوت مشترك، وتعزيز القدرات في خدمة الديمقراطية.',
   },
   vision: {
     eyebrow: 'رؤيتنا',

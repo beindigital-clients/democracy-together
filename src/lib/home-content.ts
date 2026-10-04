@@ -72,7 +72,7 @@ const fr: HomeContent = {
   hero: {
     eyebrow: 'Democracy Together',
     title: "La démocratie a besoin d'un réseau.",
-    lead: "Democracy Together relie les think tanks d'Afrique et d'Europe pour produire, partager et défendre la pensée démocratique.",
+    lead: "Democracy Together relie les think tanks d'Afrique, d'Europe et au-delà pour produire, partager et défendre la pensée démocratique.",
     ctaPrimary: 'Rejoindre le réseau',
     ctaSecondary: 'Lire les analyses',
     visualLabel: 'Citoyens réunis en forum de débat',
@@ -303,7 +303,7 @@ const en: HomeContent = {
   hero: {
     eyebrow: 'Democracy Together',
     title: 'Democracy needs a network.',
-    lead: 'Democracy Together connects the think tanks of Africa and Europe to produce, share and defend democratic thought.',
+    lead: 'Democracy Together connects think tanks from Africa, Europe and beyond to produce, share and defend democratic thought.',
     ctaPrimary: 'Join the network',
     ctaSecondary: 'Read the analyses',
     visualLabel: 'Citizens gathered in a debate forum',
@@ -528,7 +528,7 @@ const es: HomeContent = {
   hero: {
     eyebrow: 'Democracy Together',
     title: 'La democracia necesita una red.',
-    lead: 'Democracy Together conecta a los centros de estudios de África y de Europa para producir, compartir y defender el pensamiento democrático.',
+    lead: 'Democracy Together conecta a los centros de estudios de África, de Europa y de más allá para producir, compartir y defender el pensamiento democrático.',
     ctaPrimary: 'Unirme a la red',
     ctaSecondary: 'Leer los análisis',
     visualLabel: 'Ciudadanos reunidos en un foro de debate',
@@ -759,7 +759,7 @@ const pt: HomeContent = {
   hero: {
     eyebrow: 'Democracy Together',
     title: 'A democracia precisa de uma rede.',
-    lead: 'A Democracy Together liga os centros de estudos de África e da Europa para produzir, partilhar e defender o pensamento democrático.',
+    lead: 'A Democracy Together liga os centros de estudos de África, da Europa e mais além para produzir, partilhar e defender o pensamento democrático.',
     ctaPrimary: 'Juntar-me à rede',
     ctaSecondary: 'Ler as análises',
     visualLabel: 'Cidadãos reunidos num fórum de debate',
@@ -989,7 +989,7 @@ const ar: HomeContent = {
   hero: {
     eyebrow: 'Democracy Together',
     title: 'الديمقراطية في حاجة إلى شبكة.',
-    lead: 'تربط Democracy Together بين مراكز الدراسات في أفريقيا وأوروبا لإنتاج الفكر الديمقراطي وتقاسمه والدفاع عنه.',
+    lead: 'تربط Democracy Together بين مراكز الدراسات في أفريقيا وأوروبا وما وراءهما لإنتاج الفكر الديمقراطي وتقاسمه والدفاع عنه.',
     ctaPrimary: 'الانضمام إلى الشبكة',
     ctaSecondary: 'قراءة التحليلات',
     visualLabel: 'مواطنون مجتمعون في منتدى للنقاش',
