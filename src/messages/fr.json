@@ -1129,7 +1129,7 @@
   "membership": {
     "eyebrow": "Adhésion",
     "title": "Rejoindre le réseau",
-    "subtitle": "Democracy Together réunit des think tanks et des chercheurs d'Afrique et d'Europe autour de la démocratie. Déposez votre candidature : elle est examinée par notre comité.",
+    "subtitle": "Democracy Together réunit des think tanks et des chercheurs d'Afrique, d'Europe et au-delà autour de la démocratie. Déposez votre candidature : elle est examinée par notre comité.",
     "who1": "Think tanks et centres de recherche engagés sur les questions démocratiques",
     "who2": "Chercheurs et experts à titre individuel",
     "who3": "D'Afrique, d'Europe et au-delà",
@@ -1873,7 +1873,7 @@
     "count": "{count, plural, =0 {Aucune publication} one {# publication} other {# publications}}"
   },
   "footer": {
-    "tagline": "Réseau international de think tanks pour la démocratie · Afrique–Europe",
+    "tagline": "Réseau international de think tanks pour la démocratie · Afrique–Europe et au-delà",
     "col1Title": "Le réseau",
     "col1a": "Mission & vision",
     "col1b": "Gouvernance",
@@ -2152,8 +2152,8 @@
   },
   "site": {
     "skipToContent": "Aller au contenu",
-    "description": "Réseau international de think tanks pour la démocratie · Afrique–Europe.",
-    "regions": "Afrique · Europe"
+    "description": "Réseau international de think tanks pour la démocratie · Afrique–Europe et au-delà.",
+    "regions": "Afrique–Europe et au-delà"
   },
   "barometer": {
     "mapNoScript": "Carte interactive du Baromètre : elle nécessite JavaScript. Les scores par pays se lisent dans le classement et les tableaux de cette page."

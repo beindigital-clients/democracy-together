@@ -1129,7 +1129,7 @@
   "membership": {
     "eyebrow": "Adhesión",
     "title": "Unirse a la red",
-    "subtitle": "Democracy Together reúne a centros de estudios e investigadores de África y de Europa en torno a la democracia. Presente su candidatura: nuestro comité la examinará.",
+    "subtitle": "Democracy Together reúne a centros de estudios e investigadores de África, de Europa y de más allá en torno a la democracia. Presente su candidatura: nuestro comité la examinará.",
     "who1": "Centros de estudios e investigación comprometidos con las cuestiones democráticas",
     "who2": "Investigadores y expertos a título individual",
     "who3": "De África, de Europa y de más allá",
@@ -1873,7 +1873,7 @@
     "count": "{count, plural, =0 {Ninguna publicación} one {# publicación} other {# publicaciones}}"
   },
   "footer": {
-    "tagline": "Red internacional de centros de estudios por la democracia · África–Europa",
+    "tagline": "Red internacional de centros de estudios por la democracia · África–Europa y más allá",
     "col1Title": "La red",
     "col1a": "Misión y visión",
     "col1b": "Gobernanza",
@@ -2152,8 +2152,8 @@
   },
   "site": {
     "skipToContent": "Ir al contenido",
-    "description": "Red internacional de centros de estudios por la democracia · África–Europa.",
-    "regions": "África · Europa"
+    "description": "Red internacional de centros de estudios por la democracia · África–Europa y más allá.",
+    "regions": "África–Europa y más allá"
   },
   "barometer": {
     "mapNoScript": "Mapa interactivo del Barómetro: requiere JavaScript. Las puntuaciones por país se leen en la clasificación y en las tablas de esta página."
