@@ -6,7 +6,8 @@ Texte source : « DEMOCRACY TOGETHER Plaquette V1.docx » (Philippe Kourilsky,
 25/09/2026), marqué « esquisse non totalement validée, ne pas diffuser ». Le
 texte n'est pas encore validé : ne pas diffuser la plaquette avant l'accord du
 client. La version anglaise est une traduction de la version française : elle
-hérite de ce même statut de brouillon.
+hérite de ce même statut de brouillon. Une différence de fond entre les deux
+langues est à noter, page 3 (voir « Version anglaise »).
 
 La V1 tenait en 4 pages très denses (environ 460 mots par page). La V2 passe à
 8 pages, le format courant d'une plaquette, avec un texte condensé : environ
@@ -63,8 +64,9 @@ demander leurs portraits au client si l'on veut des photos.
 - `build.mjs` : trace l'anneau du logo, dessine les globes, récupère les
   pictogrammes (une fois, communs aux deux langues), puis imprime les PDF et
   les aperçus des deux sources.
-- `visuels.js`, `globe-*.svg` : générés par `build.mjs`, communs aux deux
-  langues, ne pas les éditer à la main.
+- `visuels.js`, `globe-*.svg` : générés par `build.mjs`, ne pas les éditer à la
+  main. Communs aux deux langues, sauf `globe-afrique-europe-ameriques.svg`,
+  propre à la version anglaise (voir « Version anglaise »).
 - `democracy-together-plaquette-a4.pdf`, `-livret-a5.pdf`,
   `-livret-a5-impression.pdf` : les trois PDF français (8 pages en A4, 8 pages
   en A5, livret A5 monté sur 4 faces A4 pour l'imprimer au bureau — voir
@@ -173,8 +175,21 @@ décembre 2026 ».
 
 ## Version anglaise
 
-`plaquette-en.html` traduit le texte de `plaquette.html` page par page, sans
-rien ajouter ni retrancher sur le fond. Quelques choix à signaler :
+`plaquette-en.html` traduit le texte de `plaquette.html` page par page. Une
+différence de fond, demandée par l'utilisateur le 04/10 : le troisième
+engagement de la page 3 (« Attentif à l'Afrique et à l'Europe » en français)
+devient en anglais « Africa, Europe, Latin America — and beyond », pour
+ajouter l'Amérique latine sans fermer la liste à trois continents. Le globe
+qui l'illustre change avec le texte : `globe-afrique-europe-ameriques.svg`
+reprend le cadrage du globe « Mondial » juste au-dessus (centré sur
+l'Atlantique, tous les continents visibles) plutôt que le cadrage resserré du
+globe franco-français, avec l'Afrique, l'Europe et l'Amérique latine
+légèrement plus lumineuses que le reste ; l'idée est qu'il continue à se lire
+comme « le monde », pas comme trois continents isolés. Cette différence
+n'existe qu'en anglais ; à valider avec le client (voir « À valider »), et à
+reporter en français s'il le souhaite.
+
+Quelques choix de traduction, à signaler aussi :
 
 - « Le rédacteur en chef » et « l'auteur » (page 6, le parcours KOHOP) sont
   traduits par « the editor-in-chief » / « the author », repris ensuite par
@@ -216,6 +231,9 @@ rien ajouter ni retrancher sur le fond. Quelques choix à signaler :
    dans « Version anglaise » ci-dessus.
 7. Impression : quantité, imprimeur et papier, pour préparer la version avec
    fonds perdus (dans les deux langues).
+8. L'ajout de l'Amérique latine au troisième engagement, pour l'instant
+   anglais uniquement (voir « Version anglaise ») : le texte et le globe
+   conviennent-ils, et faut-il reporter ce changement en français ?
 
 À signaler aussi : la page d'accueil du site annonce des bureaux à « Paris ·
 Dakar · Bruxelles », alors que le texte V1 dit que les pôles régionaux

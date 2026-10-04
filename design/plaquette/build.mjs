@@ -210,8 +210,8 @@ async function iconSymbols() {
   const dir = join(dirname(require.resolve('lucide-react/package.json')), 'dist', 'esm', 'icons');
   const out = [];
   for (const name of ICONS) {
-    const { __iconNode } = await import(pathToFileURL(join(dir, `${name}.mjs`)).href);
-    const body = __iconNode
+    const { __iconData } = await import(pathToFileURL(join(dir, `${name}.mjs`)).href);
+    const body = __iconData.node
       .map(([tag, attrs]) => {
         const a = Object.entries(attrs)
           .filter(([k]) => k !== 'key')
@@ -235,6 +235,11 @@ const AFRICA = new Set(
 const EUROPE = new Set(
   '008 040 112 056 070 100 191 196 203 208 233 246 250 276 300 348 352 372 380 428 440 442 498 499 528 807 578 616 620 642 688 703 705 724 752 756 804 826'.split(' '),
 );
+// Latin America and the Caribbean (English brochure only, page 3: adds this
+// region to the "attentive to" commitment, see plaquette-en.html).
+const LATIN_AMERICA = new Set(
+  '484 320 084 340 222 558 188 591 192 388 332 214 044 780 170 862 328 740 218 604 076 068 600 152 032 858'.split(' '),
+);
 const NAMED = new Set(['Somaliland', 'Kosovo', 'N. Cyprus']);
 const PARIS = [2.35, 48.86];
 
@@ -255,9 +260,15 @@ function inAfricaEurope(f, lon) {
   if (f.id === '250' && lon < -30) return false; // French Guiana is in South America
   return AFRICA.has(f.id) || EUROPE.has(f.id) || NAMED.has(f.properties.name);
 }
+function inAfricaEuropeAmericas(f) {
+  // Unlike inAfricaEurope, France (id 250) needs no French-Guiana carve-out
+  // here: Europe and Latin America are both highlighted, so either half of
+  // that merged shape already matches, with no need for the `lon` split.
+  return AFRICA.has(f.id) || EUROPE.has(f.id) || LATIN_AMERICA.has(f.id) || NAMED.has(f.properties.name);
+}
 
 // Dotted orthographic globe. `zoom` > 1 crops into the disc (detail view).
-function globe({ file, center, step, dot, zoom = 1, lit, dim, sea, rim, paris = false }) {
+function globe({ file, center, step, dot, zoom = 1, lit, dim, sea, rim, paris = false, highlightFn = inAfricaEurope }) {
   const R = 100;
   const projection = geoOrthographic()
     .rotate([-center[0], -center[1], 0])
@@ -277,7 +288,7 @@ function globe({ file, center, step, dot, zoom = 1, lit, dim, sea, rim, paris = 
       if (!f) continue;
       const facing = Math.cos(d);
       const r = dot * zoom ** 0.15 * (0.4 + 0.6 * Math.sqrt(facing));
-      const kind = lit.highlight && inAfricaEurope(f, lon) ? 'lit' : 'dim';
+      const kind = lit.highlight && highlightFn(f, lon) ? 'lit' : 'dim';
       const o = kind === 'lit' ? lit.opacity(facing) : dim.opacity(facing);
       dots[kind].push(`<circle cx="${f2(x)}" cy="${f2(y)}" r="${f2(r)}" fill-opacity="${f2(o)}"/>`);
     }
@@ -316,12 +327,25 @@ function buildGlobes() {
       dim: { color: '#1f3d6e', opacity: (c) => 0.35 + 0.65 * c },
       sea: ['#1f3d6e', 0.08, 0.03], rim: ['#1f3d6e', 0.35],
     }),
-    // "Afrique et Europe": a closer view, the two continents lit.
+    // "Afrique et Europe": a closer view, the two continents lit. French
+    // brochure, page 3, third commitment.
     globe({
       file: 'globe-afrique-europe.svg', center: [16, 18], step: 1.9, dot: 1.25, zoom: 1.75,
       lit: { highlight: true, color: '#1f3d6e', opacity: (c) => 0.55 + 0.45 * c },
       dim: { color: '#1f3d6e', opacity: () => 0.16 },
       sea: ['#1f3d6e', 0.07, 0.03], rim: ['#1f3d6e', 0.35],
+    }),
+    // "Africa, Europe, Latin America": the Atlantic face again, same framing
+    // as globe-monde (worldwide), but with those three regions lit instead of
+    // every country alike — reads as "worldwide, rooted here" rather than a
+    // closed set of continents. English brochure only, page 3, third
+    // commitment (see plaquette-en.html).
+    globe({
+      file: 'globe-afrique-europe-ameriques.svg', center: [-22, 12], step: 3.4, dot: 1.7,
+      highlightFn: inAfricaEuropeAmericas,
+      lit: { highlight: true, color: '#1f3d6e', opacity: (c) => 0.55 + 0.45 * c },
+      dim: { color: '#1f3d6e', opacity: () => 0.16 },
+      sea: ['#1f3d6e', 0.08, 0.03], rim: ['#1f3d6e', 0.35],
     }),
   ];
 }
