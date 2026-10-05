@@ -46,7 +46,7 @@ async function as(browser: Browser, key: SessionKey): Promise<Page> {
 test('relecteur extérieur : lien personnel, acceptation sans compte, connexion par code, analyse', async ({
   browser,
 }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(360_000);
   const directory = SESSIONS.kohopRelecteur1.email;
   const external = `e2e_kohop_ext_${Date.now()}@democracytogether.test`;
   await provisionUser(directory, 'membre');
@@ -72,11 +72,18 @@ test('relecteur extérieur : lien personnel, acceptation sans compte, connexion 
     .click();
 
   await author.getByLabel('Chercher un membre').fill('Re');
-  await author
-    .getByRole('button', { name: 'Désigner Rémi Relecteur comme relecteur' })
-    .first()
-    .click();
-  await author.getByRole('button', { name: 'Comme titulaire' }).click();
+  await expect(async () => {
+    const slot = author.getByRole('button', { name: 'Comme titulaire' });
+    if (!(await slot.isVisible())) {
+      await author
+        .getByRole('button', {
+          name: 'Désigner Rémi Relecteur comme relecteur',
+        })
+        .first()
+        .click({ timeout: 3_000 });
+    }
+    await slot.click({ timeout: 3_000 });
+  }).toPass({ timeout: 30_000 });
   await expect(author.getByText('Rémi Relecteur').first()).toBeVisible();
 
   await author

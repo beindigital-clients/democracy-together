@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { attendreAucuneViolationGrave } from './_a11y';
+import { attendreAucuneViolationGrave, revealAll } from './_a11y';
 
 // KOHOP's reading material and public entry points: charter and guides carry
 // the "first draft, to be validated" banner (D-11), every page passes axe, and
@@ -18,6 +18,8 @@ test.describe('pages de lecture KOHOP', () => {
       await expect(
         page.getByText('Premier jet, à valider par le client'),
       ).toBeVisible();
+      // The Reveals start transparent: axe must read their final state.
+      await revealAll(page);
       await attendreAucuneViolationGrave(page, `page ${path}`);
     });
   }
@@ -28,6 +30,7 @@ test.describe('pages de lecture KOHOP', () => {
     await page.goto('/ar/kohop/charte');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await revealAll(page);
     await attendreAucuneViolationGrave(page, 'charte KOHOP en arabe');
   });
 
@@ -45,6 +48,7 @@ test.describe('pages de lecture KOHOP', () => {
     ]) {
       await expect(page.getByRole('link', { name })).toBeVisible();
     }
+    await revealAll(page);
     await attendreAucuneViolationGrave(page, 'liste KOHOP');
   });
 });

@@ -1,7 +1,7 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { provisionUser, seedKohopPilot } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
-import { attendreAucuneViolationGrave } from './_a11y';
+import { attendreAucuneViolationGrave, revealAll } from './_a11y';
 
 // KOHOP batches 2 and 3, end to end: an author of the pilot organization writes a
 // contribution, designates two reviewers from the directory and submits; the
@@ -48,7 +48,9 @@ async function as(browser: Browser, key: SessionKey): Promise<Page> {
 test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lancement', async ({
   browser,
 }) => {
-  test.setTimeout(150_000);
+  // The whole journey (nine screens, three roles, scheduled actions): slower on a
+  // shared runner than on a workstation.
+  test.setTimeout(360_000);
   for (const email of REVIEWERS) await provisionUser(email, 'membre');
   await seedKohopPilot(SESSIONS.kohopAuteur.email, REVIEWERS);
   const title = `Participation locale ${Date.now()}`;
@@ -89,11 +91,18 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
 
   await author.getByLabel('Chercher un membre').fill('Re');
   for (const name of ['Rémi Relecteur', 'Rita Relectrice']) {
-    await author
-      .getByRole('button', { name: `Désigner ${name} comme relecteur` })
-      .first()
-      .click();
-    await author.getByRole('button', { name: 'Comme titulaire' }).click();
+    // The list re-renders as the directory answers: open the panel only when it
+    // is not open yet (the button toggles), and retry until the designation sticks.
+    await expect(async () => {
+      const slot = author.getByRole('button', { name: 'Comme titulaire' });
+      if (!(await slot.isVisible())) {
+        await author
+          .getByRole('button', { name: `Désigner ${name} comme relecteur` })
+          .first()
+          .click({ timeout: 3_000 });
+      }
+      await slot.click({ timeout: 3_000 });
+    }).toPass({ timeout: 30_000 });
     await expect(author.getByText(name).first()).toBeVisible();
   }
   const boxes = author.locator(
@@ -311,8 +320,10 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   const html = await visitor.content();
   expect(html).not.toContain('Note réservée au chef de revue');
   expect(html).not.toContain('@democracytogether.test');
+  await revealAll(visitor);
   await attendreAucuneViolationGrave(visitor, 'page publique KOHOP');
   await visitor.goto('/fr/kohop');
+  await revealAll(visitor);
   await attendreAucuneViolationGrave(visitor, 'liste publique KOHOP');
   await reader.close();
 });
