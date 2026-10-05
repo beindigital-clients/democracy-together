@@ -8,7 +8,7 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | Lot | Contenu | État |
 |---|---|---|
 | 0 | Mises en conformité et chef de revue | **livré** (ci-dessous) |
-| 1 | Fondations KOHOP | à faire |
+| 1 | Fondations KOHOP | **livré** |
 | 2 | Dépôt, choix des relecteurs, recevabilité | à faire |
 | 3 | Relecture par les membres | à faire |
 | 4 | Révision et décision | à faire |
@@ -16,6 +16,51 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 6 | Préparation, parution, pages publiques | à faire |
 | 7 | Relecteurs extérieurs | à faire |
 | 8 | Pilote, durcissement, lancement | à faire |
+
+---
+
+## Lot 1 — Fondations KOHOP
+
+- **`convex/lib/kohop.ts`** (module pur, partagé avec l'interface) : les 14
+  étapes, `KOHOP_MACHINE`, `nextStage`, `canTransition`, `eventsFor`, et pour
+  chaque événement l'acteur qui peut le déclencher (`KOHOP_EVENT_ACTOR` :
+  auteur, chef de revue ou système). Les bornes (500–1 000 mots, titre,
+  chapô, analyses 150–1 500 mots, réponse 800 mots…), les délais D-10 en
+  constantes (`KOHOP_DELAYS_DAYS`), l'échelle d'avis, `isPositive`,
+  `presumptionOfAcceptance`, `assertRefusal` (seuls `outrance`, `charte` et
+  `plagiat` permettent de refuser malgré la présomption), les niveaux et types
+  de lien (l'IA ne produit jamais de lien bloquant) et `KOHOP_FIELDS`
+  (D-6, défaut : les dix champs de la plaquette, avec `KOHOP_FIELD_THEME` vers
+  les cinq axes quand la correspondance existe).
+- **`convex/lib/kohopText.ts`** (module pur) : Markdown contraint (paragraphes,
+  `##`/`###`, gras, italique, listes, citations, liens `https`), tout le reste
+  refusé avec un code et le numéro de ligne ; comptage de mots hors balisage et
+  hors URL (apostrophes et traits d'union dans le mot, ponctuation isolée
+  ignorée, arabe pris en charge) ; texte brut ; différences par blocs puis par
+  mots. Le rendu côté interface produira des éléments React, jamais du HTML.
+- **`convex/lib/tables/kohop.ts`**, branché dans `convex/schema.ts` :
+  `kohopContributions`, `kohopVersions`, `kohopReviewers`, `kohopReviews`,
+  `kohopDecisions`, `kohopEvents`, `kohopLinkChecks`, `kohopSuggestions`,
+  `originalityReports`, `kohopSettings`. Les index d'originalité
+  (`textFingerprints`, `textPassages`) arrivent au lot 5.
+- Constantes d'audit `AUDIT.KOHOP_*`, clés de notification `kohop*` dans les
+  cinq langues (espace `notifications`), icône « revue » pour le préfixe
+  `kohop` dans la liste des notifications.
+- Tests : `convex/lib/kohop.test.ts` (toutes les paires étape × événement, la
+  table elle-même, les invariants de publication) et
+  `convex/lib/kohopText.test.ts`.
+
+**Invariants testés.** Seul l'événement `accept` (chef de revue) mène à la
+production depuis la décision ; seuls des événements du chef de revue mènent à
+`scheduled` ; `published` n'est atteint que par `ready + publish` (chef) ou
+`scheduled + publishScheduled` (système) ; `publishScheduled` n'est accepté que
+depuis `scheduled`.
+
+**Choix à valider.** La présomption d'acceptation exige au moins deux avis, tous
+positifs. `returned` a un délai de 14 jours (constante `returned`) mais aucune
+issue automatique n'est prévue à l'échéance : le plan ne la décrit pas. Les
+versions de la charte et du consentement sont des marqueurs provisoires
+(`2026-10-draft`) tant que le client n'a pas validé les textes (D-11).
 
 ---
 

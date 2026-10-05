@@ -42,6 +42,7 @@ import { manuscriptStage } from './lib/manuscripts';
 import { editorialTables } from './lib/tables/editorial';
 export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
 import { diffusionTables } from './lib/tables/diffusion';
+import { kohopTables } from './lib/tables/kohop';
 
 export default defineSchema({
   // Convex Auth tables (users, authSessions, authAccounts, ...).
@@ -1074,4 +1075,5 @@ export default defineSchema({
   ...comptesTables,
   ...programmesTables,
   ...editorialTables,
+  ...kohopTables,
 });

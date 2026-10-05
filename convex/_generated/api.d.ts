@@ -67,6 +67,7 @@ import type * as lib_counters from "../lib/counters.js";
 import type * as lib_directory from "../lib/directory.js";
 import type * as lib_documents from "../lib/documents.js";
 import type * as lib_emailContent from "../lib/emailContent.js";
+import type * as lib_emailLayout from "../lib/emailLayout.js";
 import type * as lib_fileCheck from "../lib/fileCheck.js";
 import type * as lib_locales from "../lib/locales.js";
 import type * as lib_manuscripts from "../lib/manuscripts.js";
@@ -108,6 +109,7 @@ import type * as lib_reportPdf_fonts_plexSans600 from "../lib/reportPdf/fonts/pl
 import type * as lib_reportPdf_labels from "../lib/reportPdf/labels.js";
 import type * as lib_reportPdf_layout from "../lib/reportPdf/layout.js";
 import type * as lib_reportPdf_render from "../lib/reportPdf/render.js";
+import type * as lib_reviewChiefs from "../lib/reviewChiefs.js";
 import type * as lib_reviewState from "../lib/reviewState.js";
 import type * as lib_roles from "../lib/roles.js";
 import type * as lib_search from "../lib/search.js";
@@ -240,6 +242,7 @@ declare const fullApi: ApiFromModules<{
   "lib/directory": typeof lib_directory;
   "lib/documents": typeof lib_documents;
   "lib/emailContent": typeof lib_emailContent;
+  "lib/emailLayout": typeof lib_emailLayout;
   "lib/fileCheck": typeof lib_fileCheck;
   "lib/locales": typeof lib_locales;
   "lib/manuscripts": typeof lib_manuscripts;
@@ -281,6 +284,7 @@ declare const fullApi: ApiFromModules<{
   "lib/reportPdf/labels": typeof lib_reportPdf_labels;
   "lib/reportPdf/layout": typeof lib_reportPdf_layout;
   "lib/reportPdf/render": typeof lib_reportPdf_render;
+  "lib/reviewChiefs": typeof lib_reviewChiefs;
   "lib/reviewState": typeof lib_reviewState;
   "lib/roles": typeof lib_roles;
   "lib/search": typeof lib_search;
