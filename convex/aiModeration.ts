@@ -26,6 +26,7 @@ import {
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { PUB_TYPES } from './lib/publications';
 import { TRIBUNE_AI_SCOPE } from './lib/communaute';
+import { enqueueTranslations } from './translationJobs';
 import {
   isGatewayConfigured,
   runStructured,
@@ -808,6 +809,7 @@ export const applyVerdict = internalMutation({
         autoPublished: true,
       });
       await trackPublicationStatus(ctx, pub.status, 'published');
+      await enqueueTranslations(ctx, 'publication', args.publicationId);
     }
 
     // Denormalized summary — written as soon as the system is VISIBLE. The queue

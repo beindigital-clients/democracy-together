@@ -586,8 +586,8 @@ export const prepareDocument = action({
     // translations, the second overwriting the first. Worse: if the gateway
     // failed on that useless second call, `saveRendition` replaced a
     // READY version with a `failed` row, and an already paid-for translation
-    // was lost for all readers. So we re-read before spending, as
-    // `requestTranslation` already does with `peekCached`.
+    // was lost for all readers. So we re-read before spending, as the
+    // translation jobs do before every call (convex/translationJobs.ts).
     if (context.renditionFresh) return { ok: true };
 
     try {

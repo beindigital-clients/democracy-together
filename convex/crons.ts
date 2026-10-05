@@ -64,5 +64,14 @@ crons.cron(
   internal.peerReview.sendDueReminders,
   {},
 );
+// Translation at publication: restarts the translation jobs a crash or the
+// daily cap left pending (convex/translationJobs.ts). The scheduler already
+// runs each job when content goes live; this is the safety net.
+crons.interval(
+  'translation-sweep',
+  { minutes: 10 },
+  internal.translationJobs.sweep,
+  {},
+);
 
 export default crons;

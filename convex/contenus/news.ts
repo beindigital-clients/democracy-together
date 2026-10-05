@@ -19,6 +19,14 @@ import {
 import { CONTENT_MAX, isContentSlug } from '../lib/contenus/validate';
 import { isValidDate } from '../lib/contenus/time';
 import { publishStatus } from '../lib/tables/contenus';
+import {
+  mergeNewsLocale,
+  newsLocalesToTranslate,
+  newsSource,
+  sourceFingerprint,
+  type TranslatableFields,
+} from '../lib/translation';
+import { enqueueTranslations } from '../translationJobs';
 
 // NEWS (F-15) — the network's articles, written in the back office.
 //
@@ -45,19 +53,78 @@ const publicNewsValidator = v.object({
   // Language actually served (the requested one, or its fallback), for the
   // page's `lang` attribute.
   lang: localeValidator,
+  // Set when part of the text is a MACHINE translation from this language:
+  // the page says so, as it does for publications.
+  machineFrom: v.optional(localeValidator),
 });
 
 const publicArticleValidator = publicNewsValidator.extend({
   body: v.array(v.string()),
 });
 
-function toPublic(n: Doc<'contentNews'>, loc: SiteLocale) {
-  return {
-    slug: n.slug,
+// MACHINE TRANSLATIONS FILL THE GAPS, NEVER MORE. Languages the editors
+// left empty are translated when the article is published
+// (convex/translationJobs.ts); a reader in such a language gets that
+// translation instead of the French fallback. A field written by hand
+// always wins, and a translation of an older text is ignored.
+async function machineTranslation(
+  ctx: QueryCtx,
+  n: Doc<'contentNews'>,
+  loc: SiteLocale,
+): Promise<{ fields: TranslatableFields; from: SiteLocale } | null> {
+  const source = newsSource(n);
+  if (!source || !newsLocalesToTranslate(n, source.sourceLocale).includes(loc))
+    return null;
+  const row = await ctx.db
+    .query('contentTranslations')
+    .withIndex('by_source_and_target', (q) =>
+      q.eq('sourceType', 'news').eq('sourceId', n._id).eq('targetLocale', loc),
+    )
+    .unique();
+  if (
+    !row ||
+    row.status !== 'ready' ||
+    !row.fields ||
+    row.sourceHash !== sourceFingerprint(source.fields)
+  )
+    return null;
+  return { fields: row.fields, from: source.sourceLocale };
+}
+
+async function toPublicArticle(
+  ctx: QueryCtx,
+  n: Doc<'contentNews'>,
+  loc: SiteLocale,
+) {
+  const machine = await machineTranslation(ctx, n, loc);
+  const merged = mergeNewsLocale(n, loc, machine?.fields ?? null, {
     title: pickText(n.title, loc),
     excerpt: pickText(n.excerpt, loc),
-    publishedOn: n.publishedOn,
+    body: pickList(n.body, loc),
     lang: pickedLocale(n.title, loc),
+  });
+  return {
+    slug: n.slug,
+    title: merged.title,
+    excerpt: merged.excerpt,
+    publishedOn: n.publishedOn,
+    lang: merged.lang,
+    ...(merged.machine && machine ? { machineFrom: machine.from } : {}),
+    body: merged.body,
+  };
+}
+
+// A list card: the article without its body (the list validator refuses
+// extra fields).
+async function toPublic(ctx: QueryCtx, n: Doc<'contentNews'>, loc: SiteLocale) {
+  const a = await toPublicArticle(ctx, n, loc);
+  return {
+    slug: a.slug,
+    title: a.title,
+    excerpt: a.excerpt,
+    publishedOn: a.publishedOn,
+    lang: a.lang,
+    ...(a.machineFrom ? { machineFrom: a.machineFrom } : {}),
   };
 }
 
@@ -72,7 +139,7 @@ export const listPublic = query({
       )
       .order('desc')
       .take(NEWS_MAX);
-    return rows.map((n) => toPublic(n, locale));
+    return await Promise.all(rows.map((n) => toPublic(ctx, n, locale)));
   },
 });
 
@@ -89,7 +156,7 @@ export const getPublic = query({
     const n = await findBySlug(ctx, slug);
     if (n && n.status === 'published') {
       return {
-        article: { ...toPublic(n, locale), body: pickList(n.body, locale) },
+        article: await toPublicArticle(ctx, n, locale),
         anyPublished: true,
       };
     }
@@ -211,6 +278,10 @@ export const save = mutation({
         slug: current.slug,
         status: current.status,
       });
+      // An edit to a published article is public at once: so must be the
+      // translations of the languages left empty.
+      if (current.status === 'published')
+        await enqueueTranslations(ctx, 'news', id);
       await auditContent(ctx, user._id, AUDIT.CONTENT_UPDATED, 'news', id, {
         slug: current.slug,
       });
@@ -244,6 +315,7 @@ export const setStatus = mutation({
       updatedAt: Date.now(),
       updatedBy: user._id,
     });
+    if (status === 'published') await enqueueTranslations(ctx, 'news', id);
     await auditContent(
       ctx,
       user._id,

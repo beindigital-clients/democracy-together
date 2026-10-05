@@ -27,6 +27,7 @@ import {
 } from './lib/moderationHistory';
 import { loadSettings as loadAiSettings } from './aiModeration';
 import { internal } from './_generated/api';
+import { enqueueTranslations } from './translationJobs';
 
 // Public shapes of the Tribune. The handlers already projected field by
 // field; declaring them here FREEZES that projection: the day one of them
@@ -107,6 +108,8 @@ export async function onPostPublished(
   from: Doc<'tribunePosts'>['status'] | null,
 ): Promise<void> {
   await trackTribunePostStatus(ctx, from, 'published');
+  // Translated into the other site languages as soon as the public sees it.
+  await enqueueTranslations(ctx, 'tribunePost', post._id);
   // A long-form contribution is published: the author of the post it extends
   // is told (unless they are its author themselves).
   if (post.parentPostId) {

@@ -77,10 +77,9 @@ export const BASE_CLIENT_NAMESPACES = [
   // "Programmes" workstream (F-56 to F-60): toolbox and learning paths, Youth
   // profile — client islands on public pages and in the member area.
   'toolbox',
-  // `translation`: the translation banner is a SERVER component, but it
-  // mounts `TranslateButton` — a button that calls a Convex action, hence
-  // necessarily client-side. It is the only piece of this mechanism that crosses
-  // the RSC boundary.
+  // `translation`: the reading-language banner is a SERVER component, but the
+  // document view's language picker (`DocumentLanguagePicker`) calls a Convex
+  // action, hence is necessarily client-side, and reads this namespace.
   'translation',
   'tribune',
   'twoFactor',
