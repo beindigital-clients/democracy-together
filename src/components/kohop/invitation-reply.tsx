@@ -5,6 +5,7 @@ import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -66,6 +67,18 @@ export function InvitationReply({
       </h2>
       <p className="mt-1 max-w-[62ch] text-sm text-ink-soft">
         {t('inviteBody')}
+      </p>
+
+      <p className="mt-2 text-sm">
+        <Link
+          href="/kohop/guide-relecteur"
+          target="_blank"
+          rel="noopener"
+          className="font-medium text-accent-text hover:underline"
+        >
+          {t('readReviewerGuide')}{' '}
+          <span className="sr-only">{t('inNewTab')}</span>
+        </Link>
       </p>
 
       <fieldset className="mt-4">

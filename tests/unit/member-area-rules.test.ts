@@ -75,7 +75,6 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
         'tribune',
         'kohop',
         'kohopReviews',
-        'manuscripts',
         'projects',
         'evaluations',
         'youth',
@@ -501,5 +500,24 @@ describe('Notifications — une icône par nature', () => {
     expect(notificationKind('mentoringActive')).toBe('programme');
     // A key the interface does not know yet: a neutral icon.
     expect(notificationKind('somethingNew')).toBe('other');
+  });
+});
+
+describe('F-43 retiré de l’interface (D-13)', () => {
+  it('« Mes manuscrits » et « Comité de lecture » sont masqués, le code est conservé', async () => {
+    const { LEGACY_PEER_REVIEW_UI } = await import('@/lib/legacy-review');
+    expect(LEGACY_PEER_REVIEW_UI).toBe(false);
+    for (const role of ROLE_ORDER) {
+      const keys = visibleMemberNavGroups(role).flatMap((g) =>
+        g.items.map((i) => i.key),
+      );
+      expect(keys).not.toContain('manuscripts');
+    }
+    // The entry still exists in the table (code kept), and so do its screens.
+    expect(
+      MEMBER_NAV_GROUPS.flatMap((g) => g.items).some(
+        (i) => i.key === 'manuscripts',
+      ),
+    ).toBe(true);
   });
 });

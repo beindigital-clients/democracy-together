@@ -1,5 +1,6 @@
 'use client';
 
+import { LEGACY_PEER_REVIEW_UI } from '@/lib/legacy-review';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,8 @@ export type AdminNavItem = {
   // Minimum rank of THIS entry when it differs from its group's: a review chief
   // may hold the `moderateur` rank, below the `edition` group's `editeur`.
   minRole?: NetworkRole;
+  // Belongs to the legacy F-43 review, hidden since KOHOP (D-13).
+  legacyReview?: boolean;
 };
 export type AdminNavGroup = {
   key: string;
@@ -89,7 +92,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       // shows their assignments; the full queue and the decisions
       // stay in "Comité de lecture", reserved for editors. Filed with
       // moderation: that is where a moderator works.
-      { href: '/admin/mes-relectures', key: 'myReviews' },
+      { href: '/admin/mes-relectures', key: 'myReviews', legacyReview: true },
       // Unified tribune queue (community workstream, F-45/F-49): posts
       // and comments pending, approved, rejected, withdrawn, reported, with
       // each one's history. A path distinct from `/admin/moderation-ia` —
@@ -123,7 +126,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     labelKey: 'navGroup_edition',
     minRole: 'editeur',
     items: [
-      { href: '/admin/revue', key: 'review' },
+      { href: '/admin/revue', key: 'review', legacyReview: true },
       // KOHOP queue (batch 2): the review chief's screen, whatever their rank
       // (moderator or above) — the function, not the rank, opens it.
       {
@@ -273,7 +276,8 @@ export function filterAdminNavGroups(
       items: group.items.filter(
         (item) =>
           roleRank(role) >= roleRank(item.minRole ?? group.minRole) &&
-          (!item.requiresReviewChief || allowed),
+          (!item.requiresReviewChief || allowed) &&
+          (!item.legacyReview || LEGACY_PEER_REVIEW_UI),
       ),
     }))
     .filter((group) => group.items.length > 0);

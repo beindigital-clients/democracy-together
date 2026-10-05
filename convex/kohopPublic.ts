@@ -105,7 +105,20 @@ async function authorName(
     .unique();
   if (profile?.displayName) return profile.displayName;
   const user = await ctx.db.get(file.authorUserId);
-  return user?.name?.trim() || '—';
+  // The account is gone: the printed author line stays (D-14).
+  return user?.name?.trim() || file.authorSnapshot?.name || '—';
+}
+
+async function organizationOf(
+  ctx: QueryCtx,
+  file: Doc<'kohopContributions'>,
+): Promise<{ name: string; slug: string } | null> {
+  const live = await displayedOrganization(ctx, file.authorUserId);
+  if (live) return live;
+  const s = file.authorSnapshot;
+  return s?.organizationName && s.organizationSlug
+    ? { name: s.organizationName, slug: s.organizationSlug }
+    : null;
 }
 
 async function toCard(ctx: QueryCtx, file: Doc<'kohopContributions'>) {
@@ -122,7 +135,7 @@ async function toCard(ctx: QueryCtx, file: Doc<'kohopContributions'>) {
     lang: file.lang,
     fields: file.fields,
     authors: [{ name: await authorName(ctx, file) }],
-    organization: await displayedOrganization(ctx, file.authorUserId),
+    organization: await organizationOf(ctx, file),
     publishedAt: file.publishedAt,
     minutes: readingMinutes(version.wordCount),
   };
@@ -169,7 +182,7 @@ export const byOrganization = query({
       .take(LIST_MAX);
     const out = [];
     for (const file of rows) {
-      const displayed = await displayedOrganization(ctx, file.authorUserId);
+      const displayed = await organizationOf(ctx, file);
       if (displayed?.slug !== org.slug) continue;
       const c = await toCard(ctx, file);
       if (c) out.push(c);
@@ -241,8 +254,7 @@ export const bySlug = query({
     const authors = [
       {
         name: await authorName(ctx, file),
-        affiliation:
-          (await displayedOrganization(ctx, file.authorUserId))?.name ?? null,
+        affiliation: (await organizationOf(ctx, file))?.name ?? null,
       },
       // Co-authors: name and affiliation. Their e-mail never leaves.
       ...file.coAuthors.map((c) => ({
@@ -271,7 +283,7 @@ export const bySlug = query({
       fields: file.fields,
       keywords: file.keywords,
       authors,
-      organization: await displayedOrganization(ctx, file.authorUserId),
+      organization: await organizationOf(ctx, file),
       publishedAt: file.publishedAt,
       wordCount: version.wordCount || countWords(version.body),
       minutes: readingMinutes(version.wordCount),

@@ -525,6 +525,10 @@ rapport.
 
 ---
 
+## 11. KOHOP (contributions relues par les pairs)
+
+Aucune action de déploiement ne vous est demandée par ce chantier : il n'a créé aucun déploiement et n'a modifié aucune variable. Les variables nouvelles sont `PLAGIARISM_PROVIDER` et `PLAGIARISM_API_KEY` (§ 1.1) ; `AUTH_RESEND_KEY` et `SITE_URL` sont déjà requis (les invitations et alertes sont envoyées par e-mail depuis des actions planifiées). Deux tâches planifiées (`kohop-deadlines`, `kohop-external-purge`) sont déclarées dans `convex/crons.ts` et démarrent avec le déploiement. La procédure d'activation (chef de revue, accès pilote) est dans `docs/backlog/kohop.md`.
+
 ## 10. Mise en service des fonctionnalités du backlog (27/09)
 
 Le backlog restant (§ 10.2 du rapport de campagne) a été livré en neuf

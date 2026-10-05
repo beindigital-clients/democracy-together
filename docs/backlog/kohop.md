@@ -15,7 +15,69 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 5 | Contrôles par l'IA | **livré** |
 | 6 | Préparation, parution, pages publiques | **livré** |
 | 7 | Relecteurs extérieurs | **livré** |
-| 8 | Pilote, durcissement, lancement | à faire |
+| 8 | Pilote, durcissement, lancement | **livré** (voir « Écarts » pour le lot 5) |
+
+## Mise en service et récapitulatif
+
+### Activer KOHOP
+
+1. **Chef de revue** : un administrateur attribue la fonction dans `/admin/utilisateurs` (rang modérateur ou plus) ; sans personne désignée, seuls les administrateurs décident.
+2. **Accès pilote** (`/admin/kohop`, administrateur) : `pilot` (défaut) réserve le dépôt aux organisations listées ; `open` l'ouvre à tous les membres. Tant que l'accès est `pilot`, les pages publiques `/kohop` sont lisibles mais `noindex`, et absentes du plan du site.
+3. **E-mails** : `AUTH_RESEND_KEY` (déjà requis) ; les invitations et alertes partent d'actions planifiées.
+4. **Anti-plagiat externe** : `PLAGIARISM_PROVIDER` / `PLAGIARISM_API_KEY` (voir `docs/deploiement.md`). Défaut `none` : chaque acceptation exige la reconnaissance, journalisée, de l'absence de contrôle externe.
+5. Aucune autre variable ; aucun déploiement ni changement de variable n'a été fait par ce chantier.
+
+### Tâches planifiées (`convex/crons.ts`)
+
+- `kohop-deadlines` (toutes les heures) : rappels et expirations des relecteurs, échéance de révision, épreuve sans réponse.
+- `kohop-external-purge` (quotidienne) : purge à six mois des invitations extérieures déclinées, expirées ou récusées.
+
+### Lot 8
+
+- **Suppression et export de compte** (`convex/kohopUserData.ts`, branché dans `convex/lib/accountDeletion.ts`, D-14) : les textes et analyses **publiés restent en ligne**, le lien avec le compte est coupé (ligne d'auteur figée à la parution, signature des relecteurs conservée, adresses des coauteurs et notes confidentielles effacées) ; brouillons, dossiers en cours et leurs dépendances sont supprimés ; sur un dossier en cours, le suppléant remplace un relecteur supprimé et l'analyse déjà rendue est conservée sans nom ; les invitations extérieures tenues par l'adresse sont supprimées. L'export reprend textes, versions, décisions, analyses et invitations, jamais l'adresse d'un tiers.
+- **F-43 retiré de l'interface** (D-13) : « Mes manuscrits », « Comité de lecture » et le « Mes relectures » du back-office sont masqués (`src/lib/legacy-review.ts`, constante `LEGACY_PEER_REVIEW_UI`). Le code, les tables et les écrans (accessibles par adresse) sont conservés.
+- **Pages de lecture** : `/kohop/charte`, `/kohop/guide-auteur`, `/kohop/guide-relecteur` — **premier jet, bandeau « à valider par le client »** (D-11), 5 langues, liées depuis la liste, l'éditeur et l'invitation.
+- **Accessibilité** : axe sans violation sérieuse ni critique sur tous les écrans (éditeur, dossier, relectures, révision, décision, parution, pages publiques, charte et guides dont l'arabe, invitation extérieure).
+- **Parcours Playwright** : `kohop-parcours.spec.ts` (dépôt → relecteurs → relecture → révision → décision → copie → épreuve → parution → page publique), `kohop-externe.spec.ts` (relecteur extérieur), `kohop-pages.spec.ts`.
+
+### Revue de sécurité (points vérifiés)
+
+- Toutes les gardes sont côté serveur ; un dossier d'autrui « n'existe pas » (`NOT_FOUND`) ; une transition refusée n'écrit ni document, ni audit, ni notification (testé).
+- Projections publiques figées par `returns` + test de sérialisation ; l'auteur ne voit ni rapport d'originalité, ni contrôle de liens, ni note confidentielle, ni adresse de relecteur.
+- Jetons extérieurs : 256 bits, SHA-256 seul stocké, usage unique, adresse liée, réponse identique en cas d'échec, tentatives comptées dans les limites de débit.
+- L'IA ne publie, n'accepte, ne refuse ni n'écarte personne.
+- Rien n'atteint `published` sans l'action d'un chef de revue ou d'un administrateur (une programmation est aussi un acte du chef, revérifié à l'échéance).
+
+### Choix faits par prudence (défauts derrière des constantes — à confirmer)
+
+| Point | Défaut | Où |
+|---|---|---|
+| D-6 champs thématiques | 10 champs de la plaquette | `KOHOP_FIELDS` |
+| D-15 cohorte pilote | accès `pilot`, organisations listées par l'administrateur | `kohopSettings` |
+| D-17 fournisseur anti-plagiat | aucun (`none`) ; reconnaissance journalisée à l'acceptation | `lib/kohopOriginalityProvider.ts` |
+| Épreuve sans réponse après 5 jours | **pas** d'approbation tacite : relance puis alerte aux chefs | `KOHOP_PROOF_TACIT_APPROVAL` |
+| Motif d'un retrait | interne ; seule la notice est publique | `kohopProduction.retract` |
+| Version relue / texte accepté après une révision expirée | la version relue | `kohopDecision.accept` |
+| Délais | 5 j réponse, 14 j analyse, 14 j révision (+7 j une fois), 5 j épreuve | `KOHOP_DELAYS_DAYS` |
+
+### Écarts avec le prompt (lot 5, à reprendre si le client le souhaite)
+
+Livré : règles de liens, liens hors plateforme (OpenAlex/ORCID), suggestions, contrôle de plateforme par suites de mots, adaptateur externe (`none`, `fake`), rapports, verrous (lancement, acceptation, parution). **Non livré** : empreintes par « winnowing » et vecteurs d'embeddings (`textFingerprints`, `textPassages`, `vectorIndex`), détection de traduction d'une langue à l'autre, confirmation et classement des passages par l'IA (le classement est par règles), corpus Tribune et textes extraits des PDF, indexation planifiée avec reprise par lots, contrôle des contributions déjà déposées avant le lot, et vérification IA des liens. Ces éléments demandent une passerelle d'embeddings et un index vectoriel (coût et choix à valider) ; les rapports actuels ne produisent jamais de « rien à signaler » en cas d'échec.
+
+### Limites connues
+
+- Les lignes d'historique portent l'identifiant d'un compte supprimé (pas d'index par acteur), comme le journal d'audit.
+- La liste publique est plafonnée à 100 contributions (lecture directe, sans pagination) ; le corpus de contrôle de plateforme lit au plus 15 contributions par étape et 100 publications.
+- `convex-test` ne lit pas un document sans `searchText` dans un index de recherche (le moteur réel l'ignore) : un test de recherche globale donne un texte vide aux documents non publiés.
+- La charte et les guides ne sont pas validés ; les messages en es/pt/ar sont des traductions de travail à relire.
+
+### Questions pour le client
+
+1. Qui sont les premiers chefs de revue, et quelles organisations composent la cohorte pilote (D-15) ?
+2. Quel fournisseur anti-plagiat (D-17), et accepte-t-on l'approbation tacite d'une épreuve sans réponse ?
+3. Valider ou réécrire la charte, le guide de l'auteur et celui du relecteur (D-11), et les libellés es/pt/ar.
+4. Faut-il publier le motif d'un retrait, ou seulement la notice ?
+5. Veut-on les embeddings multilingues (détection de traduction) malgré le coût et la dépendance à la passerelle ?
 
 ---
 

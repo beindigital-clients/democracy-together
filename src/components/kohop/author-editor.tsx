@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { api } from '@convex/_generated/api';
 import type { FunctionReturnType } from 'convex/server';
 import {
@@ -576,6 +576,26 @@ export function AuthorEditor({ file }: { file: File }) {
               </li>
             ))}
           </ul>
+          <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            <Link
+              href="/kohop/charte"
+              target="_blank"
+              rel="noopener"
+              className="font-medium text-accent-text hover:underline"
+            >
+              {t('readCharter')}{' '}
+              <span className="sr-only">{t('inNewTab')}</span>
+            </Link>
+            <Link
+              href="/kohop/guide-auteur"
+              target="_blank"
+              rel="noopener"
+              className="font-medium text-accent-text hover:underline"
+            >
+              {t('readAuthorGuide')}{' '}
+              <span className="sr-only">{t('inNewTab')}</span>
+            </Link>
+          </p>
           <p className="text-xs text-muted">{t('privacyNotice')}</p>
         </Section>
       </div>

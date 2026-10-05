@@ -22,7 +22,12 @@ function refuse(code: string): never {
 }
 
 // Addresses under `/kohop/` that are not a contribution.
-const RESERVED_SLUGS = ['invitation'];
+const RESERVED_SLUGS = [
+  'invitation',
+  'charte',
+  'guide-auteur',
+  'guide-relecteur',
+];
 
 async function uniqueSlug(ctx: MutationCtx, title: string): Promise<string> {
   const base = slugify(title);

@@ -37,12 +37,7 @@ const PARTICIPANT_ONLY = [
   'Adhésion et paiements',
 ];
 // What a member does as a participant of the network.
-const NETWORK_ONLY = [
-  'Appels à projets',
-  'Évaluations',
-  'Mes manuscrits',
-  'Mon organisation',
-];
+const NETWORK_ONLY = ['Appels à projets', 'Évaluations', 'Mon organisation'];
 
 test.describe('espace membre — vu par un membre', () => {
   test.use({ storageState: SESSIONS.espaceMembre.state });
@@ -98,6 +93,10 @@ test.describe('espace membre — vu par un membre', () => {
       expect(labels, name).toContain(name);
     }
     expect(labels).not.toContain('Administration');
+    // KOHOP's two entries are there; F-43's "Mes manuscrits" is withdrawn (D-13).
+    expect(labels).toContain('KOHOP');
+    expect(labels).toContain('Mes relectures');
+    expect(labels).not.toContain('Mes manuscrits');
   });
 
   test('l’annuaire, les espaces de travail et les notifications gardent le menu', async ({

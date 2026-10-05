@@ -71,6 +71,15 @@ export const kohopTables = {
     acceptedVersion: v.optional(v.number()),
     // Copy of the latest version's title, for lists.
     title: v.string(),
+    // Set when the author's ACCOUNT is deleted: the printed author line of a
+    // published text stays (D-14), the link to the account does not.
+    authorSnapshot: v.optional(
+      v.object({
+        name: v.string(),
+        organizationName: v.optional(v.string()),
+        organizationSlug: v.optional(v.string()),
+      }),
+    ),
     // Fixed at acceptance.
     slug: v.optional(v.string()),
     handlingEditorId: v.optional(v.id('users')),

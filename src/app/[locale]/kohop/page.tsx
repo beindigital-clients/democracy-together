@@ -167,6 +167,28 @@ export default async function KohopListPage({
           ) : null}
         </nav>
 
+        <nav aria-label={t('pagesNav')} className="mt-8">
+          <p className="text-sm font-medium text-ink">{t('pagesNav')}</p>
+          <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            {(
+              [
+                ['/kohop/charte', t('charterLink')],
+                ['/kohop/guide-auteur', t('authorGuideLink')],
+                ['/kohop/guide-relecteur', t('reviewerGuideLink')],
+              ] as const
+            ).map(([to, label]) => (
+              <li key={to}>
+                <Link
+                  href={to}
+                  className="inline-block py-1 font-medium text-accent-text hover:underline"
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
         <section className="mt-10" aria-label={t('listTitle')}>
           {items === undefined ? (
             <DataUnavailable />

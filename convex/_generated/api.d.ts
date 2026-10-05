@@ -54,6 +54,7 @@ import type * as kohopPublic from "../kohopPublic.js";
 import type * as kohopReviews from "../kohopReviews.js";
 import type * as kohopRevision from "../kohopRevision.js";
 import type * as kohopSuggest from "../kohopSuggest.js";
+import type * as kohopUserData from "../kohopUserData.js";
 import type * as lib_accountAccess from "../lib/accountAccess.js";
 import type * as lib_accountDeletion from "../lib/accountDeletion.js";
 import type * as lib_accountEmails from "../lib/accountEmails.js";
@@ -256,6 +257,7 @@ declare const fullApi: ApiFromModules<{
   kohopReviews: typeof kohopReviews;
   kohopRevision: typeof kohopRevision;
   kohopSuggest: typeof kohopSuggest;
+  kohopUserData: typeof kohopUserData;
   "lib/accountAccess": typeof lib_accountAccess;
   "lib/accountDeletion": typeof lib_accountDeletion;
   "lib/accountEmails": typeof lib_accountEmails;

@@ -26,6 +26,7 @@ import {
   versionOf,
 } from './lib/kohopAccess';
 import { cleanFields } from './kohop';
+import { authorLine } from './kohopUserData';
 import { latestReport } from './kohopOriginality';
 
 // KOHOP — PRODUCTION and PUBLICATION (K-18/K-19). An accepted contribution is
@@ -381,6 +382,8 @@ async function publishNow(
   await ctx.db.patch(file._id, {
     stage: to,
     publishedAt: now,
+    // The printed author line, kept if the account is deleted one day (D-14).
+    authorSnapshot: await authorLine(ctx, file.authorUserId),
     scheduledFor: undefined,
     scheduledFunctionId: undefined,
     // Folded text of the published version, for the global search.

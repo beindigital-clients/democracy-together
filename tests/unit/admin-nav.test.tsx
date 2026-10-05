@@ -55,7 +55,6 @@ const STAFF_ITEMS = [
   'Impact',
   'Candidatures',
   'Publications',
-  'Mes relectures',
   // Tribune moderation queue (community workstream), moderator rank.
   'File de modération',
   'Signalements',
@@ -70,7 +69,6 @@ const STAFF_ITEMS = [
 ];
 // "Contenus" ("contenus" workstream, F-62): editor rank.
 const EDITOR_ITEMS = [
-  'Comité de lecture',
   'Rapports annuels',
   'Newsletter',
   'Contenus',
@@ -97,11 +95,15 @@ function linkNames(nav: HTMLElement): string[] {
 // that adding a screen forces naming it in ITS list (rank), without having to
 // touch a counter at every workstream — the lists themselves remain the
 // specification.
+// F-43's entries ("Comité de lecture", the reviewer's "Mes relectures") are
+// HIDDEN since KOHOP opened (D-13): still in the table, never on the bar.
+const LEGACY_HIDDEN = ['Comité de lecture', 'Mes relectures'];
 const ALL_COUNT =
   STAFF_ITEMS.length +
   EDITOR_ITEMS.length +
   ADMIN_ITEMS.length +
   KOHOP_ITEMS.length;
+const TABLE_COUNT = ALL_COUNT + LEGACY_HIDDEN.length;
 
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
   it('un modérateur voit les 12 entrées communes, et aucune entrée réservée', () => {
@@ -116,7 +118,7 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
   });
 
-  it('un éditeur ajoute revue, newsletter et contenus, sans les entrées admin', () => {
+  it('un éditeur ajoute newsletter, contenus et rapports, sans les entrées admin', () => {
     const nav = renderNav('editeur');
     expect(linkNames(nav).sort()).toEqual(
       [...STAFF_ITEMS, ...EDITOR_ITEMS].sort(),
@@ -251,9 +253,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
 
   it('aucun chemin ni aucune clé de libellé en double', () => {
     const items = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-    expect(items).toHaveLength(ALL_COUNT);
-    expect(new Set(items.map((i) => i.href)).size).toBe(ALL_COUNT);
-    expect(new Set(items.map((i) => i.key)).size).toBe(ALL_COUNT);
+    expect(items).toHaveLength(TABLE_COUNT);
+    expect(new Set(items.map((i) => i.href)).size).toBe(TABLE_COUNT);
+    expect(new Set(items.map((i) => i.key)).size).toBe(TABLE_COUNT);
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
@@ -307,6 +309,8 @@ describe('adminMinRoleForPath', () => {
         ),
       );
       for (const item of ADMIN_NAV_GROUPS.flatMap((g) => g.items)) {
+        // Hidden from everyone by decision (D-13), though the shell still guards it.
+        if (item.legacyReview) continue;
         const allowed =
           ROLE_ORDER.indexOf(role) >=
           ROLE_ORDER.indexOf(adminMinRoleForPath(item.href));
