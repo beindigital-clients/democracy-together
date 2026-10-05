@@ -836,7 +836,7 @@
       "uploadPercent": "{percent}%",
       "uploadStarting": "Preparing the file…",
       "successTitle": "Submission received",
-      "successBody": "Thank you. Your publication “{title}” is awaiting review. You'll find it under “My contributions”.",
+      "successBody": "Thank you. Your publication “{title}” is awaiting review. You'll find it under “My publications”.",
       "successCta": "Back to my area",
       "submitAnother": "Submit another publication",
       "errTitle": "The title must be at least 4 characters.",
@@ -923,7 +923,7 @@
     "docSourceLink": "See the original document",
     "docFigure": "Figure {n}",
     "docPageOf": "Page {n}",
-    "docEmpty": "No content could be extracted from this document."
+    "docPending": "This version has not been prepared yet. Choose its language above to prepare it."
   },
   "nav": {
     "homeLabel": "Democracy Together — home",

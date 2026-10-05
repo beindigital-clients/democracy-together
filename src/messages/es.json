@@ -836,7 +836,7 @@
       "uploadPercent": "{percent} %",
       "uploadStarting": "Preparando el archivo…",
       "successTitle": "Envío recibido",
-      "successBody": "Gracias. Su publicación «{title}» está pendiente de revisión. La encontrará en «Mis contribuciones».",
+      "successBody": "Gracias. Su publicación «{title}» está pendiente de revisión. La encontrará en «Mis publicaciones».",
       "successCta": "Volver a mi espacio",
       "submitAnother": "Enviar otra publicación",
       "errTitle": "El título debe tener al menos 4 caracteres.",
@@ -923,7 +923,7 @@
     "docSourceLink": "Ver el documento original",
     "docFigure": "Ilustración {n}",
     "docPageOf": "Página {n}",
-    "docEmpty": "No se ha podido extraer ningún contenido de este documento."
+    "docPending": "Esta versión aún no se ha preparado. Elija su idioma más arriba para prepararla."
   },
   "nav": {
     "homeLabel": "Democracy Together — inicio",
