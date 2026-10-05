@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import { hashToken } from './lib/newsletterOptIn';
@@ -20,7 +20,7 @@ const modules = import.meta.glob([
 // explicitly, as the administrator would. Pre-moderation —
 // the default since the community workstream (F-45) — has its own tests
 // (convex/communaute-moderation.test.ts).
-async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+async function aPosteriori<T extends TestConvex<typeof schema>>(t: T) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
       role: 'admin',
@@ -46,7 +46,7 @@ async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
 // reconciliation catches up on what was written outside a mutation.
 
 async function counters(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
 ): Promise<Record<string, number>> {
   const rows = await t.run((ctx) => ctx.db.query('counters').collect());
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));

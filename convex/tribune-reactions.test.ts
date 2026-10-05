@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -17,7 +17,7 @@ const modules = import.meta.glob([
 
 // Inserts a member and returns its id (helper).
 async function seedMember(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
   email: string,
   role: 'membre' | 'visiteur' = 'membre',
 ): Promise<Id<'users'>> {
@@ -26,7 +26,7 @@ async function seedMember(
 
 // Inserts a published post and returns its id (helper).
 async function seedPost(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
   authorUserId: Id<'users'>,
 ): Promise<Id<'tribunePosts'>> {
   return await t.run((ctx) =>

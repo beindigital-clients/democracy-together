@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import { TRIBUNE_BODY, TRIBUNE_COMMENT } from './lib/validation';
@@ -20,7 +20,7 @@ const modules = import.meta.glob([
 // explicitly, as the administrator would. Pre-moderation —
 // the default since the community workstream (F-45) — has its own tests
 // (convex/communaute-moderation.test.ts).
-async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
+async function aPosteriori<T extends TestConvex<typeof schema>>(t: T) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
       role: 'admin',
@@ -38,7 +38,7 @@ async function aPosteriori<T extends ReturnType<typeof convexTest>>(t: T) {
 }
 
 async function member(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
   email: string,
   name?: string,
 ) {

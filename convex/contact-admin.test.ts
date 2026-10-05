@@ -1,8 +1,9 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
+import type { NetworkRole } from './lib/roles';
 
 const modules = import.meta.glob([
   './**/*.ts',
@@ -20,15 +21,15 @@ const modules = import.meta.glob([
 // read what visitors sent.
 
 async function withRole(
-  t: ReturnType<typeof convexTest>,
-  role: string,
+  t: TestConvex<typeof schema>,
+  role: NetworkRole,
   email: string,
 ) {
   const id = await t.run((ctx) => ctx.db.insert('users', { role, email }));
   return t.withIdentity({ subject: `${id}|s` });
 }
 
-async function seedMessages(t: ReturnType<typeof convexTest>) {
+async function seedMessages(t: TestConvex<typeof schema>) {
   await t.mutation(internal.contact.store, {
     name: 'Awa Diop',
     email: 'awa@example.org',

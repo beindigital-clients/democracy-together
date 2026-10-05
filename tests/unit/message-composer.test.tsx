@@ -41,7 +41,10 @@ describe('MessageComposer', () => {
     fireEvent.change(field, { target: { value: '   ' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(onSend).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Envoyer' }).disabled).toBe(true);
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Envoyer' })
+        .disabled,
+    ).toBe(true);
   });
 
   it('échec : le texte revient et l’erreur s’affiche', async () => {

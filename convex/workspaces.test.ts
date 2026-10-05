@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import frMessages from '../src/messages/fr.json';
@@ -20,7 +20,7 @@ const modules = import.meta.glob([
 ]);
 
 async function member(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
   email: string,
   name?: string,
 ) {

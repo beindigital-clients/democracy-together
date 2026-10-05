@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import { effectiveRole, DEFAULT_ROLE } from './lib/roles';
@@ -199,7 +199,7 @@ describe('Back-office — rôle affiché (F-63)', () => {
 // members of their membership to silence a symptom.
 describe('Back-office — candidatures : le compte lié est nommé (pentest M-6)', () => {
   async function candidatureDeposeePar(
-    t: ReturnType<typeof convexTest>,
+    t: TestConvex<typeof schema>,
     email: string,
     contactEmail: string,
   ) {

@@ -1,6 +1,7 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
+import type { FunctionReturnType } from 'convex/server';
 import schema from './schema';
 import { api } from './_generated/api';
 import { AUDIT } from './lib/auditActions';
@@ -42,7 +43,7 @@ const PAGE = (numItems = 50) => ({
   paginationOpts: { numItems, cursor: null },
 });
 
-async function seedAdmin(t: ReturnType<typeof convexTest>) {
+async function seedAdmin(t: TestConvex<typeof schema>) {
   const adminId = await t.run((ctx) =>
     ctx.db.insert('users', { role: 'admin', email: 'admin@test.org' }),
   );
@@ -50,7 +51,7 @@ async function seedAdmin(t: ReturnType<typeof convexTest>) {
 }
 
 describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)', () => {
-  async function seedUsers(t: ReturnType<typeof convexTest>) {
+  async function seedUsers(t: TestConvex<typeof schema>) {
     await t.run(async (ctx) => {
       await ctx.db.insert('users', {
         role: 'membre',
@@ -194,10 +195,13 @@ describe('Utilisateurs — recherche par adresse et filtre par rôle (issue #49)
     const seen: string[] = [];
     let cursor: string | null = null;
     for (let guard = 0; guard < 20; guard++) {
-      const res = await as.query(api.admin.listUsers, {
-        paginationOpts: { numItems: 3, cursor },
-        search: 'cherche-',
-      });
+      // Annotated: `cursor` is reassigned from `res` below, a cycle that
+      // leaves the inferred type implicitly `any`.
+      const res: FunctionReturnType<typeof api.admin.listUsers> =
+        await as.query(api.admin.listUsers, {
+          paginationOpts: { numItems: 3, cursor },
+          search: 'cherche-',
+        });
       seen.push(...res.page.map((u) => u.email ?? ''));
       if (res.isDone) break;
       cursor = res.continueCursor;
@@ -307,7 +311,7 @@ describe('Termes de recherche — bornes côté serveur (issue #49)', () => {
 });
 
 describe('Candidatures — pagination et recherche (issues #8 et #49)', () => {
-  async function seedApplications(t: ReturnType<typeof convexTest>) {
+  async function seedApplications(t: TestConvex<typeof schema>) {
     await t.run(async (ctx) => {
       const rows = [
         {
@@ -511,7 +515,7 @@ describe('Publications — recherche dans la file de modération (issue #49)', (
 });
 
 describe('Journal — recherche par action et filtre par acteur (issue #49)', () => {
-  async function seedJournal(t: ReturnType<typeof convexTest>) {
+  async function seedJournal(t: TestConvex<typeof schema>) {
     return await t.run(async (ctx) => {
       const awa = await ctx.db.insert('users', {
         role: 'admin',
@@ -577,10 +581,11 @@ describe('Journal — recherche par action et filtre par acteur (issue #49)', ()
     const seen: string[] = [];
     let cursor: string | null = null;
     for (let guard = 0; guard < 10; guard++) {
-      const res = await as.query(api.journal.listAuditLog, {
-        paginationOpts: { numItems: 1, cursor },
-        actorId: jan,
-      });
+      const res: FunctionReturnType<typeof api.journal.listAuditLog> =
+        await as.query(api.journal.listAuditLog, {
+          paginationOpts: { numItems: 1, cursor },
+          actorId: jan,
+        });
       seen.push(...res.page.map((r) => r.targetId ?? ''));
       if (res.isDone) break;
       cursor = res.continueCursor;

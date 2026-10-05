@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import { ConvexError } from 'convex/values';
 import schema from './schema';
 import { api, internal } from './_generated/api';
@@ -27,7 +27,8 @@ const modules = import.meta.glob([
 // The default mode is PRE-MODERATION for posts: this file configures nothing
 // before publishing, and that is precisely what it checks.
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
+type As = ReturnType<T['withIdentity']>;
 
 async function user(
   t: T,
@@ -76,7 +77,7 @@ async function setup() {
 }
 
 async function approve(
-  mod: { as: T },
+  mod: { as: As },
   targetId: string,
   targetType: 'post' | 'comment' = 'post',
 ) {
@@ -701,7 +702,7 @@ describe('Historique complet et ordonné (F-49)', () => {
 });
 
 describe('Approfondissement — du billet court à la contribution de fond (F-48)', () => {
-  async function published(t: T, author: { as: T }, mod: { as: T }) {
+  async function published(t: T, author: { as: As }, mod: { as: As }) {
     const postId = await author.as.mutation(api.tribune.createPost, POST);
     await approve(mod, postId);
     return postId;

@@ -60,7 +60,6 @@ async function render(data: ReceiptData, file: string) {
   // pdf.js detaches the buffer it is given: we pass it a copy.
   const doc = await pdfjs.getDocument({
     data: bytes.slice(),
-    isEvalSupported: false,
     useSystemFonts: false,
   }).promise;
   expect(doc.numPages).toBe(1);
@@ -84,9 +83,7 @@ async function render(data: ReceiptData, file: string) {
       glyphs.push({ unicode: g.unicode, cid: g.originalCharCode });
     }
   });
-  const { info } = (await doc.getMetadata()) as {
-    info: Record<string, unknown>;
-  };
+  const info = (await doc.getMetadata()).info as Record<string, unknown>;
   await doc.destroy();
   return {
     text: items.join('').replace(/\s+/g, ' ').trim(),

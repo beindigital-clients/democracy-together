@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import {
@@ -66,7 +66,7 @@ function tokenFrom(html: string): string {
   return m[1];
 }
 
-async function allSubs(t: ReturnType<typeof convexTest>) {
+async function allSubs(t: TestConvex<typeof schema>) {
   return await t.run((ctx) =>
     ctx.db.query('newsletterSubscriptions').collect(),
   );
