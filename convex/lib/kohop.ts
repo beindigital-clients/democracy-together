@@ -226,6 +226,17 @@ export const KOHOP_DELAYS_MS = {
   extension: KOHOP_DELAYS_DAYS.extension * DAY,
 } as const;
 
+// A proof left unanswered after its 5 days is NOT approved by silence: the
+// author may still approve, and the review chiefs are told it is overdue.
+// Product decision left open — flip this constant to make silence consent.
+export const KOHOP_PROOF_TACIT_APPROVAL = false;
+
+// Scheduled publication: how far ahead a date may be set.
+export const KOHOP_SCHEDULE = {
+  minLeadMs: 60 * 1000,
+  maxLeadMs: 365 * DAY,
+} as const;
+
 // Reminders: 3 days before the deadline, then on the day, then every 3 days,
 // three reminders at most.
 export const KOHOP_REMINDERS = {

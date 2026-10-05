@@ -443,6 +443,15 @@ export const getMine = query({
       reviewsOpen && contribution.reviewedVersion !== undefined
         ? await versionOf(ctx, contributionId, contribution.reviewedVersion)
         : null;
+    // The accepted text, before the copy-editing: the proof is read against it.
+    const acceptedDecision = decisions.find((d) => d.kind === 'accepted');
+    const proofStage = (
+      ['production', 'proof', 'ready', 'scheduled', 'published'] as const
+    ).includes(contribution.stage as never);
+    const originalVersion =
+      proofStage && acceptedDecision
+        ? await versionOf(ctx, contributionId, acceptedDecision.version)
+        : null;
     return {
       _id: contribution._id,
       stage: contribution.stage,
@@ -496,6 +505,9 @@ export const getMine = query({
       })),
       // The version the reviewers read, to show what the revision changed.
       reviewedBody: reviewed?.body ?? null,
+      acceptedBody: originalVersion?.body ?? null,
+      publishedAt: contribution.publishedAt ?? null,
+      scheduledFor: contribution.scheduledFor ?? null,
       reviewedVersion: contribution.reviewedVersion ?? null,
       response: version?.responseToReviewers ?? '',
       revisionExtendedAt: contribution.revisionExtendedAt ?? null,

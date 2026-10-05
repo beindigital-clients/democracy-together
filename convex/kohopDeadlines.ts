@@ -9,6 +9,7 @@ import { deadlineAction } from './lib/kohopDeadlines';
 import { advance, recordKohopEvent } from './lib/kohopAccess';
 import { reviewChiefRecipients } from './lib/reviewChiefs';
 import { replaceTitular, scheduleAuthorEmail } from './lib/kohopReviewing';
+import { handleProofDeadlines } from './kohopProduction';
 
 // KOHOP — the deadline cron (hourly). `kohopReviewers.dueAt` is set ONLY while
 // a reply or an analysis is awaited, so the `by_dueAt` index holds nothing but
@@ -164,6 +165,10 @@ export const run = internalMutation({
         expired += 1;
       }
     }
+    // The author's proof (5 days).
+    const proofs = await handleProofDeadlines(ctx, now);
+    reminded += proofs.reminded;
+    expired += proofs.expired;
     return { reminded, expired };
   },
 });

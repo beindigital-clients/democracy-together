@@ -40,6 +40,7 @@ export const KNOWN_LOCALE_SEGMENTS = [
   'experts',
   'inscription',
   'jeunes',
+  'kohop',
   'le-reseau',
   'membres',
   'mentions-legales',

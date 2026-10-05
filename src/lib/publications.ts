@@ -266,28 +266,37 @@ export function buildCitations(pub: CitablePub, locale: string): Citations {
   const names = pub.authors.map((a) => a.name);
   // The list punctuation comes from the language the page is READ in, not
   // from the publication's language: it is the sentence around the citation.
+  const article = pub.type === 'article';
   const registered = isRegisteredDoi(pub.doi);
   const link = registered ? `https://doi.org/${pub.doi}` : pub.url;
-  const apa = `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. ${PUBLISHER}. ${link}`;
+  const apa = article
+    ? `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. KOHOP, ${PUBLISHER}. ${link}`
+    : `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. ${PUBLISHER}. ${link}`;
 
-  const entry = pub.type === 'dataset' ? 'misc' : 'techreport';
+  const entry = article
+    ? 'article'
+    : pub.type === 'dataset'
+      ? 'misc'
+      : 'techreport';
   const bibtex = [
     `@${entry}{${bibKey(pub)},`,
     `  author = {${names.map(invertedName).join(' and ')}},`,
     `  title  = {${pub.title}},`,
-    `  institution = {${PUBLISHER}},`,
+    article
+      ? `  journal = {KOHOP — ${PUBLISHER}},`
+      : `  institution = {${PUBLISHER}},`,
     `  year   = {${pub.year}},`,
     registered ? `  doi    = {${pub.doi}}` : `  url    = {${pub.url}}`,
     `}`,
   ].join('\n');
 
-  const ty = pub.type === 'dataset' ? 'DATA' : 'RPRT';
+  const ty = article ? 'JOUR' : pub.type === 'dataset' ? 'DATA' : 'RPRT';
   const ris = [
     `TY  - ${ty}`,
     ...names.map((n) => `AU  - ${invertedName(n)}`),
     `TI  - ${pub.title}`,
     `PY  - ${pub.year}`,
-    `PB  - ${PUBLISHER}`,
+    article ? `JO  - KOHOP — ${PUBLISHER}` : `PB  - ${PUBLISHER}`,
     registered ? `DO  - ${pub.doi}` : `UR  - ${pub.url}`,
     `ER  - `,
   ].join('\n');

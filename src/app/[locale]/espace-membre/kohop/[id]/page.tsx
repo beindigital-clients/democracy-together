@@ -16,6 +16,7 @@ import { FormError } from '@/components/ui/field';
 import { vocabulary } from '@/i18n/vocabulary';
 import { AuthorEditor } from '@/components/kohop/author-editor';
 import { KohopText } from '@/components/kohop/kohop-text';
+import { ProofPanel } from '@/components/kohop/proof-panel';
 import { RevisionPanel } from '@/components/kohop/revision-panel';
 import { ReviewsList } from '@/components/kohop/reviews-list';
 import { StageBadge } from '@/components/kohop/stage-badge';
@@ -157,6 +158,17 @@ export default function KohopAuthorFile() {
       ) : null}
 
       {file.revisable ? <RevisionPanel file={file} /> : null}
+      {file.stage === 'proof' ? <ProofPanel file={file} /> : null}
+      {file.stage === 'published' && file.slug ? (
+        <p className="mt-6">
+          <Link
+            href={`/kohop/${file.slug}`}
+            className="font-medium text-accent-text hover:underline"
+          >
+            {t('publicPage')}
+          </Link>
+        </p>
+      ) : null}
 
       {file.editable ? (
         <AuthorEditor file={file} />

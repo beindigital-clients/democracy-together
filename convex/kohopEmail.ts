@@ -1,4 +1,5 @@
 import { v } from 'convex/values';
+import type { Id } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
 import { internal } from './_generated/api';
 import { locale } from './schema';
@@ -10,6 +11,8 @@ import {
   authorEmail,
   chiefNewSubmissionEmail,
   KOHOP_AUTHOR_EMAIL_KINDS,
+  KOHOP_PRODUCTION_EMAIL_KINDS,
+  productionEmail,
   reviewerEmail,
 } from './lib/kohopEmails';
 
@@ -222,6 +225,113 @@ export const sendAuthorEmail = internalAction({
     } catch (err) {
       console.error(
         `KOHOP author e-mail not sent (${err instanceof Error ? err.message : String(err)})`,
+      );
+    }
+    return null;
+  },
+});
+
+// --- Production and publication ---------------------------------------------------
+
+export const productionEmailContext = internalQuery({
+  args: {
+    contributionId: v.id('kohopContributions'),
+    kind: v.union(...KOHOP_PRODUCTION_EMAIL_KINDS.map((k) => v.literal(k))),
+  },
+  returns: v.object({
+    title: v.string(),
+    slug: v.union(v.string(), v.null()),
+    dueAt: v.union(v.number(), v.null()),
+    recipients: v.array(v.object({ email: v.string(), locale })),
+  }),
+  handler: async (ctx, { contributionId, kind }) => {
+    const file = await ctx.db.get(contributionId);
+    const empty = {
+      title: '',
+      slug: null,
+      dueAt: null,
+      recipients: [] as {
+        email: string;
+        locale: 'fr' | 'en' | 'es' | 'pt' | 'ar';
+      }[],
+    };
+    if (!file) return empty;
+    const userIds: Id<'users'>[] = [];
+    if (kind === 'publishedReviewer') {
+      // Reviewers whose signed analysis is published (consent given).
+      const rows = await ctx.db
+        .query('kohopReviewers')
+        .withIndex('by_contribution', (q) =>
+          q.eq('contributionId', contributionId),
+        )
+        .take(30);
+      for (const r of rows) {
+        if (r.status === 'submitted' && r.userId && r.publicationConsentAt) {
+          userIds.push(r.userId);
+        }
+      }
+    } else {
+      userIds.push(file.authorUserId);
+    }
+    const recipients = [];
+    for (const id of userIds) {
+      const user = await ctx.db.get(id);
+      if (user?.email && !isReservedEmail(user.email)) {
+        recipients.push({
+          email: user.email,
+          locale: user.preferredLocale ?? ('fr' as const),
+        });
+      }
+    }
+    return {
+      title: file.title,
+      slug: file.slug ?? null,
+      dueAt: file.proofDueAt ?? null,
+      recipients,
+    };
+  },
+});
+
+export const sendProductionEmail = internalAction({
+  args: {
+    contributionId: v.id('kohopContributions'),
+    kind: v.union(...KOHOP_PRODUCTION_EMAIL_KINDS.map((k) => v.literal(k))),
+  },
+  returns: v.null(),
+  handler: async (ctx, { contributionId, kind }) => {
+    const info = await ctx.runQuery(
+      internal.kohopEmail.productionEmailContext,
+      { contributionId, kind },
+    );
+    const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000';
+    let failures = 0;
+    for (const recipient of info.recipients) {
+      const { subject, html } = productionEmail({
+        siteUrl,
+        locale: recipient.locale,
+        contributionId,
+        slug: info.slug ?? undefined,
+        title: info.title,
+        dueLabel:
+          kind === 'proofToApprove' && info.dueAt !== null
+            ? new Intl.DateTimeFormat(recipient.locale, {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                timeZone: 'UTC',
+              }).format(info.dueAt)
+            : undefined,
+        kind,
+      });
+      try {
+        await sendEmail({ to: recipient.email, subject, html });
+      } catch {
+        failures += 1;
+      }
+    }
+    if (failures > 0) {
+      console.error(
+        `KOHOP production e-mail: ${failures}/${info.recipients.length} not sent`,
       );
     }
     return null;

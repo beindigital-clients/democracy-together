@@ -48,6 +48,8 @@ import type * as kohopDev from "../kohopDev.js";
 import type * as kohopEmail from "../kohopEmail.js";
 import type * as kohopLinkExternal from "../kohopLinkExternal.js";
 import type * as kohopOriginality from "../kohopOriginality.js";
+import type * as kohopProduction from "../kohopProduction.js";
+import type * as kohopPublic from "../kohopPublic.js";
 import type * as kohopReviews from "../kohopReviews.js";
 import type * as kohopRevision from "../kohopRevision.js";
 import type * as kohopSuggest from "../kohopSuggest.js";
@@ -247,6 +249,8 @@ declare const fullApi: ApiFromModules<{
   kohopEmail: typeof kohopEmail;
   kohopLinkExternal: typeof kohopLinkExternal;
   kohopOriginality: typeof kohopOriginality;
+  kohopProduction: typeof kohopProduction;
+  kohopPublic: typeof kohopPublic;
   kohopReviews: typeof kohopReviews;
   kohopRevision: typeof kohopRevision;
   kohopSuggest: typeof kohopSuggest;

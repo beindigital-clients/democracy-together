@@ -51,6 +51,8 @@ export const KOHOP_ERROR_CODES = [
   'SLUG_UNAVAILABLE',
   'ORIGINALITY_REQUIRED',
   'NOTHING_TO_ACKNOWLEDGE',
+  'PROOF_REQUIRED',
+  'INVALID_SCHEDULE',
 ] as const;
 
 export type KohopErrorCode = (typeof KOHOP_ERROR_CODES)[number];

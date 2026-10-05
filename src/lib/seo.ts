@@ -259,3 +259,47 @@ export function articleJsonLd(input: ArticleJsonLdInput) {
     publisher: { '@id': ORGANIZATION_ID },
   };
 }
+
+export type ScholarlyArticleJsonLdInput = {
+  headline: string;
+  slug: string;
+  locale: string;
+  description: string;
+  /** Publication day (`YYYY-MM-DD`). */
+  datePublished: string;
+  inLanguage: string;
+  authors: { name: string; affiliation?: string | null }[];
+  keywords: string[];
+  licenceUrl: string;
+};
+
+/**
+ * `ScholarlyArticle` entry for a published KOHOP contribution. It describes what
+ * the page SHOWS: the authors named on it, the licence it carries. The peer
+ * review is not claimed beyond what the page documents.
+ */
+export function scholarlyArticleJsonLd(input: ScholarlyArticleJsonLdInput) {
+  const url = `${SITE_URL}/${input.locale}/kohop/${input.slug}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ScholarlyArticle',
+    headline: input.headline,
+    description: input.description,
+    datePublished: input.datePublished,
+    inLanguage: input.inLanguage,
+    author: input.authors.map((a) => ({
+      '@type': 'Person',
+      name: a.name,
+      ...(a.affiliation
+        ? { affiliation: { '@type': 'Organization', name: a.affiliation } }
+        : {}),
+    })),
+    ...(input.keywords.length ? { keywords: input.keywords.join(', ') } : {}),
+    license: input.licenceUrl,
+    isAccessibleForFree: true,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    url,
+    isPartOf: { '@type': 'Periodical', name: 'KOHOP' },
+    publisher: { '@id': ORGANIZATION_ID },
+  };
+}

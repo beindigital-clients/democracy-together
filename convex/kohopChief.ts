@@ -230,6 +230,8 @@ export const dossier = query({
       title: file.title,
       reviewedVersion: file.reviewedVersion ?? null,
       acceptedVersion: file.acceptedVersion ?? null,
+      slug: file.slug ?? null,
+      scheduledFor: file.scheduledFor ?? null,
       reviews: reviewRows.map((r) => ({
         _id: r._id,
         recommendation: r.recommendation,

@@ -400,3 +400,183 @@ export function authorEmail(args: {
     }),
   };
 }
+
+// --- Production and publication ---------------------------------------------------
+
+export const KOHOP_PRODUCTION_EMAIL_KINDS = [
+  'proofToApprove',
+  'published',
+  'publishedReviewer',
+  'retracted',
+] as const;
+export type KohopProductionEmailKind =
+  (typeof KOHOP_PRODUCTION_EMAIL_KINDS)[number];
+
+const REASON_REVIEWER_PUBLISHED: Phrase = {
+  fr: 'Vous recevez cet e-mail car vous avez signé une analyse publiée sur KOHOP, Democracy Together.',
+  en: 'You are receiving this e-mail because you signed an analysis published on KOHOP, Democracy Together.',
+  es: 'Recibe este correo porque firmó un análisis publicado en KOHOP, Democracy Together.',
+  pt: 'Recebe este e-mail porque assinou uma análise publicada no KOHOP, Democracy Together.',
+  ar: 'يصلكم هذا البريد لأنكم وقّعتم تحليلاً منشوراً في KOHOP، Democracy Together.',
+};
+const CTA_PAGE: Phrase = {
+  fr: 'Voir la page publiée',
+  en: 'See the published page',
+  es: 'Ver la página publicada',
+  pt: 'Ver a página publicada',
+  ar: 'عرض الصفحة المنشورة',
+};
+const CTA_PROOF: Phrase = {
+  fr: 'Relire l’épreuve',
+  en: 'Read the proof',
+  es: 'Leer la prueba',
+  pt: 'Ler a prova',
+  ar: 'قراءة البروفة',
+};
+
+const PRODUCTION_COPY: Record<
+  KohopProductionEmailKind,
+  { subject: Phrase; title: Phrase; lead: Phrase }
+> = {
+  proofToApprove: {
+    subject: {
+      fr: 'KOHOP : l’épreuve de votre contribution vous attend',
+      en: 'KOHOP: the proof of your contribution is waiting',
+      es: 'KOHOP: la prueba de su contribución le espera',
+      pt: 'KOHOP: a prova da sua contribuição aguarda por si',
+      ar: 'KOHOP: بروفة مساهمتكم بانتظاركم',
+    },
+    title: {
+      fr: 'Votre épreuve est prête',
+      en: 'Your proof is ready',
+      es: 'Su prueba está lista',
+      pt: 'A sua prova está pronta',
+      ar: 'بروفتكم جاهزة',
+    },
+    lead: {
+      fr: 'Le texte a été préparé pour la parution. Relisez-le : validez-le (bon à tirer) ou demandez des corrections, dans les 5 jours.',
+      en: 'The text has been prepared for publication. Read it: approve it or ask for corrections, within 5 days.',
+      es: 'El texto se ha preparado para su publicación. Léalo: apruébelo o solicite correcciones en un plazo de 5 días.',
+      pt: 'O texto foi preparado para publicação. Leia-o: aprove-o ou peça correções, no prazo de 5 dias.',
+      ar: 'جُهّز النص للنشر. اقرأوه ووافقوا عليه أو اطلبوا تصويبات خلال 5 أيام.',
+    },
+  },
+  published: {
+    subject: {
+      fr: 'KOHOP : votre contribution est publiée',
+      en: 'KOHOP: your contribution is published',
+      es: 'KOHOP: su contribución está publicada',
+      pt: 'KOHOP: a sua contribuição foi publicada',
+      ar: 'KOHOP: نُشرت مساهمتكم',
+    },
+    title: {
+      fr: 'Votre contribution est en ligne',
+      en: 'Your contribution is online',
+      es: 'Su contribución está en línea',
+      pt: 'A sua contribuição está online',
+      ar: 'مساهمتكم منشورة',
+    },
+    lead: {
+      fr: 'Elle est publiée avec les analyses signées de vos relecteurs et votre réponse. Partagez le lien permanent.',
+      en: 'It is published with your reviewers’ signed analyses and your reply. Share the permanent link.',
+      es: 'Se ha publicado con los análisis firmados de sus revisores y su respuesta. Comparta el enlace permanente.',
+      pt: 'Foi publicada com as análises assinadas dos seus revisores e a sua resposta. Partilhe a ligação permanente.',
+      ar: 'نُشرت مع تحليلات مراجعيكم الموقّعة وردّكم. شاركوا الرابط الدائم.',
+    },
+  },
+  publishedReviewer: {
+    subject: {
+      fr: 'KOHOP : la contribution que vous avez relue est publiée',
+      en: 'KOHOP: the contribution you reviewed is published',
+      es: 'KOHOP: la contribución que revisó está publicada',
+      pt: 'KOHOP: a contribuição que reviu foi publicada',
+      ar: 'KOHOP: نُشرت المساهمة التي راجعتموها',
+    },
+    title: {
+      fr: 'Votre analyse est publiée',
+      en: 'Your analysis is published',
+      es: 'Su análisis está publicado',
+      pt: 'A sua análise foi publicada',
+      ar: 'نُشر تحليلكم',
+    },
+    lead: {
+      fr: 'Merci pour votre relecture : votre analyse paraît sous votre nom, avec la contribution.',
+      en: 'Thank you for your review: your analysis appears under your name, with the contribution.',
+      es: 'Gracias por su revisión: su análisis aparece con su nombre, junto con la contribución.',
+      pt: 'Obrigado pela sua revisão: a sua análise aparece com o seu nome, juntamente com a contribuição.',
+      ar: 'شكراً على مراجعتكم: يظهر تحليلكم باسمكم مع المساهمة.',
+    },
+  },
+  retracted: {
+    subject: {
+      fr: 'KOHOP : votre contribution a été retirée',
+      en: 'KOHOP: your contribution has been retracted',
+      es: 'KOHOP: su contribución ha sido retirada',
+      pt: 'KOHOP: a sua contribuição foi retirada',
+      ar: 'KOHOP: سُحبت مساهمتكم',
+    },
+    title: {
+      fr: 'Votre contribution est retirée',
+      en: 'Your contribution is retracted',
+      es: 'Su contribución está retirada',
+      pt: 'A sua contribuição foi retirada',
+      ar: 'سُحبت مساهمتكم',
+    },
+    lead: {
+      fr: 'La page reste en ligne avec une notice de retrait. Le motif est visible dans votre espace.',
+      en: 'The page stays online with a retraction notice. The reason is visible in your member area.',
+      es: 'La página permanece en línea con un aviso de retirada. El motivo es visible en su espacio.',
+      pt: 'A página permanece online com um aviso de retirada. O motivo é visível no seu espaço.',
+      ar: 'تبقى الصفحة منشورة مع إشعار سحب. السبب ظاهر في فضائكم.',
+    },
+  },
+};
+
+export function productionEmail(args: {
+  siteUrl: string;
+  locale: SiteLocale;
+  contributionId: string;
+  slug?: string;
+  title: string;
+  dueLabel?: string;
+  kind: KohopProductionEmailKind;
+}): { subject: string; html: string } {
+  const loc = args.locale;
+  const copy = PRODUCTION_COPY[args.kind];
+  const publicPage =
+    args.kind === 'published' || args.kind === 'publishedReviewer';
+  const url =
+    publicPage && args.slug
+      ? `${base(args.siteUrl, loc)}/kohop/${encodeURIComponent(args.slug)}`
+      : `${base(args.siteUrl, loc)}/espace-membre/kohop/${encodeURIComponent(args.contributionId)}`;
+  const kit = emailKit(loc);
+  const rows = [{ label: LABEL_TITLE[loc], value: escapeHtml(args.title) }];
+  if (args.dueLabel) {
+    rows.push({ label: LABEL_DEADLINE[loc], value: escapeHtml(args.dueLabel) });
+  }
+  const body =
+    kit.paragraph(copy.lead[loc]) +
+    kit.details(rows) +
+    kit.button(
+      url,
+      publicPage
+        ? CTA_PAGE[loc]
+        : args.kind === 'proofToApprove'
+          ? CTA_PROOF[loc]
+          : CTA_FILE[loc],
+    ) +
+    kit.fallback(url);
+  return {
+    subject: `${copy.subject[loc]} · ${subjectText(args.title)}`,
+    html: emailDocument({
+      loc,
+      title: copy.title[loc],
+      preheader: copy.lead[loc],
+      body,
+      reason:
+        args.kind === 'publishedReviewer'
+          ? REASON_REVIEWER_PUBLISHED[loc]
+          : REASON_AUTHOR[loc],
+    }),
+  };
+}

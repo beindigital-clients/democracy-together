@@ -19,6 +19,7 @@ export function ReasonDialog({
   reasonHint,
   codes,
   codeLabel,
+  second,
   pending,
   error,
   onConfirm,
@@ -33,17 +34,23 @@ export function ReasonDialog({
   reasonHint?: string;
   codes?: { value: string; label: string }[];
   codeLabel?: string;
+  // A second text (a retraction notice next to its reason).
+  second?: { label: string; hint?: string; minLength: number };
   pending: boolean;
   error: string;
-  onConfirm: (reason: string, code: string) => void;
+  onConfirm: (reason: string, code: string, second: string) => void;
   onCancel: () => void;
 }) {
   const t = useTranslations('kohop');
   const [reason, setReason] = useState('');
   const [code, setCode] = useState(codes?.[0]?.value ?? '');
+  const [secondText, setSecondText] = useState('');
   const trimmed = reason.trim();
+  const secondTrimmed = secondText.trim();
   const [tried, setTried] = useState(false);
-  const tooShort = trimmed.length < minLength;
+  const tooShort =
+    trimmed.length < minLength ||
+    (second !== undefined && secondTrimmed.length < second.minLength);
 
   return (
     <ConfirmDialog
@@ -68,6 +75,20 @@ export function ReasonDialog({
             error={tried && tooShort ? t('err_REASON_REQUIRED') : undefined}
             onChange={(e) => setReason(e.target.value)}
           />
+          {second ? (
+            <TextareaField
+              label={second.label}
+              hint={second.hint}
+              rows={3}
+              value={secondText}
+              error={
+                tried && secondTrimmed.length < second.minLength
+                  ? t('err_REASON_REQUIRED')
+                  : undefined
+              }
+              onChange={(e) => setSecondText(e.target.value)}
+            />
+          ) : null}
           <FormError>{error}</FormError>
         </div>
       }
@@ -77,10 +98,11 @@ export function ReasonDialog({
       onConfirm={() => {
         setTried(true);
         if (tooShort) return;
-        onConfirm(trimmed, code);
+        onConfirm(trimmed, code, secondTrimmed);
       }}
       onCancel={() => {
         setReason('');
+        setSecondText('');
         setTried(false);
         onCancel();
       }}

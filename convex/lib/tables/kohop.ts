@@ -81,6 +81,7 @@ export const kohopTables = {
     revisionExtendedAt: v.optional(v.number()),
     // Reminders sent to the author for the current revision deadline.
     revisionReminders: v.optional(v.number()),
+    proofReminders: v.optional(v.number()),
     proofDueAt: v.optional(v.number()),
     scheduledFor: v.optional(v.number()),
     scheduledFunctionId: v.optional(v.id('_scheduled_functions')),

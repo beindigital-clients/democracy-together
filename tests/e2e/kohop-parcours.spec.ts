@@ -233,6 +233,88 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   await expect(
     author.getByText('Votre contribution est acceptée'),
   ).toBeVisible();
+
+  // --- Production: copy-editing, proof, approval -----------------------------
+  await chief.reload();
+  await expect(
+    chief.getByRole('heading', { name: 'Préparation et parution' }),
+  ).toBeVisible();
+  const text = chief.getByLabel('Texte de la contribution');
+  await text.fill(
+    `${await text.inputValue()}\n\nPhrase ajoutée à la relecture.`,
+  );
+  await chief
+    .getByRole('button', { name: 'Enregistrer la préparation' })
+    .click();
+  await expect(chief.getByText('Préparation enregistrée.')).toBeVisible();
+  // The text changed: a proof is compulsory, "ready without proof" is closed.
+  await expect(
+    chief.getByRole('button', { name: 'Prêt à publier, sans épreuve' }),
+  ).toBeDisabled();
+  await chief
+    .getByRole('button', { name: 'Envoyer l’épreuve à l’auteur·rice' })
+    .click();
+  await expect(
+    chief
+      .getByText('En attente du bon à tirer')
+      .or(chief.getByText(/Épreuve envoyée : l’auteur·rice a jusqu’au/)),
+  ).toBeVisible();
+
+  await author.reload();
+  await expect(
+    author.getByRole('heading', { name: 'Épreuve à valider' }),
+  ).toBeVisible();
+  await attendreAucuneViolationGrave(author, 'épreuve KOHOP');
+  await author
+    .getByRole('button', { name: 'Bon à tirer : j’approuve' })
+    .click();
+  await author.getByRole('button', { name: 'Approuver', exact: true }).click();
+  await expect(author.getByText('Le texte est prêt')).toBeVisible();
+
+  // --- Publication, then the public page ---------------------------------------
+  await chief.reload();
+  const publishNow = chief.getByRole('button', { name: 'Publier maintenant' });
+  // The last internal originality check runs on the text to publish first.
+  await expect(publishNow).toBeEnabled({ timeout: 30_000 });
+  await attendreAucuneViolationGrave(chief, 'parution KOHOP du chef de revue');
+  await publishNow.click();
+  await chief.getByRole('button', { name: 'Publier', exact: true }).click();
+  const pageLink = chief.getByRole('link', { name: 'Voir la page publique' });
+  await expect(pageLink).toBeVisible();
+  const href = await pageLink.getAttribute('href');
+  expect(href).toMatch(/\/kohop\/.+/);
+
+  const reader = await browser.newContext({ locale: 'fr-FR' });
+  const visitor = await reader.newPage();
+  await visitor.goto('/fr/kohop');
+  await expect(
+    visitor.getByRole('heading', { level: 1, name: /KOHOP/ }),
+  ).toBeVisible();
+  await visitor.getByRole('link', { name: new RegExp(title) }).click();
+  await expect(
+    visitor.getByRole('heading', { level: 1, name: title }),
+  ).toBeVisible();
+  await expect(
+    visitor.getByRole('heading', { name: 'Évaluation par les pairs' }),
+  ).toBeVisible();
+  await expect(visitor.getByText('Analyse de Rémi Relecteur')).toBeVisible();
+  await expect(visitor.getByText('Analyse de Rita Relectrice')).toBeVisible();
+  await expect(
+    visitor.getByText('Merci pour ces lectures attentives'),
+  ).toBeVisible();
+  // Pilot access: readable, but closed to search engines.
+  const served = await (await reader.request.get(visitor.url())).text();
+  expect(served).toMatch(/<meta name="robots" content="noindex/);
+  expect(served).toContain('name="citation_title"');
+  expect(served).toContain('"@type":"ScholarlyArticle"');
+  // Nothing private on the page.
+  const html = await visitor.content();
+  expect(html).not.toContain('Note réservée au chef de revue');
+  expect(html).not.toContain('@democracytogether.test');
+  await attendreAucuneViolationGrave(visitor, 'page publique KOHOP');
+  await visitor.goto('/fr/kohop');
+  await attendreAucuneViolationGrave(visitor, 'liste publique KOHOP');
+  await reader.close();
 });
 
 test('un modérateur sans la fonction ne voit ni l’entrée, ni la file KOHOP', async ({
@@ -240,7 +322,7 @@ test('un modérateur sans la fonction ne voit ni l’entrée, ni la file KOHOP',
 }) => {
   const mod = await as(browser, 'moderateur');
   await mod.goto('/fr/admin');
-  await expect(mod.getByRole('link', { name: /^KOHOP/ })).toHaveCount(0);
+  await expect(mod.locator('a[href$="/admin/kohop"]')).toHaveCount(0);
   await mod.goto('/fr/admin/kohop');
   await expect(
     mod.getByText(/403|Accès refusé|autorisé/i).first(),

@@ -13,11 +13,22 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 3 | Relecture par les membres | **livré** |
 | 4 | Révision et décision | **livré** |
 | 5 | Contrôles par l'IA | **livré** |
-| 6 | Préparation, parution, pages publiques | à faire |
+| 6 | Préparation, parution, pages publiques | **livré** |
 | 7 | Relecteurs extérieurs | à faire |
 | 8 | Pilote, durcissement, lancement | à faire |
 
 ---
+
+## Lot 6 — Préparation, parution, pages publiques
+
+- **Préparation de copie** (`convex/kohopProduction.ts`) : une version `copyedit` (la version acceptée est conservée), différences visibles pour le chef et pour l'auteur.
+- **Épreuve et bon à tirer** : 5 jours ; **obligatoire si le texte a changé depuis l'acceptation** (`markReady` refuse avec `PROOF_REQUIRED`, testé). L'auteur approuve ou demande des corrections (motif). Épreuve sans réponse : relance, puis les chefs sont prévenus — **le silence n'est pas un accord** (`KOHOP_PROOF_TACIT_APPROVAL = false`, décision produit à confirmer).
+- **Parution** : immédiate ou programmée (`ctx.scheduler.runAt`, annulable). À l'heure dite l'événement système est re-vérifié (étape `scheduled`, date, verrou d'originalité) : sinon retour à `ready` et alerte aux chefs. Tout reste derrière `requireReviewChief` et la machine ; la publication exige le rapport d'originalité de la version publiée.
+- **Retrait** : notice publique + motif interne ; la page reste en ligne avec la notice, hors liste et hors recherche.
+- **Pages publiques** : `/kohop` (filtres champ et langue), `/kohop/[slug]` (texte, « Pour aller plus loin », évaluation par les pairs : parcours daté, une carte par relecteur ayant consenti, réponse de l'auteur, version soumise, licence, citation APA/BibTeX/RIS, lien permanent). Métadonnées `ScholarlyArticle`, `citation_*`, `canonical`, `hreflang`. **`noindex` tant que l'accès est `pilot`** ; le plan du site ne liste KOHOP qu'avec l'accès ouvert.
+- **Projection publique figée** (`convex/kohopPublic.ts`, validateurs `returns`) et **test de sérialisation** (`kohopPublic.test.ts`) : aucun e-mail, aucune note confidentielle, aucun relecteur récusé, aucune version de travail, aucun rapport d'originalité, aucune vérification de liens.
+- Recherche globale (nouvelle source `kohop`, contributions publiées seulement), fiches d'organisation, entrée « KOHOP » dans l'en-tête, e-mails « publiée » à l'auteur et aux relecteurs (5 langues).
+- **Choix à confirmer** : le motif d'un retrait reste interne (seule la notice est publique).
 
 ## Lot 5 — Contrôles automatiques (liens, suggestions, originalité)
 

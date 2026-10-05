@@ -23,6 +23,7 @@ import { useActionFeedback } from '@/components/admin/action-feedback';
 import { KohopText } from '@/components/kohop/kohop-text';
 import { ReviewsList } from '@/components/kohop/reviews-list';
 import { TextDiff, diffStats } from '@/components/kohop/text-diff';
+import { ProductionPanel } from '@/components/kohop/production-panel';
 import { ReasonDialog } from '@/components/kohop/reason-dialog';
 import { StageBadge } from '@/components/kohop/stage-badge';
 import { useKohopDates, useKohopError } from '@/components/kohop/use-kohop';
@@ -796,6 +797,12 @@ export default function AdminKohopFile() {
           </div>
           <RevisionDiff file={file} />
         </Card>
+      ) : null}
+
+      {['production', 'proof', 'ready', 'scheduled', 'published'].includes(
+        file.stage,
+      ) ? (
+        <ProductionPanel key={file.stage} file={file} />
       ) : null}
 
       {file.submittedVersion !== null ? (
