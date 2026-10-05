@@ -120,11 +120,24 @@ export const ADMIN_NAMESPACES = [
  */
 export const MEMBER_NAMESPACES = ['member'] as const;
 
+/**
+ * Namespaces that ONLY the KOHOP screens request (author's follow-up in the
+ * member area, review chief's file in the back office, public pages).
+ *
+ * `kohop` is large (the stage, error and vocabulary labels of a whole editorial
+ * chain): carrying it on every page would undo the saving of audit F-05. The
+ * layouts of the KOHOP routes (`espace-membre/kohop`, `admin/kohop`) add it to
+ * their own provider, and only they — a nested provider REPLACES its
+ * descendants' catalogue, so each one carries its frame's namespaces too.
+ */
+export const KOHOP_NAMESPACES = ['kohop'] as const;
+
 /** All namespaces requested by a client component, wherever it is. */
 export const CLIENT_NAMESPACES = [
   ...BASE_CLIENT_NAMESPACES,
   ...ADMIN_NAMESPACES,
   ...MEMBER_NAMESPACES,
+  ...KOHOP_NAMESPACES,
 ] as const;
 
 /**

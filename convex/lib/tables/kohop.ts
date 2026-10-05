@@ -64,6 +64,9 @@ export const kohopTables = {
     // Version counters: the newest version, the one the reviewers read, the
     // one the review chief accepted.
     currentVersion: v.number(),
+    // The newest version already sent to the review chief: frozen, never
+    // rewritten (editing after it creates the next version).
+    submittedVersion: v.optional(v.number()),
     reviewedVersion: v.optional(v.number()),
     acceptedVersion: v.optional(v.number()),
     // Copy of the latest version's title, for lists.

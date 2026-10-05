@@ -21,6 +21,8 @@ export type ProfileDraft = {
   messagePolicy: MessagePolicy;
   mutedNotificationTypes: string[];
   messageEmail: boolean;
+  // KOHOP: "do not propose me as a reviewer".
+  notReviewer: boolean;
 };
 
 export function draftFrom(me: ProfileDraft): ProfileDraft {
@@ -37,6 +39,7 @@ export function draftFrom(me: ProfileDraft): ProfileDraft {
     messagePolicy: me.messagePolicy,
     mutedNotificationTypes: [...me.mutedNotificationTypes],
     messageEmail: me.messageEmail,
+    notReviewer: me.notReviewer,
   };
 }
 
@@ -64,6 +67,7 @@ export function sameDraft(a: ProfileDraft, b: ProfileDraft): boolean {
       messagePolicy: d.messagePolicy,
       mutedNotificationTypes: sorted(d.mutedNotificationTypes),
       messageEmail: d.messageEmail,
+      notReviewer: d.notReviewer,
     });
   return norm(a) === norm(b);
 }

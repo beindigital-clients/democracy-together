@@ -6,6 +6,7 @@ import {
   BASE_CLIENT_NAMESPACES,
   ADMIN_NAMESPACES,
   MEMBER_NAMESPACES,
+  KOHOP_NAMESPACES,
   CLIENT_NAMESPACES,
   pickNamespaces,
 } from '@/i18n/client-namespaces';
@@ -167,13 +168,19 @@ describe('Espaces de messages transmis au navigateur', () => {
     const base = new Set<string>(BASE_CLIENT_NAMESPACES);
     const admin = new Set<string>(ADMIN_NAMESPACES);
     const member = new Set<string>(MEMBER_NAMESPACES);
+    const kohop = new Set<string>(KOHOP_NAMESPACES);
+    for (const ns of kohop) {
+      expect(base.has(ns)).toBe(false);
+      expect(admin.has(ns)).toBe(false);
+      expect(member.has(ns)).toBe(false);
+    }
     for (const ns of admin) expect(base.has(ns)).toBe(false);
     for (const ns of member) {
       expect(base.has(ns)).toBe(false);
       expect(admin.has(ns)).toBe(false);
     }
     expect([...CLIENT_NAMESPACES].sort()).toEqual(
-      [...base, ...admin, ...member].sort(),
+      [...base, ...admin, ...member, ...kohop].sort(),
     );
   });
 
@@ -187,6 +194,19 @@ describe('Espaces de messages transmis au navigateur', () => {
         (MEMBER_NAMESPACES as readonly string[]).includes(a.espace) &&
         !a.fichier.includes('espace-membre') &&
         !a.fichier.includes('components/member/'),
+    );
+    expect(fautifs.map((a) => `${a.fichier} -> ${a.espace}`)).toEqual([]);
+  });
+
+  it('ne garde dans KOHOP que ce que seules les pages KOHOP demandent', () => {
+    // The `kohop` catalogue is added by the layouts of the KOHOP routes only:
+    // a component outside them requesting it would render the last segment of
+    // each key, silently.
+    const fautifs = APPELS.filter(
+      (a) =>
+        a.espace !== null &&
+        (KOHOP_NAMESPACES as readonly string[]).includes(a.espace) &&
+        !a.fichier.includes('kohop'),
     );
     expect(fautifs.map((a) => `${a.fichier} -> ${a.espace}`)).toEqual([]);
   });

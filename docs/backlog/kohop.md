@@ -9,13 +9,88 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 |---|---|---|
 | 0 | Mises en conformité et chef de revue | **livré** (ci-dessous) |
 | 1 | Fondations KOHOP | **livré** |
-| 2 | Dépôt, choix des relecteurs, recevabilité | à faire |
+| 2 | Dépôt, choix des relecteurs, recevabilité | **livré** |
 | 3 | Relecture par les membres | à faire |
 | 4 | Révision et décision | à faire |
 | 5 | Contrôles par l'IA | à faire |
 | 6 | Préparation, parution, pages publiques | à faire |
 | 7 | Relecteurs extérieurs | à faire |
 | 8 | Pilote, durcissement, lancement | à faire |
+
+---
+
+## Lot 2 — Dépôt, choix des relecteurs, recevabilité
+
+**Côté auteur** (`/espace-membre/kohop`, `/espace-membre/kohop/[id]`, rang `membre`,
+entrée « KOHOP » de l'espace membre) — `convex/kohop.ts` :
+
+- brouillon enregistré automatiquement (`saveDraft`) ; un texte déjà déposé n'est
+  jamais réécrit : corriger un dossier renvoyé crée la version suivante ;
+- éditeur Markdown contraint : barre d'outils, aperçu, compteur de 500 à 1 000
+  mots calculé par **la même fonction que le serveur** (`kohopText`), erreurs de
+  mise en forme listées avec leur ligne ;
+- informations : titre, chapô, champs thématiques (`KOHOP_FIELDS`, 1 ou 2),
+  mots-clés, langue (fr ou en), coauteurs, liens « Pour aller plus loin » (https
+  ou document publié de la bibliothèque) ;
+- engagements : charte, accord de publication CC BY 4.0, déclaration
+  d'originalité et liste des travaux antérieurs ; liste de contrôle « Avant de
+  déposer » qui reprend exactement les contrôles du serveur ;
+- choix des relecteurs **dans l'annuaire** : deux titulaires et un suppléant, avec
+  un lien déclaré (aucun / familial / personnel / hiérarchique). Option
+  « Ne pas me proposer comme relecteur » dans l'éditeur de profil
+  (`memberProfiles.notReviewer`) ;
+- suivi : étape, échéances, message du chef de revue, historique ; retrait.
+
+**Vérification des liens par règles** (`convex/lib/kohopLinks.ts`, pur ;
+`kohopLinkFacts.ts` collecte les faits) :
+
+- *bloquants, refusés par le serveur* (`REVIEWER_NOT_ELIGIBLE`) : l'auteur lui-même,
+  coauteur (compte ou e-mail), même organisation, binôme de mentorat, relecture
+  croisée de moins de 12 mois, cosignature KOHOP de moins de 3 ans, lien déclaré ;
+- *signalés* : même espace de travail, abonnement mutuel, adresse sur le domaine
+  du site de l'organisation, désignation récurrente (2 en 12 mois), nom commun
+  parmi les auteurs d'un document de la bibliothèque (texte libre : un signal) ;
+- l'auteur ne lit qu'un message générique ; le détail est dans `kohopLinkChecks`,
+  visible du seul chef de revue. Un test sérialise la réponse à l'auteur et vérifie
+  qu'elle ne contient ni e-mail, ni drapeau, ni constat, ni lien déclaré.
+
+**Côté chef de revue** (`/admin/kohop`, `/admin/kohop/[id]`, `convex/kohopChief.ts`,
+`requireReviewChief`) : file par étape avec compteurs, dossier (texte, versions,
+auteur et organisation, engagements, relecteurs avec liens trouvés et sources,
+historique, décisions), validation ou récusation motivée d'un relecteur, renvoi à
+l'auteur (14 jours), déclaration d'irrecevabilité (code + texte, définitive),
+lancement de la relecture (**deux titulaires validés exigés**). L'entrée est dans
+le groupe « Édition », visible des seuls chefs de revue et administrateurs, même au
+rang modérateur (`minRole` propre à l'entrée).
+
+**Accès pilote** (`kohopSettings`, administrateur seul, panneau en bas de
+`/admin/kohop`) : `pilot` (défaut : dépôt réservé aux organisations cochées) ou
+`open`. Le serveur le vérifie à la création du brouillon et au dépôt
+(`PILOT_ONLY`). Tant qu'il est `pilot`, les pages publiques seront en `noindex`
+(lot 6).
+
+**E-mail** : à chaque dépôt, alerte aux chefs de revue et administrateurs
+(`convex/kohopEmail.ts`, gabarit `convex/lib/kohopEmails.ts`, cinq langues), en plus
+de la notification.
+
+**Interface** : catalogue `kohop` en cinq langues, transmis au navigateur par les
+seuls layouts KOHOP (`KOHOP_NAMESPACES`) pour ne pas alourdir les pages publiques.
+Composants dans `src/components/kohop/`.
+
+**Outils de développement** : `kohopDev:seedPilot` (garde `AUTH_DEV_OTP`) monte un
+pilote complet (organisations, profils d'annuaire, accès) ; sessions E2E
+`kohopAuteur` / `kohopChef`.
+
+**Tests** : `convex/kohop.test.ts` (26 : accès pilote, isolation du dossier, liens
+bloquants/signalés avec mentorat et espaces de travail, dépôt, actions du chef de
+revue, aucune écriture sur refus), `convex/lib/kohopLinks.test.ts`, spec Playwright
+`tests/e2e/kohop-parcours.spec.ts` (auteur → chef de revue, axe sans violation
+grave, modérateur sans la fonction refusé).
+
+**Limites connues** : pas d'invitation au lancement de la relecture (lot 3) ; la
+désignation d'un remplaçant après un désistement passe par l'auteur, le suppléant
+n'est pas encore promu automatiquement (lot 3) ; le contrôle d'originalité et les
+suggestions de l'IA arrivent au lot 5.
 
 ---
 

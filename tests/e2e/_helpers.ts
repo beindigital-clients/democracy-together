@@ -100,6 +100,16 @@ export async function setReviewChief(
   convexRun('devAdmin:setReviewChiefByEmail', { email, value });
 }
 
+// Builds a KOHOP pilot (DEV, AUTH_DEV_OTP guard): organizations, directory
+// profiles for the reviewers, and the pilot access listing the author's
+// organization. Idempotent.
+export async function seedKohopPilot(
+  authorEmail: string,
+  reviewerEmails: string[],
+): Promise<void> {
+  convexRun('kohopDev:seedPilot', { authorEmail, reviewerEmails });
+}
+
 // Removes an account's role (DEV, AUTH_DEV_OTP guard) — reproduces a LEGACY
 // account, created before every creation path set a role. It is the state in
 // which the back office displayed "Membre" instead of

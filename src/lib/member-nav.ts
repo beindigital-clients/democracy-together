@@ -23,6 +23,7 @@ export type MemberNavKey =
   | 'workspaces'
   | 'publications'
   | 'tribune'
+  | 'kohop'
   | 'manuscripts'
   | 'youth'
   | 'mentoring'
@@ -122,6 +123,12 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
       {
         key: 'tribune',
         href: '/espace-membre/contributions',
+        audience: 'members',
+      },
+      // KOHOP: short contributions reviewed by peers the author chooses.
+      {
+        key: 'kohop',
+        href: '/espace-membre/kohop',
         audience: 'members',
       },
       // The AUTHOR's side of peer review; reviewers and editors work from

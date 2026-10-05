@@ -80,6 +80,9 @@ const EDITOR_ITEMS = [
 // it controls is not moderation, it is the decision to do without it
 // (see the `automatisation` group in admin-nav.tsx).
 const ADMIN_ITEMS = ['Modération IA', 'Finances', 'Utilisateurs', 'Journal'];
+// KOHOP's queue is reserved to review chiefs and administrators: an editor
+// WITHOUT the function does not see it, an administrator always does.
+const KOHOP_ITEMS = ['KOHOP'];
 
 // The entries' accessible NAME specifies the area (RGAA 6.1, see admin-nav.tsx):
 // "Publications (Administration)". The VISIBLE text remains the bare
@@ -94,7 +97,11 @@ function linkNames(nav: HTMLElement): string[] {
 // that adding a screen forces naming it in ITS list (rank), without having to
 // touch a counter at every workstream — the lists themselves remain the
 // specification.
-const ALL_COUNT = STAFF_ITEMS.length + EDITOR_ITEMS.length + ADMIN_ITEMS.length;
+const ALL_COUNT =
+  STAFF_ITEMS.length +
+  EDITOR_ITEMS.length +
+  ADMIN_ITEMS.length +
+  KOHOP_ITEMS.length;
 
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
   it('un modérateur voit les 12 entrées communes, et aucune entrée réservée', () => {
@@ -125,7 +132,12 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
 
   it('un administrateur voit toutes les entrées attendues', () => {
     const nav = renderNav('admin');
-    const expected = [...STAFF_ITEMS, ...EDITOR_ITEMS, ...ADMIN_ITEMS];
+    const expected = [
+      ...STAFF_ITEMS,
+      ...EDITOR_ITEMS,
+      ...ADMIN_ITEMS,
+      ...KOHOP_ITEMS,
+    ];
     expect(expected).toHaveLength(ALL_COUNT);
     expect(linkNames(nav).sort()).toEqual([...expected].sort());
   });
@@ -287,8 +299,12 @@ describe('adminMinRoleForPath', () => {
 
   it('est cohérent avec la barre : ce qu’elle cache à un rôle, la coquille le refuse', () => {
     for (const role of ROLE_ORDER) {
+      // Rank only: the review-chief condition is exercised below, so every
+      // account is treated as holding the function here.
       const visible = new Set(
-        visibleAdminNavGroups(role).flatMap((g) => g.items.map((i) => i.href)),
+        visibleAdminNavGroups(role, true).flatMap((g) =>
+          g.items.map((i) => i.href),
+        ),
       );
       for (const item of ADMIN_NAV_GROUPS.flatMap((g) => g.items)) {
         const allowed =
@@ -301,9 +317,8 @@ describe('adminMinRoleForPath', () => {
 });
 
 // REVIEW CHIEF CONDITION (KOHOP). The review chief is a function, not a rank:
-// an entry can ask for it IN ADDITION to the group's minimum rank. No shipped
-// entry needs it yet (the KOHOP queue arrives with batch 2), so the rule is
-// exercised on a table of its own.
+// an entry can ask for it IN ADDITION to the group's minimum rank. The rule is
+// exercised on a table of its own, then on the real one (KOHOP's queue).
 describe('Navigation du back-office — entrées réservées au chef de revue', () => {
   const GROUPS: readonly AdminNavGroup[] = [
     {
@@ -347,11 +362,20 @@ describe('Navigation du back-office — entrées réservées au chef de revue', 
     expect(keys('membre', true)).toEqual([]);
   });
 
-  it('aucune entrée livrée ne l’exige pour l’instant, et le chemin le dit', () => {
+  it('l’entrée KOHOP de la barre réelle est réservée au chef de revue et à l’administrateur', () => {
+    const hrefs = (role: NetworkRole, chief: boolean) =>
+      visibleAdminNavGroups(role, chief).flatMap((g) =>
+        g.items.map((i) => i.href),
+      );
+    expect(hrefs('moderateur', false)).not.toContain('/admin/kohop');
+    expect(hrefs('editeur', false)).not.toContain('/admin/kohop');
+    // A moderator holding the function sees it, below the `edition` group's rank.
+    expect(hrefs('moderateur', true)).toContain('/admin/kohop');
+    expect(hrefs('admin', false)).toContain('/admin/kohop');
+    expect(adminPathRequiresReviewChief('/admin/kohop')).toBe(true);
+    expect(adminPathRequiresReviewChief('/admin/kohop/abc')).toBe(true);
+    expect(adminMinRoleForPath('/admin/kohop')).toBe('moderateur');
     expect(adminPathRequiresReviewChief('/admin/publications')).toBe(false);
     expect(adminPathRequiresReviewChief('/admin/inconnu')).toBe(false);
-    expect(visibleAdminNavGroups('moderateur', false)).toEqual(
-      visibleAdminNavGroups('moderateur', true),
-    );
   });
 });

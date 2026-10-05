@@ -23,6 +23,7 @@ import {
   UserRound,
   UsersRound,
   type LucideIcon,
+  BookOpenCheck,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -45,6 +46,7 @@ const ICONS: Record<MemberNavKey, LucideIcon> = {
   workspaces: FolderKanban,
   publications: FileText,
   tribune: Megaphone,
+  kohop: BookOpenCheck,
   manuscripts: ScrollText,
   youth: Sparkles,
   mentoring: Handshake,
@@ -74,6 +76,7 @@ export function useMemberNavLabels(): Record<MemberNavKey, string> {
     workspaces: t('navWorkspaces'),
     publications: t('navPublications'),
     tribune: t('navTribune'),
+    kohop: t('navKohop'),
     manuscripts: t('navManuscripts'),
     youth: t('navYouth'),
     mentoring: t('navMentoring'),

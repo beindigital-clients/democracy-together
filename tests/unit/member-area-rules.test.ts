@@ -73,6 +73,7 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
         'workspaces',
         'publications',
         'tribune',
+        'kohop',
         'manuscripts',
         'projects',
         'evaluations',
@@ -95,6 +96,7 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
           'workspaces',
           'publications',
           'tribune',
+          'kohop',
         ].sort(),
       );
       const groups = visibleMemberNavGroups(role).map((g) => g.key);
@@ -192,6 +194,7 @@ describe('Navigation de l’espace membre — libellés dans les cinq langues', 
     workspaces: 'navWorkspaces',
     publications: 'navPublications',
     tribune: 'navTribune',
+    kohop: 'navKohop',
     manuscripts: 'navManuscripts',
     youth: 'navYouth',
     mentoring: 'navMentoring',
@@ -383,6 +386,7 @@ const DRAFT: ProfileDraft = {
   messagePolicy: 'members',
   mutedNotificationTypes: [],
   messageEmail: false,
+  notReviewer: false,
 };
 
 describe('Pays écrit en texte libre (candidature d’adhésion)', () => {

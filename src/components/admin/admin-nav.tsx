@@ -47,6 +47,9 @@ export type AdminNavItem = {
   // the group's minimum rank (KOHOP): the review chief is a function, not a
   // rank, so no rank threshold can express it.
   requiresReviewChief?: boolean;
+  // Minimum rank of THIS entry when it differs from its group's: a review chief
+  // may hold the `moderateur` rank, below the `edition` group's `editeur`.
+  minRole?: NetworkRole;
 };
 export type AdminNavGroup = {
   key: string;
@@ -121,6 +124,14 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     minRole: 'editeur',
     items: [
       { href: '/admin/revue', key: 'review' },
+      // KOHOP queue (batch 2): the review chief's screen, whatever their rank
+      // (moderator or above) — the function, not the rank, opens it.
+      {
+        href: '/admin/kohop',
+        key: 'kohop',
+        requiresReviewChief: true,
+        minRole: 'moderateur',
+      },
       // Annual reports (F-41, editorial workstream): the Convex guard is at
       // editor rank (`annualReports.*`), like the review.
       { href: '/admin/rapports', key: 'annualReports' },
@@ -188,7 +199,7 @@ export function adminMinRoleForPath(pathname: string): NetworkRole {
           ? path === '/admin'
           : isAdminNavItemActive(item.href, path)
       ) {
-        return group.minRole;
+        return item.minRole ?? group.minRole;
       }
     }
   }
@@ -257,10 +268,13 @@ export function filterAdminNavGroups(
 ): readonly AdminNavGroup[] {
   const allowed = isReviewChief({ role, reviewChief });
   return groups
-    .filter((group) => roleRank(role) >= roleRank(group.minRole))
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !item.requiresReviewChief || allowed),
+      items: group.items.filter(
+        (item) =>
+          roleRank(role) >= roleRank(item.minRole ?? group.minRole) &&
+          (!item.requiresReviewChief || allowed),
+      ),
     }))
     .filter((group) => group.items.length > 0);
 }

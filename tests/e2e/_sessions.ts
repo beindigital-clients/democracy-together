@@ -82,6 +82,8 @@ export type SessionKey =
   | 'editorialEditeur'
   | 'editorialRelecteur1'
   | 'editorialRelecteur2'
+  | 'kohopAuteur'
+  | 'kohopChef'
   | 'a11yClavier'
   | 'a11yAnnonces'
   | 'a11yAffichage'
@@ -337,6 +339,20 @@ export const SESSIONS: Record<
     email: 'e2e_session_editorial_auteur@democracytogether.test',
     state: 'tests/e2e/.auth/editorial-auteur.json',
     role: 'membre',
+  },
+  // KOHOP journey (`kohop-parcours.spec.ts`): an author of the pilot
+  // organization, and a review chief of MODERATOR rank — the function, not the
+  // rank, opens the queue.
+  kohopAuteur: {
+    email: 'e2e_session_kohop_auteur@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-auteur.json',
+    role: 'membre',
+  },
+  kohopChef: {
+    email: 'e2e_session_kohop_chef@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-chef.json',
+    role: 'moderateur',
+    reviewChief: true,
   },
   editorialEditeur: {
     email: 'e2e_session_editorial_editeur@democracytogether.test',
