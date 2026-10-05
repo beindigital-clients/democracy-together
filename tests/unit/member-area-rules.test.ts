@@ -74,6 +74,7 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
         'publications',
         'tribune',
         'kohop',
+        'kohopReviews',
         'manuscripts',
         'projects',
         'evaluations',
@@ -97,6 +98,7 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
           'publications',
           'tribune',
           'kohop',
+          'kohopReviews',
         ].sort(),
       );
       const groups = visibleMemberNavGroups(role).map((g) => g.key);
@@ -195,6 +197,7 @@ describe('Navigation de l’espace membre — libellés dans les cinq langues', 
     publications: 'navPublications',
     tribune: 'navTribune',
     kohop: 'navKohop',
+    kohopReviews: 'navKohopReviews',
     manuscripts: 'navManuscripts',
     youth: 'navYouth',
     mentoring: 'navMentoring',

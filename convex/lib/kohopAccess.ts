@@ -124,3 +124,31 @@ export function advance(from: KohopStage, event: KohopEvent): KohopStage {
     );
   }
 }
+
+/**
+ * The reviewer's own assignment. Anyone else's — and a designation the review
+ * chief has not yet turned into an invitation — reads as NON-EXISTENT.
+ */
+export async function requireOwnAssignment(
+  ctx: MutationCtx | QueryCtx,
+  reviewerId: Id<'kohopReviewers'>,
+): Promise<{
+  user: Doc<'users'>;
+  reviewer: Doc<'kohopReviewers'>;
+  contribution: Doc<'kohopContributions'>;
+}> {
+  const user = await requireNetworkRole(ctx, 'membre');
+  const reviewer = await ctx.db.get(reviewerId);
+  if (
+    !reviewer ||
+    reviewer.userId !== user._id ||
+    reviewer.status === 'proposed' ||
+    reviewer.status === 'approved' ||
+    reviewer.status === 'recused'
+  ) {
+    throw new ConvexError('NOT_FOUND');
+  }
+  const contribution = await ctx.db.get(reviewer.contributionId);
+  if (!contribution) throw new ConvexError('NOT_FOUND');
+  return { user, reviewer, contribution };
+}

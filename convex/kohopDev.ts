@@ -99,11 +99,25 @@ export const seedPilot = internalMutation({
       jobTitle: string,
       email: string,
     ) => {
+      // A stale profile of an earlier seed under the same name would be found
+      // first by a test looking the person up: it leaves the directory.
+      const sameName = await ctx.db
+        .query('memberProfiles')
+        .filter((q) => q.eq(q.field('displayName'), displayName))
+        .take(20);
+      for (const other of sameName) {
+        if (other.userId !== userId && other.listed) {
+          await ctx.db.patch(other._id, { listed: false });
+        }
+      }
       const has = await ctx.db
         .query('memberProfiles')
         .withIndex('by_userId', (q) => q.eq('userId', userId))
         .first();
-      if (has) return;
+      if (has) {
+        if (!has.listed) await ctx.db.patch(has._id, { listed: true });
+        return;
+      }
       // Unique per account: the e-mail's local part.
       const handle = normalizeEmail(email)
         .split('@')[0]

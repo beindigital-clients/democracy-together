@@ -24,6 +24,7 @@ export type MemberNavKey =
   | 'publications'
   | 'tribune'
   | 'kohop'
+  | 'kohopReviews'
   | 'manuscripts'
   | 'youth'
   | 'mentoring'
@@ -129,6 +130,12 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
       {
         key: 'kohop',
         href: '/espace-membre/kohop',
+        audience: 'members',
+      },
+      // The REVIEWER's side of KOHOP: invitations and analyses.
+      {
+        key: 'kohopReviews',
+        href: '/espace-membre/relectures',
         audience: 'members',
       },
       // The AUTHOR's side of peer review; reviewers and editors work from

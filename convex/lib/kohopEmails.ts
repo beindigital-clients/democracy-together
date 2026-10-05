@@ -121,3 +121,102 @@ export function chiefNewSubmissionEmail(args: {
     }),
   };
 }
+
+// --- To a reviewer: invitation and reminder -------------------------------------
+
+const REASON_REVIEWER: Phrase = {
+  fr: 'Vous recevez cet e-mail car un·e auteur·rice vous a proposé·e comme relecteur·rice sur Democracy Together, et le chef de revue a validé cette proposition.',
+  en: 'You are receiving this e-mail because an author proposed you as a reviewer on Democracy Together, and the review chief approved the proposal.',
+  es: 'Recibe este correo porque un/a autor/a le propuso como revisor/a en Democracy Together y el jefe de revisión validó la propuesta.',
+  pt: 'Recebe este e-mail porque um/a autor/a o/a propôs como revisor/a na Democracy Together e o chefe de revisão validou a proposta.',
+  ar: 'يصلكم هذا البريد لأن مؤلفاً اقترحكم مراجعاً في Democracy Together ووافق رئيس المراجعة على الاقتراح.',
+};
+const INVITE_SUBJECT: Phrase = {
+  fr: 'KOHOP : vous êtes invité·e à relire une contribution',
+  en: 'KOHOP: you are invited to review a contribution',
+  es: 'KOHOP: se le invita a revisar una contribución',
+  pt: 'KOHOP: é convidado/a a rever uma contribuição',
+  ar: 'KOHOP: دعوة لمراجعة مساهمة',
+};
+const INVITE_TITLE: Phrase = {
+  fr: 'Une contribution attend votre relecture',
+  en: 'A contribution is waiting for your review',
+  es: 'Una contribución espera su revisión',
+  pt: 'Uma contribuição aguarda a sua revisão',
+  ar: 'مساهمة بانتظار مراجعتكم',
+};
+const INVITE_LEAD: Phrase = {
+  fr: 'Vous pouvez accepter ou décliner depuis votre espace. Si vous acceptez, vous aurez 14 jours pour rédiger une analyse publique signée de votre nom.',
+  en: 'You can accept or decline from your member area. If you accept, you will have 14 days to write a public analysis signed with your name.',
+  es: 'Puede aceptar o rechazar desde su espacio. Si acepta, tendrá 14 días para redactar un análisis público firmado con su nombre.',
+  pt: 'Pode aceitar ou recusar a partir do seu espaço. Se aceitar, terá 14 dias para redigir uma análise pública assinada com o seu nome.',
+  ar: 'يمكنكم القبول أو الاعتذار من فضائكم. عند القبول تملكون 14 يوماً لكتابة تحليل علني يحمل اسمكم.',
+};
+const REMIND_SUBJECT: Phrase = {
+  fr: 'KOHOP : rappel — une relecture vous attend',
+  en: 'KOHOP: reminder — a review is waiting for you',
+  es: 'KOHOP: recordatorio — una revisión le espera',
+  pt: 'KOHOP: lembrete — uma revisão aguarda por si',
+  ar: 'KOHOP: تذكير — مراجعة بانتظاركم',
+};
+const REMIND_TITLE: Phrase = {
+  fr: 'Une échéance approche',
+  en: 'A deadline is approaching',
+  es: 'Se acerca un plazo',
+  pt: 'Aproxima-se um prazo',
+  ar: 'يقترب موعد نهائي',
+};
+const REMIND_LEAD: Phrase = {
+  fr: 'Sans réponse ou sans analyse à cette date, un·e remplaçant·e sera sollicité·e : votre refus tardif ne pénalise personne, mais mieux vaut nous prévenir.',
+  en: 'Without a reply or an analysis by this date, a substitute will be asked: declining late penalizes nobody, but please let us know.',
+  es: 'Sin respuesta ni análisis en esa fecha se solicitará a un suplente: rechazar tarde no penaliza a nadie, pero avísenos.',
+  pt: 'Sem resposta ou análise nessa data será solicitado um suplente: recusar tarde não penaliza ninguém, mas avise-nos.',
+  ar: 'من دون رد أو تحليل في هذا التاريخ سيُطلب من بديل: الاعتذار المتأخر لا يعاقب أحداً، لكن يُرجى إبلاغنا.',
+};
+const LABEL_DEADLINE: Phrase = {
+  fr: 'Échéance',
+  en: 'Deadline',
+  es: 'Plazo',
+  pt: 'Prazo',
+  ar: 'الموعد النهائي',
+};
+const CTA_REVIEW: Phrase = {
+  fr: 'Ouvrir mon invitation',
+  en: 'Open my invitation',
+  es: 'Abrir mi invitación',
+  pt: 'Abrir o meu convite',
+  ar: 'فتح الدعوة',
+};
+
+export function reviewerEmail(args: {
+  siteUrl: string;
+  locale: SiteLocale;
+  reviewerId: string;
+  title: string;
+  dueLabel: string;
+  kind: 'invitation' | 'reminder';
+}): { subject: string; html: string } {
+  const loc = args.locale;
+  const invitation = args.kind === 'invitation';
+  const url = `${base(args.siteUrl, loc)}/espace-membre/relectures/${encodeURIComponent(args.reviewerId)}`;
+  const kit = emailKit(loc);
+  const lead = invitation ? INVITE_LEAD[loc] : REMIND_LEAD[loc];
+  const body =
+    kit.paragraph(lead) +
+    kit.details([
+      { label: LABEL_TITLE[loc], value: escapeHtml(args.title) },
+      { label: LABEL_DEADLINE[loc], value: escapeHtml(args.dueLabel) },
+    ]) +
+    kit.button(url, CTA_REVIEW[loc]) +
+    kit.fallback(url);
+  return {
+    subject: `${(invitation ? INVITE_SUBJECT : REMIND_SUBJECT)[loc]} · ${subjectText(args.title)}`,
+    html: emailDocument({
+      loc,
+      title: (invitation ? INVITE_TITLE : REMIND_TITLE)[loc],
+      preheader: lead,
+      body,
+      reason: REASON_REVIEWER[loc],
+    }),
+  };
+}

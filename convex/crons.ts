@@ -65,4 +65,8 @@ crons.cron(
   {},
 );
 
+// KOHOP — reviewers' deadlines: reminders, then expiry and replacement by the
+// substitute. Every hour, at minute 23.
+crons.cron('kohop-deadlines', '23 * * * *', internal.kohopDeadlines.run, {});
+
 export default crons;

@@ -163,6 +163,7 @@ export const AUDIT = {
   KOHOP_REVIEWER_ACCEPTED: 'kohop.reviewer_accepted',
   KOHOP_REVIEWER_DECLINED: 'kohop.reviewer_declined',
   KOHOP_REVIEWER_REPLACED: 'kohop.reviewer_replaced',
+  KOHOP_REVIEWER_EXPIRED: 'kohop.reviewer_expired',
   KOHOP_REVIEW_STARTED: 'kohop.review_started',
   KOHOP_REVIEW_SUBMITTED: 'kohop.review_submitted',
   KOHOP_REVISION_SUBMITTED: 'kohop.revision_submitted',

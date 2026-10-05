@@ -206,7 +206,9 @@ describe('Espaces de messages transmis au navigateur', () => {
       (a) =>
         a.espace !== null &&
         (KOHOP_NAMESPACES as readonly string[]).includes(a.espace) &&
-        !a.fichier.includes('kohop'),
+        !a.fichier.includes('kohop') &&
+        // The reviewer's screens, carried by their own KOHOP layout.
+        !a.fichier.includes('espace-membre/relectures'),
     );
     expect(fautifs.map((a) => `${a.fichier} -> ${a.espace}`)).toEqual([]);
   });

@@ -84,6 +84,8 @@ export type SessionKey =
   | 'editorialRelecteur2'
   | 'kohopAuteur'
   | 'kohopChef'
+  | 'kohopRelecteur1'
+  | 'kohopRelecteur2'
   | 'a11yClavier'
   | 'a11yAnnonces'
   | 'a11yAffichage'
@@ -353,6 +355,17 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/kohop-chef.json',
     role: 'moderateur',
     reviewChief: true,
+  },
+  // The two reviewers the author designates in the same journey.
+  kohopRelecteur1: {
+    email: 'e2e_kohop_rev1@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-relecteur1.json',
+    role: 'membre',
+  },
+  kohopRelecteur2: {
+    email: 'e2e_kohop_rev2@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-relecteur2.json',
+    role: 'membre',
   },
   editorialEditeur: {
     email: 'e2e_session_editorial_editeur@democracytogether.test',

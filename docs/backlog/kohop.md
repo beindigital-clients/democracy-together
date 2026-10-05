@@ -10,7 +10,7 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 0 | Mises en conformité et chef de revue | **livré** (ci-dessous) |
 | 1 | Fondations KOHOP | **livré** |
 | 2 | Dépôt, choix des relecteurs, recevabilité | **livré** |
-| 3 | Relecture par les membres | à faire |
+| 3 | Relecture par les membres | **livré** |
 | 4 | Révision et décision | à faire |
 | 5 | Contrôles par l'IA | à faire |
 | 6 | Préparation, parution, pages publiques | à faire |
@@ -18,6 +18,16 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 8 | Pilote, durcissement, lancement | à faire |
 
 ---
+
+## Lot 3 — Relecture par les membres
+
+- **Invitations** : `startReview` invite les deux titulaires validés (5 jours pour répondre) ; le suppléant validé reste en réserve. Notification + e-mail (action planifiée, 5 langues). Un titulaire validé pendant la relecture est invité aussitôt.
+- **Espace relecteur** (`/espace-membre/relectures`) : liste, réponse (acceptation = déclaration d'absence de conflit + consentement à la publication signée ; refus = motif, conflit, suggestion facultative), texte lisible **seulement après acceptation**, analyse 150–1 500 mots + recommandation + note confidentielle (jamais transmise à l'auteur), modifiable tant que la relecture est ouverte.
+- **Garde serveur** : `requireOwnAssignment` — l'invitation d'un autre, ou une désignation non encore invitée, n'existe pas (`NOT_FOUND`).
+- **Remplacement** : refus, expiration ou récusation d'un titulaire → le suppléant devient titulaire et est invité ; sans suppléant, chefs de revue et auteur sont prévenus.
+- **Deux analyses rendues** → passage automatique en `revision` (14 jours), auteur prévenu.
+- **Cron `kohop-deadlines`** (horaire) : rappels (J-3, puis tous les 3 jours, 3 au plus), expiration, remplacement. Logique pure testée dans `convex/lib/kohopDeadlines.ts`.
+- Tests : `convex/kohopReviews.test.ts` (16), `convex/lib/kohopDeadlines.test.ts`, parcours Playwright auteur → chef → deux relecteurs → révision (axe).
 
 ## Lot 2 — Dépôt, choix des relecteurs, recevabilité
 

@@ -3,15 +3,16 @@ import { provisionUser, seedKohopPilot } from './_helpers';
 import { SESSIONS, type SessionKey } from './_sessions';
 import { attendreAucuneViolationGrave } from './_a11y';
 
-// KOHOP batch 2, end to end: an author of the pilot organization writes a
+// KOHOP batches 2 and 3, end to end: an author of the pilot organization writes a
 // contribution, designates two reviewers from the directory and submits; the
 // review chief — a MODERATOR holding the function — approves the reviewers and
-// starts the review. Real screens, real server guards.
+// starts the review; both reviewers accept, read and hand in their analysis, and
+// the file moves to the author's revision. Real screens, real server guards.
 test.use({ locale: 'fr-FR' });
 
 const REVIEWERS = [
-  'e2e_kohop_rev1@democracytogether.test',
-  'e2e_kohop_rev2@democracytogether.test',
+  SESSIONS.kohopRelecteur1.email,
+  SESSIONS.kohopRelecteur2.email,
 ];
 const word = (i: number) =>
   ['participation', 'citoyenne', 'budget', 'démocratie', 'local', 'réseau'][
@@ -115,11 +116,54 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   await chief.getByRole('button', { name: 'Lancer la relecture' }).click();
   await expect(chief.getByText('En relecture').first()).toBeVisible();
 
+  // --- The reviewers -----------------------------------------------------------
+  const analysis = `Cette contribution est claire et bien documentée. ${words(180)}`;
+  const reviewers: [SessionKey, string][] = [
+    ['kohopRelecteur1', 'Favorable'],
+    ['kohopRelecteur2', 'Favorable avec réserves'],
+  ];
+  const pages: Page[] = [];
+  for (const [key, recommendation] of reviewers) {
+    const reviewer = await as(browser, key);
+    pages.push(reviewer);
+    await reviewer.goto('/fr/espace-membre/relectures');
+    await reviewer.getByRole('link', { name: new RegExp(title) }).click();
+    // Before accepting, the text itself is not on screen.
+    await expect(
+      reviewer.getByRole('heading', { name: 'Le texte à relire' }),
+    ).toHaveCount(0);
+    await reviewer.getByRole('radio', { name: 'J’accepte de relire' }).click();
+    const accept = reviewer.getByRole('button', {
+      name: 'Accepter la relecture',
+    });
+    await expect(accept).toBeDisabled();
+    await reviewer.getByRole('checkbox', { name: /aucun conflit/ }).click();
+    await reviewer
+      .getByRole('checkbox', { name: /publiée avec mon nom/ })
+      .click();
+    await accept.click();
+    await expect(
+      reviewer.getByRole('heading', { name: 'Le texte à relire' }),
+    ).toBeVisible();
+    if (key === 'kohopRelecteur1') {
+      await attendreAucuneViolationGrave(reviewer, 'relecture KOHOP');
+    }
+    await reviewer
+      .getByRole('radio', { name: recommendation, exact: true })
+      .click();
+    await reviewer.getByLabel('Votre analyse (publique)').fill(analysis);
+    await reviewer.getByRole('button', { name: 'Rendre mon analyse' }).click();
+    await expect(
+      reviewer.getByText('Votre analyse est enregistrée'),
+    ).toBeVisible();
+  }
+
   // --- Back to the author: the stage followed ---------------------------------
   await author.reload();
-  await expect(
-    author.getByText('Vos relecteurs lisent votre texte'),
-  ).toBeVisible();
+  await expect(author.getByText('Les analyses sont arrivées')).toBeVisible();
+  // The confidential note of a reviewer is nowhere in the author's file.
+  await expect(author.getByText('Note confidentielle')).toHaveCount(0);
+  for (const [i, [key]] of reviewers.entries()) await keep(pages[i], key);
   await keep(author, 'kohopAuteur');
   await keep(chief, 'kohopChef');
 });

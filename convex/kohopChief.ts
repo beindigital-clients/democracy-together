@@ -23,6 +23,7 @@ import {
   SETTINGS_KEY,
   versionOf,
 } from './lib/kohopAccess';
+import { inviteReviewer, replaceTitular } from './lib/kohopReviewing';
 
 // KOHOP — the REVIEW CHIEF's side. Every function passes `requireReviewChief`
 // (the administrator included); a moderator or an editor without the function
@@ -298,6 +299,14 @@ export const approveReviewer = mutation({
       targetId: file._id,
       metadata: { reviewerId },
     });
+    // A titular approved while the review is under way is invited at once.
+    if (
+      file.stage === 'in_review' &&
+      reviewer.slot === 'titular' &&
+      reviewer.userId
+    ) {
+      await inviteReviewer(ctx, file, reviewer, chief._id);
+    }
     return null;
   },
 });
@@ -347,15 +356,24 @@ export const recuseReviewer = mutation({
       targetId: file._id,
       metadata: { reviewerId, reason },
     });
-    // The author designates a replacement, unless a substitute is ready
-    // (batch 3 promotes it automatically).
-    await notify(ctx, {
-      userId: file.authorUserId,
-      type: 'kohop_reviewer_replaced',
-      titleKey: 'kohopReviewerReplaced',
-      params: { title: file.title },
-      link: `/espace-membre/kohop/${file._id}`,
-    });
+    // During the review, a rejected titular is replaced by the substitute (or
+    // the chiefs and the author are told that a reviewer is missing). Before
+    // it, the author designates a replacement.
+    if (
+      file.stage === 'in_review' &&
+      reviewer.slot === 'titular' &&
+      (reviewer.status === 'invited' || reviewer.status === 'accepted')
+    ) {
+      await replaceTitular(ctx, file, reviewer);
+    } else {
+      await notify(ctx, {
+        userId: file.authorUserId,
+        type: 'kohop_reviewer_replaced',
+        titleKey: 'kohopReviewerReplaced',
+        params: { title: file.title },
+        link: `/espace-membre/kohop/${file._id}`,
+      });
+    }
     return null;
   },
 });
@@ -491,6 +509,11 @@ export const startReview = mutation({
       handlingEditorId: chief._id,
       updatedAt: now,
     });
+    // The titulars are invited now (5 days to reply); the substitute stays
+    // approved, ready to take the place of a titular who steps back.
+    for (const reviewer of approved) {
+      await inviteReviewer(ctx, file, reviewer, chief._id);
+    }
     await recordKohopEvent(ctx, {
       contributionId: file._id,
       kind: 'startReview',
