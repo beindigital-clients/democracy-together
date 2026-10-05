@@ -7,7 +7,6 @@ import { AuthGateLoading } from '@/components/auth/auth-gate';
 import { MemberPageHeader } from '@/components/member/page-header';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
-import { isMember } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
 import { useKohopDates } from '@/components/kohop/use-kohop';
 
@@ -16,7 +15,8 @@ export default function KohopReviewsHome() {
   const t = useTranslations('kohop');
   const dates = useKohopDates();
   const me = useQuery(api.users.current);
-  const member = isMember(me?.role);
+  // Any signed-in account: an external reviewer is a visitor.
+  const member = me !== null && me !== undefined;
   const items = useQuery(api.kohopReviews.mine, member ? {} : 'skip');
   if (me === undefined) return <AuthGateLoading />;
 

@@ -14,10 +14,21 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 4 | Révision et décision | **livré** |
 | 5 | Contrôles par l'IA | **livré** |
 | 6 | Préparation, parution, pages publiques | **livré** |
-| 7 | Relecteurs extérieurs | à faire |
+| 7 | Relecteurs extérieurs | **livré** |
 | 8 | Pilote, durcissement, lancement | à faire |
 
 ---
+
+## Lot 7 — Relecteurs extérieurs (second recours)
+
+- **Proposition** (`convex/kohopExternal.ts`) : nom, e-mail, affiliation, **lien public https qui atteste l'identité**, raison du choix. Mêmes règles de liens que pour un membre (l'auteur, un coauteur par adresse, un lien déclaré refusent la désignation, message générique) ; le détail et l'adresse ne sont vus que du chef de revue, qui valide avant tout envoi.
+- **Invitation par e-mail avec jeton** : 256 bits, **seule l'empreinte SHA-256 est stockée**, le jeton est tiré dans l'action d'envoi (jamais dans les arguments d'une fonction planifiée), il expire à l'échéance de réponse (5 jours), ne sert qu'**une fois** et **seulement avec l'adresse invitée**. Une relance émet un nouveau lien qui remplace l'ancien. Modèle : confirmation de la newsletter.
+- **Réponse sans compte** (`/kohop/invitation/[token]`, `noindex`, `no-referrer`) : même page pour tout lien invalide (inconnu, expiré, utilisé, mauvaise adresse) ; réponse identique que le compte existe ou non ; une tentative ratée **compte dans les limites de débit** (`ok: false` validé, pas de rollback) + limites IP / globale / par jeton.
+- **Compte** : l'inscription libre est fermée ; l'**acceptation** ouvre un compte **sans rang** (`visiteur`), audité `USER_INVITED` avec `via: 'kohop'`. Un compte existant est lié, jamais modifié. La personne se connecte avec un code envoyé à l'adresse invitée et suit le parcours du lot 3 (les fonctions relecteur acceptent un `visiteur` pour sa propre invitation).
+- **Après la parution** : l'e-mail « publiée » invite le relecteur sans rang à rejoindre le réseau.
+- **Purge** : tâche quotidienne (`kohop-external-purge`), suppression à six mois des invitations extérieures déclinées, expirées ou récusées (avec leurs vérifications de liens).
+- Mention RGPD dans l'invitation et sur la page de réponse ; sources professionnelles publiques seulement.
+- Tests : `convex/kohopExternal.test.ts` (13) et un parcours Playwright complet (proposition, validation, lien, mauvaise adresse refusée, acceptation, connexion par code, analyse, axe).
 
 ## Lot 6 — Préparation, parution, pages publiques
 

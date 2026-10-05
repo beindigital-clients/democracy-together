@@ -137,7 +137,9 @@ export async function requireOwnAssignment(
   reviewer: Doc<'kohopReviewers'>;
   contribution: Doc<'kohopContributions'>;
 }> {
-  const user = await requireNetworkRole(ctx, 'membre');
+  // Any signed-in account: an EXTERNAL reviewer is a `visiteur` (no rank),
+  // and what opens their assignment is that it is theirs.
+  const user = await requireNetworkRole(ctx, 'visiteur');
   const reviewer = await ctx.db.get(reviewerId);
   if (
     !reviewer ||

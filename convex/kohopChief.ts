@@ -332,7 +332,7 @@ export const approveReviewer = mutation({
     if (
       file.stage === 'in_review' &&
       reviewer.slot === 'titular' &&
-      reviewer.userId
+      (reviewer.userId || reviewer.source === 'external')
     ) {
       await inviteReviewer(ctx, file, reviewer, chief._id);
     }

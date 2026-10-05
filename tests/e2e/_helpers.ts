@@ -527,3 +527,18 @@ export async function resetProgrammes(
 ): Promise<void> {
   convexRun('programmes:devResetProgrammes', { emails, marker });
 }
+
+// KOHOP: the invitation link "sent" to an external reviewer — read from the
+// development outbox (`devOutbox`, AUTH_DEV_OTP guard). The action that sends it
+// is scheduled when the review starts: a small retry.
+export async function getKohopInvitationLink(email: string): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const link = convexRunQuery<string | null>(
+      'kohopExternal:devInvitationLink',
+      { email },
+    );
+    if (link) return link;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new Error(`Aucun lien d’invitation KOHOP trouvé pour ${email}`);
+}

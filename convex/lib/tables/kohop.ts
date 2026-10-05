@@ -194,7 +194,8 @@ export const kohopTables = {
     .index('by_email', ['email'])
     .index('by_user', ['userId'])
     .index('by_dueAt', ['dueAt'])
-    .index('by_tokenHash', ['inviteTokenHash']),
+    .index('by_tokenHash', ['inviteTokenHash'])
+    .index('by_source_and_status', ['source', 'status']),
 
   // THE ANALYSIS — one per reviewer, editable until the decision.
   kohopReviews: defineTable({

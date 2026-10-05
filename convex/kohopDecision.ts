@@ -21,10 +21,14 @@ function refuse(code: string): never {
   throw new ConvexError(code);
 }
 
+// Addresses under `/kohop/` that are not a contribution.
+const RESERVED_SLUGS = ['invitation'];
+
 async function uniqueSlug(ctx: MutationCtx, title: string): Promise<string> {
   const base = slugify(title);
   for (let n = 1; n < 50; n += 1) {
     const candidate = n === 1 ? base : `${base}-${n}`;
+    if (RESERVED_SLUGS.includes(candidate)) continue;
     const taken = await ctx.db
       .query('kohopContributions')
       .withIndex('by_slug', (q) => q.eq('slug', candidate))

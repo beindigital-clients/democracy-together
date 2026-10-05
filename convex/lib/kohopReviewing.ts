@@ -53,7 +53,14 @@ export async function inviteReviewer(
     targetId: file._id,
     metadata: { reviewerId: reviewer._id },
   });
-  if (reviewer.userId) {
+  if (reviewer.source === 'external' && !reviewer.userId) {
+    // No account yet: the invitation goes by e-mail with a one-time token,
+    // drawn in the action (never in a scheduled function's arguments).
+    await ctx.scheduler.runAfter(0, internal.kohopExternal.sendInvitation, {
+      reviewerId: reviewer._id,
+      kind: 'invitation',
+    });
+  } else if (reviewer.userId) {
     await notify(ctx, {
       userId: reviewer.userId,
       type: 'kohop_review_invitation',
@@ -83,7 +90,10 @@ export async function replaceTitular(
     .withIndex('by_contribution', (q) => q.eq('contributionId', file._id))
     .take(30);
   const substitute = reviewers.find(
-    (r) => r.slot === 'substitute' && r.status === 'approved' && r.userId,
+    (r) =>
+      r.slot === 'substitute' &&
+      r.status === 'approved' &&
+      (r.userId || r.source === 'external'),
   );
   if (substitute) {
     await ctx.db.patch(substitute._id, { slot: 'titular' });

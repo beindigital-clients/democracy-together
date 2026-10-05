@@ -69,4 +69,13 @@ crons.cron(
 // substitute. Every hour, at minute 23.
 crons.cron('kohop-deadlines', '23 * * * *', internal.kohopDeadlines.run, {});
 
+// KOHOP — external reviewers' invitations that were declined, expired or
+// rejected are deleted after six months. Every day at 03:41 UTC.
+crons.cron(
+  'kohop-external-purge',
+  '41 3 * * *',
+  internal.kohopExternal.purge,
+  {},
+);
+
 export default crons;

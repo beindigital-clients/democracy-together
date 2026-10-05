@@ -532,6 +532,21 @@ const PRODUCTION_COPY: Record<
   },
 };
 
+const JOIN_LEAD: Phrase = {
+  fr: 'Vous avez relu cette contribution sans être membre du réseau : si le travail de Democracy Together vous parle, vous pouvez le rejoindre.',
+  en: 'You reviewed this contribution without being a member of the network: if the work of Democracy Together speaks to you, you can join it.',
+  es: 'Revisó esta contribución sin ser miembro de la red: si el trabajo de Democracy Together le interesa, puede unirse.',
+  pt: 'Reviu esta contribuição sem ser membro da rede: se o trabalho da Democracy Together lhe interessa, pode juntar-se.',
+  ar: 'راجعتم هذه المساهمة دون أن تكونوا عضواً في الشبكة: إن أعجبكم عمل Democracy Together يمكنكم الانضمام إليه.',
+};
+const CTA_JOIN: Phrase = {
+  fr: 'Rejoindre le réseau',
+  en: 'Join the network',
+  es: 'Unirse a la red',
+  pt: 'Juntar-se à rede',
+  ar: 'الانضمام إلى الشبكة',
+};
+
 export function productionEmail(args: {
   siteUrl: string;
   locale: SiteLocale;
@@ -539,6 +554,8 @@ export function productionEmail(args: {
   slug?: string;
   title: string;
   dueLabel?: string;
+  // An external reviewer (no membership yet): the e-mail also invites them to join.
+  inviteToJoin?: boolean;
   kind: KohopProductionEmailKind;
 }): { subject: string; html: string } {
   const loc = args.locale;
@@ -566,17 +583,98 @@ export function productionEmail(args: {
           : CTA_FILE[loc],
     ) +
     kit.fallback(url);
+  const joinUrl = `${base(args.siteUrl, loc)}/adhesion`;
+  const withJoin = args.inviteToJoin
+    ? body + kit.paragraph(JOIN_LEAD[loc]) + kit.button(joinUrl, CTA_JOIN[loc])
+    : body;
   return {
     subject: `${copy.subject[loc]} · ${subjectText(args.title)}`,
     html: emailDocument({
       loc,
       title: copy.title[loc],
       preheader: copy.lead[loc],
-      body,
+      body: withJoin,
       reason:
         args.kind === 'publishedReviewer'
           ? REASON_REVIEWER_PUBLISHED[loc]
           : REASON_AUTHOR[loc],
+    }),
+  };
+}
+
+// --- To an EXTERNAL reviewer: invitation with a one-time link ----------------------
+
+const EXT_REASON: Phrase = {
+  fr: 'Vous recevez cet e-mail car un·e auteur·rice vous a proposé·e comme relecteur·rice sur KOHOP (Democracy Together) et le chef de revue a validé la proposition. Vous n’avez pas de compte : répondre n’engage à rien tant que vous n’avez pas accepté.',
+  en: 'You are receiving this e-mail because an author proposed you as a reviewer on KOHOP (Democracy Together) and the review chief approved the proposal. You have no account: replying commits you to nothing until you accept.',
+  es: 'Recibe este correo porque un/a autor/a le propuso como revisor/a en KOHOP (Democracy Together) y el jefe de revisión validó la propuesta. No tiene cuenta: responder no le compromete a nada hasta que acepte.',
+  pt: 'Recebe este e-mail porque um/a autor/a o/a propôs como revisor/a no KOHOP (Democracy Together) e o chefe de revisão validou a proposta. Não tem conta: responder não o/a compromete a nada até aceitar.',
+  ar: 'يصلكم هذا البريد لأن مؤلفاً اقترحكم مراجعاً في KOHOP (Democracy Together) ووافق رئيس المراجعة على الاقتراح. ليس لديكم حساب: الرد لا يلزمكم بشيء قبل القبول.',
+};
+const EXT_SUBJECT: Phrase = {
+  fr: 'KOHOP : invitation à relire une contribution',
+  en: 'KOHOP: invitation to review a contribution',
+  es: 'KOHOP: invitación a revisar una contribución',
+  pt: 'KOHOP: convite para rever uma contribuição',
+  ar: 'KOHOP: دعوة لمراجعة مساهمة',
+};
+const EXT_REMINDER_SUBJECT: Phrase = {
+  fr: 'KOHOP : rappel — invitation à relire une contribution',
+  en: 'KOHOP: reminder — invitation to review a contribution',
+  es: 'KOHOP: recordatorio — invitación a revisar una contribución',
+  pt: 'KOHOP: lembrete — convite para rever uma contribuição',
+  ar: 'KOHOP: تذكير — دعوة لمراجعة مساهمة',
+};
+const EXT_TITLE: Phrase = {
+  fr: 'On vous propose de relire une contribution',
+  en: 'You are asked to review a contribution',
+  es: 'Se le propone revisar una contribución',
+  pt: 'É convidado/a a rever uma contribuição',
+  ar: 'يُقترح عليكم مراجعة مساهمة',
+};
+const EXT_LEAD: Phrase = {
+  fr: 'KOHOP publie de courtes contributions relues par des pairs. Votre analyse, signée de votre nom, paraîtrait avec le texte. Le lien ci-dessous est personnel : il ne sert qu’une fois et expire à l’échéance indiquée. Votre profil professionnel public a servi à vérifier l’absence de lien avec l’auteur·rice.',
+  en: 'KOHOP publishes short peer-reviewed contributions. Your analysis, signed with your name, would be published with the text. The link below is personal: it works once and expires at the deadline shown. Your public professional profile was used to check for ties with the author.',
+  es: 'KOHOP publica contribuciones breves revisadas por pares. Su análisis, firmado con su nombre, se publicaría con el texto. El enlace es personal: solo sirve una vez y caduca en el plazo indicado. Su perfil profesional público se usó para comprobar que no hay vínculos con el autor.',
+  pt: 'O KOHOP publica contribuições curtas revistas por pares. A sua análise, assinada com o seu nome, seria publicada com o texto. A ligação abaixo é pessoal: só serve uma vez e expira no prazo indicado. O seu perfil profissional público serviu para verificar a ausência de laços com o autor.',
+  ar: 'ينشر KOHOP مساهمات قصيرة يراجعها النظراء. سيُنشر تحليلكم الموقّع باسمكم مع النص. الرابط شخصي: يُستعمل مرة واحدة وينتهي في الموعد المذكور. استُخدم ملفكم المهني العلني للتحقق من عدم وجود صلة بالمؤلف.',
+};
+const EXT_CTA: Phrase = {
+  fr: 'Répondre à l’invitation',
+  en: 'Answer the invitation',
+  es: 'Responder a la invitación',
+  pt: 'Responder ao convite',
+  ar: 'الرد على الدعوة',
+};
+
+export function externalInvitationEmail(args: {
+  siteUrl: string;
+  locale: SiteLocale;
+  token: string;
+  title: string;
+  dueLabel: string;
+  reminder: boolean;
+}): { subject: string; html: string; url: string } {
+  const loc = args.locale;
+  const url = `${base(args.siteUrl, loc)}/kohop/invitation/${args.token}`;
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(EXT_LEAD[loc]) +
+    kit.details([
+      { label: LABEL_TITLE[loc], value: escapeHtml(args.title) },
+      { label: LABEL_DEADLINE[loc], value: escapeHtml(args.dueLabel) },
+    ]) +
+    kit.button(url, EXT_CTA[loc]) +
+    kit.fallback(url);
+  return {
+    url,
+    subject: `${(args.reminder ? EXT_REMINDER_SUBJECT : EXT_SUBJECT)[loc]} · ${subjectText(args.title)}`,
+    html: emailDocument({
+      loc,
+      title: EXT_TITLE[loc],
+      preheader: EXT_LEAD[loc],
+      body,
+      reason: EXT_REASON[loc],
     }),
   };
 }

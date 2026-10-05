@@ -290,6 +290,7 @@ describe('Plafond non forgeable — global par formulaire', () => {
       'donation',
       'eventRegister',
       'eventReminder',
+      'kohopInvitation',
       'mentorship',
       'newsletter',
       'youthApply',

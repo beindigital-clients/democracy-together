@@ -53,6 +53,7 @@ export const KOHOP_ERROR_CODES = [
   'NOTHING_TO_ACKNOWLEDGE',
   'PROOF_REQUIRED',
   'INVALID_SCHEDULE',
+  'INVALID_EXTERNAL',
 ] as const;
 
 export type KohopErrorCode = (typeof KOHOP_ERROR_CODES)[number];

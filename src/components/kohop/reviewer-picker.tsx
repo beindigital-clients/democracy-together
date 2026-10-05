@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { TextField, FormError } from '@/components/ui/field';
 import { SelectField } from '@/components/ui/choice-fields';
 import { vocabulary } from '@/i18n/vocabulary';
+import { ExternalReviewerForm } from './external-reviewer-form';
 import { useKohopError } from './use-kohop';
 
 type Reviewer = NonNullable<
@@ -71,6 +72,11 @@ export function DesignatedReviewers({
             <Badge variant="outline" size="label">
               {vocabulary(t, 'slot_', r.slot)}
             </Badge>
+            {r.source === 'external' ? (
+              <Badge variant="outline" size="label">
+                {t('source_external')}
+              </Badge>
+            ) : null}
             <Badge
               variant={r.status === 'submitted' ? 'good' : 'default'}
               size="label"
@@ -316,6 +322,13 @@ export function ReviewerPicker({
             </ul>
           )}
         </div>
+      )}
+      {titularFull && substituteFull ? null : (
+        <ExternalReviewerForm
+          contributionId={contributionId}
+          titularFull={titularFull}
+          substituteFull={substituteFull}
+        />
       )}
     </div>
   );

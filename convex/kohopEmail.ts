@@ -242,7 +242,9 @@ export const productionEmailContext = internalQuery({
     title: v.string(),
     slug: v.union(v.string(), v.null()),
     dueAt: v.union(v.number(), v.null()),
-    recipients: v.array(v.object({ email: v.string(), locale })),
+    recipients: v.array(
+      v.object({ email: v.string(), locale, inviteToJoin: v.boolean() }),
+    ),
   }),
   handler: async (ctx, { contributionId, kind }) => {
     const file = await ctx.db.get(contributionId);
@@ -253,6 +255,7 @@ export const productionEmailContext = internalQuery({
       recipients: [] as {
         email: string;
         locale: 'fr' | 'en' | 'es' | 'pt' | 'ar';
+        inviteToJoin: boolean;
       }[],
     };
     if (!file) return empty;
@@ -280,6 +283,10 @@ export const productionEmailContext = internalQuery({
         recipients.push({
           email: user.email,
           locale: user.preferredLocale ?? ('fr' as const),
+          // An external reviewer (no rank): invited to join the network.
+          inviteToJoin:
+            kind === 'publishedReviewer' &&
+            (user.role === undefined || user.role === 'visiteur'),
         });
       }
     }
@@ -312,6 +319,7 @@ export const sendProductionEmail = internalAction({
         contributionId,
         slug: info.slug ?? undefined,
         title: info.title,
+        inviteToJoin: recipient.inviteToJoin,
         dueLabel:
           kind === 'proofToApprove' && info.dueAt !== null
             ? new Intl.DateTimeFormat(recipient.locale, {

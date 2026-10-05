@@ -48,7 +48,14 @@ export const run = internalMutation({
           remindersSent: reviewer.remindersSent + 1,
           updatedAt: now,
         });
-        if (reviewer.userId) {
+        if (!reviewer.userId && reviewer.source === 'external') {
+          // No account yet: a fresh one-time link replaces the previous one.
+          await ctx.scheduler.runAfter(
+            0,
+            internal.kohopExternal.sendInvitation,
+            { reviewerId: reviewer._id, kind: 'reminder' },
+          );
+        } else if (reviewer.userId) {
           await notify(ctx, {
             userId: reviewer.userId,
             type: 'kohop_review_reminder',

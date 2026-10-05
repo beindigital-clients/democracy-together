@@ -36,7 +36,8 @@ const NOTE_MAX = 1000;
 export const mine = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireNetworkRole(ctx, 'membre');
+    // A visitor can hold an invitation too (external reviewer).
+    const user = await requireNetworkRole(ctx, 'visiteur');
     const rows = await ctx.db
       .query('kohopReviewers')
       .withIndex('by_user', (q) => q.eq('userId', user._id))

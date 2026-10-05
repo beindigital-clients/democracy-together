@@ -155,6 +155,37 @@ function ReviewerCard({
         </div>
       </div>
 
+      {reviewer.source === 'external' ? (
+        <div className="mt-2 space-y-1 text-sm text-ink-soft">
+          <p>
+            <Badge variant="outline" size="label">
+              {t('source_external')}
+            </Badge>
+            {reviewer.publicUrl ? (
+              <>
+                {' '}
+                <a
+                  href={reviewer.publicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="wrap-anywhere text-accent-text underline"
+                >
+                  {t('reviewerPublicPage')}
+                </a>
+              </>
+            ) : null}
+          </p>
+          {reviewer.rationale ? (
+            <p>
+              <span className="font-medium text-ink">
+                {t('reviewerRationale')}
+              </span>{' '}
+              {reviewer.rationale}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {reviewer.declaredRelationship ? (
         <p className="mt-2 text-sm text-ink-soft">
           {t('declaredBy')}{' '}
