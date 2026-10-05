@@ -16,7 +16,7 @@
 // Each test is written so as not to be vacuous: we first prove that the private
 // field IS in the database, then that it does not come out.
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import { publicPublicationValidator } from './lib/publications';
@@ -48,7 +48,7 @@ const PRIVATE_PUBLICATION_FIELDS = [
   '_creationTime',
 ] as const;
 
-async function seedPublication(t: ReturnType<typeof convexTest>) {
+async function seedPublication(t: TestConvex<typeof schema>) {
   const moderatorId = await t.run((ctx) =>
     ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
   );
@@ -164,7 +164,7 @@ describe('Validateurs de retour — publications (issue #30)', () => {
 });
 
 describe('Validateurs de retour — annuaire (issue #30)', () => {
-  async function seedOrg(t: ReturnType<typeof convexTest>) {
+  async function seedOrg(t: TestConvex<typeof schema>) {
     return await t.run((ctx) =>
       ctx.db.insert('organizations', {
         name: 'Institut Démo Sahel',

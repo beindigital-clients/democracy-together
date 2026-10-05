@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -17,7 +17,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 // The invitation schedules a welcome email: in development mode it is

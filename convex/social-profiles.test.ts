@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -9,7 +9,7 @@ import type { Id } from './_generated/dataModel';
 // newly created post awaits approval. These tests cover what happens
 // AFTER publication; they therefore set post-moderation mode, like the setting
 // the administrator can choose.
-async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
+async function tribuneAPosteriori(t: TestConvex<typeof schema>) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
       role: 'admin',
@@ -39,7 +39,7 @@ const modules = import.meta.glob([
 // photo, notification preferences. Each refusal is checked through the
 // path a third party would take — anonymous, visitor, another member.
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 
 async function person(t: T, email: string, role = 'membre', name = email) {
   const id = await t.run((ctx) =>

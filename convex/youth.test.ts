@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import { FIELD_MAX } from './lib/validation';
@@ -130,7 +130,7 @@ describe('Jeunes — machine à états de la revue (issue #9)', () => {
     };
   }
 
-  const auditOf = (t: ReturnType<typeof convexTest>, action: string) =>
+  const auditOf = (t: TestConvex<typeof schema>, action: string) =>
     t.run((ctx) =>
       ctx.db
         .query('auditLog')

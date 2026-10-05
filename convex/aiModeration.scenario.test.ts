@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 
@@ -89,7 +89,7 @@ function mockGateway(verdict: {
   return fetchMock;
 }
 
-type Ctx = ReturnType<typeof convexTest>;
+type Ctx = TestConvex<typeof schema>;
 
 async function user(
   t: Ctx,
@@ -111,7 +111,7 @@ async function user(
 const DEPOT = {
   title: 'Budgets participatifs : ce que dix villes européennes ont appris',
   type: 'note' as const,
-  theme: 'transitions',
+  theme: 'transitions' as const,
   region: 'europe' as const,
   languages: ['fr' as const],
   access: 'open' as const,
