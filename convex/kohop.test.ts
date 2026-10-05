@@ -392,7 +392,7 @@ describe('Brouillon', () => {
     const mine = await author.as.query(api.kohop.getMine, {
       contributionId: id,
     });
-    expect(mine.fields).toEqual(['health', 'norms']);
+    expect(mine!.fields).toEqual(['health', 'norms']);
   });
 
   it('limite le nombre de brouillons ouverts', async () => {
@@ -585,7 +585,7 @@ describe('Choix des relecteurs — liens bloquants refusés côté serveur', () 
     ]) {
       expect(serialized, secret).not.toContain(secret);
     }
-    expect(mine.reviewers[0]).toMatchObject({
+    expect(mine!.reviewers[0]).toMatchObject({
       _id: reviewerId,
       status: 'proposed',
       slot: 'titular',
@@ -632,7 +632,7 @@ describe('Choix des relecteurs — liens bloquants refusés côté serveur', () 
     });
     await author.as.mutation(api.kohop.removeReviewer, { reviewerId });
     expect(
-      (await author.as.query(api.kohop.getMine, { contributionId: id }))
+      (await author.as.query(api.kohop.getMine, { contributionId: id }))!
         .reviewers,
     ).toEqual([]);
   });
@@ -675,7 +675,7 @@ describe('Dépôt', () => {
     }
     expect(await counts(t)).toEqual(before);
     expect(
-      (await author.as.query(api.kohop.getMine, { contributionId: id })).stage,
+      (await author.as.query(api.kohop.getMine, { contributionId: id }))!.stage,
     ).toBe('draft');
 
     const short = await draft(author, { body: words(499) });
@@ -760,7 +760,7 @@ describe('Dépôt', () => {
     const { author, id } = await ready();
     await author.as.mutation(api.kohop.withdraw, { contributionId: id });
     expect(
-      (await author.as.query(api.kohop.getMine, { contributionId: id })).stage,
+      (await author.as.query(api.kohop.getMine, { contributionId: id }))!.stage,
     ).toBe('withdrawn');
     await expect(
       author.as.mutation(api.kohop.withdraw, { contributionId: id }),
@@ -989,8 +989,8 @@ describe('Chef de revue — recevabilité', () => {
     const mine = await author.as.query(api.kohop.getMine, {
       contributionId: id,
     });
-    expect(mine.lastDecision?.reason).toContain('préciser la méthode');
-    expect(mine.editable).toBe(true);
+    expect(mine!.lastDecision?.reason).toContain('préciser la méthode');
+    expect(mine!.editable).toBe(true);
 
     // Editing a text already sent creates the NEXT version.
     await author.as.mutation(api.kohop.saveDraft, {
@@ -1033,8 +1033,8 @@ describe('Chef de revue — recevabilité', () => {
     const mine = await author.as.query(api.kohop.getMine, {
       contributionId: id,
     });
-    expect(mine.stage).toBe('refused');
-    expect(mine.lastDecision).toMatchObject({
+    expect(mine!.stage).toBe('refused');
+    expect(mine!.lastDecision).toMatchObject({
       kind: 'inadmissible',
       reasonCode: 'hors_champ',
     });

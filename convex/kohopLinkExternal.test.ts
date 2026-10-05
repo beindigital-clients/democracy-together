@@ -21,7 +21,7 @@ const modules = import.meta.glob([
 // does a refusal leave NO trace (no document, no history line, no audit line,
 // no notification).
 
-type T = ReturnType<typeof convexTest>;
+type T = ReturnType<typeof newT>;
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 const drains: (() => Promise<void>)[] = [];
