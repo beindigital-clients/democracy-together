@@ -230,13 +230,22 @@ const lastCheck = (t: T, reviewerId: Id<'kohopReviewers'>) =>
   );
 
 describe('Liens trouvés hors plateforme', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
 
   it('deux ORCID et une cosignature récente : lien signalé (jamais bloquant), vu du chef seul', async () => {
     const w = await proposed();
     await orcid(w.t, w.author.id, '0000-0002-1825-0097');
     await orcid(w.t, w.rev1.id, '0000-0001-5109-370X');
     const fetchMock = vi.fn(async (url: string) => {
+      // ORCID employments: none published. Only the works answer matters here.
+      if (url.includes('pub.orcid.org')) {
+        return new Response(JSON.stringify({ 'affiliation-group': [] }), {
+          status: 200,
+        });
+      }
       expect(url).toContain('api.openalex.org/works');
       return new Response(
         JSON.stringify({
@@ -323,20 +332,182 @@ describe('Liens trouvés hors plateforme', () => {
     const w = await proposed();
     await orcid(w.t, w.author.id, '0000-0002-1825-0097');
     await orcid(w.t, w.rev1.id, '0000-0001-5109-370X');
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        async () =>
-          new Response(JSON.stringify({ meta: { count: 0 }, results: [] }), {
-            status: 200,
-          }),
-      ),
-    );
+    vi.stubGlobal('fetch', fetchAnswering({ works: 0, employments: [] }));
     await w.t.action(internal.kohopLinkExternal.check, {
       reviewerId: w.reviewerId,
     });
     const check = await lastCheck(w.t, w.reviewerId);
     expect(check?.level).toBe('none');
     expect(check?.failed).toBeUndefined();
+  });
+
+  const employment = (name: string, from: number, to?: number) => ({
+    summaries: [
+      {
+        'employment-summary': {
+          organization: { name },
+          'start-date': { year: { value: String(from) } },
+          'end-date': to ? { year: { value: String(to) } } : null,
+        },
+      },
+    ],
+  });
+
+  /** A fetch that answers OpenAlex, ORCID, and (optionally) the AI gateway. */
+  function fetchAnswering(options: {
+    works: number;
+    employments: ReturnType<typeof employment>[];
+    gateway?: 'ok' | 'down';
+  }) {
+    return vi.fn(async (url: string) => {
+      if (url.includes('api.openalex.org')) {
+        return Response.json({
+          meta: { count: options.works },
+          results:
+            options.works > 0
+              ? [
+                  {
+                    id: 'https://openalex.org/W9',
+                    title: 'Un article commun',
+                    publication_year: 2025,
+                  },
+                ]
+              : [],
+        });
+      }
+      if (url.includes('pub.orcid.org')) {
+        return Response.json({ 'affiliation-group': options.employments });
+      }
+      if (options.gateway === 'down')
+        return new Response('no', { status: 500 });
+      return Response.json({
+        output_text: JSON.stringify({
+          summary: 'Les deux personnes ont une affiliation commune récente.',
+        }),
+      });
+    });
+  }
+
+  it('une affiliation commune dans les cinq ans : lien signalé, et l’IA en fait une synthèse avec les liens vers les sources', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'test-key');
+    const w = await proposed();
+    await orcid(w.t, w.author.id, '0000-0002-1825-0097');
+    await orcid(w.t, w.rev1.id, '0000-0001-5109-370X');
+    const year = new Date().getUTCFullYear();
+    vi.stubGlobal(
+      'fetch',
+      fetchAnswering({
+        works: 0,
+        employments: [employment('Université de Dakar', year - 2)],
+      }),
+    );
+    await w.t.action(internal.kohopLinkExternal.check, {
+      reviewerId: w.reviewerId,
+    });
+    const check = await w.t.run(
+      async (ctx) =>
+        (await ctx.db
+          .query('kohopLinkChecks')
+          .withIndex('by_reviewer', (q) => q.eq('reviewerId', w.reviewerId))
+          .order('desc')
+          .first())!,
+    );
+    expect(check.level).toBe('flagged');
+    expect(check.findings.map((f) => f.type)).toEqual(['external_affiliation']);
+    expect(check.findings[0].url).toBe('https://orcid.org/0000-0001-5109-370X');
+    expect(check.origin).toBe('ai');
+    expect(check.synthesis).toContain('affiliation commune');
+    expect(check.model).toBeDefined();
+    const row = await w.t.run((ctx) => ctx.db.get(w.reviewerId));
+    expect(row?.flags).toContain('external_affiliation');
+    expect(row?.status).toBe('proposed');
+    // The review chief reads it; the author never does.
+    const dossier = await w.chief.as.query(api.kohopChief.dossier, {
+      contributionId: w.id,
+    });
+    expect(
+      dossier.reviewers[0].linkChecks.some((c) => c.synthesis !== null),
+    ).toBe(true);
+    const mine = JSON.stringify(
+      await w.author.as.query(api.kohop.getMine, { contributionId: w.id }),
+    );
+    expect(mine).not.toContain('external_affiliation');
+    expect(mine).not.toContain('synthesis');
+    expect(mine).not.toContain('affiliation commune');
+  });
+
+  it('l’IA en panne : les faits restent, la synthèse manquante est dite, rien ne devient bloquant', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'test-key');
+    const w = await proposed();
+    await orcid(w.t, w.author.id, '0000-0002-1825-0097');
+    await orcid(w.t, w.rev1.id, '0000-0001-5109-370X');
+    vi.stubGlobal(
+      'fetch',
+      fetchAnswering({ works: 2, employments: [], gateway: 'down' }),
+    );
+    await w.t.action(internal.kohopLinkExternal.check, {
+      reviewerId: w.reviewerId,
+    });
+    const check = await lastCheck(w.t, w.reviewerId);
+    expect(check?.findings[0].type).toBe('external_cosign');
+    expect(check?.level).toBe('flagged');
+    expect(check?.synthesis).toBeUndefined();
+    expect(check?.synthesisError).toBe('AI_GATEWAY_HTTP_ERROR');
+    expect(check?.failed).toBeUndefined();
+  });
+
+  it('sans passerelle IA : les faits sont gardés, sans synthèse', async () => {
+    const w = await proposed();
+    await orcid(w.t, w.author.id, '0000-0002-1825-0097');
+    await orcid(w.t, w.rev1.id, '0000-0001-5109-370X');
+    vi.stubGlobal('fetch', fetchAnswering({ works: 1, employments: [] }));
+    await w.t.action(internal.kohopLinkExternal.check, {
+      reviewerId: w.reviewerId,
+    });
+    const check = await lastCheck(w.t, w.reviewerId);
+    expect(check?.findings).toHaveLength(1);
+    expect(check?.synthesisError).toBe('AI_GATEWAY_NOT_CONFIGURED');
+  });
+
+  it('une des deux sources injoignable : ce qui a été trouvé est gardé et l’échec est enregistré', async () => {
+    const w = await proposed();
+    await orcid(w.t, w.author.id, '0000-0002-1825-0097');
+    await orcid(w.t, w.rev1.id, '0000-0001-5109-370X');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.includes('pub.orcid.org')) throw new Error('orcid down');
+        return Response.json({
+          meta: { count: 1 },
+          results: [{ id: 'https://openalex.org/W1', title: 'T' }],
+        });
+      }),
+    );
+    await w.t.action(internal.kohopLinkExternal.check, {
+      reviewerId: w.reviewerId,
+    });
+    const check = await lastCheck(w.t, w.reviewerId);
+    expect(check?.failed).toBe(true);
+    expect(check?.error).toBe('orcid down');
+    expect(check?.findings).toHaveLength(1);
+  });
+
+  it('le chef de revue relance la vérification ; ni l’auteur ni un relecteur ne le peuvent', async () => {
+    const w = await proposed();
+    await w.t.run((ctx) => ctx.db.patch(w.id, { stage: 'submitted' }));
+    await expect(
+      w.author.as.mutation(api.kohopChief.recheckLinks, {
+        reviewerId: w.reviewerId,
+      }),
+    ).rejects.toThrow();
+    await w.chief.as.mutation(api.kohopChief.recheckLinks, {
+      reviewerId: w.reviewerId,
+    });
+    const audit = await w.t.run((ctx) => ctx.db.query('auditLog').collect());
+    expect(
+      audit.some(
+        (a) => a.metadata && JSON.stringify(a.metadata).includes('requested'),
+      ),
+    ).toBe(true);
   });
 });

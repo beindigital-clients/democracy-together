@@ -11,15 +11,21 @@ import {
   kohopRecommendation,
   kohopStage,
   kohopVersionKind,
+  KOHOP_AI_VERDICTS,
+  KOHOP_CHECK_STAGES,
+  KOHOP_INDEX_KINDS,
   KOHOP_LINK_LEVELS,
   KOHOP_MATCH_CLASSES,
+  KOHOP_MATCH_METHODS,
   KOHOP_ORIGINALITY_SCOPES,
   KOHOP_ORIGINALITY_STATUSES,
   KOHOP_RECUSAL_REASONS,
   KOHOP_REVIEWER_SLOTS,
   KOHOP_REVIEWER_SOURCES,
   KOHOP_REVIEWER_STATUSES,
+  KOHOP_STAGE_STATUSES,
 } from '../kohop';
+import { KOHOP_EMBEDDING_DIMENSIONS } from '../kohopSemantic';
 
 // KOHOP — its OWN tables (plan § 4.1). No existing mutation (library, F-43,
 // Tribune, AI moderation) knows them: a KOHOP contribution can only be changed
@@ -49,6 +55,34 @@ export const kohopFinding = v.object({
   detail: v.string(),
   source: v.optional(v.string()),
   url: v.optional(v.string()),
+});
+
+/** A passage the originality checks found, with where and how. */
+export const kohopMatch = v.object({
+  sourceType: v.string(),
+  sourceId: v.optional(v.string()),
+  sourceTitle: v.string(),
+  sourceUrl: v.optional(v.string()),
+  passage: v.string(),
+  sourcePassage: v.optional(v.string()),
+  lang: v.optional(v.string()),
+  // The language the source passage is written in, when known.
+  sourceLang: v.optional(v.string()),
+  similarity: v.optional(v.number()),
+  classification: v.optional(literals(KOHOP_MATCH_CLASSES)),
+  // How it was found, and what the AI made of it (advice, never a decision).
+  method: v.optional(literals(KOHOP_MATCH_METHODS)),
+  crossLanguage: v.optional(v.boolean()),
+  aiVerdict: v.optional(literals(KOHOP_AI_VERDICTS)),
+  aiClassification: v.optional(literals(KOHOP_MATCH_CLASSES)),
+  aiRationale: v.optional(v.string()),
+});
+
+export const kohopStageReport = v.object({
+  stage: literals(KOHOP_CHECK_STAGES),
+  status: literals(KOHOP_STAGE_STATUSES),
+  error: v.optional(v.string()),
+  model: v.optional(v.string()),
 });
 
 export const kohopTables = {
@@ -258,6 +292,10 @@ export const kohopTables = {
     findings: v.array(kohopFinding),
     origin: v.union(v.literal('rules'), v.literal('ai'), v.literal('external')),
     model: v.optional(v.string()),
+    // The AI's short synthesis of what the open databases returned, with the
+    // links to its sources in `findings`. Advice for the review chief only.
+    synthesis: v.optional(v.string()),
+    synthesisError: v.optional(v.string()),
     // The check failed (gateway down, cap reached): NOT "nothing to report".
     failed: v.optional(v.boolean()),
     error: v.optional(v.string()),
@@ -288,19 +326,10 @@ export const kohopTables = {
     version: v.number(),
     scope: literals(KOHOP_ORIGINALITY_SCOPES),
     status: literals(KOHOP_ORIGINALITY_STATUSES),
-    matches: v.array(
-      v.object({
-        sourceType: v.string(),
-        sourceId: v.optional(v.string()),
-        sourceTitle: v.string(),
-        sourceUrl: v.optional(v.string()),
-        passage: v.string(),
-        sourcePassage: v.optional(v.string()),
-        lang: v.optional(v.string()),
-        similarity: v.optional(v.number()),
-        classification: v.optional(literals(KOHOP_MATCH_CLASSES)),
-      }),
-    ),
+    matches: v.array(kohopMatch),
+    // Each stage of the platform check, reported on its own: a stage that could
+    // not run is "unavailable" or "failed", never "nothing to report".
+    stages: v.optional(v.array(kohopStageReport)),
     summary: v.optional(v.string()),
     provider: v.optional(v.string()),
     model: v.optional(v.string()),
@@ -310,6 +339,75 @@ export const kohopTables = {
     acknowledgedBy: v.optional(v.id('users')),
     acknowledgedAt: v.optional(v.number()),
   }).index('by_contribution_and_version', ['contributionId', 'version']),
+
+  // ORIGINALITY INDEX (plan § 4.2) — what a text is compared with. One row per
+  // indexed source (a KOHOP version, a library publication, the text extracted
+  // from a PDF, a Tribune post). Nothing here is ever shown: only the review
+  // chief's reports quote a passage.
+  textSources: defineTable({
+    sourceKind: literals(KOHOP_INDEX_KINDS),
+    // The id of the source document, as a string (it spans several tables).
+    sourceId: v.string(),
+    // Versions of one contribution share a group, so a text is never compared
+    // with its own earlier versions.
+    groupId: v.string(),
+    title: v.string(),
+    lang: v.optional(v.string()),
+    authorUserId: v.optional(v.id('users')),
+    // Folded text hash: an unchanged source is not indexed again.
+    contentHash: v.string(),
+    words: v.number(),
+    indexedAt: v.number(),
+  })
+    .index('by_source', ['sourceKind', 'sourceId'])
+    .index('by_group', ['groupId'])
+    .index('by_author', ['authorUserId']),
+
+  // Winnowed fingerprints: runs of 5 normalised words (convex/lib/kohopWinnowing.ts).
+  textFingerprints: defineTable({
+    sourceKind: literals(KOHOP_INDEX_KINDS),
+    sourceId: v.string(),
+    hash: v.number(),
+    position: v.number(),
+  })
+    .index('by_hash', ['hash'])
+    .index('by_source', ['sourceKind', 'sourceId']),
+
+  // One paragraph per row, with its embedding once the gateway has produced it.
+  textPassages: defineTable({
+    sourceKind: literals(KOHOP_INDEX_KINDS),
+    sourceId: v.string(),
+    groupId: v.string(),
+    index: v.number(),
+    text: v.string(),
+    lang: v.optional(v.string()),
+    embedding: v.optional(v.array(v.number())),
+    embeddingModel: v.optional(v.string()),
+  })
+    .index('by_source', ['sourceKind', 'sourceId'])
+    .index('by_unembedded', ['embeddingModel'])
+    .vectorIndex('by_embedding', {
+      vectorField: 'embedding',
+      dimensions: KOHOP_EMBEDDING_DIMENSIONS,
+      filterFields: ['sourceKind', 'lang'],
+    }),
+
+  // Where the rolling indexing pass stands, per source table (and the sweep
+  // that drops what no longer exists). Never user data.
+  kohopIndexCursors: defineTable({
+    key: v.string(),
+    // Next page of the table; null once it was read to its end.
+    cursor: v.union(v.string(), v.null()),
+    // Passes completed — a pass that reaches the end starts over.
+    passes: v.number(),
+    updatedAt: v.number(),
+  }).index('by_key', ['key']),
+
+  // Model calls of the originality checks, per UTC day (the daily cap).
+  kohopAiUsage: defineTable({
+    day: v.string(),
+    calls: v.number(),
+  }).index('by_day', ['day']),
 
   // SETTINGS — pilot access (D-15): submissions reserved to chosen
   // organizations, or open to every member.

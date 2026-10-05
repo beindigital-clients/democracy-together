@@ -292,6 +292,103 @@ describe('Suggestions de relecteurs', () => {
     expect(audit.map((a) => a.action)).toContain('kohop.suggested');
   });
 
+  it('écarte qui a déjà deux relectures en cours, et qui a décliné une invitation il y a moins de 30 jours', async () => {
+    const w = await world();
+    const id = await draft(w.author);
+    for (const u of [w.rev1, w.rev2, w.rev3]) {
+      await tagged(w.t, u.id, { themes: ['participation'] });
+    }
+    await w.t.run(async (ctx) => {
+      const now = Date.now();
+      const row = (
+        userId: Id<'users'>,
+        status: 'invited' | 'declined',
+        at?: number,
+      ) =>
+        ctx.db.insert('kohopReviewers', {
+          contributionId: id,
+          slot: 'titular',
+          source: 'directory',
+          name: 'x',
+          userId,
+          status,
+          flags: [],
+          remindersSent: 0,
+          respondedAt: at,
+          createdAt: now,
+          updatedAt: now,
+        });
+      // rev1: two reviews under way.
+      await row(w.rev1.id, 'invited');
+      await row(w.rev1.id, 'invited');
+      // rev2: declined yesterday.
+      await row(w.rev2.id, 'declined', now - 24 * 3600 * 1000);
+    });
+    const out = await w.author.as.mutation(api.kohopSuggest.suggestReviewers, {
+      contributionId: id,
+    });
+    expect(out.map((c) => c.displayName)).toEqual(['Remplaçant Suppléant']);
+  });
+
+  it('quelqu’un qui a décliné il y a plus de 30 jours peut être proposé de nouveau', async () => {
+    const w = await world();
+    const id = await draft(w.author);
+    await tagged(w.t, w.rev1.id, { themes: ['participation'] });
+    await w.t.run(async (ctx) => {
+      const now = Date.now();
+      await ctx.db.insert('kohopReviewers', {
+        contributionId: id,
+        slot: 'titular',
+        source: 'directory',
+        name: 'x',
+        userId: w.rev1.id,
+        status: 'declined',
+        flags: [],
+        remindersSent: 0,
+        respondedAt: now - 31 * 24 * 3600 * 1000,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+    const out = await w.author.as.mutation(api.kohopSuggest.suggestReviewers, {
+      contributionId: id,
+    });
+    expect(out.map((c) => c.displayName)).toEqual(['Rémi Relecteur']);
+  });
+
+  it('une publication du membre sur le sujet est une raison, donnée à l’auteur', async () => {
+    const w = await world();
+    const id = await draft(w.author);
+    await w.t.run((ctx) =>
+      ctx.db.insert('publications', {
+        title: 'Le budget participatif en Afrique de l’Ouest',
+        slug: 'bp',
+        type: 'note',
+        theme: 'gouvernance',
+        region: 'afrique',
+        languages: ['fr'],
+        access: 'open',
+        authors: [{ name: 'Rémi' }],
+        year: 2025,
+        publishedAt: Date.now(),
+        abstract: '',
+        keypoints: [],
+        body: [],
+        doi: '',
+        downloads: 0,
+        citations: 0,
+        status: 'published',
+        authorUserId: w.rev1.id,
+        createdAt: Date.now(),
+      }),
+    );
+    const out = await w.author.as.mutation(api.kohopSuggest.suggestReviewers, {
+      contributionId: id,
+    });
+    expect(out[0].displayName).toBe('Rémi Relecteur');
+    expect(out[0].reasons).toContain('work');
+  });
+
   it('seul l’auteur demande des suggestions, et une désignation passe toujours par les règles du serveur', async () => {
     const w = await world();
     const id = await draft(w.author);

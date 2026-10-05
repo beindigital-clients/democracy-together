@@ -153,8 +153,8 @@ côté client. Elles sont lues par les fonctions Convex.
 | `AUTH_EMAIL_FROM` | expéditeur, ex. `Democracy Together <no-reply@…>` | recommandé |
 | `AUTH_EMAIL_PROVIDER` | `resend` (défaut déduit de la clé) | non |
 | `RECAPTCHA_SECRET_KEY` | vérification serveur du jeton reCAPTCHA v3 | **oui** (voir § 1.4) |
-| `AI_GATEWAY_API_KEY` | passerelle Vercel AI Gateway, pour la modération assistée par IA | non — sans elle, la modération reste entièrement humaine (voir § 1.5) |
-| `PLAGIARISM_PROVIDER` | KOHOP : service anti-plagiat externe — `none` (défaut, **le contrôle externe est alors « indisponible »** et le chef de revue doit reconnaître, de façon journalisée, qu'il poursuit sans lui) ou `fake` (essais et démonstrations uniquement). Un fournisseur réel s'ajoute dans `convex/lib/kohopOriginalityProvider.ts` une fois choisi par le client (décision D-17) | non — mais sans lui, chaque acceptation KOHOP exige la reconnaissance explicite |
+| `AI_GATEWAY_API_KEY` | passerelle Vercel AI Gateway, pour la modération assistée par IA **et** pour les contrôles KOHOP (embeddings, avis sur les passages, synthèse des liens) | non — sans elle, la modération reste entièrement humaine et les étapes « sens » et « avis de l'IA » du contrôle d'originalité KOHOP sont rapportées *indisponibles* |
+| `PLAGIARISM_PROVIDER` | KOHOP : service anti-plagiat externe — `none` (défaut, **le contrôle externe est alors « indisponible »** et le chef de revue doit reconnaître, de façon journalisée, qu'il poursuit sans lui) ou `fake` (essais et démonstrations uniquement). Un fournisseur réel s'ajoute dans `convex/lib/plagiarism/` une fois choisi par le client (décision D-17) | non — mais sans lui, chaque acceptation KOHOP exige la reconnaissance explicite |
 | `PLAGIARISM_API_KEY` | KOHOP : clé du fournisseur anti-plagiat choisi (ne passe jamais par le navigateur) | seulement avec un fournisseur réel |
 | `BOOTSTRAP_ADMIN_EMAIL` | adresse autorisée à devenir le **premier** administrateur | le temps de l'amorçage seulement (§ 5) |
 | `AUTH_DEV_OTP` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** | — |
@@ -527,7 +527,7 @@ rapport.
 
 ## 11. KOHOP (contributions relues par les pairs)
 
-Aucune action de déploiement ne vous est demandée par ce chantier : il n'a créé aucun déploiement et n'a modifié aucune variable. Les variables nouvelles sont `PLAGIARISM_PROVIDER` et `PLAGIARISM_API_KEY` (§ 1.1) ; `AUTH_RESEND_KEY` et `SITE_URL` sont déjà requis (les invitations et alertes sont envoyées par e-mail depuis des actions planifiées). Deux tâches planifiées (`kohop-deadlines`, `kohop-external-purge`) sont déclarées dans `convex/crons.ts` et démarrent avec le déploiement. La procédure d'activation (chef de revue, accès pilote) est dans `docs/backlog/kohop.md`.
+Aucune action de déploiement ne vous est demandée par ce chantier : il n'a créé aucun déploiement et n'a modifié aucune variable. Les variables nouvelles sont `PLAGIARISM_PROVIDER` et `PLAGIARISM_API_KEY` (§ 1.1) ; `AUTH_RESEND_KEY` et `SITE_URL` sont déjà requis (les invitations et alertes sont envoyées par e-mail depuis des actions planifiées). Trois tâches planifiées (`kohop-deadlines`, `kohop-external-purge`, `kohop-index`) sont déclarées dans `convex/crons.ts` et démarrent avec le déploiement. La procédure d'activation (chef de revue, accès pilote) est dans `docs/backlog/kohop.md`.
 
 ## 10. Mise en service des fonctionnalités du backlog (27/09)
 

@@ -54,20 +54,26 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 |---|---|---|
 | D-6 champs thématiques | 10 champs de la plaquette | `KOHOP_FIELDS` |
 | D-15 cohorte pilote | accès `pilot`, organisations listées par l'administrateur | `kohopSettings` |
-| D-17 fournisseur anti-plagiat | aucun (`none`) ; reconnaissance journalisée à l'acceptation | `lib/kohopOriginalityProvider.ts` |
+| D-17 fournisseur anti-plagiat | aucun (`none`) ; reconnaissance journalisée à l'acceptation | `lib/plagiarism/` |
+| Modèles et plafond d'appels (lot 5) | embeddings `openai/text-embedding-3-small`, confirmation `anthropic/claude-sonnet-5`, seuil 0,8, 300 appels/jour | `lib/kohopSemantic.ts` |
+| Suggestions : charge et repos | pas plus de 2 relectures en cours ; 30 jours après un refus | `kohopSuggest.ts` |
 | Épreuve sans réponse après 5 jours | **pas** d'approbation tacite : relance puis alerte aux chefs | `KOHOP_PROOF_TACIT_APPROVAL` |
 | Motif d'un retrait | interne ; seule la notice est publique | `kohopProduction.retract` |
 | Version relue / texte accepté après une révision expirée | la version relue | `kohopDecision.accept` |
 | Délais | 5 j réponse, 14 j analyse, 14 j révision (+7 j une fois), 5 j épreuve | `KOHOP_DELAYS_DAYS` |
 
-### Écarts avec le prompt (lot 5, à reprendre si le client le souhaite)
+### Lot 5 — finalisé
 
-Livré : règles de liens, liens hors plateforme (OpenAlex/ORCID), suggestions, contrôle de plateforme par suites de mots, adaptateur externe (`none`, `fake`), rapports, verrous (lancement, acceptation, parution). **Non livré** : empreintes par « winnowing » et vecteurs d'embeddings (`textFingerprints`, `textPassages`, `vectorIndex`), détection de traduction d'une langue à l'autre, confirmation et classement des passages par l'IA (le classement est par règles), corpus Tribune et textes extraits des PDF, indexation planifiée avec reprise par lots, contrôle des contributions déjà déposées avant le lot, et vérification IA des liens. Ces éléments demandent une passerelle d'embeddings et un index vectoriel (coût et choix à valider) ; les rapports actuels ne produisent jamais de « rien à signaler » en cas d'échec.
+Tout ce que le prompt demandait est livré : index d'empreintes (winnowing) et de vecteurs (embeddings, `vectorIndex`), corpus KOHOP + bibliothèque (y compris le texte extrait des PDF) + Tribune, indexation planifiée avec reprise par lots, contrôle en trois temps (mots, sens dans toutes les langues, confirmation par l'IA), plafond quotidien d'appels, étapes rapportées une à une (jamais de « rien à signaler » en cas d'échec), contrôle des contributions déjà déposées, synthèse IA des liens hors plateforme (OpenAlex + ORCID, cosignatures et affiliations communes), suggestions équilibrées Afrique/Europe et langues, adaptateur anti-plagiat dans `convex/lib/plagiarism/`.
+
+**À valeur par défaut prudente (constantes dans `convex/lib/kohopSemantic.ts`, à confirmer)** : modèle d'embeddings `openai/text-embedding-3-small` (1536 dimensions), modèle de confirmation `anthropic/claude-sonnet-5`, seuil de proximité 0,8, 300 appels de modèle par jour (UTC), 16 candidats confirmés par contrôle.
+
+**Ce qui dépend d'un choix du client** : le fournisseur anti-plagiat externe (D-17) — l'adaptateur honore déjà « ne pas conserver le texte » et la détection d'une langue à l'autre, mais aucun fournisseur réel n'est branché ; sans lui, la reconnaissance journalisée reste nécessaire. Sans `AI_GATEWAY_API_KEY`, les étapes « sens » et « avis de l'IA » sont rapportées *indisponibles* et les chefs sont prévenus ; l'étape « mots » fonctionne seule.
 
 ### Limites connues
 
 - Les lignes d'historique portent l'identifiant d'un compte supprimé (pas d'index par acteur), comme le journal d'audit.
-- La liste publique est plafonnée à 100 contributions (lecture directe, sans pagination) ; le corpus de contrôle de plateforme lit au plus 15 contributions par étape et 100 publications.
+- La liste publique est plafonnée à 100 contributions (lecture directe, sans pagination). L'index d'originalité garde au plus 20 000 caractères par source, 40 paragraphes vectorisés par source ; une publication ou un billet de la Tribune modifié n'est ré-indexé qu'au prochain passage du cron (au plus 10 minutes), alors que les contributions KOHOP sont relues à chaque contrôle.
 - `convex-test` ne lit pas un document sans `searchText` dans un index de recherche (le moteur réel l'ignore) : un test de recherche globale donne un texte vide aux documents non publiés.
 - La charte et les guides ne sont pas validés ; les messages en es/pt/ar sont des traductions de travail à relire.
 
@@ -109,7 +115,7 @@ L'IA ne publie, n'accepte ni ne refuse jamais : elle informe.
 
 - **Liens hors plateforme** (`convex/kohopLinkExternal.ts`, `lib/kohopExternalLinks.ts`) : à chaque désignation, une action planifiée interroge **OpenAlex** avec les ORCID des deux profils (cosignature des 5 dernières années). Résultat **signalé au plus** (`external_cosign`), jamais bloquant, visible du chef de revue seul. Sans ORCID d'un côté, ou base injoignable : la vérification est enregistrée comme **non aboutie** (jamais comme « rien à signaler »).
 - **Suggestions de relecteurs** (`convex/kohopSuggest.ts`, `lib/kohopSuggest.ts`) : cinq membres de l'annuaire dont thèmes / mots-clés recoupent le texte, classés de façon déterministe, avec la raison. Les liens bloquants sont écartés en silence, les liens signalés restent dans l'historique du chef. L'auteur désigne ensuite par la porte habituelle (mêmes règles serveur).
-- **Originalité** (`convex/kohopOriginality.ts`, `lib/kohopOriginality.ts`) : deux rapports par version, planifiés au dépôt et à chaque révision. *Plateforme* : passages communs (suites de ≥ 9 mots) avec les autres contributions KOHOP et les publications de la bibliothèque, classés (citation référencée / expression courante / réutilisation déclarée / emprunt à examiner). *Externe* : adaptateur isolé `lib/kohopOriginalityProvider.ts`, fournisseurs `none` (défaut) et `fake` (essais).
+- **Originalité** (`convex/kohopOriginality.ts`, `kohopIndex.ts`, `lib/kohopOriginality.ts`, `lib/kohopWinnowing.ts`, `lib/kohopChunks.ts`, `lib/kohopSemantic.ts`, `lib/kohopOriginalityAi.ts`) : deux rapports par version, planifiés au dépôt, à chaque révision et avant `ready`. *Plateforme*, en trois étapes rapportées chacune : (1) suites de ≥ 9 mots, retrouvées par l'index d'empreintes puis relues dans les sources ; (2) paragraphes proches par le sens (embeddings, recherche vectorielle, toutes langues) ; (3) avis de l'IA sur chaque candidat (même texte, traduction, reformulation, même sujet seulement) et classement proposé, **à côté** du classement par règles — il ne change ni verrou ni décision. Les versions d'une même contribution ne sont jamais comparées entre elles. L'index (`textSources`, `textFingerprints`, `textPassages`) est tenu par le cron `kohop-index` (toutes les 10 minutes : lots, balayage de ce qui a quitté le corpus, vecteurs en attente, contrôle des contributions déjà déposées) ; un contrôle relit d'abord les contributions KOHOP et attend la fin d'une première lecture des autres tables. Classes : citation référencée / expression courante / réutilisation déclarée / emprunt à examiner. *Externe* : adaptateur isolé `lib/plagiarism/`, fournisseurs `none` (défaut) et `fake` (essais).
 - **Verrou d'acceptation** : `accept` exige un rapport plateforme terminé ET un rapport externe terminé ou **reconnu** par le chef de revue (« je poursuis sans contrôle externe », journalisé, `kohop.accepted_without_external_check`). Le chef lit les passages et décide ; rien n'est automatique.
 - Les rapports et les contrôles de liens n'apparaissent ni dans la vue de l'auteur, ni dans son historique.
 - **Choix à confirmer (D-17)** : le fournisseur anti-plagiat. En attendant, `PLAGIARISM_PROVIDER=none` : acceptation possible avec reconnaissance explicite. Variables documentées dans `docs/deploiement.md`.
@@ -121,7 +127,7 @@ L'IA ne publie, n'accepte ni ne refuse jamais : elle informe.
 - **Échéance de révision** : le cron `kohop-deadlines` rappelle (J-3), puis fait passer le dossier en `decision` à l'échéance ; le chef décide alors sur la version relue.
 - **Chef de revue** (`convex/kohopDecision.ts`) : voit les analyses **avec la note confidentielle**, la présomption d'acceptation (≥ 2 avis, tous positifs), la réponse de l'auteur et les changements (diff par blocs puis par mots). `accept` → `production` (version retenue, slug, **rien n'est publié**) ; `refuseContribution` : motif obligatoire, et avec la présomption seuls `outrance`, `charte`, `plagiat` sont ouverts (journal `kohop.refused_against_presumption`).
 - E-mails à l'auteur (5 langues, actions planifiées) : analyses arrivées, rappel, délai écoulé, acceptation, refus.
-- À venir (lot 5) : l'acceptation sera conditionnée au contrôle d'originalité.
+- L'acceptation est conditionnée au contrôle d'originalité (lot 5).
 - Tests : `convex/kohopDecision.test.ts` (13), parcours Playwright complet jusqu'à l'acceptation (axe sur la révision et la décision).
 
 ## Lot 3 — Relecture par les membres
@@ -232,7 +238,8 @@ suggestions de l'IA arrivent au lot 5.
   `kohopContributions`, `kohopVersions`, `kohopReviewers`, `kohopReviews`,
   `kohopDecisions`, `kohopEvents`, `kohopLinkChecks`, `kohopSuggestions`,
   `originalityReports`, `kohopSettings`. Les index d'originalité
-  (`textFingerprints`, `textPassages`) arrivent au lot 5.
+  (`textSources`, `textFingerprints`, `textPassages`, `kohopIndexCursors`,
+  `kohopAiUsage`) sont au lot 5.
 - Constantes d'audit `AUDIT.KOHOP_*`, clés de notification `kohop*` dans les
   cinq langues (espace `notifications`), icône « revue » pour le préfixe
   `kohop` dans la liste des notifications.

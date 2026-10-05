@@ -131,6 +131,14 @@ const REASON_REVIEWER: Phrase = {
   pt: 'Recebe este e-mail porque um/a autor/a o/a propôs como revisor/a na Democracy Together e o chefe de revisão validou a proposta.',
   ar: 'يصلكم هذا البريد لأن مؤلفاً اقترحكم مراجعاً في Democracy Together ووافق رئيس المراجعة على الاقتراح.',
 };
+/** Said to every reviewer (GDPR): what the originality checks read and keep. */
+const ORIGINALITY_NOTICE: Phrase = {
+  fr: 'Les contributions déposées sont comparées automatiquement aux textes de la plateforme et de sources professionnelles publiques ; ces contrôles ne sont lus que par le chef de revue et sont supprimés avec le dossier.',
+  en: 'Submitted contributions are automatically compared with the platform’s texts and with public professional sources; these checks are read only by the review chief and are deleted with the file.',
+  es: 'Las contribuciones depositadas se comparan automáticamente con los textos de la plataforma y con fuentes profesionales públicas; estos controles solo los lee el jefe de revisión y se eliminan con el expediente.',
+  pt: 'As contribuições depositadas são comparadas automaticamente com os textos da plataforma e com fontes profissionais públicas; estes controlos só são lidos pelo chefe de revisão e são eliminados com o processo.',
+  ar: 'تُقارَن المساهمات المودَعة آلياً بنصوص المنصة وبمصادر مهنية علنية؛ لا يطّلع على هذه الفحوص إلا رئيس المراجعة وتُحذف مع الملف.',
+};
 const INVITE_SUBJECT: Phrase = {
   fr: 'KOHOP : vous êtes invité·e à relire une contribution',
   en: 'KOHOP: you are invited to review a contribution',
@@ -203,6 +211,7 @@ export function reviewerEmail(args: {
   const lead = invitation ? INVITE_LEAD[loc] : REMIND_LEAD[loc];
   const body =
     kit.paragraph(lead) +
+    (invitation ? kit.paragraph(ORIGINALITY_NOTICE[loc]) : '') +
     kit.details([
       { label: LABEL_TITLE[loc], value: escapeHtml(args.title) },
       { label: LABEL_DEADLINE[loc], value: escapeHtml(args.dueLabel) },
@@ -660,6 +669,7 @@ export function externalInvitationEmail(args: {
   const kit = emailKit(loc);
   const body =
     kit.paragraph(EXT_LEAD[loc]) +
+    kit.paragraph(ORIGINALITY_NOTICE[loc]) +
     kit.details([
       { label: LABEL_TITLE[loc], value: escapeHtml(args.title) },
       { label: LABEL_DEADLINE[loc], value: escapeHtml(args.dueLabel) },

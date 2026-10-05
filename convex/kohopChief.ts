@@ -5,6 +5,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { requireNetworkRole, requireReviewChief } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
+import { internal } from './_generated/api';
 import { notify } from './lib/notify';
 import {
   KOHOP_BOUNDS,
@@ -182,6 +183,8 @@ export const dossier = query({
           failed: c.failed === true,
           error: c.error ?? null,
           model: c.model ?? null,
+          synthesis: c.synthesis ?? null,
+          synthesisError: c.synthesisError ?? null,
           checkedAt: c.checkedAt,
           findings: c.findings.map((f) => ({
             type: f.type,
@@ -336,6 +339,32 @@ export const approveReviewer = mutation({
     ) {
       await inviteReviewer(ctx, file, reviewer, chief._id);
     }
+    return null;
+  },
+});
+
+/**
+ * The review chief runs the links check outside the platform again (a failed
+ * check, an ORCID added since). Nothing changes on the file but a new check row.
+ */
+export const recheckLinks = mutation({
+  args: { reviewerId: v.id('kohopReviewers') },
+  returns: v.null(),
+  handler: async (ctx, { reviewerId }) => {
+    const chief = await requireReviewChief(ctx);
+    const reviewer = await ctx.db.get(reviewerId);
+    if (!reviewer) refuse('NOT_FOUND');
+    const file = await loadFile(ctx, reviewer.contributionId);
+    if (!REVIEWER_STAGES.includes(file.stage)) refuse('INVALID_TRANSITION');
+    await ctx.scheduler.runAfter(0, internal.kohopLinkExternal.check, {
+      reviewerId,
+    });
+    await recordAudit(ctx, {
+      actorId: chief._id,
+      action: AUDIT.KOHOP_LINK_CHECKED,
+      targetId: file._id,
+      metadata: { reviewerId, requested: true },
+    });
     return null;
   },
 });

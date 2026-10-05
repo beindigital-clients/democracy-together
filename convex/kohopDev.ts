@@ -190,3 +190,156 @@ export const seedPilot = internalMutation({
     return { authorOrg, reviewerOrg };
   },
 });
+
+// A file at the DECISION stage with every kind of originality result and a
+// reviewer with a links synthesis: what the review chief's screen has to show,
+// built without running the whole journey. For the browser tests of that screen.
+export const seedOriginalityDossier = internalMutation({
+  args: {
+    authorEmail: v.string(),
+    reviewerEmail: v.string(),
+    title: v.string(),
+  },
+  handler: async (ctx, { authorEmail, reviewerEmail, title }) => {
+    devOnly();
+    const author = await userByEmail(ctx, authorEmail);
+    const reviewer = await userByEmail(ctx, reviewerEmail);
+    if (!author || !reviewer) throw new Error('Compte introuvable.');
+    const now = Date.now();
+    const body = `## Introduction\n\n${Array.from({ length: 560 }, (_, i) => ['participation', 'citoyenne', 'budget', 'local'][i % 4]).join(' ')}`;
+    const id = await ctx.db.insert('kohopContributions', {
+      stage: 'decision',
+      authorUserId: author._id,
+      lang: 'fr',
+      fields: ['citizen-participation'],
+      keywords: ['participation'],
+      coAuthors: [],
+      currentVersion: 1,
+      submittedVersion: 1,
+      reviewedVersion: 1,
+      title,
+      licence: 'CC BY 4.0',
+      priorWorks: [],
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.insert('kohopVersions', {
+      contributionId: id,
+      version: 1,
+      kind: 'submission',
+      title,
+      standfirst:
+        'Un chapô de cent caractères au moins, qui résume la contribution en une ou deux phrases claires et utiles au lecteur.',
+      body,
+      links: [],
+      wordCount: 560,
+      createdBy: author._id,
+      createdAt: now,
+    });
+    const reviewerId = await ctx.db.insert('kohopReviewers', {
+      contributionId: id,
+      slot: 'titular',
+      source: 'directory',
+      name: 'Rémi Relecteur',
+      userId: reviewer._id,
+      status: 'submitted',
+      flags: ['external_cosign', 'external_affiliation'],
+      remindersSent: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.insert('kohopLinkChecks', {
+      contributionId: id,
+      reviewerId,
+      level: 'flagged',
+      findings: [
+        {
+          type: 'external_cosign',
+          detail: '1 · Un article cosigné (2025)',
+          source: 'OpenAlex',
+          url: 'https://openalex.org/W1',
+        },
+        {
+          type: 'external_affiliation',
+          detail: 'Université de Dakar',
+          source: 'ORCID',
+          url: 'https://orcid.org/0000-0001-5109-370X',
+        },
+      ],
+      origin: 'ai',
+      model: 'anthropic/claude-sonnet-5',
+      synthesis:
+        'Les deux personnes ont cosigné un article en 2025 et ont travaillé dans la même université.',
+      checkedAt: now,
+    });
+    await ctx.db.insert('originalityReports', {
+      contributionId: id,
+      version: 1,
+      scope: 'platform',
+      status: 'done',
+      provider: 'platform',
+      model: 'anthropic/claude-sonnet-5',
+      summary: '3 passages, 12%',
+      stages: [
+        { stage: 'words', status: 'done' },
+        { stage: 'semantic', status: 'done' },
+        { stage: 'ai', status: 'failed', error: 'AI_GATEWAY_HTTP_ERROR' },
+      ],
+      matches: [
+        {
+          sourceType: 'publication',
+          sourceTitle: 'Rapport sur le budget participatif',
+          passage:
+            'la participation citoyenne locale renforce la confiance dans les institutions',
+          sourcePassage:
+            'la participation citoyenne locale renforce la confiance dans les institutions publiques',
+          lang: 'fr',
+          sourceLang: 'fr',
+          method: 'words',
+          classification: 'borrowing',
+          aiVerdict: 'same_text',
+          aiClassification: 'borrowing',
+          aiRationale: 'Le passage est repris mot pour mot.',
+        },
+        {
+          sourceType: 'publication',
+          sourceTitle: 'Citizen participation in West Africa',
+          passage:
+            'Les budgets participatifs rapprochent les habitants des décisions locales.',
+          sourcePassage:
+            'Participatory budgets bring residents closer to local decisions.',
+          lang: 'fr',
+          sourceLang: 'en',
+          method: 'semantic',
+          crossLanguage: true,
+          similarity: 0.91,
+          aiVerdict: 'translation',
+          aiClassification: 'borrowing',
+          aiRationale: 'Même phrase traduite de l’anglais.',
+        },
+        {
+          sourceType: 'tribune',
+          sourceTitle: 'Billet de la Tribune',
+          passage: 'une formule courante sur la démocratie locale',
+          sourcePassage: 'une formule courante sur la démocratie locale',
+          lang: 'fr',
+          sourceLang: 'fr',
+          method: 'words',
+          classification: 'common_phrase',
+        },
+      ],
+      checkedAt: now,
+    });
+    await ctx.db.insert('originalityReports', {
+      contributionId: id,
+      version: 1,
+      scope: 'external',
+      status: 'unavailable',
+      matches: [],
+      provider: 'none',
+      error: 'NO_PROVIDER',
+      checkedAt: now,
+    });
+    return id;
+  },
+});

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { scoreCandidate, topCandidates } from './kohopSuggest';
+import {
+  balancedSelection,
+  regionOfCountry,
+  scoreCandidate,
+  topCandidates,
+} from './kohopSuggest';
 
 const target = {
   fields: ['citizen-participation'] as const,
@@ -67,5 +72,84 @@ describe('topCandidates', () => {
       'D',
       'E',
     ]);
+  });
+});
+
+describe('travaux publiés', () => {
+  it('une publication de la bibliothèque sur le sujet est une raison de proposer', () => {
+    const r = scoreCandidate(target, {
+      themes: [],
+      languages: [],
+      searchText: 'sans rapport',
+      works: ['Le budget participatif à Dakar : un bilan'],
+    });
+    expect(r.reasons).toContain('work');
+    expect(r.score).toBeGreaterThan(0);
+  });
+
+  it('sans rapport avec le sujet, aucune raison', () => {
+    expect(
+      scoreCandidate(target, {
+        themes: [],
+        languages: [],
+        searchText: 'x',
+        works: ['Hydrologie du bassin du fleuve'],
+      }).score,
+    ).toBe(0);
+  });
+});
+
+describe('regionOfCountry', () => {
+  it('classe les pays d’Afrique, d’Europe et les autres', () => {
+    expect(regionOfCountry('SN')).toBe('africa');
+    expect(regionOfCountry('fr')).toBe('europe');
+    expect(regionOfCountry('BR')).toBe('other');
+    expect(regionOfCountry(undefined)).toBe('other');
+  });
+});
+
+describe('balancedSelection', () => {
+  const c = (
+    name: string,
+    score: number,
+    region: 'africa' | 'europe' | 'other',
+    lang = 'fr',
+  ) => ({ name, score, region, languages: [lang] });
+
+  it('mélange l’Afrique et l’Europe plutôt que de prendre cinq noms d’une seule région', () => {
+    const out = balancedSelection([
+      c('A', 10, 'europe'),
+      c('B', 9, 'europe'),
+      c('C', 8, 'europe'),
+      c('D', 7, 'europe'),
+      c('E', 6, 'africa'),
+      c('F', 6, 'africa'),
+    ]);
+    const regions = out.map((x) => x.region);
+    expect(regions).toContain('africa');
+    expect(regions).toContain('europe');
+    expect(out).toHaveLength(5);
+    expect(out[0].name).toBe('A');
+  });
+
+  it('varie aussi les langues, et reste déterministe', () => {
+    const rows = [
+      c('A', 5, 'africa', 'fr'),
+      c('B', 5, 'africa', 'fr'),
+      c('C', 5, 'africa', 'en'),
+    ];
+    const a = balancedSelection(rows, 2).map((x) => x.name);
+    expect(a).toEqual(['A', 'C']);
+    expect(balancedSelection(rows, 2).map((x) => x.name)).toEqual(a);
+  });
+
+  it('ne propose jamais un score nul, ni plus que demandé', () => {
+    expect(balancedSelection([c('Z', 0, 'africa')])).toEqual([]);
+    expect(
+      balancedSelection(
+        Array.from({ length: 9 }, (_, i) => c(`N${i}`, 3, 'other')),
+        3,
+      ),
+    ).toHaveLength(3);
   });
 });

@@ -24,9 +24,9 @@ export function foldWord(word: string): string {
     .replace(EDGE_PUNCTUATION, '');
 }
 
-type Tokens = { raw: string[]; folded: string[] };
+export type Tokens = { raw: string[]; folded: string[] };
 
-function tokenize(plain: string): Tokens {
+export function tokenize(plain: string): Tokens {
   const raw: string[] = [];
   const folded: string[] = [];
   for (const token of plain.split(/(?:\s|\u200B|\u200C|\u200D)+/u)) {

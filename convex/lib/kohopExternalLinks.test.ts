@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { coSignRequestUrl, orcidOf, readCoSigned } from './kohopExternalLinks';
+import {
+  coSignRequestUrl,
+  commonAffiliations,
+  employmentsRequestUrl,
+  orcidOf,
+  readCoSigned,
+  readEmployments,
+} from './kohopExternalLinks';
 
 describe('orcidOf', () => {
   it('reads the iD from an orcid link, whatever the url form', () => {
@@ -73,5 +80,67 @@ describe('readCoSigned', () => {
     });
     expect(r).not.toBe('invalid');
     expect((r as { url: string }).url).toBe('');
+  });
+});
+
+describe('Affiliations communes (ORCID)', () => {
+  const NOW = Date.UTC(2026, 9, 5);
+  const summary = (name: string, from?: number, to?: number) => ({
+    summaries: [
+      {
+        'employment-summary': {
+          organization: { name },
+          'start-date': from ? { year: { value: String(from) } } : null,
+          'end-date': to ? { year: { value: String(to) } } : null,
+        },
+      },
+    ],
+  });
+
+  it('construit la requête publique ORCID', () => {
+    expect(employmentsRequestUrl('0000-0002-1825-0097')).toBe(
+      'https://pub.orcid.org/v3.0/0000-0002-1825-0097/employments',
+    );
+  });
+
+  it('lit un relevé d’emplois, et refuse une forme inattendue', () => {
+    expect(
+      readEmployments({
+        'affiliation-group': [summary('Université de Dakar', 2019)],
+      }),
+    ).toEqual([{ name: 'Université de Dakar', from: 2019, to: null }]);
+    expect(readEmployments({ 'affiliation-group': [] })).toEqual([]);
+    expect(readEmployments({ oops: 1 })).toBe('invalid');
+    expect(readEmployments(null)).toBe('invalid');
+  });
+
+  it('retrouve une organisation commune qui se recoupe dans les cinq ans, accents et casse ignorés', () => {
+    const a = [{ name: 'Université de Dakar', from: 2018, to: null }];
+    const b = [{ name: 'UNIVERSITE DE DAKAR', from: 2022, to: 2024 }];
+    expect(commonAffiliations(a, b, NOW)).toEqual(['Université de Dakar']);
+  });
+
+  it('ignore une organisation quittée avant la fenêtre, ou des périodes qui ne se recoupent pas', () => {
+    expect(
+      commonAffiliations(
+        [{ name: 'Institut X', from: 2005, to: 2012 }],
+        [{ name: 'Institut X', from: 2005, to: 2012 }],
+        NOW,
+      ),
+    ).toEqual([]);
+    expect(
+      commonAffiliations(
+        [{ name: 'Institut X', from: 2015, to: 2021 }],
+        [{ name: 'Institut X', from: 2023, to: null }],
+        NOW,
+      ),
+    ).toEqual([]);
+    expect(
+      commonAffiliations(
+        [{ name: 'Institut X', from: 2020, to: null }],
+        [{ name: 'Institut Y', from: 2020, to: null }],
+        NOW,
+      ),
+    ).toEqual([]);
   });
 });

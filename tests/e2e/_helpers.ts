@@ -542,3 +542,18 @@ export async function getKohopInvitationLink(email: string): Promise<string> {
   }
   throw new Error(`Aucun lien d’invitation KOHOP trouvé pour ${email}`);
 }
+
+// A KOHOP file at the decision stage with every kind of originality result and a
+// reviewer with a links synthesis (DEV, AUTH_DEV_OTP guard) — what the review
+// chief's screen has to show, without running the whole journey.
+export async function seedKohopOriginalityDossier(
+  authorEmail: string,
+  reviewerEmail: string,
+  title: string,
+): Promise<void> {
+  convexRun('kohopDev:seedOriginalityDossier', {
+    authorEmail,
+    reviewerEmail,
+    title,
+  });
+}

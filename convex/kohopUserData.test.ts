@@ -402,8 +402,18 @@ describe('Suppression de compte — KOHOP', () => {
 
   it('auteur : un dossier non publié (relecture en cours) est supprimé avec toutes ses dépendances', async () => {
     const w = await inReview();
+    await drain(w.t);
+    const indexed = () =>
+      w.t.run(async (ctx) => ({
+        sources: (await ctx.db.query('textSources').collect()).length,
+        prints: (await ctx.db.query('textFingerprints').collect()).length,
+        passages: (await ctx.db.query('textPassages').collect()).length,
+      }));
+    // The text of the file sits in the originality index until the account goes.
+    expect((await indexed()).sources).toBeGreaterThan(0);
     await eraseAccount(w.t, w.author.id);
     expect(await w.t.run((ctx) => ctx.db.get(w.id))).toBeNull();
+    expect(await indexed()).toEqual({ sources: 0, prints: 0, passages: 0 });
     const left = await w.t.run(async (ctx) => ({
       reviewers: (await ctx.db.query('kohopReviewers').collect()).length,
       reviews: (await ctx.db.query('kohopReviews').collect()).length,

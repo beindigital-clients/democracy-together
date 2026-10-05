@@ -70,6 +70,7 @@ function ReviewerCard({
   const notify = useActionFeedback();
   const approve = useMutation(api.kohopChief.approveReviewer);
   const recuse = useMutation(api.kohopChief.recuseReviewer);
+  const recheck = useMutation(api.kohopChief.recheckLinks);
   const [recusing, setRecusing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -205,6 +206,16 @@ function ReviewerCard({
                   : t('originRules')}{' '}
               · {dates.day(check.checkedAt)}
             </p>
+            {check.synthesis ? (
+              <p className="mt-1 text-sm text-ink">
+                <span className="font-medium">{t('linkSynthesis')}</span>{' '}
+                {check.synthesis}
+              </p>
+            ) : check.synthesisError ? (
+              <p className="mt-1 text-sm text-muted">
+                {t('linkSynthesisMissing')}
+              </p>
+            ) : null}
             <ul className="mt-1 space-y-1 text-sm">
               {check.findings.map((f, i) => (
                 <li key={i} className="rounded-sm bg-surface-2 px-3 py-2">
@@ -272,6 +283,30 @@ function ReviewerCard({
             }}
           >
             {t('recuseReviewer')}
+          </Button>
+        </div>
+      ) : null}
+      {canAct ? (
+        <div className="mt-3">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError('');
+              try {
+                await recheck({ reviewerId: reviewer._id });
+                notify(t('linkRecheckDone'));
+              } catch (err) {
+                setError(errorMessage(err));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {t('linkRecheck')}
           </Button>
         </div>
       ) : null}
@@ -384,6 +419,37 @@ function OriginalityCard({ file, canAct }: { file: Dossier; canAct: boolean }) {
                     {t('originalityError', { error: report.error })}
                   </p>
                 ) : null}
+                {report.stages.length > 0 ? (
+                  <div className="mt-2">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                      {t('originalityStages')}
+                    </p>
+                    <ul className="mt-1 flex flex-wrap gap-1.5">
+                      {report.stages.map((st) => (
+                        <li key={st.stage}>
+                          <Badge
+                            size="label"
+                            variant={
+                              st.status === 'done'
+                                ? 'good'
+                                : st.status === 'failed'
+                                  ? 'bad'
+                                  : 'pending'
+                            }
+                          >
+                            {vocabulary(t, 'originalityStage_', st.stage)} ·{' '}
+                            {vocabulary(t, 'origStatus_', st.status)}
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                    {report.stages.some((st) => st.status !== 'done') ? (
+                      <p className="mt-2 text-sm text-bar-5">
+                        {t('originalityIncomplete')}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 {report.acknowledged ? (
                   <p className="mt-1 text-sm text-bar-1">
                     {t('originalityAcked')}
@@ -424,15 +490,86 @@ function OriginalityCard({ file, canAct }: { file: Dossier; canAct: boolean }) {
                                   )}
                                 </Badge>
                               ) : null}
+                              {m.method ? (
+                                <Badge variant="outline" size="label">
+                                  {vocabulary(t, 'matchMethod_', m.method)}
+                                </Badge>
+                              ) : null}
+                              {m.crossLanguage ? (
+                                <Badge variant="outline" size="label">
+                                  {t('matchCrossLanguage')}
+                                </Badge>
+                              ) : null}
+                              {m.similarity !== null ? (
+                                <Badge variant="outline" size="label">
+                                  {t('matchSimilarity', {
+                                    percent: Math.round(m.similarity * 100),
+                                  })}
+                                </Badge>
+                              ) : null}
                               <span className="text-ink-soft">
                                 {t('originalitySource', {
                                   title: m.sourceTitle,
                                 })}
                               </span>
                             </div>
-                            <p className="mt-2 wrap-anywhere text-ink">
-                              « {m.passage} »
-                            </p>
+                            <div className="mt-2 grid gap-3 md:grid-cols-2">
+                              <div>
+                                <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                                  {t('matchSubmitted')}
+                                  {m.lang ? ` · ${m.lang.toUpperCase()}` : ''}
+                                </p>
+                                <p
+                                  className="mt-1 wrap-anywhere text-ink"
+                                  lang={m.lang ?? undefined}
+                                >
+                                  « {m.passage} »
+                                </p>
+                              </div>
+                              {m.sourcePassage ? (
+                                <div>
+                                  <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+                                    {t('matchSource')}
+                                    {m.sourceLang
+                                      ? ` · ${m.sourceLang.toUpperCase()}`
+                                      : ''}
+                                  </p>
+                                  <p
+                                    className="mt-1 wrap-anywhere text-ink-soft"
+                                    lang={m.sourceLang ?? undefined}
+                                  >
+                                    « {m.sourcePassage} »
+                                  </p>
+                                </div>
+                              ) : null}
+                            </div>
+                            {m.aiVerdict ? (
+                              <p className="mt-2 text-ink-soft">
+                                <span className="font-medium text-ink">
+                                  {t('matchAiAdvice', {
+                                    verdict: vocabulary(
+                                      t,
+                                      'aiVerdict_',
+                                      m.aiVerdict,
+                                    ),
+                                  })}
+                                </span>
+                                {m.aiClassification &&
+                                m.aiClassification !== m.classification ? (
+                                  <>
+                                    {' · '}
+                                    {t('matchAiClass', {
+                                      class: vocabulary(
+                                        t,
+                                        'matchClass_',
+                                        m.aiClassification,
+                                      ),
+                                    })}
+                                  </>
+                                ) : null}
+                                {m.aiRationale ? ` — ${m.aiRationale}` : ''}
+                              </p>
+                            ) : null}
                           </li>
                         ))}
                       </ul>

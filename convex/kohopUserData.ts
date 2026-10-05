@@ -4,6 +4,7 @@ import { displayedOrganization } from './lib/socialAccess';
 import { KOHOP_PUBLIC_STAGES } from './lib/kohop';
 import { replaceTitular } from './lib/kohopReviewing';
 import { versionOf } from './lib/kohopAccess';
+import { dropSource } from './kohopIndex';
 
 // KOHOP — DELETION AND EXPORT OF AN ACCOUNT'S DATA (D-14; GDPR art. 15, 17, 20).
 // Registered in `convex/lib/accountDeletion.ts` (`CHANTIER_USER_DATA_MODULES`).
@@ -82,6 +83,8 @@ async function deleteSubordinates(
     .take(100)) {
     await ctx.db.delete(r._id);
   }
+  // The text's place in the originality index goes with it.
+  await dropSource(ctx, 'kohop', id);
 }
 
 /** The reviewer's personal fields, erased. The structure the file needs stays. */
@@ -178,6 +181,19 @@ export async function deleteUserDataKohop(
     await ctx.db.delete(file._id);
     deleted += 1;
   }
+
+  // --- The originality index ------------------------------------------------------
+  // Whatever the index holds of this account's texts is derived data: dropped
+  // now (a text that stays public is read again by the next indexing pass,
+  // without the link to the account).
+  const indexed = await ctx.db
+    .query('textSources')
+    .withIndex('by_author', (q) => q.eq('authorUserId', userId))
+    .take(BATCH);
+  for (const source of indexed) {
+    await dropSource(ctx, source.sourceKind, source.sourceId);
+  }
+  if (indexed.length === BATCH) more = true;
 
   // --- As a reviewer ------------------------------------------------------------
   const rows = await ctx.db

@@ -576,6 +576,9 @@ export function AuthorEditor({ file }: { file: File }) {
               </li>
             ))}
           </ul>
+          <p className="max-w-[68ch] text-sm text-muted">
+            {t('originalityNotice')}
+          </p>
           <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
             <Link
               href="/kohop/charte"

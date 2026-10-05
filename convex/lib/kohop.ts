@@ -558,6 +558,53 @@ export const KOHOP_MATCH_CLASSES = [
 ] as const;
 export type KohopMatchClass = (typeof KOHOP_MATCH_CLASSES)[number];
 
+/** How a shared passage was found. */
+export const KOHOP_MATCH_METHODS = ['words', 'semantic', 'external'] as const;
+export type KohopMatchMethod = (typeof KOHOP_MATCH_METHODS)[number];
+
+/**
+ * What the AI says two passages are, once it has read them side by side. It
+ * confirms or dismisses a candidate; it never decides anything.
+ */
+export const KOHOP_AI_VERDICTS = [
+  'same_text',
+  'translation',
+  'paraphrase',
+  'topic_only',
+] as const;
+export type KohopAiVerdict = (typeof KOHOP_AI_VERDICTS)[number];
+
+/** The three stages of the platform check, each reported on its own. */
+export const KOHOP_CHECK_STAGES = ['words', 'semantic', 'ai'] as const;
+export type KohopCheckStage = (typeof KOHOP_CHECK_STAGES)[number];
+export const KOHOP_STAGE_STATUSES = ['done', 'unavailable', 'failed'] as const;
+export type KohopStageStatus = (typeof KOHOP_STAGE_STATUSES)[number];
+
+/**
+ * Stages whose contributions are part of the comparison base: what was
+ * deposited and not refused or withdrawn.
+ */
+export const KOHOP_CORPUS_STAGES = [
+  'submitted',
+  'in_review',
+  'revision',
+  'decision',
+  'production',
+  'proof',
+  'ready',
+  'scheduled',
+  'published',
+] as const;
+
+/** Where an indexed source comes from. */
+export const KOHOP_INDEX_KINDS = [
+  'kohop',
+  'publication',
+  'document',
+  'tribune',
+] as const;
+export type KohopIndexKind = (typeof KOHOP_INDEX_KINDS)[number];
+
 export const KOHOP_ORIGINALITY_SCOPES = ['platform', 'external'] as const;
 export const KOHOP_ORIGINALITY_STATUSES = [
   'pending',

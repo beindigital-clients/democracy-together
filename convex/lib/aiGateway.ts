@@ -27,6 +27,7 @@
 // submission goes to the human queue; never that it is published without review.
 
 const GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1/responses';
+const EMBEDDINGS_URL = 'https://ai-gateway.vercel.sh/v1/embeddings';
 
 // An editorial assessment of a PDF takes time; a Convex action does not
 // run forever. 120 s comfortably covers a long submission and cuts off a
@@ -229,4 +230,99 @@ export function toBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
   }
   return btoa(binary);
+}
+
+// EMBEDDINGS — one vector per input text (KOHOP originality, semantic index).
+//
+// Same discipline as `runStructured`: never throws, every failure is a stable
+// code, and without a key the call FAILS (fail-closed). The gateway's
+// embeddings endpoint follows the OpenAI format: `{ model, input: string[] }`
+// answered by `{ data: [{ index, embedding }], usage }`. The vectors come back
+// in the order of the inputs, and a response that does not hold exactly one
+// vector of the expected size per input is rejected whole.
+
+export type EmbeddingsRequest = {
+  model: string;
+  inputs: string[];
+  dimensions: number;
+};
+
+export type EmbeddingsResult =
+  | { ok: true; vectors: number[][]; usage: GatewayUsage; model: string }
+  | { ok: false; code: string; detail?: string };
+
+export async function runEmbeddings(
+  req: EmbeddingsRequest,
+): Promise<EmbeddingsResult> {
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  if (!apiKey) {
+    console.error(
+      '[ai-gateway] AI_GATEWAY_API_KEY absente — aucun embedding possible. Poser la clé : npx convex env set AI_GATEWAY_API_KEY vck_xxx.',
+    );
+    return { ok: false, code: GATEWAY_ERRORS.NOT_CONFIGURED };
+  }
+  if (req.inputs.length === 0) {
+    return { ok: true, vectors: [], usage: {}, model: req.model };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(EMBEDDINGS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      body: JSON.stringify({ model: req.model, input: req.inputs }),
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'TimeoutError';
+    return {
+      ok: false,
+      code: timedOut ? GATEWAY_ERRORS.TIMEOUT : GATEWAY_ERRORS.NETWORK,
+      detail: error instanceof Error ? error.message : undefined,
+    };
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    return {
+      ok: false,
+      code: GATEWAY_ERRORS.HTTP,
+      detail: `${response.status} ${detail.slice(0, 500)}`,
+    };
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return { ok: false, code: GATEWAY_ERRORS.BAD_RESPONSE };
+  }
+  const data = (body as { data?: unknown } | null)?.data;
+  if (!Array.isArray(data) || data.length !== req.inputs.length) {
+    return { ok: false, code: GATEWAY_ERRORS.BAD_RESPONSE };
+  }
+  const vectors: number[][] = new Array(req.inputs.length);
+  for (const item of data as { index?: unknown; embedding?: unknown }[]) {
+    const at = typeof item?.index === 'number' ? item.index : -1;
+    const vector = item?.embedding;
+    if (
+      at < 0 ||
+      at >= vectors.length ||
+      vectors[at] !== undefined ||
+      !Array.isArray(vector) ||
+      vector.length !== req.dimensions ||
+      !vector.every((x) => typeof x === 'number' && Number.isFinite(x))
+    ) {
+      return { ok: false, code: GATEWAY_ERRORS.BAD_RESPONSE };
+    }
+    vectors[at] = vector as number[];
+  }
+  return {
+    ok: true,
+    vectors,
+    usage: extractUsage(body),
+    model: req.model,
+  };
 }

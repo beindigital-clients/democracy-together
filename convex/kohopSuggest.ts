@@ -8,7 +8,12 @@ import { displayedOrganization } from './lib/socialAccess';
 import { KOHOP_ACTIVE_REVIEWER_STATUSES, levelOf } from './lib/kohop';
 import { collectLinkFacts } from './lib/kohopLinkFacts';
 import { evaluateLinks, linkLevel } from './lib/kohopLinks';
-import { scoreCandidate, topCandidates } from './lib/kohopSuggest';
+import {
+  balancedSelection,
+  regionOfCountry,
+  scoreCandidate,
+  topCandidates,
+} from './lib/kohopSuggest';
 import { EDITABLE } from './kohop';
 
 // KOHOP — suggestions of reviewers for the AUTHOR (K-20). The platform proposes
@@ -18,7 +23,12 @@ import { EDITABLE } from './kohop';
 // stored history for the review chief and never reaches the author.
 
 const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
 const SCAN = 150;
+/** Reviews in progress from which someone is not proposed any more. */
+const WORKLOAD_MAX = 2;
+/** Someone who declined an invitation is left alone for this long. */
+const DECLINED_REST_DAYS = 30;
 
 const OPEN_STAGES = ['submitted', 'in_review', 'revision'] as const;
 
@@ -63,13 +73,42 @@ export const suggestReviewers = mutation({
     for (const p of profiles) {
       if (p.userId === user._id || p.notReviewer === true) continue;
       if (already.has(p.userId)) continue;
+      // Left out: already two reviews under way, or declined a recent invitation.
+      const history = await ctx.db
+        .query('kohopReviewers')
+        .withIndex('by_user', (q) => q.eq('userId', p.userId))
+        .take(40);
+      const now = Date.now();
+      if (
+        history.filter((r) => KOHOP_ACTIVE_REVIEWER_STATUSES.includes(r.status))
+          .length >= WORKLOAD_MAX ||
+        history.some(
+          (r) =>
+            r.status === 'declined' &&
+            r.respondedAt !== undefined &&
+            now - r.respondedAt < DECLINED_REST_DAYS * DAY,
+        )
+      ) {
+        continue;
+      }
+      const published = await ctx.db
+        .query('publications')
+        .withIndex('by_author', (q) => q.eq('authorUserId', p.userId))
+        .take(8);
       const { score, reasons } = scoreCandidate(
         {
           fields: contribution.fields,
           keywords: contribution.keywords,
           lang: contribution.lang,
         },
-        { themes: p.themes, languages: p.languages, searchText: p.searchText },
+        {
+          themes: p.themes,
+          languages: p.languages,
+          searchText: p.searchText,
+          works: published
+            .filter((x) => x.status === 'published')
+            .map((x) => `${x.title} ${x.abstract}`),
+        },
       );
       if (score === 0) continue;
       const account = await ctx.db.get(p.userId);
@@ -83,11 +122,21 @@ export const suggestReviewers = mutation({
       ) {
         continue;
       }
-      scored.push({ profile: p, account, score, reasons, name: p.displayName });
+      scored.push({
+        profile: p,
+        account,
+        score,
+        reasons,
+        name: p.displayName,
+        region: regionOfCountry(p.country),
+        languages: p.languages,
+      });
     }
 
-    const kept = [];
-    for (const c of topCandidates(scored, 12)) {
+    // Twelve best, then a balanced five among those not blocked by a link.
+    const shortlist = topCandidates(scored, 12);
+    const unblocked = [];
+    for (const c of shortlist) {
       const facts = await collectLinkFacts(ctx, {
         contribution,
         candidate: {
@@ -99,9 +148,9 @@ export const suggestReviewers = mutation({
       });
       // A blocking link: the candidate would be refused at designation.
       if (linkLevel(facts) === 'blocking') continue;
-      kept.push({ ...c, findings: evaluateLinks(facts) });
-      if (kept.length >= 5) break;
+      unblocked.push({ ...c, findings: evaluateLinks(facts) });
     }
+    const kept = balancedSelection(unblocked);
 
     const now = Date.now();
     await ctx.db.insert('kohopSuggestions', {

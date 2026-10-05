@@ -78,4 +78,9 @@ crons.cron(
   {},
 );
 
+// KOHOP — the originality index: a few documents of each source table per
+// pass, the sweep of what left the corpus, the embeddings still pending, and
+// the checks of contributions deposited before they existed. Every 10 minutes.
+crons.cron('kohop-index', '*/10 * * * *', internal.kohopIndex.cycle, {});
+
 export default crons;
