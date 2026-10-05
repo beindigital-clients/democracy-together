@@ -274,6 +274,29 @@ async function inRevision(
   );
   return w;
 }
+// Runs the scheduled functions (e-mails, originality checks) to completion.
+async function drain(t: T) {
+  vi.useFakeTimers();
+  try {
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+// Originality is a precondition of acceptance: reports done, external check
+// acknowledged (no provider is configured by default).
+async function clearOriginality(w: {
+  t: T;
+  chief: Reviewer;
+  id: Id<'kohopContributions'>;
+}) {
+  await drain(w.t);
+  await w.chief.as.mutation(api.kohopOriginality.acknowledgeWithoutExternal, {
+    contributionId: w.id,
+  });
+}
+
 const REPLY =
   'Merci pour ces lectures attentives : j’ai précisé la méthode et ajouté une source.';
 
@@ -452,6 +475,7 @@ describe('Décision du chef de revue', () => {
       contributionId: w.id,
       response: REPLY,
     });
+    await drain(w.t);
     return w;
   }
 
@@ -479,6 +503,7 @@ describe('Décision du chef de revue', () => {
 
   it('accepter : production, version retenue, slug, journal, auteur prévenu — et rien n’est publié', async () => {
     const { t, chief, author, id } = await inDecision();
+    await clearOriginality({ t, chief, id });
     await chief.as.mutation(api.kohopDecision.accept, { contributionId: id });
     const doc = await t.run((ctx) => ctx.db.get(id));
     expect(doc?.stage).toBe('production');
@@ -555,5 +580,163 @@ describe('Décision du chef de revue', () => {
     await expect(
       chief.as.mutation(api.kohopDecision.accept, { contributionId: id }),
     ).rejects.toThrow('INVALID_TRANSITION');
+  });
+});
+
+describe('Originalité', () => {
+  async function inDecision() {
+    const w = await inRevision();
+    await w.author.as.mutation(api.kohopRevision.submitRevision, {
+      contributionId: w.id,
+      response: REPLY,
+    });
+    return w;
+  }
+
+  it('accepter est refusé tant que les rapports ne sont pas là, sans rien écrire', async () => {
+    const { t, chief, id } = await inDecision();
+    const before = await counts(t);
+    await expect(
+      chief.as.mutation(api.kohopDecision.accept, { contributionId: id }),
+    ).rejects.toThrow('ORIGINALITY_REQUIRED');
+    expect(await counts(t)).toEqual(before);
+    expect((await t.run((ctx) => ctx.db.get(id)))?.stage).toBe('decision');
+  });
+
+  it('sans prestataire externe : rapport « indisponible », reconnaissance explicite et auditée', async () => {
+    const w = await inDecision();
+    await drain(w.t);
+    const r = await w.chief.as.query(api.kohopOriginality.reports, {
+      contributionId: w.id,
+    });
+    expect(r?.reports.find((x) => x.scope === 'platform')?.report?.status).toBe(
+      'done',
+    );
+    expect(r?.reports.find((x) => x.scope === 'external')?.report?.status).toBe(
+      'unavailable',
+    );
+    await expect(
+      w.chief.as.mutation(api.kohopDecision.accept, { contributionId: w.id }),
+    ).rejects.toThrow('ORIGINALITY_REQUIRED');
+    await w.chief.as.mutation(api.kohopOriginality.acknowledgeWithoutExternal, {
+      contributionId: w.id,
+    });
+    await w.chief.as.mutation(api.kohopDecision.accept, {
+      contributionId: w.id,
+    });
+    const decisions = await w.t.run((ctx) =>
+      ctx.db.query('kohopDecisions').collect(),
+    );
+    expect(
+      decisions.find((d) => d.kind === 'accepted')?.withoutExternalCheck,
+    ).toBe(true);
+    const audit = await w.t.run((ctx) => ctx.db.query('auditLog').collect());
+    expect(audit.map((a) => a.action)).toContain(
+      'kohop.accepted_without_external_check',
+    );
+  });
+
+  it('avec un prestataire qui a répondu : pas de reconnaissance nécessaire', async () => {
+    vi.stubEnv('PLAGIARISM_PROVIDER', 'fake');
+    try {
+      const w = await inDecision();
+      await drain(w.t);
+      await w.chief.as.mutation(api.kohopDecision.accept, {
+        contributionId: w.id,
+      });
+      const decisions = await w.t.run((ctx) =>
+        ctx.db.query('kohopDecisions').collect(),
+      );
+      expect(
+        decisions.find((d) => d.kind === 'accepted')?.withoutExternalCheck,
+      ).toBe(false);
+      await expect(
+        w.chief.as.mutation(api.kohopOriginality.acknowledgeWithoutExternal, {
+          contributionId: w.id,
+        }),
+      ).rejects.toThrow();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('on ne reconnaît pas une vérification qui a abouti', async () => {
+    vi.stubEnv('PLAGIARISM_PROVIDER', 'fake');
+    try {
+      const w = await inDecision();
+      await drain(w.t);
+      await expect(
+        w.chief.as.mutation(api.kohopOriginality.acknowledgeWithoutExternal, {
+          contributionId: w.id,
+        }),
+      ).rejects.toThrow('NOTHING_TO_ACKNOWLEDGE');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('le rapport de plateforme trouve un passage repris d’une contribution déjà déposée, et prévient les chefs', async () => {
+    const w = await inDecision();
+    const other = await account(w.t, 'membre', 'autre@x.org');
+    await w.t.run(async (ctx) => {
+      const id = await ctx.db.insert('kohopContributions', {
+        stage: 'published',
+        authorUserId: other.id,
+        lang: 'fr',
+        fields: [],
+        keywords: [],
+        coAuthors: [],
+        currentVersion: 1,
+        submittedVersion: 1,
+        title: 'Un texte déjà paru',
+        licence: 'CC BY 4.0',
+        priorWorks: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      await ctx.db.insert('kohopVersions', {
+        contributionId: id,
+        version: 1,
+        kind: 'submission',
+        title: 'Un texte déjà paru',
+        standfirst: STANDFIRST,
+        body: BODY,
+        links: [],
+        wordCount: 600,
+        createdBy: other.id,
+        createdAt: Date.now(),
+      });
+    });
+    await drain(w.t);
+    const r = await w.chief.as.query(api.kohopOriginality.reports, {
+      contributionId: w.id,
+    });
+    const platform = r?.reports.find((x) => x.scope === 'platform')?.report;
+    expect(platform?.matches.length).toBeGreaterThan(0);
+    expect(platform?.matches[0].sourceTitle).toBe('Un texte déjà paru');
+    expect(platform?.matches[0].classification).toBe('borrowing');
+    const notified = await w.t.run(async (ctx) =>
+      (await ctx.db.query('notifications').collect())
+        .filter((n) => n.titleKey === 'kohopOriginalityReady')
+        .map((n) => n.userId),
+    );
+    expect(notified).toContain(w.chief.id);
+  });
+
+  it('les rapports sont réservés au chef de revue : ni l’auteur ni un relecteur', async () => {
+    const w = await inDecision();
+    await drain(w.t);
+    for (const who of [w.author, w.rev1]) {
+      await expect(
+        who.as.query(api.kohopOriginality.reports, { contributionId: w.id }),
+      ).rejects.toThrow();
+    }
+    const mine = await w.author.as.query(api.kohop.getMine, {
+      contributionId: w.id,
+    });
+    expect(mine?.events.map((e) => e.kind)).not.toContain(
+      'originality_checked',
+    );
+    expect(mine?.events.map((e) => e.kind)).not.toContain('link_checked');
   });
 });

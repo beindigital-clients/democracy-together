@@ -154,6 +154,8 @@ côté client. Elles sont lues par les fonctions Convex.
 | `AUTH_EMAIL_PROVIDER` | `resend` (défaut déduit de la clé) | non |
 | `RECAPTCHA_SECRET_KEY` | vérification serveur du jeton reCAPTCHA v3 | **oui** (voir § 1.4) |
 | `AI_GATEWAY_API_KEY` | passerelle Vercel AI Gateway, pour la modération assistée par IA | non — sans elle, la modération reste entièrement humaine (voir § 1.5) |
+| `PLAGIARISM_PROVIDER` | KOHOP : service anti-plagiat externe — `none` (défaut, **le contrôle externe est alors « indisponible »** et le chef de revue doit reconnaître, de façon journalisée, qu'il poursuit sans lui) ou `fake` (essais et démonstrations uniquement). Un fournisseur réel s'ajoute dans `convex/lib/kohopOriginalityProvider.ts` une fois choisi par le client (décision D-17) | non — mais sans lui, chaque acceptation KOHOP exige la reconnaissance explicite |
+| `PLAGIARISM_API_KEY` | KOHOP : clé du fournisseur anti-plagiat choisi (ne passe jamais par le navigateur) | seulement avec un fournisseur réel |
 | `BOOTSTRAP_ADMIN_EMAIL` | adresse autorisée à devenir le **premier** administrateur | le temps de l'amorçage seulement (§ 5) |
 | `AUTH_DEV_OTP` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** | — |
 | `RECAPTCHA_DISABLED` | ⛔ **NE JAMAIS DÉFINIR EN PRODUCTION** (contournement de dev) | — |

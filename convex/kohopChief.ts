@@ -179,6 +179,7 @@ export const dossier = query({
           level: c.level,
           origin: c.origin,
           failed: c.failed === true,
+          error: c.error ?? null,
           model: c.model ?? null,
           checkedAt: c.checkedAt,
           findings: c.findings.map((f) => ({

@@ -474,7 +474,9 @@ export const getMine = query({
         : null,
       reviewers: await reviewersForAuthor(ctx, contributionId),
       // The history, WITHOUT actor identities (the author knows who acts).
-      events: events.map((e) => ({ kind: e.kind, at: e.at })),
+      events: events
+        .filter((e) => !AUTHOR_HIDDEN_EVENTS.includes(e.kind))
+        .map((e) => ({ kind: e.kind, at: e.at })),
       // What the review chief told the author when sending the file back.
       lastDecision: decisions[0]
         ? {
@@ -503,6 +505,13 @@ export const getMine = query({
     };
   },
 });
+
+// History lines the author never sees: the checks on links and originality are
+// for the review chief only (their results are secret, their existence too).
+const AUTHOR_HIDDEN_EVENTS: readonly string[] = [
+  'originality_checked',
+  'link_checked',
+];
 
 // Stages from which the author reads the analyses.
 const AUTHOR_READS_REVIEWS: readonly Doc<'kohopContributions'>['stage'][] = [
@@ -738,6 +747,10 @@ export const proposeReviewer = mutation({
       targetId: contribution._id,
       metadata: { reviewerId, slot: args.slot, level },
     });
+    // Links found outside the platform (OpenAlex, ORCID): flagged at most.
+    await ctx.scheduler.runAfter(0, internal.kohopLinkExternal.check, {
+      reviewerId,
+    });
     return reviewerId;
   },
 });
@@ -905,6 +918,11 @@ export const submit = mutation({
       internal.kohopEmail.alertChiefsOfSubmission,
       { contributionId: contribution._id },
     );
+    // Originality reports are ready by the time the chief decides.
+    await ctx.scheduler.runAfter(0, internal.kohopOriginality.runAll, {
+      contributionId: contribution._id,
+      version: contribution.currentVersion,
+    });
     return { stage: 'submitted' as const };
   },
 });

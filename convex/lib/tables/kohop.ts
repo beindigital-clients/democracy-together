@@ -245,7 +245,7 @@ export const kohopTables = {
     reviewerId: v.id('kohopReviewers'),
     level: linkLevel,
     findings: v.array(kohopFinding),
-    origin: v.union(v.literal('rules'), v.literal('ai')),
+    origin: v.union(v.literal('rules'), v.literal('ai'), v.literal('external')),
     model: v.optional(v.string()),
     // The check failed (gateway down, cap reached): NOT "nothing to report".
     failed: v.optional(v.boolean()),

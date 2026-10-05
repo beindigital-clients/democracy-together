@@ -10,6 +10,7 @@ import { slugify } from './lib/slug';
 import { assertRefusal, kohopReasonCode, positiveCount } from './lib/kohop';
 import { advance, recordKohopEvent } from './lib/kohopAccess';
 import { scheduleAuthorEmail } from './lib/kohopReviewing';
+import { originalityGate } from './kohopOriginality';
 
 // KOHOP — THE DECISION (K-16). Only a review chief (or an administrator)
 // decides; the analyses inform, they do not decide. Nothing here publishes: an
@@ -53,6 +54,10 @@ export const accept = mutation({
     const file = await ctx.db.get(contributionId);
     if (!file) refuse('NOT_FOUND');
     const to = advance(file.stage, 'accept');
+    // Originality: a finished platform report, and an external report that is
+    // finished or explicitly acknowledged — the machine decides nothing alone.
+    const gate = await originalityGate(ctx, file);
+    if (!gate.ok) refuse('ORIGINALITY_REQUIRED');
     const reviews = await reviewsOf(ctx, contributionId);
     const text = note?.trim() ?? '';
     if (text.length > 4000) refuse('REASON_REQUIRED');
@@ -80,6 +85,7 @@ export const accept = mutation({
       reason: text,
       positiveReviews: positiveCount(reviews),
       againstPresumption: false,
+      withoutExternalCheck: gate.withoutExternalCheck,
       decidedBy: chief._id,
       createdAt: now,
     });
@@ -95,6 +101,14 @@ export const accept = mutation({
       targetId: file._id,
       metadata: { version },
     });
+    if (gate.withoutExternalCheck) {
+      await recordAudit(ctx, {
+        actorId: chief._id,
+        action: AUDIT.KOHOP_ACCEPTED_WITHOUT_EXTERNAL_CHECK,
+        targetId: file._id,
+        metadata: { version },
+      });
+    }
     await notify(ctx, {
       userId: file.authorUserId,
       type: 'kohop_accepted',

@@ -12,12 +12,24 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 2 | Dépôt, choix des relecteurs, recevabilité | **livré** |
 | 3 | Relecture par les membres | **livré** |
 | 4 | Révision et décision | **livré** |
-| 5 | Contrôles par l'IA | à faire |
+| 5 | Contrôles par l'IA | **livré** |
 | 6 | Préparation, parution, pages publiques | à faire |
 | 7 | Relecteurs extérieurs | à faire |
 | 8 | Pilote, durcissement, lancement | à faire |
 
 ---
+
+## Lot 5 — Contrôles automatiques (liens, suggestions, originalité)
+
+L'IA ne publie, n'accepte ni ne refuse jamais : elle informe.
+
+- **Liens hors plateforme** (`convex/kohopLinkExternal.ts`, `lib/kohopExternalLinks.ts`) : à chaque désignation, une action planifiée interroge **OpenAlex** avec les ORCID des deux profils (cosignature des 5 dernières années). Résultat **signalé au plus** (`external_cosign`), jamais bloquant, visible du chef de revue seul. Sans ORCID d'un côté, ou base injoignable : la vérification est enregistrée comme **non aboutie** (jamais comme « rien à signaler »).
+- **Suggestions de relecteurs** (`convex/kohopSuggest.ts`, `lib/kohopSuggest.ts`) : cinq membres de l'annuaire dont thèmes / mots-clés recoupent le texte, classés de façon déterministe, avec la raison. Les liens bloquants sont écartés en silence, les liens signalés restent dans l'historique du chef. L'auteur désigne ensuite par la porte habituelle (mêmes règles serveur).
+- **Originalité** (`convex/kohopOriginality.ts`, `lib/kohopOriginality.ts`) : deux rapports par version, planifiés au dépôt et à chaque révision. *Plateforme* : passages communs (suites de ≥ 9 mots) avec les autres contributions KOHOP et les publications de la bibliothèque, classés (citation référencée / expression courante / réutilisation déclarée / emprunt à examiner). *Externe* : adaptateur isolé `lib/kohopOriginalityProvider.ts`, fournisseurs `none` (défaut) et `fake` (essais).
+- **Verrou d'acceptation** : `accept` exige un rapport plateforme terminé ET un rapport externe terminé ou **reconnu** par le chef de revue (« je poursuis sans contrôle externe », journalisé, `kohop.accepted_without_external_check`). Le chef lit les passages et décide ; rien n'est automatique.
+- Les rapports et les contrôles de liens n'apparaissent ni dans la vue de l'auteur, ni dans son historique.
+- **Choix à confirmer (D-17)** : le fournisseur anti-plagiat. En attendant, `PLAGIARISM_PROVIDER=none` : acceptation possible avec reconnaissance explicite. Variables documentées dans `docs/deploiement.md`.
+- Tests : `kohopOriginality.test.ts` (lib), `kohopExternalLinks.test.ts`, `kohopSuggest.test.ts`, `convex/kohopLinkExternal.test.ts`, `convex/kohopSuggest.test.ts`, `convex/kohopDecision.test.ts` (verrou), parcours Playwright (suggestions, verrou, axe).
 
 ## Lot 4 — Révision et décision
 

@@ -19,6 +19,9 @@ type Reviewer = NonNullable<
   FunctionReturnType<typeof api.kohop.getMine>
 >['reviewers'][number];
 type Candidate = FunctionReturnType<typeof api.kohop.searchReviewers>[number];
+type Suggested = FunctionReturnType<
+  typeof api.kohopSuggest.suggestReviewers
+>[number];
 
 // CHOOSING THE REVIEWERS (K-03, K-20). The author designates two titular
 // reviewers and, if they wish, a substitute, FROM THE MEMBERS' DIRECTORY. Nothing
@@ -103,12 +106,14 @@ export function ReviewerPicker({
   const errorMessage = useKohopError();
   const propose = useMutation(api.kohop.proposeReviewer);
   const remove = useMutation(api.kohop.removeReviewer);
+  const suggest = useMutation(api.kohopSuggest.suggestReviewers);
   const [search, setSearch] = useState('');
   const query = useDebounced(search, 300);
   const candidates = useQuery(api.kohop.searchReviewers, {
     contributionId,
     ...(query.trim() ? { query } : {}),
   });
+  const [suggestions, setSuggestions] = useState<Suggested[] | null>(null);
   const [selected, setSelected] = useState<Id<'users'> | null>(null);
   const [relationship, setRelationship] = useState<string>('none');
   const [busy, setBusy] = useState(false);
@@ -135,6 +140,18 @@ export function ReviewerPicker({
       });
       setSelected(null);
       setRelationship('none');
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function askSuggestions() {
+    setBusy(true);
+    setError('');
+    try {
+      setSuggestions(await suggest({ contributionId }));
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -176,85 +193,126 @@ export function ReviewerPicker({
           />
           <FormError className="mt-2">{error}</FormError>
 
-          {candidates === undefined ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {suggestions === null ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={askSuggestions}
+              >
+                {t('suggestButton')}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setSuggestions(null)}
+              >
+                {t('suggestBack')}
+              </Button>
+            )}
+          </div>
+          {suggestions !== null ? (
+            <p className="mt-3 max-w-[62ch] text-sm text-ink-soft">
+              {t('suggestLead')}
+            </p>
+          ) : null}
+
+          {candidates === undefined && suggestions === null ? (
             <p className="mt-3 text-sm text-ink-soft" role="status">
               {t('loading')}
             </p>
-          ) : candidates.length === 0 ? (
+          ) : (suggestions ?? candidates)?.length === 0 ? (
             <p className="mt-3 text-sm text-ink-soft" role="status">
-              {t('noCandidates')}
+              {suggestions !== null ? t('suggestEmpty') : t('noCandidates')}
             </p>
           ) : (
             <ul
               aria-label={t('candidatesList')}
               className="mt-3 divide-y divide-line rounded-md border border-line bg-surface"
             >
-              {candidates.map((c: Candidate) => {
-                const open = selected === c.userId;
-                return (
-                  <li key={c.userId} className="p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="wrap-anywhere font-medium text-ink">
-                          {c.displayName}
-                        </p>
-                        <p className="text-sm text-ink-soft">
-                          {[c.jobTitle, c.organization, c.country]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={open ? 'ghost' : 'outline'}
-                        aria-expanded={open}
-                        aria-label={t('designateFor', { name: c.displayName })}
-                        onClick={() => {
-                          setError('');
-                          setRelationship('none');
-                          setSelected(open ? null : c.userId);
-                        }}
-                      >
-                        {open ? t('cancel') : t('designate')}
-                      </Button>
-                    </div>
-                    {open ? (
-                      <div className="mt-3 space-y-3 rounded-md bg-surface-2 p-3">
-                        <SelectField
-                          label={t('relationshipLabel')}
-                          hint={t('relationshipHint')}
-                          value={relationship}
-                          onValueChange={setRelationship}
-                          options={KOHOP_DECLARED_RELATIONSHIPS.map((r) => ({
-                            value: r,
-                            label: vocabulary(t, 'relationship_', r),
-                          }))}
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={busy || titularFull}
-                            onClick={() => designate(c.userId, 'titular')}
-                          >
-                            {t('asTitular')}
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={busy || substituteFull}
-                            onClick={() => designate(c.userId, 'substitute')}
-                          >
-                            {t('asSubstitute')}
-                          </Button>
+              {(suggestions ?? candidates ?? []).map(
+                (c: Candidate | Suggested) => {
+                  const open = selected === c.userId;
+                  return (
+                    <li key={c.userId} className="p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="wrap-anywhere font-medium text-ink">
+                            {c.displayName}
+                          </p>
+                          <p className="text-sm text-ink-soft">
+                            {[c.jobTitle, c.organization, c.country]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                          {'reasons' in c ? (
+                            <p className="mt-1 flex flex-wrap gap-1.5">
+                              {c.reasons.map((r) => (
+                                <Badge key={r} variant="outline" size="label">
+                                  {vocabulary(t, 'suggestReason_', r)}
+                                </Badge>
+                              ))}
+                            </p>
+                          ) : null}
                         </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={open ? 'ghost' : 'outline'}
+                          aria-expanded={open}
+                          aria-label={t('designateFor', {
+                            name: c.displayName,
+                          })}
+                          onClick={() => {
+                            setError('');
+                            setRelationship('none');
+                            setSelected(open ? null : c.userId);
+                          }}
+                        >
+                          {open ? t('cancel') : t('designate')}
+                        </Button>
                       </div>
-                    ) : null}
-                  </li>
-                );
-              })}
+                      {open ? (
+                        <div className="mt-3 space-y-3 rounded-md bg-surface-2 p-3">
+                          <SelectField
+                            label={t('relationshipLabel')}
+                            hint={t('relationshipHint')}
+                            value={relationship}
+                            onValueChange={setRelationship}
+                            options={KOHOP_DECLARED_RELATIONSHIPS.map((r) => ({
+                              value: r,
+                              label: vocabulary(t, 'relationship_', r),
+                            }))}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={busy || titularFull}
+                              onClick={() => designate(c.userId, 'titular')}
+                            >
+                              {t('asTitular')}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busy || substituteFull}
+                              onClick={() => designate(c.userId, 'substitute')}
+                            >
+                              {t('asSubstitute')}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                },
+              )}
             </ul>
           )}
         </div>

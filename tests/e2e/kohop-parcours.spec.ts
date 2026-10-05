@@ -80,6 +80,13 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
     author.getByRole('button', { name: 'Déposer ma contribution' }),
   ).toBeDisabled();
 
+  // Suggestions: a shortlist (possibly empty here), and the way back to search.
+  await author
+    .getByRole('button', { name: 'Suggérer cinq relecteurs' })
+    .click();
+  await expect(author.getByText('Des membres dont les thèmes')).toBeVisible();
+  await author.getByRole('button', { name: 'Revenir à la recherche' }).click();
+
   await author.getByLabel('Chercher un membre').fill('Re');
   for (const name of ['Rémi Relecteur', 'Rita Relectrice']) {
     await author
@@ -209,6 +216,15 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
     chief.getByText('Note confidentielle (chef de revue seulement)').first(),
   ).toBeVisible();
   await attendreAucuneViolationGrave(chief, 'décision KOHOP du chef de revue');
+  // Originality: the platform report is in, no external provider is configured
+  // — acceptance waits for the chief's explicit, audited acknowledgement.
+  await expect(chief.getByText('Sur la plateforme')).toBeVisible();
+  await expect(
+    chief.getByRole('button', { name: 'Accepter la contribution' }),
+  ).toBeDisabled();
+  await chief
+    .getByRole('button', { name: 'Je poursuis sans contrôle externe' })
+    .click();
   await chief.getByRole('button', { name: 'Accepter la contribution' }).click();
   await chief.getByRole('button', { name: 'Accepter', exact: true }).click();
   await expect(chief.getByText('En préparation').first()).toBeVisible();

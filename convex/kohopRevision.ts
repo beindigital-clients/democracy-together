@@ -1,5 +1,6 @@
 import { v, ConvexError } from 'convex/values';
 import { mutation } from './_generated/server';
+import { internal } from './_generated/api';
 import { enforceRateLimit } from './lib/rateLimit';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -180,6 +181,10 @@ export const submitRevision = mutation({
       actorId: user._id,
       action: AUDIT.KOHOP_REVISION_SUBMITTED,
       targetId: contribution._id,
+    });
+    await ctx.scheduler.runAfter(0, internal.kohopOriginality.runAll, {
+      contributionId: contribution._id,
+      version,
     });
     for (const chief of await reviewChiefRecipients(ctx)) {
       await notify(ctx, {

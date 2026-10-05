@@ -73,8 +73,15 @@ function ReviewerCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const check = reviewer.linkChecks[0];
-  const level = check?.level ?? 'none';
+  // Every check counts: the rules (at designation) and the open database (a
+  // moment later). The level is the highest of them.
+  const level = reviewer.linkChecks.some((c) => c.level === 'blocking')
+    ? 'blocking'
+    : reviewer.linkChecks.some((c) => c.level === 'flagged')
+      ? 'flagged'
+      : 'none';
+  const withFindings = reviewer.linkChecks.filter((c) => c.findings.length > 0);
+  const failedChecks = reviewer.linkChecks.filter((c) => c.failed);
 
   async function doApprove() {
     setBusy(true);
@@ -154,43 +161,57 @@ function ReviewerCard({
         </p>
       ) : null}
 
-      {check && check.findings.length > 0 ? (
-        <div className="mt-3">
-          <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
-            {t('findings')} ·{' '}
-            {check.origin === 'ai' ? t('originAi') : t('originRules')} ·{' '}
-            {dates.day(check.checkedAt)}
-          </p>
-          <ul className="mt-1 space-y-1 text-sm">
-            {check.findings.map((f, i) => (
-              <li key={i} className="rounded-sm bg-surface-2 px-3 py-2">
-                <span className="font-medium text-ink">
-                  {vocabulary(t, 'linkType_', f.type)}
-                </span>
-                {' — '}
-                <span className="text-ink-soft">{f.detail}</span>
-                {f.url ? (
-                  <>
-                    {' '}
-                    <a
-                      href={f.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent-text underline"
-                    >
-                      {t('source')}
-                    </a>
-                  </>
-                ) : f.source ? (
-                  <span className="text-muted"> ({f.source})</span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {withFindings.length > 0 ? (
+        withFindings.map((check, n) => (
+          <div key={n} className="mt-3">
+            <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">
+              {t('findings')} ·{' '}
+              {check.origin === 'ai'
+                ? t('originAi')
+                : check.origin === 'external'
+                  ? t('originExternal')
+                  : t('originRules')}{' '}
+              · {dates.day(check.checkedAt)}
+            </p>
+            <ul className="mt-1 space-y-1 text-sm">
+              {check.findings.map((f, i) => (
+                <li key={i} className="rounded-sm bg-surface-2 px-3 py-2">
+                  <span className="font-medium text-ink">
+                    {vocabulary(t, 'linkType_', f.type)}
+                  </span>
+                  {' — '}
+                  <span className="text-ink-soft">{f.detail}</span>
+                  {f.url ? (
+                    <>
+                      {' '}
+                      <a
+                        href={f.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent-text underline"
+                      >
+                        {t('source')}
+                      </a>
+                    </>
+                  ) : f.source ? (
+                    <span className="text-muted"> ({f.source})</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
       ) : (
         <p className="mt-2 text-sm text-muted">{t('noFindings')}</p>
       )}
+      {failedChecks.length > 0 ? (
+        <p className="mt-2 text-sm text-bar-5">
+          {t('linkCheckFailed')} —{' '}
+          {failedChecks[0].error === 'NO_ORCID'
+            ? t('linkErr_NO_ORCID')
+            : t('linkErr_other')}
+        </p>
+      ) : null}
 
       {reviewer.recusal ? (
         <p className="mt-2 text-sm text-bar-5">
@@ -241,6 +262,197 @@ function ReviewerCard({
         onCancel={() => setRecusing(false)}
       />
     </li>
+  );
+}
+
+// Originality reports of the version being decided: the platform's own check
+// and the external provider's. They inform; they decide nothing.
+function OriginalityCard({ file, canAct }: { file: Dossier; canAct: boolean }) {
+  const t = useTranslations('kohop');
+  const dates = useKohopDates();
+  const errorMessage = useKohopError();
+  const notify = useActionFeedback();
+  const data = useQuery(api.kohopOriginality.reports, {
+    contributionId: file._id,
+  });
+  const rerun = useMutation(api.kohopOriginality.requestChecks);
+  const acknowledge = useMutation(
+    api.kohopOriginality.acknowledgeWithoutExternal,
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  if (!data) return null;
+  const external = data.reports.find((r) => r.scope === 'external')?.report;
+  const canAck =
+    canAct &&
+    file.stage === 'decision' &&
+    external !== undefined &&
+    external !== null &&
+    external.status !== 'done' &&
+    !external.acknowledged;
+
+  async function act(action: () => Promise<unknown>, done: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+      notify(done);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card id="kohop-originality" title={t('originalityTitle')}>
+      <p className="text-sm text-ink-soft">
+        {t('originalityLead', { version: data.version })}
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {data.reports.map(({ scope, report }) => (
+          <section
+            key={scope}
+            aria-labelledby={`orig-${scope}`}
+            className="rounded-md border border-line bg-paper p-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 id={`orig-${scope}`} className="font-medium text-ink">
+                {scope === 'platform'
+                  ? t('originalityPlatform')
+                  : t('originalityExternal')}
+              </h3>
+              {report ? (
+                <Badge
+                  variant={
+                    report.status === 'done'
+                      ? 'good'
+                      : report.status === 'failed'
+                        ? 'bad'
+                        : 'pending'
+                  }
+                  size="label"
+                >
+                  {vocabulary(t, 'origStatus_', report.status)}
+                </Badge>
+              ) : null}
+            </div>
+            {!report ? (
+              <p className="mt-2 text-sm text-muted">{t('originalityNone')}</p>
+            ) : (
+              <>
+                <p className="mt-1 font-mono text-xs text-muted">
+                  {dates.day(report.checkedAt)}
+                  {report.provider
+                    ? ` · ${t('originalityProvider', { provider: report.provider })}`
+                    : ''}
+                </p>
+                {report.error ? (
+                  <p className="mt-1 text-sm text-ink-soft">
+                    {t('originalityError', { error: report.error })}
+                  </p>
+                ) : null}
+                {report.acknowledged ? (
+                  <p className="mt-1 text-sm text-bar-1">
+                    {t('originalityAcked')}
+                  </p>
+                ) : null}
+                {report.status === 'done' ? (
+                  report.matches.length === 0 ? (
+                    <p className="mt-2 text-sm text-ink-soft">
+                      {t('originalityNoMatches')}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-2 text-sm font-medium text-ink">
+                        {t('originalityMatches', {
+                          count: report.matches.length,
+                        })}
+                      </p>
+                      <ul className="mt-2 space-y-3">
+                        {report.matches.map((m, i) => (
+                          <li
+                            key={i}
+                            className="rounded-sm bg-surface-2 p-3 text-sm"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              {m.classification ? (
+                                <Badge
+                                  variant={
+                                    m.classification === 'borrowing'
+                                      ? 'bad'
+                                      : 'default'
+                                  }
+                                  size="label"
+                                >
+                                  {vocabulary(
+                                    t,
+                                    'matchClass_',
+                                    m.classification,
+                                  )}
+                                </Badge>
+                              ) : null}
+                              <span className="text-ink-soft">
+                                {t('originalitySource', {
+                                  title: m.sourceTitle,
+                                })}
+                              </span>
+                            </div>
+                            <p className="mt-2 wrap-anywhere text-ink">
+                              « {m.passage} »
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )
+                ) : null}
+              </>
+            )}
+          </section>
+        ))}
+      </div>
+      {canAct ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() =>
+              void act(
+                () => rerun({ contributionId: file._id }),
+                t('originalityRerunDone'),
+              )
+            }
+          >
+            {t('originalityRerun')}
+          </Button>
+          {canAck ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() =>
+                void act(
+                  () => acknowledge({ contributionId: file._id }),
+                  t('originalityAcked'),
+                )
+              }
+            >
+              {t('originalityAck')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {canAck ? (
+        <p className="mt-2 max-w-[68ch] text-sm text-muted">
+          {t('originalityAckHelp')}
+        </p>
+      ) : null}
+      <FormError className="mt-2">{error}</FormError>
+    </Card>
   );
 }
 
@@ -309,6 +521,9 @@ export default function AdminKohopFile() {
   const params = useParams<{ id: string }>();
   const id = params.id as Id<'kohopContributions'>;
   const file = useQuery(api.kohopChief.dossier, { contributionId: id });
+  const originality = useQuery(api.kohopOriginality.reports, {
+    contributionId: id,
+  });
   const startReview = useMutation(api.kohopChief.startReview);
   const giveBack = useMutation(api.kohopChief.returnToAuthor);
   const inadmissible = useMutation(api.kohopChief.declareInadmissible);
@@ -416,7 +631,7 @@ export default function AdminKohopFile() {
             {file.chiefActions.includes('accept') ? (
               <Button
                 type="button"
-                disabled={busy}
+                disabled={busy || originality?.gateOk !== true}
                 onClick={() => setDialog('accept')}
               >
                 {t('acceptButton')}
@@ -443,6 +658,12 @@ export default function AdminKohopFile() {
               </Button>
             ) : null}
           </div>
+          {file.chiefActions.includes('accept') &&
+          originality?.gateOk !== true ? (
+            <p className="mt-2 text-sm text-muted">
+              {t('originalityGateBlocked')}
+            </p>
+          ) : null}
           {canStart && !startReady ? (
             <p className="mt-2 text-sm text-muted">
               {t('startNeedsReviewers', {
@@ -568,6 +789,10 @@ export default function AdminKohopFile() {
           </div>
           <RevisionDiff file={file} />
         </Card>
+      ) : null}
+
+      {file.submittedVersion !== null ? (
+        <OriginalityCard file={file} canAct={file.chiefActions.length > 0} />
       ) : null}
 
       <Card id="kohop-reviewers" title={t('sectionReviewers')}>

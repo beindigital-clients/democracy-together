@@ -49,6 +49,8 @@ export const KOHOP_ERROR_CODES = [
   'REPLY_TOO_LONG',
   'EXTENSION_USED',
   'SLUG_UNAVAILABLE',
+  'ORIGINALITY_REQUIRED',
+  'NOTHING_TO_ACKNOWLEDGE',
 ] as const;
 
 export type KohopErrorCode = (typeof KOHOP_ERROR_CODES)[number];
