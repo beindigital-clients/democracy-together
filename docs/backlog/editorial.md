@@ -255,3 +255,11 @@ suppression / l'export de compte :
   convex-test.
 - La clé `notifications.peerReviewDecided` n'est plus émise (remplacée par une
   clé par décision) ; les notifications déjà en base la gardent.
+
+## Mise à jour KOHOP (lot 0)
+
+La décision d'un manuscrit (`peerReview.decideManuscript`), qui publie le
+manuscrit accepté, est réservée au **chef de revue** et à l'administrateur
+(`requireReviewChief`). Les alertes de la rédaction vont à ces comptes. Un
+manuscrit dont la revue est ouverte ne peut plus être approuvé ni rejeté depuis
+`/admin/publications` (`IN_PEER_REVIEW`). Voir `docs/backlog/kohop.md`.

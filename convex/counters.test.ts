@@ -83,7 +83,11 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
       ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'mod@test.org',
+      }),
     );
 
     const { id } = await t
@@ -123,7 +127,11 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
       ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'mod@test.org',
+      }),
     );
 
     const postId = await t
@@ -200,7 +208,11 @@ describe('Compteurs — tenue à l’écriture (issue #8)', () => {
       ctx.db.insert('publications', pubDoc({ status: 'pending' })),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'mod@test.org',
+      }),
     );
 
     await t

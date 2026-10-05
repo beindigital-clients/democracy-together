@@ -7,7 +7,10 @@ import {
   AdminNav,
   ADMIN_NAV_GROUPS,
   adminMinRoleForPath,
+  adminPathRequiresReviewChief,
+  filterAdminNavGroups,
   isAdminNavItemActive,
+  type AdminNavGroup,
   visibleAdminNavGroups,
 } from '@/components/admin/admin-nav';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
@@ -294,5 +297,61 @@ describe('adminMinRoleForPath', () => {
         expect(allowed).toBe(visible.has(item.href));
       }
     }
+  });
+});
+
+// REVIEW CHIEF CONDITION (KOHOP). The review chief is a function, not a rank:
+// an entry can ask for it IN ADDITION to the group's minimum rank. No shipped
+// entry needs it yet (the KOHOP queue arrives with batch 2), so the rule is
+// exercised on a table of its own.
+describe('Navigation du back-office — entrées réservées au chef de revue', () => {
+  const GROUPS: readonly AdminNavGroup[] = [
+    {
+      key: 'edition',
+      labelKey: 'navGroup_edition',
+      minRole: 'moderateur',
+      items: [
+        { href: '/admin/revue', key: 'review' },
+        { href: '/admin/kohop', key: 'kohop', requiresReviewChief: true },
+      ],
+    },
+    {
+      key: 'solo',
+      labelKey: 'navGroup_comptes',
+      minRole: 'moderateur',
+      items: [{ href: '/admin/x', key: 'x', requiresReviewChief: true }],
+    },
+  ];
+  const keys = (role: NetworkRole, reviewChief: boolean) =>
+    filterAdminNavGroups(GROUPS, role, reviewChief).flatMap((g) =>
+      g.items.map((i) => i.key),
+    );
+
+  it('un modérateur sans la fonction ne voit pas l’entrée, ni le groupe qu’elle laisserait vide', () => {
+    expect(keys('moderateur', false)).toEqual(['review']);
+    expect(
+      filterAdminNavGroups(GROUPS, 'moderateur', false).map((g) => g.key),
+    ).toEqual(['edition']);
+  });
+
+  it('un chef de revue la voit, en plus du rang minimal', () => {
+    expect(keys('moderateur', true)).toEqual(['review', 'kohop', 'x']);
+    expect(keys('editeur', true)).toEqual(['review', 'kohop', 'x']);
+  });
+
+  it('l’administrateur la voit sans avoir la fonction', () => {
+    expect(keys('admin', false)).toEqual(['review', 'kohop', 'x']);
+  });
+
+  it('la fonction ne remplace pas le rang du groupe', () => {
+    expect(keys('membre', true)).toEqual([]);
+  });
+
+  it('aucune entrée livrée ne l’exige pour l’instant, et le chemin le dit', () => {
+    expect(adminPathRequiresReviewChief('/admin/publications')).toBe(false);
+    expect(adminPathRequiresReviewChief('/admin/inconnu')).toBe(false);
+    expect(visibleAdminNavGroups('moderateur', false)).toEqual(
+      visibleAdminNavGroups('moderateur', true),
+    );
   });
 });

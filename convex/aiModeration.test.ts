@@ -90,9 +90,14 @@ type Ctx = ReturnType<typeof convexTest>;
 async function seedUser(
   t: Ctx,
   role: 'membre' | 'moderateur' | 'editeur' | 'admin',
+  reviewChief?: boolean,
 ) {
   return await t.run((ctx) =>
-    ctx.db.insert('users', { email: `${role}@dt.test`, role }),
+    ctx.db.insert('users', {
+      email: `${role}${reviewChief ? '-chief' : ''}@dt.test`,
+      role,
+      reviewChief,
+    }),
   );
 }
 
@@ -127,6 +132,17 @@ async function seedPending(
       ...over,
     }),
   );
+}
+
+// A deposit published by the AI before D-7 (the AI no longer does it): only
+// the exit `revertAutoPublication` still concerns it.
+async function seedLegacyAutoPublished(t: Ctx): Promise<Id<'publications'>> {
+  return await seedPending(t, {
+    status: 'published',
+    autoPublished: true,
+    reviewedAt: Date.now(),
+    publishedAt: Date.now(),
+  });
 }
 
 async function setMode(
@@ -165,31 +181,34 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('Auto-publication — le cas nominal', () => {
-  it('publie un dépôt conforme, sans relecteur humain, et le dit', async () => {
+describe('D-7 — l’IA ne publie jamais un dépôt de la bibliothèque', () => {
+  it('un dépôt conforme reste en file, même en mode auto avec son type listé', async () => {
     const t = convexTest(schema, modules);
-    await setMode(t, { mode: 'auto' });
+    // The most favourable setting one could have saved before D-7: auto mode,
+    // the deposit's type listed in the scope.
+    await setMode(t, { mode: 'auto', eligibleTypes: ['note', 'rapport'] });
     const pubId = await seedPending(t);
     mockGateway(cleanVerdict());
 
     await t.action(internal.aiModeration.runReview, { publicationId: pubId });
 
     const pub = await t.run((ctx) => ctx.db.get(pubId));
-    expect(pub?.status).toBe('published');
-    expect(pub?.autoPublished).toBe(true);
-    // Nobody reviewed: the field designating a reviewer stays EMPTY. It is
-    // this emptiness that prevents the screen from attributing the decision to someone.
-    expect(pub?.reviewedBy).toBeUndefined();
-    expect(pub?.doi).toBe('10.59000/dt.participation-budgets');
-    expect(pub?.aiReview?.applied).toBe('published');
+    expect(pub?.status).toBe('pending');
+    expect(pub?.autoPublished).toBeUndefined();
+    expect(pub?.reviewedAt).toBeUndefined();
+    // The opinion stays advisory: it is recorded, and says why nothing
+    // was applied.
+    expect(pub?.aiReview?.verdict).toBe('approve');
+    expect(pub?.aiReview?.applied).toBe('escalated');
+    expect(pub?.aiReview?.reason).toBe('type_out_of_scope');
 
     const review = await latestReview(t, pubId);
     expect(review?.verdict).toBe('approve');
-    expect(review?.applied).toBe('published');
+    expect(review?.applied).toBe('escalated');
     expect(review?.promptTokens).toBe(1200);
   });
 
-  it("notifie l'auteur comme le ferait une approbation humaine", async () => {
+  it("n'annonce aucune publication à l'auteur", async () => {
     const t = convexTest(schema, modules);
     await setMode(t, { mode: 'auto' });
     const pubId = await seedPending(t);
@@ -200,10 +219,10 @@ describe('Auto-publication — le cas nominal', () => {
     const notifs = await t.run((ctx) =>
       ctx.db.query('notifications').collect(),
     );
-    expect(notifs.map((n) => n.type)).toContain('publication_published');
+    expect(notifs.map((n) => n.type)).not.toContain('publication_published');
   });
 
-  it("journalise la mise en ligne sous une action d'audit distincte", async () => {
+  it("journalise l'analyse, jamais une mise en ligne", async () => {
     const t = convexTest(schema, modules);
     await setMode(t, { mode: 'auto' });
     const pubId = await seedPending(t);
@@ -212,9 +231,31 @@ describe('Auto-publication — le cas nominal', () => {
     await t.action(internal.aiModeration.runReview, { publicationId: pubId });
 
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
-    // "published by the AI" must be distinguishable from "analyzed": it is the only
-    // moment a text appears without a human having read it.
-    expect(audit.map((a) => a.action)).toContain('publication.ai_published');
+    expect(audit.map((a) => a.action)).toContain('publication.ai_reviewed');
+    expect(audit.map((a) => a.action)).not.toContain(
+      'publication.ai_published',
+    );
+  });
+
+  it('applyVerdict ne publie pas, même appelé directement avec un avis parfait', async () => {
+    const t = convexTest(schema, modules);
+    await setMode(t, { mode: 'auto', eligibleTypes: ['note'] });
+    const pubId = await seedPending(t);
+
+    const result = await t.mutation(internal.aiModeration.applyVerdict, {
+      publicationId: pubId,
+      verdict: 'approve',
+      confidence: 100,
+      summary: 'Parfait.',
+      findings: [],
+      model: 'm',
+      configVersion: 1,
+      hasAttachment: false,
+      attachmentAnalyzed: false,
+    });
+
+    expect(result.applied).not.toBe('published');
+    expect((await t.run((ctx) => ctx.db.get(pubId)))?.status).toBe('pending');
   });
 });
 
@@ -257,6 +298,9 @@ describe('Fail-closed — rien ne publie sur un silence', () => {
   it('une panne ne réveille pas le staff et n’invente aucun signal', async () => {
     const t = convexTest(schema, modules);
     await setMode(t, { mode: 'auto' });
+    // The editorial team is the review chiefs and the administrators; a
+    // moderator without the function is not alerted.
+    await seedUser(t, 'moderateur', true);
     await seedUser(t, 'moderateur');
     await seedUser(t, 'admin');
     const pubId = await seedPending(t);
@@ -322,6 +366,9 @@ describe('Signaux — quand le dispositif va chercher un humain', () => {
   it('un signal bloquant retient le dépôt et prévient le staff', async () => {
     const t = convexTest(schema, modules);
     await setMode(t, { mode: 'auto' });
+    // The editorial team is the review chiefs and the administrators; a
+    // moderator without the function is not alerted.
+    await seedUser(t, 'moderateur', true);
     await seedUser(t, 'moderateur');
     await seedUser(t, 'admin');
     const pubId = await seedPending(t);
@@ -544,7 +591,10 @@ describe('Pièce jointe', () => {
     expect(parts.some((p: { type: string }) => p.type === 'input_file')).toBe(
       true,
     );
-    expect((await t.run((ctx) => ctx.db.get(pubId)))?.status).toBe('published');
+    // The attachment is read, and the opinion is recorded — but D-7: the
+    // deposit stays in the queue for a human decision.
+    expect((await t.run((ctx) => ctx.db.get(pubId)))?.status).toBe('pending');
+    expect((await latestReview(t, pubId))?.attachmentAnalyzed).toBe(true);
   });
 
   it("un PDF non transmis interdit l'auto-publication", async () => {
@@ -629,7 +679,10 @@ describe('Déclenchement à la soumission', () => {
 
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-    expect((await t.run((ctx) => ctx.db.get(id)))?.status).toBe('published');
+    // The analysis ran (the submission scheduled it), the deposit is not
+    // published by it (D-7).
+    expect((await latestReview(t, id))?.verdict).toBe('approve');
+    expect((await t.run((ctx) => ctx.db.get(id)))?.status).toBe('pending');
   });
 
   it('une soumission ne planifie rien quand le dispositif est éteint', async () => {
@@ -661,11 +714,9 @@ describe('Déclenchement à la soumission', () => {
 describe('Remise en file d’une publication automatique', () => {
   it('rend le dépôt à la file et efface la trace de décision', async () => {
     const t = convexTest(schema, modules);
-    await setMode(t, { mode: 'auto' });
     const modId = await seedUser(t, 'moderateur');
-    const pubId = await seedPending(t);
-    mockGateway(cleanVerdict());
-    await t.action(internal.aiModeration.runReview, { publicationId: pubId });
+    // A deposit the AI put online BEFORE D-7: the exit stays open for those.
+    const pubId = await seedLegacyAutoPublished(t);
 
     await t
       .withIdentity({ subject: `${modId}|s` })
@@ -700,11 +751,8 @@ describe('Remise en file d’une publication automatique', () => {
 
   it('ne se joue pas deux fois', async () => {
     const t = convexTest(schema, modules);
-    await setMode(t, { mode: 'auto' });
     const modId = await seedUser(t, 'moderateur');
-    const pubId = await seedPending(t);
-    mockGateway(cleanVerdict());
-    await t.action(internal.aiModeration.runReview, { publicationId: pubId });
+    const pubId = await seedLegacyAutoPublished(t);
 
     const asMod = t.withIdentity({ subject: `${modId}|s` });
     await asMod.mutation(api.publications.revertAutoPublication, {
@@ -757,7 +805,7 @@ describe('Droits', () => {
         model: 'anthropic/claude-opus-5',
         autoPublishMinConfidence: 90,
         instructions: 'Ligne éditoriale maison.',
-        eligibleTypes: ['note', 'inconnu'],
+        eligibleTypes: ['note', 'inconnu', 'tribune'],
         analyzeAttachments: true,
         maxAttachmentMb: 6,
         dailyCallCap: 100,
@@ -766,8 +814,10 @@ describe('Droits', () => {
     expect(version).toBe(1);
 
     const settings = await asAdmin.query(api.aiModeration.getSettings, {});
-    // An out-of-vocabulary slug cannot widen the scope.
-    expect(settings.settings.eligibleTypes).toEqual(['note']);
+    // An out-of-vocabulary slug cannot widen the scope, and neither can a
+    // library type (D-7): only the Tribune can be ticked.
+    expect(settings.settings.eligibleTypes).toEqual(['tribune']);
+    expect(settings.availableTypes).toEqual(['tribune']);
 
     const audit = await t.run((ctx) => ctx.db.query('auditLog').collect());
     expect(audit.map((a) => a.action)).toContain('aiModeration.configured');

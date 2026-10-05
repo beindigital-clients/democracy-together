@@ -203,6 +203,7 @@ const adminUserValidator = v.object({
   // Lifecycle (accounts workstream): suspension and its reason, deletion in
   // progress, two-factor authentication enabled. Read on the displayed row — the
   // suspension is on the document, 2FA costs one indexed read.
+  reviewChief: v.boolean(),
   suspended: v.boolean(),
   suspensionReason: v.union(v.string(), v.null()),
   deleting: v.boolean(),
@@ -266,6 +267,7 @@ export const listUsers = query({
             name: u.name ?? null,
             email: u.email ?? null,
             role: effectiveRole(u.role),
+            reviewChief: u.reviewChief === true,
             suspended: u.suspendedAt !== undefined,
             suspensionReason: deleting ? null : (u.suspensionReason ?? null),
             deleting,

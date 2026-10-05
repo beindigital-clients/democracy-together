@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
-import { roleRank, type NetworkRole } from '@/lib/roles';
+import { roleRank, isReviewChief, type NetworkRole } from '@/lib/roles';
 
 // BACK-OFFICE NAVIGATION (issue #49).
 //
@@ -40,7 +40,14 @@ import { roleRank, type NetworkRole } from '@/lib/roles';
 // what awaits a decision (moderation), then the programmes, then editing,
 // then account administration.
 
-export type AdminNavItem = { href: string; key: string };
+export type AdminNavItem = {
+  href: string;
+  key: string;
+  // The entry is ALSO reserved to review chiefs and administrators, on top of
+  // the group's minimum rank (KOHOP): the review chief is a function, not a
+  // rank, so no rank threshold can express it.
+  requiresReviewChief?: boolean;
+};
 export type AdminNavGroup = {
   key: string;
   // Group title key, WRITTEN IN FULL rather than composed at render time
@@ -189,6 +196,27 @@ export function adminMinRoleForPath(pathname: string): NetworkRole {
 }
 
 /**
+ * Does the back-office PATH require the review chief function (or the
+ * administrator) on top of its minimum rank? Read from the same table as the
+ * navigation, like `adminMinRoleForPath`.
+ */
+export function adminPathRequiresReviewChief(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (
+        item.href === '/admin'
+          ? path === '/admin'
+          : isAdminNavItemActive(item.href, path)
+      ) {
+        return item.requiresReviewChief === true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Label key of the current screen (`admin.<key>`), or `null` outside the menu.
  *
  * Used for the PAGE TITLE (RGAA 8.6): the back-office screens are
@@ -214,10 +242,27 @@ export function adminScreenKey(pathname: string): string | null {
 
 export function visibleAdminNavGroups(
   role: NetworkRole,
+  reviewChief = false,
 ): readonly AdminNavGroup[] {
-  return ADMIN_NAV_GROUPS.filter(
-    (group) => roleRank(role) >= roleRank(group.minRole),
-  );
+  return filterAdminNavGroups(ADMIN_NAV_GROUPS, role, reviewChief);
+}
+
+// The rule on its own, over any table: a group needs its minimum rank, an
+// entry flagged `requiresReviewChief` also needs the function (or the
+// administrator rank), and a group left without entries disappears.
+export function filterAdminNavGroups(
+  groups: readonly AdminNavGroup[],
+  role: NetworkRole,
+  reviewChief = false,
+): readonly AdminNavGroup[] {
+  const allowed = isReviewChief({ role, reviewChief });
+  return groups
+    .filter((group) => roleRank(role) >= roleRank(group.minRole))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.requiresReviewChief || allowed),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 // Current entry. The dashboard is handled separately: its path is the
@@ -239,10 +284,12 @@ export type AdminNavCounts = Partial<Record<string, number>>;
 
 export function AdminNav({
   role,
+  reviewChief = false,
   pathname,
   counts = {},
 }: {
   role: NetworkRole;
+  reviewChief?: boolean;
   pathname: string;
   counts?: AdminNavCounts;
 }) {
@@ -252,7 +299,7 @@ export function AdminNav({
       aria-label={t('title')}
       className="space-y-5 border-b border-line pb-5 lg:sticky lg:top-8 lg:self-start lg:space-y-6 lg:border-b-0 lg:pb-0"
     >
-      {visibleAdminNavGroups(role).map((group) => {
+      {visibleAdminNavGroups(role, reviewChief).map((group) => {
         const labelId = `admin-nav-${group.key}`;
         return (
           <div key={group.key}>

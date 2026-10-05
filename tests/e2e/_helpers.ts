@@ -90,6 +90,16 @@ export async function elevateRole(
   convexRun('devAdmin:setRoleByEmail', { email, role });
 }
 
+// Grants or withdraws the review chief function (DEV, AUTH_DEV_OTP guard). The
+// account must already hold a staff rank: the function is a layer on top of
+// `moderateur`, exactly as `users.setReviewChief` enforces it.
+export async function setReviewChief(
+  email: string,
+  value: boolean,
+): Promise<void> {
+  convexRun('devAdmin:setReviewChiefByEmail', { email, value });
+}
+
 // Removes an account's role (DEV, AUTH_DEV_OTP guard) — reproduces a LEGACY
 // account, created before every creation path set a role. It is the state in
 // which the back office displayed "Membre" instead of

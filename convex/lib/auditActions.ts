@@ -4,6 +4,10 @@ export const AUDIT = {
   // USER_ROLE_CHANGED, which assumes an acting administrator.
   ADMIN_BOOTSTRAPPED: 'admin.bootstrapped',
   USER_ROLE_CHANGED: 'user.role_changed',
+  // Review chief function (KOHOP): granted or withdrawn by an administrator,
+  // or withdrawn automatically when the account drops below `moderateur`.
+  USER_REVIEW_CHIEF_GRANTED: 'user.review_chief_granted',
+  USER_REVIEW_CHIEF_REVOKED: 'user.review_chief_revoked',
   USER_INVITED: 'user.invited',
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',

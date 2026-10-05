@@ -10,7 +10,8 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { requireNetworkRole, rank } from './lib/rbac';
+import { requireNetworkRole, requireReviewChief, rank } from './lib/rbac';
+import { reviewChiefRecipients } from './lib/reviewChiefs';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -236,22 +237,16 @@ async function notifyEditors(
   ctx: MutationCtx,
   entry: { titleKey: string; type: string; title: string },
 ) {
-  // The editorial board: editors and administrators. Bounded — a network
-  // has a handful; beyond that, the editor's queue remains the reference.
-  for (const role of ['editeur', 'admin'] as const) {
-    const staff = await ctx.db
-      .query('users')
-      .withIndex('by_role', (q) => q.eq('role', role))
-      .take(25);
-    for (const u of staff) {
-      await notify(ctx, {
-        userId: u._id,
-        type: entry.type,
-        titleKey: entry.titleKey,
-        params: { title: entry.title },
-        link: EDITOR_QUEUE_LINK,
-      });
-    }
+  // The editorial team: review chiefs and administrators, who decide the
+  // manuscripts. Bounded — a network has a handful of them.
+  for (const u of await reviewChiefRecipients(ctx)) {
+    await notify(ctx, {
+      userId: u._id,
+      type: entry.type,
+      titleKey: entry.titleKey,
+      params: { title: entry.title },
+      link: EDITOR_QUEUE_LINK,
+    });
   }
 }
 
@@ -378,7 +373,9 @@ export const decideManuscript = mutation({
   },
   returns: v.object({ ok: v.boolean(), published: v.boolean() }),
   handler: async (ctx, { publicationId, decision, reason }) => {
-    const editor = await requireNetworkRole(ctx, 'editeur');
+    // The decision publishes an accepted manuscript: review chief and
+    // administrator only (D-7).
+    const editor = await requireReviewChief(ctx);
     const pub = await ctx.db.get(publicationId);
     if (!pub) throw new Error('NOT_FOUND');
     const from = stageOf(pub);

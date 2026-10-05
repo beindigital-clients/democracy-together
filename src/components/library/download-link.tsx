@@ -6,7 +6,7 @@ import { api } from '@convex/_generated/api';
 
 // Download / view link for a publication (F-34).
 //
-// A plain `<a>`: the document (or the DOI record) opens in a new
+// A plain `<a>`: the document opens in a new
 // tab, with or without JavaScript. The click ALSO records a
 // download (public mutation, under quota — see convex/publications.ts
 // `recordPublicationDownload`): measured on 27/09 (member A-8), the

@@ -90,7 +90,14 @@ export type SessionKey =
 
 export const SESSIONS: Record<
   SessionKey,
-  { email: string; state: string; role: NetworkRole }
+  {
+    email: string;
+    state: string;
+    role: NetworkRole;
+    // The review chief function, on top of a staff rank: only a review chief
+    // or an administrator decides a manuscript or a deposit.
+    reviewChief?: boolean;
+  }
 > = {
   membre: {
     email: 'e2e_session_membre@democracytogether.test',
@@ -335,6 +342,8 @@ export const SESSIONS: Record<
     email: 'e2e_session_editorial_editeur@democracytogether.test',
     state: 'tests/e2e/.auth/editorial-editeur.json',
     role: 'editeur',
+    // Deciding a manuscript publishes it: review chief function required.
+    reviewChief: true,
   },
   editorialRelecteur1: {
     email: 'e2e_session_editorial_relecteur1@democracytogether.test',

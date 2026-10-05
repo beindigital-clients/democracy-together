@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { isRegisteredDoi } from '@/lib/publications';
 import { hreflangFor } from '@/lib/seo';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -103,6 +104,9 @@ export default async function BarometrePage({
   // maps each format badge to a real file; formats not produced
   // (XLSX) remain plain badges. Illustrative data (cf. header).
   const dataBase = `/${locale}/barometre/data`;
+  // The datasets' identifiers (`10.59000/dt.bar.*`) are not registered DOIs
+  // (audit A-2): the column only appears once `isRegisteredDoi` accepts them.
+  const showDoi = c.datasets.rows.some((d) => isRegisteredDoi(d.doi));
   const dataRows: { primary: string; formats: Record<string, string> }[] = [
     {
       primary: `${dataBase}/composite.csv`,
@@ -532,9 +536,11 @@ export default async function BarometrePage({
                     <th scope="col" className="px-4 py-3 font-medium">
                       {c.datasets.headers.formats}
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
-                      {c.datasets.headers.doi}
-                    </th>
+                    {showDoi ? (
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        {c.datasets.headers.doi}
+                      </th>
+                    ) : null}
                     <th scope="col" className="px-4 py-3 font-medium">
                       {c.datasets.headers.codebook}
                     </th>
@@ -590,9 +596,11 @@ export default async function BarometrePage({
                             })}
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 font-mono text-[12px] text-ink-soft">
-                          {d.doi}
-                        </td>
+                        {showDoi ? (
+                          <td className="px-4 py-3.5 font-mono text-[12px] text-ink-soft">
+                            {isRegisteredDoi(d.doi) ? d.doi : '—'}
+                          </td>
+                        ) : null}
                         <td className="px-4 py-3.5">
                           <a
                             href={codebookHref}

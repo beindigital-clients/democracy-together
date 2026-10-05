@@ -314,7 +314,7 @@ test.describe('espace membre — vu par un visiteur', () => {
       'Annuaire des personnes',
       'Espaces de travail',
       'Mes publications',
-      'Tribune',
+      'Mes billets',
       'Administration',
     ]) {
       expect(labels, name).not.toContain(name);

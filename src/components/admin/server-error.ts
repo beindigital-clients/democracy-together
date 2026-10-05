@@ -93,6 +93,11 @@ export const SERVER_ERROR_CODES = [
   'CONFLICT_ALREADY_DECLARED',
   'NOT_ASSIGNED',
   'NO_REVIEWS',
+  // Library decisions (D-7, A-1): a manuscript under open peer review is
+  // decided in the reading committee; the review chief function needs a
+  // staff rank.
+  'IN_PEER_REVIEW',
+  'REVIEW_CHIEF_ROLE_TOO_LOW',
   'INVALID_REASON',
   'INVALID_DUE_DATE',
   'INVALID_DETAILS',

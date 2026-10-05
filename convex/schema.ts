@@ -66,8 +66,14 @@ export default defineSchema({
     suspendedAt: v.optional(v.number()),
     suspensionReason: v.optional(v.string()),
     suspendedBy: v.optional(v.id('users')),
+    // Review chief (KOHOP): a function granted by an administrator on top of a
+    // staff rank (`canValidatePublications`, convex/lib/roles.ts). Removed in
+    // the same mutation that lowers the account below `moderateur`.
+    reviewChief: v.optional(v.boolean()),
   })
     .index('email', ['email'])
+    // Notifies the review chiefs (editorial alerts) with one indexed read.
+    .index('by_reviewChief', ['reviewChief'])
     // `by_role` serves the bootstrap's "zero admin" guard (convex/bootstrap.ts):
     // it must answer with a single document read, without scanning the table.
     .index('by_role', ['role'])
