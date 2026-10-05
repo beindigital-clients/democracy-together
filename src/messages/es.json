@@ -4223,6 +4223,7 @@
     "linkErr_NO_ORCID": "Falta el ORCID de una de las partes: no se pudo comprobar.",
     "linkErr_other": "La base no respondió: repita o compruebe a mano.",
     "err_ORIGINALITY_REQUIRED": "Los informes de originalidad no están listos: láncelos o reconozca la ausencia de control externo.",
-    "err_NOTHING_TO_ACKNOWLEDGE": "Nada que reconocer: el control externo concluyó o no se intentó."
+    "err_NOTHING_TO_ACKNOWLEDGE": "Nada que reconocer: el control externo concluyó o no se intentó.",
+    "originalityStartBlocked": "El inicio espera el informe de originalidad interno (unos instantes tras la presentación)."
   }
 }

@@ -26,6 +26,7 @@ import {
   versionOf,
 } from './lib/kohopAccess';
 import { inviteReviewer, replaceTitular } from './lib/kohopReviewing';
+import { latestReport } from './kohopOriginality';
 
 // KOHOP — the REVIEW CHIEF's side. Every function passes `requireReviewChief`
 // (the administrator included); a moderator or an editor without the function
@@ -515,6 +516,11 @@ export const startReview = mutation({
     const file = await loadFile(ctx, contributionId);
     // The machine first: a stage that does not accept it writes nothing.
     const to = advance(file.stage, 'startReview');
+    // The review waits for the internal originality report: the reviewers must
+    // not read a text whose borrowings the chief has not seen.
+    const submitted = file.submittedVersion ?? file.currentVersion;
+    const platform = await latestReport(ctx, file._id, submitted, 'platform');
+    if (platform?.status !== 'done') refuse('ORIGINALITY_REQUIRED');
     const reviewers = await ctx.db
       .query('kohopReviewers')
       .withIndex('by_contribution', (q) =>

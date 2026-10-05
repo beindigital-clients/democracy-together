@@ -554,7 +554,9 @@ export default function AdminKohopFile() {
     (r) => r.slot === 'titular' && r.status === 'approved',
   ).length;
   const canStart = file.chiefActions.includes('startReview');
-  const startReady = approvedTitulars >= KOHOP_BOUNDS.reviewers.titular;
+  const startReady =
+    approvedTitulars >= KOHOP_BOUNDS.reviewers.titular &&
+    originality?.platformDone === true;
   const reviewerActionsOpen = ['submitted', 'in_review', 'revision'].includes(
     file.stage,
   );
@@ -664,7 +666,12 @@ export default function AdminKohopFile() {
               {t('originalityGateBlocked')}
             </p>
           ) : null}
-          {canStart && !startReady ? (
+          {canStart && originality?.platformDone !== true ? (
+            <p className="mt-2 text-sm text-muted">
+              {t('originalityStartBlocked')}
+            </p>
+          ) : null}
+          {canStart && approvedTitulars < KOHOP_BOUNDS.reviewers.titular ? (
             <p className="mt-2 text-sm text-muted">
               {t('startNeedsReviewers', {
                 validated: approvedTitulars,

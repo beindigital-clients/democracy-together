@@ -4223,6 +4223,7 @@
     "linkErr_NO_ORCID": "ORCID manquant d’un côté : la vérification n’a pas pu avoir lieu.",
     "linkErr_other": "La base n’a pas répondu : à relancer ou à vérifier à la main.",
     "err_ORIGINALITY_REQUIRED": "Les rapports d’originalité ne sont pas prêts : lancez-les, ou reconnaissez l’absence de contrôle externe.",
-    "err_NOTHING_TO_ACKNOWLEDGE": "Rien à reconnaître : le contrôle externe a abouti ou n’a pas été tenté."
+    "err_NOTHING_TO_ACKNOWLEDGE": "Rien à reconnaître : le contrôle externe a abouti ou n’a pas été tenté.",
+    "originalityStartBlocked": "Le lancement attend le rapport d’originalité interne (quelques instants après le dépôt)."
   }
 }

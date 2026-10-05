@@ -39,6 +39,16 @@ afterEach(async () => {
   }
 });
 
+// Runs the scheduled functions (e-mails, originality reports) to completion.
+async function drain(t: T) {
+  vi.useFakeTimers();
+  try {
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 async function account(
   t: T,
   role: Role,
@@ -781,6 +791,7 @@ describe('Chef de revue — recevabilité', () => {
       contributionId: id,
       ...COMMIT,
     });
+    await drain(w.t);
     return { ...w, id, ids };
   }
 
@@ -844,12 +855,38 @@ describe('Chef de revue — recevabilité', () => {
     expect(file.author.email).toBe('auteur@pilote.org');
     expect(file.reviewers).toHaveLength(3);
     expect(file.reviewers[0].email).toBeTruthy();
-    expect(file.reviewers[0].linkChecks[0].origin).toBe('rules');
+    expect(file.reviewers[0].linkChecks.map((c) => c.origin)).toContain(
+      'rules',
+    );
     expect(file.chiefActions.sort()).toEqual([
       'declareInadmissible',
       'return',
       'startReview',
     ]);
+  });
+
+  it('lancer la relecture attend le rapport d’originalité interne, et ne laisse aucune trace sinon', async () => {
+    const w = await submitted();
+    await w.t.run(async (ctx) => {
+      for (const r of await ctx.db.query('originalityReports').collect()) {
+        await ctx.db.delete(r._id);
+      }
+    });
+    for (const reviewerId of w.ids) {
+      await w.chief.as.mutation(api.kohopChief.approveReviewer, { reviewerId });
+    }
+    const before = await counts(w.t);
+    await expect(
+      w.chief.as.mutation(api.kohopChief.startReview, { contributionId: w.id }),
+    ).rejects.toThrow('ORIGINALITY_REQUIRED');
+    expect(await counts(w.t)).toEqual(before);
+    await w.chief.as.mutation(api.kohopOriginality.requestChecks, {
+      contributionId: w.id,
+    });
+    await drain(w.t);
+    await w.chief.as.mutation(api.kohopChief.startReview, {
+      contributionId: w.id,
+    });
   });
 
   it('lancer la relecture exige deux titulaires validés', async () => {

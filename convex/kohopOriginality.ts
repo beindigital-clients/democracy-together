@@ -131,7 +131,19 @@ export const reports = query({
       });
     }
     const gate = await originalityGate(ctx, file);
-    return { version, gateOk: gate.ok, reports: out };
+    // Starting the review only needs the platform report of the submission.
+    const platform = await latestReport(
+      ctx,
+      file._id,
+      file.submittedVersion ?? file.currentVersion,
+      'platform',
+    );
+    return {
+      version,
+      gateOk: gate.ok,
+      platformDone: platform?.status === 'done',
+      reports: out,
+    };
   },
 });
 

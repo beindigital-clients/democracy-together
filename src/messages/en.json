@@ -4223,6 +4223,7 @@
     "linkErr_NO_ORCID": "ORCID missing on one side: the check could not run.",
     "linkErr_other": "The database did not answer: run it again or check by hand.",
     "err_ORIGINALITY_REQUIRED": "The originality reports are not ready: run them, or acknowledge the missing external check.",
-    "err_NOTHING_TO_ACKNOWLEDGE": "Nothing to acknowledge: the external check completed or was not attempted."
+    "err_NOTHING_TO_ACKNOWLEDGE": "Nothing to acknowledge: the external check completed or was not attempted.",
+    "originalityStartBlocked": "The start waits for the internal originality report (a few moments after submission)."
   }
 }

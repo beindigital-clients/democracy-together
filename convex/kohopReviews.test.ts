@@ -230,6 +230,13 @@ async function inReview() {
     contributionId: id,
     ...COMMIT,
   });
+  // The internal originality report is a precondition of the review.
+  vi.useFakeTimers();
+  try {
+    await w.t.finishAllScheduledFunctions(vi.runAllTimers);
+  } finally {
+    vi.useRealTimers();
+  }
   for (const reviewerId of ids) {
     await w.chief.as.mutation(api.kohopChief.approveReviewer, { reviewerId });
   }
