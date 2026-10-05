@@ -1,7 +1,9 @@
 # Plan — KOHOP : publication relue par les pairs, validée par la rédaction
 
-**Date** : 2 octobre 2026
-**Statut** : proposition à valider. Ce document ne modifie aucun code.
+**Date** : 2 octobre 2026, mis à jour le 5 octobre 2026
+**Statut** : validé le 5 octobre, sauf les décisions D-6, D-15 et D-17
+(§ 6). Ce document ne modifie aucun code. Le prompt d'implémentation, lot par
+lot, est dans `docs/prompt-kohop-2026-10-05.md`.
 **Demande** : « Une personne qui écrit une courte publication doit pouvoir la
 faire relire par ses pairs, comme dans une maison d'édition. Un super admin ou
 un éditeur valide l'article avant sa publication. »
@@ -12,6 +14,24 @@ un éditeur valide l'article avant sa publication. »
 - `docs/backlog/editorial.md` (F-43), `docs/backlog/communaute.md` (Tribune) et
   `docs/moderation-ia.md`.
 
+> **Mise à jour du 5 octobre : ce qui a été décidé et ajouté.**
+>
+> - **Chef de revue.** Seuls le chef de revue et l'administrateur valident une
+>   publication, sur KOHOP comme dans la bibliothèque (D-5, D-7). Le chef de
+>   revue est une fonction qu'un administrateur attribue à un modérateur, un
+>   éditeur ou un autre administrateur (§ 3.1).
+> - **Choix des relecteurs.** L'auteur les choisit d'abord dans l'annuaire des
+>   membres. S'il ne sait pas qui choisir, l'IA lui propose une liste, et c'est
+>   lui qui y coche ses relecteurs. Une personne extérieure peut être invitée
+>   en second recours (§ 3.3).
+> - **Indépendance.** Aucun lien trop fort entre l'auteur et ses relecteurs. Les
+>   liens sont classés en deux niveaux, bloquants ou signalés. Des règles les
+>   vérifient sur la plateforme, l'IA dans les bases scientifiques ouvertes
+>   (§ 3.3).
+> - **Originalité.** Un contrôle anti-plagiat porte sur la plateforme et
+>   au-delà, y compris d'une langue à l'autre (§ 3.3). Le texte doit être
+>   inédit sous cette forme (D-16).
+
 ---
 
 ## Synthèse
@@ -19,8 +39,8 @@ un éditeur valide l'article avant sa publication. »
 - **Ce que veut le client.** Sur KOHOP, chaque contribution compte de 500 à
   1 000 mots. L'auteur choisit lui-même ses relecteurs. Il n'y a pas
   d'anonymat : les noms des relecteurs et leurs analyses sont publiés avec le
-  texte. Un rédacteur en chef écarte les relecteurs trop proches de l'auteur,
-  puis décide de la publication. Deux avis positifs valent presque acceptation.
+  texte. Un rédacteur en chef, sur la plateforme le chef de revue, écarte
+  les relecteurs trop proches de l'auteur, puis décide de la publication. Deux avis positifs valent presque acceptation.
   Les textes appartiennent à leurs auteurs. La lecture est libre et gratuite.
   Pour publier, il faut être adhérent.
 - **Ce qui existe déjà.** Trois circuits, et aucun ne fonctionne ainsi :
@@ -41,15 +61,20 @@ un éditeur valide l'article avant sa publication. »
     F-43 peut aujourd'hui être contournée (§ 2.3).
   - Elle réutilise leurs briques : versions, échéances et relances, déclaration
     de conflit d'intérêts, notifications, journal d'audit, e-mail, recherche.
-- **Ce que garantit la chaîne.** Rien n'est publié sans l'action d'un compte
-  `editeur` ou `admin`. L'IA ne publie jamais une contribution KOHOP.
+  - Elle ajoute trois contrôles assistés par l'IA : la vérification des liens
+    entre l'auteur et ses relecteurs, des suggestions de relecteurs et un
+    contrôle anti-plagiat (§ 3.3).
+- **Ce que garantit la chaîne.** Rien n'est publié sans l'action d'un chef de
+  revue ou d'un administrateur. L'IA ne publie rien, ne décide rien, et
+  n'écarte jamais un relecteur à elle seule.
 - **Calendrier.** Il faut 5 à 7 semaines pour qu'une contribution aille du
   dépôt à la publication. Le lancement est prévu fin novembre ou début
   décembre. Pour avoir des textes en ligne à cette date, il faut :
   - ouvrir un pilote aux premiers auteurs vers le **26 octobre** ;
   - construire la suite de la chaîne pendant que leurs textes sont en
     relecture (§ 5).
-- **À trancher cette semaine** : les décisions D-1 à D-7 (§ 6).
+- **Encore ouvert** : D-6 (classement thématique), D-15 (cohorte pilote) et
+  D-17 (choix du service anti-plagiat) (§ 6).
 
 ---
 
@@ -61,10 +86,10 @@ un éditeur valide l'article avant sa publication. »
 | K-02 | « avec des liens vers des textes plus nourris, disponibles en un clic » | Rubrique « Pour aller plus loin » : liens externes ou documents de la bibliothèque | 6 |
 | K-03 | « Il désigne ses relecteurs » ; « des pairs, désignés par les contributeurs eux-mêmes » | L'auteur propose ses relecteurs, y compris des personnes extérieures au réseau | 5, 6 |
 | K-04 | « Pas d'anonymat : leurs noms et leurs analyses sont publiés avec son texte » | Relecture ouverte : analyses signées, publiées avec le texte | 6 |
-| K-05 | « Le rédacteur en chef veille […] peut récuser un relecteur trop proche de l'auteur, par exemple un coauteur » | Validation des relecteurs par la rédaction, récusation motivée, alertes de conflit d'intérêts | 6 |
+| K-05 | « Le rédacteur en chef veille […] peut récuser un relecteur trop proche de l'auteur, par exemple un coauteur » | Validation des relecteurs par le chef de revue, récusation motivée, alertes de conflit d'intérêts | 6 |
 | K-06 | « L'auteur révise — 2 semaines […] décide d'en tenir compte ou non » | Révision libre, en 14 jours, avec une réponse aux relecteurs | 6 |
 | K-07 | « Il accepte ou refuse la publication. Deux avis positifs valent presque automatiquement acceptation, sauf outrance évidente ou infraction à la charte » | Décision prise par un humain. Deux avis positifs créent une présomption d'acceptation. Refuser malgré tout n'est possible que pour l'un des deux motifs cités | 6 |
-| K-08 | Demande du 02/10 : « un super admin ou un éditeur devra valider l'article avant sa publication » | Aucune mise en ligne sans action d'un compte `editeur` ou `admin`. Jamais par l'IA | — |
+| K-08 | Demandes du 02/10 et du 05/10 : « seul le chef de revue et l'administrateur pourront valider une publication » | Aucune mise en ligne sans l'action d'un chef de revue ou d'un administrateur, sur KOHOP comme dans la bibliothèque. Jamais par l'IA | — |
 | K-09 | « Les textes publiés appartiennent aux contributeurs, pas à la plateforme » | L'auteur garde ses droits et accorde une licence de diffusion non exclusive. Il donne son bon à tirer sur toute retouche | 6 |
 | K-10 | « Gratuit et en libre accès pour les lecteurs » | Lecture sans compte ; jamais réservée aux membres | 6 |
 | K-11 | « Publier sur KOHOP suppose d'adhérer au réseau » | Dépôt réservé au rang `membre` et au-dessus | 6 |
@@ -75,6 +100,9 @@ un éditeur valide l'article avant sa publication. »
 | K-16 | « Un champ immense » : 10 champs, de l'éducation aux transitions démocratiques | Classement thématique (décision D-6) | 4 |
 | K-17 | « diversité géographique, culturelle et de genre » ; « attentif à l'Afrique et à l'Europe » | Indicateurs de suivi (§ 8) | 3, 4 |
 | K-18 | « L'adhésion passe par la signature d'une courte charte » | Charte éditoriale acceptée au dépôt, version et date conservées | 8 |
+| K-19 | Demande du 05/10 : relecteurs sans lien trop fort avec l'auteur, vérifié par l'IA | Liens bloquants et liens signalés, vérifiés par des règles et par l'IA, sources à l'appui. Le chef de revue tranche | — |
+| K-20 | Demande du 05/10 : l'auteur choisit parmi les membres, ou délègue à l'IA | Choix dans l'annuaire. Sinon, l'IA propose une liste et l'auteur y coche ses relecteurs | — |
+| K-21 | Demande du 05/10 : anti-plagiat, sur la plateforme et ailleurs, y compris dans une autre langue | Contrôle d'originalité au dépôt, à la révision et avant parution, avec un rapport pour le chef de revue | — |
 
 ---
 
@@ -123,11 +151,11 @@ même sans KOHOP.
 |---|---|---|---|
 | A-1 | **La revue F-43 peut être contournée.** Un manuscrit en relecture garde le statut `pending` et reste dans `/admin/publications`. Sur cet écran, le bouton « Approuver » (rang modérateur) le publie, avec le fichier d'origine. Le serveur ne vérifie pas `reviewStage`. L'IA en mode `auto` non plus : elle ne regarde que `status`. | `publications.reviewPublication`, `aiModeration.applyVerdict`, `admin/publications/page.tsx` | Refuser la modération et l'auto-publication tant qu'une revue est en cours (lot 0) |
 | A-2 | **Le « DOI » affiché n'en est pas un.** `10.59000/dt.<slug>` apparaît dans la bibliothèque et le baromètre, avec un lien `doi.org`. Aucun de ces DOI n'est enregistré : doi.org répond « introuvable ». Le préfixe 10.59000 est un vrai préfixe Crossref, attribué en octobre 2022, et rien ne le rattache à l'association. | Attribution : `publications.ts`, `peerReview.ts`, `aiModeration.ts`. Affichage : `bibliotheque/[slug]/page.tsx`, `src/lib/barometer-content.ts` | Afficher un lien permanent au lieu d'un DOI tant qu'aucun n'est enregistré (lot 0, décision D-12) |
-| A-3 | **Un modérateur publie dans la bibliothèque**, et le mode IA `auto` (éteint par défaut) le peut aussi. Les deux vont contre K-08 si la règle s'applique aussi à la bibliothèque. | `reviewPublication` (rang `moderateur`), `/admin/moderation-ia` | Passer la décision au rang `editeur` et exclure les dépôts du mode `auto` (lot 0, décision D-7) |
+| A-3 | **Un modérateur publie dans la bibliothèque**, et le mode IA `auto` (éteint par défaut) le peut aussi. Les deux vont contre K-08 si la règle s'applique aussi à la bibliothèque. | `reviewPublication` (rang `moderateur`), `/admin/moderation-ia` | Réserver la décision au chef de revue et à l'administrateur, et exclure les dépôts du mode `auto` (lot 0, D-7 validée) |
 | A-4 | **La revue n'envoie aucun e-mail.** Les relances sont de simples notifications sur le site. Un relecteur extérieur ne les verrait jamais. | `peerReview.sendDueReminders` | Prévoir des e-mails dès la conception de KOHOP (§ 4.6) |
 | A-5 | **Les mots se mélangent.** « Mes contributions » désigne déjà les billets de la Tribune, alors que la plaquette appelle « contributions » les textes KOHOP. Après un dépôt, le message de succès renvoie à « Mes contributions », alors que l'écran s'appelle « Mes publications ». Il annonce aussi « vous pourrez l'ajouter plus tard », alors qu'aucun écran ne permet d'ajouter le fichier ensuite. | `member-nav.ts`, `publication-submit-form.tsx`, `src/messages/*.json` | Fixer le vocabulaire (annexe A) et corriger les deux messages (lot 0) |
 | A-6 | **Deux informations de la fiche publique sont vides ou figées.** La licence n'est jamais renseignée pour un dépôt. Le compteur de citations ne vient que des données de démonstration. | `submitPublication`, `bibliotheque/[slug]` | KOHOP recueille la licence au dépôt. Le compteur est à revoir plus tard |
-| A-7 | **L'annuaire d'experts repose sur des noms en texte libre.** Deux homonymes sont fusionnés, et aucune entrée n'est reliée à un compte. | `convex/experts.ts` | KOHOP fournira des auteurs et relecteurs reliés à de vrais comptes (lot 7) |
+| A-7 | **L'annuaire d'experts repose sur des noms en texte libre.** Deux homonymes sont fusionnés, et aucune entrée n'est reliée à un compte. | `convex/experts.ts` | KOHOP fournira des auteurs et relecteurs reliés à de vrais comptes (lot 9) |
 
 ---
 
@@ -139,11 +167,19 @@ même sans KOHOP.
 |---|---|---|
 | Auteur | Contributeur, ou auteur correspondant s'il y a plusieurs auteurs | Rang `membre` ou au-dessus (K-11) |
 | Coauteurs | Coauteurs : nom et affiliation | Listés. Ils n'ont pas besoin d'être inscrits |
-| Comité de lecture | Relecteurs désignés par l'auteur | Toute personne invitée par e-mail et validée par la rédaction. Elle n'accède qu'à **sa** relecture |
-| Rédacteur en chef | Rédacteur en chef | Rang `editeur` ou `admin` : recevabilité, relecteurs, décision, parution |
-| Éditeur, secrétaire de rédaction | Éditeur en charge (facultatif) et préparation de copie | Rang `editeur` |
+| Comité de lecture | Relecteurs désignés par l'auteur | Un membre choisi dans l'annuaire ou, en second recours, une personne extérieure invitée par e-mail. Le chef de revue le valide. Il n'accède qu'à **sa** relecture |
+| Rédacteur en chef | **Chef de revue** (le « rédacteur en chef » de la plaquette) | Une fonction qu'un administrateur attribue à un modérateur, un éditeur ou un administrateur. Avec les administrateurs, les chefs de revue sont les seuls à valider une publication : recevabilité, relecteurs, décision, parution |
+| Éditeur, secrétaire de rédaction | Préparation de copie | Le chef de revue. Le rang `editeur` seul ne donne aucun droit sur KOHOP |
 | Directeur de la publication | Responsable légal du site | Déjà prévu dans les mentions légales. Le nom reste à fournir (`src/lib/legal-content.ts`) |
-| — | Modérateur | Aucun droit sur KOHOP. Il garde la Tribune |
+| — | Modérateur | Aucun droit sur KOHOP, sauf s'il est chef de revue. Il garde la Tribune |
+
+**Pourquoi une fonction plutôt qu'un rang de plus.** Les rangs du site
+s'emboîtent : chacun hérite des droits des rangs inférieurs. Un rang « chef de
+revue » placé sous l'éditeur donnerait à tous les éditeurs le droit de publier.
+Placé au-dessus, il donnerait au chef de revue la newsletter et les contenus du
+site. Une fonction attribuée à part évite les deux. Elle n'est accordée qu'à un
+compte de l'équipe (rang `moderateur` au moins), qui passe donc déjà par la
+double authentification.
 
 ### 3.2 La chaîne, étape par étape
 
@@ -181,14 +217,14 @@ elle passe alors à l'état final « retirée ». Ce cas n'est pas dessiné ici.
 | Étape (code) | Qui agit | Délai | Sorties possibles |
 |---|---|---|---|
 | ① Brouillon (`draft`) | Auteur | — | Dépôt, ou abandon |
-| ② Soumise : recevabilité (`submitted`) | Rédaction | Objectif : 5 jours ouvrés | Lancer la relecture (au moins 2 relecteurs validés), renvoyer à l'auteur, ou déclarer irrecevable |
+| ② Soumise : recevabilité et contrôle d'originalité (`submitted`) | Chef de revue | Objectif : 5 jours ouvrés | Lancer la relecture (au moins 2 relecteurs validés), renvoyer à l'auteur, ou déclarer irrecevable |
 | ②bis À reprendre (`returned`) | Auteur | 14 jours | Nouveau dépôt, ou retrait |
 | ③ En relecture (`in_review`) | Relecteurs | 5 jours pour répondre à l'invitation, puis 14 jours pour l'analyse | Deux analyses reçues → révision. Si un relecteur se désiste ou est récusé, il est remplacé |
 | ④ En révision (`revision`) | Auteur | **14 jours** (K-06) | Dépôt de la version révisée. À l'échéance, la version relue passe à la décision |
-| ⑤ À décider (`decision`) | Rédacteur en chef | Objectif : 7 jours | Acceptée, ou refusée |
-| ⑥ En préparation (`production`) | Rédaction | — | Envoi de l'épreuve, ou bon à tirer direct si rien n'a changé |
+| ⑤ À décider (`decision`) | Chef de revue | Objectif : 7 jours | Acceptée, ou refusée |
+| ⑥ En préparation (`production`) | Chef de revue | — | Envoi de l'épreuve, ou bon à tirer direct si rien n'a changé |
 | ⑥bis Épreuve (`proof`) | Auteur | 5 jours | Bon à tirer, ou demande de corrections |
-| ⑦ Bon à tirer (`ready`), puis programmée (`scheduled`) | Rédaction | Date choisie | Publiée |
+| ⑦ Bon à tirer (`ready`), puis programmée (`scheduled`) | Chef de revue | Date choisie | Publiée |
 | ⑧ Publiée (`published`) | — | — | Retrait avec notice (exceptionnel) |
 | États finaux | — | — | Refusée (`refused`), retirée par l'auteur (`withdrawn`), retirée après publication (`retracted`) |
 
@@ -200,31 +236,79 @@ elle passe alors à l'état final « retirée ». Ce cas n'est pas dessiné ici.
   suppléant est conseillé, pas obligatoire. Il n'est invité que si une place se
   libère : désistement, récusation ou délai dépassé. Il y a donc toujours deux
   relecteurs actifs, sans attendre une nouvelle désignation.
-- **Ce que l'auteur fournit pour chacun** : nom, e-mail, affiliation, un lien
-  public qui atteste son identité ou son expertise (page institutionnelle,
-  ORCID…), la raison de ce choix, et le lien éventuel avec l'auteur.
-- **Aucun e-mail ne part avant la validation de la rédaction.** Cela protège à
-  la fois contre le spam, pour le respect du RGPD (données de tiers) et contre
-  les conflits d'intérêts.
-- **Refus bloquants, vérifiés par le serveur** : l'auteur lui-même, un coauteur
-  du texte, la même personne désignée deux fois.
-- **Alertes signalées à la rédaction, qui tranche** :
-  - même organisation que l'auteur ;
-  - adresse sur le domaine de l'organisation de l'auteur ;
-  - adresse de messagerie grand public (identité à vérifier) ;
-  - réciprocité : l'auteur a relu cette personne dans les 12 derniers mois ;
-  - récurrence : la personne a déjà été désignée deux fois par le même auteur en
-    12 mois.
-- **Récusation.** La rédaction peut récuser un relecteur à tout moment, avec un
-  motif : coauteur, même institution, lien personnel ou hiérarchique, expertise
-  insuffisante, identité non vérifiée, autre. L'auteur propose alors un
-  remplaçant, sauf si un suppléant est déjà validé. L'analyse d'un relecteur
+- **Où l'auteur les choisit (K-20).**
+  - **D'abord dans l'annuaire des membres** (`/membres`). Les profils y
+    indiquent les domaines d'expertise, le pays, les langues et l'ORCID. Un
+    membre peut demander, depuis son profil, à ne pas être proposé comme
+    relecteur.
+  - **S'il ne sait pas qui choisir, l'IA lui propose cinq personnes.** Chaque
+    suggestion dit pourquoi la personne est proposée et donne le résultat de la
+    vérification des liens. **C'est l'auteur qui coche ses relecteurs.** La
+    plaquette fait des « pairs désignés par les contributeurs eux-mêmes » la
+    singularité de KOHOP : l'IA propose, elle ne désigne jamais.
+    - Elle équilibre la liste entre l'Afrique et l'Europe et entre les langues.
+    - Elle évite de solliciter toujours les mêmes personnes.
+  - **En second recours, une personne extérieure au réseau.** L'auteur fournit
+    son nom, son e-mail, son affiliation, un lien public qui atteste son
+    identité ou son expertise (page institutionnelle, ORCID…) et la raison de
+    son choix (lot 7).
+- **Aucun lien trop fort avec l'auteur (K-05, K-19).** Exiger « aucun lien du
+  tout » bloquerait la plupart des choix dans un réseau spécialisé. Il y a donc
+  deux niveaux :
+  - **Les liens bloquants, que le serveur refuse** :
+    - l'auteur lui-même ;
+    - un coauteur du texte ;
+    - quelqu'un de la même organisation ;
+    - un coauteur, sur KOHOP, au cours des trois dernières années (une
+      cosignature trouvée ailleurs par l'IA est signalée, et le chef de revue
+      récuse s'il le juge utile) ;
+    - un binôme de mentorat de la plateforme ;
+    - une relecture croisée dans les douze derniers mois (l'auteur a relu
+      cette personne) ;
+    - un lien familial, personnel ou hiérarchique déclaré.
+  - **Les liens signalés, sur lesquels le chef de revue tranche** :
+    - une collaboration plus ancienne ;
+    - le même espace de travail ou le même projet sur la plateforme ;
+    - un abonnement mutuel ;
+    - une adresse sur le domaine de l'organisation de l'auteur ;
+    - une adresse de messagerie grand public, pour une personne extérieure ;
+    - la récurrence : la personne a déjà été désignée deux fois par le même
+      auteur en douze mois.
+  - Quand un lien est bloquant, l'auteur lit seulement que la personne ne peut
+    pas être retenue. Le détail peut relever de la vie privée de cette
+    personne : il est réservé au chef de revue.
+- **Qui vérifie les liens, et comment.**
+  - **Sur la plateforme**, des règles suffisent et sont fiables :
+    organisations, textes cosignés, relectures passées, mentorat, espaces de
+    travail.
+  - **Hors plateforme**, l'IA cherche des publications cosignées et des
+    affiliations communes dans les bases scientifiques ouvertes (OpenAlex,
+    ORCID). Le résultat est fiable quand les deux personnes ont un ORCID. Sans
+    cet identifiant, la recherche se fait par nom, et des homonymes peuvent
+    être confondus.
+  - **Chaque lien trouvé est montré avec sa source, au chef de revue
+    seulement.** L'IA n'écarte jamais un relecteur à elle seule : elle signale,
+    le chef de revue décide.
+  - **L'IA ne voit pas tout.** Les amitiés, les liens familiaux et les
+    intérêts financiers lui échappent. Les déclarations de l'auteur et du
+    relecteur restent donc nécessaires.
+- **Aucune invitation ne part avant la validation du chef de revue.** C'est une
+  protection contre le spam et contre les conflits d'intérêts. Elle respecte
+  aussi le RGPD, puisque les données d'une personne extérieure sont fournies
+  par un tiers.
+- **Récusation.** Le chef de revue peut récuser un relecteur à tout moment, avec
+  un motif : coauteur, même institution, lien personnel ou hiérarchique,
+  expertise insuffisante, identité non vérifiée, autre. L'auteur propose alors
+  un remplaçant, sauf si un suppléant est déjà validé. L'analyse d'un relecteur
   récusé n'est jamais publiée.
-- **Invitation.** Elle arrive par e-mail, avec un lien. On peut accepter ou
-  décliner sans avoir de compte, et proposer quelqu'un d'autre en déclinant.
-  - Pour écrire l'analyse, on se connecte avec un code envoyé à **l'adresse
-    invitée**. Un lien transféré à quelqu'un d'autre ne lui sert donc à rien.
-    C'est indispensable, puisque le nom du relecteur sera publié.
+- **Invitation.**
+  - **Un membre** est prévenu par notification et par e-mail. Il répond depuis
+    son espace.
+  - **Une personne extérieure** reçoit un lien par e-mail. Elle peut accepter
+    ou décliner sans compte, et proposer quelqu'un d'autre en déclinant. Pour
+    écrire son analyse, elle se connecte avec un code envoyé à **l'adresse
+    invitée**. Un lien transféré à quelqu'un d'autre ne lui sert donc à rien,
+    ce qui est indispensable puisque le nom du relecteur sera publié.
 - **Avant de lire le texte**, le relecteur déclare qu'il n'a pas de conflit
   d'intérêts. Il accepte aussi que son nom, son affiliation et son analyse
   soient publiés sous licence. C'est une condition pour relire, puisque la
@@ -234,14 +318,58 @@ elle passe alors à l'état final « retirée ». Ce cas n'est pas dessiné ici.
     **Favorable avec réserves**, **Défavorable** ;
   - une analyse publique, guidée par cinq critères : pertinence, originalité,
     rigueur, clarté, utilité ;
-  - s'il le souhaite, une note confidentielle à la rédaction. Elle n'est jamais
+  - s'il le souhaite, une note confidentielle au chef de revue. Elle n'est jamais
     publiée et sert aux questions d'éthique : soupçon de plagiat, conflit
     découvert en cours de lecture.
 - **Délais et relances.** Le relecteur a 5 jours pour répondre à l'invitation
   et 14 jours pour rendre son analyse. Il reçoit un rappel 3 jours avant
   l'échéance, puis une relance le jour même et tous les 3 jours, trois relances
-  au plus. Ensuite, la rédaction et l'auteur sont prévenus, et le suppléant
+  au plus. Ensuite, le chef de revue et l'auteur sont prévenus, et le suppléant
   prend le relais.
+
+#### Contrôle d'originalité, ou anti-plagiat (K-21)
+
+- **Quand.** Au dépôt, avant de solliciter les relecteurs : inutile de leur
+  faire relire un texte copié. Puis sur chaque version révisée, et une dernière
+  fois, sur la plateforme, avant la parution.
+- **Sur la plateforme.** Le texte est comparé aux contributions KOHOP, y
+  compris celles en cours d'autres auteurs, à la bibliothèque (texte extrait
+  des PDF compris) et à la Tribune.
+  - **Copie mot pour mot ou presque** : on compare des suites de mots. C'est
+    rapide, fiable, et on peut montrer les passages identiques.
+  - **Traduction ou reformulation** : l'IA représente le sens de chaque
+    paragraphe, quelle que soit sa langue. Un paragraphe français et sa
+    traduction anglaise ressortent alors ensemble. L'IA confirme ensuite qu'il
+    s'agit du même texte, et pas seulement du même sujet.
+- **Ailleurs** (web, articles scientifiques, autres langues), par un service
+  spécialisé, dont les bases couvrent des milliards de pages et d'articles
+  (D-17). Les critères de choix :
+  - la détection d'une langue à l'autre ;
+  - un hébergement en Europe ;
+  - aucune conservation du texte par le service, puisqu'il est inédit et
+    appartient à l'auteur ;
+  - une API pour l'intégrer.
+- **Un rapport pour le chef de revue, jamais publié.** Chaque passage suspect
+  est montré à côté de sa source. L'IA le classe : citation correctement
+  référencée, formule courante, reprise déclarée de ses propres travaux, ou
+  emprunt. Aucun seuil ne décide à la place du chef de revue : 15 % de reprises
+  peuvent être des citations légitimes, et 3 % un paragraphe clé volé.
+- **Si le service externe manque.** Tant qu'il n'est pas branché, ou s'il est en
+  panne, le chef de revue ne peut accepter un texte qu'en cochant qu'il le fait
+  sans contrôle externe. Ce choix est inscrit au journal d'audit.
+- **La règle (D-16).** Le texte doit être inédit sous cette forme. L'auteur peut
+  reprendre ses propres travaux s'il les déclare au dépôt et les cite. La
+  charte dit clairement que le plagiat est une infraction : c'est donc un motif
+  de refus, au titre de « l'infraction à la charte » prévue par la plaquette.
+- **Les garde-fous.** Aucun outil ne garantit qu'un texte n'est pas plagié : un
+  texte reformulé par une IA ou une source hors ligne peuvent échapper au
+  contrôle. Trois garde-fous complètent donc l'outil :
+  - la déclaration d'originalité que l'auteur signe au dépôt ;
+  - les relecteurs, qui reconnaissent souvent un texte recyclé ;
+  - le retrait après publication, si un plagiat est découvert plus tard.
+- **Pas de détecteur de « texte écrit par une IA ».** Ces outils se trompent
+  souvent, surtout avec les personnes qui n'écrivent pas dans leur langue
+  maternelle. Dans un réseau tourné vers l'Afrique, ce serait injuste.
 
 #### Révision (K-06)
 
@@ -252,7 +380,7 @@ elle passe alors à l'état final « retirée ». Ce cas n'est pas dessiné ici.
   une **réponse aux relecteurs**, publiée avec les analyses (décision D-9).
 - Il est relancé 3 jours avant l'échéance, puis le jour même. À l'échéance, la
   version relue passe à la décision telle quelle, et l'auteur en est informé.
-  S'il en fait la demande, la rédaction peut accorder une prolongation.
+  S'il en fait la demande, le chef de revue peut accorder une prolongation.
 
 #### Décision (K-07, K-08)
 
@@ -261,12 +389,15 @@ elle passe alors à l'état final « retirée ». Ce cas n'est pas dessiné ici.
   présélectionné.
 - **Refuser malgré cette présomption** exige l'un des deux motifs de la
   plaquette, « outrance évidente » ou « infraction à la charte », et une
-  justification écrite. La justification est envoyée à l'auteur. Le journal
-  d'audit signale ce cas à part.
-- **Si les avis sont partagés**, le rédacteur en chef tranche librement, avec
-  un motif. Un troisième avis pour départager pourra être ajouté plus tard.
-- **Toute décision est prise par une personne** ayant le rang `editeur` ou
-  `admin`. L'IA ne décide jamais pour KOHOP.
+  justification écrite. Le plagiat est une infraction à la charte (D-16). La
+  justification est envoyée à l'auteur. Le journal d'audit signale ce cas à
+  part.
+- **Si les avis sont partagés**, le chef de revue tranche librement, avec un
+  motif. Un troisième avis pour départager pourra être ajouté plus tard.
+- **Toute décision est prise par une personne** : un chef de revue ou un
+  administrateur. L'IA ne décide jamais pour KOHOP.
+- **Le rapport d'originalité est obligatoire** pour accepter (§ Contrôle
+  d'originalité).
 
 #### Préparation de copie et bon à tirer (K-09)
 
@@ -276,15 +407,15 @@ elle passe alors à l'état final « retirée ». Ce cas n'est pas dessiné ici.
 - **Le bon à tirer.** Si le texte a changé depuis l'acceptation, l'auteur doit
   valider l'épreuve finale (5 jours) avant toute parution : c'est la
   conséquence directe de « les textes appartiennent aux contributeurs ». Si
-  rien n'a changé, la rédaction peut publier la version acceptée.
+  rien n'a changé, le chef de revue peut publier la version acceptée.
 
 #### Parution et vie du texte
 
 - La publication est **immédiate ou programmée**, selon un calendrier
   éditorial.
 - Le contenu de la page publique est décrit au § 3.4.
-- **Retrait après publication** (exceptionnel, rang `editeur` et au-dessus,
-  avec un motif). La page reste en ligne avec une notice datée, et le texte
+- **Retrait après publication** (exceptionnel, par un chef de revue ou un
+  administrateur, avec un motif). La page reste en ligne avec une notice datée, et le texte
   n'est plus affiché. C'est ce qu'il faut pour une demande légale. La suppression
   silencieuse n'existe pas.
 - **Plus tard** : errata versionnés, et rétractation sur le modèle des
@@ -328,6 +459,7 @@ Une page `/kohop/<slug>`, lisible sans compte (K-10), contient :
 | Guide de l'auteur, guide du relecteur | Revues | Deux pages, rappelées dans les formulaires |
 | ISSN | Publications en série | ISSN de publication en ligne, gratuit auprès du Centre ISSN France (BnF). À étudier (D-12) |
 | DOI | Revues | Crossref ou Zenodo / DataCite (décision D-12) |
+| Logiciel anti-plagiat à la réception des manuscrits | Revues (iThenticate, via le service Similarity Check de Crossref) | Contrôle d'originalité au dépôt, à la révision et avant parution |
 
 ---
 
@@ -364,6 +496,8 @@ Une page `/kohop/<slug>`, lisible sans compte (K-10), contient :
   - la chaîne d'e-mails (`emailKit`, `emailDocument`) ;
   - l'indexation pour la recherche ;
   - les fonctions de citation ;
+  - la passerelle d'IA (`convex/lib/aiGateway.ts`), pour les contrôles assistés
+    par l'IA ;
   - les composants d'interface shadcn.
 
 ### 4.2 Données — nouveau fichier `convex/lib/tables/kohop.ts`
@@ -372,10 +506,19 @@ Une page `/kohop/<slug>`, lisible sans compte (K-10), contient :
 |---|---|---|---|
 | `kohopContributions` | Le dossier, un par contribution | `stage`, `authorUserId`, `organizationId?`, `lang`, `fields` (champs thématiques), `keywords`, `coAuthors` (≤ 10 : nom, affiliation, e-mail facultatif), `currentVersion`, `title` (copie de la dernière version, pour les listes), `slug` (fixé à l'acceptation), `handlingEditorId?`, échéances (`revisionDueAt`, `proofDueAt`, `scheduledFor`), dates (`submittedAt`, `decidedAt`, `publishedAt`, `retractedAt`), `charterVersion` et `charterAcceptedAt`, `licence`, `searchText` | `by_author`, `by_stage`, `by_slug`, `by_stage_and_publishedAt`, index de recherche `search_text` |
 | `kohopVersions` | Les versions successives, jamais réécrites | `contributionId`, `version`, `kind` (soumission / révision / préparation), `title`, `standfirst` (chapô), `body` (texte balisé, § 4.5), `links` (≤ 10 : libellé, URL ou publication de la bibliothèque), `wordCount`, `responseToReviewers?`, `createdBy` | `by_contribution_and_version` |
-| `kohopReviewers` | Le relecteur, de sa désignation à son analyse | `contributionId`, `slot` (titulaire / suppléant), `name`, `email` (normalisé), `affiliation`, `publicUrl`, `rationale`, `declaredRelationship`, `userId?` (relié à la connexion), `status` (`proposed`, `approved`, `recused`, `invited`, `accepted`, `declined`, `expired`, `submitted`), `flags` (alertes calculées), `recusal?`, `inviteTokenHash?`, `invitedAt`, `dueAt?` (renseigné seulement tant qu'une réponse est attendue), `remindersSent`, `conflict?`, `publicationConsentAt?` | `by_contribution`, `by_email`, `by_user`, `by_dueAt`, `by_tokenHash` |
+| `kohopReviewers` | Le relecteur, de sa désignation à son analyse | `contributionId`, `slot` (titulaire / suppléant), `source` (annuaire, suggestion de l'IA, extérieur), `name`, `email` (normalisé), `affiliation`, `publicUrl`, `rationale`, `declaredRelationship`, `userId?` (relié à la connexion), `status` (`proposed`, `approved`, `recused`, `invited`, `accepted`, `declined`, `expired`, `submitted`), `flags` (alertes calculées), `recusal?`, `inviteTokenHash?`, `invitedAt`, `dueAt?` (renseigné seulement tant qu'une réponse est attendue), `remindersSent`, `conflict?`, `publicationConsentAt?` | `by_contribution`, `by_email`, `by_user`, `by_dueAt`, `by_tokenHash` |
 | `kohopReviews` | L'analyse, une par relecteur | `contributionId`, `reviewerId`, `version` évaluée, `recommendation` (`favorable`, `reserves`, `defavorable`), `analysis` (publique), `noteToEditor?` (jamais publique), `displayName` et `affiliation` (figés : c'est ce qui sera publié), `submittedAt`, `updatedAt` | `by_contribution`, `by_reviewer` |
 | `kohopDecisions` | Les décisions, une ligne chacune, jamais réécrites | `contributionId`, `version`, `kind` (renvoi, irrecevable, acceptée, refusée, retrait), `reasonCode?` (`outrance`, `charte`, `hors_champ`, `hors_format`, `autre`), `reason`, `positiveReviews`, `againstPresumption`, `decidedBy` | `by_contribution` |
 | `kohopEvents` | L'historique : un fait par ligne, auteur et date | `contributionId`, `kind`, `actorId?`, `at`, `metadata`. Une partie (les dates) est affichée publiquement comme parcours | `by_contribution` |
+| `kohopLinkChecks` | Les liens trouvés entre l'auteur et un relecteur | `contributionId`, `reviewerId`, `level` (bloquant, signalé, aucun), `findings` (type, détail, source, URL), `origin` (règles ou IA), `model?`, `checkedAt` | `by_reviewer` |
+| `kohopSuggestions` | Les suggestions de relecteurs faites par l'IA | `contributionId`, `candidates` (5 au plus : compte, raisons, liens trouvés), `model`, `createdAt` | `by_contribution` |
+| `originalityReports` | Les rapports d'originalité, jamais publiés | `contributionId`, `version`, `scope` (plateforme ou externe), `status`, `matches` (source, passage, langue, classement), `summary`, `provider?`, `acknowledgedBy?` (acceptation sans contrôle externe) | `by_contribution_and_version` |
+| `textFingerprints`, `textPassages` | L'index du contrôle d'originalité : empreintes des suites de mots, et sens de chaque paragraphe sous forme de vecteur | `sourceType`, `sourceId`, `hash` ou `embedding`, `lang` | `by_hash`, index vectoriel Convex |
+| `kohopSettings` | Les réglages de KOHOP, dont l'accès pilote (dépôt réservé à des organisations choisies) | `key`, `access` (`pilot` ou `open`), `pilotOrganizations` | `by_key` |
+
+Deux champs s'ajoutent à des tables existantes : `users.reviewChief`, la
+fonction de chef de revue, avec un index, et dans `memberProfiles` le refus
+d'être proposé comme relecteur.
 
 Les bornes vivent dans un module pur, `convex/lib/kohop.ts`. La plateforme le
 lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
@@ -390,22 +533,23 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
 | Liens | 10 au plus, en `https` |
 | Coauteurs | 10 au plus |
 | Relecteurs | 2 titulaires et 1 suppléant |
+| Suggestions de l'IA | 5 personnes |
 | Analyse | 150 à 1 500 mots |
-| Note à la rédaction | 2 000 caractères au plus |
+| Note au chef de revue | 2 000 caractères au plus |
 | Réponse aux relecteurs | 800 mots au plus |
 | Délais | invitation 5 jours, analyse 14 jours, révision 14 jours, bon à tirer 5 jours |
 
 ### 4.3 La machine à états
 
 - `KOHOP_MACHINE`, `nextStage` et `canTransition` vivent dans
-  `convex/lib/kohop.ts`. Le serveur et l'écran de la rédaction lisent la même
+  `convex/lib/kohop.ts`. Le serveur et l'écran du chef de revue lisent la même
   table, sur le modèle de `MANUSCRIPT_MACHINE`.
 - **Tests purs** sur toutes les paires (étape × événement), et **tests
   convex-test** sur les vraies mutations, qui vérifient qu'une transition
   refusée n'écrit rien.
 - **Invariant testé** : aucun chemin ne mène à `published` sans l'action d'un
-  compte `editeur` ou `admin`. Cette action est soit `publish`, soit `schedule`
-  posée par ce compte.
+  chef de revue ou d'un administrateur. Cette action est soit `publish`, soit
+  `schedule` posée par ce compte.
 
 ### 4.4 Qui peut faire quoi
 
@@ -420,13 +564,15 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
     ouverte) et sa propre analyse.
   - Il ne voit jamais les notes confidentielles des autres relecteurs ni
     l'e-mail de l'auteur.
-- **La rédaction** passe `requireNetworkRole(ctx, 'editeur')`. Les modérateurs
-  n'ont aucun accès.
+- **Le chef de revue** passe une nouvelle garde, `requireReviewChief(ctx)`. Elle
+  laisse passer l'administrateur et les comptes dotés de la fonction. Un
+  modérateur ou un éditeur sans cette fonction n'a aucun accès.
 - **Le public** ne voit que les contributions publiées ou retirées. Comme pour
   la Tribune (issue #30), la projection est figée par des validateurs `returns` :
   - pas d'e-mail ;
   - pas de note confidentielle ;
   - pas de relecteur récusé ;
+  - pas de rapport d'originalité ni de vérification des liens ;
   - pas de version de travail.
 
   Un test sérialise chaque réponse publique et vérifie que rien de cela n'y
@@ -435,8 +581,8 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
   connexion échoue avec `NO_SELF_SIGNUP` si aucune ligne `users` n'existe.
   L'acceptation de l'invitation crée donc le compte, sans rang, c'est-à-dire
   `visiteur`.
-  - Elle n'est possible qu'avec un jeton valide, envoyé après validation par la
-    rédaction.
+  - Elle n'est possible qu'avec un jeton valide, envoyé après validation par le
+    chef de revue.
   - Le jeton est aléatoire (256 bits), stocké sous forme d'empreinte SHA-256,
     expire et ne sert qu'à cela, comme les confirmations de newsletter.
   - La création est journalisée (`USER_INVITED`, `via: 'kohop'`) et limitée en
@@ -484,7 +630,7 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
 |---|---|
 | Relecteur | Invitation, relance d'invitation, relance d'analyse, remerciements avec le lien vers le texte publié et une invitation à rejoindre le réseau |
 | Auteur | Relecteur récusé ou qui se désiste (à remplacer), analyses reçues avec l'échéance de révision, relances de révision, décision, épreuve à valider, publication |
-| Rédaction | Nouveau dépôt, relecteurs à valider, analyses complètes, révision déposée, retards |
+| Chef de revue | Nouveau dépôt, rapport d'originalité prêt, relecteurs à valider, analyses complètes, révision déposée, retards |
 
 - **Tâches planifiées :**
   - une tâche quotidienne `kohop-deadlines`, sur le modèle de
@@ -504,9 +650,13 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
   `ScholarlyArticle`, balises `citation_*`.
 - **Citation** : les fonctions de la bibliothèque (APA, BibTeX, RIS).
 - **Journal d'activité** : de nouvelles actions `AUDIT.KOHOP_*`.
+- **Contrôles par l'IA** (lot 5) : vérification des liens, suggestions de
+  relecteurs, contrôle d'originalité. Ils passent par la passerelle d'IA
+  existante (`convex/lib/aiGateway.ts`), sous un plafond quotidien d'appels. Le
+  contrôle d'originalité externe passe par un service spécialisé (D-17).
 - **Plus tard :**
   - la traduction (nouveau type de source dans `convex/lib/translation.ts`) ;
-  - le pré-examen par l'IA : des signaux sur la charte, montrés à la rédaction,
+  - des signaux de l'IA sur le respect de la charte, montrés au chef de revue,
     qui ne décident jamais ;
   - la newsletter ;
   - un indicateur dans `/admin/impact`.
@@ -515,11 +665,18 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
 
 - **Données de tiers.** Les relecteurs sont proposés par l'auteur, sans leur
   avis. On ne collecte donc que le strict nécessaire, et aucun e-mail ne leur
-  est envoyé avant la validation de la rédaction. L'invitation comporte une
+  est envoyé avant la validation du chef de revue. L'invitation comporte une
   mention d'information. Les invitations déclinées, expirées ou récusées sont
   purgées au bout de 6 mois par une tâche planifiée.
 - **Publication du nom et de l'analyse** : consentement explicite, sur un texte
   versionné. C'est une condition pour relire.
+- **Recherches de l'IA sur les relecteurs** : sources professionnelles publiques
+  uniquement, mention dans l'invitation et dans les conditions de dépôt.
+  Les résultats ne sont visibles que du chef de revue et sont supprimés avec le
+  dossier.
+- **Textes envoyés au service anti-plagiat** : sans conservation par le
+  service, hébergé de préférence en Europe, avec une mention dans les
+  conditions de dépôt.
 - **Suppression et export de compte** : `deleteUserDataKohop` et
   `exportUserDataKohop`, branchés dans `convex/lib/accountDeletion.ts` comme
   les autres modules. La règle pour les textes et analyses déjà publiés reste à
@@ -534,11 +691,13 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
 ### 4.9 Le sort des circuits existants
 
 - **La bibliothèque** reste le lieu des documents longs, les « textes plus
-  nourris » vers lesquels KOHOP renvoie. Elle s'aligne sur K-08 : la décision
-  passe au rang `editeur` et l'auto-publication IA est exclue (D-7, lot 0).
-- **F-43.** Les entrées « Mes manuscrits » et « Comité de lecture » sont
-  masquées si le client confirme un modèle unique et ouvert (D-13). Le code
-  reste en sommeil : rien n'est supprimé avant la décision.
+  nourris » vers lesquels KOHOP renvoie. Elle s'aligne sur K-08 : seuls le chef
+  de revue et l'administrateur publient un dépôt, et l'IA ne publie plus aucun
+  dépôt (D-7, lot 0).
+- **F-43.** En attendant son retrait, l'acceptation d'un manuscrit, qui le
+  publie, est réservée au chef de revue et à l'administrateur (lot 0). Les
+  entrées « Mes manuscrits » et « Comité de lecture » sont masquées à
+  l'ouverture de KOHOP (D-13, lot 8). Le code reste en sommeil.
 - **La Tribune** ne change pas, sauf le libellé « Mes billets ». Plus tard, une
   analyse publiée pourra être « proposée à KOHOP » : un brouillon prérempli, à
   la place ou à côté de « Proposer à la bibliothèque ».
@@ -550,29 +709,33 @@ lit des deux côtés, serveur et navigateur, comme elle le fait déjà pour
 Les estimations sont en jours de développement, tests compris. Chaque lot se
 termine par `pnpm verify` au vert, ses tests (purs, convex-test, et un scénario
 Playwright pour les parcours) et une mise à jour de `docs/backlog/kohop.md`.
+Le détail de chaque lot, avec ses critères de réception, est dans le prompt
+d'implémentation (`docs/prompt-kohop-2026-10-05.md`).
 
 | Lot | Contenu | Livré quand… | Estimation |
 |---|---|---|---|
-| **0 — Décisions et mises en conformité** | Obtenir les décisions D-1 à D-7. Corriger A-1 : refus de la modération et de l'auto-publication tant qu'une revue est en cours. A-2 : lien permanent au lieu du DOI non enregistré. A-3 (selon D-7) : décision de bibliothèque au rang `editeur`, dépôts exclus du mode IA `auto`. A-5 : libellés « Mes billets » et messages du formulaire de dépôt | Tests RBAC et convex-test mis à jour ; aucun « DOI » non enregistré affiché | 1,5 j |
-| **1 — Fondations** | `convex/lib/kohop.ts` (machine, bornes, comptage de mots, règle des deux avis, alertes), module de texte balisé, `convex/lib/tables/kohop.ts` et branchement du schéma, actions d'audit, clés de notification | Tests purs exhaustifs (toutes les paires étape × événement ; comptage de mots en fr, en et ar) | 2,5 j |
-| **2 — Dépôt et recevabilité** | **Auteur** : brouillon, rédaction, liens, coauteurs, désignation des relecteurs, acceptation de la charte et de la licence, dépôt, suivi, retrait (`/espace-membre/kohop`). **Rédaction** : file par étape, dossier, alertes, validation ou récusation des relecteurs, renvoi, irrecevabilité, lancement de la relecture (`/admin/kohop`, groupe « Édition »). E-mails : invitation, alertes à la rédaction | Aucun e-mail ne part avant la validation (testé) ; parcours auteur → rédaction en Playwright | 4,5 j |
-| **3 — Relecture** | Page d'invitation (jeton) : accepter, décliner, suggérer. Création du compte léger et connexion par code sur l'adresse invitée. Conflit d'intérêts et consentement. Analyse, modifiable jusqu'à la décision. Espace `/espace-membre/relectures`. Tâche des relances. Remplacement par le suppléant. Passage en révision à deux analyses | Jeton expiré, réutilisé ou ouvert avec une autre adresse : refusé (testé). Un relecteur ne lit aucun autre dossier (testé). **Le pilote ouvre à la fin de ce lot** | 4,5 j |
-| **4 — Révision et décision** | Lecture des analyses, révision (nouvelle version, différences), réponse aux relecteurs, échéance et prolongation. Écran de décision : présomption, motifs, notifications | Refus contre deux avis positifs impossible sans motif `outrance` ou `charte` (testé). Passage automatique à la décision à l'échéance (testé) | 3 j |
-| **5 — Préparation, parution, pages publiques** | Préparation de copie (versions et différences), épreuve et bon à tirer, publication immédiate ou programmée, retrait avec notice. `/kohop` et `/kohop/[slug]` (analyses, parcours, licence, citation), plan du site, recherche, métadonnées savantes, fiches d'organisation | Projection publique sans e-mail ni note confidentielle (test de sérialisation). Audit d'accessibilité axe des nouvelles pages | 4,5 j |
-| **6 — Pilote, durcissement, lancement** | Accompagnement de 3 à 5 think tanks, retours et corrections. Vérifications RGAA. Purge RGPD et branchement de la suppression et de l'export. Revue de sécurité. Parcours complet en Playwright. Pages « Charte », « Guide de l'auteur », « Guide du relecteur » (contenu du client). Décision de mise en ligne | Contributions pilotes publiées. Feu vert du client | 3,5 j |
-| **7 — Après le lancement** | Traductions des contributions ; DOI et ISSN ; confirmation des coauteurs par e-mail ; commentaires (« faire discuter ») ; ajout du relecteur après révision ; historique public des versions ; crédits et fiches des relecteurs ; pré-examen IA ; tableau d'indicateurs ; export des données ouvertes ; dossiers thématiques ; « Proposer à KOHOP » depuis la Tribune | À prioriser après le pilote | — |
+| **0 — Mises en conformité et chef de revue** | La fonction de chef de revue : attribution par un administrateur, garde côté serveur, écrans. Bibliothèque : décision réservée au chef de revue et à l'administrateur, plus aucune auto-publication par l'IA (D-7). Acceptation F-43 réservée de même. Correction d'A-1 (contournement de F-43), d'A-2 (DOI non enregistré) et d'A-5 (libellés) | Un modérateur ou un éditeur sans la fonction ne peut plus publier (testé). Aucun DOI non enregistré n'est affiché | 2,5 j |
+| **1 — Fondations** | Machine à états, bornes, comptage de mots, règle des deux avis, niveaux de liens, module de texte balisé, tables KOHOP, actions d'audit, clés de notification | Tests purs exhaustifs : toutes les paires étape × événement ; comptage de mots en français, en anglais et en arabe | 2,5 j |
+| **2 — Dépôt, choix des relecteurs, recevabilité** | **Auteur** : rédaction, liens, coauteurs, charte et licence, déclaration d'originalité, choix de deux relecteurs et d'un suppléant dans l'annuaire, dépôt, suivi, retrait. **Vérification des liens par règles** (bloquants, signalés). **Chef de revue** : file, dossier, validation ou récusation des relecteurs, renvoi, irrecevabilité, lancement de la relecture. Accès pilote réservé à des organisations choisies | Un lien bloquant est refusé par le serveur (testé). Parcours auteur → chef de revue en Playwright | 5,5 j |
+| **3 — Relecture par les membres** | Invitations (notification et e-mail), acceptation, déclaration de conflit, consentement, analyse, relances, suppléant, passage en révision à deux analyses | Un relecteur ne lit aucun autre dossier (testé). **Le pilote ouvre à la fin de ce lot** | 4 j |
+| **4 — Révision et décision** | Révision, différences entre versions, réponse aux relecteurs, échéance et prolongation. Écran de décision : présomption, motifs | Refus contre deux avis positifs impossible sans motif `outrance` ou `charte`, dont `plagiat` (testé) | 3 j |
+| **5 — Contrôles par l'IA** | Vérification des liens hors plateforme (OpenAlex, ORCID). Suggestions de relecteurs. Contrôle d'originalité sur la plateforme (suites de mots, sens multilingue) et par le service externe (D-17). Rapport pour le chef de revue. Contrôle des textes pilotes déjà déposés | L'IA ne peut ni écarter un relecteur ni décider (testé). La traduction d'un texte existant est détectée (testé). Aucune acceptation sans rapport d'originalité | 8 j |
+| **6 — Préparation, parution, pages publiques** | Préparation de copie, épreuve et bon à tirer, publication immédiate ou programmée, retrait avec notice. Pages `/kohop` et `/kohop/[slug]`, plan du site, recherche, métadonnées savantes, fiches d'organisation | Projection publique sans e-mail, note confidentielle ni rapport (test de sérialisation). Audit axe des nouvelles pages | 4,5 j |
+| **7 — Relecteurs extérieurs** | Invitation par e-mail avec jeton, compte léger créé à l'acceptation, connexion par code sur l'adresse invitée, purge des invitations closes | Jeton expiré, réutilisé ou ouvert avec une autre adresse : refusé (testé) | 3 j |
+| **8 — Pilote, durcissement, lancement** | Accompagnement du pilote. RGAA, RGPD (suppression et export de compte), revue de sécurité, parcours complet en Playwright. Pages « Charte », « Guide de l'auteur », « Guide du relecteur ». Retrait de F-43 de l'interface (D-13). Feu vert du client | Contributions pilotes publiées | 3,5 j |
+| **9 — Après le lancement** | Traductions des contributions ; DOI et ISSN ; confirmation des coauteurs par e-mail ; commentaires ; ajout du relecteur après révision ; historique public des versions ; crédits et fiches des relecteurs ; tableau d'indicateurs ; export des données ouvertes ; dossiers thématiques ; « Proposer à KOHOP » depuis la Tribune | À prioriser après le pilote | — |
 
-**Total jusqu'au lancement : environ 24 jours de développement.**
+**Total jusqu'au lancement : environ 36 jours de développement.**
 
 ### Calendrier proposé
 
 | Période | Lots | Jalon |
 |---|---|---|
-| 5 – 9 octobre | Décisions, lots 0 et 1 | Décisions D-1 à D-7 obtenues |
+| 5 – 9 octobre | Lots 0 et 1 | Chef de revue en place, bibliothèque conforme |
 | 12 – 23 octobre | Lots 2 et 3 | **Pilote ouvert vers le 26 octobre** |
-| 26 octobre – 6 novembre | Lot 4 | Prêt quand arrivent les premières analyses |
-| 9 – 20 novembre | Lot 5 | Prêt pour les premières acceptations |
-| 23 novembre – 4 décembre | Lot 6 | Premières contributions publiées, lancement |
+| 26 octobre – 13 novembre | Lots 4 et 5 | Révision prête à l'arrivée des premières analyses, contrôles par l'IA avant les premières décisions |
+| 16 – 27 novembre | Lots 6 et 7 | Parution prête pour les premières acceptations |
+| 30 novembre – 4 décembre | Lot 8 | Premières contributions publiées, lancement |
 
 Le calendrier part d'une hypothèse : **on construit la chaîne dans l'ordre où
 les premières contributions la parcourront.** Avec les délais standards
@@ -580,35 +743,41 @@ les premières contributions la parcourront.** Avec les délais standards
 26 octobre paraît vers le 4 décembre. Pour avoir des contributions en ligne
 dès la fin novembre, il faut raccourcir les délais du pilote (7 jours pour
 l'analyse, 7 pour la révision), avec l'accord des auteurs pilotes. Ces délais
-sont des constantes faciles à ajuster.
+sont des constantes faciles à ajuster. Les contrôles par l'IA arrivent pendant
+le pilote : tous les textes pilotes y passent avant leur décision.
 
 ---
 
-## 6. Décisions à faire valider par le client
+## 6. Décisions
 
-| # | Question | Notre recommandation | Bloque |
+État au 5 octobre 2026.
+
+| # | Question | Décision | Statut |
 |---|---|---|---|
-| **D-1** | KOHOP est-il une rubrique du site actuel (`/kohop`, mêmes comptes, même adhésion) ou un site séparé ? | Une rubrique du site actuel | Lot 2 |
-| **D-2** | Des relecteurs extérieurs au réseau sont-ils admis ? | Oui (K-12) : validés par la rédaction, identité vérifiée par l'adresse invitée | Lot 2 |
-| **D-3** | Combien de relecteurs ? | Deux titulaires et un suppléant facultatif. Deux analyses suffisent pour passer à la révision | Lot 1 |
-| **D-4** | Quelle échelle d'avis, et qu'est-ce qu'un « avis positif » ? | Favorable, Favorable avec réserves, Défavorable. Les deux premiers comptent comme positifs | Lot 1 |
-| **D-5** | Qui est rédacteur en chef ? | Les comptes de rang `editeur` et `admin`. Noms à fournir. Les modérateurs n'ont aucun droit sur KOHOP | Lot 2 |
-| **D-6** | Quel classement thématique : les 10 champs de la plaquette ou les 5 axes du site ? Les axes ne couvrent ni l'éducation, ni la santé, ni l'environnement, ni les normes, ni l'IA, ni la science | Les 10 champs pour KOHOP (liste fermée, 1 ou 2 par contribution) et des mots-clés libres, avec une correspondance vers les axes pour les pages thématiques | Lot 1 |
-| **D-7** | La règle « validé par un éditeur ou un super admin » s'applique-t-elle aussi à la bibliothèque ? Cela retire au modérateur le pouvoir de publier un dépôt, et désactive l'auto-publication par l'IA | Oui | Lot 0 |
-| D-8 | Quels droits et quelle licence ? | CC BY 4.0 pour les textes comme pour les analyses. L'auteur garde ses droits et accorde à l'association une licence non exclusive (diffusion, traduction). Le texte de cet accord doit être validé juridiquement | Lot 2 |
-| D-9 | La réponse de l'auteur est-elle publiée avec les analyses ? | Oui | Lot 4 |
-| D-10 | Quels délais ? | 5 jours pour répondre à l'invitation, 14 jours pour l'analyse, 14 jours pour la révision (plaquette), 5 jours pour le bon à tirer. Sans révision, la version relue passe à la décision. Délais raccourcis pour le pilote | Lot 3 |
-| D-11 | Qui rédige la charte éditoriale KOHOP et les guides de l'auteur et du relecteur ? La charte est indispensable pour appliquer « infraction à la charte » | Le client fournit les textes. Nous pouvons proposer un premier jet | Lot 2 (version courte), lot 6 |
-| D-12 | Faut-il de vrais DOI ? | Cesser tout de suite d'afficher le DOI non enregistré (A-2). Après le lancement, choisir entre une adhésion Crossref et une communauté Zenodo (DOI DataCite gratuits), et demander un ISSN | Lot 0, puis lot 7 |
-| D-13 | Que devient F-43, la revue en double aveugle ? | La retirer de l'interface quand KOHOP ouvre, pour n'avoir qu'un seul modèle, transparent. Garder le code en sommeil | Lot 6 |
-| D-14 | Que deviennent les textes et analyses publiés quand un compte est supprimé ? | Ils restent en ligne (licence, archives d'intérêt public), avec un retrait possible sur demande. À valider juridiquement | Lot 6 |
-| D-15 | Quelle cohorte pilote ? | 3 à 5 think tanks, et une personne qui tient le rôle de rédacteur en chef pendant le pilote | Lot 3 |
+| D-1 | KOHOP est-il une rubrique du site actuel ou un site séparé ? | Une rubrique du site actuel (`/kohop`), avec les mêmes comptes et la même adhésion | Validée |
+| D-2 | Des relecteurs extérieurs au réseau sont-ils admis ? | Oui, en second recours : l'auteur choisit d'abord dans l'annuaire des membres. Une personne extérieure n'est invitée qu'après validation par le chef de revue (lot 7) | Validée |
+| D-3 | Combien de relecteurs ? | Deux titulaires et un suppléant facultatif. Deux analyses suffisent pour passer à la révision | Validée |
+| D-4 | Quelle échelle d'avis ? | Favorable, Favorable avec réserves, Défavorable. Les deux premiers comptent comme positifs | Validée |
+| D-5 | Qui décide ? | Le chef de revue, fonction attribuée par un administrateur, et l'administrateur | Validée. Les noms des chefs de revue restent à fournir |
+| D-6 | Quel classement thématique : les 10 champs de la plaquette ou les 5 axes du site ? Les axes ne couvrent ni l'éducation, ni la santé, ni l'environnement, ni les normes, ni l'IA, ni la science | Recommandation : les 10 champs pour KOHOP, avec une correspondance vers les axes pour les pages thématiques. En attendant, un seul vocabulaire, facile à changer | **Ouverte** |
+| D-7 | La règle de validation s'applique-t-elle aussi à la bibliothèque ? | Oui : seuls le chef de revue et l'administrateur publient un dépôt, et l'IA ne publie plus aucun dépôt | Validée |
+| D-8 | Quels droits et quelle licence ? | CC BY 4.0 pour les textes comme pour les analyses. L'auteur garde ses droits et accorde à l'association une licence non exclusive (diffusion, traduction) | Validée. Texte de l'accord à faire valider juridiquement |
+| D-9 | La réponse de l'auteur est-elle publiée ? | Oui, avec les analyses | Validée |
+| D-10 | Quels délais ? | 5 jours pour répondre à l'invitation, 14 pour l'analyse, 14 pour la révision, 5 pour le bon à tirer. Sans révision, la version relue passe à la décision. Délais raccourcis pour le pilote | Validée |
+| D-11 | Qui rédige la charte et les guides ? | Le client fournit les textes ; nous proposons un premier jet. La charte fait du plagiat une infraction | Validée |
+| D-12 | Faut-il de vrais DOI ? | Cesser tout de suite d'afficher le DOI non enregistré. Après le lancement, choisir entre Crossref et Zenodo, et demander un ISSN | Validée |
+| D-13 | Que devient F-43 ? | Retirée de l'interface à l'ouverture de KOHOP. Le code est gardé en sommeil | Validée |
+| D-14 | Que deviennent les textes publiés quand un compte est supprimé ? | Ils restent en ligne (licence, archives d'intérêt public), avec un retrait possible sur demande | Validée. À confirmer juridiquement |
+| D-15 | Quelle cohorte pilote ? | 3 à 5 think tanks, et un chef de revue pour le pilote | **Ouverte** : noms à fournir |
+| D-16 | Le texte doit-il être inédit ? | Inédit sous cette forme. La reprise de ses propres travaux est permise si elle est déclarée et citée | Validée |
+| D-17 | Quel service anti-plagiat ? | Devis à demander à deux ou trois services, par exemple Compilatio, Copyleaks ou iThenticate (via Crossref). Critères : détection d'une langue à l'autre, hébergement en Europe, aucune conservation des textes, API | **Ouverte** : devis à demander |
 
-Deux choix sont techniques ; nous les prenons sauf avis contraire :
+Trois choix techniques, que nous prenons sauf avis contraire :
 
 - **L'éditeur de texte** : Markdown contraint avec aperçu au lancement (§ 4.5).
-- **Les langues** : contributions en français ou en anglais, interface et
+- **Les langues** : contributions en français ou en anglais ; interface et
   e-mails dans les cinq langues du site.
+- **Le chef de revue** est une fonction, pas un rang supplémentaire (§ 3.1).
 
 ---
 
@@ -621,7 +790,10 @@ Deux choix sont techniques ; nous les prenons sauf avis contraire :
 | **Relecteurs extérieurs qui ne reçoivent pas l'e-mail** (classé en spam) | Domaine d'envoi vérifié et `AUTH_EMAIL_FROM` réglé avant le pilote (`docs/deploiement.md` § 1.3). L'écran conseille à l'auteur de prévenir ses relecteurs. Relances, suppléant |
 | **Confusion avec la Tribune et la bibliothèque** | Vocabulaire fixé (annexe A). Dans l'espace membre, une entrée « Publier » qui présente deux parcours : contribution KOHOP ou document long |
 | **Risque juridique** : publication de noms de tiers, propos diffamatoires | Consentement des relecteurs, charte, validation éditoriale, retrait avec notice, directeur de la publication nommé |
-| **Glissement de périmètre** (traductions, DOI, commentaires) | Tout cela est rangé dans le lot 7, explicitement après le lancement |
+| **Glissement de périmètre** (traductions, DOI, commentaires) | Tout cela est rangé dans le lot 9, explicitement après le lancement |
+| **L'IA se trompe** : lien inventé ou manqué, plagiat mal classé | Chaque signal est montré avec sa source. Le chef de revue décide toujours. Les déclarations et les relecteurs complètent l'outil |
+| **Dépendance au service anti-plagiat** : coût, panne | Un adaptateur unique, remplaçable. Sans service, accepter un texte exige que le chef de revue reconnaisse explicitement l'absence de contrôle externe |
+| **Recherches sur des personnes** (RGPD) | Sources professionnelles publiques, personnes informées, résultats réservés au chef de revue et supprimés avec le dossier |
 
 ---
 
@@ -651,7 +823,7 @@ Deux choix sont techniques ; nous les prenons sauf avis contraire :
 | **Billet** | Un texte de la Tribune. L'entrée « Tribune » de l'espace membre devient « Mes billets » |
 | **Document** | Un dépôt PDF de la bibliothèque |
 | **Relecteur, analyse, avis** | Repris de la plaquette |
-| **Rédacteur en chef, rédaction** | Repris de la plaquette |
+| **Chef de revue** | La personne qui valide les publications. C'est le « rédacteur en chef » de la plaquette |
 | **Recevabilité, épreuve, bon à tirer** | Repris du vocabulaire de l'édition, pour les étapes que la plaquette ne nomme pas |
 
 ## Annexe B — Ce que ce plan ne change pas
@@ -659,4 +831,5 @@ Deux choix sont techniques ; nous les prenons sauf avis contraire :
 - Le fonctionnement de la Tribune, à part un libellé.
 - La bibliothèque publique, à part l'affichage du DOI (A-2).
 - F-43 : rien n'est supprimé avant la décision D-13.
-- Les modèles et réglages de l'IA : KOHOP ne s'en sert pas au lancement.
+- Les réglages de l'IA de modération existante. KOHOP a ses propres contrôles,
+  qui ne publient jamais.
