@@ -11,13 +11,22 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | 1 | Fondations KOHOP | **livré** |
 | 2 | Dépôt, choix des relecteurs, recevabilité | **livré** |
 | 3 | Relecture par les membres | **livré** |
-| 4 | Révision et décision | à faire |
+| 4 | Révision et décision | **livré** |
 | 5 | Contrôles par l'IA | à faire |
 | 6 | Préparation, parution, pages publiques | à faire |
 | 7 | Relecteurs extérieurs | à faire |
 | 8 | Pilote, durcissement, lancement | à faire |
 
 ---
+
+## Lot 4 — Révision et décision
+
+- **Auteur** (`convex/kohopRevision.ts`) : lit les analyses publiques (jamais la note confidentielle), révise le texte (la première modification crée la version suivante, la version relue est conservée), **répond aux relecteurs** (1–800 mots, publiée avec les analyses, D-9), demande **une** prolongation de 7 jours. Rendre la révision passe le dossier en `decision` et prévient les chefs de revue.
+- **Échéance de révision** : le cron `kohop-deadlines` rappelle (J-3), puis fait passer le dossier en `decision` à l'échéance ; le chef décide alors sur la version relue.
+- **Chef de revue** (`convex/kohopDecision.ts`) : voit les analyses **avec la note confidentielle**, la présomption d'acceptation (≥ 2 avis, tous positifs), la réponse de l'auteur et les changements (diff par blocs puis par mots). `accept` → `production` (version retenue, slug, **rien n'est publié**) ; `refuseContribution` : motif obligatoire, et avec la présomption seuls `outrance`, `charte`, `plagiat` sont ouverts (journal `kohop.refused_against_presumption`).
+- E-mails à l'auteur (5 langues, actions planifiées) : analyses arrivées, rappel, délai écoulé, acceptation, refus.
+- À venir (lot 5) : l'acceptation sera conditionnée au contrôle d'originalité.
+- Tests : `convex/kohopDecision.test.ts` (13), parcours Playwright complet jusqu'à l'acceptation (axe sur la révision et la décision).
 
 ## Lot 3 — Relecture par les membres
 

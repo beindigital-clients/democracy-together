@@ -6,7 +6,12 @@ import { sendEmail } from './email';
 import { isReservedEmail } from './lib/validation';
 import { reviewChiefRecipients } from './lib/reviewChiefs';
 import { versionOf } from './lib/kohopAccess';
-import { chiefNewSubmissionEmail, reviewerEmail } from './lib/kohopEmails';
+import {
+  authorEmail,
+  chiefNewSubmissionEmail,
+  KOHOP_AUTHOR_EMAIL_KINDS,
+  reviewerEmail,
+} from './lib/kohopEmails';
 
 // KOHOP — e-mails are sent from SCHEDULED ACTIONS (`runAfter(0)`): a mutation
 // cannot make a network call, and a send failure must not undo the action that
@@ -148,6 +153,75 @@ export const sendReviewerEmail = internalAction({
     } catch (err) {
       console.error(
         `KOHOP reviewer e-mail not sent (${err instanceof Error ? err.message : String(err)})`,
+      );
+    }
+    return null;
+  },
+});
+
+// --- To the author: the milestones of the file ---------------------------------
+
+export const authorEmailContext = internalQuery({
+  args: { contributionId: v.id('kohopContributions') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      email: v.string(),
+      locale,
+      title: v.string(),
+      dueAt: v.union(v.number(), v.null()),
+    }),
+  ),
+  handler: async (ctx, { contributionId }) => {
+    const file = await ctx.db.get(contributionId);
+    if (!file) return null;
+    const user = await ctx.db.get(file.authorUserId);
+    if (!user?.email || isReservedEmail(user.email)) return null;
+    return {
+      email: user.email,
+      locale: user.preferredLocale ?? ('fr' as const),
+      title: file.title,
+      dueAt: file.revisionDueAt ?? null,
+    };
+  },
+});
+
+export const sendAuthorEmail = internalAction({
+  args: {
+    contributionId: v.id('kohopContributions'),
+    kind: v.union(...KOHOP_AUTHOR_EMAIL_KINDS.map((k) => v.literal(k))),
+  },
+  returns: v.null(),
+  handler: async (ctx, { contributionId, kind }) => {
+    const info = await ctx.runQuery(internal.kohopEmail.authorEmailContext, {
+      contributionId,
+    });
+    if (!info) return null;
+    const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000';
+    const showDue =
+      info.dueAt !== null &&
+      (kind === 'reviewsReady' || kind === 'revisionReminder');
+    const { subject, html } = authorEmail({
+      siteUrl,
+      locale: info.locale,
+      contributionId,
+      title: info.title,
+      dueLabel:
+        showDue && info.dueAt !== null
+          ? new Intl.DateTimeFormat(info.locale, {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              timeZone: 'UTC',
+            }).format(info.dueAt)
+          : undefined,
+      kind,
+    });
+    try {
+      await sendEmail({ to: info.email, subject, html });
+    } catch (err) {
+      console.error(
+        `KOHOP author e-mail not sent (${err instanceof Error ? err.message : String(err)})`,
       );
     }
     return null;

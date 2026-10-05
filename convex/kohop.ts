@@ -67,7 +67,7 @@ function refuse(code: string): never {
   throw new ConvexError(code);
 }
 
-const EDITABLE: readonly Doc<'kohopContributions'>['stage'][] = [
+export const EDITABLE: readonly Doc<'kohopContributions'>['stage'][] = [
   'draft',
   'returned',
 ];
@@ -109,7 +109,7 @@ type CleanFields = {
   priorWorks: string[];
 };
 
-async function cleanFields(
+export async function cleanFields(
   ctx: QueryCtx | MutationCtx,
   args: {
     title: string;
@@ -427,6 +427,22 @@ export const getMine = query({
       .order('desc')
       .take(10);
     const authorActions: KohopEvent[] = eventsFor(contribution.stage, 'author');
+
+    // The analyses, once the review is complete: the PUBLIC part only (the
+    // confidential note, the reviewer's e-mail and identifiers stay out).
+    const reviewsOpen = AUTHOR_READS_REVIEWS.includes(contribution.stage);
+    const reviewRows = reviewsOpen
+      ? await ctx.db
+          .query('kohopReviews')
+          .withIndex('by_contribution', (q) =>
+            q.eq('contributionId', contributionId),
+          )
+          .take(10)
+      : [];
+    const reviewed =
+      reviewsOpen && contribution.reviewedVersion !== undefined
+        ? await versionOf(ctx, contributionId, contribution.reviewedVersion)
+        : null;
     return {
       _id: contribution._id,
       stage: contribution.stage,
@@ -469,11 +485,37 @@ export const getMine = query({
           }
         : null,
       authorActions,
+      reviews: reviewRows.map((r) => ({
+        recommendation: r.recommendation,
+        analysis: r.analysis,
+        displayName: r.displayName,
+        affiliation: r.affiliation ?? null,
+        submittedAt: r.submittedAt,
+      })),
+      // The version the reviewers read, to show what the revision changed.
+      reviewedBody: reviewed?.body ?? null,
+      reviewedVersion: contribution.reviewedVersion ?? null,
+      response: version?.responseToReviewers ?? '',
+      revisionExtendedAt: contribution.revisionExtendedAt ?? null,
+      revisable: contribution.stage === 'revision',
       editable: EDITABLE.includes(contribution.stage),
       charterVersion: KOHOP_CHARTER_VERSION,
     };
   },
 });
+
+// Stages from which the author reads the analyses.
+const AUTHOR_READS_REVIEWS: readonly Doc<'kohopContributions'>['stage'][] = [
+  'revision',
+  'decision',
+  'production',
+  'proof',
+  'ready',
+  'scheduled',
+  'published',
+  'refused',
+  'retracted',
+];
 
 // --- Choosing the reviewers ---------------------------------------------------
 

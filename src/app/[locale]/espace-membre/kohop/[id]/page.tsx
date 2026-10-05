@@ -16,6 +16,8 @@ import { FormError } from '@/components/ui/field';
 import { vocabulary } from '@/i18n/vocabulary';
 import { AuthorEditor } from '@/components/kohop/author-editor';
 import { KohopText } from '@/components/kohop/kohop-text';
+import { RevisionPanel } from '@/components/kohop/revision-panel';
+import { ReviewsList } from '@/components/kohop/reviews-list';
 import { StageBadge } from '@/components/kohop/stage-badge';
 import {
   DesignatedReviewers,
@@ -140,9 +142,25 @@ export default function KohopAuthorFile() {
         ) : null}
       </section>
 
+      {file.reviews.length > 0 ? (
+        <section aria-labelledby="kohop-analyses" className="mt-8">
+          <h2 id="kohop-analyses" className="font-display text-2xl">
+            {t('reviewsSectionTitle')}
+          </h2>
+          <p className="mt-1 max-w-[68ch] text-sm text-ink-soft">
+            {t('reviewsSectionLead')}
+          </p>
+          <div className="mt-4">
+            <ReviewsList reviews={file.reviews} lang={file.lang} />
+          </div>
+        </section>
+      ) : null}
+
+      {file.revisable ? <RevisionPanel file={file} /> : null}
+
       {file.editable ? (
         <AuthorEditor file={file} />
-      ) : (
+      ) : file.revisable ? null : (
         <div className="mt-8 space-y-8">
           {file.version ? (
             <section aria-labelledby="kohop-submitted-text">
@@ -154,6 +172,17 @@ export default function KohopAuthorFile() {
               </p>
               <div className="mt-5 rounded-md border border-line bg-surface p-5 sm:p-8">
                 <KohopText markdown={file.version.body} lang={file.lang} />
+              </div>
+            </section>
+          ) : null}
+
+          {file.response ? (
+            <section aria-labelledby="kohop-your-reply">
+              <h2 id="kohop-your-reply" className="font-display text-2xl">
+                {t('yourReply')}
+              </h2>
+              <div className="mt-3 rounded-md border border-line bg-surface p-5">
+                <KohopText markdown={file.response} lang={file.lang} />
               </div>
             </section>
           ) : null}

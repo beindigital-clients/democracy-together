@@ -7,11 +7,24 @@ import { notify } from './notify';
 import { reviewChiefRecipients } from './reviewChiefs';
 import { KOHOP_DELAYS_MS, nextStage } from './kohop';
 import { recordKohopEvent } from './kohopAccess';
+import type { KohopAuthorEmailKind } from './kohopEmails';
 
 // KOHOP — the reviewers' life cycle, shared by the review chief's functions,
 // the reviewers' own and the deadline cron. Every function runs INSIDE the
 // caller's transaction and assumes the caller already went through the state
 // machine and the guards.
+
+/** An e-mail to the author about a milestone, from a scheduled action. */
+export async function scheduleAuthorEmail(
+  ctx: MutationCtx,
+  contributionId: Id<'kohopContributions'>,
+  kind: KohopAuthorEmailKind,
+): Promise<void> {
+  await ctx.scheduler.runAfter(0, internal.kohopEmail.sendAuthorEmail, {
+    contributionId,
+    kind,
+  });
+}
 
 /** Sends the invitation: status, deadline, notification, e-mail, history. */
 export async function inviteReviewer(
@@ -134,5 +147,6 @@ export async function completeReviewIfReady(
     params: { title: file.title },
     link: `/espace-membre/kohop/${file._id}`,
   });
+  await scheduleAuthorEmail(ctx, file._id, 'reviewsReady');
   return true;
 }

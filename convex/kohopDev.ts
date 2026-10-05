@@ -63,6 +63,14 @@ export const seedPilot = internalMutation({
     devOnly();
     const author = await userByEmail(ctx, authorEmail);
     if (!author) throw new Error('Auteur introuvable.');
+    // A test can be replayed: the author's KOHOP rate counters start afresh.
+    for (const kind of ['draft', 'save']) {
+      const counter = await ctx.db
+        .query('rateLimits')
+        .withIndex('by_key', (q) => q.eq('key', `kohop:${kind}:${author._id}`))
+        .unique();
+      if (counter) await ctx.db.delete(counter._id);
+    }
     const authorOrg = await ensureOrg(
       ctx,
       'Institut Kohop Pilote',

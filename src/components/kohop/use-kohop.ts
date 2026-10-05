@@ -44,6 +44,11 @@ export const KOHOP_ERROR_CODES = [
   'ANALYSIS_TOO_SHORT',
   'ANALYSIS_TOO_LONG',
   'INVALID_NOTE',
+  'REPLY_REQUIRED',
+  'REPLY_UNSUPPORTED',
+  'REPLY_TOO_LONG',
+  'EXTENSION_USED',
+  'SLUG_UNAVAILABLE',
 ] as const;
 
 export type KohopErrorCode = (typeof KOHOP_ERROR_CODES)[number];

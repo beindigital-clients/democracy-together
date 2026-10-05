@@ -14,6 +14,8 @@ import {
   kohopAccessMode,
   kohopReasonCode,
   eventsFor,
+  positiveCount,
+  presumptionOfAcceptance,
   type KohopStage,
 } from './lib/kohop';
 import {
@@ -211,11 +213,33 @@ export const dossier = query({
       .order('desc')
       .take(20);
 
+    // The analyses, WITH the confidential note: the chief's eyes only.
+    const reviewRows = await ctx.db
+      .query('kohopReviews')
+      .withIndex('by_contribution', (q) =>
+        q.eq('contributionId', contributionId),
+      )
+      .take(10);
+
     return {
       _id: file._id,
       stage: file.stage,
       lang: file.lang,
       title: file.title,
+      reviewedVersion: file.reviewedVersion ?? null,
+      acceptedVersion: file.acceptedVersion ?? null,
+      reviews: reviewRows.map((r) => ({
+        _id: r._id,
+        recommendation: r.recommendation,
+        analysis: r.analysis,
+        noteToEditor: r.noteToEditor ?? null,
+        displayName: r.displayName,
+        affiliation: r.affiliation ?? null,
+        version: r.version,
+        submittedAt: r.submittedAt,
+      })),
+      positiveReviews: positiveCount(reviewRows),
+      presumption: presumptionOfAcceptance(reviewRows),
       fields: file.fields,
       keywords: file.keywords,
       coAuthors: file.coAuthors,
@@ -244,6 +268,7 @@ export const dossier = query({
         body: x.body,
         links: x.links,
         wordCount: x.wordCount,
+        response: x.responseToReviewers ?? null,
         createdAt: x.createdAt,
       })),
       reviewers,

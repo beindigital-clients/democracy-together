@@ -21,19 +21,28 @@ const word = (i: number) =>
 const words = (n: number) =>
   Array.from({ length: n }, (_, i) => word(i)).join(' ');
 
-// The refresh token rotates on use: the state is rewritten at the end of the
-// test so the next run does not start from a consumed token (same precaution
-// as `admin-moderation.spec.ts`).
-async function keep(page: Page, key: SessionKey): Promise<void> {
-  await page.context().storageState({ path: SESSIONS[key].state });
-}
+const opened: [Page, SessionKey][] = [];
+
+// Whatever the outcome (a failure included), the sessions opened by the test
+// are written back: a consumed token must not break the next run.
+test.afterEach(async () => {
+  for (const [page, key] of opened.splice(0)) {
+    try {
+      await page.context().storageState({ path: SESSIONS[key].state });
+    } catch {
+      /* the context may already be closed */
+    }
+  }
+});
 
 async function as(browser: Browser, key: SessionKey): Promise<Page> {
   const context = await browser.newContext({
     storageState: SESSIONS[key].state,
     locale: 'fr-FR',
   });
-  return await context.newPage();
+  const page = await context.newPage();
+  opened.push([page, key]);
+  return page;
 }
 
 test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lancement', async ({
@@ -101,6 +110,7 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   await expect(
     chief.getByRole('heading', { name: title }).first(),
   ).toBeVisible();
+  const dossierUrl = chief.url();
 
   await attendreAucuneViolationGrave(chief, 'dossier KOHOP du chef de revue');
 
@@ -152,20 +162,61 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
       .getByRole('radio', { name: recommendation, exact: true })
       .click();
     await reviewer.getByLabel('Votre analyse (publique)').fill(analysis);
+    await reviewer
+      .getByLabel('Note confidentielle au chef de revue')
+      .fill('Note réservée au chef de revue.');
     await reviewer.getByRole('button', { name: 'Rendre mon analyse' }).click();
     await expect(
       reviewer.getByText('Votre analyse est enregistrée'),
     ).toBeVisible();
   }
 
-  // --- Back to the author: the stage followed ---------------------------------
+  // --- Back to the author: the analyses, the revision, the reply ---------------
   await author.reload();
   await expect(author.getByText('Les analyses sont arrivées')).toBeVisible();
+  await expect(
+    author.getByRole('heading', { name: 'Les analyses de vos relecteurs' }),
+  ).toBeVisible();
   // The confidential note of a reviewer is nowhere in the author's file.
   await expect(author.getByText('Note confidentielle')).toHaveCount(0);
-  for (const [i, [key]] of reviewers.entries()) await keep(pages[i], key);
-  await keep(author, 'kohopAuteur');
-  await keep(chief, 'kohopChef');
+
+  await attendreAucuneViolationGrave(author, 'révision KOHOP');
+  await author
+    .getByLabel('Texte de la contribution')
+    .fill(
+      `## Introduction\n\n${words(280)}\n\n${words(290)} précision ajoutée après la relecture`,
+    );
+  await expect(author.getByText(/mots ajoutés/)).toBeVisible();
+  await author.getByRole('button', { name: 'Voir les changements' }).click();
+  await author
+    .getByLabel('Votre réponse aux relecteurs')
+    .fill('Merci pour ces lectures attentives : la méthode est précisée.');
+  await author
+    .getByRole('button', { name: 'Envoyer ma révision et ma réponse' })
+    .click();
+  await author.getByRole('button', { name: 'Envoyer', exact: true }).click();
+  await expect(
+    author.getByText('Le chef de revue prend sa décision'),
+  ).toBeVisible();
+
+  // --- The review chief decides -----------------------------------------------
+  await chief.goto(dossierUrl);
+  await expect(
+    chief.getByText('Présomption d’acceptation').first(),
+  ).toBeVisible();
+  // The confidential note is for the chief only.
+  await expect(
+    chief.getByText('Note confidentielle (chef de revue seulement)').first(),
+  ).toBeVisible();
+  await attendreAucuneViolationGrave(chief, 'décision KOHOP du chef de revue');
+  await chief.getByRole('button', { name: 'Accepter la contribution' }).click();
+  await chief.getByRole('button', { name: 'Accepter', exact: true }).click();
+  await expect(chief.getByText('En préparation').first()).toBeVisible();
+
+  await author.reload();
+  await expect(
+    author.getByText('Votre contribution est acceptée'),
+  ).toBeVisible();
 });
 
 test('un modérateur sans la fonction ne voit ni l’entrée, ni la file KOHOP', async ({
@@ -178,5 +229,4 @@ test('un modérateur sans la fonction ne voit ni l’entrée, ni la file KOHOP',
   await expect(
     mod.getByText(/403|Accès refusé|autorisé/i).first(),
   ).toBeVisible();
-  await keep(mod, 'moderateur');
 });

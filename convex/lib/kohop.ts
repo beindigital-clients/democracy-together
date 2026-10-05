@@ -213,6 +213,8 @@ export const KOHOP_DELAYS_DAYS = {
   revision: 14,
   proof: 5,
   returned: 14,
+  // One extension of the revision deadline, on the author's request.
+  extension: 7,
 } as const;
 
 export const KOHOP_DELAYS_MS = {
@@ -221,6 +223,7 @@ export const KOHOP_DELAYS_MS = {
   revision: KOHOP_DELAYS_DAYS.revision * DAY,
   proof: KOHOP_DELAYS_DAYS.proof * DAY,
   returned: KOHOP_DELAYS_DAYS.returned * DAY,
+  extension: KOHOP_DELAYS_DAYS.extension * DAY,
 } as const;
 
 // Reminders: 3 days before the deadline, then on the day, then every 3 days,

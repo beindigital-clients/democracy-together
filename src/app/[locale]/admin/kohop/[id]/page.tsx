@@ -10,15 +10,19 @@ import type { FunctionReturnType } from 'convex/server';
 import {
   KOHOP_BOUNDS,
   KOHOP_RECUSAL_REASONS,
+  KOHOP_PRESUMPTION_BREAKING_CODES,
   KOHOP_REASON_CODES,
 } from '@convex/lib/kohop';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { SelectField } from '@/components/ui/choice-fields';
 import { FormError } from '@/components/ui/field';
 import { useActionFeedback } from '@/components/admin/action-feedback';
 import { KohopText } from '@/components/kohop/kohop-text';
+import { ReviewsList } from '@/components/kohop/reviews-list';
+import { TextDiff, diffStats } from '@/components/kohop/text-diff';
 import { ReasonDialog } from '@/components/kohop/reason-dialog';
 import { StageBadge } from '@/components/kohop/stage-badge';
 import { useKohopDates, useKohopError } from '@/components/kohop/use-kohop';
@@ -240,6 +244,63 @@ function ReviewerCard({
   );
 }
 
+// The author's reply and what the revision changed, for the decision.
+function RevisionDiff({ file }: { file: Dossier }) {
+  const t = useTranslations('kohop');
+  const read = file.versions.find((v) => v.version === file.reviewedVersion);
+  const handedIn =
+    file.submittedVersion !== null &&
+    file.submittedVersion !== file.reviewedVersion
+      ? file.versions.find((v) => v.version === file.submittedVersion)
+      : undefined;
+  const reply = handedIn?.response ?? null;
+  if (!read) return null;
+  const stats = handedIn ? diffStats(read.body, handedIn.body) : null;
+  return (
+    <div className="mt-6 space-y-4">
+      <h3 className="font-display text-lg text-ink">{t('authorReply')}</h3>
+      {reply ? (
+        <div className="rounded-md border border-line bg-paper p-4">
+          <KohopText markdown={reply} lang={file.lang} />
+        </div>
+      ) : (
+        <p className="text-sm text-ink-soft">{t('noReply')}</p>
+      )}
+      {handedIn && stats ? (
+        <div>
+          <p className="text-sm text-ink-soft">
+            {t('versionRead', { version: read.version })}
+            {' · '}
+            {t('versionHandedIn', { version: handedIn.version })}
+          </p>
+          <p className="mt-1 text-sm font-medium text-ink">
+            {stats.added === 0 && stats.removed === 0
+              ? t('noChanges')
+              : t('changesSummary', {
+                  added: stats.added,
+                  removed: stats.removed,
+                })}
+          </p>
+          {stats.added + stats.removed > 0 ? (
+            <details className="mt-2 rounded-md border border-line bg-paper p-4">
+              <summary className="cursor-pointer text-sm font-medium text-accent-text">
+                {t('showChanges')}
+              </summary>
+              <div className="mt-3">
+                <TextDiff
+                  before={read.body}
+                  after={handedIn.body}
+                  lang={file.lang}
+                />
+              </div>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AdminKohopFile() {
   const t = useTranslations('kohop');
   const dates = useKohopDates();
@@ -251,7 +312,11 @@ export default function AdminKohopFile() {
   const startReview = useMutation(api.kohopChief.startReview);
   const giveBack = useMutation(api.kohopChief.returnToAuthor);
   const inadmissible = useMutation(api.kohopChief.declareInadmissible);
-  const [dialog, setDialog] = useState<'return' | 'inadmissible' | null>(null);
+  const acceptFile = useMutation(api.kohopDecision.accept);
+  const refuseFile = useMutation(api.kohopDecision.refuseContribution);
+  const [dialog, setDialog] = useState<
+    'return' | 'inadmissible' | 'accept' | 'refuse' | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [versionPick, setVersionPick] = useState<string | null>(null);
@@ -348,6 +413,25 @@ export default function AdminKohopFile() {
                 {t('returnToAuthor')}
               </Button>
             ) : null}
+            {file.chiefActions.includes('accept') ? (
+              <Button
+                type="button"
+                disabled={busy}
+                onClick={() => setDialog('accept')}
+              >
+                {t('acceptButton')}
+              </Button>
+            ) : null}
+            {file.chiefActions.includes('refuse') ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setDialog('refuse')}
+              >
+                {t('refuseButton')}
+              </Button>
+            ) : null}
             {file.chiefActions.includes('declareInadmissible') ? (
               <Button
                 type="button"
@@ -371,6 +455,47 @@ export default function AdminKohopFile() {
         </Card>
       ) : null}
 
+      <ConfirmDialog
+        open={dialog === 'accept'}
+        title={t('acceptConfirmTitle', { title: file.title || t('untitled') })}
+        description={t('acceptConfirmBody')}
+        confirmLabel={t('acceptConfirm')}
+        cancelLabel={t('cancel')}
+        pending={busy}
+        onConfirm={() =>
+          void run(() => acceptFile({ contributionId: id }), t('accepted'))
+        }
+        onCancel={() => setDialog(null)}
+      />
+      <ReasonDialog
+        open={dialog === 'refuse'}
+        title={t('refuseTitle', { title: file.title || t('untitled') })}
+        description={t('refuseDescription')}
+        confirmLabel={t('refuseConfirm')}
+        reasonLabel={t('refuseReasonLabel')}
+        reasonHint={t('reasonHint', { min: KOHOP_BOUNDS.reason.min })}
+        minLength={KOHOP_BOUNDS.reason.min}
+        codeLabel={t('refuseCodeLabel')}
+        // With the presumption of acceptance only these three codes are open.
+        codes={(file.presumption
+          ? KOHOP_PRESUMPTION_BREAKING_CODES
+          : KOHOP_REASON_CODES
+        ).map((c) => ({ value: c, label: vocabulary(t, 'reason_', c) }))}
+        pending={busy}
+        error={error}
+        onConfirm={(reason, code) =>
+          void run(
+            () =>
+              refuseFile({
+                contributionId: id,
+                code: code as (typeof KOHOP_REASON_CODES)[number],
+                reason,
+              }),
+            t('refused'),
+          )
+        }
+        onCancel={() => setDialog(null)}
+      />
       <ReasonDialog
         open={dialog === 'return'}
         title={t('returnTitle', { title: file.title || t('untitled') })}
@@ -417,6 +542,33 @@ export default function AdminKohopFile() {
         }
         onCancel={() => setDialog(null)}
       />
+
+      {file.reviews.length > 0 ? (
+        <Card id="kohop-analyses" title={t('reviewsChiefTitle')}>
+          <p className="text-sm text-ink-soft">{t('decisionLead')}</p>
+          <p className="mt-2 text-sm font-medium text-ink">
+            {t('positiveSummary', {
+              positive: file.positiveReviews,
+              total: file.reviews.length,
+            })}
+          </p>
+          {['decision'].includes(file.stage) ? (
+            <p
+              className={
+                file.presumption
+                  ? 'mt-2 rounded-md border border-accent-edge bg-accent-tint p-3 text-sm text-ink'
+                  : 'mt-2 text-sm text-ink-soft'
+              }
+            >
+              {file.presumption ? t('presumptionOn') : t('presumptionOff')}
+            </p>
+          ) : null}
+          <div className="mt-4">
+            <ReviewsList reviews={file.reviews} lang={file.lang} />
+          </div>
+          <RevisionDiff file={file} />
+        </Card>
+      ) : null}
 
       <Card id="kohop-reviewers" title={t('sectionReviewers')}>
         {file.reviewers.length === 0 ? (
