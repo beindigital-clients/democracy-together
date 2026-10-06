@@ -602,6 +602,15 @@ describe('Originalité', () => {
 
   it('accepter est refusé tant que les rapports ne sont pas là, sans rien écrire', async () => {
     const { t, chief, id } = await inDecision();
+    // The checks scheduled by the revision write to the history and the audit log
+    // while they run: let them finish, THEN remove the reports, so the counts below
+    // are measured with nothing running in the background.
+    await drain(t);
+    await t.run(async (ctx) => {
+      for (const r of await ctx.db.query('originalityReports').collect()) {
+        await ctx.db.delete(r._id);
+      }
+    });
     const before = await counts(t);
     await expect(
       chief.as.mutation(api.kohopDecision.accept, { contributionId: id }),
