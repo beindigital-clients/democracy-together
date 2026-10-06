@@ -229,6 +229,9 @@ const lastCheck = (t: T, reviewerId: Id<'kohopReviewers'>) =>
     ).find((c) => c.origin === 'external'),
   );
 
+/** The host of a requested URL — compared whole, never searched for as a substring. */
+const hostOf = (url: string) => new URL(url).host;
+
 describe('Liens trouvés hors plateforme', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -241,12 +244,13 @@ describe('Liens trouvés hors plateforme', () => {
     await orcid(w.t, w.rev1.id, '0000-0001-5109-370X');
     const fetchMock = vi.fn(async (url: string) => {
       // ORCID employments: none published. Only the works answer matters here.
-      if (url.includes('pub.orcid.org')) {
+      if (hostOf(url) === 'pub.orcid.org') {
         return new Response(JSON.stringify({ 'affiliation-group': [] }), {
           status: 200,
         });
       }
-      expect(url).toContain('api.openalex.org/works');
+      expect(hostOf(url)).toBe('api.openalex.org');
+      expect(new URL(url).pathname).toBe('/works');
       return new Response(
         JSON.stringify({
           meta: { count: 1 },
@@ -360,7 +364,7 @@ describe('Liens trouvés hors plateforme', () => {
     gateway?: 'ok' | 'down';
   }) {
     return vi.fn(async (url: string) => {
-      if (url.includes('api.openalex.org')) {
+      if (hostOf(url) === 'api.openalex.org') {
         return Response.json({
           meta: { count: options.works },
           results:
@@ -375,7 +379,7 @@ describe('Liens trouvés hors plateforme', () => {
               : [],
         });
       }
-      if (url.includes('pub.orcid.org')) {
+      if (hostOf(url) === 'pub.orcid.org') {
         return Response.json({ 'affiliation-group': options.employments });
       }
       if (options.gateway === 'down')
@@ -476,7 +480,7 @@ describe('Liens trouvés hors plateforme', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) => {
-        if (url.includes('pub.orcid.org')) throw new Error('orcid down');
+        if (hostOf(url) === 'pub.orcid.org') throw new Error('orcid down');
         return Response.json({
           meta: { count: 1 },
           results: [{ id: 'https://openalex.org/W1', title: 'T' }],
