@@ -55,7 +55,7 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 | D-6 champs thématiques | 10 champs de la plaquette | `KOHOP_FIELDS` |
 | D-15 cohorte pilote | accès `pilot`, organisations listées par l'administrateur | `kohopSettings` |
 | D-17 fournisseur anti-plagiat | aucun (`none`) ; reconnaissance journalisée à l'acceptation | `lib/plagiarism/` |
-| Modèles et plafond d'appels (lot 5) | embeddings `openai/text-embedding-3-small`, confirmation `anthropic/claude-sonnet-5`, seuil 0,8, 300 appels/jour | `lib/kohopSemantic.ts` |
+| Modèles et plafond d'appels (lot 5) | embeddings `openai/text-embedding-3-small`, confirmation `anthropic/claude-sonnet-5`, seuil 0,75, 300 appels/jour | `lib/kohopSemantic.ts` |
 | Suggestions : charge et repos | pas plus de 2 relectures en cours ; 30 jours après un refus | `kohopSuggest.ts` |
 | Épreuve sans réponse après 5 jours | **pas** d'approbation tacite : relance puis alerte aux chefs | `KOHOP_PROOF_TACIT_APPROVAL` |
 | Motif d'un retrait | interne ; seule la notice est publique | `kohopProduction.retract` |
@@ -66,7 +66,7 @@ livré**, comment l'activer, les variables nécessaires et les limites connues.
 
 Tout ce que le prompt demandait est livré : index d'empreintes (winnowing) et de vecteurs (embeddings, `vectorIndex`), corpus KOHOP + bibliothèque (y compris le texte extrait des PDF) + Tribune, indexation planifiée avec reprise par lots, contrôle en trois temps (mots, sens dans toutes les langues, confirmation par l'IA), plafond quotidien d'appels, étapes rapportées une à une (jamais de « rien à signaler » en cas d'échec), contrôle des contributions déjà déposées, synthèse IA des liens hors plateforme (OpenAlex + ORCID, cosignatures et affiliations communes), suggestions équilibrées Afrique/Europe et langues, adaptateur anti-plagiat dans `convex/lib/plagiarism/`.
 
-**À valeur par défaut prudente (constantes dans `convex/lib/kohopSemantic.ts`, à confirmer)** : modèle d'embeddings `openai/text-embedding-3-small` (1536 dimensions), modèle de confirmation `anthropic/claude-sonnet-5`, seuil de proximité 0,8, 300 appels de modèle par jour (UTC), 16 candidats confirmés par contrôle.
+**À valeur par défaut prudente (constantes dans `convex/lib/kohopSemantic.ts`, à confirmer)** : modèle d'embeddings `openai/text-embedding-3-small` (1536 dimensions), modèle de confirmation `anthropic/claude-sonnet-5`, seuil de proximité 0,75 (une traduction fidèle a mesuré 0,844 sur le vrai service), 300 appels de modèle par jour (UTC), 16 candidats confirmés par contrôle.
 
 **Ce qui dépend d'un choix du client** : le fournisseur anti-plagiat externe (D-17) — l'adaptateur honore déjà « ne pas conserver le texte » et la détection d'une langue à l'autre, mais aucun fournisseur réel n'est branché ; sans lui, la reconnaissance journalisée reste nécessaire. Sans `AI_GATEWAY_API_KEY`, les étapes « sens » et « avis de l'IA » sont rapportées *indisponibles* et les chefs sont prévenus ; l'étape « mots » fonctionne seule.
 

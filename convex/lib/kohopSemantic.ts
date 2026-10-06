@@ -17,7 +17,7 @@ export const KOHOP_CONFIRMATION_BATCH = 8;
 /** Candidates confirmed per check — a cost bound. */
 export const KOHOP_CONFIRMATION_MAX = 16;
 /** Cosine similarity from which two paragraphs become a candidate. */
-export const KOHOP_SEMANTIC_THRESHOLD = 0.8;
+export const KOHOP_SEMANTIC_THRESHOLD = 0.75;
 /** Neighbours asked of the vector index for each paragraph. */
 export const KOHOP_SEMANTIC_NEIGHBOURS = 6;
 /** Semantic candidates kept in a report, best first. */
