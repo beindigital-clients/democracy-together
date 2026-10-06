@@ -81,7 +81,7 @@
     "happy-dom": "^20.14.5",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
-    "pdfjs-dist": "^5.7.284",
+    "pdfjs-dist": "^6.3.289",
     "postcss": "^8.5.23",
     "prettier": "^3.9.9",
     "tailwindcss": "^4.3.3",
