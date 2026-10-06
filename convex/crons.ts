@@ -65,4 +65,22 @@ crons.cron(
   {},
 );
 
+// KOHOP — reviewers' deadlines: reminders, then expiry and replacement by the
+// substitute. Every hour, at minute 23.
+crons.cron('kohop-deadlines', '23 * * * *', internal.kohopDeadlines.run, {});
+
+// KOHOP — external reviewers' invitations that were declined, expired or
+// rejected are deleted after six months. Every day at 03:41 UTC.
+crons.cron(
+  'kohop-external-purge',
+  '41 3 * * *',
+  internal.kohopExternal.purge,
+  {},
+);
+
+// KOHOP — the originality index: a few documents of each source table per
+// pass, the sweep of what left the corpus, the embeddings still pending, and
+// the checks of contributions deposited before they existed. Every 10 minutes.
+crons.cron('kohop-index', '*/10 * * * *', internal.kohopIndex.cycle, {});
+
 export default crons;

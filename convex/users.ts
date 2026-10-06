@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { query, mutation, internalAction } from './_generated/server';
 import { internal } from './_generated/api';
 import {
@@ -8,6 +8,7 @@ import {
   effectiveRole,
 } from './lib/rbac';
 import { networkRole, locale } from './schema';
+import { roleRank } from './lib/roles';
 import { recordAudit } from './lib/audit';
 import { COUNTER, bumpCounter } from './lib/counters';
 import { AUDIT } from './lib/auditActions';
@@ -27,6 +28,7 @@ export const current = query({
       email: user.email ?? null,
       image: user.image ?? null,
       role: effectiveRole(user.role),
+      reviewChief: user.reviewChief === true,
       preferredLocale: user.preferredLocale ?? null,
     };
   },
@@ -75,13 +77,61 @@ export const setRole = mutation({
       }
     }
 
-    await ctx.db.patch(userId, { role });
+    // The review chief function only exists on a staff account: dropping below
+    // `moderateur` withdraws it in the SAME mutation, never leaving a visitor
+    // or a member holding it.
+    const target = await ctx.db.get(userId);
+    const losesFunction =
+      target?.reviewChief === true && roleRank(role) < roleRank('moderateur');
+    await ctx.db.patch(
+      userId,
+      losesFunction ? { role, reviewChief: undefined } : { role },
+    );
     await recordAudit(ctx, {
       actorId: admin._id,
       action: AUDIT.USER_ROLE_CHANGED,
       targetId: userId,
       metadata: { role },
     });
+    if (losesFunction) {
+      await recordAudit(ctx, {
+        actorId: admin._id,
+        action: AUDIT.USER_REVIEW_CHIEF_REVOKED,
+        targetId: userId,
+        metadata: { reason: 'role_lowered', role },
+      });
+    }
+  },
+});
+
+// Review chief function (KOHOP) — reserved for administrators, audited.
+//
+// A review chief is part of the team: the function is refused to an account
+// below `moderateur`, which is also what keeps it behind the staff second
+// factor (`TWO_FACTOR_STAFF_MIN_ROLE`). Granting twice, or withdrawing what
+// is not held, changes nothing and writes nothing.
+export const setReviewChief = mutation({
+  args: { userId: v.id('users'), value: v.boolean() },
+  returns: v.object({ changed: v.boolean() }),
+  handler: async (ctx, { userId, value }) => {
+    const admin = await requireNetworkRole(ctx, 'admin');
+    const target = await ctx.db.get(userId);
+    if (!target) throw new ConvexError('NOT_FOUND');
+    if (value && roleRank(target.role) < roleRank('moderateur')) {
+      throw new ConvexError('REVIEW_CHIEF_ROLE_TOO_LOW');
+    }
+    if ((target.reviewChief === true) === value) return { changed: false };
+
+    await ctx.db.patch(userId, { reviewChief: value ? true : undefined });
+    await recordAudit(ctx, {
+      actorId: admin._id,
+      action: value
+        ? AUDIT.USER_REVIEW_CHIEF_GRANTED
+        : AUDIT.USER_REVIEW_CHIEF_REVOKED,
+      targetId: userId,
+      metadata: { reason: 'admin' },
+    });
+    return { changed: true };
   },
 });
 

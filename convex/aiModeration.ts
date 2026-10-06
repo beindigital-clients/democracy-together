@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { paginationOptsValidator } from 'convex/server';
 import {
   query,
@@ -17,15 +17,11 @@ import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
 import { consumeRateLimit } from './lib/rateLimit';
-import {
-  bumpCounter,
-  COUNTER,
-  readCounters,
-  trackPublicationStatus,
-} from './lib/counters';
+import { bumpCounter, COUNTER, readCounters } from './lib/counters';
+import { isInOpenPeerReview } from './lib/manuscripts';
+import { reviewChiefRecipients } from './lib/reviewChiefs';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { PUB_TYPES } from './lib/publications';
-import { TRIBUNE_AI_SCOPE } from './lib/communaute';
 import {
   isGatewayConfigured,
   runStructured,
@@ -37,6 +33,7 @@ import {
   APPLY_REASONS,
   BASELINE_RULES,
   DEFAULT_SETTINGS,
+  AI_AUTO_ACCEPT_SCOPES,
   SETTINGS_BOUNDS,
   aiModerationApplied,
   aiModerationMode,
@@ -313,10 +310,11 @@ export const getSettings = query({
       })),
       baseline: BASELINE_RULES.map((r) => ({ ...r })),
       configured: isGatewayConfigured(),
-      // `tribune` is added to the library types: checking this box is
-      // the ONLY way to open auto-acceptance to Tribune posts
-      // (convex/communityModeration.ts). Unchecked, the AI only proposes there.
-      availableTypes: [...PUB_TYPES, TRIBUNE_AI_SCOPE],
+      // Auto-acceptance is only offered for the Tribune (D-7): checking this
+      // box is the ONLY way to open it to Tribune posts
+      // (convex/communityModeration.ts). Unchecked, the AI only proposes
+      // there. Library deposits are never published by the AI.
+      availableTypes: [...AI_AUTO_ACCEPT_SCOPES],
       stats: {
         analyzed: counts[COUNTER.AI_REVIEWS],
         published: counts[COUNTER.AI_REVIEWS_PUBLISHED],
@@ -361,15 +359,13 @@ export const updateSettings = mutation({
     if (fallbackModel && fallbackModel.length > 120)
       throw new Error('INVALID_MODEL');
 
-    // Scope: only types from the closed vocabulary are kept. An unknown
-    // slug therefore cannot widen auto-publication to submissions the
-    // panel does not show.
+    // Scope: only the scopes of the closed vocabulary are kept (D-7: the
+    // Tribune only). An unknown slug, or a library type, therefore cannot
+    // widen auto-publication to submissions the panel does not show.
     const eligibleTypes = [
       ...new Set(
-        args.eligibleTypes.filter(
-          (t) =>
-            (PUB_TYPES as readonly string[]).includes(t) ||
-            t === TRIBUNE_AI_SCOPE,
+        args.eligibleTypes.filter((t) =>
+          (AI_AUTO_ACCEPT_SCOPES as readonly string[]).includes(t),
         ),
       ),
     ];
@@ -621,6 +617,11 @@ export const requestReview = mutation({
     // `reviewContext` would discard it anyway. Saying so HERE avoids
     // announcing to the moderator an analysis from which no verdict will come.
     if (pub.status !== 'pending') return { scheduled: false };
+    // A manuscript under open peer review is not analysed from the queue (A-1):
+    // its verdict belongs to the review. Refused before anything is scheduled.
+    if (isInOpenPeerReview(pub.reviewStage)) {
+      throw new ConvexError('IN_PEER_REVIEW');
+    }
     const settings = await loadSettings(ctx);
     if (settings.mode === 'off') return { scheduled: false };
     await ctx.scheduler.runAfter(0, internal.aiModeration.runReview, {
@@ -790,25 +791,24 @@ export const applyVerdict = internalMutation({
     // and not as a `throw` because a transition refusal is not, in this
     // context, an error to propagate: it is an OUTCOME to log.
     const superseded = pub.status !== 'pending';
-    const applied = superseded ? ('superseded' as const) : decision.applied;
-    const reason = superseded ? APPLY_REASONS.ALREADY_DECIDED : decision.reason;
+    // D-7: the AI never publishes a library deposit. `decideApplication`
+    // already refuses it for every library type; this second line makes the
+    // rule hold HERE even if that function were ever changed — a deposit
+    // verdict can only escalate, shadow or be superseded.
+    const publishRefused = !superseded && decision.applied === 'published';
+    const applied = superseded
+      ? ('superseded' as const)
+      : publishRefused
+        ? ('escalated' as const)
+        : decision.applied;
+    const reason = superseded
+      ? APPLY_REASONS.ALREADY_DECIDED
+      : publishRefused
+        ? APPLY_REASONS.TYPE_OUT_OF_SCOPE
+        : decision.reason;
 
     const now = Date.now();
     const signals = countSignals(args.findings);
-
-    if (applied === 'published') {
-      await ctx.db.patch(args.publicationId, {
-        status: 'published',
-        publishedAt: pub.publishedAt || now,
-        doi: pub.doi || `10.59000/dt.${pub.slug}`,
-        // `reviewedBy` stays EMPTY: nobody reviewed. It is this emptiness, read with
-        // `autoPublished`, that lets the queue display "published without
-        // human review" rather than attributing the decision to someone.
-        reviewedAt: now,
-        autoPublished: true,
-      });
-      await trackPublicationStatus(ctx, pub.status, 'published');
-    }
 
     // Denormalized summary — written as soon as the system is VISIBLE. The queue
     // must be able to say "analyzed, put on hold for such-and-such reason" rather
@@ -855,22 +855,8 @@ export const applyVerdict = internalMutation({
     });
 
     await bumpCounter(ctx, COUNTER.AI_REVIEWS, 1);
-    if (applied === 'published')
-      await bumpCounter(ctx, COUNTER.AI_REVIEWS_PUBLISHED, 1);
     if (applied === 'escalated')
       await bumpCounter(ctx, COUNTER.AI_REVIEWS_ESCALATED, 1);
-
-    // The author learns of the publication through the SAME message as for a human
-    // approval: from their point of view, their publication is online.
-    if (applied === 'published' && pub.authorUserId) {
-      await notify(ctx, {
-        userId: pub.authorUserId,
-        type: 'publication_published',
-        titleKey: 'pubPublished',
-        params: { title: pub.title },
-        link: `/bibliotheque/${pub.slug}`,
-      });
-    }
 
     // "Bring in the administrator": a BLOCKING signal takes the
     // case out of the queue's normal pace and goes to fetch someone. The
@@ -882,10 +868,7 @@ export const applyVerdict = internalMutation({
 
     await recordAudit(ctx, {
       actorId: args.triggeredBy,
-      action:
-        applied === 'published'
-          ? AUDIT.PUBLICATION_AI_PUBLISHED
-          : AUDIT.PUBLICATION_AI_REVIEWED,
+      action: AUDIT.PUBLICATION_AI_REVIEWED,
       targetId: args.publicationId,
       metadata: {
         verdict: args.verdict,
@@ -904,26 +887,15 @@ export const applyVerdict = internalMutation({
   },
 });
 
-// Notifies staff (moderator and above). Same indexed read as the
-// reviewer selector (peerReview.listStaffUsers): we do not scan the
-// `users` table to keep a few accounts from it.
-const STAFF_ROLES = ['moderateur', 'editeur', 'admin'] as const;
-const STAFF_PER_ROLE_MAX = 200;
-
+// Notifies the editorial team: review chiefs and administrators, the only
+// accounts that decide a library deposit (D-7). Two indexed reads
+// (`reviewChiefRecipients`), no table scan.
 async function alertStaff(
   ctx: MutationCtx,
   title: string,
   publicationId: Id<'publications'>,
 ) {
-  const byRole = await Promise.all(
-    STAFF_ROLES.map((role) =>
-      ctx.db
-        .query('users')
-        .withIndex('by_role', (q) => q.eq('role', role))
-        .take(STAFF_PER_ROLE_MAX),
-    ),
-  );
-  for (const user of byRole.flat()) {
+  for (const user of await reviewChiefRecipients(ctx)) {
     await notify(ctx, {
       userId: user._id,
       type: 'publication_ai_flagged',

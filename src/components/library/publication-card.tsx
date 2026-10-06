@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import type { PublicPublication } from '@convex/lib/publications';
-import { formatMonthYear } from '@/lib/publications';
+import { formatMonthYear, isRegisteredDoi } from '@/lib/publications';
 import { vocabulary } from '@/i18n/vocabulary';
 import { intlLocale } from '@/i18n/locale';
 import { contentLangAttrs } from '@/i18n/content-lang';
@@ -143,9 +143,11 @@ export async function PublicationCard({
             <span aria-hidden="true">❝</span>
             <span className="sr-only">{t('citations')} :</span> {pub.citations}
           </span>
-          <span className="ms-auto truncate font-mono text-[11px] text-muted">
-            {pub.doi}
-          </span>
+          {isRegisteredDoi(pub.doi) ? (
+            <span className="ms-auto truncate font-mono text-[11px] text-muted">
+              {pub.doi}
+            </span>
+          ) : null}
         </div>
       </div>
     </Link>

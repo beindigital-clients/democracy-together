@@ -5,11 +5,12 @@ import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import { Link, usePathname } from '@/i18n/navigation';
-import { effectiveRole, isStaff, roleRank } from '@/lib/roles';
+import { effectiveRole, isReviewChief, isStaff, roleRank } from '@/lib/roles';
 import { AuthGate, AuthGateLoading } from '@/components/auth/auth-gate';
 import {
   AdminNav,
   adminMinRoleForPath,
+  adminPathRequiresReviewChief,
   adminScreenKey,
 } from '@/components/admin/admin-nav';
 import { SITE_NAME } from '@/lib/seo';
@@ -80,6 +81,11 @@ function Gate({ children }: { children: ReactNode }) {
   if (roleRank(me?.role) < roleRank(adminMinRoleForPath(pathname))) {
     return <AccessDenied rank />;
   }
+  // Screens reserved to the review chief function (KOHOP queue): same rule as
+  // the server guard `requireReviewChief`.
+  if (adminPathRequiresReviewChief(pathname) && !isReviewChief(me ?? {})) {
+    return <AccessDenied rank />;
+  }
 
   // The action-feedback live regions are mounted HERE, once for the whole
   // back office: each moderation screen pushes its message into them
@@ -96,6 +102,7 @@ function Gate({ children }: { children: ReactNode }) {
         <div className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-10">
           <AdminNav
             role={effectiveRole(me?.role)}
+            reviewChief={me?.reviewChief === true}
             pathname={pathname}
             counts={{
               applications: stats?.pendingApplications,

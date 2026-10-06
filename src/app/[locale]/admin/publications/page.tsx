@@ -20,7 +20,8 @@ import {
 } from '@/components/admin/action-feedback';
 import { AiVerdictPanel } from '@/components/admin/ai-verdict';
 import { vocabulary } from '@/i18n/vocabulary';
-import { isEditor } from '@/lib/roles';
+import { isEditor, isReviewChief } from '@/lib/roles';
+import { isInOpenPeerReview } from '@convex/lib/manuscripts';
 
 type ReviewItem = FunctionReturnType<
   typeof api.publications.listForReview
@@ -37,6 +38,7 @@ function PublicationRow({
   pub,
   reviewStage,
   editor,
+  canDecide,
   staff,
 }: {
   pub: ReviewItem;
@@ -46,6 +48,10 @@ function PublicationRow({
   // Editor and above: the only rank that can OPEN a review. The staff
   // (possible reviewers) is loaded only for them.
   editor: boolean;
+  // Review chief and administrator: the only accounts that decide a deposit
+  // (D-7). The rest of the staff keeps the reading; the server refuses the
+  // decision anyway (`requireReviewChief`).
+  canDecide: boolean;
   staff: Staff | undefined;
 }) {
   const t = useTranslations('admin');
@@ -170,6 +176,10 @@ function PublicationRow({
     }
   }
 
+  // A manuscript under open peer review is decided in the reading committee,
+  // never from this queue (A-1): no decision button, a link instead.
+  const inPeerReview = isInOpenPeerReview(reviewStage);
+
   const meta = [
     pub.authorEmail,
     vocabulary(tl, 'types.', pub.type),
@@ -235,7 +245,7 @@ function PublicationRow({
               <Badge variant="accent">
                 {vocabulary(t, 'revStage_', reviewStage)}
               </Badge>
-              {editor ? (
+              {editor && !inPeerReview ? (
                 <Link
                   href="/admin/revue"
                   className="inline-block py-1 text-accent-text hover:underline"
@@ -274,25 +284,45 @@ function PublicationRow({
         </div>
       ) : null}
 
-      {pub.status === 'pending' ? (
+      {pub.status === 'pending' && inPeerReview ? (
+        <p className="mt-4 flex flex-wrap items-center gap-x-3 text-sm text-ink-soft">
+          {t('pubInPeerReview')}
+          {editor ? (
+            <Link
+              href="/admin/revue"
+              className="inline-block py-1 font-medium text-accent-text hover:underline"
+            >
+              {t('revSeeInQueue')}
+            </Link>
+          ) : null}
+        </p>
+      ) : pub.status === 'pending' ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={t('pubNotesPlaceholder')}
-            aria-label={`${t('pubNotesPlaceholder')} ${pub.title}`}
-            className="max-w-xs"
-          />
-          <Button onClick={() => decide('approved')} disabled={pending}>
-            {t('approve')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setConfirmingReject(true)}
-            disabled={pending}
-          >
-            {t('reject')}
-          </Button>
+          {canDecide ? (
+            <>
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t('pubNotesPlaceholder')}
+                aria-label={`${t('pubNotesPlaceholder')} ${pub.title}`}
+                className="max-w-xs"
+              />
+              <Button onClick={() => decide('approved')} disabled={pending}>
+                {t('approve')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmingReject(true)}
+                disabled={pending}
+              >
+                {t('reject')}
+              </Button>
+            </>
+          ) : (
+            <p className="basis-full text-sm text-ink-soft">
+              {t('pubDecisionReadOnly')}
+            </p>
+          )}
           <Button
             variant="outline"
             onClick={requestAiReview}
@@ -323,7 +353,7 @@ function PublicationRow({
           {/* A draft WITH a review date is a rejection, not a submission that was
               never submitted — the distinction awaits the `rejected` status from
               issue #32. Only the former can be reopened. */}
-          {pub.status === 'draft' && pub.reviewedAt !== null ? (
+          {canDecide && pub.status === 'draft' && pub.reviewedAt !== null ? (
             <Button
               variant="outline"
               className="mt-3"
@@ -389,6 +419,7 @@ export default function AdminPublications() {
   // DISPLAYED rows is read in a single call.
   const me = useQuery(api.users.current);
   const editor = isEditor(me?.role);
+  const canDecide = isReviewChief(me ?? {});
   const staff = useQuery(api.peerReview.listStaffUsers, editor ? {} : 'skip');
   const stages = useQuery(
     api.peerReview.reviewStagesFor,
@@ -442,6 +473,7 @@ export default function AdminPublications() {
               pub={p}
               reviewStage={stageOf.get(p._id) ?? null}
               editor={editor}
+              canDecide={canDecide}
               staff={staff}
             />
           ))}

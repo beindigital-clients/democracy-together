@@ -2,7 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { ConvexError } from 'convex/values';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
-import { roleRank, type NetworkRole } from './roles';
+import { roleRank, canValidatePublications, type NetworkRole } from './roles';
 import {
   currentSessionId,
   evaluateAccess,
@@ -116,6 +116,21 @@ export async function requireNetworkRole(
   const user = await requireUser(ctx);
   if (roleRank(user.role) < roleRank(min)) {
     throw new Error(`Accès refusé : rôle « ${min} » requis.`);
+  }
+  return user;
+}
+
+/**
+ * Guard of the publication decisions (library, F-43 manuscripts, KOHOP): the
+ * review chief and the administrator only. Built on `requireUser`, so a
+ * suspended account or a session without its second factor is refused first.
+ */
+export async function requireReviewChief(
+  ctx: QueryCtx | MutationCtx,
+): Promise<Doc<'users'>> {
+  const user = await requireUser(ctx);
+  if (!canValidatePublications(user)) {
+    throw new Error('Accès refusé : fonction « chef de revue » requise.');
   }
   return user;
 }

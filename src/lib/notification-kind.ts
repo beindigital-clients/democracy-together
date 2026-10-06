@@ -22,6 +22,7 @@ const PREFIXES: ReadonlyArray<readonly [string, NotificationKind]> = [
   ['socialMessage', 'message'],
   ['peerReview', 'review'],
   ['manuscript', 'review'],
+  ['kohop', 'review'],
   ['pub', 'publication'],
   ['tribune', 'tribune'],
   ['membership', 'membership'],

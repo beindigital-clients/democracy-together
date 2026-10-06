@@ -1,9 +1,10 @@
 'use client';
 
+import { LEGACY_PEER_REVIEW_UI } from '@/lib/legacy-review';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
-import { roleRank, type NetworkRole } from '@/lib/roles';
+import { roleRank, isReviewChief, type NetworkRole } from '@/lib/roles';
 
 // BACK-OFFICE NAVIGATION (issue #49).
 //
@@ -40,7 +41,19 @@ import { roleRank, type NetworkRole } from '@/lib/roles';
 // what awaits a decision (moderation), then the programmes, then editing,
 // then account administration.
 
-export type AdminNavItem = { href: string; key: string };
+export type AdminNavItem = {
+  href: string;
+  key: string;
+  // The entry is ALSO reserved to review chiefs and administrators, on top of
+  // the group's minimum rank (KOHOP): the review chief is a function, not a
+  // rank, so no rank threshold can express it.
+  requiresReviewChief?: boolean;
+  // Minimum rank of THIS entry when it differs from its group's: a review chief
+  // may hold the `moderateur` rank, below the `edition` group's `editeur`.
+  minRole?: NetworkRole;
+  // Belongs to the legacy F-43 review, hidden since KOHOP (D-13).
+  legacyReview?: boolean;
+};
 export type AdminNavGroup = {
   key: string;
   // Group title key, WRITTEN IN FULL rather than composed at render time
@@ -79,7 +92,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       // shows their assignments; the full queue and the decisions
       // stay in "Comité de lecture", reserved for editors. Filed with
       // moderation: that is where a moderator works.
-      { href: '/admin/mes-relectures', key: 'myReviews' },
+      { href: '/admin/mes-relectures', key: 'myReviews', legacyReview: true },
       // Unified tribune queue (community workstream, F-45/F-49): posts
       // and comments pending, approved, rejected, withdrawn, reported, with
       // each one's history. A path distinct from `/admin/moderation-ia` —
@@ -113,7 +126,15 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     labelKey: 'navGroup_edition',
     minRole: 'editeur',
     items: [
-      { href: '/admin/revue', key: 'review' },
+      { href: '/admin/revue', key: 'review', legacyReview: true },
+      // KOHOP queue (batch 2): the review chief's screen, whatever their rank
+      // (moderator or above) — the function, not the rank, opens it.
+      {
+        href: '/admin/kohop',
+        key: 'kohop',
+        requiresReviewChief: true,
+        minRole: 'moderateur',
+      },
       // Annual reports (F-41, editorial workstream): the Convex guard is at
       // editor rank (`annualReports.*`), like the review.
       { href: '/admin/rapports', key: 'annualReports' },
@@ -181,11 +202,32 @@ export function adminMinRoleForPath(pathname: string): NetworkRole {
           ? path === '/admin'
           : isAdminNavItemActive(item.href, path)
       ) {
-        return group.minRole;
+        return item.minRole ?? group.minRole;
       }
     }
   }
   return 'moderateur';
+}
+
+/**
+ * Does the back-office PATH require the review chief function (or the
+ * administrator) on top of its minimum rank? Read from the same table as the
+ * navigation, like `adminMinRoleForPath`.
+ */
+export function adminPathRequiresReviewChief(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (
+        item.href === '/admin'
+          ? path === '/admin'
+          : isAdminNavItemActive(item.href, path)
+      ) {
+        return item.requiresReviewChief === true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -214,10 +256,31 @@ export function adminScreenKey(pathname: string): string | null {
 
 export function visibleAdminNavGroups(
   role: NetworkRole,
+  reviewChief = false,
 ): readonly AdminNavGroup[] {
-  return ADMIN_NAV_GROUPS.filter(
-    (group) => roleRank(role) >= roleRank(group.minRole),
-  );
+  return filterAdminNavGroups(ADMIN_NAV_GROUPS, role, reviewChief);
+}
+
+// The rule on its own, over any table: a group needs its minimum rank, an
+// entry flagged `requiresReviewChief` also needs the function (or the
+// administrator rank), and a group left without entries disappears.
+export function filterAdminNavGroups(
+  groups: readonly AdminNavGroup[],
+  role: NetworkRole,
+  reviewChief = false,
+): readonly AdminNavGroup[] {
+  const allowed = isReviewChief({ role, reviewChief });
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) =>
+          roleRank(role) >= roleRank(item.minRole ?? group.minRole) &&
+          (!item.requiresReviewChief || allowed) &&
+          (!item.legacyReview || LEGACY_PEER_REVIEW_UI),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 // Current entry. The dashboard is handled separately: its path is the
@@ -239,10 +302,12 @@ export type AdminNavCounts = Partial<Record<string, number>>;
 
 export function AdminNav({
   role,
+  reviewChief = false,
   pathname,
   counts = {},
 }: {
   role: NetworkRole;
+  reviewChief?: boolean;
   pathname: string;
   counts?: AdminNavCounts;
 }) {
@@ -252,7 +317,7 @@ export function AdminNav({
       aria-label={t('title')}
       className="space-y-5 border-b border-line pb-5 lg:sticky lg:top-8 lg:self-start lg:space-y-6 lg:border-b-0 lg:pb-0"
     >
-      {visibleAdminNavGroups(role).map((group) => {
+      {visibleAdminNavGroups(role, reviewChief).map((group) => {
         const labelId = `admin-nav-${group.key}`;
         return (
           <div key={group.key}>

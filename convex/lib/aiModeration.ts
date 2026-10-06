@@ -104,6 +104,13 @@ export const aiModerationApplied = v.union(
   ...AI_APPLIED.map((a) => v.literal(a)),
 );
 
+// SCOPE OF AUTOMATIC ACCEPTANCE (D-7). The AI no longer publishes any library
+// deposit: only the review chief and the administrator do. The one scope where
+// auto-acceptance remains possible is the Tribune, which the administrator
+// must still tick explicitly. Written here, in the pure module, so that
+// `decideApplication` can refuse everything else whatever the saved setting.
+export const AI_AUTO_ACCEPT_SCOPES = ['tribune'] as const;
+
 // --- Default settings --------------------------------------------------------
 
 export type AiModerationSettings = {
@@ -530,7 +537,15 @@ export function decideApplication(
   if (input.confidence < input.minConfidence) {
     return { applied: 'escalated', reason: APPLY_REASONS.LOW_CONFIDENCE };
   }
-  if (!input.eligibleTypes.includes(input.publicationType)) {
+  // A library type is out of scope BY CONSTRUCTION (D-7), even if an old
+  // setting still lists it: only a scope in `AI_AUTO_ACCEPT_SCOPES` can be
+  // accepted without a human, and only if the administrator ticked it.
+  if (
+    !(AI_AUTO_ACCEPT_SCOPES as readonly string[]).includes(
+      input.publicationType,
+    ) ||
+    !input.eligibleTypes.includes(input.publicationType)
+  ) {
     return { applied: 'escalated', reason: APPLY_REASONS.TYPE_OUT_OF_SCOPE };
   }
   return { applied: 'published', reason: APPLY_REASONS.AUTO_PUBLISHED };

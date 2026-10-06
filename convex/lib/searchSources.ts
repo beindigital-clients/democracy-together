@@ -3,7 +3,7 @@ import type { PaginationOptions, PaginationResult } from 'convex/server';
 import type { QueryCtx } from '../_generated/server';
 import type { Doc } from '../_generated/dataModel';
 import { SITE_LOCALES, type SiteLocale } from './locales';
-import { foldForSearch } from './searchText';
+import { foldForSearch, yearOf } from './searchText';
 
 // REGISTRY OF GLOBAL SEARCH SOURCES (F-06 / F-34).
 //
@@ -35,6 +35,7 @@ export const SEARCH_SOURCES = [
   'publications',
   'organizations',
   'tribune',
+  'kohop',
   'experts',
 ] as const;
 export type SearchSourceKey = (typeof SEARCH_SOURCES)[number];
@@ -222,6 +223,37 @@ const SOURCES: Record<SearchSourceKey, SourceDef> = {
           path: `/le-reseau/${o.slug}`,
           region: o.region,
           country: o.country,
+        }),
+      ),
+  },
+
+  // KOHOP: PUBLISHED contributions only — the stage is part of the index read,
+  // so a draft, a file in review or a withdrawn one cannot come out. A
+  // retracted page leaves the search (it stays reachable by its address).
+  kohop: {
+    filters: ['lang'],
+    search: async (ctx, needle, f, page) =>
+      mapPage(
+        await pageOf(
+          ctx.db
+            .query('kohopContributions')
+            .withSearchIndex('search_text', (q) => {
+              const s = q.search('searchText', needle).eq('stage', 'published');
+              return f.lang === 'fr' || f.lang === 'en'
+                ? s.eq('lang', f.lang)
+                : s;
+            }),
+          page,
+          needle,
+        ),
+        (c) => ({
+          source: 'kohop',
+          id: c._id,
+          title: c.title,
+          path: `/kohop/${c.slug ?? ''}`,
+          kind: 'kohop',
+          lang: c.lang,
+          year: c.publishedAt ? yearOf(c.publishedAt) : undefined,
         }),
       ),
   },

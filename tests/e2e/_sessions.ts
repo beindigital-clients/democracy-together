@@ -82,6 +82,11 @@ export type SessionKey =
   | 'editorialEditeur'
   | 'editorialRelecteur1'
   | 'editorialRelecteur2'
+  | 'kohopAuteur'
+  | 'kohopChef'
+  | 'kohopModerateur'
+  | 'kohopRelecteur1'
+  | 'kohopRelecteur2'
   | 'a11yClavier'
   | 'a11yAnnonces'
   | 'a11yAffichage'
@@ -90,7 +95,14 @@ export type SessionKey =
 
 export const SESSIONS: Record<
   SessionKey,
-  { email: string; state: string; role: NetworkRole }
+  {
+    email: string;
+    state: string;
+    role: NetworkRole;
+    // The review chief function, on top of a staff rank: only a review chief
+    // or an administrator decides a manuscript or a deposit.
+    reviewChief?: boolean;
+  }
 > = {
   membre: {
     email: 'e2e_session_membre@democracytogether.test',
@@ -331,10 +343,44 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/editorial-auteur.json',
     role: 'membre',
   },
+  // KOHOP journey (`kohop-parcours.spec.ts`): an author of the pilot
+  // organization, and a review chief of MODERATOR rank — the function, not the
+  // rank, opens the queue.
+  kohopAuteur: {
+    email: 'e2e_session_kohop_auteur@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-auteur.json',
+    role: 'membre',
+  },
+  kohopChef: {
+    email: 'e2e_session_kohop_chef@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-chef.json',
+    role: 'moderateur',
+    reviewChief: true,
+  },
+  // A moderator WITHOUT the function: its own session, so that no other spec
+  // rotates its refresh token while `kohop-parcours.spec.ts` uses it.
+  kohopModerateur: {
+    email: 'e2e_session_kohop_moderateur@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-moderateur.json',
+    role: 'moderateur',
+  },
+  // The two reviewers the author designates in the same journey.
+  kohopRelecteur1: {
+    email: 'e2e_kohop_rev1@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-relecteur1.json',
+    role: 'membre',
+  },
+  kohopRelecteur2: {
+    email: 'e2e_kohop_rev2@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-relecteur2.json',
+    role: 'membre',
+  },
   editorialEditeur: {
     email: 'e2e_session_editorial_editeur@democracytogether.test',
     state: 'tests/e2e/.auth/editorial-editeur.json',
     role: 'editeur',
+    // Deciding a manuscript publishes it: review chief function required.
+    reviewChief: true,
   },
   editorialRelecteur1: {
     email: 'e2e_session_editorial_relecteur1@democracytogether.test',

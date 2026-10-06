@@ -82,6 +82,16 @@ export default async function OrgProfilePage({
     null,
   );
 
+  // KOHOP contributions published by this organization's members. Optional:
+  // a failed read leaves the entry as it was.
+  const kohop = await fetchOrFallback(
+    'le-reseau/[slug]:kohop',
+    () =>
+      fetchQuery(api.kohopPublic.byOrganization, { organizationSlug: slug }),
+    [],
+  );
+  const tkp = await getTranslations('kohopPublic');
+
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6 md:py-14">
       <Link
@@ -158,6 +168,32 @@ export default async function OrgProfilePage({
               {to('publicPublicationsEmpty')}
             </div>
           )}
+
+          {kohop.length > 0 ? (
+            <>
+              <h2 className="mt-10 font-display text-2xl">
+                {tkp('orgSection')}
+              </h2>
+              <ul className="mt-3 divide-y divide-line rounded-md border border-line bg-surface">
+                {kohop.map((c) => (
+                  <li key={c.slug}>
+                    <Link
+                      href={`/kohop/${c.slug}`}
+                      lang={c.lang}
+                      className="flex min-h-11 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-3 hover:bg-accent-tint/60"
+                    >
+                      <span className="wrap-anywhere font-medium text-ink">
+                        {c.title}
+                      </span>
+                      <span className="font-mono text-xs text-muted">
+                        KOHOP · {new Date(c.publishedAt).getUTCFullYear()}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
 
           {details?.members && details.members.length > 0 ? (
             <>

@@ -179,6 +179,24 @@ export function formatAuthorParts(
   return authorListFormat(locale).formatToParts(names);
 }
 
+// --- DOI -----------------------------------------------------------------------
+// The library stores an INTERNAL identifier shaped like a DOI
+// (`10.59000/dt.<slug>`) but no DOI has been registered with an agency: it must
+// never be presented as one, nor linked to doi.org (audit A-2, D-12).
+//
+// `isRegisteredDoi` is the ONE gate for every place that shows a DOI. The list
+// of registered prefixes is empty for now; once the association has registered
+// a prefix with a DOI agency, adding it here re-enables the display.
+export const REGISTERED_DOI_PREFIXES: readonly string[] = [];
+
+export function isRegisteredDoi(
+  doi: string | null | undefined,
+  prefixes: readonly string[] = REGISTERED_DOI_PREFIXES,
+): doi is string {
+  if (!doi) return false;
+  return prefixes.some((prefix) => doi.startsWith(`${prefix}/`));
+}
+
 // --- Citations ---------------------------------------------------------------
 // Authors stored as "First Last" (or an organization name). We detect
 // organizations so as not to invert them, and format people as
@@ -189,7 +207,10 @@ type CitablePub = {
   title: string;
   authors: Author[];
   year: number;
-  doi: string;
+  doi?: string | null;
+  // Permanent link of the publication's page: what a citation points to while
+  // there is no registered DOI.
+  url: string;
   type: string;
 };
 
@@ -245,27 +266,38 @@ export function buildCitations(pub: CitablePub, locale: string): Citations {
   const names = pub.authors.map((a) => a.name);
   // The list punctuation comes from the language the page is READ in, not
   // from the publication's language: it is the sentence around the citation.
-  const apa = `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. ${PUBLISHER}. https://doi.org/${pub.doi}`;
+  const article = pub.type === 'article';
+  const registered = isRegisteredDoi(pub.doi);
+  const link = registered ? `https://doi.org/${pub.doi}` : pub.url;
+  const apa = article
+    ? `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. KOHOP, ${PUBLISHER}. ${link}`
+    : `${formatAuthorList(names.map(apaName), locale)} (${pub.year}). ${pub.title}. ${PUBLISHER}. ${link}`;
 
-  const entry = pub.type === 'dataset' ? 'misc' : 'techreport';
+  const entry = article
+    ? 'article'
+    : pub.type === 'dataset'
+      ? 'misc'
+      : 'techreport';
   const bibtex = [
     `@${entry}{${bibKey(pub)},`,
     `  author = {${names.map(invertedName).join(' and ')}},`,
     `  title  = {${pub.title}},`,
-    `  institution = {${PUBLISHER}},`,
+    article
+      ? `  journal = {KOHOP — ${PUBLISHER}},`
+      : `  institution = {${PUBLISHER}},`,
     `  year   = {${pub.year}},`,
-    `  doi    = {${pub.doi}}`,
+    registered ? `  doi    = {${pub.doi}}` : `  url    = {${pub.url}}`,
     `}`,
   ].join('\n');
 
-  const ty = pub.type === 'dataset' ? 'DATA' : 'RPRT';
+  const ty = article ? 'JOUR' : pub.type === 'dataset' ? 'DATA' : 'RPRT';
   const ris = [
     `TY  - ${ty}`,
     ...names.map((n) => `AU  - ${invertedName(n)}`),
     `TI  - ${pub.title}`,
     `PY  - ${pub.year}`,
-    `PB  - ${PUBLISHER}`,
-    `DO  - ${pub.doi}`,
+    article ? `JO  - KOHOP — ${PUBLISHER}` : `PB  - ${PUBLISHER}`,
+    registered ? `DO  - ${pub.doi}` : `UR  - ${pub.url}`,
     `ER  - `,
   ].join('\n');
 

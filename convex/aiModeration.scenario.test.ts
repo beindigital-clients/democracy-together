@@ -91,9 +91,18 @@ function mockGateway(verdict: {
 
 type Ctx = TestConvex<typeof schema>;
 
-async function user(t: Ctx, role: 'membre' | 'moderateur' | 'admin') {
+async function user(
+  t: Ctx,
+  role: 'membre' | 'moderateur' | 'admin',
+  reviewChief?: boolean,
+) {
   const id = await t.run((ctx) =>
-    ctx.db.insert('users', { email: `${role}@dt.test`, role, name: role }),
+    ctx.db.insert('users', {
+      email: `${role}${reviewChief ? '-chief' : ''}@dt.test`,
+      role,
+      name: role,
+      reviewChief,
+    }),
   );
   return { id, as: t.withIdentity({ subject: `${id}|s` }) };
 }
@@ -123,13 +132,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('Parcours 1 — un dépôt conforme arrive en ligne tout seul', () => {
-  it("de la soumission jusqu'à ce qu'un visiteur puisse le lire", async () => {
+describe('Parcours 1 — un dépôt conforme reste en file : l’IA donne un avis, un chef de revue publie (D-7)', () => {
+  it('de la soumission jusqu’à la lecture par un visiteur, après décision humaine', async () => {
     vi.useFakeTimers();
     const t = convexTest(schema, modules);
     const admin = await user(t, 'admin');
     const membre = await user(t, 'membre');
     const moderateur = await user(t, 'moderateur');
+    const chef = await user(t, 'moderateur', true);
 
     // 1. The ADMINISTRATOR configures the system, via the /admin/moderation-ia screen.
     await admin.as.mutation(api.aiModeration.updateSettings, {
@@ -138,7 +148,9 @@ describe('Parcours 1 — un dépôt conforme arrive en ligne tout seul', () => {
       autoPublishMinConfidence: 85,
       instructions:
         'Privilégier les travaux sourcés et les données vérifiables.',
-      eligibleTypes: ['note'],
+      // A library type listed in the scope: saved by an older version, it
+      // must change nothing (D-7).
+      eligibleTypes: ['note', 'tribune'],
       analyzeAttachments: true,
       maxAttachmentMb: 6,
       dailyCallCap: 200,
@@ -179,32 +191,27 @@ describe('Parcours 1 — un dépôt conforme arrive en ligne tout seul', () => {
     //    submission transaction and outside it.
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-    // 4. WHAT MATTERS: an UNAUTHENTICATED caller — a visitor — reads the
-    //    publication in the library. It is the only assertion that says
-    //    "it is online"; the status in the database only says "the mutation
-    //    wrote".
-    const vue = await t.query(api.publications.getBySlug, { slug });
-    expect(vue).not.toBeNull();
-    expect(vue?.title).toBe(DEPOT.title);
-    expect(vue?.doi).toBe(`10.59000/dt.${slug}`);
+    // 4. WHAT MATTERS: an UNAUTHENTICATED caller — a visitor — does NOT read
+    //    the deposit. The model found nothing to object to, and it is still
+    //    not online: the AI never publishes a library deposit (D-7).
+    expect(await t.query(api.publications.getBySlug, { slug })).toBeNull();
+    const avant = await t.query(api.publications.listPublished, {});
+    expect(avant.items.map((p) => p.slug)).not.toContain(slug);
 
-    const liste = await t.query(api.publications.listPublished, {});
-    expect(liste.items.map((p) => p.slug)).toContain(slug);
-
-    // 5. THE AUTHOR is notified, with the same message as for a human
-    //    approval: from their point of view, their publication is online.
+    // 5. THE AUTHOR has not been told their publication is online.
     const notifs = await membre.as.query(api.notifications.myNotifications, {});
-    expect(notifs.map((n) => n.titleKey)).toContain('pubPublished');
+    expect(notifs.map((n) => n.titleKey)).not.toContain('pubPublished');
 
-    // 6. THE MODERATOR, for their part, sees in their queue that nobody reviewed — and
-    //    can read the verdict that led to it going online.
+    // 6. THE MODERATOR sees the opinion in the queue — advisory, with the
+    //    reason nothing was applied.
     const file = await moderateur.as.query(api.publications.listForReview, {
-      status: 'all',
+      status: 'pending',
       paginationOpts: { numItems: 20, cursor: null },
     });
     const ligne = file.page.find((p) => p.slug === slug);
-    expect(ligne?.autoPublished).toBe(true);
-    expect(ligne?.aiReview?.applied).toBe('published');
+    expect(ligne?.autoPublished).toBe(false);
+    expect(ligne?.aiReview?.verdict).toBe('approve');
+    expect(ligne?.aiReview?.applied).toBe('escalated');
 
     const avis = await moderateur.as.query(api.aiModeration.getReview, {
       publicationId: ligne!._id,
@@ -214,6 +221,25 @@ describe('Parcours 1 — un dépôt conforme arrive en ligne tout seul', () => {
     // The applied scale is traceable: settings version at the time of
     // analysis — here 2, the settings then the rule each having incremented it.
     expect(avis?.configVersion).toBe(2);
+
+    // 7. A moderator WITHOUT the function cannot decide, however favourable
+    //    the opinion; the review chief can, and only then is it online.
+    await expect(
+      moderateur.as.mutation(api.publications.reviewPublication, {
+        publicationId: ligne!._id,
+        decision: 'approved',
+      }),
+    ).rejects.toThrow();
+    expect(await t.query(api.publications.getBySlug, { slug })).toBeNull();
+
+    await chef.as.mutation(api.publications.reviewPublication, {
+      publicationId: ligne!._id,
+      decision: 'approved',
+    });
+    const vue = await t.query(api.publications.getBySlug, { slug });
+    expect(vue?.title).toBe(DEPOT.title);
+    const apres = await t.query(api.publications.listPublished, {});
+    expect(apres.items.map((p) => p.slug)).toContain(slug);
   });
 });
 
@@ -223,7 +249,8 @@ describe('Parcours 2 — un signal bloquant retient le dépôt et appelle un hum
     const t = convexTest(schema, modules);
     const admin = await user(t, 'admin');
     const membre = await user(t, 'membre');
-    const moderateur = await user(t, 'moderateur');
+    // The editorial team is the review chiefs and the administrators.
+    const moderateur = await user(t, 'moderateur', true);
 
     await admin.as.mutation(api.aiModeration.updateSettings, {
       mode: 'auto',
@@ -368,34 +395,44 @@ describe('Parcours 3 — un dépôt qui essaie de manipuler le relecteur', () =>
 
 describe('Parcours 4 — revenir sur une publication automatique', () => {
   it('le retrait sort le document de la bibliothèque et le rend à la file', async () => {
-    vi.useFakeTimers();
     const t = convexTest(schema, modules);
-    const admin = await user(t, 'admin');
-    const membre = await user(t, 'membre');
     const moderateur = await user(t, 'moderateur');
 
-    await admin.as.mutation(api.aiModeration.updateSettings, {
-      mode: 'auto',
-      model: 'anthropic/claude-opus-5',
-      autoPublishMinConfidence: 85,
-      instructions: '',
-      eligibleTypes: ['note'],
-      analyzeAttachments: true,
-      maxAttachmentMb: 6,
-      dailyCallCap: 200,
+    // A deposit the AI put online BEFORE D-7 (it no longer does): the exit
+    // stays open for those, at moderator rank.
+    const { id, slug } = await t.run(async (ctx) => {
+      const authorUserId = await ctx.db.insert('users', {
+        email: 'auteur@dt.test',
+        role: 'membre',
+      });
+      const slug = 'budgets-participatifs-legacy';
+      const id = await ctx.db.insert('publications', {
+        title: DEPOT.title,
+        slug,
+        type: DEPOT.type,
+        theme: DEPOT.theme,
+        region: DEPOT.region,
+        languages: DEPOT.languages,
+        access: DEPOT.access,
+        authors: DEPOT.authors,
+        year: DEPOT.year,
+        publishedAt: Date.now(),
+        abstract: DEPOT.abstract,
+        keypoints: [],
+        body: [],
+        doi: '',
+        downloads: 0,
+        citations: 0,
+        views: 0,
+        status: 'published',
+        autoPublished: true,
+        reviewedAt: Date.now(),
+        authorUserId,
+        submittedAt: Date.now(),
+        createdAt: Date.now(),
+      });
+      return { id, slug };
     });
-    mockGateway({
-      overall: 'approve',
-      confidence: 95,
-      summary: 'Rien à signaler.',
-      findings: allPass(),
-    });
-
-    const { id, slug } = await membre.as.mutation(
-      api.publications.submitPublication,
-      DEPOT,
-    );
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(await t.query(api.publications.getBySlug, { slug })).not.toBeNull();
 
     // A moderator reviews after the fact and disagrees.

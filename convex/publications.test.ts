@@ -538,7 +538,11 @@ describe('Modération de publication (F-32 / F-26)', () => {
       ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'mod@test.org',
+      }),
     );
     const { id } = await t
       .withIdentity({ subject: `${memberId}|s` })
@@ -622,7 +626,11 @@ describe('Modération de publication — machine à états (issue #9)', () => {
       ctx.db.insert('users', { role: 'membre', email: 'membre@test.org' }),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'mod@test.org',
+      }),
     );
     const { id } = await t
       .withIdentity({ subject: `${memberId}|s` })
@@ -702,7 +710,11 @@ describe('Modération de publication — machine à états (issue #9)', () => {
   it('refuse d’approuver un brouillon jamais soumis', async () => {
     const t = convexTest(schema, modules);
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'mod@test.org',
+      }),
     );
     const asMod = t.withIdentity({ subject: `${modId}|s` });
     // A draft: never submitted, hence never reviewed (no `reviewedAt`).

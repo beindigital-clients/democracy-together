@@ -6,6 +6,7 @@ import {
   exportUserDataProgrammes,
 } from '../programmes';
 import { deleteUserDataEditorial, exportUserDataEditorial } from '../editorial';
+import { deleteUserDataKohop, exportUserDataKohop } from '../kohopUserData';
 import {
   deleteUserDataCommunaute,
   exportUserDataCommunaute,
@@ -784,6 +785,12 @@ export const CHANTIER_USER_DATA_MODULES: UserDataModule[] = [
     key: 'editorial',
     delete: (ctx, userId) => deleteUserDataEditorial(ctx, userId),
     export: (ctx, userId) => exportUserDataEditorial(ctx, userId),
+  },
+  {
+    // KOHOP (D-14): the published texts and analyses stay online, de-attributed.
+    key: 'kohop',
+    delete: (ctx, userId, meta) => deleteUserDataKohop(ctx, userId, meta),
+    export: (ctx, userId, meta) => exportUserDataKohop(ctx, userId, meta),
   },
   {
     key: 'contenus',

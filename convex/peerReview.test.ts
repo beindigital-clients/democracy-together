@@ -78,9 +78,15 @@ function pubDoc(over: Record<string, unknown> = {}) {
   };
 }
 
-async function userWithRole(t: T, role: Role, email: string, name?: string) {
+async function userWithRole(
+  t: T,
+  role: Role,
+  email: string,
+  name?: string,
+  reviewChief?: boolean,
+) {
   const id = await t.run((ctx) =>
-    ctx.db.insert('users', { role, email, name }),
+    ctx.db.insert('users', { role, email, name, reviewChief }),
   );
   return { id, as: t.withIdentity({ subject: `${id}|s` }) };
 }
@@ -105,11 +111,14 @@ async function storePdf(t: T, title?: string): Promise<Id<'_storage'>> {
 
 async function setup(t: T) {
   const author = await userWithRole(t, 'membre', AUTHOR_EMAIL, AUTHOR_NAME);
+  // The editor holds the review chief function: deciding a manuscript
+  // publishes it, which only a review chief or an administrator may do (D-7).
   const editor = await userWithRole(
     t,
     'editeur',
     'eric@test.org',
     'Éric Éditeur',
+    true,
   );
   const rev1 = await userWithRole(
     t,
@@ -296,7 +305,13 @@ describe('Désignation des relecteurs (F-43)', () => {
 
   it('refuse l’auteur comme relecteur de son propre texte (REVIEWER_IS_AUTHOR)', async () => {
     const t = convexTest(schema, modules);
-    const editor = await userWithRole(t, 'editeur', 'ed@test.org');
+    const editor = await userWithRole(
+      t,
+      'editeur',
+      'ed@test.org',
+      undefined,
+      true,
+    );
     const modAuthor = await userWithRole(t, 'moderateur', 'moda@test.org');
     const pubId = await t.run((ctx) =>
       ctx.db.insert('publications', pubDoc({ authorUserId: modAuthor.id })),
@@ -696,7 +711,7 @@ describe('Machine à états : toute transition hors table est refusée (F-43)', 
   it.each(cases)('%s + %o', async (from, op) => {
     const t = convexTest(schema, modules);
     const author = await userWithRole(t, 'membre', 'a@test.org', 'A');
-    const editor = await userWithRole(t, 'editeur', 'e@test.org', 'E');
+    const editor = await userWithRole(t, 'editeur', 'e@test.org', 'E', true);
     const reviewer = await userWithRole(t, 'moderateur', 'r@test.org', 'R');
     const fileId = await storePdf(t);
     const pubId = await t.run(async (ctx) => {
@@ -1243,5 +1258,90 @@ describe('Peer review — contenu (terme banni)', () => {
     expect(haystack).not.toContain('démocratie libérale');
     expect(haystack).not.toContain('democratie liberale');
     expect(haystack).not.toContain('liberal democracy');
+  });
+});
+
+describe('Décision d’un manuscrit — chef de revue et administrateur seulement (D-7)', () => {
+  it('un éditeur sans la fonction ne peut pas décider, et rien n’est écrit', async () => {
+    const t = convexTest(schema, modules);
+    const s = await setup(t);
+    await openWithTwoReviewers(t, s);
+    const plainEditor = await userWithRole(
+      t,
+      'editeur',
+      'sans-fonction@test.org',
+      'Éditeur sans fonction',
+    );
+    const before = await t.run(async (ctx) => ({
+      decisions: (await ctx.db.query('manuscriptDecisions').collect()).length,
+      audit: (await ctx.db.query('auditLog').collect()).length,
+      notifications: (await ctx.db.query('notifications').collect()).length,
+    }));
+
+    for (const decision of ['accepted', 'rejected', 'revision'] as const) {
+      await expect(
+        plainEditor.as.mutation(api.peerReview.decideManuscript, {
+          publicationId: s.pubId,
+          decision,
+          reason: REASON,
+        }),
+      ).rejects.toThrow(/chef de revue/);
+    }
+
+    const pub = await t.run((ctx) => ctx.db.get(s.pubId));
+    expect(pub?.status).toBe('pending');
+    expect(pub?.reviewStage).toBe('in_review');
+    const after = await t.run(async (ctx) => ({
+      decisions: (await ctx.db.query('manuscriptDecisions').collect()).length,
+      audit: (await ctx.db.query('auditLog').collect()).length,
+      notifications: (await ctx.db.query('notifications').collect()).length,
+    }));
+    expect(after).toEqual(before);
+  });
+
+  it('un administrateur peut décider', async () => {
+    const t = convexTest(schema, modules);
+    const s = await setup(t);
+    await openWithTwoReviewers(t, s);
+    const admin = await userWithRole(t, 'admin', 'admin@test.org', 'Admin');
+    await s.rev1.as.mutation(api.peerReview.submitReview, {
+      publicationId: s.pubId,
+      recommendation: 'minor',
+      comment: 'Quelques références manquent en section 3.',
+    });
+
+    await admin.as.mutation(api.peerReview.decideManuscript, {
+      publicationId: s.pubId,
+      decision: 'revision',
+      reason: REASON,
+    });
+    expect((await t.run((ctx) => ctx.db.get(s.pubId)))?.reviewStage).toBe(
+      'revision',
+    );
+  });
+
+  it('les alertes de la rédaction vont aux chefs de revue et aux administrateurs', async () => {
+    const t = convexTest(schema, modules);
+    const s = await setup(t);
+    const admin = await userWithRole(t, 'admin', 'admin@test.org', 'Admin');
+    // `s.editor` holds the function; a plain editor does not.
+    const plainEditor = await userWithRole(
+      t,
+      'editeur',
+      'sans-fonction@test.org',
+      'Éditeur sans fonction',
+    );
+
+    await s.author.as.mutation(api.peerReview.submitManuscript, {
+      publicationId: s.pubId,
+    });
+
+    const notified = await t.run(async (ctx) =>
+      (await ctx.db.query('notifications').collect())
+        .filter((n) => n.titleKey === 'manuscriptSubmitted')
+        .map((n) => n.userId),
+    );
+    expect(notified.sort()).toEqual([admin.id, s.editor.id].sort());
+    expect(notified).not.toContain(plainEditor.id);
   });
 });

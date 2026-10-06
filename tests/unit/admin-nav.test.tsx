@@ -7,7 +7,10 @@ import {
   AdminNav,
   ADMIN_NAV_GROUPS,
   adminMinRoleForPath,
+  adminPathRequiresReviewChief,
+  filterAdminNavGroups,
   isAdminNavItemActive,
+  type AdminNavGroup,
   visibleAdminNavGroups,
 } from '@/components/admin/admin-nav';
 import { ROLE_ORDER, type NetworkRole } from '@/lib/roles';
@@ -52,7 +55,6 @@ const STAFF_ITEMS = [
   'Impact',
   'Candidatures',
   'Publications',
-  'Mes relectures',
   // Tribune moderation queue (community workstream), moderator rank.
   'File de modération',
   'Signalements',
@@ -67,7 +69,6 @@ const STAFF_ITEMS = [
 ];
 // "Contenus" ("contenus" workstream, F-62): editor rank.
 const EDITOR_ITEMS = [
-  'Comité de lecture',
   'Rapports annuels',
   'Newsletter',
   'Contenus',
@@ -77,6 +78,9 @@ const EDITOR_ITEMS = [
 // it controls is not moderation, it is the decision to do without it
 // (see the `automatisation` group in admin-nav.tsx).
 const ADMIN_ITEMS = ['Modération IA', 'Finances', 'Utilisateurs', 'Journal'];
+// KOHOP's queue is reserved to review chiefs and administrators: an editor
+// WITHOUT the function does not see it, an administrator always does.
+const KOHOP_ITEMS = ['KOHOP'];
 
 // The entries' accessible NAME specifies the area (RGAA 6.1, see admin-nav.tsx):
 // "Publications (Administration)". The VISIBLE text remains the bare
@@ -91,7 +95,15 @@ function linkNames(nav: HTMLElement): string[] {
 // that adding a screen forces naming it in ITS list (rank), without having to
 // touch a counter at every workstream — the lists themselves remain the
 // specification.
-const ALL_COUNT = STAFF_ITEMS.length + EDITOR_ITEMS.length + ADMIN_ITEMS.length;
+// F-43's entries ("Comité de lecture", the reviewer's "Mes relectures") are
+// HIDDEN since KOHOP opened (D-13): still in the table, never on the bar.
+const LEGACY_HIDDEN = ['Comité de lecture', 'Mes relectures'];
+const ALL_COUNT =
+  STAFF_ITEMS.length +
+  EDITOR_ITEMS.length +
+  ADMIN_ITEMS.length +
+  KOHOP_ITEMS.length;
+const TABLE_COUNT = ALL_COUNT + LEGACY_HIDDEN.length;
 
 describe('Navigation du back-office — entrées selon le rôle (issue #49)', () => {
   it('un modérateur voit les 12 entrées communes, et aucune entrée réservée', () => {
@@ -106,7 +118,7 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
     }
   });
 
-  it('un éditeur ajoute revue, newsletter et contenus, sans les entrées admin', () => {
+  it('un éditeur ajoute newsletter, contenus et rapports, sans les entrées admin', () => {
     const nav = renderNav('editeur');
     expect(linkNames(nav).sort()).toEqual(
       [...STAFF_ITEMS, ...EDITOR_ITEMS].sort(),
@@ -122,7 +134,12 @@ describe('Navigation du back-office — entrées selon le rôle (issue #49)', ()
 
   it('un administrateur voit toutes les entrées attendues', () => {
     const nav = renderNav('admin');
-    const expected = [...STAFF_ITEMS, ...EDITOR_ITEMS, ...ADMIN_ITEMS];
+    const expected = [
+      ...STAFF_ITEMS,
+      ...EDITOR_ITEMS,
+      ...ADMIN_ITEMS,
+      ...KOHOP_ITEMS,
+    ];
     expect(expected).toHaveLength(ALL_COUNT);
     expect(linkNames(nav).sort()).toEqual([...expected].sort());
   });
@@ -236,9 +253,9 @@ describe('Navigation du back-office — cohérence de la table (issue #49)', () 
 
   it('aucun chemin ni aucune clé de libellé en double', () => {
     const items = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
-    expect(items).toHaveLength(ALL_COUNT);
-    expect(new Set(items.map((i) => i.href)).size).toBe(ALL_COUNT);
-    expect(new Set(items.map((i) => i.key)).size).toBe(ALL_COUNT);
+    expect(items).toHaveLength(TABLE_COUNT);
+    expect(new Set(items.map((i) => i.href)).size).toBe(TABLE_COUNT);
+    expect(new Set(items.map((i) => i.key)).size).toBe(TABLE_COUNT);
   });
 
   it('chaque libellé et chaque titre de groupe est traduit, en français comme en anglais', async () => {
@@ -284,15 +301,85 @@ describe('adminMinRoleForPath', () => {
 
   it('est cohérent avec la barre : ce qu’elle cache à un rôle, la coquille le refuse', () => {
     for (const role of ROLE_ORDER) {
+      // Rank only: the review-chief condition is exercised below, so every
+      // account is treated as holding the function here.
       const visible = new Set(
-        visibleAdminNavGroups(role).flatMap((g) => g.items.map((i) => i.href)),
+        visibleAdminNavGroups(role, true).flatMap((g) =>
+          g.items.map((i) => i.href),
+        ),
       );
       for (const item of ADMIN_NAV_GROUPS.flatMap((g) => g.items)) {
+        // Hidden from everyone by decision (D-13), though the shell still guards it.
+        if (item.legacyReview) continue;
         const allowed =
           ROLE_ORDER.indexOf(role) >=
           ROLE_ORDER.indexOf(adminMinRoleForPath(item.href));
         expect(allowed).toBe(visible.has(item.href));
       }
     }
+  });
+});
+
+// REVIEW CHIEF CONDITION (KOHOP). The review chief is a function, not a rank:
+// an entry can ask for it IN ADDITION to the group's minimum rank. The rule is
+// exercised on a table of its own, then on the real one (KOHOP's queue).
+describe('Navigation du back-office — entrées réservées au chef de revue', () => {
+  const GROUPS: readonly AdminNavGroup[] = [
+    {
+      key: 'edition',
+      labelKey: 'navGroup_edition',
+      minRole: 'moderateur',
+      items: [
+        { href: '/admin/revue', key: 'review' },
+        { href: '/admin/kohop', key: 'kohop', requiresReviewChief: true },
+      ],
+    },
+    {
+      key: 'solo',
+      labelKey: 'navGroup_comptes',
+      minRole: 'moderateur',
+      items: [{ href: '/admin/x', key: 'x', requiresReviewChief: true }],
+    },
+  ];
+  const keys = (role: NetworkRole, reviewChief: boolean) =>
+    filterAdminNavGroups(GROUPS, role, reviewChief).flatMap((g) =>
+      g.items.map((i) => i.key),
+    );
+
+  it('un modérateur sans la fonction ne voit pas l’entrée, ni le groupe qu’elle laisserait vide', () => {
+    expect(keys('moderateur', false)).toEqual(['review']);
+    expect(
+      filterAdminNavGroups(GROUPS, 'moderateur', false).map((g) => g.key),
+    ).toEqual(['edition']);
+  });
+
+  it('un chef de revue la voit, en plus du rang minimal', () => {
+    expect(keys('moderateur', true)).toEqual(['review', 'kohop', 'x']);
+    expect(keys('editeur', true)).toEqual(['review', 'kohop', 'x']);
+  });
+
+  it('l’administrateur la voit sans avoir la fonction', () => {
+    expect(keys('admin', false)).toEqual(['review', 'kohop', 'x']);
+  });
+
+  it('la fonction ne remplace pas le rang du groupe', () => {
+    expect(keys('membre', true)).toEqual([]);
+  });
+
+  it('l’entrée KOHOP de la barre réelle est réservée au chef de revue et à l’administrateur', () => {
+    const hrefs = (role: NetworkRole, chief: boolean) =>
+      visibleAdminNavGroups(role, chief).flatMap((g) =>
+        g.items.map((i) => i.href),
+      );
+    expect(hrefs('moderateur', false)).not.toContain('/admin/kohop');
+    expect(hrefs('editeur', false)).not.toContain('/admin/kohop');
+    // A moderator holding the function sees it, below the `edition` group's rank.
+    expect(hrefs('moderateur', true)).toContain('/admin/kohop');
+    expect(hrefs('admin', false)).toContain('/admin/kohop');
+    expect(adminPathRequiresReviewChief('/admin/kohop')).toBe(true);
+    expect(adminPathRequiresReviewChief('/admin/kohop/abc')).toBe(true);
+    expect(adminMinRoleForPath('/admin/kohop')).toBe('moderateur');
+    expect(adminPathRequiresReviewChief('/admin/publications')).toBe(false);
+    expect(adminPathRequiresReviewChief('/admin/inconnu')).toBe(false);
   });
 });

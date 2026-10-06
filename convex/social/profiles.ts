@@ -88,6 +88,8 @@ const myProfileValidator = v.object({
   messagePolicy: messagePolicyValidator,
   mutedNotificationTypes: v.array(v.string()),
   messageEmail: v.boolean(),
+  // KOHOP: opted out of being proposed as a reviewer.
+  notReviewer: v.boolean(),
   followerCount: v.number(),
   followingCount: v.number(),
   organization: orgValidator,
@@ -131,6 +133,7 @@ export const getMine = query({
         messagePolicy: DEFAULT_MESSAGE_POLICY,
         mutedNotificationTypes: [],
         messageEmail: false,
+        notReviewer: false,
         followerCount: 0,
         followingCount: 0,
       };
@@ -151,6 +154,7 @@ export const getMine = query({
       messagePolicy: p.messagePolicy,
       mutedNotificationTypes: p.mutedNotificationTypes,
       messageEmail: p.messageEmail,
+      notReviewer: p.notReviewer === true,
       followerCount: p.followerCount,
       followingCount: p.followingCount,
     };
@@ -185,6 +189,8 @@ export const saveProfile = mutation({
     messagePolicy: messagePolicyValidator,
     mutedNotificationTypes: v.array(v.string()),
     messageEmail: v.boolean(),
+    // Absent = unchanged (older clients); KOHOP opt-out.
+    notReviewer: v.optional(v.boolean()),
   },
   returns: v.object({ handle: v.string() }),
   handler: async (ctx, args) => {
@@ -269,6 +275,9 @@ export const saveProfile = mutation({
       messagePolicy: args.messagePolicy,
       mutedNotificationTypes: muted,
       messageEmail: args.messageEmail,
+      ...(args.notReviewer === undefined
+        ? {}
+        : { notReviewer: args.notReviewer }),
       listed: args.visibility !== 'private',
       searchText: profileSearchText({ displayName, handle, jobTitle, country }),
       nameKey: nameSortKey(displayName),

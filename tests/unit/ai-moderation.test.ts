@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AI_AUTO_ACCEPT_SCOPES,
   AI_MODES,
   APPLY_REASONS,
   BASELINE_RULES,
@@ -18,6 +19,7 @@ import {
   type AiRule,
   type ApplicationInput,
 } from '@convex/lib/aiModeration';
+import { PUB_TYPES } from '@convex/lib/publications';
 
 // PURE LOGIC OF AI-ASSISTED MODERATION.
 //
@@ -51,14 +53,16 @@ const finding = (over: Partial<AiFinding> = {}): AiFinding => ({
 });
 
 // THE case that publishes: auto mode, favorable assessment, no signal, confidence
-// above the threshold, type within scope, no attachment.
+// above the threshold, scope ticked by the administrator, no attachment. Since
+// D-7 the only scope that can be accepted without a human is the Tribune: the
+// AI never publishes a library deposit.
 const PUBLISHABLE: ApplicationInput = {
   mode: 'auto',
   verdict: 'approve',
   confidence: 95,
   findings: [finding(), finding({ ruleKey: 'b1', severity: 'blocking' })],
-  publicationType: 'note',
-  eligibleTypes: ['note', 'rapport'],
+  publicationType: 'tribune',
+  eligibleTypes: ['tribune'],
   minConfidence: 85,
   hasAttachment: false,
   attachmentAnalyzed: false,
@@ -125,6 +129,12 @@ describe('decideApplication — ce qui publie sans relecture humaine', () => {
       APPLY_REASONS.TYPE_OUT_OF_SCOPE,
     ],
     [
+      // D-7: a library type is out of scope even if an old setting lists it.
+      'un type de la bibliothèque, même listé dans le périmètre',
+      { publicationType: 'note', eligibleTypes: ['note', 'tribune'] },
+      APPLY_REASONS.TYPE_OUT_OF_SCOPE,
+    ],
+    [
       'un périmètre vide (aucun type coché)',
       { eligibleTypes: [] },
       APPLY_REASONS.TYPE_OUT_OF_SCOPE,
@@ -173,6 +183,33 @@ describe('decideApplication — ce qui publie sans relecture humaine', () => {
     expect(decideApplication({ ...PUBLISHABLE, confidence: 85 }).applied).toBe(
       'published',
     );
+  });
+});
+
+describe('decideApplication — la bibliothèque ne se publie jamais seule (D-7)', () => {
+  // Every library type, every mode, every verdict, with the most favourable
+  // scope setting one could save: nothing goes online.
+  it('aucun type de la bibliothèque ne passe en ligne, quel que soit le réglage', () => {
+    for (const type of PUB_TYPES) {
+      for (const mode of AI_MODES) {
+        for (const verdict of ['approve', 'flag', 'reject', 'error'] as const) {
+          const decision = decideApplication({
+            ...PUBLISHABLE,
+            mode,
+            verdict,
+            publicationType: type,
+            eligibleTypes: [...PUB_TYPES, 'tribune'],
+          });
+          expect(decision.applied, `${type}/${mode}/${verdict}`).not.toBe(
+            'published',
+          );
+        }
+      }
+    }
+  });
+
+  it('la Tribune reste le seul périmètre qui peut être accepté', () => {
+    expect(AI_AUTO_ACCEPT_SCOPES).toEqual(['tribune']);
   });
 });
 
