@@ -331,7 +331,7 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
 test('un modérateur sans la fonction ne voit ni l’entrée, ni la file KOHOP', async ({
   browser,
 }) => {
-  const mod = await as(browser, 'moderateur');
+  const mod = await as(browser, 'kohopModerateur');
   await mod.goto('/fr/admin');
   await expect(mod.locator('a[href$="/admin/kohop"]')).toHaveCount(0);
   await mod.goto('/fr/admin/kohop');

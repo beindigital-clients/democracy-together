@@ -84,6 +84,7 @@ export type SessionKey =
   | 'editorialRelecteur2'
   | 'kohopAuteur'
   | 'kohopChef'
+  | 'kohopModerateur'
   | 'kohopRelecteur1'
   | 'kohopRelecteur2'
   | 'a11yClavier'
@@ -355,6 +356,13 @@ export const SESSIONS: Record<
     state: 'tests/e2e/.auth/kohop-chef.json',
     role: 'moderateur',
     reviewChief: true,
+  },
+  // A moderator WITHOUT the function: its own session, so that no other spec
+  // rotates its refresh token while `kohop-parcours.spec.ts` uses it.
+  kohopModerateur: {
+    email: 'e2e_session_kohop_moderateur@democracytogether.test',
+    state: 'tests/e2e/.auth/kohop-moderateur.json',
+    role: 'moderateur',
   },
   // The two reviewers the author designates in the same journey.
   kohopRelecteur1: {
