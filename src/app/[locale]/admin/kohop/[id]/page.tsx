@@ -416,7 +416,14 @@ function OriginalityCard({ file, canAct }: { file: Dossier; canAct: boolean }) {
                 </p>
                 {report.error ? (
                   <p className="mt-1 text-sm text-ink-soft">
-                    {t('originalityError', { error: report.error })}
+                    {t('originalityError', {
+                      error: report.error
+                        .split(',')
+                        .map((code) =>
+                          vocabulary(t, 'originalityCode_', code, code),
+                        )
+                        .join(' · '),
+                    })}
                   </p>
                 ) : null}
                 {report.stages.length > 0 ? (

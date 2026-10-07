@@ -22,6 +22,11 @@ export type ExternalResult =
       provider: string;
       matches: ExternalMatch[];
       summary: string;
+      /**
+       * What was NOT fully checked (a source not configured, or that failed).
+       * Named codes, shown to the review chief: a gap is never silent.
+       */
+      warnings?: string[];
     }
   | { status: 'unavailable'; provider: string; error: string }
   | { status: 'failed'; provider: string; error: string };

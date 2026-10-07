@@ -403,3 +403,13 @@ d'environnement nouvelle.** Après le déploiement :
 - Les parcours Playwright n'ont pas été rejoués dans cette session (pas de
   déploiement Convex) : les specs touchées ont été mises à jour à la lecture
   (`barometre`, `espace-membre`, session éditeur de la revue F-43).
+
+### Contrôle externe interne (`PLAGIARISM_PROVIDER=web`)
+
+Une alternative à un fournisseur anti-plagiat tiers (D-17) : la plateforme cherche elle-même des phrases du texte (au plus 10 phrases, 11 mots chacune, entre guillemets) sur le web ouvert (Brave Search) et dans les archives ouvertes (CORE), puis compare mot pour mot avec le moteur de la plateforme. Elle signale, elle ne décide pas.
+
+- **Ce qu'elle voit** : les copies et reprises identiques, avec l'adresse de la source. Deux phrases de la même source : « emprunt à examiner », même si chaque passage est court.
+- **Ce qu'elle ne voit pas** : une traduction ou une reformulation (`SAME_LANGUAGE_ONLY` le dit au chef de revue), les articles payants, ce que les moteurs n'indexent pas.
+- **Confidentialité** : seules des phrases de 11 mots quittent la plateforme, jamais le texte ; rien n'est ajouté à un dépôt tiers.
+- **Fermée par défaut** : une source non configurée, ou en échec, est nommée (`*_NOT_CONFIGURED`, `*_FAILED`, `*_PARTIAL`) ; un texte sans phrase à chercher est « indisponible » (`NO_PROBE`) — jamais « rien à signaler ».
+- **À valider avec de vraies clés** : les tests utilisent des réponses simulées, écrites d'après la documentation de Brave Search et de CORE v3. Les clés réelles n'ont pas encore été essayées.

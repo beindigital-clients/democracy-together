@@ -1,5 +1,6 @@
 import { fakeProvider } from './fake';
 import { noneProvider } from './none';
+import { webProvider } from './web';
 import type {
   ExternalOptions,
   ExternalProvider,
@@ -17,8 +18,14 @@ export { FAKE_PLAGIARISM_MARKER, FAKE_TRANSLATED_MARKER } from './fake';
 // chief must acknowledge explicitly (audited) before accepting — a forgotten
 // configuration is a visible gap, never a silent pass.
 //
-//   PLAGIARISM_PROVIDER = none (default) | fake (tests and demos) | <vendor>
+//   PLAGIARISM_PROVIDER = none (default) | web (internal: open web and open
+//                         scholarly archives, no vendor) | fake (tests and
+//                         demos) | <vendor>
 //   PLAGIARISM_API_KEY  = the vendor's key (never reaches the browser)
+//
+// `web` needs no vendor, only search keys: BRAVE_SEARCH_API_KEY (open web) and
+// CORE_API_KEY (open scholarly archives). See `web.ts` for what it does and,
+// above all, what it does not do.
 //
 // Every provider is called with the same options (`ExternalOptions`): the text
 // is NOT retained by the service, and detection across languages is requested
@@ -30,6 +37,7 @@ export const KOHOP_DEFAULT_PLAGIARISM_PROVIDER = 'none';
 const PROVIDERS: Record<string, ExternalProvider> = {
   none: noneProvider,
   fake: fakeProvider,
+  web: webProvider,
 };
 
 export function configuredProvider(): string {
