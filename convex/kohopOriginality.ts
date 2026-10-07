@@ -848,7 +848,14 @@ export const runAll = internalAction({
       status: result.status,
       provider: result.provider,
       summary: result.status === 'done' ? result.summary : undefined,
-      error: result.status === 'done' ? undefined : result.error,
+      // A finished check can still carry named gaps (a source that failed): the
+      // review chief reads them next to the matches.
+      error:
+        result.status === 'done'
+          ? result.warnings?.length
+            ? result.warnings.join(',')
+            : undefined
+          : result.error,
       matches:
         result.status === 'done'
           ? result.matches.map((m) => ({ ...m, method: 'external' as const }))

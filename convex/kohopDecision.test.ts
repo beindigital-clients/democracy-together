@@ -676,6 +676,30 @@ describe('Originalité', () => {
     }
   });
 
+  it('the internal web check cannot vouch for a text it could not search: still to acknowledge', async () => {
+    vi.stubEnv('PLAGIARISM_PROVIDER', 'web');
+    vi.stubEnv('BRAVE_SEARCH_API_KEY', 'k');
+    try {
+      const w = await inDecision();
+      await drain(w.t);
+      const r = await w.chief.as.query(api.kohopOriginality.reports, {
+        contributionId: w.id,
+      });
+      const external = r?.reports.find((x) => x.scope === 'external')?.report;
+      // The fixture text has no sentence: nothing could be searched.
+      expect(external).toMatchObject({
+        status: 'unavailable',
+        provider: 'web',
+        error: 'NO_PROBE',
+      });
+      await expect(
+        w.chief.as.mutation(api.kohopDecision.accept, { contributionId: w.id }),
+      ).rejects.toThrow('ORIGINALITY_REQUIRED');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('on ne reconnaît pas une vérification qui a abouti', async () => {
     vi.stubEnv('PLAGIARISM_PROVIDER', 'fake');
     try {
