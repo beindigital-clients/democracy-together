@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { runExternalCheck } from './index';
 import {
+  stripTags,
   PROBES_MAX,
   PROBE_WINDOW_WORDS,
   createWebProvider,
@@ -55,6 +56,14 @@ function fakeFetch(handlers: {
   });
   return { f: f as unknown as typeof fetch, calls };
 }
+
+describe('stripTags', () => {
+  it('removes tags until none is left, and decodes entities once', () => {
+    expect(stripTags('<strong>a</strong> &amp; b')).toBe('a & b');
+    expect(stripTags('<scr<script>ipt>x')).not.toContain('<script');
+    expect(stripTags('&amp;lt;b&amp;gt;')).toBe('&lt;b&gt;');
+  });
+});
 
 describe('pickProbes', () => {
   it('keeps distinctive sentences, quotes out, and a phrase of eleven words', () => {

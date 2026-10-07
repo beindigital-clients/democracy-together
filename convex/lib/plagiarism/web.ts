@@ -108,14 +108,31 @@ class SourceError extends Error {
 
 type Fetch = typeof fetch;
 
+const ENTITIES: Record<string, string> = {
+  amp: '&',
+  quot: '"',
+  lt: '<',
+  gt: '>',
+  '#x27': "'",
+  '#39': "'",
+};
+
+/**
+ * Plain text of a search snippet. The result is only compared and shown as text
+ * (never as HTML), but it is cleaned properly anyway: tags are removed until
+ * none is left (one pass can leave a new one behind), and entities are decoded
+ * in ONE pass so `&amp;lt;` stays `&lt;`, never `<`.
+ */
 function stripTags(html: string): string {
-  return html
-    .replace(/<[^>]*>/gu, '')
-    .replace(/&quot;/gu, '"')
-    .replace(/&amp;/gu, '&')
-    .replace(/&#x27;|&#39;/gu, "'")
-    .replace(/&lt;/gu, '<')
-    .replace(/&gt;/gu, '>');
+  let text = html;
+  for (let previous = ''; previous !== text;) {
+    previous = text;
+    text = text.replace(/<[^<>]*>/gu, '');
+  }
+  return text.replace(
+    /&(amp|quot|lt|gt|#x27|#39);/gu,
+    (_, name: string) => ENTITIES[name],
+  );
 }
 
 async function getJson(
@@ -139,6 +156,8 @@ const asRecord = (value: unknown): Record<string, unknown> =>
     : {};
 const asString = (value: unknown): string =>
   typeof value === 'string' ? value : '';
+
+export { stripTags };
 
 export async function braveSearch(
   f: Fetch,
