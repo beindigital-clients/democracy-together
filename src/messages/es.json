@@ -959,7 +959,7 @@
     "docSourceLink": "Ver el documento original",
     "docFigure": "Ilustración {n}",
     "docPageOf": "Página {n}",
-    "docEmpty": "No se ha podido extraer ningún contenido de este documento."
+    "docPending": "Esta versión aún no se ha preparado. Elija su idioma más arriba para prepararla."
   },
   "nav": {
     "homeLabel": "Democracy Together — inicio",

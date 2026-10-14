@@ -959,7 +959,7 @@
     "docSourceLink": "الاطلاع على الوثيقة الأصلية",
     "docFigure": "صورة {n}",
     "docPageOf": "صفحة {n}",
-    "docEmpty": "تعذّر استخراج أي محتوى من هذه الوثيقة."
+    "docPending": "لم تُحضَّر هذه النسخة بعد. اختاروا لغتها أعلاه لتحضيرها."
   },
   "nav": {
     "homeLabel": "Democracy Together — الرئيسية",

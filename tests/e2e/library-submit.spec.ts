@@ -76,7 +76,7 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
   // leaves the "En attente" queue
   await expect(modRow).toHaveCount(0);
 
-  // Published: visible in "Mes contributions" + openable on its page
+  // Published: visible in "Mes publications" + openable on its page
   await page.goto('/fr/espace-membre');
   const pubRow = page.getByRole('row').filter({ hasText: title });
   await expect(pubRow.getByText('Publié')).toBeVisible();
