@@ -59,7 +59,7 @@
 .sheet .page { page: auto; break-after: auto; }
 /* A5 only: the reading text is relatively larger, so give it a little room. */
 [data-format='a5'] .trait { padding: calc(4 * var(--mm)) 0; }
-[data-format='a5'] .monogram { width: calc(25 * var(--mm)); height: calc(25 * var(--mm)); margin-bottom: calc(4 * var(--mm)); }
+[data-format='a5'] .monogram { width: calc(18 * var(--mm)); height: calc(18 * var(--mm)); margin-bottom: calc(3 * var(--mm)); }
 
 @page a4 { size: A4; margin: 0; }
 @page a5 { size: A5; margin: 0; }
@@ -356,7 +356,7 @@ ul.facts .ico { width: calc(7 * var(--mm)); height: calc(7 * var(--mm)); color: 
 
 /* ===================================================== 7 FONDATEURS */
 .founders { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--mm)); }
-.monogram { position: relative; width: calc(30 * var(--mm)); height: calc(30 * var(--mm)); margin-bottom: calc(5 * var(--mm)); }
+.monogram { position: relative; width: calc(18 * var(--mm)); height: calc(18 * var(--mm)); margin-bottom: calc(3.4 * var(--mm)); }
 .monogram .ring { width: 100%; height: 100%; color: var(--indigo); }
 .monogram span {
   position: absolute;
@@ -369,9 +369,10 @@ ul.facts .ico { width: calc(7 * var(--mm)); height: calc(7 * var(--mm)); color: 
   letter-spacing: .02em;
   color: var(--indigo);
 }
-.founders h3 { font-size: calc(16 * var(--dpt)); margin-bottom: calc(2 * var(--mm)); }
+.founders h3 { font-size: calc(16 * var(--dpt)); margin-bottom: calc(.6 * var(--mm)); }
+.founders .role { font-family: var(--serif); font-style: italic; font-size: calc(11 * var(--pt)); line-height: 1.2; color: var(--orange-ink); margin-bottom: calc(1.8 * var(--mm)); }
 .founders p { font-size: calc(10 * var(--pt)); line-height: 1.46; hyphens: manual; }
-.sg { margin-top: calc(6 * var(--mm)); font-size: calc(10 * var(--pt)); color: var(--soft); }
+.sg { margin-top: calc(2.6 * var(--mm)); font-size: calc(10 * var(--pt)); color: var(--soft); }
 ol.timeline {
   list-style: none;
   display: grid;
@@ -404,7 +405,15 @@ ol.timeline li::before {
 ol.timeline li.done::before { background: var(--indigo); }
 ol.timeline li.next::before { background: var(--orange); border-color: var(--orange); }
 ol.timeline strong { display: block; font-family: var(--serif); font-size: calc(13 * var(--dpt)); font-weight: 500; margin-bottom: calc(.8 * var(--mm)); }
-.p7 .money { font-size: calc(10.4 * var(--pt)); margin-top: calc(3 * var(--mm)); max-width: calc(160 * var(--mm)); }
+.p7 .money { font-size: calc(10 * var(--pt)); margin-top: 0; max-width: calc(160 * var(--mm)); }
+.p7 .zone > h3 { font-size: calc(15 * var(--dpt)); margin-bottom: calc(3 * var(--mm)); }
+ul.board { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); column-gap: calc(4 * var(--mm)); padding-top: calc(2.4 * var(--mm)); border-top: calc(.25 * var(--mm)) solid var(--line); font-family: var(--serif); font-size: calc(13.5 * var(--dpt)); line-height: 1.2; color: var(--ink); }
+ul.backers { list-style: none; display: grid; grid-template-columns: 1fr 1fr; column-gap: calc(10 * var(--mm)); row-gap: calc(3 * var(--mm)); }
+ul.backers li { padding-top: calc(2.2 * var(--mm)); border-top: calc(.25 * var(--mm)) solid var(--line); }
+ul.backers strong { display: block; font-family: var(--serif); font-size: calc(14.5 * var(--dpt)); font-weight: 500; line-height: 1.2; margin-bottom: calc(.6 * var(--mm)); }
+ul.backers span { font-size: calc(9.8 * var(--pt)); line-height: 1.4; color: var(--soft); hyphens: manual; }
+[data-format='a5'] .p7 .founders p { font-size: calc(9.4 * var(--pt)); }
+[data-format='a5'] ul.backers span { font-size: calc(9.2 * var(--pt)); }
 
 /* ==================================================== 8 REJOINDRE */
 .p8 { background: var(--paper); color: var(--ink); }
@@ -638,30 +647,48 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
 
 <!-- ============================================================ 7 -->
 <section class="page p7 odd">
-  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(22 * var(--mm))">
+  <div class="zone" data-zone="titre" style="top:calc(18 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(15 * var(--mm))">
     <h2>Ceux qui portent le projet</h2>
   </div>
-  <div class="zone" data-zone="fondateurs" style="top:calc(54 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(112 * var(--mm))">
+  <div class="zone" data-zone="fondateurs" style="top:calc(36 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(84 * var(--mm))">
     <div class="founders">
       <article>
         <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>AS</span></div>
         <h3>Abdou Samb</h3>
-        <p>Ingénieur et mathématicien sénégalais, président de FRS Consulting à Paris, conseiller à la Commission européenne sur la transformation numérique. Nommé «&nbsp;Africain de l’année 2025&nbsp;» aux Mission Africa Awards.</p>
+        <p class="role">Président</p>
+        <p>Ingénieur et mathématicien sénégalais, président de FRS Consulting, conseiller à la Commission européenne sur la transformation numérique. «&nbsp;Africain de l’année 2025&nbsp;» aux Mission Africa Awards.</p>
       </article>
       <article>
         <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>PK</span></div>
         <h3>Philippe Kourilsky</h3>
-        <p>Biologiste français, professeur honoraire au Collège de France, ancien directeur de l’Institut Pasteur, membre de l’Académie des sciences. Auteur de plus de 350 publications scientifiques et d’une dizaine de livres, dont plusieurs sur la démocratie.</p>
+        <p class="role">Cofondateur et vice-président</p>
+        <p>Biologiste, professeur honoraire au Collège de France, ancien directeur de l’Institut Pasteur, membre de l’Académie des sciences. Auteur de plus de 350 publications et d’une dizaine de livres, dont plusieurs sur la démocratie.</p>
       </article>
       <article>
         <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>PV</span></div>
         <h3>Pierre Vimont</h3>
-        <p>Diplomate français, ancien ambassadeur de France aux États-Unis, ancien secrétaire général exécutif du Service européen pour l’action extérieure, senior fellow au Carnegie Endowment for International Peace.</p>
+        <p class="role">Cofondateur et vice-président</p>
+        <p>Diplomate, ancien ambassadeur de France aux États-Unis, ancien secrétaire général exécutif du Service européen pour l’action extérieure, senior fellow au Carnegie Endowment for International Peace.</p>
       </article>
     </div>
+  </div>
+  <div class="zone" data-zone="conseil" style="top:calc(123 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(27 * var(--mm))">
+    <h3>Avec eux au conseil d’administration</h3>
+    <ul class="board">
+      <li>Michèle Boccoz</li><li>Bruno Fuchs</li><li>Jennifer Heurley</li><li>Michel Morvan</li>
+    </ul>
     <p class="sg">Secrétaire générale de l’association&nbsp;: <strong>Armelle Chapalain</strong></p>
   </div>
-  <div class="zone" data-zone="avancement" style="top:calc(178 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(58 * var(--mm))">
+  <div class="zone" data-zone="soutiens" style="top:calc(153 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(56 * var(--mm))">
+    <h3>Parmi les personnalités qui nous soutiennent</h3>
+    <ul class="backers">
+      <li><strong>Philippe Aghion</strong><span>Prix Nobel d’économie</span></li>
+      <li><strong>Françoise Barré-Sinoussi</strong><span>Prix Nobel de médecine</span></li>
+      <li><strong>Pierre Corvol</strong><span>Administrateur honoraire du Collège de France, président honoraire de l’Institut de France</span></li>
+      <li><strong>Carlo Ossola</strong><span>Professeur émérite au Collège de France, président de l’Institut de l’Encyclopédie italienne</span></li>
+    </ul>
+  </div>
+  <div class="zone" data-zone="avancement" style="top:calc(212 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(48 * var(--mm))">
     <h3>Où en sommes-nous&#8239;?</h3>
     <ol class="timeline">
       <li class="done"><strong>Association loi 1901</strong>Siège à Paris</li>
@@ -671,9 +698,8 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
       <li><strong>Pôles régionaux</strong>En Afrique et en Europe, prochainement</li>
     </ol>
   </div>
-  <div class="zone" data-zone="financement" style="top:calc(242 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(38 * var(--mm))">
-    <h3>Financement</h3>
-    <p class="money">Les cotisations des membres, des dons, des subventions d’institutions comme l’Union européenne et des partenariats choisis avec des entreprises engagées dans la RSE. Un fonds dédié aux projets collaboratifs sera créé, et l’association se dotera d’indicateurs de performance.</p>
+  <div class="zone" data-zone="financement" style="top:calc(263 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(13 * var(--mm))">
+    <p class="money"><strong>Financement.</strong> Cotisations des membres, dons, subventions d’institutions comme l’Union européenne et partenariats avec des entreprises engagées dans la RSE.</p>
   </div>
   <p class="folio">07</p>
 </section>

@@ -21,7 +21,7 @@ La V1 tenait en 4 pages très denses (environ 460 mots par page). La V2 passe à
 | 4 | Vision, cinq missions, le champ couvert | Indigo |
 | 5 | La méthode : des contributions courtes, de qualité, évaluées par les pairs | Papier |
 | 6 | KOHOP : le parcours d'une contribution en cinq étapes, ses atouts | Papier clair |
-| 7 | Les fondateurs, où en est le projet, le financement | Papier |
+| 7 | Les fondateurs (avec leur fonction), le conseil d'administration, les personnalités qui soutiennent, où en est le projet, le financement en une ligne | Papier |
 | 8 | Rejoindre le réseau : qui peut adhérer, ce que le réseau apporte, contact | Papier, bandeau indigo |
 
 Imprimée pliée, la plaquette se lit en doubles pages : 2-3 (pourquoi, quoi),
@@ -116,9 +116,22 @@ Typographie anglaise (`plaquette-en.html`) : ponctuation standard, sans espace
 avant `:`, `;`, `?`, `!` ; guillemets anglais courbes `“ ”` et apostrophe
 courbe `’` plutôt que les guillemets français « » et le `&nbsp;`/`&#8239;`.
 
-Le conseil d'administration et le comité d'honneur iront page 7, à côté des
-fondateurs ; le financement pourra alors passer en page 6 ou sur le site. À
-reporter dans les deux langues le jour venu.
+Page 7 (mise à jour du 16/10/2026, suite au courriel de Philippe Kourilsky
+du 15/10, validé par Abdou Samb) : le conseil d'administration et les
+personnalités qui soutiennent le projet sont ajoutés, dans les deux langues.
+Les trois fondateurs gardent leur fiche, avec leur fonction (Président ;
+cofondateur et vice-président) ; les quatre autres administrateurs
+(Michèle Boccoz, Bruno Fuchs, Jennifer Heurley, Michel Morvan) et la secrétaire
+générale (Armelle Chapalain) suivent, sans date : le courriel disait « au 15
+octobre, à ajuster », et l'utilisateur a jugé la date inutile. Soutiens :
+Philippe Aghion, Françoise Barré-Sinoussi, Pierre Corvol, Carlo Ossola, avec
+leur titre. Les « points d'appui » internationaux (point 3 du courriel) sont
+**volontairement absents** : le client attend des confirmations.
+
+Pour faire de la place, voir « Écarts avec le texte V1 » : bios raccourcies,
+financement en une ligne. Les vignettes d'initiales passent de 30 à 18 mm ; en
+A5, le texte des bios et des titres de soutiens est plus petit que le reste du
+texte courant (environ 7,5 pt contre 8,4 pt).
 
 ## Impression
 
@@ -167,6 +180,13 @@ Coupes, à valider :
   Singapore Immunology Network (Philippe Kourilsky), l'Abdou Samb Foundation et
   la phrase sur l'apport d'Abdou Samb au réseau, les domaines de travail de
   Pierre Vimont. Les versions complètes peuvent aller sur le site.
+- Page 7, mise à jour du 16/10 : « français » retiré devant biologiste et
+  diplomate, « à Paris » après FRS Consulting, « scientifiques » après
+  publications, « Nommé » avant « Africain de l'année 2025 » ; le financement
+  tient en une ligne : disparaissent « choisis » (partenariats), la phrase sur
+  le fonds dédié aux projets collaboratifs (déjà dans la liste de la page 8) et
+  celle sur les indicateurs de performance. Aucun fait nouveau n'est retiré
+  côté fondateurs, sauf ces mots.
 
 Corrections déjà faites en V1 et conservées : « récuser » au lieu de
 « réfuter » des relecteurs, « rédacteur en chef » partout, « qualité
@@ -244,6 +264,17 @@ Quelques choix de traduction, à signaler aussi :
    l'instant sa formule à elle, anglais uniquement (« … — and beyond ») — à
    harmoniser avec la couverture et à reporter en français si le client le
    souhaite (voir « Version anglaise »).
+9. Page 7 : l'accord de chaque personnalité pour figurer dans un document
+   diffusé. Abdou Samb mentionne ceux de Françoise Barré-Sinoussi et de
+   Philippe Aghion ; rien dans le courriel pour Pierre Corvol et Carlo Ossola.
+10. Page 7 : le titre anglais de Françoise Barré-Sinoussi, écrit « Nobel Prize
+    in Physiology or Medicine » (intitulé officiel) alors que le client écrit
+    « prix Nobel de médecine ».
+11. Le financement en une ligne et le texte de la page 7 en A5 (environ
+    7,5 pt contre 8,4 pt ailleurs) : acceptable, ou faut-il libérer une page
+    pour les rétablir ? Au-delà, la plaquette passerait à 12 pages.
+12. Fiche d'Abdou Samb : « FRS Consulting » (texte V1, plaquette) ou « A2S
+    International » (page À propos du site) ?
 
 À signaler aussi : la page d'accueil du site annonce des bureaux à « Paris ·
 Dakar · Bruxelles », alors que le texte V1 dit que les pôles régionaux
