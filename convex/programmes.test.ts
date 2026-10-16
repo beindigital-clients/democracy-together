@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
 import { describe, it, expect, beforeEach } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -29,7 +29,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 async function user(t: T, role: Role, name: string) {

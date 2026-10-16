@@ -13,8 +13,12 @@ import { CopyButton } from '@/components/library/copy-button';
 import { PublicationCard } from '@/components/library/publication-card';
 import { ViewCounter, ViewsCount } from '@/components/library/view-counter';
 import { DownloadLink } from '@/components/library/download-link';
-import { buildCitations, formatLongDate } from '@/lib/publications';
-import { alternatesFor } from '@/lib/seo';
+import {
+  buildCitations,
+  formatLongDate,
+  isRegisteredDoi,
+} from '@/lib/publications';
+import { alternatesFor, SITE_URL } from '@/lib/seo';
 import { resolveLocale } from '@/i18n/locale';
 import { vocabulary } from '@/i18n/vocabulary';
 import {
@@ -168,14 +172,16 @@ export default async function PublicationPage({
         };
   const attrs = textAttrs(shown.lang, loc);
 
-  const citations = buildCitations(pub, locale);
-  const doiUrl = `https://doi.org/${pub.doi}`;
-  // Uploaded document (F-32) if present, otherwise fallback to the DOI — and the
-  // button SAYS so: measured on 27/09 (member A-8), the 14 demo
-  // publications without a file displayed "Télécharger le PDF" and
-  // opened a DOI record. Without a file, a single "Consulter
-  // (DOI)" button, and a note explaining it.
-  const fileHref = pub.fileUrl ?? doiUrl;
+  // Permanent link of THIS page. The stored `10.59000/dt.<slug>` identifier is
+  // not a registered DOI (audit A-2): it is neither displayed nor linked to
+  // doi.org until `isRegisteredDoi` accepts its prefix.
+  const permalink = `${SITE_URL}/${locale}/bibliotheque/${pub.slug}`;
+  const doiRegistered = isRegisteredDoi(pub.doi);
+  const citations = buildCitations({ ...pub, url: permalink }, locale);
+  // Uploaded document (F-32) if present. Without one there is NO download
+  // button (it used to fall back to a DOI record that does not exist) — only
+  // a note saying so.
+  const fileHref = pub.fileUrl;
   const langNames = pub.languages
     .map((l) => vocabulary(t, 'langs.', l))
     .join(', ');
@@ -185,7 +191,7 @@ export default async function PublicationPage({
     td('publishedOn', { date: formatLongDate(pub.publishedAt, locale) }),
     ...(pub.pages ? [td('pages', { count: pub.pages })] : []),
     langNames,
-    `DOI ${pub.doi}`,
+    ...(doiRegistered ? [`DOI ${pub.doi}`] : []),
   ];
 
   return (
@@ -393,14 +399,15 @@ export default async function PublicationPage({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <DownloadLink
-                    slug={pub.slug}
-                    href={fileHref}
-                    className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
-                  >
-                    {pub.fileUrl ? td('download') : td('consultDoi')}
-                  </DownloadLink>
-                  {pub.fileUrl ? null : (
+                  {fileHref ? (
+                    <DownloadLink
+                      slug={pub.slug}
+                      href={fileHref}
+                      className="inline-flex w-full items-center justify-center rounded-sm bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                    >
+                      {td('download')}
+                    </DownloadLink>
+                  ) : (
                     <p className="text-[12.5px] leading-relaxed text-ink-soft">
                       {td('noFileNote')}
                     </p>
@@ -409,7 +416,7 @@ export default async function PublicationPage({
                     (images preserved). Offered ONLY when there is a
                     file: without a PDF, the document view would have nothing to
                     show and the link would lead to an empty page. */}
-                  {pub.fileUrl ? (
+                  {fileHref ? (
                     <Link
                       href={`/bibliotheque/${slug}/document`}
                       className="inline-flex w-full items-center justify-center rounded-sm border border-line-strong bg-surface px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
@@ -417,10 +424,8 @@ export default async function PublicationPage({
                       {tTrad('docTitle')}
                     </Link>
                   ) : null}
-                  {/* "Lire en ligne" only makes sense with a document: without a
-                    file, it would open the same DOI record as the main
-                    button. */}
-                  {pub.fileUrl ? (
+                  {/* "Lire en ligne" only makes sense with a document. */}
+                  {fileHref ? (
                     <DownloadLink
                       slug={pub.slug}
                       href={fileHref}
@@ -439,10 +444,14 @@ export default async function PublicationPage({
               )}
               <div className="mt-4 flex items-center gap-2 rounded-sm border border-line bg-surface-2 px-2.5 py-2 font-mono text-xs text-ink-soft">
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                  doi.org/{pub.doi}
+                  {doiRegistered
+                    ? `doi.org/${pub.doi}`
+                    : permalink.replace(/^https?:\/\//, '')}
                 </span>
                 <CopyButton
-                  text={doiUrl}
+                  text={
+                    doiRegistered ? `https://doi.org/${pub.doi}` : permalink
+                  }
                   copiedLabel={td('copied')}
                   size="xs"
                   className="ms-auto"

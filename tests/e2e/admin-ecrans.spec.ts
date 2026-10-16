@@ -11,6 +11,9 @@ test.use({ locale: 'fr-FR' });
 
 // `nav` = tab label, `h1` = the screen's own title (the two
 // often differ), `min` = minimal role to which the tab is offered.
+// F-43's screens ("Mes relectures" of the back office, "Comité de lecture") keep
+// their code but left the navigation when KOHOP opened (D-13): they are no
+// longer reached by a tab.
 const SCREENS = [
   {
     path: '/fr/admin',
@@ -60,25 +63,11 @@ const SCREENS = [
     h1: 'Propositions de projets',
     min: 'moderateur',
   },
-  // REVIEWER view (campaign of 27/09, A-02): open at moderator rank,
-  // it only renders their assignments — the full queue stays with the editor.
-  {
-    path: '/fr/admin/mes-relectures',
-    nav: 'Mes relectures',
-    h1: 'Mes relectures',
-    min: 'moderateur',
-  },
   {
     path: '/fr/admin/signalements',
     nav: 'Signalements',
     h1: 'Signalements de la tribune',
     min: 'moderateur',
-  },
-  {
-    path: '/fr/admin/revue',
-    nav: 'Comité de lecture',
-    h1: 'Revue à comité de lecture',
-    min: 'editeur',
   },
   {
     path: '/fr/admin/newsletter',

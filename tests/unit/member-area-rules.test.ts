@@ -73,7 +73,8 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
         'workspaces',
         'publications',
         'tribune',
-        'manuscripts',
+        'kohop',
+        'kohopReviews',
         'projects',
         'evaluations',
         'youth',
@@ -95,6 +96,8 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
           'workspaces',
           'publications',
           'tribune',
+          'kohop',
+          'kohopReviews',
         ].sort(),
       );
       const groups = visibleMemberNavGroups(role).map((g) => g.key);
@@ -192,6 +195,8 @@ describe('Navigation de l’espace membre — libellés dans les cinq langues', 
     workspaces: 'navWorkspaces',
     publications: 'navPublications',
     tribune: 'navTribune',
+    kohop: 'navKohop',
+    kohopReviews: 'navKohopReviews',
     manuscripts: 'navManuscripts',
     youth: 'navYouth',
     mentoring: 'navMentoring',
@@ -383,6 +388,7 @@ const DRAFT: ProfileDraft = {
   messagePolicy: 'members',
   mutedNotificationTypes: [],
   messageEmail: false,
+  notReviewer: false,
 };
 
 describe('Pays écrit en texte libre (candidature d’adhésion)', () => {
@@ -494,5 +500,24 @@ describe('Notifications — une icône par nature', () => {
     expect(notificationKind('mentoringActive')).toBe('programme');
     // A key the interface does not know yet: a neutral icon.
     expect(notificationKind('somethingNew')).toBe('other');
+  });
+});
+
+describe('F-43 retiré de l’interface (D-13)', () => {
+  it('« Mes manuscrits » et « Comité de lecture » sont masqués, le code est conservé', async () => {
+    const { LEGACY_PEER_REVIEW_UI } = await import('@/lib/legacy-review');
+    expect(LEGACY_PEER_REVIEW_UI).toBe(false);
+    for (const role of ROLE_ORDER) {
+      const keys = visibleMemberNavGroups(role).flatMap((g) =>
+        g.items.map((i) => i.key),
+      );
+      expect(keys).not.toContain('manuscripts');
+    }
+    // The entry still exists in the table (code kept), and so do its screens.
+    expect(
+      MEMBER_NAV_GROUPS.flatMap((g) => g.items).some(
+        (i) => i.key === 'manuscripts',
+      ),
+    ).toBe(true);
   });
 });

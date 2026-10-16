@@ -9,6 +9,8 @@ import {
   isStaff,
   isEditor,
   isAdmin,
+  isReviewChief,
+  canValidatePublications,
 } from '@/lib/roles';
 
 // Default role: a SINGLE definition in the repo (issue #27).
@@ -115,5 +117,50 @@ describe('Gardes UI — la matrice complète des quatre rôles', () => {
   it.each([null, undefined])('refuse tout avec %o', (role) => {
     expect(isEditor(role)).toBe(false);
     expect(isAdmin(role)).toBe(false);
+  });
+});
+
+// REVIEW CHIEF (KOHOP). A FUNCTION granted on top of a staff rank, not a rank:
+// the rule that decides who validates a publication is written once, in the
+// shared module, and the UI reads the same function as `requireReviewChief`.
+describe('canValidatePublications — chef de revue ou administrateur', () => {
+  it('l’UI relit la règle du backend, elle n’en écrit pas une seconde', () => {
+    expect(canValidatePublications).toBe(shared.canValidatePublications);
+  });
+
+  it('l’administrateur valide, avec ou sans la fonction', () => {
+    expect(canValidatePublications({ role: 'admin' })).toBe(true);
+    expect(canValidatePublications({ role: 'admin', reviewChief: false })).toBe(
+      true,
+    );
+  });
+
+  it('la fonction ne vaut qu’à partir du rang modérateur', () => {
+    for (const role of ['moderateur', 'editeur'] as const) {
+      expect(canValidatePublications({ role, reviewChief: true })).toBe(true);
+    }
+    for (const role of ['visiteur', 'membre', undefined, null] as const) {
+      expect(canValidatePublications({ role, reviewChief: true })).toBe(false);
+    }
+  });
+
+  it('sans la fonction, aucun rang inférieur à admin ne valide', () => {
+    for (const role of ['visiteur', 'membre', 'moderateur', 'editeur']) {
+      expect(canValidatePublications({ role })).toBe(false);
+      expect(canValidatePublications({ role, reviewChief: false })).toBe(false);
+      expect(canValidatePublications({ role, reviewChief: null })).toBe(false);
+    }
+  });
+
+  it('un rôle inconnu vaut « visiteur » : même la fonction n’y change rien', () => {
+    expect(
+      canValidatePublications({ role: 'superuser', reviewChief: true }),
+    ).toBe(false);
+  });
+
+  it('isReviewChief est la même règle côté interface', () => {
+    expect(isReviewChief({ role: 'moderateur', reviewChief: true })).toBe(true);
+    expect(isReviewChief({ role: 'moderateur' })).toBe(false);
+    expect(isReviewChief({})).toBe(false);
   });
 });

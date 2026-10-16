@@ -20,7 +20,7 @@ const modules = import.meta.glob([
 describe('Securite — gardes des backdoors DEV sans AUTH_DEV_OTP', () => {
   it('ferme seed/otp (throw) et les oracles de lecture (null)', async () => {
     const t = convexTest(schema, modules);
-    await expect(t.mutation(api.seed.seedDirectory, {})).rejects.toThrow();
+    await expect(t.mutation(internal.seed.seedDirectory, {})).rejects.toThrow();
     await expect(
       t.query(internal.otp.latestDevCode, { email: 'x@y.z' }),
     ).rejects.toThrow();

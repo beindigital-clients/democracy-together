@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
 import { describe, it, expect, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { internal } from './_generated/api';
 import { EMAIL_MAX_LENGTH, FIELD_MAX, isEmail } from './lib/validation';
@@ -188,7 +188,7 @@ describe('rappels d’événements — file non rechargeable (pentest M-5)', () 
   const demain = () => Date.now() + 86_400_000;
 
   const demander = (
-    t: ReturnType<typeof convexTest>,
+    t: TestConvex<typeof schema>,
     eventSlug: string,
     email = CIBLE,
     eventDate = demain(),

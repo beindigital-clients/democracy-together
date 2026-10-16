@@ -138,10 +138,9 @@ test('F-43 : soumis → deux relecteurs → révision demandée → v2 → accep
   await author.goto('/fr/espace-membre');
   // The member-area navigation names the author's screen as the screen
   // itself does.
-  await author
-    .getByRole('navigation', { name: 'Mon espace' })
-    .getByRole('link', { name: 'Mes manuscrits' })
-    .click();
+  // F-43's entries left the navigation when KOHOP opened (D-13); the screen
+  // itself is kept and reached by its address.
+  await author.goto('/fr/espace-membre/manuscrits');
   await expect(author).toHaveURL(/\/espace-membre\/manuscrits$/);
   await card(author, title)
     .getByRole('button', { name: 'Soumettre au comité de lecture' })

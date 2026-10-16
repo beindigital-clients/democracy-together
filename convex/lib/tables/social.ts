@@ -31,6 +31,8 @@ export const socialTables = {
     mutedNotificationTypes: v.array(v.string()),
     // "New message from X" e-mail (without the content). Opt-in.
     messageEmail: v.boolean(),
+    // KOHOP: "do not propose me as a reviewer". Absent = may be proposed.
+    notReviewer: v.optional(v.boolean()),
     // Denormalisations maintained ON WRITE: `listed` = visible in the directory
     // (visibility ≠ private) — used as a filter IN the search index, so that a
     // private profile is not even read; `searchText` and `nameKey` serve search

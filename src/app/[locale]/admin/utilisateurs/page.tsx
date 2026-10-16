@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
-import { ROLE_ORDER, isAdmin, type NetworkRole } from '@/lib/roles';
+import { ROLE_ORDER, isAdmin, roleRank, type NetworkRole } from '@/lib/roles';
+import { Switch } from '@/components/ui/switch';
 import { SelectField } from '@/components/ui/choice-fields';
 import { CreateAccountForm } from '@/components/admin/create-account-form';
 import { AccountActions } from '@/components/admin/account-actions';
@@ -55,6 +56,8 @@ function UsersTable() {
   // detached from the DOM while it was being clicked.
   const me = useConnu(useQuery(api.users.current));
   const setRole_ = useMutation(api.users.setRole);
+  const setReviewChief = useMutation(api.users.setReviewChief);
+  const [chiefBusy, setChiefBusy] = useState<string | null>(null);
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
 
@@ -115,6 +118,29 @@ function UsersTable() {
       // via the refusal reason, and the selector reverts to the actual value.
       fail(err);
       return false;
+    }
+  }
+
+  // Review chief function (KOHOP): an immediate on/off setting, audited
+  // server-side. The server refuses it below `moderateur`; the switch is
+  // disabled there too, with the reason in visible text.
+  async function changeReviewChief(
+    userId: string,
+    name: string,
+    value: boolean,
+  ) {
+    setChiefBusy(userId);
+    try {
+      await setReviewChief({ userId: userId as never, value });
+      notify(
+        t(value ? 'feedbackReviewChiefGranted' : 'feedbackReviewChiefRevoked', {
+          name,
+        }),
+      );
+    } catch (err) {
+      fail(err);
+    } finally {
+      setChiefBusy(null);
     }
   }
 
@@ -197,6 +223,34 @@ function UsersTable() {
                         onApply={(next) => changeRole(u._id, name, next)}
                         onConfirmation={signalerConfirmation}
                       />
+                      <label className="mt-2 flex items-center gap-2 text-xs text-ink-soft">
+                        <Switch
+                          size="sm"
+                          checked={u.reviewChief}
+                          disabled={
+                            chiefBusy === u._id ||
+                            roleRank(u.role) < roleRank('moderateur')
+                          }
+                          aria-label={t('reviewChiefToggle', { name })}
+                          aria-describedby={
+                            roleRank(u.role) < roleRank('moderateur')
+                              ? `chief-hint-${u._id}`
+                              : undefined
+                          }
+                          onCheckedChange={(value) =>
+                            changeReviewChief(u._id, name, value)
+                          }
+                        />
+                        {t('reviewChiefLabel')}
+                      </label>
+                      {roleRank(u.role) < roleRank('moderateur') ? (
+                        <p
+                          id={`chief-hint-${u._id}`}
+                          className="mt-1 text-xs text-muted"
+                        >
+                          {t('reviewChiefNeedsStaff')}
+                        </p>
+                      ) : null}
                     </td>
                     {/* Lifecycle (accounts workstream): state, then actions. */}
                     <td className="max-w-[14rem] py-3 pe-4 align-top">
@@ -216,6 +270,11 @@ function UsersTable() {
                         {u.twoFactor ? (
                           <Badge variant="accent" size="label">
                             {ta('badge2fa')}
+                          </Badge>
+                        ) : null}
+                        {u.reviewChief ? (
+                          <Badge variant="accent" size="label">
+                            {t('reviewChiefLabel')}
                           </Badge>
                         ) : null}
                       </span>

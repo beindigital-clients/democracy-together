@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 
@@ -51,7 +51,7 @@ const DIRECTORY = {
   languages: ['fr'],
 };
 
-async function moderator(t: ReturnType<typeof convexTest>) {
+async function moderator(t: TestConvex<typeof schema>) {
   const id = await t.run((ctx) =>
     ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
   );
@@ -59,7 +59,7 @@ async function moderator(t: ReturnType<typeof convexTest>) {
 }
 
 async function applicationFrom(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
   overrides: Record<string, unknown> = {},
 ) {
   return await t.mutation(internal.organizations.storeApplication, {

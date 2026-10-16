@@ -20,6 +20,7 @@ const NAV = [
   { href: '/a-propos', key: 'about' },
   { href: '/le-reseau', key: 'network' },
   { href: '/bibliotheque', key: 'analyses' },
+  { href: '/kohop', key: 'kohop' },
   { href: '/barometre', key: 'barometer' },
   { href: '/actualites', key: 'news' },
   { href: '/evenements', key: 'events' },

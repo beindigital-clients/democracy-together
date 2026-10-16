@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 
@@ -27,7 +27,7 @@ const modules = import.meta.glob([
 // 30/09). Every test that subscribes someone therefore lets the send finish
 // before it ends. Fake timers are needed for this call only: convex-test also
 // drains what was scheduled under real timers, once its time has passed.
-async function letScheduledSendsFinish(t: ReturnType<typeof convexTest>) {
+async function letScheduledSendsFinish(t: TestConvex<typeof schema>) {
   vi.useFakeTimers();
   try {
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -125,7 +125,7 @@ describe('Newsletter — désinscription par jeton', () => {
 });
 
 describe('Newsletter — campagnes (F-65)', () => {
-  async function asEditor(t: ReturnType<typeof convexTest>) {
+  async function asEditor(t: TestConvex<typeof schema>) {
     const editorId = await t.run((ctx) =>
       ctx.db.insert('users', { role: 'editeur', email: 'editeur@test.org' }),
     );

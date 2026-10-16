@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import { assertMaySignIn } from './lib/signIn';
@@ -17,7 +17,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 
 // An account WITH a real Convex Auth session (`authSessions` row + refresh
 // token): this is what suspension must delete.

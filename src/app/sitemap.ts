@@ -112,6 +112,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* Convex unreachable: we keep the static pages. */
   }
 
+  // KOHOP: the public space is listed ONLY once its access is open; during the
+  // pilot its pages are readable but carry `noindex`, and an indexable list of
+  // them would contradict that.
+  try {
+    if (await fetchQuery(api.kohopPublic.indexable, {})) {
+      entries.push(...localized('kohop'));
+      for (const c of await fetchQuery(api.kohopPublic.list, {})) {
+        entries.push(
+          ...localized(`kohop/${c.slug}`, new Date(c.publishedAt), 'monthly'),
+        );
+      }
+    }
+  } catch {
+    /* same */
+  }
+
   // Published calls for projects and learning paths (F-60, F-57).
   try {
     const calls = await fetchQuery(api.projectCalls.listPublicCalls, {});

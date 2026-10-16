@@ -3,6 +3,7 @@ import { internalMutation } from './_generated/server';
 import { COUNTER, bumpCounter, trackPublicationStatus } from './lib/counters';
 import { networkRole } from './schema';
 import { normalizeEmail } from './lib/onboarding';
+import { roleRank } from './lib/roles';
 import { publicationSearchText } from './lib/searchText';
 
 // DEV/TEST ONLY — internalMutation (OUTSIDE the public API, like
@@ -34,8 +35,36 @@ export const setRoleByEmail = internalMutation({
       await bumpCounter(ctx, COUNTER.USERS, 1);
       return { ok: true, role, created: true, userId: id };
     }
-    await ctx.db.patch(user._id, { role });
+    // Same invariant as `users.setRole`: no review chief below `moderateur`.
+    await ctx.db.patch(
+      user._id,
+      roleRank(role) < roleRank('moderateur')
+        ? { role, reviewChief: undefined }
+        : { role },
+    );
     return { ok: true, role, created: false, userId: user._id };
+  },
+});
+
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): grants or withdraws the review chief
+// function, for the E2E fixtures. Same rule as `users.setReviewChief`: the
+// account must already hold a staff rank.
+export const setReviewChiefByEmail = internalMutation({
+  args: { email: v.string(), value: v.boolean() },
+  handler: async (ctx, { email, value }) => {
+    if (process.env.AUTH_DEV_OTP !== 'true') {
+      throw new Error('Désactivé (AUTH_DEV_OTP).');
+    }
+    const user = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', normalizeEmail(email)))
+      .first();
+    if (!user) throw new Error('Utilisateur introuvable.');
+    if (value && roleRank(user.role) < roleRank('moderateur')) {
+      throw new Error('Rang insuffisant.');
+    }
+    await ctx.db.patch(user._id, { reviewChief: value ? true : undefined });
+    return { ok: true, userId: user._id };
   },
 });
 
@@ -63,7 +92,7 @@ export const clearRoleByEmail = internalMutation({
       .withIndex('email', (q) => q.eq('email', normalized))
       .first();
     if (!user) throw new Error('Utilisateur introuvable.');
-    await ctx.db.patch(user._id, { role: undefined });
+    await ctx.db.patch(user._id, { role: undefined, reviewChief: undefined });
     return { ok: true, userId: user._id };
   },
 });

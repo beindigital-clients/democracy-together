@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -17,7 +17,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 type Role = 'visiteur' | 'membre' | 'moderateur' | 'editeur' | 'admin';
 
 // The invitation schedules a welcome email: in development mode it is
@@ -311,7 +311,6 @@ describe('Organisation ↔ publications ↔ fiche publique', () => {
     const t = convexTest(schema, modules);
     const orgA = await org(t, 'a');
     const owner = await user(t, 'owner@a.org', 'membre', 'Awa Diop');
-    const mod = await user(t, 'mod@test.org', 'moderateur');
     await attach(t, orgA, owner.id, 'owner');
 
     const { id } = await owner.as.mutation(api.publications.submitPublication, {
@@ -332,7 +331,9 @@ describe('Organisation ↔ publications ↔ fiche publique', () => {
     expect(details?.publications).toEqual([]);
     expect(details?.members).toBeNull();
 
-    await mod.as.mutation(api.publications.reviewPublication, {
+    // Only a review chief or an administrator publishes a deposit (D-7).
+    const chief = await user(t, 'chief@test.org', 'admin');
+    await chief.as.mutation(api.publications.reviewPublication, {
       publicationId: id,
       decision: 'approved',
     });

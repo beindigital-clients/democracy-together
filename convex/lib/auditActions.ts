@@ -4,6 +4,10 @@ export const AUDIT = {
   // USER_ROLE_CHANGED, which assumes an acting administrator.
   ADMIN_BOOTSTRAPPED: 'admin.bootstrapped',
   USER_ROLE_CHANGED: 'user.role_changed',
+  // Review chief function (KOHOP): granted or withdrawn by an administrator,
+  // or withdrawn automatically when the account drops below `moderateur`.
+  USER_REVIEW_CHIEF_GRANTED: 'user.review_chief_granted',
+  USER_REVIEW_CHIEF_REVOKED: 'user.review_chief_revoked',
   USER_INVITED: 'user.invited',
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',
@@ -143,6 +147,47 @@ export const AUDIT = {
   MANUSCRIPT_DECIDED: 'manuscript.decided',
   MANUSCRIPT_FILE_RELEASED: 'manuscript.file_released',
   PEER_REVIEW_CONFLICT: 'publication.peer_review_conflict',
+  // KOHOP (peer-reviewed short contributions). One action per fact the log must
+  // be able to tell apart; a decision against the presumption of acceptance has
+  // its own entry, and so does an acceptance without an external check.
+  KOHOP_SETTINGS_CHANGED: 'kohop.settings_changed',
+  KOHOP_DRAFT_CREATED: 'kohop.draft_created',
+  KOHOP_SUBMITTED: 'kohop.submitted',
+  KOHOP_WITHDRAWN: 'kohop.withdrawn',
+  KOHOP_RETURNED: 'kohop.returned',
+  KOHOP_INADMISSIBLE: 'kohop.inadmissible',
+  KOHOP_REVIEWER_PROPOSED: 'kohop.reviewer_proposed',
+  KOHOP_REVIEWER_APPROVED: 'kohop.reviewer_approved',
+  KOHOP_REVIEWER_RECUSED: 'kohop.reviewer_recused',
+  KOHOP_REVIEWER_INVITED: 'kohop.reviewer_invited',
+  KOHOP_REVIEWER_ACCEPTED: 'kohop.reviewer_accepted',
+  KOHOP_REVIEWER_DECLINED: 'kohop.reviewer_declined',
+  KOHOP_REVIEWER_REPLACED: 'kohop.reviewer_replaced',
+  KOHOP_REVIEWER_EXPIRED: 'kohop.reviewer_expired',
+  KOHOP_REVIEW_STARTED: 'kohop.review_started',
+  KOHOP_REVIEW_SUBMITTED: 'kohop.review_submitted',
+  KOHOP_REVISION_SUBMITTED: 'kohop.revision_submitted',
+  KOHOP_REVISION_EXPIRED: 'kohop.revision_expired',
+  KOHOP_REVISION_EXTENDED: 'kohop.revision_extended',
+  KOHOP_ACCEPTED: 'kohop.accepted',
+  KOHOP_REFUSED: 'kohop.refused',
+  KOHOP_REFUSED_AGAINST_PRESUMPTION: 'kohop.refused_against_presumption',
+  KOHOP_ACCEPTED_WITHOUT_EXTERNAL_CHECK:
+    'kohop.accepted_without_external_check',
+  KOHOP_PROOF_SENT: 'kohop.proof_sent',
+  KOHOP_PROOF_APPROVED: 'kohop.proof_approved',
+  KOHOP_CORRECTIONS_REQUESTED: 'kohop.corrections_requested',
+  KOHOP_COPYEDITED: 'kohop.copyedited',
+  KOHOP_READY: 'kohop.ready',
+  KOHOP_SCHEDULED: 'kohop.scheduled',
+  KOHOP_UNSCHEDULED: 'kohop.unscheduled',
+  KOHOP_PUBLISHED: 'kohop.published',
+  KOHOP_RETRACTED: 'kohop.retracted',
+  KOHOP_LINK_CHECKED: 'kohop.link_checked',
+  KOHOP_SUGGESTED: 'kohop.suggested',
+  KOHOP_ORIGINALITY_CHECKED: 'kohop.originality_checked',
+  KOHOP_EXTERNAL_INVITATION: 'kohop.external_invitation',
+  KOHOP_DATA_DELETED: 'kohop.data_deleted',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];

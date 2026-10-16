@@ -105,6 +105,8 @@ export type BarometerContent = {
       name: string;
       sub: string;
       formats: string[];
+      // Kept for when a DOI is really registered (`isRegisteredDoi`); never
+      // displayed otherwise.
       doi: string;
     }[];
   };
@@ -418,7 +420,7 @@ const fr: BarometerContent = {
   datasets: {
     eyebrow: 'Jeux de données',
     title: 'Télécharger et citer',
-    lead: "Chaque jeu est versionné, accompagné de son codebook et d'un identifiant DOI citable. Données d'illustration.",
+    lead: "Chaque jeu est versionné et accompagné de son codebook. Données d'illustration.",
     headers: {
       dataset: 'Jeu de données',
       formats: 'Formats',
@@ -765,7 +767,7 @@ const en: BarometerContent = {
   datasets: {
     eyebrow: 'Datasets',
     title: 'Download and cite',
-    lead: 'Each dataset is versioned, comes with its codebook and a citable DOI. Illustration data.',
+    lead: 'Each dataset is versioned and comes with its codebook. Illustration data.',
     headers: {
       dataset: 'Dataset',
       formats: 'Formats',
@@ -1112,7 +1114,7 @@ const es: BarometerContent = {
   datasets: {
     eyebrow: 'Conjuntos de datos',
     title: 'Descargar y citar',
-    lead: 'Cada conjunto está versionado y va acompañado de su libro de códigos y de un identificador DOI citable. Datos de ilustración.',
+    lead: 'Cada conjunto está versionado y va acompañado de su libro de códigos. Datos de ilustración.',
     headers: {
       dataset: 'Conjunto de datos',
       formats: 'Formatos',
@@ -1457,7 +1459,7 @@ const pt: BarometerContent = {
   datasets: {
     eyebrow: 'Conjuntos de dados',
     title: 'Descarregar e citar',
-    lead: 'Cada conjunto é versionado e acompanhado do seu livro de códigos e de um identificador DOI citável. Dados de ilustração.',
+    lead: 'Cada conjunto é versionado e acompanhado do seu livro de códigos. Dados de ilustração.',
     headers: {
       dataset: 'Conjunto de dados',
       formats: 'Formatos',
@@ -1802,7 +1804,7 @@ const ar: BarometerContent = {
   datasets: {
     eyebrow: 'مجموعات البيانات',
     title: 'التنزيل والاستشهاد',
-    lead: 'كل مجموعة مرقَّمة الإصدار ومصحوبة بدليل ترميزها وبمعرِّف DOI قابل للاستشهاد. بيانات توضيحية.',
+    lead: 'كل مجموعة مرقَّمة الإصدار ومصحوبة بدليل ترميزها. بيانات توضيحية.',
     headers: {
       dataset: 'مجموعة البيانات',
       formats: 'الصيغ',

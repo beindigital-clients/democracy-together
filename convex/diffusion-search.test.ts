@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, expect, it } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import { publicationSearchText } from './lib/searchText';
@@ -9,7 +9,7 @@ import { publicationSearchText } from './lib/searchText';
 // newly created post awaits approval. These tests cover what happens
 // AFTER publication; they therefore set a posteriori mode, like the setting
 // the administrator can choose.
-async function tribuneAPosteriori(t: ReturnType<typeof convexTest>) {
+async function tribuneAPosteriori(t: TestConvex<typeof schema>) {
   await t.run(async (ctx) => {
     const admin = await ctx.db.insert('users', {
       role: 'admin',
@@ -41,7 +41,7 @@ const modules = import.meta.glob([
   '!./http.ts',
 ]);
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 
 function pub(over: Record<string, unknown> = {}) {
   const base = {

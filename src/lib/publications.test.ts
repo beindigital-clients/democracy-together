@@ -3,6 +3,8 @@ import {
   buildCitations,
   formatAuthorList,
   formatAuthorParts,
+  isRegisteredDoi,
+  REGISTERED_DOI_PREFIXES,
 } from './publications';
 
 // Author list: punctuation is a LANGUAGE rule (issue #34).
@@ -81,7 +83,8 @@ describe('buildCitations — la citation APA suit la langue de lecture', () => {
       { name: 'Chen Wei' },
     ],
     year: 2026,
-    doi: '10.5281/zenodo.1234567',
+    doi: '10.59000/dt.gouvernance-numerique',
+    url: 'https://democracy-together.org/fr/bibliotheque/gouvernance-numerique',
     type: 'rapport',
   };
 
@@ -105,5 +108,56 @@ describe('buildCitations — la citation APA suit la langue de lecture', () => {
     const en = buildCitations(pub, 'en');
     expect(en.bibtex).toBe(fr.bibtex);
     expect(en.ris).toBe(fr.ris);
+  });
+});
+
+// DOI (audit A-2, D-12). The library stores an INTERNAL identifier shaped like
+// a DOI; none is registered, so it must never be shown or linked to doi.org.
+// `isRegisteredDoi` is the one gate, and its list of prefixes is empty for now.
+describe('isRegisteredDoi — aucun DOI n’est présenté tant qu’aucun préfixe n’est enregistré', () => {
+  it('la liste des préfixes enregistrés est vide pour l’instant', () => {
+    expect(REGISTERED_DOI_PREFIXES).toEqual([]);
+  });
+
+  it('refuse l’identifiant interne 10.59000/dt.<slug>', () => {
+    expect(isRegisteredDoi('10.59000/dt.gouvernance-numerique')).toBe(false);
+    expect(isRegisteredDoi('10.5281/zenodo.1234567')).toBe(false);
+  });
+
+  it('refuse l’absence de valeur', () => {
+    expect(isRegisteredDoi('')).toBe(false);
+    expect(isRegisteredDoi(null)).toBe(false);
+    expect(isRegisteredDoi(undefined)).toBe(false);
+  });
+
+  it('accepte un DOI dont le préfixe est enregistré, et lui seul', () => {
+    const prefixes = ['10.59000'];
+    expect(isRegisteredDoi('10.59000/dt.x', prefixes)).toBe(true);
+    // A prefix is matched up to the slash, never as a bare string prefix.
+    expect(isRegisteredDoi('10.590001/dt.x', prefixes)).toBe(false);
+    expect(isRegisteredDoi('10.5281/zenodo.1', prefixes)).toBe(false);
+  });
+});
+
+describe('buildCitations — le lien permanent remplace le DOI non enregistré', () => {
+  const pub = {
+    title: 'Gouvernance numérique',
+    authors: [{ name: 'Awa Diop' }],
+    year: 2026,
+    doi: '10.59000/dt.gouvernance-numerique',
+    url: 'https://democracy-together.org/fr/bibliotheque/gouvernance-numerique',
+    type: 'rapport',
+  };
+
+  it('APA, BibTeX et RIS pointent vers la page, sans doi.org', () => {
+    const { apa, bibtex, ris } = buildCitations(pub, 'fr');
+    expect(apa.endsWith(pub.url)).toBe(true);
+    expect(bibtex).toContain(`url    = {${pub.url}}`);
+    expect(ris).toContain(`UR  - ${pub.url}`);
+    for (const citation of [apa, bibtex, ris]) {
+      expect(citation).not.toContain('doi.org');
+      expect(citation).not.toContain('10.59000');
+      expect(citation).not.toMatch(/\bdoi\b|DO {2}-/i);
+    }
   });
 });

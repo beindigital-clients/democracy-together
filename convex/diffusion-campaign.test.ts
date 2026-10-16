@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -77,7 +77,7 @@ function fakeResend(plan: Array<'ok' | 'down' | number> = []) {
   return calls;
 }
 
-async function seed(t: ReturnType<typeof convexTest>) {
+async function seed(t: TestConvex<typeof schema>) {
   return await t.run(async (ctx) => {
     const mk = (
       email: string,
@@ -109,7 +109,7 @@ function recipients(calls: Call[]) {
 }
 
 async function draft(
-  t: ReturnType<typeof convexTest>,
+  t: TestConvex<typeof schema>,
   editor: Id<'users'>,
 ): Promise<Id<'newsletterCampaigns'>> {
   const ed = t.withIdentity({ subject: `${editor}|s` });

@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import {
   projectPublication,
   truncateAbstract,
@@ -54,6 +55,12 @@ function doc(access: 'open' | 'members', slug: string) {
   };
 }
 
+// `doc()` as read back from the database, with the `_id` that the projection
+// copies into what it serves.
+function stored(access: 'open' | 'members', slug: string) {
+  return { ...doc(access, slug), _id: slug as Id<'publications'> };
+}
+
 // ---------------------------------------------------------------------------
 // Pure logic
 // ---------------------------------------------------------------------------
@@ -80,7 +87,7 @@ describe('Gating membres — logique pure (F-35)', () => {
 
   it('projectPublication : publication ouverte -> tout est servi', () => {
     const out = projectPublication(
-      doc('open', 'ouverte'),
+      stored('open', 'ouverte'),
       'https://files/x.pdf',
       false,
     );
@@ -92,7 +99,7 @@ describe('Gating membres — logique pure (F-35)', () => {
 
   it('projectPublication : réservée + non-membre -> corps, fichier et résumé masqués', () => {
     const out = projectPublication(
-      doc('members', 'reservee'),
+      stored('members', 'reservee'),
       'https://files/x.pdf',
       false,
     );
@@ -108,7 +115,7 @@ describe('Gating membres — logique pure (F-35)', () => {
 
   it('projectPublication : réservée + membre -> tout est servi', () => {
     const out = projectPublication(
-      doc('members', 'reservee'),
+      stored('members', 'reservee'),
       'https://files/x.pdf',
       true,
     );

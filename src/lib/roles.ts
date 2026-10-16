@@ -9,7 +9,11 @@
 //
 // Real authorization stays server-side (requireNetworkRole); what follows
 // only drives display (UI gate, staff links).
-import { ROLE_ORDER, roleRank } from '@convex/lib/roles';
+import {
+  ROLE_ORDER,
+  roleRank,
+  canValidatePublications,
+} from '@convex/lib/roles';
 
 export {
   ROLE_ORDER,
@@ -17,6 +21,7 @@ export {
   effectiveRole,
   isNetworkRole,
   roleRank,
+  canValidatePublications,
 } from '@convex/lib/roles';
 export type { NetworkRole } from '@convex/lib/roles';
 
@@ -37,4 +42,13 @@ export function isEditor(role: string | null | undefined): boolean {
 
 export function isAdmin(role: string | null | undefined): boolean {
   return roleRank(role) >= ROLE_ORDER.indexOf('admin');
+}
+
+// Review chief (KOHOP): the function granted by an administrator on top of a
+// staff rank. Display only — the server guard is `requireReviewChief`.
+export function isReviewChief(account: {
+  role?: string | null;
+  reviewChief?: boolean | null;
+}): boolean {
+  return canValidatePublications(account);
 }

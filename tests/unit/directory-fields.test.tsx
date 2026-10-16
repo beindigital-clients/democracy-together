@@ -147,12 +147,12 @@ describe("Fiche annuaire à l'approbation", () => {
   it('les boutons sont désactivés pendant la soumission', () => {
     setup({ pending: true });
     expect(
-      screen.getByRole('button', {
+      screen.getByRole<HTMLButtonElement>('button', {
         name: 'Approuver et publier la fiche',
       }).disabled,
     ).toBe(true);
     expect(
-      screen.getByRole('button', {
+      screen.getByRole<HTMLButtonElement>('button', {
         name: 'Approuver sans publier la fiche',
       }).disabled,
     ).toBe(true);

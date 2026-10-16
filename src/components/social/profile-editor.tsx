@@ -489,6 +489,7 @@ function ProfileForm({
         messagePolicy: draft.messagePolicy,
         mutedNotificationTypes: draft.mutedNotificationTypes,
         messageEmail: draft.messageEmail,
+        notReviewer: draft.notReviewer,
       });
       onSaved({
         ...draft,
@@ -811,6 +812,15 @@ function ProfileForm({
             value={draft.messagePolicy}
             onChange={(v) => set('messagePolicy', v)}
           />
+          {/* KOHOP: by default a member may be proposed as a reviewer. */}
+          <div className="-mx-2 border-t border-line pt-4">
+            <SwitchRow
+              label={t('notReviewer')}
+              hint={t('notReviewerHint')}
+              checked={draft.notReviewer}
+              onChange={(v) => set('notReviewer', v)}
+            />
+          </div>
         </div>
       </section>
 

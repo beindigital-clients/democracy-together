@@ -62,7 +62,7 @@ describe('Contenus — saisie traduisible', () => {
     fireEvent.click(
       screen.getByRole('radio', { name: 'Arabe — traduction manquante' }),
     );
-    const input = screen.getByLabelText('Titre');
+    const input = screen.getByLabelText<HTMLInputElement>('Titre');
     expect(input.value).toBe('');
     expect(input.getAttribute('dir')).toBe('rtl');
     expect(input.getAttribute('lang')).toBe('ar');
@@ -72,7 +72,9 @@ describe('Contenus — saisie traduisible', () => {
     // Arabic is now translated: its indicator disappears.
     expect(screen.getByRole('radio', { name: 'Arabe' })).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: 'Français' }));
-    expect(screen.getByLabelText('Titre').value).toBe('Bonjour');
+    expect(screen.getByLabelText<HTMLInputElement>('Titre').value).toBe(
+      'Bonjour',
+    );
   });
 
   it('la colonne « traductions » dit ce qui manque', () => {

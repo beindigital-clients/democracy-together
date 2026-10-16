@@ -1,10 +1,11 @@
-import { v } from 'convex/values';
+import { v, ConvexError } from 'convex/values';
 import { paginationOptsValidator } from 'convex/server';
 import { query, mutation, type QueryCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import {
   requireNetworkRole,
+  requireReviewChief,
   getCurrentUser,
   getActiveUserId,
   rank,
@@ -12,6 +13,7 @@ import {
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
+import { isInOpenPeerReview } from './lib/manuscripts';
 import { assertTransition, type ReviewMachine } from './lib/reviewState';
 import { aiModerationApplied, aiModerationVerdict } from './lib/aiModeration';
 import {
@@ -679,7 +681,8 @@ async function loadAuthors(
   return out;
 }
 
-// Moderation decision (F-32) — moderator and above, audited. Only accepts
+// Moderation decision (F-32) — review chief and administrator only (D-7),
+// audited. Only accepts
 // a SUBMITTED publication (`pending`), see the machine above.
 //  - approved: the publication becomes public (status 'published'; date and
 //    internal DOI assigned if missing);
@@ -691,9 +694,14 @@ export const reviewPublication = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, { publicationId, decision, notes }) => {
-    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const reviewer = await requireReviewChief(ctx);
     const pub = await ctx.db.get(publicationId);
     if (!pub) throw new Error('NOT_FOUND');
+    // A manuscript under open peer review is decided there, not here (A-1).
+    // Refused before anything is written.
+    if (isInOpenPeerReview(pub.reviewStage)) {
+      throw new ConvexError('IN_PEER_REVIEW');
+    }
     assertTransition(
       reviewState(pub),
       decision === 'approved' ? 'published' : 'rejected',
@@ -754,7 +762,8 @@ export const reviewPublication = mutation({
   },
 });
 
-// Reopening a rejection (issue #9) — moderator and above, audited.
+// Reopening a rejection (issue #9) — review chief and administrator only,
+// audited.
 //
 // This is THE backward transition of moderation, and it has a name: a rejection
 // pronounced by mistake goes back into the queue (`pending`) under its own audit
@@ -773,7 +782,7 @@ export const reviewPublication = mutation({
 export const reopenPublicationReview = mutation({
   args: { publicationId: v.id('publications') },
   handler: async (ctx, { publicationId }) => {
-    const reviewer = await requireNetworkRole(ctx, 'moderateur');
+    const reviewer = await requireReviewChief(ctx);
     const pub = await ctx.db.get(publicationId);
     if (!pub) throw new Error('NOT_FOUND');
     const from = reviewState(pub);

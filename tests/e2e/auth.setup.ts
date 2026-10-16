@@ -1,6 +1,11 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { test as setup, expect, type Browser } from '@playwright/test';
-import { menuCompte, provisionUser, provisionPassword } from './_helpers';
+import {
+  menuCompte,
+  provisionUser,
+  provisionPassword,
+  setReviewChief,
+} from './_helpers';
 import { SESSIONS, SESSION_PASSWORD, type SessionKey } from './_sessions';
 
 // `setup` project: opens one session per role and saves it (see _sessions.ts).
@@ -73,10 +78,13 @@ async function sessionIsUsable(
 // spec file carries the role declared in its entry (see _sessions.ts).
 for (const key of Object.keys(SESSIONS) as SessionKey[]) {
   setup(`session partagée : ${key}`, async ({ browser, page }) => {
-    const { email, state, role } = SESSIONS[key];
+    const { email, state, role, reviewChief } = SESSIONS[key];
     const baseURL = setup.info().project.use.baseURL;
 
     if (await sessionIsUsable(browser, state, baseURL)) {
+      // A reused session keeps its account: the function is (re)applied so
+      // that a fixture added later still holds it.
+      if (reviewChief) await setReviewChief(email, true);
       setup.info().annotations.push({
         type: 'session',
         description: `réutilisée depuis ${state}`,
@@ -85,6 +93,7 @@ for (const key of Object.keys(SESSIONS) as SessionKey[]) {
     }
 
     await provisionUser(email, role);
+    if (reviewChief) await setReviewChief(email, true);
     await provisionPassword(email, SESSION_PASSWORD);
 
     await page.goto('/fr/connexion');

@@ -38,7 +38,9 @@ test('baromètre : toutes les sections de la maquette (F-30)', async ({
   await expect(
     page.getByRole('heading', { name: 'Télécharger et citer' }),
   ).toBeVisible();
-  await expect(page.getByText('10.59000/dt.bar.2026')).toBeVisible();
+  // The datasets' identifiers are not registered DOIs (audit A-2): they are
+  // not shown.
+  await expect(page.getByText('10.59000/dt.bar.2026')).toHaveCount(0);
   await expect(
     page.getByRole('link', { name: 'Contribuer aux données' }),
   ).toBeVisible();

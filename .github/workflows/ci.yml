@@ -65,6 +65,9 @@ jobs:
       # test went green without ever enabling `prefers-reduced-motion`. This
       # command is the safeguard, and it belongs in THIS workflow: like the
       # two previous ones, it is deterministic and needs no secret.
+      # Since 02/10/2026 it also types the Vitest files of `convex/` and
+      # `src/` and the `.tsx` of `tests/unit/`, which until then were only
+      # transpiled (see `tsconfig.tests.json`).
       - name: Typecheck (tests)
         run: pnpm typecheck:tests
 

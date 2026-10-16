@@ -176,9 +176,15 @@ describe('Conservation des saisies', () => {
     // The refusal displays a form message — and does not cost a single line of
     // what was written.
     expect(screen.getByRole('alert').textContent).toBe('Envoi impossible.');
-    expect(screen.getByLabelText('Nom').value).toBe(valid.name);
-    expect(screen.getByLabelText('E-mail').value).toBe(valid.email);
-    expect(screen.getByLabelText('Message').value).toBe(valid.message);
+    expect(screen.getByLabelText<HTMLInputElement>('Nom').value).toBe(
+      valid.name,
+    );
+    expect(screen.getByLabelText<HTMLInputElement>('E-mail').value).toBe(
+      valid.email,
+    );
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Message').value).toBe(
+      valid.message,
+    );
   });
 
   it('garde les valeurs après un refus de VALIDATION', () => {
@@ -187,8 +193,10 @@ describe('Conservation des saisies', () => {
     fill('Message', valid.message);
     send();
 
-    expect(screen.getByLabelText('Nom').value).toBe('A');
-    expect(screen.getByLabelText('Message').value).toBe(valid.message);
+    expect(screen.getByLabelText<HTMLInputElement>('Nom').value).toBe('A');
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Message').value).toBe(
+      valid.message,
+    );
   });
 
   it('`reset` revient aux valeurs de départ et efface les messages', () => {
@@ -198,7 +206,7 @@ describe('Conservation des saisies', () => {
     expect(screen.getByText('Indiquez votre nom.')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser' }));
-    expect(screen.getByLabelText('Nom').value).toBe('');
+    expect(screen.getByLabelText<HTMLInputElement>('Nom').value).toBe('');
     expect(screen.queryByText('Indiquez votre nom.')).toBeNull();
     expect(
       screen.getByLabelText('Nom').getAttribute('aria-invalid'),

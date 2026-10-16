@@ -75,7 +75,11 @@ describe('Notifications — déclencheurs (F-25/F-51)', () => {
       ),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'mod@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'mod@test.org',
+      }),
     );
 
     await t
@@ -110,7 +114,11 @@ describe('Notifications — déclencheurs (F-25/F-51)', () => {
       ),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'm@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'm@test.org',
+      }),
     );
     await t
       .withIdentity({ subject: `${modId}|s` })
@@ -142,7 +150,11 @@ describe('Notifications — déclencheurs (F-25/F-51)', () => {
       }),
     );
     const modId = await t.run((ctx) =>
-      ctx.db.insert('users', { role: 'moderateur', email: 'm@test.org' }),
+      ctx.db.insert('users', {
+        role: 'moderateur',
+        reviewChief: true,
+        email: 'm@test.org',
+      }),
     );
     await t
       .withIdentity({ subject: `${modId}|s` })

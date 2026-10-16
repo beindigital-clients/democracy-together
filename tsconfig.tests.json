@@ -1,20 +1,40 @@
 {
-  // Le tsconfig racine EXCLUT `tests/` : sans cette configuration dédiée, aucun
-  // script ne type les fichiers de test. C'est ainsi que `test.use({
-  // reducedMotion })` — option inexistante dans l'API Playwright épinglée — a
-  // pu rester invisible (issue #18) : le test tournait, mais pas dans les
-  // conditions qu'il annonçait. Lancé par `pnpm typecheck:tests`, en CI.
+  // Every test file, in one program. The root tsconfig EXCLUDES `convex/`,
+  // `tests/` and `*.test.*`, and `convex/tsconfig.json` excludes its own
+  // tests: without this configuration, no script types them. Run by
+  // `pnpm typecheck:tests`, in the pre-push hook and in CI.
   //
-  // `audit/` (specs Playwright de l'audit) est typé ICI et non par le tsconfig
-  // racine : ses specs importent des helpers de `tests/`, que `.vercelignore`
-  // retire de l'envoi. Typé avec l'application, il faisait échouer le build
-  // Vercel (« Cannot find module '../../tests/e2e/_panneau' », 28/09).
+  // - Playwright specs (`tests/e2e/`, `audit/`). `test.use({ reducedMotion })`,
+  //   an option the pinned Playwright API does not have, went unnoticed
+  //   because nothing typed them (issue #18): the test ran, but not in the
+  //   conditions it announced. `audit/` is typed HERE and not by the root
+  //   tsconfig: its specs import helpers from `tests/`, which `.vercelignore`
+  //   leaves out of the upload; typed with the application, it broke the
+  //   Vercel build ("Cannot find module '../../tests/e2e/_panneau'", 28/09).
+  // - Vitest files, same globs as `test.include` in `vitest.config.ts`. Until
+  //   02/10/2026 only the `.ts` files of `tests/unit/` were typed: 123 others
+  //   (78 in `convex/`, 15 in `src/`, the 30 `.tsx` of `tests/unit/`) were
+  //   only transpiled, so a call through the wrong reference (`api` for an
+  //   internal mutation) or a fixture typed looser than the schema went
+  //   through unnoticed.
+  //
+  // `vite/client` declares `import.meta.glob`, which the Convex tests call to
+  // hand `convexTest` its modules. `vite` is a devDependency for that reason:
+  // vitest only declares it as a peer.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
     "incremental": false,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
-  "include": ["tests/**/*.ts", "audit/**/*.ts", "playwright.config.ts"],
+  "include": [
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "audit/**/*.ts",
+    "playwright.config.ts",
+    "convex/**/*.test.ts",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
   "exclude": ["node_modules"]
 }

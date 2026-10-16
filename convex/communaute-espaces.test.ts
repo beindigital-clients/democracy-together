@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { describe, it, expect } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import { ConvexError } from 'convex/values';
 import schema from './schema';
 import { api } from './_generated/api';
@@ -22,7 +22,8 @@ const modules = import.meta.glob([
 // success: a non-member gets neither the list nor a URL; a reader uploads
 // nothing; an expired invitation cannot be accepted.
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
+type As = ReturnType<T['withIdentity']>;
 
 async function member(t: T, email: string, name?: string) {
   const id = await t.run((ctx) =>
@@ -88,7 +89,7 @@ async function setup() {
 }
 
 async function upload(
-  as: T,
+  as: As,
   t: T,
   wsId: Id<'workspaces'>,
   name = 'releves.pdf',

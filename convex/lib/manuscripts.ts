@@ -265,3 +265,17 @@ export function assertLength(
   }
   return t;
 }
+
+/**
+ * Is the publication under an OPEN peer review — a stage is set and it is
+ * neither `accepted` nor `rejected`?
+ *
+ * Such a publication is decided in the review (`peerReview.decideManuscript`),
+ * never from the moderation queue: approving it there would publish a text the
+ * reviewers are still reading (audit A-1, bypass of F-43).
+ */
+export function isInOpenPeerReview(
+  stage: ManuscriptStage | null | undefined,
+): boolean {
+  return stage != null && stage !== 'accepted' && stage !== 'rejected';
+}

@@ -40,7 +40,6 @@ async function open(bytes: Uint8Array) {
   // pdf.js detaches the buffer it is given: we pass it a copy.
   return pdfjs.getDocument({
     data: bytes.slice(),
-    isEvalSupported: false,
     useSystemFonts: false,
   }).promise;
 }
@@ -98,9 +97,7 @@ describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
       expect(doc.numPages).toBe(pages);
       expect(pages).toBeGreaterThanOrEqual(2);
 
-      const { info } = (await doc.getMetadata()) as {
-        info: Record<string, unknown>;
-      };
+      const info = (await doc.getMetadata()).info as Record<string, unknown>;
       expect(info.Title).toBe(input.title);
       expect(info.Author).toBe('Democracy Together');
       expect(info.Language).toBe(locale);

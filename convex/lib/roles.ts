@@ -45,3 +45,25 @@ export function effectiveRole(role: string | null | undefined): NetworkRole {
 export function roleRank(role: string | null | undefined): number {
   return ROLE_ORDER.indexOf(effectiveRole(role));
 }
+
+// REVIEW CHIEF (KOHOP, batch 0) — a FUNCTION, not a rank.
+//
+// The review chief and the administrator are the only accounts that validate
+// a publication, in the library as on KOHOP. The function is granted by an
+// administrator (`users.setReviewChief`) and only makes sense for a staff
+// account: a review chief is part of the team, hence goes through the same
+// second factor as any moderator and above.
+//
+// PURE and shared with the UI, like the rest of this module: the screens that
+// show or hide a decision button read THIS function, the server guard
+// (`requireReviewChief`) reads it too.
+export function canValidatePublications(account: {
+  role?: string | null;
+  reviewChief?: boolean | null;
+}): boolean {
+  if (effectiveRole(account.role) === 'admin') return true;
+  return (
+    account.reviewChief === true &&
+    roleRank(account.role) >= ROLE_ORDER.indexOf('moderateur')
+  );
+}

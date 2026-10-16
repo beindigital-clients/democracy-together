@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, usePaginatedQuery } from 'convex/react';
+import { isReviewChief } from '@/lib/roles';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
@@ -287,6 +288,9 @@ function ManuscriptCard({
   const fmt = useDateFormat();
   const assign = useMutation(api.peerReview.assignReviewer);
   const decide = useMutation(api.peerReview.decideManuscript);
+  // Deciding a manuscript publishes it: review chief and administrator only
+  // (D-7). The server refuses anyone else.
+  const canDecide = isReviewChief(useQuery(api.users.current) ?? {});
   const release = useMutation(api.peerReview.releaseVersionFile);
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
@@ -550,6 +554,10 @@ function ManuscriptCard({
         {decisions.length === 0 ? (
           <p className="mt-1 text-[13px] text-muted">
             {vocabulary(tp, 'noDecision_', item.reviewStage)}
+          </p>
+        ) : !canDecide ? (
+          <p className="mt-1 text-[13px] text-muted">
+            {t('pubDecisionReadOnly')}
           </p>
         ) : (
           <div className="mt-2 space-y-2">

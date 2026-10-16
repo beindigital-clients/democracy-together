@@ -1,12 +1,23 @@
 # Modération éditoriale assistée par IA
 
-> Auto-acceptation des dépôts de la bibliothèque (F-32) : un modèle examine
-> chaque soumission au regard de critères écrits par l'administrateur, publie
-> ce qui ne pose aucun problème, et va chercher un humain pour le reste.
+> Un modèle examine chaque dépôt de la bibliothèque (F-32) et chaque billet de
+> la Tribune au regard de critères écrits par l'administrateur, et rend un avis
+> motivé. Pour la bibliothèque, l'avis est **consultatif** : seuls le chef de
+> revue et l'administrateur publient. Pour la Tribune, l'auto-acceptation reste
+> possible si l'administrateur la coche.
 
 **Statut** : implémenté, **éteint par défaut**. Un déploiement qui applique ce
 schéma ne change de comportement que le jour où un administrateur arme le
 dispositif dans `/admin/moderation-ia`.
+
+> **Mise à jour KOHOP, lot 0 (décision D-7).** L'IA ne publie plus **aucun
+> dépôt de la bibliothèque**, quel que soit le réglage enregistré. Le périmètre
+> d'auto-acceptation ne propose plus que la Tribune ; un type de la
+> bibliothèque encore présent dans un ancien réglage est ignoré
+> (`type_out_of_scope`). La décision d'un dépôt revient au chef de revue et à
+> l'administrateur (`requireReviewChief`). Les sections qui parlent de
+> « publication automatique » valent donc pour la Tribune ; pour la
+> bibliothèque, lire « avis consultatif ».
 
 ---
 
@@ -17,7 +28,8 @@ dispositif dans `/admin/moderation-ia`.
 Le modèle ne rend qu'un avis structuré. C'est une mutation Convex qui, en
 relisant l'état courant — mode, périmètre, seuil, statut de la publication —
 applique ou n'applique pas. Aucune sortie de modèle ne publie quoi que ce soit
-par elle-même.
+par elle-même — et, pour la bibliothèque, le serveur n'applique jamais rien
+(D-7).
 
 Trois propriétés en découlent, chacune tenue par du code et couverte par un
 test :
@@ -43,7 +55,7 @@ Réglés dans `/admin/moderation-ia`, du plus inerte au plus autonome.
 | `off` *(défaut)* | non | — | non |
 | `shadow` | oui | **non** | non |
 | `assist` | oui | oui | non |
-| `auto` | oui | oui | **oui**, si aucun signal |
+| `auto` | oui | oui | **Tribune seulement**, si aucun signal et si la case est cochée. Jamais un dépôt de la bibliothèque |
 
 `shadow` est le mode de calibrage, et il mérite d'être employé : on écrit un
 barème, on le laisse tourner quelques semaines sur de vrais dépôts, on relit le
@@ -115,7 +127,12 @@ seuil et l'état — toutes choses que le document ne peut pas atteindre.
 
 `decideApplication` (module pur, table de vérité dans
 `tests/unit/ai-moderation.test.ts`) publie dans **un seul cas**, et refuse pour
-un motif nommé dans tous les autres :
+un motif nommé dans tous les autres. Depuis D-7, ce cas ne concerne que la
+Tribune : un type de la bibliothèque est refusé en `type_out_of_scope` même s'il
+figure dans le périmètre enregistré (`AI_AUTO_ACCEPT_SCOPES`). `applyVerdict`
+double cette règle : même si `decideApplication` changeait un jour, la mutation
+qui écrit sur un dépôt de la bibliothèque ne le fait jamais passer à
+`published`.
 
 | Motif | Quand |
 |---|---|
@@ -125,7 +142,7 @@ un motif nommé dans tous les autres :
 | `attachment_not_read` | le dépôt porte un PDF que le modèle n'a pas lu |
 | `model_flagged` | l'avis n'est pas « conforme » |
 | `low_confidence` | la confiance est sous le seuil réglé |
-| `type_out_of_scope` | le type de publication n'est pas dans le périmètre |
+| `type_out_of_scope` | le type n'est pas dans le périmètre — et **tout type de la bibliothèque** l'est, par construction (D-7) |
 | `analysis_failed` | clé absente, passerelle en panne, réponse illisible, plafond atteint |
 | `already_decided` | un humain a tranché pendant l'analyse |
 
@@ -188,7 +205,10 @@ dépublier un document en ligne et indexé est un retrait de catalogue, qui
 attend l'état `archived` de l'issue #32.
 
 `revertAutoPublication` ouvre **une porte étroite**, et seulement pour les
-mises en ligne automatiques. La justification tient en une phrase : personne
+mises en ligne automatiques. Depuis D-7 l'IA n'en produit plus : la porte ne
+sert qu'aux dépôts mis en ligne **avant** ce changement, et reste au rang
+`moderateur` (elle défait une décision que personne n'a relue, elle n'en
+prend pas). La justification tient en une phrase : personne
 n'a lu ce document, donc le premier regard humain n'*inverse* pas une décision,
 il **est** la décision. Refuser ce retour rendrait l'arbitrage du modèle plus
 définitif que celui d'un modérateur, dont les refus, eux, se rouvrent.
@@ -214,7 +234,8 @@ fois, et la décision suivante sera humaine.
   dans l'avis).
 - **Trois actions d'audit distinctes** : `publication.ai_reviewed` (chaque
   dépôt), `publication.ai_published` (le seul moment où un texte paraît sans
-  qu'un humain l'ait lu), `publication.ai_reverted` (la sortie arrière). Les
+  qu'un humain l'ait lu — plus émise pour la bibliothèque depuis D-7, mais
+  conservée dans le journal historique), `publication.ai_reverted` (la sortie arrière). Les
   fondre en une seule rendrait invisible celle qui engage l'association.
 - **Compteurs** `aiModerationReviews{,.published,.escalated}` — affichés en
   tête du panneau. C'est le rapport des deux derniers qui dira si le barème est
@@ -285,9 +306,10 @@ notre corps de requête. Deux choses comblent l'écart :
    journal.
 5. Passer en **`assist`**. Les modérateurs voient l'avis et gardent la main :
    c'est là qu'on mesure s'il leur fait gagner du temps.
-6. N'ouvrir **`auto`** qu'ensuite, et **sur un périmètre restreint** — un seul
-   type de publication pour commencer. Le périmètre vide est le défaut : armer
-   le mode ne suffit pas à ouvrir la publication automatique.
+6. N'ouvrir **`auto`** qu'ensuite, et seulement pour la **Tribune** (la seule
+   case proposée). Le périmètre vide est le défaut : armer le mode ne suffit
+   pas à ouvrir l'acceptation automatique. Les dépôts de la bibliothèque restent
+   décidés par le chef de revue ou l'administrateur, avis de l'IA à l'appui.
 
 ---
 

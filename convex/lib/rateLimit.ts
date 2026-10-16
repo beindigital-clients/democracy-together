@@ -161,6 +161,12 @@ export const PUBLIC_FORM_LIMITS = {
     perIp: { max: 20, windowMs: HOUR },
     global: { max: 200, windowMs: HOUR },
   },
+  // KOHOP: answer to an external reviewer's invitation (token link, no
+  // account). Tokens are 256-bit, so this bounds noise, not guessing.
+  kohopInvitation: {
+    perIp: { max: 30, windowMs: HOUR },
+    global: { max: 300, windowMs: HOUR },
+  },
   // Donation form (F-28), open to visitors. The global cap is wide: a
   // fundraising campaign causes legitimate spikes.
   donation: {

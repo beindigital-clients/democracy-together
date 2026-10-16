@@ -1,4 +1,5 @@
 import { isMember, isStaff } from '@/lib/roles';
+import { LEGACY_PEER_REVIEW_UI } from '@/lib/legacy-review';
 
 // MEMBER-AREA NAVIGATION — the model, without React.
 //
@@ -23,6 +24,8 @@ export type MemberNavKey =
   | 'workspaces'
   | 'publications'
   | 'tribune'
+  | 'kohop'
+  | 'kohopReviews'
   | 'manuscripts'
   | 'youth'
   | 'mentoring'
@@ -64,6 +67,8 @@ export type MemberNavItem = {
   key: MemberNavKey;
   href: string;
   audience: MemberNavAudience;
+  // Belongs to the legacy F-43 review, hidden since KOHOP (D-13).
+  legacyReview?: boolean;
 };
 
 export type MemberNavGroupKey =
@@ -124,12 +129,25 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
         href: '/espace-membre/contributions',
         audience: 'members',
       },
+      // KOHOP: short contributions reviewed by peers the author chooses.
+      {
+        key: 'kohop',
+        href: '/espace-membre/kohop',
+        audience: 'members',
+      },
+      // The REVIEWER's side of KOHOP: invitations and analyses.
+      {
+        key: 'kohopReviews',
+        href: '/espace-membre/relectures',
+        audience: 'members',
+      },
       // The AUTHOR's side of peer review; reviewers and editors work from
       // the back office (`/admin/mes-relectures`, `/admin/revue`).
       {
         key: 'manuscripts',
         href: '/espace-membre/manuscrits',
         audience: 'network',
+        legacyReview: true,
       },
     ],
   },
@@ -216,7 +234,11 @@ export function visibleMemberNavGroups(
 ): MemberNavGroup[] {
   return MEMBER_NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => isOfferedTo(item.audience, role)),
+    items: group.items.filter(
+      (item) =>
+        isOfferedTo(item.audience, role) &&
+        (!item.legacyReview || LEGACY_PEER_REVIEW_UI),
+    ),
   })).filter((group) => group.items.length > 0);
 }
 

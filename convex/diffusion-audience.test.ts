@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { convexTest } from 'convex-test';
+import { convexTest, type TestConvex } from 'convex-test';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import { KEYS_PER_DAY, OTHER_KEY, dayKey } from './lib/audience';
@@ -27,7 +27,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-type T = ReturnType<typeof convexTest>;
+type T = TestConvex<typeof schema>;
 
 async function daily(t: T) {
   return await t.run((ctx) => ctx.db.query('audienceDaily').collect());
