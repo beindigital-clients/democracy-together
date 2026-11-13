@@ -61,6 +61,8 @@ async function render(data: ReceiptData, file: string) {
   const doc = await pdfjs.getDocument({
     data: bytes.slice(),
     useSystemFonts: false,
+    // pdf.js 6 only exposes `originalCharCode` (the CID) with this flag.
+    fontExtraProperties: true,
   }).promise;
   expect(doc.numPages).toBe(1);
   const page = await doc.getPage(1);
@@ -84,7 +86,7 @@ async function render(data: ReceiptData, file: string) {
     }
   });
   const info = (await doc.getMetadata()).info as Record<string, unknown>;
-  await doc.destroy();
+  await doc.loadingTask.destroy();
   return {
     text: items.join('').replace(/\s+/g, ' ').trim(),
     glyphs,
