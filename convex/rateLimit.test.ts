@@ -286,6 +286,7 @@ describe('Plafond non forgeable — global par formulaire', () => {
     // `donation`: donation form (F-28), open to visitors.
     expect(Object.keys(PUBLIC_FORM_LIMITS).sort()).toEqual([
       'apply',
+      'cercleRequest',
       'contact',
       'donation',
       'eventRegister',

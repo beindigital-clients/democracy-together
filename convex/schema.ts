@@ -42,6 +42,7 @@ import { manuscriptStage } from './lib/manuscripts';
 import { editorialTables } from './lib/tables/editorial';
 export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
 import { diffusionTables } from './lib/tables/diffusion';
+import { cercleTables } from './lib/tables/cercle';
 import { kohopTables } from './lib/tables/kohop';
 
 export default defineSchema({
@@ -1079,6 +1080,7 @@ export default defineSchema({
   ...socialTables,
   ...paiementsTables,
   ...diffusionTables,
+  ...cercleTables,
   ...communauteTables,
   ...contenusTables,
   ...comptesTables,

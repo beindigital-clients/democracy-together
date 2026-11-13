@@ -34,6 +34,14 @@ crons.cron(
   internal.newsletter.purgeExpiredPending,
   {},
 );
+// Cercle des Amis: a CV uploaded but never attached to a request is deleted
+// after a day (convex/cercle.ts `purgeUnclaimedUploads`). Every hour, minute 29.
+crons.cron(
+  'cercle-purge-unclaimed-uploads',
+  '29 * * * *',
+  internal.cercle.purgeUnclaimedUploads,
+  {},
+);
 // Audience measurement: raw events become per-day counters
 // and are deleted — none lives more than a few minutes.
 crons.interval(

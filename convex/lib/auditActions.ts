@@ -12,6 +12,10 @@ export const AUDIT = {
   // Cercle des Amis status: granted or withdrawn (never a role change).
   USER_AMI_GRANTED: 'user.ami_granted',
   USER_AMI_REVOKED: 'user.ami_revoked',
+  // Cercle requests (president's decision) and every opening of a CV: it is
+  // personal data, so who read it is kept.
+  CERCLE_REQUEST_REVIEWED: 'cercle.request_reviewed',
+  CERCLE_CV_VIEWED: 'cercle.cv_viewed',
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',
   MEMBERSHIP_REVIEWED: 'membership.reviewed',

@@ -59,6 +59,9 @@ const STATIC_PATHS = [
   'presse',
   'don',
   'newsletter',
+  // Public presentation and request form of the Cercle des Amis. Its private
+  // space (/espace-membre/cercle) is never listed.
+  'cercle',
   'mentions-legales',
   'confidentialite',
   'accessibilite',

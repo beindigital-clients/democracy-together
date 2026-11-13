@@ -167,6 +167,12 @@ export const PUBLIC_FORM_LIMITS = {
     perIp: { max: 30, windowMs: HOUR },
     global: { max: 300, windowMs: HOUR },
   },
+  // Cercle des Amis: request to join (anonymous, with a CV). Tighter than the
+  // other forms because it also hands out upload URLs.
+  cercleRequest: {
+    perIp: { max: 10, windowMs: HOUR },
+    global: { max: 100, windowMs: HOUR },
+  },
   // Donation form (F-28), open to visitors. The global cap is wide: a
   // fundraising campaign causes legitimate spikes.
   donation: {
