@@ -94,7 +94,8 @@ export type SessionKey =
   | 'espaceMembreAdmin'
   | 'cercleAdmin'
   | 'cercleAdminDecision'
-  | 'cercleAdminListe';
+  | 'cercleAdminListe'
+  | 'cercleAdminMessages';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -299,6 +300,12 @@ export const SESSIONS: Record<
   cercleAdminListe: {
     email: 'e2e_session_cercle_liste@democracytogether.test',
     state: 'tests/e2e/.auth/cercle-liste.json',
+    role: 'admin',
+  },
+  // Messages to the Cercle (test, send in waves).
+  cercleAdminMessages: {
+    email: 'e2e_session_cercle_messages@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-messages.json',
     role: 'admin',
   },
   // "programmes" workstream (F-56 to F-60). Each `programmes-*` file

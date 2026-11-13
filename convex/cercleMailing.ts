@@ -31,7 +31,12 @@ import {
 } from './lib/cercleMailing';
 import { newUnsubToken } from './lib/cercleContacts';
 import { cercleConfirmationEmail } from './lib/cercleMailingContent';
-import { deliveryConfig, idempotencyKey } from './lib/newsletterDelivery';
+import {
+  deliveryConfig,
+  idempotencyKey,
+  msUntilNextUtcDay,
+} from './lib/newsletterDelivery';
+import { addSent, dailyRemaining } from './lib/emailQuota';
 import {
   emailProviderStatus,
   sendEmailBatch,
@@ -285,9 +290,22 @@ const waveRecipientValidator = v.object({
 // go (provider down) come back here, within the bound `CERCLE_CONFIRM_MAX_SENDS`.
 export const _armWave = internalMutation({
   args: { size: v.number() },
-  returns: v.array(waveRecipientValidator),
-  handler: async (ctx, { size }) => {
+  returns: v.object({
+    recipients: v.array(waveRecipientValidator),
+    // Today's sending quota is spent: come back then.
+    retryInMs: v.optional(v.number()),
+  }),
+  handler: async (ctx, { size: asked }) => {
     const now = Date.now();
+    // The sending service's daily quota (EMAIL_DAILY_LIMIT) bounds the wave.
+    const remaining = await dailyRemaining(
+      ctx,
+      deliveryConfig().dailyLimit,
+      now,
+    );
+    if (remaining === 0)
+      return { recipients: [], retryInMs: msUntilNextUtcDay(now) };
+    const size = remaining === undefined ? asked : Math.min(asked, remaining);
     const candidates = await ctx.db
       .query('cercleContacts')
       .withIndex('by_status_and_toAsk', (q) =>
@@ -322,7 +340,7 @@ export const _armWave = internalMutation({
         unsubToken: c.unsubToken,
       });
     }
-    return out;
+    return { recipients: out };
   },
 });
 
@@ -331,9 +349,12 @@ export const _recordConfirmationResults = internalMutation({
     failures: v.array(
       v.object({ contactId: v.id('cercleContacts'), error: v.string() }),
     ),
+    // Messages of the wave that went out: they count against the daily quota.
+    sent: v.number(),
   },
   returns: v.null(),
-  handler: async (ctx, { failures }) => {
+  handler: async (ctx, { failures, sent }) => {
+    await addSent(ctx, sent);
     for (const f of failures) {
       const c = await ctx.db.get(f.contactId);
       if (!c || c.status !== 'pending') continue;
@@ -352,10 +373,21 @@ export const _confirmationWave = internalAction({
   returns: v.null(),
   handler: async (ctx) => {
     const config = deliveryConfig();
-    const wave = await ctx.runMutation(internal.cercleMailing._armWave, {
+    const armed = await ctx.runMutation(internal.cercleMailing._armWave, {
       size: config.batchSize,
     });
-    if (wave.length === 0) return null;
+    const wave = armed.recipients;
+    if (wave.length === 0) {
+      // Nobody left — or today's quota is spent: come back after midnight.
+      if (armed.retryInMs !== undefined) {
+        await ctx.scheduler.runAfter(
+          armed.retryInMs,
+          internal.cercleMailing._confirmationWave,
+          {},
+        );
+      }
+      return null;
+    }
     const sender = senderIdentity();
     const mails = wave.map((r) =>
       cercleConfirmationEmail({
@@ -384,14 +416,10 @@ export const _confirmationWave = internalAction({
           ? []
           : [{ contactId: r.contactId, error: results[i].error }],
       );
-      if (failures.length > 0) {
-        await ctx.runMutation(
-          internal.cercleMailing._recordConfirmationResults,
-          {
-            failures,
-          },
-        );
-      }
+      await ctx.runMutation(internal.cercleMailing._recordConfirmationResults, {
+        failures,
+        sent: wave.length - failures.length,
+      });
       // DEV/TEST only: the link "sent" is readable by the E2E from the
       // development outbox, like the newsletter's confirmation link.
       if (process.env.AUTH_DEV_OTP === 'true') {
@@ -411,6 +439,7 @@ export const _confirmationWave = internalAction({
       );
       await ctx.runMutation(internal.cercleMailing._recordConfirmationResults, {
         failures: wave.map((r) => ({ contactId: r.contactId, error })),
+        sent: 0,
       });
       // A transient failure backs off; the contacts stay askable (their send is
       // counted, bounded by the maximum).
@@ -587,5 +616,37 @@ export const devContact = internalQuery({
       .withIndex('by_email', (q) => q.eq('email', email.trim().toLowerCase()))
       .unique();
     return c ? { status: c.status, unsubToken: c.unsubToken } : null;
+  },
+});
+
+// DEV/TEST only (AUTH_DEV_OTP guard): puts addresses on the list as confirmed,
+// so an E2E can send a campaign to a known number of people without going
+// through requests and confirmations.
+export const _devSeedConfirmed = internalMutation({
+  args: { emails: v.array(v.string()) },
+  returns: v.number(),
+  handler: async (ctx, { emails }) => {
+    if (process.env.AUTH_DEV_OTP !== 'true') return 0;
+    const now = Date.now();
+    let added = 0;
+    for (const raw of emails) {
+      const email = raw.trim().toLowerCase();
+      const existing = await ctx.db
+        .query('cercleContacts')
+        .withIndex('by_email', (q) => q.eq('email', email))
+        .unique();
+      if (existing) continue;
+      await ctx.db.insert('cercleContacts', {
+        email,
+        status: 'confirmed',
+        source: 'request',
+        unsubToken: newUnsubToken(),
+        confirmSends: 0,
+        confirmedAt: now,
+        createdAt: now,
+      });
+      added++;
+    }
+    return added;
   },
 });

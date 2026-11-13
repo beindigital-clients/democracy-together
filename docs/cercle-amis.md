@@ -229,3 +229,71 @@ wording of the confirmation message (in particular how the contacts' origin is
 described — the draft only says the address is "in our contacts"); who may
 import and send (today: administrators import, editors compose and send, like
 the newsletter); the recipient list itself.
+
+## 6. Sending in waves
+
+What changed in the campaign engine (`convex/newsletter.ts`,
+`convex/lib/newsletterDelivery.ts`), for the Cercle's list and — where noted —
+the newsletter too. All of it is enforced by the server.
+
+**Cadence, tuned to the sending service (Resend today).**
+
+- *Request rate.* Resend allows 2 requests per second per account, shared with
+  every other message the platform sends (sign-in codes, receipts), and a batch
+  request carries up to 100 messages. So it is the pause between two batches that
+  has to stay above 1/rate. The floor was 200 ms (5 requests/s) and is now
+  `MIN_INTERVAL_MS = 600` (~1.7 requests/s). The defaults are unchanged and
+  gentle: batches of 50 every 5 s (600 messages a minute), tunable with
+  `NEWSLETTER_BATCH_SIZE` and `NEWSLETTER_RATE_PER_MINUTE`, read on every batch.
+- *Daily quota.* `EMAIL_DAILY_LIMIT` (unset = no cap) is the sending service's
+  daily allowance. The platform counts what it sent per UTC day (`emailQuota`:
+  campaigns and confirmation messages), shrinks a batch to what is left, and when
+  the day's quota is spent the campaign **pauses and resumes by itself at the next
+  UTC midnight**, the screen saying until when. A list larger than the quota
+  therefore goes out over several days instead of failing its tail. This is also
+  the lever for *warm-up* of a new sending domain: start with a low cap and
+  raise it. Applies to the newsletter as well (one account at the provider).
+
+**Waves released by hand (Cercle campaigns).** `sendCampaign` takes an optional
+`waveSize`: the campaign serves that many recipients, then is held `paused`;
+nothing is scheduled until an editor calls `releaseNextWave` (audited). The gap
+is the time to look at what the first wave produced — failures, bounces, replies
+— before going on. Not offered on the newsletter, whose screen does not know the
+`paused` state.
+
+**Failure tracking and retry.** Unchanged engine behaviour, now visible for the
+Cercle: a transient failure resumes the same batch with the same idempotency key
+(no duplicate), three failed attempts mark the rows failed, `campaignFailures`
+groups the reasons and the new `campaignFailedRecipients` names the addresses;
+`retryFailedDeliveries` re-queues only the failed ones (never someone already
+served). A Cercle retry is refused while the sender identity is a placeholder.
+
+**Internal test before the full list.** `sendTestCampaign` accepts up to 5
+addresses, which must be **team accounts** (moderator and above, not suspended):
+an open field would make the platform write to strangers, and the refusal for an
+unknown address is the same as for a non-team one, so a test cannot be used to
+find out who has an account. Every version goes to each address, subject prefixed
+`[TEST]`, with a dummy unsubscribe token. **A Cercle campaign cannot be sent to
+its list unless a test went out after its last change** (`TEST_REQUIRED`); the
+newsletter keeps its own rule (no test required, as before).
+
+The screen is the "Messages" tab of `/admin/cercle`: draft, team test, send (all
+at once or in waves), progress, held-between-waves and daily-quota notices,
+failures and retry.
+
+Tests: `convex/cercle-waves.test.ts` (cadence floor, daily quota over days for
+campaigns and confirmations, waves, failure list and retry, internal test and its
+gate); e2e `tests/e2e/cercle-messages.spec.ts`.
+
+**Recommended, not built:** wire the provider's bounce and complaint webhooks to
+mark the matching contact `unsubscribed` (a bounced or complaining address kept on
+the list damages the sender's reputation), and a per-campaign open/click view if
+the association wants one. Translations of a Cercle message are supported by the
+engine (`upsertCampaignVariant`) but have no screen yet: a message goes out in
+its reference language.
+
+**To confirm with the client:** the daily limit of the Resend plan to be used and
+whether a warm-up schedule is wanted; the size of the first wave; who may send
+(the Cercle screen is administrator-only today, the server accepts editors, so
+David Ojcius's account either gets the administrator rank or the screen is
+opened to editors).

@@ -249,6 +249,11 @@ export function cercleContact(email: string) {
   } | null>('cercleMailing:devContact', { email });
 }
 
+// Puts addresses on the Cercle's list as confirmed (DEV, AUTH_DEV_OTP guard).
+export function seedCercleContacts(emails: string[]): void {
+  convexRun('cercleMailing:_devSeedConfirmed', { emails });
+}
+
 export async function getCercleConfirmationLink(
   email: string,
 ): Promise<string> {

@@ -12,6 +12,7 @@ import { TextareaField } from '@/components/ui/field';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LoadMore } from '@/components/admin/load-more';
 import { AdminCercleList } from '@/components/cercle/admin-cercle-list';
+import { AdminCercleMessages } from '@/components/cercle/admin-cercle-messages';
 import {
   useActionFeedback,
   useFailureFeedback,
@@ -234,7 +235,7 @@ function RequestsTab() {
   );
 }
 
-type Tab = 'requests' | 'list';
+type Tab = 'requests' | 'list' | 'messages';
 
 export default function AdminCerclePage() {
   const t = useTranslations('cercle');
@@ -249,17 +250,24 @@ export default function AdminCerclePage() {
         size="sm"
         value={tab}
         onValueChange={(v) => {
-          if (v === 'requests' || v === 'list') setTab(v);
+          if (v === 'requests' || v === 'list' || v === 'messages') setTab(v);
         }}
         aria-label={t('adminTitle')}
         className="mt-5"
       >
         <ToggleGroupItem value="requests">{t('tabRequests')}</ToggleGroupItem>
         <ToggleGroupItem value="list">{t('tabList')}</ToggleGroupItem>
+        <ToggleGroupItem value="messages">{t('tabMessages')}</ToggleGroupItem>
       </ToggleGroup>
 
       <div className="mt-6">
-        {tab === 'requests' ? <RequestsTab /> : <AdminCercleList />}
+        {tab === 'requests' ? (
+          <RequestsTab />
+        ) : tab === 'list' ? (
+          <AdminCercleList />
+        ) : (
+          <AdminCercleMessages />
+        )}
       </div>
     </div>
   );

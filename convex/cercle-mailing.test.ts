@@ -752,6 +752,9 @@ describe('Cercle mailing — a campaign to the list, kept apart from the newslet
       body: 'Quelques nouvelles.',
       audience: 'cercle',
     });
+    // The internal test is a precondition of a Cercle send (feature 6): stamped
+    // here, its own tests are in cercle-waves.test.ts.
+    await t.run((ctx) => ctx.db.patch(id, { lastTestAt: Date.now() + 1 }));
     await editor.mutation(api.newsletter.sendCampaign, { campaignId: id });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
@@ -829,6 +832,7 @@ describe('Cercle mailing — a campaign to the list, kept apart from the newslet
       body: 'Quelques nouvelles.',
       audience: 'cercle',
     });
+    await t.run((ctx) => ctx.db.patch(id, { lastTestAt: Date.now() + 1 }));
     await expect(
       editor.mutation(api.newsletter.sendCampaign, { campaignId: id }),
     ).rejects.toThrow(/SENDER_IDENTITY_MISSING/);

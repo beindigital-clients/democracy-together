@@ -95,6 +95,7 @@ import type * as lib_directory from "../lib/directory.js";
 import type * as lib_documents from "../lib/documents.js";
 import type * as lib_emailContent from "../lib/emailContent.js";
 import type * as lib_emailLayout from "../lib/emailLayout.js";
+import type * as lib_emailQuota from "../lib/emailQuota.js";
 import type * as lib_fileCheck from "../lib/fileCheck.js";
 import type * as lib_kohop from "../lib/kohop.js";
 import type * as lib_kohopAccess from "../lib/kohopAccess.js";
@@ -320,6 +321,7 @@ declare const fullApi: ApiFromModules<{
   "lib/documents": typeof lib_documents;
   "lib/emailContent": typeof lib_emailContent;
   "lib/emailLayout": typeof lib_emailLayout;
+  "lib/emailQuota": typeof lib_emailQuota;
   "lib/fileCheck": typeof lib_fileCheck;
   "lib/kohop": typeof lib_kohop;
   "lib/kohopAccess": typeof lib_kohopAccess;

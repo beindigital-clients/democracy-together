@@ -97,6 +97,8 @@ Variables du déploiement Convex à cette date :
 | `RECAPTCHA_SECRET_KEY` | absente | compte Google reCAPTCHA v3, en paire avec `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` sur Vercel |
 | `AI_GATEWAY_API_KEY` | absente | compte Vercel AI Gateway ; facultative (§ 1.5) |
 | `NEWSLETTER_UNSUBSCRIBE_MAILTO` | absente | vraie boîte de l'association ; facultative |
+| `CERCLE_SENDER_NAME`, `CERCLE_SENDER_ADDRESS` | absentes (repères « À CONFIRMER » dans les messages) | **nom et adresse postale de l'association**, obligatoires : tant qu'ils manquent, aucun message du Cercle n'est envoyé à de vraies personnes (`docs/cercle-amis.md` § 5) |
+| `EMAIL_DAILY_LIMIT` | absente (pas de plafond) | quota quotidien du service d'envoi (ex. 100 sur l'offre gratuite de Resend) : un envoi groupé se poursuit alors sur plusieurs jours (`docs/cercle-amis.md` § 6) |
 
 `ASSOCIATION_NAME`, `ASSOCIATION_LEGAL_FORM`, `NEWSLETTER_BATCH_SIZE`,
 `NEWSLETTER_RATE_PER_MINUTE`, `AUDIENCE_RETENTION_DAYS`,
@@ -543,6 +545,8 @@ section en donne l'ordre de mise en service, pour qu'aucune étape ne manque.
 | `PAYMENTS_BANK_*`, `ASSOCIATION_*`, `ASSOCIATION_TAX_RECEIPT_ELIGIBLE` | paiements (reçus, virement) | reçus marqués « à compléter », pas de coordonnées de virement |
 | `TWO_FACTOR_ENCRYPTION_KEY` (32 octets base64) | comptes (2FA) | inscription à la double authentification refusée |
 | `NEWSLETTER_BATCH_SIZE`, `NEWSLETTER_RATE_PER_MINUTE`, `NEWSLETTER_UNSUBSCRIBE_MAILTO` | diffusion | valeurs par défaut prudentes |
+| `CERCLE_SENDER_NAME`, `CERCLE_SENDER_ADDRESS` | Cercle des Amis (pied de chaque message) | repères « À CONFIRMER » ; envoi aux vraies personnes refusé |
+| `EMAIL_DAILY_LIMIT` | diffusion (campagnes et messages de confirmation) | pas de plafond quotidien |
 | `AUDIENCE_RETENTION_DAYS`, `AUDIENCE_MAX_HITS_PER_MINUTE` | diffusion (audience) | 13 mois, plafond par défaut |
 
 Variables de développement à **ne jamais** poser en production, en plus

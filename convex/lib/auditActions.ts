@@ -73,6 +73,9 @@ export const AUDIT = {
   NEWSLETTER_CAMPAIGN_SENT: 'newsletter.campaign_sent',
   NEWSLETTER_CAMPAIGN_RETRIED: 'newsletter.campaign_retried',
   NEWSLETTER_TEST_SENT: 'newsletter.test_sent',
+  // A held campaign's next wave let go: each wave commits the association to
+  // that many more people.
+  NEWSLETTER_WAVE_RELEASED: 'newsletter.wave_released',
   NEWSLETTER_LEGACY_MIGRATED: 'newsletter.legacy_migrated',
   // A priori moderation of the Tribune (community workstream, F-45/F-49). One
   // action per DECISION: "approved", "rejected", "removed" do not say the

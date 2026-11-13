@@ -469,6 +469,9 @@ export default defineSchema({
     status: v.union(
       v.literal('draft'),
       v.literal('sending'),
+      // Held between two WAVES (`waveLimit` reached, the rest still queued):
+      // nothing goes out until `releaseNextWave`. Only Cercle campaigns.
+      v.literal('paused'),
       v.literal('sent'),
       v.literal('error'),
     ),
@@ -494,6 +497,15 @@ export default defineSchema({
     enqueueDone: v.optional(v.boolean()),
     startedAt: v.optional(v.number()),
     lastTestAt: v.optional(v.number()),
+    // Last change of the content (a translated version added or removed). A
+    // Cercle campaign may only go out if an internal test was sent AFTER it.
+    editedAt: v.optional(v.number()),
+    // SENDING IN WAVES: how many recipients the campaign may serve so far (sent
+    // + failed). Missing = no limit. The engine stops there and holds the
+    // campaign `paused` until the next wave is released.
+    waveLimit: v.optional(v.number()),
+    // The daily quota is exhausted: sending resumes by itself at this time.
+    pausedUntil: v.optional(v.number()),
   }).index('by_status', ['status']),
 
   // Contact form (F-17).
