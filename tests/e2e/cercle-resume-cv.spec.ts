@@ -93,8 +93,12 @@ test('le président voit le résumé, qui ne décide de rien, seulement pour qui
   // The deployment lives long: the queue is paginated and oldest first, so the
   // requests of this run may sit on a later page.
   const more = page.getByRole('button', { name: 'Charger la suite' });
+  // The queue may be EMPTY (a fresh preview): then there is no list, only the
+  // "no request" line. Wait for whichever comes, never for the list alone.
   await page
     .getByRole('list', { name: 'Demandes' })
+    .or(page.getByText('Aucune demande dans cette liste.'))
+    .first()
     .waitFor({ timeout: 15_000 });
   for (let i = 0; i < 20 && (await withTool.count()) === 0; i++) {
     if (!(await more.isVisible().catch(() => false))) break;
@@ -148,8 +152,12 @@ test('le président voit le résumé, qui ne décide de rien, seulement pour qui
 
   // Leave the queue as found: the second request is refused too.
   await page.getByRole('radio', { name: 'En attente' }).click();
+  // The queue may be EMPTY (a fresh preview): then there is no list, only the
+  // "no request" line. Wait for whichever comes, never for the list alone.
   await page
     .getByRole('list', { name: 'Demandes' })
+    .or(page.getByText('Aucune demande dans cette liste.'))
+    .first()
     .waitFor({ timeout: 15_000 });
   for (let i = 0; i < 20 && (await withoutTool.count()) === 0; i++) {
     if (!(await more.isVisible().catch(() => false))) break;
