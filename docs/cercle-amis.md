@@ -123,3 +123,47 @@ navigation, offered to Amis and to members and above), module
 Tests: `convex/cercle-contributions.test.ts`, the access matrix
 (`CERCLE_PROBES` in `convex/cercle-access.test.ts`), the navigation rules
 (`tests/unit/member-area-rules.test.ts`); e2e `tests/e2e/cercle-espace.spec.ts`.
+
+## 4. Leak control before opening
+
+The Cercle's text (contributions, requests, CVs) must not reach the public
+site. Audit of each path, and what now pins it:
+
+| Path | Finding | Pinned by |
+| --- | --- | --- |
+| Publication list, public lists (news, events, partners, press, replays, themes, KOHOP, tribune, directory, experts) | Each reads its own tables; none can reach a Cercle table | `convex/cercle-leaks.test.ts` asks all of them (anonymous, plain visitor, suspended Ami, member) with markers in every Cercle table; a control marker in a published publication proves the calls return real data |
+| Search | `SEARCH_SOURCES` is a closed list (publications, organizations, tribune, kohop, experts); no Cercle table has a search or vector index or a `search*` field | `convex/cercle-leaks.test.ts` (schema inspection + `globalSearch` / `searchBySource`) and `tests/unit/cercle-leaks.test.ts` (search modules never mention the Cercle) |
+| Sitemap, robots | The sitemap lists the public `/cercle` page only; the private space is under `/espace-membre`, disallowed by robots.txt and behind sign-in at the HTTP level | `tests/unit/cercle-leaks.test.ts`, e2e `tests/e2e/cercle-fuites.spec.ts` (real `/sitemap.xml`, `/robots.txt`, anonymous redirect) |
+| Convex HTTP and Next routes | The only Cercle HTTP route is the anonymous CV upload (POST + CORS preflight), which answers with an id and never reads a table; no `route.ts` mentions the Cercle; no server-side `fetchQuery` of a Cercle function exists | `tests/unit/cercle-leaks.test.ts`, e2e (GET on the endpoint → 404/405) |
+| Automatic translation | `translationSourceType` is a closed union (tribune post, publication): a Cercle source is refused by the validator, and the translation modules never mention the Cercle | `convex/cercle-leaks.test.ts`, `tests/unit/cercle-leaks.test.ts` |
+| Who can read a Cercle table at all | Only `cercle.ts`, `cercleContributions.ts` and the account-data adapter | `tests/unit/cercle-leaks.test.ts` fails if any other module names one (verified by a mutation: adding a read to `publications.ts` turns it red) |
+
+### AI moderation — DECISION TO FLAG TO THE CLIENT
+
+AI moderation (`convex/aiModeration.ts`, `communityModeration.ts`) sends the
+text to a third-party model provider through the AI Gateway. **Default chosen:
+private contributions are NOT sent to it.** Nothing in
+`convex/cercleContributions.ts` imports or schedules the moderation, no network
+call is made when one is submitted, read or removed, and the "no scheduled
+function, no `fetch`" behaviour is tested even with moderation set to `auto`
+(`convex/cercle-leaks.test.ts`).
+
+Consequence: nobody reviews a private contribution before it is read by the
+other Amis. The safeguards are the charter, the Cercle's closed membership
+(every Ami was accepted by the president), the author's own removal and staff
+removal (moderators and above, audited). If the client wants contributions
+screened, the options are (a) a human review queue before display, (b) the AI
+moderation, which requires an explicit decision since it sends private text to
+a third party, to be stated in the notice shown at the request form.
+
+### Residual risks, accepted and written down
+
+- A CV URL (`cercle.openCv`) is a Convex storage URL: anyone holding it can
+  fetch the file until the file is deleted. It is handed only to an
+  administrator's browser, and each handing is audited. It is never stored.
+- Several existing features accept a storage id from the client (workspace
+  files, project calls, peer review, annual reports). Ids are unguessable and a
+  CV id is only ever shown inside a URL to an administrator; the Cercle does not
+  add a path from one to the other, but it does not forbid it either.
+- Uploads of valid PDFs that are never attached to a request are deleted after
+  24 hours (hourly cron), bounded by the per-IP and global caps.
