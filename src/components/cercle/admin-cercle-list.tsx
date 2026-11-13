@@ -91,7 +91,7 @@ export function AdminCercleList() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="font-display text-2xl">{t('listTitle')}</h2>
+        <h2 className="font-display text-2xl">{t('mailListTitle')}</h2>
         <p className="mt-2 max-w-[68ch] text-ink-soft">{t('listIntro')}</p>
       </div>
 

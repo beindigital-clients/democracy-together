@@ -4509,7 +4509,7 @@
     "errSend": "Não foi possível adicionar a contribuição. Tente novamente.",
     "errRate": "Atingiu o limite de contribuições de hoje. Tente novamente amanhã.",
     "feedbackSent": "Contribuição adicionada.",
-    "listTitle": "Lista de distribuição do Círculo",
+    "listTitle": "Contribuições do Círculo",
     "listEmpty": "Ainda não há nenhuma contribuição.",
     "anonymousAuthor": "Um Amigo do Círculo",
     "mineAuthor": "Você",
@@ -4626,6 +4626,7 @@
     "msgFailureLine": "{email}: {error}",
     "msgRetry": "Repetir as falhas",
     "msgRetried": "Repetição iniciada: só as falhas são reenviadas.",
-    "msgRetryErr": "Não foi possível iniciar a repetição."
+    "msgRetryErr": "Não foi possível iniciar a repetição.",
+    "mailListTitle": "Lista de distribuição do Círculo"
   }
 }

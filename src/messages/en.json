@@ -4509,7 +4509,7 @@
     "errSend": "The contribution could not be added. Try again.",
     "errRate": "You have reached today's limit of contributions. Try again tomorrow.",
     "feedbackSent": "Contribution added.",
-    "listTitle": "The Circle's mailing list",
+    "listTitle": "The Circle's contributions",
     "listEmpty": "No contribution yet.",
     "anonymousAuthor": "A Friend of the Circle",
     "mineAuthor": "You",
@@ -4626,6 +4626,7 @@
     "msgFailureLine": "{email}: {error}",
     "msgRetry": "Retry the failures",
     "msgRetried": "Retry started: only the failures are sent again.",
-    "msgRetryErr": "The retry could not be started."
+    "msgRetryErr": "The retry could not be started.",
+    "mailListTitle": "The Circle's mailing list"
   }
 }

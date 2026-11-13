@@ -297,3 +297,72 @@ whether a warm-up schedule is wanted; the size of the first wave; who may send
 (the Cercle screen is administrator-only today, the server accepts editors, so
 David Ojcius's account either gets the administrator rank or the screen is
 opened to editors).
+
+## 7. Account security for the Amis
+
+**Immediate suspension — verified.** The suspension that already existed
+(`accounts.suspendAccount`, administrator, reason required) deletes the account's
+sessions and refresh tokens, and every guard reads the suspension, so a token
+still in hand opens nothing. For an Ami this means: every Cercle door answers
+`ACCOUNT_SUSPENDED`, `cercle.access` says `none`, the account's earlier
+contributions stay readable by the others, reactivation restores everything. One
+thing was added: **a suspended Ami no longer receives the Cercle's news** (the
+campaign engine skips a contact whose account is suspended; their contact row is
+untouched, so reactivation puts them back). Withdrawing the status
+(`users.setAmi`) is just as immediate. Tests: `convex/cercle-security.test.ts`,
+e2e `tests/e2e/cercle-securite.spec.ts`.
+
+**Second factor — study and recommendation: do NOT enforce it on the Amis at
+launch; DO switch it on for the staff before opening.**
+
+What exists: TOTP, enforced from the moderator rank when the policy
+`twoFactorRequiredForStaff` is on, and open to any account that wants it from its
+security screen. An Ami who enrolls is held to it (a new sign-in without the
+code opens nothing: tested). The staff requirement does not reach an Ami (tested).
+
+Why not enforce it on the Amis:
+
+- Amis sign in by a one-time e-mail code. Adding a second factor to a volunteer
+  population is the friction most likely to cost the Cercle members, for little
+  gain: an Ami holds no staff power, sees only free-text contributions shown by
+  first name, and cannot reach a CV, the mailing list or any administration.
+- What an attacker gains by taking over an Ami's mailbox is reading and writing in
+  a closed circle that the president already admitted person by person; both are
+  cut instantly by a suspension.
+
+If the client decides otherwise, the extension is small and local: a
+`twoFactorRequiredForAmis` field on `securitySettings`, one extra condition in
+`evaluateAccess` (`convex/lib/accountAccess.ts`, next to `roleRequiresTwoFactor`,
+reading the policy only for an Ami), the same two safeguards `setSecurityPolicy`
+already applies (key configured, the administrator enabling it has enrolled), and
+a second switch in the policy panel. It was not built: it would change the
+sign-in experience of accounts that never had a staff screen, with no e2e
+coverage of that path, for a threat the closed-circle design already bounds.
+
+**The point that matters before opening — the staff 2FA policy is OFF by
+default** (`DEFAULT_SECURITY_POLICY`, a deliberate choice for the shared test
+deployment). The Cercle makes administrators the holders of personal data: they
+open CVs and import contact lists. **Enable the staff requirement before the
+Cercle opens** (`/admin`, the two-factor panel; the dashboard warns until it is
+done). With it on, an administrator without an enrolled device is stopped before
+any CV or import (tested).
+
+## 8. Later — not built, with its extension point
+
+Depending on Philippe's decision, the Cercle could grow **sponsorship by an
+existing Ami**, a **read-only first stage** for the sponsored person, and a
+**review of their first contributions** before they can write; and an **AI summary
+of a CV, only to help sort requests — never a score, a ranking or a label on a
+person**. None of it is built. What is in place so that adding it does not
+reopen what exists: every Cercle door already asks for a level —
+`requireCercleAccess(ctx, 'read' | 'write')` — and `cercleAccessLevel`
+(`convex/lib/roles.ts`) is the one function that maps an account to `none`,
+`read` or `write` (today: all or nothing, pinned by a test). A sponsored Ami
+starting read-only is then one field on the account and one branch in that
+function, with the request carrying an optional sponsor; the review of first
+contributions is a `pending` state on `cercleContributions` filtered by the list
+query. Two conditions to settle first: the AI summary sends a CV to a third-party
+model, so it needs the same explicit decision as the AI moderation (§ 4), the
+notice shown at the request form updated, and an output limited to a neutral
+summary shown to the president next to the CV, never stored as a field on the
+person.

@@ -4509,7 +4509,7 @@
     "errSend": "La contribution n'a pas pu être ajoutée. Réessayez.",
     "errRate": "Vous avez atteint la limite de contributions pour aujourd'hui. Réessayez demain.",
     "feedbackSent": "Contribution ajoutée.",
-    "listTitle": "Liste de diffusion du Cercle",
+    "listTitle": "Contributions du Cercle",
     "listEmpty": "Aucune contribution pour le moment.",
     "anonymousAuthor": "Un Ami du Cercle",
     "mineAuthor": "Vous",
@@ -4626,6 +4626,7 @@
     "msgFailureLine": "{email} : {error}",
     "msgRetry": "Relancer les échecs",
     "msgRetried": "Relance lancée : seuls les échecs sont renvoyés.",
-    "msgRetryErr": "La relance n'a pas pu être lancée."
+    "msgRetryErr": "La relance n'a pas pu être lancée.",
+    "mailListTitle": "Liste de diffusion du Cercle"
   }
 }

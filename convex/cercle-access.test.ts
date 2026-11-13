@@ -4,7 +4,12 @@ import { convexTest } from 'convex-test';
 import schema from './schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { ROLE_ORDER, hasCercleAccess, isAmi } from './lib/roles';
+import {
+  ROLE_ORDER,
+  cercleAccessLevel,
+  hasCercleAccess,
+  isAmi,
+} from './lib/roles';
 
 // CERCLE DES AMIS — ACCESS MATRIX (visitor / Ami / member / moderator / admin).
 //
@@ -190,6 +195,25 @@ describe('Cercle — pure rules', () => {
     }
     // A role outside the hierarchy (legacy data) never opens the space.
     expect(hasCercleAccess({ role: 'super-admin' })).toBe(false);
+  });
+
+  it('cercleAccessLevel says what an account may do; today it is all or nothing', () => {
+    // The extension point for a sponsored, read-only first stage (docs § 8):
+    // until it is built, every account that can enter can also write.
+    expect(cercleAccessLevel({ role: 'visiteur' })).toBe('none');
+    expect(cercleAccessLevel({})).toBe('none');
+    expect(cercleAccessLevel({ role: 'visiteur', amiSince: 1 })).toBe('write');
+    for (const role of ['membre', 'moderateur', 'editeur', 'admin']) {
+      expect(cercleAccessLevel({ role })).toBe('write');
+    }
+    // It never disagrees with the yes/no rule the UI and the matrix read.
+    for (const role of [undefined, 'visiteur', 'membre', 'admin', 'x']) {
+      for (const amiSince of [undefined, 1]) {
+        expect(cercleAccessLevel({ role, amiSince }) !== 'none').toBe(
+          hasCercleAccess({ role, amiSince }),
+        );
+      }
+    }
   });
 
   it('the status is not a rank: ROLE_ORDER does not contain it', () => {

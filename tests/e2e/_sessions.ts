@@ -95,7 +95,8 @@ export type SessionKey =
   | 'cercleAdmin'
   | 'cercleAdminDecision'
   | 'cercleAdminListe'
-  | 'cercleAdminMessages';
+  | 'cercleAdminMessages'
+  | 'cercleAdminSecurity';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -306,6 +307,12 @@ export const SESSIONS: Record<
   cercleAdminMessages: {
     email: 'e2e_session_cercle_messages@democracytogether.test',
     state: 'tests/e2e/.auth/cercle-messages.json',
+    role: 'admin',
+  },
+  // Suspension of an Ami.
+  cercleAdminSecurity: {
+    email: 'e2e_session_cercle_security@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-security.json',
     role: 'admin',
   },
   // "programmes" workstream (F-56 to F-60). Each `programmes-*` file

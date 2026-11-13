@@ -34,7 +34,7 @@ export const submit = mutation({
   args: { body: v.string() },
   returns: v.id('cercleContributions'),
   handler: async (ctx, args) => {
-    const user = await requireCercleAccess(ctx);
+    const user = await requireCercleAccess(ctx, 'write');
     const checked = validateContributionBody(args.body);
     if (!checked.ok) throw new ConvexError(checked.code);
     await enforceRateLimit(ctx, {
@@ -88,7 +88,7 @@ export const remove = mutation({
   args: { contributionId: v.id('cercleContributions') },
   returns: v.null(),
   handler: async (ctx, { contributionId }) => {
-    const user = await requireCercleAccess(ctx);
+    const user = await requireCercleAccess(ctx, 'write');
     const row = await ctx.db.get(contributionId);
     if (!row || row.status === 'removed') throw new ConvexError('NOT_FOUND');
     const own = row.authorUserId === user._id;

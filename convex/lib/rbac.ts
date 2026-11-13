@@ -5,6 +5,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import {
   roleRank,
   canValidatePublications,
+  cercleAccessLevel,
   hasCercleAccess,
   type NetworkRole,
 } from './roles';
@@ -132,9 +133,14 @@ export async function requireNetworkRole(
  */
 export async function requireCercleAccess(
   ctx: QueryCtx | MutationCtx,
+  // `read` to see what the Cercle wrote, `write` to add or remove something.
+  // Every account that can enter today can do both; the distinction is the
+  // extension point of `cercleAccessLevel` (convex/lib/roles.ts).
+  need: 'read' | 'write' = 'read',
 ): Promise<Doc<'users'>> {
   const user = await requireUser(ctx);
-  if (!hasCercleAccess(user)) {
+  const level = cercleAccessLevel(user);
+  if (level === 'none' || (need === 'write' && level !== 'write')) {
     throw new ConvexError('CERCLE_ACCESS_REQUIRED');
   }
   return user;

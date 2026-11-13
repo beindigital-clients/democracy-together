@@ -4509,7 +4509,7 @@
     "errSend": "No se ha podido añadir la contribución. Inténtelo de nuevo.",
     "errRate": "Ha alcanzado el límite de contribuciones de hoy. Inténtelo de nuevo mañana.",
     "feedbackSent": "Contribución añadida.",
-    "listTitle": "Lista de correo del Círculo",
+    "listTitle": "Contribuciones del Círculo",
     "listEmpty": "Aún no hay ninguna contribución.",
     "anonymousAuthor": "Un Amigo del Círculo",
     "mineAuthor": "Usted",
@@ -4626,6 +4626,7 @@
     "msgFailureLine": "{email}: {error}",
     "msgRetry": "Reintentar los fallos",
     "msgRetried": "Reintento iniciado: solo se reenvían los fallos.",
-    "msgRetryErr": "No se ha podido iniciar el reintento."
+    "msgRetryErr": "No se ha podido iniciar el reintento.",
+    "mailListTitle": "Lista de correo del Círculo"
   }
 }

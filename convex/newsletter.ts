@@ -108,11 +108,21 @@ async function recipientOf(
   if (row.contactId) {
     const c = await ctx.db.get(row.contactId);
     if (!c) return null;
+    // A SUSPENDED account is cut off from the Cercle at once, and that includes
+    // its news: someone suspended for abuse keeps no line to the Cercle's list
+    // (reactivation puts them back, the contact row is untouched).
+    const account =
+      c.status === 'confirmed'
+        ? await ctx.db
+            .query('users')
+            .withIndex('email', (q) => q.eq('email', c.email))
+            .first()
+        : null;
     return {
       email: c.email,
       locale: c.locale,
       unsubToken: c.unsubToken,
-      active: c.status === 'confirmed',
+      active: c.status === 'confirmed' && account?.suspendedAt === undefined,
     };
   }
   if (row.subscriptionId) {
