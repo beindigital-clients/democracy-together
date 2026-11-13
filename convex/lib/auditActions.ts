@@ -18,6 +18,10 @@ export const AUDIT = {
   CERCLE_CV_VIEWED: 'cercle.cv_viewed',
   // A private contribution taken down by someone other than its author.
   CERCLE_CONTRIBUTION_REMOVED: 'cercle.contribution_removed',
+  // The Cercle's mailing list: an import of contacts, and the sending of the
+  // one confirmation message to those who asked for nothing.
+  CERCLE_CONTACTS_IMPORTED: 'cercle.contacts_imported',
+  CERCLE_CONFIRMATIONS_SENT: 'cercle.confirmations_sent',
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',
   MEMBERSHIP_REVIEWED: 'membership.reviewed',

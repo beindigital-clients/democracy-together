@@ -30,6 +30,7 @@ import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { isReservedEmail } from './lib/validation';
 import { normalizeEmail } from './lib/onboarding';
 import { checkFileContent, sanitizeFileName } from './lib/fileCheck';
+import { confirmContactFromRequest } from './lib/cercleContacts';
 import { sendEmail } from './email';
 import {
   CERCLE_CHARTER_VERSION,
@@ -448,6 +449,16 @@ export const reviewRequest = mutation({
       await ctx.db.patch(user._id, { amiSince: now, amiGrantedBy: admin._id });
     }
     await ctx.db.patch(requestId, { ...common, memberUserId: user._id });
+    // The notice shown at the form said the person would receive the Cercle's
+    // news: that is their consent, kept with the versions they accepted. They go
+    // on the mailing list as confirmed (an earlier unsubscribe is lifted by this
+    // new, informed request).
+    await confirmContactFromRequest(ctx, {
+      email,
+      locale: request.locale,
+      consentAt: request.consent.at,
+      textVersion: request.consent.noticeVersion,
+    });
     await recordAudit(ctx, {
       actorId: admin._id,
       action: AUDIT.USER_AMI_GRANTED,

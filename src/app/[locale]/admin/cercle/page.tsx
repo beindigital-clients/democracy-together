@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TextareaField } from '@/components/ui/field';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LoadMore } from '@/components/admin/load-more';
+import { AdminCercleList } from '@/components/cercle/admin-cercle-list';
 import {
   useActionFeedback,
   useFailureFeedback,
@@ -182,7 +183,7 @@ function RequestRow({ request }: { request: Request }) {
   );
 }
 
-export default function AdminCerclePage() {
+function RequestsTab() {
   const t = useTranslations('cercle');
   const [status, setStatus] = useState<Status>('pending');
   const {
@@ -197,8 +198,7 @@ export default function AdminCerclePage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">{t('adminTitle')}</h1>
-      <p className="mt-2 max-w-[68ch] text-ink-soft">{t('adminIntro')}</p>
+      <p className="max-w-[68ch] text-ink-soft">{t('adminIntro')}</p>
 
       <ToggleGroup
         type="single"
@@ -209,7 +209,7 @@ export default function AdminCerclePage() {
             setStatus(v);
           }
         }}
-        aria-label={t('adminTitle')}
+        aria-label={t('tabRequests')}
         className="mt-5"
       >
         <ToggleGroupItem value="pending">{t('tabPending')}</ToggleGroupItem>
@@ -222,7 +222,7 @@ export default function AdminCerclePage() {
       ) : results.length === 0 ? (
         <p className="mt-6 text-ink-soft">{t('empty')}</p>
       ) : (
-        <ul aria-label={t('adminTitle')} className="mt-6 space-y-3">
+        <ul aria-label={t('tabRequests')} className="mt-6 space-y-3">
           {results.map((r) => (
             <RequestRow key={r._id} request={r} />
           ))}
@@ -230,6 +230,37 @@ export default function AdminCerclePage() {
       )}
 
       <LoadMore status={loadStatus} loadMore={loadMore} pageSize={PAGE_SIZE} />
+    </div>
+  );
+}
+
+type Tab = 'requests' | 'list';
+
+export default function AdminCerclePage() {
+  const t = useTranslations('cercle');
+  const [tab, setTab] = useState<Tab>('requests');
+
+  return (
+    <div>
+      <h1 className="font-display text-3xl">{t('adminTitle')}</h1>
+
+      <ToggleGroup
+        type="single"
+        size="sm"
+        value={tab}
+        onValueChange={(v) => {
+          if (v === 'requests' || v === 'list') setTab(v);
+        }}
+        aria-label={t('adminTitle')}
+        className="mt-5"
+      >
+        <ToggleGroupItem value="requests">{t('tabRequests')}</ToggleGroupItem>
+        <ToggleGroupItem value="list">{t('tabList')}</ToggleGroupItem>
+      </ToggleGroup>
+
+      <div className="mt-6">
+        {tab === 'requests' ? <RequestsTab /> : <AdminCercleList />}
+      </div>
     </div>
   );
 }

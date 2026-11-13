@@ -71,6 +71,15 @@ async function seed(t: T) {
       status: 'visible',
     });
     const cv = await ctx.storage.store(new Blob(['%PDF-1.4 cv']));
+    await ctx.db.insert('cercleContacts', {
+      email: `${SECRET}-contact@resend.dev`,
+      status: 'confirmed',
+      source: 'import',
+      unsubToken: 'a'.repeat(32),
+      confirmSends: 1,
+      importBatch: `Batch ${SECRET}`,
+      createdAt: Date.now(),
+    });
     await ctx.db.insert('cercleRequests', {
       email: `${SECRET}-request@example.test`,
       name: `Applicant ${SECRET}`,
@@ -223,6 +232,7 @@ describe('Cercle leaks — search, translation, indexing', () => {
       'cercleContributions',
       'cercleRequests',
       'cercleUploads',
+      'cercleContacts',
     ] as const) {
       // `export()` is the table definition's own serialisation: not part of
       // the public type, but what the deployment is given.

@@ -53,6 +53,15 @@ export const cercleUserDataModule: UserDataModule = {
         await ctx.db.delete(r._id);
       }
     }
+    // Their place on the mailing list goes with the account (the person asked
+    // for their data to be erased, an unsubscribe entry included).
+    if (email) {
+      const contact = await ctx.db
+        .query('cercleContacts')
+        .withIndex('by_email', (q) => q.eq('email', email))
+        .unique();
+      if (contact) await ctx.db.delete(contact._id);
+    }
     // Their private contributions: deleted with the account (they are the
     // person's own words, and nothing else refers to them).
     const mine = await ctx.db
@@ -79,7 +88,21 @@ export const cercleUserDataModule: UserDataModule = {
       .query('cercleContributions')
       .withIndex('by_author', (q) => q.eq('authorUserId', userId))
       .take(EXPORT_MAX);
+    const contact = email
+      ? await ctx.db
+          .query('cercleContacts')
+          .withIndex('by_email', (q) => q.eq('email', email))
+          .unique()
+      : null;
     return {
+      mailingList: contact
+        ? {
+            status: contact.status,
+            source: contact.source,
+            confirmedAt: contact.confirmedAt ?? null,
+            unsubscribedAt: contact.unsubscribedAt ?? null,
+          }
+        : null,
       contributions: contributions
         .filter((c) => c.status === 'visible')
         .map((c) => ({ body: c.body, createdAt: c.createdAt })),

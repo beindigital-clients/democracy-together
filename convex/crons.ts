@@ -42,6 +42,14 @@ crons.cron(
   internal.cercle.purgeUnclaimedUploads,
   {},
 );
+// Cercle des Amis mailing list: an imported contact who never confirmed is
+// deleted when its 30-day deadline passes. Every hour, minute 41.
+crons.cron(
+  'cercle-purge-pending-contacts',
+  '41 * * * *',
+  internal.cercleMailing.purgeExpiredPending,
+  {},
+);
 // Audience measurement: raw events become per-day counters
 // and are deleted — none lives more than a few minutes.
 crons.interval(

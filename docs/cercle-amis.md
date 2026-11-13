@@ -167,3 +167,65 @@ a third party, to be stated in the notice shown at the request form.
   add a path from one to the other, but it does not forbid it either.
 - Uploads of valid PDFs that are never attached to a request are deleted after
   24 hours (hourly cron), bounded by the per-IP and global caps.
+
+## 5. The Cercle's mailing list
+
+Separate from the public newsletter: its own table (`cercleContacts`), its own
+confirmation, unsubscribe and footer. Modules `convex/cercleMailing.ts`,
+`convex/lib/cercleMailing*.ts`, `convex/lib/cercleContacts.ts`; screens under
+the "Liste de diffusion" tab of `/admin/cercle`, public pages
+`/cercle/confirmation` and `/cercle/desinscription`.
+
+**One engine, two lists.** The campaign engine of `convex/newsletter.ts`
+(batches, idempotency keys, lease and resume, failure tracking, retry) now
+serves two audiences. A campaign has an `audience` (`newsletter` by default,
+or `cercle`); a delivery row points to a newsletter subscription or to a Cercle
+contact; enqueue, claim and render branch on the audience in one place each.
+The two lists never share a recipient (tests send a Cercle campaign and a
+newsletter campaign over both lists and check who got what). A separate table,
+rather than a `list` field on `newsletterSubscriptions`, so that no query meant
+for one list can reach the other, and so that one address can sit on both.
+
+Two ways onto the list:
+
+- **A request accepted by the president**: the person is put on the list as
+  `confirmed`, with the version of the notice they accepted at the form as
+  proof (the form told them, before sending, that they would receive the
+  Cercle's news). An earlier unsubscribe is lifted by this new, informed
+  request.
+- **CSV import by an administrator** (one address per line, or a table with an
+  `email` column and an optional language column; 500 rows per import; test
+  domains are counted and ignored). These people asked for nothing, so they are
+  `pending` and **receive exactly ONE message: a confirmation request** — the
+  legal point of the plan. Nothing else is sent to them until they click. The
+  link is single use and valid 30 days; without a click, the row is deleted at
+  its deadline. No reminder is ever sent; a message that failed to *send* is
+  retried, bounded to 3 sends in all.
+
+**Unsubscribing** keeps a suppression entry (`unsubscribed`): a re-import never
+writes to someone who said no. Every message carries the unsubscribe link in
+its footer and the one-click `List-Unsubscribe` headers (RFC 8058); the GET on
+the one-click address only redirects to the page, so a prefetching antivirus
+unsubscribes nobody.
+
+**Footer and sender identity.** Every message ends with the association's name
+and postal address. They are Convex environment variables
+(`CERCLE_SENDER_NAME`, `CERCLE_SENDER_ADDRESS`), **placeholders marked
+"[À CONFIRMER …]" until Philippe supplies them**, and while a placeholder is
+left, **sending to real recipients is refused** (confirmation wave and campaign;
+a simulated development send is allowed). The president's screen says so.
+
+Sending: the confirmation message goes in waves at the cadence of every campaign
+(`NEWSLETTER_BATCH_SIZE`, `NEWSLETTER_RATE_PER_MINUTE`, read on each wave).
+Account deletion removes the person's place on the list; the data export includes it.
+
+Tests: `convex/cercle-mailing.test.ts` (parsing, import, waves, outage and retry,
+confirm, unsubscribe, purge, HTTP one-click, the two audiences kept apart,
+sender-identity guard), `tests/unit/cercle-leaks.test.ts`; e2e
+`tests/e2e/cercle-liste.spec.ts`.
+
+**To confirm with the client:** association name and postal address; the exact
+wording of the confirmation message (in particular how the contacts' origin is
+described — the draft only says the address is "in our contacts"); who may
+import and send (today: administrators import, editors compose and send, like
+the newsletter); the recipient list itself.

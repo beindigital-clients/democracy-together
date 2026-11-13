@@ -238,6 +238,31 @@ export function newsletterStatus(email: string) {
   );
 }
 
+// Cercle des Amis mailing list: the confirmation link "sent" to an imported
+// contact, and a contact's state — read from the development outbox and the
+// list itself (AUTH_DEV_OTP guard), like the newsletter's above. The link is
+// written by a wave of the confirmation sending: a small retry.
+export function cercleContact(email: string) {
+  return convexRunQuery<{
+    status: 'pending' | 'confirmed' | 'unsubscribed';
+    unsubToken: string;
+  } | null>('cercleMailing:devContact', { email });
+}
+
+export async function getCercleConfirmationLink(
+  email: string,
+): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const link = convexRunQuery<string | null>(
+      'cercleMailing:devLatestConfirmationLink',
+      { email },
+    );
+    if (link) return link;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`Aucun lien de confirmation du Cercle pour ${email}`);
+}
+
 // The link is written by an action scheduled right after the subscription: a
 // small retry, as for the OTP code.
 export async function getNewsletterConfirmationLink(

@@ -52,6 +52,11 @@ import {
   type CampaignContent,
 } from './lib/newsletterContent';
 import {
+  cercleCampaignHtml,
+  cercleListUnsubscribeHeaders,
+} from './lib/cercleMailingContent';
+import { senderIdentity } from './lib/cercleMailing';
+import {
   CLAIM_LEASE_MS,
   MAX_TRANSIENT_ATTEMPTS,
   backoffMs,
@@ -72,6 +77,51 @@ const campaignStatus = v.union(
   v.literal('sent'),
   v.literal('error'),
 );
+
+// WHO A CAMPAIGN GOES TO. The engine below (enqueue, batches, retry) serves two
+// lists that never share a recipient: the public newsletter and the Cercle's
+// mailing list (`cercleContacts`, convex/cercleMailing.ts). A campaign without
+// an audience is a newsletter one, as before the Cercle.
+const audienceValidator = v.union(v.literal('newsletter'), v.literal('cercle'));
+type Audience = Infer<typeof audienceValidator>;
+const audienceOf = (c: { audience?: Audience }): Audience =>
+  c.audience ?? 'newsletter';
+
+// The recipient a delivery row points to, whichever list it is in. `active` is
+// false when they left (or never were confirmed) between queueing and sending:
+// nothing is written to them.
+type DeliveryRecipient = {
+  email: string;
+  locale: SiteLocale | undefined;
+  unsubToken: string;
+  active: boolean;
+};
+async function recipientOf(
+  ctx: MutationCtx,
+  row: Doc<'newsletterDeliveries'>,
+): Promise<DeliveryRecipient | null> {
+  if (row.contactId) {
+    const c = await ctx.db.get(row.contactId);
+    if (!c) return null;
+    return {
+      email: c.email,
+      locale: c.locale,
+      unsubToken: c.unsubToken,
+      active: c.status === 'confirmed',
+    };
+  }
+  if (row.subscriptionId) {
+    const sub = await ctx.db.get(row.subscriptionId);
+    if (!sub) return null;
+    return {
+      email: sub.email,
+      locale: sub.locale,
+      unsubToken: sub.unsubToken ?? '',
+      active: sub.status === 'confirmed' && Boolean(sub.unsubToken),
+    };
+  }
+  return null;
+}
 
 // =============================================================================
 // PUBLIC SUBSCRIPTION — DOUBLE OPT-IN (F-18)
@@ -728,10 +778,13 @@ const variantValidator = v.object({
 // more, and the table must not be re-read in full on every sending
 // progress update (the list is reactive).
 export const listCampaigns = query({
-  args: {},
+  // Which list's campaigns: the newsletter's by default, so the newsletter
+  // screen never shows (nor can mistake for its own) a Cercle message.
+  args: { audience: v.optional(audienceValidator) },
   returns: v.array(
     v.object({
       _id: v.id('newsletterCampaigns'),
+      audience: audienceValidator,
       subject: v.string(),
       body: v.string(),
       locale,
@@ -747,14 +800,17 @@ export const listCampaigns = query({
       lastTestAt: v.union(v.number(), v.null()),
     }),
   ),
-  handler: async (ctx) => {
+  handler: async (ctx, { audience }) => {
     await requireNetworkRole(ctx, 'editeur');
-    const recent = await ctx.db
-      .query('newsletterCampaigns')
-      .order('desc')
-      .take(50);
+    const wanted = audience ?? 'newsletter';
+    const recent = (
+      await ctx.db.query('newsletterCampaigns').order('desc').take(200)
+    )
+      .filter((c) => audienceOf(c) === wanted)
+      .slice(0, 50);
     return recent.map((c) => ({
       _id: c._id,
+      audience: audienceOf(c),
       subject: c.subject,
       // The body feeds the preview BEFORE sending (27/09 campaign, R-07).
       body: c.body,
@@ -793,7 +849,13 @@ function checkContent(subject: string, body: string) {
 }
 
 export const createCampaign = mutation({
-  args: { subject: v.string(), body: v.string(), locale: v.optional(locale) },
+  args: {
+    subject: v.string(),
+    body: v.string(),
+    locale: v.optional(locale),
+    // Missing = the public newsletter.
+    audience: v.optional(audienceValidator),
+  },
   returns: v.id('newsletterCampaigns'),
   handler: async (ctx, args) => {
     const editor = await requireNetworkRole(ctx, 'editeur');
@@ -802,6 +864,7 @@ export const createCampaign = mutation({
       subject,
       body,
       locale: args.locale ?? 'fr',
+      ...(args.audience === 'cercle' ? { audience: 'cercle' as const } : {}),
       status: 'draft',
       createdBy: editor._id,
       createdAt: Date.now(),
@@ -913,13 +976,25 @@ export const _deliverTest = internalAction({
           subject: testSubject(version.subject, version.locale),
           // Dummy token: a test's unsubscribe link must not
           // unsubscribe anyone.
-          html: campaignHtml(
-            version.body,
-            'test',
-            version.locale,
-            version.subject,
-          ),
-          headers: listUnsubscribeHeaders('test', version.locale),
+          html:
+            campaign.audience === 'cercle'
+              ? cercleCampaignHtml({
+                  body: version.body,
+                  token: 'test',
+                  locale: version.locale,
+                  title: version.subject,
+                  sender: senderIdentity(),
+                })
+              : campaignHtml(
+                  version.body,
+                  'test',
+                  version.locale,
+                  version.subject,
+                ),
+          headers:
+            campaign.audience === 'cercle'
+              ? cercleListUnsubscribeHeaders('test', version.locale)
+              : listUnsubscribeHeaders('test', version.locale),
         });
       } catch (err) {
         console.error(
@@ -940,6 +1015,7 @@ export const _campaignContent = internalQuery({
       body: v.string(),
       locale: v.optional(locale),
       variants: v.optional(v.array(variantValidator)),
+      audience: audienceValidator,
     }),
   ),
   handler: async (ctx, { campaignId }) => {
@@ -950,6 +1026,7 @@ export const _campaignContent = internalQuery({
       body: c.body,
       locale: c.locale,
       variants: c.variants,
+      audience: audienceOf(c),
     };
   },
 });
@@ -971,6 +1048,16 @@ export const sendCampaign = mutation({
     // (AUTH_DEV_OTP=true) simulated sending remains possible.
     if (emailProviderStatus().mode === 'none') {
       throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
+    }
+    // A message to the Cercle's list must say who writes and where they are.
+    // While the association's name or postal address is still a placeholder,
+    // nothing goes to real recipients (a simulated development send is fine).
+    if (
+      audienceOf(campaign) === 'cercle' &&
+      senderIdentity().placeholder &&
+      emailProviderStatus().mode !== 'simulated'
+    ) {
+      throw new ConvexError('SENDER_IDENTITY_MISSING');
     }
     await ctx.db.patch(campaignId, {
       status: 'sending',
@@ -1007,27 +1094,54 @@ export const _enqueue = internalMutation({
   handler: async (ctx, { campaignId, cursor }) => {
     const campaign = await ctx.db.get(campaignId);
     if (!campaign || campaign.status !== 'sending') return null;
-    const page = await ctx.db
-      .query('newsletterSubscriptions')
-      .withIndex('by_status_and_expiry', (q) => q.eq('status', 'confirmed'))
-      .paginate({ numItems: ENQUEUE_PAGE, cursor });
     let added = 0;
-    for (const sub of page.page) {
-      const already = await ctx.db
-        .query('newsletterDeliveries')
-        .withIndex('by_campaign_and_subscription', (q) =>
-          q.eq('campaignId', campaignId).eq('subscriptionId', sub._id),
-        )
-        .first();
-      if (already) continue;
-      await ctx.db.insert('newsletterDeliveries', {
-        campaignId,
-        subscriptionId: sub._id,
-        status: 'queued',
-        attempts: 0,
-        locale: sub.locale,
-      });
-      added++;
+    let page: { isDone: boolean; continueCursor: string };
+    if (audienceOf(campaign) === 'cercle') {
+      const contacts = await ctx.db
+        .query('cercleContacts')
+        .withIndex('by_status_and_expiry', (q) => q.eq('status', 'confirmed'))
+        .paginate({ numItems: ENQUEUE_PAGE, cursor });
+      page = contacts;
+      for (const contact of contacts.page) {
+        const already = await ctx.db
+          .query('newsletterDeliveries')
+          .withIndex('by_campaign_and_contact', (q) =>
+            q.eq('campaignId', campaignId).eq('contactId', contact._id),
+          )
+          .first();
+        if (already) continue;
+        await ctx.db.insert('newsletterDeliveries', {
+          campaignId,
+          contactId: contact._id,
+          status: 'queued',
+          attempts: 0,
+          locale: contact.locale,
+        });
+        added++;
+      }
+    } else {
+      const subs = await ctx.db
+        .query('newsletterSubscriptions')
+        .withIndex('by_status_and_expiry', (q) => q.eq('status', 'confirmed'))
+        .paginate({ numItems: ENQUEUE_PAGE, cursor });
+      page = subs;
+      for (const sub of subs.page) {
+        const already = await ctx.db
+          .query('newsletterDeliveries')
+          .withIndex('by_campaign_and_subscription', (q) =>
+            q.eq('campaignId', campaignId).eq('subscriptionId', sub._id),
+          )
+          .first();
+        if (already) continue;
+        await ctx.db.insert('newsletterDeliveries', {
+          campaignId,
+          subscriptionId: sub._id,
+          status: 'queued',
+          attempts: 0,
+          locale: sub.locale,
+        });
+        added++;
+      }
     }
     await ctx.db.patch(campaignId, {
       totalCount: (campaign.totalCount ?? 0) + added,
@@ -1112,7 +1226,7 @@ export const _claimBatch = internalMutation({
       let attempt = 1;
       for (const row of rows) {
         if (row.status !== 'sending') continue;
-        const sub = await ctx.db.get(row.subscriptionId);
+        const who = await recipientOf(ctx, row);
         await ctx.db.patch(row._id, {
           claimedAt: now,
           attempts: row.attempts + 1,
@@ -1120,9 +1234,9 @@ export const _claimBatch = internalMutation({
         attempt = Math.max(attempt, row.attempts + 1);
         recipients.push({
           deliveryId: row._id,
-          email: sub?.email ?? '',
+          email: who?.email ?? '',
           locale: row.locale,
-          unsubToken: sub?.unsubToken ?? '',
+          unsubToken: who?.unsubToken ?? '',
         });
       }
       return {
@@ -1154,10 +1268,10 @@ export const _claimBatch = internalMutation({
     const recipients = [];
     let skipped = 0;
     for (const row of queued) {
-      const sub = await ctx.db.get(row.subscriptionId);
+      const who = await recipientOf(ctx, row);
       // Left between enqueueing and sending (unsubscribed): we do not write
       // to them. The status says so, and so does the counter.
-      if (!sub || sub.status !== 'confirmed' || !sub.unsubToken) {
+      if (!who || !who.active) {
         await ctx.db.patch(row._id, { status: 'skipped' });
         skipped++;
         continue;
@@ -1170,9 +1284,9 @@ export const _claimBatch = internalMutation({
       });
       recipients.push({
         deliveryId: row._id,
-        email: sub.email,
-        locale: sub.locale ?? row.locale,
-        unsubToken: sub.unsubToken,
+        email: who.email,
+        locale: who.locale ?? row.locale,
+        unsubToken: who.unsubToken,
       });
     }
     if (skipped > 0) {
@@ -1301,8 +1415,25 @@ export const _processBatch = internalAction({
     );
     if (!campaign) return null;
 
+    // Read ONCE per batch (an environment read), so every message of the batch
+    // carries the same identity.
+    const sender = senderIdentity();
     const messages = claim.recipients.map((r) => {
       const version = pickVariant(campaign, r.locale);
+      if (campaign.audience === 'cercle') {
+        return {
+          to: r.email,
+          subject: version.subject,
+          html: cercleCampaignHtml({
+            body: version.body,
+            token: r.unsubToken,
+            locale: version.locale,
+            title: version.subject,
+            sender,
+          }),
+          headers: cercleListUnsubscribeHeaders(r.unsubToken, version.locale),
+        };
+      }
       return {
         to: r.email,
         subject: version.subject,

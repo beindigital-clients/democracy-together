@@ -2,6 +2,8 @@ import { httpAction } from './_generated/server';
 import { internal } from './_generated/api';
 import { checkFileContent } from './lib/fileCheck';
 import { CV_CONTENT_TYPE, CV_MAX_BYTES } from './lib/cercle';
+import { SITE_LOCALES, type SiteLocale } from './lib/locales';
+import { siteUrl } from './lib/newsletterContent';
 
 // ANONYMOUS CV UPLOAD (Cercle des Amis, convex/cercle.ts).
 //
@@ -65,4 +67,45 @@ export const cvUpload = httpAction(async (ctx, req) => {
   );
   await ctx.runMutation(internal.cercle.recordUpload, { storageId });
   return reply(200, { storageId });
+});
+
+// --- One-click unsubscribe of the Cercle's mailing list (RFC 8058) -----------------
+//
+// Target of the `List-Unsubscribe` header of every Cercle message. Same two
+// uses as the newsletter's (convex/newsletterHttp.ts): a POST
+// `List-Unsubscribe=One-Click` unsubscribes with no further step; a GET — a
+// mail client opening the link, or an antivirus prefetching it — must NOT
+// unsubscribe, it redirects to the page where the person does it knowingly.
+
+function langOf(raw: string | null): SiteLocale {
+  return (SITE_LOCALES as readonly string[]).includes(raw ?? '')
+    ? (raw as SiteLocale)
+    : 'fr';
+}
+
+function tokenOf(url: URL): string {
+  const token = url.searchParams.get('token') ?? '';
+  return /^[0-9a-f]{32}$/.test(token) ? token : '';
+}
+
+export const unsubscribeOneClick = httpAction(async (ctx, req) => {
+  const token = tokenOf(new URL(req.url));
+  if (!token) return new Response('Bad Request', { status: 400 });
+  const result = await ctx.runMutation(
+    internal.cercleMailing.unsubscribeByToken,
+    { token },
+  );
+  return new Response(result.ok ? 'OK' : 'Bad Request', {
+    status: result.ok ? 200 : 400,
+  });
+});
+
+export const unsubscribeRedirect = httpAction(async (_ctx, req) => {
+  const url = new URL(req.url);
+  const token = tokenOf(url);
+  const loc = langOf(url.searchParams.get('l'));
+  const target = `${siteUrl()}/${loc}/cercle/desinscription${
+    token ? `?token=${token}` : ''
+  }`;
+  return new Response(null, { status: 302, headers: { Location: target } });
 });

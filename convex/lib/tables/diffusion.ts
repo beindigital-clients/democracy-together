@@ -42,7 +42,12 @@ export const diffusionTables = {
   // original response instead of sending a second time.
   newsletterDeliveries: defineTable({
     campaignId: v.id('newsletterCampaigns'),
-    subscriptionId: v.id('newsletterSubscriptions'),
+    // THE RECIPIENT, in exactly one of two lists: a newsletter subscription, or
+    // — for a campaign whose audience is `cercle` — a Cercle contact. The engine
+    // (enqueue, batches, retry) is the same; which table a row points to
+    // follows the campaign's audience.
+    subscriptionId: v.optional(v.id('newsletterSubscriptions')),
+    contactId: v.optional(v.id('cercleContacts')),
     status: deliveryStatus,
     claimId: v.optional(v.string()),
     claimedAt: v.optional(v.number()),
@@ -54,6 +59,7 @@ export const diffusionTables = {
   })
     .index('by_campaign_and_status', ['campaignId', 'status'])
     .index('by_campaign_and_subscription', ['campaignId', 'subscriptionId'])
+    .index('by_campaign_and_contact', ['campaignId', 'contactId'])
     .index('by_claim', ['claimId']),
 
   // RAW AUDIENCE EVENTS — A BUFFER OF A FEW MINUTES (F-66).

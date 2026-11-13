@@ -34,29 +34,42 @@ const CONVEX_SOURCES = walk(
   (p) => /\.ts$/.test(p) && !/\.test\.ts$/.test(p) && !p.endsWith('.d.ts'),
 ).map(rel);
 
-// THE ONLY MODULES that may read or write a Cercle table. Each one is part of
-// the Cercle itself, or is the account-deletion registry's adapter for it.
-const MAY_TOUCH_CERCLE_TABLES = new Set([
-  'convex/cercle.ts',
-  'convex/cercleContributions.ts',
-  'convex/lib/cercleUserData.ts',
-  // The table definitions themselves.
-  'convex/lib/tables/cercle.ts',
-]);
+// THE ONLY MODULES that may read or write each Cercle table. Each one is part
+// of the Cercle itself, the account-deletion registry's adapter for it, or — for
+// the mailing list — the campaign engine that sends to it.
+const TABLE_DEFINITIONS = 'convex/lib/tables/cercle.ts';
+const CERCLE_TABLE_READERS: Record<string, string[]> = {
+  cercleContributions: [
+    'convex/cercleContributions.ts',
+    'convex/lib/cercleUserData.ts',
+    TABLE_DEFINITIONS,
+  ],
+  cercleRequests: [
+    'convex/cercle.ts',
+    'convex/lib/cercleUserData.ts',
+    TABLE_DEFINITIONS,
+  ],
+  cercleUploads: ['convex/cercle.ts', TABLE_DEFINITIONS],
+  cercleContacts: [
+    'convex/cercleMailing.ts',
+    'convex/lib/cercleContacts.ts',
+    'convex/lib/cercleUserData.ts',
+    // The campaign engine enqueues and sends to the list; its delivery rows
+    // point to a contact.
+    'convex/newsletter.ts',
+    'convex/lib/tables/diffusion.ts',
+    TABLE_DEFINITIONS,
+  ],
+};
+const CERCLE_TABLES = Object.keys(CERCLE_TABLE_READERS);
 
-// The Cercle's tables. A new Cercle table is added here, so that the guard
-// below covers it from its first commit.
-const CERCLE_TABLES = [
-  'cercleContributions',
-  'cercleRequests',
-  'cercleUploads',
-];
-const NAMED = CERCLE_TABLES.join('|');
 // A table is NAMED when it is queried or written, or typed (`Id<'…'>`,
 // `Doc<'…'>`, `v.id('…')`). A mention in a comment or a rate-limit key is not.
-const CERCLE_TABLE_LITERAL = new RegExp(
-  `(?:query|insert|patch|replace|delete|normalizeId|id)\\(\\s*['"](?:${NAMED})['"]|<\\s*['"](?:${NAMED})['"]\\s*>`,
-);
+function namesTable(source: string, table: string): boolean {
+  return new RegExp(
+    `(?:query|insert|patch|replace|delete|normalizeId|id)\\(\\s*['"]${table}['"]|<\\s*['"]${table}['"]\\s*>`,
+  ).test(source);
+}
 
 describe('Cercle leaks — who may read the Cercle’s tables', () => {
   it('finds the sources it is supposed to scan', () => {
@@ -64,16 +77,28 @@ describe('Cercle leaks — who may read the Cercle’s tables', () => {
     expect(CONVEX_SOURCES).toContain('convex/cercle.ts');
   });
 
-  it('no module outside the Cercle’s own names a Cercle table', () => {
-    const offenders = CONVEX_SOURCES.filter(
-      (file) =>
-        !MAY_TOUCH_CERCLE_TABLES.has(file) &&
-        CERCLE_TABLE_LITERAL.test(read(file)),
-    );
+  it('no module outside each table’s readers names it', () => {
+    const offenders: string[] = [];
+    for (const table of CERCLE_TABLES) {
+      const allowed = new Set(CERCLE_TABLE_READERS[table]);
+      for (const file of CONVEX_SOURCES) {
+        if (!allowed.has(file) && namesTable(read(file), table)) {
+          offenders.push(`${file} → ${table}`);
+        }
+      }
+    }
     expect(
       offenders,
       `Ces modules lisent une table du Cercle sans y être autorisés : ${offenders.join(', ')}`,
     ).toEqual([]);
+  });
+
+  it('every listed reader really exists (the allow-list does not rot)', () => {
+    for (const table of CERCLE_TABLES) {
+      for (const file of CERCLE_TABLE_READERS[table]) {
+        expect(existsSync(join(ROOT, file)), `${file} (${table})`).toBe(true);
+      }
+    }
   });
 });
 
@@ -123,20 +148,31 @@ describe('Cercle leaks — publication, search, translation, AI moderation', () 
     }
   });
 
-  it('the Cercle’s own modules never call the AI gateway or schedule a review', () => {
+  it('the Cercle’s own modules never import the AI moderation or the gateway', () => {
     for (const file of [
+      'convex/cercle.ts',
       'convex/cercleContributions.ts',
       'convex/cercleHttp.ts',
+      'convex/cercleMailing.ts',
     ]) {
       const source = read(file);
-      // No import of, and no call into, the moderation or gateway modules
-      // (a comment may say why: only code is judged).
+      // No import of, and no call into, the moderation or gateway modules (a
+      // comment may say why: only code is judged).
       expect(source, file).not.toMatch(
         /from\s+['"][^'"]*(aiModeration|aiGateway|communityModeration)/,
       );
       expect(source, file).not.toMatch(
         /internal\.(aiModeration|communityModeration)/,
       );
+    }
+  });
+
+  it('a private contribution and the CV endpoint schedule nothing and call no network', () => {
+    for (const file of [
+      'convex/cercleContributions.ts',
+      'convex/cercleHttp.ts',
+    ]) {
+      const source = read(file);
       expect(source, file).not.toMatch(/ctx\.scheduler\./);
       expect(source, file).not.toMatch(/\bfetch\(/);
     }
@@ -144,7 +180,7 @@ describe('Cercle leaks — publication, search, translation, AI moderation', () 
 });
 
 describe('Cercle leaks — HTTP and Next routes', () => {
-  it('the only Convex HTTP route about the Cercle is the anonymous CV upload (POST + CORS preflight)', () => {
+  it('the Cercle’s Convex HTTP routes are the CV upload and the one-click unsubscribe, nothing else', () => {
     const http = read('convex/http.ts');
     const routes = [
       ...http.matchAll(
@@ -152,9 +188,21 @@ describe('Cercle leaks — HTTP and Next routes', () => {
       ),
     ].map((m) => `${m[2]} ${m[1]}`);
     const cercle = routes.filter((r) => /cercle/i.test(r)).sort();
-    expect(cercle).toEqual(['OPTIONS /cercle/cv', 'POST /cercle/cv']);
-    // No route answers a GET with anything of the Cercle.
-    expect(routes.filter((r) => /^GET .*cercle/i.test(r))).toEqual([]);
+    expect(cercle).toEqual([
+      'GET /cercle/unsubscribe',
+      'OPTIONS /cercle/cv',
+      'POST /cercle/cv',
+      'POST /cercle/unsubscribe',
+    ]);
+    // The only GET is the unsubscribe redirect, which reads nothing: a mail
+    // client or an antivirus prefetching the link must not unsubscribe anyone,
+    // nor learn anything.
+    const http2 = read('convex/cercleHttp.ts');
+    const redirect = http2.slice(
+      http2.indexOf('export const unsubscribeRedirect'),
+    );
+    expect(redirect).toMatch(/status: 302/);
+    expect(redirect).toMatch(/httpAction\(async \(_ctx,/);
   });
 
   it('the upload endpoint answers with an id only, never a stored text', () => {

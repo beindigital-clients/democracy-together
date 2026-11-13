@@ -472,6 +472,10 @@ export default defineSchema({
       v.literal('sent'),
       v.literal('error'),
     ),
+    // WHO IT GOES TO. Missing = the public newsletter, as before the Cercle.
+    // `cercle` = the Cercle's own mailing list (`cercleContacts`), which never
+    // shares a recipient with the newsletter.
+    audience: v.optional(v.union(v.literal('newsletter'), v.literal('cercle'))),
     createdBy: v.optional(v.id('users')),
     createdAt: v.number(),
     sentAt: v.optional(v.number()),
