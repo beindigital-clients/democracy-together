@@ -190,3 +190,75 @@ export function cercleDeclinedEmail(args: {
     }),
   };
 }
+
+// --- Alert to the team: a request is waiting ---------------------------------------
+//
+// Goes to the addresses of `CERCLE_ALERT_EMAILS`. It says a request is waiting,
+// how many are, and where to open them — NOTHING about who: no name, no
+// address, no motivation, no CV, no summary (convex/lib/cercleAlert.ts).
+
+const ALERT_SUBJECT: Phrase = {
+  fr: 'Cercle des Amis : une demande attend une décision',
+  en: 'Circle of Friends: a request is waiting for a decision',
+  es: 'Círculo de Amigos: una solicitud espera una decisión',
+  pt: 'Círculo de Amigos: um pedido aguarda uma decisão',
+  ar: 'حلقة الأصدقاء: طلب ينتظر قرارًا',
+};
+
+const ALERT_LEAD: Phrase = {
+  fr: 'Une demande pour rejoindre le Cercle des Amis est arrivée. Elle ne donne accès à rien tant que le président n’a pas décidé.',
+  en: 'A request to join the Circle of Friends has arrived. It gives access to nothing until the president has decided.',
+  es: 'Ha llegado una solicitud para unirse al Círculo de Amigos. No da acceso a nada hasta que el presidente decida.',
+  pt: 'Chegou um pedido para aderir ao Círculo de Amigos. Não dá acesso a nada até o presidente decidir.',
+  ar: 'وصل طلب للانضمام إلى حلقة الأصدقاء. لا يمنح الوصول إلى أي شيء إلى أن يقرّر الرئيس.',
+};
+
+const ALERT_COUNT: Phrase = {
+  fr: 'Demandes en attente de décision :',
+  en: 'Requests waiting for a decision:',
+  es: 'Solicitudes en espera de decisión:',
+  pt: 'Pedidos a aguardar decisão:',
+  ar: 'الطلبات في انتظار القرار:',
+};
+
+const ALERT_CTA: Phrase = {
+  fr: 'Ouvrir les demandes',
+  en: 'Open the requests',
+  es: 'Abrir las solicitudes',
+  pt: 'Abrir os pedidos',
+  ar: 'فتح الطلبات',
+};
+
+const ALERT_NOTE: Phrase = {
+  fr: 'Vous recevez ce message car votre adresse est inscrite pour les alertes du Cercle. Au plus un message tous les quarts d’heure.',
+  en: 'You receive this message because your address is registered for the Circle’s alerts. At most one message every fifteen minutes.',
+  es: 'Recibe este mensaje porque su dirección está registrada para las alertas del Círculo. Como máximo un mensaje cada quince minutos.',
+  pt: 'Recebe esta mensagem porque o seu endereço está registado para os alertas do Círculo. No máximo uma mensagem a cada quinze minutos.',
+  ar: 'تتلقون هذه الرسالة لأن عنوانكم مسجّل لتنبيهات الحلقة. رسالة واحدة على الأكثر كل ربع ساعة.',
+};
+
+export function cercleRequestAlertEmail(args: {
+  siteUrl: string;
+  locale: SiteLocale;
+  pending: number;
+}): { subject: string; html: string; url: string } {
+  const loc = args.locale;
+  const url = `${base(args.siteUrl, loc)}/admin/cercle`;
+  const kit = emailKit(loc);
+  const body =
+    kit.paragraph(ALERT_LEAD[loc]) +
+    kit.paragraph(`${ALERT_COUNT[loc]} <strong>${args.pending}</strong>`) +
+    kit.button(url, ALERT_CTA[loc]) +
+    kit.fallback(url) +
+    kit.note(ALERT_NOTE[loc]);
+  return {
+    subject: subject(ALERT_SUBJECT, loc),
+    html: emailDocument({
+      loc,
+      title: ALERT_SUBJECT[loc],
+      preheader: ALERT_LEAD[loc],
+      body,
+    }),
+    url,
+  };
+}

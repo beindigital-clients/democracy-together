@@ -98,6 +98,7 @@ Variables du déploiement Convex à cette date :
 | `AI_GATEWAY_API_KEY` | absente | compte Vercel AI Gateway ; facultative (§ 1.5) |
 | `NEWSLETTER_UNSUBSCRIBE_MAILTO` | absente | vraie boîte de l'association ; facultative |
 | `CERCLE_SENDER_NAME`, `CERCLE_SENDER_ADDRESS` | absentes (repères « À CONFIRMER » dans les messages) | **nom et adresse postale de l'association**, obligatoires : tant qu'ils manquent, aucun message du Cercle n'est envoyé à de vraies personnes (`docs/cercle-amis.md` § 5) |
+| `CERCLE_ALERT_EMAILS` | absente (personne n'est prévenu, rien n'échoue) | adresses (séparées par des virgules, 5 au plus) prévenues par e-mail à chaque nouvelle demande du Cercle ; facultative (`docs/cercle-amis.md` § 11) |
 | `EMAIL_DAILY_LIMIT` | absente (pas de plafond) | quota quotidien du service d'envoi (ex. 100 sur l'offre gratuite de Resend) : un envoi groupé se poursuit alors sur plusieurs jours (`docs/cercle-amis.md` § 6) |
 
 `ASSOCIATION_NAME`, `ASSOCIATION_LEGAL_FORM`, `NEWSLETTER_BATCH_SIZE`,
@@ -547,6 +548,7 @@ section en donne l'ordre de mise en service, pour qu'aucune étape ne manque.
 | `NEWSLETTER_BATCH_SIZE`, `NEWSLETTER_RATE_PER_MINUTE`, `NEWSLETTER_UNSUBSCRIBE_MAILTO` | diffusion | valeurs par défaut prudentes |
 | `CERCLE_SENDER_NAME`, `CERCLE_SENDER_ADDRESS` | Cercle des Amis (pied de chaque message) | repères « À CONFIRMER » ; envoi aux vraies personnes refusé |
 | `EMAIL_DAILY_LIMIT` | diffusion (campagnes et messages de confirmation) | pas de plafond quotidien |
+| `CERCLE_ALERT_EMAILS` | Cercle des Amis (alerte « une demande attend ») | personne n'est prévenu ; la demande est enregistrée normalement |
 | `AUDIENCE_RETENTION_DAYS`, `AUDIENCE_MAX_HITS_PER_MINUTE` | diffusion (audience) | 13 mois, plafond par défaut |
 
 Variables de développement à **ne jamais** poser en production, en plus

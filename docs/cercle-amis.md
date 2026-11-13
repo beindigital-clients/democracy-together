@@ -94,7 +94,7 @@ Tests: `convex/cercle-request.test.ts`, `convex/cercle-upload.test.ts`,
 **To confirm with the client:** the final charter text (the 4 commitments in
 `messages/*.json` namespace `cercle` are a clearly marked draft, version
 `2026-11-draft`); CV retention for approved Amis; who is alerted when a request
-arrives (today: nobody, the president opens `/admin/cercle`); whether other
+arrives (an e-mail alert exists, § 11: it needs `CERCLE_ALERT_EMAILS`); whether other
 people than the administrators should decide.
 
 ## 3. Private contributions space
@@ -480,6 +480,7 @@ Then check in the Convex dashboard that the two new crons are listed.
 | Variable | Value | Needed to go live? |
 |---|---|---|
 | `SITE_URL` | the public site origin (already set; links in the Cercle's e-mails use it) | already there |
+| `CERCLE_ALERT_EMAILS` | who is told by e-mail when a request arrives (comma separated; § 11) | optional — unset: nobody is told, nothing fails |
 | `CERCLE_SENDER_NAME`, `CERCLE_SENDER_ADDRESS` | association name and postal address | **not to go live, required before any real sending** (refused while unset) |
 | `AUTH_RESEND_KEY`, `AUTH_EMAIL_FROM` | the client's own sending key and a verified domain | before real sending (the test `onboarding@resend.dev` sender writes only to the account owner) |
 | `EMAIL_DAILY_LIMIT` | the daily quota of the Resend plan | recommended before the first real send (free plan: 100/day) |
@@ -523,3 +524,50 @@ but no message — not even the confirmation request — leaves the platform.
 **I. Rollback.** The site can be rolled back on Vercel at once. The Convex additions
 are inert if the old front is served (nothing reads them); do not delete tables.
 To stop all Cercle sending immediately: unset `CERCLE_SENDER_NAME`.
+
+## 11. E-mail alert when a request arrives
+
+A request waits for the president's decision on `/admin/cercle`, and nothing told
+anyone it was there. A new pending request now schedules an e-mail alert
+(`convex/cercle.ts`: `scheduleRequestAlert` in the request's transaction, then the
+internal action `sendRequestAlert`; rules in `convex/lib/cercleAlert.ts`, template
+in `convex/lib/cercleEmails.ts`).
+
+- **Who:** the addresses of the Convex variable `CERCLE_ALERT_EMAILS` (comma,
+  semicolon or space separated, 5 at most). No address in the code. **Unset or
+  empty: nobody is told and nothing fails** — the request is stored as before.
+  Invalid addresses and reserved test domains are dropped. The real addresses
+  (Philippe's, the contributions mailbox, perhaps others) are still to be given.
+- **What it says:** that a request is waiting, how many are, and a link to
+  `/admin/cercle` built from `SITE_URL`. **Never** the applicant's name, address,
+  motivation, CV or summary (tested). Language: the recipient account's
+  preference when the address has an account, French otherwise.
+- **Throttle — choice made:** at most one alert per 15 minutes. The first request
+  in a while tells at once and starts the window; the ones that follow inside it
+  are covered by **one follow-up scheduled for the window's end**, which reports
+  the count then (dropped if every request was decided meanwhile). Decided in the
+  request's transaction, so two simultaneous requests cannot both tell. The state
+  is one row of two timestamps (`cercleAlertState`).
+- **Like the receipt:** a request from a reserved test address tells no one. A
+  failure to send never fails or blocks the request (the alert only schedules an
+  action); each recipient is tried on its own, and the log counts the failures
+  without writing the addresses.
+
+Tests: `convex/cercle-alert.test.ts` (rules, then the whole path from the public
+action to the e-mails sent).
+
+**Check before the announcement — e-mail on `rare-alpaca-677` (read on 2026-11-13).**
+`convex/email.ts` only simulates (logs `[DEV EMAIL]`, sends nothing) when **no**
+provider key is set and `AUTH_DEV_OTP=true`. On `rare-alpaca-677` both
+`AUTH_DEV_OTP=true` and `AUTH_RESEND_KEY` are set, and the provider wins: mail is
+handed to Resend, so the applicant's receipt, the decision e-mails and this alert
+are **not** simulated there. What decides whether they reach a person is the
+sender: `AUTH_EMAIL_FROM` is `Democracy Together <no-reply@lecombatdalya.org>`, a
+domain that is not Democracy Together's. Whether Resend has it verified for that
+key was **not checked** (it needs a call with the key). Without a verified domain
+Resend refuses, or delivers only to the account owner, and every send fails
+silently from the applicant's side. Before the announcement: confirm the sending
+domain is verified and is the one the association wants, set `AUTH_EMAIL_FROM`
+accordingly, and remove `AUTH_DEV_OTP` and `RECAPTCHA_DISABLED` from the
+deployment (`docs/deploiement.md` § 1.1: dev-only switches that open the test
+surface, including readable sign-in codes).

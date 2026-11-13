@@ -73,6 +73,7 @@ import type * as lib_audience from "../lib/audience.js";
 import type * as lib_audit from "../lib/audit.js";
 import type * as lib_auditActions from "../lib/auditActions.js";
 import type * as lib_cercle from "../lib/cercle.js";
+import type * as lib_cercleAlert from "../lib/cercleAlert.js";
 import type * as lib_cercleContacts from "../lib/cercleContacts.js";
 import type * as lib_cercleCvAi from "../lib/cercleCvAi.js";
 import type * as lib_cercleEmails from "../lib/cercleEmails.js";
@@ -301,6 +302,7 @@ declare const fullApi: ApiFromModules<{
   "lib/audit": typeof lib_audit;
   "lib/auditActions": typeof lib_auditActions;
   "lib/cercle": typeof lib_cercle;
+  "lib/cercleAlert": typeof lib_cercleAlert;
   "lib/cercleContacts": typeof lib_cercleContacts;
   "lib/cercleCvAi": typeof lib_cercleCvAi;
   "lib/cercleEmails": typeof lib_cercleEmails;
