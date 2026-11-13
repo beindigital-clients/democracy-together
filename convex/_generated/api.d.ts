@@ -16,6 +16,7 @@ import type * as annualReports from "../annualReports.js";
 import type * as audience from "../audience.js";
 import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
+import type * as cercle from "../cercle.js";
 import type * as communaute from "../communaute.js";
 import type * as communityModeration from "../communityModeration.js";
 import type * as contact from "../contact.js";
@@ -230,6 +231,7 @@ declare const fullApi: ApiFromModules<{
   audience: typeof audience;
   auth: typeof auth;
   bootstrap: typeof bootstrap;
+  cercle: typeof cercle;
   communaute: typeof communaute;
   communityModeration: typeof communityModeration;
   contact: typeof contact;

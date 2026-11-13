@@ -67,3 +67,32 @@ export function canValidatePublications(account: {
     roleRank(account.role) >= ROLE_ORDER.indexOf('moderateur')
   );
 }
+
+// AMI (Cercle des Amis) — a STATUS, not a rank.
+//
+// Decision (docs/cercle-amis.md): an Ami is NOT inserted in `ROLE_ORDER`.
+// Every existing guard reads the rank (`requireNetworkRole(ctx, 'membre')`
+// accepts anything from `membre` up), so an extra rank between `visiteur` and
+// `membre` would have been silently accepted or refused by dozens of call
+// sites written before it existed. A separate flag leaves all of them exactly
+// as they were: an Ami is a `visiteur` for the whole platform, and gains ONE
+// thing — the Cercle's private space.
+//
+// PURE and shared with the UI, like the rest of this module: the screens that
+// show the Cercle space read THIS function, the server guard
+// (`requireCercleAccess`) reads it too.
+export function isAmi(account: { amiSince?: number | null }): boolean {
+  return typeof account.amiSince === 'number';
+}
+
+// Who may enter the Cercle's private space: the Amis and every validated
+// member or above (members already belong to the network, they do not need a
+// second request). A visitor without the Ami status never does.
+export function hasCercleAccess(account: {
+  role?: string | null;
+  amiSince?: number | null;
+}): boolean {
+  return (
+    isAmi(account) || roleRank(account.role) >= ROLE_ORDER.indexOf('membre')
+  );
+}

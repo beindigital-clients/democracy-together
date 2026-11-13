@@ -91,7 +91,9 @@ export type SessionKey =
   | 'a11yAnnonces'
   | 'a11yAffichage'
   | 'espaceMembre'
-  | 'espaceMembreAdmin';
+  | 'espaceMembreAdmin'
+  | 'cercleAdmin'
+  | 'cercleAdminDecision';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -277,6 +279,19 @@ export const SESSIONS: Record<
   comptes: {
     email: 'e2e_session_comptes@democracytogether.test',
     state: 'tests/e2e/.auth/comptes.json',
+    role: 'admin',
+  },
+  // Cercle des Amis. `cercleAdmin` serves `cercle-ami-admin.spec.ts` (the Ami
+  // toggle of /admin/utilisateurs); `cercleAdminDecision` serves the file that
+  // decides Cercle requests. Two files, two sessions: see the rule above.
+  cercleAdmin: {
+    email: 'e2e_session_cercle_admin@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-admin.json',
+    role: 'admin',
+  },
+  cercleAdminDecision: {
+    email: 'e2e_session_cercle_decision@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-decision.json',
     role: 'admin',
   },
   // "programmes" workstream (F-56 to F-60). Each `programmes-*` file

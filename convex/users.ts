@@ -8,7 +8,7 @@ import {
   effectiveRole,
 } from './lib/rbac';
 import { networkRole, locale } from './schema';
-import { roleRank } from './lib/roles';
+import { roleRank, isAmi, hasCercleAccess } from './lib/roles';
 import { recordAudit } from './lib/audit';
 import { COUNTER, bumpCounter } from './lib/counters';
 import { AUDIT } from './lib/auditActions';
@@ -29,6 +29,11 @@ export const current = query({
       image: user.image ?? null,
       role: effectiveRole(user.role),
       reviewChief: user.reviewChief === true,
+      // Cercle des Amis: `ami` is the status itself, `cercleAccess` what the
+      // interface may show (Ami OR member and above). Display only — the
+      // Cercle functions re-check on the server.
+      ami: isAmi(user),
+      cercleAccess: hasCercleAccess(user),
       preferredLocale: user.preferredLocale ?? null,
     };
   },
@@ -101,6 +106,40 @@ export const setRole = mutation({
         metadata: { reason: 'role_lowered', role },
       });
     }
+  },
+});
+
+// Ami status (Cercle des Amis) — reserved for administrators, audited.
+//
+// The status is independent of the rank: granting it never changes `role`,
+// withdrawing it never lowers one. Granting twice, or withdrawing what is not
+// held, changes nothing and writes nothing.
+export const setAmi = mutation({
+  args: { userId: v.id('users'), value: v.boolean() },
+  returns: v.object({ changed: v.boolean() }),
+  handler: async (ctx, { userId, value }) => {
+    const admin = await requireNetworkRole(ctx, 'admin');
+    const target = await ctx.db.get(userId);
+    if (!target) throw new ConvexError('NOT_FOUND');
+    if (isAmi(target) === value) return { changed: false };
+    if (value) {
+      await ctx.db.patch(userId, {
+        amiSince: Date.now(),
+        amiGrantedBy: admin._id,
+      });
+    } else {
+      await ctx.db.patch(userId, {
+        amiSince: undefined,
+        amiGrantedBy: undefined,
+      });
+    }
+    await recordAudit(ctx, {
+      actorId: admin._id,
+      action: value ? AUDIT.USER_AMI_GRANTED : AUDIT.USER_AMI_REVOKED,
+      targetId: userId,
+      metadata: { reason: 'admin' },
+    });
+    return { changed: true };
   },
 });
 

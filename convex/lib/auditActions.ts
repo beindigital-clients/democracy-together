@@ -9,6 +9,9 @@ export const AUDIT = {
   USER_REVIEW_CHIEF_GRANTED: 'user.review_chief_granted',
   USER_REVIEW_CHIEF_REVOKED: 'user.review_chief_revoked',
   USER_INVITED: 'user.invited',
+  // Cercle des Amis status: granted or withdrawn (never a role change).
+  USER_AMI_GRANTED: 'user.ami_granted',
+  USER_AMI_REVOKED: 'user.ami_revoked',
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',
   MEMBERSHIP_REVIEWED: 'membership.reviewed',

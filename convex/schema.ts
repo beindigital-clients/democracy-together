@@ -71,6 +71,15 @@ export default defineSchema({
     // staff rank (`canValidatePublications`, convex/lib/roles.ts). Removed in
     // the same mutation that lowers the account below `moderateur`.
     reviewChief: v.optional(v.boolean()),
+    // "AMI" STATUS (Cercle des Amis). NOT a network role: the rank ladder
+    // (`ROLE_ORDER`) is untouched, so every existing `requireNetworkRole`
+    // guard keeps treating an Ami as the visitor they are. The status only
+    // opens the Cercle's private space (`hasCercleAccess`, convex/lib/roles.ts).
+    // Presence of `amiSince` = the account is an Ami. Granted by an
+    // administrator (`users.setAmi`, or the approval of a Cercle request),
+    // never by the account itself.
+    amiSince: v.optional(v.number()),
+    amiGrantedBy: v.optional(v.id('users')),
   })
     .index('email', ['email'])
     // Notifies the review chiefs (editorial alerts) with one indexed read.

@@ -100,6 +100,12 @@ export async function setReviewChief(
   convexRun('devAdmin:setReviewChiefByEmail', { email, value });
 }
 
+// Grants or withdraws the Ami status (Cercle des Amis, DEV, AUTH_DEV_OTP
+// guard). Independent of the rank: the account keeps whatever role it holds.
+export async function setAmi(email: string, value: boolean): Promise<void> {
+  convexRun('devAdmin:setAmiByEmail', { email, value });
+}
+
 // Builds a KOHOP pilot (DEV, AUTH_DEV_OTP guard): organizations, directory
 // profiles for the reviewers, and the pilot access listing the author's
 // organization. Idempotent.
