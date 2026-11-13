@@ -101,13 +101,14 @@ jobs:
       # Creates (or recreates) the preview and pushes the backend to it. `--cmd` runs
       # with the deployment URL in the environment: we propagate it to the
       # following steps, which need it for the Next build and to read the
-      # OTP codes.
+      # OTP codes. NEXT_PUBLIC_CONVEX_SITE_URL (the HTTP actions origin, used by
+      # the Cercle's anonymous CV upload) is the same host under `.convex.site`.
       - name: Déployer le backend sur une préversion dédiée
         run: |
           npx convex deploy \
             --preview-create "$CONVEX_PREVIEW_NAME" \
             --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL \
-            --cmd 'echo "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL" >> "$GITHUB_ENV"'
+            --cmd 'echo "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL" >> "$GITHUB_ENV"; echo "NEXT_PUBLIC_CONVEX_SITE_URL=${NEXT_PUBLIC_CONVEX_URL%.convex.cloud}.convex.site" >> "$GITHUB_ENV"'
 
       # SCOPE: `--preview-name` explicitly targets the preview that was just
       # created, and the key used is a preview key. AUTH_DEV_OTP
