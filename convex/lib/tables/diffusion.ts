@@ -42,7 +42,12 @@ export const diffusionTables = {
   // original response instead of sending a second time.
   newsletterDeliveries: defineTable({
     campaignId: v.id('newsletterCampaigns'),
-    subscriptionId: v.id('newsletterSubscriptions'),
+    // THE RECIPIENT, in exactly one of two lists: a newsletter subscription, or
+    // — for a campaign whose audience is `cercle` — a Cercle contact. The engine
+    // (enqueue, batches, retry) is the same; which table a row points to
+    // follows the campaign's audience.
+    subscriptionId: v.optional(v.id('newsletterSubscriptions')),
+    contactId: v.optional(v.id('cercleContacts')),
     status: deliveryStatus,
     claimId: v.optional(v.string()),
     claimedAt: v.optional(v.number()),
@@ -54,7 +59,19 @@ export const diffusionTables = {
   })
     .index('by_campaign_and_status', ['campaignId', 'status'])
     .index('by_campaign_and_subscription', ['campaignId', 'subscriptionId'])
+    .index('by_campaign_and_contact', ['campaignId', 'contactId'])
     .index('by_claim', ['claimId']),
+
+  // BULK MESSAGES SENT PER UTC DAY — the counter behind `EMAIL_DAILY_LIMIT`
+  // (convex/lib/newsletterDelivery.ts): the sending service's daily quota, kept
+  // by the platform so that a campaign pauses at the cap and resumes the next
+  // day instead of failing the tail of the list. One row per day, bumped when a
+  // batch's results are recorded. Counts campaigns and confirmation waves; it
+  // does not count sign-in codes or receipts (they are few and never held back).
+  emailQuota: defineTable({
+    day: v.string(),
+    sent: v.number(),
+  }).index('by_day', ['day']),
 
   // RAW AUDIENCE EVENTS — A BUFFER OF A FEW MINUTES (F-66).
   //

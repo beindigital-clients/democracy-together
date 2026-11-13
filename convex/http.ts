@@ -4,6 +4,12 @@ import { auth } from './auth';
 import { processWebhook } from './payments/webhooks';
 import type { ProviderId } from './lib/payments/validators';
 import { unsubscribeOneClick, unsubscribeRedirect } from './newsletterHttp';
+import {
+  cvUpload,
+  cvUploadPreflight,
+  unsubscribeOneClick as cercleUnsubscribeOneClick,
+  unsubscribeRedirect as cercleUnsubscribeRedirect,
+} from './cercleHttp';
 
 const http = httpRouter();
 
@@ -46,6 +52,29 @@ http.route({
   path: '/newsletter/unsubscribe',
   method: 'GET',
   handler: unsubscribeRedirect,
+});
+
+// Cercle des Amis — anonymous CV upload (convex/cercleHttp.ts). The browser
+// posts the file here, never straight to storage: this is where size and PDF
+// signature are checked.
+http.route({ path: '/cercle/cv', method: 'POST', handler: cvUpload });
+http.route({
+  path: '/cercle/cv',
+  method: 'OPTIONS',
+  handler: cvUploadPreflight,
+});
+
+// Cercle des Amis — one-click unsubscribe of its mailing list
+// (convex/cercleHttp.ts), target of every Cercle message's List-Unsubscribe.
+http.route({
+  path: '/cercle/unsubscribe',
+  method: 'POST',
+  handler: cercleUnsubscribeOneClick,
+});
+http.route({
+  path: '/cercle/unsubscribe',
+  method: 'GET',
+  handler: cercleUnsubscribeRedirect,
 });
 
 export default http;

@@ -68,6 +68,29 @@ export const setReviewChiefByEmail = internalMutation({
   },
 });
 
+// DEV/TEST ONLY (AUTH_DEV_OTP guard): grants or withdraws the Ami status
+// (Cercle des Amis), for the E2E fixtures. Never touches the rank.
+export const setAmiByEmail = internalMutation({
+  args: { email: v.string(), value: v.boolean() },
+  handler: async (ctx, { email, value }) => {
+    if (process.env.AUTH_DEV_OTP !== 'true') {
+      throw new Error('Désactivé (AUTH_DEV_OTP).');
+    }
+    const user = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', normalizeEmail(email)))
+      .first();
+    if (!user) throw new Error('Utilisateur introuvable.');
+    await ctx.db.patch(
+      user._id,
+      value
+        ? { amiSince: Date.now() }
+        : { amiSince: undefined, amiGrantedBy: undefined },
+    );
+    return { ok: true, userId: user._id };
+  },
+});
+
 // DEV/TEST ONLY (AUTH_DEV_OTP guard): REMOVES the `role` column from an
 // account, reproducing a legacy account — created before `reviewApplication`
 // and `inviteUser` always set a role (PR #4).

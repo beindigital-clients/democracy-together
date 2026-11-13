@@ -103,7 +103,9 @@ function Sidebar() {
     }) ??
     me.email ??
     '';
-  const current = currentMemberNavItem(pathname, me.role);
+  const current = currentMemberNavItem(pathname, me.role, {
+    ami: me.ami,
+  });
 
   return (
     <div className="space-y-4">
@@ -154,6 +156,7 @@ function Sidebar() {
         <MemberNav
           id={NAV_ID}
           role={me.role}
+          ami={me.ami}
           pathname={pathname}
           unreadMessages={unread}
           unreadNotifications={unreadNotifications}

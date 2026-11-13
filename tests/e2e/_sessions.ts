@@ -91,7 +91,13 @@ export type SessionKey =
   | 'a11yAnnonces'
   | 'a11yAffichage'
   | 'espaceMembre'
-  | 'espaceMembreAdmin';
+  | 'espaceMembreAdmin'
+  | 'cercleAdmin'
+  | 'cercleAdminDecision'
+  | 'cercleAdminListe'
+  | 'cercleAdminMessages'
+  | 'cercleAdminSecurity'
+  | 'cercleAdminCvAi';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -277,6 +283,43 @@ export const SESSIONS: Record<
   comptes: {
     email: 'e2e_session_comptes@democracytogether.test',
     state: 'tests/e2e/.auth/comptes.json',
+    role: 'admin',
+  },
+  // Cercle des Amis. `cercleAdmin` serves `cercle-ami-admin.spec.ts` (the Ami
+  // toggle of /admin/utilisateurs); `cercleAdminDecision` serves the file that
+  // decides Cercle requests. Two files, two sessions: see the rule above.
+  cercleAdmin: {
+    email: 'e2e_session_cercle_admin@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-admin.json',
+    role: 'admin',
+  },
+  cercleAdminDecision: {
+    email: 'e2e_session_cercle_decision@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-decision.json',
+    role: 'admin',
+  },
+  // The Cercle's mailing list (import, confirmation message).
+  cercleAdminListe: {
+    email: 'e2e_session_cercle_liste@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-liste.json',
+    role: 'admin',
+  },
+  // Messages to the Cercle (test, send in waves).
+  cercleAdminMessages: {
+    email: 'e2e_session_cercle_messages@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-messages.json',
+    role: 'admin',
+  },
+  // Suspension of an Ami.
+  cercleAdminSecurity: {
+    email: 'e2e_session_cercle_security@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-security.json',
+    role: 'admin',
+  },
+  // The automatic CV summary on the president's screen.
+  cercleAdminCvAi: {
+    email: 'e2e_session_cercle_cvai@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-cvai.json',
     role: 'admin',
   },
   // "programmes" workstream (F-56 to F-60). Each `programmes-*` file

@@ -2,7 +2,13 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { ConvexError } from 'convex/values';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
-import { roleRank, canValidatePublications, type NetworkRole } from './roles';
+import {
+  roleRank,
+  canValidatePublications,
+  cercleAccessLevel,
+  hasCercleAccess,
+  type NetworkRole,
+} from './roles';
 import {
   currentSessionId,
   evaluateAccess,
@@ -118,6 +124,34 @@ export async function requireNetworkRole(
     throw new Error(`Accès refusé : rôle « ${min} » requis.`);
   }
   return user;
+}
+
+/**
+ * Guard of the Cercle's private space: an Ami or a member and above. Built on
+ * `requireUser`, so a suspended account (an Ami included) or a session without
+ * its second factor is refused first — suspension cuts the Cercle at once.
+ */
+export async function requireCercleAccess(
+  ctx: QueryCtx | MutationCtx,
+  // `read` to see what the Cercle wrote, `write` to add or remove something.
+  // Every account that can enter today can do both; the distinction is the
+  // extension point of `cercleAccessLevel` (convex/lib/roles.ts).
+  need: 'read' | 'write' = 'read',
+): Promise<Doc<'users'>> {
+  const user = await requireUser(ctx);
+  const level = cercleAccessLevel(user);
+  if (level === 'none' || (need === 'write' && level !== 'write')) {
+    throw new ConvexError('CERCLE_ACCESS_REQUIRED');
+  }
+  return user;
+}
+
+/** Same decision for a query that must answer "no access" instead of throwing. */
+export async function getCercleUser(
+  ctx: QueryCtx | MutationCtx,
+): Promise<Doc<'users'> | null> {
+  const user = await getCurrentUser(ctx);
+  return user && hasCercleAccess(user) ? user : null;
 }
 
 /**

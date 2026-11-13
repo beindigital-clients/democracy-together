@@ -19,11 +19,31 @@ export const DEFAULT_BATCH_SIZE = 50;
 // new sender reputation is not burned by a spike.
 export const DEFAULT_RATE_PER_MINUTE = 600;
 
+// THE SENDING SERVICE'S OWN RULES (Resend, today). Two limits matter to a bulk
+// send, and the engine now honours both instead of hoping:
+//
+//  - a REQUEST RATE: Resend allows 2 requests per second per account by
+//    default, shared with every other message the platform sends (sign-in
+//    codes, receipts…). The batch API carries up to 100 messages per request,
+//    so the pause between two batches — not the batch size — is what must stay
+//    above 1/rate. `MIN_INTERVAL_MS` is that floor with a margin (600 ms, i.e.
+//    ~1.7 requests/s): before it, the floor was 200 ms (5 requests/s), which a
+//    badly set `NEWSLETTER_RATE_PER_MINUTE` could reach and which the provider
+//    answers with a 429 on every other batch;
+//  - a SENDING QUOTA: a free account allows 100 messages a day, a paid one more,
+//    and a new sending domain should start small and grow (warm-up). The
+//    daily cap `EMAIL_DAILY_LIMIT` makes a campaign go out over as many days as
+//    it takes — it pauses at the cap and resumes by itself at the next UTC
+//    midnight — rather than failing the tail of the list.
+export const MIN_INTERVAL_MS = 600;
+
 export type DeliveryConfig = {
   batchSize: number;
   ratePerMinute: number;
-  /** Pause between two batches, derived from the rate. */
+  /** Pause between two batches, derived from the rate, never below the floor. */
   intervalMs: number;
+  /** Bulk messages allowed per UTC day, or `undefined` for no cap. */
+  dailyLimit: number | undefined;
 };
 
 /**
@@ -45,10 +65,56 @@ export function deliveryConfig(): DeliveryConfig {
     6000,
   );
   const intervalMs = Math.max(
-    200,
+    MIN_INTERVAL_MS,
     Math.round((batchSize / ratePerMinute) * 60_000),
   );
-  return { batchSize, ratePerMinute, intervalMs };
+  const daily = envNumber('EMAIL_DAILY_LIMIT');
+  return {
+    batchSize,
+    ratePerMinute,
+    intervalMs,
+    dailyLimit:
+      daily !== undefined && daily >= 1 ? Math.floor(daily) : undefined,
+  };
+}
+
+/** UTC day of a timestamp, `YYYY-MM-DD` — the key of the daily quota. */
+export function utcDay(now: number): string {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+/** Milliseconds from `now` to the next UTC midnight (plus one, to be past it). */
+export function msUntilNextUtcDay(now: number): number {
+  const d = new Date(now);
+  const next = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate() + 1,
+  );
+  return next - now + 1;
+}
+
+/**
+ * How many messages the next batch may carry, given the batch size, what the
+ * campaign's wave still allows and what is left of today's quota. Pure.
+ * `limitedBy` says which rule bound it, so the screen can tell the person.
+ */
+export function batchAllowance(args: {
+  batchSize: number;
+  dailyRemaining: number | undefined;
+  waveRemaining: number | undefined;
+}): { size: number; limitedBy: 'none' | 'daily' | 'wave' } {
+  let size = args.batchSize;
+  let limitedBy: 'none' | 'daily' | 'wave' = 'none';
+  if (args.dailyRemaining !== undefined && args.dailyRemaining < size) {
+    size = Math.max(0, args.dailyRemaining);
+    limitedBy = 'daily';
+  }
+  if (args.waveRemaining !== undefined && args.waveRemaining < size) {
+    size = Math.max(0, args.waveRemaining);
+    limitedBy = 'wave';
+  }
+  return { size, limitedBy };
 }
 
 // A batch claimed and left "in progress" longer than this lease is

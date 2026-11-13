@@ -29,6 +29,7 @@ export const KNOWN_LOCALE_SEGMENTS = [
   'barometre',
   'bibliotheque',
   'boite-a-outils',
+  'cercle',
   'confidentialite',
   'connexion',
   'connexion-otp',
