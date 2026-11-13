@@ -175,19 +175,26 @@ décembre 2026 ».
 
 ## Version anglaise
 
-`plaquette-en.html` traduit le texte de `plaquette.html` page par page. Une
-différence de fond, demandée par l'utilisateur le 04/10 : le troisième
-engagement de la page 3 (« Attentif à l'Afrique et à l'Europe » en français)
-devient en anglais « Africa, Europe, Latin America — and beyond », pour
-ajouter l'Amérique latine sans fermer la liste à trois continents. Le globe
-qui l'illustre change avec le texte : `globe-afrique-europe-ameriques.svg`
-reprend le cadrage du globe « Mondial » juste au-dessus (centré sur
-l'Atlantique, tous les continents visibles) plutôt que le cadrage resserré du
-globe franco-français, avec l'Afrique, l'Europe et l'Amérique latine
-légèrement plus lumineuses que le reste ; l'idée est qu'il continue à se lire
-comme « le monde », pas comme trois continents isolés. Cette différence
-n'existe qu'en anglais ; à valider avec le client (voir « À valider »), et à
-reporter en français s'il le souhaite.
+`plaquette-en.html` traduit le texte de `plaquette.html` page par page, avec
+un ajout, l'Amérique latine, qui existe maintenant dans les deux langues :
+
+- Couverture : le sous-titre devient « attentif à l'Afrique, à l'Amérique
+  latine et à l'Europe » / « attentive to Africa, Latin America and Europe »,
+  demandé par le client (Philippe Kourilsky) le 06/10, dans ces mots, pour les
+  deux langues.
+- Page 3, troisième engagement : demande distincte de l'utilisateur, le
+  04/10, anglais uniquement pour l'instant. « Attentif à l'Afrique et à
+  l'Europe » devient « Africa, Europe, Latin America — and beyond ». Le globe
+  qui l'illustre change avec le texte : `globe-afrique-europe-ameriques.svg`
+  reprend le cadrage du globe « Mondial » juste au-dessus (centré sur
+  l'Atlantique, tous les continents visibles) plutôt que le cadrage resserré
+  du globe franco-français, avec l'Afrique, l'Europe et l'Amérique latine
+  légèrement plus lumineuses que le reste ; l'idée est qu'il continue à se
+  lire comme « le monde », pas comme trois continents isolés. Formulation
+  différente de celle, plus courte, que le client vient de valider pour la
+  couverture (« Africa, Latin America and Europe », sans « and beyond ») : à
+  harmoniser si le client préfère une seule formule, et à reporter en
+  français le cas échéant (voir « À valider »).
 
 Quelques choix de traduction, à signaler aussi :
 
@@ -231,9 +238,12 @@ Quelques choix de traduction, à signaler aussi :
    dans « Version anglaise » ci-dessus.
 7. Impression : quantité, imprimeur et papier, pour préparer la version avec
    fonds perdus (dans les deux langues).
-8. L'ajout de l'Amérique latine au troisième engagement, pour l'instant
-   anglais uniquement (voir « Version anglaise ») : le texte et le globe
-   conviennent-ils, et faut-il reporter ce changement en français ?
+8. ~~L'ajout de l'Amérique latine : à valider, et à reporter en français ?~~
+   Tranché par le client le 06/10 pour la couverture (« Africa, Latin America
+   and Europe », les deux langues). Reste ouvert : la page 3 garde pour
+   l'instant sa formule à elle, anglais uniquement (« … — and beyond ») — à
+   harmoniser avec la couverture et à reporter en français si le client le
+   souhaite (voir « Version anglaise »).
 
 À signaler aussi : la page d'accueil du site annonce des bureaux à « Paris ·
 Dakar · Bruxelles », alors que le texte V1 dit que les pôles régionaux
