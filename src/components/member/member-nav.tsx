@@ -9,6 +9,7 @@ import {
   Database,
   FileText,
   FolderKanban,
+  HeartHandshake,
   GraduationCap,
   Handshake,
   KeyRound,
@@ -45,6 +46,7 @@ const ICONS: Record<MemberNavKey, LucideIcon> = {
   network: UsersRound,
   people: BookUser,
   workspaces: FolderKanban,
+  cercle: HeartHandshake,
   publications: FileText,
   tribune: Megaphone,
   kohop: BookOpenCheck,
@@ -76,6 +78,7 @@ export function useMemberNavLabels(): Record<MemberNavKey, string> {
     network: t('navNetwork'),
     people: t('navPeople'),
     workspaces: t('navWorkspaces'),
+    cercle: t('navCercle'),
     publications: t('navPublications'),
     tribune: t('navTribune'),
     kohop: t('navKohop'),
@@ -122,6 +125,7 @@ export type UnreadCount = { count: number; capped: boolean };
 export function MemberNav({
   id,
   role,
+  ami = false,
   pathname,
   unreadMessages,
   unreadNotifications,
@@ -130,6 +134,8 @@ export function MemberNav({
 }: {
   id?: string;
   role: string | null | undefined;
+  // The Ami status (not a rank): opens the Cercle entry for a visitor.
+  ami?: boolean;
   pathname: string;
   unreadMessages?: UnreadCount;
   unreadNotifications?: UnreadCount;
@@ -139,11 +145,11 @@ export function MemberNav({
   const t = useTranslations('member');
   const labels = useMemberNavLabels();
   const groupLabels = useGroupLabels();
-  const current = currentMemberNavItem(pathname, role);
+  const current = currentMemberNavItem(pathname, role, { ami });
 
   return (
     <nav id={id} aria-label={t('navLabel')} className={className}>
-      {visibleMemberNavGroups(role).map((group) => {
+      {visibleMemberNavGroups(role, { ami }).map((group) => {
         const title = groupLabels[group.key];
         const titleId = `member-nav-${group.key}`;
         return (

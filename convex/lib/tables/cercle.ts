@@ -74,4 +74,21 @@ export const cercleTables = {
     .index('by_email', ['email'])
     .index('by_applicant', ['applicantUserId'])
     .index('by_member', ['memberUserId']),
+
+  // PRIVATE CONTRIBUTIONS of the Cercle — free text written by an Ami or a
+  // member, read by the Cercle only (`requireCercleAccess`). A table of its
+  // own, NOT `contentTranslations`, publications or KOHOP: nothing here is
+  // indexed, searched, translated, listed in the sitemap or sent to the AI
+  // moderation provider (docs/cercle-amis.md § 4).
+  cercleContributions: defineTable({
+    authorUserId: v.id('users'),
+    body: v.string(),
+    createdAt: v.number(),
+    // Taken down by its author or by staff: kept as a tombstone with no text.
+    status: v.union(v.literal('visible'), v.literal('removed')),
+    removedAt: v.optional(v.number()),
+    removedBy: v.optional(v.id('users')),
+  })
+    .index('by_status_and_createdAt', ['status', 'createdAt'])
+    .index('by_author', ['authorUserId']),
 };

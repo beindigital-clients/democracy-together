@@ -121,13 +121,13 @@ describe('Cercle CV upload endpoint', () => {
     const t = newConvexTest();
     let last = 200;
     let ok = 0;
-    for (let i = 0; i < 105; i++) {
+    for (let i = 0; i < 305; i++) {
       last = (await post(t, PDF_BYTES)).status;
       if (last === 200) ok++;
     }
-    expect(ok).toBe(100);
+    expect(ok).toBe(300);
     expect(last).toBe(429);
-    expect(await storedBlobs(t)).toHaveLength(100);
+    expect(await storedBlobs(t)).toHaveLength(300);
   });
 });
 

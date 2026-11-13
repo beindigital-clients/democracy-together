@@ -53,6 +53,14 @@ export const cercleUserDataModule: UserDataModule = {
         await ctx.db.delete(r._id);
       }
     }
+    // Their private contributions: deleted with the account (they are the
+    // person's own words, and nothing else refers to them).
+    const mine = await ctx.db
+      .query('cercleContributions')
+      .withIndex('by_author', (q) => q.eq('authorUserId', userId))
+      .take(BATCH);
+    for (const c of mine) await ctx.db.delete(c._id);
+    full ||= mine.length === BATCH;
     return !full;
   },
   export: async (ctx, userId, { email }) => {
@@ -67,7 +75,14 @@ export const cercleUserDataModule: UserDataModule = {
           .take(EXPORT_MAX)
       : [];
     const unique = new Map([...byMember, ...byAddress].map((r) => [r._id, r]));
+    const contributions = await ctx.db
+      .query('cercleContributions')
+      .withIndex('by_author', (q) => q.eq('authorUserId', userId))
+      .take(EXPORT_MAX);
     return {
+      contributions: contributions
+        .filter((c) => c.status === 'visible')
+        .map((c) => ({ body: c.body, createdAt: c.createdAt })),
       requests: [...unique.values()].map((r) => ({
         name: r.name,
         country: r.country ?? null,

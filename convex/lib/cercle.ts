@@ -102,3 +102,21 @@ export const CERCLE_REQUEST_REVIEW: ReviewMachine<
   transitions: { pending: ['approved', 'rejected'] },
   decided: ['approved', 'rejected'],
 };
+
+// --- Private contributions ----------------------------------------------------------
+//
+// Free text, "a few lines or more", several submissions possible. The lower
+// bound only refuses an empty or one-word post; the upper one bounds a single
+// document.
+export const CONTRIBUTION_MIN = 10;
+export const CONTRIBUTION_MAX = 5000;
+
+export function validateContributionBody(
+  raw: string,
+): { ok: true; body: string } | { ok: false; code: 'INVALID_BODY' } {
+  const body = raw.trim();
+  if (body.length < CONTRIBUTION_MIN || body.length > CONTRIBUTION_MAX) {
+    return { ok: false, code: 'INVALID_BODY' };
+  }
+  return { ok: true, body };
+}

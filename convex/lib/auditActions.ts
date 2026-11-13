@@ -16,6 +16,8 @@ export const AUDIT = {
   // personal data, so who read it is kept.
   CERCLE_REQUEST_REVIEWED: 'cercle.request_reviewed',
   CERCLE_CV_VIEWED: 'cercle.cv_viewed',
+  // A private contribution taken down by someone other than its author.
+  CERCLE_CONTRIBUTION_REMOVED: 'cercle.contribution_removed',
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',
   MEMBERSHIP_REVIEWED: 'membership.reviewed',

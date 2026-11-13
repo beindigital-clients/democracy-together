@@ -96,3 +96,30 @@ Tests: `convex/cercle-request.test.ts`, `convex/cercle-upload.test.ts`,
 `2026-11-draft`); CV retention for approved Amis; who is alerted when a request
 arrives (today: nobody, the president opens `/admin/cercle`); whether other
 people than the administrators should decide.
+
+## 3. Private contributions space
+
+Screen `/espace-membre/cercle` (a "Cercle des Amis" entry in the member-area
+navigation, offered to Amis and to members and above), module
+`convex/cercleContributions.ts`, table `cercleContributions`.
+
+- Visible only to the Cercle: every function goes through
+  `requireCercleAccess`, so a visitor without the status, an anonymous caller
+  and a suspended Ami are refused **by the server**. The interface mirrors that
+  decision (`cercle.access`) and shows a closed door otherwise; the open page
+  reacts live when the status is withdrawn.
+- Separate from the public KOHOP contributions: its own table and functions,
+  no shared query that could list one in the other.
+- Submission: free text from 10 to 5,000 characters, several submissions
+  allowed, 20 per account and per day. Reading: everything the Cercle has
+  written, newest first, paginated. The author is shown by display name, never
+  by address ("A Friend of the Circle" when no name is set).
+- Taking down: the author removes their own contribution (text erased, a
+  tombstone stays); moderators and above can remove any, audited
+  (`cercle.contribution_removed`).
+- Account deletion deletes the account's contributions; the "mes données"
+  export returns them.
+
+Tests: `convex/cercle-contributions.test.ts`, the access matrix
+(`CERCLE_PROBES` in `convex/cercle-access.test.ts`), the navigation rules
+(`tests/unit/member-area-rules.test.ts`); e2e `tests/e2e/cercle-espace.spec.ts`.

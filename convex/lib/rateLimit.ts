@@ -90,6 +90,8 @@ export const RATE_LIMITS = {
   workspaceUpload: { max: 60, windowMs: HOUR },
   deepeningInvite: { max: 20, windowMs: 24 * HOUR },
   tribuneEdit: { max: 30, windowMs: HOUR },
+  // Cercle des Amis: private contributions.
+  cercleContribution: { max: 20, windowMs: 24 * HOUR },
 } as const;
 
 // --- NON-FORGEABLE caps (audit M2, issue #24) --------------------------------
@@ -167,11 +169,12 @@ export const PUBLIC_FORM_LIMITS = {
     perIp: { max: 30, windowMs: HOUR },
     global: { max: 300, windowMs: HOUR },
   },
-  // Cercle des Amis: request to join (anonymous, with a CV). Tighter than the
-  // other forms because it also hands out upload URLs.
+  // Cercle des Amis: request to join (anonymous, with a CV). One request costs
+  // two units — the CV upload (`cercleHttp`) and the request itself — so these
+  // numbers allow 15 requests an hour per address block, 150 in all.
   cercleRequest: {
-    perIp: { max: 10, windowMs: HOUR },
-    global: { max: 100, windowMs: HOUR },
+    perIp: { max: 30, windowMs: HOUR },
+    global: { max: 300, windowMs: HOUR },
   },
   // Donation form (F-28), open to visitors. The global cap is wide: a
   // fundraising campaign causes legitimate spikes.

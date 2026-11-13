@@ -154,7 +154,24 @@ const PLATFORM_PROBES: Probe[] = [
 ];
 
 // The Cercle's own doors. Grows with each Cercle function.
-const CERCLE_PROBES: Probe[] = [];
+const CERCLE_PROBES: Probe[] = [
+  {
+    name: 'cercleContributions.list',
+    min: 'cercle',
+    call: (c) =>
+      c.query(api.cercleContributions.list, {
+        paginationOpts: { numItems: 5, cursor: null },
+      }),
+  },
+  {
+    name: 'cercleContributions.submit',
+    min: 'cercle',
+    call: (c) =>
+      c.mutation(api.cercleContributions.submit, {
+        body: 'Une contribution fictive pour la matrice.',
+      }),
+  },
+];
 
 describe('Cercle — pure rules', () => {
   it('isAmi reads the status only, never the rank', () => {
