@@ -141,13 +141,11 @@ describe('Connexion — décision du callback createOrUpdateUser (F-01)', () => 
 // keep the promise of issue #29 — no more full scan of `users` on the
 // sign-in path — for the file the tests above do not reach.
 // A `collect()` reintroduced in the callback would pass the typecheck.
-const authSource = (
-  import.meta.glob('/convex/auth.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>
-)['/convex/auth.ts'];
+const authSource = import.meta.glob('/convex/auth.ts', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})['/convex/auth.ts'];
 
 describe('Chemin de connexion — aucune lecture non indexée de `users`', () => {
   it('le callback délègue la décision, il ne requête plus `users` lui-même', () => {
