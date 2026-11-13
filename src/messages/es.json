@@ -4627,6 +4627,21 @@
     "msgRetry": "Reintentar los fallos",
     "msgRetried": "Reintento iniciado: solo se reenvían los fallos.",
     "msgRetryErr": "No se ha podido iniciar el reintento.",
-    "mailListTitle": "Lista de correo del Círculo"
+    "mailListTitle": "Lista de correo del Círculo",
+    "cvAiTitle": "Lectura del CV con una herramienta automática (opcional)",
+    "cvAiNotice": "Si lo desea, su CV puede leerse con la ayuda de una herramienta automática, operada por un proveedor tercero, que extrae de él un breve resumen neutral (formación, experiencia, idiomas, temas) para facilitar la clasificación de las solicitudes. La herramienta no puntúa a nadie, no asigna ninguna etiqueta y no decide nada: el presidente lee su solicitud y decide solo. Solo se conserva el resumen, junto con su CV, y se elimina al mismo tiempo que él. Si no marca la casilla, solo un humano lee su CV.",
+    "acceptCvAi": "Acepto que mi CV sea leído con la ayuda de esta herramienta automática.",
+    "summaryTitle": "Resumen automático del CV",
+    "summaryNote": "Ayuda para clasificar, producida por una herramienta automática a partir del CV. No puntúa a nadie y no decide nada: lea el CV y decida usted mismo.",
+    "summaryOverview": "Visión general",
+    "summaryEducation": "Formación",
+    "summaryExperience": "Experiencia",
+    "summaryLanguages": "Idiomas",
+    "summaryThemes": "Temas",
+    "summaryPending": "Resumen en preparación…",
+    "summaryFailed": "No se ha podido producir el resumen automático: lea el CV.",
+    "summaryRetry": "Volver a generar el resumen",
+    "summaryRetried": "Resumen reiniciado.",
+    "summaryRetryErr": "No se ha podido reiniciar el resumen."
   }
 }

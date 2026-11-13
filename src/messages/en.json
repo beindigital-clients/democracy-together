@@ -4627,6 +4627,21 @@
     "msgRetry": "Retry the failures",
     "msgRetried": "Retry started: only the failures are sent again.",
     "msgRetryErr": "The retry could not be started.",
-    "mailListTitle": "The Circle's mailing list"
+    "mailListTitle": "The Circle's mailing list",
+    "cvAiTitle": "Reading the CV with an automatic tool (optional)",
+    "cvAiNotice": "If you wish, your CV can be read with the help of an automatic tool, run by a third-party provider, which draws a short neutral summary from it (education, experience, languages, themes) to help sort requests. The tool scores no one, assigns no label and decides nothing: the president reads your request and decides alone. Only the summary is kept, with your CV, and it is deleted together with it. If you do not tick the box, only a human reads your CV.",
+    "acceptCvAi": "I agree that my CV is read with the help of this automatic tool.",
+    "summaryTitle": "Automatic summary of the CV",
+    "summaryNote": "A sorting aid produced by an automatic tool from the CV. It scores no one and decides nothing: read the CV and decide yourself.",
+    "summaryOverview": "Overview",
+    "summaryEducation": "Education",
+    "summaryExperience": "Experience",
+    "summaryLanguages": "Languages",
+    "summaryThemes": "Themes",
+    "summaryPending": "Summary being prepared…",
+    "summaryFailed": "The automatic summary could not be produced: read the CV.",
+    "summaryRetry": "Run the summary again",
+    "summaryRetried": "Summary restarted.",
+    "summaryRetryErr": "The summary could not be restarted."
   }
 }

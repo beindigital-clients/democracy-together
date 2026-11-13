@@ -60,6 +60,30 @@ export const cercleTables = {
       charterVersion: v.string(),
       noticeVersion: v.string(),
     }),
+    // OPTIONAL consent to have the CV read with the help of an automatic tool
+    // run by a third-party provider (docs/cercle-amis.md § 9). Asked only when
+    // `CERCLE_CV_AI_ENABLED` is on; without it, only a human ever reads the CV.
+    cvAiConsent: v.optional(
+      v.object({ at: v.number(), noticeVersion: v.string() }),
+    ),
+    // THE SUMMARY, and nothing else the tool produced. A neutral description of
+    // what the CV says, to help the president sort. NO score, rank, label,
+    // risk or "deviation" field exists, here or in the tool's output schema: a
+    // test fails if one is added. Deleted with the CV on refusal, and with the
+    // request on account deletion.
+    cvSummary: v.optional(
+      v.object({
+        overview: v.string(),
+        education: v.array(v.string()),
+        experience: v.array(v.string()),
+        languages: v.array(v.string()),
+        themes: v.array(v.string()),
+        model: v.string(),
+        at: v.number(),
+      }),
+    ),
+    // The tool failed (provider down, unreadable file): a human reads the CV.
+    cvSummaryFailedAt: v.optional(v.number()),
     status: cercleRequestStatus,
     submittedAt: v.number(),
     reviewedBy: v.optional(v.id('users')),

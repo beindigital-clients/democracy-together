@@ -4627,6 +4627,21 @@
     "msgRetry": "Repetir as falhas",
     "msgRetried": "Repetição iniciada: só as falhas são reenviadas.",
     "msgRetryErr": "Não foi possível iniciar a repetição.",
-    "mailListTitle": "Lista de distribuição do Círculo"
+    "mailListTitle": "Lista de distribuição do Círculo",
+    "cvAiTitle": "Leitura do CV com uma ferramenta automática (facultativo)",
+    "cvAiNotice": "Se o desejar, o seu CV pode ser lido com a ajuda de uma ferramenta automática, explorada por um prestador terceiro, que dele extrai um breve resumo neutro (formação, experiência, línguas, temas) para facilitar a triagem dos pedidos. A ferramenta não classifica ninguém, não atribui qualquer etiqueta e não decide nada: o presidente lê o seu pedido e decide sozinho. Só o resumo é conservado, com o seu CV, e é eliminado ao mesmo tempo que ele. Se não assinalar a caixa, só um humano lê o seu CV.",
+    "acceptCvAi": "Aceito que o meu CV seja lido com a ajuda desta ferramenta automática.",
+    "summaryTitle": "Resumo automático do CV",
+    "summaryNote": "Ajuda à triagem, produzida por uma ferramenta automática a partir do CV. Não classifica ninguém e não decide nada: leia o CV e decida você mesmo.",
+    "summaryOverview": "Visão geral",
+    "summaryEducation": "Formação",
+    "summaryExperience": "Experiência",
+    "summaryLanguages": "Línguas",
+    "summaryThemes": "Temas",
+    "summaryPending": "Resumo em preparação…",
+    "summaryFailed": "Não foi possível produzir o resumo automático: leia o CV.",
+    "summaryRetry": "Repetir o resumo",
+    "summaryRetried": "Resumo reiniciado.",
+    "summaryRetryErr": "Não foi possível reiniciar o resumo."
   }
 }

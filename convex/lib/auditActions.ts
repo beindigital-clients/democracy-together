@@ -16,6 +16,8 @@ export const AUDIT = {
   // personal data, so who read it is kept.
   CERCLE_REQUEST_REVIEWED: 'cercle.request_reviewed',
   CERCLE_CV_VIEWED: 'cercle.cv_viewed',
+  // The president asked the automatic tool for a CV summary again.
+  CERCLE_CV_SUMMARY_REQUESTED: 'cercle.cv_summary_requested',
   // A private contribution taken down by someone other than its author.
   CERCLE_CONTRIBUTION_REMOVED: 'cercle.contribution_removed',
   // The Cercle's mailing list: an import of contacts, and the sending of the

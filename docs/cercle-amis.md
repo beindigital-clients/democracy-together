@@ -366,3 +366,145 @@ model, so it needs the same explicit decision as the AI moderation (§ 4), the
 notice shown at the request form updated, and an output limited to a neutral
 summary shown to the president next to the CV, never stored as a field on the
 person.
+
+## 9. CV summary by an automatic tool (OFF by default)
+
+When the president opens a pending request, a short neutral summary of the CV can
+be there to help sort: studies, experience, languages, themes. **A human always
+decides.** Module `convex/cercleCvAi.ts`, rules `convex/lib/cercleCvAi.ts`; it
+reuses the repo's AI client (`convex/lib/aiGateway.ts`, `runStructured` with the
+PDF attached, schema-constrained output).
+
+**What it does NOT do — on purpose.** No score, rank, grade, label, rating, risk
+or "deviation" flag, no recommendation to accept or refuse, no automatic decision,
+and no inference about age, gender, origin, religion, health, family or opinions.
+Philippe mentioned "spotting deviances": **that is not built and should not be**.
+Detecting deviant profiles from a CV is profiling of people on sensitive grounds
+(GDPR art. 22 on automated decisions, art. 9 on special categories) with a
+legal risk the association should not take for a sorting convenience. Three
+guarantees back this, all tested (`convex/cercle-cv-ai.test.ts`): the tool's
+output schema has five fields (overview, education, experience, languages,
+themes) and nothing that could carry a verdict; whatever else a model returns —
+a `score`, a `risk` — is dropped when the answer is read (`readCvSummary`); the
+stored summary has no such field either.
+
+**Three gates, all server-side.** Nothing leaves the deployment unless all hold:
+1. the deployment switch `CERCLE_CV_AI_ENABLED=true` (anything else is off; the
+   default, and the state to ship in production);
+2. the person's own **optional** consent, a checkbox at the request form shown only
+   when the switch is on (`cvAiConsent`, with the notice version). Optional, so
+   that consent is free: without it only a human reads the CV;
+3. the request still pending, with its CV on file (a summary that finishes after a
+   decision is dropped).
+
+**What is kept.** Only the summary, next to the CV, and for the same time: a
+refusal deletes the summary with the CV; account deletion deletes the request and
+therefore the summary; an approved Ami's summary stays with their CV. The
+administrator's screen shows it with a standing note that it scores no one and
+decides nothing, and a retry button when the tool failed (audited). It is part of
+the list query, which is administrator-only; nobody else reads it. A failure of
+the tool leaves the request as it was: a human reads the CV.
+
+**Test and production keys — read before turning it on.**
+- Tests use a substitute `fetch` and fictitious CVs only. The e2e uses a canned
+  summary (`CERCLE_CV_AI_MOCK=true`, honoured **only** where `AUTH_DEV_OTP=true`,
+  never in production), so no CV reaches any provider.
+- **Never send a real CV to the test gateway key** (the key used on the shared
+  test deployment, whose account is the developer's). **Do not ship that key to
+  production.** The client must supply its OWN AI Gateway key and approve the
+  notice text (fr/en/es/pt/ar in `messages/*.json`, namespace `cercle`, keys
+  `cvAiTitle`, `cvAiNotice`, `acceptCvAi`; version `2026-11-draft`) before the
+  switch is turned on: the notice tells people their CV goes to a third-party
+  provider, and it must be true of the provider actually used.
+- Model: `CERCLE_CV_AI_MODEL` (default `anthropic/claude-sonnet-5.5`).
+
+To turn it on, once the client has its own key and has approved the notice:
+`npx convex env set AI_GATEWAY_API_KEY <client key>`, then
+`npx convex env set CERCLE_CV_AI_ENABLED true`. To turn it off:
+`npx convex env set CERCLE_CV_AI_ENABLED false` (summaries already stored stay
+until their CV goes).
+
+## 10. Production release checklist for this change
+
+Nothing below has been run. Each command waits for the owner's go.
+
+**Where the live app runs today.** `docs/deploiement.md` (§ "Déploiement en
+cours") says the site is served by the **development** deployment
+`dev:rare-alpaca-677`, not a separate production one, and that the Vercel build
+**never pushes Convex**: merged Convex code is pushed by hand, from a clean copy of
+`main`. Replace the target below if the client has since moved to a production
+deployment (then use `npx convex deploy` and the `--prod` flags of
+`deploiement.md` § 2).
+
+**A. Before anything: the PR.** Merge to `main` only when CI is green and the
+Convex check passes (the owner merges: `gh pr merge <n> --merge`).
+
+**B. Convex — schema, crons, no data migration.** The push adds tables
+(`cercleRequests`, `cercleUploads`, `cercleContributions`, `cercleContacts`,
+`emailQuota`), fields on `users` (`amiSince`, `amiGrantedBy`), on
+`newsletterCampaigns` (`audience`, `status: 'paused'`, `editedAt`, `waveLimit`,
+`pausedUntil`) and on `newsletterDeliveries` (`subscriptionId` becomes optional,
+`contactId`), their indexes, two HTTP routes (`/cercle/cv`, `/cercle/unsubscribe`)
+and two new crons (`cercle-purge-unclaimed-uploads`,
+`cercle-purge-pending-contacts`). All additions are optional or new: **existing
+documents stay valid, no backfill is needed**. The existing newsletter keeps
+working unchanged (audience missing = newsletter).
+```bash
+git fetch origin
+git worktree add --detach /tmp/dt-convex-push origin/main
+cd /tmp/dt-convex-push && pnpm install --frozen-lockfile
+pnpm typecheck:convex
+CONVEX_DEPLOYMENT=dev:rare-alpaca-677 npx convex dev --once
+npx convex function-spec   # check: cercle.*, cercleContributions.*, cercleMailing.*, cercleCvAi.* are there
+cd - && git worktree remove --force /tmp/dt-convex-push
+```
+Then check in the Convex dashboard that the two new crons are listed.
+
+**C. Convex environment variables** (`npx convex env set`, deployment, never Vercel):
+
+| Variable | Value | Needed to go live? |
+|---|---|---|
+| `SITE_URL` | the public site origin (already set; links in the Cercle's e-mails use it) | already there |
+| `CERCLE_SENDER_NAME`, `CERCLE_SENDER_ADDRESS` | association name and postal address | **not to go live, required before any real sending** (refused while unset) |
+| `AUTH_RESEND_KEY`, `AUTH_EMAIL_FROM` | the client's own sending key and a verified domain | before real sending (the test `onboarding@resend.dev` sender writes only to the account owner) |
+| `EMAIL_DAILY_LIMIT` | the daily quota of the Resend plan | recommended before the first real send (free plan: 100/day) |
+| `NEWSLETTER_BATCH_SIZE`, `NEWSLETTER_RATE_PER_MINUTE` | optional; defaults are gentle | no |
+| `CERCLE_CV_AI_ENABLED` | **leave unset (off)** | no — turn on only after the client's own `AI_GATEWAY_API_KEY` and approval of the notice (§ 9) |
+| `AI_GATEWAY_API_KEY` | the client's key, **not** the test key | only for the CV tool |
+| contributions mailbox address (Zoho) | **to be given by the owner** — not guessed. It is not wired to anything yet: decide where it must appear (Cercle message footer, `Reply-To`, request confirmation) before it becomes a variable | open question |
+| `AUTH_DEV_OTP`, `RECAPTCHA_DISABLED`, `CERCLE_CV_AI_MOCK` | ⛔ never in production | — |
+
+**D. Staff 2FA** — enable the requirement before opening: `/admin`, the two-factor
+panel (the enabling administrator must have enrolled a device first). Philippe
+agreed to wait on 2FA for the **Amis**; this is the **staff** one, which protects
+CVs and imports (§ 7).
+
+**E. Vercel** — the app: merge to `main` triggers the build as usual. The build
+needs `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL` (the latter is
+what the CV upload posts to; already set if the site was built from the repo
+config — check it, a missing value breaks only the request form). The CSP opens
+`*.convex.site`, nothing to add.
+
+**F. Order of operations.** (1) PR green and merged by the owner. (2) Push Convex
+(B) **before** or together with the Vercel deploy: the site calls
+`api.cercle.*`, and a site deployed first would hit "Could not find public
+function". (3) Set the variables of C that apply. (4) Enable staff 2FA (D).
+(5) Smoke test on the live site (below). (6) Tell Philippe it is live.
+
+**G. Smoke test, no real person involved.** Sign in as the administrator →
+`/admin/cercle` opens, three tabs. Open `/fr/cercle` signed out → the form shows,
+no CV-tool checkbox (switch off). Send a request with a fictitious address on a
+reserved test domain and a dummy PDF → it appears pending; refuse it → its CV is
+gone. `/fr/espace-membre/cercle` signed out → redirected to sign-in.
+`/sitemap.xml` lists `/fr/cercle` and nothing under `espace-membre`.
+
+**H. What still blocks REAL sending** (the site can go live without it: sending is
+refused until these are set): association name and postal address; the final
+charter text (the 4-line draft is shown to applicants until replaced, version tag
+`2026-11-draft`); the client's own sending key and verified domain; the recipient
+list and the date. Until then Amis can be accepted and can use the private space,
+but no message — not even the confirmation request — leaves the platform.
+
+**I. Rollback.** The site can be rolled back on Vercel at once. The Convex additions
+are inert if the old front is served (nothing reads them); do not delete tables.
+To stop all Cercle sending immediately: unset `CERCLE_SENDER_NAME`.

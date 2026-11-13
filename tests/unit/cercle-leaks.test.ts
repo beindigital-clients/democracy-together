@@ -46,6 +46,8 @@ const CERCLE_TABLE_READERS: Record<string, string[]> = {
   ],
   cercleRequests: [
     'convex/cercle.ts',
+    // The CV summary reads a request, behind its three gates (docs § 9).
+    'convex/cercleCvAi.ts',
     'convex/lib/cercleUserData.ts',
     TABLE_DEFINITIONS,
   ],

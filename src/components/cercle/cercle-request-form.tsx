@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, type FormEvent } from 'react';
-import { useAction } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { ConvexError } from 'convex/values';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
@@ -46,6 +46,9 @@ export function CercleRequestForm() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [charter, setCharter] = useState(false);
   const [notice, setNotice] = useState(false);
+  // OPTIONAL: offered only when the deployment has the CV tool on.
+  const config = useQuery(api.cercle.formConfig);
+  const [cvAi, setCvAi] = useState(false);
   const [boxErrors, setBoxErrors] = useState<{
     charter?: string;
     notice?: string;
@@ -130,6 +133,7 @@ export function CercleRequestForm() {
         cvFileName: file.name,
         acceptCharter: true,
         acceptNotice: true,
+        ...(config?.cvAi ? { acceptCvAi: cvAi } : {}),
         captchaToken,
       });
       setStatus('success');
@@ -265,6 +269,24 @@ export function CercleRequestForm() {
         </label>
         <FormError>{boxErrors.notice}</FormError>
       </section>
+
+      {config?.cvAi ? (
+        <section aria-labelledby="cercle-cvai-title" className="space-y-2">
+          <h2 id="cercle-cvai-title" className="font-display text-lg text-ink">
+            {t('cvAiTitle')}
+          </h2>
+          <p className="text-sm leading-relaxed text-ink-soft">
+            {t('cvAiNotice')}
+          </p>
+          <label className="flex items-start gap-3 text-sm text-ink">
+            <Checkbox
+              checked={cvAi}
+              onCheckedChange={(v) => setCvAi(v === true)}
+            />
+            <span>{t('acceptCvAi')}</span>
+          </label>
+        </section>
+      ) : null}
 
       <FormError>{error}</FormError>
 

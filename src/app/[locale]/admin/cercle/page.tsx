@@ -31,6 +31,7 @@ function RequestRow({ request }: { request: Request }) {
   const locale = useLocale();
   const review = useMutation(api.cercle.reviewRequest);
   const openCv = useMutation(api.cercle.openCv);
+  const retrySummary = useMutation(api.cercleCvAi.retrySummary);
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
   const [notes, setNotes] = useState('');
@@ -67,6 +68,15 @@ function RequestRow({ request }: { request: Request }) {
       setConfirming(null);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onRetrySummary() {
+    try {
+      await retrySummary({ requestId: request._id });
+      notify(t('summaryRetried'));
+    } catch {
+      notify(t('summaryRetryErr'), 'error');
     }
   }
 
@@ -132,6 +142,63 @@ function RequestRow({ request }: { request: Request }) {
           <span className="text-xs text-muted">{t('invited')}</span>
         ) : null}
       </div>
+
+      {request.cvAiState !== 'none' ? (
+        <section
+          aria-label={t('summaryTitle')}
+          className="mt-4 rounded-md border border-line bg-surface-2 p-4 text-sm"
+        >
+          <p className="font-medium text-ink">{t('summaryTitle')}</p>
+          <p className="mt-1 text-xs text-muted">{t('summaryNote')}</p>
+          {request.cvSummary ? (
+            <dl className="mt-3 space-y-2 text-ink-soft">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">
+                  {t('summaryOverview')}
+                </dt>
+                <dd>{request.cvSummary.overview}</dd>
+              </div>
+              {(
+                [
+                  ['summaryEducation', request.cvSummary.education],
+                  ['summaryExperience', request.cvSummary.experience],
+                  ['summaryLanguages', request.cvSummary.languages],
+                  ['summaryThemes', request.cvSummary.themes],
+                ] as const
+              ).map(([key, items]) =>
+                items.length > 0 ? (
+                  <div key={key}>
+                    <dt className="text-xs uppercase tracking-wide text-muted">
+                      {key === 'summaryEducation'
+                        ? t('summaryEducation')
+                        : key === 'summaryExperience'
+                          ? t('summaryExperience')
+                          : key === 'summaryLanguages'
+                            ? t('summaryLanguages')
+                            : t('summaryThemes')}
+                    </dt>
+                    <dd>{items.join(' · ')}</dd>
+                  </div>
+                ) : null,
+              )}
+            </dl>
+          ) : request.cvAiState === 'failed' ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <p className="text-ink-soft">{t('summaryFailed')}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRetrySummary}
+              >
+                {t('summaryRetry')}
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-3 text-ink-soft">{t('summaryPending')}</p>
+          )}
+        </section>
+      ) : null}
 
       {request.status === 'pending' ? (
         <div className="mt-4 space-y-3">

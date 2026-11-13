@@ -96,7 +96,8 @@ export type SessionKey =
   | 'cercleAdminDecision'
   | 'cercleAdminListe'
   | 'cercleAdminMessages'
-  | 'cercleAdminSecurity';
+  | 'cercleAdminSecurity'
+  | 'cercleAdminCvAi';
 
 export const SESSIONS: Record<
   SessionKey,
@@ -313,6 +314,12 @@ export const SESSIONS: Record<
   cercleAdminSecurity: {
     email: 'e2e_session_cercle_security@democracytogether.test',
     state: 'tests/e2e/.auth/cercle-security.json',
+    role: 'admin',
+  },
+  // The automatic CV summary on the president's screen.
+  cercleAdminCvAi: {
+    email: 'e2e_session_cercle_cvai@democracytogether.test',
+    state: 'tests/e2e/.auth/cercle-cvai.json',
     role: 'admin',
   },
   // "programmes" workstream (F-56 to F-60). Each `programmes-*` file

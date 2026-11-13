@@ -4627,6 +4627,21 @@
     "msgRetry": "Relancer les échecs",
     "msgRetried": "Relance lancée : seuls les échecs sont renvoyés.",
     "msgRetryErr": "La relance n'a pas pu être lancée.",
-    "mailListTitle": "Liste de diffusion du Cercle"
+    "mailListTitle": "Liste de diffusion du Cercle",
+    "cvAiTitle": "Lecture du CV avec un outil automatique (facultatif)",
+    "cvAiNotice": "Si vous le souhaitez, votre CV peut être lu avec l'aide d'un outil automatique, exploité par un prestataire tiers, qui en tire un court résumé neutre (formation, expérience, langues, thèmes) pour faciliter le tri des demandes. L'outil ne note personne, n'attribue aucune étiquette et ne décide de rien : le président lit votre demande et décide seul. Seul le résumé est conservé, avec votre CV, et il est supprimé en même temps que lui. Si vous ne cochez pas la case, seul un humain lit votre CV.",
+    "acceptCvAi": "J'accepte que mon CV soit lu avec l'aide de cet outil automatique.",
+    "summaryTitle": "Résumé automatique du CV",
+    "summaryNote": "Aide au tri, produite par un outil automatique à partir du CV. Il ne note personne et ne décide de rien : lisez le CV et décidez vous-même.",
+    "summaryOverview": "Aperçu",
+    "summaryEducation": "Formation",
+    "summaryExperience": "Expérience",
+    "summaryLanguages": "Langues",
+    "summaryThemes": "Thèmes",
+    "summaryPending": "Résumé en cours de préparation…",
+    "summaryFailed": "Le résumé automatique n'a pas pu être produit : lisez le CV.",
+    "summaryRetry": "Relancer le résumé",
+    "summaryRetried": "Résumé relancé.",
+    "summaryRetryErr": "Le résumé n'a pas pu être relancé."
   }
 }

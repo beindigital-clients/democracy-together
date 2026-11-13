@@ -30,6 +30,7 @@ import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { isReservedEmail } from './lib/validation';
 import { normalizeEmail } from './lib/onboarding';
 import { checkFileContent, sanitizeFileName } from './lib/fileCheck';
+import { CV_AI_NOTICE_VERSION, cvAiEnabled } from './lib/cercleCvAi';
 import { confirmContactFromRequest } from './lib/cercleContacts';
 import { sendEmail } from './email';
 import {
@@ -145,6 +146,16 @@ export const purgeUnclaimedUploads = internalMutation({
   },
 });
 
+/**
+ * What the public form needs to know about the deployment: whether to offer the
+ * optional consent to the automatic CV reading. A single boolean, no secret.
+ */
+export const formConfig = query({
+  args: {},
+  returns: v.object({ cvAi: v.boolean() }),
+  handler: async () => ({ cvAi: cvAiEnabled() }),
+});
+
 export const submitRequest = action({
   args: {
     name: v.string(),
@@ -158,6 +169,9 @@ export const submitRequest = action({
     // client that does not send them is refused by the validator itself.
     acceptCharter: v.literal(true),
     acceptNotice: v.literal(true),
+    // OPTIONAL: agrees that the CV is read with the help of an automatic tool
+    // (only offered when the deployment has it on; ignored otherwise).
+    acceptCvAi: v.optional(v.boolean()),
     captchaToken: v.optional(v.string()),
   },
   returns: v.id('cercleRequests'),
@@ -201,6 +215,7 @@ export const storeRequest = internalMutation({
     cvFileName: v.string(),
     acceptCharter: v.literal(true),
     acceptNotice: v.literal(true),
+    acceptCvAi: v.optional(v.boolean()),
   },
   returns: v.id('cercleRequests'),
   handler: async (ctx, args) => {
@@ -254,9 +269,19 @@ export const storeRequest = internalMutation({
         charterVersion: CERCLE_CHARTER_VERSION,
         noticeVersion: CERCLE_NOTICE_VERSION,
       },
+      // The tool's consent is recorded only if the person gave it AND the
+      // deployment offered it: a stale form cannot opt anyone in.
+      ...(args.acceptCvAi === true && cvAiEnabled()
+        ? { cvAiConsent: { at: now, noticeVersion: CV_AI_NOTICE_VERSION } }
+        : {}),
       status: 'pending',
       submittedAt: now,
     });
+    if (args.acceptCvAi === true && cvAiEnabled()) {
+      await ctx.scheduler.runAfter(0, internal.cercleCvAi.summarize, {
+        requestId: id,
+      });
+    }
 
     if (!isReservedEmail(email)) {
       await ctx.scheduler.runAfter(0, internal.cercle.sendReceipt, {
@@ -301,6 +326,25 @@ const requestRowValidator = v.object({
   charterVersion: v.string(),
   noticeVersion: v.string(),
   invited: v.boolean(),
+  // The automatic summary of the CV, if there is one (administrators only: this
+  // whole query is). `cvAiState` says why there is none.
+  cvSummary: v.union(
+    v.null(),
+    v.object({
+      overview: v.string(),
+      education: v.array(v.string()),
+      experience: v.array(v.string()),
+      languages: v.array(v.string()),
+      themes: v.array(v.string()),
+    }),
+  ),
+  cvAiState: v.union(
+    // No consent, tool off, or decided: nothing was or will be read by it.
+    v.literal('none'),
+    v.literal('pending'),
+    v.literal('ready'),
+    v.literal('failed'),
+  ),
 });
 
 export const listRequests = query({
@@ -336,6 +380,22 @@ export const listRequests = query({
         charterVersion: r.consent.charterVersion,
         noticeVersion: r.consent.noticeVersion,
         invited: r.invitedAt !== undefined,
+        cvSummary: r.cvSummary
+          ? {
+              overview: r.cvSummary.overview,
+              education: r.cvSummary.education,
+              experience: r.cvSummary.experience,
+              languages: r.cvSummary.languages,
+              themes: r.cvSummary.themes,
+            }
+          : null,
+        cvAiState: r.cvSummary
+          ? ('ready' as const)
+          : r.status !== 'pending' || !r.cvAiConsent || !r.cvStorageId
+            ? ('none' as const)
+            : r.cvSummaryFailedAt !== undefined
+              ? ('failed' as const)
+              : ('pending' as const),
       })),
     };
   },
@@ -403,6 +463,9 @@ export const reviewRequest = mutation({
         ...common,
         cvStorageId: undefined,
         cvDeletedAt: request.cvStorageId ? now : undefined,
+        // What the tool derived from the CV goes with the CV.
+        cvSummary: undefined,
+        cvSummaryFailedAt: undefined,
       });
       await recordAudit(ctx, {
         actorId: admin._id,
