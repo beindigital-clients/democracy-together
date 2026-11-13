@@ -420,10 +420,14 @@ the tool leaves the request as it was: a human reads the CV.
   `cvAiTitle`, `cvAiNotice`, `acceptCvAi`; version `2026-11-draft`) is what tells
   people so, and it is shown on the form whenever the switch is on. It must be
   approved as true of the provider actually used.
-- **Real CVs only with the owner's written go.** The gateway key is a trial key
-  and the owner's rule is that no real client data goes through it until they have
-  said so in writing: that go is a precondition of the switch, separate from the
-  technical steps.
+- **Real CVs: the owner's written authorization is recorded.** The gateway key is
+  a trial key, and the owner's rule is that no real client data goes through it
+  without their written go. On 2026-11-13, in the chat of the working session, the
+  owner answered "Oui, les deux" to the question whether real candidate CVs may be
+  sent to the AI provider through their AI Gateway key. That authorization holds
+  **once the candidate notice is live**. It does not turn the switch on: enabling
+  `CERCLE_CV_AI_ENABLED` in production still needs the notice live and the owner's
+  go on the exact command.
 - **Cost.** Usage is billed to the owner's AI Gateway account. Set a spending
   limit in the gateway dashboard before turning the tool on.
 - Model: `CERCLE_CV_AI_MODEL` (default `anthropic/claude-sonnet-5.5`).
