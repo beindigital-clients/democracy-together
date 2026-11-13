@@ -6,6 +6,7 @@ import {
   internalMutation,
   mutation,
   query,
+  type MutationCtx,
 } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -30,6 +31,7 @@ import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { isReservedEmail } from './lib/validation';
 import { normalizeEmail } from './lib/onboarding';
 import { checkFileContent, sanitizeFileName } from './lib/fileCheck';
+import { alertRecipients, planAlert } from './lib/cercleAlert';
 import { CV_AI_NOTICE_VERSION, cvAiEnabled } from './lib/cercleCvAi';
 import { confirmContactFromRequest } from './lib/cercleContacts';
 import { sendEmail } from './email';
@@ -44,6 +46,7 @@ import {
 import {
   cercleApprovedEmail,
   cercleDeclinedEmail,
+  cercleRequestAlertEmail,
   cercleRequestReceivedEmail,
 } from './lib/cercleEmails';
 import { cercleRequestStatus } from './lib/tables/cercle';
@@ -288,8 +291,114 @@ export const storeRequest = internalMutation({
         email,
         locale: args.locale ?? 'fr',
       });
+      // Tell the team a request is waiting — like the receipt, never for a
+      // reserved test address, and never able to fail the request: the alert
+      // only SCHEDULES an action.
+      await scheduleRequestAlert(ctx, now);
     }
     return id;
+  },
+});
+
+// THE ALERT TO THE TEAM. At most one e-mail per ALERT_WINDOW_MS: the first
+// request in a while tells at once and starts the window; the ones that follow
+// inside it are covered by ONE follow-up scheduled for the window's end, which
+// reports the count then. Decided here, in the request's transaction, so two
+// requests at the same moment cannot both tell. Nobody to tell (the variable
+// is unset) is not an error: nothing is scheduled and nothing is written.
+async function scheduleRequestAlert(ctx: MutationCtx, now: number) {
+  if (alertRecipients().length === 0) return;
+  const row = await ctx.db.query('cercleAlertState').first();
+  const plan = planAlert(row, now);
+  if (plan.kind === 'none') return;
+  if (plan.kind === 'now') {
+    if (row) {
+      await ctx.db.patch(row._id, { lastAlertAt: now, followUpAt: undefined });
+    } else {
+      await ctx.db.insert('cercleAlertState', { lastAlertAt: now });
+    }
+    await ctx.scheduler.runAfter(0, internal.cercle.sendRequestAlert, {});
+    return;
+  }
+  await ctx.db.patch(row!._id, { followUpAt: now + plan.delayMs });
+  await ctx.scheduler.runAfter(plan.delayMs, internal.cercle.sendRequestAlert, {
+    followUp: true,
+  });
+}
+
+// What the alert needs, read at the moment it goes out: whether it still has a
+// reason to (a follow-up is moot if every request was decided meanwhile), how
+// many requests wait, and each recipient's language — their account's
+// preference when they have one, French otherwise.
+export const _beginAlert = internalMutation({
+  args: { followUp: v.boolean() },
+  returns: v.object({
+    send: v.boolean(),
+    pending: v.number(),
+    recipients: v.array(v.object({ email: v.string(), locale })),
+  }),
+  handler: async (ctx, { followUp }) => {
+    const addresses = alertRecipients();
+    const none = { send: false, pending: 0, recipients: [] };
+    if (addresses.length === 0) return none;
+    if (followUp) {
+      // The follow-up opens a new window.
+      const row = await ctx.db.query('cercleAlertState').first();
+      if (!row || row.followUpAt === undefined) return none;
+      await ctx.db.patch(row._id, {
+        lastAlertAt: Date.now(),
+        followUpAt: undefined,
+      });
+    }
+    const pending = (
+      await ctx.db
+        .query('cercleRequests')
+        .withIndex('by_status', (q) => q.eq('status', 'pending'))
+        .take(500)
+    ).length;
+    if (pending === 0) return none;
+    const recipients = [];
+    for (const email of addresses) {
+      const account = await ctx.db
+        .query('users')
+        .withIndex('email', (q) => q.eq('email', email))
+        .first();
+      recipients.push({ email, locale: account?.preferredLocale ?? 'fr' });
+    }
+    return { send: true, pending, recipients };
+  },
+});
+
+export const sendRequestAlert = internalAction({
+  args: { followUp: v.optional(v.boolean()) },
+  returns: v.null(),
+  handler: async (ctx, { followUp }) => {
+    const plan = await ctx.runMutation(internal.cercle._beginAlert, {
+      followUp: followUp === true,
+    });
+    if (!plan.send) return null;
+    const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000';
+    const failures: string[] = [];
+    for (const recipient of plan.recipients) {
+      const { subject, html } = cercleRequestAlertEmail({
+        siteUrl,
+        locale: recipient.locale,
+        pending: plan.pending,
+      });
+      try {
+        await sendEmail({ to: recipient.email, subject, html });
+      } catch (err) {
+        // One failure does not deprive the others; the log counts them without
+        // writing the addresses (same as the membership staff alert).
+        failures.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+    if (failures.length > 0) {
+      console.error(
+        `Cercle request alert: ${failures.length}/${plan.recipients.length} not sent (${failures[0]})`,
+      );
+    }
+    return null;
   },
 });
 

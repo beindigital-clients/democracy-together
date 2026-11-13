@@ -52,6 +52,8 @@ const CERCLE_TABLE_READERS: Record<string, string[]> = {
     TABLE_DEFINITIONS,
   ],
   cercleUploads: ['convex/cercle.ts', TABLE_DEFINITIONS],
+  // Two timestamps, no personal data: the alert's throttle.
+  cercleAlertState: ['convex/cercle.ts', TABLE_DEFINITIONS],
   cercleContacts: [
     'convex/cercleMailing.ts',
     'convex/lib/cercleContacts.ts',

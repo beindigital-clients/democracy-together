@@ -182,4 +182,14 @@ export const cercleTables = {
     // contacts still to be asked.
     .index('by_status_and_expiry', ['status', 'confirmExpiresAt'])
     .index('by_status_and_toAsk', ['status', 'toAsk']),
+
+  // WHEN THE LAST "A REQUEST IS WAITING" E-MAIL WENT (singleton row), so that a
+  // burst of requests tells the team once, not once each. Holds no personal
+  // data: two timestamps.
+  cercleAlertState: defineTable({
+    lastAlertAt: v.number(),
+    // A follow-up is scheduled for the end of the window (covers the requests
+    // that came in during it).
+    followUpAt: v.optional(v.number()),
+  }),
 };
