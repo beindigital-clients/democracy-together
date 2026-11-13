@@ -405,21 +405,32 @@ decides nothing, and a retry button when the tool failed (audited). It is part o
 the list query, which is administrator-only; nobody else reads it. A failure of
 the tool leaves the request as it was: a human reads the CV.
 
-**Test and production keys — read before turning it on.**
+**Key, notice and cost — read before turning it on.**
+- One AI Gateway key serves the test and the production deployments (the same
+  `AI_GATEWAY_API_KEY` the moderation and KOHOP checks already use). It lives
+  only in the Convex environment of each deployment — never in code, a commit, a
+  log or this documentation, and never under a `NEXT_PUBLIC_` name. It is copied
+  there by script from the owner's private secrets file, without being printed.
 - Tests use a substitute `fetch` and fictitious CVs only. The e2e uses a canned
   summary (`CERCLE_CV_AI_MOCK=true`, honoured **only** where `AUTH_DEV_OTP=true`,
   never in production), so no CV reaches any provider.
-- **Never send a real CV to the test gateway key** (the key used on the shared
-  test deployment, whose account is the developer's). **Do not ship that key to
-  production.** The client must supply its OWN AI Gateway key and approve the
-  notice text (fr/en/es/pt/ar in `messages/*.json`, namespace `cercle`, keys
-  `cvAiTitle`, `cvAiNotice`, `acceptCvAi`; version `2026-11-draft`) before the
-  switch is turned on: the notice tells people their CV goes to a third-party
-  provider, and it must be true of the provider actually used.
+- **The applicant notice must be live before the switch is turned on in
+  production.** Real CVs go to a third-party provider the moment it is on; the
+  notice (fr/en/es/pt/ar in `messages/*.json`, namespace `cercle`, keys
+  `cvAiTitle`, `cvAiNotice`, `acceptCvAi`; version `2026-11-draft`) is what tells
+  people so, and it is shown on the form whenever the switch is on. It must be
+  approved as true of the provider actually used.
+- **Real CVs only with the owner's written go.** The gateway key is a trial key
+  and the owner's rule is that no real client data goes through it until they have
+  said so in writing: that go is a precondition of the switch, separate from the
+  technical steps.
+- **Cost.** Usage is billed to the owner's AI Gateway account. Set a spending
+  limit in the gateway dashboard before turning the tool on.
 - Model: `CERCLE_CV_AI_MODEL` (default `anthropic/claude-sonnet-5.5`).
 
-To turn it on, once the client has its own key and has approved the notice:
-`npx convex env set AI_GATEWAY_API_KEY <client key>`, then
+To turn it on, once the notice is live, the owner has given their written go and
+a spending limit is set: make sure `AI_GATEWAY_API_KEY` is present on the
+deployment (`npx convex env list --names-only`), then
 `npx convex env set CERCLE_CV_AI_ENABLED true`. To turn it off:
 `npx convex env set CERCLE_CV_AI_ENABLED false` (summaries already stored stay
 until their CV goes).
@@ -469,8 +480,8 @@ Then check in the Convex dashboard that the two new crons are listed.
 | `AUTH_RESEND_KEY`, `AUTH_EMAIL_FROM` | the client's own sending key and a verified domain | before real sending (the test `onboarding@resend.dev` sender writes only to the account owner) |
 | `EMAIL_DAILY_LIMIT` | the daily quota of the Resend plan | recommended before the first real send (free plan: 100/day) |
 | `NEWSLETTER_BATCH_SIZE`, `NEWSLETTER_RATE_PER_MINUTE` | optional; defaults are gentle | no |
-| `CERCLE_CV_AI_ENABLED` | **leave unset (off)** | no — turn on only after the client's own `AI_GATEWAY_API_KEY` and approval of the notice (§ 9) |
-| `AI_GATEWAY_API_KEY` | the client's key, **not** the test key | only for the CV tool |
+| `CERCLE_CV_AI_ENABLED` | **leave unset (off)** | no — turn on only once the notice is live, the owner has given their written go and a gateway spending limit is set (§ 9) |
+| `AI_GATEWAY_API_KEY` | the same key as on the test deployment, copied by script from the private secrets file (never printed, never `NEXT_PUBLIC_`); exact command to be run by the owner, or on their go | only for the CV tool (and the existing moderation / KOHOP checks) |
 | contributions mailbox address (Zoho) | **to be given by the owner** — not guessed. It is not wired to anything yet: decide where it must appear (Cercle message footer, `Reply-To`, request confirmation) before it becomes a variable | open question |
 | `AUTH_DEV_OTP`, `RECAPTCHA_DISABLED`, `CERCLE_CV_AI_MOCK` | ⛔ never in production | — |
 
