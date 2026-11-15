@@ -15,13 +15,14 @@ import {
   CV_SUMMARY_SCHEMA,
   MOCK_CV_SUMMARY,
   cvAiEnabled,
+  cvAiConsentCovers,
   cvAiMocked,
   cvAiModel,
   readCvSummary,
   summaryLanguage,
 } from './lib/cercleCvAi';
 
-// CERCLE DES AMIS — CV SUMMARY (docs/cercle-amis.md § 9).
+// CERCLE DES AMIS — CV READING (docs/cercle-amis.md § 9).
 //
 // Everything here is gated THREE times, because a CV is personal data and the
 // provider is a third party:
@@ -29,7 +30,8 @@ import {
 //   2. the person's own optional consent at the form (`cvAiConsent`);
 //   3. the request still being pending, with its CV still on file.
 // Nothing leaves the deployment unless all three hold, and the tool only ever
-// writes `cvSummary`: no score, no label, no decision.
+// writes `cvSummary`: summary, timeline, inconsistencies. No score, no verdict,
+// no decision.
 
 const requestForSummary = v.union(
   v.null(),
@@ -48,7 +50,9 @@ export const _loadForSummary = internalQuery({
     if (!cvAiEnabled()) return null;
     const r = await ctx.db.get(requestId);
     if (!r || r.status !== 'pending') return null;
-    if (!r.cvAiConsent || !r.cvStorageId) return null;
+    // The consent must cover THIS reading: an older notice did not announce
+    // the timeline and the inconsistency check (QA SEN-002).
+    if (!cvAiConsentCovers(r.cvAiConsent) || !r.cvStorageId) return null;
     return {
       storageId: r.cvStorageId,
       fileName: r.cvFileName ?? 'cv.pdf',
@@ -68,6 +72,8 @@ export const _saveSummary = internalMutation({
         experience: v.array(v.string()),
         languages: v.array(v.string()),
         themes: v.array(v.string()),
+        timeline: v.array(v.string()),
+        inconsistencies: v.array(v.string()),
       }),
     ),
     model: v.string(),
@@ -77,7 +83,12 @@ export const _saveSummary = internalMutation({
     const r = await ctx.db.get(requestId);
     // Decided, or CV gone, while the tool was working: nothing is kept (a
     // refusal deletes the CV AND what was derived from it).
-    if (!r || r.status !== 'pending' || !r.cvStorageId || !r.cvAiConsent) {
+    if (
+      !r ||
+      r.status !== 'pending' ||
+      !r.cvStorageId ||
+      !cvAiConsentCovers(r.cvAiConsent)
+    ) {
       return null;
     }
     const now = Date.now();
@@ -125,7 +136,7 @@ export const summarize = internalAction({
     const result = await runStructured({
       model,
       instructions: CV_SUMMARY_INSTRUCTIONS,
-      userText: `language: ${summaryLanguage(target.locale)}\nSummarise the attached CV.`,
+      userText: `language: ${summaryLanguage(target.locale)}\nRead the attached CV and fill every field.`,
       attachment: {
         filename: 'cv.pdf',
         base64: toBase64(new Uint8Array(await blob.arrayBuffer())),
@@ -133,7 +144,7 @@ export const summarize = internalAction({
       },
       schemaName: 'cv_summary',
       schema: CV_SUMMARY_SCHEMA,
-      maxOutputTokens: 900,
+      maxOutputTokens: 2000,
     });
     const summary = result.ok ? readCvSummary(result.data) : null;
     if (!result.ok && result.code !== GATEWAY_ERRORS.NOT_CONFIGURED) {
@@ -157,7 +168,12 @@ export const retrySummary = mutation({
     const admin = await requireNetworkRole(ctx, 'admin');
     if (!cvAiEnabled()) throw new ConvexError('CV_AI_DISABLED');
     const r = await ctx.db.get(requestId);
-    if (!r || r.status !== 'pending' || !r.cvAiConsent || !r.cvStorageId) {
+    if (
+      !r ||
+      r.status !== 'pending' ||
+      !cvAiConsentCovers(r.cvAiConsent) ||
+      !r.cvStorageId
+    ) {
       throw new ConvexError('NOT_ELIGIBLE');
     }
     await recordAudit(ctx, {

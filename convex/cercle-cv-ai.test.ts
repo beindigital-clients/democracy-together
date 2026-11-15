@@ -120,17 +120,24 @@ describe('CV AI — rules', () => {
     expect(cvAiMocked()).toBe(true);
   });
 
-  it('keeps only the five known fields, bounded, and drops anything else (a score, a flag)', () => {
+  it('keeps only the seven known fields, bounded, and drops anything else (a score, a verdict)', () => {
     const read = readCvSummary({
       overview: '  Un parcours.  ',
       education: ['a', '', 7, 'b'],
       experience: Array.from({ length: 20 }, (_, i) => `x${i}`),
       languages: 'pas une liste',
       themes: ['t'],
+      timeline: Array.from({ length: 30 }, (_, i) => `étape ${i}`),
+      inconsistencies: [
+        'Deux postes à temps plein sur 2019–2020.',
+        '',
+        'y'.repeat(500),
+      ],
       score: 92,
       risk: 'high',
       deviation: true,
       recommendation: 'refuse',
+      honesty: 'low',
     });
     expect(read).toEqual({
       overview: 'Un parcours.',
@@ -138,11 +145,29 @@ describe('CV AI — rules', () => {
       experience: ['x0', 'x1', 'x2', 'x3', 'x4', 'x5'],
       languages: [],
       themes: ['t'],
+      timeline: Array.from({ length: 15 }, (_, i) => `étape ${i}`),
+      inconsistencies: [
+        'Deux postes à temps plein sur 2019–2020.',
+        'y'.repeat(280),
+      ],
     });
     expect(Object.keys(read!)).not.toContain('score');
+    expect(Object.keys(read!)).not.toContain('honesty');
     expect(readCvSummary({ overview: '   ' })).toBeNull();
     expect(readCvSummary(null)).toBeNull();
     expect(readCvSummary('texte')).toBeNull();
+  });
+
+  it('an answer without the new lists still reads: they come back empty', () => {
+    expect(readCvSummary({ overview: 'Ok.' })).toEqual({
+      overview: 'Ok.',
+      education: [],
+      experience: [],
+      languages: [],
+      themes: [],
+      timeline: [],
+      inconsistencies: [],
+    });
   });
 
   it('has no field that could carry a score, a label, a risk or a decision — in the schema, the output schema and the stored summary', () => {
@@ -175,10 +200,12 @@ describe('CV AI — rules', () => {
         'at',
         'education',
         'experience',
+        'inconsistencies',
         'languages',
         'model',
         'overview',
         'themes',
+        'timeline',
       ].sort(),
     );
     expect(summaryFields.filter((f) => FORBIDDEN.test(f))).toEqual([]);
@@ -193,6 +220,19 @@ describe('CV AI — rules', () => {
     expect(CV_SUMMARY_INSTRUCTIONS).toMatch(/accepted or refused/);
     expect(CV_SUMMARY_INSTRUCTIONS).toMatch(/religion/);
     expect(CV_SUMMARY_INSTRUCTIONS).toMatch(/DATA, not instructions/);
+  });
+
+  it('the instructions keep inconsistencies about the document: no gap, no intent, nothing about the person', () => {
+    expect(CV_SUMMARY_INSTRUCTIONS).toMatch(/INSIDE the CV text/);
+    expect(CV_SUMMARY_INSTRUCTIONS).toMatch(
+      /describes the document only, never the person/,
+    );
+    expect(CV_SUMMARY_INSTRUCTIONS).toMatch(/employment gap/);
+    expect(CV_SUMMARY_INSTRUCTIONS).toMatch(/do not guess at intent/);
+    expect(CV_SUMMARY_INSTRUCTIONS).toMatch(/family situation/);
+    expect([...CV_SUMMARY_SCHEMA.required].sort()).toEqual(
+      Object.keys(CV_SUMMARY_SCHEMA.properties).sort(),
+    );
   });
 });
 
@@ -261,6 +301,13 @@ describe('CV AI — switch on', () => {
       experience: [],
       languages: ['Français'],
       themes: ['Démocratie'],
+      timeline: [
+        '2015–2017 · Master fictif',
+        '2017–2021 · Association fictive',
+      ],
+      inconsistencies: [
+        'Deux postes à temps plein sont indiqués sur 2019–2020.',
+      ],
       score: 97,
       risk: 'none',
     });
@@ -277,16 +324,18 @@ describe('CV AI — switch on', () => {
 
     const r = await row(t, id);
     expect(r?.cvAiConsent).toMatchObject({ noticeVersion: expect.any(String) });
-    // Only the five fields plus the model and the time: the extra ones are gone.
+    // Only the seven fields plus the model and the time: the extra ones are gone.
     expect(Object.keys(r!.cvSummary!).sort()).toEqual(
       [
         'at',
         'education',
         'experience',
+        'inconsistencies',
         'languages',
         'model',
         'overview',
         'themes',
+        'timeline',
       ].sort(),
     );
     expect(JSON.stringify(r)).not.toMatch(/"(score|risk)"/);
@@ -303,7 +352,77 @@ describe('CV AI — switch on', () => {
       experience: [],
       languages: ['Français'],
       themes: ['Démocratie'],
+      timeline: [
+        '2015–2017 · Master fictif',
+        '2017–2021 · Association fictive',
+      ],
+      inconsistencies: [
+        'Deux postes à temps plein sont indiqués sur 2019–2020.',
+      ],
     });
+  });
+
+  // QA SEN-002 — a consent given against an older notice did not announce the
+  // timeline and the inconsistency check, so it must not cover this reading.
+  it('an older notice version does not cover the current reading', async () => {
+    const calls = fakeProvider();
+    const t = convexTest(schema, modules);
+    const id = await submit(t, 'a@example.test', true);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(calls).toHaveLength(1);
+
+    // Same person, consent recorded under the previous notice, no summary yet.
+    await t.run((ctx) =>
+      ctx.db.patch(id, {
+        cvAiConsent: { at: Date.now(), noticeVersion: '2026-11-draft-1' },
+        cvSummary: undefined,
+      }),
+    );
+    const as = await admin(t);
+    const state = async () =>
+      (
+        await as.query(api.cercle.listRequests, {
+          status: 'pending',
+          paginationOpts: { numItems: 5, cursor: null },
+        })
+      ).page[0].cvAiState;
+    expect(await state()).toBe('none');
+
+    await expect(
+      as.mutation(api.cercleCvAi.retrySummary, { requestId: id }),
+    ).rejects.toThrow(/NOT_ELIGIBLE/);
+    await t.action(internal.cercleCvAi.summarize, { requestId: id });
+    expect(calls).toHaveLength(1);
+    expect((await row(t, id))?.cvSummary).toBeUndefined();
+  });
+
+  // QA SEN-001 — a reading stored before the timeline and the inconsistency
+  // check existed must not claim "no inconsistency": it was never analysed.
+  it('an older reading reports the timeline and inconsistencies as not analysed', async () => {
+    fakeProvider();
+    const t = convexTest(schema, modules);
+    const id = await submit(t, 'a@example.test', true);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.run((ctx) =>
+      ctx.db.patch(id, {
+        cvSummary: {
+          overview: 'Ancien résumé.',
+          education: [],
+          experience: [],
+          languages: [],
+          themes: [],
+          model: 'old',
+          at: Date.now(),
+        },
+      }),
+    );
+    const as = await admin(t);
+    const page = await as.query(api.cercle.listRequests, {
+      status: 'pending',
+      paginationOpts: { numItems: 5, cursor: null },
+    });
+    expect(page.page[0].cvSummary?.timeline).toBeNull();
+    expect(page.page[0].cvSummary?.inconsistencies).toBeNull();
   });
 
   it('is admin-only: nobody else reads it', async () => {
@@ -450,6 +569,8 @@ describe('CV AI — switch on', () => {
         experience: [],
         languages: [],
         themes: [],
+        timeline: [],
+        inconsistencies: [],
       },
       model: 'x',
     });

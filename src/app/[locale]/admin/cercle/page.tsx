@@ -181,6 +181,41 @@ function RequestRow({ request }: { request: Request }) {
                   </div>
                 ) : null,
               )}
+              {request.cvSummary.timeline !== null &&
+              request.cvSummary.timeline.length > 0 ? (
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">
+                    {t('summaryTimeline')}
+                  </dt>
+                  <dd>
+                    <ol className="mt-1 list-decimal space-y-0.5 pl-5">
+                      {request.cvSummary.timeline.map((line, i) => (
+                        <li key={i}>{line}</li>
+                      ))}
+                    </ol>
+                  </dd>
+                </div>
+              ) : null}
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-muted">
+                  {t('summaryInconsistencies')}
+                </dt>
+                <dd>
+                  {request.cvSummary.inconsistencies === null ? (
+                    // A reading made before this check existed: say it was
+                    // not analysed, never "none found".
+                    t('summaryNotAnalysed')
+                  ) : request.cvSummary.inconsistencies.length > 0 ? (
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                      {request.cvSummary.inconsistencies.map((line, i) => (
+                        <li key={i}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    t('summaryNoInconsistency')
+                  )}
+                </dd>
+              </div>
             </dl>
           ) : request.cvAiState === 'failed' ? (
             <div className="mt-3 flex flex-wrap items-center gap-3">

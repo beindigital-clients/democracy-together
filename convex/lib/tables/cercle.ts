@@ -66,11 +66,11 @@ export const cercleTables = {
     cvAiConsent: v.optional(
       v.object({ at: v.number(), noticeVersion: v.string() }),
     ),
-    // THE SUMMARY, and nothing else the tool produced. A neutral description of
-    // what the CV says, to help the president sort. NO score, rank, label,
-    // risk or "deviation" field exists, here or in the tool's output schema: a
-    // test fails if one is added. Deleted with the CV on refusal, and with the
-    // request on account deletion.
+    // THE READING OF THE CV, and nothing else the tool produced: a neutral
+    // summary, a dated timeline, and the inconsistencies found inside the
+    // document. NO score, rank, label, risk or verdict field exists, here or in
+    // the tool's output schema: a test fails if one is added. Deleted with the
+    // CV on refusal, and with the request on account deletion.
     cvSummary: v.optional(
       v.object({
         overview: v.string(),
@@ -78,6 +78,9 @@ export const cercleTables = {
         experience: v.array(v.string()),
         languages: v.array(v.string()),
         themes: v.array(v.string()),
+        // Added with the extended reading: absent on summaries stored before it.
+        timeline: v.optional(v.array(v.string())),
+        inconsistencies: v.optional(v.array(v.string())),
         model: v.string(),
         at: v.number(),
       }),
