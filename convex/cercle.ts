@@ -32,7 +32,11 @@ import { isReservedEmail } from './lib/validation';
 import { normalizeEmail } from './lib/onboarding';
 import { checkFileContent, sanitizeFileName } from './lib/fileCheck';
 import { alertRecipients, planAlert } from './lib/cercleAlert';
-import { CV_AI_NOTICE_VERSION, cvAiEnabled } from './lib/cercleCvAi';
+import {
+  CV_AI_NOTICE_VERSION,
+  cvAiConsentCovers,
+  cvAiEnabled,
+} from './lib/cercleCvAi';
 import { confirmContactFromRequest } from './lib/cercleContacts';
 import { sendEmail } from './email';
 import {
@@ -445,6 +449,11 @@ const requestRowValidator = v.object({
       experience: v.array(v.string()),
       languages: v.array(v.string()),
       themes: v.array(v.string()),
+      // `null` = this reading was made before the timeline and the
+      // inconsistency check existed: they were NOT analysed, which is not the
+      // same as "none found" (QA SEN-001).
+      timeline: v.union(v.null(), v.array(v.string())),
+      inconsistencies: v.union(v.null(), v.array(v.string())),
     }),
   ),
   cvAiState: v.union(
@@ -496,11 +505,15 @@ export const listRequests = query({
               experience: r.cvSummary.experience,
               languages: r.cvSummary.languages,
               themes: r.cvSummary.themes,
+              timeline: r.cvSummary.timeline ?? null,
+              inconsistencies: r.cvSummary.inconsistencies ?? null,
             }
           : null,
         cvAiState: r.cvSummary
           ? ('ready' as const)
-          : r.status !== 'pending' || !r.cvAiConsent || !r.cvStorageId
+          : r.status !== 'pending' ||
+              !cvAiConsentCovers(r.cvAiConsent) ||
+              !r.cvStorageId
             ? ('none' as const)
             : r.cvSummaryFailedAt !== undefined
               ? ('failed' as const)

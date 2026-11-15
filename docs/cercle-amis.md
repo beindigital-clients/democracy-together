@@ -367,26 +367,47 @@ notice shown at the request form updated, and an output limited to a neutral
 summary shown to the president next to the CV, never stored as a field on the
 person.
 
-## 9. CV summary by an automatic tool (OFF by default)
+## 9. CV reading by an automatic tool (OFF by default)
 
-When the president opens a pending request, a short neutral summary of the CV can
-be there to help sort: studies, experience, languages, themes. **A human always
-decides.** Module `convex/cercleCvAi.ts`, rules `convex/lib/cercleCvAi.ts`; it
-reuses the repo's AI client (`convex/lib/aiGateway.ts`, `runStructured` with the
-PDF attached, schema-constrained output).
+When the president opens a pending request, the tool gives them three things to
+help sort: a short neutral summary (studies, experience, languages, themes), an
+**extended CV** (the career as a dated timeline, exactly as the CV states it) and
+the **inconsistencies found inside the document**. **A human always decides.**
+Module `convex/cercleCvAi.ts`, rules `convex/lib/cercleCvAi.ts`; it reuses the
+repo's AI client (`convex/lib/aiGateway.ts`, `runStructured` with the PDF
+attached, schema-constrained output).
 
-**What it does NOT do — on purpose.** No score, rank, grade, label, rating, risk
-or "deviation" flag, no recommendation to accept or refuse, no automatic decision,
-and no inference about age, gender, origin, religion, health, family or opinions.
-Philippe mentioned "spotting deviances": **that is not built and should not be**.
-Detecting deviant profiles from a CV is profiling of people on sensitive grounds
-(GDPR art. 22 on automated decisions, art. 9 on special categories) with a
-legal risk the association should not take for a sorting convenience. Three
-guarantees back this, all tested (`convex/cercle-cv-ai.test.ts`): the tool's
-output schema has five fields (overview, education, experience, languages,
-themes) and nothing that could carry a verdict; whatever else a model returns —
-a `score`, a `risk` — is dropped when the answer is read (`readCvSummary`); the
-stored summary has no such field either.
+**Decision of 2026-11-14 (owner, on Philippe's request).** Philippe asked for an
+extended CV in which anomalies can be spotted. The first version left that out;
+it is now built, in the form below. The owner's position is that the Cercle is a
+closed network and GDPR does not really apply. That is not correct: GDPR applies
+to any processing of personal data of people in the EU, whatever the size or
+closure of the group, and the applicants' CVs go to a third-party provider. The
+consent, the notice and the retention rules therefore stay (see "Key, notice and
+cost" below), and the design keeps two lines on purpose.
+
+**What an inconsistency is.** A contradiction or impossibility INSIDE the CV
+text, worded as one neutral observation that quotes what the CV says: two
+full-time jobs on the same dates, an end date before its start, a diploma dated
+before the studies it needs began, two places for one period, a fact stated two
+ways. It describes the DOCUMENT, never the person's honesty or intent.
+
+**What it does NOT do — on purpose.**
+- No score, rank, grade, label, rating, risk, verdict or recommendation to accept
+  or refuse, and no automatic decision.
+- **No employment gap, career change, short stay, late diploma or unexplained
+  period is ever reported.** Those track health, family, migration and other
+  protected characteristics; reporting them would profile applicants on grounds
+  the law protects (GDPR art. 9) and expose the association to discrimination
+  claims.
+- No inference about age, gender, origin, religion, health, family or opinions,
+  and no lookup of the person outside the CV they sent.
+- No "deviant profile" detection: "deviance" is not a field. The output schema has
+  seven fields (overview, education, experience, languages, themes, timeline,
+  inconsistencies); whatever else a model returns — a `score`, a `risk`, a
+  `honesty` — is dropped when the answer is read (`readCvSummary`), and the
+  stored summary has no such field either. All tested
+  (`convex/cercle-cv-ai.test.ts`).
 
 **Three gates, all server-side.** Nothing leaves the deployment unless all hold:
 1. the deployment switch `CERCLE_CV_AI_ENABLED=true` (anything else is off; the
@@ -397,8 +418,8 @@ stored summary has no such field either.
 3. the request still pending, with its CV on file (a summary that finishes after a
    decision is dropped).
 
-**What is kept.** Only the summary, next to the CV, and for the same time: a
-refusal deletes the summary with the CV; account deletion deletes the request and
+**What is kept.** Only the reading (summary, timeline, inconsistencies), next to the CV, and for the same time: a
+refusal deletes it with the CV; account deletion deletes the request and
 therefore the summary; an approved Ami's summary stays with their CV. The
 administrator's screen shows it with a standing note that it scores no one and
 decides nothing, and a retry button when the tool failed (audited). It is part of
@@ -417,7 +438,7 @@ the tool leaves the request as it was: a human reads the CV.
 - **The applicant notice must be live before the switch is turned on in
   production.** Real CVs go to a third-party provider the moment it is on; the
   notice (fr/en/es/pt/ar in `messages/*.json`, namespace `cercle`, keys
-  `cvAiTitle`, `cvAiNotice`, `acceptCvAi`; version `2026-11-draft`) is what tells
+  `cvAiTitle`, `cvAiNotice`, `acceptCvAi`; version `2026-11-draft-2`) is what tells
   people so, and it is shown on the form whenever the switch is on. It must be
   approved as true of the provider actually used.
 - **Real CVs: the owner's written authorization is recorded.** The gateway key is
