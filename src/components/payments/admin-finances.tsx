@@ -13,6 +13,7 @@ import { api } from '@convex/_generated/api';
 import {
   CURRENCIES,
   monthKey,
+  toMajorString,
   type Currency,
 } from '@convex/lib/payments/amounts';
 import { Link } from '@/i18n/navigation';
@@ -553,9 +554,7 @@ function ExportBlock({ now }: { now: number }) {
           r.recurring ? 'oui' : 'non',
           // Amount in major units, decimal point: readable by a spreadsheet
           // as well as by accounting software.
-          (r.amountMinor / (r.currency === 'EUR' ? 100 : 1)).toFixed(
-            r.currency === 'EUR' ? 2 : 0,
-          ),
+          toMajorString(r.amountMinor, r.currency),
           r.currency,
           r.status,
           r.provider,

@@ -19,6 +19,7 @@ import {
   PLAN_CATEGORIES,
   PLAN_ZONES,
   SUGGESTED_DONATIONS,
+  toMajorString,
   toMinor,
 } from '@convex/lib/payments/amounts';
 
@@ -36,6 +37,16 @@ describe('Montants — unité mineure', () => {
     expect(toMinor(1500, 'USD')).toBe(150000);
     expect(toMinor(19.999, 'USD')).toBeNull();
     expect(toMinor(Number.NaN, 'EUR')).toBeNull();
+  });
+
+  // QA FON-007 — l'export CSV comptable écrivait 25,00 USD en « 2500 » : toute
+  // devise autre que l'euro était traitée comme sans décimales.
+  it('écrit les montants exportés avec l’exposant de leur devise', () => {
+    expect(toMajorString(2500, 'USD')).toBe('25.00');
+    expect(toMajorString(2500, 'EUR')).toBe('25.00');
+    expect(toMajorString(1999, 'USD')).toBe('19.99');
+    expect(toMajorString(5, 'EUR')).toBe('0.05');
+    expect(toMajorString(123456789, 'EUR')).toBe('1234567.89');
   });
 
   it('les montants suggérés respectent les bornes de leur devise', () => {

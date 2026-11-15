@@ -69,6 +69,13 @@ export function fromMinor(minor: number, currency: Currency): number {
   return minor / 10 ** CURRENCY_EXPONENT[currency];
 }
 
+/** A minor-unit amount as a plain decimal string in major units, with the
+ *  currency's own number of decimals and a decimal point (no thousands
+ *  separator): the form accounting exports (CSV) must use. */
+export function toMajorString(minor: number, currency: Currency): string {
+  return fromMinor(minor, currency).toFixed(CURRENCY_EXPONENT[currency]);
+}
+
 export function isDonationAmountValid(
   minor: number,
   currency: Currency,
