@@ -9,6 +9,21 @@ export const AUDIT = {
   USER_REVIEW_CHIEF_GRANTED: 'user.review_chief_granted',
   USER_REVIEW_CHIEF_REVOKED: 'user.review_chief_revoked',
   USER_INVITED: 'user.invited',
+  // Cercle des Amis status: granted or withdrawn (never a role change).
+  USER_AMI_GRANTED: 'user.ami_granted',
+  USER_AMI_REVOKED: 'user.ami_revoked',
+  // Cercle requests (president's decision) and every opening of a CV: it is
+  // personal data, so who read it is kept.
+  CERCLE_REQUEST_REVIEWED: 'cercle.request_reviewed',
+  CERCLE_CV_VIEWED: 'cercle.cv_viewed',
+  // The president asked the automatic tool for a CV summary again.
+  CERCLE_CV_SUMMARY_REQUESTED: 'cercle.cv_summary_requested',
+  // A private contribution taken down by someone other than its author.
+  CERCLE_CONTRIBUTION_REMOVED: 'cercle.contribution_removed',
+  // The Cercle's mailing list: an import of contacts, and the sending of the
+  // one confirmation message to those who asked for nothing.
+  CERCLE_CONTACTS_IMPORTED: 'cercle.contacts_imported',
+  CERCLE_CONFIRMATIONS_SENT: 'cercle.confirmations_sent',
   CONTACT_HANDLED: 'contact.handled',
   ORGANIZATION_CREATED: 'organization.created',
   MEMBERSHIP_REVIEWED: 'membership.reviewed',
@@ -60,6 +75,9 @@ export const AUDIT = {
   NEWSLETTER_CAMPAIGN_SENT: 'newsletter.campaign_sent',
   NEWSLETTER_CAMPAIGN_RETRIED: 'newsletter.campaign_retried',
   NEWSLETTER_TEST_SENT: 'newsletter.test_sent',
+  // A held campaign's next wave let go: each wave commits the association to
+  // that many more people.
+  NEWSLETTER_WAVE_RELEASED: 'newsletter.wave_released',
   NEWSLETTER_LEGACY_MIGRATED: 'newsletter.legacy_migrated',
   // A priori moderation of the Tribune (community workstream, F-45/F-49). One
   // action per DECISION: "approved", "rejected", "removed" do not say the

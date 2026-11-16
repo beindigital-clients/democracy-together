@@ -22,6 +22,7 @@ import {
 } from './lib/rateLimit';
 import { enforceRecaptcha } from './lib/recaptcha';
 import { requireNetworkRole } from './lib/rbac';
+import { roleRank } from './lib/roles';
 import { COUNTER, bumpCounter, readCounter } from './lib/counters';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
@@ -52,12 +53,20 @@ import {
   type CampaignContent,
 } from './lib/newsletterContent';
 import {
+  cercleCampaignHtml,
+  cercleListUnsubscribeHeaders,
+} from './lib/cercleMailingContent';
+import { senderIdentity } from './lib/cercleMailing';
+import {
   CLAIM_LEASE_MS,
   MAX_TRANSIENT_ATTEMPTS,
   backoffMs,
+  batchAllowance,
   deliveryConfig,
   idempotencyKey,
+  msUntilNextUtcDay,
 } from './lib/newsletterDelivery';
+import { addSent, dailyRemaining } from './lib/emailQuota';
 
 // Random token (unsubscribe link).
 function newToken(): string {
@@ -69,9 +78,65 @@ function newToken(): string {
 const campaignStatus = v.union(
   v.literal('draft'),
   v.literal('sending'),
+  v.literal('paused'),
   v.literal('sent'),
   v.literal('error'),
 );
+
+// WHO A CAMPAIGN GOES TO. The engine below (enqueue, batches, retry) serves two
+// lists that never share a recipient: the public newsletter and the Cercle's
+// mailing list (`cercleContacts`, convex/cercleMailing.ts). A campaign without
+// an audience is a newsletter one, as before the Cercle.
+const audienceValidator = v.union(v.literal('newsletter'), v.literal('cercle'));
+type Audience = Infer<typeof audienceValidator>;
+const audienceOf = (c: { audience?: Audience }): Audience =>
+  c.audience ?? 'newsletter';
+
+// The recipient a delivery row points to, whichever list it is in. `active` is
+// false when they left (or never were confirmed) between queueing and sending:
+// nothing is written to them.
+type DeliveryRecipient = {
+  email: string;
+  locale: SiteLocale | undefined;
+  unsubToken: string;
+  active: boolean;
+};
+async function recipientOf(
+  ctx: MutationCtx,
+  row: Doc<'newsletterDeliveries'>,
+): Promise<DeliveryRecipient | null> {
+  if (row.contactId) {
+    const c = await ctx.db.get(row.contactId);
+    if (!c) return null;
+    // A SUSPENDED account is cut off from the Cercle at once, and that includes
+    // its news: someone suspended for abuse keeps no line to the Cercle's list
+    // (reactivation puts them back, the contact row is untouched).
+    const account =
+      c.status === 'confirmed'
+        ? await ctx.db
+            .query('users')
+            .withIndex('email', (q) => q.eq('email', c.email))
+            .first()
+        : null;
+    return {
+      email: c.email,
+      locale: c.locale,
+      unsubToken: c.unsubToken,
+      active: c.status === 'confirmed' && account?.suspendedAt === undefined,
+    };
+  }
+  if (row.subscriptionId) {
+    const sub = await ctx.db.get(row.subscriptionId);
+    if (!sub) return null;
+    return {
+      email: sub.email,
+      locale: sub.locale,
+      unsubToken: sub.unsubToken ?? '',
+      active: sub.status === 'confirmed' && Boolean(sub.unsubToken),
+    };
+  }
+  return null;
+}
 
 // =============================================================================
 // PUBLIC SUBSCRIPTION — DOUBLE OPT-IN (F-18)
@@ -728,10 +793,13 @@ const variantValidator = v.object({
 // more, and the table must not be re-read in full on every sending
 // progress update (the list is reactive).
 export const listCampaigns = query({
-  args: {},
+  // Which list's campaigns: the newsletter's by default, so the newsletter
+  // screen never shows (nor can mistake for its own) a Cercle message.
+  args: { audience: v.optional(audienceValidator) },
   returns: v.array(
     v.object({
       _id: v.id('newsletterCampaigns'),
+      audience: audienceValidator,
       subject: v.string(),
       body: v.string(),
       locale,
@@ -745,16 +813,26 @@ export const listCampaigns = query({
       totalCount: v.number(),
       enqueueDone: v.boolean(),
       lastTestAt: v.union(v.number(), v.null()),
+      // True when no internal test went out since the last change: a Cercle
+      // campaign cannot be sent until it has one.
+      needsTest: v.boolean(),
+      // Sending in waves: how many recipients may be served so far, if limited.
+      waveLimit: v.union(v.number(), v.null()),
+      // The sending service's daily quota is spent: resumes by itself then.
+      pausedUntil: v.union(v.number(), v.null()),
     }),
   ),
-  handler: async (ctx) => {
+  handler: async (ctx, { audience }) => {
     await requireNetworkRole(ctx, 'editeur');
-    const recent = await ctx.db
-      .query('newsletterCampaigns')
-      .order('desc')
-      .take(50);
+    const wanted = audience ?? 'newsletter';
+    const recent = (
+      await ctx.db.query('newsletterCampaigns').order('desc').take(200)
+    )
+      .filter((c) => audienceOf(c) === wanted)
+      .slice(0, 50);
     return recent.map((c) => ({
       _id: c._id,
+      audience: audienceOf(c),
       subject: c.subject,
       // The body feeds the preview BEFORE sending (27/09 campaign, R-07).
       body: c.body,
@@ -769,6 +847,11 @@ export const listCampaigns = query({
       totalCount: c.totalCount ?? 0,
       enqueueDone: c.enqueueDone ?? false,
       lastTestAt: c.lastTestAt ?? null,
+      needsTest:
+        c.lastTestAt === undefined ||
+        c.lastTestAt < (c.editedAt ?? c.createdAt),
+      waveLimit: c.waveLimit ?? null,
+      pausedUntil: c.pausedUntil ?? null,
     }));
   },
 });
@@ -793,7 +876,13 @@ function checkContent(subject: string, body: string) {
 }
 
 export const createCampaign = mutation({
-  args: { subject: v.string(), body: v.string(), locale: v.optional(locale) },
+  args: {
+    subject: v.string(),
+    body: v.string(),
+    locale: v.optional(locale),
+    // Missing = the public newsletter.
+    audience: v.optional(audienceValidator),
+  },
   returns: v.id('newsletterCampaigns'),
   handler: async (ctx, args) => {
     const editor = await requireNetworkRole(ctx, 'editeur');
@@ -802,6 +891,7 @@ export const createCampaign = mutation({
       subject,
       body,
       locale: args.locale ?? 'fr',
+      ...(args.audience === 'cercle' ? { audience: 'cercle' as const } : {}),
       status: 'draft',
       createdBy: editor._id,
       createdAt: Date.now(),
@@ -840,7 +930,7 @@ export const upsertCampaignVariant = mutation({
       (x) => x.locale !== args.locale,
     );
     variants.push({ locale: args.locale, ...content });
-    await ctx.db.patch(args.campaignId, { variants });
+    await ctx.db.patch(args.campaignId, { variants, editedAt: Date.now() });
     return null;
   },
 });
@@ -853,6 +943,7 @@ export const removeCampaignVariant = mutation({
     const campaign = await requireDraft(ctx, campaignId);
     await ctx.db.patch(campaignId, {
       variants: (campaign.variants ?? []).filter((x) => x.locale !== loc),
+      editedAt: Date.now(),
     });
     return null;
   },
@@ -861,18 +952,63 @@ export const removeCampaignVariant = mutation({
 // TEST SEND TO ONESELF: all versions (reference + translations)
 // go to the editor's account address, subject prefixed with "[TEST]".
 // Nothing is enqueued, the draft stays a draft.
+// INTERNAL TEST BEFORE THE FULL LIST.
+//
+// All versions (reference + translations) go to the people named — the
+// editor's own address by default, or up to `INTERNAL_TEST_MAX` addresses of
+// the TEAM (accounts of rank moderator and above, not suspended). Not an open
+// field: a test to any address would be a way to make the platform write to
+// strangers. Subject prefixed with "[TEST]", a dummy unsubscribe token so that a
+// test unsubscribes nobody. Nothing is enqueued, the draft stays a draft, and
+// `lastTestAt` is stamped: a Cercle campaign cannot be sent to its list unless
+// a test went out AFTER its last change (`sendCampaign`).
+export const INTERNAL_TEST_MAX = 5;
 export const sendTestCampaign = mutation({
-  args: { campaignId: v.id('newsletterCampaigns') },
+  args: {
+    campaignId: v.id('newsletterCampaigns'),
+    // Missing = the editor's own address.
+    to: v.optional(v.array(v.string())),
+  },
   returns: v.object({ ok: v.boolean(), to: v.string(), versions: v.number() }),
-  handler: async (ctx, { campaignId }) => {
+  handler: async (ctx, { campaignId, to: requested }) => {
     const editor = await requireNetworkRole(ctx, 'editeur');
     const campaign = await ctx.db.get(campaignId);
     if (!campaign) throw new Error('NOT_FOUND');
     if (emailProviderStatus().mode === 'none') {
       throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
     }
-    const to = editor.email?.trim().toLowerCase();
-    if (!to || !isEmail(to)) throw new Error('NO_EDITOR_EMAIL');
+    let recipients: string[];
+    if (requested === undefined) {
+      const own = editor.email?.trim().toLowerCase();
+      if (!own || !isEmail(own)) throw new Error('NO_EDITOR_EMAIL');
+      recipients = [own];
+    } else {
+      recipients = [
+        ...new Set(
+          requested.map((a) => a.trim().toLowerCase()).filter(Boolean),
+        ),
+      ];
+      if (recipients.length === 0) throw new ConvexError('NO_TEST_RECIPIENT');
+      if (recipients.length > INTERNAL_TEST_MAX) {
+        throw new ConvexError('TOO_MANY_TEST_RECIPIENTS');
+      }
+      for (const address of recipients) {
+        if (!isEmail(address)) throw new ConvexError('INVALID_EMAIL');
+        const account = await ctx.db
+          .query('users')
+          .withIndex('email', (q) => q.eq('email', address))
+          .first();
+        if (
+          !account ||
+          account.suspendedAt !== undefined ||
+          roleRank(account.role) < roleRank('moderateur')
+        ) {
+          // Same answer for "no such account" and "not on the team": a test is
+          // not a way to find out who has an account.
+          throw new ConvexError('NOT_INTERNAL_ADDRESS');
+        }
+      }
+    }
     await enforceRateLimit(ctx, {
       key: `nlTest:${editor._id}`,
       max: 10,
@@ -881,21 +1017,29 @@ export const sendTestCampaign = mutation({
     await ctx.db.patch(campaignId, { lastTestAt: Date.now() });
     await ctx.scheduler.runAfter(0, internal.newsletter._deliverTest, {
       campaignId,
-      to,
+      recipients,
     });
     await recordAudit(ctx, {
       actorId: editor._id,
       action: AUDIT.NEWSLETTER_TEST_SENT,
       targetId: campaignId,
+      metadata: { recipients: recipients.length },
     });
-    return { ok: true, to, versions: 1 + (campaign.variants?.length ?? 0) };
+    return {
+      ok: true,
+      to: recipients.join(', '),
+      versions: 1 + (campaign.variants?.length ?? 0),
+    };
   },
 });
 
 export const _deliverTest = internalAction({
-  args: { campaignId: v.id('newsletterCampaigns'), to: v.string() },
+  args: {
+    campaignId: v.id('newsletterCampaigns'),
+    recipients: v.array(v.string()),
+  },
   returns: v.null(),
-  handler: async (ctx, { campaignId, to }) => {
+  handler: async (ctx, { campaignId, recipients }) => {
     const campaign: CampaignContent | null = await ctx.runQuery(
       internal.newsletter._campaignContent,
       { campaignId },
@@ -905,26 +1049,40 @@ export const _deliverTest = internalAction({
       campaign.locale ?? 'fr',
       ...(campaign.variants ?? []).map((x) => x.locale),
     ];
-    for (const loc of locales) {
-      const version = pickVariant(campaign, loc);
-      try {
-        await sendEmail({
-          to,
-          subject: testSubject(version.subject, version.locale),
-          // Dummy token: a test's unsubscribe link must not
-          // unsubscribe anyone.
-          html: campaignHtml(
-            version.body,
-            'test',
-            version.locale,
-            version.subject,
-          ),
-          headers: listUnsubscribeHeaders('test', version.locale),
-        });
-      } catch (err) {
-        console.error(
-          `[newsletter] envoi de test en échec : ${err instanceof Error ? err.message : String(err)}`,
-        );
+    for (const to of recipients) {
+      for (const loc of locales) {
+        const version = pickVariant(campaign, loc);
+        try {
+          await sendEmail({
+            to,
+            subject: testSubject(version.subject, version.locale),
+            // Dummy token: a test's unsubscribe link must not
+            // unsubscribe anyone.
+            html:
+              campaign.audience === 'cercle'
+                ? cercleCampaignHtml({
+                    body: version.body,
+                    token: 'test',
+                    locale: version.locale,
+                    title: version.subject,
+                    sender: senderIdentity(),
+                  })
+                : campaignHtml(
+                    version.body,
+                    'test',
+                    version.locale,
+                    version.subject,
+                  ),
+            headers:
+              campaign.audience === 'cercle'
+                ? cercleListUnsubscribeHeaders('test', version.locale)
+                : listUnsubscribeHeaders('test', version.locale),
+          });
+        } catch (err) {
+          console.error(
+            `[newsletter] envoi de test en échec : ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
     }
     return null;
@@ -940,6 +1098,7 @@ export const _campaignContent = internalQuery({
       body: v.string(),
       locale: v.optional(locale),
       variants: v.optional(v.array(variantValidator)),
+      audience: audienceValidator,
     }),
   ),
   handler: async (ctx, { campaignId }) => {
@@ -950,6 +1109,7 @@ export const _campaignContent = internalQuery({
       body: c.body,
       locale: c.locale,
       variants: c.variants,
+      audience: audienceOf(c),
     };
   },
 });
@@ -957,10 +1117,16 @@ export const _campaignContent = internalQuery({
 // Starts sending: switches to 'sending', then the ENQUEUEING (one
 // `newsletterDeliveries` row per confirmed subscriber, in pages of 500) and the
 // DELIVERY in batches are scheduled. The screen follows progress live.
+export const WAVE_SIZE_MAX = 10_000;
 export const sendCampaign = mutation({
-  args: { campaignId: v.id('newsletterCampaigns') },
+  args: {
+    campaignId: v.id('newsletterCampaigns'),
+    // SENDING IN WAVES (Cercle campaigns): serve this many recipients, then hold
+    // the campaign `paused` until `releaseNextWave`. Missing = the whole list.
+    waveSize: v.optional(v.number()),
+  },
   returns: v.object({ ok: v.boolean() }),
-  handler: async (ctx, { campaignId }) => {
+  handler: async (ctx, { campaignId, waveSize }) => {
     const editor = await requireNetworkRole(ctx, 'editeur');
     const campaign = await ctx.db.get(campaignId);
     if (!campaign) throw new Error('NOT_FOUND');
@@ -972,9 +1138,44 @@ export const sendCampaign = mutation({
     if (emailProviderStatus().mode === 'none') {
       throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
     }
+    // A message to the Cercle's list must say who writes and where they are.
+    // While the association's name or postal address is still a placeholder,
+    // nothing goes to real recipients (a simulated development send is fine).
+    if (
+      audienceOf(campaign) === 'cercle' &&
+      senderIdentity().placeholder &&
+      emailProviderStatus().mode !== 'simulated'
+    ) {
+      throw new ConvexError('SENDER_IDENTITY_MISSING');
+    }
+    if (waveSize !== undefined) {
+      // Waves are a Cercle tool: the newsletter screen does not know the
+      // `paused` state, and a held newsletter would look like a stuck one.
+      if (audienceOf(campaign) !== 'cercle') {
+        throw new ConvexError('WAVES_NOT_AVAILABLE');
+      }
+      if (
+        !Number.isInteger(waveSize) ||
+        waveSize < 1 ||
+        waveSize > WAVE_SIZE_MAX
+      ) {
+        throw new ConvexError('INVALID_WAVE_SIZE');
+      }
+    }
+    // INTERNAL TEST FIRST. A message to the Cercle's list goes out only if the
+    // team has received it — and the version they received is the one being
+    // sent: a test sent before the last change does not count.
+    if (
+      audienceOf(campaign) === 'cercle' &&
+      (campaign.lastTestAt === undefined ||
+        campaign.lastTestAt < (campaign.editedAt ?? campaign.createdAt))
+    ) {
+      throw new ConvexError('TEST_REQUIRED');
+    }
     await ctx.db.patch(campaignId, {
       status: 'sending',
       startedAt: Date.now(),
+      ...(waveSize !== undefined ? { waveLimit: waveSize } : {}),
       totalCount: 0,
       recipientCount: 0,
       failedCount: 0,
@@ -1006,28 +1207,61 @@ export const _enqueue = internalMutation({
   returns: v.null(),
   handler: async (ctx, { campaignId, cursor }) => {
     const campaign = await ctx.db.get(campaignId);
-    if (!campaign || campaign.status !== 'sending') return null;
-    const page = await ctx.db
-      .query('newsletterSubscriptions')
-      .withIndex('by_status_and_expiry', (q) => q.eq('status', 'confirmed'))
-      .paginate({ numItems: ENQUEUE_PAGE, cursor });
+    // Enqueueing carries on while a campaign is held between waves: what is
+    // queued must be there when the next wave is released.
+    if (
+      !campaign ||
+      (campaign.status !== 'sending' && campaign.status !== 'paused')
+    )
+      return null;
     let added = 0;
-    for (const sub of page.page) {
-      const already = await ctx.db
-        .query('newsletterDeliveries')
-        .withIndex('by_campaign_and_subscription', (q) =>
-          q.eq('campaignId', campaignId).eq('subscriptionId', sub._id),
-        )
-        .first();
-      if (already) continue;
-      await ctx.db.insert('newsletterDeliveries', {
-        campaignId,
-        subscriptionId: sub._id,
-        status: 'queued',
-        attempts: 0,
-        locale: sub.locale,
-      });
-      added++;
+    let page: { isDone: boolean; continueCursor: string };
+    if (audienceOf(campaign) === 'cercle') {
+      const contacts = await ctx.db
+        .query('cercleContacts')
+        .withIndex('by_status_and_expiry', (q) => q.eq('status', 'confirmed'))
+        .paginate({ numItems: ENQUEUE_PAGE, cursor });
+      page = contacts;
+      for (const contact of contacts.page) {
+        const already = await ctx.db
+          .query('newsletterDeliveries')
+          .withIndex('by_campaign_and_contact', (q) =>
+            q.eq('campaignId', campaignId).eq('contactId', contact._id),
+          )
+          .first();
+        if (already) continue;
+        await ctx.db.insert('newsletterDeliveries', {
+          campaignId,
+          contactId: contact._id,
+          status: 'queued',
+          attempts: 0,
+          locale: contact.locale,
+        });
+        added++;
+      }
+    } else {
+      const subs = await ctx.db
+        .query('newsletterSubscriptions')
+        .withIndex('by_status_and_expiry', (q) => q.eq('status', 'confirmed'))
+        .paginate({ numItems: ENQUEUE_PAGE, cursor });
+      page = subs;
+      for (const sub of subs.page) {
+        const already = await ctx.db
+          .query('newsletterDeliveries')
+          .withIndex('by_campaign_and_subscription', (q) =>
+            q.eq('campaignId', campaignId).eq('subscriptionId', sub._id),
+          )
+          .first();
+        if (already) continue;
+        await ctx.db.insert('newsletterDeliveries', {
+          campaignId,
+          subscriptionId: sub._id,
+          status: 'queued',
+          attempts: 0,
+          locale: sub.locale,
+        });
+        added++;
+      }
     }
     await ctx.db.patch(campaignId, {
       totalCount: (campaign.totalCount ?? 0) + added,
@@ -1112,7 +1346,7 @@ export const _claimBatch = internalMutation({
       let attempt = 1;
       for (const row of rows) {
         if (row.status !== 'sending') continue;
-        const sub = await ctx.db.get(row.subscriptionId);
+        const who = await recipientOf(ctx, row);
         await ctx.db.patch(row._id, {
           claimedAt: now,
           attempts: row.attempts + 1,
@@ -1120,9 +1354,9 @@ export const _claimBatch = internalMutation({
         attempt = Math.max(attempt, row.attempts + 1);
         recipients.push({
           deliveryId: row._id,
-          email: sub?.email ?? '',
+          email: who?.email ?? '',
           locale: row.locale,
-          unsubToken: sub?.unsubToken ?? '',
+          unsubToken: who?.unsubToken ?? '',
         });
       }
       return {
@@ -1133,31 +1367,82 @@ export const _claimBatch = internalMutation({
       };
     }
 
-    const queued = await ctx.db
-      .query('newsletterDeliveries')
-      .withIndex('by_campaign_and_status', (q) =>
-        q.eq('campaignId', campaignId).eq('status', 'queued'),
-      )
-      .take(Math.max(1, Math.min(100, batchSize)));
+    // THE LIMITS ON THIS BATCH: the sending service's daily quota and, for a
+    // campaign sent in waves, what the current wave still allows. Both can
+    // shrink the batch to nothing.
+    const config = deliveryConfig();
+    const allowance = batchAllowance({
+      batchSize: Math.max(1, Math.min(100, batchSize)),
+      dailyRemaining: await dailyRemaining(ctx, config.dailyLimit, now),
+      waveRemaining:
+        campaign.waveLimit === undefined
+          ? undefined
+          : Math.max(
+              0,
+              campaign.waveLimit -
+                (campaign.recipientCount ?? 0) -
+                (campaign.failedCount ?? 0),
+            ),
+    });
+    const queued =
+      allowance.size > 0
+        ? await ctx.db
+            .query('newsletterDeliveries')
+            .withIndex('by_campaign_and_status', (q) =>
+              q.eq('campaignId', campaignId).eq('status', 'queued'),
+            )
+            .take(allowance.size)
+        : [];
     if (queued.length === 0) {
+      // Is there still something to send once the limit lifts?
+      const more =
+        allowance.size === 0
+          ? (
+              await ctx.db
+                .query('newsletterDeliveries')
+                .withIndex('by_campaign_and_status', (q) =>
+                  q.eq('campaignId', campaignId).eq('status', 'queued'),
+                )
+                .take(1)
+            ).length > 0
+          : false;
+      if (allowance.size === 0 && (more || !campaign.enqueueDone)) {
+        if (allowance.limitedBy === 'wave') {
+          // The wave is served: the campaign is HELD, and nothing is scheduled
+          // until someone releases the next one (`releaseNextWave`).
+          await ctx.db.patch(campaignId, {
+            status: 'paused',
+            pausedUntil: undefined,
+          });
+          return { kind: 'done' as const };
+        }
+        // Today's quota is spent: come back at the next UTC midnight.
+        const retryInMs = msUntilNextUtcDay(now);
+        await ctx.db.patch(campaignId, { pausedUntil: now + retryInMs });
+        return { kind: 'wait' as const, retryInMs };
+      }
       if (!campaign.enqueueDone) return { kind: 'wait' as const };
       const sent = campaign.recipientCount ?? 0;
       const failed = campaign.failedCount ?? 0;
       await ctx.db.patch(campaignId, {
         status: failed > 0 && sent === 0 ? 'error' : 'sent',
         sentAt: now,
+        pausedUntil: undefined,
       });
       return { kind: 'done' as const };
+    }
+    if (campaign.pausedUntil !== undefined) {
+      await ctx.db.patch(campaignId, { pausedUntil: undefined });
     }
 
     const claimId = `${campaignId}:${queued[0]._id}:${queued[0].attempts}`;
     const recipients = [];
     let skipped = 0;
     for (const row of queued) {
-      const sub = await ctx.db.get(row.subscriptionId);
+      const who = await recipientOf(ctx, row);
       // Left between enqueueing and sending (unsubscribed): we do not write
       // to them. The status says so, and so does the counter.
-      if (!sub || sub.status !== 'confirmed' || !sub.unsubToken) {
+      if (!who || !who.active) {
         await ctx.db.patch(row._id, { status: 'skipped' });
         skipped++;
         continue;
@@ -1170,9 +1455,9 @@ export const _claimBatch = internalMutation({
       });
       recipients.push({
         deliveryId: row._id,
-        email: sub.email,
-        locale: sub.locale ?? row.locale,
-        unsubToken: sub.unsubToken,
+        email: who.email,
+        locale: who.locale ?? row.locale,
+        unsubToken: who.unsubToken,
       });
     }
     if (skipped > 0) {
@@ -1229,6 +1514,8 @@ export const _recordResults = internalMutation({
       recipientCount: (campaign.recipientCount ?? 0) + sent,
       failedCount: (campaign.failedCount ?? 0) + failed,
     });
+    // Counts against the sending service's daily quota (only what went out).
+    await addSent(ctx, sent, now);
     return null;
   },
 });
@@ -1301,8 +1588,25 @@ export const _processBatch = internalAction({
     );
     if (!campaign) return null;
 
+    // Read ONCE per batch (an environment read), so every message of the batch
+    // carries the same identity.
+    const sender = senderIdentity();
     const messages = claim.recipients.map((r) => {
       const version = pickVariant(campaign, r.locale);
+      if (campaign.audience === 'cercle') {
+        return {
+          to: r.email,
+          subject: version.subject,
+          html: cercleCampaignHtml({
+            body: version.body,
+            token: r.unsubToken,
+            locale: version.locale,
+            title: version.subject,
+            sender,
+          }),
+          headers: cercleListUnsubscribeHeaders(r.unsubToken, version.locale),
+        };
+      }
       return {
         to: r.email,
         subject: version.subject,
@@ -1373,6 +1677,13 @@ export const retryFailedDeliveries = mutation({
     if (emailProviderStatus().mode === 'none') {
       throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
     }
+    if (
+      audienceOf(campaign) === 'cercle' &&
+      senderIdentity().placeholder &&
+      emailProviderStatus().mode !== 'simulated'
+    ) {
+      throw new ConvexError('SENDER_IDENTITY_MISSING');
+    }
     await ctx.db.patch(campaignId, { status: 'sending', enqueueDone: false });
     await ctx.scheduler.runAfter(0, internal.newsletter._requeueFailed, {
       campaignId,
@@ -1422,6 +1733,41 @@ export const _requeueFailed = internalMutation({
   },
 });
 
+// RELEASING THE NEXT WAVE of a campaign sent in waves: it was held `paused`
+// after serving `waveLimit` recipients; this widens the limit by `size` and
+// restarts the delivery chain. The gap between two waves is the time to look at
+// what the first one produced (failures, bounces, replies) before going on.
+export const releaseNextWave = mutation({
+  args: { campaignId: v.id('newsletterCampaigns'), size: v.number() },
+  returns: v.object({ ok: v.boolean(), waveLimit: v.number() }),
+  handler: async (ctx, { campaignId, size }) => {
+    const editor = await requireNetworkRole(ctx, 'editeur');
+    const campaign = await ctx.db.get(campaignId);
+    if (!campaign) throw new Error('NOT_FOUND');
+    if (campaign.status !== 'paused' || campaign.waveLimit === undefined) {
+      throw new ConvexError('NOT_PAUSED');
+    }
+    if (!Number.isInteger(size) || size < 1 || size > WAVE_SIZE_MAX) {
+      throw new ConvexError('INVALID_WAVE_SIZE');
+    }
+    if (emailProviderStatus().mode === 'none') {
+      throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
+    }
+    const waveLimit = campaign.waveLimit + size;
+    await ctx.db.patch(campaignId, { status: 'sending', waveLimit });
+    await ctx.scheduler.runAfter(0, internal.newsletter._processBatch, {
+      campaignId,
+    });
+    await recordAudit(ctx, {
+      actorId: editor._id,
+      action: AUDIT.NEWSLETTER_WAVE_RELEASED,
+      targetId: campaignId,
+      metadata: { size, waveLimit },
+    });
+    return { ok: true, waveLimit };
+  },
+});
+
 // Failure reasons for a campaign (sample) — so the editor knows
 // what to fix before retrying (key refused, domain not verified…).
 export const campaignFailures = query({
@@ -1444,5 +1790,32 @@ export const campaignFailures = query({
       .map(([error, count]) => ({ error, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
+  },
+});
+
+// WHO did not get it, and why — the addresses behind `campaignFailures`' counts,
+// so the editor can see a typo, a bounced mailbox or a refused domain by name
+// before retrying. A bounded sample, editor and above.
+export const campaignFailedRecipients = query({
+  args: { campaignId: v.id('newsletterCampaigns') },
+  returns: v.array(v.object({ email: v.string(), error: v.string() })),
+  handler: async (ctx, { campaignId }) => {
+    await requireNetworkRole(ctx, 'editeur');
+    const rows = await ctx.db
+      .query('newsletterDeliveries')
+      .withIndex('by_campaign_and_status', (q) =>
+        q.eq('campaignId', campaignId).eq('status', 'failed'),
+      )
+      .take(50);
+    const out: { email: string; error: string }[] = [];
+    for (const row of rows) {
+      const email = row.contactId
+        ? (await ctx.db.get(row.contactId))?.email
+        : row.subscriptionId
+          ? (await ctx.db.get(row.subscriptionId))?.email
+          : undefined;
+      out.push({ email: email ?? '—', error: row.error ?? '—' });
+    }
+    return out;
   },
 });

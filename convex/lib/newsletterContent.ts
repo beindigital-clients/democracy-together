@@ -202,6 +202,8 @@ export type CampaignContent = {
   body: string;
   locale?: SiteLocale;
   variants?: { locale: SiteLocale; subject: string; body: string }[];
+  // Which list the campaign goes to; missing = the public newsletter.
+  audience?: 'newsletter' | 'cercle';
 };
 
 /**

@@ -90,6 +90,8 @@ export const RATE_LIMITS = {
   workspaceUpload: { max: 60, windowMs: HOUR },
   deepeningInvite: { max: 20, windowMs: 24 * HOUR },
   tribuneEdit: { max: 30, windowMs: HOUR },
+  // Cercle des Amis: private contributions.
+  cercleContribution: { max: 20, windowMs: 24 * HOUR },
 } as const;
 
 // --- NON-FORGEABLE caps (audit M2, issue #24) --------------------------------
@@ -164,6 +166,13 @@ export const PUBLIC_FORM_LIMITS = {
   // KOHOP: answer to an external reviewer's invitation (token link, no
   // account). Tokens are 256-bit, so this bounds noise, not guessing.
   kohopInvitation: {
+    perIp: { max: 30, windowMs: HOUR },
+    global: { max: 300, windowMs: HOUR },
+  },
+  // Cercle des Amis: request to join (anonymous, with a CV). One request costs
+  // two units — the CV upload (`cercleHttp`) and the request itself — so these
+  // numbers allow 15 requests an hour per address block, 150 in all.
+  cercleRequest: {
     perIp: { max: 30, windowMs: HOUR },
     global: { max: 300, windowMs: HOUR },
   },

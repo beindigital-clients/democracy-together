@@ -14,6 +14,7 @@ import {
 import { deleteUserDataContenus } from './contenus/userData';
 import { deleteUserDataPaiements } from './payments/ledger';
 import { deleteUserDataDiffusion } from '../newsletter';
+import { cercleUserDataModule } from './cercleUserData';
 import {
   COUNTER,
   bumpCounter,
@@ -850,6 +851,7 @@ export const USER_DATA_MODULES: readonly UserDataModule[] = [
   workspacesModule,
   projectsModule,
   membershipModule,
+  cercleUserDataModule,
   byEmailModule,
   ...CHANTIER_USER_DATA_MODULES,
   authAccountsModule,

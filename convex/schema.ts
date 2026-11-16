@@ -42,6 +42,7 @@ import { manuscriptStage } from './lib/manuscripts';
 import { editorialTables } from './lib/tables/editorial';
 export { locale, SITE_LOCALES, type SiteLocale } from './lib/locales';
 import { diffusionTables } from './lib/tables/diffusion';
+import { cercleTables } from './lib/tables/cercle';
 import { kohopTables } from './lib/tables/kohop';
 
 export default defineSchema({
@@ -71,6 +72,15 @@ export default defineSchema({
     // staff rank (`canValidatePublications`, convex/lib/roles.ts). Removed in
     // the same mutation that lowers the account below `moderateur`.
     reviewChief: v.optional(v.boolean()),
+    // "AMI" STATUS (Cercle des Amis). NOT a network role: the rank ladder
+    // (`ROLE_ORDER`) is untouched, so every existing `requireNetworkRole`
+    // guard keeps treating an Ami as the visitor they are. The status only
+    // opens the Cercle's private space (`hasCercleAccess`, convex/lib/roles.ts).
+    // Presence of `amiSince` = the account is an Ami. Granted by an
+    // administrator (`users.setAmi`, or the approval of a Cercle request),
+    // never by the account itself.
+    amiSince: v.optional(v.number()),
+    amiGrantedBy: v.optional(v.id('users')),
   })
     .index('email', ['email'])
     // Notifies the review chiefs (editorial alerts) with one indexed read.
@@ -459,9 +469,16 @@ export default defineSchema({
     status: v.union(
       v.literal('draft'),
       v.literal('sending'),
+      // Held between two WAVES (`waveLimit` reached, the rest still queued):
+      // nothing goes out until `releaseNextWave`. Only Cercle campaigns.
+      v.literal('paused'),
       v.literal('sent'),
       v.literal('error'),
     ),
+    // WHO IT GOES TO. Missing = the public newsletter, as before the Cercle.
+    // `cercle` = the Cercle's own mailing list (`cercleContacts`), which never
+    // shares a recipient with the newsletter.
+    audience: v.optional(v.union(v.literal('newsletter'), v.literal('cercle'))),
     createdBy: v.optional(v.id('users')),
     createdAt: v.number(),
     sentAt: v.optional(v.number()),
@@ -480,6 +497,15 @@ export default defineSchema({
     enqueueDone: v.optional(v.boolean()),
     startedAt: v.optional(v.number()),
     lastTestAt: v.optional(v.number()),
+    // Last change of the content (a translated version added or removed). A
+    // Cercle campaign may only go out if an internal test was sent AFTER it.
+    editedAt: v.optional(v.number()),
+    // SENDING IN WAVES: how many recipients the campaign may serve so far (sent
+    // + failed). Missing = no limit. The engine stops there and holds the
+    // campaign `paused` until the next wave is released.
+    waveLimit: v.optional(v.number()),
+    // The daily quota is exhausted: sending resumes by itself at this time.
+    pausedUntil: v.optional(v.number()),
   }).index('by_status', ['status']),
 
   // Contact form (F-17).
@@ -1070,6 +1096,7 @@ export default defineSchema({
   ...socialTables,
   ...paiementsTables,
   ...diffusionTables,
+  ...cercleTables,
   ...communauteTables,
   ...contenusTables,
   ...comptesTables,

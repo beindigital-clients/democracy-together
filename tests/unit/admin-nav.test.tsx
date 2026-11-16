@@ -77,7 +77,14 @@ const EDITOR_ITEMS = [
 // "Modération IA" joins the administrator-only entries: what
 // it controls is not moderation, it is the decision to do without it
 // (see the `automatisation` group in admin-nav.tsx).
-const ADMIN_ITEMS = ['Modération IA', 'Finances', 'Utilisateurs', 'Journal'];
+const ADMIN_ITEMS = [
+  'Modération IA',
+  'Finances',
+  'Utilisateurs',
+  // Cercle des Amis requests: decided by an administrator only.
+  'Cercle des Amis',
+  'Journal',
+];
 // KOHOP's queue is reserved to review chiefs and administrators: an editor
 // WITHOUT the function does not see it, an administrator always does.
 const KOHOP_ITEMS = ['KOHOP'];

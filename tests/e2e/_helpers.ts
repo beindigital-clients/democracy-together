@@ -100,6 +100,12 @@ export async function setReviewChief(
   convexRun('devAdmin:setReviewChiefByEmail', { email, value });
 }
 
+// Grants or withdraws the Ami status (Cercle des Amis, DEV, AUTH_DEV_OTP
+// guard). Independent of the rank: the account keeps whatever role it holds.
+export async function setAmi(email: string, value: boolean): Promise<void> {
+  convexRun('devAdmin:setAmiByEmail', { email, value });
+}
+
 // Builds a KOHOP pilot (DEV, AUTH_DEV_OTP guard): organizations, directory
 // profiles for the reviewers, and the pilot access listing the author's
 // organization. Idempotent.
@@ -230,6 +236,36 @@ export function newsletterStatus(email: string) {
     'newsletter:devSubscriptionStatus',
     { email },
   );
+}
+
+// Cercle des Amis mailing list: the confirmation link "sent" to an imported
+// contact, and a contact's state — read from the development outbox and the
+// list itself (AUTH_DEV_OTP guard), like the newsletter's above. The link is
+// written by a wave of the confirmation sending: a small retry.
+export function cercleContact(email: string) {
+  return convexRunQuery<{
+    status: 'pending' | 'confirmed' | 'unsubscribed';
+    unsubToken: string;
+  } | null>('cercleMailing:devContact', { email });
+}
+
+// Puts addresses on the Cercle's list as confirmed (DEV, AUTH_DEV_OTP guard).
+export function seedCercleContacts(emails: string[]): void {
+  convexRun('cercleMailing:_devSeedConfirmed', { emails });
+}
+
+export async function getCercleConfirmationLink(
+  email: string,
+): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const link = convexRunQuery<string | null>(
+      'cercleMailing:devLatestConfirmationLink',
+      { email },
+    );
+    if (link) return link;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`Aucun lien de confirmation du Cercle pour ${email}`);
 }
 
 // The link is written by an action scheduled right after the subscription: a

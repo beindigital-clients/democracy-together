@@ -39,6 +39,9 @@ export const BASE_CLIENT_NAMESPACES = [
   // request them.
   'accounts',
   'auth',
+  // Cercle des Amis: the request form is public, the private space and the
+  // president's screen share the same catalogue.
+  'cercle',
   'contact',
   'cookies',
   'errors',

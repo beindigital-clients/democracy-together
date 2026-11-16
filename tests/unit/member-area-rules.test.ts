@@ -65,10 +65,38 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
     expect(groups).not.toContain('staff');
   });
 
+  it('un Ami du Cercle (visiteur + statut) voit l’entrée du Cercle, rien d’autre en plus', () => {
+    const asAmi = visibleMemberNavGroups('visiteur', { ami: true }).flatMap(
+      (g) => keysOf(g.items),
+    );
+    expect(asAmi.sort()).toEqual([...offered('visiteur'), 'cercle'].sort());
+    // The status changes nothing for a visitor without it.
+    expect(offered('visiteur')).not.toContain('cercle');
+    expect(
+      visibleMemberNavGroups('visiteur', { ami: false }).flatMap((g) =>
+        keysOf(g.items),
+      ),
+    ).not.toContain('cercle');
+    // A member already has the entry; the status adds no second one.
+    const member = visibleMemberNavGroups('membre', { ami: true }).flatMap(
+      (g) => keysOf(g.items),
+    );
+    expect(member.filter((k) => k === 'cercle')).toHaveLength(1);
+    // And it lights up on its own screen.
+    expect(
+      currentMemberNavItem('/espace-membre/cercle', 'visiteur', { ami: true })
+        ?.key,
+    ).toBe('cercle');
+    expect(
+      currentMemberNavItem('/espace-membre/cercle', 'visiteur'),
+    ).toBeNull();
+  });
+
   it('un membre : tout ce que fait un participant du réseau, pas le back-office', () => {
     expect(offered('membre').sort()).toEqual(
       [
         ...EVERYONE,
+        'cercle',
         'people',
         'workspaces',
         'publications',
@@ -92,6 +120,7 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
         [
           ...EVERYONE,
           'admin',
+          'cercle',
           'people',
           'workspaces',
           'publications',
@@ -193,6 +222,7 @@ describe('Navigation de l’espace membre — libellés dans les cinq langues', 
     network: 'navNetwork',
     people: 'navPeople',
     workspaces: 'navWorkspaces',
+    cercle: 'navCercle',
     publications: 'navPublications',
     tribune: 'navTribune',
     kohop: 'navKohop',

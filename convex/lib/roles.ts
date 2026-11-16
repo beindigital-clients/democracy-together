@@ -67,3 +67,52 @@ export function canValidatePublications(account: {
     roleRank(account.role) >= ROLE_ORDER.indexOf('moderateur')
   );
 }
+
+// AMI (Cercle des Amis) — a STATUS, not a rank.
+//
+// Decision (docs/cercle-amis.md): an Ami is NOT inserted in `ROLE_ORDER`.
+// Every existing guard reads the rank (`requireNetworkRole(ctx, 'membre')`
+// accepts anything from `membre` up), so an extra rank between `visiteur` and
+// `membre` would have been silently accepted or refused by dozens of call
+// sites written before it existed. A separate flag leaves all of them exactly
+// as they were: an Ami is a `visiteur` for the whole platform, and gains ONE
+// thing — the Cercle's private space.
+//
+// PURE and shared with the UI, like the rest of this module: the screens that
+// show the Cercle space read THIS function, the server guard
+// (`requireCercleAccess`) reads it too.
+export function isAmi(account: { amiSince?: number | null }): boolean {
+  return typeof account.amiSince === 'number';
+}
+
+// Who may enter the Cercle's private space: the Amis and every validated
+// member or above (members already belong to the network, they do not need a
+// second request). A visitor without the Ami status never does.
+export function hasCercleAccess(account: {
+  role?: string | null;
+  amiSince?: number | null;
+}): boolean {
+  return (
+    isAmi(account) || roleRank(account.role) >= ROLE_ORDER.indexOf('membre')
+  );
+}
+
+// HOW MUCH of the Cercle an account may do — the EXTENSION POINT for what the
+// plan leaves for later (docs/cercle-amis.md § 8): an Ami sponsored by an
+// existing Ami could start READ-ONLY, and become `write` once their first
+// contributions are reviewed.
+//
+// Today every Ami and every member and above is `write`, and nobody else has
+// anything: this is `hasCercleAccess` under a name that can say more. All the
+// Cercle's doors already ask for one of the two levels (`requireCercleAccess`
+// takes `read` or `write`), so adding a restricted entry level later is ONE
+// change here — a field on the account and a branch below — and no door has to
+// be revisited. Nothing reads such a field yet: it is not built.
+export type CercleAccessLevel = 'none' | 'read' | 'write';
+
+export function cercleAccessLevel(account: {
+  role?: string | null;
+  amiSince?: number | null;
+}): CercleAccessLevel {
+  return hasCercleAccess(account) ? 'write' : 'none';
+}

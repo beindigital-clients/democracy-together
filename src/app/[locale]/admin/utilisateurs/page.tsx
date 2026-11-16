@@ -57,6 +57,7 @@ function UsersTable() {
   const me = useConnu(useQuery(api.users.current));
   const setRole_ = useMutation(api.users.setRole);
   const setReviewChief = useMutation(api.users.setReviewChief);
+  const setAmi = useMutation(api.users.setAmi);
   const [chiefBusy, setChiefBusy] = useState<string | null>(null);
   const notify = useActionFeedback();
   const fail = useFailureFeedback();
@@ -137,6 +138,20 @@ function UsersTable() {
           name,
         }),
       );
+    } catch (err) {
+      fail(err);
+    } finally {
+      setChiefBusy(null);
+    }
+  }
+
+  // Ami status (Cercle des Amis): an immediate on/off setting, audited
+  // server-side, independent of the rank (it never changes the selector above).
+  async function changeAmi(userId: string, name: string, value: boolean) {
+    setChiefBusy(userId);
+    try {
+      await setAmi({ userId: userId as never, value });
+      notify(t(value ? 'feedbackAmiGranted' : 'feedbackAmiRevoked', { name }));
     } catch (err) {
       fail(err);
     } finally {
@@ -243,6 +258,18 @@ function UsersTable() {
                         />
                         {t('reviewChiefLabel')}
                       </label>
+                      <label className="mt-2 flex items-center gap-2 text-xs text-ink-soft">
+                        <Switch
+                          size="sm"
+                          checked={u.ami}
+                          disabled={chiefBusy === u._id}
+                          aria-label={t('amiToggle', { name })}
+                          onCheckedChange={(value) =>
+                            changeAmi(u._id, name, value)
+                          }
+                        />
+                        {t('amiLabel')}
+                      </label>
                       {roleRank(u.role) < roleRank('moderateur') ? (
                         <p
                           id={`chief-hint-${u._id}`}
@@ -275,6 +302,11 @@ function UsersTable() {
                         {u.reviewChief ? (
                           <Badge variant="accent" size="label">
                             {t('reviewChiefLabel')}
+                          </Badge>
+                        ) : null}
+                        {u.ami ? (
+                          <Badge variant="accent" size="label">
+                            {t('amiLabel')}
                           </Badge>
                         ) : null}
                       </span>

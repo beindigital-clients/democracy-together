@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { convexCspOrigins } from '@/lib/convex-origins';
+import { convexCspOrigins, convexSiteCspOrigins } from '@/lib/convex-origins';
 
 // CSP and non-cloud Convex deployment (self-hosted / local). See the module.
 describe('convexCspOrigins', () => {
@@ -44,5 +44,26 @@ describe('convexCspOrigins', () => {
       ],
       img: ['https://convex.exemple.eu:8443'],
     });
+  });
+});
+
+// The HTTP-actions origin, for the Cercle's anonymous CV upload.
+describe('convexSiteCspOrigins', () => {
+  it("n'ajoute rien pour le cloud Convex, sans URL ou avec une URL illisible", () => {
+    expect(
+      convexSiteCspOrigins('https://happy-animal-123.convex.site'),
+    ).toEqual([]);
+    expect(convexSiteCspOrigins(undefined)).toEqual([]);
+    expect(convexSiteCspOrigins('pas une url')).toEqual([]);
+    expect(convexSiteCspOrigins('file:///etc/passwd')).toEqual([]);
+  });
+
+  it('ouvre l’origine d’un déploiement local ou auto-hébergé, sans chemin', () => {
+    expect(convexSiteCspOrigins('http://127.0.0.1:3211')).toEqual([
+      'http://127.0.0.1:3211',
+    ]);
+    expect(convexSiteCspOrigins('https://site.exemple.eu/x?y=1')).toEqual([
+      'https://site.exemple.eu',
+    ]);
   });
 });

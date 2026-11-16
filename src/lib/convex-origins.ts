@@ -34,3 +34,22 @@ export function convexCspOrigins(convexUrl: string | undefined): {
   // PDF illustrations from the same origin as the API.
   return { connect: [http, ws], img: [http] };
 }
+
+// Origin of the deployment's HTTP ACTIONS (`NEXT_PUBLIC_CONVEX_SITE_URL`), for
+// the browser calls that go to them — the Cercle's anonymous CV upload
+// (`POST /cercle/cv`). `*.convex.site` is already in the CSP; a local or
+// self-hosted deployment serves its HTTP actions from another origin
+// (`http://127.0.0.1:3211` next to the API on 3210) and needs it opened too.
+// Same rule as above: nothing added for a Convex cloud deployment.
+export function convexSiteCspOrigins(siteUrl: string | undefined): string[] {
+  if (!siteUrl) return [];
+  let url: URL;
+  try {
+    url = new URL(siteUrl);
+  } catch {
+    return [];
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return [];
+  if (url.hostname.endsWith('.convex.site')) return [];
+  return [`${url.protocol}//${url.host}`];
+}

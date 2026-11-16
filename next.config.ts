@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-import { convexCspOrigins } from './src/lib/convex-origins';
+import {
+  convexCspOrigins,
+  convexSiteCspOrigins,
+} from './src/lib/convex-origins';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -20,6 +23,9 @@ const isDev = process.env.NODE_ENV !== 'production';
 // --local`): its origin is not covered by `*.convex.cloud`, and without it
 // the CSP silently cuts the sync websocket. Empty for a `*.convex.cloud`.
 const convexOrigins = convexCspOrigins(process.env.NEXT_PUBLIC_CONVEX_URL);
+const convexSiteOrigins = convexSiteCspOrigins(
+  process.env.NEXT_PUBLIC_CONVEX_SITE_URL,
+);
 const extra = (origins: string[]) =>
   origins.length ? ` ${origins.join(' ')}` : '';
 const csp = [
@@ -47,7 +53,7 @@ const csp = [
   // Replays as a video FILE (mp4, webm…) hosted off-site: https
   // only, checked on entry (`validateVideoUrl`).
   "media-src 'self' https:",
-  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://www.google.com${extra(convexOrigins.connect)}${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
+  `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://www.google.com${extra(convexOrigins.connect)}${extra(convexSiteOrigins)}${isDev ? ' ws://localhost:* http://localhost:*' : ''}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join('; ');

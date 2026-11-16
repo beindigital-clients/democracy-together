@@ -1,4 +1,5 @@
 import { isMember, isStaff } from '@/lib/roles';
+import { hasCercleAccess } from '@convex/lib/roles';
 import { LEGACY_PEER_REVIEW_UI } from '@/lib/legacy-review';
 
 // MEMBER-AREA NAVIGATION — the model, without React.
@@ -22,6 +23,7 @@ export type MemberNavKey =
   | 'network'
   | 'people'
   | 'workspaces'
+  | 'cercle'
   | 'publications'
   | 'tribune'
   | 'kohop'
@@ -59,9 +61,16 @@ export type MemberNavKey =
 //                    paths) and payments (a visitor is offered membership
 //                    and donations there). An administrator does not need a
 //                    youth space;
-//  - `team`          moderators and above: the back office.
+//  - `team`          moderators and above: the back office;
+//  - `cercle`        the Cercle des Amis' private space: the Amis AND members
+//                    and above (`hasCercleAccess`, the very function the
+//                    server guard reads). The Ami status is not a rank, so it
+//                    comes in `viewer.ami`, not through the role.
 export type MemberNavAudience =
-  'everyone' | 'members' | 'network' | 'participants' | 'team';
+  'everyone' | 'members' | 'network' | 'participants' | 'team' | 'cercle';
+
+// What the navigation needs to know besides the rank.
+export type MemberNavViewer = { ami?: boolean };
 
 export type MemberNavItem = {
   key: MemberNavKey;
@@ -114,6 +123,9 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
       // members, a visitor would only find a closed door there.
       { key: 'people', href: '/membres', audience: 'members' },
       { key: 'workspaces', href: '/espaces', audience: 'members' },
+      // Private space of the Cercle des Amis: contributions read by the
+      // Cercle only (convex/cercleContributions.ts).
+      { key: 'cercle', href: '/espace-membre/cercle', audience: 'cercle' },
     ],
   },
   {
@@ -210,6 +222,7 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
 export function isOfferedTo(
   audience: MemberNavAudience,
   role: string | null | undefined,
+  viewer: MemberNavViewer = {},
 ): boolean {
   if (!role) return audience === 'everyone';
   switch (audience) {
@@ -223,6 +236,11 @@ export function isOfferedTo(
       return !isStaff(role);
     case 'team':
       return isStaff(role);
+    case 'cercle':
+      return hasCercleAccess({
+        role,
+        amiSince: viewer.ami ? 1 : undefined,
+      });
   }
 }
 
@@ -231,12 +249,13 @@ export function isOfferedTo(
 // back office: never a heading over nothing.
 export function visibleMemberNavGroups(
   role: string | null | undefined,
+  viewer: MemberNavViewer = {},
 ): MemberNavGroup[] {
   return MEMBER_NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter(
       (item) =>
-        isOfferedTo(item.audience, role) &&
+        isOfferedTo(item.audience, role, viewer) &&
         (!item.legacyReview || LEGACY_PEER_REVIEW_UI),
     ),
   })).filter((group) => group.items.length > 0);
@@ -263,11 +282,12 @@ export function isMemberNavItemActive(href: string, pathname: string): boolean {
 export function currentMemberNavItem(
   pathname: string,
   role: string | null | undefined,
+  viewer: MemberNavViewer = {},
 ): MemberNavItem | null {
   const path = trimSlash(pathname);
   const lookup =
     path === '/espace-membre/deposer' ? '/espace-membre/publications' : path;
-  for (const group of visibleMemberNavGroups(role)) {
+  for (const group of visibleMemberNavGroups(role, viewer)) {
     for (const item of group.items) {
       if (isMemberNavItemActive(item.href, lookup)) return item;
     }

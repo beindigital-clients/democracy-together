@@ -616,7 +616,7 @@ export default function AdminNewsletter() {
   const uiLocale = useLocale();
   const lang = useLanguageName();
   const count = useQuery(api.newsletter.subscriberCount);
-  const campaigns = useQuery(api.newsletter.listCampaigns);
+  const campaigns = useQuery(api.newsletter.listCampaigns, {});
   const emailStatus = useQuery(api.newsletter.emailStatus);
   const create = useMutation(api.newsletter.createCampaign);
   const notify = useActionFeedback();

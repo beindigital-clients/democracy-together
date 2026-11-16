@@ -7,6 +7,7 @@ import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { normalizeSearchTerm } from './lib/search';
 import { accountToElevate, approvedMember } from './lib/membershipGrant';
 import { networkRole } from './schema';
+import { isAmi } from './lib/roles';
 
 // Back office (F-26 / F-61 / F-63) — all reads are role-gated
 // (defense in depth; the UI already hides what the role does not allow).
@@ -204,6 +205,8 @@ const adminUserValidator = v.object({
   // progress, two-factor authentication enabled. Read on the displayed row — the
   // suspension is on the document, 2FA costs one indexed read.
   reviewChief: v.boolean(),
+  // Cercle des Amis status (independent of the rank).
+  ami: v.boolean(),
   suspended: v.boolean(),
   suspensionReason: v.union(v.string(), v.null()),
   deleting: v.boolean(),
@@ -268,6 +271,7 @@ export const listUsers = query({
             email: u.email ?? null,
             role: effectiveRole(u.role),
             reviewChief: u.reviewChief === true,
+            ami: isAmi(u),
             suspended: u.suspendedAt !== undefined,
             suspensionReason: deleting ? null : (u.suspensionReason ?? null),
             deleting,

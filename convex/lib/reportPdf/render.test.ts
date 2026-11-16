@@ -41,6 +41,8 @@ async function open(bytes: Uint8Array) {
   return pdfjs.getDocument({
     data: bytes.slice(),
     useSystemFonts: false,
+    // pdf.js 6 only exposes `originalCharCode` (the CID) with this flag.
+    fontExtraProperties: true,
   }).promise;
 }
 
@@ -111,7 +113,7 @@ describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
       const text = (await allText(doc)).replace(/\s+/g, ' ');
       const firstWord = input.title.split(' ')[0];
       expect(text).toContain(firstWord);
-      await doc.destroy();
+      await doc.loadingTask.destroy();
     },
   );
 
@@ -151,7 +153,7 @@ describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
     // The year's digits are not reversed by the reading direction.
     expect(text).toContain('2026');
     expect(text).not.toContain('6202');
-    await doc.destroy();
+    await doc.loadingTask.destroy();
   });
 
   it('pagination : un rapport long s’étend sur plusieurs pages, toutes comptées', async () => {
@@ -178,6 +180,6 @@ describe('PDF des rapports annuels (F-41)', { timeout: 60_000 }, () => {
       .map((it) => ('str' in it ? it.str : ''))
       .join(' ');
     expect(footer).toContain(`Page ${pages} sur ${pages}`);
-    await doc.destroy();
+    await doc.loadingTask.destroy();
   });
 });

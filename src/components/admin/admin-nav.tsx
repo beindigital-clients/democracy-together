@@ -180,6 +180,9 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     minRole: 'admin',
     items: [
       { href: '/admin/utilisateurs', key: 'users' },
+      // Cercle des Amis requests: decided by an administrator (the president),
+      // like `cercle.reviewRequest`.
+      { href: '/admin/cercle', key: 'cercle' },
       { href: '/admin/journal', key: 'journal' },
     ],
   },
