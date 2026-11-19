@@ -281,7 +281,11 @@ describe('Désignation des relecteurs (F-43)', () => {
     const [a] = await t.run((ctx) =>
       ctx.db.query('peerReviewAssignments').collect(),
     );
-    expect(a).toMatchObject({ version: 1, dueAt: NOW + 21 * DAY });
+    // Default deadline: 21 days after the assignment. Measured from
+    // `assignedAt`, not from the frozen test clock: convex-test moves its
+    // clock forward by a millisecond between transactions.
+    expect(a).toMatchObject({ version: 1 });
+    expect(a.dueAt! - a.assignedAt).toBe(21 * DAY);
 
     // Second reviewer, chosen deadline: the review stays under evaluation.
     await s.editor.as.mutation(api.peerReview.assignReviewer, {
