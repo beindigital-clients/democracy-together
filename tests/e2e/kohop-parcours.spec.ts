@@ -239,9 +239,7 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   await expect(chief.getByText('En préparation').first()).toBeVisible();
 
   await author.reload();
-  await expect(
-    author.getByText('Votre manuscrit est accepté'),
-  ).toBeVisible();
+  await expect(author.getByText('Votre manuscrit est accepté')).toBeVisible();
 
   // --- Production: copy-editing, proof, approval -----------------------------
   await chief.reload();
