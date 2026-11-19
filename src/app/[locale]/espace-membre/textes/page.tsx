@@ -173,6 +173,9 @@ function MyTexts() {
                     </span>
                     <Link
                       href={r.href}
+                      // A title keeps its own direction (a French title in the
+                      // Arabic interface).
+                      dir="auto"
                       className="mt-1 block wrap-anywhere text-[17px] font-medium text-ink hover:underline"
                     >
                       {r.title || t('myTextsUntitled')}

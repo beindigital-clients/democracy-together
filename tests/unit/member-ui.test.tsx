@@ -417,7 +417,7 @@ describe('Mes publications (bloc)', () => {
     // The editorial note of a publication to revise is shown to its author.
     expect(screen.getByText('Préciser la méthode.')).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: /Voir mes 7 publications/ }),
+      screen.getByRole('link', { name: /Voir mes 7 documents/ }),
     ).toBeTruthy();
   });
 });
