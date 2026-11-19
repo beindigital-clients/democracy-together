@@ -2519,8 +2519,7 @@
     "myTextsSentOn": "أُرسل في {date}",
     "myTextsStartedOn": "بُدئ في {date}",
     "myTextsUntitled": "بلا عنوان",
-    "myTextsListLabel": "نصوصي",
-    "myTextsLoadError": "تعذّر تحميل جزء من نصوصكم. أعيدوا تحميل الصفحة."
+    "myTextsListLabel": "نصوصي"
   },
   "people": {
     "title": "دليل الأشخاص",
@@ -4085,8 +4084,8 @@
     "submitBlocked": "أكملوا القائمة أعلاه لتتمكنوا من الإيداع.",
     "chiefTitle": "مجلة KOHOP: مخطوطات للمعالجة",
     "chiefLead": "القبول الشكلي واعتماد المراجعين والقرارات. لا يُنشر شيء دون إجراء من رئيس مراجعة أو مدير.",
-    "chiefLibraryNote": "لا يظهر هنا ملف PDF مودَع في المكتبة: يُعتمد ضمن «المنشورات».",
-    "chiefLibraryLink": "فتح المنشورات المنتظرة للاعتماد",
+    "chiefLibraryNote": "لا يظهر هنا ملف PDF مودَع في المكتبة: يُعتمد ضمن قائمة «المكتبة».",
+    "chiefLibraryLink": "فتح قائمة المكتبة",
     "stageFilter": "تصفية حسب المرحلة",
     "queueEmpty": "لا توجد مخطوطات في هذه المرحلة.",
     "queueList": "مخطوطات مجلة KOHOP",

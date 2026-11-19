@@ -84,7 +84,8 @@ function MyTexts() {
           status: vocabulary(tl, 'status.', p.status),
           variant: LIBRARY_BADGE[p.status] ?? 'default',
           at: p.submittedAt,
-          started: false,
+          // A library draft was never sent: it reads "Commencé le".
+          started: p.status === 'draft',
           href:
             p.status === 'published'
               ? `/bibliotheque/${p.slug}`

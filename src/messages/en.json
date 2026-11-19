@@ -2519,8 +2519,7 @@
     "myTextsSentOn": "Sent on {date}",
     "myTextsStartedOn": "Started on {date}",
     "myTextsUntitled": "Untitled",
-    "myTextsListLabel": "My texts",
-    "myTextsLoadError": "Some of your texts could not be loaded. Reload the page."
+    "myTextsListLabel": "My texts"
   },
   "people": {
     "title": "People directory",
@@ -4085,8 +4084,8 @@
     "submitBlocked": "Complete the list above to be able to submit.",
     "chiefTitle": "KOHOP Review: manuscripts to handle",
     "chiefLead": "Admissibility, reviewer approval, decisions. Nothing is published without an action from a review chief or an administrator.",
-    "chiefLibraryNote": "A PDF deposited in the library does not appear here: it is approved under Publications.",
-    "chiefLibraryLink": "Open the publications to approve",
+    "chiefLibraryNote": "A PDF deposited in the library does not appear here: it is approved under the Library menu entry.",
+    "chiefLibraryLink": "Open the Library queue",
     "stageFilter": "Filter by stage",
     "queueEmpty": "No manuscript at this stage.",
     "queueList": "KOHOP Review manuscripts",
