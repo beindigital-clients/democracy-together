@@ -265,7 +265,7 @@ test('un dépôt analysé reste en file, et le public ne le voit pas (F-32)', as
     mimeType: 'application/pdf',
     buffer: Buffer.from('%PDF-1.4\n% fichier de test E2E\n'),
   });
-  await page.getByRole('button', { name: 'Soumettre pour relecture' }).click();
+  await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
   await expect(
     page.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();

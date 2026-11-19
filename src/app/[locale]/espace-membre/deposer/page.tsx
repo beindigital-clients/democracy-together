@@ -18,6 +18,29 @@ function DepositPage() {
   return (
     <div className="max-w-3xl">
       <MemberPageHeader title={t('submit.title')} lead={t('submit.lead')} />
+      {member ? (
+        // This door feeds the library, not the peer review: point the author
+        // who wants peers to read the text to KOHOP before they fill the form.
+        <aside
+          aria-labelledby="deposit-kohop-title"
+          className="mt-6 rounded-md border border-accent-edge bg-accent-tint p-5"
+        >
+          <h2
+            id="deposit-kohop-title"
+            className="font-display text-lg text-ink"
+          >
+            {t('submit.kohopNoticeTitle')}
+          </h2>
+          <p className="mt-1 max-w-[62ch] leading-relaxed text-ink-soft">
+            {t('submit.kohopNoticeBody')}
+          </p>
+          <Button asChild variant="outline" className="mt-3 min-h-11">
+            <Link href="/espace-membre/kohop">
+              {t('submit.kohopNoticeCta')}
+            </Link>
+          </Button>
+        </aside>
+      ) : null}
       <div className="mt-8">
         {member ? (
           <PublicationSubmitForm />

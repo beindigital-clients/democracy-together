@@ -54,7 +54,7 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
     buffer: Buffer.from('%PDF-1.4\n% fichier de test E2E\n'),
   });
 
-  await page.getByRole('button', { name: 'Soumettre pour relecture' }).click();
+  await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
   await expect(
     page.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();
@@ -108,7 +108,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
     await page.getByLabel('Auteur·rice·s').fill('A. Membre E2E');
     await page.getByLabel('Résumé', { exact: true }).fill(abstract);
     await page
-      .getByRole('button', { name: 'Soumettre pour relecture' })
+      .getByRole('button', { name: 'Envoyer pour validation' })
       .click();
 
     const title = page.getByLabel('Titre', { exact: true });
@@ -149,7 +149,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
       buffer: Buffer.from('%PDF-1.4\n% fichier de test E2E\n'),
     });
     await page
-      .getByRole('button', { name: 'Soumettre pour relecture' })
+      .getByRole('button', { name: 'Envoyer pour validation' })
       .click();
 
     const bar = page.getByRole('progressbar', {
