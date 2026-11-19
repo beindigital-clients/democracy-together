@@ -64,7 +64,7 @@ test('bibliothèque : accès via la nav « Analyses » + version EN (F-03/F-32)'
   page,
 }) => {
   await page.goto('/fr');
-  await page.getByRole('link', { name: 'Analyses', exact: true }).click();
+  await page.getByRole('link', { name: 'Bibliothèque', exact: true }).click();
   await expect(page).toHaveURL(/\/fr\/bibliotheque$/);
 
   // The old /analyses URL redirects to the library

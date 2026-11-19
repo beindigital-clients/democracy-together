@@ -35,8 +35,8 @@ const SCREENS = [
   },
   {
     path: '/fr/admin/publications',
-    nav: 'Publications',
-    h1: 'Publications',
+    nav: 'Bibliothèque',
+    h1: 'Bibliothèque',
     min: 'moderateur',
   },
   {

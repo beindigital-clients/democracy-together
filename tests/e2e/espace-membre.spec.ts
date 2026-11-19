@@ -59,7 +59,7 @@ test.describe('espace membre — vu par un membre', () => {
       menu.getByRole('link', { name: 'Tableau de bord' }),
     ).toHaveAttribute('aria-current', 'page');
     await expect(
-      menu.getByRole('link', { name: 'Mes publications' }),
+      menu.getByRole('link', { name: 'Bibliothèque : mes documents' }),
     ).toBeVisible();
     // Staff only: neither the entry nor the block.
     await expect(
@@ -70,7 +70,11 @@ test.describe('espace membre — vu par un membre', () => {
     ).toHaveCount(0);
 
     // The blocks of a member's dashboard.
-    for (const name of ['Mes publications', 'Tribune', 'Mon adhésion']) {
+    for (const name of [
+      'Bibliothèque : mes documents',
+      'Tribune',
+      'Mon adhésion',
+    ]) {
       await expect(page.getByRole('region', { name })).toBeVisible();
     }
     await expect(
@@ -93,9 +97,12 @@ test.describe('espace membre — vu par un membre', () => {
       expect(labels, name).toContain(name);
     }
     expect(labels).not.toContain('Administration');
-    // KOHOP's two entries are there; F-43's "Mes manuscrits" is withdrawn (D-13).
-    expect(labels).toContain('KOHOP');
-    expect(labels).toContain('Mes relectures');
+    // KOHOP's two entries are there, under the manuscript wording; F-43's "Mes manuscrits" is withdrawn (D-13).
+    expect(labels).toContain('Revue KOHOP : mes manuscrits');
+    expect(labels).toContain('Manuscrits à relire');
+    // The two doors of the publishing circuits.
+    expect(labels).toContain('Publier un texte');
+    expect(labels).toContain('Mes textes');
     expect(labels).not.toContain('Mes manuscrits');
   });
 
@@ -222,10 +229,13 @@ test.describe('espace membre — vu par un membre', () => {
   }) => {
     await page.goto('/fr/espace-membre/publications');
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Mes publications' }),
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Bibliothèque : mes documents',
+      }),
     ).toBeVisible();
     await expect(
-      nav(page).getByRole('link', { name: 'Mes publications' }),
+      nav(page).getByRole('link', { name: 'Bibliothèque : mes documents' }),
     ).toHaveAttribute('aria-current', 'page');
     await page
       .getByRole('main')
@@ -234,7 +244,7 @@ test.describe('espace membre — vu par un membre', () => {
     await expect(page).toHaveURL(/\/fr\/espace-membre\/deposer$/);
     // The submission form belongs to "Mes publications" in the navigation.
     await expect(
-      nav(page).getByRole('link', { name: 'Mes publications' }),
+      nav(page).getByRole('link', { name: 'Bibliothèque : mes documents' }),
     ).toHaveAttribute('aria-current', 'page');
   });
 });
@@ -281,7 +291,10 @@ test.describe('espace membre — vu par un administrateur', () => {
     for (const name of [...PARTICIPANT_ONLY, ...NETWORK_ONLY]) {
       expect(labels, name).not.toContain(name);
     }
-    for (const name of ['Annuaire des personnes', 'Mes publications']) {
+    for (const name of [
+      'Annuaire des personnes',
+      'Bibliothèque : mes documents',
+    ]) {
       expect(labels, name).toContain(name);
     }
     // Nor on the dashboard: no programmes block, no dues block.
@@ -312,8 +325,10 @@ test.describe('espace membre — vu par un visiteur', () => {
       ...NETWORK_ONLY,
       'Annuaire des personnes',
       'Espaces de travail',
-      'Mes publications',
-      'Mes billets',
+      'Bibliothèque : mes documents',
+      'Tribune : mes billets',
+      'Publier un texte',
+      'Mes textes',
       'Administration',
     ]) {
       expect(labels, name).not.toContain(name);

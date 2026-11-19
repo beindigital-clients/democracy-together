@@ -99,6 +99,8 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
         'cercle',
         'people',
         'workspaces',
+        'publish',
+        'myTexts',
         'publications',
         'tribune',
         'kohop',
@@ -123,6 +125,8 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
           'cercle',
           'people',
           'workspaces',
+          'publish',
+          'myTexts',
           'publications',
           'tribune',
           'kohop',
@@ -186,7 +190,7 @@ describe('Navigation de l’espace membre — entrée courante', () => {
     ).toBe(false);
   });
 
-  it('le formulaire de dépôt est rattaché à « Mes publications »', () => {
+  it('le formulaire de dépôt est rattaché à « Bibliothèque : mes documents »', () => {
     expect(currentMemberNavItem('/espace-membre/deposer', 'membre')?.key).toBe(
       'publications',
     );
@@ -223,6 +227,8 @@ describe('Navigation de l’espace membre — libellés dans les cinq langues', 
     people: 'navPeople',
     workspaces: 'navWorkspaces',
     cercle: 'navCercle',
+    publish: 'navPublish',
+    myTexts: 'navMyTexts',
     publications: 'navPublications',
     tribune: 'navTribune',
     kohop: 'navKohop',

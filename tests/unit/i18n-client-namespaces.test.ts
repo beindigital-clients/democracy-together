@@ -208,7 +208,9 @@ describe('Espaces de messages transmis au navigateur', () => {
         (KOHOP_NAMESPACES as readonly string[]).includes(a.espace) &&
         !a.fichier.includes('kohop') &&
         // The reviewer's screens, carried by their own KOHOP layout.
-        !a.fichier.includes('espace-membre/relectures'),
+        !a.fichier.includes('espace-membre/relectures') &&
+        // "Mes textes" names the KOHOP stages: its layout carries the catalogue.
+        !a.fichier.includes('espace-membre/textes'),
     );
     expect(fautifs.map((a) => `${a.fichier} -> ${a.espace}`)).toEqual([]);
   });

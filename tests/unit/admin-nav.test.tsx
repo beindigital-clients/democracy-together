@@ -53,8 +53,11 @@ function renderNav(role: NetworkRole, pathname = '/admin') {
 const STAFF_ITEMS = [
   'Tableau de bord',
   'Impact',
+  // Overview of every member-text queue, circuit by circuit.
+  'À traiter',
   'Candidatures',
-  'Publications',
+  // The library queue carries the library's name, as on the public site.
+  'Bibliothèque',
   // Tribune moderation queue (community workstream), moderator rank.
   'File de modération',
   'Signalements',
@@ -87,7 +90,7 @@ const ADMIN_ITEMS = [
 ];
 // KOHOP's queue is reserved to review chiefs and administrators: an editor
 // WITHOUT the function does not see it, an administrator always does.
-const KOHOP_ITEMS = ['KOHOP'];
+const KOHOP_ITEMS = ['Manuscrits (Revue KOHOP)'];
 
 // The entries' accessible NAME specifies the area (RGAA 6.1, see admin-nav.tsx):
 // "Publications (Administration)". The VISIBLE text remains the bare
@@ -213,7 +216,7 @@ describe('Navigation du back-office — entrée courante (issue #49)', () => {
     const nav = renderNav('admin', '/admin/publications/en-attente');
     expect(
       within(nav)
-        .getByRole('link', { name: 'Publications (Administration)' })
+        .getByRole('link', { name: 'Bibliothèque (Administration)' })
         .getAttribute('aria-current'),
     ).toBe('page');
   });

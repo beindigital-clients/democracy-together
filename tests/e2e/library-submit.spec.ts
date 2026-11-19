@@ -64,7 +64,7 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
   await expect(page).toHaveURL(/\/espace-membre$/);
   const row = page.getByRole('row').filter({ hasText: title });
   await expect(row).toBeVisible();
-  await expect(row.getByText('En revue')).toBeVisible();
+  await expect(row.getByText('En vérification')).toBeVisible();
 
   // Elevation to admin -> publication moderation queue
   await elevateRole(email, 'admin');
@@ -107,9 +107,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
     await page.getByLabel('Titre', { exact: true }).fill('Abc');
     await page.getByLabel('Auteur·rice·s').fill('A. Membre E2E');
     await page.getByLabel('Résumé', { exact: true }).fill(abstract);
-    await page
-      .getByRole('button', { name: 'Envoyer pour validation' })
-      .click();
+    await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
 
     const title = page.getByLabel('Titre', { exact: true });
     await expectFieldError(page, title, /au moins 4 caractères/);
@@ -148,9 +146,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
       mimeType: 'application/pdf',
       buffer: Buffer.from('%PDF-1.4\n% fichier de test E2E\n'),
     });
-    await page
-      .getByRole('button', { name: 'Envoyer pour validation' })
-      .click();
+    await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
 
     const bar = page.getByRole('progressbar', {
       name: 'Progression du téléversement',

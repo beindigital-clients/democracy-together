@@ -128,9 +128,7 @@ test('F-43 : soumis → deux relecteurs → révision demandée → v2 → accep
     mimeType: 'application/pdf',
     buffer: await manuscriptPdf('v1'),
   });
-  await author
-    .getByRole('button', { name: 'Envoyer pour validation' })
-    .click();
+  await author.getByRole('button', { name: 'Envoyer pour validation' }).click();
   await expect(
     author.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();

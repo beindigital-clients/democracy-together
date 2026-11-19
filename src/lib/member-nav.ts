@@ -24,6 +24,8 @@ export type MemberNavKey =
   | 'people'
   | 'workspaces'
   | 'cercle'
+  | 'publish'
+  | 'myTexts'
   | 'publications'
   | 'tribune'
   | 'kohop'
@@ -131,6 +133,11 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
   {
     key: 'contributions',
     items: [
+      // One door to publish: the member says what they want to do and is
+      // sent to the right circuit (library, Tribune, KOHOP manuscript).
+      { key: 'publish', href: '/espace-membre/publier', audience: 'members' },
+      // Every text of the member, whatever the circuit, with its stage.
+      { key: 'myTexts', href: '/espace-membre/textes', audience: 'members' },
       {
         key: 'publications',
         href: '/espace-membre/publications',

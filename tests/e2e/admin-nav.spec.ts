@@ -28,8 +28,9 @@ const PHONE = { width: 412, height: 839 };
 const ALL_ITEMS = [
   'Tableau de bord',
   'Impact',
+  'À traiter',
   'Candidatures',
-  'Publications',
+  'Bibliothèque',
   'File de modération',
   'Signalements',
   'Messages',

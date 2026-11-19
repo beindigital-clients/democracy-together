@@ -57,9 +57,9 @@ test('relecteur extérieur : lien personnel, acceptation sans compte, connexion 
   const author = await as(browser, 'kohopAuteur');
   await author.goto('/fr/espace-membre/kohop');
   await author.getByRole('button', { name: 'Commencer un brouillon' }).click();
-  await author.getByLabel('Texte de la contribution').waitFor();
+  await author.getByLabel('Texte du manuscrit').waitFor();
   await author
-    .getByLabel('Texte de la contribution')
+    .getByLabel('Texte du manuscrit')
     .fill(`## Introduction\n\n${words(280)}\n\n${words(280)}`);
   await author.getByLabel('Titre', { exact: true }).fill(title);
   await author
@@ -116,7 +116,7 @@ test('relecteur extérieur : lien personnel, acceptation sans compte, connexion 
     'section[aria-labelledby="kohop-commitments"] [role=checkbox]',
   );
   for (let i = 0; i < (await boxes.count()); i++) await boxes.nth(i).click();
-  await author.getByRole('button', { name: 'Déposer ma contribution' }).click();
+  await author.getByRole('button', { name: 'Soumettre mon manuscrit' }).click();
   await expect(
     author.getByText('Le chef de revue examine votre dépôt'),
   ).toBeVisible();

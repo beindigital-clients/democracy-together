@@ -229,7 +229,7 @@ test.describe('recherche des listes (session dédiée)', () => {
     // This queue depends on the seeds (`seedPublications`, see TESTING.md): we
     // therefore do not assume a specific row, we check the PROPERTY — everything that
     // remains displayed matches the term, and an absent term says so.
-    await openScreen(page, '/fr/admin/publications', 'Publications');
+    await openScreen(page, '/fr/admin/publications', 'Bibliothèque');
     // The title appears before the queue's first page: clicking at that
     // moment means aiming at a button the next render replaces ("element
     // was detached from the DOM"). So we wait for the queue to have settled —

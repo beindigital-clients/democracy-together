@@ -173,7 +173,7 @@ describe('Équipe — le menu dit où le travail attend', () => {
     const bar = nav({ applications: 0, publications: undefined });
     for (const name of [
       'Candidatures (Administration)',
-      'Publications (Administration)',
+      'Bibliothèque (Administration)',
     ]) {
       const link = within(bar).getByRole('link', { name });
       expect(link.getAttribute('aria-describedby')).toBeNull();
