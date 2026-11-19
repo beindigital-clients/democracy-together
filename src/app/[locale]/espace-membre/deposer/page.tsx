@@ -13,12 +13,14 @@ import { MemberPageHeader } from '@/components/member/page-header';
 function DepositPage() {
   const t = useTranslations('library');
   const me = useQuery(api.users.current);
-  if (me === undefined) return <AuthGateLoading />;
   const member = isMember(me?.role);
+  // The notice sends to KOHOP: only when this member may deposit there.
+  const kohopAccess = useQuery(api.kohop.myAccess, member ? {} : 'skip');
+  if (me === undefined) return <AuthGateLoading />;
   return (
     <div className="max-w-3xl">
       <MemberPageHeader title={t('submit.title')} lead={t('submit.lead')} />
-      {member ? (
+      {member && kohopAccess?.canDeposit ? (
         // This door feeds the library, not the peer review: point the author
         // who wants peers to read the text to KOHOP before they fill the form.
         <aside

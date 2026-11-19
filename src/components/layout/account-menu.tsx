@@ -118,7 +118,7 @@ function AccountMenuContent() {
       ? [
           {
             key: 'publications',
-            href: '/espace-membre/publications',
+            href: '/espace-membre/textes',
             icon: FileText,
             label: t('accountPublications'),
           },

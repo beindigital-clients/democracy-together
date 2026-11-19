@@ -96,7 +96,9 @@ describe('Navigation latérale', () => {
 
   it('les groupes sont titrés, et leurs listes rattachées à leur titre', () => {
     mount(<MemberNav role="membre" pathname="/espace-membre" />);
-    expect(screen.getByRole('list', { name: 'Contributions' })).toBeTruthy();
+    expect(
+      screen.getByRole('list', { name: 'Publier et relire' }),
+    ).toBeTruthy();
     expect(screen.getByRole('list', { name: 'Compte' })).toBeTruthy();
   });
 
@@ -379,7 +381,7 @@ describe('Mes publications (bloc)', () => {
     mount(<RecentPublicationsView items={[]} />);
     expect(
       screen
-        .getByRole('link', { name: 'Déposer ma première publication' })
+        .getByRole('link', { name: 'Déposer mon premier document' })
         .getAttribute('href'),
     ).toBe('/fr/espace-membre/deposer');
   });

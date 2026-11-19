@@ -24,7 +24,14 @@ function Centered({ children }: { children: ReactNode }) {
   );
 }
 
-function AccessDenied({ rank = false }: { rank?: boolean }) {
+function AccessDenied({
+  rank = false,
+  chief = false,
+}: {
+  rank?: boolean;
+  // The screen needs the review-chief FUNCTION, not a higher rank.
+  chief?: boolean;
+}) {
   const t = useTranslations('admin');
   return (
     <Centered>
@@ -33,7 +40,11 @@ function AccessDenied({ rank = false }: { rank?: boolean }) {
       </p>
       <h1 className="mt-3 font-display text-3xl">{t('accessDeniedTitle')}</h1>
       <p className="mt-3 text-ink-soft">
-        {rank ? t('accessDeniedBodyRank') : t('accessDeniedBody')}
+        {chief
+          ? t('accessDeniedBodyChief')
+          : rank
+            ? t('accessDeniedBodyRank')
+            : t('accessDeniedBody')}
       </p>
       <Link
         href="/"
@@ -84,7 +95,7 @@ function Gate({ children }: { children: ReactNode }) {
   // Screens reserved to the review chief function (KOHOP queue): same rule as
   // the server guard `requireReviewChief`.
   if (adminPathRequiresReviewChief(pathname) && !isReviewChief(me ?? {})) {
-    return <AccessDenied rank />;
+    return <AccessDenied chief />;
   }
 
   // The action-feedback live regions are mounted HERE, once for the whole

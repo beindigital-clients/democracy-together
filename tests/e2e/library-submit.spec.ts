@@ -64,10 +64,10 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
     page.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();
 
-  // Back to the member area: the contribution shows as "En revue"
-  await page.getByRole('link', { name: 'Retour à mon espace' }).click();
-  await expect(page).toHaveURL(/\/espace-membre$/);
-  const row = page.getByRole('row').filter({ hasText: title });
+  // On to "Mes textes": the document shows as "En vérification"
+  await page.getByRole('link', { name: 'Voir mes textes' }).click();
+  await expect(page).toHaveURL(/\/espace-membre\/textes$/);
+  const row = page.getByRole('listitem').filter({ hasText: title });
   await expect(row).toBeVisible();
   await expect(row.getByText('En vérification')).toBeVisible();
 

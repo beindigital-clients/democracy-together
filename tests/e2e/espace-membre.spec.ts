@@ -239,7 +239,7 @@ test.describe('espace membre — vu par un membre', () => {
     ).toHaveAttribute('aria-current', 'page');
     await page
       .getByRole('main')
-      .getByRole('link', { name: 'Nouvelle publication' })
+      .getByRole('link', { name: 'Déposer un document' })
       .click();
     await expect(page).toHaveURL(/\/fr\/espace-membre\/deposer$/);
     // The submission form belongs to "Mes publications" in the navigation.

@@ -30,12 +30,18 @@ type Choice = {
   cta: string;
   href: string;
   tone: string;
+  // Set when this member cannot use the circuit yet: shown instead of the
+  // button, so nobody is sent to a closed door.
+  closedNote?: string;
 };
 
 function PublishChooser() {
   const t = useTranslations('member');
   const tl = useTranslations('library');
   const me = useQuery(api.users.current);
+  const member = isMember(me?.role);
+  // KOHOP deposits may be reserved to pilot organizations.
+  const kohopAccess = useQuery(api.kohop.myAccess, member ? {} : 'skip');
   if (me === undefined) return <AuthGateLoading />;
 
   const choices: Choice[] = [
@@ -65,6 +71,10 @@ function PublishChooser() {
       cta: t('publishKohopCta'),
       href: '/espace-membre/kohop',
       tone: 'border-accent-edge',
+      closedNote:
+        kohopAccess && !kohopAccess.canDeposit
+          ? t('publishKohopPilot')
+          : undefined,
     },
   ];
 
@@ -72,7 +82,7 @@ function PublishChooser() {
     <>
       <MemberPageHeader title={t('publishTitle')} lead={t('publishLead')} />
       <MemberPageBody>
-        {!isMember(me?.role) ? (
+        {!member ? (
           <div className="rounded-md border border-accent-edge bg-accent-tint p-6">
             <p className="max-w-[60ch] leading-relaxed text-ink-soft">
               {t('publishMembersOnly')}
@@ -110,15 +120,21 @@ function PublishChooser() {
                   <p className="border-t border-line pt-3 text-[15px] leading-relaxed text-ink">
                     {c.next}
                   </p>
-                  <Button
-                    asChild
-                    size="lg"
-                    className="mt-auto min-h-12 self-start"
-                  >
-                    <Link href={c.href} aria-describedby={`publish-${c.id}`}>
-                      {c.cta}
-                    </Link>
-                  </Button>
+                  {c.closedNote ? (
+                    <p className="mt-auto rounded-md bg-surface-2 p-3 text-[15px] leading-relaxed text-ink-soft">
+                      {c.closedNote}
+                    </p>
+                  ) : (
+                    <Button
+                      asChild
+                      size="lg"
+                      className="mt-auto min-h-12 self-start"
+                    >
+                      <Link href={c.href} aria-describedby={`publish-${c.id}`}>
+                        {c.cta}
+                      </Link>
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>
