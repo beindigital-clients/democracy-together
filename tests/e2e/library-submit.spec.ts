@@ -34,9 +34,14 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
   await elevateRole(email, 'membre');
   await page.goto('/fr/espace-membre');
 
-  // From the member area -> submission form
+  // From the member area -> "Publier un texte" -> share a document
   await page
-    .getByRole('link', { name: 'Soumettre une publication', exact: true })
+    .getByRole('link', { name: 'Publier un texte', exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/espace-membre\/publier$/);
+  await page
+    .getByRole('link', { name: 'Déposer un document', exact: true })
     .click();
   await expect(page).toHaveURL(/\/espace-membre\/deposer$/);
 

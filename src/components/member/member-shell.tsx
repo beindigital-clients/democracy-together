@@ -79,7 +79,6 @@ function Identity({
 
 function Sidebar() {
   const t = useTranslations('member');
-  const tl = useTranslations('library');
   const labels = useMemberNavLabels();
   const pathname = usePathname();
   const { isAuthenticated } = useConvexAuth();
@@ -165,9 +164,11 @@ function Sidebar() {
         />
         {isMember(me.role) ? (
           <Button asChild className="w-full min-h-11">
-            <Link href="/espace-membre/deposer">
+            {/* The one door to publish: it asks what the member wants to do
+                and sends them to the right circuit. */}
+            <Link href="/espace-membre/publier">
               <Plus aria-hidden="true" />
-              {tl('mine.submitCta')}
+              {t('navPublish')}
             </Link>
           </Button>
         ) : null}

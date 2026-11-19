@@ -240,7 +240,7 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
 
   await author.reload();
   await expect(
-    author.getByText('Votre contribution est acceptée'),
+    author.getByText('Votre manuscrit est accepté'),
   ).toBeVisible();
 
   // --- Production: copy-editing, proof, approval -----------------------------

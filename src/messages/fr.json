@@ -846,11 +846,11 @@
       "open": "Ouvrir"
     },
     "submit": {
-      "title": "Soumettre une publication",
+      "title": "Déposer un document dans la Bibliothèque",
       "lead": "Déposez un rapport, un policy brief, un working paper, une note ou un jeu de données (PDF). L'équipe le vérifie avant de le publier dans la bibliothèque du site.",
       "kohopNoticeTitle": "Vous voulez faire relire un texte par des pairs ?",
-      "kohopNoticeBody": "Ce dépôt alimente la bibliothèque du site : l'équipe vérifie le document, il n'y a pas de relecture par des pairs. Pour une contribution courte (500 à 1 000 mots) relue par des pairs que vous choisissez, passez par KOHOP.",
-      "kohopNoticeCta": "Aller à KOHOP",
+      "kohopNoticeBody": "Ce dépôt alimente la bibliothèque du site : l'équipe vérifie le document, il n'y a pas de relecture par des pairs. Pour un manuscrit court (500 à 1 000 mots) relu par des pairs que vous choisissez, soumettez-le à la Revue KOHOP.",
+      "kohopNoticeCta": "Soumettre un manuscrit",
       "membersOnly": "Le dépôt de publications est réservé aux membres validés du réseau. Déposez une candidature d'adhésion pour les rejoindre.",
       "becomeMemberCta": "Déposer une candidature",
       "fieldTitle": "Titre",

@@ -73,23 +73,22 @@ export default function AdminToProcess() {
             key={c.id}
             className="flex flex-col gap-3 rounded-md border border-line bg-surface p-5"
           >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2
-                id={`to-process-${c.id}`}
-                className="font-display text-xl text-ink"
-              >
-                {c.title}
-              </h2>
-              <Badge
-                variant={c.waiting ? 'pending' : 'default'}
-                size="lg"
-                aria-live="polite"
-              >
-                {c.waiting === undefined
-                  ? t('toProcessLoading')
-                  : t('toProcessWaiting', { count: c.waiting })}
-              </Badge>
-            </div>
+            <h2
+              id={`to-process-${c.id}`}
+              className="font-display text-xl text-ink"
+            >
+              {c.title}
+            </h2>
+            <Badge
+              variant={c.waiting ? 'pending' : 'default'}
+              size="lg"
+              aria-live="polite"
+              className="self-start"
+            >
+              {c.waiting === undefined
+                ? t('toProcessLoading')
+                : t('toProcessWaiting', { count: c.waiting })}
+            </Badge>
             <p className="text-ink-soft">{c.body}</p>
             <Button asChild className="mt-auto min-h-11 self-start">
               <Link href={c.href} aria-describedby={`to-process-${c.id}`}>

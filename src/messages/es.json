@@ -846,11 +846,11 @@
       "open": "Abrir"
     },
     "submit": {
-      "title": "Enviar una publicación",
+      "title": "Depositar un documento en la Biblioteca",
       "lead": "Deposite un informe, un policy brief, un working paper, una nota o un conjunto de datos (PDF). El equipo lo comprueba antes de publicarlo en la biblioteca del sitio.",
       "kohopNoticeTitle": "¿Quiere que sus pares revisen un texto?",
-      "kohopNoticeBody": "Este depósito alimenta la biblioteca del sitio: el equipo comprueba el documento, no hay revisión por pares. Para una contribución breve (de 500 a 1 000 palabras) revisada por pares que usted elija, utilice KOHOP.",
-      "kohopNoticeCta": "Ir a KOHOP",
+      "kohopNoticeBody": "Este depósito alimenta la biblioteca del sitio: el equipo comprueba el documento, no hay revisión por pares. Para un manuscrito breve (de 500 a 1 000 palabras) revisado por pares que usted elija, preséntelo a la Revista KOHOP.",
+      "kohopNoticeCta": "Presentar un manuscrito",
       "membersOnly": "El depósito de publicaciones está reservado a los miembros validados de la red. Presente una candidatura de adhesión para unirse a ellos.",
       "becomeMemberCta": "Presentar una candidatura",
       "fieldTitle": "Título",

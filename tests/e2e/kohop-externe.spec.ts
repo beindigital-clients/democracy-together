@@ -146,7 +146,7 @@ test('relecteur extérieur : lien personnel, acceptation sans compte, connexion 
   await guest.goto(link);
   await expect(
     guest.getByRole('heading', {
-      name: 'Invitation à relire une contribution KOHOP',
+      name: 'Invitation à relire un manuscrit de la Revue KOHOP',
     }),
   ).toBeVisible();
   await expect(guest.getByRole('heading', { name: title })).toBeVisible();

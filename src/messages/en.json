@@ -846,11 +846,11 @@
       "open": "Open"
     },
     "submit": {
-      "title": "Submit a publication",
+      "title": "Deposit a document in the Library",
       "lead": "Deposit a report, policy brief, working paper, briefing note or dataset (PDF). The team checks it before publishing it in the site library.",
       "kohopNoticeTitle": "Looking to have a text reviewed by peers?",
-      "kohopNoticeBody": "This deposit feeds the site library: the team checks the document, there is no peer review. For a short contribution (500 to 1,000 words) reviewed by peers you choose, use KOHOP.",
-      "kohopNoticeCta": "Go to KOHOP",
+      "kohopNoticeBody": "This deposit feeds the site library: the team checks the document, there is no peer review. For a short manuscript (500 to 1,000 words) reviewed by peers you choose, submit it to the KOHOP Review.",
+      "kohopNoticeCta": "Submit a manuscript",
       "membersOnly": "Depositing publications is reserved for validated network members. Submit a membership application to join.",
       "becomeMemberCta": "Submit an application",
       "fieldTitle": "Title",
