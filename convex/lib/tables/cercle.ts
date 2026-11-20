@@ -1,6 +1,7 @@
 import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { locale } from '../locales';
+import { translationStatus } from '../translation';
 
 // Tables of the "Cercle des Amis" workstream. Changes to EXISTING tables (the
 // `users` status fields) are made in place in convex/schema.ts.
@@ -105,8 +106,9 @@ export const cercleTables = {
   // PRIVATE CONTRIBUTIONS of the Cercle — free text written by an Ami or a
   // member, read by the Cercle only (`requireCercleAccess`). A table of its
   // own, NOT `contentTranslations`, publications or KOHOP: nothing here is
-  // indexed, searched, translated, listed in the sitemap or sent to the AI
-  // moderation provider (docs/cercle-amis.md § 4).
+  // indexed, searched, listed in the sitemap or sent to the AI moderation
+  // provider (docs/cercle-amis.md § 4). A reader of the Cercle may ask for a
+  // translation, which has its own table below (`cercleTranslations`).
   cercleContributions: defineTable({
     authorUserId: v.id('users'),
     body: v.string(),
@@ -118,6 +120,35 @@ export const cercleTables = {
   })
     .index('by_status_and_createdAt', ['status', 'createdAt'])
     .index('by_author', ['authorUserId']),
+
+  // TRANSLATIONS OF THE PRIVATE CONTRIBUTIONS — asked for by a reader of the
+  // Cercle, made on demand, cached for the next readers (convex/
+  // cercleTranslations.ts). NOT `contentTranslations`: the Cercle shares no
+  // table with public content, so no query written for the public side can
+  // ever list one of these. Same access rule as the contribution itself, and
+  // deleted with it (`cercleContributions.remove`, account deletion).
+  //
+  // The model call is made under a zero-data-retention agreement: the text
+  // leaves for the time of the call and is kept by no one but this table.
+  cercleTranslations: defineTable({
+    contributionId: v.id('cercleContributions'),
+    targetLocale: locale,
+    // Fingerprint of the paragraphs that were translated: a contribution is
+    // not editable today, but a stale row must never pass for a current one.
+    sourceHash: v.string(),
+    status: translationStatus,
+    // A contribution stores no language: the model names it. One of the site
+    // locales, or 'other'. Missing while not 'ready'.
+    detectedLocale: v.optional(v.string()),
+    // The translated paragraphs. Missing while not 'ready'.
+    body: v.optional(v.array(v.string())),
+    model: v.optional(v.string()),
+    // Gateway failure code (GATEWAY_ERRORS), displayed translated.
+    error: v.optional(v.string()),
+    requestedBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_contribution_and_target', ['contributionId', 'targetLocale']),
 
   // MAILING LIST OF THE CERCLE — separate from the public newsletter.
   //

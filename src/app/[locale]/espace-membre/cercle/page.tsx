@@ -1,7 +1,12 @@
 'use client';
 
 import { useMemo, useState, type FormEvent } from 'react';
-import { useMutation, usePaginatedQuery, useQuery } from 'convex/react';
+import {
+  useAction,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from 'convex/react';
 import { ConvexError } from 'convex/values';
 import { useLocale, useTranslations } from 'next-intl';
 import type { FunctionReturnType } from 'convex/server';
@@ -15,6 +20,9 @@ import { TextareaField } from '@/components/ui/field';
 import { MemberPageHeader } from '@/components/member/page-header';
 import { isRateLimited } from '@/lib/errors';
 import { intlLocale } from '@/i18n/locale';
+import type { Locale } from '@/i18n/routing';
+import { vocabulary } from '@/i18n/vocabulary';
+import { translationErrorSuffix } from '@/lib/article-translation';
 
 type Contribution = FunctionReturnType<
   typeof api.cercleContributions.list
@@ -86,6 +94,129 @@ function Composer({ onSent }: { onSent: () => void }) {
   );
 }
 
+// THE TEXT OF A CONTRIBUTION, ORIGINAL OR TRANSLATED.
+//
+// The Cercle writes in several languages and stores none: the reader asks for
+// a translation into their own (convex/cercleTranslations.ts, made under zero
+// data retention and cached for the next readers). Once it exists, it replaces
+// the original on screen under an explicit notice, and the original is one
+// click away. A text the model finds already in the reader's language is shown
+// as it is, with a line saying so.
+function ContributionText({ item }: { item: Contribution }) {
+  const t = useTranslations('translation');
+  const tc = useTranslations('cercle');
+  const tl = useTranslations('library');
+  const locale = useLocale() as Locale;
+  const translation = useQuery(api.cercleTranslations.get, {
+    contributionId: item._id,
+    targetLocale: locale,
+  });
+  const request = useAction(api.cercleTranslations.request);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [errorSuffix, setErrorSuffix] = useState<string | null>(null);
+
+  const language = vocabulary(tl, 'langs.', locale);
+  const current = translation?.fresh ? translation : null;
+  const ready =
+    current?.status === 'ready' && current.body !== undefined ? current : null;
+  const sameLanguage = ready?.sameLanguage ?? false;
+  const from =
+    ready?.detectedLocale && ready.detectedLocale !== 'other'
+      ? vocabulary(tl, 'langs.', ready.detectedLocale)
+      : null;
+  const showTranslated = ready !== null && !sameLanguage && !showOriginal;
+  const failedCode =
+    errorSuffix ??
+    (current?.status === 'failed'
+      ? translationErrorSuffix(current.error)
+      : null);
+
+  async function run() {
+    setErrorSuffix(null);
+    setRunning(true);
+    try {
+      const result = await request({
+        contributionId: item._id,
+        targetLocale: locale,
+      });
+      if (!result.ok) setErrorSuffix(translationErrorSuffix(result.code));
+      else setShowOriginal(false);
+    } catch {
+      // The action returns its failures; an exception is a transport failure.
+      setErrorSuffix('Generic');
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <>
+      {showTranslated && ready?.body ? (
+        <div lang={locale} className="space-y-3">
+          {ready.body.map((paragraph, i) => (
+            <p
+              key={i}
+              className="whitespace-pre-line wrap-anywhere leading-relaxed text-ink"
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="whitespace-pre-line wrap-anywhere leading-relaxed text-ink">
+          {item.body}
+        </p>
+      )}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        {ready && sameLanguage ? (
+          <span>{tc('translateSame', { language })}</span>
+        ) : ready ? (
+          <>
+            {showTranslated ? (
+              <span>
+                {from ? t('translatedFrom', { language: from }) : t('badge')}
+              </span>
+            ) : null}
+            <Button
+              type="button"
+              variant="link-inline"
+              size="inline"
+              onClick={() => setShowOriginal((v) => !v)}
+            >
+              {showOriginal
+                ? t('readTranslation', { language })
+                : from
+                  ? t('readOriginal', { language: from })
+                  : tc('showOriginal')}
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={running}
+            aria-busy={running}
+            onClick={() => void run()}
+          >
+            {running
+              ? t('translating')
+              : failedCode
+                ? t('retry')
+                : t('offer', { language })}
+          </Button>
+        )}
+        {failedCode && !ready ? (
+          <span role="status">
+            {vocabulary(t, 'err', failedCode, t('errGeneric'))}
+          </span>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
 function ContributionItem({
   item,
   onRemoved,
@@ -124,9 +255,7 @@ function ContributionItem({
 
   return (
     <li className="rounded-md border border-line bg-surface p-5">
-      <p className="whitespace-pre-line wrap-anywhere leading-relaxed text-ink">
-        {item.body}
-      </p>
+      <ContributionText item={item} />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
         <span>
           {item.mine

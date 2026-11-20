@@ -8,6 +8,7 @@ import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { clampPageSize, paginatedValidator } from './lib/pagination';
 import { validateContributionBody } from './lib/cercle';
+import { deleteContributionTranslations } from './lib/cercleTranslation';
 
 // PRIVATE CONTRIBUTIONS OF THE CERCLE (feature 3).
 //
@@ -101,6 +102,8 @@ export const remove = mutation({
       removedAt: Date.now(),
       removedBy: user._id,
     });
+    // Its translations hold the same words: they go with it.
+    await deleteContributionTranslations(ctx, contributionId);
     if (!own) {
       await recordAudit(ctx, {
         actorId: user._id,
