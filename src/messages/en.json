@@ -4043,7 +4043,7 @@
     "linkUrlInvalid": "The address must start with https://",
     "removeLinkFor": "Remove link {n}",
     "sectionReviewers": "Reviewers",
-    "sectionReviewersLead": "Choose two titular reviewers and, if you wish, a substitute, from the members' directory. Their names and analyses will be published with your text.",
+    "sectionReviewersLead": "Choose two titular reviewers and, if you wish, a substitute, from the members' directory. Their names and analyses will be published with your text. They must not have co-authored with you recently, nor work in the same organization as you: the site refuses such reviewers, and the review chief approves the others.",
     "noReviewersYet": "No reviewer designated yet.",
     "reviewersCount": "{titulars} of {max} titular reviewers",
     "substituteCount": "{count, plural, =0 {no substitute} one {# substitute} other {# substitutes}}",

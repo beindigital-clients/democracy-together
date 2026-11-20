@@ -4043,7 +4043,7 @@
     "linkUrlInvalid": "La dirección debe empezar por https://",
     "removeLinkFor": "Quitar el enlace {n}",
     "sectionReviewers": "Revisores",
-    "sectionReviewersLead": "Elija dos revisores titulares y, si lo desea, un suplente, en el directorio de miembros. Sus nombres y análisis se publicarán con su texto.",
+    "sectionReviewersLead": "Elija dos revisores titulares y, si lo desea, un suplente, en el directorio de miembros. Sus nombres y análisis se publicarán con su texto. No deben haber firmado recientemente con usted ni trabajar en su misma organización: el sitio rechaza a estos revisores y el jefe de revisión valida a los demás.",
     "noReviewersYet": "Ningún revisor designado todavía.",
     "reviewersCount": "{titulars} de {max} titulares",
     "substituteCount": "{count, plural, =0 {sin suplente} one {# suplente} other {# suplentes}}",
