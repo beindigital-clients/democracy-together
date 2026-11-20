@@ -85,6 +85,8 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     labelKey: 'navGroup_moderation',
     minRole: 'moderateur',
     items: [
+      // Overview of every member-text queue, circuit by circuit.
+      { href: '/admin/a-traiter', key: 'toProcess' },
       { href: '/admin/candidatures', key: 'applications' },
       { href: '/admin/publications', key: 'publications' },
       // "Mes relectures" (27/09 campaign, A-02): the REVIEWER's view,

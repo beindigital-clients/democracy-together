@@ -15,7 +15,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-accent text-accent-contrast hover:bg-accent-strong',
+        // The focus outline takes the TEXT colour by default: near-white here,
+        // invisible on a light page. Give it the accent instead.
+        default:
+          'bg-accent text-accent-contrast hover:bg-accent-strong focus-visible:outline-accent',
         destructive: 'bg-bar-5 text-paper hover:opacity-90',
         outline: 'border border-line-strong text-ink hover:bg-surface-2',
         secondary: 'bg-surface-2 text-ink hover:bg-line',

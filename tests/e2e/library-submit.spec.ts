@@ -34,9 +34,14 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
   await elevateRole(email, 'membre');
   await page.goto('/fr/espace-membre');
 
-  // From the member area -> submission form
+  // From the member area -> "Publier un texte" -> share a document
   await page
-    .getByRole('link', { name: 'Soumettre une publication', exact: true })
+    .getByRole('link', { name: 'Publier un texte', exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/espace-membre\/publier$/);
+  await page
+    .getByRole('link', { name: 'Déposer un document', exact: true })
     .click();
   await expect(page).toHaveURL(/\/espace-membre\/deposer$/);
 
@@ -54,17 +59,17 @@ test('un membre dépose une publication, un modérateur la publie (F-32)', async
     buffer: Buffer.from('%PDF-1.4\n% fichier de test E2E\n'),
   });
 
-  await page.getByRole('button', { name: 'Soumettre pour relecture' }).click();
+  await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
   await expect(
     page.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();
 
-  // Back to the member area: the contribution shows as "En revue"
-  await page.getByRole('link', { name: 'Retour à mon espace' }).click();
-  await expect(page).toHaveURL(/\/espace-membre$/);
-  const row = page.getByRole('row').filter({ hasText: title });
+  // On to "Mes textes": the document shows as "En vérification"
+  await page.getByRole('link', { name: 'Voir mes textes' }).click();
+  await expect(page).toHaveURL(/\/espace-membre\/textes$/);
+  const row = page.getByRole('listitem').filter({ hasText: title });
   await expect(row).toBeVisible();
-  await expect(row.getByText('En revue')).toBeVisible();
+  await expect(row.getByText('En vérification')).toBeVisible();
 
   // Elevation to admin -> publication moderation queue
   await elevateRole(email, 'admin');
@@ -107,9 +112,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
     await page.getByLabel('Titre', { exact: true }).fill('Abc');
     await page.getByLabel('Auteur·rice·s').fill('A. Membre E2E');
     await page.getByLabel('Résumé', { exact: true }).fill(abstract);
-    await page
-      .getByRole('button', { name: 'Soumettre pour relecture' })
-      .click();
+    await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
 
     const title = page.getByLabel('Titre', { exact: true });
     await expectFieldError(page, title, /au moins 4 caractères/);
@@ -148,9 +151,7 @@ test.describe('dépôt : validation et progression (#37)', () => {
       mimeType: 'application/pdf',
       buffer: Buffer.from('%PDF-1.4\n% fichier de test E2E\n'),
     });
-    await page
-      .getByRole('button', { name: 'Soumettre pour relecture' })
-      .click();
+    await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
 
     const bar = page.getByRole('progressbar', {
       name: 'Progression du téléversement',

@@ -39,7 +39,7 @@ test.describe('pages de lecture KOHOP', () => {
   }) => {
     await page.goto('/fr/kohop');
     await expect(
-      page.getByRole('banner').getByRole('link', { name: 'KOHOP' }),
+      page.getByRole('banner').getByRole('link', { name: 'Revue KOHOP' }),
     ).toBeVisible();
     for (const name of [
       'La charte KOHOP',

@@ -60,11 +60,15 @@ test('bibliothèque : liste, facettes serveur et détail (F-32/F-34)', async ({
   await expect(page.getByText('@techreport{dt2026etat')).toBeVisible();
 });
 
-test('bibliothèque : accès via la nav « Analyses » + version EN (F-03/F-32)', async ({
+test('bibliothèque : accès via la nav « Bibliothèque » + version EN (F-03/F-32)', async ({
   page,
 }) => {
   await page.goto('/fr');
-  await page.getByRole('link', { name: 'Analyses', exact: true }).click();
+  // The header entry: the footer also links to the library.
+  await page
+    .getByRole('banner')
+    .getByRole('link', { name: 'Bibliothèque', exact: true })
+    .click();
   await expect(page).toHaveURL(/\/fr\/bibliotheque$/);
 
   // The old /analyses URL redirects to the library

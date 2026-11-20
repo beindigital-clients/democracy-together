@@ -59,10 +59,10 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   const author = await as(browser, 'kohopAuteur');
   await author.goto('/fr/espace-membre/kohop');
   await author.getByRole('button', { name: 'Commencer un brouillon' }).click();
-  await author.getByLabel('Texte de la contribution').waitFor();
+  await author.getByLabel('Texte du manuscrit').waitFor();
 
   await author
-    .getByLabel('Texte de la contribution')
+    .getByLabel('Texte du manuscrit')
     .fill(`## Introduction\n\n${words(280)}\n\n${words(280)}`);
   await author.getByLabel('Titre', { exact: true }).fill(title);
   await author
@@ -79,7 +79,7 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
 
   // The checklist says what is still missing, and the button is disabled.
   await expect(
-    author.getByRole('button', { name: 'Déposer ma contribution' }),
+    author.getByRole('button', { name: 'Soumettre mon manuscrit' }),
   ).toBeDisabled();
 
   // Suggestions: a shortlist (possibly empty here), and the way back to search.
@@ -111,7 +111,7 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   for (let i = 0; i < (await boxes.count()); i++) await boxes.nth(i).click();
 
   const submit = author.getByRole('button', {
-    name: 'Déposer ma contribution',
+    name: 'Soumettre mon manuscrit',
   });
   await expect(submit).toBeEnabled();
   await submit.click();
@@ -198,7 +198,7 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
 
   await attendreAucuneViolationGrave(author, 'révision KOHOP');
   await author
-    .getByLabel('Texte de la contribution')
+    .getByLabel('Texte du manuscrit')
     .fill(
       `## Introduction\n\n${words(280)}\n\n${words(290)} précision ajoutée après la relecture`,
     );
@@ -229,26 +229,24 @@ test('de l’auteur au chef de revue : dépôt, validation des relecteurs, lance
   // — acceptance waits for the chief's explicit, audited acknowledgement.
   await expect(chief.getByText('Sur la plateforme')).toBeVisible();
   await expect(
-    chief.getByRole('button', { name: 'Accepter la contribution' }),
+    chief.getByRole('button', { name: 'Accepter le manuscrit' }),
   ).toBeDisabled();
   await chief
     .getByRole('button', { name: 'Je poursuis sans contrôle externe' })
     .click();
-  await chief.getByRole('button', { name: 'Accepter la contribution' }).click();
+  await chief.getByRole('button', { name: 'Accepter le manuscrit' }).click();
   await chief.getByRole('button', { name: 'Accepter', exact: true }).click();
   await expect(chief.getByText('En préparation').first()).toBeVisible();
 
   await author.reload();
-  await expect(
-    author.getByText('Votre contribution est acceptée'),
-  ).toBeVisible();
+  await expect(author.getByText('Votre manuscrit est accepté')).toBeVisible();
 
   // --- Production: copy-editing, proof, approval -----------------------------
   await chief.reload();
   await expect(
     chief.getByRole('heading', { name: 'Préparation et parution' }),
   ).toBeVisible();
-  const text = chief.getByLabel('Texte de la contribution');
+  const text = chief.getByLabel('Texte du manuscrit');
   await text.fill(
     `${await text.inputValue()}\n\nPhrase ajoutée à la relecture.`,
   );

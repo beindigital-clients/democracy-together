@@ -8,16 +8,16 @@ test('nav : la page courante est marquée active', async ({ page }) => {
 
   await page.goto('/fr/bibliotheque');
   await expect(
-    banner.getByRole('link', { name: 'Analyses', exact: true }),
+    banner.getByRole('link', { name: 'Bibliothèque', exact: true }),
   ).toHaveAttribute('aria-current', 'page');
   // another entry is not marked active
   await expect(
     banner.getByRole('link', { name: 'À propos', exact: true }),
   ).not.toHaveAttribute('aria-current', 'page');
 
-  // subpage: /bibliotheque/<slug> keeps "Analyses" active
+  // subpage: /bibliotheque/<slug> keeps "Bibliothèque" active
   await page.goto('/fr/bibliotheque/etat-democratie-afrique-europe');
   await expect(
-    banner.getByRole('link', { name: 'Analyses', exact: true }),
+    banner.getByRole('link', { name: 'Bibliothèque', exact: true }),
   ).toHaveAttribute('aria-current', 'page');
 });

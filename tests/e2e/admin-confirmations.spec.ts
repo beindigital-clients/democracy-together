@@ -205,7 +205,7 @@ test('rejeter une publication : confirmation nommant le titre, annulation sans e
     .fill(
       'Un dépôt de test destiné à être rejeté depuis la file de modération.',
     );
-  await page.getByRole('button', { name: 'Soumettre pour relecture' }).click();
+  await page.getByRole('button', { name: 'Envoyer pour validation' }).click();
   await expect(
     page.getByRole('heading', { name: 'Soumission reçue' }),
   ).toBeVisible();

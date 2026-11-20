@@ -131,6 +131,17 @@ export default function AdminKohop() {
     <div>
       <h1 className="font-display text-3xl">{t('chiefTitle')}</h1>
       <p className="mt-2 max-w-[68ch] text-ink-soft">{t('chiefLead')}</p>
+      {/* A library PDF never enters this queue: say where it goes instead of
+          leaving the chief in front of an empty list. */}
+      <p className="mt-2 max-w-[68ch] text-sm text-muted">
+        {t('chiefLibraryNote')}{' '}
+        <Link
+          href="/admin/publications"
+          className="text-ink underline underline-offset-2"
+        >
+          {t('chiefLibraryLink')}
+        </Link>
+      </p>
 
       <ToggleGroup
         type="single"

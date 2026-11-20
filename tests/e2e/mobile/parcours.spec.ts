@@ -41,7 +41,7 @@ test('mobile : accueil -> menu -> bibliothèque -> facettes repliées -> détail
 
   await page
     .locator('#mobile-nav')
-    .getByRole('link', { name: 'Analyses', exact: true })
+    .getByRole('link', { name: 'Bibliothèque', exact: true })
     .tap();
   await expect(page).toHaveURL(/\/fr\/bibliotheque$/);
   // the panel closes after navigation

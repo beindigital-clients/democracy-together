@@ -274,7 +274,7 @@ export function PublicationSubmitForm() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/espace-membre">{t('submit.successCta')}</Link>
+            <Link href="/espace-membre/textes">{t('submit.successCta')}</Link>
           </Button>
           <Button variant="outline" onClick={reset} type="button">
             {t('submit.submitAnother')}

@@ -74,12 +74,14 @@ describe('Navigation latérale', () => {
       .filter((a) => a.getAttribute('aria-current') === 'page');
     expect(current).toHaveLength(1);
     // The submission form belongs to "Mes publications".
-    expect(current[0].textContent).toBe('Mes publications');
+    expect(current[0].textContent).toBe('Bibliothèque : mes documents');
   });
 
   it('les entrées suivent le rôle : visiteur, membre, administrateur', () => {
     mount(<MemberNav role="visiteur" pathname="/espace-membre" />);
-    expect(screen.queryByRole('link', { name: 'Mes publications' })).toBeNull();
+    expect(
+      screen.queryByRole('link', { name: 'Bibliothèque : mes documents' }),
+    ).toBeNull();
     expect(screen.queryByRole('link', { name: 'Administration' })).toBeNull();
     cleanup();
 
@@ -87,12 +89,16 @@ describe('Navigation latérale', () => {
     expect(
       screen.getByRole('link', { name: 'Administration' }).getAttribute('href'),
     ).toBe('/fr/admin');
-    expect(screen.getByRole('link', { name: 'Mes publications' })).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Bibliothèque : mes documents' }),
+    ).toBeTruthy();
   });
 
   it('les groupes sont titrés, et leurs listes rattachées à leur titre', () => {
     mount(<MemberNav role="membre" pathname="/espace-membre" />);
-    expect(screen.getByRole('list', { name: 'Contributions' })).toBeTruthy();
+    expect(
+      screen.getByRole('list', { name: 'Publier et relire' }),
+    ).toBeTruthy();
     expect(screen.getByRole('list', { name: 'Compte' })).toBeTruthy();
   });
 
@@ -375,7 +381,7 @@ describe('Mes publications (bloc)', () => {
     mount(<RecentPublicationsView items={[]} />);
     expect(
       screen
-        .getByRole('link', { name: 'Déposer ma première publication' })
+        .getByRole('link', { name: 'Déposer mon premier document' })
         .getAttribute('href'),
     ).toBe('/fr/espace-membre/deposer');
   });
@@ -388,7 +394,9 @@ describe('Mes publications (bloc)', () => {
       ...Array.from({ length: 4 }, (_, i) => pub(i + 4, 'published')),
     ];
     mount(<RecentPublicationsView items={items} />);
-    const table = screen.getByRole('table', { name: 'Mes publications' });
+    const table = screen.getByRole('table', {
+      name: 'Bibliothèque : mes documents',
+    });
     // Header row + the latest five.
     expect(within(table).getAllByRole('row')).toHaveLength(
       RECENT_PUBLICATIONS + 1,
@@ -396,7 +404,7 @@ describe('Mes publications (bloc)', () => {
     const pending = within(table)
       .getAllByRole('row')
       .find((r) => r.textContent?.includes('Publication 1'))!;
-    expect(within(pending).getByText('En revue')).toBeTruthy();
+    expect(within(pending).getByText('En vérification')).toBeTruthy();
     expect(within(pending).queryByRole('link', { name: 'Ouvrir' })).toBeNull();
     const published = within(table)
       .getAllByRole('row')
@@ -409,7 +417,7 @@ describe('Mes publications (bloc)', () => {
     // The editorial note of a publication to revise is shown to its author.
     expect(screen.getByText('Préciser la méthode.')).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: /Voir mes 7 publications/ }),
+      screen.getByRole('link', { name: /Voir mes 7 documents/ }),
     ).toBeTruthy();
   });
 });

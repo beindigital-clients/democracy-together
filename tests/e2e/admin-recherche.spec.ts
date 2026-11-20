@@ -229,7 +229,7 @@ test.describe('recherche des listes (session dédiée)', () => {
     // This queue depends on the seeds (`seedPublications`, see TESTING.md): we
     // therefore do not assume a specific row, we check the PROPERTY — everything that
     // remains displayed matches the term, and an absent term says so.
-    await openScreen(page, '/fr/admin/publications', 'Publications');
+    await openScreen(page, '/fr/admin/publications', 'Bibliothèque');
     // The title appears before the queue's first page: clicking at that
     // moment means aiming at a button the next render replaces ("element
     // was detached from the DOM"). So we wait for the queue to have settled —
@@ -245,7 +245,7 @@ test.describe('recherche des listes (session dédiée)', () => {
     await page.getByRole('radio', { name: 'Toutes' }).click();
     await expect(settled).toBeVisible();
 
-    await search(page, 'Rechercher une publication', 'zzz-aucun-titre');
+    await search(page, 'Rechercher un document', 'zzz-aucun-titre');
     await expect(
       page.getByText('Aucun résultat pour cette recherche.'),
     ).toBeVisible();
@@ -261,7 +261,7 @@ test.describe('recherche des listes (session dédiée)', () => {
       .find((w) => w.length >= 5);
     test.skip(!word, 'aucun mot assez long dans le premier titre');
 
-    await search(page, 'Rechercher une publication', word!);
+    await search(page, 'Rechercher un document', word!);
     await onlyRowsMatching(
       queue.getByRole('heading'),
       new RegExp(word!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
