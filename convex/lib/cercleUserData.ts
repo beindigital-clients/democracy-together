@@ -1,6 +1,7 @@
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import type { UserDataModule } from './accountDeletion';
+import { deleteContributionTranslations } from './cercleTranslation';
 
 // CERCLE DES AMIS — what the account deletion and the "mes données" export
 // cover. The Cercle keeps data by ADDRESS (a request made before any account
@@ -63,12 +64,16 @@ export const cercleUserDataModule: UserDataModule = {
       if (contact) await ctx.db.delete(contact._id);
     }
     // Their private contributions: deleted with the account (they are the
-    // person's own words, and nothing else refers to them).
+    // person's own words, and nothing else refers to them), and their
+    // translations with them.
     const mine = await ctx.db
       .query('cercleContributions')
       .withIndex('by_author', (q) => q.eq('authorUserId', userId))
       .take(BATCH);
-    for (const c of mine) await ctx.db.delete(c._id);
+    for (const c of mine) {
+      await deleteContributionTranslations(ctx, c._id);
+      await ctx.db.delete(c._id);
+    }
     full ||= mine.length === BATCH;
     return !full;
   },

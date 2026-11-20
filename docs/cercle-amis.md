@@ -119,6 +119,19 @@ navigation, offered to Amis and to members and above), module
   (`cercle.contribution_removed`).
 - Account deletion deletes the account's contributions; the "mes données"
   export returns them.
+- Translation on demand (module `convex/cercleTranslations.ts`, table
+  `cercleTranslations`): under each contribution a reader of the Cercle presses
+  "Traduire en …" and reads it in their own language; the result is cached for
+  the next readers of that language. A contribution stores no language, so the
+  model names it ("Traduit automatiquement depuis le français"); a text already
+  in the reader's language is shown as it is, with a line saying so. The model
+  call always sets the gateway's **zero data retention**: the request goes only
+  to providers bound by a zero-retention agreement (no copy kept, no logging,
+  no training), and fails rather than falls back to another one. Same access
+  rule as the contribution, 30 calls per account and per hour, and the
+  translations are deleted with the contribution (removal, account deletion).
+  A separate table from the public `contentTranslations`, so no public query
+  can reach one.
 
 Tests: `convex/cercle-contributions.test.ts`, the access matrix
 (`CERCLE_PROBES` in `convex/cercle-access.test.ts`), the navigation rules
@@ -135,7 +148,8 @@ site. Audit of each path, and what now pins it:
 | Search | `SEARCH_SOURCES` is a closed list (publications, organizations, tribune, kohop, experts); no Cercle table has a search or vector index or a `search*` field | `convex/cercle-leaks.test.ts` (schema inspection + `globalSearch` / `searchBySource`) and `tests/unit/cercle-leaks.test.ts` (search modules never mention the Cercle) |
 | Sitemap, robots | The sitemap lists the public `/cercle` page only; the private space is under `/espace-membre`, disallowed by robots.txt and behind sign-in at the HTTP level | `tests/unit/cercle-leaks.test.ts`, e2e `tests/e2e/cercle-fuites.spec.ts` (real `/sitemap.xml`, `/robots.txt`, anonymous redirect) |
 | Convex HTTP and Next routes | The only Cercle HTTP route is the anonymous CV upload (POST + CORS preflight), which answers with an id and never reads a table; no `route.ts` mentions the Cercle; no server-side `fetchQuery` of a Cercle function exists | `tests/unit/cercle-leaks.test.ts`, e2e (GET on the endpoint → 404/405) |
-| Automatic translation | `translationSourceType` is a closed union (tribune post, publication): a Cercle source is refused by the validator, and the translation modules never mention the Cercle | `convex/cercle-leaks.test.ts`, `tests/unit/cercle-leaks.test.ts` |
+| Automatic translation (public engine) | `translationSourceType` is a closed union (tribune post, publication): a Cercle source is refused by the validator, and the translation modules never mention the Cercle | `convex/cercle-leaks.test.ts`, `tests/unit/cercle-leaks.test.ts` |
+| Automatic translation (Cercle) | The Cercle has its own engine (`convex/cercleTranslations.ts`): readers of the Cercle only, every model call under zero data retention, its own table, never `contentTranslations`, never the AI moderation, deleted with the contribution | `convex/cercle-translation.test.ts`, `tests/unit/cercle-leaks.test.ts` (zero retention on every call, allow-lists) |
 | Who can read a Cercle table at all | Only `cercle.ts`, `cercleContributions.ts` and the account-data adapter | `tests/unit/cercle-leaks.test.ts` fails if any other module names one (verified by a mutation: adding a read to `publications.ts` turns it red) |
 
 ### AI moderation — DECISION TO FLAG TO THE CLIENT
@@ -155,6 +169,17 @@ removal (moderators and above, audited). If the client wants contributions
 screened, the options are (a) a human review queue before display, (b) the AI
 moderation, which requires an explicit decision since it sends private text to
 a third party, to be stated in the notice shown at the request form.
+
+### Translation of private contributions — TO STATE IN THE NOTICE
+
+A translation sends the contribution's text to a model provider, through the
+AI Gateway, for the time of the call. The zero-data-retention setting means the
+provider keeps no copy and uses nothing for training, but the text does leave
+the platform. The space's introduction says so in the five languages
+(`cercle.spaceIntro`). **To confirm with the association's lawyer (GDPR):** the
+notice shown at the request form and the charter should name this processing
+(purpose: let members read each other; recipient: the translation provider
+under a zero-retention agreement; no retention by the provider).
 
 ### Residual risks, accepted and written down
 

@@ -42,6 +42,15 @@ const CERCLE_TABLE_READERS: Record<string, string[]> = {
   cercleContributions: [
     'convex/cercleContributions.ts',
     'convex/lib/cercleUserData.ts',
+    // On-demand translation for the Cercle's readers, zero data retention
+    // (docs § 4): reads a contribution, deletes its translations.
+    'convex/cercleTranslations.ts',
+    'convex/lib/cercleTranslation.ts',
+    TABLE_DEFINITIONS,
+  ],
+  cercleTranslations: [
+    'convex/cercleTranslations.ts',
+    'convex/lib/cercleTranslation.ts',
     TABLE_DEFINITIONS,
   ],
   cercleRequests: [
@@ -169,6 +178,24 @@ describe('Cercle leaks — publication, search, translation, AI moderation', () 
         /internal\.(aiModeration|communityModeration)/,
       );
     }
+  });
+
+  it('the Cercle’s translation calls the model only under zero data retention, never the moderation', () => {
+    const source = read('convex/cercleTranslations.ts');
+    const calls = source.split('runStructured(').slice(1);
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      // Each call's options object, up to its closing `});`.
+      expect(call.slice(0, call.indexOf('});'))).toMatch(
+        /zeroDataRetention:\s*true/,
+      );
+    }
+    expect(source).not.toMatch(
+      /from\s+['"][^'"]*(aiModeration|communityModeration)/,
+    );
+    expect(source).not.toMatch(/internal\.(aiModeration|communityModeration)/);
+    expect(source).not.toMatch(/ctx\.scheduler\./);
+    expect(source).not.toMatch(/contentTranslations/);
   });
 
   it('a private contribution and the CV endpoint schedule nothing and call no network', () => {

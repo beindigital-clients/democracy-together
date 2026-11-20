@@ -51,6 +51,15 @@ export type GatewayRequest = {
   schemaName: string;
   schema: unknown;
   maxOutputTokens: number;
+  /**
+   * Zero data retention. When set, the gateway routes the request ONLY to
+   * providers bound by a zero-retention agreement: the text is processed, then
+   * neither stored, logged nor used for training by the provider. A model with
+   * no such provider makes the call FAIL rather than fall back to one that
+   * keeps data: the fail-closed rule of this file. Callers that handle private
+   * text set it on every call.
+   */
+  zeroDataRetention?: boolean;
 };
 
 export type GatewayUsage = {
@@ -161,6 +170,11 @@ export async function runStructured(
         instructions: req.instructions,
         input: [{ type: 'message', role: 'user', content }],
         max_output_tokens: req.maxOutputTokens,
+        // Gateway extension field (Vercel AI Gateway, security-and-compliance/
+        // zdr), sent only when asked for: the other callers keep their body.
+        ...(req.zeroDataRetention
+          ? { providerOptions: { gateway: { zeroDataRetention: true } } }
+          : {}),
         text: {
           format: {
             type: 'json_schema',
