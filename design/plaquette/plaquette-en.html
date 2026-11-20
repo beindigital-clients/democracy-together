@@ -61,7 +61,7 @@
 .sheet .page { page: auto; break-after: auto; }
 /* A5 only: the reading text is relatively larger, so give it a little room. */
 [data-format='a5'] .trait { padding: calc(4 * var(--mm)) 0; }
-[data-format='a5'] .monogram { width: calc(25 * var(--mm)); height: calc(25 * var(--mm)); margin-bottom: calc(4 * var(--mm)); }
+[data-format='a5'] .monogram { width: calc(18 * var(--mm)); height: calc(18 * var(--mm)); margin-bottom: calc(3 * var(--mm)); }
 
 @page a4 { size: A4; margin: 0; }
 @page a5 { size: A5; margin: 0; }
@@ -358,7 +358,7 @@ ul.facts .ico { width: calc(7 * var(--mm)); height: calc(7 * var(--mm)); color: 
 
 /* ===================================================== 7 FOUNDERS */
 .founders { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--mm)); }
-.monogram { position: relative; width: calc(30 * var(--mm)); height: calc(30 * var(--mm)); margin-bottom: calc(5 * var(--mm)); }
+.monogram { position: relative; width: calc(18 * var(--mm)); height: calc(18 * var(--mm)); margin-bottom: calc(3.4 * var(--mm)); }
 .monogram .ring { width: 100%; height: 100%; color: var(--indigo); }
 .monogram span {
   position: absolute;
@@ -371,9 +371,10 @@ ul.facts .ico { width: calc(7 * var(--mm)); height: calc(7 * var(--mm)); color: 
   letter-spacing: .02em;
   color: var(--indigo);
 }
-.founders h3 { font-size: calc(16 * var(--dpt)); margin-bottom: calc(2 * var(--mm)); }
+.founders h3 { font-size: calc(16 * var(--dpt)); margin-bottom: calc(.6 * var(--mm)); }
+.founders .role { font-family: var(--serif); font-style: italic; font-size: calc(11 * var(--pt)); line-height: 1.2; color: var(--orange-ink); margin-bottom: calc(1.8 * var(--mm)); }
 .founders p { font-size: calc(10 * var(--pt)); line-height: 1.46; hyphens: manual; }
-.sg { margin-top: calc(6 * var(--mm)); font-size: calc(10 * var(--pt)); color: var(--soft); }
+.sg { margin-top: calc(2.6 * var(--mm)); font-size: calc(10 * var(--pt)); color: var(--soft); }
 ol.timeline {
   list-style: none;
   display: grid;
@@ -406,7 +407,15 @@ ol.timeline li::before {
 ol.timeline li.done::before { background: var(--indigo); }
 ol.timeline li.next::before { background: var(--orange); border-color: var(--orange); }
 ol.timeline strong { display: block; font-family: var(--serif); font-size: calc(13 * var(--dpt)); font-weight: 500; margin-bottom: calc(.8 * var(--mm)); }
-.p7 .money { font-size: calc(10.4 * var(--pt)); margin-top: calc(3 * var(--mm)); max-width: calc(160 * var(--mm)); }
+.p7 .money { font-size: calc(10 * var(--pt)); margin-top: 0; max-width: calc(160 * var(--mm)); }
+.p7 .zone > h3 { font-size: calc(15 * var(--dpt)); margin-bottom: calc(3 * var(--mm)); }
+ul.board { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); column-gap: calc(4 * var(--mm)); padding-top: calc(2.4 * var(--mm)); border-top: calc(.25 * var(--mm)) solid var(--line); font-family: var(--serif); font-size: calc(13.5 * var(--dpt)); line-height: 1.2; color: var(--ink); }
+ul.backers { list-style: none; display: grid; grid-template-columns: 1fr 1fr; column-gap: calc(10 * var(--mm)); row-gap: calc(3 * var(--mm)); }
+ul.backers li { padding-top: calc(2.2 * var(--mm)); border-top: calc(.25 * var(--mm)) solid var(--line); }
+ul.backers strong { display: block; font-family: var(--serif); font-size: calc(14.5 * var(--dpt)); font-weight: 500; line-height: 1.2; margin-bottom: calc(.6 * var(--mm)); }
+ul.backers span { font-size: calc(9.8 * var(--pt)); line-height: 1.4; color: var(--soft); hyphens: manual; }
+[data-format='a5'] .p7 .founders p { font-size: calc(9.4 * var(--pt)); }
+[data-format='a5'] ul.backers span { font-size: calc(9.2 * var(--pt)); }
 
 /* ==================================================== 8 JOIN */
 .p8 { background: var(--paper); color: var(--ink); }
@@ -468,7 +477,7 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
 <section class="page cover dark">
   <img class="logo" src="../../public/brand/democracy-together-logo-dark.png" alt="Democracy Together">
   <h1>Democracy needs a network</h1>
-  <p class="sub">Democracy Together is a multinational initiative: a worldwide network of think tanks, open to young people, attentive to Africa and Europe.</p>
+  <p class="sub">Democracy Together is a multinational initiative: a worldwide network of think tanks, open to young people, attentive to Africa, Latin America and Europe.</p>
   <div class="emblem" aria-hidden="true">
     <svg class="ring"><use href="#anneau" width="100%" height="100%"/></svg>
     <img class="globe" src="globe-couverture.svg" alt="">
@@ -640,30 +649,48 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
 
 <!-- ============================================================ 7 -->
 <section class="page p7 odd">
-  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(22 * var(--mm))">
+  <div class="zone" data-zone="titre" style="top:calc(18 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(15 * var(--mm))">
     <h2>Who’s behind the project</h2>
   </div>
-  <div class="zone" data-zone="fondateurs" style="top:calc(54 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(112 * var(--mm))">
+  <div class="zone" data-zone="fondateurs" style="top:calc(36 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(84 * var(--mm))">
     <div class="founders">
       <article>
         <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>AS</span></div>
         <h3>Abdou Samb</h3>
-        <p>Senegalese engineer and mathematician, chairman of FRS Consulting in Paris, advisor to the European Commission on digital transformation. Named “African of the Year 2025” at the Mission Africa Awards.</p>
+        <p class="role">Chairman</p>
+        <p>Senegalese engineer and mathematician, chairman of FRS Consulting, advisor to the European Commission on digital transformation. “African of the Year 2025” at the Mission Africa Awards.</p>
       </article>
       <article>
         <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>PK</span></div>
         <h3>Philippe Kourilsky</h3>
-        <p>French biologist, honorary professor at the Collège de France, former director of the Institut Pasteur, member of the French Academy of Sciences. Author of more than 350 scientific publications and about ten books, several of them on democracy.</p>
+        <p class="role">Co-founder and vice-chairman</p>
+        <p>Biologist, honorary professor at the Collège de France, former director of the Institut Pasteur, member of the French Academy of Sciences. Author of more than 350 publications and about ten books, several of them on democracy.</p>
       </article>
       <article>
         <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>PV</span></div>
         <h3>Pierre Vimont</h3>
-        <p>French diplomat, former French Ambassador to the United States, former Executive Secretary-General of the European External Action Service (EEAS), senior fellow at the Carnegie Endowment for International Peace.</p>
+        <p class="role">Co-founder and vice-chairman</p>
+        <p>Diplomat, former French Ambassador to the United States, former Executive Secretary-General of the European External Action Service (EEAS), senior fellow at the Carnegie Endowment for International Peace.</p>
       </article>
     </div>
+  </div>
+  <div class="zone" data-zone="conseil" style="top:calc(123 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(27 * var(--mm))">
+    <h3>Alongside them on the board of directors</h3>
+    <ul class="board">
+      <li>Michèle Boccoz</li><li>Bruno Fuchs</li><li>Jennifer Heurley</li><li>Michel Morvan</li>
+    </ul>
     <p class="sg">Secretary-General of the association: <strong>Armelle Chapalain</strong></p>
   </div>
-  <div class="zone" data-zone="avancement" style="top:calc(178 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(58 * var(--mm))">
+  <div class="zone" data-zone="soutiens" style="top:calc(153 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(56 * var(--mm))">
+    <h3>Among the public figures who support us</h3>
+    <ul class="backers">
+      <li><strong>Philippe Aghion</strong><span>Nobel Prize in Economics</span></li>
+      <li><strong>Françoise Barré-Sinoussi</strong><span>Nobel Prize in Physiology or Medicine</span></li>
+      <li><strong>Pierre Corvol</strong><span>Honorary Administrator of the Collège de France, Honorary President of the Institut de France</span></li>
+      <li><strong>Carlo Ossola</strong><span>Professor Emeritus at the Collège de France, President of the Institute of the Italian Encyclopedia</span></li>
+    </ul>
+  </div>
+  <div class="zone" data-zone="avancement" style="top:calc(212 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(48 * var(--mm))">
     <h3>Where do we stand?</h3>
     <ol class="timeline">
       <li class="done"><strong>Non-profit association</strong>Based in Paris</li>
@@ -673,9 +700,8 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
       <li><strong>Regional hubs</strong>In Africa and Europe, coming soon</li>
     </ol>
   </div>
-  <div class="zone" data-zone="financement" style="top:calc(242 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(38 * var(--mm))">
-    <h3>Funding</h3>
-    <p class="money">Member dues, donations, grants from institutions such as the European Union, and selected partnerships with companies committed to corporate social responsibility. A fund dedicated to collaborative projects will be created, and the association will adopt performance indicators.</p>
+  <div class="zone" data-zone="financement" style="top:calc(263 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(13 * var(--mm))">
+    <p class="money"><strong>Funding.</strong> Member dues, donations, grants from institutions such as the European Union, and partnerships with companies committed to corporate social responsibility.</p>
   </div>
   <p class="folio">07</p>
 </section>
