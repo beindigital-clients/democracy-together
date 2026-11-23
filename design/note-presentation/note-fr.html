@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Democracy Together · Note de présentation</title>
+<!-- Presentation note, 4 A4 pages. Rebuilt from
+     "democracy-together-presentation-fr.pdf" (October 2026 version; no source
+     file was kept), with Philippe Kourilsky's changes of 22-23/11/2026. Build
+     the PDF with `node design/note-presentation/build.mjs` (see README.md): it
+     also writes carte-monde.svg and visuels.js. The logo rays come from
+     ../plaquette/visuels.js. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+:root {
+  --page: #fff;
+  --paper: #f4f2ec;
+  --ink: #16191f;
+  --body: #30343c;
+  --soft: #454953;
+  --muted: #646771;
+  --line: #d9d6cd;
+  --indigo: #1f3d6e;
+  --deep: #16305a;
+  --orange: #f58b1a;
+  --orange-ink: #8a4a08;
+  --on-dark: rgba(244, 242, 236, .84);
+  --serif: 'Newsreader', Georgia, serif;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --mx: 17mm;
+}
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #fff; }
+body {
+  font-family: var(--sans);
+  font-size: 9.6pt;
+  line-height: 1.5;
+  color: var(--body);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  font-kerning: normal;
+}
+@media screen {
+  html, body { background: #cfccc3; }
+  body { padding: 10mm 0; }
+  .page { margin: 0 auto 10mm; box-shadow: 0 2px 12px rgba(22, 25, 31, .18); }
+}
+.page { position: relative; width: 210mm; height: 297mm; overflow: hidden; background: var(--page); break-after: page; }
+.page:last-child { break-after: auto; }
+.flow { position: relative; padding: 0 var(--mx); }
+p { text-wrap: pretty; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; color: var(--ink); text-wrap: balance; }
+strong { font-weight: 600; color: var(--ink); }
+svg { display: block; overflow: visible; }
+svg.anneau, svg.erosion, svg.deco { fill: currentColor; }
+
+/* Running header of the inner pages. */
+.entete { display: flex; justify-content: space-between; align-items: flex-start; padding: 10mm var(--mx) 0; }
+.marque .dt { font-family: var(--serif); font-size: 15pt; font-weight: 600; line-height: 1; color: var(--indigo); }
+.marque .dt b { color: var(--orange); font-weight: 600; }
+.marque .nom { font-family: var(--serif); font-size: 5.4pt; letter-spacing: .22em; color: var(--indigo); margin-top: 1mm; }
+.entete .doc { font-family: var(--mono); font-size: 6.8pt; letter-spacing: .18em; color: var(--muted); padding-top: 1mm; }
+.folio { position: absolute; bottom: 9mm; font-family: var(--mono); font-size: 7.5pt; color: var(--muted); }
+.folio.g { left: var(--mx); }
+.folio.d { right: var(--mx); }
+
+/* Section labels: "01  POURQUOI DEMOCRACY TOGETHER" with a rule. */
+.label { display: flex; align-items: center; gap: 3mm; font-family: var(--mono); font-size: 7pt; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--orange-ink); }
+.label .n { color: var(--indigo); }
+.label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.label.court::after { display: none; }
+.sombre .label { color: var(--orange); }
+.sombre .label .n { color: var(--paper); }
+.sombre .label::after { background: rgba(244, 242, 236, .25); }
+
+.chapo { font-family: var(--serif); font-size: 13.5pt; line-height: 1.38; color: var(--ink); }
+.citation { border-left: 2.5px solid var(--orange); padding-left: 4mm; font-family: var(--serif); font-style: italic; font-size: 13pt; line-height: 1.35; color: var(--indigo); }
+
+/* ------------------------------------------------------------ 1 COVER */
+.couv { background: var(--deep); color: var(--paper); }
+.couv .flow { padding-top: 32mm; }
+.couv .sigle { font-family: var(--serif); font-weight: 500; font-size: 118pt; line-height: .9; letter-spacing: -.02em; color: var(--paper); }
+.couv .sigle b { color: var(--orange); font-weight: 500; }
+.couv .trait { width: 28mm; height: 2px; background: var(--orange); margin: 12mm 0 5mm; }
+.couv .nom { font-family: var(--serif); font-size: 15pt; letter-spacing: .3em; color: var(--paper); }
+.couv .devise { font-family: var(--serif); font-style: italic; font-size: 12.5pt; color: var(--orange); margin-top: 6mm; }
+.couv .filet { width: 72mm; height: 1px; background: rgba(244, 242, 236, .3); margin: 9mm 0 6mm; }
+.couv .doc { font-family: var(--serif); font-size: 16pt; color: var(--paper); }
+.couv .anneau { position: absolute; right: -40mm; bottom: -42mm; width: 205mm; height: 205mm; color: #2c4f86; --ray-accent: #f58b1a; }
+.couv .globe { position: absolute; right: 4mm; bottom: 2mm; width: 92mm; height: 92mm; }
+
+/* ------------------------------------------------------------ 2 CRISE */
+.p2 .flow { padding-top: 9mm; }
+.p2 h2 { font-size: 25pt; line-height: 1.1; margin: 5mm 0 8mm; }
+.p2 .deux { display: grid; grid-template-columns: 70mm 1fr; gap: 9mm; }
+.p2 .deux p.texte { margin-top: 5mm; font-size: 9pt; color: var(--soft); }
+.p2 .erosion { position: absolute; right: var(--mx); top: 25mm; width: 19mm; height: 19mm; color: var(--indigo); }
+.bande { background: var(--deep); color: var(--on-dark); margin: 11mm 0 0; padding: 10mm var(--mx) 11mm; display: grid; grid-template-columns: 76mm 1fr; gap: 9mm; }
+.bande .affirm { font-family: var(--serif); font-size: 14.5pt; line-height: 1.32; color: var(--paper); margin-top: 4mm; }
+.bande .trait { width: 9mm; height: 2px; background: var(--orange); margin: 6mm 0 4mm; }
+.bande p.petit { font-size: 8.6pt; }
+.bande .carte { width: 100%; margin-top: 0; }
+.bande .legende { font-size: 8.4pt; margin-top: 3mm; }
+.pastille { display: inline-block; width: 2.2mm; height: 2.2mm; border-radius: 50%; vertical-align: -.1mm; margin: 0 .6mm; }
+.pastille.actif { background: #f4f2ec; }
+.pastille.deploie { background: rgba(244, 242, 236, .55); }
+.pastille.bientot { border: 1.2px solid #c0814a; }
+.p2 .bas { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 14mm; }
+.p2 .bas > div { border-top: 2px solid var(--indigo); padding-top: 4mm; }
+.mini { font-family: var(--mono); font-size: 6.8pt; letter-spacing: .14em; color: var(--orange-ink); font-weight: 500; margin-bottom: 3mm; }
+.vision { font-family: var(--serif); font-style: italic; font-size: 12pt; line-height: 1.38; color: var(--ink); }
+ol.missions { list-style: none; }
+ol.missions li { display: grid; grid-template-columns: 7mm 1fr; padding: 1.3mm 0; border-bottom: 1px solid var(--line); font-size: 8.6pt; }
+ol.missions li:last-child { border-bottom: 0; }
+ol.missions .n { font-family: var(--serif); font-size: 13pt; line-height: 1; color: var(--orange-ink); }
+
+/* ------------------------------------------------------------ 3 KOHOP */
+.p3 .flow { padding-top: 9mm; }
+.p3 .chapo { margin: 4mm 0 6mm; }
+.atouts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6mm; }
+.atouts .rond { width: 9mm; height: 9mm; border-radius: 50%; background: var(--indigo); color: #fff; display: grid; place-items: center; margin-bottom: 3mm; }
+.atouts .rond.o { background: var(--orange); }
+.atouts .rond svg { width: 4.6mm; height: 4.6mm; }
+.atouts p { font-size: 8.4pt; line-height: 1.42; }
+.encart { background: var(--deep); color: var(--on-dark); margin-top: 6mm; padding: 4.5mm 6mm 4.5mm 18mm; position: relative; font-size: 8.6pt; }
+.encart svg { position: absolute; left: 6mm; top: 4.5mm; width: 6mm; height: 6mm; color: var(--orange); }
+.encart p + p { margin-top: 2mm; }
+.p3 .deux { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 9mm; }
+.p3 .deux p { font-size: 8.8pt; margin-top: 2.5mm; }
+.p3 .label { margin-bottom: 4mm; }
+.p3 .encadre { border-left: 2.5px solid var(--orange); padding-left: 4mm; margin: 3.5mm 0; color: var(--soft); }
+.p3 .encadre p { margin-top: 0; }
+.ca { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6mm; row-gap: 1.5mm; margin-top: 3mm; }
+.ca .p { font-family: var(--serif); font-size: 11pt; line-height: 1.2; color: var(--ink); }
+.ca .r { display: block; font-family: var(--sans); font-size: 7.6pt; color: var(--muted); line-height: 1.3; margin-top: .5mm; }
+.p3 .sous { font-family: var(--mono); font-size: 6.8pt; letter-spacing: .14em; color: var(--orange-ink); font-weight: 500; margin-top: 5mm; padding-top: 2mm; border-top: 1px solid var(--line); }
+.ca.benevoles .r { margin: 0 0 .5mm; }
+.p3 .deux p.sous { font-size: 6.8pt; margin-top: 6mm; }
+.label.court { align-items: flex-start; }
+
+/* ------------------------------------------------------------ 4 CLOSING */
+.p4 { background: var(--deep); color: var(--on-dark); }
+.p4 .flow { padding-top: 16mm; }
+.p4 .deco { position: absolute; right: -60mm; top: -70mm; width: 170mm; height: 170mm; color: #fff; opacity: .07; --ray-accent: #fff; }
+.p4 .bloc + .bloc { margin-top: 11mm; }
+.p4 .label { margin-bottom: 3.5mm; }
+.p4 p { font-size: 8.8pt; }
+.honneur { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 6mm; row-gap: 3.5mm; margin-top: 4mm; }
+.honneur .p { font-family: var(--serif); font-size: 11.5pt; line-height: 1.2; color: var(--paper); }
+.honneur .r { display: block; font-family: var(--sans); font-size: 7.8pt; line-height: 1.35; color: var(--on-dark); margin-top: .8mm; }
+.p4 h3 { font-size: 16pt; line-height: 1.25; color: var(--paper); margin-bottom: 3mm; }
+.aides { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin: 4mm 0; }
+.aides div { display: grid; grid-template-columns: 9mm 1fr; align-items: start; border-top: 1px solid rgba(244, 242, 236, .25); padding-top: 3mm; font-size: 8.6pt; }
+.aides svg { width: 5mm; height: 5mm; color: var(--orange); }
+.p4 .parite { font-family: var(--serif); font-style: italic; font-size: 11pt; color: var(--paper); }
+.p4 .ambition { font-family: var(--serif); font-size: 17pt; line-height: 1.22; color: var(--paper); margin: 4mm 0 5mm; }
+.signataires { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid rgba(244, 242, 236, .25); padding-top: 3mm; }
+.signataires .noms { font-family: var(--serif); font-size: 11pt; color: var(--paper); font-weight: 500; }
+.signataires .q { font-size: 7.8pt; margin-top: 1mm; }
+.signataires .lieu { font-family: var(--mono); font-size: 7.5pt; color: var(--on-dark); }
+.contact { margin-top: 12mm; border-top: 2px solid var(--orange); padding-top: 4mm; position: relative; }
+.contact .lignes div { display: flex; align-items: center; gap: 3mm; font-family: var(--serif); color: var(--paper); margin-top: 1.5mm; }
+.contact .lignes div:first-child { font-size: 17pt; }
+.contact .lignes div:last-child { font-size: 12pt; }
+.contact svg { width: 4.6mm; height: 4.6mm; color: var(--orange); flex: none; }
+.contact .asso { font-size: 7.6pt; margin-top: 4mm; }
+.contact img { position: absolute; right: 0; bottom: 0; height: 12mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ 1 COUVERTURE -->
+<section class="page couv">
+  <svg class="anneau"><use href="#anneau"/></svg>
+  <img class="globe" src="../plaquette/globe-couverture.svg" alt="">
+  <div class="flow">
+    <div class="sigle">D<b>T</b></div>
+    <div class="trait"></div>
+    <div class="nom">DEMOCRACY TOGETHER</div>
+    <p class="devise">Together, let us make democracy great again.</p>
+    <div class="filet"></div>
+    <p class="doc">Note de présentation</p>
+  </div>
+</section>
+
+<!-- ============================================================ 2 CRISE ET INITIATIVE -->
+<section class="page p2">
+  <header class="entete">
+    <div class="marque"><div class="dt">D<b>T</b></div><div class="nom">DEMOCRACY TOGETHER</div></div>
+    <div class="doc">NOTE DE PRÉSENTATION</div>
+  </header>
+  <svg class="erosion"><use href="#anneau-erode"/></svg>
+  <div class="flow">
+    <div class="label"><span class="n">01</span> Pourquoi Democracy Together</div>
+    <h2>La démocratie libérale est en crise</h2>
+    <div class="deux">
+      <p class="chapo">Montée des populismes, érosion des institutions, interférences étrangères, inégalités et effets des crises globales sur la gouvernance : les symptômes sont nombreux, sur tous les continents.</p>
+      <div>
+        <p class="citation">Il nous faut aujourd’hui défendre la démocratie libérale, mais aussi préparer son évolution, sinon sa refondation.</p>
+        <p class="texte">De nombreux think tanks œuvrent déjà dans ce sens. Trop souvent, ils agissent de manière isolée. Leur impact s’en trouve limité. Nous sommes convaincus qu’il y a place pour une initiative mondiale capable de fédérer les acteurs et de porter une voix plus collective.</p>
+      </div>
+    </div>
+  </div>
+  <div class="bande sombre flow">
+    <div>
+      <div class="label court"><span class="n">02</span> Notre initiative</div>
+      <p class="affirm">Democracy Together (DT) est un réseau mondial de think tanks, ouvert à tous et singulièrement aux jeunes.</p>
+      <div class="trait"></div>
+      <p class="petit">Notre pari est de construire une intelligence démocratique collective pour répondre aux défis présents et à venir, partout dans le monde.</p>
+    </div>
+    <div>
+      <img class="carte" src="carte-monde.svg" alt="Carte du monde : Afrique et Europe, Amériques, Asie">
+      <p class="legende">Déjà présent et actif <span class="pastille actif"></span> en Afrique et en Europe, il commence à déployer ses activités <span class="pastille deploie"></span> en Amérique du Nord, en Amérique du Sud, et bientôt <span class="pastille bientot"></span> en Asie.</p>
+    </div>
+  </div>
+  <div class="flow">
+    <div class="bas">
+      <div>
+        <p class="mini">VISION</p>
+        <p class="vision">Devenir une référence mondiale pour l’avancement de la pensée démocratique libérale, en favorisant un écosystème inclusif où les idées innovantes contribuent à des sociétés plus résilientes et plus équitables.</p>
+      </div>
+      <div>
+        <p class="mini">NOS MISSIONS</p>
+        <ol class="missions">
+          <li><span class="n">1</span><span>Susciter des réflexions.</span></li>
+          <li><span class="n">2</span><span>Agréger ces réflexions, les diffuser et les faire discuter.</span></li>
+          <li><span class="n">3</span><span>Renforcer les capacités des think tanks dans le monde entier.</span></li>
+          <li><span class="n">4</span><span>Soutenir l’implication des jeunes.</span></li>
+          <li><span class="n">5</span><span>Croiser les regards scientifiques, diplomatiques et économiques, et promouvoir la diversité géographique, culturelle et de genre.</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <span class="folio g">02</span>
+</section>
+
+<!-- ============================================================ 3 KOHOP, CORRESPONDANTS, GOUVERNANCE -->
+<section class="page p3">
+  <header class="entete">
+    <div class="marque"><div class="dt">D<b>T</b></div><div class="nom">DEMOCRACY TOGETHER</div></div>
+    <div class="doc">NOTE DE PRÉSENTATION</div>
+  </header>
+  <div class="flow">
+    <div class="label"><span class="n">03</span> KOHOP, la plateforme du réseau</div>
+    <p class="chapo">Au cœur de Democracy Together se trouve KOHOP, notre plateforme déjà multilingue. C’est le lieu où se construit l’intelligence collective du réseau, par l’échange et le partage de contributions courtes de qualité contrôlée.</p>
+    <div class="atouts">
+      <div><div class="rond"><svg><use href="#ico-pen-line"/></svg></div><p><strong>Contributions courtes</strong> : 500 à 1 200 mots (format proche d’une tribune), avec liens possibles vers des textes plus développés.</p></div>
+      <div><div class="rond"><svg><use href="#ico-user-round-search"/></svg></div><p><strong>Évaluation par les pairs</strong> : l’auteur sollicite trois relecteurs, pour en obtenir au moins deux. Leurs noms et leurs analyses sont publiés avec le texte.</p></div>
+      <div><div class="rond"><svg><use href="#ico-badge-check"/></svg></div><p><strong>Rédaction en chef</strong> : le rédacteur en chef veille à l’indépendance des relecteurs et décide de la publication.</p></div>
+      <div><div class="rond o"><svg><use href="#ico-lock-open"/></svg></div><p><strong>Propriété et accès</strong> : les textes publiés appartiennent aux contributeurs. L’accès est gratuit et libre pour les lecteurs.</p></div>
+    </div>
+    <div class="encart">
+      <svg><use href="#ico-user-check"/></svg>
+      <p>Publier sur KOHOP suppose l’adhésion au réseau du contributeur et de ses relecteurs. Ce dispositif élargit rapidement le cercle des contributeurs.</p>
+      <p>KOHOP constitue notre premier agent de liaison à l’échelle mondiale. Il y aura d’autres modes de partage et de coopération, locales ou thématiques : création et animation de think tanks autour de contributeurs à KOHOP, partenariats, colloques, recherches, etc.</p>
+    </div>
+
+    <div class="deux">
+      <div>
+        <div class="label court"><span class="n">04</span> Correspondants locaux, territoriaux et thématiques</div>
+        <p>À travers les différentes régions du monde, Democracy Together s’implantera en s’appuyant sur des correspondants locaux et territoriaux. Ils auront pour mission d’animer les échanges, de recenser les initiatives et les acteurs pertinents, de remonter les informations et les expériences du terrain, et de contribuer directement par leurs écrits et leurs analyses à enrichir les travaux du réseau.</p>
+        <p>Des correspondants thématiques pourront faire de même sur des sujets transversaux (éducation, etc.).</p>
+        <div class="encadre"><p>Leur nombre n’est pas limité. Ce sont des personnalités d’un niveau reconnu, choisies pour leur légitimité intellectuelle, professionnelle ou civique incontestable.</p></div>
+        <p>Ils sont des membres importants de Democracy Together. Ils constituent le lien essentiel avec le terrain et permettent au réseau de rester ancré dans les réalités locales tout en alimentant une réflexion collective de portée mondiale. Un Collège des correspondants sera créé dès que leur nombre sera suffisant.</p>
+      </div>
+      <div>
+        <div class="label court"><span class="n">05</span> Gouvernance</div>
+        <p>À la date du 15 octobre 2026, le Conseil d’administration de Democracy Together est constitué de :</p>
+        <div class="ca">
+          <div class="p">Abdou Samb<span class="r">Président</span></div>
+          <div class="p">Philippe Kourilsky<span class="r">cofondateur et vice-président</span></div>
+          <div class="p">Pierre Vimont<span class="r">cofondateur</span></div>
+          <div class="p">Michèle Boccoz</div>
+          <div class="p">Malick Diawara</div>
+          <div class="p">Bruno Fuchs</div>
+          <div class="p">Jennifer Heurley</div>
+          <div class="p">Michel Morvan</div>
+          <div class="p">Marie-Laure Salles</div>
+          <div class="p">Phapano Phasha</div>
+          <div class="p">Armelle Chapalain<span class="r">secrétaire générale</span></div>
+        </div>
+        <p class="sous">RESPONSABLES FONCTIONNELS BÉNÉVOLES</p>
+        <div class="ca benevoles">
+          <div class="p"><span class="r">Coordinatrice générale :</span>Cindy Meuric</div>
+          <div class="p"><span class="r">Trésorier :</span>Armelle Chapalain</div>
+          <div class="p"><span class="r">Responsable informatique :</span>Mamadou Seck</div>
+          <div class="p"><span class="r">Rédacteur en chef de KOHOP :</span>David Ojcius</div>
+          <div class="p"><span class="r">Référent juridique :</span>Samuel Valcke</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="folio d">03</span>
+</section>
+
+<!-- ============================================================ 4 HONNEUR, AMIS, PERSPECTIVES -->
+<section class="page p4 sombre">
+  <svg class="deco"><use href="#anneau"/></svg>
+  <div class="flow">
+    <div class="bloc">
+      <div class="label"><span class="n">06</span> Comité d’honneur</div>
+      <p>Le Comité d’honneur de Democracy Together (en cours d’élargissement) réunit des personnalités de premier plan, profondément attachées aux valeurs de la démocratie libérale et désireuses d’associer leur nom et leur autorité morale au développement de cette initiative. Leur soutien constitue un appui précieux pour porter notre ambition collective au niveau international.</p>
+      <div class="honneur">
+        <div class="p">Philippe Aghion<span class="r">prix Nobel d’économie</span></div>
+        <div class="p">Françoise Barré-Sinoussi<span class="r">prix Nobel de médecine</span></div>
+        <div class="p">Pierre Corvol<span class="r">administrateur honoraire du Collège de France et président honoraire de l’Institut de France</span></div>
+        <div class="p">Harvey Fineberg<span class="r">Professor emeritus, Harvard University</span></div>
+        <div class="p">Antoine Petit<span class="r">PDG du CNRS (2018-2026)</span></div>
+      </div>
+    </div>
+
+    <div class="bloc">
+      <div class="label"><span class="n">07</span> Les Amis de Democracy Together</div>
+      <h3>Un cercle d’« Amis de Democracy Together »<br>se constitue au fil des rencontres.</h3>
+      <p>Il sera formalisé sous forme d’une liste de soutiens que nous tiendrons régulièrement informés. Ils pourront notamment, et en fonction des opportunités, nous aider à :</p>
+      <div class="aides">
+        <div><svg><use href="#ico-network"/></svg><span>Identifier des relais régionaux ou nationaux.</span></div>
+        <div><svg><use href="#ico-pen-line"/></svg><span>Identifier et solliciter des contributeurs pour KOHOP.</span></div>
+      </div>
+      <p class="parite">Et ce dans toutes les tranches d’âge, notamment parmi les jeunes, et dans le respect de la parité.</p>
+    </div>
+
+    <div class="bloc">
+      <div class="label"><span class="n">08</span> Perspectives</div>
+      <p>Democracy Together dispose déjà de points d’appui dans plusieurs pays en Afrique, Europe, Amérique du Nord et Amérique du Sud. Le réseau est ouvert aux collaborations avec les think tanks, chercheurs et acteurs engagés dans la défense et le renouvellement de la démocratie libérale, partout dans le monde.</p>
+      <p class="ambition">Nous aurons sous peu élaboré le démonstrateur<br>qui nous permettra de nous développer<br>et de lever les moyens nécessaires.</p>
+      <div class="signataires">
+        <div><div class="noms">Abdou Samb, Philippe Kourilsky, Pierre Vimont</div><div class="q">Fondateurs de Democracy Together</div></div>
+        <div class="lieu">Paris, octobre 2026</div>
+      </div>
+    </div>
+
+    <div class="contact">
+      <p class="mini" style="color:var(--orange)">ÉCRIVEZ-NOUS</p>
+      <div class="lignes">
+        <div><svg><use href="#ico-mail"/></svg>contact@democracy-together.org</div>
+        <div><svg><use href="#ico-globe"/></svg>democracy-together.org</div>
+      </div>
+      <p class="asso">Association loi 1901 · Siège à Paris</p>
+      <img src="../../public/brand/democracy-together-logo-dark.png" alt="Democracy Together">
+    </div>
+  </div>
+</section>
+
+<script src="../plaquette/visuels.js"></script>
+<script src="visuels.js"></script>
+</body>
+</html>
