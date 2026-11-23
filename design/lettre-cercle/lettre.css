@@ -1,0 +1,127 @@
+/* Invitation letter to the Cercle des Amis and its annex, shared by
+   lettre-fr.html and lettre-en.html. Colours and fonts come from the site
+   (src/app/globals.css) and the brochure (design/plaquette). Printed to PDF
+   by build.py with headless Chrome. */
+:root {
+  --paper: #fbfaf5;
+  --ink: #16191f;
+  --body: #30343c;
+  --soft: #454953;
+  --muted: #646771;
+  --line: #d9d6cd;
+  --indigo: #1f3d6e;
+  --orange: #f58b1a;
+  --orange-ink: #8a4a08;
+  --tint: #f1eee4;
+  --serif: 'Newsreader', Georgia, serif;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+@page { size: A4; margin: 16mm 20mm 16mm; }
+@page :first { margin-top: 12mm; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #fff; }
+body {
+  font-family: var(--sans);
+  font-size: 10pt;
+  line-height: 1.5;
+  color: var(--body);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  font-kerning: normal;
+}
+@media screen {
+  html { background: #cfccc3; }
+  body { max-width: 210mm; margin: 10mm auto; padding: 14mm 22mm 20mm; background: #fff; box-shadow: 0 2px 12px rgba(22, 25, 31, .18); }
+}
+
+p { margin: 0 0 .6em; text-wrap: pretty; orphans: 3; widows: 3; }
+a { color: var(--indigo); text-decoration: none; }
+strong { font-weight: 600; color: var(--ink); }
+h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; color: var(--ink); text-wrap: balance; break-after: avoid; }
+
+/* Header with the logo, first page of each document. */
+.entete { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4mm; margin-bottom: 6mm; border-bottom: 2px solid var(--indigo); }
+.entete img { height: 11mm; display: block; }
+.entete .tag { font-size: 8pt; letter-spacing: .14em; text-transform: uppercase; color: var(--orange-ink); font-weight: 600; }
+
+/* ------------------------------------------------------------ letter ---- */
+.kicker { font-size: 8.5pt; letter-spacing: .16em; text-transform: uppercase; color: var(--orange-ink); font-weight: 600; margin: 0 0 2mm; }
+.titre { font-size: 24pt; line-height: 1.05; letter-spacing: -.01em; margin: 0 0 5mm; }
+.titre em { font-style: italic; color: var(--indigo); }
+.lettre .question { font-family: var(--serif); font-size: 13pt; font-style: italic; color: var(--ink); }
+
+.points { list-style: none; padding: 0; margin: 4mm 0 5mm; counter-reset: pt; }
+.points li { position: relative; padding: 0 0 0 11mm; margin: 0 0 3.5mm; counter-increment: pt; }
+.points li::before {
+  content: counter(pt);
+  position: absolute; left: 0; top: .1em;
+  width: 7mm; height: 7mm; border-radius: 50%;
+  background: var(--indigo); color: #fff;
+  font: 600 9.5pt/7mm var(--sans); text-align: center;
+}
+.points h3 { font-size: 12.5pt; line-height: 1.25; margin: 0 0 1mm; break-after: avoid; }
+.points p { margin-bottom: .45em; }
+
+.lien { font-size: 9.5pt; color: var(--soft); margin: .2em 0 .5em; }
+.lien a { font-weight: 600; border-bottom: 1px solid var(--orange); white-space: nowrap; }
+.nw { white-space: nowrap; }
+
+.encadre { background: var(--tint); border-left: 3px solid var(--orange); padding: 3.5mm 5mm; margin: 3mm 0 4mm; break-inside: avoid; }
+.encadre h2 { font-size: 13.5pt; margin: 0 0 1.5mm; }
+.encadre p:last-child { margin-bottom: 0; }
+
+.signature { margin-top: 5mm; break-inside: avoid; }
+.signature .nom { font-family: var(--serif); font-size: 13pt; color: var(--ink); margin: 5mm 0 0; }
+.signature .qualite { font-size: 9.5pt; color: var(--muted); margin: 0; }
+.placeholder { background: #fff3c4; color: var(--orange-ink); padding: 0 1mm; }
+
+.pj { margin-top: 5mm; padding-top: 3mm; border-top: 1px solid var(--line); font-size: 9pt; color: var(--muted); }
+.pj p { margin: 0; }
+
+/* ------------------------------------------------------------- annex ---- */
+.annexe { break-before: page; }
+body.seule .annexe { break-before: auto; }
+.annexe .titre { font-size: 24pt; }
+.annexe h2.section { font-size: 16pt; margin: 9mm 0 3mm; padding-top: 3mm; border-top: 1px solid var(--line); }
+.annexe .intro-seule { margin-bottom: 6mm; }
+.note { font-size: 9.5pt; color: var(--soft); }
+
+blockquote.message {
+  margin: 3mm 0 5mm; padding: 4mm 5mm;
+  background: var(--tint); border-left: 3px solid var(--indigo);
+  font-family: var(--serif); font-size: 11.5pt; line-height: 1.5; color: var(--ink);
+  break-inside: avoid;
+}
+blockquote.message p:last-child { margin-bottom: 0; }
+
+.fonctions { margin: 2mm 0 3mm 5mm; padding: 0 0 0 4mm; }
+.fonctions li { margin-bottom: 1mm; }
+
+/* The KOHOP contribution, set like a published article. */
+.article { margin: 5mm 0 0; padding: 6mm 0 0; border-top: 2px solid var(--indigo); }
+.article h3.art-titre { font-size: 19pt; line-height: 1.15; margin: 0 0 2mm; }
+.article .auteur { font-weight: 600; color: var(--ink); margin-bottom: 1mm; }
+.article .source { font-size: 9pt; color: var(--muted); font-style: italic; margin-bottom: 5mm; }
+.article .corps { font-family: var(--serif); font-size: 11pt; line-height: 1.55; color: var(--ink); }
+.article .corps h4 { font-family: var(--sans); font-size: 8.5pt; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--orange-ink); margin: 5mm 0 1.5mm; }
+.article .refs { font-size: 9pt; color: var(--soft); border-top: 1px solid var(--line); padding-top: 2mm; margin-top: 4mm; }
+
+.commentaires h3 { font-size: 15pt; margin: 8mm 0 3mm; }
+.commentaire { padding: 4mm 0 2mm; border-top: 1px solid var(--line); }
+.commentaire h4 { font-size: 12.5pt; margin: 0 0 .5mm; }
+.commentaire .qui { font-size: 9.5pt; color: var(--muted); margin: 0 0 2mm; }
+.commentaire .fictif { display: inline-block; font-family: var(--sans); font-size: 7.5pt; letter-spacing: .1em; text-transform: uppercase; color: var(--orange-ink); border: 1px solid var(--orange); border-radius: 2px; padding: 0 1.2mm; margin-left: 2mm; vertical-align: .15em; }
+.commentaire .sous-titre { font-style: italic; color: var(--ink); }
+.commentaire .citation { padding-left: 5mm; font-style: italic; }
+.commentaire .date { margin-top: 3mm; }
+.commentaire .footnote { font-size: 8.5pt; color: var(--muted); }
+
+.decision { margin-top: 6mm; padding: 4mm 5mm; border: 1px solid var(--indigo); border-radius: 2px; break-inside: avoid; }
+.decision h3 { font-size: 13.5pt; margin: 0 0 2mm; }
+.decision p:last-child { margin-bottom: 0; }
+
+/* Mode switches, set by the inline script from the URL. */
+body.seule .lettre { display: none; }
+body:not(.seule) .intro-seule { display: none; }

@@ -253,6 +253,44 @@ describe('Accès pilote (D-15)', () => {
     ).rejects.toThrow(/membre/);
   });
 
+  it('un Ami du Cercle dépose comme un membre ; suspendu, il perd l’accès', async () => {
+    const t = newT();
+    await setAccess(t, 'open');
+    const ami = await account(t, 'visiteur', 'ami@x.org');
+    await t.run((ctx) => ctx.db.patch(ami.id, { amiSince: Date.now() }));
+    const id = await ami.as.mutation(api.kohop.createDraft, { lang: 'fr' });
+    expect(id).toBeTruthy();
+    expect(await ami.as.query(api.kohop.listMine, {})).toHaveLength(1);
+    expect(
+      await ami.as.query(api.kohop.getMine, { contributionId: id }),
+    ).not.toBeNull();
+    expect(await ami.as.query(api.kohop.myAccess, {})).toMatchObject({
+      canDeposit: true,
+    });
+    expect((await ami.as.query(api.users.current, {}))?.kohopAuthor).toBe(true);
+
+    // Suspension cuts KOHOP at once, as it cuts the Cercle.
+    await t.run((ctx) => ctx.db.patch(ami.id, { suspendedAt: Date.now() }));
+    await expect(ami.as.query(api.kohop.listMine, {})).rejects.toThrow();
+    await expect(
+      ami.as.mutation(api.kohop.createDraft, { lang: 'fr' }),
+    ).rejects.toThrow();
+  });
+
+  it('en accès pilote, un Ami sans organisation listée ne dépose pas', async () => {
+    const t = newT();
+    const listed = await org(t, 'Pilote');
+    await setAccess(t, 'pilot', [listed]);
+    const ami = await account(t, 'visiteur', 'ami2@x.org');
+    await t.run((ctx) => ctx.db.patch(ami.id, { amiSince: Date.now() }));
+    expect(await ami.as.query(api.kohop.myAccess, {})).toMatchObject({
+      canDeposit: false,
+    });
+    await expect(
+      ami.as.mutation(api.kohop.createDraft, { lang: 'fr' }),
+    ).rejects.toThrow('PILOT_ONLY');
+  });
+
   it('le réglage est réservé à l’administrateur, même au chef de revue', async () => {
     const { chief, admin, pilot } = await world();
     await expect(
@@ -657,7 +695,7 @@ describe('Dépôt', () => {
     return { ...w, id };
   }
 
-  it('exige les trois engagements, deux relecteurs titulaires et un texte de 500 à 1 000 mots', async () => {
+  it('exige les trois engagements, deux relecteurs titulaires et un texte de 500 à 1 200 mots', async () => {
     const { author, id, t } = await ready();
     const before = await counts(t);
     for (const patch of [
@@ -685,7 +723,7 @@ describe('Dépôt', () => {
         ...COMMIT,
       }),
     ).rejects.toThrow('BODY_TOO_SHORT');
-    const long = await draft(author, { body: words(1001) });
+    const long = await draft(author, { body: words(1201) });
     await expect(
       author.as.mutation(api.kohop.submit, { contributionId: long, ...COMMIT }),
     ).rejects.toThrow('BODY_TOO_LONG');

@@ -65,13 +65,16 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
     expect(groups).not.toContain('staff');
   });
 
-  it('un Ami du Cercle (visiteur + statut) voit l’entrée du Cercle, rien d’autre en plus', () => {
+  it('un Ami du Cercle (visiteur + statut) voit le Cercle et KOHOP, rien d’autre en plus', () => {
     const asAmi = visibleMemberNavGroups('visiteur', { ami: true }).flatMap(
       (g) => keysOf(g.items),
     );
-    expect(asAmi.sort()).toEqual([...offered('visiteur'), 'cercle'].sort());
+    expect(asAmi.sort()).toEqual(
+      [...offered('visiteur'), 'cercle', 'kohop'].sort(),
+    );
     // The status changes nothing for a visitor without it.
     expect(offered('visiteur')).not.toContain('cercle');
+    expect(offered('visiteur')).not.toContain('kohop');
     expect(
       visibleMemberNavGroups('visiteur', { ami: false }).flatMap((g) =>
         keysOf(g.items),
@@ -82,6 +85,7 @@ describe('Navigation de l’espace membre — ce que chaque rôle se voit propos
       (g) => keysOf(g.items),
     );
     expect(member.filter((k) => k === 'cercle')).toHaveLength(1);
+    expect(member.filter((k) => k === 'kohop')).toHaveLength(1);
     // And it lights up on its own screen.
     expect(
       currentMemberNavItem('/espace-membre/cercle', 'visiteur', { ami: true })

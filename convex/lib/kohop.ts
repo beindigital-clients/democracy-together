@@ -186,7 +186,7 @@ export function actorMayTrigger(actor: KohopActor, event: KohopEvent): boolean {
 const DAY = 24 * 60 * 60 * 1000;
 
 export const KOHOP_BOUNDS = {
-  words: { min: 500, max: 1000 },
+  words: { min: 500, max: 1200 },
   title: { min: 4, max: 160 },
   standfirst: { min: 100, max: 400 },
   keywords: { max: 8, each: 60 },

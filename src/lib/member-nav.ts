@@ -1,5 +1,5 @@
 import { isMember, isStaff } from '@/lib/roles';
-import { hasCercleAccess } from '@convex/lib/roles';
+import { canAuthorKohop, hasCercleAccess } from '@convex/lib/roles';
 import { LEGACY_PEER_REVIEW_UI } from '@/lib/legacy-review';
 
 // MEMBER-AREA NAVIGATION — the model, without React.
@@ -68,8 +68,17 @@ export type MemberNavKey =
 //                    and above (`hasCercleAccess`, the very function the
 //                    server guard reads). The Ami status is not a rank, so it
 //                    comes in `viewer.ami`, not through the role.
+//  - `kohopAuthors`  the author's side of KOHOP: members and above AND the
+//                    Amis (`canAuthorKohop`, the function the server guard
+//                    reads), the Ami status coming in `viewer.ami` as above.
 export type MemberNavAudience =
-  'everyone' | 'members' | 'network' | 'participants' | 'team' | 'cercle';
+  | 'everyone'
+  | 'members'
+  | 'network'
+  | 'participants'
+  | 'team'
+  | 'cercle'
+  | 'kohopAuthors';
 
 // What the navigation needs to know besides the rank.
 export type MemberNavViewer = { ami?: boolean };
@@ -148,11 +157,12 @@ export const MEMBER_NAV_GROUPS: readonly MemberNavGroup[] = [
         href: '/espace-membre/contributions',
         audience: 'members',
       },
-      // KOHOP: short contributions reviewed by peers the author chooses.
+      // KOHOP: short contributions reviewed by peers the author chooses,
+      // written by the members and by the Amis of the Cercle.
       {
         key: 'kohop',
         href: '/espace-membre/kohop',
-        audience: 'members',
+        audience: 'kohopAuthors',
       },
       // The REVIEWER's side of KOHOP: invitations and analyses.
       {
@@ -245,6 +255,11 @@ export function isOfferedTo(
       return isStaff(role);
     case 'cercle':
       return hasCercleAccess({
+        role,
+        amiSince: viewer.ami ? 1 : undefined,
+      });
+    case 'kohopAuthors':
+      return canAuthorKohop({
         role,
         amiSince: viewer.ami ? 1 : undefined,
       });

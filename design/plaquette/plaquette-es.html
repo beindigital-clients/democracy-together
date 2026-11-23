@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="es" data-format="a4">
+<head>
+<meta charset="utf-8">
+<title>Democracy Together · Folleto de presentación</title>
+<!-- Presentation brochure, 8 A4 pages — Spanish translation of plaquette.html.
+     Keep this file's text in sync with plaquette.html by hand. Text condensed from "DEMOCRACY TOGETHER
+     Plaquette V1.docx" (Philippe Kourilsky, 25/09/2026). Build the PDF with
+     `node design/plaquette/build.mjs` (see README.md): it also writes
+     visuels.js (logo rays, icons) and the globe-*.svg files this page uses.
+     Each .zone is a fixed box; the build reports the room left in each. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+:root {
+  /* Site tokens (src/app/globals.css) */
+  --paper: #f4f2ec;
+  --surface: #fbfaf5;
+  /* Background of the light pages: plain white (the paper tone stays for
+     text and details on the dark pages). */
+  --page: #fff;
+  --ink: #16191f;
+  --body: #30343c;
+  --soft: #454953;
+  --muted: #646771;
+  --line: #d9d6cd;
+  --line-strong: #c3bfb3;
+  --indigo: #1f3d6e;
+  --deep: #16305a;
+  --orange: #f58b1a;
+  --orange-ink: #8a4a08;
+  --on-dark: rgba(244, 242, 236, .84);
+
+  --serif: 'Newsreader', Georgia, serif;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --mx: calc(18 * var(--mm));
+}
+
+/* Formats. Layout lengths scale with the page (--mm); display type keeps the
+   same proportions (--dpt); reading text shrinks less (--pt), so the A5
+   booklet stays legible. */
+:root, [data-format='a4'] {
+  --mm: 1mm;
+  --pt: 1pt;
+  --dpt: 1pt;
+  --page-w: 210mm;
+  --page-h: 297mm;
+}
+[data-format='a5'] {
+  --mm: .7048mm;
+  --pt: .8pt;
+  --dpt: .7048pt;
+  --page-w: 148mm;
+  --page-h: 210mm;
+}
+[data-format='a4'] .page { page: a4; }
+[data-format='a5'] .page { page: a5; }
+/* Print imposition of the A5 booklet: two pages per A4 landscape sheet. */
+.sheet { page: sheet; display: flex; justify-content: center; width: 297mm; height: 210mm; break-after: page; }
+.sheet:last-child { break-after: auto; }
+.sheet .page { page: auto; break-after: auto; }
+/* A5 only: the reading text is relatively larger, so give it a little room. */
+[data-format='a5'] .trait { padding: calc(4 * var(--mm)) 0; }
+[data-format='a5'] .monogram { width: calc(25 * var(--mm)); height: calc(25 * var(--mm)); margin-bottom: calc(4 * var(--mm)); }
+
+@page a4 { size: A4; margin: 0; }
+@page a5 { size: A5; margin: 0; }
+@page sheet { size: A4 landscape; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #fff; }
+body {
+  font-family: var(--sans);
+  font-size: calc(10.5 * var(--pt));
+  line-height: 1.5;
+  color: var(--body);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+@media screen {
+  html, body { background: #cfccc3; }
+  body { padding: calc(10 * var(--mm)) 0; }
+  .page { margin: 0 auto calc(10 * var(--mm)); box-shadow: 0 2px 12px rgba(22, 25, 31, .18); }
+}
+::selection { background: var(--orange); color: var(--ink); }
+
+.page {
+  position: relative;
+  width: var(--page-w);
+  height: var(--page-h);
+  overflow: hidden;
+  background: var(--page);
+  break-after: page;
+}
+.page:last-child { break-after: auto; }
+/* No clipping: build.mjs reports any text that runs past its zone. */
+.zone { position: absolute; }
+
+p, li { text-wrap: pretty; hyphens: manual; }
+h1, h2, h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  color: var(--ink);
+  text-wrap: balance;
+  hyphens: manual;
+}
+h2 { font-size: calc(40 * var(--dpt)); line-height: 1.02; letter-spacing: -.015em; }
+h3 { font-size: calc(15 * var(--dpt)); line-height: 1.15; letter-spacing: -.005em; }
+.lead {
+  font-family: var(--serif);
+  font-size: calc(15 * var(--dpt));
+  line-height: 1.36;
+  color: var(--soft);
+  hyphens: manual;
+}
+strong { font-weight: 600; color: var(--ink); }
+
+svg.ring, svg.erosion, svg.sun, svg.ico, svg.mark { display: block; overflow: visible; }
+svg.ring { fill: currentColor; }
+
+.folio {
+  position: absolute;
+  bottom: calc(11 * var(--mm));
+  font-family: var(--mono);
+  font-size: calc(7.5 * var(--pt));
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.even .folio { left: var(--mx); }
+.odd .folio { right: var(--mx); }
+
+/* ============================================================ 1 COVER */
+.cover { background: var(--deep); color: var(--paper); }
+.cover .logo { position: absolute; top: calc(18 * var(--mm)); left: var(--mx); width: calc(56 * var(--mm)); }
+.cover h1 {
+  position: absolute;
+  top: calc(48 * var(--mm));
+  left: var(--mx);
+  width: calc(170 * var(--mm));
+  font-size: calc(62 * var(--dpt));
+  line-height: .97;
+  letter-spacing: -.022em;
+  color: var(--paper);
+}
+.cover .sub {
+  position: absolute;
+  top: calc(120 * var(--mm));
+  left: var(--mx);
+  width: calc(104 * var(--mm));
+  font-family: var(--serif);
+  font-size: calc(14.5 * var(--dpt));
+  line-height: 1.38;
+  color: var(--on-dark);
+  hyphens: manual;
+}
+.emblem { position: absolute; left: calc(46 * var(--mm)); top: calc(138 * var(--mm)); width: calc(206 * var(--mm)); height: calc(206 * var(--mm)); }
+.emblem .ring { width: 100%; height: 100%; color: #26487f; }
+.emblem .globe { position: absolute; left: 25.5%; top: 25.5%; width: 49%; }
+
+/* ======================================================= 2 LE CONSTAT */
+.p2 .erosion { position: absolute; left: calc(132 * var(--mm)); top: calc(22 * var(--mm)); width: calc(76 * var(--mm)); height: calc(76 * var(--mm)); fill: var(--indigo); }
+.p2 h2 { font-size: calc(46 * var(--dpt)); }
+.p2 .lead { margin-top: calc(6 * var(--mm)); }
+.causes h3 { margin-bottom: calc(3.4 * var(--mm)); }
+ul.raylist { list-style: none; }
+ul.raylist li {
+  display: grid;
+  grid-template-columns: calc(11 * var(--mm)) 1fr;
+  align-items: center;
+  font-family: var(--serif);
+  font-size: calc(17 * var(--dpt));
+  line-height: 1.2;
+  color: var(--ink);
+  padding: calc(2.4 * var(--mm)) 0;
+  border-top: calc(.25 * var(--mm)) solid var(--line);
+}
+ul.raylist li:last-child { border-bottom: calc(.25 * var(--mm)) solid var(--line); }
+ul.raylist .mark { width: calc(6.4 * var(--mm)); height: calc(3.2 * var(--mm)); fill: var(--orange); }
+.band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(100 * var(--mm));
+  background: var(--deep);
+  color: var(--paper);
+}
+.band .folio { color: rgba(244, 242, 236, .6); }
+blockquote.big {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: calc(23 * var(--dpt));
+  line-height: 1.22;
+  letter-spacing: -.005em;
+  color: var(--paper);
+  hyphens: manual;
+  text-wrap: balance;
+}
+blockquote.big::before { content: '«'; color: var(--orange); }
+blockquote.big::after { content: '»'; color: var(--orange); }
+.band p { color: var(--on-dark); margin-top: calc(6 * var(--mm)); max-width: calc(150 * var(--mm)); }
+
+/* ======================================================== 3 RÉPONSE */
+.p3 .lead { margin-top: calc(6 * var(--mm)); }
+.commit {
+  display: grid;
+  grid-template-columns: calc(40 * var(--mm)) 1fr;
+  column-gap: calc(8 * var(--mm));
+  align-items: center;
+  padding: calc(6 * var(--mm)) 0;
+  border-top: calc(.25 * var(--mm)) solid var(--line);
+}
+.commit:last-child { border-bottom: calc(.25 * var(--mm)) solid var(--line); }
+.commit .visual { width: calc(36 * var(--mm)); height: calc(36 * var(--mm)); display: grid; place-items: center; }
+.commit .visual img { width: calc(36 * var(--mm)); }
+.commit .sun { width: calc(38 * var(--mm)); height: calc(20.5 * var(--mm)); fill: var(--orange); }
+.commit h3 { font-size: calc(21 * var(--dpt)); margin-bottom: calc(1.6 * var(--mm)); }
+.commit p { font-size: calc(11 * var(--pt)); color: var(--soft); max-width: calc(112 * var(--mm)); }
+.pari {
+  font-family: var(--serif);
+  font-size: calc(19 * var(--dpt));
+  line-height: 1.3;
+  color: var(--ink);
+  hyphens: manual;
+}
+.pari em { font-style: italic; color: var(--orange-ink); }
+
+/* ================================================== 4 VISION (indigo) */
+.p4 { background: var(--indigo); color: var(--paper); }
+.p4 .corner { position: absolute; left: calc(112 * var(--mm)); top: calc(-92 * var(--mm)); width: calc(190 * var(--mm)); height: calc(190 * var(--mm)); color: rgba(244, 242, 236, .09); }
+.p4 h2 { font-size: calc(31 * var(--dpt)); line-height: 1.1; color: var(--paper); }
+.p4 .lead { color: var(--on-dark); margin-top: calc(5 * var(--mm)); font-size: calc(14 * var(--dpt)); }
+.p4 h3 { color: var(--paper); margin-bottom: calc(4 * var(--mm)); font-size: calc(17 * var(--dpt)); }
+ol.missions { list-style: none; display: grid; gap: calc(4.4 * var(--mm)); }
+ol.missions li {
+  display: grid;
+  grid-template-columns: calc(11 * var(--mm)) 1fr;
+  align-items: start;
+  font-size: calc(12 * var(--pt));
+  line-height: 1.42;
+  color: var(--paper);
+}
+ol.missions .ico { width: calc(7 * var(--mm)); height: calc(7 * var(--mm)); color: var(--orange); margin-top: calc(-.6 * var(--mm)); }
+.p4 .intro { color: var(--on-dark); }
+.chips { display: flex; flex-wrap: wrap; gap: calc(2 * var(--mm)); margin-top: calc(3.4 * var(--mm)); list-style: none; }
+.chips li {
+  font-size: calc(9 * var(--pt));
+  line-height: 1;
+  padding: calc(1.5 * var(--mm)) calc(3 * var(--mm));
+  border: calc(.3 * var(--mm)) solid rgba(244, 242, 236, .45);
+  border-radius: 99px;
+  color: var(--paper);
+}
+.p4 .note { margin-top: calc(5 * var(--mm)); font-style: italic; color: var(--on-dark); font-size: calc(10 * var(--pt)); }
+.p4 .folio { color: rgba(244, 242, 236, .6); }
+
+/* ======================================================== 5 MÉTHODE */
+.p5 .lead { margin-top: calc(6 * var(--mm)); }
+[data-zone=principes] { display: flex; flex-direction: column; }
+.trait {
+  flex: 1;
+  display: grid;
+  grid-template-columns: calc(92 * var(--mm)) 1fr;
+  column-gap: calc(8 * var(--mm));
+  align-items: baseline;
+  align-content: center;
+  padding: calc(6 * var(--mm)) 0;
+  border-top: calc(.25 * var(--mm)) solid var(--line);
+}
+.trait:last-child { border-bottom: calc(.25 * var(--mm)) solid var(--line); }
+.trait .word {
+  font-family: var(--serif);
+  font-size: calc(44 * var(--dpt));
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: var(--indigo);
+}
+.trait .data {
+  font-family: var(--mono);
+  font-size: calc(13 * var(--dpt));
+  font-weight: 500;
+  color: var(--orange-ink);
+  margin-bottom: calc(2 * var(--mm));
+}
+.trait .punch {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: calc(18 * var(--dpt));
+  line-height: 1.2;
+  color: var(--orange-ink);
+  margin-bottom: calc(2 * var(--mm));
+}
+.trait p { font-size: calc(11.5 * var(--pt)); }
+
+/* ========================================================== 6 KOHOP */
+.p6 { background: var(--page); }
+.p6 h2 { letter-spacing: .02em; }
+.p6 h2 span { letter-spacing: -.015em; }
+.p6 .lead { margin-top: calc(6 * var(--mm)); }
+ol.flow { list-style: none; counter-reset: step; padding-top: calc(1.2 * var(--mm)); }
+ol.flow > li {
+  position: relative;
+  counter-increment: step;
+  padding: 0 0 calc(9 * var(--mm)) calc(17 * var(--mm));
+}
+ol.flow > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: calc(-1 * var(--mm));
+  width: calc(11 * var(--mm));
+  height: calc(11 * var(--mm));
+  border-radius: 50%;
+  background: var(--indigo);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: calc(11.5 * var(--pt));
+  font-weight: 500;
+  display: grid;
+  place-items: center;
+}
+ol.flow > li::after {
+  content: '';
+  position: absolute;
+  left: calc(5.35 * var(--mm));
+  top: calc(11 * var(--mm));
+  bottom: calc(.8 * var(--mm));
+  width: calc(.3 * var(--mm));
+  background: var(--line-strong);
+}
+ol.flow > li:last-child { padding-bottom: 0; }
+ol.flow > li:last-child::after { display: none; }
+ol.flow > li:last-child::before { background: var(--orange); color: var(--ink); }
+ol.flow h3 { font-size: calc(16.5 * var(--dpt)); margin-bottom: calc(1.4 * var(--mm)); }
+ol.flow p { font-size: calc(11 * var(--pt)); }
+.wait {
+  font-family: var(--mono);
+  font-size: calc(9.5 * var(--pt));
+  font-weight: 500;
+  color: var(--orange-ink);
+  margin-bottom: calc(.6 * var(--mm));
+}
+.p6 .side .pledge {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: calc(19 * var(--dpt));
+  line-height: 1.25;
+  color: var(--indigo);
+  padding-bottom: calc(6 * var(--mm));
+  margin-bottom: calc(6 * var(--mm));
+  border-bottom: calc(.25 * var(--mm)) solid var(--line);
+  hyphens: manual;
+}
+ul.facts { list-style: none; display: grid; gap: calc(7 * var(--mm)); }
+ul.facts li { display: grid; grid-template-columns: calc(10 * var(--mm)) 1fr; align-items: start; font-size: calc(10.6 * var(--pt)); line-height: 1.42; }
+ul.facts .ico { width: calc(7 * var(--mm)); height: calc(7 * var(--mm)); color: var(--indigo); margin-top: calc(-.4 * var(--mm)); }
+
+/* ===================================================== 7 FONDATEURS */
+.founders { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--mm)); }
+.monogram { position: relative; width: calc(30 * var(--mm)); height: calc(30 * var(--mm)); margin-bottom: calc(5 * var(--mm)); }
+.monogram .ring { width: 100%; height: 100%; color: var(--indigo); }
+.monogram span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-size: calc(15 * var(--dpt));
+  font-weight: 500;
+  letter-spacing: .02em;
+  color: var(--indigo);
+}
+.founders h3 { font-size: calc(16 * var(--dpt)); margin-bottom: calc(2 * var(--mm)); }
+.founders p { font-size: calc(10 * var(--pt)); line-height: 1.46; hyphens: manual; }
+.sg { margin-top: calc(6 * var(--mm)); font-size: calc(10 * var(--pt)); color: var(--soft); }
+ol.timeline {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  column-gap: calc(3 * var(--mm));
+  margin-top: calc(5 * var(--mm));
+  position: relative;
+}
+ol.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(1.6 * var(--mm));
+  height: calc(.3 * var(--mm));
+  background: var(--line-strong);
+}
+ol.timeline li { position: relative; padding-top: calc(6.4 * var(--mm)); font-size: calc(10 * var(--pt)); line-height: 1.4; hyphens: manual; }
+ol.timeline li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(3.4 * var(--mm));
+  height: calc(3.4 * var(--mm));
+  border-radius: 50%;
+  background: var(--page);
+  border: calc(.5 * var(--mm)) solid var(--indigo);
+}
+ol.timeline li.done::before { background: var(--indigo); }
+ol.timeline li.next::before { background: var(--orange); border-color: var(--orange); }
+ol.timeline strong { display: block; font-family: var(--serif); font-size: calc(13 * var(--dpt)); font-weight: 500; margin-bottom: calc(.8 * var(--mm)); }
+.p7 .money { font-size: calc(10.4 * var(--pt)); margin-top: calc(3 * var(--mm)); max-width: calc(160 * var(--mm)); }
+
+/* ==================================================== 8 REJOINDRE */
+.p8 { background: var(--page); color: var(--ink); }
+.p8 h2 { font-size: calc(42 * var(--dpt)); }
+.p8 .join-ring { position: absolute; left: calc(130 * var(--mm)); top: calc(40 * var(--mm)); width: calc(80 * var(--mm)); height: calc(80 * var(--mm)); }
+.p8 .join-ring .ring { width: 100%; height: 100%; color: var(--indigo); }
+.p8 .join-ring .ghost { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--orange); }
+.p8 .place {
+  position: absolute;
+  left: calc(150 * var(--mm));
+  top: calc(25 * var(--mm));
+  width: calc(40 * var(--mm));
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: calc(14 * var(--dpt));
+  line-height: 1;
+  color: var(--orange-ink);
+}
+.p8 .place::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(100% + calc(1.4 * var(--mm)));
+  width: calc(.3 * var(--mm));
+  height: calc(6 * var(--mm));
+  background: var(--orange-ink);
+}
+.p8 .lead { color: var(--soft); font-size: calc(13.6 * var(--dpt)); }
+.p8 h3 { margin-bottom: calc(5 * var(--mm)); font-size: calc(17 * var(--dpt)); }
+ul.gains { list-style: none; display: grid; grid-template-columns: 1fr 1fr; column-gap: calc(10 * var(--mm)); row-gap: calc(6 * var(--mm)); }
+ul.gains li { display: grid; grid-template-columns: calc(10 * var(--mm)) 1fr; align-items: start; font-size: calc(11 * var(--pt)); line-height: 1.42; }
+ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); color: var(--indigo); margin-top: calc(-.3 * var(--mm)); }
+.contact {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(78 * var(--mm));
+  background: var(--deep);
+  color: var(--paper);
+  padding: calc(16 * var(--mm)) var(--mx) 0;
+}
+.contact .ask { font-size: calc(11 * var(--pt)); color: var(--on-dark); }
+.contact .mail {
+  font-family: var(--serif);
+  font-size: calc(27 * var(--dpt));
+  line-height: 1.1;
+  color: var(--orange);
+  margin-top: calc(2 * var(--mm));
+}
+.contact .where { margin-top: calc(4 * var(--mm)); font-size: calc(10 * var(--pt)); color: var(--on-dark); }
+.contact .logo { position: absolute; right: var(--mx); bottom: calc(15 * var(--mm)); width: calc(52 * var(--mm)); }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ 1 -->
+<section class="page cover dark">
+  <img class="logo" src="../../public/brand/democracy-together-logo-dark.png" alt="Democracy Together">
+  <h1>La democracia necesita una red</h1>
+  <p class="sub">Democracy Together es una iniciativa plurinacional: una red mundial de think tanks, abierta a los jóvenes y atenta a África y a Europa.</p>
+  <div class="emblem" aria-hidden="true">
+    <svg class="ring"><use href="#anneau" width="100%" height="100%"/></svg>
+    <img class="globe" src="globe-couverture.svg" alt="">
+  </div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="page p2 even">
+  <svg class="erosion" aria-hidden="true"><use href="#anneau-erode" width="100%" height="100%"/></svg>
+  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(104 * var(--mm));height:calc(80 * var(--mm))">
+    <h2>La democracia está en crisis</h2>
+    <p class="lead">Entendida como respetuosa de las libertades, del Estado y de las reglas de derecho, lo está en Francia, en muchos otros países y en la comunidad internacional.</p>
+  </div>
+  <div class="zone causes" data-zone="causes" style="top:calc(112 * var(--mm));left:var(--mx);width:calc(140 * var(--mm));height:calc(76 * var(--mm))">
+    <h3>Las causas y los síntomas abundan</h3>
+    <ul class="raylist">
+      <li><svg class="mark"><use href="#rayon" width="100%" height="100%"/></svg>Auge de los populismos</li>
+      <li><svg class="mark"><use href="#rayon" width="100%" height="100%"/></svg>Erosión de las instituciones democráticas</li>
+      <li><svg class="mark"><use href="#rayon" width="100%" height="100%"/></svg>Injerencias extranjeras</li>
+      <li><svg class="mark"><use href="#rayon" width="100%" height="100%"/></svg>Desigualdades socioeconómicas</li>
+      <li><svg class="mark"><use href="#rayon" width="100%" height="100%"/></svg>Impactos del cambio climático</li>
+    </ul>
+  </div>
+  <div class="band">
+    <div class="zone" data-zone="citation" style="top:calc(15 * var(--mm));left:var(--mx);width:calc(166 * var(--mm));height:calc(66 * var(--mm))">
+      <blockquote class="big">Hoy hay que defender la democracia liberal, pero también preparar su evolución, si no su refundación.</blockquote>
+      <p>Varios think tanks dedicados a la democracia ya trabajan en este sentido. Pero muchos actúan de forma demasiado aislada y centrada en los problemas del mundo occidental: su impacto se reduce, y las problemáticas de los países emergentes quedan minimizadas.</p>
+    </div>
+    <p class="folio">02</p>
+  </div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="page p3 odd">
+  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(64 * var(--mm))">
+    <h2>Nuestra respuesta: una red mundial de think tanks</h2>
+    <p class="lead">Estamos convencidos de que hay lugar para una iniciativa plurinacional basada en una red de think tanks. La hemos llamado Democracy Together.</p>
+  </div>
+  <div class="zone" data-zone="engagements" style="top:calc(84 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(146 * var(--mm))">
+    <div class="commit">
+      <div class="visual"><svg class="sun" aria-hidden="true"><use href="#soleil" width="100%" height="100%"/></svg></div>
+      <div>
+        <h3>Abierta a los jóvenes</h3>
+        <p>La red les abre un espacio y busca movilizarlos.</p>
+      </div>
+    </div>
+    <div class="commit">
+      <div class="visual"><img src="globe-monde.svg" alt=""></div>
+      <div>
+        <h3>Mundial</h3>
+        <p>Reúne a países desarrollados y países emergentes.</p>
+      </div>
+    </div>
+    <div class="commit">
+      <div class="visual"><img src="globe-afrique-europe-ameriques.svg" alt=""></div>
+      <div>
+        <h3>África, Europa, América&nbsp;Latina y más allá</h3>
+        <p>Tres anclajes sólidos en una red pensada para llegar a todos los continentes.</p>
+      </div>
+    </div>
+  </div>
+  <div class="zone" data-zone="pari" style="top:calc(238 * var(--mm));left:var(--mx);width:calc(166 * var(--mm));height:calc(42 * var(--mm))">
+    <p class="pari"><em>Nuestra apuesta:</em> una inteligencia democrática colectiva, para responder a los desafíos mundiales presentes y futuros, en el marco del restablecimiento de un orden internacional respetuoso y respetado.</p>
+  </div>
+  <p class="folio">03</p>
+</section>
+
+<!-- ============================================================ 4 -->
+<section class="page p4 even dark">
+  <svg class="ring corner" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg>
+  <div class="zone" data-zone="vision" style="top:calc(30 * var(--mm));left:var(--mx);width:calc(160 * var(--mm));height:calc(76 * var(--mm))">
+    <h2>Convertirse en una referencia mundial para el avance del pensamiento democrático liberal.</h2>
+    <p class="lead">Fomentando un ecosistema inclusivo, donde las ideas innovadoras contribuyan a sociedades más resilientes y más equitativas.</p>
+  </div>
+  <div class="zone" data-zone="missions" style="top:calc(106 * var(--mm));left:var(--mx);width:calc(166 * var(--mm));height:calc(88 * var(--mm))">
+    <h3>Cinco misiones</h3>
+    <ol class="missions">
+      <li><svg class="ico"><use href="#ico-lightbulb" width="100%" height="100%"/></svg><span>Suscitar reflexiones.</span></li>
+      <li><svg class="ico"><use href="#ico-messages-square" width="100%" height="100%"/></svg><span>Reunir esas reflexiones, difundirlas y someterlas a debate.</span></li>
+      <li><svg class="ico"><use href="#ico-graduation-cap" width="100%" height="100%"/></svg><span>Reforzar las capacidades, en particular en los países en desarrollo, mediante formaciones, intercambios y financiaciones específicas.</span></li>
+      <li><svg class="ico"><use href="#ico-users-round" width="100%" height="100%"/></svg><span>Apoyar la implicación de los jóvenes.</span></li>
+      <li><svg class="ico"><use href="#ico-blend" width="100%" height="100%"/></svg><span>Cruzar las miradas científicas, diplomáticas y económicas, y promover la diversidad geográfica, cultural y de género en los debates democráticos.</span></li>
+    </ol>
+  </div>
+  <div class="zone" data-zone="champ" style="top:calc(202 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(76 * var(--mm))">
+    <h3>Un campo inmenso</h3>
+    <p class="intro">Cuestiones institucionales y de vida democrática, que se plantean de forma distinta según los países:</p>
+    <ul class="chips">
+      <li>educación</li><li>salud</li><li>medio ambiente</li><li>normas</li><li>papel de la IA</li><li>gobernanza digital</li><li>lugar de la ciencia</li><li>participación ciudadana</li><li>lucha contra la corrupción</li><li>transiciones democráticas</li>
+    </ul>
+    <p class="note">Las contribuciones recogidas están llamadas también a convertirse en objetos de investigación, para el mundo académico y más allá.</p>
+  </div>
+  <p class="folio">04</p>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="page p5 odd">
+  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(62 * var(--mm))">
+    <h2>Contribuciones breves, de calidad controlada</h2>
+    <p class="lead">Así construiremos esta inteligencia colectiva: mediante el intercambio y la puesta en común de contribuciones breves.</p>
+  </div>
+  <div class="zone" data-zone="principes" style="top:calc(88 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(186 * var(--mm))">
+    <div class="trait">
+      <p class="word">Breves</p>
+      <div>
+        <p class="data">De 500 a 1200 palabras</p>
+        <p>Se esperan muchas contribuciones, y una idea pertinente y bien pensada siempre puede expresarse de forma concisa.</p>
+      </div>
+    </div>
+    <div class="trait">
+      <p class="word">De calidad</p>
+      <div>
+        <p>La calidad se controla, para favorecer las ideas más significativas, más útiles y más innovadoras.</p>
+      </div>
+    </div>
+    <div class="trait">
+      <p class="word">Evaluadas<br>por pares</p>
+      <div>
+        <p class="punch">¿Quién juzga la calidad? ¡Nosotros no!</p>
+        <p>Pares designados por los propios autores. Es una de las singularidades de nuestra iniciativa.</p>
+      </div>
+    </div>
+  </div>
+  <p class="folio">05</p>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="page p6 even">
+  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(62 * var(--mm))">
+    <h2>KOHOP,<br><span>la plataforma de la red</span></h2>
+    <p class="lead">Bilingüe, pronto multilingüe, KOHOP publicará las contribuciones de los miembros. Su principio: el juicio por pares, como en una revista científica.</p>
+  </div>
+  <div class="zone" data-zone="parcours" style="top:calc(96 * var(--mm));left:var(--mx);width:calc(104 * var(--mm));height:calc(178 * var(--mm))">
+    <ol class="flow">
+      <li>
+        <h3>El autor envía su contribución</h3>
+        <p>De 500 a 1200 palabras, con enlaces a textos más extensos, disponibles en un clic.</p>
+      </li>
+      <li>
+        <h3>Designa a tres revisores</h3>
+        <p>Se necesitan al menos dos. Sin anonimato: sus nombres y sus análisis se publican junto con su texto.</p>
+      </li>
+      <li>
+        <h3>El redactor jefe vela</h3>
+        <p>Puede recusar a un revisor demasiado cercano al autor, por ejemplo un coautor.</p>
+      </li>
+      <li>
+        <h3>El autor revisa su texto</h3>
+        <p class="wait">2 semanas</p>
+        <p>Recibe las críticas y decide si las tiene en cuenta o no.</p>
+      </li>
+      <li>
+        <h3>El redactor jefe decide</h3>
+        <p>Acepta o rechaza la publicación. Dos dictámenes favorables equivalen casi automáticamente a la aceptación, salvo exceso evidente o infracción de la carta.</p>
+      </li>
+    </ol>
+  </div>
+  <div class="zone side" data-zone="atouts" style="top:calc(96 * var(--mm));left:calc(132 * var(--mm));width:calc(60 * var(--mm));height:calc(178 * var(--mm))">
+    <p class="pledge">Una apuesta por la honestidad intelectual y la transparencia.</p>
+    <ul class="facts">
+      <li><svg class="ico"><use href="#ico-key-round" width="100%" height="100%"/></svg><span>Los textos publicados pertenecen a sus autores, no a la plataforma.</span></li>
+      <li><svg class="ico"><use href="#ico-lock-open" width="100%" height="100%"/></svg><span>Gratuito y de libre acceso para los lectores.</span></li>
+      <li><svg class="ico"><use href="#ico-user-check" width="100%" height="100%"/></svg><span>Publicar en KOHOP está abierto a los miembros de la red y a los Amigos del Círculo.</span></li>
+      <li><svg class="ico"><use href="#ico-network" width="100%" height="100%"/></svg><span>El dispositivo amplía rápidamente el círculo de «allegados» de la red.</span></li>
+    </ul>
+  </div>
+  <p class="folio">06</p>
+</section>
+
+<!-- ============================================================ 7 -->
+<section class="page p7 odd">
+  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(22 * var(--mm))">
+    <h2>Al frente del proyecto</h2>
+  </div>
+  <div class="zone" data-zone="fondateurs" style="top:calc(54 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(112 * var(--mm))">
+    <div class="founders">
+      <article>
+        <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>AS</span></div>
+        <h3>Abdou Samb</h3>
+        <p>Ingeniero y matemático senegalés, presidente de FRS Consulting en París, asesor de la Comisión Europea sobre la transformación digital. Nombrado «Africano del año 2025» en los Mission Africa Awards.</p>
+      </article>
+      <article>
+        <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>PK</span></div>
+        <h3>Philippe Kourilsky</h3>
+        <p>Biólogo francés, profesor honorario del Collège de France, antiguo director del Instituto Pasteur, miembro de la Academia de Ciencias de Francia. Autor de más de 350 publicaciones científicas y de una decena de libros, varios de ellos sobre la democracia.</p>
+      </article>
+      <article>
+        <div class="monogram"><svg class="ring" aria-hidden="true"><use href="#anneau" width="100%" height="100%"/></svg><span>PV</span></div>
+        <h3>Pierre Vimont</h3>
+        <p>Diplomático francés, antiguo embajador de Francia en Estados Unidos, antiguo secretario general ejecutivo del Servicio Europeo de Acción Exterior, senior fellow del Carnegie Endowment for International Peace.</p>
+      </article>
+    </div>
+    <p class="sg">Secretaria general de la asociación: <strong>Armelle Chapalain</strong></p>
+  </div>
+  <div class="zone" data-zone="avancement" style="top:calc(178 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(58 * var(--mm))">
+    <h3>¿Dónde estamos?</h3>
+    <ol class="timeline">
+      <li class="done"><strong>Asociación sin ánimo de lucro</strong>Sede en París</li>
+      <li class="done"><strong>Sitio web</strong>Listo para su puesta en línea</li>
+      <li class="done"><strong>Plataforma KOHOP</strong>Lista para la fase de prueba</li>
+      <li class="next"><strong>Lanzamiento</strong>Finales de noviembre o principios de diciembre de 2026</li>
+      <li><strong>Polos regionales</strong>En África y en Europa, próximamente</li>
+    </ol>
+  </div>
+  <div class="zone" data-zone="financement" style="top:calc(242 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(38 * var(--mm))">
+    <h3>Financiación</h3>
+    <p class="money">Las cuotas de los miembros, donaciones, subvenciones de instituciones como la Unión Europea y alianzas seleccionadas con empresas comprometidas con la RSC. Se creará un fondo dedicado a los proyectos colaborativos, y la asociación se dotará de indicadores de rendimiento.</p>
+  </div>
+  <p class="folio">07</p>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="page p8">
+  <div class="zone" data-zone="titre" style="top:calc(24 * var(--mm));left:var(--mx);width:calc(106 * var(--mm));height:calc(66 * var(--mm))">
+    <h2>Su think tank tiene su lugar en la red</h2>
+  </div>
+  <div class="join-ring" aria-hidden="true">
+    <svg class="ring"><use href="#anneau" width="100%" height="100%"/></svg>
+    <svg class="ring ghost"><use href="#rayon-fantome" width="100%" height="100%"/></svg>
+  </div>
+  <p class="place" aria-hidden="true">el suyo</p>
+  <div class="zone" data-zone="conditions" style="top:calc(94 * var(--mm));left:var(--mx);width:calc(106 * var(--mm));height:calc(40 * var(--mm))">
+    <p class="lead">Toda institución con una actividad de think tank puede adherirse, aunque desarrolle otras, de formación por ejemplo. La adhesión pasa por la firma de una breve carta.</p>
+  </div>
+  <div class="zone" data-zone="atouts" style="top:calc(142 * var(--mm));left:var(--mx);width:calc(174 * var(--mm));height:calc(72 * var(--mm))">
+    <h3>Lo que la red le aporta</h3>
+    <ul class="gains">
+      <li><svg class="ico"><use href="#ico-megaphone" width="100%" height="100%"/></svg><span>Más visibilidad para sus trabajos.</span></li>
+      <li><svg class="ico"><use href="#ico-clipboard-check" width="100%" height="100%"/></svg><span>Trámites reducidos al mínimo para los think tanks emergentes.</span></li>
+      <li><svg class="ico"><use href="#ico-graduation-cap" width="100%" height="100%"/></svg><span>Formaciones, intercambios y financiaciones específicas.</span></li>
+      <li><svg class="ico"><use href="#ico-calendar-days" width="100%" height="100%"/></svg><span>Conferencias, coloquios y proyectos de investigación.</span></li>
+      <li><svg class="ico"><use href="#ico-compass" width="100%" height="100%"/></svg><span>Plena libertad de acción, y publicaciones que siguen siendo suyas.</span></li>
+      <li><svg class="ico"><use href="#ico-hand-coins" width="100%" height="100%"/></svg><span>Un fondo dedicado a los proyectos colaborativos, próximamente.</span></li>
+    </ul>
+  </div>
+  <div class="contact">
+    <p class="ask">Escríbanos</p>
+    <p class="mail">contact@democracy-together.org</p>
+    <p class="where">Asociación sin ánimo de lucro (ley francesa de 1901) · Sede en París</p>
+    <img class="logo" src="../../public/brand/democracy-together-logo-dark.png" alt="Democracy Together">
+  </div>
+</section>
+
+<script src="visuels.js"></script>
+</body>
+</html>

@@ -617,3 +617,27 @@ domain is verified and is the one the association wants, set `AUTH_EMAIL_FROM`
 accordingly, and remove `AUTH_DEV_OTP` and `RECAPTCHA_DISABLED` from the
 deployment (`docs/deploiement.md` § 1.1: dev-only switches that open the test
 surface, including readable sign-in codes).
+
+## 12. KOHOP open to the Amis (author side)
+
+Decision of 23/11/2026: the invitation letter asks the Amis to write for KOHOP,
+so an Ami may now be a KOHOP **author**, like a member.
+
+- One pure function, `canAuthorKohop` (`convex/lib/roles.ts`): a member and
+  above, or an Ami. The server guard `requireKohopAuthor`
+  (`convex/lib/kohopAccess.ts`) reads it, and so do the author screen
+  (`/espace-membre/kohop`, through `users.current.kohopAuthor`) and the member
+  navigation (audience `kohopAuthors`).
+- Every author function goes through it: access, drafts, the author's list and
+  file, and everything behind `requireOwnContribution` (reviewer choice,
+  submission, revision, proof, withdrawal).
+- Unchanged: the **pilot access** applies to an Ami exactly as to a member (in
+  `pilot`, only the listed organizations deposit; switch to `open` in
+  `/admin/kohop` to let every author in). Reviewers are still chosen among the
+  listed members, or proposed as external reviewers; an Ami has no directory
+  profile and is not offered as a reviewer. Suspension cuts KOHOP at once, as
+  for the Cercle (`requireUser`).
+- The Ami's author line on a published text is the account name given at the
+  request (there is no directory profile to read a display name from).
+
+Tests: `convex/kohop.test.ts` ("Accès pilote"), `tests/unit/member-area-rules.test.ts`.

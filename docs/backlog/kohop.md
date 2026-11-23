@@ -220,7 +220,7 @@ suggestions de l'IA arrivent au lot 5.
 - **`convex/lib/kohop.ts`** (module pur, partagé avec l'interface) : les 14
   étapes, `KOHOP_MACHINE`, `nextStage`, `canTransition`, `eventsFor`, et pour
   chaque événement l'acteur qui peut le déclencher (`KOHOP_EVENT_ACTOR` :
-  auteur, chef de revue ou système). Les bornes (500–1 000 mots, titre,
+  auteur, chef de revue ou système). Les bornes (500–1 200 mots, titre,
   chapô, analyses 150–1 500 mots, réponse 800 mots…), les délais D-10 en
   constantes (`KOHOP_DELAYS_DAYS`), l'échelle d'avis, `isPositive`,
   `presumptionOfAcceptance`, `assertRefusal` (seuls `outrance`, `charte` et
