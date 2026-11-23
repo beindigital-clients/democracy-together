@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-// Democracy Together presentation brochure (8 A4 pages), French and English.
+// Democracy Together presentation brochure (8 A4 pages), French, English and
+// Spanish.
 //
 //   node design/plaquette/build.mjs
 //
-// For each language (plaquette.html, plaquette-en.html) writes the brochure
-// in A4, as an A5 booklet, and the A5 booklet imposed on A4 sheets for office
-// printing. The two HTML files are independent: there is no shared template,
-// so a text edit in one language must be repeated by hand in the other.
+// For each language (plaquette.html, plaquette-en.html, plaquette-es.html)
+// writes the brochure in A4, as an A5 booklet, and the A5 booklet imposed on A4
+// sheets for office printing. The three HTML files are independent: there is
+// no shared template, so a text edit in one language must be repeated by hand
+// in the others.
 //
 // Steps: trace the rays of the logo symbol, draw the dotted globes, collect the
 // Lucide icons, write them to visuels.js and the globe-*.svg files (shared,
@@ -411,10 +413,11 @@ async function previews(dir) {
   await sheet.close();
 }
 
-// Two languages, each in two formats: A4 (screen, e-mail) and an A5 booklet.
+// Three languages, each in two formats: A4 (screen, e-mail) and an A5 booklet.
 const LANGS = [
   { id: 'fr', file: 'plaquette.html', suffix: '' },
   { id: 'en', file: 'plaquette-en.html', suffix: '-en' },
+  { id: 'es', file: 'plaquette-es.html', suffix: '-es' },
 ];
 const FORMATS = [
   { id: 'a4', name: 'a4' },

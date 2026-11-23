@@ -1,13 +1,15 @@
 # Plaquette de présentation Democracy Together
 
 Plaquette de 8 pages pour présenter l'initiative et recruter des membres, en
-deux langues (français, anglais) et deux formats (A4, petit livret A5).
+trois langues (français, anglais, espagnol) et deux formats (A4, petit livret
+A5).
 Texte source : « DEMOCRACY TOGETHER Plaquette V1.docx » (Philippe Kourilsky,
 25/09/2026), marqué « esquisse non totalement validée, ne pas diffuser ». Le
 texte n'est pas encore validé : ne pas diffuser la plaquette avant l'accord du
-client. La version anglaise est une traduction de la version française : elle
-hérite de ce même statut de brouillon. Une différence de fond entre les deux
-langues est à noter, page 3 (voir « Version anglaise »).
+client. Les versions anglaise et espagnole sont des traductions de la version
+française : elles héritent de ce même statut de brouillon. Une différence de
+fond est à noter, page 3 : l'anglais et l'espagnol nomment l'Amérique latine
+(voir « Version anglaise » et « Version espagnole »).
 
 La V1 tenait en 4 pages très denses (environ 460 mots par page). La V2 passe à
 8 pages, le format courant d'une plaquette, avec un texte condensé : environ
@@ -62,12 +64,14 @@ demander leurs portraits au client si l'on veut des photos.
 - `plaquette-en.html` : la source anglaise. Même mise en page, même CSS ; le
   texte est traduit à la main, il n'y a pas de gabarit partagé (voir
   « Modifier le texte »).
+- `plaquette-es.html` : la source espagnole, sur le même principe que
+  l'anglaise (voir « Version espagnole »).
 - `build.mjs` : trace l'anneau du logo, dessine les globes, récupère les
-  pictogrammes (une fois, communs aux deux langues), puis imprime les PDF et
-  les aperçus des deux sources.
+  pictogrammes (une fois, communs aux trois langues), puis imprime les PDF et
+  les aperçus des trois sources.
 - `visuels.js`, `globe-*.svg` : générés par `build.mjs`, ne pas les éditer à la
-  main. Communs aux deux langues, sauf `globe-afrique-europe-ameriques.svg`,
-  propre à la version anglaise (voir « Version anglaise »).
+  main. Communs aux trois langues, sauf `globe-afrique-europe-ameriques.svg`,
+  propre aux versions anglaise et espagnole (voir « Version anglaise »).
 - `democracy-together-plaquette-a4.pdf`, `-livret-a5.pdf`,
   `-livret-a5-impression.pdf` : les trois PDF français (8 pages en A4, 8 pages
   en A5, livret A5 monté sur 4 faces A4 pour l'imprimer au bureau — voir
@@ -75,7 +79,10 @@ demander leurs portraits au client si l'on veut des photos.
 - Les mêmes trois PDF en anglais, suffixés `-en` :
   `democracy-together-plaquette-a4-en.pdf`,
   `-livret-a5-en.pdf`, `-livret-a5-impression-en.pdf`.
-- `apercu/fr/a4/`, `apercu/fr/a5/`, `apercu/en/a4/`, `apercu/en/a5/` : les
+- Les mêmes trois PDF en espagnol, suffixés `-es` :
+  `democracy-together-plaquette-a4-es.pdf`,
+  `-livret-a5-es.pdf`, `-livret-a5-impression-es.pdf`.
+- `apercu/<langue>/a4/` et `apercu/<langue>/a5/` (`fr`, `en`, `es`) : les
   aperçus page par page (`page-1.png` à `page-8.png`) et la vue d'ensemble en
   doubles pages (`planche.png`), par langue et par format.
 
@@ -88,7 +95,7 @@ Depuis la racine du dépôt, avec les dépendances installées et un accès rés
 node design/plaquette/build.mjs
 ```
 
-Le script produit les six PDF d'un coup (deux langues × trois PDF). Chaque
+Le script produit les neuf PDF d'un coup (trois langues × trois PDF). Chaque
 bloc de texte est une zone de taille fixe (`class="zone"`) : pour chaque
 langue, chaque format et chaque page, le script affiche la place qui reste
 sous chaque zone en millimètres, et signale `OVERFLOW` quand un texte déborde.
@@ -104,11 +111,12 @@ titres aussi, mais le texte courant seulement à 80 % pour rester lisible
 ## Modifier le texte
 
 Le français se modifie dans `plaquette.html`, l'anglais dans
-`plaquette-en.html`. Les deux fichiers sont indépendants : une modification du
-texte dans l'un doit être reportée à la main dans l'autre, il n'y a pas de
+`plaquette-en.html`, l'espagnol dans `plaquette-es.html`. Les trois fichiers
+sont indépendants : une modification du texte dans l'un doit être reportée à
+la main dans les autres, il n'y a pas de
 gabarit commun pour le contenu (seuls le CSS, `visuels.js` et les globes sont
 partagés). Après une modification, relancer le script et vérifier les lignes
-`OVERFLOW`, dans les deux langues.
+`OVERFLOW`, dans les trois langues.
 
 Typographie française (`plaquette.html` uniquement) : `&nbsp;` avant les
 deux-points et à l'intérieur des guillemets, `&#8239;` (espace fine insécable)
@@ -116,15 +124,18 @@ avant le point-virgule, le point d'interrogation et le point d'exclamation.
 Typographie anglaise (`plaquette-en.html`) : ponctuation standard, sans espace
 avant `:`, `;`, `?`, `!` ; guillemets anglais courbes `“ ”` et apostrophe
 courbe `’` plutôt que les guillemets français « » et le `&nbsp;`/`&#8239;`.
+Typographie espagnole (`plaquette-es.html`) : pas d'espace avant `:`, `;`,
+`?`, `!` ; points d'ouverture `¿` et `¡` ; guillemets « » collés au mot, sans
+espace ; nombres de quatre chiffres sans séparateur (`1200`).
 
 Le conseil d'administration et le comité d'honneur iront page 7, à côté des
 fondateurs ; le financement pourra alors passer en page 6 ou sur le site. À
-reporter dans les deux langues le jour venu.
+reporter dans les trois langues le jour venu.
 
 ## Impression
 
-Les deux langues s'impriment de la même façon ; remplacer simplement le nom
-de fichier par sa variante `-en` pour la version anglaise.
+Les trois langues s'impriment de la même façon ; remplacer simplement le nom
+de fichier par sa variante `-en` (anglais) ou `-es` (espagnol).
 
 - **A4** : pour l'envoi par e-mail et la lecture à l'écran.
 - **Livret A5 chez un imprimeur** : envoyer `democracy-together-plaquette-livret-a5.pdf`
@@ -215,6 +226,29 @@ Quelques choix de traduction, à signaler aussi :
   the project » plutôt qu'une traduction mot à mot, pour tenir sur une ligne à
   la taille du titre.
 
+## Version espagnole
+
+`plaquette-es.html` (23/11/2026) traduit le texte de `plaquette.html` page par
+page, au vouvoiement (« usted »), comme la version espagnole du site.
+
+- Page 3 : le troisième engagement suit la version anglaise et non la
+  française : « África, Europa, América Latina y más allá », avec le globe
+  `globe-afrique-europe-ameriques.svg`. Pour des lecteurs hispanophones, « Afrique et
+  Europe » seuls les auraient laissés de côté. La couverture garde « atenta a
+  África y a Europa », comme l'anglais garde « attentive to Africa and Europe ».
+- « Think tank » reste en anglais, comme sur le site et dans l'usage courant en
+  espagnol. « Relecteurs » devient « revisores », le terme du site.
+- « Association loi 1901 » devient « Asociación sin ánimo de lucro » dans la
+  frise de la page 7, et « Asociación sin ánimo de lucro (ley francesa de
+  1901) » au bas de la page 8.
+- « Collège de France » garde son nom ; « Institut Pasteur » devient
+  « Instituto Pasteur » et « Académie des sciences », « Academia de Ciencias
+  de Francia ».
+- Titres resserrés pour tenir dans leur zone : « Al frente del proyecto »
+  (page 7) ; page 8, « Trámites reducidos al mínimo para los think tanks
+  emergentes ».
+- La place vide de l'anneau, page 8, s'appelle « el suyo » (« su lugar »).
+
 ## À valider avec le client
 
 1. Les coupes et les titres listés ci-dessus.
@@ -232,11 +266,13 @@ Quelques choix de traduction, à signaler aussi :
    contact@democracy-together.org : vérifier que cette boîte existe.
 6. ~~Une version anglaise pour le recrutement hors des pays francophones.~~
    Faite (`plaquette-en.html`) : à relire, les choix de traduction sont listés
-   dans « Version anglaise » ci-dessus.
+   dans « Version anglaise » ci-dessus. Une version espagnole aussi
+   (`plaquette-es.html`, voir « Version espagnole ») : à faire relire par un
+   hispanophone.
 7. Impression : quantité, imprimeur et papier, pour préparer la version avec
-   fonds perdus (dans les deux langues).
-8. L'ajout de l'Amérique latine au troisième engagement, pour l'instant
-   anglais uniquement (voir « Version anglaise ») : le texte et le globe
+   fonds perdus (dans les trois langues).
+8. L'ajout de l'Amérique latine au troisième engagement, pour l'instant en
+   anglais et en espagnol uniquement (voir « Version anglaise ») : le texte et le globe
    conviennent-ils, et faut-il reporter ce changement en français ?
 
 À signaler aussi : la page d'accueil du site annonce des bureaux à « Paris ·
