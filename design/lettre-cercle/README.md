@@ -75,11 +75,12 @@ Les paramètres d'URL servent aussi à l'écran : `lettre-fr.html?signe=abdou-sa
 
 ## À confirmer avec Philippe Kourilsky
 
-- La qualité des signataires (aujourd'hui « Cofondateur de Democracy
-  Together » pour Philippe Kourilsky et Abdou Samb).
+Confirmés le 23/11/2026 : la qualité des signataires (« Cofondateur de
+Democracy Together » pour Philippe Kourilsky et Abdou Samb) et la mention
+« Commentaire imaginaire » sur les deux commentaires d'exemple.
+
 - L'accord de Jean-Pierre Roth pour la publication de son commentaire sous son
   nom, et la vérification de la recopie par David Ojcius.
-- La mention « Commentaire imaginaire » sur les deux autres commentaires.
 - L'adresse officielle democracy-together.org (avec tiret), à vérifier avec
   Armelle Chapalain.
 - Une version anglaise officielle de l'article, si elle existe, à substituer

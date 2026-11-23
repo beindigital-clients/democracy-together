@@ -7,9 +7,9 @@ Texte source : « DEMOCRACY TOGETHER Plaquette V1.docx » (Philippe Kourilsky,
 25/09/2026), marqué « esquisse non totalement validée, ne pas diffuser ». Le
 texte n'est pas encore validé : ne pas diffuser la plaquette avant l'accord du
 client. Les versions anglaise et espagnole sont des traductions de la version
-française : elles héritent de ce même statut de brouillon. Une différence de
-fond est à noter, page 3 : l'anglais et l'espagnol nomment l'Amérique latine
-(voir « Version anglaise » et « Version espagnole »).
+française : elles héritent de ce même statut de brouillon. Page 3, les trois
+langues nomment l'Amérique latine dans le troisième engagement (voir
+« Version anglaise »).
 
 La V1 tenait en 4 pages très denses (environ 460 mots par page). La V2 passe à
 8 pages, le format courant d'une plaquette, avec un texte condensé : environ
@@ -70,8 +70,9 @@ demander leurs portraits au client si l'on veut des photos.
   pictogrammes (une fois, communs aux trois langues), puis imprime les PDF et
   les aperçus des trois sources.
 - `visuels.js`, `globe-*.svg` : générés par `build.mjs`, ne pas les éditer à la
-  main. Communs aux trois langues, sauf `globe-afrique-europe-ameriques.svg`,
-  propre aux versions anglaise et espagnole (voir « Version anglaise »).
+  main. Communs aux trois langues. `globe-afrique-europe.svg` n'est plus
+  utilisé depuis que la page 3 nomme l'Amérique latine : le script le
+  produit encore, au cas où l'on reviendrait à l'ancien engagement.
 - `democracy-together-plaquette-a4.pdf`, `-livret-a5.pdf`,
   `-livret-a5-impression.pdf` : les trois PDF français (8 pages en A4, 8 pages
   en A5, livret A5 monté sur 4 faces A4 pour l'imprimer au bureau — voir
@@ -161,7 +162,8 @@ Titres et accroches :
   (ii) mondial (iii) avec une attention particulière… » deviennent trois
   engagements explicites, chacun avec une phrase : « Ouvert aux jeunes »,
   « Mondial » (qui reprend « associant les pays développés et les pays en
-  émergence »), « Attentif à l'Afrique et à l'Europe ».
+  émergence »), « Attentif à l'Afrique et à l'Europe », devenu ensuite
+  « Afrique, Europe, Amérique latine et au-delà » (voir « Version anglaise »).
 - Page 8 : « Votre think tank a sa place dans le réseau » et la liste « Ce que
   le réseau vous apporte » regroupent des éléments dispersés dans le texte
   (visibilité, administration allégée, formations et financements ciblés,
@@ -197,9 +199,11 @@ reprend le cadrage du globe « Mondial » juste au-dessus (centré sur
 l'Atlantique, tous les continents visibles) plutôt que le cadrage resserré du
 globe franco-français, avec l'Afrique, l'Europe et l'Amérique latine
 légèrement plus lumineuses que le reste ; l'idée est qu'il continue à se lire
-comme « le monde », pas comme trois continents isolés. Cette différence
-n'existe qu'en anglais ; à valider avec le client (voir « À valider »), et à
-reporter en français s'il le souhaite.
+comme « le monde », pas comme trois continents isolés. Le client a validé ce
+changement le 23/11/2026 et l'a fait reporter en français (« Afrique, Europe,
+Amérique latine et au-delà », « Trois ancrages forts, dans un réseau pensé
+pour atteindre tous les continents ») et en espagnol. La couverture garde,
+dans les trois langues, « attentif à l'Afrique et à l'Europe ».
 
 Quelques choix de traduction, à signaler aussi :
 
@@ -231,11 +235,8 @@ Quelques choix de traduction, à signaler aussi :
 `plaquette-es.html` (23/11/2026) traduit le texte de `plaquette.html` page par
 page, au vouvoiement (« usted »), comme la version espagnole du site.
 
-- Page 3 : le troisième engagement suit la version anglaise et non la
-  française : « África, Europa, América Latina y más allá », avec le globe
-  `globe-afrique-europe-ameriques.svg`. Pour des lecteurs hispanophones, « Afrique et
-  Europe » seuls les auraient laissés de côté. La couverture garde « atenta a
-  África y a Europa », comme l'anglais garde « attentive to Africa and Europe ».
+- Page 3 : « África, Europa, América Latina y más allá », comme dans les
+  deux autres langues. La couverture garde « atenta a África y a Europa ».
 - « Think tank » reste en anglais, comme sur le site et dans l'usage courant en
   espagnol. « Relecteurs » devient « revisores », le terme du site.
 - « Association loi 1901 » devient « Asociación sin ánimo de lucro » dans la
@@ -271,9 +272,8 @@ page, au vouvoiement (« usted »), comme la version espagnole du site.
    hispanophone.
 7. Impression : quantité, imprimeur et papier, pour préparer la version avec
    fonds perdus (dans les trois langues).
-8. L'ajout de l'Amérique latine au troisième engagement, pour l'instant en
-   anglais et en espagnol uniquement (voir « Version anglaise ») : le texte et le globe
-   conviennent-ils, et faut-il reporter ce changement en français ?
+8. ~~L'ajout de l'Amérique latine au troisième engagement.~~ Validé le
+   23/11/2026 et reporté dans les trois langues (voir « Version anglaise »).
 
 À signaler aussi : la page d'accueil du site annonce des bureaux à « Paris ·
 Dakar · Bruxelles », alors que le texte V1 dit que les pôles régionaux
