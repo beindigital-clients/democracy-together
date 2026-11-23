@@ -77,8 +77,6 @@ Les paramètres d'URL servent aussi à l'écran : `lettre-fr.html?signe=abdou-sa
 
 - La qualité des signataires (aujourd'hui « Cofondateur de Democracy
   Together » pour Philippe Kourilsky et Abdou Samb).
-- Les trois langues de la plaquette : le dépôt n'en contient que deux
-  (français, anglais).
 - L'accord de Jean-Pierre Roth pour la publication de son commentaire sous son
   nom, et la vérification de la recopie par David Ojcius.
 - La mention « Commentaire imaginaire » sur les deux autres commentaires.
