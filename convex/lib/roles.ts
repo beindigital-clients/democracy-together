@@ -75,8 +75,9 @@ export function canValidatePublications(account: {
 // accepts anything from `membre` up), so an extra rank between `visiteur` and
 // `membre` would have been silently accepted or refused by dozens of call
 // sites written before it existed. A separate flag leaves all of them exactly
-// as they were: an Ami is a `visiteur` for the whole platform, and gains ONE
-// thing — the Cercle's private space.
+// as they were: an Ami is a `visiteur` for the whole platform, and gains TWO
+// things — the Cercle's private space, and the author's side of KOHOP
+// (`canAuthorKohop` below).
 //
 // PURE and shared with the UI, like the rest of this module: the screens that
 // show the Cercle space read THIS function, the server guard
@@ -89,6 +90,25 @@ export function isAmi(account: { amiSince?: number | null }): boolean {
 // member or above (members already belong to the network, they do not need a
 // second request). A visitor without the Ami status never does.
 export function hasCercleAccess(account: {
+  role?: string | null;
+  amiSince?: number | null;
+}): boolean {
+  return (
+    isAmi(account) || roleRank(account.role) >= ROLE_ORDER.indexOf('membre')
+  );
+}
+
+// Who may write for KOHOP as an AUTHOR: every member and above, and the Amis
+// of the Cercle (decision of 23/11/2026: the invitation letter asks the Amis
+// to write for KOHOP). The same people as the Cercle today, kept as its own
+// function because the two may part later. Only the author's side: choosing
+// reviewers, the review chief's work and the back office keep their own rules,
+// and the pilot access (`canDeposit`, convex/lib/kohopAccess.ts) applies to an
+// Ami exactly as to a member.
+//
+// PURE and shared with the UI: the KOHOP author screens and the member
+// navigation read THIS function, the server guard (`requireKohopAuthor`) too.
+export function canAuthorKohop(account: {
   role?: string | null;
   amiSince?: number | null;
 }): boolean {

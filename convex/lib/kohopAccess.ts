@@ -1,7 +1,8 @@
 import { ConvexError } from 'convex/values';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
-import { requireNetworkRole } from './rbac';
+import { requireNetworkRole, requireUser } from './rbac';
+import { canAuthorKohop } from './roles';
 import {
   KOHOP_DEFAULT_ACCESS,
   nextStage,
@@ -36,8 +37,9 @@ export async function getKohopSettings(
 }
 
 /**
- * May this account deposit a contribution now? `open`: every member;
- * `pilot`: only the accounts that belong to a listed organization (D-15).
+ * May this account deposit a contribution now? `open`: every author (member or
+ * Ami, see `requireKohopAuthor`); `pilot`: only the accounts that belong to a
+ * listed organization (D-15), an Ami included.
  */
 export async function canDeposit(
   ctx: QueryCtx | MutationCtx,
@@ -61,6 +63,22 @@ export async function assertCanDeposit(
 }
 
 /**
+ * Guard of the author's side of KOHOP: a member and above, or an Ami of the
+ * Cercle (`canAuthorKohop`). Built on `requireUser`, so a suspended account or
+ * a session without its second factor is refused first. A visitor gets the
+ * same refusal as before the Amis were let in.
+ */
+export async function requireKohopAuthor(
+  ctx: QueryCtx | MutationCtx,
+): Promise<Doc<'users'>> {
+  const user = await requireUser(ctx);
+  if (!canAuthorKohop(user)) {
+    throw new Error('Accès refusé : rôle « membre » requis.');
+  }
+  return user;
+}
+
+/**
  * The author's own contribution. Someone else's file reads as NON-EXISTENT
  * (`NOT_FOUND`), never as forbidden: it must not confirm that it exists.
  */
@@ -68,7 +86,7 @@ export async function requireOwnContribution(
   ctx: MutationCtx | QueryCtx,
   contributionId: Id<'kohopContributions'>,
 ): Promise<{ user: Doc<'users'>; contribution: Doc<'kohopContributions'> }> {
-  const user = await requireNetworkRole(ctx, 'membre');
+  const user = await requireKohopAuthor(ctx);
   const contribution = await ctx.db.get(contributionId);
   if (!contribution || contribution.authorUserId !== user._id) {
     throw new ConvexError('NOT_FOUND');

@@ -3,7 +3,6 @@ import { query, mutation } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { requireNetworkRole } from './lib/rbac';
 import { recordAudit } from './lib/audit';
 import { AUDIT } from './lib/auditActions';
 import { notify } from './lib/notify';
@@ -32,6 +31,7 @@ import {
   getKohopSettings,
   recordKohopEvent,
   requireOwnContribution,
+  requireKohopAuthor,
   versionOf,
 } from './lib/kohopAccess';
 import { collectLinkFacts } from './lib/kohopLinkFacts';
@@ -86,7 +86,7 @@ const REPLACEMENT_STAGES: readonly Doc<'kohopContributions'>['stage'][] = [
 export const myAccess = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireNetworkRole(ctx, 'membre');
+    const user = await requireKohopAuthor(ctx);
     const settings = await getKohopSettings(ctx);
     return {
       access: settings.access,
@@ -204,7 +204,7 @@ export const createDraft = mutation({
   args: { lang: kohopLang },
   returns: v.id('kohopContributions'),
   handler: async (ctx, { lang }) => {
-    const user = await requireNetworkRole(ctx, 'membre');
+    const user = await requireKohopAuthor(ctx);
     await assertCanDeposit(ctx, user._id);
     await enforceRateLimit(ctx, {
       key: `kohop:draft:${user._id}`,
@@ -378,7 +378,7 @@ async function reviewersForAuthor(
 export const listMine = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireNetworkRole(ctx, 'membre');
+    const user = await requireKohopAuthor(ctx);
     const rows = await ctx.db
       .query('kohopContributions')
       .withIndex('by_author', (q) => q.eq('authorUserId', user._id))
@@ -404,7 +404,7 @@ export const getMine = query({
   handler: async (ctx, { contributionId }) => {
     // Someone else's file, or none: `null` — the screen shows "not found"
     // instead of an error page, and nothing says which of the two it is.
-    const user = await requireNetworkRole(ctx, 'membre');
+    const user = await requireKohopAuthor(ctx);
     const contribution = await ctx.db.get(contributionId);
     if (!contribution || contribution.authorUserId !== user._id) return null;
     const version = await versionOf(

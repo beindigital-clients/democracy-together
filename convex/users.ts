@@ -8,7 +8,7 @@ import {
   effectiveRole,
 } from './lib/rbac';
 import { networkRole, locale } from './schema';
-import { roleRank, isAmi, hasCercleAccess } from './lib/roles';
+import { roleRank, isAmi, hasCercleAccess, canAuthorKohop } from './lib/roles';
 import { recordAudit } from './lib/audit';
 import { COUNTER, bumpCounter } from './lib/counters';
 import { AUDIT } from './lib/auditActions';
@@ -34,6 +34,9 @@ export const current = query({
       // Cercle functions re-check on the server.
       ami: isAmi(user),
       cercleAccess: hasCercleAccess(user),
+      // KOHOP author side (member or Ami), display only: the KOHOP functions
+      // re-check through `requireKohopAuthor`.
+      kohopAuthor: canAuthorKohop(user),
       preferredLocale: user.preferredLocale ?? null,
     };
   },

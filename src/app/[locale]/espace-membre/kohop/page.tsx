@@ -11,7 +11,6 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/ui/field';
 import { SelectField } from '@/components/ui/choice-fields';
-import { isMember } from '@/lib/roles';
 import { vocabulary } from '@/i18n/vocabulary';
 import { StageBadge } from '@/components/kohop/stage-badge';
 import { useKohopDates, useKohopError } from '@/components/kohop/use-kohop';
@@ -69,16 +68,18 @@ export default function KohopAuthorHome() {
   const t = useTranslations('kohop');
   const dates = useKohopDates();
   const me = useQuery(api.users.current);
-  const member = isMember(me?.role);
-  const access = useQuery(api.kohop.myAccess, member ? {} : 'skip');
-  const mine = useQuery(api.kohop.listMine, member ? {} : 'skip');
+  // A member or an Ami of the Cercle (`canAuthorKohop`, re-checked by the
+  // server): the others see the closed door below.
+  const author = me?.kohopAuthor === true;
+  const access = useQuery(api.kohop.myAccess, author ? {} : 'skip');
+  const mine = useQuery(api.kohop.listMine, author ? {} : 'skip');
   if (me === undefined) return <AuthGateLoading />;
 
   return (
     <div className="max-w-3xl">
       <MemberPageHeader title={t('authorTitle')} lead={t('authorLead')} />
 
-      {!member ? (
+      {!author ? (
         <p className="mt-8 rounded-md border border-accent-edge bg-accent-tint p-6 text-ink-soft">
           {t('membersOnly')}
         </p>

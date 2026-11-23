@@ -45,6 +45,9 @@ de Playwright attendu manque, passer un autre `chrome-headless-shell` dans
   23/11/2026.
 - 08 Contact : contact@democracy-together.org et democracy-together.org, avec
   tiret (domaine retenu le 22/11/2026).
+- 03 KOHOP : « Publier sur KOHOP est ouvert aux membres du réseau et aux Amis
+  du Cercle » remplace « suppose l'adhésion au réseau du contributeur et de ses
+  relecteurs » (la plateforme ouvre KOHOP aux Amis depuis le 23/11/2026).
 - Corrections mineures : « choisies » (personnalités), « cofondateur ».
 
 ## À confirmer
@@ -54,8 +57,6 @@ de Playwright attendu manque, passer un autre `chrome-headless-shell` dans
   reportés ici.
 - Le titre de Harvey Fineberg est en anglais, comme Philippe l'a écrit ; les
   autres titres du comité sont en français.
-- « Publier sur KOHOP suppose l'adhésion au réseau » alors que la lettre
-  invite les Amis du Cercle à écrire pour KOHOP.
 - La section 07 décrit encore le Cercle des amis comme une liste de soutiens
   à formaliser ; la lettre annonce désormais un espace privé et une demande en
   ligne.
