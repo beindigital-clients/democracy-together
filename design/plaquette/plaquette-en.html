@@ -18,6 +18,9 @@
   /* Site tokens (src/app/globals.css) */
   --paper: #f4f2ec;
   --surface: #fbfaf5;
+  /* Background of the light pages: plain white (the paper tone stays for
+     text and details on the dark pages). */
+  --page: #fff;
   --ink: #16191f;
   --body: #30343c;
   --soft: #454953;
@@ -90,7 +93,7 @@ body {
   width: var(--page-w);
   height: var(--page-h);
   overflow: hidden;
-  background: var(--paper);
+  background: var(--page);
   break-after: page;
 }
 .page:last-child { break-after: auto; }
@@ -294,7 +297,7 @@ ol.missions .ico { width: calc(7 * var(--mm)); height: calc(7 * var(--mm)); colo
 .trait p { font-size: calc(11.5 * var(--pt)); }
 
 /* ========================================================== 6 KOHOP */
-.p6 { background: var(--surface); }
+.p6 { background: var(--page); }
 .p6 h2 { letter-spacing: .02em; }
 .p6 h2 span { letter-spacing: -.015em; }
 .p6 .lead { margin-top: calc(6 * var(--mm)); }
@@ -400,7 +403,7 @@ ol.timeline li::before {
   width: calc(3.4 * var(--mm));
   height: calc(3.4 * var(--mm));
   border-radius: 50%;
-  background: var(--paper);
+  background: var(--page);
   border: calc(.5 * var(--mm)) solid var(--indigo);
 }
 ol.timeline li.done::before { background: var(--indigo); }
@@ -409,7 +412,7 @@ ol.timeline strong { display: block; font-family: var(--serif); font-size: calc(
 .p7 .money { font-size: calc(10.4 * var(--pt)); margin-top: calc(3 * var(--mm)); max-width: calc(160 * var(--mm)); }
 
 /* ==================================================== 8 JOIN */
-.p8 { background: var(--paper); color: var(--ink); }
+.p8 { background: var(--page); color: var(--ink); }
 .p8 h2 { font-size: calc(42 * var(--dpt)); }
 .p8 .join-ring { position: absolute; left: calc(130 * var(--mm)); top: calc(40 * var(--mm)); width: calc(80 * var(--mm)); height: calc(80 * var(--mm)); }
 .p8 .join-ring .ring { width: 100%; height: 100%; color: var(--indigo); }
@@ -574,7 +577,7 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
     <div class="trait">
       <p class="word">Short</p>
       <div>
-        <p class="data">500 to 1,000 words</p>
+        <p class="data">500 to 1,200 words</p>
         <p>Many contributions are expected, and a relevant, well-considered idea can always be expressed concisely.</p>
       </div>
     </div>
@@ -605,11 +608,11 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
     <ol class="flow">
       <li>
         <h3>The author submits a contribution</h3>
-        <p>500 to 1,000 words, with links to more detailed texts, available in one click.</p>
+        <p>500 to 1,200 words, with links to more detailed texts, available in one click.</p>
       </li>
       <li>
-        <h3>The author names reviewers</h3>
-        <p>No anonymity: their names and their analyses are published alongside the text.</p>
+        <h3>The author names three reviewers</h3>
+        <p>At least two are needed. No anonymity: their names and their analyses are published alongside the text.</p>
       </li>
       <li>
         <h3>The editor-in-chief oversees</h3>
@@ -706,7 +709,7 @@ ul.gains .ico { width: calc(6.6 * var(--mm)); height: calc(6.6 * var(--mm)); col
   </div>
   <div class="contact">
     <p class="ask">Write to us</p>
-    <p class="mail">contact@democracytogether.org</p>
+    <p class="mail">contact@democracy-together.org</p>
     <p class="where">Non-profit association (French “loi 1901”) · Paris</p>
     <img class="logo" src="../../public/brand/democracy-together-logo-dark.png" alt="Democracy Together">
   </div>

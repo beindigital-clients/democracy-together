@@ -16,13 +16,13 @@ La V1 tenait en 4 pages très denses (environ 460 mots par page). La V2 passe à
 | Page | Contenu | Fond |
 |---|---|---|
 | 1 | Couverture : « La démocratie a besoin d'un réseau », anneau du logo autour du globe | Indigo |
-| 2 | Le constat : la crise, ses causes, la citation clé | Papier, bandeau indigo |
-| 3 | Notre réponse : le réseau, ses trois engagements, notre pari | Papier |
+| 2 | Le constat : la crise, ses causes, la citation clé | Blanc, bandeau indigo |
+| 3 | Notre réponse : le réseau, ses trois engagements, notre pari | Blanc |
 | 4 | Vision, cinq missions, le champ couvert | Indigo |
-| 5 | La méthode : des contributions courtes, de qualité, évaluées par les pairs | Papier |
-| 6 | KOHOP : le parcours d'une contribution en cinq étapes, ses atouts | Papier clair |
-| 7 | Les fondateurs, où en est le projet, le financement | Papier |
-| 8 | Rejoindre le réseau : qui peut adhérer, ce que le réseau apporte, contact | Papier, bandeau indigo |
+| 5 | La méthode : des contributions courtes, de qualité, évaluées par les pairs | Blanc |
+| 6 | KOHOP : le parcours d'une contribution en cinq étapes, ses atouts | Blanc |
+| 7 | Les fondateurs, où en est le projet, le financement | Blanc |
+| 8 | Rejoindre le réseau : qui peut adhérer, ce que le réseau apporte, contact | Blanc, bandeau indigo |
 
 Imprimée pliée, la plaquette se lit en doubles pages : 2-3 (pourquoi, quoi),
 4-5 (vision, méthode), 6-7 (plateforme, équipe).
@@ -48,7 +48,8 @@ australien). Le graphisme repose sur la charte du site :
   place vide du logo (à midi) désignée « la vôtre » sur la dernière page ;
 - les globes en points (monde, Afrique et Europe, Paris en orange) ;
 - les pictogrammes Lucide, ceux du site ;
-- les couleurs (indigo, orange, papier) et les polices (Newsreader, IBM Plex)
+- les couleurs (indigo, orange ; pages claires sur fond blanc depuis le
+  23/11/2026, le ton papier ne sert plus qu'au texte des pages indigo) et les polices (Newsreader, IBM Plex)
   de `src/app/globals.css` et `src/lib/fonts.ts`.
 
 Les fondateurs sont représentés par leurs initiales dans un anneau. Il faudra
@@ -225,7 +226,10 @@ Quelques choix de traduction, à signaler aussi :
    nom anglais de l'institution et son sigle usuel « EEAS » — voir « Version
    anglaise »).
 5. L'adresse du site et un QR code vers la page d'adhésion, dès que le domaine
-   est fixé (democracytogether.org ?).
+   est en ligne. Domaine retenu par Philippe Kourilsky le 22/11/2026 :
+   democracy-together.org, avec tiret (à vérifier avec Armelle Chapalain).
+   L'adresse de contact de la page 8 est passée à
+   contact@democracy-together.org : vérifier que cette boîte existe.
 6. ~~Une version anglaise pour le recrutement hors des pays francophones.~~
    Faite (`plaquette-en.html`) : à relire, les choix de traduction sont listés
    dans « Version anglaise » ci-dessus.
@@ -238,3 +242,6 @@ Quelques choix de traduction, à signaler aussi :
 À signaler aussi : la page d'accueil du site annonce des bureaux à « Paris ·
 Dakar · Bruxelles », alors que le texte V1 dit que les pôles régionaux
 « seront installés prochainement ». L'un des deux est à corriger.
+9. Comité d'honneur (page 7, voir plus haut) : y inscrire « Harvey Fineberg,
+   Professor emeritus, Harvard University », sans autre titre (demande de
+   Philippe Kourilsky, 23/11/2026).
