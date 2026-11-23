@@ -657,7 +657,7 @@ describe('Dépôt', () => {
     return { ...w, id };
   }
 
-  it('exige les trois engagements, deux relecteurs titulaires et un texte de 500 à 1 000 mots', async () => {
+  it('exige les trois engagements, deux relecteurs titulaires et un texte de 500 à 1 200 mots', async () => {
     const { author, id, t } = await ready();
     const before = await counts(t);
     for (const patch of [
@@ -685,7 +685,7 @@ describe('Dépôt', () => {
         ...COMMIT,
       }),
     ).rejects.toThrow('BODY_TOO_SHORT');
-    const long = await draft(author, { body: words(1001) });
+    const long = await draft(author, { body: words(1201) });
     await expect(
       author.as.mutation(api.kohop.submit, { contributionId: long, ...COMMIT }),
     ).rejects.toThrow('BODY_TOO_LONG');

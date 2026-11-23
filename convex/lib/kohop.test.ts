@@ -286,7 +286,7 @@ describe('KOHOP — avis et présomption d’acceptation', () => {
 
 describe('KOHOP — bornes, délais, champs, liens', () => {
   it('reprend les bornes du plan', () => {
-    expect(KOHOP_BOUNDS.words).toEqual({ min: 500, max: 1000 });
+    expect(KOHOP_BOUNDS.words).toEqual({ min: 500, max: 1200 });
     expect(KOHOP_BOUNDS.analysisWords).toEqual({ min: 150, max: 1500 });
     expect(KOHOP_BOUNDS.responseWords.max).toBe(800);
     expect(KOHOP_BOUNDS.reviewers).toEqual({ titular: 2, substitute: 1 });
